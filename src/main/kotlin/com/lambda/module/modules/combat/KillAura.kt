@@ -49,22 +49,22 @@ import net.minecraft.world.GameMode
 object KillAura : Module(
     name = "KillAura",
     description = "Attacks entities",
-    tag = ModuleTag.Combat,
+    tag = ModuleTag.COMBAT,
     modulePriority = 90
 ) {
-    private const val GeneralTab = "General"
-    private const val TargetingTab = "Targeting"
+    private const val GENERAL_TAB = "General"
+    private const val TARGETING_TAB = "Targeting"
 
-    @Tab(GeneralTab) private val rotate by setting("Rotate", true)
-    @Tab(GeneralTab) private val swap by setting("Swap", true, "Swap to the item with the highest damage")
-    @Tab(GeneralTab) private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra")
-    @Tab(GeneralTab) private val damageMode by setting("Damage Mode", DamageMode.Dps)
-    @Tab(GeneralTab) private val attackMode by setting("Attack Mode", AttackMode.Cooldown)
-    @Tab(GeneralTab) private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }
-    @Tab(GeneralTab) private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
-    @Tab(GeneralTab) private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
+    @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
+    @Tab(GENERAL_TAB) private val swap by setting("Swap", true, "Swap to the item with the highest damage")
+    @Tab(GENERAL_TAB) private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra")
+    @Tab(GENERAL_TAB) private val damageMode by setting("Damage Mode", DamageMode.Dps)
+    @Tab(GENERAL_TAB) private val attackMode by setting("Attack Mode", AttackMode.Cooldown)
+    @Tab(GENERAL_TAB) private val cooldownShrink by setting("Cooldown Offset", 0, 0..5, 1) { attackMode == AttackMode.Cooldown }
+    @Tab(GENERAL_TAB) private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
+    @Tab(GENERAL_TAB) private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { attackMode == AttackMode.Delay }
 
-    @Tab(TargetingTab) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this))
+    @Tab(TARGETING_TAB) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this))
 
     val target: Entity?
         get() = targetingSettings.target<Entity>()

@@ -23,8 +23,8 @@ import net.minecraft.util.math.Direction
 import java.awt.Color
 
 class BoxBuilder(lineConfig: LineConfig?) {
-    var outlineSides: Int = DirectionMask.All
-    var fillSides: Int = DirectionMask.All
+    var outlineSides: Int = DirectionMask.ALL
+    var fillSides: Int = DirectionMask.ALL
 
     var outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.And
     var lineWidth = lineConfig?.width ?: -0.0005f
@@ -213,24 +213,24 @@ class BoxBuilder(lineConfig: LineConfig?) {
 
     @RenderDsl
     fun hideOutline() {
-        outlineSides = DirectionMask.None
+        outlineSides = DirectionMask.NONE
     }
 
     @RenderDsl
     fun hideFill() {
-        fillSides = DirectionMask.None
+        fillSides = DirectionMask.NONE
     }
 
     @RenderDsl
     fun outlineOnly() {
-        outlineSides = DirectionMask.All
-        fillSides = DirectionMask.None
+        outlineSides = DirectionMask.ALL
+        fillSides = DirectionMask.NONE
     }
 
     @RenderDsl
     fun fillOnly() {
-        outlineSides = DirectionMask.None
-        fillSides = DirectionMask.All
+        outlineSides = DirectionMask.NONE
+        fillSides = DirectionMask.ALL
     }
 
     @RenderDsl

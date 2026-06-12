@@ -18,7 +18,7 @@
 package com.lambda.core
 
 import com.lambda.Lambda
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.util.CommunicationUtils.ascii
 import com.lambda.util.ReflectionUtils.getInstances
 import kotlin.system.measureTimeMillis
@@ -33,14 +33,14 @@ object Loader {
     private val loadables = getInstances<Loadable>()
 
     fun initialize(): Long {
-        ascii.split("\n").forEach { Log.info(it) }
-        Log.info("Initializing ${Lambda.ModName} ${Lambda.Version} (${loadables.size} loaders)...")
+        ascii.split("\n").forEach { LOG.info(it) }
+        LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION} (${loadables.size} loaders)...")
 
         val initTime = measureTimeMillis {
             loadables.sortedByDescending { it.priority }.forEach {
                 var response: String
                 val time = measureTimeMillis { response = it.load() }
-                if (response.isNotBlank()) Log.info("$response ($time ms)")
+                if (response.isNotBlank()) LOG.info("$response ($time ms)")
             }
         }
 

@@ -20,7 +20,7 @@ package com.lambda.config.settings.blocks
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.AllStages
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 
 class HotbarSettings(override val c: Config) : HotbarConfig, ConfigBlock {
     override val swapMode by c.setting("Swap Mode", HotbarConfig.SwapMode.Temporary)
@@ -28,5 +28,5 @@ class HotbarSettings(override val c: Config) : HotbarConfig, ConfigBlock {
     override val swapDelay by c.setting("Swap Delay", 0, 0..3, 1, "The number of ticks delay before allowing another hotbar selection swap", " ticks")
     override val swapsPerTick by c.setting("Swaps Per Tick", 3, 1..10, 1, "The number of hotbar selection swaps that can take place each tick") { swapDelay <= 0 }
     override val swapPause by c.setting("Swap Pause", 0, 0..20, 1, "The delay in ticks to pause actions after switching to the slot", " ticks")
-    override val tickStageMask by c.setting("Hotbar Stage Mask", setOf(TickEvent.Input.Post), AllStages.toSet(), "The sub-tick timing at which hotbar actions are performed", displayClassName = true)
+    override val tickStageMask by c.setting("Hotbar Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which hotbar actions are performed", displayClassName = true)
 }

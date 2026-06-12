@@ -23,5 +23,5 @@ import com.lambda.module.tag.ModuleTag
 object NoForceRotate : Module(
 	name = "NoForceRotate",
 	description = "Prevents the server from forcing your players rotation",
-	tag = ModuleTag.Player
+	tag = ModuleTag.PLAYER
 )

@@ -34,48 +34,48 @@ import net.minecraft.util.math.Vec3i
  */
 typealias FastVector = Long
 
-internal const val XBits = 26
-internal const val ZBits = 26
-internal const val YBits = 12
+internal const val X_BITS = 26
+internal const val Z_BITS = 26
+internal const val Y_BITS = 12
 
-internal const val XShift = YBits + ZBits
-internal const val ZShift = YBits
+internal const val X_SHIFT = Y_BITS + Z_BITS
+internal const val Z_SHIFT = Y_BITS
 
-internal const val XMask = (1L shl XBits) - 1L
-internal const val ZMask = (1L shl ZBits) - 1L
-internal const val YMask = (1L shl YBits) - 1L
+internal const val X_MASK = (1L shl X_BITS) - 1L
+internal const val Z_MASK = (1L shl Z_BITS) - 1L
+internal const val Y_MASK = (1L shl Y_BITS) - 1L
 
-internal const val MinX = -(1L shl XBits - 1)
-internal const val MinZ = -(1L shl ZBits - 1)
-internal const val MaxX = (1L shl XBits - 1) - 1L
-internal const val MaxZ = (1L shl ZBits - 1) - 1L
+internal const val MIN_X = -(1L shl X_BITS - 1)
+internal const val MIN_Z = -(1L shl Z_BITS - 1)
+internal const val MAX_X = (1L shl X_BITS - 1) - 1L
+internal const val MAX_Z = (1L shl Z_BITS - 1) - 1L
 
 /**
  * Serialized representation of (1, 1, 1)
  */
-const val FOne = 274945015809L
+const val F_ONE = 274945015809L
 
 fun fastVectorOf(x: Long, y: Long, z: Long): FastVector {
-    require(x in MinX..MaxX) { "X coordinate out of bounds for $XBits bits: $x" }
-    require(z in MinZ..MaxZ) { "Z coordinate out of bounds for $ZBits bits: $z" }
+    require(x in MIN_X..MAX_X) { "X coordinate out of bounds for $X_BITS bits: $x" }
+    require(z in MIN_Z..MAX_Z) { "Z coordinate out of bounds for $Z_BITS bits: $z" }
 
-    return ((x and XMask) shl XShift) or ((z and ZMask) shl ZShift) or (y and YMask)
+    return ((x and X_MASK) shl X_SHIFT) or ((z and Z_MASK) shl Z_SHIFT) or (y and Y_MASK)
 }
 
 fun fastVectorOf(x: Int, y: Int, z: Int): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
 val FastVector.x: Int
-    get() = ((this shr XShift and XMask).toInt() shl (32 - XBits)) shr (32 - XBits)
+    get() = ((this shr X_SHIFT and X_MASK).toInt() shl (32 - X_BITS)) shr (32 - X_BITS)
 
 val FastVector.z: Int
-    get() = ((this shr ZShift and ZMask).toInt() shl (32 - ZBits)) shr (32 - ZBits)
+    get() = ((this shr Z_SHIFT and Z_MASK).toInt() shl (32 - Z_BITS)) shr (32 - Z_BITS)
 
 val FastVector.y: Int
-    get() = ((this and YMask).toInt() shl (32 - YBits)) shr (32 - YBits)
+    get() = ((this and Y_MASK).toInt() shl (32 - Y_BITS)) shr (32 - Y_BITS)
 
-infix fun FastVector.setX(x: Int): FastVector = bitSetTo(x.toLong(), XShift, XBits)
-infix fun FastVector.setY(y: Int): FastVector = bitSetTo(y.toLong(), 0, YBits)
-infix fun FastVector.setZ(z: Int): FastVector = bitSetTo(z.toLong(), ZShift, ZBits)
+infix fun FastVector.setX(x: Int): FastVector = bitSetTo(x.toLong(), X_SHIFT, X_BITS)
+infix fun FastVector.setY(y: Int): FastVector = bitSetTo(y.toLong(), 0, Y_BITS)
+infix fun FastVector.setZ(z: Int): FastVector = bitSetTo(z.toLong(), Z_SHIFT, Z_BITS)
 
 infix fun FastVector.addX(value: Int): FastVector = setX(x + value)
 infix fun FastVector.addY(value: Int): FastVector = setY(y + value)

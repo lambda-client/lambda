@@ -27,7 +27,7 @@ import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
 object Time : Module(
 	name = "Time",
 	description = "Changes the time of day",
-	tag = ModuleTag.Render
+	tag = ModuleTag.RENDER
 ) {
 	private val time by setting("Time", 12000L, 0L..24000L, 100L)
 

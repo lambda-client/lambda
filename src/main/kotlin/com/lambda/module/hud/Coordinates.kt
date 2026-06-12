@@ -36,14 +36,14 @@ import com.lambda.util.math.overworldCoord
 object Coordinates : HudModule(
 	name = "Coordinates",
 	description = "Show your coordinates",
-	tag = ModuleTag.Hud,
+	tag = ModuleTag.HUD,
 ) {
 	private val showDimension by setting("Show Dimension Name", true)
 	private val showBiome by setting("Show Biome Name", true)
 	private val showCurrentDimensionOnly by setting("Show Current Dimension Only", true)
 
-	private const val CurrentDimensionTab = "Current Dimension"
-	@Tab(CurrentDimensionTab) private val formatter by configBlock(FormatterSettings(this))
+	private const val CURRENT_DIMENSION_TAB = "Current Dimension"
+	@Tab(CURRENT_DIMENSION_TAB) private val formatter by configBlock(FormatterSettings(this))
 		.withEdits { ::timeFormat.editSetting { hide() } }
 
 //	private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {

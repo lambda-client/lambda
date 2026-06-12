@@ -39,7 +39,7 @@ import net.minecraft.util.math.BlockPos
 object Nuker : Module(
 	name = "Nuker",
 	description = "Breaks blocks around you",
-	tag = ModuleTag.World,
+	tag = ModuleTag.WORLD,
 	autoDisable = true
 ) {
 	private val height by setting("Height", 6, 1..8, 1)

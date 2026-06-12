@@ -58,7 +58,7 @@ object SettingsWidget {
 	            }
             }
             lambdaTooltip("Resets all settings for this module to their default values")
-            if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.Default) {
+            if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.DEFAULT) {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }

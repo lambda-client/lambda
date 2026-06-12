@@ -33,7 +33,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.Everything
+import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
@@ -155,7 +155,7 @@ class BreakSim private constructor(simInfo: SimInfo)
 				it.inventoryIndex == HotbarManager.serverSlot
 			}
 		) {
-			Everything
+			EVERYTHING
 				.andIf(breakConfig.efficientOnly) {
 					isEfficientForBreaking(state)
 				}.andIf(breakConfig.suitableToolsOnly) {

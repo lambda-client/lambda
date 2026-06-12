@@ -46,7 +46,7 @@ import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
 object InventoryMove : Module(
 	name = "InventoryMove",
 	description = "Allows you to move with GUIs opened",
-	tag = ModuleTag.Player,
+	tag = ModuleTag.PLAYER,
 ) {
 	private val clickGui by setting("ClickGui", false)
 	private val disableSneak by setting("Disable Sneak", false)

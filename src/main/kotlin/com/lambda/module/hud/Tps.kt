@@ -29,7 +29,7 @@ import com.lambda.util.ServerTPSUtils.recentData
 object Tps : HudModule(
 	name = "TPS",
 	description = "Display the server's tick rate",
-	tag = ModuleTag.Hud,
+	tag = ModuleTag.HUD,
 ) {
 	private val format by setting("Tick format", ServerTPSUtils.TickFormat.Tps)
 	private val showGraph by setting("Show TPS Graph", false)

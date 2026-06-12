@@ -42,12 +42,12 @@ object DearImGui : Loadable {
     val implGlfw = ImGuiImplGlfw()
     val implGl3 = ImGuiImplGl3()
 
-    const val ExternalLink = '↗'
-    const val BreadCrumbSeparator = '»'
-    const val BaseFontScale = 13f
+    const val EXTERNAL_LINK = '↗'
+    const val BREAD_CRUMB_SEPARATOR = '»'
+    const val BASE_FONT_SCALE = 13f
 
     val io: ImGuiIO get() = ImGui.getIO()
-    const val DefaultFlags = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
+    const val DEFAULT_FLAGS = ImGuiConfigFlags.NavEnableKeyboard or // Enable Keyboard Controls
             ImGuiConfigFlags.NavEnableSetMousePos or // Move the cursor using the keyboard
             ImGuiConfigFlags.DockingEnable
 
@@ -60,11 +60,11 @@ object DearImGui : Loadable {
         val glyphRanges = ImFontGlyphRangesBuilder().apply {
             addRanges(io.fonts.glyphRangesDefault)
             addRanges(io.fonts.glyphRangesGreek)
-            addChar(ExternalLink)
-            addChar(BreadCrumbSeparator)
+            addChar(EXTERNAL_LINK)
+            addChar(BREAD_CRUMB_SEPARATOR)
         }.buildRanges()
         val fontConfig = ImFontConfig()
-        val size = BaseFontScale * scale
+        val size = BASE_FONT_SCALE * scale
         with(io.fonts) {
             clear()
             addFontFromMemoryTTF("fonts/FiraSans-Regular.ttf".stream.readAllBytes(), size, fontConfig, glyphRanges)
@@ -78,7 +78,7 @@ object DearImGui : Loadable {
     fun render() {
         val userPercent = ClickGuiLayout.scaleSetting / 100.0
         val dpi = ClickGuiLayout.deviceScaleMultiplier()
-        val base = ClickGuiLayout.BaseScaleMulti * dpi
+        val base = ClickGuiLayout.BASE_SCALE_MULTI * dpi
         val fontScaleSetting = ClickGuiLayout.fontScale
         val scale = (base * userPercent * fontScaleSetting).toFloat()
 
@@ -136,7 +136,7 @@ object DearImGui : Loadable {
         ImGui.createContext()
         ImPlot.createContext()
 
-        io.configFlags = DefaultFlags
+        io.configFlags = DEFAULT_FLAGS
         io.iniFilename = "lambda.ini"
 
         implGlfw.init(mc.window.handle, true)

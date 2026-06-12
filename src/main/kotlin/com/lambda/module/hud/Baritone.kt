@@ -27,7 +27,7 @@ import com.lambda.module.tag.ModuleTag
 object Baritone : HudModule(
     name = "Baritone",
     description = "Look inside of Baritones head",
-    tag = ModuleTag.Hud,
+    tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
         if (!BaritoneHandler.isBaritoneLoaded) {

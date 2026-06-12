@@ -31,7 +31,7 @@ import net.minecraft.util.hit.BlockHitResult
 object StateInfo : Module(
     name = "StateInfo",
     description = "Prints the target block's state into chat",
-    tag = ModuleTag.Debug,
+    tag = ModuleTag.DEBUG,
 ) {
     @Suppress("unused")
     private val printBind by setting("Print", KeyCode.Unbound, "The bind used to print the info to chat")

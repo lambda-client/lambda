@@ -28,7 +28,7 @@ import net.minecraft.util.hit.HitResult
 @Suppress("unused")
 object RotationTest : Module(
     name = "RotationTest",
-    tag = ModuleTag.Debug,
+    tag = ModuleTag.DEBUG,
 ) {
     var hitPos: HitResult? = null
     

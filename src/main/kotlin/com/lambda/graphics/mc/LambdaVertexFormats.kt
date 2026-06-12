@@ -21,7 +21,7 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexFormatElement
 
 object LambdaVertexFormats {
-    val NormalFloat: VertexFormatElement = VertexFormatElement.register(
+    val NORMAL_FLOAT: VertexFormatElement = VertexFormatElement.register(
         30,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -29,7 +29,7 @@ object LambdaVertexFormats {
         3
     )
     
-    val LineWidthFloat: VertexFormatElement = VertexFormatElement.register(
+    val LINE_WIDTH_FLOAT: VertexFormatElement = VertexFormatElement.register(
         29,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -37,7 +37,7 @@ object LambdaVertexFormats {
         1
     )
     
-    val DashElement: VertexFormatElement = VertexFormatElement.register(
+    val DASH_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         31,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -45,7 +45,7 @@ object LambdaVertexFormats {
         4
     )
     
-    val AnchorElement: VertexFormatElement = VertexFormatElement.register(
+    val ANCHOR_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         20,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -53,7 +53,7 @@ object LambdaVertexFormats {
         3
     )
     
-    val BillboardDataElement: VertexFormatElement = VertexFormatElement.register(
+    val BILLBOARD_DATA_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         21,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -61,23 +61,23 @@ object LambdaVertexFormats {
         2
     )
     
-    val PositionColorNormalLineWidthDash: VertexFormat = VertexFormat.builder()
+    val POSITION_COLOR_NORMAL_LINE_WIDTH_DASH: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("Color", VertexFormatElement.COLOR)
-        .add("Normal", NormalFloat)
-        .add("LineWidth", LineWidthFloat)
-        .add("Dash", DashElement)
+        .add("Normal", NORMAL_FLOAT)
+        .add("LineWidth", LINE_WIDTH_FLOAT)
+        .add("Dash", DASH_ELEMENT)
         .build()
     
-    val PositionTextureColorAnchor: VertexFormat = VertexFormat.builder()
+    val POSITION_TEXTURE_COLOR_ANCHOR: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("UV0", VertexFormatElement.UV0)
         .add("Color", VertexFormatElement.COLOR)
-        .add("Anchor", AnchorElement)
-        .add("BillboardData", BillboardDataElement)
+        .add("Anchor", ANCHOR_ELEMENT)
+        .add("BillboardData", BILLBOARD_DATA_ELEMENT)
         .build()
 
-    val Direction2dElement: VertexFormatElement = VertexFormatElement.register(
+    val DIRECTION_2D_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         22,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -85,7 +85,7 @@ object LambdaVertexFormats {
         2
     )
 
-    val LayerElement: VertexFormatElement = VertexFormatElement.register(
+    val LAYER_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         24,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -93,22 +93,22 @@ object LambdaVertexFormats {
         1
     )
 
-    val ScreenFaceFormat: VertexFormat = VertexFormat.builder()
+    val SCREEN_FACE_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("Color", VertexFormatElement.COLOR)
-        .add("Layer", LayerElement)
+        .add("Layer", LAYER_ELEMENT)
         .build()
 
-    val ScreenLineFormat: VertexFormat = VertexFormat.builder()
+    val SCREEN_LINE_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("Color", VertexFormatElement.COLOR)
-        .add("Direction", Direction2dElement)
-        .add("LineWidth", LineWidthFloat)
-        .add("Dash", DashElement)
-        .add("Layer", LayerElement)
+        .add("Direction", DIRECTION_2D_ELEMENT)
+        .add("LineWidth", LINE_WIDTH_FLOAT)
+        .add("Dash", DASH_ELEMENT)
+        .add("Layer", LAYER_ELEMENT)
         .build()
 
-    val SdfStyleElement: VertexFormatElement = VertexFormatElement.register(
+    val SDF_STYLE_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         23,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -116,24 +116,24 @@ object LambdaVertexFormats {
         4
     )
 
-    val PositionTextureColorAnchorSdf: VertexFormat = VertexFormat.builder()
+    val POSITION_TEXTURE_COLOR_ANCHOR_SDF: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("UV0", VertexFormatElement.UV0)
         .add("Color", VertexFormatElement.COLOR)
-        .add("Anchor", AnchorElement)
-        .add("BillboardData", BillboardDataElement)
-        .add("SDFStyle", SdfStyleElement)
+        .add("Anchor", ANCHOR_ELEMENT)
+        .add("BillboardData", BILLBOARD_DATA_ELEMENT)
+        .add("SDFStyle", SDF_STYLE_ELEMENT)
         .build()
 
-    val ScreenTextSdfFormat: VertexFormat = VertexFormat.builder()
+    val SCREEN_TEXT_SDF_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("UV0", VertexFormatElement.UV0)
         .add("Color", VertexFormatElement.COLOR)
-        .add("SDFStyle", SdfStyleElement)
-        .add("Layer", LayerElement)
+        .add("SDFStyle", SDF_STYLE_ELEMENT)
+        .add("Layer", LAYER_ELEMENT)
         .build()
 
-    val OverlayUvElement: VertexFormatElement = VertexFormatElement.register(
+    val OVERLAY_UV_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         25,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -141,24 +141,24 @@ object LambdaVertexFormats {
         4
     )
 
-    val ScreenImageFormat: VertexFormat = VertexFormat.builder()
+    val SCREEN_IMAGE_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("UV0", VertexFormatElement.UV0)
         .add("Color", VertexFormatElement.COLOR)
-        .add("OverlayUV", OverlayUvElement)
-        .add("Layer", LayerElement)
+        .add("OverlayUV", OVERLAY_UV_ELEMENT)
+        .add("Layer", LAYER_ELEMENT)
         .build()
 
-    val WorldImageFormat: VertexFormat = VertexFormat.builder()
+    val WORLD_IMAGE_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("UV0", VertexFormatElement.UV0)
         .add("Color", VertexFormatElement.COLOR)
-        .add("Anchor", AnchorElement)
-        .add("BillboardData", BillboardDataElement)
-        .add("OverlayUV", OverlayUvElement)
+        .add("Anchor", ANCHOR_ELEMENT)
+        .add("BillboardData", BILLBOARD_DATA_ELEMENT)
+        .add("OverlayUV", OVERLAY_UV_ELEMENT)
         .build()
 
-    val EdgeDataElement: VertexFormatElement = VertexFormatElement.register(
+    val EDGE_DATA_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         26,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -166,7 +166,7 @@ object LambdaVertexFormats {
         2
     )
 
-    val LightDirElement: VertexFormatElement = VertexFormatElement.register(
+    val LIGHT_DIR_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         27,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -174,7 +174,7 @@ object LambdaVertexFormats {
         3
     )
 
-    val Light1DirElement: VertexFormatElement = VertexFormatElement.register(
+    val LIGHT_1_DIR_ELEMENT: VertexFormatElement = VertexFormatElement.register(
         28,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -182,19 +182,19 @@ object LambdaVertexFormats {
         3
     )
 
-    val WorldModelFormat: VertexFormat = VertexFormat.builder()
+    val WORLD_MODEL_FORMAT: VertexFormat = VertexFormat.builder()
         .add("Position", VertexFormatElement.POSITION)
         .add("Color", VertexFormatElement.COLOR)
         .add("UV0", VertexFormatElement.UV0)
-        .add("OverlayUV", OverlayUvElement)
+        .add("OverlayUV", OVERLAY_UV_ELEMENT)
         .add("Light", VertexFormatElement.UV2)
-        .add("LightDir", LightDirElement)
-        .add("Light1Dir", Light1DirElement)
-        .add("Normal", NormalFloat)
-        .add("EdgeData", EdgeDataElement)
+        .add("LightDir", LIGHT_DIR_ELEMENT)
+        .add("Light1Dir", LIGHT_1_DIR_ELEMENT)
+        .add("Normal", NORMAL_FLOAT)
+        .add("EdgeData", EDGE_DATA_ELEMENT)
         .build()
 
-    val PositionH: VertexFormatElement = VertexFormatElement.register(
+    val POSITION_H: VertexFormatElement = VertexFormatElement.register(
         19,
         0,
         VertexFormatElement.Type.FLOAT,
@@ -202,8 +202,8 @@ object LambdaVertexFormats {
         4
     )
 
-    val OutlineIdFormat: VertexFormat = VertexFormat.builder()
-        .add("Position", PositionH)
+    val OUTLINE_ID_FORMAT: VertexFormat = VertexFormat.builder()
+        .add("Position", POSITION_H)
         .add("UV0", VertexFormatElement.UV0)
         .add("Color", VertexFormatElement.COLOR)
         .build()

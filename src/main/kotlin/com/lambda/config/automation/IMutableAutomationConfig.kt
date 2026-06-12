@@ -44,7 +44,7 @@ interface IMutableAutomationConfig : Automated {
 }
 
 class MutableAutomationConfig : IMutableAutomationConfig {
-	override var defaultAutomationConfig: AutomationConfig = AutomationConfig.Default
+	override var defaultAutomationConfig: AutomationConfig = AutomationConfig.DEFAULT
 		set(value) {
 			field = value
 			automationConfig = value

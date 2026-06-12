@@ -24,7 +24,7 @@ import com.lambda.module.tag.ModuleTag
 object DebugRendererModule: Module(
     name = "Debug Renderer",
     description = "Renders debug information of minecraft internals",
-    tag = ModuleTag.Debug,
+    tag = ModuleTag.DEBUG,
 ) {
     private val waterDebugRenderer by setting("Water Debug Renderer", false)
     private val chunkBorderDebugRenderer by setting("Chunk Border Debug Renderer", false)

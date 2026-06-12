@@ -36,7 +36,7 @@ import net.minecraft.util.Identifier
 object MapPreview : Module(
     name = "MapPreview",
     description = "Preview maps in your inventory",
-    tag = ModuleTag.Render,
+    tag = ModuleTag.RENDER,
 ) {
     @JvmStatic val showInSlot by setting("Show In Slot", true, "Shows the map in the slot rather than the basic map icon")
 

@@ -53,7 +53,7 @@ import java.awt.Color
 object ChunkedRendererTest : Module(
 	name = "ChunkedRendererTest",
 	description = "Test module for ChunkedRenderer",
-	tag = ModuleTag.Debug,
+	tag = ModuleTag.DEBUG,
 ) {
 	var updated = false
 
@@ -168,7 +168,7 @@ object ChunkedRendererTest : Module(
 object TickedRendererTest : Module(
 	name = "TickedRendererTest",
 	description = "Test module for TickedRenderer",
-	tag = ModuleTag.Debug,
+	tag = ModuleTag.DEBUG,
 ) {
 	private val throughWalls by setting("Through Walls", true)
 
@@ -275,7 +275,7 @@ object TickedRendererTest : Module(
 object ImmediateRendererTest : Module(
 	name = "ImmediateRendererTest",
 	description = "Test module for ImmediateRenderer",
-	tag = ModuleTag.Debug,
+	tag = ModuleTag.DEBUG,
 ) {
 	private val throughWalls by setting("Through Walls", true)
 
@@ -389,7 +389,7 @@ object ImmediateRendererTest : Module(
 					stack = ItemStack(Items.GRASS_BLOCK),
 					pos = startPos.offset(Direction.NORTH, 2.0).offset(Direction.WEST, 1.0).add(0.0, 1.5, 0.0),
 					scale = 0.5f,
-					overlay = ItemOverlay.EnchantGlint,
+					overlay = ItemOverlay.ENCHANT_GLINT,
 				)
 
 				screenGuiItem(
@@ -405,7 +405,7 @@ object ImmediateRendererTest : Module(
 					pos = startPos.offset(Direction.NORTH, 3.0),
 					scale = 0.5f,
 					flat = true,
-					overlay = ItemOverlay.EnchantGlint
+					overlay = ItemOverlay.ENCHANT_GLINT
 				)
 
 				worldGuiItem(
@@ -419,7 +419,7 @@ object ImmediateRendererTest : Module(
 					x = 0.6f, y = 0.4f,
 					size = 0.08f,
 					rotation = Vec3d(0.0, 0.0, lightTime.toDouble()), // Spinning on screen
-					lighting = ItemLighting.None
+					lighting = ItemLighting.NONE
 				)
 
 				withOutline(OutlineStyle(Color.CYAN)) {

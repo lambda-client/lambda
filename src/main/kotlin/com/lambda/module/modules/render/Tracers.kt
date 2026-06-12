@@ -42,26 +42,26 @@ import org.joml.component2
 object Tracers : Module(
 	name = "Tracers",
 	description = "Draws lines to entities within the world",
-	tag = ModuleTag.Render
+	tag = ModuleTag.RENDER
 ) {
-	private const val GeneralTab = "General"
-	private const val EntityTab = "Entities"
-	private const val ColorsTab = "Colors"
+	private const val GENERAL_TAB = "General"
+	private const val ENTITY_TAB = "Entities"
+	private const val COLORS_TAB = "Colors"
 
-	@Tab(GeneralTab) private val target by setting("Target", TracerMode.Feet)
-	@Tab(GeneralTab) private val stem by setting("Stem", true)
+	@Tab(GENERAL_TAB) private val target by setting("Target", TracerMode.Feet)
+	@Tab(GENERAL_TAB) private val stem by setting("Stem", true)
 
-	private const val FriendsLineGroup = "Friends"
-	private const val OthersLineGroup = "Others"
+	private const val FRIENDS_LINE_GROUP = "Friends"
+	private const val OTHERS_LINE_GROUP = "Others"
 
-	@Tab(GeneralTab) @Group(FriendsLineGroup) private val friendLineConfig by configBlock(ScreenLineSettings(this))
+	@Tab(GENERAL_TAB) @Group(FRIENDS_LINE_GROUP) private val friendLineConfig by configBlock(ScreenLineSettings(this))
 		.withEdits { hide(::startColor, ::endColor) }
-	@Tab(GeneralTab) @Group(OthersLineGroup) private val otherLineConfig by configBlock(ScreenLineSettings(this))
+	@Tab(GENERAL_TAB) @Group(OTHERS_LINE_GROUP) private val otherLineConfig by configBlock(ScreenLineSettings(this))
 		.withEdits { hide(::startColor, ::endColor) }
 
-	@Tab(EntityTab) private val entitySettings by configBlock(EntitySelectionSettings(this))
+	@Tab(ENTITY_TAB) private val entitySettings by configBlock(EntitySelectionSettings(this))
 		.withEdits { hide(::self, ::blockEntities) }
-	@Tab(ColorsTab) private val entityColors by configBlock(EntityColorSettings(this))
+	@Tab(COLORS_TAB) private val entityColors by configBlock(EntityColorSettings(this))
 
 	init {
 		immediateRenderer("Tracers Immediate Renderer") {

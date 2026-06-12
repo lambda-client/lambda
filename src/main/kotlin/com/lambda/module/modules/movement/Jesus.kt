@@ -42,7 +42,7 @@ import net.minecraft.util.shape.VoxelShapes
 object Jesus : Module(
     name = "Jesus",
     description = "Allows to walk on water",
-    tag = ModuleTag.Movement,
+    tag = ModuleTag.MOVEMENT,
 ) {
     private val mode by setting("Mode", Mode.Ncp)
 
@@ -91,7 +91,7 @@ object Jesus : Module(
             when (mode) {
                 Mode.Ncp -> {
                     if (!collidingWater || !player.isOnGround) return@listen
-                    setSpeed(Speed.NcpBaseSpeed * isInputting.toInt())
+                    setSpeed(Speed.NCP_BASE_SPEED * isInputting.toInt())
                 }
 
                 Mode.NcpDolphin -> {
@@ -99,7 +99,7 @@ object Jesus : Module(
                         player.motionY = dolphinStrength
 
                         if (!waterAt(0.2)) {
-                            setSpeed(Speed.NcpBaseSpeed * isInputting.toInt())
+                            setSpeed(Speed.NCP_BASE_SPEED * isInputting.toInt())
                         } else player.motionY = 0.18
                     }
                 }
@@ -112,7 +112,7 @@ object Jesus : Module(
 
                     if (++swimmingTicks < 15) {
                         if (player.isOnGround) {
-                            setSpeed(Speed.NcpBaseSpeed * isInputting.toInt())
+                            setSpeed(Speed.NCP_BASE_SPEED * isInputting.toInt())
                         }
 
                         return@listen

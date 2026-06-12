@@ -34,7 +34,7 @@ import com.lambda.threading.runSafeAutomated
 object AutoEat : Module(
     name = "AutoEat",
     description = "Eats food when you are hungry",
-    tag = ModuleTag.Player,
+    tag = ModuleTag.PLAYER,
 ) {
     private var eatTask: EatTask? = null
 

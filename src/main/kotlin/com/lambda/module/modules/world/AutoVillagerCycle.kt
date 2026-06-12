@@ -61,7 +61,7 @@ import net.minecraft.util.math.BlockPos
 object AutoVillagerCycle : Module(
 	name = "AutoVillagerCycle",
 	description = "Automatically cycles librarian villagers with lecterns until a desired enchanted book is found",
-	tag = ModuleTag.World
+	tag = ModuleTag.WORLD
 ) {
 	private val allEnchantments = ArrayList<String>()
 
@@ -70,7 +70,7 @@ object AutoVillagerCycle : Module(
 	private val interactDelay by setting("Interact Delay", 20, 1..40, 1, "Ticks to wait before interacting with the villager", " ticks")
 	private val breakDelay by setting("Break Delay", 5, 1..20, 1, "Ticks to wait after breaking the lectern", " ticks")
 	private val searchRange by setting("Search Range", 5.0, 1.0..10.0, 0.5, "Range to search for nearby villagers", " blocks")
-	private val startCyclingBind by setting("Start Cycling", Bind.Empty, "Press to start/stop cycling")
+	private val startCyclingBind by setting("Start Cycling", Bind.EMPTY, "Press to start/stop cycling")
 		.onPress {
 			if (cycleState != CycleState.Idle) {
 				info("Stopped villager cycling.")
@@ -83,9 +83,9 @@ object AutoVillagerCycle : Module(
 			}
 		}
 
-	private const val EnchantmentsGroup = "Enchantments"
-	@Group(EnchantmentsGroup) private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments)
-	@Group(EnchantmentsGroup) private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for")
+	private const val ENCHANTMENTS_GROUP = "Enchantments"
+	@Group(ENCHANTMENTS_GROUP) private val desiredEnchantments by setting("Desired Enchantments", emptySet(), allEnchantments)
+	@Group(ENCHANTMENTS_GROUP) private val minLevel by setting("Min Level", 1, 1..5, 1, "Minimum enchantment level to look for")
 
 	private var cycleState = CycleState.Idle
 	private var tickCounter = 0

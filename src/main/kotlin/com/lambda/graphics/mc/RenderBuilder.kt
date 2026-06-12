@@ -77,8 +77,8 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 
 	private val layerIncrement = 1f
 
-	private val DefaultLightDir = Vector3f(0.2f, 1.0f, -0.7f).normalize()
-	private val DefaultLight1Dir = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
+	private val DEFAULT_LIGHT_DIR = Vector3f(0.2f, 1.0f, -0.7f).normalize()
+	private val DEFAULT_LIGHT_1_DIR = Vector3f(-0.2f, 1.0f, 0.7f).normalize()
 
 	private fun eulerToQuaternion(rot: Vec3d): Quaternionf {
 		return Quaternionf().rotationYXZ(
@@ -102,8 +102,8 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		builder: (BoxBuilder.() -> Unit)? = null
 	) {
 		val boxBuilder = BoxBuilder(lineConfig).apply { builder?.invoke(this) }
-		if (boxBuilder.fillSides != DirectionMask.None) boxBuilder.boxFaces(box)
-		if (boxBuilder.outlineSides != DirectionMask.None) boxBuilder.boxOutline(box)
+		if (boxBuilder.fillSides != DirectionMask.NONE) boxBuilder.boxFaces(box)
+		if (boxBuilder.outlineSides != DirectionMask.NONE) boxBuilder.boxOutline(box)
 	}
 
 	context(safeContext: SafeContext)
@@ -116,8 +116,8 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		val boxes = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
 		val boxBuilder = BoxBuilder(lineConfig).apply { builder?.invoke(this) }
 		boxes.forEach { box ->
-			if (boxBuilder.fillSides != DirectionMask.None) boxBuilder.boxFaces(box)
-			if (boxBuilder.outlineSides != DirectionMask.None) boxBuilder.boxOutline(box)
+			if (boxBuilder.fillSides != DirectionMask.NONE) boxBuilder.boxFaces(box)
+			if (boxBuilder.outlineSides != DirectionMask.NONE) boxBuilder.boxOutline(box)
 		}
 	}
 
@@ -606,8 +606,8 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 					tr, tg, tb, ta,
 					olU, olV, overlayFlag, shadingAmount,
 					light,
-					DefaultLightDir.x, DefaultLightDir.y, DefaultLightDir.z,
-					DefaultLight1Dir.x, DefaultLight1Dir.y, DefaultLight1Dir.z,
+					DEFAULT_LIGHT_DIR.x, DEFAULT_LIGHT_DIR.y, DEFAULT_LIGHT_DIR.z,
+					DEFAULT_LIGHT_1_DIR.x, DEFAULT_LIGHT_1_DIR.y, DEFAULT_LIGHT_1_DIR.z,
 					normalVec.x, normalVec.y, normalVec.z,
 					edgeX, edgeY
 				))
@@ -627,7 +627,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		rotation: Vec3d? = null,
 		centered: Boolean = true,
 		flat: Boolean = true,
-		lighting: ItemLighting = ItemLighting.Vanilla,
+		lighting: ItemLighting = ItemLighting.VANILLA,
 		overlay: ItemOverlay? = null
 	) {
 		if (stack.isEmpty) return
@@ -645,7 +645,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		size: Float = 0.05f,
 		rotation: Vec3d? = null,
 		centered: Boolean = true,
-		lighting: ItemLighting = ItemLighting.Vanilla,
+		lighting: ItemLighting = ItemLighting.VANILLA,
 		overlay: ItemOverlay? = null
 	) {
 		if (stack.isEmpty) return
@@ -670,7 +670,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 		centered: Boolean,
 		isScreen: Boolean,
 		flat: Boolean = false,
-		lighting: ItemLighting = ItemLighting.Vanilla,
+		lighting: ItemLighting = ItemLighting.VANILLA,
 		overlay: ItemOverlay? = null
 	) {
 		val posVec = if (isScreen) {
@@ -697,7 +697,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 			val layer = state.layers[i]
 
 			queue.currentGlint = when (overlay) {
-				ItemOverlay.Disabled -> false
+				ItemOverlay.DISABLED -> false
 				null -> layer.glint != ItemRenderState.Glint.NONE
 				else -> true
 			}
@@ -1306,7 +1306,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	}
 
 	private fun BoxBuilder.boxFaces(box: Box) {
-		if (fillSides.hasDirection(DirectionMask.East)) {
+		if (fillSides.hasDirection(DirectionMask.EAST)) {
 			filledQuadGradient(
 				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
 				box.maxX, box.maxY, box.minZ, fillTopNorthEast,
@@ -1314,7 +1314,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				box.maxX, box.minY, box.maxZ, fillBottomSouthEast
 			)
 		}
-		if (fillSides.hasDirection(DirectionMask.West)) {
+		if (fillSides.hasDirection(DirectionMask.WEST)) {
 			filledQuadGradient(
 				box.minX, box.minY, box.minZ, fillBottomNorthWest,
 				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
@@ -1322,7 +1322,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				box.minX, box.maxY, box.minZ, fillTopNorthWest
 			)
 		}
-		if (fillSides.hasDirection(DirectionMask.Up)) {
+		if (fillSides.hasDirection(DirectionMask.UP)) {
 			filledQuadGradient(
 				box.minX, box.maxY, box.minZ, fillTopNorthWest,
 				box.minX, box.maxY, box.maxZ, fillTopSouthWest,
@@ -1330,7 +1330,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				box.maxX, box.maxY, box.minZ, fillTopNorthEast
 			)
 		}
-		if (fillSides.hasDirection(DirectionMask.Down)) {
+		if (fillSides.hasDirection(DirectionMask.DOWN)) {
 			filledQuadGradient(
 				box.minX, box.minY, box.minZ, fillBottomNorthWest,
 				box.maxX, box.minY, box.minZ, fillBottomNorthEast,
@@ -1338,7 +1338,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				box.minX, box.minY, box.maxZ, fillBottomSouthWest
 			)
 		}
-		if (fillSides.hasDirection(DirectionMask.South)) {
+		if (fillSides.hasDirection(DirectionMask.SOUTH)) {
 			filledQuadGradient(
 				box.minX, box.minY, box.maxZ, fillBottomSouthWest,
 				box.maxX, box.minY, box.maxZ, fillBottomSouthEast,
@@ -1346,7 +1346,7 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 				box.minX, box.maxY, box.maxZ, fillTopSouthWest
 			)
 		}
-		if (fillSides.hasDirection(DirectionMask.North)) {
+		if (fillSides.hasDirection(DirectionMask.NORTH)) {
 			filledQuadGradient(
 				box.minX, box.minY, box.minZ, fillBottomNorthWest,
 				box.minX, box.maxY, box.minZ, fillTopNorthWest,
@@ -1357,12 +1357,12 @@ class RenderBuilder(private val cameraPos: Vec3d, var depthTest: Boolean = false
 	}
 
 	private fun BoxBuilder.boxOutline(box: Box) {
-		val hasEast = outlineSides.hasDirection(DirectionMask.East)
-		val hasWest = outlineSides.hasDirection(DirectionMask.West)
-		val hasUp = outlineSides.hasDirection(DirectionMask.Up)
-		val hasDown = outlineSides.hasDirection(DirectionMask.Down)
-		val hasSouth = outlineSides.hasDirection(DirectionMask.South)
-		val hasNorth = outlineSides.hasDirection(DirectionMask.North)
+		val hasEast = outlineSides.hasDirection(DirectionMask.EAST)
+		val hasWest = outlineSides.hasDirection(DirectionMask.WEST)
+		val hasUp = outlineSides.hasDirection(DirectionMask.UP)
+		val hasDown = outlineSides.hasDirection(DirectionMask.DOWN)
+		val hasSouth = outlineSides.hasDirection(DirectionMask.SOUTH)
+		val hasNorth = outlineSides.hasDirection(DirectionMask.NORTH)
 
 		if (outlineMode.check(hasUp, hasNorth)) {
 			lineGradient(

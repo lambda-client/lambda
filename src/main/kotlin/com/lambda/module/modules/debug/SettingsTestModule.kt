@@ -32,22 +32,22 @@ import com.lambda.module.tag.ModuleTag
 object SettingsTestModule : Module(
     name = "SettingsTestModule",
     description = "Test module for Line and Text Config Settings",
-    tag = ModuleTag.Debug
+    tag = ModuleTag.DEBUG
 ) {
-    private const val WorldLineTab = "World Line"
-    private const val ScreenLineTab = "Screen Line"
-    private const val WorldTextTab = "World Text"
-    private const val ScreenTextTab = "Screen Text"
+    private const val WORLD_LINE_TAB = "World Line"
+    private const val SCREEN_LINE_TAB = "Screen Line"
+    private const val WORLD_TEXT_TAB = "World Text"
+    private const val SCREEN_TEXT_TAB = "Screen Text"
 
-    private const val TestConfigBlockTab = "Test Config Block Tab"
-    private const val TestConfigBlockGroup = "Test Config Block Group"
-    @Tab(TestConfigBlockTab) @Group(TestConfigBlockGroup) private val testConfigBlock by configBlock(TestConfigBlock(this))
-    @Tab(TestConfigBlockTab) private val testValue1 by property(1)
+    private const val TEST_CONFIG_BLOCK_TAB = "Test Config Block Tab"
+    private const val TEXT_CONFIG_BLOCK_GROUP = "Test Config Block Group"
+    @Tab(TEST_CONFIG_BLOCK_TAB) @Group(TEXT_CONFIG_BLOCK_GROUP) private val testConfigBlock by configBlock(TestConfigBlock(this))
+    @Tab(TEST_CONFIG_BLOCK_TAB) private val testValue1 by property(1)
 
-    @Tab(WorldLineTab) private val worldLineConfig by configBlock(WorldLineSettings(this))
-    @Tab(ScreenLineTab) private val screenLineConfig by configBlock(ScreenLineSettings(this))
-    @Tab(WorldTextTab) private val worldTextConfig by configBlock(WorldTextSettings(this))
-    @Tab(ScreenTextTab) private val textConfig by configBlock(ScreenTextSettings(this))
+    @Tab(WORLD_LINE_TAB) private val worldLineConfig by configBlock(WorldLineSettings(this))
+    @Tab(SCREEN_LINE_TAB) private val screenLineConfig by configBlock(ScreenLineSettings(this))
+    @Tab(WORLD_TEXT_TAB) private val worldTextConfig by configBlock(WorldTextSettings(this))
+    @Tab(SCREEN_TEXT_TAB) private val textConfig by configBlock(ScreenTextSettings(this))
 }
 
 class TestConfigBlock(override val c: Config) : ConfigBlock {

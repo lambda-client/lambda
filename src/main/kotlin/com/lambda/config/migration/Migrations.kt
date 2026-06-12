@@ -17,7 +17,7 @@
 
 package com.lambda.config.migration
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.config.ConfigCategory
 import com.lambda.core.Loadable
 import com.lambda.util.ReflectionUtils.getInstances
@@ -26,7 +26,7 @@ import tools.jackson.databind.node.ObjectNode
 import kotlin.math.max
 
 object ConfigMigrationHandler : Loadable {
-    const val DefaultSchemaVersionKey = "_schemaVersion"
+    const val DEFAULT_SCHEMA_VERSION_KEY = "_schemaVersion"
     override val priority: Int = 2
 
     @Volatile
@@ -60,7 +60,7 @@ object ConfigMigrationHandler : Loadable {
         var migrated = false
 
         if (currentVersion > migration.latestVersion) {
-            Log.warn(
+            LOG.warn(
                 "Config category '${category.name}' has schema version $currentVersion " +
                     "which is newer than supported ${migration.latestVersion}"
             )
@@ -72,7 +72,7 @@ object ConfigMigrationHandler : Loadable {
                 val fromVersion = currentVersion
                 val stepResult = migration.applyStep(fromVersion, json)
                 if (stepResult == null) {
-                    Log.warn(
+                    LOG.warn(
                         "Missing migration step for '${category.name}' config category " +
                             "schema version $fromVersion -> ?. Expected latest schema version is ${migration.latestVersion}"
                     )
@@ -86,7 +86,7 @@ object ConfigMigrationHandler : Loadable {
                     migrated = true
                 }
             } catch (t: Throwable) {
-                Log.error(
+                LOG.error(
                     "Failed to migrate ${category.name} config category " +
                         "from v$currentVersion to next version",
                     t
@@ -116,7 +116,7 @@ object ConfigMigrationHandler : Loadable {
         val duplicates = discovered.groupBy { it.category }.filter { it.value.size > 1 }
         if (duplicates.isNotEmpty()) {
             duplicates.keys.forEach { key ->
-                Log.warn("Multiple config migrations found for '$key'. Using the last discovered migration.")
+                LOG.warn("Multiple config migrations found for '$key'. Using the last discovered migration.")
             }
         }
 
@@ -153,7 +153,7 @@ abstract class StepConfigMigration : ConfigMigration {
 interface ConfigMigration {
     val category: ConfigCategory
     val latestVersion: Int
-    val schemaVersionKey: String get() = ConfigMigrationHandler.DefaultSchemaVersionKey
+    val schemaVersionKey: String get() = ConfigMigrationHandler.DEFAULT_SCHEMA_VERSION_KEY
     fun applyStep(fromVersion: Int, root: ObjectNode): StepResult?
 }
 

@@ -24,7 +24,7 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry.moduleNameMap
 
 class UserAutomationConfig(name: String) : AutomationConfig(name, UserAutomationCategory) {
-    val linkedModules = setting<String>("Linked Modules", emptySet(), moduleNameMap.filter { it.value.defaultAutomationConfig != Default }.keys) { false }
+    val linkedModules = setting<String>("Linked Modules", emptySet(), moduleNameMap.filter { it.value.defaultAutomationConfig != DEFAULT }.keys) { false }
         .onSelect { name ->
 	        moduleNameMap[name]?.let {
 		        it.removeLink()

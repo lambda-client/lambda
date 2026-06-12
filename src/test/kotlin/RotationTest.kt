@@ -130,14 +130,14 @@ class RotationTest {
 
     @Test
     fun `test companion object constants`() {
-        assertEquals(0.0, Rotation.Zero.yaw)
-        assertEquals(0.0, Rotation.Zero.pitch)
+        assertEquals(0.0, Rotation.ZERO.yaw)
+        assertEquals(0.0, Rotation.ZERO.pitch)
 
-        assertEquals(0.0, Rotation.Down.yaw)
-        assertEquals(90.0, Rotation.Down.pitch)
+        assertEquals(0.0, Rotation.DOWN.yaw)
+        assertEquals(90.0, Rotation.DOWN.pitch)
 
-        assertEquals(0.0, Rotation.Up.yaw)
-        assertEquals(-90.0, Rotation.Up.pitch)
+        assertEquals(0.0, Rotation.UP.yaw)
+        assertEquals(-90.0, Rotation.UP.pitch)
     }
 
     @Test

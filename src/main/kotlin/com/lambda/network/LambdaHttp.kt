@@ -26,7 +26,7 @@ import io.ktor.serialization.jackson.*
 import java.io.File
 import java.io.OutputStream
 
-val LambdaHttp = HttpClient {
+val LAMBDA_HTTP = HttpClient {
     install(ContentNegotiation) {
         register(ContentType.Application.Json, JacksonConverter())
     }

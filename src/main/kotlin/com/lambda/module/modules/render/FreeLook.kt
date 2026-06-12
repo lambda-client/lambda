@@ -31,20 +31,20 @@ import net.minecraft.client.option.Perspective
 object FreeLook : Module(
     name = "FreeLook",
     description = "Allows you to look around freely while moving",
-    tag = ModuleTag.Player,
+    tag = ModuleTag.PLAYER,
     autoDisable = true
 ) {
     @JvmStatic val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
     @JvmStatic val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
     val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
 
-    var camera: Rotation = Rotation.Zero
+    var camera: Rotation = Rotation.ZERO
     var previousPerspective: Perspective = mc.options.perspective
 
     /**
      * @see net.minecraft.entity.Entity.changeLookDirection
      */
-    private const val SensitivityFactor = 0.15
+    private const val SENSITIVITY_FACTOR = 0.15
 
     @JvmStatic
     fun updateCam() {
@@ -69,8 +69,8 @@ object FreeLook : Module(
             if (!isEnabled) return@listen
 
             camera = camera.withDelta(
-                it.deltaYaw * SensitivityFactor,
-                it.deltaPitch * SensitivityFactor
+                it.deltaYaw * SENSITIVITY_FACTOR,
+                it.deltaPitch * SENSITIVITY_FACTOR
             )
 
             if (enableYaw) RotationManager.setPlayerYaw(camera.yaw)

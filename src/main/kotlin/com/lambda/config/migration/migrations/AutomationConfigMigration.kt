@@ -17,7 +17,7 @@
 
 package com.lambda.config.migration.migrations
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.config.categories.AutomationCategory
 import com.lambda.config.migration.MigrationUtils
 import com.lambda.config.migration.StepConfigMigration
@@ -42,12 +42,12 @@ object AutomationConfigMigration : StepConfigMigration() {
 				}
 			}
 
-			Log.info("Migrated Automation config category schema v1 -> v2: $updateCount settings updated")
+			LOG.info("Migrated Automation config category schema v1 -> v2: $updateCount settings updated")
 		}
 
 		step(2, 3) { root ->
 			val count = MigrationUtils.locateAndMoveMisplacedSettings(category, root)
-			Log.info("Migrated Automation config category schema v2 -> v3: $count settings moved")
+			LOG.info("Migrated Automation config category schema v2 -> v3: $count settings moved")
 		}
 	}
 }

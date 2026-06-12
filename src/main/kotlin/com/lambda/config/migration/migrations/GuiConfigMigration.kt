@@ -17,7 +17,7 @@
 
 package com.lambda.config.migration.migrations
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.config.categories.GuiCategory
 import com.lambda.config.migration.MigrationUtils
 import com.lambda.config.migration.StepConfigMigration
@@ -30,7 +30,7 @@ object GuiConfigMigration : StepConfigMigration() {
 	init {
 		step(1, 2) { root ->
 			val count = MigrationUtils.locateAndMoveMisplacedSettings(category, root)
-			Log.info("Migrated Gui config category schema v1 -> v2: $count settings moved")
+			LOG.info("Migrated Gui config category schema v1 -> v2: $count settings moved")
 		}
 	}
 }

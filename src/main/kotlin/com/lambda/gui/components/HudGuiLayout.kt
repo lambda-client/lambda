@@ -54,7 +54,7 @@ object HudGuiLayout : Loadable, Config(
     val hudOutlineBorderThickness by setting("HUD Corner Border Thickness", 1.5f, 1.0f..4.0f, 0.5f)
     val hudOutlineCornerInflate by setting("HUD Corner Inflate", 1.0f, 0.0f..4.0f, 0.5f, "Extra radius for the halo arc")
 
-    const val DefaultHudFlags =
+    const val DEFAULT_HUD_FLAGS =
         ImGuiWindowFlags.NoDecoration or
                 ImGuiWindowFlags.NoBackground or
                 ImGuiWindowFlags.AlwaysAutoResize or
@@ -71,10 +71,10 @@ object HudGuiLayout : Loadable, Config(
     var isShownInGUI = true
     var isLocked = false
 
-    private const val PiF = PI.toFloat()
-    private const val HalfPiF = (0.5f * PI).toFloat()
-    private const val ThreeHalvesPiF = (1.5f * PI).toFloat()
-    private const val TwoPiF = (2f * PI).toFloat()
+    private const val PI_F = PI.toFloat()
+    private const val HALF_PI_F = (0.5f * PI).toFloat()
+    private const val THREE_HALVES_PI_F = (1.5f * PI).toFloat()
+    private const val TWO_PI_F = (2f * PI).toFloat()
 
     init {
         listen<GuiEvent.NewImguiFrame> {
@@ -144,8 +144,8 @@ object HudGuiLayout : Loadable, Config(
         val bg = hud.backgroundColor.value
         val hasBg = bg.alpha > 0
         val baseFlags = if (hasBg) {
-            DefaultHudFlags and ImGuiWindowFlags.NoBackground.inv()
-        } else DefaultHudFlags
+            DEFAULT_HUD_FLAGS and ImGuiWindowFlags.NoBackground.inv()
+        } else DEFAULT_HUD_FLAGS
         var hudFlags = if (!ClickGuiLayout.open || isLocked) {
             baseFlags or ImGuiWindowFlags.NoMove
         } else baseFlags
@@ -282,12 +282,12 @@ object HudGuiLayout : Loadable, Config(
         }
 
         // TL: pi -> 1.5pi
-        strokeArc(tlCx, tlCy, PiF, ThreeHalvesPiF)
+        strokeArc(tlCx, tlCy, PI_F, THREE_HALVES_PI_F)
         // TR: 1.5pi -> 2pi
-        strokeArc(trCx, trCy, ThreeHalvesPiF, TwoPiF)
+        strokeArc(trCx, trCy, THREE_HALVES_PI_F, TWO_PI_F)
         // BR: 0 -> 0.5pi
-        strokeArc(brCx, brCy, 0f, HalfPiF)
+        strokeArc(brCx, brCy, 0f, HALF_PI_F)
         // BL: 0.5pi -> pi
-        strokeArc(blCx, blCy, HalfPiF, PiF)
+        strokeArc(blCx, blCy, HALF_PI_F, PI_F)
     }
 }

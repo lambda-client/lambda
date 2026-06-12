@@ -44,8 +44,8 @@ import java.util.stream.StreamSupport
 class JsonOps private constructor(private val compressed: Boolean) : DynamicOps<JsonNode> {
 	@Suppress("unused")
 	companion object {
-		val Uncompressed = JsonOps(false)
-		val Compressed = JsonOps(true)
+		val UNCOMPRESSED = JsonOps(false)
+		val COMPRESSED = JsonOps(true)
 	}
 
 	override fun empty(): JsonNode = NullNode.getInstance()

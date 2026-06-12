@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
 object Fps : HudModule(
 	name = "FPS",
 	description = "Displays your games frames per second",
-	tag = ModuleTag.Hud
+	tag = ModuleTag.HUD
 ) {
 	val average by setting("Average", true)
 	val updateDelay by setting("Update Delay", 50, 0..1000, 1, "Time between updating the fps value")

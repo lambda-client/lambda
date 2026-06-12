@@ -71,7 +71,7 @@ import kotlin.math.sign
 object Freecam : Module(
 	name = "Freecam",
 	description = "Move your camera freely",
-	tag = ModuleTag.Render,
+	tag = ModuleTag.RENDER,
 	autoDisable = true,
 ) {
 	private val mode by setting("Mode", Mode.Free, "Freecam movement mode")
@@ -96,7 +96,7 @@ object Freecam : Module(
 			return prevPosition.interpolate(tickProgress, position)
 		}
 
-	private var rotation: Rotation = Rotation.Zero
+	private var rotation: Rotation = Rotation.ZERO
 	private var velocity: Vec3d = Vec3d.ZERO
 
 	@JvmStatic
@@ -120,7 +120,7 @@ object Freecam : Module(
 	/**
 	 * @see net.minecraft.entity.Entity.changeLookDirection
 	 */
-	private const val SensitivityFactor = 0.15
+	private const val SENSITIVITY_FACTOR = 0.15
 
 	init {
 		setDefaultAutomationConfig()
@@ -150,7 +150,7 @@ object Freecam : Module(
 		}
 
 		listen<PlayerEvent.ChangeLookDirection> {
-			rotation = rotation.withDelta(it.deltaYaw * SensitivityFactor, it.deltaPitch * SensitivityFactor)
+			rotation = rotation.withDelta(it.deltaYaw * SENSITIVITY_FACTOR, it.deltaPitch * SENSITIVITY_FACTOR)
 			it.cancel()
 		}
 

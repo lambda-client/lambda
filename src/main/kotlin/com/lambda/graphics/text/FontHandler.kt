@@ -17,7 +17,7 @@
 
 package com.lambda.graphics.text
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.config.Config
 import com.lambda.config.categories.FontCategory
 import com.lambda.core.Loadable
@@ -109,7 +109,7 @@ object FontHandler : Loadable, Config(
 
 		discoveredFonts.sortBy { it.displayName }
 
-		Log.info("[FontHandler] Discovered ${discoveredFonts.size} fonts")
+		LOG.info("[FontHandler] Discovered ${discoveredFonts.size} fonts")
 	}
 
 	/**
@@ -129,10 +129,10 @@ object FontHandler : Loadable, Config(
 
 		return loadedAtlases.getOrPut(key) {
 			try {
-				Log.info("[FontHandler] Loading SDF atlas for: ${fontInfo.displayName}")
+				LOG.info("[FontHandler] Loading SDF atlas for: ${fontInfo.displayName}")
 				SDFFontAtlas(fontInfo.path, fontInfo.userFont, fontInfo.size).apply { upload() }
 			} catch (e: Exception) {
-				Log.error("[FontHandler] Failed to load font: ${fontInfo.path} - ${e.message}")
+				LOG.error("[FontHandler] Failed to load font: ${fontInfo.path} - ${e.message}")
 				return null
 			}
 		}

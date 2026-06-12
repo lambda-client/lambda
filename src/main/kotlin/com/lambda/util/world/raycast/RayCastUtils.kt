@@ -72,7 +72,7 @@ object RayCastUtils {
     // ToDo: Should rather move player hitbox down and check collision
     fun SafeContext.distanceToGround(maxDist: Double = 100.0): Double {
         val pos = player.pos.add(0.0, 0.1, 0.0)
-        val cast = Rotation.Down.rayCast(maxDist, pos, false, InteractionMask.Block) ?: return maxDist
+        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, InteractionMask.Block) ?: return maxDist
 
         return max(0.0, pos.y - cast.pos.y)
     }

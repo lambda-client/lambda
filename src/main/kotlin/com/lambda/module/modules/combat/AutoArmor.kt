@@ -45,10 +45,10 @@ import net.minecraft.screen.slot.Slot
 object AutoArmor : Module(
 	name = "AutoArmor",
 	description = "Automatically equips armor",
-	tag = ModuleTag.Combat
+	tag = ModuleTag.COMBAT
 ) {
 	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
-	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.Empty)
+	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
 		.onPress { elytraPriority = !elytraPriority }
 	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
 	private val headProtection by setting("Preferred Head Protection", Protection.Protection)

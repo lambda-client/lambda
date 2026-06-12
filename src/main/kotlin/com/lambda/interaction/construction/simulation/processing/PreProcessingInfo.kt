@@ -40,7 +40,7 @@ interface PreProcessingInfo {
 	companion object {
 		context(_: AutomatedSafeContext)
 		fun default(targetState: TargetState, pos: BlockPos) = object : PreProcessingInfo {
-			override val surfaceScan = SurfaceScan.Default
+			override val surfaceScan = SurfaceScan.DEFAULT
 			override val ignore = setOf<Property<*>>()
 			override val sides = Direction.entries.toSet()
 			override val item = targetState.getStack(pos).item
@@ -56,7 +56,7 @@ interface PreProcessingInfo {
 class PreProcessingInfoAccumulator(
 	override var expectedState: BlockState,
 	override var item: Item?,
-	override var surfaceScan: SurfaceScan = SurfaceScan.Default,
+	override var surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
 	override val ignore: MutableSet<Property<*>> = ProcessorRegistry.postProcessedProperties.toMutableSet(),
 	override val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
 	override var placing: Boolean = true,

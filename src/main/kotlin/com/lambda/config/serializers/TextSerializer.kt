@@ -31,11 +31,11 @@ import tools.jackson.databind.SerializationContext
 
 object TextSerializer : Serializer<Text>(Text::class.java) {
     override fun serialize(text: Text, gen: JsonGenerator, ctxt: SerializationContext) {
-        gen.writeTree(TextCodecs.CODEC.encodeStart(JsonOps.Uncompressed, text).orThrow)
+        gen.writeTree(TextCodecs.CODEC.encodeStart(JsonOps.UNCOMPRESSED, text).orThrow)
     }
 }
 
 object TextDeserializer : Deserializer<Text>(Text::class.java) {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Text =
-        TextCodecs.CODEC.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
+        TextCodecs.CODEC.parse(JsonOps.UNCOMPRESSED, mapper.readTree(p)).orThrow
 }

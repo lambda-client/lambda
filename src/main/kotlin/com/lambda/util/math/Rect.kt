@@ -20,6 +20,7 @@ package com.lambda.util.math
 import kotlin.math.max
 import kotlin.math.min
 
+@Suppress("unused")
 data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     val left get() = pos1.x
     val top get() = pos1.y
@@ -60,7 +61,7 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     }
 
     companion object {
-        val Zero = Rect(Vec2d.Zero, Vec2d.Zero)
+        val ZERO = Rect(Vec2d.ZERO, Vec2d.ZERO)
 
         fun basedOn(base: Vec2d, width: Double, height: Double) =
             Rect(base, base + Vec2d(width, height))

@@ -34,10 +34,10 @@ import kotlin.random.Random
 object AntiAim : Module(
     name = "AntiAim",
     description = "Rotates the player using the given configs",
-    tag = ModuleTag.Movement,
+    tag = ModuleTag.MOVEMENT,
 ) {
-    private const val GeneralTab = "General"
-    private const val RotationTab = "Rotation"
+    private const val GENERAL_TAB = "General"
+    private const val ROTATION_TAB = "Rotation"
 
     private val yaw by setting("Yaw Mode", YawMode.Spin, "The mode used when setting the players yaw")
         .onValueChange { _, to -> if (to == YawMode.Custom) customYaw = player.yaw }

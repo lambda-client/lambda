@@ -137,7 +137,7 @@ class KeybindSetting(
         sameLine()
         withId("##Unbind-${this@KeybindSetting.hashCode()}") {
             smallButton("Unbind") {
-                value = Bind.Empty
+                value = Bind.EMPTY
                 listening = false
             }
         }
@@ -161,7 +161,7 @@ class KeybindSetting(
                     if ((it.isPressed && !isModKey) || (it.isReleased && isModKey)) {
                         when (it.translated) {
                             KeyCode.Escape -> {}
-                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.Empty
+                            KeyCode.Backspace, KeyCode.Delete -> value = Bind.EMPTY
                             else -> value = Bind(it.translated.code, it.modifiers, -1)
                         }
 
@@ -183,7 +183,7 @@ class KeybindSetting(
             optional(boolean("mouse button")) { isMouseButton ->
                 executeWithResult {
                     val isMouse = if (isMouseButton != null) isMouseButton().value() else false
-                    var bind = Bind.Empty
+                    var bind = Bind.EMPTY
                     if (isMouse) {
                         val num = try {
                             nameArg().value().toInt()
@@ -258,6 +258,6 @@ data class Bind(
         "Key Code: $key, Modifiers: ${trueMods.joinToString(separator = "+") { it.name }}, Mouse Button: ${Mouse.entries.getOrNull(mouse) ?: "None"}"
 
     companion object {
-        val Empty = Bind(0, 0, -1)
+        val EMPTY = Bind(0, 0, -1)
     }
 }

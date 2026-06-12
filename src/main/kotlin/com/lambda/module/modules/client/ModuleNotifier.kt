@@ -35,7 +35,7 @@ import java.awt.Color
 object ModuleNotifier : Module(
 	name = "ModuleNotifier",
 	description = "Notifies you when a module is enabled or disabled",
-	tag = ModuleTag.Client,
+	tag = ModuleTag.CLIENT,
 	enabledByDefault = true
 ) {
 	var notifyTarget by setting("Notify Target", setOf<NotifyTarget>(NotifyTarget.ActionBar), NotifyTarget.entries.toSet(), description = "Where to send notifications when modules are toggled")

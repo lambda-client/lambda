@@ -17,7 +17,7 @@
 
 package com.lambda.config.migration.migrations
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.config.categories.FriendCategory
 import com.lambda.config.migration.StepConfigMigration
 import tools.jackson.databind.JsonNode
@@ -44,7 +44,7 @@ object FriendConfigMigration : StepConfigMigration() {
                     ?: run { dropped++ }
             }
 
-            Log.info("Migrated Friend config category schema v1 -> v2: ${migrated.size()} entries converted, $dropped entries dropped")
+            LOG.info("Migrated Friend config category schema v1 -> v2: ${migrated.size()} entries converted, $dropped entries dropped")
         }
     }
 

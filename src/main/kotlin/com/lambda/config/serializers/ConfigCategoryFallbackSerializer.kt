@@ -19,7 +19,7 @@
 
 package com.lambda.config.serializers
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
 import com.lambda.config.ConfigEntry
@@ -39,7 +39,7 @@ object ConfigCategoryFallbackSerializer : FallbackSerializer<ConfigCategory>(Con
 		val latestSchemaVersion = ConfigMigrationHandler.latestVersion(category)
 		if (latestSchemaVersion > 1) {
 			gen.writeNumberProperty(
-				ConfigMigrationHandler.schemaVersionKey(category) ?: ConfigMigrationHandler.DefaultSchemaVersionKey,
+				ConfigMigrationHandler.schemaVersionKey(category) ?: ConfigMigrationHandler.DEFAULT_SCHEMA_VERSION_KEY,
 				latestSchemaVersion
 			)
 		}
@@ -143,7 +143,7 @@ object SingleFallbackDeserializer : FallbackDeserializer<EntryLayer.Single<*>>(E
 			try {
 				mapper.updateValue(entry, mapper.readTree(p))
 			} catch (e: Throwable) {
-				Log.error("Failed to deserialize setting '${name}'", e)
+				LOG.error("Failed to deserialize setting '${name}'", e)
 			}
 		}
 }

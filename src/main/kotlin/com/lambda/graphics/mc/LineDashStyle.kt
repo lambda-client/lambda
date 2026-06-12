@@ -29,13 +29,10 @@ data class LineDashStyle(
         require(gapLength >= 0f) { "gapLength must be non-negative" }
         require(offset in 0f..1f) { "offset must be between 0.0 and 1.0" }
     }
-    
-    val cycleLength: Float get() = dashLength + gapLength
-    
-    val dashRatio: Float get() = dashLength / cycleLength
-    
+
+    @Suppress("unused")
     companion object {
-        val Solid: LineDashStyle? = null
+        val SOLID: LineDashStyle? = null
         
         fun dotted(size: Float = 0.15f) = LineDashStyle(
             dashLength = size,

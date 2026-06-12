@@ -17,7 +17,7 @@
 
 package com.lambda.config
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mapper
 import com.lambda.config.ConfigLoader.configCategories
 import com.lambda.config.categories.ModuleCategory
@@ -83,21 +83,21 @@ abstract class ConfigCategory : Loadable {
         loadFromFile(primaryFile)
             .onSuccess {
                 val message = "$name config category loaded."
-                Log.info(message)
+                LOG.info(message)
                 info(message)
             }
             .onFailure { primaryError ->
-                Log.error(primaryError)
+                LOG.error(primaryError)
 
                 runCatching { loadFromFile(backup).getOrThrow() }
                     .onSuccess {
                         val message = "$name config category loaded from backup"
-                        Log.info(message)
+                        LOG.info(message)
                         info(message)
                     }
                     .onFailure { error ->
                         val message = "Failed to load $name config category from backup, unrecoverable error"
-                        Log.error(message, error)
+                        LOG.error(message, error)
                         logError(message)
                     }
             }
@@ -107,18 +107,18 @@ abstract class ConfigCategory : Loadable {
         saveToFile()
             .onSuccess {
                 val message = "Saved $name category."
-                Log.info(message)
+                LOG.info(message)
                 if (logToChat) info(message)
             }
             .onFailure {
                 val message = "Failed to save $name category"
-                Log.error(message, it)
+                LOG.error(message, it)
                 logError(message)
             }
     }
 
     private fun loadFromFile(file: File) = runCatching {
-        file.ifNotExists { Log.warn("No config file found for $name. Creating new file when saving.") }
+        file.ifNotExists { LOG.warn("No config file found for $name. Creating new file when saving.") }
             .ifExists {
                 val parsed = mapper.readTree(it)
                 if (!parsed.isObject) return@ifExists

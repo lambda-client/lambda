@@ -50,13 +50,13 @@ import java.util.concurrent.ConcurrentLinkedQueue
 object Scaffold : Module(
 	name = "Scaffold",
 	description = "Places blocks under the player",
-	tag = ModuleTag.World,
+	tag = ModuleTag.WORLD,
 ) {
 	private val blacklistedBlocks by setting("Blacklisted Blocks", mutableSetOf<Block>())
 	private val bridgeRange by setting("Bridge Range", 5, 0..5, 1, "The range at which blocks can be placed to help build support for the player", unit = " blocks")
 	private val onlyBelow by setting("Only Below", true, "Restricts bridging to only below the player to avoid place spam if it's impossible to reach the supporting position") { bridgeRange > 0 }
-	private val descend by setting("Descend", Bind.Empty, "Lower the place position by one to allow the player to lower y level")
-	private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.Empty }
+	private val descend by setting("Descend", Bind.EMPTY, "Lower the place position by one to allow the player to lower y level")
+	private val descendAmount by setting("Descend Amount", 1, 1..5, 1, "The amount to lower the place position by when descending", unit = " blocks") { descend != Bind.EMPTY }
 
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 

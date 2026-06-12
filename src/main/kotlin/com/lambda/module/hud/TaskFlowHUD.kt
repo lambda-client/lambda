@@ -25,7 +25,7 @@ import com.lambda.task.RootTask
 @Suppress("unused")
 object TaskFlowHUD : HudModule(
     name = "TaskFlowHud",
-    tag = ModuleTag.Hud,
+    tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
         text(RootTask.toString())

@@ -37,7 +37,7 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 object ClickFriend : Module(
     name = "ClickFriend",
     description = "Add or remove friends with a single click",
-    tag = ModuleTag.Player,
+    tag = ModuleTag.PLAYER,
     modulePriority = 100
 ) {
     private val friendBind: Bind by setting("Friend Bind", Bind(0, 0, GLFW.GLFW_MOUSE_BUTTON_MIDDLE), "Bind to press to befriend a player")

@@ -54,7 +54,7 @@ import kotlin.math.pow
  */
 @Suppress("unused")
 object RotationUtils {
-	val AllSides = Direction.entries.toSet()
+	val ALL_SIDES = Direction.entries.toSet()
 
 	fun SafeContext.lookAt(pos: Vec3d): Rotation {
 		val direction = pos.subtract(player.eyePos).normalize()
@@ -74,10 +74,10 @@ object RotationUtils {
 			else -> null
 		}
 
-	fun AutomatedSafeContext.lookAtEntity(entity: Entity, sides: Set<Direction> = AllSides) =
+	fun AutomatedSafeContext.lookAtEntity(entity: Entity, sides: Set<Direction> = ALL_SIDES) =
 		entity.findRotation(buildConfig.entityReach, player.eyePos, sides)
 
-	fun AutomatedSafeContext.lookAtBlock(pos: BlockPos, sides: Set<Direction> = AllSides) =
+	fun AutomatedSafeContext.lookAtBlock(pos: BlockPos, sides: Set<Direction> = ALL_SIDES) =
 		pos.findRotation(buildConfig.blockReach, player.eyePos, sides)
 
 	/**
@@ -95,7 +95,7 @@ object RotationUtils {
 	fun Entity.findRotation(
 		reach: Double,
 		pov: Vec3d,
-		sides: Set<Direction> = AllSides,
+		sides: Set<Direction> = ALL_SIDES,
 		preProcessing: PreProcessingData? = null,
 		allowInsideBox: Boolean = false,
 		verify: (CheckedHit.() -> Boolean)? = null
@@ -129,7 +129,7 @@ object RotationUtils {
 	fun BlockPos.findRotation(
 		reach: Double,
 		pov: Vec3d,
-		sides: Set<Direction> = AllSides,
+		sides: Set<Direction> = ALL_SIDES,
 		preProcessing: PreProcessingData? = null,
 		allowInsideBox: Boolean = false,
 		verify: (CheckedHit.() -> Boolean)? = null

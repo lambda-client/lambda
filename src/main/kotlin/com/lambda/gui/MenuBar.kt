@@ -18,7 +18,7 @@
 package com.lambda.gui
 
 import com.lambda.Lambda
-import com.lambda.Lambda.RepoUrl
+import com.lambda.Lambda.REPO_URL
 import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.config.ConfigLoader
@@ -29,7 +29,7 @@ import com.lambda.config.categories.UserAutomationCategory
 import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.graphics.texture.TextureOwner.upload
-import com.lambda.gui.DearImGui.ExternalLink
+import com.lambda.gui.DearImGui.EXTERNAL_LINK
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.gui.components.HudGuiLayout
 import com.lambda.gui.components.QuickSearch
@@ -307,7 +307,7 @@ object MenuBar {
             if (config !is UserAutomationConfig) throw IllegalStateException("All configs within UserAutomationConfigs must be UserAutomationConfigs!")
             buildAutomationConfigSelectable(config)
         }
-        buildAutomationConfigSelectable(AutomationConfig.Default)
+        buildAutomationConfigSelectable(AutomationConfig.DEFAULT)
     }
 
     private fun ImGuiBuilder.buildAutomationConfigSelectable(config: AutomationConfig) {
@@ -444,19 +444,19 @@ object MenuBar {
         menuItem("Quick Search...", "Shift+Shift") {
             QuickSearch.open()
         }
-        menuItem("Documentation $ExternalLink") {
-            Util.getOperatingSystem().open("$RepoUrl/wiki")
+        menuItem("Documentation $EXTERNAL_LINK") {
+            Util.getOperatingSystem().open("$REPO_URL/wiki")
         }
-        menuItem("Report Issue $ExternalLink") {
+        menuItem("Report Issue $EXTERNAL_LINK") {
             mc.keyboard.clipboard = gatherDiagnostics()
             info("Copied diagnostics to clipboard. Please paste it in a new issue on GitHub and click “Submit new issue”. Thank you!")
-            Util.getOperatingSystem().open("$RepoUrl/issues")
+            Util.getOperatingSystem().open("$REPO_URL/issues")
         }
-        menuItem("Check for Updates $ExternalLink") {
+        menuItem("Check for Updates $EXTERNAL_LINK") {
             // ToDo:
             //  - Check for a newer version, show availability & changelog, and allow opening release page.
             //  - Needs UpdateManager
-            Util.getOperatingSystem().open("$RepoUrl/releases")
+            Util.getOperatingSystem().open("$REPO_URL/releases")
         }
     }
 
@@ -464,7 +464,7 @@ object MenuBar {
         popupModal("About Lambda", ImGuiWindowFlags.AlwaysAutoResize or ImGuiWindowFlags.NoTitleBar) {
             imageHorizontallyCentered(headerLogo.id.toLong(), 553f, 200f)
             group {
-                text("Version: ${Lambda.Version}")
+                text("Version: ${Lambda.VERSION}")
                 if (Lambda.isDebug) text("Development Environment")
                 text("Runtime: ${Loader.runtime}")
                 text("Modules: ${ModuleRegistry.modules.size}")
@@ -500,8 +500,8 @@ object MenuBar {
                     ImGui.setClipboardText(gatherDiagnostics())
                 }
                 sameLine()
-                button("View License $ExternalLink") {
-                    Util.getOperatingSystem().open("$RepoUrl/blob/master/LICENSE.md")
+                button("View License $EXTERNAL_LINK") {
+                    Util.getOperatingSystem().open("$REPO_URL/blob/master/LICENSE.md")
                 }
                 sameLine()
                 button("Close") {
@@ -525,9 +525,9 @@ object MenuBar {
                 withStyleColor(ImGuiCol.ButtonHovered, 0x22FFFFFF) {
                     withStyleColor(ImGuiCol.ButtonActive, 0x44FFFFFF) {
                         val clicked = ImGui.imageButton("##github", githubLogo.id.toLong(), iconSize, iconSize)
-                        lambdaTooltip("Open GitHub Repository $ExternalLink")
+                        lambdaTooltip("Open GitHub Repository $EXTERNAL_LINK")
                         if (clicked) {
-                            Util.getOperatingSystem().open(RepoUrl)
+                            Util.getOperatingSystem().open(REPO_URL)
                         }
                     }
                 }

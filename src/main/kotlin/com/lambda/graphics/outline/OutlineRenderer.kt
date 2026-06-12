@@ -89,7 +89,7 @@ object OutlineRenderer {
                 null,
                 OptionalDouble.empty()
             )?.use { pass ->
-                pass.setPipeline(LambdaRenderPipelines.OutlineSobel)
+                pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
                 val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
                 pass.bindTexture("Sampler0", groupView, nearestSampler)
 
@@ -235,7 +235,7 @@ object OutlineRenderer {
         }
     }
 
-    private fun applyEdgeDetection(style: OutlineStyle = OutlineStyle.Default) {
+    private fun applyEdgeDetection(style: OutlineStyle = OutlineStyle.DEFAULT) {
         val idBufferView = OutlineIdBuffer.getTextureView() ?: return
         applySobel(idBufferView, style)
     }
@@ -249,7 +249,7 @@ object OutlineRenderer {
         return mat
     }
 
-    private fun applySobel(textureView: GpuTextureView, style: OutlineStyle = OutlineStyle.Default) {
+    private fun applySobel(textureView: GpuTextureView, style: OutlineStyle = OutlineStyle.DEFAULT) {
         val framebuffer = mc.framebuffer ?: return
         
         ensureFullscreenQuad()
@@ -269,7 +269,7 @@ object OutlineRenderer {
                 null,
                 OptionalDouble.empty()
             )?.use { pass ->
-                pass.setPipeline(LambdaRenderPipelines.OutlineSobel)
+                pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
                 val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
                 pass.bindTexture("Sampler0", textureView, nearestSampler)
 

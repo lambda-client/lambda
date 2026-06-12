@@ -30,7 +30,7 @@ import com.lambda.util.CommunicationUtils.info
 object SilentSwap : Module(
     name = "SilentSwap",
     description = "SilentSwap",
-    tag = ModuleTag.Debug,
+    tag = ModuleTag.DEBUG,
 ) {
     init {
         setDefaultAutomationConfig()

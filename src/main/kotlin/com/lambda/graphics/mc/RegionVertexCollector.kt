@@ -357,18 +357,18 @@ class RegionVertexCollector {
 
 		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 48).use { allocator ->
-			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.PositionColorNormalLineWidthDash)
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH)
 			vertices.forEach { v ->
 				builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a)
-				builder.beginElement(LambdaVertexFormats.NormalFloat).let { p ->
+				builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz)
 					}
 				}
-				builder.beginElement(LambdaVertexFormats.LineWidthFloat).let { p ->
+				builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT).let { p ->
 					if (p != -1L) MemoryUtil.memPutFloat(p, v.lineWidth)
 				}
-				builder.beginElement(LambdaVertexFormats.DashElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.DASH_ELEMENT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.dashLength); MemoryUtil.memPutFloat(p + 4, v.gapLength); MemoryUtil.memPutFloat(p + 8, v.dashOffset); MemoryUtil.memPutFloat(p + 12, v.animationSpeed)
 					}
@@ -392,20 +392,20 @@ class RegionVertexCollector {
 
 		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 64).use { allocator ->
-			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.PositionTextureColorAnchorSdf)
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF)
 			vertices.forEach { v ->
 				builder.vertex(v.localX, v.localY, v.layerType.toFloat()).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
-				builder.beginElement(LambdaVertexFormats.AnchorElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ)
 					}
 				}
-				builder.beginElement(LambdaVertexFormats.BillboardDataElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag)
 					}
 				}
-				builder.beginElement(LambdaVertexFormats.SdfStyleElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.outlineWidth); MemoryUtil.memPutFloat(p + 4, v.glowRadius); MemoryUtil.memPutFloat(p + 8, v.shadowSoftness); MemoryUtil.memPutFloat(p + 12, v.threshold)
 					}
@@ -429,10 +429,10 @@ class RegionVertexCollector {
 
 		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 24).use { allocator ->
-			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.ScreenFaceFormat)
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.SCREEN_FACE_FORMAT)
 			vertices.forEach { v -> 
 				builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a)
-				builder.beginElement(LambdaVertexFormats.LayerElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT).let { p ->
 					if (p != -1L) MemoryUtil.memPutFloat(p, v.layer)
 				}
 			}
@@ -454,21 +454,21 @@ class RegionVertexCollector {
 
 		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 52).use { allocator ->
-			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.ScreenLineFormat)
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.SCREEN_LINE_FORMAT)
 			vertices.forEach { v ->
 				builder.vertex(v.x, v.y, 0f).color(v.r, v.g, v.b, v.a)
-				builder.beginElement(LambdaVertexFormats.Direction2dElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.DIRECTION_2D_ELEMENT).let { p ->
 					if (p != -1L) { MemoryUtil.memPutFloat(p, v.dx); MemoryUtil.memPutFloat(p + 4, v.dy) }
 				}
-				builder.beginElement(LambdaVertexFormats.LineWidthFloat).let { p ->
+				builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT).let { p ->
 					if (p != -1L) MemoryUtil.memPutFloat(p, v.lineWidth)
 				}
-				builder.beginElement(LambdaVertexFormats.DashElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.DASH_ELEMENT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.dashLength); MemoryUtil.memPutFloat(p + 4, v.gapLength); MemoryUtil.memPutFloat(p + 8, v.dashOffset); MemoryUtil.memPutFloat(p + 12, v.animationSpeed)
 					}
 				}
-				builder.beginElement(LambdaVertexFormats.LayerElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT).let { p ->
 					if (p != -1L) MemoryUtil.memPutFloat(p, v.layer)
 				}
 			}
@@ -490,15 +490,15 @@ class RegionVertexCollector {
 
 		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 48).use { allocator ->
-			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.ScreenTextSdfFormat)
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.SCREEN_TEXT_SDF_FORMAT)
 			vertices.forEach { v ->
 				builder.vertex(v.x, v.y, v.layerType.toFloat()).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
-				builder.beginElement(LambdaVertexFormats.SdfStyleElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.outlineWidth); MemoryUtil.memPutFloat(p + 4, v.glowRadius); MemoryUtil.memPutFloat(p + 8, v.shadowSoftness); MemoryUtil.memPutFloat(p + 12, v.threshold)
 					}
 				}
-				builder.beginElement(LambdaVertexFormats.LayerElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT).let { p ->
 					if (p != -1L) MemoryUtil.memPutFloat(p, v.layer)
 				}
 			}
@@ -536,7 +536,7 @@ class RegionVertexCollector {
 				val builder = BufferBuilder(
 					allocator,
 					VertexFormat.DrawMode.QUADS,
-					LambdaVertexFormats.ScreenImageFormat
+					LambdaVertexFormats.SCREEN_IMAGE_FORMAT
 				)
 
 				vertices.forEach { v ->
@@ -544,7 +544,7 @@ class RegionVertexCollector {
 						.texture(v.u, v.v)
 						.color(v.r, v.g, v.b, v.a)
 
-					val overlayPointer = builder.beginElement(LambdaVertexFormats.OverlayUvElement)
+					val overlayPointer = builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT)
 					if (overlayPointer != -1L) {
 						MemoryUtil.memPutFloat(overlayPointer, v.overlayU)
 						MemoryUtil.memPutFloat(overlayPointer + 4L, v.overlayV)
@@ -552,7 +552,7 @@ class RegionVertexCollector {
 						MemoryUtil.memPutFloat(overlayPointer + 12L, v.diffuseAmount)
 					}
 
-					val layerPointer = builder.beginElement(LambdaVertexFormats.LayerElement)
+					val layerPointer = builder.beginElement(LambdaVertexFormats.LAYER_ELEMENT)
 					if (layerPointer != -1L) {
 						MemoryUtil.memPutFloat(layerPointer, v.layer)
 					}
@@ -580,16 +580,16 @@ class RegionVertexCollector {
 			if (vertices.isEmpty()) return@forEach
 			
 			BufferAllocator(vertices.size * 64).use { allocator ->
-				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WorldImageFormat)
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_IMAGE_FORMAT)
 				vertices.forEach { v ->
 					builder.vertex(v.localX, v.localY, 0f).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
-					builder.beginElement(LambdaVertexFormats.AnchorElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ) }
 					}
-					builder.beginElement(LambdaVertexFormats.BillboardDataElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag) }
 					}
-					builder.beginElement(LambdaVertexFormats.OverlayUvElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
 				}
@@ -614,25 +614,25 @@ class RegionVertexCollector {
 			vertexDeque.clear()
 			if (vertices.isEmpty()) return@forEach
 			BufferAllocator(vertices.size * 88).use { allocator ->
-				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WorldModelFormat)
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_MODEL_FORMAT)
 				vertices.forEach { v ->
 					builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a).texture(v.u, v.v)
-					builder.beginElement(LambdaVertexFormats.OverlayUvElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
 					builder.beginElement(VertexFormatElement.UV2).let { p ->
 						if (p != -1L) { MemoryUtil.memPutShort(p, (v.light and 0xFFFF).toShort()); MemoryUtil.memPutShort(p + 2, ((v.light shr 16) and 0xFFFF).toShort()) }
 					}
-					builder.beginElement(LambdaVertexFormats.LightDirElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
-					builder.beginElement(LambdaVertexFormats.Light1DirElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_1_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
-					builder.beginElement(LambdaVertexFormats.NormalFloat).let { p ->
+					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
 					}
-					builder.beginElement(LambdaVertexFormats.EdgeDataElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.edgeX); MemoryUtil.memPutFloat(p + 4, v.edgeY) }
 					}
 				}
@@ -657,25 +657,25 @@ class RegionVertexCollector {
 			vertexDeque.clear()
 			if (vertices.isEmpty()) return@forEach
 			BufferAllocator(vertices.size * 88).use { allocator ->
-				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WorldModelFormat)
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_MODEL_FORMAT)
 				vertices.forEach { v ->
 					builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a).texture(v.u, v.v)
-					builder.beginElement(LambdaVertexFormats.OverlayUvElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
 					builder.beginElement(VertexFormatElement.UV2).let { p ->
 						if (p != -1L) { MemoryUtil.memPutShort(p, (v.light and 0xFFFF).toShort()); MemoryUtil.memPutShort(p + 2, ((v.light shr 16) and 0xFFFF).toShort()) }
 					}
-					builder.beginElement(LambdaVertexFormats.LightDirElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
-					builder.beginElement(LambdaVertexFormats.Light1DirElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_1_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
-					builder.beginElement(LambdaVertexFormats.NormalFloat).let { p ->
+					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
 					}
-					builder.beginElement(LambdaVertexFormats.EdgeDataElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.edgeX); MemoryUtil.memPutFloat(p + 4, v.edgeY) }
 					}
 				}
@@ -719,16 +719,16 @@ class RegionVertexCollector {
 
 		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 48).use { allocator ->
-			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.PositionColorNormalLineWidthDash)
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_COLOR_NORMAL_LINE_WIDTH_DASH)
 			vertices.forEach { v ->
 				builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a)
-				builder.beginElement(LambdaVertexFormats.NormalFloat).let { p ->
+				builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
 					if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
 				}
-				builder.beginElement(LambdaVertexFormats.LineWidthFloat).let { p ->
+				builder.beginElement(LambdaVertexFormats.LINE_WIDTH_FLOAT).let { p ->
 					if (p != -1L) MemoryUtil.memPutFloat(p, v.lineWidth)
 				}
-				builder.beginElement(LambdaVertexFormats.DashElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.DASH_ELEMENT).let { p ->
 					if (p != -1L) {
 						MemoryUtil.memPutFloat(p, v.dashLength); MemoryUtil.memPutFloat(p + 4, v.gapLength); MemoryUtil.memPutFloat(p + 8, v.dashOffset); MemoryUtil.memPutFloat(p + 12, v.animationSpeed)
 					}
@@ -752,16 +752,16 @@ class RegionVertexCollector {
 
 		var result: BuiltBatch? = null
 		BufferAllocator(vertices.size * 64).use { allocator ->
-			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.PositionTextureColorAnchorSdf)
+			val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.POSITION_TEXTURE_COLOR_ANCHOR_SDF)
 			vertices.forEach { v ->
 				builder.vertex(v.localX, v.localY, v.layerType.toFloat()).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
-				builder.beginElement(LambdaVertexFormats.AnchorElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
 					if (p != -1L) { MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ) }
 				}
-				builder.beginElement(LambdaVertexFormats.BillboardDataElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
 					if (p != -1L) { MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag) }
 				}
-				builder.beginElement(LambdaVertexFormats.SdfStyleElement).let { p ->
+				builder.beginElement(LambdaVertexFormats.SDF_STYLE_ELEMENT).let { p ->
 					if (p != -1L) { MemoryUtil.memPutFloat(p, v.outlineWidth); MemoryUtil.memPutFloat(p + 4, v.glowRadius); MemoryUtil.memPutFloat(p + 8, v.shadowSoftness); MemoryUtil.memPutFloat(p + 12, v.threshold) }
 				}
 			}
@@ -787,25 +787,25 @@ class RegionVertexCollector {
 			if (vertices.isEmpty()) return@forEach
 
 			BufferAllocator(vertices.size * 88).use { allocator ->
-				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WorldModelFormat)
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_MODEL_FORMAT)
 				vertices.forEach { v ->
 					builder.vertex(v.x, v.y, v.z).color(v.r, v.g, v.b, v.a).texture(v.u, v.v)
-					builder.beginElement(LambdaVertexFormats.OverlayUvElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
 					builder.beginElement(VertexFormatElement.UV2).let { p ->
 						if (p != -1L) { val l = v.light; MemoryUtil.memPutShort(p, (l and 0xFFFF).toShort()); MemoryUtil.memPutShort(p + 2, (l shr 16 and 0xFFFF).toShort()) }
 					}
-					builder.beginElement(LambdaVertexFormats.LightDirElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
-					builder.beginElement(LambdaVertexFormats.Light1DirElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_1_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
-					builder.beginElement(LambdaVertexFormats.NormalFloat).let { p ->
+					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.nx); MemoryUtil.memPutFloat(p + 4, v.ny); MemoryUtil.memPutFloat(p + 8, v.nz) }
 					}
-					builder.beginElement(LambdaVertexFormats.EdgeDataElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.EDGE_DATA_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.edgeX); MemoryUtil.memPutFloat(p + 4, v.edgeY) }
 					}
 				}
@@ -833,16 +833,16 @@ class RegionVertexCollector {
 			if (vertices.isEmpty()) return@forEach
 
 			BufferAllocator(vertices.size * 60).use { allocator ->
-				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WorldImageFormat)
+				val builder = BufferBuilder(allocator, VertexFormat.DrawMode.QUADS, LambdaVertexFormats.WORLD_IMAGE_FORMAT)
 				vertices.forEach { v ->
 					builder.vertex(v.localX, v.localY, 0f).texture(v.u, v.v).color(v.r, v.g, v.b, v.a)
-					builder.beginElement(LambdaVertexFormats.AnchorElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.ANCHOR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.anchorX); MemoryUtil.memPutFloat(p + 4, v.anchorY); MemoryUtil.memPutFloat(p + 8, v.anchorZ) }
 					}
-					builder.beginElement(LambdaVertexFormats.BillboardDataElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.BILLBOARD_DATA_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.scale); MemoryUtil.memPutFloat(p + 4, v.billboardFlag) }
 					}
-					builder.beginElement(LambdaVertexFormats.OverlayUvElement).let { p ->
+					builder.beginElement(LambdaVertexFormats.OVERLAY_UV_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.overlayU); MemoryUtil.memPutFloat(p + 4, v.overlayV); MemoryUtil.memPutFloat(p + 8, v.hasOverlay); MemoryUtil.memPutFloat(p + 12, v.diffuseAmount) }
 					}
 				}

@@ -49,7 +49,7 @@ data class BreakInfo(
 	// Pre Processing
 	var shouldProgress = false
 	var rebreakPotential = RebreakHandler.RebreakPotential.None
-	var swapInfo = SwapInfo.Empty
+	var swapInfo = SwapInfo.EMPTY
 	var swapStack: ItemStack = ItemStack.EMPTY
 
 	// BreakInfo Specific

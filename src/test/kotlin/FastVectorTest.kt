@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.util.world.XBits
-import com.lambda.util.world.ZBits
+import com.lambda.util.world.X_BITS
+import com.lambda.util.world.Z_BITS
 import com.lambda.util.world.addX
 import com.lambda.util.world.addY
 import com.lambda.util.world.addZ
@@ -71,7 +71,7 @@ class FastVectorTest {
 
     @Test
     fun `test fast vector with invalid X coordinate`() {
-        val x = (1L shl XBits - 1)
+        val x = (1L shl X_BITS - 1)
         val y = 10L
         val z = 20L
 
@@ -82,7 +82,7 @@ class FastVectorTest {
     fun `test fast vector with invalid Z coordinate`() {
         val x = 10L
         val y = 20L
-        val z = (1L shl ZBits - 1)
+        val z = (1L shl Z_BITS - 1)
 
         assertFails { fastVectorOf(x, y, z) }
     }

@@ -24,18 +24,19 @@ import com.lambda.util.world.toFastVec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
+@Suppress("unused")
 object DirectionMask {
-    const val East = 1 // X +
-    const val West = 2 // X -
+    const val EAST = 1 // X +
+    const val WEST = 2 // X -
 
-    const val Up = 4 // Y +
-    const val Down = 8 // Y -
+    const val UP = 4 // Y +
+    const val DOWN = 8 // Y -
 
-    const val South = 16 // Z +
-    const val North = 32 // Z -
+    const val SOUTH = 16 // Z +
+    const val NORTH = 32 // Z -
 
-    const val All = East or West or Up or Down or South or North
-    const val None = 0
+    const val ALL = EAST or WEST or UP or DOWN or SOUTH or NORTH
+    const val NONE = 0
 
     fun Int.include(dir: Int) = this or dir
     fun Int.include(direction: Direction) = include(direction.mask)
@@ -47,7 +48,7 @@ object DirectionMask {
         buildSideMesh(position.toFastVec()) { filter(it.toBlockPos()) }
 
     fun buildSideMesh(position: FastVector, filter: (FastVector) -> Boolean): Int {
-        var sides = All
+        var sides = ALL
 
         Direction.entries
             .filter { filter(position.offset(it)) }
@@ -58,12 +59,12 @@ object DirectionMask {
 
     val Direction.mask
         get() = when (this) {
-            Direction.DOWN -> Down
-            Direction.UP -> Up
-            Direction.NORTH -> North
-            Direction.SOUTH -> South
-            Direction.WEST -> West
-            Direction.EAST -> East
+            Direction.DOWN -> DOWN
+            Direction.UP -> UP
+            Direction.NORTH -> NORTH
+            Direction.SOUTH -> SOUTH
+            Direction.WEST -> WEST
+            Direction.EAST -> EAST
         }
 
     enum class OutlineMode(val check: (Boolean, Boolean) -> Boolean) {

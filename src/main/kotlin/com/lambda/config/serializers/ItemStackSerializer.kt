@@ -31,7 +31,7 @@ import tools.jackson.databind.SerializationContext
 
 object ItemStackSerializer : Serializer<ItemStack>(ItemStack::class.java), Stringifiable<ItemStack> {
     override fun serialize(itemStack: ItemStack, gen: JsonGenerator, ctxt: SerializationContext) {
-        gen.writeTree(ItemStack.CODEC.encodeStart(JsonOps.Uncompressed, itemStack).orThrow)
+        gen.writeTree(ItemStack.CODEC.encodeStart(JsonOps.UNCOMPRESSED, itemStack).orThrow)
     }
 
     override fun stringify(value: ItemStack) = value.itemName.string.uppercase()
@@ -39,5 +39,5 @@ object ItemStackSerializer : Serializer<ItemStack>(ItemStack::class.java), Strin
 
 object ItemStackDeserializer : Deserializer<ItemStack>(ItemStack::class.java) {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): ItemStack =
-        ItemStack.CODEC.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
+        ItemStack.CODEC.parse(JsonOps.UNCOMPRESSED, mapper.readTree(p)).orThrow
 }

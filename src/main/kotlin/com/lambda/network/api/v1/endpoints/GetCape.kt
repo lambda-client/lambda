@@ -19,7 +19,7 @@ package com.lambda.network.api.v1.endpoints
 
 import com.lambda.network.LambdaAPI.apiUrl
 import com.lambda.network.LambdaAPI.apiVersion
-import com.lambda.network.LambdaHttp
+import com.lambda.network.LAMBDA_HTTP
 import com.lambda.network.api.v1.models.Cape
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -32,5 +32,5 @@ import java.util.*
  *  - id: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
  */
 suspend fun getCape(uuid: UUID) = runCatching {
-    LambdaHttp.get("$apiUrl/api/$apiVersion/cape?id=$uuid").body<Cape>()
+    LAMBDA_HTTP.get("$apiUrl/api/$apiVersion/cape?id=$uuid").body<Cape>()
 }

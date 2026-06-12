@@ -32,7 +32,7 @@ import com.lambda.util.ChatUtils.toUwu
 object FancyChat : Module(
 	name = "FancyChat",
 	description = "Makes messages you send - fancy",
-	tag = ModuleTag.Chat,
+	tag = ModuleTag.CHAT,
 ) {
 	private val uwu by setting("uwu", false)
 	private val leet by setting("1337", false)

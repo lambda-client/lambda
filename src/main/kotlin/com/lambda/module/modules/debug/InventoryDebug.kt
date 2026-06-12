@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -38,13 +38,13 @@ import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
 object InventoryDebug : Module(
     name = "InventoryDebug",
     description = "Debugs the inventory",
-    tag = ModuleTag.Debug,
+    tag = ModuleTag.DEBUG,
 ) {
     init {
         listen<InventoryEvent.Open> { event ->
             info("Opened screen handler: ${event.screenHandler::class.simpleName}")
 
-            Log.info("\n" + event.screenHandler.slots.joinToString("\n") {
+            LOG.info("\n" + event.screenHandler.slots.joinToString("\n") {
                 "${it.inventory::class.simpleName} ${it.index} ${it.x} ${it.y}"
             })
         }
@@ -62,7 +62,7 @@ object InventoryDebug : Module(
                 is UpdateSelectedSlotS2CPacket,
                 is InventoryS2CPacket,
                     -> {
-                    Log.info(it.packet.dynamicString())
+                    LOG.info(it.packet.dynamicString())
                 }
             }
             when (val packet = it.packet) {
@@ -80,7 +80,7 @@ object InventoryDebug : Module(
                 is CraftRequestC2SPacket,
                 is CreativeInventoryActionC2SPacket,
                 is UpdateSelectedSlotC2SPacket,
-                    -> Log.info(System.currentTimeMillis().toString() + " " + it.packet.dynamicString())
+                    -> LOG.info(System.currentTimeMillis().toString() + " " + it.packet.dynamicString())
             }
         }
     }

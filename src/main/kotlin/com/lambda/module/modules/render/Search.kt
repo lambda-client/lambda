@@ -58,11 +58,11 @@ import java.util.concurrent.ConcurrentHashMap
 object Search : Module(
     name = "Search",
     description = "Highlight blocks within the rendered world",
-    tag = ModuleTag.Render,
+    tag = ModuleTag.RENDER,
 ) {
-    private const val FillGroup = "Fill"
-    private const val OutlineGroup = "Outline"
-    private const val TracersGroup = "Tracers"
+    private const val FILL_GROUP = "Fill"
+    private const val OUTLINE_GROUP = "Outline"
+    private const val TRACERS_GROUP = "Tracers"
 
     private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks")
         .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
@@ -76,18 +76,18 @@ object Search : Module(
     private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
     private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(FillGroup) private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) outline = true }
-    @Group(FillGroup) private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
-    @Group(FillGroup) private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(OutlineGroup) private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
         .onValueChange { _, to -> if (!to) fill = true }
-    @Group(OutlineGroup) private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
-    @Group(OutlineGroup) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-    @Group(OutlineGroup) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
-    @Group(OutlineGroup) private val outlineConfig by configBlock(WorldLineSettings(this))
+    @Group(OUTLINE_GROUP) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val outlineConfig by configBlock(WorldLineSettings(this))
         .withEdits {
             hide(::startColor, ::endColor)
             forEachSetting {
@@ -95,8 +95,8 @@ object Search : Module(
                 onValueChange(::rebuildMesh)
             }
         }
-    @Group(TracersGroup) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
-    @Group(TracersGroup) private val tracerConfig by configBlock(ScreenLineSettings(this))
+    @Group(TRACERS_GROUP) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
+    @Group(TRACERS_GROUP) private val tracerConfig by configBlock(ScreenLineSettings(this))
         .withEdits {
             forEachSetting { visibility { old -> { old() && tracers } } }
             editTypedSettings(::startColor, ::endColor) {
@@ -119,7 +119,7 @@ object Search : Module(
 			    buildSideMesh(position) {
 				    world.getBlockState(it).block in blocks
 			    }
-		    } else DirectionMask.All
+		    } else DirectionMask.ALL
 
 		    val lineColor = getBlockColor(state, position.toBlockPos())
 		    val fillColor = Color(lineColor.red, lineColor.green, lineColor.blue, (naturalColorAlpha * 255).toInt())
@@ -152,7 +152,7 @@ object Search : Module(
 						val entityColor = getEntityColor(entity)
 						box(
 							listOf(entity.interpolatedBox),
-							DirectionMask.None,
+							DirectionMask.NONE,
 							if (useNaturalColor) entityColor.setAlpha(naturalColorAlpha) else entityFillColor,
 							if (useNaturalColor) entityColor else entityOutlineColor
 						)

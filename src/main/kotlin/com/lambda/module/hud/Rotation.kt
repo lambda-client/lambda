@@ -30,7 +30,7 @@ import com.lambda.util.FormattingUtils.format
 object Rotation : HudModule(
 	name = "Rotation",
 	description = "Show your rotation",
-	tag = ModuleTag.Hud,
+	tag = ModuleTag.HUD,
 ) {
 	private val formatter by configBlock(FormatterSettings(this))
 		.withEdits {

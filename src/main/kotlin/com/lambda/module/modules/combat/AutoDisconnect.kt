@@ -54,7 +54,7 @@ import java.awt.Color
 object AutoDisconnect : Module(
     name = "AutoDisconnect",
     description = "Automatically disconnects when in danger or on low health",
-    tag = ModuleTag.Combat,
+    tag = ModuleTag.COMBAT,
     modulePriority = -100
 ) {
     private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")

@@ -120,7 +120,7 @@ abstract class AbstractRenderer(val name: String, var depthTest: () -> Boolean) 
 			val glintUniformL = RendererUtils.createGlintUniform(8.0f)
 
 			outlinedIds.forEach { id ->
-				val style = chunks.firstNotNullOfOrNull { it.first.getOutlineStyle(id) } ?: OutlineStyle.Default
+				val style = chunks.firstNotNullOfOrNull { it.first.getOutlineStyle(id) } ?: OutlineStyle.DEFAULT
 
 				RegionRenderer.createRenderPass("$name Outlined Draw $id", depth)?.use { pass ->
 					pass.setPipeline(RendererUtils.worldFacesPipeline)

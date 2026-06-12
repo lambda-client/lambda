@@ -32,7 +32,7 @@ import tools.jackson.databind.SerializationContext
 
 object BlockSerializer : Serializer<Block>(Block::class.java), Stringifiable<Block> {
     override fun serialize(block: Block, gen: JsonGenerator, ctxt: SerializationContext) {
-        gen.writeTree((Registries.BLOCK.codec.encodeStart(JsonOps.Uncompressed, block).orThrow))
+        gen.writeTree((Registries.BLOCK.codec.encodeStart(JsonOps.UNCOMPRESSED, block).orThrow))
     }
 
     override fun stringify(value: Block) = Registries.BLOCK.getId(value).path.replaceFirstChar { it.uppercase() }
@@ -40,5 +40,5 @@ object BlockSerializer : Serializer<Block>(Block::class.java), Stringifiable<Blo
 
 object BlockDeserializer : Deserializer<Block>(Block::class.java) {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Block =
-        Registries.BLOCK.codec.parse(JsonOps.Uncompressed, mapper.readTree(p)).orThrow
+        Registries.BLOCK.codec.parse(JsonOps.UNCOMPRESSED, mapper.readTree(p)).orThrow
 }

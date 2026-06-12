@@ -27,7 +27,7 @@ import java.awt.Color
 object WorldColors : Module(
     name = "WorldColors",
     description = "Changes the color of the sky, clouds and fog",
-    tag = ModuleTag.Render,
+    tag = ModuleTag.RENDER,
 ) {
     @JvmStatic val customSky by setting("Custom Sky", true)
     @JvmStatic val skyColor by setting("Sky Color", Color(255, 24, 75), "The color of your sky") { customSky }

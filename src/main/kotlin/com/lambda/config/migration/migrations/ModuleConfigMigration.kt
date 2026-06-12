@@ -17,7 +17,7 @@
 
 package com.lambda.config.migration.migrations
 
-import com.lambda.Lambda.Log
+import com.lambda.Lambda.LOG
 import com.lambda.config.categories.ModuleCategory
 import com.lambda.config.migration.MigrationUtils
 import com.lambda.config.migration.StepConfigMigration
@@ -30,7 +30,7 @@ object ModuleConfigMigration : StepConfigMigration() {
 	init {
 		step(1, 2) { root ->
 			val count = MigrationUtils.locateAndMoveMisplacedSettings(category, root)
-			Log.info("Migrated Module config category schema v1 -> v2: $count settings moved")
+			LOG.info("Migrated Module config category schema v1 -> v2: $count settings moved")
 		}
 
 		step(2, 3) { root ->
@@ -41,7 +41,7 @@ object ModuleConfigMigration : StepConfigMigration() {
 			if (!loaderPromptHandled.isBoolean) return@step
 			val properties = autoUpdater.asObject().objectOrCreate("Properties")
 			properties.put("loaderPromptHandled", loaderPromptHandled.asString())
-			Log.info("Module config category schema v2 -> v3")
+			LOG.info("Module config category schema v2 -> v3")
 		}
 	}
 }

@@ -41,9 +41,9 @@ import kotlin.reflect.KClass
 @Suppress("unused")
 @StackSelectionDsl
 class StackSelection {
-    var selector: (ItemStack) -> Boolean = Everything
-    var comparator: Comparator<ItemStack> = NoCompare
-    var count: Int = DefaultAmount
+    var selector: (ItemStack) -> Boolean = EVERYTHING
+    var comparator: Comparator<ItemStack> = NO_COMPARE
+    var count: Int = DEFAULT_AMOUNT
     var inShulkerBox: Boolean = false
 
     var item: Item? = null
@@ -84,12 +84,12 @@ class StackSelection {
     }
 
     fun <R : Comparable<R>> thenBy(selector: (ItemStack) -> R?): StackSelection = apply {
-        check(comparator != NoCompare) { "No comparator specified" }
+        check(comparator != NO_COMPARE) { "No comparator specified" }
         comparator = comparator.thenBy(selector)
     }
 
     fun <R : Comparable<R>> thenByDescending(selector: (ItemStack) -> R?): StackSelection = apply {
-        check(comparator != NoCompare) { "No comparator specified" }
+        check(comparator != NO_COMPARE) { "No comparator specified" }
         comparator = comparator.thenByDescending(selector)
     }
 
@@ -130,8 +130,8 @@ class StackSelection {
         }
     }
 
-    fun any() = Everything
-    fun none() = Nothing
+    fun any() = EVERYTHING
+    fun none() = NOTHING
 
     /**
      * [isItem] returns a predicate that matches a specific [Item].
@@ -265,25 +265,25 @@ class StackSelection {
         itemStack?.let { append(it.name.string) }
         damage?.let { append(" with damage $it") }
         when (selector) {
-            Everything -> append(" everything")
-            Nothing -> append(" nothing")
+            EVERYTHING -> append(" everything")
+            NOTHING -> append(" nothing")
             else -> append(" custom predicate")
         }
         if (inShulkerBox) append(" in shulker box")
-        if (comparator != NoCompare) append(" sorted by custom comparator")
+        if (comparator != NO_COMPARE) append(" sorted by custom comparator")
     }
 
     companion object {
         @DslMarker
         annotation class StackSelectionDsl
 
-        const val DefaultAmount = 1
+        const val DEFAULT_AMOUNT = 1
 
-        val FullShulkers: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.none { it.isEmpty } }
-        val EmptyShulkers: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.all { it.isEmpty } }
-        val Everything: (ItemStack) -> Boolean = { true }
-        val Nothing: (ItemStack) -> Boolean = { false }
-        val NoCompare: Comparator<ItemStack> = Comparator { _, _ -> 0 }
+        val FULL_SHULKERS: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.none { it.isEmpty } }
+        val EMPTY_SHULKERS: (ItemStack) -> Boolean = { stack -> stack.shulkerBoxContents.all { it.isEmpty } }
+        val EVERYTHING: (ItemStack) -> Boolean = { true }
+        val NOTHING: (ItemStack) -> Boolean = { false }
+        val NO_COMPARE: Comparator<ItemStack> = Comparator { _, _ -> 0 }
 
         val efficientToolCache: MutableMap<BlockState, Boolean> = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
 
@@ -306,10 +306,10 @@ class StackSelection {
 
         @StackSelectionDsl
         fun selectStack(
-            count: Int = DefaultAmount,
+            count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,
-            sorter: Comparator<ItemStack> = NoCompare,
-            block: StackSelection.() -> (ItemStack) -> Boolean = { Everything },
+            sorter: Comparator<ItemStack> = NO_COMPARE,
+            block: StackSelection.() -> (ItemStack) -> Boolean = { EVERYTHING },
         ) = StackSelection().apply {
             selector = block()
             comparator = sorter

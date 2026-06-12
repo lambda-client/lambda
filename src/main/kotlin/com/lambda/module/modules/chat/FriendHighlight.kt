@@ -36,7 +36,7 @@ import java.awt.Color
 object FriendHighlight : Module(
 	name = "FriendHighlight",
 	description = "Highlights your friends names in chat",
-	tag = ModuleTag.Chat,
+	tag = ModuleTag.CHAT,
 ) {
 	private var color: Formatting by setting("Color", Formatting.GREEN)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }

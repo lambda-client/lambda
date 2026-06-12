@@ -74,7 +74,7 @@ import kotlin.time.Duration.Companion.seconds
 object ElytraFly : Module(
     name = "ElytraFly",
     description = "Allows you to fly with an elytra",
-    tag = ModuleTag.Movement,
+    tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic val mode by setting("Mode", FlyMode.Bounce)
 
@@ -86,21 +86,21 @@ object ElytraFly : Module(
 	private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
 
-	private const val YMotionGroup = "Y Motion"
-	@Group(YMotionGroup) private val yMotionSetting by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
+	private const val Y_MOTION_GROUP = "Y Motion"
+	@Group(Y_MOTION_GROUP) private val yMotionSetting by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
 	private val yMotion
 		get() = yMotionSetting && (!onlyOnDiagonal || abs(RotationManager.activeRotation.yaw % 90) > minDiagonalAngle)
-	@Group(YMotionGroup) private val onlyOnDiagonal: Boolean by setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { mode == FlyMode.Bounce && yMotionSetting }
-	@Group(YMotionGroup) private val minDiagonalAngle by setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { mode == FlyMode.Bounce && yMotionSetting && onlyOnDiagonal }
-    @Group(YMotionGroup) private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotion }
-    @Group(YMotionGroup) private val speedLimit by setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotion }
+	@Group(Y_MOTION_GROUP) private val onlyOnDiagonal: Boolean by setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { mode == FlyMode.Bounce && yMotionSetting }
+	@Group(Y_MOTION_GROUP) private val minDiagonalAngle by setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { mode == FlyMode.Bounce && yMotionSetting && onlyOnDiagonal }
+    @Group(Y_MOTION_GROUP) private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotion }
+    @Group(Y_MOTION_GROUP) private val speedLimit by setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotion }
 
-    private const val ObstaclePasserGroup = "Obstacle Passer"
-    @Group(ObstaclePasserGroup) private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
-    @Group(ObstaclePasserGroup) private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
-    @Group(ObstaclePasserGroup) private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
-    @Group(ObstaclePasserGroup) private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
-    @Group(ObstaclePasserGroup) private val directionStep by setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { mode == FlyMode.Bounce && passObstacles }
+    private const val OBSTACLE_PASSER_GROUP = "Obstacle Passer"
+    @Group(OBSTACLE_PASSER_GROUP) private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
+    @Group(OBSTACLE_PASSER_GROUP) private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
+    @Group(OBSTACLE_PASSER_GROUP) private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
+    @Group(OBSTACLE_PASSER_GROUP) private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
+    @Group(OBSTACLE_PASSER_GROUP) private val directionStep by setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { mode == FlyMode.Bounce && passObstacles }
 
     private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 0.0, 0.0..2.0, description = "Speed multiplier that the rocket gives you") { mode == FlyMode.Enhanced }

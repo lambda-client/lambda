@@ -23,5 +23,5 @@ import com.lambda.module.tag.ModuleTag
 object NoJumpCooldown : Module(
 	name = "NoJumpCooldown",
 	description = "Removes delay between jumps",
-	tag = ModuleTag.Movement
+	tag = ModuleTag.MOVEMENT
 )

@@ -39,22 +39,22 @@ open class AutomationConfig(
 	name,
 	configCategory
 ), Automated {
-	@Tab(BuildTab) override val buildConfig by configBlock(BuildSettings(this))
-	@Tab(BreakTab) override val breakConfig by configBlock(BreakSettings(this))
-	@Tab(InteractTab) override val interactConfig by configBlock(InteractSettings(this))
-	@Tab(RotationTab) override val rotationConfig by configBlock(RotationSettings(this))
-	@Tab(InventoryTab) override val inventoryConfig by configBlock(InventorySettings(this))
-	@Tab(HotbarTab) override val hotbarConfig by configBlock(HotbarSettings(this))
-	@Tab(EatTab) override val eatConfig by configBlock(EatSettings(this))
+	@Tab(BUILD_TAB) override val buildConfig by configBlock(BuildSettings(this))
+	@Tab(BREAK_TAB) override val breakConfig by configBlock(BreakSettings(this))
+	@Tab(INTERACT_TAB) override val interactConfig by configBlock(InteractSettings(this))
+	@Tab(ROTATION_TAB) override val rotationConfig by configBlock(RotationSettings(this))
+	@Tab(INVENTORY_TAB) override val inventoryConfig by configBlock(InventorySettings(this))
+	@Tab(HOTBAR_TAB) override val hotbarConfig by configBlock(HotbarSettings(this))
+	@Tab(EAT_TAB) override val eatConfig by configBlock(EatSettings(this))
 
 	companion object {
-		private const val BuildTab = "Build"
-		private const val BreakTab = "Break"
-		private const val InteractTab = "Interact"
-		private const val RotationTab = "Rotation"
-		private const val InventoryTab = "Inventory"
-		private const val HotbarTab = "Hotbar"
-		private const val EatTab = "Eat"
+		private const val BUILD_TAB = "Build"
+		private const val BREAK_TAB = "Break"
+		private const val INTERACT_TAB = "Interact"
+		private const val ROTATION_TAB = "Rotation"
+		private const val INVENTORY_TAB = "Inventory"
+		private const val HOTBAR_TAB = "Hotbar"
+		private const val EAT_TAB = "Eat"
 
 		@DslMarker
 		private annotation class AutomationConfigMarker
@@ -70,6 +70,6 @@ open class AutomationConfig(
 	        name: String
 		) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }
 
-		val Default = AutomationConfig("Default")
+		val DEFAULT = AutomationConfig("Default")
     }
 }

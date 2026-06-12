@@ -199,9 +199,9 @@ object CommunicationUtils {
             hoverEvent(HoverEvents.showText(buildText {
                 literal("Lambda ")
                 color(color) {
-                    literal(Lambda.Symbol)
+                    literal(Lambda.SYMBOL)
                 }
-                literal(" v${Lambda.Version}\n")
+                literal(" v${Lambda.VERSION}\n")
                 literal("Runtime: ${Loader.runtime}\n")
                 literal("Modules: ${ModuleRegistry.modules.size}\n")
                 literal("Commands: ${CommandRegistry.commands.size}\n")
@@ -222,7 +222,7 @@ object CommunicationUtils {
 
             })) {
                 styled(color) {
-                    literal(Lambda.Symbol)
+                    literal(Lambda.SYMBOL)
                 }
                 literal(" ")
             }

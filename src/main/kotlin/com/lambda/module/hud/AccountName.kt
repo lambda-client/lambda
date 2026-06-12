@@ -26,7 +26,7 @@ import com.lambda.threading.runSafe
 object AccountName : HudModule(
     name = "AccountName",
     description = "Displays the current accounts name",
-    tag = ModuleTag.Hud
+    tag = ModuleTag.HUD
 ) {
     override fun ImGuiBuilder.buildLayout() {
         runSafe { text(player.name.string) }

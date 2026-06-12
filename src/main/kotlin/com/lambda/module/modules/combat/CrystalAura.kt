@@ -78,43 +78,43 @@ import kotlin.time.Duration.Companion.milliseconds
 object CrystalAura : Module(
     name = "CrystalAura",
     description = "Automatically attacks entities with crystals",
-    tag = ModuleTag.Combat,
+    tag = ModuleTag.COMBAT,
 ) {
-    private const val GeneralTab = "General"
-    private const val PlacementTab = "Placement"
-    private const val ExplodingTab = "Exploding"
-    private const val PredictionTab = "Prediction"
-    private const val TargetingTab = "Targeting"
+    private const val GENERAL_TAB = "General"
+    private const val PLACEMENT_TAB = "Placement"
+    private const val EXPLODING_TAB = "Exploding"
+    private const val PREDICTION_TAB = "Prediction"
+    private const val TARGETING_TAB = "Targeting"
 
-    @Tab(GeneralTab) private val rotate by setting("Rotate", true)
-    @Tab(GeneralTab) private val updateMode by setting("Update Mode", UpdateMode.Async)
-    @Tab(GeneralTab) private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
-    @Tab(GeneralTab) private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
-    @Tab(GeneralTab) private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
-    @Tab(GeneralTab) private val debug by setting("Debug", false)
+    @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
+    @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Async)
+    @Tab(GENERAL_TAB) private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
+    @Tab(GENERAL_TAB) private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
+    @Tab(GENERAL_TAB) private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
+    @Tab(GENERAL_TAB) private val debug by setting("Debug", false)
 
-    @Tab(PlacementTab) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
-    @Tab(PlacementTab) private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
-    @Tab(PlacementTab) private val swap by setting("Swap", true, "Swaps to crystals")
-    @Tab(PlacementTab) private val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
-    @Tab(PlacementTab) private val priorityMode by setting("Crystal Priority", Priority.Damage)
-    @Tab(PlacementTab) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
-    @Tab(PlacementTab) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
-    @Tab(PlacementTab) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
-    @Tab(PlacementTab) private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals")
-    @Tab(PlacementTab) private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal")
-    @Tab(PlacementTab) private val oldPlace by setting("1.12 Placement", false)
+    @Tab(PLACEMENT_TAB) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
+    @Tab(PLACEMENT_TAB) private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
+    @Tab(PLACEMENT_TAB) private val swap by setting("Swap", true, "Swaps to crystals")
+    @Tab(PLACEMENT_TAB) private val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
+    @Tab(PLACEMENT_TAB) private val priorityMode by setting("Crystal Priority", Priority.Damage)
+    @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
+    @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals")
+    @Tab(PLACEMENT_TAB) private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal")
+    @Tab(PLACEMENT_TAB) private val oldPlace by setting("1.12 Placement", false)
 
-    @Tab(ExplodingTab) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
-    @Tab(ExplodingTab) private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
+    @Tab(EXPLODING_TAB) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
+    @Tab(EXPLODING_TAB) private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
 
-    @Tab(PredictionTab) private val prediction by setting("Prediction", PredictionMode.None)
-    @Tab(PredictionTab) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }
-    @Tab(PredictionTab) private val placePostPause by setting("Place Post Pause", true) { prediction.onPacket }
-    @Tab(PredictionTab) private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
-    @Tab(PredictionTab) private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
+    @Tab(PREDICTION_TAB) private val prediction by setting("Prediction", PredictionMode.None)
+    @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }
+    @Tab(PREDICTION_TAB) private val placePostPause by setting("Place Post Pause", true) { prediction.onPacket }
+    @Tab(PREDICTION_TAB) private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
+    @Tab(PREDICTION_TAB) private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
 
-    @Tab(PredictionTab) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this, 10.0))
+    @Tab(PREDICTION_TAB) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this, 10.0))
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null

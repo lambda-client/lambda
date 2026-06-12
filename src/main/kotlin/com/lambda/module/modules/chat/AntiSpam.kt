@@ -43,7 +43,7 @@ import net.minecraft.text.Text
 object AntiSpam : Module(
 	name = "AntiSpam",
 	description = "Keeps your chat clean",
-	tag = ModuleTag.Chat,
+	tag = ModuleTag.CHAT,
 	modulePriority = 100
 ) {
 	private val fancyChats by setting("Replace Fancy Chat", false)

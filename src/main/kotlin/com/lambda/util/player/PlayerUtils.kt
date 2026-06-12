@@ -27,7 +27,7 @@ import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.world.GameMode
 
-const val FakePlayerId = -2024-4-20
+const val FAKE_PLAYER_ID = -2024-4-20
 
 val SafeContext.gamemode: GameMode
     get() = interaction.currentGameMode

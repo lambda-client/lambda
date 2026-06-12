@@ -47,7 +47,7 @@ import net.minecraft.entity.vehicle.BoatEntity
 object Speed : Module(
     name = "Speed",
     description = "Accelerates your walking speed",
-    tag = ModuleTag.Movement,
+    tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic
     val mode by setting("Mode", Mode.GrimStrafe)
@@ -64,10 +64,10 @@ object Speed : Module(
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NcpStrafe }
 
     // NCP state variables
-    const val NcpBaseSpeed = 0.2873
-    private const val NcpAirDecay = 0.9937
+    const val NCP_BASE_SPEED = 0.2873
+    private const val NCP_AIR_DECAY = 0.9937
     private var ncpPhase = NCPPhase.SlowDown
-    private var ncpSpeed = NcpBaseSpeed
+    private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
 
     enum class Mode(override val displayName: String) : NamedEnum {
@@ -157,7 +157,7 @@ object Speed : Module(
             NCPPhase.Jump -> {
                 if (player.isOnGround) {
                     player.motionY = if (lowerJump) 0.4 else 0.42
-                    ncpSpeed = NcpBaseSpeed + 0.3
+                    ncpSpeed = NCP_BASE_SPEED + 0.3
                     NCPPhase.JumpPost
                 } else NCPPhase.SlowDown
             }
@@ -168,19 +168,19 @@ object Speed : Module(
             }
 
             NCPPhase.SlowDown -> {
-                ncpSpeed = lastDistance * NcpAirDecay
+                ncpSpeed = lastDistance * NCP_AIR_DECAY
                 NCPPhase.SlowDown
             }
         }
 
         if (player.isOnGround && !shouldJump) {
-            ncpSpeed = NcpBaseSpeed
+            ncpSpeed = NCP_BASE_SPEED
         }
 
-        ncpSpeed = ncpSpeed.coerceIn(NcpBaseSpeed..1.0)
+        ncpSpeed = ncpSpeed.coerceIn(NCP_BASE_SPEED..1.0)
 
         val moveSpeed = if (isInputting) ncpSpeed else {
-            ncpSpeed = NcpBaseSpeed
+            ncpSpeed = NCP_BASE_SPEED
             0.0
         }
 
@@ -202,6 +202,6 @@ object Speed : Module(
 
     private fun resetNcp() {
         ncpPhase = NCPPhase.SlowDown
-        ncpSpeed = NcpBaseSpeed
+        ncpSpeed = NCP_BASE_SPEED
     }
 }

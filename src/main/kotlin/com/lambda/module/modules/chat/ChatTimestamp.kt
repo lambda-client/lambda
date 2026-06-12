@@ -42,7 +42,7 @@ import java.time.temporal.ChronoUnit
 object ChatTimestamp : Module(
 	name = "ChatTimestamp",
 	description = "Displays the time a message was sent next to it",
-	tag = ModuleTag.Chat,
+	tag = ModuleTag.CHAT,
 ) {
 	private var color: Formatting by setting("Color", Formatting.GRAY)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }

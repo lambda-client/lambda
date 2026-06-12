@@ -26,8 +26,9 @@ data class ItemOverlay(
     val angle: Float = 0f,
     val alpha: Float = 0.5f
 ) {
+    @Suppress("unused")
     companion object {
-        val EnchantGlint = ItemOverlay(
+        val ENCHANT_GLINT = ItemOverlay(
             texture = Identifier.of("minecraft", "textures/misc/enchanted_glint_item.png"),
             scale = 8.0f,
             speed = 1.0f,
@@ -35,7 +36,7 @@ data class ItemOverlay(
             alpha = 0.5f
         )
         
-        val EntityGlint = ItemOverlay(
+        val ENTITY_GLINT = ItemOverlay(
             texture = Identifier.of("minecraft", "textures/misc/enchanted_glint_armor.png"),
             scale = 8.0f,
             speed = 1.0f,
@@ -43,7 +44,7 @@ data class ItemOverlay(
             alpha = 0.5f
         )
 
-        val Disabled = ItemOverlay(
+        val DISABLED = ItemOverlay(
             texture = Identifier.of("minecraft", "textures/misc/unknown.png"),
             alpha = 0f
         )

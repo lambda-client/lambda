@@ -20,7 +20,7 @@ package com.lambda.config.settings.blocks
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.TickEvent.Companion.AllStages
+import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.interaction.managers.rotating.RotationMode
 import kotlin.math.PI
 import kotlin.math.abs
@@ -38,7 +38,7 @@ class RotationSettings(override val c: Config) : RotationConfig, ConfigBlock {
     /** How many ticks to wait before resetting the rotation */
     override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks")
 
-    override val tickStageMask = AllStages.subList(0, AllStages.indexOf(TickEvent.Player.Post)).toSet()
+    override val tickStageMask = ALL_STAGES.subList(0, ALL_STAGES.indexOf(TickEvent.Player.Post)).toSet()
 
     /** Whether the rotation is instant */
     var instant by c.setting("Instant Rotation", true, "Instantly rotate")

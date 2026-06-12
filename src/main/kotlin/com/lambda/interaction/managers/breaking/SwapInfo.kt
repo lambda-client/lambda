@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers.breaking
 
-import com.lambda.config.automation.AutomationConfig.Companion.Default
+import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
@@ -31,12 +31,12 @@ import com.lambda.threading.runSafeAutomated
  */
 data class SwapInfo(
 	private val type: BreakInfo.BreakType,
-	private val automated: Automated = Default,
+	private val automated: Automated = DEFAULT,
 	val swap: Boolean = false,
 	val longSwap: Boolean = false
 ) : Automated by automated {
 	companion object {
-		val Empty = SwapInfo(Primary)
+		val EMPTY = SwapInfo(Primary)
 
 		/**
 		 * Calculates the contents and returns a [SwapInfo].

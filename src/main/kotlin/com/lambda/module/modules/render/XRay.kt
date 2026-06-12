@@ -25,7 +25,7 @@ import net.minecraft.block.Blocks
 object XRay : Module(
 	name = "XRay",
 	description = "Allows you to see ores through walls",
-	tag = ModuleTag.Render,
+	tag = ModuleTag.RENDER,
 ) {
 	val defaultBlocks = setOf(
 		Blocks.COAL_ORE, Blocks.DEEPSLATE_COAL_ORE,
