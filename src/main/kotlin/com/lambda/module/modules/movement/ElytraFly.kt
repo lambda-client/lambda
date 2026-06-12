@@ -61,6 +61,7 @@ import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.RaycastContext
 import java.lang.Math.toDegrees
 import java.lang.Math.toRadians
 import kotlin.math.abs
@@ -296,7 +297,8 @@ object ElytraFly : Module(
             this,
             direction,
             obstacleLookAhead.toDouble(),
-            InteractionMask.Block
+            InteractionMask.Block,
+            RaycastContext.ShapeType.COLLIDER
         )?.blockResult != null
 
     private fun Vec3d.findClosestPointOnLine(snappedDirection: Vec3d): Vec3d {

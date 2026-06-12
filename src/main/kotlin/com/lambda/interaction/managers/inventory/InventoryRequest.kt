@@ -57,6 +57,7 @@ class InventoryRequest private constructor(
 	@DslMarker
 	private annotation class InvRequestDsl
 
+	@Suppress("unused")
 	@InvRequestDsl
 	class InvRequestBuilder(val settleForLess: Boolean, val mustPerform: Boolean) {
 		val actions = mutableListOf<InventoryAction>()
