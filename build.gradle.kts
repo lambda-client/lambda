@@ -176,6 +176,7 @@ dependencies {
     }
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     includeLib("io.ktor:ktor-serialization-jackson:$ktorVersion")
+    includeLib("com.fasterxml.jackson.core:jackson-annotations:2.21")
     includeLib("tools.jackson.core:jackson-core:$jacksonVersion")
     includeLib("tools.jackson.core:jackson-databind:$jacksonVersion")
     includeLib("tools.jackson.module:jackson-module-kotlin:$jacksonVersion")
