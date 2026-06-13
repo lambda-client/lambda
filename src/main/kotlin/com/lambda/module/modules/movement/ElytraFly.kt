@@ -219,12 +219,20 @@ object ElytraFly : Module(
         if (passObstacles && validDistanceFromStart) run obstacleChecks@{
             val snappedDir = getSnappedDir()
             val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
+
             passingToPos?.let { passingTo ->
                 if (passingTo.isObstructed(snappedDir)) {
                     pathToValidPoint(passingTo, snappedDir)
                 }
                 return
             }
+
+            val notProgressing = Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond) < 0.01
+            if (player.isGliding && notProgressing) {
+                pathToValidPoint(closestLinePoint, snappedDir)
+                return
+            }
+
             // We only want to account for horizontal and below the line rather than total
             // distance as jumping from bounce might cause false positives
             val distanceToLine =
@@ -276,6 +284,7 @@ object ElytraFly : Module(
 
     context(safeContext: SafeContext)
     private fun pathToValidPoint(startSearchPos: Vec3d, dir: Vec3d, initialBlockedCheck: Boolean = false) {
+        if (!safeContext.player.isOnGround) return
         var skippingFirstCheck = !initialBlockedCheck
         var searchPos = startSearchPos
         while (skippingFirstCheck || searchPos.isObstructed(dir)) {
