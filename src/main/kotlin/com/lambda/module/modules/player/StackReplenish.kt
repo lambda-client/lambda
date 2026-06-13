@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -45,7 +45,7 @@ object StackReplenish : Module(
 	init {
 		setDefaultAutomationConfig()
 			.withEdits {
-				hideAllBlocksExcept(::inventoryConfig)
+				hideAllExcept(::inventoryConfig)
 				inventoryConfig.apply {
 					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
 				}

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
 import com.lambda.config.withEdits
@@ -41,7 +41,7 @@ object AutoEat : Module(
     init {
 		setDefaultAutomationConfig()
             .withEdits {
-			    hideAllBlocksExcept(::eatConfig)
+			    hideAllExcept(::eatConfig)
 		    }
 
         listen<TickEvent.Pre> {

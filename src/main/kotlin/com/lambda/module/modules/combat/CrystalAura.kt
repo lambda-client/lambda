@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
@@ -148,7 +148,7 @@ object CrystalAura : Module(
 	init {
 		setDefaultAutomationConfig()
             .withEdits {
-                hideAllBlocksExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
+                hideAllExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
                 buildConfig.apply {
                     hide(
                         ::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
@@ -51,7 +51,7 @@ object InventoryTweaks : Module(
     init {
         setDefaultAutomationConfig()
             .withEdits {
-                hideAllBlocksExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
+                hideAllExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
             }
 
         listen<PlayerEvent.SlotClick> {

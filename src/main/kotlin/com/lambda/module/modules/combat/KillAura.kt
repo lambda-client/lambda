@@ -19,7 +19,7 @@ package com.lambda.module.modules.combat
 
 import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.TargetingSettings
@@ -90,7 +90,7 @@ object KillAura : Module(
     init {
         setDefaultAutomationConfig()
             .withEdits {
-                hideAllBlocksExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
+                hideAllExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
                 buildConfig.apply {
                     hide(
                         ::pathing, ::stayInRange, ::collectDrops,

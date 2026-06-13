@@ -71,10 +71,10 @@ object ConfigEditor {
 
 	@ConfigEditorD5l
 	context(editContext: EditContext.ConfigEditContext)
-	fun hideAllBlocksExcept(
-		vararg except: ConfigBlockProperty<ConfigBlock>,
+	fun hideAllExcept(
+		vararg except: KProperty0<*>,
 		recursive: Boolean = true
-	) = internalHideAllBlocksExcept(editContext.c.configBlockLayers, *except, recursive = recursive)
+	) = internalHideAllExcept(editContext.c.configBlockLayers, *except, recursive = recursive)
 
 	@ConfigEditorD5l
 	context(editContext: EditContext.BlockEditContext)
@@ -96,10 +96,10 @@ object ConfigEditor {
 
 	@ConfigEditorD5l
 	context(editContext: EditContext.BlockEditContext)
-	fun hideAllBlocksExcept(
-		vararg except: ConfigBlockProperty<ConfigBlock>,
+	fun hideAllExcept(
+		vararg except: KProperty0<*>,
 		recursive: Boolean = true
-	) = internalHideAllBlocksExcept(editContext.block.layer, *except, recursive = recursive)
+	) = internalHideAllExcept(editContext.block.layer, *except, recursive = recursive)
 
 	@ConfigEditorD5l
 	context(_: EditContext)
@@ -148,7 +148,7 @@ object ConfigEditor {
 
 	@ConfigEditorD5l
 	context(_: EditContext)
-	fun <T : ConfigBlock> hideBlock(configBlock: ConfigBlockProperty<T>) {
+	fun hideBlock(configBlock: ConfigBlockProperty<ConfigBlock>) {
 		configBlock.configBlock.layer.settingLayers.forEach(::internalHide)
 	}
 
@@ -159,23 +159,11 @@ object ConfigEditor {
 
 	@ConfigEditorD5l
 	context(_: EditContext)
-	fun <T : ConfigBlock> hideBlockExcept(
-		configBlock: ConfigBlockProperty<T>,
-		vararg except: ConfigEntryProperty<*>,
+	fun hideBlockExcept(
+		configBlock: ConfigBlockProperty<ConfigBlock>,
+		vararg except: KProperty0<*>,
 		recursive: Boolean = true
-	) {
-		val exceptEntries = except.map<ConfigEntryProperty<*>, ConfigEntry<*>> { it.configEntry }
-		fun processBlock(blockLayer: ConfigBlockLayer) {
-			blockLayer.settingLayers.forEach { single ->
-				if (single.entry !in exceptEntries) internalHide(single)
-			}
-			blockLayer.propertyLayers.forEach { single ->
-				if (single.entry !in exceptEntries) internalHide(single)
-			}
-			if (recursive) blockLayer.layers.forEach(::processBlock)
-		}
-		processBlock(configBlock.configBlock.layer)
-	}
+	) { internalHideAllExcept(configBlock.configBlock.layer, *except, recursive = recursive) }
 
 	interface BasicEditBuilder {
 		val entries: Collection<ConfigEntry<*>>
@@ -234,16 +222,23 @@ object ConfigEditor {
 		}
 	}
 
-	private fun internalHideAllBlocksExcept(
+	private fun internalHideAllExcept(
 		root: ConfigBlockLayer,
-		vararg except: ConfigBlockProperty<ConfigBlock>,
+		vararg except: KProperty0<*>,
 		recursive: Boolean
 	) {
-		val exceptBlocks = except.map { it.configBlock.layer }
-		fun processBlock(configBlockLayer: ConfigBlockLayer) {
-			val unProtected = configBlockLayer !in exceptBlocks
-			if (unProtected) configBlockLayer.settingLayers.forEach(::internalHide)
-			if (unProtected || !recursive) configBlockLayer.layers.forEach(::processBlock)
+		val exceptEntries = except.map { it.delegate }
+		if (root.blockWrapper in exceptEntries) return
+		fun processBlock(blockLayer: ConfigBlockLayer) {
+			blockLayer.settingLayers.forEach { single ->
+				if (single.entry !in exceptEntries) internalHide(single)
+			}
+			blockLayer.propertyLayers.forEach { single ->
+				if (single.entry !in exceptEntries) internalHide(single)
+			}
+			if (recursive) blockLayer.layers.forEach { blockLayer ->
+				if (blockLayer.blockWrapper !in exceptEntries) processBlock(blockLayer)
+			}
 		}
 		processBlock(root)
 	}

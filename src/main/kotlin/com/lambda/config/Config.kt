@@ -397,7 +397,11 @@ abstract class Config(
 			}
 		}
 
+		if (currentLayer is ConfigBlockLayer.Root)
+			throw IllegalStateException("Config block registered at the Root level. The Root config block should never be linked to any specific block")
+
 		return ConfigBlockWrapper(configBlock, currentLayer)
+			.also { currentLayer.blockWrapper = it }
 	}
 
 	@ConfigEntryDsl

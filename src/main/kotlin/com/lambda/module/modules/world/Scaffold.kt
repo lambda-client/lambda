@@ -20,7 +20,7 @@ package com.lambda.module.modules.world
 import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
@@ -77,7 +77,7 @@ object Scaffold : Module(
 					::mean.editSetting { defaultValue(120.0) }
 					::spread.editSetting { defaultValue(0.0) }
 				}
-				hideAllBlocksExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
+				hideAllExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
 			}
 
 		listen<TickEvent.Pre> {

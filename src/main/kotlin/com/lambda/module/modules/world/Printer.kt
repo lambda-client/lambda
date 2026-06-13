@@ -17,8 +17,15 @@
 
 package com.lambda.module.modules.world
 
+import com.lambda.Lambda.mc
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.settings.blocks.WorldLineSettings
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
@@ -37,9 +44,18 @@ import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
 import com.lambda.util.PlayerBuildLayerUtils.inSchematic
 import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
 import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
+import com.lambda.util.extension.prevPos
+import com.lambda.util.extension.tickDelta
+import com.lambda.util.math.lerp
+import com.lambda.util.math.plus
 import fi.dy.masa.litematica.data.DataManager
 import fi.dy.masa.litematica.world.SchematicWorldHandler
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
+import java.awt.Color
+import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 @Suppress("unused")
 object Printer : Module(
@@ -57,6 +73,23 @@ object Printer : Module(
 	private val async by setting("Async", true, "Allows the simulation the 50 milliseconds between ticks where nothing changes to avoid lag. This causes a 1 tick wait between starting the module, and it performing actions")
 		.onValueChange { _, _ -> if (buildTask != null) startBuildTask() }
 
+	private const val RENDERS_GROUP = "Renders"
+	@Group(RENDERS_GROUP) private val reachCircle by setting("Reach Circle", false, "Draws a circle around the player, showing the range at which they can place blocks with Printer")
+	@Group(RENDERS_GROUP) private val reachCircleHeight by setting("Circle Height", 1.0, -5.0..8.0, 0.01, "The height at which it shows your reach") { reachCircle }
+	@Group(RENDERS_GROUP) private val reachCircleColor by setting("Circle Color", Color.GREEN) { reachCircle }
+	@Group(RENDERS_GROUP) private val reachCircleLineConfig by configBlock(WorldLineSettings(this))
+		.withEdits {
+			hideAllExcept(
+				::distanceScaling,
+				::worldWidthSetting,
+				::screenWidthSetting
+			)
+			forEachSetting {
+				visibility { old -> { old() && reachCircle } }
+			}
+		}
+	@Group(RENDERS_GROUP) private val reachCircleDepthTest by setting("Depth Test", false) { reachCircle }
+
 	private var buildTask: Task<*>? = null
 
 	init {
@@ -69,6 +102,25 @@ object Printer : Module(
 		onDisable {
 			buildTask?.cancel()
 			buildTask = null
+		}
+
+		immediateRenderer("Printer Immediate Renderer", { reachCircleDepthTest }) {
+			val player = mc.player ?: return@immediateRenderer
+			val playerPos = lerp(mc.tickDelta, player.prevPos, player.pos)
+			val circleY = playerPos.y + reachCircleHeight
+			val interpolatedEyePos = playerPos + player.standingEyeHeight
+			val dy = interpolatedEyePos.y - circleY
+			val radius = if (abs(dy) < buildConfig.blockReach) {
+				sqrt(buildConfig.blockReach.pow(2) - dy.pow(2))
+			} else 0.0
+
+			circleLine(
+				Vec3d(playerPos.x, circleY, playerPos.z),
+				radius,
+				reachCircleColor,
+				reachCircleLineConfig.width,
+				segments = 64
+			)
 		}
 	}
 

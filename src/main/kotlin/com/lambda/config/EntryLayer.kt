@@ -77,6 +77,7 @@ interface EntryLayer<T : ConfigEntry<*>> : Nameable {
 enum class MultipleLayerType { Root, Tab, Group }
 
 sealed class ConfigBlockLayer {
+	var blockWrapper: ConfigBlockWrapper<*>? = null
 	open val parent: ConfigBlockLayer? = null
 	val layers = mutableListOf<Block>()
 	val settingLayers = mutableListOf<EntryLayer.Single<Setting<*>>>()

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.settings.complex.Bind
@@ -95,7 +95,7 @@ object AutoVillagerCycle : Module(
 	init {
 		setDefaultAutomationConfig()
 			.withEdits {
-				hideAllBlocksExcept(::rotationConfig, ::inventoryConfig, ::breakConfig, ::interactConfig, ::buildConfig)
+				hideAllExcept(::rotationConfig, ::inventoryConfig, ::breakConfig, ::interactConfig, ::buildConfig)
 			}
 
 		onEnable {

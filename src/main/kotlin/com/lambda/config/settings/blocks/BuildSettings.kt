@@ -47,8 +47,8 @@ class BuildSettings(override val c: Config) : BuildConfig, ConfigBlock {
     @Group(PACKET_LIMITS_GROUP) override val interactionLimit by c.setting("Interaction Limit", 9, 1..20, 1, "The maximum allowed interaction packets to be sent to the server per given timeframe")
     @Group(PACKET_LIMITS_GROUP) override val inventoryLimit by c.setting("Inventory Limit", 5, 1..100, 1, "The maximum allowed inventory packets to be sent to the server per given timeframe")
 
-    @Group(REACH_GROUP) override var blockReach by c.setting("Interact Reach", 4.5, 1.0..7.0, 0.01, "Maximum block interaction distance")
-    @Group(REACH_GROUP) override var entityReach by c.setting("Attack Reach", 3.0, 1.0..7.0, 0.01, "Maximum entity interaction distance")
+    @Group(REACH_GROUP) override var blockReach by c.setting("Block Reach", 4.5, 1.0..7.0, 0.01, "Maximum block interaction distance")
+    @Group(REACH_GROUP) override var entityReach by c.setting("Entity Reach", 3.0, 1.0..7.0, 0.01, "Maximum entity interaction distance")
     override val scanReach: Double get() = max(entityReach, blockReach)
 
     @Group(SCAN_GROUP) override val checkSideVisibility by c.setting("Visibility Check", false, "Whether to check if an AABB side is visible")

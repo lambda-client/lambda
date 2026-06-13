@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -58,7 +58,7 @@ object AutoTotem : Module(
     init {
 		setDefaultAutomationConfig()
 			.withEdits {
-				hideAllBlocksExcept(::inventoryConfig)
+				hideAllExcept(::inventoryConfig)
 			}
 
         listen<TickEvent.Pre> {

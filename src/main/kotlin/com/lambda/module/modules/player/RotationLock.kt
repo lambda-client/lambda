@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.hideAllBlocksExcept
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
@@ -46,7 +46,7 @@ object RotationLock : Module(
     init {
 	    setDefaultAutomationConfig()
 		    .withEdits {
-				hideAllBlocksExcept(::rotationConfig)
+				hideAllExcept(::rotationConfig)
 		        rotationConfig::rotationMode.editSetting { defaultValue(RotationMode.Lock) }
 	        }
 
