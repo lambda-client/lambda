@@ -215,7 +215,8 @@ object ElytraFly : Module(
         if (!BaritoneHandler.isActive) passingToPos = null
 
         val playerPos = player.pos
-        if (passObstacles && playerPos.let { Vec3d(it.x, startPos.y, it.z) } dist startPos > 0.1) run obstacleChecks@{
+        val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
+        if (passObstacles && validDistanceFromStart) run obstacleChecks@{
             val snappedDir = getSnappedDir()
             val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
             passingToPos?.let { passingTo ->
@@ -224,11 +225,23 @@ object ElytraFly : Module(
                 }
                 return
             }
-            if (playerPos dist closestLinePoint <= acceptableOffsetRange) {
-                if (playerPos.let { Vec3d(it.x, closestLinePoint.y, it.z) }.isObstructed(snappedDir))
-                    pathToValidPoint(closestLinePoint, snappedDir)
-                else return@obstacleChecks
-            } else pathToValidPoint(closestLinePoint, snappedDir, true)
+            // We only want to account for horizontal and below the line rather than total
+            // distance as jumping from bounce might cause false positives
+            val distanceToLine =
+                Vec3d(
+                    playerPos.x,
+                    closestLinePoint.y,
+                    playerPos.z
+                ).dist(closestLinePoint) + (playerPos.y - closestLinePoint.y).coerceAtMost(0.0)
+            if (distanceToLine > acceptableOffsetRange) {
+                pathToValidPoint(closestLinePoint, snappedDir, true)
+                return
+            }
+
+            val isObstructed = Vec3d(playerPos.x, closestLinePoint.y, playerPos.z).isObstructed(snappedDir)
+            if (isObstructed) {
+                pathToValidPoint(closestLinePoint, snappedDir)
+            } else return@obstacleChecks
 
             return
         }
