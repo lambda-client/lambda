@@ -40,5 +40,5 @@ object BlockSerializer : Serializer<Block>(Block::class.java), Stringifiable<Blo
 
 object BlockDeserializer : Deserializer<Block>(Block::class.java) {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Block =
-        Registries.BLOCK.codec.parse(JsonOps.UNCOMPRESSED, mapper.readTree(p)).orThrow
+        Registries.BLOCK.codec.parse(JsonOps.UNCOMPRESSED, p.readValueAsTree()).orThrow
 }

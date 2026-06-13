@@ -27,7 +27,7 @@ import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 
-object CollectionSettingSerializer : FallbackSerializer<CollectionSetting<*>>(CollectionSetting::class.java) {
+object CollectionSettingFallbackSerializer : FallbackSerializer<CollectionSetting<*>>(CollectionSetting::class.java) {
 	override fun serialize(setting: CollectionSetting<*>, gen: JsonGenerator, ctxt: SerializationContext) {
 		if (setting.serialize) mapper.writeValue(gen, setting.originalCore.value)
 		else {
@@ -40,7 +40,7 @@ object CollectionSettingSerializer : FallbackSerializer<CollectionSetting<*>>(Co
 	}
 }
 
-object CollectionSettingDeserializer : FallbackDeserializer<CollectionSetting<*>>(CollectionSetting::class.java) {
+object CollectionSettingFallbackDeserializer : FallbackDeserializer<CollectionSetting<*>>(CollectionSetting::class.java) {
 	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): CollectionSetting<*> {
 		throw initFromJsonException("CollectionSetting")
 	}
