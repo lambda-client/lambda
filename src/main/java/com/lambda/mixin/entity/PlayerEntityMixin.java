@@ -21,6 +21,8 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.module.modules.player.Reach;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.entity.player.PlayerEntity;
@@ -45,5 +47,19 @@ public class PlayerEntityMixin {
 
         Float yaw = RotationManager.getHeadYaw();
         return (yaw != null) ? yaw : original.call(instance);
+    }
+
+    @SuppressWarnings("RedundantCast")
+    @WrapMethod(method = "getBlockInteractionRange")
+    private double wrapGetBlockInteractionRange(Operation<Double> original) {
+        if ((PlayerEntity) (Object) this == Lambda.getMc().player && Reach.INSTANCE.isEnabled()) return Reach.getBlockReach();
+        return original.call();
+    }
+
+    @SuppressWarnings("RedundantCast")
+    @WrapMethod(method = "getEntityInteractionRange")
+    private double wrapGetEntityInteractionRange(Operation<Double> original) {
+        if ((PlayerEntity) (Object) this == Lambda.getMc().player && Reach.INSTANCE.isEnabled()) return Reach.getEntityReach();
+        return original.call();
     }
 }

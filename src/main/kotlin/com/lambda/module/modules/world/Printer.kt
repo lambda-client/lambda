@@ -106,6 +106,7 @@ object Printer : Module(
 		}
 
 		immediateRenderer("Printer Immediate Renderer", { reachCircleDepthTest }) {
+			if (!reachCircle) return@immediateRenderer
 			val player = mc.player ?: return@immediateRenderer
 			val playerPos = lerp(mc.tickDelta, player.prevPos, player.pos)
 			val circleY = playerPos.y + reachCircleHeight
