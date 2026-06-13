@@ -34,7 +34,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class SodiumFluidRendererImplMixin {
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void injectRender(LevelSlice level, BlockState blockState, FluidState fluidState, BlockPos blockPos, BlockPos offset, TranslucentGeometryCollector collector, ChunkBuildBuffers buffers, CallbackInfo info) {
-        if (XRay.INSTANCE.isEnabled() && !XRay.isSelected(blockState) && XRay.getOpacity() < 100)
-            info.cancel();
+        if (XRay.INSTANCE.isEnabled() &&
+                !XRay.getFluidSelection().contains(fluidState.getFluid()) &&
+                XRay.getOpacity() < 100
+        ) info.cancel();
     }
 }

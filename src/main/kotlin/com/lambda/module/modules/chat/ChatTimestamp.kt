@@ -19,6 +19,7 @@ package com.lambda.module.modules.chat
 
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.blocks.FormatterConfig
 import com.lambda.config.settings.blocks.FormatterSettings
 import com.lambda.config.withEdits

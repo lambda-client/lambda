@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.chat
 
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendHandler

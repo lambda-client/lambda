@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.network
 
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module

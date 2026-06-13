@@ -160,34 +160,6 @@ abstract class Setting<T>(
 		}
 	}
 
-	/**
-	 * Will only register changes of the variable, not the content of the variable!
-	 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
-	 */
-	@ConfigEntryDsl
-	fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) = apply {
-		listeners.add(ValueListener(true) { from, to ->
-			runSafe {
-				block(from, to)
-			}
-		})
-	}
-
-	@ConfigEntryDsl
-	fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) = apply {
-		listeners.add(ValueListener(true, block))
-	}
-
-	@ConfigEntryDsl
-	fun onValueSet(block: (from: T, to: T) -> Unit) = apply {
-		listeners.add(ValueListener(false, block))
-	}
-
-	@ConfigEntryDsl
-	fun disabled(predicate: () -> Boolean) = apply {
-		disabled = predicate
-	}
-
 	fun trySetValue(newValue: T) {
 		if (newValue == originalCore.value) {
 			ConfigCommand.info(notChangedMessage())
@@ -256,6 +228,32 @@ abstract class Setting<T>(
 		}.asReversed()
 
 	override fun toString() = "Setting $name: $value"
+
+	companion object {
+		/**
+		 * Will only register changes of the variable, not the content of the variable!
+		 * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
+		 */
+		@ConfigEntryDsl
+		fun <S : Setting<T>, T> S.onValueChange(block: SafeContext.(from: T, to: T) -> Unit) =
+			apply {
+				listeners.add(ValueListener(true) { from, to ->
+					runSafe { block(from, to) }
+				})
+			}
+
+		@ConfigEntryDsl
+		fun <S : Setting<T>, T> S.onValueChangeUnsafe(block: (from: T, to: T) -> Unit) =
+			apply { listeners.add(ValueListener(true, block)) }
+
+		@ConfigEntryDsl
+		fun <S : Setting<T>, T> S.onValueSet(block: (from: T, to: T) -> Unit) =
+			apply { listeners.add(ValueListener(false, block)) }
+
+		@ConfigEntryDsl
+		fun <S : Setting<T>, T> S.disabled(predicate: () -> Boolean) =
+			apply { disabled = predicate }
+	}
 
 	class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 }

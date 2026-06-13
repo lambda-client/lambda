@@ -19,6 +19,7 @@ package com.lambda.module.modules.movement
 
 import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent

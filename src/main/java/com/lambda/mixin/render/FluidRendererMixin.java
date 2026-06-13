@@ -37,10 +37,11 @@ public class FluidRendererMixin {
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void injectRender(BlockRenderView world, BlockPos pos, VertexConsumer vertexConsumer, BlockState blockState, FluidState fluidState, CallbackInfo info) {
-        if (XRay.INSTANCE.isDisabled()) {
+        if (XRay.INSTANCE.isDisabled() || !XRay.getFluidSelection().contains(fluidState.getFluid())) {
             opacity.set(255);
             return;
         }
+
         int alpha = (int) (XRay.getOpacity() * 2.55);
 
         if (alpha == 0) info.cancel();

@@ -23,6 +23,8 @@ import com.lambda.config.ConfigCategory
 import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.automation.MutableAutomationConfig
 import com.lambda.config.categories.ModuleCategory
+import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease

@@ -21,6 +21,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.categories.SecretsCategory
+import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
 import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

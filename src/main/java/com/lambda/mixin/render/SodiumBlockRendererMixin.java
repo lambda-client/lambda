@@ -31,7 +31,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class SodiumBlockRendererMixin {
     @Inject(method = "renderModel", at = @At(value = "INVOKE", target = "Lnet/caffeinemc/mods/sodium/client/model/color/ColorProviderRegistry;getColorProvider(Lnet/minecraft/block/Block;)Lnet/caffeinemc/mods/sodium/client/model/color/ColorProvider;", shift = At.Shift.AFTER), cancellable = true)
     private void injectRenderModel(BlockStateModel model, BlockState state, BlockPos pos, BlockPos origin, CallbackInfo ci) {
-        if (XRay.INSTANCE.isEnabled() && !XRay.isSelected(state) && XRay.getOpacity() < 100)
+        if (XRay.INSTANCE.isEnabled() && !XRay.getBlockSelection().contains(state.getBlock()) && XRay.getOpacity() < 100)
             ci.cancel();
     }
 }

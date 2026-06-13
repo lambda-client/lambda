@@ -30,6 +30,7 @@ import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.BlockCollectionSetting
 import com.lambda.config.settings.collections.ClassCollectionSetting
 import com.lambda.config.settings.collections.CollectionSetting
+import com.lambda.config.settings.collections.FluidCollectionSetting
 import com.lambda.config.settings.collections.ItemCollectionSetting
 import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.comparable.BooleanSetting
@@ -49,6 +50,7 @@ import com.lambda.imgui.flag.ImGuiInputTextFlags
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
+import net.minecraft.fluid.Fluid
 import net.minecraft.item.Item
 import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
@@ -242,6 +244,16 @@ abstract class Config(
 
 	@ConfigEntryDsl
 	@JvmName("collectionSetting3")
+	fun setting(
+		name: String,
+		defaultValue: Collection<Fluid>,
+		immutableCollection: Collection<Fluid> = Registries.FLUID.toList(),
+		description: String = "",
+		visibility: () -> Boolean = { true }
+	) = setting(name) { layer -> FluidCollectionSetting(name, description, this, layer, visibility, immutableCollection, defaultValue.toMutableList()) }
+
+	@ConfigEntryDsl
+	@JvmName("collectionSetting4")
 	inline fun <reified T : Any> setting(
 		name: String,
 		defaultValue: Collection<T>,

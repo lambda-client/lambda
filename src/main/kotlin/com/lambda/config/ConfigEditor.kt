@@ -21,6 +21,7 @@ package com.lambda.config
 
 import com.lambda.config.entries.Property
 import com.lambda.config.entries.Setting
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.context.SafeContext
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible

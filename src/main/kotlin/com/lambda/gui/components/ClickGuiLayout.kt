@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.Tab
 import com.lambda.config.categories.GuiCategory
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent

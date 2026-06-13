@@ -34,7 +34,7 @@ public class RenderLayersMixin {
         if (XRay.INSTANCE.isDisabled()) return;
         final var opacity = XRay.getOpacity();
         if (opacity <= 0 || opacity >= 100) return;
-        if (!XRay.isSelected(state)) cir.setReturnValue(BlockRenderLayer.TRANSLUCENT);
+        if (!XRay.getBlockSelection().contains(state.getBlock())) cir.setReturnValue(BlockRenderLayer.TRANSLUCENT);
     }
 
     @Inject(method = "getFluidLayer", at = @At("HEAD"), cancellable = true)

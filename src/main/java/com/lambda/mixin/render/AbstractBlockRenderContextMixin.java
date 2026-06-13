@@ -32,7 +32,7 @@ public class AbstractBlockRenderContextMixin {
 
     @ModifyReturnValue(method = "shouldDrawSide", at = @At("RETURN"))
     private boolean modifyShouldDrawSide(boolean original) {
-        if (XRay.INSTANCE.isEnabled() && XRay.isSelected(state) && XRay.getOpacity() < 100)
+        if (XRay.INSTANCE.isEnabled() && XRay.getBlockSelection().contains(state.getBlock()) && XRay.getOpacity() < 100)
             return true;
         return original;
     }

@@ -20,6 +20,7 @@ package com.lambda.graphics.text
 import com.lambda.Lambda.LOG
 import com.lambda.config.Config
 import com.lambda.config.categories.FontCategory
+import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -56,9 +57,7 @@ object FontHandler : Loadable, Config(
 	}
 
 	private val selectedFont by setting("Selected Font", defaultFontInfo.path, description = "The file name of the font you want to use. (The font must be placed in the fonts folder in the lambda directory)")
-		.onValueChangeUnsafe { _, to ->
-			activeFont = getOrLoadFont(to) ?: defaultFont
-		}
+		.onValueChangeUnsafe { _, to -> activeFont = getOrLoadFont(to) ?: defaultFont }
 
 	var activeFont = defaultFont
 		private set
