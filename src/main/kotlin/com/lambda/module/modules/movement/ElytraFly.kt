@@ -35,7 +35,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.Module
 import com.lambda.module.hud.Speedometer
 import com.lambda.module.modules.movement.BetterFirework.canOpenElytra
-import com.lambda.module.modules.movement.BetterFirework.canTakeoff
+import com.lambda.module.modules.movement.BetterFirework.isElytraEquipped
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -53,6 +53,7 @@ import com.lambda.util.player.hasFirework
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
@@ -117,6 +118,9 @@ object ElytraFly : Module(
     private var flipFlop = false
     private var lastDuration = 1.0
     private val fireworkTimer = Timer()
+
+    val ClientPlayerEntity.canTakeoff: Boolean
+        get() = (isOnGround || canOpenElytra) && isElytraEquipped
 
     init {
         setDefaultAutomationConfig()
