@@ -17,8 +17,8 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.module.modules.combat.AutoDisconnect;
-import com.lambda.module.modules.combat.MultiplayerReconnectTarget;
+import com.lambda.module.modules.combat.autodisconnect.AutoDisconnect;
+import com.lambda.module.modules.combat.autodisconnect.MultiplayerReconnectTarget;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
 import net.minecraft.client.network.CookieStorage;

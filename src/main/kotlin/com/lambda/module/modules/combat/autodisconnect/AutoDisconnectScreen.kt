@@ -17,15 +17,10 @@
 
 package com.lambda.module.modules.combat.autodisconnect
 
-import com.lambda.module.modules.combat.AutoDisconnect
-import com.lambda.module.modules.combat.DisconnectDetails
-import com.lambda.module.modules.combat.MultiplayerReconnectTarget
-import com.lambda.module.modules.combat.SingleplayerReconnectTarget
 import com.lambda.util.render.CursorOverrideProvider
 import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.client.gui.Click
 import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.cursor.Cursor
 import net.minecraft.client.gui.cursor.StandardCursors
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.TitleScreen

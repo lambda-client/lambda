@@ -17,9 +17,9 @@
 
 package com.lambda.mixin.network;
 
-import com.lambda.module.modules.combat.AutoDisconnect;
+import com.lambda.module.modules.combat.autodisconnect.AutoDisconnect;
 import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen;
-import com.lambda.module.modules.combat.DisconnectDetails;
+import com.lambda.module.modules.combat.autodisconnect.DisconnectDetails;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ClientCommonNetworkHandler;
 import net.minecraft.network.DisconnectionInfo;

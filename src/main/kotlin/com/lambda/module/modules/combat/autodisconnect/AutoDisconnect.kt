@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.combat
+package com.lambda.module.modules.combat.autodisconnect
 
 import com.lambda.Lambda
 import com.lambda.context.SafeContext

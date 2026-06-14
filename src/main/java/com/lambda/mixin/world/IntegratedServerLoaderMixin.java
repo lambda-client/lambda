@@ -17,8 +17,8 @@
 
 package com.lambda.mixin.world;
 
-import com.lambda.module.modules.combat.AutoDisconnect;
-import com.lambda.module.modules.combat.SingleplayerReconnectTarget;
+import com.lambda.module.modules.combat.autodisconnect.AutoDisconnect;
+import com.lambda.module.modules.combat.autodisconnect.SingleplayerReconnectTarget;
 import net.minecraft.server.integrated.IntegratedServerLoader;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
