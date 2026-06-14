@@ -99,6 +99,7 @@ object ElytraFly : Module(
 
     private const val OBSTACLE_PASSER_GROUP = "Obstacle Passer"
     @Group(OBSTACLE_PASSER_GROUP) private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
+    @Group(OBSTACLE_PASSER_GROUP) private val minObstacleHeight by setting("Min Obstacle Height", 0.063, 0.0..1.0, 0.0001, "The minimum height an obstacle must be above the ground to trigger obstacle passer")
     @Group(OBSTACLE_PASSER_GROUP) private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
     @Group(OBSTACLE_PASSER_GROUP) private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
     @Group(OBSTACLE_PASSER_GROUP) private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
@@ -218,6 +219,8 @@ object ElytraFly : Module(
     private fun SafeContext.onTickBounce() {
         if (!BaritoneHandler.isActive) passingToPos = null
 
+        if (autoPitch) rotationRequest { pitch(pitch) }.submit()
+
         val playerPos = player.pos
         val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
         if (passObstacles && validDistanceFromStart) run obstacleChecks@{
@@ -262,8 +265,6 @@ object ElytraFly : Module(
             glidePause--
             return
         }
-
-        if (autoPitch) rotationRequest { pitch(pitch) }.submit()
 
         if (!player.isGliding) {
             if (takeoff && player.canTakeoff) {
@@ -312,9 +313,9 @@ object ElytraFly : Module(
             flooredBlockPos.down().let { downPos ->
                 !safeContext.blockState(downPos).isSolidBlock(safeContext.world, downPos)
             } ||
-                    rayCastObstructed(direction) ||
+                    add(0.0, minObstacleHeight, 0.0).rayCastObstructed(direction) ||
                     add(0.0, 1.0, 0.0).rayCastObstructed(direction) ||
-                    add(0.0, 2.0, 0.0).rayCastObstructed(direction)
+                    add(0.0, 1.99, 0.0).rayCastObstructed(direction)
         }
 
     context(safeContext: SafeContext)

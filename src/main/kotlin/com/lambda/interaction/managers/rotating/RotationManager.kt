@@ -140,6 +140,7 @@ object RotationManager : Manager<RotationRequest>(
 	 * @see updateActiveRotation
 	 */
 	override fun AutomatedSafeContext.handleRequest(request: RotationRequest) {
+		if (usingBaritoneRotation) return
 		if (acceptAndSetRequests(request)) {
 			updateActiveRotation()
 			changedThisTick = true
