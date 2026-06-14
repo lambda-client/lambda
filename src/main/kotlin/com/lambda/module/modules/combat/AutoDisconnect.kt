@@ -21,6 +21,7 @@ import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager
 import com.lambda.module.Module
@@ -112,8 +113,8 @@ object AutoDisconnect : Module(
     private val impossibleTimestampChatDisconnect by setting("Impossible Timestamp Chat Disconnect", false, "Sends a chat message with an impossible timestamp to force the server to kick the player").group(Group.General)
 
     private var disconnectDetails: DisconnectDetails? = null
+    private var disconnectInProgress: Boolean = false
     var lastReconnectTarget: ReconnectTarget? = null
-    var isTakingScreenshot: Boolean = false
 
     init {
         setModulePriority(-100)
@@ -126,6 +127,10 @@ object AutoDisconnect : Module(
                     return@listen
                 }
             }
+        }
+
+        listen<WorldEvent.Join> {
+            disconnectInProgress = false
         }
 
         listen<PlayerEvent.Health> { event ->
@@ -183,9 +188,9 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeContext.disconnect(reasonText: Text, reason: Reason? = null) {
-        if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE || isTakingScreenshot) return
+        if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE || disconnectInProgress) return
         if (reason == Reason.Health || reason == Reason.Totem) disable()
-        isTakingScreenshot = true
+        disconnectInProgress = true
         ScreenshotRecorder.takeScreenshot(Lambda.mc.framebuffer, 1) { image ->
             val imageIdentifier = Identifier.of("lambda", "auto_disconnect_screenshot")
             val texture = NativeImageBackedTexture({ "auto-disconnect-screenshot" }, image)
@@ -203,7 +208,6 @@ object AutoDisconnect : Module(
             connection.connection.disconnect(generateInfo(reasonText))
 
             playSound(SoundEvents.BLOCK_ANVIL_LAND)
-            isTakingScreenshot = false
         }
     }
 
@@ -233,7 +237,14 @@ object AutoDisconnect : Module(
         }
     }
 
-    fun consumeDetails() = disconnectDetails.also { disconnectDetails = null }
+    fun consumeDetails(): DisconnectDetails? {
+        val details = disconnectDetails
+        disconnectDetails = null
+        if (details != null) {
+            disconnectInProgress = false
+        }
+        return details
+    }
 
     private fun SafeContext.generateInfo(text: Text) = buildText {
         text(prefix(Communication.LogLevel.Warn.logoColor))
