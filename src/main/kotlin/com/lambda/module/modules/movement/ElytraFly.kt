@@ -221,45 +221,8 @@ object ElytraFly : Module(
 
         if (autoPitch) rotationRequest { pitch(pitch) }.submit()
 
-        val playerPos = player.pos
-        val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
-        if (passObstacles && validDistanceFromStart) run obstacleChecks@{
-            val snappedDir = getSnappedDir()
-            val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
-
-            passingToPos?.let { passingTo ->
-                if (passingTo.isObstructed(snappedDir)) {
-                    pathToValidPoint(passingTo, snappedDir)
-                }
-                return
-            }
-
-            val notProgressing = Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond) < 0.01
-            if (player.isGliding && notProgressing) {
-                pathToValidPoint(closestLinePoint, snappedDir)
-                return
-            }
-
-            // We only want to account for horizontal and below the line rather than total
-            // distance as jumping from bounce might cause false positives
-            val distanceToLine =
-                Vec3d(
-                    playerPos.x,
-                    closestLinePoint.y,
-                    playerPos.z
-                ).dist(closestLinePoint) + (playerPos.y - closestLinePoint.y).coerceAtMost(0.0)
-            if (distanceToLine > acceptableOffsetRange) {
-                pathToValidPoint(closestLinePoint, snappedDir, true)
-                return
-            }
-
-            val isObstructed = Vec3d(playerPos.x, closestLinePoint.y, playerPos.z).isObstructed(snappedDir)
-            if (isObstructed) {
-                pathToValidPoint(closestLinePoint, snappedDir)
-            } else return@obstacleChecks
-
-            return
-        }
+        if (passObstacles && player.isOnGround && handleObstaclePassing()) return
+        if (BaritoneHandler.isActive) return
 
         if (glidePause > 0 && applyPauseAfterBaritone) {
             glidePause--
@@ -287,9 +250,51 @@ object ElytraFly : Module(
         return lockYawToStep(travelDiff)
     }
 
+    private fun SafeContext.handleObstaclePassing(): Boolean {
+        val playerPos = player.pos
+        val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
+        if (!validDistanceFromStart) return false
+
+        val snappedDir = getSnappedDir()
+        val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
+
+        passingToPos?.let { passingTo ->
+            if (passingTo.isObstructed(snappedDir)) {
+                pathToValidPoint(passingTo, snappedDir)
+            }
+            return true
+        }
+
+        val notProgressing = Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond) < 0.01
+        if (player.isGliding && notProgressing) {
+            pathToValidPoint(closestLinePoint, snappedDir)
+            return true
+        }
+
+        // We only want to account for horizontal and below the line rather than total
+        // distance as jumping from bounce might cause false positives
+        val distanceToLine =
+            Vec3d(
+                playerPos.x,
+                closestLinePoint.y,
+                playerPos.z
+            ).dist(closestLinePoint) + (playerPos.y - closestLinePoint.y).coerceAtMost(0.0)
+        if (distanceToLine > acceptableOffsetRange) {
+            pathToValidPoint(closestLinePoint, snappedDir, true)
+            return true
+        }
+
+        val isObstructed = Vec3d(playerPos.x, closestLinePoint.y, playerPos.z).isObstructed(snappedDir)
+        if (isObstructed) {
+            pathToValidPoint(closestLinePoint, snappedDir)
+            return true
+        }
+
+        return false
+    }
+
     context(safeContext: SafeContext)
     private fun pathToValidPoint(startSearchPos: Vec3d, dir: Vec3d, initialBlockedCheck: Boolean = false) {
-        if (!safeContext.player.isOnGround) return
         var skippingFirstCheck = !initialBlockedCheck
         var searchPos = startSearchPos
         while (skippingFirstCheck || searchPos.isObstructed(dir)) {
