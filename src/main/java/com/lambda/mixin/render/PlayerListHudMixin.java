@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.friend.FriendManager;
+import com.lambda.friend.FriendHandler;
 import com.lambda.module.modules.render.ExtraTab;
 import com.lambda.util.text.TextBuilder;
 import com.lambda.util.text.TextDslKt;
@@ -26,7 +26,6 @@ import kotlin.Unit;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.PlayerListHud;
 import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.scoreboard.Team;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Nullables;
@@ -49,10 +48,10 @@ import java.util.List;
 public class PlayerListHudMixin {
     @Shadow @Final private static Comparator<PlayerListEntry> ENTRY_ORDERING;
     @Unique private static final Comparator<PlayerListEntry> FRIENDS_FIRST_ENTRY_ORDERING = Comparator
-            .comparingInt((PlayerListEntry entry) -> FriendManager.INSTANCE.isFriend(entry.getProfile().name()) ? 0 : 1)
+            .comparingInt((PlayerListEntry entry) -> FriendHandler.INSTANCE.isFriend(entry.getProfile().name()) ? 0 : 1)
             .thenComparingInt(entry -> -entry.getListOrder())
             .thenComparingInt((entry) -> entry.getGameMode() == GameMode.SPECTATOR ? 1 : 0)
-            .thenComparing((entry) -> Nullables.mapOrElse(entry.getScoreboardTeam(), Team::getName, ""))
+            .thenComparing((entry) -> Nullables.mapOrElse(entry.getScoreboardTeam(), team -> team != null ? team.getName() : "", ""))
             .thenComparing((entry) -> entry.getProfile().name(), String::compareToIgnoreCase);
 
     @Shadow @Final private MinecraftClient client;
@@ -65,7 +64,7 @@ public class PlayerListHudMixin {
                 client.player.networkHandler
                         .getListedPlayerListEntries()
                         .stream()
-                        .filter(entry -> !ExtraTab.getFriendsOnly() || FriendManager.INSTANCE.isFriend(entry.getProfile()))
+                        .filter(entry -> !ExtraTab.getFriendsOnly() || FriendHandler.INSTANCE.isFriend(entry.getProfile()))
                         .sorted(ExtraTab.getSortFriendsFirst() ? FRIENDS_FIRST_ENTRY_ORDERING : ENTRY_ORDERING)
                         .limit(ExtraTab.getTabEntries())
                         .toList()
@@ -87,7 +86,7 @@ public class PlayerListHudMixin {
     private @Nullable MutableText modifyName(Text original) {
         if (ExtraTab.INSTANCE.isDisabled() ||
                 !ExtraTab.getHighlightFriends() ||
-                !FriendManager.INSTANCE.isFriend(original.getString())) return original.copy();
+                !FriendHandler.INSTANCE.isFriend(original.getString())) return original.copy();
         var newText = original.copy();
         var textBuilder = new TextBuilder();
         TextDslKt.color(textBuilder, ExtraTab.getFriendColor(), builder -> {

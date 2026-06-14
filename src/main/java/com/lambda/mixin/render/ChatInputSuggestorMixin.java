@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.command.CommandManager;
+import com.lambda.command.CommandHandler;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.brigadier.CommandDispatcher;
@@ -40,12 +40,12 @@ public abstract class ChatInputSuggestorMixin {
 
     @ModifyVariable(method = "refresh", at = @At(value = "STORE"), index = 3)
     private boolean refreshModify(boolean showCompletions) {
-        return CommandManager.INSTANCE.isCommand(textField.getText());
+        return CommandHandler.INSTANCE.isCommand(textField.getText());
     }
 
     @SuppressWarnings("unchecked")
     @WrapOperation(method = "refresh", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;getCommandDispatcher()Lcom/mojang/brigadier/CommandDispatcher;"))
     private CommandDispatcher<CommandSource> wrapRefresh(ClientPlayNetworkHandler instance, Operation<CommandDispatcher<CommandSource>> original) {
-        return (CommandDispatcher<CommandSource>) CommandManager.INSTANCE.currentDispatcher(textField.getText());
+        return (CommandDispatcher<CommandSource>) CommandHandler.INSTANCE.currentDispatcher(textField.getText());
     }
 }

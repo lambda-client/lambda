@@ -119,6 +119,7 @@ class SafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */
+        @ListenMarker
         inline fun <reified T : Event> Any.listen(
             noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
@@ -161,6 +162,7 @@ class SafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */
+        @ListenMarker
         fun <T : Event> Any.listen(
             kClass: KClass<out T>,
             priority: () -> Int = ownerPriorityOr0Getter,
@@ -202,6 +204,7 @@ class SafeListener<T : Event>(
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
          * @return The newly created and registered [SafeListener].
          */
+        @ListenMarker
         inline fun <reified T : Event> Any.listenOnce(
             noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,
@@ -250,6 +253,7 @@ class SafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */
+        @ListenMarker
         inline fun <reified T : Event> Any.listenConcurrently(
             noinline priority: () -> Int = ownerPriorityOr0Getter,
             alwaysListen: Boolean = false,

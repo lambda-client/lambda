@@ -18,8 +18,8 @@
 package com.lambda.mixin.render;
 
 import com.lambda.graphics.outline.IEntityRenderState;
-import com.lambda.graphics.outline.OutlineManager;
 import com.lambda.graphics.outline.OutlineCapturingQueue;
+import com.lambda.graphics.outline.OutlineHandler;
 import com.lambda.graphics.outline.VertexCapture;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -51,7 +51,7 @@ public class EntityRenderManagerMixin {
             entityId = lambdaState.lambda$getEntityId();
         }
 
-        if (entityId != -1 && OutlineManager.shouldCapture(entityId)) {
+        if (entityId != -1 && OutlineHandler.shouldCapture(entityId)) {
             VertexCapture.INSTANCE.beginCapture(entityId);
 
             OrderedRenderCommandQueueImpl wrappedQueue = new OutlineCapturingQueue((OrderedRenderCommandQueueImpl) queue, entityId);

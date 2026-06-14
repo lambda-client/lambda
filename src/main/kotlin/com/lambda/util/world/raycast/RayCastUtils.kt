@@ -42,7 +42,8 @@ object RayCastUtils {
         direction: Vec3d,
         reach: Double,
         mask: InteractionMask,
-        fluids: Boolean = false,
+        shapeType: RaycastContext.ShapeType = RaycastContext.ShapeType.OUTLINE,
+        fluidHandling: RaycastContext.FluidHandling = RaycastContext.FluidHandling.NONE,
     ): HitResult? {
         val vec = direction.multiply(reach)
         val point = start.add(vec)
@@ -50,8 +51,7 @@ object RayCastUtils {
         val block = run {
             if (!mask.block) return@run null
 
-            val fluidHandling = if (fluids) RaycastContext.FluidHandling.ANY else RaycastContext.FluidHandling.NONE
-            val context = RaycastContext(start, point, RaycastContext.ShapeType.OUTLINE, fluidHandling, player)
+            val context = RaycastContext(start, point, shapeType, fluidHandling, player)
             val result = world.raycast(context)
 
             result?.blockResult
@@ -72,7 +72,7 @@ object RayCastUtils {
     // ToDo: Should rather move player hitbox down and check collision
     fun SafeContext.distanceToGround(maxDist: Double = 100.0): Double {
         val pos = player.pos.add(0.0, 0.1, 0.0)
-        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, InteractionMask.Block) ?: return maxDist
+        val cast = Rotation.DOWN.rayCast(maxDist, pos, InteractionMask.Block) ?: return maxDist
 
         return max(0.0, pos.y - cast.pos.y)
     }

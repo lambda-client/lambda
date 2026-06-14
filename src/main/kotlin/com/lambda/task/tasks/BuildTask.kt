@@ -19,14 +19,14 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
-import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
@@ -59,7 +59,7 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getClosestPointTo
 import com.lambda.util.EntityUtils.getPositionsWithinBox
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.playerSlots
 import com.lambda.util.math.dist
@@ -73,7 +73,7 @@ import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.BlockPos
-import java.util.Collections
+import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.sqrt
@@ -275,11 +275,11 @@ class BuildTask private constructor(
                 if (!buildConfig.pathing) return
                 val sim = blueprint.simulation()
                 val goal = BuildGoal(sim, player.blockPos)
-                BaritoneManager.setGoalAndPath(goal)
+                BaritoneHandler.setGoalAndPath(goal)
             }
 
             is Navigable -> {
-                if (buildConfig.pathing) BaritoneManager.setGoalAndPath(result.goal)
+                if (buildConfig.pathing) BaritoneHandler.setGoalAndPath(result.goal ?: return)
             }
 
             is Contextual -> {
@@ -318,7 +318,7 @@ class BuildTask private constructor(
 
                 if (!world.entities.contains(itemDrop)) {
                     dropsToCollect.remove(itemDrop)
-                    BaritoneManager.cancel()
+                    BaritoneHandler.cancel()
                     return@let true
                 }
 
@@ -335,8 +335,8 @@ class BuildTask private constructor(
                     return@let true
                 }
 
-                BaritoneManager.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-                return@let true
+                BaritoneHandler.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+                true
             } ?: false
 
     fun iteratePropagating() =

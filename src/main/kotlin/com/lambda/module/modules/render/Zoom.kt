@@ -18,7 +18,6 @@
 package com.lambda.module.modules.render
 
 import com.lambda.event.events.ButtonEvent
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -83,6 +82,7 @@ object Zoom : Module(
 		if (lerpedZoom == targetZoom) lerpedZoom = targetZoom
 	}
 
+	@Suppress("unused")
 	private enum class ZoomStyle(
 		override val displayName: String,
 		val apply: (Float, Float, Float) -> Float,

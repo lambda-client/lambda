@@ -39,8 +39,8 @@ public class SodiumLightDataAccessMixin {
     @ModifyVariable(method = "compute", at = @At(value = "TAIL"), name = "bl")
     private int modifyLight(int value) {
         if (XRay.INSTANCE.isEnabled()) {
-            final var blockState = level.getBlockState(pos);
-            if (XRay.isSelected(blockState)) return 0xFFF;
+            final var block = level.getBlockState(pos).getBlock();
+            if (XRay.getBlockSelection().contains(block)) return 0xFFF;
         }
 
         return value;

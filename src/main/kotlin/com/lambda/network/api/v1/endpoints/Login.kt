@@ -17,9 +17,9 @@
 
 package com.lambda.network.api.v1.endpoints
 
+import com.lambda.network.LAMBDA_HTTP
 import com.lambda.network.LambdaAPI.apiUrl
 import com.lambda.network.LambdaAPI.apiVersion
-import com.lambda.network.LambdaHttp
 import com.lambda.network.api.v1.models.Authentication
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -33,7 +33,7 @@ import io.ktor.http.*
  *  - hash: 069a79f444e94726a5befca90e38aaf5
  */
 suspend fun login(username: String, hash: String) = runCatching {
-    LambdaHttp.post("${apiUrl}/api/$apiVersion/login") {
+    LAMBDA_HTTP.post("${apiUrl}/api/$apiVersion/login") {
         setBody("""{ "username": "$username", "hash": "$hash" }""")
         contentType(ContentType.Application.Json)
     }.body<Authentication>()

@@ -17,21 +17,27 @@
 
 package com.lambda.config.settings.collections
 
-import com.google.gson.reflect.TypeToken
-import com.lambda.config.Setting
-import com.lambda.config.serializer.ItemCodec
+import com.lambda.Lambda.typeFactory
+import com.lambda.config.Config
+import com.lambda.config.entries.SettingEntryLayer
+import com.lambda.config.serializers.ItemSerializer
 import com.lambda.gui.dsl.ImGuiBuilder
 import net.minecraft.item.Item
 
 class ItemCollectionSetting(
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingEntryLayer<CollectionSetting<Item>, MutableCollection<Item>>,
+	visibility: () -> Boolean,
 	immutableCollection: Collection<Item>,
 	defaultValue: MutableCollection<Item>
 ) : CollectionSetting<Item>(
+	name, description, config, layer, visibility,
 	defaultValue,
 	immutableCollection,
-	TypeToken.getParameterized(Collection::class.java, Item::class.java).type,
+	typeFactory.constructCollectionType(Collection::class.java, Item::class.java),
 	serialize = true,
 ) {
-	context(setting: Setting<*, MutableCollection<Item>>)
-	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemCodec.stringify(it) }
+	override fun ImGuiBuilder.buildLayout() = buildDualPane("item") { ItemSerializer.stringify(it) }
 }

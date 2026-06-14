@@ -20,8 +20,8 @@ package com.lambda.interaction.material.container.containers
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.ContainerManager
-import com.lambda.interaction.material.container.ContainerManager.findSlotsWithMaterial
+import com.lambda.interaction.material.container.ContainerHandler
+import com.lambda.interaction.material.container.ContainerHandler.findSlotsWithMaterial
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.TaskGenerator
@@ -34,20 +34,17 @@ import com.lambda.util.text.literal
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.util.math.BlockPos
 
 object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContainer {
 	context(safeContext: SafeContext)
 	override val slots
 		get() =
-			if (ContainerManager.lastInteractedBlockEntity is EnderChestBlockEntity)
+			if (ContainerHandler.lastInteractedBlockEntity is EnderChestBlockEntity)
 				safeContext.player.currentScreenHandler.containerSlots
 			else emptyList()
 	override var stacks = emptyList<ItemStack>()
 
 	override val description = buildText { literal("Ender Chest") }
-
-	private var placePos = BlockPos.ORIGIN
 
 	context(automatedSafeContext: AutomatedSafeContext)
 	override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
@@ -56,10 +53,9 @@ object EnderChestContainer : MaterialContainer(Rank.EnderChest), ExternalContain
 			.findSlotsWithMaterial()
 			.firstOrNull()?.let { slot ->
 				PlaceContainerTask(slot, automatedSafeContext).then { pos ->
-					placePos = pos
 					OpenContainerTask(pos, automatedSafeContext).then {
 						taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
-							if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos, lifeMaintenance = false)
+							if (exitAfter) automatedSafeContext.breakAndCollectBlock(pos, lifeMaintenance = false)
 							else null
 						}
 					}

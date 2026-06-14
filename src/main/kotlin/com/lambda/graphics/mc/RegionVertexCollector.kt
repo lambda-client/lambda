@@ -626,7 +626,7 @@ class RegionVertexCollector {
 					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
-					builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_1_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
 					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
@@ -669,7 +669,7 @@ class RegionVertexCollector {
 					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
-					builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_1_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
 					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->
@@ -799,7 +799,7 @@ class RegionVertexCollector {
 					builder.beginElement(LambdaVertexFormats.LIGHT_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.lx); MemoryUtil.memPutFloat(p + 4, v.ly); MemoryUtil.memPutFloat(p + 8, v.lz) }
 					}
-					builder.beginElement(LambdaVertexFormats.LIGHT1_DIR_ELEMENT).let { p ->
+					builder.beginElement(LambdaVertexFormats.LIGHT_1_DIR_ELEMENT).let { p ->
 						if (p != -1L) { MemoryUtil.memPutFloat(p, v.l1x); MemoryUtil.memPutFloat(p + 4, v.l1y); MemoryUtil.memPutFloat(p + 8, v.l1z) }
 					}
 					builder.beginElement(LambdaVertexFormats.NORMAL_FLOAT).let { p ->

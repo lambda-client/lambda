@@ -25,10 +25,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.network.NetworkManager.updateToken
+import com.lambda.network.NetworkHandler.updateToken
 import com.lambda.network.api.v1.endpoints.linkDiscord
 import com.lambda.threading.runConcurrent
-import com.lambda.util.Communication.warn
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.Nameable
 import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.fullHealth
@@ -41,6 +41,7 @@ import dev.cbyrne.kdiscordipc.data.activity.timestamps
 import kotlinx.coroutines.delay
 import java.util.concurrent.atomic.AtomicBoolean
 
+@Suppress("unused")
 object Discord : Module(
 	name = "Discord",
 	description = "Discord Rich Presence configuration",

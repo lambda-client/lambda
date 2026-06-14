@@ -18,12 +18,13 @@
 package com.lambda.mixin;
 
 import com.lambda.Lambda;
-import com.lambda.config.Setting;
+import com.lambda.config.EntryLayer;
 import com.lambda.module.Module;
 import com.lambda.module.ModuleRegistry;
 import com.lambda.util.DynamicExceptionKt;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import kotlin.Unit;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.crash.CrashReport;
 import net.minecraft.util.crash.ReportType;
@@ -65,10 +66,17 @@ public class CrashReportMixin {
                     .forEach(module -> {
                         list.add(String.format("\t%s", module.getName()));
 
-                        module.getSettings()
-                                .stream()
-                                .filter(Setting::isModified)
-                                .forEach(setting -> list.add(String.format("\t\t%s -> %s", setting.getName(), setting.getValue())));
+                        module.getSettingLayers$lambda().forEachEntry(
+                                true,
+                                null,
+                                (path, single) -> {
+                                    final var setting = single.getEntry();
+                                    if (setting.isModified()) {
+                                        list.add("\t\t" + String.join(".", path.stream().map(EntryLayer.Multiple::getName).toList()) + "." + setting.getName() + " -> " + setting.getValue());
+                                    }
+                                    return Unit.INSTANCE;
+                                }
+                        );
                     });
         }
 

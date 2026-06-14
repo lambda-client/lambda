@@ -19,14 +19,14 @@ package com.lambda.network
 
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.LambdaConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.LambdaCategory
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
-import com.lambda.network.NetworkManager.updateToken
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.network.NetworkHandler.updateToken
 import com.lambda.network.api.v1.endpoints.login
 import com.lambda.util.StringUtils.hash
 import com.lambda.util.extension.isOffline
@@ -42,9 +42,10 @@ import net.minecraft.text.Text
 import java.math.BigInteger
 import kotlin.jvm.optionals.getOrElse
 
-object LambdaAPI : Configurable(LambdaConfig) {
-    override val name = "api"
-
+object LambdaAPI : Config(
+    "api",
+    LambdaCategory
+) {
     val authServer by setting("Auth Server", "auth.lambda-client.org")
     val apiUrl by setting("API Server", "https://api.lambda-client.org")
     val apiVersion by setting("API Version", ApiVersion.V1)
@@ -71,7 +72,7 @@ object LambdaAPI : Configurable(LambdaConfig) {
 
         listenConcurrentlyUnsafe<ConnectionEvent.Connect.Post> {
             // FixMe: If the player have the properties but are invalid this doesn't work
-            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenConcurrentlyUnsafe
+            if (NetworkHandler.isValid || mc.gameProfile.isOffline) return@listenConcurrentlyUnsafe
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets

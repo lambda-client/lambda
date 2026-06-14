@@ -28,7 +28,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpPitch
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpYaw
@@ -55,6 +55,7 @@ import kotlin.math.sin
 /**
  * Manager designed to rotate the player and adjust movement input to match the camera's direction.
  */
+@Suppress("unused")
 object RotationManager : Manager<RotationRequest>(
 	1,
 	*(ALL_STAGES.subList(ALL_STAGES.indexOf(TickEvent.Player.Post), ALL_STAGES.size - 1).toTypedArray()),
@@ -206,7 +207,7 @@ object RotationManager : Manager<RotationRequest>(
 	fun handleBaritoneRotation(yaw: Double, pitch: Double) {
 		runSafe {
 			usingBaritoneRotation = true
-			val request = IRotationRequest.Full(BaritoneManager) { Rotation(yaw, pitch) }
+			val request = IRotationRequest.Full(BaritoneHandler) { Rotation(yaw, pitch) }
 			yawRequest = request
 			pitchRequest = request
 			updateActiveRotation()

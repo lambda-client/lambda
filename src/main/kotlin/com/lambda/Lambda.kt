@@ -17,89 +17,106 @@
 
 package com.lambda
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.lambda.config.serializer.BindCodec
-import com.lambda.config.serializer.BlockCodec
-import com.lambda.config.serializer.BlockPosCodec
-import com.lambda.config.serializer.ColorSerializer
-import com.lambda.config.serializer.GameProfileCodec
-import com.lambda.config.serializer.ItemCodec
-import com.lambda.config.serializer.ItemStackCodec
-import com.lambda.config.serializer.KeyCodeCodec
-import com.lambda.config.serializer.OptionalCodec
-import com.lambda.config.serializer.TextCodec
-import com.lambda.config.serializer.UUIDCodec
-import com.lambda.config.settings.complex.Bind
+import com.lambda.Lambda.mapper
+import com.lambda.config.Deserializer
+import com.lambda.config.FallbackDeserializer
+import com.lambda.config.FallbackSerializer
+import com.lambda.config.FallbackSerializers
+import com.lambda.config.Serializer
 import com.lambda.core.Loader
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.util.KeyCode
+import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.WindowUtils.setLambdaWindowIcon
-import com.mojang.authlib.GameProfile
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.loader.api.FabricLoader
-import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
-import net.minecraft.item.ArrowItem
-import net.minecraft.item.BlockItem
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.item.PotionItem
-import net.minecraft.item.RangedWeaponItem
-import net.minecraft.text.Text
-import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import java.awt.Color
-import java.util.*
-
+import tools.jackson.core.util.DefaultIndenter
+import tools.jackson.core.util.DefaultPrettyPrinter
+import tools.jackson.core.util.Separators
+import tools.jackson.databind.SerializationFeature
+import tools.jackson.databind.module.SimpleModule
+import tools.jackson.databind.type.TypeFactory
+import tools.jackson.module.kotlin.KotlinFeature
+import tools.jackson.module.kotlin.jsonMapper
+import tools.jackson.module.kotlin.kotlinModule
 
 object Lambda : ClientModInitializer {
-    const val MOD_NAME = "Lambda"
-    const val MOD_ID = "lambda"
-    const val SYMBOL = "λ"
-    const val APP_ID = "1221289599427416127"
-    const val REPO_URL = "https://github.com/lambda-client/lambda"
-    val VERSION: String = FabricLoader.getInstance()
-        .getModContainer("lambda").orElseThrow()
-        .metadata.version.friendlyString
+	const val MOD_NAME = "Lambda"
+	const val MOD_ID = "lambda"
+	const val SYMBOL = "λ"
+	const val APP_ID = "1221289599427416127"
+	const val REPO_URL = "https://github.com/lambda-client/lambda"
+	val VERSION: String =
+		FabricLoader.getInstance()
+			.getModContainer("lambda").orElseThrow()
+			.metadata.version.friendlyString
 
-    val LOG: Logger = LogManager.getLogger(SYMBOL)
+	val LOG: Logger = LogManager.getLogger(SYMBOL)
 
-    @JvmStatic
-    val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
+	@JvmStatic
+	val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
-    val isDebug = System.getProperty("lambda.dev") != null
+	val isDebug = System.getProperty("lambda.dev") != null
 
-    val gson: Gson = GsonBuilder()
-        .setPrettyPrinting()
-        .registerTypeAdapter(UUID::class.java, UUIDCodec)
-        .registerTypeAdapter(KeyCode::class.java, KeyCodeCodec)
-        .registerTypeAdapter(Color::class.java, ColorSerializer)
-        .registerTypeAdapter(BlockPos::class.java, BlockPosCodec)
-        .registerTypeAdapter(Block::class.java, BlockCodec)
-        .registerTypeAdapter(GameProfile::class.java, GameProfileCodec)
-        .registerTypeAdapter(Optional::class.java, OptionalCodec)
-        .registerTypeAdapter(ItemStack::class.java, ItemStackCodec)
-        .registerTypeAdapter(Text::class.java, TextCodec) // ToDo: Find out if needed
-        .registerTypeAdapter(Item::class.java, ItemCodec)
-        .registerTypeAdapter(BlockItem::class.java, ItemCodec)
-        .registerTypeAdapter(ArrowItem::class.java, ItemCodec)
-        .registerTypeAdapter(PotionItem::class.java, ItemCodec)
-        .registerTypeAdapter(RangedWeaponItem::class.java, ItemCodec)
-        .registerTypeAdapter(Bind::class.java, BindCodec)
-        .create()
+	/**
+	 * A Jackson [tools.jackson.databind.json.JsonMapper].
+	 *
+	 * Jackson is used over Gson (unlike Minecraft) as it allows for updating existing objects
+	 * rather than creating new instances when deserializing.
+	 *
+	 * We use the base [tools.jackson.module.kotlin.KotlinModule] with `SingletonSupport` disabled, as it overrides our serialization.
+	 * We also use a simple module for our standard serializers and deserializers.
+	 * Finally, we use a custom module that searches through the supertypes of the given object to find
+	 * the closest related type with a registered serializer or deserializer, depending on the action.
+	 */
+	val mapper = jsonMapper {
+		defaultPrettyPrinter(
+			DefaultPrettyPrinter(
+				Separators.createDefaultInstance().withObjectNameValueSpacing(Separators.Spacing.AFTER)
+			).apply {
+				val tabIndenter = DefaultIndenter("\t", DefaultIndenter.SYS_LF)
+				indentObjectsWith(tabIndenter)
+				indentArraysWith(tabIndenter)
+			}
+		)
+		enable(SerializationFeature.INDENT_OUTPUT)
+		addModules(
+			object : SimpleModule() {
+				override fun setupModule(context: SetupContext) {
+					val fallbackSerializers = FallbackSerializers(
+						getInstances<FallbackSerializer<*>>().associateBy { it.type },
+						getInstances<FallbackDeserializer<*>>().associateBy { it.type }
+					)
+					context.addSerializers(fallbackSerializers)
+					context.addDeserializers(fallbackSerializers)
+					super.setupModule(context)
+				}
+			},
+			SimpleModule().apply {
+				getInstances<Serializer<*>>().forEach { it.register() }
+				getInstances<Deserializer<*>>().forEach { it.register() }
+			},
+			kotlinModule { disable(KotlinFeature.SingletonSupport) }
+		)
+	}
 
-    override fun onInitializeClient() {} // nop
+	/**
+	 * The configured [TypeFactory] produced by [mapper].
+	 */
+	val typeFactory: TypeFactory = mapper.typeFactory
 
-    init {
-        // We want the opengl context to be created
-        listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
-            LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
-            if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
-            true
-        }
-    }
+	override fun onInitializeClient() {} // nop
+
+	init {
+		// We want the opengl context to be created
+		listenOnceUnsafe<ClientEvent.Startup>({ Int.MAX_VALUE }) {
+			LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
+			if (ClickGuiLayout.setLambdaWindowIcon) setLambdaWindowIcon()
+			true
+		}
+	}
 }

@@ -17,8 +17,10 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -28,12 +30,13 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
+import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
+import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
-import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
-import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
-import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
 
+@Suppress("unused")
 object Nuker : Module(
 	name = "Nuker",
 	description = "Breaks blocks around you",
@@ -55,13 +58,12 @@ object Nuker : Module(
 	private var buildTask: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
+		setDefaultAutomationConfig()
+			.withEdits {
 				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange) { defaultValue(false) }
+					editTypedSettings(::pathing, ::stayInRange) { defaultValue(false) }
 				}
 			}
-		}
 
 		onEnable {
 			startBuildTask()

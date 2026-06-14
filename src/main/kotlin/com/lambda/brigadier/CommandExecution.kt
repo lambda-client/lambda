@@ -17,7 +17,7 @@
 
 package com.lambda.brigadier
 
-import com.lambda.util.Communication
+import com.lambda.util.CommunicationUtils
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
@@ -53,7 +53,7 @@ sealed class CommandResult {
         }
 
         fun failure(message: String): Failure {
-            return Failure(Communication.LogLevel.Error.text(message))
+            return Failure(CommunicationUtils.LogLevel.Error.text(message))
         }
 
         /** Creates a [CommandResult.Failure] with the given throwable [t]. */

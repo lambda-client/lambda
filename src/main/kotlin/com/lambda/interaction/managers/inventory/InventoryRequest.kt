@@ -57,6 +57,7 @@ class InventoryRequest private constructor(
 	@DslMarker
 	private annotation class InvRequestDsl
 
+	@Suppress("unused")
 	@InvRequestDsl
 	class InvRequestBuilder(val settleForLess: Boolean, val mustPerform: Boolean) {
 		val actions = mutableListOf<InventoryAction>()
@@ -101,13 +102,13 @@ class InventoryRequest private constructor(
 				val offhandStack = player.getStackInHand(Hand.OFF_HAND)
 				player.setStackInHand(Hand.OFF_HAND, player.getStackInHand(Hand.MAIN_HAND))
 				player.setStackInHand(Hand.MAIN_HAND, offhandStack)
-				connection.sendPacket(
+				connection.sendPacket {
 					PlayerActionC2SPacket(
 						PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
 						BlockPos.ORIGIN,
 						Direction.DOWN
 					)
-				)
+				}
 			}.addToActions()
 		}
 

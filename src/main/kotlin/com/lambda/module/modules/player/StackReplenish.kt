@@ -17,8 +17,10 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -31,6 +33,7 @@ import com.lambda.util.player.SlotUtils.inventoryStacks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 
+@Suppress("unused")
 object StackReplenish : Module(
 	name = "StackReplenish",
 	description = "Automatically refills stacks from your inventory",
@@ -40,14 +43,13 @@ object StackReplenish : Module(
 	private val offhand by setting("Offhand", false, "Replenishes the players offhand stack")
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllGroupsExcept(inventoryConfig)
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllExcept(::inventoryConfig)
 				inventoryConfig.apply {
 					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
 				}
 			}
-		}
 
 		listen<TickEvent.Pre> {
 			if (player.currentScreenHandler.cursorStack.item !== Items.AIR) return@listen

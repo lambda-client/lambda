@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce

@@ -36,7 +36,7 @@ public class AbstractTerrainRenderContextMixin {
 
     @Inject(method = "bufferQuad", at = @At(value = "INVOKE", target = "Lnet/fabricmc/fabric/impl/client/indigo/renderer/render/AbstractTerrainRenderContext;bufferQuad(Lnet/fabricmc/fabric/impl/client/indigo/renderer/mesh/MutableQuadViewImpl;Lnet/minecraft/client/render/VertexConsumer;)V"), cancellable = true)
     private void injectBufferQuad(MutableQuadViewImpl quad, CallbackInfo ci) {
-        if (XRay.INSTANCE.isDisabled() || XRay.isSelected(blockInfo.blockState)) return;
+        if (XRay.INSTANCE.isDisabled() || XRay.getBlockSelection().contains(blockInfo.blockState.getBlock())) return;
         int opacity = XRay.getOpacity();
 
         if (opacity == 0) ci.cancel();

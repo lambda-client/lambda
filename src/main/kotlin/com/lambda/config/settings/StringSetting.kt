@@ -17,61 +17,61 @@
 
 package com.lambda.config.settings
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.Setting
-import com.lambda.config.SettingCore
-import com.lambda.config.SettingEditorDsl
-import com.lambda.config.SettingGroupEditor
+import com.lambda.config.Config
+import com.lambda.config.ConfigEditor
+import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.util.extension.CommandBuilder
 import com.lambda.imgui.flag.ImGuiInputTextFlags
+import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class StringSetting(
+    name: String,
+    description: String,
+    config: Config,
+    layer: SettingEntryLayer<StringSetting, String>,
     defaultValue: String,
+    visibility: () -> Boolean,
     var multiline: Boolean = false,
     var flags: Int = ImGuiInputTextFlags.None,
-) : SettingCore<String>(
-	defaultValue,
-	TypeToken.get(String::class.java).type
-) {
-	context(setting: Setting<*, String>)
+) : Setting<String>(name, description, defaultValue, layer, config, visibility) {
+
     override fun ImGuiBuilder.buildLayout() {
         if (multiline) {
-            inputTextMultiline(setting.name, ::value, flags = flags)
+            inputTextMultiline(name, ::value, flags = flags)
         } else {
-            inputText(setting.name, ::value, flags)
+            inputText(name, ::value, flags)
         }
-        lambdaTooltip(setting.description)
+        lambdaTooltip(description)
     }
 
-	context(setting: Setting<*, String>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(greedyString(setting.name)) { parameter ->
+        required(greedyString(name)) { parameter ->
             execute {
-                setting.trySetValue(parameter().value())
+                trySetValue(parameter().value())
             }
         }
     }
 
+    @Suppress("unused", "unchecked_cast")
     companion object {
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun SettingGroupEditor.TypedEditBuilder<String>.multiline(multiline: Boolean) {
-            (settings as Collection<StringSetting>).forEach { it.multiline = multiline }
+        @ConfigEditorD5l
+        fun ConfigEditor.SettingEditBuilder<String>.multiline(multiline: Boolean) {
+            (entries as Collection<StringSetting>).forEach { it.multiline = multiline }
         }
 
-        @SettingEditorDsl
-        @Suppress("unchecked_cast")
-        fun SettingGroupEditor.TypedEditBuilder<String>.flags(flags: Int) {
-            (settings as Collection<StringSetting>).forEach { it.flags = flags }
+        @ConfigEditorD5l
+        fun ConfigEditor.SettingEditBuilder<String>.flags(flags: Int) {
+            (entries as Collection<StringSetting>).forEach { it.flags = flags }
         }
     }
 }

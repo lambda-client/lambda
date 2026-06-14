@@ -18,7 +18,7 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.math.MathUtils.ceilToInt
@@ -67,7 +67,7 @@ object PlayerBuildLayerUtils {
 	}
 
 	fun isInBaritoneSelection(pos: BlockPos) =
-		BaritoneManager.primary?.selectionManager?.selections?.any {
+		BaritoneHandler.primary?.selectionManager?.selections?.any {
 			val min = it.min()
 			val max = it.max()
 			pos.x >= min.x && pos.x <= max.x

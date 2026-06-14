@@ -18,12 +18,13 @@
 package com.lambda.module.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.imgui.flag.ImGuiCol
 import java.awt.Color
 
+@Suppress("unused")
 object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
@@ -41,7 +42,7 @@ object ModuleList : HudModule(
         enabled.forEach {
             val bound = it.keybind.key != 0 || it.keybind.mouse != -1
             if (onlyBound && !bound) return@forEach
-            text(it.name);
+            text(it.name)
 
 	        if (showKeybind) {
 		        val color = if (!bound) Color.RED else Color.GREEN

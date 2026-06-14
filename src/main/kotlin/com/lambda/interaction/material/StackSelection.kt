@@ -38,6 +38,7 @@ import kotlin.reflect.KClass
 /**
  * [StackSelection] is a class that holds a predicate for matching [ItemStack]s.
  */
+@Suppress("unused")
 @StackSelectionDsl
 class StackSelection {
     var selector: (ItemStack) -> Boolean = EVERYTHING

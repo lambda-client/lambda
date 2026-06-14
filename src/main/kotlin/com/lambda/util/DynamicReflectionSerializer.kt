@@ -22,7 +22,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
 import com.lambda.network.LambdaAPI
 import com.lambda.util.FileUtils.downloadIfNotPresent
-import com.lambda.util.FolderRegister.cache
+import com.lambda.util.FolderRegistry.cache
 import com.lambda.util.extension.resolveFile
 import com.mojang.serialization.Codec
 import kotlinx.coroutines.runBlocking

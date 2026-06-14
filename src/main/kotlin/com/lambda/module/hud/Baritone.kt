@@ -18,23 +18,24 @@
 package com.lambda.module.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
+@Suppress("unused")
 object Baritone : HudModule(
     name = "Baritone",
     description = "Look inside of Baritones head",
     tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        if (!BaritoneManager.isBaritoneLoaded) {
+        if (!BaritoneHandler.isBaritoneLoaded) {
             text("Baritone is not loaded")
             return
         }
 
-        BaritoneManager.primary?.customGoalProcess?.goal?.let {
+        BaritoneHandler.primary?.customGoalProcess?.goal?.let {
             when(it) {
                 is BuildGoal -> text("Lambda Simulation: ${it.sim}")
                 else -> text("Baritone: $it")

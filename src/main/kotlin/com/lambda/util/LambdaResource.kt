@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.util
 
 import com.lambda.Lambda
@@ -22,7 +24,6 @@ import java.awt.image.BufferedImage
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.net.URL
-import java.nio.file.Paths
 import javax.imageio.ImageIO
 
 typealias LambdaResource = String

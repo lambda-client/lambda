@@ -18,12 +18,13 @@
 package com.lambda.module
 
 import com.lambda.command.LambdaCommand
-import com.lambda.config.Configurable
-import com.lambda.config.Configuration
-import com.lambda.config.IMutableAutomationConfig
-import com.lambda.config.MutableAutomationConfig
-import com.lambda.config.SettingCore
-import com.lambda.config.configurations.ModuleConfigs
+import com.lambda.config.Config
+import com.lambda.config.ConfigCategory
+import com.lambda.config.automation.IMutableAutomationConfig
+import com.lambda.config.automation.MutableAutomationConfig
+import com.lambda.config.categories.ModuleCategory
+import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
@@ -42,13 +43,13 @@ import com.lambda.event.listener.UnsafeListener
 import com.lambda.module.modules.client.Client
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
-import com.lambda.sound.SoundManager.play
+import com.lambda.sound.SoundHandler.play
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 
 /**
  * A [Module] is a feature or tool for the utility mod.
- * It represents a [Configurable] component of the mod,
+ * It represents a [Config] component of the mod,
  * with its own set of behaviors and properties.
  *
  * Each [Module] has a [name], which is displayed in-game.
@@ -63,7 +64,7 @@ import com.lambda.util.Nameable
  * If a module does not need to be activated by a key (like [ClickGui]),
  * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
- * [Module]s are [Configurable]s with [settings] (see [SettingCore] for all setting types).
+ * [Module]s are [Config]s with [settingLayers] (see [EntryCore] for all setting types).
  * Example:
  * ```
  * private val foo by setting("Foo", true)
@@ -71,7 +72,7 @@ import com.lambda.util.Nameable
  * ```
  *
  * These settings are persisted in the `lambda/config/modules.json` config file.
- * See [ModuleConfigs.primary] and [Configuration] for more details.
+ * See [ModuleCategory.primary] and [ConfigCategory] for more details.
  *
  * In the `init` block, you can add hooks like [onEnable], [onDisable], [onToggle] and add listeners.
  *
@@ -118,21 +119,23 @@ import com.lambda.util.Nameable
  *
  * See [SafeListener] and [UnsafeListener] for more details.
  */
+@Suppress("unused")
 abstract class Module(
-    override val name: String,
+    name: String,
     val description: String = "",
     val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
+    modulePriority: Int = 0,
     defaultKeybind: Bind = Bind.EMPTY,
     autoDisable: Boolean = false
-) : Nameable, Muteable, OwnerPriority, Configurable(ModuleConfigs),
+) : Nameable, Muteable, OwnerPriority, Config(name, ModuleCategory),
     IMutableAutomationConfig by MutableAutomationConfig()
 {
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
-    val prioritySetting = setting("Module Priority", 0, -100..100, 1, "Priority over other modules") { false }
+    val prioritySetting = setting("Module Priority", modulePriority, -100..100, 1, "Priority over other modules") { false }
 		.onValueChangeUnsafe { _, to -> ownerPriority = to }
-    override var ownerPriority = 0
+    override var ownerPriority = modulePriority
         set(value) {
             val oldVal = field
             field = value
@@ -145,6 +148,7 @@ abstract class Module(
     val drawSetting = setting("Draw", true, "Draws the module in the module list hud element") { false }
 
     var isEnabled by isEnabledSetting
+        private set
     val isDisabled get() = !isEnabled
 
     val keybind by keybindSetting
@@ -163,59 +167,66 @@ abstract class Module(
         listen<ConnectionEvent.Disconnect> { if (autoDisable) disable() }
     }
 
+    @DslMarker
+    private annotation class ModuleDsl
+
+    @ModuleDsl
     fun enable() {
         ModuleEvent.Enabled(this@Module).post()
         isEnabled = true
     }
 
+    @ModuleDsl
     fun disable() {
         ModuleEvent.Disabled(this@Module).post()
         isEnabled = false
     }
 
+    @ModuleDsl
     fun toggle() {
         ModuleEvent.Toggle(this@Module, !isEnabled).post()
         if (isEnabled) disable() else enable()
     }
 
+    @ModuleDsl
     fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
+    @ModuleDsl
     fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
+    @ModuleDsl
     fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
+    @ModuleDsl
     fun onEnableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
+    @ModuleDsl
     fun onDisableUnsafe(block: () -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
+    @ModuleDsl
     fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
         isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }
-    }
-
-    protected fun setModulePriority(priority: Int) {
-        prioritySetting.value = priority
-        prioritySetting.core.defaultValue = priority
     }
 }

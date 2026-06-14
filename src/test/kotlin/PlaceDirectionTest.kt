@@ -16,7 +16,7 @@
  */
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.visibilty.PlaceDirection
+import com.lambda.util.PlaceDirection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

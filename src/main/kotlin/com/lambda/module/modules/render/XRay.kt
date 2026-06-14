@@ -17,10 +17,17 @@
 
 package com.lambda.module.modules.render
 
+import com.lambda.Lambda.mc
+import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
+import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
+import com.lambda.context.SafeContext
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import net.minecraft.block.BlockState
+import com.lambda.util.BlockUtils
 import net.minecraft.block.Blocks
+import net.minecraft.fluid.Fluids
+import net.minecraft.registry.Registries
 
 object XRay : Module(
 	name = "XRay",
@@ -40,27 +47,24 @@ object XRay : Module(
 		Blocks.ANCIENT_DEBRIS
 	)
 
-	@JvmStatic
-	val opacity by setting("Opacity", 40, 1..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)")
-		.onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
-	private val selection by setting("Block Selection", defaultBlocks, description = "Block selection that will be shown (whitelist) or hidden (blacklist)")
-		.onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
+	val fluids = BlockUtils.fluids - Fluids.EMPTY
 
-	// ToDo: Blacklist causes huge performance issues due to many single faces being rendered
-	private val mode by setting("Selection Mode", Selection.Whitelist, "The mode of the block selection")
-		.onValueChange { _, _ -> if (isEnabled) mc.worldRenderer.reload() }
-
-	@JvmStatic
-	fun isSelected(blockState: BlockState) = mode.select(blockState)
-
-	enum class Selection(val select: (BlockState) -> Boolean) {
-		Whitelist({ it.block in selection }),
-		Blacklist({ it.block !in selection })
-	}
+	@JvmStatic val opacity by setting("Opacity", 40, 1..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)").onValueChange(::reload)
+	@JvmStatic val blockSelection by setting("Block Selection", defaultBlocks, Registries.BLOCK - setOf(Blocks.WATER, Blocks.LAVA), description = "Block selection that will be shown (whitelist) or hidden (blacklist)")
+		.onSelect { _ -> reload(null, null, null) }
+		.onDeselect { _ -> reload(null, null, null) }
+	@JvmStatic val fluidSelection by setting("Fluid Selection", fluids, fluids, description = "Fluids that will be shown when x-raying")
+		.onSelect { _ -> reload(null, null, null) }
+		.onDeselect { _ -> reload(null, null, null) }
 
 	init {
 		onToggle {
 			mc.worldRenderer.reload()
 		}
+	}
+
+	@Suppress("unused")
+	fun reload(safeContext: SafeContext?, from: Any?, to: Any?) {
+		if (isEnabled) mc.worldRenderer.reload()
 	}
 }

@@ -17,9 +17,10 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
+import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
@@ -29,6 +30,7 @@ import com.lambda.task.tasks.EatTask
 import com.lambda.task.tasks.EatTask.Companion.eat
 import com.lambda.threading.runSafeAutomated
 
+@Suppress("unused")
 object AutoEat : Module(
     name = "AutoEat",
     description = "Eats food when you are hungry",
@@ -37,11 +39,10 @@ object AutoEat : Module(
     private var eatTask: EatTask? = null
 
     init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllGroupsExcept(eatConfig)
-			}
-		}
+		setDefaultAutomationConfig()
+            .withEdits {
+			    hideAllExcept(::eatConfig)
+		    }
 
         listen<TickEvent.Pre> {
             val reason = runSafeAutomated { reasonEating() }

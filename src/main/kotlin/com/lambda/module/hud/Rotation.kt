@@ -17,24 +17,25 @@
 
 package com.lambda.module.hud
 
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.FormatterSettings
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.settings.blocks.FormatterSettings
+import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Formatting.format
+import com.lambda.util.FormattingUtils.format
 
+@Suppress("unused")
 object Rotation : HudModule(
 	name = "Rotation",
 	description = "Show your rotation",
 	tag = ModuleTag.HUD,
 ) {
-	private val formatter = FormatterSettings(c = this,).apply {
-		applyEdits {
-			::timeFormat.edit { hide() }
+	private val formatter by configBlock(FormatterSettings(this))
+		.withEdits {
+			::timeFormat.editSetting { hide() }
 		}
-	}
 
 	override fun ImGuiBuilder.buildLayout() {
 		runSafe {

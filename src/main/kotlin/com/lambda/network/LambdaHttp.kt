@@ -17,20 +17,18 @@
 
 package com.lambda.network
 
-import com.lambda.Lambda
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.serialization.gson.*
+import io.ktor.serialization.jackson.*
 import java.io.File
 import java.io.OutputStream
 
-val LambdaHttp = HttpClient {
+val LAMBDA_HTTP = HttpClient {
     install(ContentNegotiation) {
-        // Use our gson instance
-        register(ContentType.Application.Json, GsonConverter(Lambda.gson))
+        register(ContentType.Application.Json, JacksonConverter())
     }
 }
 

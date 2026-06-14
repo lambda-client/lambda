@@ -21,11 +21,12 @@ import com.google.common.collect.Comparators.min
 import com.lambda.command.CommandRegistry.prefix
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
 
+@Suppress("unused")
 object CustomChat : Module(
 	name = "CustomChat",
 	description = "Adds a custom ending to your message",
@@ -33,12 +34,11 @@ object CustomChat : Module(
 ) {
 	private val decoration by setting("Decoration", Decoration.Separator)
 	private val text by setting("Text", Text.Lambda)
-
 	private val customText by setting("Custom Text", "") { text == Text.Custom }
 
 	init {
 		listen<ChatEvent.Send> {
-			val isBaritone = BaritoneManager.baritoneSettings?.prefix?.value
+			val isBaritone = BaritoneHandler.baritoneSettings?.prefix?.value
 				?.let { setting -> it.message.startsWith(setting)}
 				?: false
 

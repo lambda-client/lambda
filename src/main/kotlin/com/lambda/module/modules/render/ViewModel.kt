@@ -18,12 +18,13 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.config.Tab
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.NamedEnum
 import net.minecraft.client.network.AbstractClientPlayerEntity
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
@@ -41,69 +42,76 @@ object ViewModel : Module(
 	description = "Adjusts hand and held item rendering",
 	tag = ModuleTag.RENDER,
 ) {
-	private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing").group(Group.General)
-	val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", "ticks").group(Group.General)
-	private val noSwingDelay by setting("No Swing Delay", false, "Removes the delay between swings").group(Group.General)
-	val mainSwingProgress by setting("Main Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players main hand was this progress through the swing animation").group(Group.General)
-	val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation").group(Group.General)
-	val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8").group(Group.General)
-	val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { oldAnimations }.group(Group.General)
+	private const val GENERAL_TAB = "General"
+	private const val SCALE_TAB = "Scale"
+	private const val POSITION_TAB = "Position"
+	private const val ROTATION_TAB = "Rotation"
+	private const val FOV_TAB = "FOV"
+	private const val HAND_TAB = "Hand"
+
+	@Tab(GENERAL_TAB) private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing")
+	@Tab(GENERAL_TAB)val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", "ticks")
+	@Tab(GENERAL_TAB)private val noSwingDelay by setting("No Swing Delay", false, "Removes the delay between swings")
+	@Tab(GENERAL_TAB)val mainSwingProgress by setting("Main Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players main hand was this progress through the swing animation")
+	@Tab(GENERAL_TAB)val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation")
+	@Tab(GENERAL_TAB)val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8")
+	@Tab(GENERAL_TAB)val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { oldAnimations }
 	//ToDo: Implement
 //    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
 
-	private val splitScale by setting("Split Scale", false, "Splits left and right hand scale settings").group(Group.Scale)
-	private val xScale by setting("X Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftXScale = to; rightXScale = to }.group(Group.Scale)
-	private val yScale by setting("Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftYScale = to; rightYScale = to }.group(Group.Scale)
-	private val zScale by setting("Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftZScale = to; rightZScale = to }.group(Group.Scale)
-	private var leftXScale by setting("Left X Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
-	private var leftYScale by setting("Left Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
-	private var leftZScale by setting("Left Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
-	private var rightXScale by setting("Right X Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
-	private var rightYScale by setting("Right Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
-	private var rightZScale by setting("Right Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }.group(Group.Scale)
+	@Tab(SCALE_TAB) private val splitScale by setting("Split Scale", false, "Splits left and right hand scale settings")
+	@Tab(SCALE_TAB) private val xScale by setting("X Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftXScale = to; rightXScale = to }
+	@Tab(SCALE_TAB) private val yScale by setting("Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftYScale = to; rightYScale = to }
+	@Tab(SCALE_TAB) private val zScale by setting("Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftZScale = to; rightZScale = to }
+	@Tab(SCALE_TAB) private var leftXScale by setting("Left X Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }
+	@Tab(SCALE_TAB) private var leftYScale by setting("Left Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }
+	@Tab(SCALE_TAB) private var leftZScale by setting("Left Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }
+	@Tab(SCALE_TAB) private var rightXScale by setting("Right X Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }
+	@Tab(SCALE_TAB) private var rightYScale by setting("Right Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }
+	@Tab(SCALE_TAB) private var rightZScale by setting("Right Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { splitScale }
 
-	private val splitPosition by setting("Split Position", false, "Splits left and right position settings").group(Group.Position)
-	private val xPosition by setting("X Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftXPosition = to; rightXPosition = to }.group(Group.Position)
-	private val yPosition by setting("Y Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftYPosition = to; rightYPosition = to }.group(Group.Position)
-	private val zPosition by setting("Z Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftZPosition = to; rightZPosition = to }.group(Group.Position)
-	private var leftXPosition by setting("Left X Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
-	private var leftYPosition by setting("Left Y Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
-	private var leftZPosition by setting("Left Z Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
-	private var rightXPosition by setting("Right X Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
-	private var rightYPosition by setting("Right Y Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
-	private var rightZPosition by setting("Right Z Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }.group(Group.Position)
+	@Tab(POSITION_TAB) private val splitPosition by setting("Split Position", false, "Splits left and right position settings")
+	@Tab(POSITION_TAB) private val xPosition by setting("X Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftXPosition = to; rightXPosition = to }
+	@Tab(POSITION_TAB) private val yPosition by setting("Y Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftYPosition = to; rightYPosition = to }
+	@Tab(POSITION_TAB) private val zPosition by setting("Z Position", 0.0f, -1.0f..1.0f, 0.025f) { !splitPosition }.onValueChange { _, to -> leftZPosition = to; rightZPosition = to }
+	@Tab(POSITION_TAB) private var leftXPosition by setting("Left X Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }
+	@Tab(POSITION_TAB) private var leftYPosition by setting("Left Y Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }
+	@Tab(POSITION_TAB) private var leftZPosition by setting("Left Z Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }
+	@Tab(POSITION_TAB) private var rightXPosition by setting("Right X Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }
+	@Tab(POSITION_TAB) private var rightYPosition by setting("Right Y Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }
+	@Tab(POSITION_TAB) private var rightZPosition by setting("Right Z Position", 0.0f, -1.0f..1.0f, 0.025f) { splitPosition }
 
-	private val splitRotation by setting("Split Rotation", false, "Splits left and right rotation settings").group(Group.Rotation)
-	private val xRotation by setting("X Rotation", 0, -180..180, 1) { !splitRotation }.onValueChange { _, to -> leftXRotation = to; rightXRotation = to }.group(Group.Rotation)
-	private val yRotation by setting("Y Rotation", 0, -180..180, 1) { !splitRotation }.onValueChange { _, to -> leftYRotation = to; rightYRotation = to }.group(Group.Rotation)
-	private val zRotation by setting("Z Rotation", 0, -180..180, 1) { !splitRotation }.onValueChange { _, to -> leftZRotation = to; rightZRotation = to }.group(Group.Rotation)
-	private var leftXRotation by setting("Left X Rotation", 0, -180..180, 1) { splitRotation }.group(Group.Rotation)
-	private var leftYRotation by setting("Left Y Rotation", 0, -180..180, 1) { splitRotation }.group(Group.Rotation)
-	private var leftZRotation by setting("Left Z Rotation", 0, -180..180, 1) { splitRotation }.group(Group.Rotation)
-	private var rightXRotation by setting("Right X Rotation", 0, -180..180, 1) { splitRotation }.group(Group.Rotation)
-	private var rightYRotation by setting("Right Y Rotation", 0, -180..180, 1) { splitRotation }.group(Group.Rotation)
-	private var rightZRotation by setting("Right Z Rotation", 0, -180..180, 1) { splitRotation }.group(Group.Rotation)
+	@Tab(ROTATION_TAB) private val splitRotation by setting("Split Rotation", false, "Splits left and right rotation settings")
+	@Tab(ROTATION_TAB) private val xRotation by setting("X Rotation", 0, -180..180, 1) { !splitRotation }.onValueChange { _, to -> leftXRotation = to; rightXRotation = to }
+	@Tab(ROTATION_TAB) private val yRotation by setting("Y Rotation", 0, -180..180, 1) { !splitRotation }.onValueChange { _, to -> leftYRotation = to; rightYRotation = to }
+	@Tab(ROTATION_TAB) private val zRotation by setting("Z Rotation", 0, -180..180, 1) { !splitRotation }.onValueChange { _, to -> leftZRotation = to; rightZRotation = to }
+	@Tab(ROTATION_TAB) private var leftXRotation by setting("Left X Rotation", 0, -180..180, 1) { splitRotation }
+	@Tab(ROTATION_TAB) private var leftYRotation by setting("Left Y Rotation", 0, -180..180, 1) { splitRotation }
+	@Tab(ROTATION_TAB) private var leftZRotation by setting("Left Z Rotation", 0, -180..180, 1) { splitRotation }
+	@Tab(ROTATION_TAB) private var rightXRotation by setting("Right X Rotation", 0, -180..180, 1) { splitRotation }
+	@Tab(ROTATION_TAB) private var rightYRotation by setting("Right Y Rotation", 0, -180..180, 1) { splitRotation }
+	@Tab(ROTATION_TAB) private var rightZRotation by setting("Right Z Rotation", 0, -180..180, 1) { splitRotation }
 
-	private val splitFov by setting("Split FOV", false, "Splits left and right Fov settings").group(Group.Fov)
-	private val fov by setting("FOV", 70, 10..180, 1) { !splitFov }.onValueChange { _, to -> leftFov = to; rightFov = to }.group(Group.Fov)
-	private val fovAnchorDistance by setting("Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the FOV transformation from") { !splitFov }.onValueChange { _, to -> leftFovAnchorDistance = to; rightFovAnchorDistance = to }.group(Group.Fov)
-	private var leftFov by setting("Left FOV", 70, 10..180, 1) { splitFov }.group(Group.Fov)
-	private var leftFovAnchorDistance by setting("Left Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the left FOV transformation from") { splitFov }.group(Group.Fov)
-	private var rightFov by setting("Right FOV", 70, 10..180, 1) { splitFov }.group(Group.Fov)
-	private var rightFovAnchorDistance by setting("Right Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right FOV transformation from") { splitFov }.group(Group.Fov)
+	@Tab(FOV_TAB) private val splitFov by setting("Split FOV", false, "Splits left and right Fov settings")
+	@Tab(FOV_TAB) private val fov by setting("FOV", 70, 10..180, 1) { !splitFov }.onValueChange { _, to -> leftFov = to; rightFov = to }
+	@Tab(FOV_TAB) private val fovAnchorDistance by setting("Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the FOV transformation from") { !splitFov }.onValueChange { _, to -> leftFovAnchorDistance = to; rightFovAnchorDistance = to }
+	@Tab(FOV_TAB) private var leftFov by setting("Left FOV", 70, 10..180, 1) { splitFov }
+	@Tab(FOV_TAB) private var leftFovAnchorDistance by setting("Left Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the left FOV transformation from") { splitFov }
+	@Tab(FOV_TAB) private var rightFov by setting("Right FOV", 70, 10..180, 1) { splitFov }
+	@Tab(FOV_TAB) private var rightFovAnchorDistance by setting("Right Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right FOV transformation from") { splitFov }
 
-	private val enableHand by setting("Hand", false, "Enables settings for the players hand").group(Group.Hand)
-	private val handXScale by setting("Hand X Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }.group(Group.Hand)
-	private val handYScale by setting("Hand Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }.group(Group.Hand)
-	private val handZScale by setting("Hand Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }.group(Group.Hand)
-	private val handXPosition by setting("Hand X Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
-	private val handYPosition by setting("Hand Y Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
-	private val handZPosition by setting("Hand Z Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }.group(Group.Hand)
-	private val handXRotation by setting("Hand X Rotation", 0, -180..180, 1) { enableHand }.group(Group.Hand)
-	private val handYRotation by setting("Hand Y Rotation", 0, -180..180, 1) { enableHand }.group(Group.Hand)
-	private val handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { enableHand }.group(Group.Hand)
-	private val handFov by setting("Hand FOV", 70, 10..180, 1) { enableHand }.group(Group.Hand)
-	private val handFovAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands FOV transformation from") { enableHand }.group(Group.Hand)
+	@Tab(HAND_TAB) private val enableHand by setting("Hand", false, "Enables settings for the players hand")
+	@Tab(HAND_TAB) private val handXScale by setting("Hand X Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }
+	@Tab(HAND_TAB) private val handYScale by setting("Hand Y Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }
+	@Tab(HAND_TAB) private val handZScale by setting("Hand Z Scale", 1.0f, 0.0f..2.0f, 0.025f) { enableHand }
+	@Tab(HAND_TAB) private val handXPosition by setting("Hand X Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }
+	@Tab(HAND_TAB) private val handYPosition by setting("Hand Y Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }
+	@Tab(HAND_TAB) private val handZPosition by setting("Hand Z Position", 0.0f, -1.0f..1.0f, 0.025f) { enableHand }
+	@Tab(HAND_TAB) private val handXRotation by setting("Hand X Rotation", 0, -180..180, 1) { enableHand }
+	@Tab(HAND_TAB) private val handYRotation by setting("Hand Y Rotation", 0, -180..180, 1) { enableHand }
+	@Tab(HAND_TAB) private val handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { enableHand }
+	@Tab(HAND_TAB) private val handFov by setting("Hand FOV", 70, 10..180, 1) { enableHand }
+	@Tab(HAND_TAB) private val handFovAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands FOV transformation from") { enableHand }
 
 	private var attackKeyTicksPressed = -1
 
@@ -235,15 +243,6 @@ object ViewModel : Module(
 				preferredHand = hand
 			}
 		}
-
-	private enum class Group(override val displayName: String): NamedEnum {
-		General("General"),
-		Scale("Scale"),
-		Position("Position"),
-		Rotation("Rotation"),
-		Fov("FOV"),
-		Hand("Hand")
-	}
 
 	private enum class Side {
 		Left, Right

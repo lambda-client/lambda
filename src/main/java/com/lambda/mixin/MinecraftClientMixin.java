@@ -17,7 +17,7 @@
 
 package com.lambda.mixin;
 
-import com.lambda.core.TimerManager;
+import com.lambda.core.TimerHandler;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
 import com.lambda.gui.DearImGui;
@@ -127,6 +127,7 @@ public class MinecraftClientMixin {
      * Inject after the thread field is set so that {@link ThreadExecutor#getThread}
      * is available
      */
+    @SuppressWarnings("JavadocReference")
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0, opcode = Opcodes.PUTFIELD), method = "run")
     private void onStartup(CallbackInfo ci) {
         EventFlow.post(new ClientEvent.Startup());
@@ -191,10 +192,10 @@ public class MinecraftClientMixin {
 
     @WrapMethod(method = "getTargetMillisPerTick")
     float getTargetMillisPerTick(float millis, Operation<Float> original) {
-        var length = TimerManager.INSTANCE.getLength();
+        var length = TimerHandler.INSTANCE.getLength();
 
-        if (length == TimerManager.DEFAULT_LENGTH) return original.call(millis);
-        else return (float) TimerManager.INSTANCE.getLength();
+        if (length == TimerHandler.DEFAULT_LENGTH) return original.call(millis);
+        else return (float) TimerHandler.INSTANCE.getLength();
     }
 
     @Inject(method = "updateWindowTitle", at = @At("HEAD"), cancellable = true)

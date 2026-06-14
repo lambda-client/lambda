@@ -22,6 +22,7 @@ import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask
 
+@Suppress("unused")
 object TaskFlowHUD : HudModule(
     name = "TaskFlowHud",
     tag = ModuleTag.HUD,

@@ -17,6 +17,8 @@
 
 package com.lambda.interaction.managers.interacting
 
+import com.lambda.config.settings.blocks.InteractConfig
+import com.lambda.config.settings.blocks.InteractConfig.AirPlaceMode
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -34,9 +36,10 @@ import com.lambda.interaction.managers.PacketType
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.interacting.InteractConfig.AirPlaceMode
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
+import com.lambda.interaction.managers.interacting.InteractManager.maxInteractionsThisTick
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
+import com.lambda.interaction.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.managers.interacting.InteractManager.processRequest
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.pendingActions
 import com.lambda.interaction.managers.interacting.InteractedBlockHandler.setPendingConfigs
@@ -47,6 +50,7 @@ import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.gamemode
@@ -215,9 +219,9 @@ object InteractManager : Manager<InteractRequest>(
 					runConcurrent {
 						delay(signWriteDelay)
 						runSafeGameScheduled {
-							connection.sendPacket(
+							connection.sendPacket {
 								UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")
-							)
+							}
 						}
 					}
 				}

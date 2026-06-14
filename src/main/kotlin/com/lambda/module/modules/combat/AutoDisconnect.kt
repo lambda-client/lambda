@@ -23,13 +23,13 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.friend.FriendManager
+import com.lambda.friend.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.sound.SoundManager.playSound
-import com.lambda.util.Communication
-import com.lambda.util.Communication.prefix
-import com.lambda.util.Formatting.format
+import com.lambda.sound.SoundHandler.playSound
+import com.lambda.util.CommunicationUtils
+import com.lambda.util.CommunicationUtils.prefix
+import com.lambda.util.FormattingUtils.format
 import com.lambda.util.NamedEnum
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
@@ -64,10 +64,12 @@ import java.awt.Color
 import java.time.Instant
 import java.util.BitSet
 
+@Suppress("unused")
 object AutoDisconnect : Module(
     name = "AutoDisconnect",
     description = "Automatically disconnects when in danger or on low health",
     tag = ModuleTag.COMBAT,
+    modulePriority = -100
 ) {
     private const val INVALID_HOTBAR_SLOT = 42
     private const val IMPOSSIBLE_CHAT_TIMESTAMP = -1L
@@ -77,47 +79,46 @@ object AutoDisconnect : Module(
         DisconnectConditions("Conditions"),
     }
 
-    private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.").group(Group.DisconnectConditions)
-    private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }.group(Group.DisconnectConditions)
-    private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level").group(Group.DisconnectConditions)
-    private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }.group(Group.DisconnectConditions)
-    private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage").group(Group.DisconnectConditions)
-    private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }.group(Group.DisconnectConditions)
-    private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.").group(Group.DisconnectConditions)
-    private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.").group(Group.DisconnectConditions)
-    private val totem by setting("Totem", false, "Disconnect if the number of Totems of Undying is below the required amount.").group(Group.DisconnectConditions)
-    private val minTotems by setting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }.group(Group.DisconnectConditions)
-    private val players by setting("Players", false, "Disconnect if a nearby player is detected within the set distance.").group(Group.DisconnectConditions)
-    private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }.group(Group.DisconnectConditions)
-    private val friends by setting("Friends", false, "Exclude friends from triggering player-based disconnections.") { players }.group(Group.DisconnectConditions)
+    private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")//.group(Group.DisconnectConditions)
+    private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }//.group(Group.DisconnectConditions)
+    private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")//.group(Group.DisconnectConditions)
+    private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }//.group(Group.DisconnectConditions)
+    private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")//.group(Group.DisconnectConditions)
+    private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }//.group(Group.DisconnectConditions)
+    private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")//.group(Group.DisconnectConditions)
+    private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")//.group(Group.DisconnectConditions)
+    private val totem by setting("Totem", false, "Disconnect if the number of Totems of Undying is below the required amount.")//.group(Group.DisconnectConditions)
+    private val minTotems by setting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }//.group(Group.DisconnectConditions)
+    private val players by setting("Players", false, "Disconnect if a nearby player is detected within the set distance.")//.group(Group.DisconnectConditions)
+    private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }//.group(Group.DisconnectConditions)
+    private val friends by setting("Friends", false, "Exclude friends from triggering player-based disconnections.") { players }//.group(Group.DisconnectConditions)
 
-    private val onDamage by setting("On Damage", false, "Disconnect from the server when you take damage.").group(Group.DisconnectConditions)
+    private val onDamage by setting("On Damage", false, "Disconnect from the server when you take damage.")//.group(Group.DisconnectConditions)
 
     // ToDo: Only those DamageTypes are reported by the server. why?
-    private val generic by setting("Generic", false, "Disconnect from the server when you get generic damage. (will always trigger!)") { onDamage }.group(Group.DisconnectConditions)
-    private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.") { onDamage }.group(Group.DisconnectConditions)
-    private val lava by setting("Lava", false, "Disconnect from the server when you get lava.") { onDamage }.group(Group.DisconnectConditions)
-    private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you get hot floor.") { onDamage }.group(Group.DisconnectConditions)
-    private val drown by setting("Drown", false, "Disconnect from the server when you get drown.") { onDamage }.group(Group.DisconnectConditions)
-    private val cactus by setting("Cactus", false, "Disconnect from the server when you get cactus.") { onDamage }.group(Group.DisconnectConditions)
-    private val fall by setting("Fall", false, "Disconnect from the server when you fall.") { onDamage }.group(Group.DisconnectConditions)
-    private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you get out of the world.") { onDamage }.group(Group.DisconnectConditions)
-    private val wither by setting("Wither", false, "Disconnect from the server when you get wither damage.") { onDamage }.group(Group.DisconnectConditions)
-    private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you get stalagmite damage.") { onDamage }.group(Group.DisconnectConditions)
-    private val arrow by setting("Arrow", false, "Disconnect from the server when you get arrow damage.") { onDamage }.group(Group.DisconnectConditions)
-    private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.") { onDamage }.group(Group.DisconnectConditions)
+    private val generic by setting("Generic", false, "Disconnect from the server when you get generic damage. (will always trigger!)") { onDamage }//.group(Group.DisconnectConditions)
+    private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.") { onDamage }//.group(Group.DisconnectConditions)
+    private val lava by setting("Lava", false, "Disconnect from the server when you get lava.") { onDamage }//.group(Group.DisconnectConditions)
+    private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you get hot floor.") { onDamage }//.group(Group.DisconnectConditions)
+    private val drown by setting("Drown", false, "Disconnect from the server when you get drown.") { onDamage }//.group(Group.DisconnectConditions)
+    private val cactus by setting("Cactus", false, "Disconnect from the server when you get cactus.") { onDamage }//.group(Group.DisconnectConditions)
+    private val fall by setting("Fall", false, "Disconnect from the server when you fall.") { onDamage }//.group(Group.DisconnectConditions)
+    private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you get out of the world.") { onDamage }//.group(Group.DisconnectConditions)
+    private val wither by setting("Wither", false, "Disconnect from the server when you get wither damage.") { onDamage }//.group(Group.DisconnectConditions)
+    private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you get stalagmite damage.") { onDamage }//.group(Group.DisconnectConditions)
+    private val arrow by setting("Arrow", false, "Disconnect from the server when you get arrow damage.") { onDamage }//.group(Group.DisconnectConditions)
+    private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.") { onDamage }//.group(Group.DisconnectConditions)
 
-    private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen").group(Group.General)
-    private val invalidHotbarDisconnect by setting("Invalid Hotbar Disconnect", false, "Sends an invalid hotbar selection to force the server to kick the player").group(Group.General)
-    private val attackSelfDisconnect by setting("Attack Self Disconnect", false, "Sends an attack self packet to force the server to kick the player").group(Group.General)
-    private val impossibleTimestampChatDisconnect by setting("Impossible Timestamp Chat Disconnect", false, "Sends a chat message with an impossible timestamp to force the server to kick the player").group(Group.General)
+    private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")//.group(Group.General)
+    private val invalidHotbarDisconnect by setting("Invalid Hotbar Disconnect", false, "Sends an invalid hotbar selection to force the server to kick the player")//.group(Group.General)
+    private val attackSelfDisconnect by setting("Attack Self Disconnect", false, "Sends an attack self packet to force the server to kick the player")//.group(Group.General)
+    private val impossibleTimestampChatDisconnect by setting("Impossible Timestamp Chat Disconnect", false, "Sends a chat message with an impossible timestamp to force the server to kick the player")//.group(Group.General)
 
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false
     var lastReconnectTarget: ReconnectTarget? = null
 
     init {
-        setModulePriority(-100)
         listen<TickEvent.Pre> {
             Reason.entries.filter {
                 it.check()
@@ -247,13 +248,13 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeContext.generateInfo(text: Text) = buildText {
-        text(prefix(Communication.LogLevel.Warn.logoColor))
+        text(prefix(CommunicationUtils.LogLevel.Warn.logoColor))
         text(text)
         literal("\n\n")
         literal("Disconnected at ")
         highlighted(player.pos.format())
         literal(" on ")
-        highlighted(Communication.currentTime())
+        highlighted(CommunicationUtils.currentTime())
         literal(" with ")
         highlighted(player.fullHealth.format())
         literal(" health.")
@@ -332,7 +333,7 @@ object AutoDisconnect : Module(
             fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).find { otherPlayer ->
                 otherPlayer != player
                         && player.distanceTo(otherPlayer) <= minPlayerDistance
-                        && (!friends || !FriendManager.isFriend(otherPlayer.uuid))
+                        && (!friends || !FriendHandler.isFriend(otherPlayer.uuid))
             }?.let { otherPlayer ->
                 buildText {
                     literal("The player ")

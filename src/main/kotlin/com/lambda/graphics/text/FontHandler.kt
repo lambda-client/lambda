@@ -18,12 +18,13 @@
 package com.lambda.graphics.text
 
 import com.lambda.Lambda.LOG
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.FontConfig
+import com.lambda.config.Config
+import com.lambda.config.categories.FontCategory
+import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegistry
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.notExists
 
@@ -33,8 +34,11 @@ import kotlin.io.path.notExists
  * Manages SDF font atlases with automatic caching by path and size.
  * Fonts are discovered at startup but only loaded when actually used.
  */
-object FontHandler : Loadable, Configurable(FontConfig) {
-	override val name = "Font"
+@Suppress("unused")
+object FontHandler : Loadable, Config(
+	"Font",
+	FontCategory
+) {
 	override val priority = -1
 
 	private val loadedAtlases = ConcurrentHashMap<String, SDFFontAtlas>()
@@ -53,9 +57,7 @@ object FontHandler : Loadable, Configurable(FontConfig) {
 	}
 
 	private val selectedFont by setting("Selected Font", defaultFontInfo.path, description = "The file name of the font you want to use. (The font must be placed in the fonts folder in the lambda directory)")
-		.onValueChangeUnsafe { _, to ->
-			activeFont = getOrLoadFont(to) ?: defaultFont
-		}
+		.onValueChangeUnsafe { _, to -> activeFont = getOrLoadFont(to) ?: defaultFont }
 
 	var activeFont = defaultFont
 		private set
@@ -74,7 +76,7 @@ object FontHandler : Loadable, Configurable(FontConfig) {
 	fun discoverFonts() {
 		discoveredFonts.clear()
 
-		val fontsFolder = FolderRegister.fonts
+		val fontsFolder = FolderRegistry.fonts
 
 		if (fontsFolder.notExists()) {
 			fontsFolder.toFile().mkdirs()

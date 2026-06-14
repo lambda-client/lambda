@@ -21,6 +21,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.math.component1
 import com.lambda.util.math.component2
 import com.lambda.util.math.component3
@@ -34,6 +35,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
+@Suppress("unused")
 object NoFall : Module(
     name = "NoFall",
     description = "Reduces fall damage",
@@ -54,13 +56,13 @@ object NoFall : Module(
                     val (x, y, z) = player.pos
                     connection.sendPacket(PlayerMoveC2SPacket.Full(x, y + 0.0000000001, z, 0.01f, 90f, false, true)) // TODO: Check this after update
                     connection.sendPacket(PlayerInteractItemC2SPacket(Hand.OFF_HAND, 0, player.yaw, player.pitch)) // TODO: This is wrong, fix it
-                    connection.sendPacket(
+                    connection.sendPacket {
                         PlayerActionC2SPacket(
                             PlayerActionC2SPacket.Action.RELEASE_USE_ITEM,
                             BlockPos.ORIGIN,
                             Direction.DOWN
                         )
-                    )
+                    }
                     player.motion = Vec3d.ZERO
 
                     player.fallDistance = 0.0

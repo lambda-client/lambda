@@ -17,28 +17,11 @@
 
 @file:Suppress("unused")
 
-/*
- * Copyright 2025 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.lambda.gui.dsl
 
 import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.dsl.ImGuiBuilder.openPopup
 import com.lambda.gui.dsl.ImGuiBuilder.text
-import com.lambda.util.math.Vec2d
 import com.lambda.imgui.ImDrawList
 import com.lambda.imgui.ImFont
 import com.lambda.imgui.ImGui
@@ -130,6 +113,7 @@ import com.lambda.imgui.ImGui.isWindowAppearing
 import com.lambda.imgui.ImGui.isWindowCollapsed
 import com.lambda.imgui.ImGui.isWindowHovered
 import com.lambda.imgui.ImGui.plotHistogram
+import com.lambda.imgui.ImGui.plotLines
 import com.lambda.imgui.ImGui.popFont
 import com.lambda.imgui.ImGui.popID
 import com.lambda.imgui.ImGui.popItemWidth
@@ -157,6 +141,7 @@ import com.lambda.imgui.ImGuiTextFilter
 import com.lambda.imgui.ImGuiViewport
 import com.lambda.imgui.ImVec2
 import com.lambda.imgui.flag.ImDrawListFlags
+import com.lambda.imgui.flag.ImGuiChildFlags
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiColorEditFlags
 import com.lambda.imgui.flag.ImGuiComboFlags
@@ -174,13 +159,12 @@ import com.lambda.imgui.type.ImDouble
 import com.lambda.imgui.type.ImFloat
 import com.lambda.imgui.type.ImInt
 import com.lambda.imgui.type.ImString
+import com.lambda.util.math.Vec2d
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import java.awt.Color
 import kotlin.reflect.KMutableProperty0
-import com.lambda.imgui.ImGui.plotLines
-import com.lambda.imgui.flag.ImGuiChildFlags
 
 typealias ProcedureBlock = ImGuiBuilder.() -> Unit
 typealias WrappedBlock<In, Out> = ImGuiBuilder.(In) -> Out
@@ -1964,7 +1948,7 @@ object ImGuiBuilder {
      * @param value Float value
      * @param block Content of the scope
      *
-     * @see imgui.flag.ImGuiStyleVar
+     * @see com.lambda.imgui.flag.ImGuiStyleVar
      */
     @ImGuiDsl
     inline fun withStyleVar(styleVar: Int, value: Float, block: ProcedureBlock) {

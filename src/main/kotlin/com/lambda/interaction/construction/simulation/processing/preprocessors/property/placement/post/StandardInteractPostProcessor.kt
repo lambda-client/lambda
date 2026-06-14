@@ -22,12 +22,10 @@ import com.lambda.interaction.construction.simulation.processing.PreProcessingIn
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry.standardInteractProperties
 import com.lambda.interaction.construction.simulation.processing.PropertyPostProcessor
 import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
 import net.minecraft.block.DoorBlock
 import net.minecraft.block.TrapdoorBlock
 import net.minecraft.util.math.BlockPos
 
-// Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object StandardInteractPostProcessor : PropertyPostProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =

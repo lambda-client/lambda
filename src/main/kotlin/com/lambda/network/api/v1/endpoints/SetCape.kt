@@ -17,10 +17,10 @@
 
 package com.lambda.network.api.v1.endpoints
 
+import com.lambda.network.LAMBDA_HTTP
 import com.lambda.network.LambdaAPI.apiUrl
 import com.lambda.network.LambdaAPI.apiVersion
-import com.lambda.network.LambdaHttp
-import com.lambda.network.NetworkManager
+import com.lambda.network.NetworkHandler
 import io.ktor.client.request.*
 import io.ktor.http.*
 
@@ -31,8 +31,8 @@ import io.ktor.http.*
  *  - id: galaxy
  */
 suspend fun setCape(id: String) = runCatching {
-    val resp = LambdaHttp.put("$apiUrl/api/$apiVersion/cape?id=$id") {
-        bearerAuth(NetworkManager.accessToken)
+    val resp = LAMBDA_HTTP.put("$apiUrl/api/$apiVersion/cape?id=$id") {
+        bearerAuth(NetworkHandler.accessToken)
         contentType(ContentType.Application.Json)
     }
 

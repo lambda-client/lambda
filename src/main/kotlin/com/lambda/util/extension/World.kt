@@ -15,11 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.util.extension
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.util.extension.paintingColorCache
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.x

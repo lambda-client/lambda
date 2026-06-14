@@ -21,7 +21,7 @@ import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.KeyCode
 import net.minecraft.block.BlockState
 import net.minecraft.state.property.Properties
@@ -33,6 +33,7 @@ object StateInfo : Module(
     description = "Prints the target block's state into chat",
     tag = ModuleTag.DEBUG,
 ) {
+    @Suppress("unused")
     private val printBind by setting("Print", KeyCode.Unbound, "The bind used to print the info to chat")
         .onPress {
             val crosshair = mc.crosshairTarget ?: return@onPress

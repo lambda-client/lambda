@@ -17,11 +17,16 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.ScreenLineSettings
-import com.lambda.config.groups.WorldLineSettings
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.Group
+import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.settings.blocks.ScreenLineSettings
+import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
 import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
@@ -36,7 +41,6 @@ import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.decorationEntityMap
 import com.lambda.util.EntityUtils.entityGroup
-import com.lambda.util.NamedEnum
 import com.lambda.util.extension.blockColor
 import com.lambda.util.extension.entityColor
 import com.lambda.util.extension.getBlockState
@@ -51,97 +55,98 @@ import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 
+@Suppress("unused")
 object Search : Module(
-	name = "Search",
-	description = "Highlight blocks within the rendered world",
-	tag = ModuleTag.RENDER,
+    name = "Search",
+    description = "Highlight blocks within the rendered world",
+    tag = ModuleTag.RENDER,
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Fill("Fill"),
-		Outline("Outline"),
-		Tracers("Tracers")
-	}
+    private const val FILL_GROUP = "Fill"
+    private const val OUTLINE_GROUP = "Outline"
+    private const val TRACERS_GROUP = "Tracers"
 
-	private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks").group(Group.General)
-		.onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
-	private val entities by setting("Entities", decorationEntityMap.values).group(Group.General)
-		.onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
+    private val blocks by setting("Blocks", setOf(Blocks.CHEST, Blocks.ENDER_CHEST, Blocks.NETHER_PORTAL, Blocks.END_PORTAL, Blocks.END_PORTAL_FRAME, Blocks.END_GATEWAY), description = "Render blocks")
+        .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
+    private val entities by setting("Entities", decorationEntityMap.values)
+        .onSelect { rebuildMesh(this) }.onDeselect { rebuildMesh(this) }
 
-	private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").group(Group.Fill).onValueChange(::rebuildMesh)
-		.onValueChange { _, to -> if (!to) outline = true }
-	private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").group(Group.Outline).onValueChange(::rebuildMesh)
-		.onValueChange { _, to -> if (!to) fill = true }
-	private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").group(Group.General).onValueChange(::rebuildMesh)
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueChange(::rebuildMesh)
 
-	private val useNaturalColor by setting("Use Natural Color", true, "Use the color of the block instead").group(Group.General).onValueChange(::rebuildMesh)
-	private val naturalColorAlpha by setting("Natural Color Alpha", 0.3, 0.1..1.0, 0.05) { useNaturalColor }.group(Group.General).onValueChange(::rebuildMesh)
-	private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.group(Group.General).onValueChange(::rebuildMesh)
-	private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.group(Group.General).onValueChange(::rebuildMesh)
+    private val useNaturalColor by setting("Use Natural Color", true, "Use the color of the block instead").onValueChange(::rebuildMesh)
+    private val naturalColorAlpha by setting("Natural Color Alpha", 0.3, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
+    private val naturalTracerAlpha by setting("Natural Tracer Alpha", 1.0, 0.1..1.0, 0.05) { useNaturalColor }.onValueChange(::rebuildMesh)
+    private val minimumNaturalBrightness by setting("Min Brightness", 150, 0..255, 1) { useNaturalColor }.onValueChange(::rebuildMesh)
 
-	private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.group(Group.Fill).onValueChange(::rebuildMesh)
-	private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.group(Group.Outline).onValueChange(::rebuildMesh)
-	private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.group(Group.Fill).onValueChange(::rebuildMesh)
-	private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.group(Group.Outline).onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private var fill: Boolean by setting("Fill", true, "Fill the faces of blocks").onValueChange(::rebuildMesh)
+        .onValueChange { _, to -> if (!to) outline = true }
+    @Group(FILL_GROUP) private val blockFillColor by setting("Block Fill Color", Color(100, 150, 255, 51), "Color of the surfaces") { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(FILL_GROUP) private val entityFillColor by setting("Entity Fill Color", Color(100, 150, 255, 51)) { fill && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-	private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.group(Group.Outline, WorldLineSettings.Group.General).onValueChange(::rebuildMesh)
-	private val outlineConfig = WorldLineSettings(this, Group.Outline, prefix = "Outline ") { outline }.apply {
-		applyEdits {
-			hide(::startColor, ::endColor)
-			settings.forEach { it.onValueChange(::rebuildMesh) }
-		}
-	}
-	private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position").group(Group.Tracers)
-	private val tracerConfig = ScreenLineSettings(this, Group.Tracers, prefix = "Tracer ") { tracers }.apply {
-		applyEdits {
-			editTyped(::startColor, ::endColor) {
-				visibility { { !useNaturalColor } }
-			}
-		}
-	}
+    @Group(OUTLINE_GROUP) private var outline: Boolean by setting("Outline", true, "Draw the outlines of blocks").onValueChange(::rebuildMesh)
+        .onValueChange { _, to -> if (!to) fill = true }
+    @Group(OUTLINE_GROUP) private val blockLineColor by setting("Block Line Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val entityOutlineColor by setting("Entity Outline Color", Color(100, 150, 255, 128)) { outline && !useNaturalColor }.onValueChange(::rebuildMesh)
 
-	private val tracerBlockPositions = ConcurrentHashMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
+    @Group(OUTLINE_GROUP) private val blockOutlineMode by setting("Block Outline Mode", DirectionMask.OutlineMode.And, "Outline mode") { outline }.onValueChange(::rebuildMesh)
+    @Group(OUTLINE_GROUP) private val outlineConfig by configBlock(WorldLineSettings(this))
+        .withEdits {
+            hide(::startColor, ::endColor)
+            forEachSetting {
+                visibility { old -> { old() && outline } }
+                onValueChange(::rebuildMesh)
+            }
+        }
+    @Group(TRACERS_GROUP) private val tracers by setting("Tracers", true, "Draw a line from your cursor to the highlighted position")
+    @Group(TRACERS_GROUP) private val tracerConfig by configBlock(ScreenLineSettings(this))
+        .withEdits {
+            forEachSetting { visibility { old -> { old() && tracers } } }
+            editTypedSettings(::startColor, ::endColor) {
+                visibility { { !useNaturalColor } }
+            }
+        }
 
-	val chunkedRenderer = chunkedRenderer(
-		"Search Chunked Renderer",
-		{ chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } },
-		{ chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } }
+    private val tracerBlockPositions = ConcurrentHashMap<BlockPos, Pair<Vec3d, Pair<Color, Color>>>()
+
+    val chunkedRenderer = chunkedRenderer(
+	    "Search Chunked Renderer",
+	    { chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } },
+	    { chunkPos -> if (tracers) tracerBlockPositions.keys.removeIf { it in chunkPos } }
 	) { position ->
-		runSafe {
-			val pos = position.toBlockPos()
-			val state = blockState(pos)
-			if (state.block !in blocks) return@chunkedRenderer
-			val sides = if (mesh) {
-				buildSideMesh(position) {
-					world.getBlockState(it).block in blocks
-				}
-			} else DirectionMask.ALL
+	    runSafe {
+		    val pos = position.toBlockPos()
+		    val state = blockState(pos)
+		    if (state.block !in blocks) return@chunkedRenderer
+		    val sides = if (mesh) {
+			    buildSideMesh(position) {
+				    world.getBlockState(it).block in blocks
+			    }
+		    } else DirectionMask.ALL
 
-			val lineColor = getBlockColor(state, position.toBlockPos())
-			val fillColor = Color(lineColor.red, lineColor.green, lineColor.blue, (naturalColorAlpha * 255).toInt())
-			val shape = state.getOutlineShape(world, pos)
-			val boxes =
-				if (shape.isEmpty) listOf(Box(pos))
-				else shape.boundingBoxes.map { it.offset(pos) }
-			if (tracers) {
-				val center = shape
-					.boundingBoxes
-					.reduce(Box::union)
-					.offset(pos)
-					.center
-				tracerBlockPositions[pos] = Pair(center, getTracerColors(lineColor))
-			}
-			box(
-				boxes,
-				sides.inv(),
-				if (useNaturalColor) fillColor else blockFillColor,
-				if (useNaturalColor) lineColor else blockLineColor
-			)
-		}
+		    val lineColor = getBlockColor(state, position.toBlockPos())
+		    val fillColor = Color(lineColor.red, lineColor.green, lineColor.blue, (naturalColorAlpha * 255).toInt())
+		    val shape = state.getOutlineShape(world, pos)
+		    val boxes =
+			    if (shape.isEmpty) listOf(Box(pos))
+			    else shape.boundingBoxes.map { it.offset(pos) }
+		    if (tracers) {
+			    val center = shape
+				    .boundingBoxes
+				    .reduce(Box::union)
+				    .offset(pos)
+				    .center
+			    tracerBlockPositions[pos] = Pair(center, getTracerColors(lineColor))
+		    }
+		    box(
+			    boxes,
+			    sides.inv(),
+			    if (useNaturalColor) fillColor else blockFillColor,
+			    if (useNaturalColor) lineColor else blockLineColor
+		    )
+	    }
 	}
 
-	init {
-		immediateRenderer("Search Immediate Renderer") {
+    init {
+        immediateRenderer("Search Immediate Renderer") {
 			runSafe {
 				world.entities.forEach { entity ->
 					if (entity.entityGroup.nameToDisplayNameMap[entity::class.simpleName] in entities) {
@@ -155,10 +160,10 @@ object Search : Module(
 						if (tracers) tracer(Pair(entity.interpolatedBox.center, getTracerColors(entityColor)))
 					}
 				}
-				if (tracers) tracerBlockPositions.values.forEach { tracer(it) }
 			}
-		}
-	}
+            if (tracers) tracerBlockPositions.values.forEach { tracer(it) }
+        }
+    }
 
 	private fun RenderBuilder.tracer(pair: Pair<Vec3d, Pair<Color, Color>>) {
 		val endPoint = worldToScreenNormalized(pair.first) ?: return

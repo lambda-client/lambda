@@ -38,6 +38,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 
+@Suppress("unused")
 object Jesus : Module(
     name = "Jesus",
     description = "Allows to walk on water",

@@ -29,6 +29,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper.wrapDegrees
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.RaycastContext
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -63,10 +64,11 @@ data class Rotation(val yaw: Double, val pitch: Double) {
     fun rayCast(
         reach: Double,
         eye: Vec3d? = null,
-        fluids: Boolean = false,
         mask: InteractionMask = InteractionMask.Both,
+        shapeType: RaycastContext.ShapeType = RaycastContext.ShapeType.OUTLINE,
+        fluidHandling: RaycastContext.FluidHandling = RaycastContext.FluidHandling.NONE
     ) = runSafe {
-        rayCast(eye ?: player.eyePos, vector, reach, mask, fluids)
+        rayCast(eye ?: player.eyePos, vector, reach, mask, shapeType, fluidHandling)
     }
 
     fun castBox(

@@ -17,11 +17,13 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.config.Group
+import com.lambda.config.Tab
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.NamedEnum
+import java.awt.Color
 
 object Client : Module(
 	name = "Client",
@@ -29,19 +31,23 @@ object Client : Module(
 	tag = ModuleTag.CLIENT,
 	enabledByDefault = true
 ) {
-	private enum class Group(override val displayName: String) : NamedEnum {
-		General("General"),
-		Debug("Debug")
-	}
+	private const val GENERAL_TAB = "General"
+	private const val DEBUG_TAB = "Debug"
 
-	val clientSounds by setting("Client Sounds", true, "Plays sounds when certain actions are performed with lambda. Toggling modules, for example").group(Group.General)
-	val buildTaskRenders by setting("Build Task Renders", false, "Displays renders from some build sim results generated from the build task").group(Group.General)
-	val avoidInventoryDesync by setting("Avoid Inventory Desync", true, "Cancels incoming inventory update packets if they match previous actions").group(Group.General)
-	val desyncTimeout by setting("Desync Timeout", 30, 1..30, 1, unit = " ticks", description = "Time to store previous inventory actions before dropping the cache") { avoidInventoryDesync }.group(Group.General)
-	val scanShrinkFactor by setting("Scan Shrink Factor", 0.001, 0.0..1.0, 0.001).group(Group.General)
-	val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree").group(Group.Debug)
-	val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager").group(Group.Debug)
-	val verboseDebug by setting("Verbose Debug", false, "Prints more, and more detailed, debug logs").group(Group.Debug)
+	private const val RENDERING_GROUP = "Rendering"
+
+	@Tab(GENERAL_TAB) val clientSounds by setting("Client Sounds", true, "Plays sounds when certain actions are performed with lambda. Toggling modules, for example")
+	@Tab(GENERAL_TAB) val buildTaskRenders by setting("Build Task Renders", false, "Displays renders from some build sim results generated from the build task")
+	@Tab(GENERAL_TAB) val avoidInventoryDesync by setting("Avoid Inventory Desync", true, "Cancels incoming inventory update packets if they match previous actions")
+	@Tab(GENERAL_TAB) val desyncTimeout by setting("Desync Timeout", 30, 1..30, 1, unit = " ticks", description = "Time to store previous inventory actions before dropping the cache") { avoidInventoryDesync }
+	@Tab(GENERAL_TAB) val scanShrinkFactor by setting("Scan Shrink Factor", 0.001, 0.0..1.0, 0.001, "How much to shrink block scans from the edges to avoid flagging anticheats")
+	@Tab(GENERAL_TAB) @Group(RENDERING_GROUP) val chunkUploadsPerTick by setting("Chunk Uploads", 16, 1..256, 1, unit = " chunks/tick")
+	@Tab(GENERAL_TAB) @Group(RENDERING_GROUP) val chunkRebuildsPerTick by setting("Chunk Rebuilds", 64, 1..256, 1, unit = " chunks/tick")
+	@Tab(GENERAL_TAB) val highlightColor by setting("Text Highlight Color", Color(214, 55, 87), "Base text highlight color")
+
+	@Tab(DEBUG_TAB) val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree")
+	@Tab(DEBUG_TAB) val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager")
+	@Tab(DEBUG_TAB) val verboseDebug by setting("Verbose Debug", false, "Prints more, and more detailed, debug logs")
 
 	@Volatile
 	var drawables = listOf<Drawable>()

@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -33,6 +34,7 @@ import com.lambda.util.player.SlotUtils.inventorySlots
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
+@Suppress("unused")
 object ToolSaver : Module(
 	name = "ToolSaver",
 	description = "Moves tools from your hotbar into your inventory when they get too damaged",
@@ -42,11 +44,10 @@ object ToolSaver : Module(
 	private val replace by setting("Replace", true, "Replaces the tool with the one of the same kind")
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllGroupsExcept(inventoryConfig)
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideAllExcept(::inventoryConfig)
 			}
-		}
 
 		listen<TickEvent.Pre> {
 			val endangeredStacks = player.hotbarSlots.filter { it.stack.isEndangered }

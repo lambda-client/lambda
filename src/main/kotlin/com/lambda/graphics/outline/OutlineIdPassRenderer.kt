@@ -24,20 +24,19 @@ import com.lambda.graphics.mc.renderer.upload
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
-import net.minecraft.util.Identifier
 import net.minecraft.client.render.model.BakedQuad
 import net.minecraft.client.render.model.BlockModelPart
 import net.minecraft.client.util.math.Vector2f
+import net.minecraft.util.Identifier
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.random.Random
-import net.minecraft.util.math.BlockPos
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
 import org.lwjgl.system.MemoryUtil
 import java.nio.ByteOrder
-import java.util.OptionalDouble
-import java.util.OptionalInt
+import java.util.*
 
 object OutlineIdPassRenderer {
     private val vertexSize = 28
@@ -61,7 +60,7 @@ object OutlineIdPassRenderer {
         
         val colorView = OutlineIdBuffer.getTextureView() ?: return
         
-        val outlines = if (useMcDepth) OutlineManager.getDepthTestedEntityStyles() else OutlineManager.getXrayEntityStyles()
+        val outlines = if (useMcDepth) OutlineHandler.getDepthTestedEntityStyles() else OutlineHandler.getXrayEntityStyles()
         val filteredOutlines = outlines.filter { (id, _) -> id in entityIds }
         
         if (filteredOutlines.isNotEmpty()) {

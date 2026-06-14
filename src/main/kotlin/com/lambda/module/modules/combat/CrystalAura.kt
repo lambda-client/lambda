@@ -17,9 +17,12 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.Targeting
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.Tab
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.settings.blocks.TargetingSettings
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
@@ -28,9 +31,8 @@ import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager.transfer
+import com.lambda.interaction.material.container.ContainerHandler.transfer
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.interaction.material.container.containers.OffHandContainer
 import com.lambda.module.Module
@@ -39,8 +41,7 @@ import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
-import com.lambda.util.NamedEnum
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
@@ -53,6 +54,7 @@ import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
+import com.lambda.util.player.RotationUtils.getVisibleSurfaces
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
@@ -72,45 +74,47 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 
+@Suppress("unused")
 object CrystalAura : Module(
     name = "CrystalAura",
     description = "Automatically attacks entities with crystals",
     tag = ModuleTag.COMBAT,
 ) {
-    /* General */
-    private val rotate by setting("Rotate", true).group(Group.General)
-    private val updateMode by setting("Update Mode", UpdateMode.Async).group(Group.General)
-    private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }.group(Group.General)
-    private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }.group(Group.General)
-    private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
-    private val debug by setting("Debug", false).group(Group.General)
+    private const val GENERAL_TAB = "General"
+    private const val PLACEMENT_TAB = "Placement"
+    private const val EXPLODING_TAB = "Exploding"
+    private const val PREDICTION_TAB = "Prediction"
+    private const val TARGETING_TAB = "Targeting"
 
-    /* Placement */
-    private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks").group(Group.Placement)
-    private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms").group(Group.Placement)
-    private val swap by setting("Swap", true, "Swaps to crystals").group(Group.Placement)
-    private val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }.group(Group.Placement)
-    private val priorityMode by setting("Crystal Priority", Priority.Damage).group(Group.Placement)
-    private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }.group(Group.Placement)
-    private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals").group(Group.Placement)
-    private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals").group(Group.Placement)
-    private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals").group(Group.Placement)
-    private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal").group(Group.Placement)
-    private val oldPlace by setting("1.12 Placement", false).group(Group.Placement)
+    @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
+    @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Async)
+    @Tab(GENERAL_TAB) private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
+    @Tab(GENERAL_TAB) private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
+    @Tab(GENERAL_TAB) private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
+    @Tab(GENERAL_TAB) private val debug by setting("Debug", false)
 
-    /* Exploding */
-    private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks").group(Group.Exploding)
-    private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms").group(Group.Exploding)
+    @Tab(PLACEMENT_TAB) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
+    @Tab(PLACEMENT_TAB) private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
+    @Tab(PLACEMENT_TAB) private val swap by setting("Swap", true, "Swaps to crystals")
+    @Tab(PLACEMENT_TAB) private val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
+    @Tab(PLACEMENT_TAB) private val priorityMode by setting("Crystal Priority", Priority.Damage)
+    @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
+    @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals")
+    @Tab(PLACEMENT_TAB) private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal")
+    @Tab(PLACEMENT_TAB) private val oldPlace by setting("1.12 Placement", false)
 
-    /* Prediction */
-    private val prediction by setting("Prediction", PredictionMode.None).group(Group.Prediction)
-    private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }.group(Group.Prediction)
-    private val placePostPause by setting("Place Post Pause", true) { prediction.onPacket }.group(Group.Prediction)
-    private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }.group(Group.Prediction)
-    private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }.group(Group.Prediction)
+    @Tab(EXPLODING_TAB) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
+    @Tab(EXPLODING_TAB) private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
 
-    /* Targeting */
-    private val targeting = Targeting.Combat(c = this, Group.Targeting, defaultRange = 10.0)
+    @Tab(PREDICTION_TAB) private val prediction by setting("Prediction", PredictionMode.None)
+    @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }
+    @Tab(PREDICTION_TAB) private val placePostPause by setting("Place Post Pause", true) { prediction.onPacket }
+    @Tab(PREDICTION_TAB) private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
+    @Tab(PREDICTION_TAB) private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
+
+    @Tab(PREDICTION_TAB) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this, 10.0))
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
@@ -142,17 +146,16 @@ object CrystalAura : Module(
     }
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
-				hideAllGroupsExcept(buildConfig, rotationConfig, hotbarConfig, inventoryConfig)
-				buildConfig.apply {
-					hide(
-						::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
-						::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
-					)
-				}
-			}
-		}
+		setDefaultAutomationConfig()
+            .withEdits {
+                hideAllExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
+                buildConfig.apply {
+                    hide(
+                        ::pathing, ::stayInRange, ::collectDrops, ::spleefEntities,
+                        ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
+                    )
+                }
+            }
 
         // Async ticking
         fixedRateTimer(
@@ -245,7 +248,7 @@ object CrystalAura : Module(
 
     private fun SafeContext.tick() {
         // Update the target
-        currentTarget = targeting.target<LivingEntity>()
+        currentTarget = targetingSettings.target<LivingEntity>()
 
         // Update the blueprint
         currentTarget?.let {
@@ -550,15 +553,6 @@ object CrystalAura : Module(
                 base + Vec3d(0.5, 2.0, 0.5),
             )
         }
-
-    private enum class Group(override val displayName: String): NamedEnum {
-        General("General"),
-        Placement("Placement"),
-        Exploding("Exploding"),
-        Prediction("Prediction"),
-        Targeting("Targeting"),
-        Rotation("Rotation")
-    }
 
     private enum class UpdateMode {
         Async,

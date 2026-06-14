@@ -23,7 +23,6 @@ import com.lambda.graphics.util.DynamicAABB.Companion.dynamicBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.ChatUtils.colors
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.entitySearch
@@ -31,6 +30,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
 
+@Suppress("unused")
 object RenderTest : Module(
     name = "Render:shrimp:Test:canned_food:",
     description = "RenderTest",

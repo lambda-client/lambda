@@ -21,7 +21,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent

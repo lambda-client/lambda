@@ -18,36 +18,38 @@
 package com.lambda.module.modules.movement
 
 import baritone.api.pathing.goals.GoalGetToBlock
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.Group
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneManager
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.Module
+import com.lambda.module.hud.Speedometer
 import com.lambda.module.modules.movement.BetterFirework.canOpenElytra
 import com.lambda.module.modules.movement.BetterFirework.canTakeoff
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Timer
-import com.lambda.util.extension.isElytraFlying
-import com.lambda.util.player.MovementUtils.addSpeed
-import com.lambda.util.player.SlotUtils.hotbarStacks
-import com.lambda.util.player.hasFirework
-import com.lambda.module.hud.Speedometer
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.SpeedUnit
+import com.lambda.util.Timer
+import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.math.dist
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.isLoaded
+import com.lambda.util.player.MovementUtils.addSpeed
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.player.SlotUtils.inventoryStacks
+import com.lambda.util.player.hasFirework
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
@@ -59,6 +61,7 @@ import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.RaycastContext
 import java.lang.Math.toDegrees
 import java.lang.Math.toRadians
 import kotlin.math.abs
@@ -78,24 +81,27 @@ object ElytraFly : Module(
 
     private val inventory by setting("Inventory", true, "Allow using fireworks from the players inventory") { mode == FlyMode.GrimControl }
 
-    //ToDo: Implement these commented out settings
     private val takeoff by setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
     private val autoPitch by setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
     private val pitch by setting("Pitch", 80.0, 0.0..90.0, 0.000001) { mode == FlyMode.Bounce && autoPitch }
-    private val yMotionSetting by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
-    private val yMotion
-        get() = yMotionSetting && (!onlyOnDiagonal || abs(RotationManager.activeRotation.yaw % 90) > minDiagonalAngle)
-    private val onlyOnDiagonal: Boolean by setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { mode == FlyMode.Bounce && yMotionSetting }
-    private val minDiagonalAngle by setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { mode == FlyMode.Bounce && yMotionSetting && onlyOnDiagonal }
-    private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotionSetting }
-    private val speedLimit by setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotionSetting }
-    private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
+	private val jump by setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
     private val flagPause by setting("Flag Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
-    private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
-    private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
-    private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
-    private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
-    private val directionStep by setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { mode == FlyMode.Bounce && passObstacles }
+
+	private const val Y_MOTION_GROUP = "Y Motion"
+	@Group(Y_MOTION_GROUP) private val yMotionSetting by setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
+	private val yMotion
+		get() = yMotionSetting && (!onlyOnDiagonal || abs(RotationManager.activeRotation.yaw % 90) > minDiagonalAngle)
+	@Group(Y_MOTION_GROUP) private val onlyOnDiagonal: Boolean by setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { mode == FlyMode.Bounce && yMotionSetting }
+	@Group(Y_MOTION_GROUP) private val minDiagonalAngle by setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { mode == FlyMode.Bounce && yMotionSetting && onlyOnDiagonal }
+    @Group(Y_MOTION_GROUP) private val yMotionStartSpeed by setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotion }
+    @Group(Y_MOTION_GROUP) private val speedLimit by setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotion }
+
+    private const val OBSTACLE_PASSER_GROUP = "Obstacle Passer"
+    @Group(OBSTACLE_PASSER_GROUP) private val passObstacles by setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone") { mode == FlyMode.Bounce }
+    @Group(OBSTACLE_PASSER_GROUP) private val applyPauseAfterBaritone by setting("Apply Pause After Baritone", false, "Ticks the flag pause after baritone has finished pathing") { mode == FlyMode.Bounce && passObstacles }
+    @Group(OBSTACLE_PASSER_GROUP) private val acceptableOffsetRange by setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { mode == FlyMode.Bounce && passObstacles }
+    @Group(OBSTACLE_PASSER_GROUP) private val obstacleLookAhead by setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { mode == FlyMode.Bounce && passObstacles }
+    @Group(OBSTACLE_PASSER_GROUP) private val directionStep by setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { mode == FlyMode.Bounce && passObstacles }
 
     private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 0.0, 0.0..2.0, description = "Speed multiplier that the rocket gives you") { mode == FlyMode.Enhanced }
@@ -113,11 +119,10 @@ object ElytraFly : Module(
     private val fireworkTimer = Timer()
 
     init {
-        setDefaultAutomationConfig {
-            applyEdits {
-                hideAllGroupsExcept(inventoryConfig, rotationConfig)
+        setDefaultAutomationConfig()
+            .withEdits {
+                hideAllExcept(::inventoryConfig, ::rotationConfig)
             }
-        }
 
         listen<TickEvent.Pre> {
             when (mode) {
@@ -137,7 +142,7 @@ object ElytraFly : Module(
 
         onDisable {
             passingToPos = null
-            if (passObstacles) BaritoneManager.cancel()
+            if (passObstacles) BaritoneHandler.cancel()
         }
 
         listen<PacketEvent.Receive.Pre> { event ->
@@ -207,23 +212,44 @@ object ElytraFly : Module(
     }
 
     private fun SafeContext.onTickBounce() {
-        if (!BaritoneManager.isActive) passingToPos = null
+        if (!BaritoneHandler.isActive) passingToPos = null
 
         val playerPos = player.pos
-        if (passObstacles && playerPos.let { Vec3d(it.x, startPos.y, it.z) } dist startPos > 0.1) run obstacleChecks@{
+        val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
+        if (passObstacles && validDistanceFromStart) run obstacleChecks@{
             val snappedDir = getSnappedDir()
             val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
+
             passingToPos?.let { passingTo ->
                 if (passingTo.isObstructed(snappedDir)) {
                     pathToValidPoint(passingTo, snappedDir)
                 }
                 return
             }
-            if (playerPos dist closestLinePoint <= acceptableOffsetRange) {
-                if (playerPos.let { Vec3d(it.x, closestLinePoint.y, it.z) }.isObstructed(snappedDir))
-                    pathToValidPoint(closestLinePoint, snappedDir)
-                else return@obstacleChecks
-            } else pathToValidPoint(closestLinePoint, snappedDir, true)
+
+            val notProgressing = Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond) < 0.01
+            if (player.isGliding && notProgressing) {
+                pathToValidPoint(closestLinePoint, snappedDir)
+                return
+            }
+
+            // We only want to account for horizontal and below the line rather than total
+            // distance as jumping from bounce might cause false positives
+            val distanceToLine =
+                Vec3d(
+                    playerPos.x,
+                    closestLinePoint.y,
+                    playerPos.z
+                ).dist(closestLinePoint) + (playerPos.y - closestLinePoint.y).coerceAtMost(0.0)
+            if (distanceToLine > acceptableOffsetRange) {
+                pathToValidPoint(closestLinePoint, snappedDir, true)
+                return
+            }
+
+            val isObstructed = Vec3d(playerPos.x, closestLinePoint.y, playerPos.z).isObstructed(snappedDir)
+            if (isObstructed) {
+                pathToValidPoint(closestLinePoint, snappedDir)
+            } else return@obstacleChecks
 
             return
         }
@@ -258,6 +284,7 @@ object ElytraFly : Module(
 
     context(safeContext: SafeContext)
     private fun pathToValidPoint(startSearchPos: Vec3d, dir: Vec3d, initialBlockedCheck: Boolean = false) {
+        if (!safeContext.player.isOnGround) return
         var skippingFirstCheck = !initialBlockedCheck
         var searchPos = startSearchPos
         while (skippingFirstCheck || searchPos.isObstructed(dir)) {
@@ -271,7 +298,7 @@ object ElytraFly : Module(
 
     private fun passTo(pos: Vec3d) {
         passingToPos = pos
-        BaritoneManager.setGoalAndPath(GoalGetToBlock(pos.flooredBlockPos))
+        BaritoneHandler.setGoalAndPath(GoalGetToBlock(pos.flooredBlockPos))
     }
 
     context(safeContext: SafeContext)
@@ -292,7 +319,8 @@ object ElytraFly : Module(
             this,
             direction,
             obstacleLookAhead.toDouble(),
-            InteractionMask.Block
+            InteractionMask.Block,
+            RaycastContext.ShapeType.COLLIDER
         )?.blockResult != null
 
     private fun Vec3d.findClosestPointOnLine(snappedDirection: Vec3d): Vec3d {
@@ -346,7 +374,7 @@ object ElytraFly : Module(
             mode == FlyMode.Bounce &&
             previouslyFlying == true &&
             glidePause <= 0 &&
-            !BaritoneManager.isActive) true
+            !BaritoneHandler.isActive) true
         else {
             previouslyFlying = original
             original

@@ -21,44 +21,42 @@ import com.lambda.brigadier.argument.long
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.config.Setting
+import com.lambda.config.Config
+import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.type.ImInt
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
 /**
- * @see [com.lambda.config.Configurable]
+ * @see [com.lambda.config.Config]
  */
 class LongSetting(
-    defaultValue: Long,
-    override var range: ClosedRange<Long>,
-    override var step: Long = 1,
-    unit: String
-) : NumericSetting<Long>(
-    defaultValue,
-    range,
-    step,
-    unit
-) {
-    // ToDo: No worky for super large numbers
-    private var valueIndex: Int
-        get() = ((value - range.start) / step).toInt()
-        set(index) {
-            value = (range.start + index * step).coerceIn(range)
-        }
-
-	context(setting: Setting<*, Long>)
+	name: String,
+	description: String,
+	config: Config,
+	layer: SettingEntryLayer<NumericSetting<Long>, Long>,
+	visibility: () -> Boolean,
+	defaultValue: Long,
+	override var range: ClosedRange<Long>,
+	override var step: Long = 1,
+	unit: String
+) : NumericSetting<Long>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
     override fun ImGuiBuilder.buildSlider() {
+        // FixMe: No worky for super large numbers
         val maxIndex = ((range.endInclusive - range.start) / step).toInt()
-        slider("##${setting.name}", ::valueIndex, 0, maxIndex, "")
+        val currentIndex = ((value - range.start) / step).toInt()
+        val imInt = ImInt(currentIndex)
+        slider("##$name", imInt, 0, maxIndex, "") {
+            value = (range.start + imInt.get() * step).coerceIn(range)
+        }
     }
 
-	context(setting: Setting<*, Long>)
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
-        required(long(setting.name, range.start, range.endInclusive)) { parameter ->
+        required(long(name, range.start, range.endInclusive)) { parameter ->
             execute {
-                setting.trySetValue(parameter().value())
+                trySetValue(parameter().value())
             }
         }
     }

@@ -17,17 +17,15 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.config.groups.EatConfig
-import com.lambda.config.groups.EatConfig.Companion.reasonEating
+import com.lambda.config.settings.blocks.EatConfig
+import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.interaction.material.container.containers.InventoryContainer
-import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.item.ItemStack

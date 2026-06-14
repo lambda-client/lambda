@@ -17,11 +17,12 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hideBlock
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
 import com.lambda.module.tag.ModuleTag
@@ -33,6 +34,7 @@ import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.block.Blocks
 import net.minecraft.item.BlockItem
 
+@Suppress("unused")
 object Surround : Module(
 	name = "Surround",
 	description = "Surrounds your players feet with any given block",
@@ -43,19 +45,18 @@ object Surround : Module(
 	private var task: Task<*>? = null
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
+		setDefaultAutomationConfig()
+			.withEdits {
 				buildConfig.apply {
-					editTyped(
+					editTypedSettings(
 						::pathing,
 						::stayInRange,
 						::spleefEntities,
 						::collectDrops
 					) { defaultValue(false); hide() }
 				}
-				hideGroup(eatConfig)
+				hideBlock(::eatConfig)
 			}
-		}
 
 		onEnable {
 			task = tickingBlueprint {

@@ -25,7 +25,6 @@ import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
-import kotlin.collections.isNotEmpty
 
 abstract class AbstractRenderer(val name: String, var depthTest: () -> Boolean) {
 	protected abstract fun getRendererTransforms(): List<Pair<RegionRenderer, GpuBufferSlice>>

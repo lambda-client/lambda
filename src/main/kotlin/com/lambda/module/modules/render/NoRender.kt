@@ -17,13 +17,14 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.config.applyEdits
-import com.lambda.config.groups.EntitySelectionSettings
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.Tab
+import com.lambda.config.settings.blocks.EntitySelectionSettings
+import com.lambda.config.withEdits
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EntityUtils.createNameMap
-import com.lambda.util.NamedEnum
-import com.lambda.util.reflections.scanResult
+import com.lambda.util.ReflectionUtils.scanResult
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.client.particle.Particle
 import net.minecraft.entity.Entity
@@ -36,61 +37,56 @@ object NoRender : Module(
 ) {
 	private val particleMap = createParticleNameMap()
 
-	private enum class Group(override val displayName: String) : NamedEnum {
-		Hud("Hud"),
-		Entity("Entity"),
-		World("World"),
-		Effect("Effect")
-	}
+	private const val EFFECT_TAB = "Effect"
+	private const val HUD_TAB = "Hud"
+	private const val ENTITY_TAB = "Entity"
+	private const val WORLD_TAB = "World"
 
-	@JvmStatic val noBlindness by setting("No Blindness", true).group(Group.Effect)
-	@JvmStatic val noDarkness by setting("No Darkness", true).group(Group.Effect)
-	@JvmStatic val noNausea by setting("No Nausea", true).group(Group.Effect)
+	@Tab(EFFECT_TAB) @JvmStatic val noBlindness by setting("No Blindness", true)
+	@Tab(EFFECT_TAB) @JvmStatic val noDarkness by setting("No Darkness", true)
+	@Tab(EFFECT_TAB) @JvmStatic val noNausea by setting("No Nausea", true)
 
-	@JvmStatic val noFireOverlay by setting("No Fire Overlay", false).group(Group.Hud)
-	@JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", 0.0, -0.4..0.4, 0.02) { !noFireOverlay }.group(Group.Hud)
-	@JvmStatic val noPortalOverlay by setting("No Portal Overlay", true).group(Group.Hud)
-	@JvmStatic val noFluidOverlay by setting("No Fluid Overlay", true).group(Group.Hud)
-	@JvmStatic val noPowderedSnowOverlay by setting("No Powdered Snow Overlay", true).group(Group.Hud)
-	@JvmStatic val noInWall by setting("No In Wall Overlay", true).group(Group.Hud)
-	@JvmStatic val noPumpkinOverlay by setting("No Pumpkin Overlay", true).group(Group.Hud)
-	@JvmStatic val noVignette by setting("No Vignette", true).group(Group.Hud)
-	@JvmStatic val noChatVerificationToast by setting("No Chat Verification Toast", true).group(Group.Hud)
-	@JvmStatic val noSpyglassOverlay by setting("No Spyglass Overlay", false).group(Group.Hud)
-	@JvmStatic val noGuiShadow by setting("No Gui Shadow", false).group(Group.Hud)
-	@JvmStatic val noFloatingItemAnimation by setting("No Floating Item Animation", false, "Disables floating item animations, typically used when a totem pops").group(Group.Hud)
-	@JvmStatic val noCrosshair by setting("No Crosshair", false).group(Group.Hud)
-	@JvmStatic val noBossBar by setting("No Boss Bar", false).group(Group.Hud)
-	@JvmStatic val noScoreBoard by setting("No Score Board", false).group(Group.Hud)
-	@JvmStatic val noStatusEffects by setting("No Status Effects", false).group(Group.Hud)
-	@JvmStatic val no2b2tActionText by setting("No 2b2t Action Text", true, description = "Blocks the '2b2t.org' text from the action bar 2b2t randomly sends").group(Group.Hud)
+	@Tab(HUD_TAB) @JvmStatic val noFireOverlay by setting("No Fire Overlay", false)
+	@Tab(HUD_TAB) @JvmStatic val fireOverlayYOffset by setting("Fire Overlay Y Offset", 0.0, -0.4..0.4, 0.02) { !noFireOverlay }
+	@Tab(HUD_TAB) @JvmStatic val noPortalOverlay by setting("No Portal Overlay", true)
+	@Tab(HUD_TAB) @JvmStatic val noFluidOverlay by setting("No Fluid Overlay", true)
+	@Tab(HUD_TAB) @JvmStatic val noPowderedSnowOverlay by setting("No Powdered Snow Overlay", true)
+	@Tab(HUD_TAB) @JvmStatic val noInWall by setting("No In Wall Overlay", true)
+	@Tab(HUD_TAB) @JvmStatic val noPumpkinOverlay by setting("No Pumpkin Overlay", true)
+	@Tab(HUD_TAB) @JvmStatic val noVignette by setting("No Vignette", true)
+	@Tab(HUD_TAB) @JvmStatic val noChatVerificationToast by setting("No Chat Verification Toast", true)
+	@Tab(HUD_TAB) @JvmStatic val noSpyglassOverlay by setting("No Spyglass Overlay", false)
+	@Tab(HUD_TAB) @JvmStatic val noGuiShadow by setting("No Gui Shadow", false)
+	@Tab(HUD_TAB) @JvmStatic val noFloatingItemAnimation by setting("No Floating Item Animation", false, "Disables floating item animations, typically used when a totem pops")
+	@Tab(HUD_TAB) @JvmStatic val noCrosshair by setting("No Crosshair", false)
+	@Tab(HUD_TAB) @JvmStatic val noBossBar by setting("No Boss Bar", false)
+	@Tab(HUD_TAB) @JvmStatic val noScoreBoard by setting("No Score Board", false)
+	@Tab(HUD_TAB) @JvmStatic val noStatusEffects by setting("No Status Effects", false)
+	@Tab(HUD_TAB) @JvmStatic val no2b2tActionText by setting("No 2b2t Action Text", true, description = "Blocks the '2b2t.org' text from the action bar 2b2t randomly sends")
 
-	@JvmStatic val noArmor by setting("No Armor", false).group(Group.Entity)
-	@JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }.group(Group.Entity)
-	@JvmStatic val noElytra by setting("No Elytra", false).group(Group.Entity)
-	@JvmStatic val noInvisibility by setting("No Invisibility", true).group(Group.Entity)
-	@JvmStatic val noGlow by setting("No Glow", false).group(Group.Entity)
-	@JvmStatic val noNametags by setting("No Nametags", false).group(Group.Entity)
+	@Tab(ENTITY_TAB) @JvmStatic val noArmor by setting("No Armor", false)
+	@Tab(ENTITY_TAB) @JvmStatic val includeNoOtherHeadItems by setting("Include No Other Head Items", false) { noArmor }
+	@Tab(ENTITY_TAB) @JvmStatic val noElytra by setting("No Elytra", false)
+	@Tab(ENTITY_TAB) @JvmStatic val noInvisibility by setting("No Invisibility", true)
+	@Tab(ENTITY_TAB) @JvmStatic val noGlow by setting("No Glow", false)
+	@Tab(ENTITY_TAB) @JvmStatic val noNametags by setting("No Nametags", false)
 //    RenderLayer.getArmorEntityGlint(), RenderLayer.getGlint(), RenderLayer.getGlintTranslucent(), RenderLayer.getEntityGlint()
 //    @JvmStatic val noEnchantmentGlint by setting("No Enchantment Glint", false).group(Group.Entity)
 //    @JvmStatic val noDeadEntities by setting("No Dead Entities", false).group(Group.Entity)
-	private val entitySettings = EntitySelectionSettings(this, Group.Entity).apply {
-		applyEdits {
-			editTyped(::playerEntities, ::mobEntities, ::bossEntities) {
-				defaultValue(mutableSetOf())
-			}
+	@Tab(ENTITY_TAB) private val entitySettings by configBlock(EntitySelectionSettings(this))
+		.withEdits {
+			editTypedSettings(::playerEntities, ::mobEntities, ::bossEntities) { defaultValue(mutableSetOf()) }
 		}
-	}
 
-	@JvmStatic val noTerrainFog by setting("No Terrain Fog", false).group(Group.World)
-	@JvmStatic val noSignText by setting("No Sign Text", false).group(Group.World)
-	@JvmStatic val noWorldBorder by setting("No World Border", false).group(Group.World)
-	@JvmStatic val noEnchantingTableBook by setting("No Enchanting Table Book", false).group(Group.World)
+	@Tab(WORLD_TAB) @JvmStatic val noTerrainFog by setting("No Terrain Fog", false)
+	@Tab(WORLD_TAB) @JvmStatic val noSignText by setting("No Sign Text", false)
+	@Tab(WORLD_TAB) @JvmStatic val noWorldBorder by setting("No World Border", false)
+	@Tab(WORLD_TAB) @JvmStatic val noEnchantingTableBook by setting("No Enchanting Table Book", false)
 	// Couldn't get to work with block entities without crashing with sodium on boot
 //    @JvmStatic val noBlockBreakingOverlay by setting("No Block Breaking Overlay", false).group(Group.World)
-	@JvmStatic val noBeaconBeams by setting("No Beacon Beams", false).group(Group.World)
-	@JvmStatic val noSpawnerMob by setting("No Spawner Mob", false).group(Group.World)
-	private val particles by setting("Particles", emptySet(), particleMap.values.toSet(), "Particles to omit from rendering").group(Group.World)
+	@Tab(WORLD_TAB) @JvmStatic val noBeaconBeams by setting("No Beacon Beams", false)
+	@Tab(WORLD_TAB) @JvmStatic val noSpawnerMob by setting("No Spawner Mob", false)
+	@Tab(WORLD_TAB) private val particles by setting("Particles", emptySet(), particleMap.values.toSet(), "Particles to omit from rendering")
 
 	private fun createParticleNameMap() =
 		scanResult

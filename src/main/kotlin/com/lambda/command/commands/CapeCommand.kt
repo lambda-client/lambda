@@ -23,13 +23,14 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.network.CapeManager.availableCapes
-import com.lambda.network.CapeManager.updateCape
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
+import com.lambda.network.CapeHandler.availableCapes
+import com.lambda.network.CapeHandler.updateCape
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 
+@Suppress("unused")
 object CapeCommand : LambdaCommand(
     name = "cape",
     usage = "set <id>",

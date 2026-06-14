@@ -17,8 +17,9 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -41,17 +42,17 @@ object InventoryTweaks : Module(
 ) {
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
     private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
+
     private var placedPos: BlockPos? = null
     private var placeAndOpen: Task<*>? = null
     private var lastBreak: Task<*>? = null
     private var lastOpenScreen: ScreenHandler? = null
 
     init {
-        setDefaultAutomationConfig {
-            applyEdits {
-                hideAllGroupsExcept(breakConfig, interactConfig, inventoryConfig, hotbarConfig)
+        setDefaultAutomationConfig()
+            .withEdits {
+                hideAllExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
             }
-        }
 
         listen<PlayerEvent.SlotClick> {
             if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen

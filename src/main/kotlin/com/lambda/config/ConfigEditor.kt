@@ -15,131 +15,260 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unchecked_cast", "unused")
+
 package com.lambda.config
 
-import com.lambda.util.NamedEnum
+import com.lambda.config.entries.Property
+import com.lambda.config.entries.Setting
+import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.context.SafeContext
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
 
 @DslMarker
-annotation class SettingEditorDsl
+annotation class ConfigEditorD5l
 
-@SettingEditorDsl
-fun <T : Configurable> T.applyEdits(edits: ConfigurableEditor<T>.() -> Unit) {
-	ConfigurableEditor(this).apply(edits)
+@ConfigEditorD5l
+fun <T : Config> T.withEdits(
+	edits: context(EditContext.ConfigEditContext) T.() -> Unit
+) = apply { with(EditContext.ConfigEditContext(this)) { edits() } }
+
+@ConfigEditorD5l
+context(c: Config)
+fun <T : ConfigBlock> ConfigBlockWrapper<T>.withEdits(
+	edits: context(EditContext.BlockEditContext) T.() -> Unit
+) = apply { with(EditContext.BlockEditContext(c, this)) { this@withEdits.configBlock.edits() } }
+
+@ConfigEditorD5l
+fun <T : ConfigBlock> ConfigBlockWrapper<T>.withEdits(
+	c: Config,
+	edits: context(EditContext.BlockEditContext) T.() -> Unit
+) = with(c) { withEdits(edits) }
+
+sealed class EditContext(internal val c: Config) {
+	class ConfigEditContext internal constructor(c: Config) : EditContext(c)
+	class BlockEditContext internal constructor(c: Config, internal val block: ConfigBlockWrapper<*>) : EditContext(c)
 }
 
-@Suppress("unchecked_cast", "unused")
-open class SettingGroupEditor<T : Configurable>(open val c: T) {
-	val KProperty0<*>.delegate
+object ConfigEditor {
+	@ConfigEditorD5l
+	context(editContext: EditContext.ConfigEditContext)
+	fun forEachSetting(block: SettingEditBuilder<*>.() -> Unit) {
+		val settings = buildList {
+			editContext.c.settingLayers.forEachEntry { _, single -> add(single.entry as Setting<Any?>) }
+		}
+		SettingEditBuilder(settings).apply(block)
+	}
+
+	@ConfigEditorD5l
+	context(editContext: EditContext.ConfigEditContext)
+	fun forEachProperty(block: PropertyEditBuilder<*>.() -> Unit) {
+		val properties = buildList {
+			editContext.c.propertyLayers.forEachEntry { _, single -> add(single.entry as Property<Any?>) }
+		}
+		PropertyEditBuilder(properties).apply(block)
+	}
+
+	@ConfigEditorD5l
+	context(editContext: EditContext.ConfigEditContext)
+	fun hideAllExcept(
+		vararg except: KProperty0<*>,
+		recursive: Boolean = true
+	) = internalHideAllExcept(editContext.c.configBlockLayers, *except, recursive = recursive)
+
+	@ConfigEditorD5l
+	context(editContext: EditContext.BlockEditContext)
+	fun forEachSetting(block: SettingEditBuilder<*>.() -> Unit) {
+		val settings = buildList {
+			editContext.block.layer.forEachConfigBlock { _, single -> add(single.entry as Setting<Any?>) }
+		}
+		SettingEditBuilder(settings).apply(block)
+	}
+
+	@ConfigEditorD5l
+	context(editContext: EditContext.BlockEditContext)
+	fun forEachProperty(block: PropertyEditBuilder<*>.() -> Unit) {
+		val properties = buildList {
+			editContext.block.layer.forEachConfigBlock(onProperty = { _, single -> add(single.entry as Property<Any?>) })
+		}
+		PropertyEditBuilder(properties).apply(block)
+	}
+
+	@ConfigEditorD5l
+	context(editContext: EditContext.BlockEditContext)
+	fun hideAllExcept(
+		vararg except: KProperty0<*>,
+		recursive: Boolean = true
+	) = internalHideAllExcept(editContext.block.layer, *except, recursive = recursive)
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun <T> SettingProperty<T>.editSetting(edits: SettingEditBuilder<T>.() -> Unit) {
+		SettingEditBuilder(listOf(setting)).edits()
+	}
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun <T> PropertyProperty<T>.editProperty(edits: PropertyEditBuilder<T>.() -> Unit) {
+		PropertyEditBuilder(listOf(property)).edits()
+	}
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun editSettings(
+		vararg settings: SettingProperty<*>,
+		edits: SettingEditBuilder<*>.() -> Unit
+	) = SettingEditBuilder(settings.map { it.setting }).apply(edits)
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun editProperties(
+		vararg properties: PropertyProperty<*>,
+		edits: PropertyEditBuilder<*>.() -> Unit
+	) = PropertyEditBuilder(properties.map { it.property }).apply(edits)
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun <T> editTypedSettings(
+		vararg settings: SettingProperty<T>,
+		edits: SettingEditBuilder<T>.() -> Unit
+	) = SettingEditBuilder(settings.map { it.setting }).apply(edits)
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun <T> editTypedProperties(
+		vararg properties: PropertyProperty<T>,
+		edits: PropertyEditBuilder<T>.() -> Unit
+	) = PropertyEditBuilder(properties.map { it.property }).apply(edits)
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun hide(vararg entries: ConfigEntryProperty<*>) =
+		internalHide(entries.map { it.configEntry.layer })
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun hideBlock(configBlock: ConfigBlockProperty<ConfigBlock>) {
+		configBlock.configBlock.layer.settingLayers.forEach(::internalHide)
+	}
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun hideBlocks(vararg configBlocks: ConfigBlockProperty<ConfigBlock>) =
+		configBlocks.forEach { hideBlock(it) }
+
+	@ConfigEditorD5l
+	context(_: EditContext)
+	fun hideBlockExcept(
+		configBlock: ConfigBlockProperty<ConfigBlock>,
+		vararg except: KProperty0<*>,
+		recursive: Boolean = true
+	) { internalHideAllExcept(configBlock.configBlock.layer, *except, recursive = recursive) }
+
+	interface BasicEditBuilder {
+		val entries: Collection<ConfigEntry<*>>
+
+		@ConfigEditorD5l
+		fun hide() {
+			entries.forEach { internalHide(it.layer) }
+		}
+	}
+
+	interface TypedEditBuilder<T> : BasicEditBuilder {
+		override val entries: Collection<ConfigEntry<T>>
+
+		@ConfigEditorD5l
+		fun defaultValue(value: T) =
+			entries.forEach {
+				it.originalCore.value = value
+				it.originalCore.defaultValue = value
+			}
+	}
+
+	class SettingEditBuilder<T> internal constructor(
+		override val entries: Collection<Setting<T>>
+	) : TypedEditBuilder<T> {
+		@ConfigEditorD5l
+		fun visibility(visibility: (() -> Boolean) -> () -> Boolean) {
+			entries.forEach {
+				it.visibility = visibility(it.visibility)
+			}
+		}
+
+		@ConfigEditorD5l
+		fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) {
+			entries.forEach { it.onValueChange(block) }
+		}
+	}
+
+	class PropertyEditBuilder<T> internal constructor(
+		override val entries: Collection<Property<T>>
+	) : TypedEditBuilder<T> {
+		@ConfigEditorD5l
+		fun setEquals(equals: (T, T) -> Boolean) {
+			entries.forEach { it.equals = equals }
+		}
+	}
+
+	private fun internalHide(layers: Collection<EntryLayer<*>>) {
+		layers.forEach(::internalHide)
+	}
+
+	private fun internalHide(layer: EntryLayer<*>) {
+		layer.parent?.layers?.let { parentLayers ->
+			parentLayers.remove(layer)
+			if (parentLayers.isEmpty())
+				parentLayers.remove(layer)
+		}
+	}
+
+	private fun internalHideAllExcept(
+		root: ConfigBlockLayer,
+		vararg except: KProperty0<*>,
+		recursive: Boolean
+	) {
+		val exceptEntries = except.map { it.delegate }
+		if (root.blockWrapper in exceptEntries) return
+		fun processBlock(blockLayer: ConfigBlockLayer) {
+			blockLayer.settingLayers.forEach { single ->
+				if (single.entry !in exceptEntries) internalHide(single)
+			}
+			blockLayer.propertyLayers.forEach { single ->
+				if (single.entry !in exceptEntries) internalHide(single)
+			}
+			if (recursive) blockLayer.layers.forEach { blockLayer ->
+				if (blockLayer.blockWrapper !in exceptEntries) processBlock(blockLayer)
+			}
+		}
+		processBlock(root)
+	}
+
+	private val <T> SettingProperty<T>.setting
+		get() = this.delegate as? Setting<T>
+			?: throw IllegalStateException("Setting delegate did not match the given type")
+
+	private val <T> PropertyProperty<T>.property
+		get() = this.delegate as? Property<T>
+			?: throw IllegalStateException("Property delegate did not match the given type")
+
+	private val <T> ConfigEntryProperty<T>.configEntry
+		get() = this.delegate as? ConfigEntry<T>
+			?: throw IllegalStateException("ConfigEntry delegate did not match the given type")
+
+	private val <T : ConfigBlock> ConfigBlockProperty<T>.configBlock
+		get() = this.delegate as? ConfigBlockWrapper<T>
+			?: throw IllegalStateException("ConfigBlock delegate did not match the given type")
+
+	private val KProperty0<*>.delegate
 		get() = try {
 			apply { isAccessible = true }.getDelegate()
 		} catch (e: Exception) {
 			throw IllegalStateException("Could not access delegate for property $name", e)
 		}
 
-	fun <T : Any> KProperty0<T>.setting() =
-		this.delegate as? Setting<SettingCore<T>, T>
-			?: throw IllegalStateException("Setting delegate did not match current value's type")
-
-	fun <T : Any> KProperty0<T>.settingCore() = setting().core
-
-	@SettingEditorDsl
-	inline fun <T : Any> KProperty0<T>.edit(edits: TypedEditBuilder<T>.(SettingCore<T>) -> Unit) {
-		val delegate = setting()
-		TypedEditBuilder(this@SettingGroupEditor, listOf(delegate)).edits(delegate.core)
-	}
-
-	@SettingEditorDsl
-	inline fun <T : Any, R : Any> KProperty0<T>.editWith(
-		other: KProperty0<R>,
-		edits: TypedEditBuilder<T>.(SettingCore<R>) -> Unit
-	) = TypedEditBuilder(this@SettingGroupEditor, listOf(setting())).edits(other.settingCore())
-
-	@SettingEditorDsl
-	fun edit(
-		vararg settings: KProperty0<*>,
-		edits: BasicEditBuilder.() -> Unit
-	) = BasicEditBuilder(this, settings.map { (it as KProperty0<Any>).setting() }).apply(edits)
-
-	@SettingEditorDsl
-	inline fun <T : Any> editWith(
-		vararg settings: KProperty0<*>,
-		other: KProperty0<T>,
-		edits: BasicEditBuilder.(SettingCore<T>) -> Unit
-	) = BasicEditBuilder(this, settings.map { (it as KProperty0<Any>).setting() }).edits(other.settingCore())
-
-	@SettingEditorDsl
-	inline fun <T : Any> editTyped(
-		vararg settings: KProperty0<T>,
-		edits: TypedEditBuilder<T>.() -> Unit
-	) = TypedEditBuilder(this, settings.map { it.setting() }).apply(edits)
-
-	@SettingEditorDsl
-	inline fun <T : Any, R : Any> editTypedWith(
-		vararg settings: KProperty0<T>,
-		other: KProperty0<R>,
-		edits: TypedEditBuilder<T>.(SettingCore<R>) -> Unit
-	) = TypedEditBuilder(this, settings.map { it.setting() }).edits(other.settingCore())
-
-	@SettingEditorDsl
-	fun hide(settings: Collection<Setting<*, *>>) {
-		c.settings.removeAll(settings)
-	}
-
-	@SettingEditorDsl
-	fun hide(vararg settings: KProperty0<*>) =
-		hide(settings.map { (it as KProperty0<Any>).setting() })
-
-	open class BasicEditBuilder(val c: SettingGroupEditor<*>, open val settings: Collection<Setting<*, *>>) {
-		@SettingEditorDsl
-		fun hide() = c.hide(settings)
-
-		@SettingEditorDsl
-		fun groups(vararg groups: NamedEnum) =
-			settings.forEach { it.groups = mutableListOf(groups.toList()) }
-
-		@SettingEditorDsl
-		fun groups(groups: MutableList<List<NamedEnum>>) =
-			settings.forEach { it.groups = groups }
-
-		@SettingEditorDsl
-		fun visibility(visibility: (() -> Boolean) -> () -> Boolean) {
-			settings.forEach {
-				it.visibility = visibility(it.visibility)
-			}
-		}
-	}
-
-	class TypedEditBuilder<T : Any>(
-		c: SettingGroupEditor<*>,
-		override val settings: Collection<Setting<SettingCore<T>, T>>
-	) : BasicEditBuilder(c, settings) {
-		@SettingEditorDsl
-		fun defaultValue(value: T) =
-			settings.forEach {
-				it.core.defaultValue = value
-				it.core.value = value
-			}
-	}
-}
-
-@Suppress("unchecked_cast", "unused")
-class ConfigurableEditor<T : Configurable>(override val c: T) : SettingGroupEditor<T>(c) {
-	@SettingEditorDsl
-	fun hideGroup(settingGroup: ISettingGroup) = hide(settingGroup.settings)
-
-	@SettingEditorDsl
-	fun hideGroupExcept(settingGroup: ISettingGroup, vararg except: KProperty0<*>) {
-		val exceptSettings = except.map { (it as KProperty0<Any>).setting() }.toSet()
-		hide(settingGroup.settings.filter { it !in exceptSettings })
-	}
-
-	@SettingEditorDsl
-	fun hideGroups(vararg settingGroups: ISettingGroup) =
-		settingGroups.forEach { hide(it.settings) }
-
-	@SettingEditorDsl
-	fun hideAllGroupsExcept(vararg except: ISettingGroup) =
-		hideGroups(*(c.settingGroups - except.toSet()).toTypedArray())
+	private typealias SettingProperty<T> = ConfigEntryProperty<T>
+	private typealias PropertyProperty<T> = ConfigEntryProperty<T>
+	private typealias ConfigEntryProperty<T> = KProperty0<T>
+	private typealias ConfigBlockProperty<T> = KProperty0<T>
 }

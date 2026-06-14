@@ -21,11 +21,11 @@ import com.lambda.interaction.construction.simulation.processing.PreProcessingDa
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.CheckedHit
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.scanClosestPoints
-import com.lambda.interaction.managers.rotating.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
+import com.lambda.util.player.CheckedHit
+import com.lambda.util.player.RotationUtils.scanClosestPoints
+import com.lambda.util.player.RotationUtils.scanSurfaces
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import io.ktor.util.collections.*
 import kotlinx.coroutines.launch

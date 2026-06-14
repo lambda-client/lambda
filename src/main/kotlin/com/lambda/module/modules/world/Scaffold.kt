@@ -17,16 +17,20 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
+import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.settings.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractConfig
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.containers.HotbarContainer
@@ -57,25 +61,24 @@ object Scaffold : Module(
 	private val pendingActions = ConcurrentLinkedQueue<BuildContext>()
 
 	init {
-		setDefaultAutomationConfig {
-			applyEdits {
+		setDefaultAutomationConfig()
+			.withEdits {
 				buildConfig.apply {
-					editTyped(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities) {
+					editTypedSettings(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities) {
 						defaultValue(false)
 						hide()
 					}
-					::checkSideVisibility.edit { defaultValue(true) }
+					::checkSideVisibility.editSetting { defaultValue(true) }
 					hide(::breakBlocks)
 				}
-				interactConfig::airPlace.edit { defaultValue(InteractConfig.AirPlaceMode.None) }
+				interactConfig::airPlace.editSetting { defaultValue(InteractConfig.AirPlaceMode.None) }
 				rotationConfig.apply {
-					::instant.edit { defaultValue(false) }
-					::mean.edit { defaultValue(120.0) }
-					::spread.edit { defaultValue(0.0) }
+					::instant.editSetting { defaultValue(false) }
+					::mean.editSetting { defaultValue(120.0) }
+					::spread.editSetting { defaultValue(0.0) }
 				}
-				hideAllGroupsExcept(buildConfig, interactConfig, rotationConfig, hotbarConfig)
+				hideAllExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
 			}
-		}
 
 		listen<TickEvent.Pre> {
 			val selection = selectStack {

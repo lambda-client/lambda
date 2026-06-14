@@ -21,18 +21,17 @@ import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
-import com.lambda.util.Communication
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
-import com.lambda.util.FolderRegister
-import com.lambda.util.FolderRegister.relativeMCPath
-import com.lambda.util.Formatting.getTime
-import com.lambda.util.reflections.getInstances
+import com.lambda.util.FolderRegistry
+import com.lambda.util.FolderRegistry.relativeMCPath
+import com.lambda.util.FormattingUtils.getTime
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
@@ -81,6 +80,7 @@ object PacketLogger : Module(
     enum class Scope {
         Any, Whitelist, Blacklist;
 
+        @Suppress("unused")
         fun shouldLog(packet: Packet<*>) = when (this) {
             Any -> true
             Whitelist -> false//packet::class.simpleName in whitelist
@@ -105,7 +105,7 @@ object PacketLogger : Module(
             val fileName = "packet-log-${getTime(fileFormatter)}.txt"
 
             // ToDo: Organize files with FolderRegister.worldBoundDirectory
-            file = FolderRegister.packetLogs.resolve(fileName).toFile().apply {
+            file = FolderRegistry.packetLogs.resolve(fileName).toFile().apply {
                 if (!parentFile.exists()) {
                     parentFile.mkdirs()
                 }
@@ -122,7 +122,7 @@ object PacketLogger : Module(
                 this@PacketLogger.info(info)
             }.apply {
                 StringBuilder().apply {
-                    appendLine(Communication.ascii)
+                    appendLine(CommunicationUtils.ascii)
                     appendLine("${Lambda.SYMBOL} - Lambda ${Lambda.VERSION} - Packet Log")
 
                     val playerName = mc.player?.name?.string ?: "Unknown"

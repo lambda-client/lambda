@@ -20,6 +20,7 @@ package com.lambda.util.math
 import kotlin.math.max
 import kotlin.math.min
 
+@Suppress("unused")
 data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     val left get() = pos1.x
     val top get() = pos1.y

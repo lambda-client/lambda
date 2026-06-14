@@ -17,9 +17,10 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.applyEdits
-import com.lambda.interaction.BaritoneManager
+import com.lambda.config.ConfigEditor.editTypedSettings
+import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.withEdits
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -28,7 +29,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.Structure
@@ -81,6 +82,7 @@ object HighwayTools : Module(
         Block("Block", "Paves the highway with a specific block. Will use the block you specified in the settings"),
     }
 
+	@Suppress("unused")
     enum class Corner(
         override val displayName: String,
         override val description: String
@@ -90,13 +92,12 @@ object HighwayTools : Module(
     }
 
     init {
-		setDefaultAutomationConfig {
-            applyEdits {
-                buildConfig.apply {
-                    editTyped(::pathing, ::stayInRange) { defaultValue(true) }
-                }
+		setDefaultAutomationConfig()
+			.withEdits {
+				buildConfig.apply {
+					editTypedSettings(::pathing, ::stayInRange) { defaultValue(true) }
+				}
             }
-        }
 
         onEnable {
             octant = player.octant
@@ -108,7 +109,7 @@ object HighwayTools : Module(
             runningTask?.cancel()
             runningTask = null
             distanceMoved = 0
-            BaritoneManager.cancel()
+            BaritoneHandler.cancel()
         }
     }
 

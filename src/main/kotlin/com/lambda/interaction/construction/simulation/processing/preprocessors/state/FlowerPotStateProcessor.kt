@@ -26,7 +26,6 @@ import net.minecraft.block.FlowerPotBlock
 import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
 
-// Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
 object FlowerPotStateProcessor : StateProcessor {
 	override fun acceptsState(state: BlockState, targetState: BlockState) =

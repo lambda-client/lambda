@@ -20,9 +20,9 @@ package com.lambda.command
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
-import com.lambda.command.CommandManager.dispatcher
+import com.lambda.command.CommandHandler.dispatcher
 import com.lambda.core.Loadable
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Nameable
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents

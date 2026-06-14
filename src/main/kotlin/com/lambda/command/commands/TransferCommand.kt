@@ -27,15 +27,15 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.config.AutomationConfig
+import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager
-import com.lambda.interaction.material.container.ContainerManager.findContainersWithMaterial
-import com.lambda.interaction.material.container.ContainerManager.findContainersWithSpace
+import com.lambda.interaction.material.container.ContainerHandler
+import com.lambda.interaction.material.container.ContainerHandler.findContainersWithMaterial
+import com.lambda.interaction.material.container.ContainerHandler.findContainersWithSpace
 import com.lambda.task.RootTask
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.Communication.info
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandSource.suggestMatching
 
@@ -54,7 +54,7 @@ object TransferCommand : LambdaCommand(
                         val selection = selectStack(amount(ctx).value()) {
                             isItem(stack(ctx).value().item)
                         }
-                        AutomationConfig.Companion.DEFAULT.runSafeAutomated {
+                        AutomationConfig.DEFAULT.runSafeAutomated {
                             val containers = selection.findContainersWithMaterial()
                             val indexedContainers = containers.withIndex()
 
@@ -75,7 +75,7 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount(ctx).value()) {
                                 isItem(stack(ctx).value().item)
                             }
-                            AutomationConfig.Companion.DEFAULT.runSafeAutomated {
+                            AutomationConfig.DEFAULT.runSafeAutomated {
                                 val containers = selection.findContainersWithSpace()
                                 val indexedContainers = containers.withIndex()
 
@@ -95,12 +95,12 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount().value()) {
                                 isItem(stack().value().item)
                             }
-                            AutomationConfig.Companion.DEFAULT.runSafeAutomated {
-                                val fromContainer = ContainerManager.containers().find {
+                            AutomationConfig.DEFAULT.runSafeAutomated {
+                                val fromContainer = ContainerHandler.containers().find {
                                     it.name == from().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("From container not found")
 
-                                val toContainer = ContainerManager.containers().find {
+                                val toContainer = ContainerHandler.containers().find {
                                     it.name == to().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("To container not found")
 

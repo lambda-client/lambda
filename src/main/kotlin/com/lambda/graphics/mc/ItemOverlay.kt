@@ -26,6 +26,7 @@ data class ItemOverlay(
     val angle: Float = 0f,
     val alpha: Float = 0.5f
 ) {
+    @Suppress("unused")
     companion object {
         val ENCHANT_GLINT = ItemOverlay(
             texture = Identifier.of("minecraft", "textures/misc/enchanted_glint_item.png"),
