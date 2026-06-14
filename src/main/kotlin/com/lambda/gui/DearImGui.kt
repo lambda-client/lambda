@@ -108,6 +108,13 @@ object DearImGui : Loadable {
             null
         )
 
+        // When the GUI is open over a menu screen, the in-game world blur (applied via the
+        // screen's GUI render layers) isn't available, so blur the whole framebuffer here —
+        // after the parent screen has fully rendered but before ImGui draws on top.
+        if (ClickGuiLayout.open && ClickGuiLayout.backgroundBlur && LambdaScreen.parentScreen != null) {
+            mc.gameRenderer.renderBlur()
+        }
+
         GlStateManager._glBindFramebuffer(GL_FRAMEBUFFER, prevFramebuffer)
 
         implGlfw.newFrame()

@@ -24,10 +24,12 @@ import com.lambda.config.categories.GuiCategory
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.core.Loadable
+import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.GuiEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.DearImGui
 import com.lambda.gui.LambdaScreen
+import com.lambda.gui.OverlayBackgroundScreen
 import com.lambda.gui.MenuBar
 import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.components.QuickSearch.renderQuickSearch
@@ -45,6 +47,7 @@ import com.lambda.imgui.flag.ImGuiHoveredFlags
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.Client
+import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
 import com.lambda.module.tag.ModuleTag
 import com.lambda.module.tag.ModuleTag.Companion.shownTags
 import com.lambda.sound.LambdaSound
@@ -56,9 +59,11 @@ import com.lambda.util.WindowUtils.setLambdaWindowIcon
 import net.minecraft.SharedConstants
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
+import net.minecraft.client.gui.screen.TitleScreen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
 import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
+import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen
 import net.minecraft.client.util.Icons
 import java.awt.Color
 
@@ -71,10 +76,42 @@ object ClickGuiLayout : Loadable, Config(
 	var developerMode = false
 	val keybind by setting("Keybind", KeyCode.Y, screenCheck = false)
 		.onPress {
-			if (!open && mc.currentScreen != null) return@onPress
 			if (DearImGui.io.wantTextInput) return@onPress
+			if (!open && !canOpenOver(mc.currentScreen)) return@onPress
 			toggle()
 		}
+
+	/**
+	 * Screens (besides the in-game/null case) the GUI is allowed to open over.
+	 * Add a class here to support opening the GUI on another screen.
+	 */
+	private val backgroundScreenTypes = mutableListOf<Class<out Screen>>(
+		TitleScreen::class.java,
+		MultiplayerScreen::class.java,
+		AutoDisconnectScreen::class.java,
+	)
+
+	/** True when the GUI may be opened over [screen]; null means in-game. */
+	fun canOpenOver(screen: Screen?): Boolean =
+		screen == null || backgroundScreenTypes.any { it.isInstance(screen) }
+
+	init {
+		// The keybind's own onPress runs through a SafeListener, which only fires in-game.
+		// Register unsafe listeners so the GUI can also be toggled from menu screens
+		// (title, multiplayer, world-select) where there is no SafeContext.
+		listenUnsafe<ButtonEvent.Keyboard.Press> { event -> handleMenuToggle(event) }
+		listenUnsafe<ButtonEvent.Mouse.Click> { event -> handleMenuToggle(event) }
+	}
+
+	private fun handleMenuToggle(event: ButtonEvent) {
+		// In-game is handled by the keybind's SafeListener onPress; avoid double-toggling.
+		if (mc.world != null && mc.player != null) return
+		if (!event.isPressed || event.isRepeated) return
+		if (!event.satisfies(keybind)) return
+		if (DearImGui.io.wantTextInput) return
+		if (!open && !canOpenOver(mc.currentScreen)) return
+		toggle()
+	}
 	private var initialLayoutComplete = false
 	private var frameCount = 0
 	private var activeDragWindowName: String? = null
@@ -246,8 +283,8 @@ object ClickGuiLayout : Loadable, Config(
 	@Tab(COLORS_TAB) val modalWindowDimBg by setting("Modal Window Dim Background", Color(35, 0, 14, 90))
 
 	init {
-		listen<GuiEvent.NewImguiFrame> {
-			if (!open) return@listen
+		listenUnsafe<GuiEvent.NewImguiFrame> {
+			if (!open) return@listenUnsafe
 
 			buildLayout {
 				buildMenuBar()
@@ -361,16 +398,21 @@ object ClickGuiLayout : Loadable, Config(
 
 	fun toggle() {
 		if (open) {
-			close()
+			// LambdaScreen.close() restores the background screen and triggers
+			// removed() -> close(), which flips `open` off and plays the sound.
 			LambdaScreen.close()
 		} else {
-			if (!mc.currentScreen.hasInput) {
-				if (Client.clientSounds) LambdaSound.ModuleOn.play()
-				mc.setScreen(LambdaScreen)
-				open = true
-				frameCount = 0
-				initialLayoutComplete = false
-			}
+			val current = mc.currentScreen
+			if (current.hasInput) return
+			if (Client.clientSounds) LambdaSound.ModuleOn.play()
+			LambdaScreen.parentScreen = if (current is LambdaScreen) null else current
+			// Let the parent retain resources past the removed() that setScreen triggers,
+			// since we restore it when the GUI closes.
+			(current as? OverlayBackgroundScreen)?.onOverlaidByGui()
+			mc.setScreen(LambdaScreen)
+			open = true
+			frameCount = 0
+			initialLayoutComplete = false
 		}
 	}
 
