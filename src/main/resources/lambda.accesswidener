@@ -61,6 +61,8 @@ transitive-accessible class net/minecraft/screen/slot/ArmorSlot
 transitive-accessible field net/minecraft/screen/slot/ArmorSlot equipmentSlot Lnet/minecraft/entity/EquipmentSlot;
 transitive-accessible field net/minecraft/entity/Entity FLAGS Lnet/minecraft/entity/data/TrackedData;
 transitive-accessible field net/minecraft/block/entity/BeaconBlockEntity level I
+transitive-accessible method net/minecraft/entity/LivingEntity canGlide ()Z
+transitive-accessible method net/minecraft/entity/player/PlayerEntity canGlide ()Z
 
 # Camera
 transitive-accessible method net/minecraft/client/render/Camera setPos (DDD)V
