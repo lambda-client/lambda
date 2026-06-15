@@ -39,17 +39,14 @@ object LambdaScreen : Screen(Text.of("Lambda")) {
             super.renderBackground(context, mouseX, mouseY, delta)
             return
         }
-        // Draw a panorama backdrop so menus that rely on renderBackground for their
-        // background (e.g. MultiplayerScreen) aren't black, then the parent's widgets.
-        renderPanoramaBackground(context, delta)
         // Off-screen mouse coords keep the parent's widgets from showing a hover state.
+        parentScreen?.renderBackground(context, -1, -1, delta)
         parentScreen?.render(context, -1, -1, delta)
         // Flush deferred elements (e.g. widget text) so the darkening overlay covers them.
         context.drawDeferredElements()
         // NOTE: no GUI-layer applyBlur() here. MC's layer blur only blurs background
         // layers, never foreground widgets. To blur the whole parent (widgets included)
         // we run a framebuffer-level blur in DearImGui.render() after the full GUI pass.
-        renderDarkening(context)
     }
 
     override fun resize(width: Int, height: Int) {
