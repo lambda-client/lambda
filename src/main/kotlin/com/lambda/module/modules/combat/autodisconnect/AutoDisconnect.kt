@@ -81,38 +81,38 @@ object AutoDisconnect : Module(
     private const val PACKET_DISCONNECT_GROUP = "Packet Disconnect Methods"
     private const val DAMAGE_DISCONNECT_GROUP = "Disconnects by Damage Type"
 
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val totem by setting("Totem", false, "Disconnect if the number of Totems of Undying is below the required amount.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val minTotems by setting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val players by setting("Players", false, "Disconnect if a nearby player is detected within the set distance.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
-    @Tab(DISCONNECT_CONDITIONS_TAB)private val friends by setting("Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val totem by setting("Totem", false, "Disconnect if the number of Totems of Undying is below the required amount.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val minTotems by setting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val players by setting("Players", false, "Disconnect if a nearby player is detected within the set distance.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
+    @Tab(DISCONNECT_CONDITIONS_TAB) private val friends by setting("Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
 
     // ToDo: Only those DamageTypes are reported by the server. why?
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val generic by setting("Generic", false, "Disconnect from the server when you get generic damage. (will always trigger!)")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val lava by setting("Lava", false, "Disconnect from the server when you get lava.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you get hot floor.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val drown by setting("Drown", false, "Disconnect from the server when you get drown.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val cactus by setting("Cactus", false, "Disconnect from the server when you get cactus.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val fall by setting("Fall", false, "Disconnect from the server when you fall.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you get out of the world.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val wither by setting("Wither", false, "Disconnect from the server when you get wither damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you get stalagmite damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val arrow by setting("Arrow", false, "Disconnect from the server when you get arrow damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB)@Group(DAMAGE_DISCONNECT_GROUP)private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val generic by setting("Generic", false, "Disconnect from the server when you get generic damage. (will always trigger!)")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val lava by setting("Lava", false, "Disconnect from the server when you get lava.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you get hot floor.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val drown by setting("Drown", false, "Disconnect from the server when you get drown.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val cactus by setting("Cactus", false, "Disconnect from the server when you get cactus.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val fall by setting("Fall", false, "Disconnect from the server when you fall.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you get out of the world.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val wither by setting("Wither", false, "Disconnect from the server when you get wither damage.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you get stalagmite damage.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you get arrow damage.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.")
 
-    @Tab(GENERAL_TAB)private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
-    @Tab(GENERAL_TAB)@Group(PACKET_DISCONNECT_GROUP)private val invalidHotbarDisconnect by setting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
-    @Tab(GENERAL_TAB)@Group(PACKET_DISCONNECT_GROUP)private val attackSelfDisconnect by setting("Attack Self", false, "Sends an attack self packet to force the server to kick the player")
-    @Tab(GENERAL_TAB)@Group(PACKET_DISCONNECT_GROUP)private val impossibleTimestampChatDisconnect by setting("Send Impossible Chat Timestamp", false, "Sends a chat message with an impossible timestamp to force the server to kick the player")
+    @Tab(GENERAL_TAB) private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
+    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val invalidHotbarDisconnect by setting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
+    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val attackSelfDisconnect by setting("Attack Self", false, "Sends an attack self packet to force the server to kick the player")
+    @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val impossibleTimestampChatDisconnect by setting("Send Impossible Chat Timestamp", false, "Sends a chat message with an impossible timestamp to force the server to kick the player")
 
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false
