@@ -22,8 +22,8 @@ import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
-import com.lambda.config.settings.blocks.EntitySelectionSettings
-import com.lambda.config.settings.blocks.ScreenTextSettings
+import com.lambda.config.blocks.EntitySelectionSettings
+import com.lambda.config.blocks.ScreenTextSettings
 import com.lambda.config.withEdits
 import com.lambda.friend.FriendHandler.isFriend
 import com.lambda.graphics.mc.RenderBuilder

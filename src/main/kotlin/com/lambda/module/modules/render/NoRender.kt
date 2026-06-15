@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.Tab
-import com.lambda.config.settings.blocks.EntitySelectionSettings
+import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.withEdits
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.entity;
 
-import com.lambda.module.modules.movement.ElytraFly;
+import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.entity.LivingEntity;

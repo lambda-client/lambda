@@ -22,7 +22,7 @@ import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.settings.blocks.TargetingSettings
+import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent

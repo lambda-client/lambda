@@ -17,7 +17,7 @@
 
 package com.lambda.graphics.mc
 
-import com.lambda.config.settings.blocks.LineConfig
+import com.lambda.config.blocks.LineConfig
 import com.lambda.graphics.util.DirectionMask
 import net.minecraft.util.math.Direction
 import java.awt.Color

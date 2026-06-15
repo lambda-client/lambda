@@ -373,7 +373,7 @@ sealed interface ReconnectTarget
 data class MultiplayerReconnectTarget(
     val address: ServerAddress,
     val info: ServerInfo,
-    val cookieStorage: CookieStorage
+    val cookieStorage: CookieStorage?
 ) : ReconnectTarget
 
 data class SingleplayerReconnectTarget(

@@ -247,7 +247,15 @@ abstract class Setting<T>(
 			apply { listeners.add(ValueListener(true, block)) }
 
 		@ConfigEntryDsl
-		fun <S : Setting<T>, T> S.onValueSet(block: (from: T, to: T) -> Unit) =
+		fun <S : Setting<T>, T> S.onValueSet(block: SafeContext.(from: T, to: T) -> Unit) =
+			apply {
+				listeners.add(ValueListener(false) { from, to ->
+					runSafe { block(from, to) }
+				})
+			}
+
+		@ConfigEntryDsl
+		fun <S : Setting<T>, T> S.onValueSetUnsafe(block: (from: T, to: T) -> Unit) =
 			apply { listeners.add(ValueListener(false, block)) }
 
 		@ConfigEntryDsl

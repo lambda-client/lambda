@@ -17,13 +17,13 @@
 
 package com.lambda.context
 
-import com.lambda.config.settings.blocks.BreakConfig
-import com.lambda.config.settings.blocks.BuildConfig
-import com.lambda.config.settings.blocks.EatConfig
-import com.lambda.config.settings.blocks.HotbarConfig
-import com.lambda.config.settings.blocks.InteractConfig
-import com.lambda.config.settings.blocks.InventoryConfig
-import com.lambda.config.settings.blocks.RotationConfig
+import com.lambda.config.blocks.BreakConfig
+import com.lambda.config.blocks.BuildConfig
+import com.lambda.config.blocks.EatConfig
+import com.lambda.config.blocks.HotbarConfig
+import com.lambda.config.blocks.InteractConfig
+import com.lambda.config.blocks.InventoryConfig
+import com.lambda.config.blocks.RotationConfig
 
 interface Automated {
 	val buildConfig: BuildConfig

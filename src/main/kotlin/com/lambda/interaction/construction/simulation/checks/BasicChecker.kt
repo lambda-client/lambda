@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.simulation.checks
 
-import com.lambda.config.settings.blocks.BreakConfig.WhitelistMode
+import com.lambda.config.blocks.BreakConfig.WhitelistMode
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.simulation.BreakSimInfo
 import com.lambda.interaction.construction.simulation.Results

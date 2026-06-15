@@ -21,11 +21,11 @@ import com.lambda.config.ConfigEditor.forEachSetting
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
+import com.lambda.config.blocks.EntityColorSettings
+import com.lambda.config.blocks.EntitySelectionSettings
+import com.lambda.config.blocks.OutlineSettings
+import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.entries.Setting.Companion.onValueChange
-import com.lambda.config.settings.blocks.EntityColorSettings
-import com.lambda.config.settings.blocks.EntitySelectionSettings
-import com.lambda.config.settings.blocks.OutlineSettings
-import com.lambda.config.settings.blocks.WorldLineSettings
 import com.lambda.config.withEdits
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer

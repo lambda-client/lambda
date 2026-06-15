@@ -21,10 +21,10 @@ import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
 import com.lambda.config.Tab
-import com.lambda.config.settings.blocks.ScreenLineSettings
-import com.lambda.config.settings.blocks.ScreenTextSettings
-import com.lambda.config.settings.blocks.WorldLineSettings
-import com.lambda.config.settings.blocks.WorldTextSettings
+import com.lambda.config.blocks.ScreenLineSettings
+import com.lambda.config.blocks.ScreenTextSettings
+import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.blocks.WorldTextSettings
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 

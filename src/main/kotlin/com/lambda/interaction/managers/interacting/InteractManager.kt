@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.managers.interacting
 
-import com.lambda.config.settings.blocks.InteractConfig
-import com.lambda.config.settings.blocks.InteractConfig.AirPlaceMode
+import com.lambda.config.blocks.InteractConfig
+import com.lambda.config.blocks.InteractConfig.AirPlaceMode
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext

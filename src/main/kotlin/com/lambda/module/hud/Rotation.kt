@@ -18,7 +18,7 @@
 package com.lambda.module.hud
 
 import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.settings.blocks.FormatterSettings
+import com.lambda.config.blocks.FormatterSettings
 import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule

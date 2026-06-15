@@ -18,7 +18,7 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
-import com.lambda.config.settings.blocks.BreakConfig.BreakConfirmationMode
+import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent

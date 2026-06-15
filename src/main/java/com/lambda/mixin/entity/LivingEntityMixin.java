@@ -21,7 +21,7 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.module.modules.movement.ElytraFly;
+import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.expression.Definition;
@@ -177,6 +177,6 @@ public abstract class LivingEntityMixin extends EntityMixin {
     private boolean injectIsGliding(boolean original) {
         if (lambda$instance != Lambda.getMc().player) return original;
 
-        return ElytraFly.INSTANCE.isEnabled() ? ElytraFly.isGliding() : original;
+        return ElytraFly.INSTANCE.isEnabled() ? ElytraFly.getBounceMode().isGliding() : original;
     }
 }

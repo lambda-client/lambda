@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.simulation.result
 
-import com.lambda.config.settings.blocks.ActionConfig
+import com.lambda.config.blocks.ActionConfig
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.context.InteractContext

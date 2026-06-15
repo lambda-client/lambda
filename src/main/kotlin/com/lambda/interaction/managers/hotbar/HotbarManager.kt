@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers.hotbar
 
-import com.lambda.config.settings.blocks.HotbarConfig.SwapMode
+import com.lambda.config.blocks.HotbarConfig.SwapMode
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent

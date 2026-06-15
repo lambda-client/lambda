@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers
 
-import com.lambda.config.settings.blocks.BuildConfig
+import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.Automated
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

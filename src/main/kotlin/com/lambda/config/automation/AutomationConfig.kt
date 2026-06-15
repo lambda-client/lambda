@@ -21,16 +21,15 @@ import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
 import com.lambda.config.Tab
 import com.lambda.config.categories.AutomationCategory
-import com.lambda.config.settings.blocks.BreakSettings
-import com.lambda.config.settings.blocks.BuildSettings
-import com.lambda.config.settings.blocks.EatSettings
-import com.lambda.config.settings.blocks.HotbarSettings
-import com.lambda.config.settings.blocks.InteractSettings
-import com.lambda.config.settings.blocks.InventorySettings
-import com.lambda.config.settings.blocks.RotationSettings
+import com.lambda.config.blocks.BreakSettings
+import com.lambda.config.blocks.BuildSettings
+import com.lambda.config.blocks.EatSettings
+import com.lambda.config.blocks.HotbarSettings
+import com.lambda.config.blocks.InteractSettings
+import com.lambda.config.blocks.InventorySettings
+import com.lambda.config.blocks.RotationSettings
 import com.lambda.context.Automated
 import com.lambda.module.Module
-
 
 open class AutomationConfig(
 	name: String,

@@ -19,7 +19,7 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
-import com.lambda.config.settings.blocks.EatConfig.Companion.reasonEating
+import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext

@@ -22,7 +22,7 @@ import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.settings.blocks.InteractConfig
+import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext

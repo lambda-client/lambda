@@ -20,13 +20,13 @@ package com.lambda.config.automation
 import com.lambda.config.EntryCore
 import com.lambda.config.EntryLayer
 import com.lambda.config.entries.Setting
-import com.lambda.config.settings.blocks.BreakConfig
-import com.lambda.config.settings.blocks.BuildConfig
-import com.lambda.config.settings.blocks.EatConfig
-import com.lambda.config.settings.blocks.HotbarConfig
-import com.lambda.config.settings.blocks.InteractConfig
-import com.lambda.config.settings.blocks.InventoryConfig
-import com.lambda.config.settings.blocks.RotationConfig
+import com.lambda.config.blocks.BreakConfig
+import com.lambda.config.blocks.BuildConfig
+import com.lambda.config.blocks.EatConfig
+import com.lambda.config.blocks.HotbarConfig
+import com.lambda.config.blocks.InteractConfig
+import com.lambda.config.blocks.InventoryConfig
+import com.lambda.config.blocks.RotationConfig
 import com.lambda.context.Automated
 
 interface IMutableAutomationConfig : Automated {

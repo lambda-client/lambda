@@ -20,8 +20,8 @@ package com.lambda.module.modules.render
 import com.lambda.config.ConfigEditor.forEachSetting
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
-import com.lambda.config.settings.blocks.OutlineSettings
-import com.lambda.config.settings.blocks.WorldLineSettings
+import com.lambda.config.blocks.OutlineSettings
+import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

@@ -23,9 +23,9 @@ import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.blocks.BreakConfig.SwingMode
 import com.lambda.config.entries.Setting.Companion.disabled
 import com.lambda.config.entries.Setting.Companion.onValueChange
-import com.lambda.config.settings.blocks.BreakConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
@@ -128,7 +128,7 @@ object PacketMine : Module(
 						::efficientOnly,
 						::suitableToolsOnly
 					) { defaultValue(false) }
-					::swing.editSetting { defaultValue(BreakConfig.SwingMode.Start) }
+					::swing.editSetting { defaultValue(SwingMode.Start) }
 				}
 				hotbarConfig::keepTicks.editSetting { defaultValue(0) }
 			}

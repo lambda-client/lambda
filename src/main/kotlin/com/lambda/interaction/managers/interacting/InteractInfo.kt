@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.managers.interacting
 
-import com.lambda.config.settings.blocks.InteractConfig
+import com.lambda.config.blocks.InteractConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.context.InteractContext

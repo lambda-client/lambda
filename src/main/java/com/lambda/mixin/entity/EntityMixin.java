@@ -21,7 +21,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.module.modules.movement.ElytraFly;
+import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -193,6 +193,6 @@ public abstract class EntityMixin {
     @Inject(method = "getVelocity", at = @At("HEAD"), cancellable = true)
     private void injectGetVelocity(CallbackInfoReturnable<Vec3d> cir) {
         if (ElytraFly.INSTANCE.isDisabled() || ElytraFly.getMode() != ElytraFly.FlyMode.Bounce) return;
-        cir.setReturnValue(ElytraFly.getModifiedBounceVelocity(velocity));
+        cir.setReturnValue(ElytraFly.getBounceMode().getModifiedBounceVelocity(velocity));
     }
 }
