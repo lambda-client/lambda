@@ -33,8 +33,11 @@ import net.minecraft.client.gui.widget.ScrollableTextWidget
 import net.minecraft.text.Text
 import kotlin.math.min
 
-class AutoDisconnectScreen(private val details: DisconnectDetails) :
-    Screen(Text.literal("Disconnected: ").append(details.reason)), OverlayBackgroundScreen {
+class AutoDisconnectScreen(
+    private val details: DisconnectDetails
+) : Screen(Text.literal("Disconnected: ").append(details.reason)),
+    OverlayBackgroundScreen
+{
     //state
     private val parent = TitleScreen()
     private var showDetails = !details.hideDetails
