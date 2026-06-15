@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
 import com.lambda.graphics.RenderMain;
@@ -26,16 +27,20 @@ import com.lambda.module.modules.render.BlockOutline;
 import com.lambda.module.modules.render.Bobbing;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.module.modules.render.Zoom;
+import com.lambda.util.render.CursorOverrideProvider;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.cursor.Cursor;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
+import net.minecraft.client.util.Window;
 import net.minecraft.client.util.ObjectAllocator;
 import net.minecraft.item.ItemStack;
 import org.joml.Matrix4f;
@@ -87,6 +92,23 @@ public class GameRendererMixin {
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;render(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V", shift = At.Shift.AFTER))
     private void onGuiRenderComplete(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
         DearImGui.INSTANCE.render();
+    }
+
+    @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;applyCursorTo(Lnet/minecraft/client/util/Window;)V"))
+    private void applyCursorOverride(DrawContext context, Window window, Operation<Void> original) {
+        original.call(context, window);
+
+        if (Lambda.getMc().currentScreen instanceof CursorOverrideProvider provider) {
+            int mouseX = (int) Lambda.getMc().mouse.getScaledX(window);
+            int mouseY = (int) Lambda.getMc().mouse.getScaledY(window);
+            Cursor cursor = provider.getCursorOverride(mouseX, mouseY);
+
+            if (cursor != null) {
+                cursor.applyTo(window);
+                return;
+            }
+        }
+        Cursor.DEFAULT.applyTo(window);
     }
 
     @Inject(method = "shouldRenderBlockOutline()Z", at = @At("HEAD"), cancellable = true)

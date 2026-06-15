@@ -24,6 +24,7 @@
     "input.MouseMixin",
     "items.BlockItemMixin",
     "items.FilledMapItemMixin",
+    "network.ClientCommonNetworkHandlerMixin",
     "network.ClientConnectionMixin",
     "network.ClientLoginNetworkMixin",
     "network.ClientPlayNetworkHandlerMixin",
@@ -45,6 +46,7 @@
     "render.ChatScreenMixin",
     "render.ChunkBorderDebugRendererMixin",
     "render.ChunkOcclusionDataBuilderMixin",
+    "render.ConnectScreenMixin",
     "render.DrawContextMixin",
     "render.ElytraFeatureRendererMixin",
     "render.EntityRendererMixin",
@@ -89,6 +91,7 @@
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
     "world.DirectionMixin",
+    "world.IntegratedServerLoaderMixin",
     "world.StructureTemplateMixin",
     "world.WorldMixin"
   ],
