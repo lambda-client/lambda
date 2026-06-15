@@ -57,10 +57,10 @@ abstract class ObstaclePassingMode(
 			if (passerConfig.passObstacles) BaritoneHandler.cancel()
 		}
 		onFlag {
-			if (!passerConfig.walkWhenFlagged) return@onFlag
+			if (!passerConfig.passObstacles || !passerConfig.walkWhenFlagged) return@onFlag
 			val snappedDir = getSnappedDir()
 			val closestLinePoint = player.pos.findClosestPointOnLine(snappedDir)
-			if (passerConfig.walkWhenFlagged) runGameScheduled {
+			runGameScheduled {
 				val delta = snappedDir.multiply(passerConfig.obstacleLookAhead.toDouble())
 				val pathToPoint = closestLinePoint.add(delta)
 				pathToValidPoint(pathToPoint, snappedDir)

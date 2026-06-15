@@ -50,7 +50,7 @@ object ViewModel : Module(
 	private const val HAND_TAB = "Hand"
 
 	@Tab(GENERAL_TAB) private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing")
-	@Tab(GENERAL_TAB)val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", "ticks")
+	@Tab(GENERAL_TAB)val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", " ticks")
 	@Tab(GENERAL_TAB)private val noSwingDelay by setting("No Swing Delay", false, "Removes the delay between swings")
 	@Tab(GENERAL_TAB)val mainSwingProgress by setting("Main Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players main hand was this progress through the swing animation")
 	@Tab(GENERAL_TAB)val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation")

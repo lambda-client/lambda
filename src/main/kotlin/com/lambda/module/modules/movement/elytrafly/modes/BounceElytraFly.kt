@@ -48,19 +48,19 @@ class BounceElytraFly(
 		private const val BOUNCE_OBSTACLE_PASSER_GROUP = "Bounce Obstacle Passer"
 	}
 
-	val takeoff by c.setting("Takeoff", true, "Automatically jumps and initiates gliding") { mode == FlyMode.Bounce }
-	val autoPitch by c.setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds") { mode == FlyMode.Bounce }
-	val pitch by c.setting("Pitch", 80.0, -90.0..90.0, 0.000001) { mode == FlyMode.Bounce && autoPitch }
-	val jump by c.setting("Jump", true, "Automatically jumps") { mode == FlyMode.Bounce }
-	val interruptPause by c.setting("Interrupt Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks") { mode == FlyMode.Bounce }
+	private val takeoff by c.setting("Takeoff", true, "Automatically jumps and initiates gliding")
+	private val autoPitch by c.setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds")
+	private val pitch by c.setting("Pitch", 80.0, -90.0..90.0, 0.000001) { autoPitch }
+	private val jump by c.setting("Jump", true, "Automatically jumps")
+	private val flagPause by c.setting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
 
-	@Group(Y_MOTION_GROUP) val yMotionSetting by c.setting("Y Motion", false, "Cancels the players y velocity to aid speed") { mode == FlyMode.Bounce }
-	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { mode == FlyMode.Bounce && yMotionSetting }
-	@Group(Y_MOTION_GROUP) val minDiagonalAngle by c.setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { mode == FlyMode.Bounce && yMotionSetting && onlyOnDiagonal }
-	@Group(Y_MOTION_GROUP) val yMotionStartSpeed by c.setting("Y Motion Start Speed", 30, 5..40, 1, "bps") { mode == FlyMode.Bounce && yMotionSetting }
-	@Group(Y_MOTION_GROUP) val speedLimit by c.setting("Speed Limit", 110, 10..400, 1, "bps") { mode == FlyMode.Bounce && yMotionSetting }
+	@Group(Y_MOTION_GROUP) val yMotionSetting by c.setting("Y Motion", false, "Cancels the players y velocity to aid speed")
+	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { yMotionSetting }
+	@Group(Y_MOTION_GROUP) val minDiagonalAngle by c.setting("Min Diagonal Angle", 15.0, 0.0..180.0, 0.1, "The minimum angle the player must be flying to use y motion") { yMotionSetting && onlyOnDiagonal }
+	@Group(Y_MOTION_GROUP) val yMotionStartSpeed by c.setting("Y Motion Start Speed", 30, 0..40, 1, unit = "bps") { yMotionSetting }
+	@Group(Y_MOTION_GROUP) val speedLimit by c.setting("Speed Limit", 110, 10..400, 1, unit = "bps") { yMotionSetting }
 	context(safeContext: SafeContext)
-	val yMotion
+	private val yMotion
 		get() = yMotionSetting &&
 				(!onlyOnDiagonal || abs(RotationManager.activeRotation.yaw % 90) > minDiagonalAngle) &&
 				safeContext.player.isOnGround &&
@@ -83,7 +83,7 @@ class BounceElytraFly(
 
 			if (handlePassingObstacles()) return@listen
 
-			if (!pauseTimer.hasSurpassed(interruptPause)) return@listen
+			if (!pauseTimer.hasSurpassed(flagPause)) return@listen
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
@@ -122,7 +122,7 @@ class BounceElytraFly(
 		return if (
 			mode == FlyMode.Bounce &&
 			prevGliding == true &&
-			pauseTimer.hasSurpassed(interruptPause) &&
+			pauseTimer.hasSurpassed(flagPause) &&
 			!BaritoneHandler.isActive
 		) true
 		else {
