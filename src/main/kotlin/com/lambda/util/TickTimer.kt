@@ -18,7 +18,7 @@
 package com.lambda.util
 
 class TickTimer {
-	private var ticks = 0
+	private var ticks = 0L
 
 	fun tick() {
 		ticks++

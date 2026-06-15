@@ -24,6 +24,8 @@ import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.ElytraFly;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.ViewModel;
+import com.llamalad7.mixinextras.expression.Definition;
+import com.llamalad7.mixinextras.expression.Expression;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -46,7 +48,9 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
     @Unique private final LivingEntity lambda$instance = (LivingEntity) (Object) this;
 
-    @Inject(method = "jump", at = @At(value = "INVOKE_ASSIGN", target = "Lnet/minecraft/entity/LivingEntity;getJumpVelocity()F"), cancellable = true)
+    @Definition(id = "getJumpVelocity", method = "Lnet/minecraft/entity/LivingEntity;getJumpVelocity()F")
+    @Expression("? = ?.getJumpVelocity()")
+    @Inject(method = "jump", at = @At(value = "MIXINEXTRAS:EXPRESSION", shift = At.Shift.AFTER), cancellable = true)
     void onJump(CallbackInfo ci, @Local LocalFloatRef heightRef) {
         if (lambda$instance != Lambda.getMc().player) return;
 
@@ -173,6 +177,6 @@ public abstract class LivingEntityMixin extends EntityMixin {
     private boolean injectIsGliding(boolean original) {
         if (lambda$instance != Lambda.getMc().player) return original;
 
-        return ElytraFly.isGliding();
+        return ElytraFly.INSTANCE.isEnabled() ? ElytraFly.isGliding() : original;
     }
 }

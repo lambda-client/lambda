@@ -23,30 +23,38 @@ import baritone.utils.player.BaritonePlayerContext;
 import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.minecraft.client.network.ClientPlayerEntity;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
+import static net.minecraft.util.math.MathHelper.wrapDegrees;
+
 @Mixin(value = BaritonePlayerContext.class, remap = false) // fix compileJava warning
-public class BaritonePlayerContextMixin {
+public abstract class BaritonePlayerContextMixin {
     @Shadow
     @Final
     private Baritone baritone;
 
+    @Shadow
+    public abstract ClientPlayerEntity player();
+
     // Let baritone know the actual rotation
     @ModifyReturnValue(method = "playerRotations", at = @At("RETURN"), remap = false)
     Rotation syncRotationWithBaritone(Rotation original) {
-        if (baritone != BaritoneHandler.getPrimary())
-            return original;
+        if (baritone != BaritoneHandler.getPrimary()) return original;
 
-        float yaw = (float) RotationManager.getActiveRotation().getYaw();
-        float pitch = (float) RotationManager.getActiveRotation().getPitch();
+        var baritoneRot = baritone.getLookBehavior().getEffectiveRotation();
+        var lambdaRot = RotationManager.getActiveRotation();
+
+        float yaw = baritoneRot.map(Rotation::getYaw).orElseGet(lambdaRot::getYawF);
+        float pitch = baritoneRot.map(Rotation::getPitch).orElseGet(lambdaRot::getPitchF);
 
         if (Float.isNaN(yaw) || Float.isNaN(pitch)) {
             return original;
         }
 
-        return new Rotation(net.minecraft.util.math.MathHelper.wrapDegrees(yaw), pitch);
+        return new Rotation(wrapDegrees(yaw), pitch);
     }
 }

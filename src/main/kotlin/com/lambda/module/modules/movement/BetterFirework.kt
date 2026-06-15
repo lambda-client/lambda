@@ -41,7 +41,6 @@ import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.EquipmentSlot
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
@@ -94,11 +93,11 @@ object BetterFirework : Module(
 			.filterStacks(inventory.mainStacks)
 			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
 
-	val ClientPlayerEntity.canTakeoff: Boolean
+	private val ClientPlayerEntity.canTakeoff: Boolean
 		get() = (isOnGround || canOpenElytra) && isElytraEquipped && hasFireworks
 
 	val ClientPlayerEntity.canOpenElytra: Boolean
-		get() = !abilities.flying && !isClimbing && !isGliding && !isTouchingWater && !isOnGround && !hasVehicle() && !hasStatusEffect(StatusEffects.LEVITATION)
+		get() = !isGliding && !isClimbing && !isTouchingWater && canGlide()
 
 	init {
 		setDefaultAutomationConfig()
