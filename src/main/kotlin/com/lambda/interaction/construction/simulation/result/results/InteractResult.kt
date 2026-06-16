@@ -105,7 +105,7 @@ sealed class InteractResult : BuildResult() {
         override val pos: BlockPos
     ) : Navigable, InteractResult() {
         override val rank = Rank.PlaceBlockedByPlayer
-        override val goal = if (BaritoneHandler.isBaritoneLoaded) GoalInverted(GoalBlock(pos)) else null
+        override val goal = if (BaritoneHandler.baritoneAvailable) GoalInverted(GoalBlock(pos)) else null
     }
 
     /**

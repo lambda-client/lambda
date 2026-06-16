@@ -28,8 +28,6 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.modules.movement.BetterFirework.canOpenElytra
-import com.lambda.module.modules.movement.BetterFirework.isElytraEquipped
 import com.lambda.module.modules.movement.elytrafly.modes.BounceElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.ControlElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.GrimControlElytraFly
@@ -38,7 +36,6 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.player.MovementUtils.addSpeed
-import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.sound.SoundEvents
 
@@ -68,9 +65,6 @@ object ElytraFly : Module(
     @Tab(EXTRA_TAB) private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
     @Tab(EXTRA_TAB) private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, description = "Speed multiplier that the rocket gives you")
     @Tab(EXTRA_TAB) private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
-
-    val ClientPlayerEntity.canTakeoff: Boolean
-        get() = (isOnGround || canOpenElytra) && isElytraEquipped
 
     init {
         setDefaultAutomationConfig()

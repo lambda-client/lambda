@@ -177,6 +177,8 @@ public abstract class LivingEntityMixin extends EntityMixin {
     private boolean injectIsGliding(boolean original) {
         if (lambda$instance != Lambda.getMc().player) return original;
 
-        return ElytraFly.INSTANCE.isEnabled() ? ElytraFly.getBounceMode().isGliding() : original;
+        return (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)
+                ? ElytraFly.getBounceMode().isGliding()
+                : original;
     }
 }

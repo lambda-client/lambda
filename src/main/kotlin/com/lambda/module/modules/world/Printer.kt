@@ -93,6 +93,13 @@ object Printer : Module(
 
 	private var buildTask: Task<*>? = null
 
+	private val litematicaAvailable by lazy {
+		runCatching {
+			Class.forName("fi.dy.masa.litematica.Litematica")
+			true
+		}.getOrDefault(false)
+	}
+
 	init {
 		setDefaultAutomationConfig()
 
@@ -127,7 +134,7 @@ object Printer : Module(
 	}
 
 	private fun startBuildTask() {
-		if (!litematicaAvailable()) {
+		if (!litematicaAvailable) {
 			logError("Litematica is not installed!")
 			disable()
 			return
@@ -156,11 +163,6 @@ object Printer : Module(
 			buildResult is BreakResult && !flattenModeApply.breaking) true
 		else isInFlatten(buildResult.pos, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection)
 	}
-
-	private fun litematicaAvailable(): Boolean = runCatching {
-		Class.forName("fi.dy.masa.litematica.Litematica")
-		true
-	}.getOrDefault(false)
 
 	private enum class FlattenModeApply(
 		override val displayName: String,

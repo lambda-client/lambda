@@ -31,7 +31,6 @@ import com.lambda.config.categories.LambdaCategory
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.context.Automated
 import com.lambda.util.BlockUtils.blockPos
-import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.util.BlockMirror
 import net.minecraft.util.BlockRotation
 
@@ -40,10 +39,15 @@ object BaritoneHandler : Config(
     "baritone",
     LambdaCategory
 ), Automated by AutomationConfig.DEFAULT {
-    val isBaritoneLoaded = FabricLoader.getInstance().isModLoaded("baritone")
+    val baritoneAvailable by lazy {
+        runCatching {
+            Class.forName("baritone.api.BaritoneAPI")
+            true
+        }.getOrDefault(false)
+    }
 
-    private val baritone = if (isBaritoneLoaded) BaritoneAPI.getProvider() else null
-    val baritoneSettings: Settings? = if (isBaritoneLoaded) BaritoneAPI.getSettings() else null
+    private val baritone = if (baritoneAvailable) BaritoneAPI.getProvider() else null
+    val baritoneSettings: Settings? = if (baritoneAvailable) BaritoneAPI.getSettings() else null
 
     // The new config system, as its using reflections to gather metadata about the settings before registering them, does not allow for nullability.
     // Partially because it would be a lot of work to account for all edge cases, but also because we use the by keyword to register ConfigBlock's as delegates.
@@ -59,13 +63,13 @@ object BaritoneHandler : Config(
      * Whether Baritone is currently pathing
      */
     val isPathing: Boolean
-        get() = isBaritoneLoaded && primary?.pathingBehavior?.isPathing == true
+        get() = baritoneAvailable && primary?.pathingBehavior?.isPathing == true
 
     /**
      * Whether Baritone is active (pathing, calculating goal, etc.)
      */
     val isActive: Boolean
-        get() = isBaritoneLoaded &&
+        get() = baritoneAvailable &&
                 (primary?.customGoalProcess?.isActive == true ||
                         primary?.pathingBehavior?.isPathing == true ||
                         primary?.pathingControlManager?.mostRecentInControl()?.orElse(null)?.isActive == true ||
@@ -75,7 +79,7 @@ object BaritoneHandler : Config(
      * Sets the current Baritone goal and starts pathing
      */
     fun setGoalAndPath(goal: Goal) {
-        if (!isBaritoneLoaded) return
+        if (!baritoneAvailable) return
         primary?.customGoalProcess?.setGoalAndPath(goal)
     }
 
@@ -83,12 +87,12 @@ object BaritoneHandler : Config(
      * Sets the current Baritone goal without starting pathing
      */
     fun setGoal(goal: Goal) {
-        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded != true) return
+        if (!baritoneAvailable || primary?.elytraProcess?.isLoaded != true) return
 	    primary.customGoalProcess?.goal = goal
     }
 
     fun setGoalAndElytraPath(goal: Goal) {
-        if (!isBaritoneLoaded || primary?.elytraProcess?.isLoaded != true) return
+        if (!baritoneAvailable || primary?.elytraProcess?.isLoaded != true) return
         primary.elytraProcess?.pathTo(goal)
     }
 
@@ -96,7 +100,7 @@ object BaritoneHandler : Config(
      * Force cancel Baritone
      */
     fun cancel() {
-        if (!isBaritoneLoaded) return
+        if (!baritoneAvailable) return
         primary?.pathingBehavior?.cancelEverything()
         primary?.elytraProcess?.resetState()
     }

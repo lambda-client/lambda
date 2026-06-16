@@ -182,7 +182,7 @@ sealed class BreakResult : BuildResult() {
         override val rank = Rank.BreakPlayerOnTop
         private val color = Color(252, 3, 207, 100)
 
-        override val goal = if (BaritoneHandler.isBaritoneLoaded) GoalInverted(GoalBlock(pos)) else null
+        override val goal = if (BaritoneHandler.baritoneAvailable) GoalInverted(GoalBlock(pos)) else null
 
         override fun RenderBuilder.render() {
             box(pos) {

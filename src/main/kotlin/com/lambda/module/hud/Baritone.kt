@@ -30,7 +30,7 @@ object Baritone : HudModule(
     tag = ModuleTag.HUD,
 ) {
     override fun ImGuiBuilder.buildLayout() {
-        if (!BaritoneHandler.isBaritoneLoaded) {
+        if (!BaritoneHandler.baritoneAvailable) {
             text("Baritone is not loaded")
             return
         }

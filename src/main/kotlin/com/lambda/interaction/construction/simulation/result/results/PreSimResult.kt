@@ -54,7 +54,7 @@ sealed class PreSimResult : BuildResult() {
         override val rank = Rank.ChunkNotLoaded
         private val color = Color(252, 165, 3, 100)
 
-        override val goal = if (BaritoneHandler.isBaritoneLoaded) GoalBlock(pos) else null
+        override val goal = if (BaritoneHandler.baritoneAvailable) GoalBlock(pos) else null
 
         override fun RenderBuilder.render() {
             box(pos) {

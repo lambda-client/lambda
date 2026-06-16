@@ -134,7 +134,7 @@ sealed class GenericResult : BuildResult() {
             misses.minOfOrNull { pov.distanceTo(it.first) } ?: 0.0
         }
 
-        override val goal = if (BaritoneHandler.isBaritoneLoaded) GoalNear(pos, 3) else null
+        override val goal = if (BaritoneHandler.baritoneAvailable) GoalNear(pos, 3) else null
 
         override fun RenderBuilder.render() {
             val center = pos.toCenterPos()
