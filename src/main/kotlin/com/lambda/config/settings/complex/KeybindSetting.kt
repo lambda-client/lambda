@@ -26,7 +26,7 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
-import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
@@ -34,8 +34,8 @@ import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.threading.runSafe
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui.isMouseClicked
 import com.lambda.imgui.flag.ImGuiCol
@@ -92,33 +92,27 @@ class KeybindSetting(
         get() = muteable?.isMuted == true && !alwaysListening
 
     init {
-        listen<ButtonEvent.Keyboard.Press> { event -> onButtonEvent(event) }
-        listen<ButtonEvent.Mouse.Click> { event -> onButtonEvent(event) }
-        listenUnsafe<ButtonEvent.Keyboard.Press> { event -> onButtonEventUnsafe(event) }
-        listenUnsafe<ButtonEvent.Mouse.Click> { event -> onButtonEventUnsafe(event) }
+        listenUnsafe<ButtonEvent.Keyboard.Press> { event -> onButtonEvent(event) }
+        listenUnsafe<ButtonEvent.Mouse.Click> { event -> onButtonEvent(event) }
     }
 
-    private fun SafeContext.onButtonEvent(event: ButtonEvent) {
+    private fun onButtonEvent(event: ButtonEvent) {
         if (mc.options.commandKey.isPressed ||
             (screenCheck && mc.currentScreen != null) ||
             !event.satisfies(value)) return
 
         if (event.isPressed) {
-            if (event.isRepeated) repeatListeners.forEach { it(event) }
-            else pressListeners.forEach { it(event) }
-        } else if (event.isReleased) releaseListeners.forEach { it(event) }
-    }
-
-    private fun onButtonEventUnsafe(event: ButtonEvent) {
-        val mc = Lambda.mc
-        if (mc.options.commandKey.isPressed ||
-            (screenCheck && mc.currentScreen != null) ||
-            !event.satisfies(value)) return
-
-        if (event.isPressed) {
-            if (event.isRepeated) unsafeRepeatListeners.forEach { it(event) }
-            else unsafePressListeners.forEach { it(event) }
-        } else if (event.isReleased) unsafeReleaseListeners.forEach { it(event) }
+            if (event.isRepeated) {
+                unsafeRepeatListeners.forEach { it(event) }
+                runSafe { repeatListeners.forEach { it(event) } }
+            } else {
+                unsafePressListeners.forEach { it(event) }
+                runSafe { pressListeners.forEach { it(event) } }
+            }
+        } else if (event.isReleased) {
+            unsafeReleaseListeners.forEach { it(event) }
+            runSafe { releaseListeners.forEach { it(event) } }
+        }
     }
 
     override fun ImGuiBuilder.buildLayout() {
