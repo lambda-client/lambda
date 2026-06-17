@@ -26,6 +26,7 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
+import com.lambda.Lambda
 import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
@@ -34,6 +35,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui.isMouseClicked
 import com.lambda.imgui.flag.ImGuiCol
@@ -78,8 +80,11 @@ class KeybindSetting(
     ) : this(name, description, config, layer, visibility, Bind(defaultValue.code, 0, -1), muteable, alwaysListen, screenCheck)
 
     private val pressListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
+    private val unsafePressListeners = mutableListOf<(ButtonEvent) -> Unit>()
     private val repeatListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
+    private val unsafeRepeatListeners = mutableListOf<(ButtonEvent) -> Unit>()
     private val releaseListeners = mutableListOf<SafeContext.(ButtonEvent) -> Unit>()
+    private val unsafeReleaseListeners = mutableListOf<(ButtonEvent) -> Unit>()
 
     private var listening = false
 
@@ -89,6 +94,8 @@ class KeybindSetting(
     init {
         listen<ButtonEvent.Keyboard.Press> { event -> onButtonEvent(event) }
         listen<ButtonEvent.Mouse.Click> { event -> onButtonEvent(event) }
+        listenUnsafe<ButtonEvent.Keyboard.Press> { event -> onButtonEventUnsafe(event) }
+        listenUnsafe<ButtonEvent.Mouse.Click> { event -> onButtonEventUnsafe(event) }
     }
 
     private fun SafeContext.onButtonEvent(event: ButtonEvent) {
@@ -100,6 +107,18 @@ class KeybindSetting(
             if (event.isRepeated) repeatListeners.forEach { it(event) }
             else pressListeners.forEach { it(event) }
         } else if (event.isReleased) releaseListeners.forEach { it(event) }
+    }
+
+    private fun onButtonEventUnsafe(event: ButtonEvent) {
+        val mc = Lambda.mc
+        if (mc.options.commandKey.isPressed ||
+            (screenCheck && mc.currentScreen != null) ||
+            !event.satisfies(value)) return
+
+        if (event.isPressed) {
+            if (event.isRepeated) unsafeRepeatListeners.forEach { it(event) }
+            else unsafePressListeners.forEach { it(event) }
+        } else if (event.isReleased) unsafeReleaseListeners.forEach { it(event) }
     }
 
     override fun ImGuiBuilder.buildLayout() {
@@ -212,10 +231,19 @@ class KeybindSetting(
         fun KeybindSetting.onPress(block: SafeContext.(ButtonEvent) -> Unit) = apply { pressListeners.add(block) }
 
         @ConfigEntryDsl
+        fun KeybindSetting.onPressUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafePressListeners.add(block) }
+
+        @ConfigEntryDsl
         fun KeybindSetting.onRepeat(block: SafeContext.(ButtonEvent) -> Unit) = apply { repeatListeners.add(block) }
 
         @ConfigEntryDsl
+        fun KeybindSetting.onRepeatUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeRepeatListeners.add(block) }
+
+        @ConfigEntryDsl
         fun KeybindSetting.onRelease(block: SafeContext.(ButtonEvent) -> Unit) = apply { releaseListeners.add(block) }
+
+        @ConfigEntryDsl
+        fun KeybindSetting.onReleaseUnsafe(block: (ButtonEvent) -> Unit) = apply { unsafeReleaseListeners.add(block) }
     }
 }
 

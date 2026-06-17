@@ -22,9 +22,8 @@ import com.lambda.config.Config
 import com.lambda.config.Tab
 import com.lambda.config.categories.GuiCategory
 import com.lambda.config.entries.Setting.Companion.onValueChange
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
+import com.lambda.config.settings.complex.KeybindSetting.Companion.onPressUnsafe
 import com.lambda.core.Loadable
-import com.lambda.event.events.ButtonEvent
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.DearImGui
@@ -74,10 +73,12 @@ object ClickGuiLayout : Loadable, Config(
 ) {
 	var open = false
 	var developerMode = false
+	// onPressUnsafe (not onPress) so the GUI can also be toggled from menu screens
+	// (title, multiplayer, world-select) where there is no SafeContext, not just in-game.
 	val keybind by setting("Keybind", KeyCode.Y, screenCheck = false)
-		.onPress {
-			if (DearImGui.io.wantTextInput) return@onPress
-			if (!open && !canOpenOver(mc.currentScreen)) return@onPress
+		.onPressUnsafe {
+			if (DearImGui.io.wantTextInput) return@onPressUnsafe
+			if (!open && !canOpenOver(mc.currentScreen)) return@onPressUnsafe
 			toggle()
 		}
 
@@ -85,7 +86,7 @@ object ClickGuiLayout : Loadable, Config(
 	 * Screens (besides the in-game/null case) the GUI is allowed to open over.
 	 * Add a class here to support opening the GUI on another screen.
 	 */
-	private val backgroundScreenTypes = mutableListOf<Class<out Screen>>(
+	private val backgroundScreenTypes = mutableListOf(
 		TitleScreen::class.java,
 		MultiplayerScreen::class.java,
 		AutoDisconnectScreen::class.java,
@@ -95,23 +96,6 @@ object ClickGuiLayout : Loadable, Config(
 	fun canOpenOver(screen: Screen?): Boolean =
 		screen == null || backgroundScreenTypes.any { it.isInstance(screen) }
 
-	init {
-		// The keybind's own onPress runs through a SafeListener, which only fires in-game.
-		// Register unsafe listeners so the GUI can also be toggled from menu screens
-		// (title, multiplayer, world-select) where there is no SafeContext.
-		listenUnsafe<ButtonEvent.Keyboard.Press> { event -> handleMenuToggle(event) }
-		listenUnsafe<ButtonEvent.Mouse.Click> { event -> handleMenuToggle(event) }
-	}
-
-	private fun handleMenuToggle(event: ButtonEvent) {
-		// In-game is handled by the keybind's SafeListener onPress; avoid double-toggling.
-		if (mc.world != null && mc.player != null) return
-		if (!event.isPressed || event.isRepeated) return
-		if (!event.satisfies(keybind)) return
-		if (DearImGui.io.wantTextInput) return
-		if (!open && !canOpenOver(mc.currentScreen)) return
-		toggle()
-	}
 	private var initialLayoutComplete = false
 	private var frameCount = 0
 	private var activeDragWindowName: String? = null

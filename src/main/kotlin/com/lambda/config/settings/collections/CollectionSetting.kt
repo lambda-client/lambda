@@ -65,7 +65,9 @@ open class CollectionSetting<R : Any>(
 	private var searchFilter = ""
 
 	val selectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val unsafeSelectListeners = mutableListOf<(R) -> Unit>()
 	val deselectListeners = mutableListOf<SafeContext.(R) -> Unit>()
+	val unsafeDeselectListeners = mutableListOf<(R) -> Unit>()
 
 	override val isModified: Boolean
 		get() = with(originalCore) {
@@ -113,6 +115,7 @@ open class CollectionSetting<R : Any>(
 								flags = DontClosePopups
 							) {
 								value.add(v)
+								unsafeSelectListeners.forEach { listener -> listener(v) }
 								runSafe { selectListeners.forEach { listener -> listener(v) } }
 							}
 						}
@@ -134,6 +137,8 @@ open class CollectionSetting<R : Any>(
 							value.add(item)
 						}
 					}
+					currentlySelected.forEach { v -> unsafeDeselectListeners.forEach { listener -> listener(v) } }
+					value.forEach { v -> unsafeSelectListeners.forEach { listener -> listener(v) } }
 					runSafe {
 						currentlySelected.forEach { v -> deselectListeners.forEach { listener -> listener(v) } }
 						value.forEach { v -> selectListeners.forEach { listener -> listener(v) } }
@@ -159,6 +164,7 @@ open class CollectionSetting<R : Any>(
 								flags = DontClosePopups
 							) {
 								value.remove(v)
+								unsafeDeselectListeners.forEach { listener -> listener(v) }
 								runSafe { deselectListeners.forEach { listener -> listener(v) } }
 							}
 						}
@@ -176,8 +182,16 @@ open class CollectionSetting<R : Any>(
 			apply { selectListeners.add(block) }
 
 		@ConfigEntryDsl
+		fun <T : CollectionSetting<R>, R : Any> T.onSelectUnsafe(block: (R) -> Unit) =
+			apply { unsafeSelectListeners.add(block) }
+
+		@ConfigEntryDsl
 		fun <T : CollectionSetting<R>, R : Any> T.onDeselect(block: SafeContext.(R) -> Unit) =
 			apply { deselectListeners.add(block) }
+
+		@ConfigEntryDsl
+		fun <T : CollectionSetting<R>, R : Any> T.onDeselectUnsafe(block: (R) -> Unit) =
+			apply { unsafeDeselectListeners.add(block) }
 
 		@Suppress("unchecked_cast")
 		@ConfigEditorD5l
