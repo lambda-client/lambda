@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.combat.autodisconnect
 
+import com.lambda.gui.OverlayBackgroundScreen
 import com.lambda.util.render.CursorOverrideProvider
 import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.client.gui.Click
@@ -32,8 +33,11 @@ import net.minecraft.client.gui.widget.ScrollableTextWidget
 import net.minecraft.text.Text
 import kotlin.math.min
 
-class AutoDisconnectScreen(private val details: DisconnectDetails) :
-    Screen(Text.literal("Disconnected: ").append(details.reason)) {
+class AutoDisconnectScreen(
+    private val details: DisconnectDetails
+) : Screen(Text.literal("Disconnected: ").append(details.reason)),
+    OverlayBackgroundScreen
+{
     //state
     private val parent = TitleScreen()
     private var showDetails = !details.hideDetails
@@ -104,6 +108,12 @@ class AutoDisconnectScreen(private val details: DisconnectDetails) :
         }
 
         releaseTexture()
+    }
+
+    override fun onOverlaidByGui() {
+        // The click GUI temporarily replaces this screen and restores it on close,
+        // so keep the screenshot texture instead of releasing it on removed().
+        keepTextureOnRemove = true
     }
 
     private fun openImagePreview() {
