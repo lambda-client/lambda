@@ -76,10 +76,10 @@ class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimC
 			still = vec.lengthSquared() < 1e-4
 			if (still) moving = false
 
-			if (still) {
+			if (still && noFlipFlop) {
 				stillTickTimer.tick()
 				if (!player.hasFirework) shouldHaveFirework = false
-				if (noFlipFlop) return@listen
+				return@listen
 			} else {
 				val firework = findFirework()
 				if (fireworkTimer.timePassed(lastDuration.seconds - safetyMargin.seconds)) {
