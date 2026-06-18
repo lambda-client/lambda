@@ -21,8 +21,8 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.movement.Velocity;
+import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.expression.Definition;
 import com.llamalad7.mixinextras.expression.Expression;
@@ -180,5 +180,15 @@ public abstract class LivingEntityMixin extends EntityMixin {
         return (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)
                 ? ElytraFly.getBounceMode().isGliding()
                 : original;
+    }
+
+    @Inject(method = "travelGliding", at = @At("HEAD"), cancellable = true)
+    private void injectTravelGliding(Vec3d movementInput, CallbackInfo ci) {
+        if (lambda$instance != Lambda.getMc().player) return;
+        if (ElytraFly.INSTANCE.isEnabled() &&
+                ElytraFly.getMode() == ElytraFly.FlyMode.GrimControl &&
+                ElytraFly.getGrimControlMode().getNoFlipFlop() &&
+                !ElytraFly.getGrimControlMode().getMoving()
+        ) ci.cancel();
     }
 }

@@ -40,6 +40,25 @@ import org.lwjgl.glfw.GLFW.glfwGetMouseButton
 object InputUtils {
     private val lastPressedKeys = Int2IntArrayMap() // Keep track of the previously pressed keys to report GLFW_RELEASE states
 
+    private val Int.pressedOrRepeated
+        get() = this == 1 || this == 2
+
+    private val keys = KeyCode.entries.map { it.code }.filter { it > 0 }
+    private val scancodes = keys.associateWith { GLFW.glfwGetKeyScancode(it) }
+
+    private val mouses = GLFW_MOUSE_BUTTON_1..GLFW_MOUSE_BUTTON_8
+
+    private val modMap = mapOf(
+        GLFW_KEY_LEFT_SHIFT     to 0x1,
+        GLFW_KEY_RIGHT_SHIFT    to 0x1,
+        GLFW_KEY_LEFT_CONTROL   to 0x2,
+        GLFW_KEY_RIGHT_CONTROL  to 0x2,
+        GLFW_KEY_LEFT_ALT       to 0x4,
+        GLFW_KEY_RIGHT_ALT      to 0x4,
+        GLFW_KEY_LEFT_SUPER     to 0x8,
+        GLFW_KEY_RIGHT_SUPER    to 0x8,
+    )
+
     /**
      * Returns whether any of the key-codes (not scan-codes) are being pressed
      */
@@ -90,22 +109,18 @@ object InputUtils {
 				(mouse == -1 || glfwGetMouseButton(mc.window.handle, mouse).pressedOrRepeated) &&
 				trueMods.all { glfwGetKey(mc.window.handle, it.code).pressedOrRepeated }
 
-	private val Int.pressedOrRepeated
-		get() = this == 1 || this == 2
-
-    private val keys = KeyCode.entries.map { it.code }.filter { it > 0 }
-    private val scancodes = keys.associateWith { GLFW.glfwGetKeyScancode(it) }
-
-    private val mouses = GLFW_MOUSE_BUTTON_1..GLFW_MOUSE_BUTTON_8
-
-    private val modMap = mapOf(
-        GLFW_KEY_LEFT_SHIFT     to 0x1,
-        GLFW_KEY_RIGHT_SHIFT    to 0x1,
-        GLFW_KEY_LEFT_CONTROL   to 0x2,
-        GLFW_KEY_RIGHT_CONTROL  to 0x2,
-        GLFW_KEY_LEFT_ALT       to 0x4,
-        GLFW_KEY_RIGHT_ALT      to 0x4,
-        GLFW_KEY_LEFT_SUPER     to 0x8,
-        GLFW_KEY_RIGHT_SUPER    to 0x8,
-    )
+    @JvmStatic
+    fun isKeyMovementRelated(key: Int): Boolean {
+        val options = mc.options
+        return when (key) {
+            options.forwardKey.boundKey.code,
+            options.backKey.boundKey.code,
+            options.leftKey.boundKey.code,
+            options.rightKey.boundKey.code,
+            options.jumpKey.boundKey.code,
+            options.sprintKey.boundKey.code,
+            options.sneakKey.boundKey.code -> true
+            else -> false
+        }
+    }
 }

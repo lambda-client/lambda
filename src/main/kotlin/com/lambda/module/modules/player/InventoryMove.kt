@@ -26,6 +26,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.InputUtils
 import com.lambda.util.InputUtils.isKeyPressed
 import com.lambda.util.math.MathUtils.toFloatSign
 import net.minecraft.client.gui.screen.ChatScreen
@@ -84,17 +85,7 @@ object InventoryMove : Module(
 	}
 
 	@JvmStatic
-	fun isKeyMovementRelated(key: Int): Boolean {
-		val options = mc.options
-		return when (key) {
-			options.forwardKey.boundKey.code,
-			options.backKey.boundKey.code,
-			options.leftKey.boundKey.code,
-			options.rightKey.boundKey.code,
-			options.jumpKey.boundKey.code,
-			options.sprintKey.boundKey.code -> true
-			options.sneakKey.boundKey.code if (!disableSneak) -> true
-			else -> false
-		}
-	}
+	fun isKeyMovementRelated(key: Int) =
+		if (key == mc.options.sneakKey.boundKey.code && disableSneak) false
+		else InputUtils.isKeyMovementRelated(key)
 }

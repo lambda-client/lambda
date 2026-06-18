@@ -26,6 +26,7 @@ import com.lambda.module.hud.Speedometer
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.SpeedUnit
 import com.lambda.util.math.dist
 import com.lambda.util.math.flooredBlockPos
@@ -69,6 +70,12 @@ abstract class ObstaclePassingMode(
 	}
 
 	fun SafeContext.handlePassingObstacles(): Boolean {
+		if (!BaritoneHandler.baritoneAvailable) {
+			logError("Obstacle passing requires baritone to be installed!")
+			ElytraFly.disable()
+			return true
+		}
+
 		if (!BaritoneHandler.isActive) passingToPos = null
 
 		if (!passerConfig.passObstacles) return false

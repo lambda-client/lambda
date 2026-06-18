@@ -29,7 +29,7 @@ import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 abstract class ElytraFlyMode(
 	val flyMode: FlyMode
 ) : Muteable, Automated by ElytraFly, ConfigBlock {
-	override val isMuted get() = ElytraFly.isDisabled || ElytraFly.mode != flyMode
+	override val isMuted get() = ElytraFly.isMuted || ElytraFly.mode != flyMode
 
 	val onEnableListeners = mutableListOf<SafeContext.() -> Unit>()
 	val onDisableListeners = mutableListOf<SafeContext.() -> Unit>()

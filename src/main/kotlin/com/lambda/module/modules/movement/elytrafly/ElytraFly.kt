@@ -17,8 +17,7 @@
 
 package com.lambda.module.modules.movement.elytrafly
 
-import com.lambda.config.ConfigEditor
-import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.entries.Setting.Companion.onValueChange
@@ -44,32 +43,30 @@ object ElytraFly : Module(
     description = "Allows you to fly with an elytra",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private const val MODE_TAB = "Mode"
-    private const val EXTRA_TAB = "Extra"
-
-    @Tab(MODE_TAB) @JvmStatic val mode by setting("Fly Mode", FlyMode.Bounce)
+    @JvmStatic val mode by setting("Fly Mode", FlyMode.Bounce)
         .onValueChange { from, to ->
             from.elytraFly?.onDisableListeners?.forEach { it() }
             to.elytraFly?.onEnableListeners?.forEach { it() }
         }
 
-    @Tab(MODE_TAB) @JvmStatic val bounceMode by configBlock(BounceElytraFly(this))
-        .withEdits { forEachSetting { visibility { old -> { old() && mode == FlyMode.Bounce } } } }
-    @Tab(MODE_TAB) @JvmStatic val controlMode by configBlock(ControlElytraFly(this))
-        .withEdits { forEachSetting { visibility { old -> { old() && mode == FlyMode.Control } } } }
-    @Tab(MODE_TAB) @JvmStatic val grimControlMode by configBlock(GrimControlElytraFly(this))
-        .withEdits { forEachSetting { visibility { old -> { old() && mode == FlyMode.GrimControl } } } }
-    @Tab(MODE_TAB) @JvmStatic val packetMode by configBlock(PacketElytraFly(this))
-        .withEdits { forEachSetting { visibility { old -> { old() && mode == FlyMode.Packet } } } }
+    private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
+    private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, description = "Speed multiplier that the rocket gives you")
+    private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
 
-    @Tab(EXTRA_TAB) private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
-    @Tab(EXTRA_TAB) private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, description = "Speed multiplier that the rocket gives you")
-    @Tab(EXTRA_TAB) private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
+    private const val BOUNCE_TAB = "Bounce"
+    private const val CONTROL_TAB = "Control"
+    private const val GRIM_CONTROL_TAB = "Grim Control"
+    private const val PACKET_TAB = "Packet"
+
+    @Tab(BOUNCE_TAB) @JvmStatic val bounceMode by configBlock(BounceElytraFly(this))
+    @Tab(GRIM_CONTROL_TAB) @JvmStatic val grimControlMode by configBlock(GrimControlElytraFly(this))
+    @Tab(CONTROL_TAB) @JvmStatic val controlMode by configBlock(ControlElytraFly(this))
+    @Tab(PACKET_TAB) @JvmStatic val packetMode by configBlock(PacketElytraFly(this))
 
     init {
         setDefaultAutomationConfig()
             .withEdits {
-	            ConfigEditor.hideAllExcept(::inventoryConfig, ::rotationConfig)
+	            hideAllExcept(::inventoryConfig, ::rotationConfig)
             }
 
         onEnable { mode.elytraFly?.onEnableListeners?.forEach { it() } }
