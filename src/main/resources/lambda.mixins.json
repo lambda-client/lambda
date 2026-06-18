@@ -6,10 +6,8 @@
   "client": [
     "CrashReportMixin",
     "MinecraftClientMixin",
-    "baritone.BaritonePlayerContextMixin",
     "baritone.BaritonePlayerControllerMixin",
     "baritone.ComeCommandMixin",
-    "baritone.LookBehaviourMixin",
     "client.sound.SoundSystemMixin",
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",

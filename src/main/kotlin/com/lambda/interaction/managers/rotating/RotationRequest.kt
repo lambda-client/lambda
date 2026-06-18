@@ -19,9 +19,11 @@ package com.lambda.interaction.managers.rotating
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
+import com.lambda.interaction.BaritoneHandler
 import com.lambda.interaction.managers.Request
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.requestCount
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
+import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.wrap
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.UpdatableLazy
@@ -62,12 +64,14 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done: Boolean
-			get() {
-				val delta = RotationManager.activeRotation.yaw - (yaw.value ?: return false)
-				val wrappedDelta = ((delta + 180) % 360 + 360) % 360 - 180
-				return abs(wrappedDelta) <= 0.001
-			}
+		override val done
+			get() =
+				runSafe {
+					val delta = (if (BaritoneHandler.isActive) player.rotation else RotationManager.activeRotation)
+						.yaw - (yaw.value ?: return@runSafe false)
+					val wrappedDelta = ((delta + 180) % 360 + 360) % 360 - 180
+					abs(wrappedDelta) <= 0.001
+				} == true
 
 		override fun dist(rotation: Rotation): Double {
 			return wrap((yaw.value ?: return Double.MAX_VALUE) - rotation.yaw)
@@ -85,9 +89,12 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done get(): Boolean {
-			return abs(RotationManager.activeRotation.pitch - (pitch.value ?: return false)) <= 0.001
-		}
+		override val done
+			get() =
+				runSafe {
+					abs((if (BaritoneHandler.isActive) player.rotation else RotationManager.activeRotation)
+						.pitch - (pitch.value ?: return@runSafe false)) <= 0.001
+				} == true
 
 		override fun dist(rotation: Rotation): Double {
 			return wrap((pitch.value ?: return Double.MAX_VALUE) - rotation.pitch)
@@ -107,9 +114,12 @@ interface IRotationRequest : Automated {
 		override var decayTicks = rotationConfig.decayTicks
 		override var age = 0
 
-		override val done get(): Boolean {
-			return RotationManager.activeRotation.dist(rotation.value ?: return false) <= 0.001
-		}
+		override val done
+			get() =
+				runSafe {
+					(if (BaritoneHandler.isActive) player.rotation else RotationManager.activeRotation)
+						.dist(rotation.value ?: return@runSafe false) <= 0.001
+				} == true
 
 		override fun dist(rotation: Rotation) =
 			this.rotation.value?.let {

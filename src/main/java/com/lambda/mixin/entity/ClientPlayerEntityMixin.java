@@ -21,8 +21,8 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
 import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.movement.NoJumpCooldown;
+import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -96,8 +96,8 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
     void wrapTick(Input input, Operation<Void> original) {
         original.call(input);
+        RotationManager.processRotations();
         if (!BaritoneHandler.isActive()) {
-            RotationManager.processRotations();
             RotationManager.redirectStrafeInputs(input);
         }
         EventFlow.post(new MovementEvent.InputUpdate(input));
@@ -125,7 +125,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     }
 
     @WrapOperation(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V"))
-    private void wrapSendPacket(ClientPlayNetworkHandler instance, Packet packet, Operation<Void> original) {
+    private void wrapSendPacket(ClientPlayNetworkHandler instance, Packet<?> packet, Operation<Void> original) {
         var event = EventFlow.post(new PlayerPacketEvent.Send((PlayerMoveC2SPacket) packet));
         if (event.isCanceled()) return;
         original.call(instance, event.getPacket());
