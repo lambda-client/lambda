@@ -68,7 +68,7 @@ object BaritoneHandler : Config(
     /**
      * Whether Baritone is active (pathing, calculating goal, etc.)
      */
-    val isActive: Boolean
+    @JvmStatic val isActive: Boolean
         get() = baritoneAvailable &&
                 (primary?.customGoalProcess?.isActive == true ||
                         primary?.pathingBehavior?.isPathing == true ||

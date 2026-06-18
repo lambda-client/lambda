@@ -60,15 +60,14 @@ object RotationManager : Manager<RotationRequest>(
 	1,
 	*(ALL_STAGES.subList(ALL_STAGES.indexOf(TickEvent.Player.Post), ALL_STAGES.size - 1).toTypedArray()),
 ) {
-	var pitchRequest
-		get() = requests[0] as? IRotationRequest.PitchRot
-		set(value) { requests[0] = value }
 	var yawRequest
 		get() = requests[1] as? IRotationRequest.YawRot
 		set(value) { requests[1] = value }
+	var pitchRequest
+		get() = requests[0] as? IRotationRequest.PitchRot
+		set(value) { requests[0] = value }
 	@JvmStatic val requests = mutableListOf<IRotationRequest?>(null, null)
 
-	private var usingBaritoneRotation = false
 	@JvmStatic var activeRotation = Rotation.ZERO
 	@JvmStatic var serverRotation = Rotation.ZERO
 	@JvmStatic var prevServerRotation = Rotation.ZERO
@@ -92,7 +91,6 @@ object RotationManager : Manager<RotationRequest>(
         }
 
         listen<TickEvent.Post>({ Int.MIN_VALUE }) {
-            usingBaritoneRotation = false
             requests.forEach { request ->
                 request?.age++
             }
@@ -140,7 +138,7 @@ object RotationManager : Manager<RotationRequest>(
 	 * @see updateActiveRotation
 	 */
 	override fun AutomatedSafeContext.handleRequest(request: RotationRequest) {
-		if (usingBaritoneRotation) return
+		if (BaritoneHandler.isActive) return
 		if (acceptAndSetRequests(request)) {
 			updateActiveRotation()
 			changedThisTick = true
@@ -207,7 +205,6 @@ object RotationManager : Manager<RotationRequest>(
 	@JvmStatic
 	fun handleBaritoneRotation(yaw: Double, pitch: Double) {
 		runSafe {
-			usingBaritoneRotation = true
 			val request = IRotationRequest.Full(BaritoneHandler) { Rotation(yaw, pitch) }
 			yawRequest = request
 			pitchRequest = request
@@ -223,8 +220,6 @@ object RotationManager : Manager<RotationRequest>(
 	 */
 	@JvmStatic
 	fun redirectStrafeInputs(input: Input) = runSafe {
-		if (usingBaritoneRotation) return@runSafe
-
 		val movementYaw = movementYaw ?: return@runSafe
 		val playerYaw = player.yaw
 

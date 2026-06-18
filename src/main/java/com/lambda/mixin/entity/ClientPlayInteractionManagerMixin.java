@@ -20,6 +20,7 @@ package com.lambda.mixin.entity;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.inventory.InventoryManager;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -77,12 +78,16 @@ public class ClientPlayInteractionManagerMixin {
 
     @ModifyExpressionValue(method = "method_41929", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
     private float modifyHand(float original) {
+        if (BaritoneHandler.isActive()) return original;
+
         var headYaw = RotationManager.getHeadYaw();
         return headYaw != null ? headYaw : original;
     }
 
     @ModifyExpressionValue(method = "method_41929", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getPitch()F"))
     private float modifySequence(float original) {
+        if (BaritoneHandler.isActive()) return original;
+
         var headPitch = RotationManager.getHeadPitch();
         return headPitch != null ? headPitch : original;
     }

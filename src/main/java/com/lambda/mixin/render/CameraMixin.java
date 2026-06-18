@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.render.CameraTweaks;
 import com.lambda.module.modules.render.FreeLook;
@@ -71,6 +72,8 @@ public abstract class CameraMixin {
      */
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
     private void injectQuickPerspectiveSwap(World area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickProgress, CallbackInfo ci) {
+        if (BaritoneHandler.isActive()) return;
+
         var rot = RotationManager.getLockRotation();
         if (rot == null) return;
         if (FreeLook.INSTANCE.isEnabled()) {

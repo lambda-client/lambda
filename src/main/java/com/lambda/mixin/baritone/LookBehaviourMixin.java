@@ -29,25 +29,28 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Optional;
 
 @Mixin(value = LookBehavior.class, remap = false)
 public class LookBehaviourMixin {
-    @Unique
-    LookBehavior instance = (LookBehavior) (Object) this;
-
-    // Redirect baritone's rotations into our rotation engine
-    @Inject(method = "updateTarget", at = @At("HEAD"))
-    void onTargetUpdate(Rotation rotation, boolean blockInteract, CallbackInfo ci) {
-        if (instance.baritone != BaritoneHandler.getPrimary()) return;
-        RotationManager.handleBaritoneRotation(rotation.getYaw(), rotation.getPitch());
-    }
-
-    @WrapOperation(method = "onPlayerUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setYaw(F)V"))
-    private void wrapSetYaw(ClientPlayerEntity instance, float v, Operation<Void> original) {}
-
-    @WrapOperation(method = "onPlayerUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setPitch(F)V"))
-    private void wrapSetPitch(ClientPlayerEntity instance, float v, Operation<Void> original) {}
-
-    @WrapOperation(method = "pig", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setYaw(F)V"))
-    private void wrapPigSetYaw(ClientPlayerEntity instance, float v, Operation<Void> original) {}
+//    @Unique
+//    LookBehavior instance = (LookBehavior) (Object) this;
+//
+//    // Redirect baritone's rotations into our rotation engine
+//    @Inject(method = "updateTarget", at = @At("HEAD"))
+//    void onTargetUpdate(Rotation rotation, boolean blockInteract, CallbackInfo ci) {
+//        if (instance.baritone != BaritoneHandler.getPrimary()) return;
+//        RotationManager.handleBaritoneRotation(rotation.getYaw(), rotation.getPitch());
+//    }
+//
+//    @WrapOperation(method = "onPlayerUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setYaw(F)V"))
+//    private void wrapSetYaw(ClientPlayerEntity instance, float v, Operation<Void> original) {}
+//
+//    @WrapOperation(method = "onPlayerUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setPitch(F)V"))
+//    private void wrapSetPitch(ClientPlayerEntity instance, float v, Operation<Void> original) {}
+//
+//    @WrapOperation(method = "pig", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setYaw(F)V"))
+//    private void wrapPigSetYaw(ClientPlayerEntity instance, float v, Operation<Void> original) {}
 }

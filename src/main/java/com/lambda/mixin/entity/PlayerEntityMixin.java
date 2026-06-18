@@ -20,6 +20,7 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.player.Reach;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -41,6 +42,8 @@ public class PlayerEntityMixin {
 
     @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
     private float wrapHeadYaw(PlayerEntity instance, Operation<Float> original) {
+        if (BaritoneHandler.isActive()) return original.call(instance);
+
         if ((Object) this != Lambda.getMc().player) {
             return original.call(instance);
         }

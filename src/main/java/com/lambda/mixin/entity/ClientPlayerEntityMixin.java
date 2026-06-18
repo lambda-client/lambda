@@ -19,6 +19,7 @@ package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.movement.NoJumpCooldown;
@@ -70,6 +71,8 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     @Inject(method = "tick", at = @At("HEAD"))
     private void injectTick(CallbackInfo ci, @Share(namespace = "shared_rotations", value = "target_rotation") final LocalRef<Vec2f> targetRotation) {
+        if (BaritoneHandler.isActive()) return;
+
         if (RotationManager.getRequests().stream().anyMatch(Objects::nonNull)) {
             final var activeRotation = RotationManager.getActiveRotation();
             targetRotation.set(new Vec2f(activeRotation.getYawF(), activeRotation.getPitchF()));
@@ -93,8 +96,10 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
     @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
     void wrapTick(Input input, Operation<Void> original) {
         original.call(input);
-        RotationManager.processRotations();
-        RotationManager.redirectStrafeInputs(input);
+        if (!BaritoneHandler.isActive()) {
+            RotationManager.processRotations();
+            RotationManager.redirectStrafeInputs(input);
+        }
         EventFlow.post(new MovementEvent.InputUpdate(input));
     }
 
@@ -105,12 +110,16 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
     private float modifyGetYaw(float original) {
+        if (BaritoneHandler.isActive()) return original;
+
         final var yaw = RotationManager.getHeadYaw();
         return yaw != null ? yaw : original;
     }
 
     @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
     private float modifyGetPitch(float original) {
+        if (BaritoneHandler.isActive()) return original;
+
         final var pitch = RotationManager.getHeadPitch();
         return pitch != null ? pitch : original;
     }
@@ -124,7 +133,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     @Inject(method = "sendMovementPackets", at = @At("TAIL"))
     private void injectSendMovementPacketsReturn(CallbackInfo ci) {
-        RotationManager.onRotationSend();
+        if (!BaritoneHandler.isActive()) { RotationManager.onRotationSend(); }
         EventFlow.post(new PlayerPacketEvent.Post());
     }
 
@@ -143,12 +152,12 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
     float wrapGetYaw(ClientPlayerEntity instance, Operation<Float> original) {
-        return Objects.requireNonNullElse(RotationManager.getHandYaw(), original.call(instance));
+        return BaritoneHandler.isActive() ? original.call(instance) : Objects.requireNonNullElse(RotationManager.getHandYaw(), original.call(instance));
     }
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
     float wrapGetPitch(ClientPlayerEntity instance, Operation<Float> original) {
-        return Objects.requireNonNullElse(RotationManager.getHandPitch(), original.call(instance));
+        return BaritoneHandler.isActive() ? original.call(instance) : Objects.requireNonNullElse(RotationManager.getHandPitch(), original.call(instance));
     }
 
     @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)

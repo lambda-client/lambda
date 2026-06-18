@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.world;
 
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.Entity;
@@ -30,11 +31,11 @@ import static com.lambda.Lambda.getMc;
 public class DirectionMixin {
     @ModifyExpressionValue(method = "getEntityFacingOrder", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw(F)F"))
     private static float modifyGetYaw(float original, Entity entity) {
-        return entity == getMc().player ? RotationManager.getServerRotation().getYawF() : original;
+        return BaritoneHandler.isActive() ? original : entity == getMc().player ? RotationManager.getServerRotation().getYawF() : original;
     }
 
     @ModifyExpressionValue(method = "getEntityFacingOrder", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch(F)F"))
     private static float modifyGetPitch(float original, Entity entity) {
-        return entity == getMc().player ? RotationManager.getServerRotation().getPitchF() : original;
+        return BaritoneHandler.isActive() ? original : entity == getMc().player ? RotationManager.getServerRotation().getPitchF() : original;
     }
 }

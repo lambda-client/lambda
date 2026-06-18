@@ -20,6 +20,7 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
@@ -65,6 +66,8 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
     @ModifyExpressionValue(method = "jump", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"))
     float hookModifyJumpYaw(float original) {
+        if (BaritoneHandler.isActive()) return original;
+
         if (lambda$instance == Lambda.getMc().player) {
             Float yaw = RotationManager.getMovementYaw();
             return yaw == null ? original : yaw;
@@ -89,6 +92,8 @@ public abstract class LivingEntityMixin extends EntityMixin {
      */
     @WrapOperation(method = "calcGlidingVelocity(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))
     private float hookModifyFallFlyingPitch(LivingEntity entity, Operation<Float> original) {
+        if (BaritoneHandler.isActive()) return original.call(entity);
+
         Float pitch = RotationManager.getMovementPitch();
         if (entity != Lambda.getMc().player || pitch == null) return original.call(entity);
 
@@ -118,6 +123,8 @@ public abstract class LivingEntityMixin extends EntityMixin {
      */
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"), slice = @Slice(to = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F", ordinal = 1)))
     private float rotBody(LivingEntity entity, Operation<Float> original) {
+        if (BaritoneHandler.isActive()) return original.call(entity);
+
         if (lambda$instance != Lambda.getMc().player) {
             return original.call(entity);
         }
@@ -149,6 +156,8 @@ public abstract class LivingEntityMixin extends EntityMixin {
      */
     @WrapOperation(method = "turnHead", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"))
     private float rotHead(LivingEntity entity, Operation<Float> original) {
+        if (BaritoneHandler.isActive()) return original.call(entity);
+
         if (lambda$instance != Lambda.getMc().player) {
             return original.call(entity);
         }

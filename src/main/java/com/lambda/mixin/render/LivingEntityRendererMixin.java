@@ -18,6 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.Lambda;
+import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.render.Nametags;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -35,6 +36,8 @@ import static com.lambda.util.math.LinearKt.lerp;
 public class LivingEntityRendererMixin {
     @WrapOperation(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F"))
     private float wrapGetLerpedPitch(LivingEntity livingEntity, float v, Operation<Float> original) {
+        if (BaritoneHandler.isActive()) return original.call(livingEntity, v);
+
         Float headPitch = RotationManager.getHeadPitch();
         if (livingEntity != Lambda.getMc().player || headPitch == null) return original.call(livingEntity, v);
 
