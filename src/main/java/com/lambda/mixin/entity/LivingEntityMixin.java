@@ -185,10 +185,11 @@ public abstract class LivingEntityMixin extends EntityMixin {
     @Inject(method = "travelGliding", at = @At("HEAD"), cancellable = true)
     private void injectTravelGliding(Vec3d movementInput, CallbackInfo ci) {
         if (lambda$instance != Lambda.getMc().player) return;
+        final var grimMode = ElytraFly.getGrimControlMode();
         if (ElytraFly.INSTANCE.isEnabled() &&
                 ElytraFly.getMode() == ElytraFly.FlyMode.GrimControl &&
-                ElytraFly.getGrimControlMode().getNoFlipFlop() &&
-                !ElytraFly.getGrimControlMode().getMoving()
+                !grimMode.getFlipFlopMode().isFlipFlopping().invoke(grimMode.getHasFirework()) &&
+                !grimMode.getMoving()
         ) ci.cancel();
     }
 }

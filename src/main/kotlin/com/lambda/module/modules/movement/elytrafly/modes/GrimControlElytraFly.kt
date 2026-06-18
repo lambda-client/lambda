@@ -29,6 +29,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode
+import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.Timer
 import com.lambda.util.math.MathUtils.toFloat
@@ -45,8 +46,17 @@ import kotlin.time.Duration.Companion.seconds
 class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimControl) {
 	private val inventory by c.setting("Inventory", true, "Allow using fireworks from the players inventory")
 	private val safetyMargin by c.setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
-	val noFlipFlop by c.setting("No Flip Flop", true, "Stops flying completely rather than the usual back and forth.")
-	private val packetGap by c.setting("Packet Gap", 5, 0..100, 1, "The gap between allowing player movement packets to pass") { noFlipFlop }
+	val flipFlopMode by c.setting("Flip Flop Mode", FlipFlopMode.WithFirework)
+	private val packetGap by c.setting("Packet Gap", 20, 0..100, 1, "The gap between allowing player movement packets to pass") { flipFlopMode != FlipFlopMode.None }
+
+	enum class FlipFlopMode(
+		override val displayName: String,
+		val isFlipFlopping: (hasFirework: Boolean) -> Boolean
+	) : NamedEnum {
+		Full("Full", { true }),
+		WithFirework("With Firework", { hasFirework -> hasFirework }),
+		None("None", { false })
+	}
 
 	private var flipFlop = false
 	private var rotFlipFlop = false
@@ -56,12 +66,11 @@ class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimC
 	var moving = false
 	// Seems to be a weird bug with fireworks not showing every second or so i'd say.
 	// This ensures it stays constant to avoid random stutters
-	private var shouldHaveFirework = false
+	var hasFirework = false
 	private val stillTickTimer = TickTimer()
 
 	init {
 		listen<TickEvent.Pre> {
-			shouldHaveFirework = shouldHaveFirework or player.hasFirework
 			if (!player.isGliding) return@listen
 
 			var vec = Vec3d.ZERO
@@ -73,52 +82,46 @@ class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimC
 			if (mc.options.jumpKey.isPressed) vec = vec.add(Vec3d(0.0, 1.0, 0.0))
 			if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
 
+			val prevStill = still
 			still = vec.lengthSquared() < 1e-4
 			if (still) moving = false
 
-			if (still && noFlipFlop) {
+			if (still && flipFlopMode != FlipFlopMode.Full) {
 				stillTickTimer.tick()
-				if (!player.hasFirework) shouldHaveFirework = false
-				return@listen
+				hasFirework = player.hasFirework
+				if (!flipFlopMode.isFlipFlopping(hasFirework)) return@listen
 			} else {
-				val firework = findFirework()
 				if (fireworkTimer.timePassed(lastDuration.seconds - safetyMargin.seconds)) {
-					if (firework == null) shouldHaveFirework = false
-					else {
-						lastDuration = (firework.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
-						startFirework(inventory)
-						fireworkTimer.reset()
-					}
+					val firework = findFirework()
+					hasFirework = firework != null
+					if (firework == null) return@listen
+					lastDuration = (firework.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
+					startFirework(inventory)
+					fireworkTimer.reset()
 				}
 			}
 
-			if (!shouldHaveFirework) return@listen
-
 			if (still) {
-				if (flipFlop) {
-					flipFlop = false
-					rotationRequest { rotation(0f, 0f) }
-				} else {
-					flipFlop = true
-					rotationRequest { rotation(180f, 0f) }
-				}
+				rotationRequest { rotation(if (flipFlop) 0.0 else 180.0, 0.0) }.submit()
+				flipFlop = !flipFlop
 			} else {
 				moving = true
+				if (prevStill && !player.hasFirework) player.velocity = Vec3d.ZERO
 				val rot = vec.yawAndPitch
-				rotationRequest { rotation(rot.y, rot.x) }
-			}.submit()
+				rotationRequest { rotation(rot.y, rot.x) }.submit()
+			}
 		}
 
 		listen<PlayerPacketEvent.Send> { event ->
-			if (!player.isGliding || !noFlipFlop) return@listen
+			if (!player.isGliding) return@listen
 			val rot = RotationManager.activeRotation
-			val flipFlop = rotFlipFlop.toFloat() * 0.001f
+			val flipFlop = rotFlipFlop.toFloat() * 0.0001f
 			rotFlipFlop = !rotFlipFlop
 			event.packet = PlayerMoveC2SPacket.Full(player.pos, rot.yawF + flipFlop, rot.pitchF, player.isOnGround, player.horizontalCollision)
 		}
 
 		listen<PacketEvent.Send.Pre> { event ->
-			if (event.packet !is PlayerMoveC2SPacket || !player.isGliding || !noFlipFlop || !still) return@listen
+			if (event.packet !is PlayerMoveC2SPacket || !player.isGliding || flipFlopMode.isFlipFlopping(hasFirework) || moving) return@listen
 			if (stillTickTimer.hasSurpassed(packetGap)) {
 				stillTickTimer.reset()
 				return@listen
