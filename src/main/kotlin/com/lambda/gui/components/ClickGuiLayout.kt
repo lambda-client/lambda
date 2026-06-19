@@ -43,6 +43,7 @@ import com.lambda.imgui.extension.implot.ImPlot
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiCond
 import com.lambda.imgui.flag.ImGuiHoveredFlags
+import com.lambda.imgui.flag.ImGuiPopupFlags
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.Client
@@ -301,6 +302,19 @@ object ClickGuiLayout : Loadable, Config(
 						)
 						drawDragGrid()
 					}
+				}
+
+				// A left click on empty space — not over any window and with no popup
+				// open — closes the GUI (click-outside-to-dismiss). When a popup/menu is
+				// open, the same click only dismisses that popup, so the GUI stays open.
+				if (
+					activeDragWindowName == null &&
+					mousePressedThisFrameGlobal &&
+					!ImGui.isWindowHovered(ImGuiHoveredFlags.AnyWindow) &&
+					!ImGui.isPopupOpen("", ImGuiPopupFlags.AnyPopup)
+				) {
+					toggle()
+					return@buildLayout
 				}
 
 				val tags = if (developerMode) shownTags + ModuleTag.DEBUG else shownTags
