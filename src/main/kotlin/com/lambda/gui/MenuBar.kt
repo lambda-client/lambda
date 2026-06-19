@@ -265,7 +265,6 @@ object MenuBar {
     private fun ImGuiBuilder.buildModulesMenu() {
         menu("Module Tag") {
             ModuleTag.defaults.forEach { tag ->
-                // checkbox so the dropdown stays open while toggling several tags.
                 checkbox(tag.name, ImBoolean(ModuleTag.isTagShown(tag))) {
                     ModuleTag.toggleTag(tag)
                 }
@@ -278,8 +277,6 @@ object MenuBar {
                 ModuleRegistry.modules
                     .filter { it.tag == tag }
                     .forEach { module ->
-                        // checkbox (not menuItem) so the dropdown stays open while
-                        // toggling several modules in a row.
                         checkbox(module.name, module::showInClickGui)
                     }
             }
