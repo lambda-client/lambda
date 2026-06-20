@@ -21,15 +21,27 @@ import com.lambda.config.ConfigBlock
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
+import com.lambda.interaction.managers.inventory.InventoryRequest
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
+import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.threading.runSafe
+import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.player.SlotUtils.armorSlots
+import com.lambda.util.player.SlotUtils.hotbarSlots
+import com.lambda.util.player.SlotUtils.inventorySlots
 import net.minecraft.entity.Entity
+import net.minecraft.entity.EquipmentSlot
+import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
+import net.minecraft.screen.slot.Slot
 
 abstract class ElytraFlyMode(
 	val flyMode: FlyMode
 ) : Muteable, Automated by ElytraFly, ConfigBlock {
-	override val isMuted get() = ElytraFly.isMuted || ElytraFly.mode != flyMode
+	override val isMuted get() = !isEnabled
+	val isEnabled get() = ElytraFly.isEnabled && ElytraFly.mode == flyMode
 
 	val onEnableListeners = mutableListOf<SafeContext.() -> Unit>()
 	val onDisableListeners = mutableListOf<SafeContext.() -> Unit>()
@@ -41,6 +53,61 @@ abstract class ElytraFlyMode(
 	fun onFlag(callback: SafeContext.() -> Unit) { onFlagListeners.add(callback) }
 
 	open fun isGliding(): Boolean? = runSafe { player.getFlag(Entity.GLIDING_FLAG_INDEX) }
+
+	fun SafeContext.flyOrFakeFly() {
+		if (!fakeFly) {
+			startFly()
+			return
+		}
+
+		player.inventory.equipment.get(EquipmentSlot.CHEST).let { chestStack ->
+			if (chestStack.item == Items.ELYTRA) {
+				logError("Fake Fly requires that you don't have an elytra equipped")
+				ElytraFly.disable()
+				return
+			}
+		}
+
+		val elytraSlot = findElytra() ?: run {
+			logError("Fake Fly requires an elytra in your inventory, preferably in your hotbar.")
+			ElytraFly.disable()
+			return
+		}
+		val elytraInHotbar = elytraSlot.index in 0..8
+
+		val chestSlot = player.armorSlots[1]
+		val chestSlotEmpty = chestSlot.stack.isEmpty
+
+		fun InventoryRequest.InvRequestBuilder.swapChest() {
+			if (elytraInHotbar) swap(chestSlot.id, elytraSlot.index)
+			else {
+				moveSlot(elytraSlot.id, chestSlot.id)
+				if (!chestSlotEmpty) pickup(elytraSlot.id)
+			}
+		}
+
+		inventoryRequest {
+			swapChest()
+			action { startFly() }
+			swapChest()
+		}.submit(false)
+	}
+
+	fun SafeContext.findElytra(): Slot? =
+		selectStack {
+			isItem(Items.ELYTRA)
+				.and { it.damage < it.maxDamage }
+		}.run {
+			filterSlots(player.hotbarSlots)
+				.firstOrNull()
+				?: filterSlots(player.inventorySlots)
+					.firstOrNull()
+		}
+
+	fun SafeContext.startFly() {
+		player.setFlag(Entity.GLIDING_FLAG_INDEX, true)
+		startFlyPacket()
+	}
 
 	protected fun SafeContext.startFlyPacket() =
 		connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))

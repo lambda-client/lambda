@@ -18,8 +18,8 @@
 package com.lambda.util
 
 import net.minecraft.client.network.ClientPlayNetworkHandler
-import net.minecraft.network.ClientConnection
 import net.minecraft.network.listener.ClientPlayPacketListener
+import net.minecraft.network.listener.PacketListener
 import net.minecraft.network.listener.ServerPlayPacketListener
 import net.minecraft.network.packet.Packet
 
@@ -35,7 +35,7 @@ object PacketUtils {
      * and send it through the client's event bus.
      */
     fun ClientPlayNetworkHandler.sendPacketSilently(packet: Packet<*>) {
-        if (!connection.isOpen || connection.packetListener?.accepts(packet) == true) return
+        if (!connection.isOpen) return
 
         connection.send(packet, null, true)
         connection.packetsSentCounter++
@@ -49,7 +49,8 @@ object PacketUtils {
     fun ClientPlayNetworkHandler.handlePacketSilently(packet: Packet<*>) {
         if (!connection.isOpen || connection.packetListener?.accepts(packet) == false) return
 
-        ClientConnection.handlePacket(packet, connection.packetListener)
+        @Suppress("UNCHECKED_CAST")
+        (packet as Packet<PacketListener>).apply(connection.packetListener as PacketListener)
         connection.packetsReceivedCounter++
     }
 }

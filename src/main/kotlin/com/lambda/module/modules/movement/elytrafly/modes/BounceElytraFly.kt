@@ -21,34 +21,31 @@ import com.lambda.config.Config
 import com.lambda.config.Group
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.BaritoneHandler
-import com.lambda.interaction.managers.inventory.InventoryRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.hud.Speedometer
 import com.lambda.module.modules.movement.BetterFirework.isElytraEquipped
-import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
+import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.module.modules.movement.elytrafly.ObstaclePassingMode
 import com.lambda.module.modules.movement.elytrafly.PasserSettings
 import com.lambda.threading.runSafe
-import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.PacketUtils.handlePacketSilently
+import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
-import com.lambda.util.player.SlotUtils.armorSlots
-import com.lambda.util.player.SlotUtils.hotbarSlots
-import com.lambda.util.player.SlotUtils.inventorySlots
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
-import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.item.Items
-import net.minecraft.screen.slot.Slot
+import net.minecraft.network.packet.Packet
+import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.util.math.Vec3d
+import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.math.abs
 
 class BounceElytraFly(
@@ -63,9 +60,9 @@ class BounceElytraFly(
 	private val autoPitch by c.setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds")
 	private val pitch by c.setting("Pitch", 80.0, -90.0..90.0, 0.000001) { autoPitch }
 	private val jump by c.setting("Jump", true, "Automatically jumps")
-	private val fakeFly by c.setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
 	private val flagPause by c.setting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
 	private val minimizePackets by c.setting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
+	private val fakeLag by c.setting("Fake Lag", true, "Emulates the player lagging to allow flying in 1x2 tunnels")
 
 	@Group(Y_MOTION_GROUP) val yMotionSetting by c.setting("Y Motion", false, "Cancels the players y velocity to aid speed")
 	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { yMotionSetting }
@@ -87,6 +84,8 @@ class BounceElytraFly(
 	private var jumpThisTick = false
 	private var prevGliding: Boolean? = null
 	private val pauseTimer = TickTimer()
+	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
+	private val sendPacketQueue = LinkedList<Packet<*>>()
 
 	private val ClientPlayerEntity.canTakeoff: Boolean
 		get() = (isOnGround || canOpenElytra) && (isElytraEquipped xor fakeFly)
@@ -100,6 +99,10 @@ class BounceElytraFly(
 				!this.hasVehicle() &&
 				!this.hasStatusEffect(StatusEffects.LEVITATION)
 
+	private val SafeContext.queuePackets
+		get() = fakeLag && player.isGliding &&
+			player.y - startPos.y < if (passerConfig.passObstacles) passerConfig.minObstacleHeight + 0.1 else 0.163
+
 	init {
 		listen<TickEvent.Pre> {
 			pauseTimer.tick()
@@ -112,52 +115,15 @@ class BounceElytraFly(
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
-					if (player.canOpenElytra) {
-						player.startGliding()
-						startFlyPacket()
-					} else jumpThisTick = true
+					if (player.canOpenElytra) flyOrFakeFly()
+					else jumpThisTick = true
 				}
 				return@listen
 			}
 
 			if (minimizePackets && player.getFlag(Entity.GLIDING_FLAG_INDEX) && !fakeFly && !yMotion) return@listen
 			
-			if (!fakeFly) {
-				fly()
-				return@listen
-			}
-
-			player.inventory.equipment.get(EquipmentSlot.CHEST).let { chestStack ->
-				if (chestStack.item == Items.ELYTRA) {
-					logError("Fake Fly requires that you don't have an elytra equipped")
-					ElytraFly.disable()
-					return@listen
-				}
-			}
-
-			val elytraSlot = findElytra() ?: run {
-				logError("Fake Fly requires an elytra in your inventory, preferably in your hotbar.")
-				ElytraFly.disable()
-				return@listen
-			}
-			val elytraInHotbar = elytraSlot.index in 0..8
-
-			val chestSlot = player.armorSlots[1]
-			val chestSlotEmpty = chestSlot.stack.isEmpty
-
-			fun InventoryRequest.InvRequestBuilder.swapChest() {
-				if (elytraInHotbar) swap(chestSlot.id, elytraSlot.index)
-				else {
-					moveSlot(elytraSlot.id, chestSlot.id)
-					if (!chestSlotEmpty) pickup(elytraSlot.id)
-				}
-			}
-
-			inventoryRequest {
-				swapChest()
-				action { fly() }
-				swapChest()
-			}.submit(false)
+			flyOrFakeFly()
 		}
 
 		listen<MovementEvent.InputUpdate> { event ->
@@ -167,23 +133,30 @@ class BounceElytraFly(
 			}
 		}
 
-		onFlag { pauseTimer.reset() }
-	}
+		listen<PacketEvent.Send.Pre>({ 1 }) { event ->
+			if (queuePackets) {
+				sendPacketQueue.add(event.packet)
+				event.cancel()
+				return@listen
+			}
 
-	fun SafeContext.findElytra(): Slot? =
-		selectStack {
-			isItem(Items.ELYTRA)
-				.and { it.damage < it.maxDamage }
-		}.run {
-			filterSlots(player.hotbarSlots)
-				.firstOrNull()
-				?: filterSlots(player.inventorySlots)
-					.firstOrNull()
+			while (sendPacketQueue.isNotEmpty()) {
+				val packet = sendPacketQueue.poll()
+				connection.sendPacketSilently(packet)
+			}
+			while (pingPackets.isNotEmpty()) {
+				val packet = pingPackets.poll()
+				connection.handlePacketSilently(packet)
+			}
+		}
+		listen<PacketEvent.Receive.Pre>({ 1 }) { event ->
+			if (event.packet is CommonPingS2CPacket && queuePackets) {
+				pingPackets.add(event.packet)
+				event.cancel()
+			}
 		}
 
-	fun SafeContext.fly() {
-		player.setFlag(Entity.GLIDING_FLAG_INDEX, true)
-		startFlyPacket()
+		onFlag { pauseTimer.reset() }
 	}
 
 	fun getModifiedVelocity(original: Vec3d) =

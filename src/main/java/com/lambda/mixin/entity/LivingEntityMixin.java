@@ -186,7 +186,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
     private boolean injectIsGliding(boolean original) {
         if (lambda$instance != Lambda.getMc().player) return original;
 
-        return (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)
+        return ElytraFly.getBounceMode().isEnabled()
                 ? ElytraFly.getBounceMode().isGliding()
                 : original;
     }
@@ -195,8 +195,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
     private void injectTravelGliding(Vec3d movementInput, CallbackInfo ci) {
         if (lambda$instance != Lambda.getMc().player) return;
         final var grimMode = ElytraFly.getGrimControlMode();
-        if (ElytraFly.INSTANCE.isEnabled() &&
-                ElytraFly.getMode() == ElytraFly.FlyMode.GrimControl &&
+        if (ElytraFly.getGrimControlMode().isEnabled() &&
                 !grimMode.getFlipFlopMode().isFlipFlopping().invoke(grimMode.getHasFirework()) &&
                 !grimMode.getMoving()
         ) ci.cancel();

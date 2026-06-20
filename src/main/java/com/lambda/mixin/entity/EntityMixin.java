@@ -23,7 +23,6 @@ import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
-import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.util.math.Vec2d;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -181,7 +180,7 @@ public abstract class EntityMixin {
         var player = getMc().player;
         if ((Object) this != getMc().player) return original;
 
-        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == FlyMode.Bounce && player.isGliding())
+        if (ElytraFly.getBounceMode().isEnabled() && player.isGliding())
             return true;
 
         return original;
@@ -192,7 +191,7 @@ public abstract class EntityMixin {
         var player = getMc().player;
         if ((Object) this != getMc().player) return original;
 
-        if (ElytraFly.INSTANCE.isDisabled() || ElytraFly.getMode() != FlyMode.Bounce || !player.isGliding()) return original;
+        if (!ElytraFly.getBounceMode().isEnabled() || !player.isGliding()) return original;
 
         return EntityPose.GLIDING;
     }
@@ -204,7 +203,7 @@ public abstract class EntityMixin {
 
     @Inject(method = "getVelocity", at = @At("HEAD"), cancellable = true)
     private void injectGetVelocity(CallbackInfoReturnable<Vec3d> cir) {
-        if (ElytraFly.INSTANCE.isDisabled() || ElytraFly.getMode() != FlyMode.Bounce) return;
+        if (!ElytraFly.getBounceMode().isEnabled()) return;
         cir.setReturnValue(ElytraFly.getBounceMode().getModifiedVelocity(velocity));
     }
 }

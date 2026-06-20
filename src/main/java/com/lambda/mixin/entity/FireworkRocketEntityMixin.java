@@ -30,8 +30,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public class FireworkRocketEntityMixin {
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"))
     private void wrapSetVelocity(LivingEntity shooter, Vec3d vec3d, Operation<Void> original) {
-        if (ElytraFly.INSTANCE.isEnabled()) {
-            ElytraFly.boostRocket();
-        } else original.call(shooter, vec3d);
+        if (ElytraFly.INSTANCE.isEnabled()) ElytraFly.boostRocket();
+        else original.call(shooter, vec3d);
     }
 }

@@ -51,6 +51,7 @@ object ElytraFly : Module(
 
     private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you")
+    val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
 
     private const val BOUNCE_TAB = "Bounce"

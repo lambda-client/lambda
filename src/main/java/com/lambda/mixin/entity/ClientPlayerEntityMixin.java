@@ -105,7 +105,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     @Inject(method = "tickMovement", at = @At("RETURN"))
     private void injectTickMovement(CallbackInfo ci) {
-        if (NoJumpCooldown.INSTANCE.isEnabled() || (ElytraFly.INSTANCE.isEnabled() && ElytraFly.getMode() == ElytraFly.FlyMode.Bounce)) jumpingCooldown = 0;
+        if (NoJumpCooldown.INSTANCE.isEnabled() || ElytraFly.getBounceMode().isEnabled()) jumpingCooldown = 0;
     }
 
     @ModifyExpressionValue(method = "sendMovementPackets", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))

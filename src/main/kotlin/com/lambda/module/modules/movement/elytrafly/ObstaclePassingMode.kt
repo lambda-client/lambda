@@ -180,9 +180,11 @@ abstract class ObstaclePassingMode(
 			flooredBlockPos.down().let { downPos ->
 				!safeContext.blockState(downPos).isSolidBlock(safeContext.world, downPos)
 			} ||
-					add(0.0, passerConfig.minObstacleHeight, 0.0).rayCastObstructed(direction) ||
-					add(0.0, 1.01, 0.0).rayCastObstructed(direction) ||
-					add(0.0, 1.99, 0.0).rayCastObstructed(direction)
+					if (add(0.0, passerConfig.minObstacleHeight, 0.0).rayCastObstructed(direction)) true
+					else if (passerConfig.headHitters) {
+						(add(0.0, 1.01, 0.0).rayCastObstructed(direction) ||
+								add(0.0, 1.99, 0.0).rayCastObstructed(direction))
+					} else false
 		}
 
 	context(safeContext: SafeContext)
@@ -200,7 +202,8 @@ class PasserSettings(override val c: Config) : ConfigBlock {
 	val passObstacles by c.setting("Pass Obstacles", true, "Automatically paths around obstacles using baritone")
 	val walkWhenFlagged by c.setting("Walk When Flagged", true, "Triggers obstacle passer when the server forces your position (typically getting flagged by the anticheat)") { passObstacles }
 	val minObstacleHeight by c.setting("Min Obstacle Height", 0.063, 0.0..1.0, 0.0001, "The minimum height an obstacle must be above the ground to trigger obstacle passer") { passObstacles }
+	val headHitters by c.setting("Head Hitters", true, "Flags obstacles above the y level you started flying at") { passObstacles }
 	val acceptableOffsetRange by c.setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { passObstacles }
-	val obstacleLookAhead by c.setting("Obstacle Look-Ahead", 15, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { passObstacles }
+	val obstacleLookAhead by c.setting("Obstacle Look-Ahead", 8, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { passObstacles }
 	val directionStep by c.setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { passObstacles }
 }
