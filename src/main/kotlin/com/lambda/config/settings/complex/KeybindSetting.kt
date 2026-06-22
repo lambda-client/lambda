@@ -18,6 +18,7 @@
 package com.lambda.config.settings.complex
 
 import com.fasterxml.jackson.annotation.JsonIncludeProperties
+import com.lambda.Lambda.mc
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.boolean
@@ -26,7 +27,6 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
-import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
@@ -35,12 +35,12 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.threading.runSafe
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui.isMouseClicked
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiHoveredFlags
 import com.lambda.imgui.flag.ImGuiMouseButton
+import com.lambda.threading.runSafe
 import com.lambda.util.InputUtils
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse

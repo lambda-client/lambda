@@ -20,7 +20,6 @@ package com.lambda.config.automation
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
 import com.lambda.config.Tab
-import com.lambda.config.categories.AutomationCategory
 import com.lambda.config.blocks.BreakSettings
 import com.lambda.config.blocks.BuildSettings
 import com.lambda.config.blocks.EatSettings
@@ -28,6 +27,7 @@ import com.lambda.config.blocks.HotbarSettings
 import com.lambda.config.blocks.InteractSettings
 import com.lambda.config.blocks.InventorySettings
 import com.lambda.config.blocks.RotationSettings
+import com.lambda.config.categories.AutomationCategory
 import com.lambda.context.Automated
 import com.lambda.module.Module
 

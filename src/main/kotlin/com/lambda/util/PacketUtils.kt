@@ -47,7 +47,7 @@ object PacketUtils {
      * and send it through the client's event bus.
      */
     fun ClientPlayNetworkHandler.handlePacketSilently(packet: Packet<*>) {
-        if (!connection.isOpen || connection.packetListener?.accepts(packet) == false) return
+        if (!connection.isOpen || connection.packetListener?.accepts(packet) != true) return
 
         @Suppress("UNCHECKED_CAST")
         (packet as Packet<PacketListener>).apply(connection.packetListener as PacketListener)

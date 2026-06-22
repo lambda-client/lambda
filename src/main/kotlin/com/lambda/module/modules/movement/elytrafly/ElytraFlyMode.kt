@@ -21,6 +21,8 @@ import com.lambda.config.ConfigBlock
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -47,16 +49,23 @@ abstract class ElytraFlyMode(
 	val onDisableListeners = mutableListOf<SafeContext.() -> Unit>()
 	val onFlagListeners = mutableListOf<SafeContext.() -> Unit>()
 
-	fun onEnable(callback: SafeContext.() -> Unit) { onEnableListeners.add(callback) }
-	fun onDisable(callback: SafeContext.() -> Unit) { onDisableListeners.add(callback) }
+	var fakeGliding = false
 
-	fun onFlag(callback: SafeContext.() -> Unit) { onFlagListeners.add(callback) }
+	init{
+		listen<TickEvent.Pre>({ 100 }) {
+			fakeGliding = fakeFly && fakeGliding && player.canGlide()
+		}
+	}
 
-	open fun isGliding(): Boolean? = runSafe { player.getFlag(Entity.GLIDING_FLAG_INDEX) }
+	protected fun onEnable(callback: SafeContext.() -> Unit) { onEnableListeners.add(callback) }
+	protected fun onDisable(callback: SafeContext.() -> Unit) { onDisableListeners.add(callback) }
 
-	fun SafeContext.flyOrFakeFly() {
+	protected fun onFlag(callback: SafeContext.() -> Unit) { onFlagListeners.add(callback) }
+
+	fun SafeContext.flyOrFakeFly(onFly: (SafeContext.() -> Unit)? = null) {
 		if (!fakeFly) {
 			startFly()
+			onFly?.invoke(this)
 			return
 		}
 
@@ -76,21 +85,20 @@ abstract class ElytraFlyMode(
 		val elytraInHotbar = elytraSlot.index in 0..8
 
 		val chestSlot = player.armorSlots[1]
-		val chestSlotEmpty = chestSlot.stack.isEmpty
 
 		fun InventoryRequest.InvRequestBuilder.swapChest() {
 			if (elytraInHotbar) swap(chestSlot.id, elytraSlot.index)
 			else {
 				moveSlot(elytraSlot.id, chestSlot.id)
-				if (!chestSlotEmpty) pickup(elytraSlot.id)
+				if (!chestSlot.stack.isEmpty) pickup(elytraSlot.id)
 			}
 		}
 
 		inventoryRequest {
 			swapChest()
-			action { startFly() }
+			action { startFly(); onFly?.invoke(this) }
 			swapChest()
-		}.submit(false)
+		}.submit()
 	}
 
 	fun SafeContext.findElytra(): Slot? =
@@ -104,11 +112,14 @@ abstract class ElytraFlyMode(
 					.firstOrNull()
 		}
 
-	fun SafeContext.startFly() {
+	protected fun SafeContext.startFly() {
 		player.setFlag(Entity.GLIDING_FLAG_INDEX, true)
 		startFlyPacket()
+		fakeGliding = true
 	}
 
 	protected fun SafeContext.startFlyPacket() =
 		connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
+
+	open fun isGliding() = runSafe { player.getFlag(Entity.GLIDING_FLAG_INDEX) || (fakeFly && fakeGliding) } == true
 }

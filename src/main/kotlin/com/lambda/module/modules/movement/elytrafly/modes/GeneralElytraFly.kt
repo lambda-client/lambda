@@ -18,8 +18,15 @@
 package com.lambda.module.modules.movement.elytrafly.modes
 
 import com.lambda.config.Config
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode
 
-class ControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimControl) {
+class GeneralElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.General) {
+	init {
+		listen<TickEvent.Pre> {
+			if (fakeGliding) flyOrFakeFly()
+		}
+	}
 }

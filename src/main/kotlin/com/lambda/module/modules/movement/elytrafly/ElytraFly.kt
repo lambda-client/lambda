@@ -28,9 +28,8 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.elytrafly.modes.BounceElytraFly
-import com.lambda.module.modules.movement.elytrafly.modes.ControlElytraFly
+import com.lambda.module.modules.movement.elytrafly.modes.GeneralElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.GrimControlElytraFly
-import com.lambda.module.modules.movement.elytrafly.modes.PacketElytraFly
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.isElytraFlying
@@ -40,29 +39,31 @@ import net.minecraft.sound.SoundEvents
 
 object ElytraFly : Module(
     name = "ElytraFly",
-    description = "Allows you to fly with an elytra",
+    description = "Modifies elytra functionality to allow for more control",
     tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic val mode by setting("Fly Mode", FlyMode.Bounce)
         .onValueChange { from, to ->
-            from.elytraFly?.onDisableListeners?.forEach { it() }
-            to.elytraFly?.onEnableListeners?.forEach { it() }
+            from.elytraFly.onDisableListeners.forEach { it() }
+            to.elytraFly.onEnableListeners.forEach { it() }
         }
 
     private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you")
-    val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
+    val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
 
     private const val BOUNCE_TAB = "Bounce"
     private const val CONTROL_TAB = "Control"
     private const val GRIM_CONTROL_TAB = "Grim Control"
     private const val PACKET_TAB = "Packet"
+    private const val GENERAL_TAB = "None"
 
+    @Tab(GENERAL_TAB) @JvmStatic val generalMode by configBlock(GeneralElytraFly(this))
     @Tab(BOUNCE_TAB) @JvmStatic val bounceMode by configBlock(BounceElytraFly(this))
     @Tab(GRIM_CONTROL_TAB) @JvmStatic val grimControlMode by configBlock(GrimControlElytraFly(this))
-    @Tab(CONTROL_TAB) @JvmStatic val controlMode by configBlock(ControlElytraFly(this))
-    @Tab(PACKET_TAB) @JvmStatic val packetMode by configBlock(PacketElytraFly(this))
+//    @Tab(CONTROL_TAB) @JvmStatic val controlMode by configBlock(ControlElytraFly(this))
+//    @Tab(PACKET_TAB) @JvmStatic val packetMode by configBlock(PacketElytraFly(this))
 
     init {
         setDefaultAutomationConfig()
@@ -70,12 +71,12 @@ object ElytraFly : Module(
 	            hideAllExcept(::inventoryConfig, ::rotationConfig)
             }
 
-        onEnable { mode.elytraFly?.onEnableListeners?.forEach { it() } }
-        onDisable { mode.elytraFly?.onDisableListeners?.forEach { it() } }
+        onEnable { mode.elytraFly.onEnableListeners.forEach { it() } }
+        onDisable { mode.elytraFly.onDisableListeners.forEach { it() } }
 
         listen<PacketEvent.Receive.Pre> { event ->
             if (event.packet !is PlayerPositionLookS2CPacket) return@listen
-            mode.elytraFly?.onFlagListeners?.forEach { it() }
+            mode.elytraFly.onFlagListeners.forEach { it() }
         }
 
         listen<MovementEvent.Player.Pre> {
@@ -106,12 +107,12 @@ object ElytraFly : Module(
 	    )
     }
 
-    enum class FlyMode(private val elytraFlyGetter: () -> ElytraFlyMode?) {
+    enum class FlyMode(private val elytraFlyGetter: () -> ElytraFlyMode) {
         Bounce({ bounceMode }),
-        Control({ controlMode }),
+//        Control({ controlMode }),
         GrimControl({ grimControlMode }),
-        Packet({ packetMode }),
-        None({ null });
+//        Packet({ packetMode }),
+        General({ generalMode });
 
         val elytraFly get() = elytraFlyGetter()
     }

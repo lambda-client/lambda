@@ -19,6 +19,7 @@ package com.lambda.module.modules.movement.elytrafly.modes
 
 import com.lambda.config.Config
 import com.lambda.config.Group
+import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
@@ -40,7 +41,6 @@ import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.util.math.Vec3d
@@ -63,6 +63,7 @@ class BounceElytraFly(
 	private val flagPause by c.setting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
 	private val minimizePackets by c.setting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
 	private val fakeLag by c.setting("Fake Lag", true, "Emulates the player lagging to allow flying in 1x2 tunnels")
+		.onValueChange { _, to -> if (!to) flushPackets() }
 
 	@Group(Y_MOTION_GROUP) val yMotionSetting by c.setting("Y Motion", false, "Cancels the players y velocity to aid speed")
 	@Group(Y_MOTION_GROUP) val onlyOnDiagonal: Boolean by c.setting("Only On Diagonal", true, "Only use y motion when the player is flying on a non-axial angle") { yMotionSetting }
@@ -91,17 +92,11 @@ class BounceElytraFly(
 		get() = (isOnGround || canOpenElytra) && (isElytraEquipped xor fakeFly)
 
 	private val ClientPlayerEntity.canOpenElytra: Boolean
-		get() = !isGliding &&
-				!isClimbing &&
-				!isTouchingWater &&
-				!abilities.flying &&
-				!isOnGround &&
-				!this.hasVehicle() &&
-				!this.hasStatusEffect(StatusEffects.LEVITATION)
+		get() = !isGliding && !isClimbing && canGlide()
 
 	private val SafeContext.queuePackets
-		get() = fakeLag && player.isGliding &&
-			player.y - startPos.y < if (passerConfig.passObstacles) passerConfig.minObstacleHeight + 0.1 else 0.163
+		get() = fakeLag && player.isGliding && !yMotion &&
+				player.y - startPos.y < if (passerConfig.passObstacles) passerConfig.minObstacleHeight + 0.1 else 0.163
 
 	init {
 		listen<TickEvent.Pre> {
@@ -140,14 +135,7 @@ class BounceElytraFly(
 				return@listen
 			}
 
-			while (sendPacketQueue.isNotEmpty()) {
-				val packet = sendPacketQueue.poll()
-				connection.sendPacketSilently(packet)
-			}
-			while (pingPackets.isNotEmpty()) {
-				val packet = pingPackets.poll()
-				connection.handlePacketSilently(packet)
-			}
+			flushPackets()
 		}
 		listen<PacketEvent.Receive.Pre>({ 1 }) { event ->
 			if (event.packet is CommonPingS2CPacket && queuePackets) {
@@ -157,6 +145,19 @@ class BounceElytraFly(
 		}
 
 		onFlag { pauseTimer.reset() }
+
+		onDisable { flushPackets() }
+	}
+
+	private fun SafeContext.flushPackets() {
+		while (sendPacketQueue.isNotEmpty()) {
+			val packet = sendPacketQueue.poll()
+			connection.sendPacketSilently(packet)
+		}
+		while (pingPackets.isNotEmpty()) {
+			val packet = pingPackets.poll()
+			connection.handlePacketSilently(packet)
+		}
 	}
 
 	fun getModifiedVelocity(original: Vec3d) =
@@ -165,15 +166,15 @@ class BounceElytraFly(
 			else Vec3d(original.x, 0.0, original.z)
 		} ?: original
 
-	override fun isGliding(): Boolean? = runSafe {
-		val original: Boolean = player.getFlag(Entity.GLIDING_FLAG_INDEX)
-		return if (
-			prevGliding == true &&
-			pauseTimer.hasSurpassed(flagPause) &&
-			!BaritoneHandler.isActive) true
-		else {
-			prevGliding = original
-			original
-		}
-	}
+	override fun isGliding() =
+		runSafe {
+			val original: Boolean = player.getFlag(Entity.GLIDING_FLAG_INDEX)
+			if (prevGliding == true &&
+				pauseTimer.hasSurpassed(flagPause) &&
+				!BaritoneHandler.isActive) true
+			else {
+				prevGliding = original
+				original
+			}
+		} == true
 }

@@ -18,6 +18,8 @@
 package com.lambda.module.modules.combat.autodisconnect
 
 import com.lambda.Lambda
+import com.lambda.config.Group
+import com.lambda.config.Tab
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -61,9 +63,7 @@ import net.minecraft.util.Identifier
 import net.minecraft.world.GameMode
 import java.awt.Color
 import java.time.Instant
-import java.util.BitSet
-import com.lambda.config.Group
-import com.lambda.config.Tab
+import java.util.*
 
 @Suppress("unused")
 object AutoDisconnect : Module(

@@ -29,6 +29,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode
+import com.lambda.module.modules.render.Freecam
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.Timer
@@ -43,7 +44,9 @@ import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.seconds
 
-class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimControl) {
+class GrimControlElytraFly(
+	override val c: Config
+) : ElytraFlyMode(FlyMode.GrimControl) {
 	private val inventory by c.setting("Inventory", true, "Allow using fireworks from the players inventory")
 	private val safetyMargin by c.setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
 	val flipFlopMode by c.setting("Flip Flop Mode", FlipFlopMode.WithFirework)
@@ -83,12 +86,13 @@ class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimC
 			if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
 
 			val prevStill = still
-			still = vec.lengthSquared() < 1e-4
+			still = (vec.lengthSquared() < 1e-4 || Freecam.isEnabled)
 			if (still) moving = false
 
 			if (still && flipFlopMode != FlipFlopMode.Full) {
 				stillTickTimer.tick()
 				hasFirework = player.hasFirework
+				checkGliding()
 				if (!flipFlopMode.isFlipFlopping(hasFirework)) return@listen
 			} else {
 				if (fireworkTimer.timePassed(lastDuration.seconds - safetyMargin.seconds)) {
@@ -96,9 +100,9 @@ class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimC
 					hasFirework = firework != null
 					if (firework == null) return@listen
 					lastDuration = (firework.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
-					startFirework(inventory)
+					checkGliding { startFirework(inventory) }
 					fireworkTimer.reset()
-				}
+				} else checkGliding()
 			}
 
 			if (still) {
@@ -128,6 +132,11 @@ class GrimControlElytraFly(override val c: Config) : ElytraFlyMode(FlyMode.GrimC
 			}
 			event.cancel()
 		}
+	}
+
+	private fun SafeContext.checkGliding(onFly: (SafeContext.() -> Unit)? = null) {
+		if (fakeGliding) flyOrFakeFly(onFly)
+		else onFly?.invoke(this)
 	}
 
 	private fun SafeContext.findFirework(): ItemStack? {

@@ -44,6 +44,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import static com.lambda.threading.ThreadingKt.runSafe;
+
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
 
@@ -186,8 +188,8 @@ public abstract class LivingEntityMixin extends EntityMixin {
     private boolean injectIsGliding(boolean original) {
         if (lambda$instance != Lambda.getMc().player) return original;
 
-        return ElytraFly.getBounceMode().isEnabled()
-                ? ElytraFly.getBounceMode().isGliding()
+        return ElytraFly.INSTANCE.isEnabled()
+                ? ElytraFly.getMode().getElytraFly().isGliding()
                 : original;
     }
 
@@ -199,5 +201,16 @@ public abstract class LivingEntityMixin extends EntityMixin {
                 !grimMode.getFlipFlopMode().isFlipFlopping().invoke(grimMode.getHasFirework()) &&
                 !grimMode.getMoving()
         ) ci.cancel();
+    }
+
+    @ModifyExpressionValue(method = "canGlide", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;canGlideWith(Lnet/minecraft/item/ItemStack;Lnet/minecraft/entity/EquipmentSlot;)Z"))
+    private boolean injectCanGlide(boolean original) {
+        if (lambda$instance != Lambda.getMc().player) return original;
+        if (original) return true;
+        if (!ElytraFly.INSTANCE.getFakeFly()) return false;
+        return Boolean.TRUE.equals(runSafe(safeContext -> {
+            final var mode = ElytraFly.getMode().getElytraFly();
+            return mode.isEnabled() && mode.findElytra(safeContext) != null;
+        }));
     }
 }

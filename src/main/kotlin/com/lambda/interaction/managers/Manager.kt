@@ -105,7 +105,7 @@ abstract class Manager<R : Request>(
 	fun request(request: R, queueIfMismatchedStage: Boolean = true): R {
 		val canOverrideQueued = queuedRequest?.let { it as Automated === request as Automated } != false
 		if (!canOverrideQueued) return request
-		if ((!acceptingRequests || tickStage !in request.tickStageMask)) {
+		if (!acceptingRequests || tickStage !in request.tickStageMask) {
 			if (!queueIfMismatchedStage || request.nowOrNothing) return request
 			val currentStageIndex = ALL_STAGES.indexOf(tickStage)
 			if (openStages.none { ALL_STAGES.indexOf(it) > currentStageIndex && it in request.tickStageMask })
