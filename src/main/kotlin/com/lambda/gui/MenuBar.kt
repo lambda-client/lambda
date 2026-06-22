@@ -277,7 +277,7 @@ object MenuBar {
                 ModuleRegistry.modules
                     .filter { it.tag == tag }
                     .forEach { module ->
-                        checkbox(module.name, module::showInClickGui)
+                        checkbox(module.name, module.showInClickGui::value)
                     }
             }
         }
