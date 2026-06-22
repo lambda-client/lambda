@@ -39,6 +39,7 @@ import com.lambda.imgui.ImGui
 import com.lambda.imgui.ImGui.closeCurrentPopup
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiStyleVar
+import com.lambda.imgui.type.ImBoolean
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.interaction.BaritoneHandler
 import com.lambda.module.ModuleRegistry
@@ -264,22 +265,19 @@ object MenuBar {
     private fun ImGuiBuilder.buildModulesMenu() {
         menu("Module Tag") {
             ModuleTag.defaults.forEach { tag ->
-                menuItem(tag.name, selected = ModuleTag.isTagShown(tag)) {
+                checkbox(tag.name, ImBoolean(ModuleTag.isTagShown(tag))) {
                     ModuleTag.toggleTag(tag)
                 }
             }
         }
         separator()
-        // By Tag → quick enable/disable per module
+        // By Tag → toggle whether each module is shown in the ClickGui layout
         ModuleTag.defaults.forEach { tag ->
             menu(tag.name) {
                 ModuleRegistry.modules
                     .filter { it.tag == tag }
                     .forEach { module ->
-                        menuItem(module.name, selected = module.isEnabled) {
-                            module.toggle()
-                        }
-                        // Optionally, offer a "Settings..." item to focus this module’s details UI.
+                        checkbox(module.name, module.showInClickGui::value)
                     }
             }
         }

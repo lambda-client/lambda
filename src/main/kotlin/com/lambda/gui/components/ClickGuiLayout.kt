@@ -344,7 +344,7 @@ object ClickGuiLayout : Loadable, Config(
 						}
 
 						ModuleRegistry.modules
-							.filter { it.tag == tag }
+							.filter { it.tag == tag && it.showInClickGui.value }
 							.forEach { with(ModuleEntry(it)) { buildLayout() } }
 
 						val vis = snapOverlays[tag.name]

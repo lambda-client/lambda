@@ -146,6 +146,7 @@ abstract class Module(
         .onRelease { if (disableOnRelease) disable() }
     val disableOnReleaseSetting = setting("Disable On Release", false) { false }
     val drawSetting = setting("Draw", true, "Draws the module in the module list hud element") { false }
+    val showInClickGui = setting("Show In ClickGui", true, "Shows the module in the ClickGui layout") { false }
 
     var isEnabled by isEnabledSetting
         private set
