@@ -89,7 +89,7 @@ class BounceElytraFly(
 	private val sendPacketQueue = LinkedList<Packet<*>>()
 
 	private val ClientPlayerEntity.canTakeoff: Boolean
-		get() = (isOnGround || canOpenElytra) && (isElytraEquipped xor fakeFly)
+		get() = (isOnGround || canOpenElytra)
 
 	private val ClientPlayerEntity.canOpenElytra: Boolean
 		get() = !isGliding && !isClimbing && canGlide()
@@ -110,7 +110,7 @@ class BounceElytraFly(
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
-					if (player.canOpenElytra) flyOrFakeFly()
+					if (player.canOpenElytra) player.checkGliding()
 					else jumpThisTick = true
 				}
 				return@listen

@@ -24,6 +24,7 @@ import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
+import com.lambda.module.modules.player.AutoElytraSwap;
 import com.lambda.module.modules.render.ViewModel;
 import com.llamalad7.mixinextras.expression.Definition;
 import com.llamalad7.mixinextras.expression.Expression;
@@ -43,8 +44,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import static com.lambda.threading.ThreadingKt.runSafe;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
@@ -204,13 +203,9 @@ public abstract class LivingEntityMixin extends EntityMixin {
     }
 
     @ModifyExpressionValue(method = "canGlide", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;canGlideWith(Lnet/minecraft/item/ItemStack;Lnet/minecraft/entity/EquipmentSlot;)Z"))
-    private boolean injectCanGlide(boolean original) {
-        if (lambda$instance != Lambda.getMc().player) return original;
-        if (original) return true;
-        if (!ElytraFly.INSTANCE.getFakeFly()) return false;
-        return Boolean.TRUE.equals(runSafe(safeContext -> {
-            final var mode = ElytraFly.getMode().getElytraFly();
-            return mode.isEnabled() && mode.findElytra(safeContext) != null;
-        }));
+    private boolean modifyCanGlideWith(boolean original) {
+        if ((Object) this != Lambda.getMc().player) return original;
+        if (AutoElytraSwap.INSTANCE.isEnabled()) return true;
+        return original;
     }
 }

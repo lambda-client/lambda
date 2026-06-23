@@ -23,21 +23,27 @@ import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
+import com.lambda.module.modules.player.AutoElytraSwap;
 import com.lambda.module.modules.player.Reach;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import kotlin.Unit;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import static com.lambda.threading.ThreadingKt.runSafe;
-
 @Mixin(PlayerEntity.class)
-public class PlayerEntityMixin {
+public abstract class PlayerEntityMixin {
+    @Shadow
+    public abstract void startGliding();
+
     @Inject(method = "clipAtLedge", at = @At(value = "HEAD"), cancellable = true)
     private void injectSafeWalk(CallbackInfoReturnable<Boolean> cir) {
         MovementEvent.ClipAtLedge event = new MovementEvent.ClipAtLedge(((PlayerEntity) (Object) this).isSneaking());
@@ -70,16 +76,29 @@ public class PlayerEntityMixin {
         return original.call();
     }
 
-    @WrapOperation(method = "checkGliding", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;startGliding()V"))
-    private void injectCheckGliding(PlayerEntity instance, Operation<Void> original) {
+    @Inject(method = "checkGliding", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;startGliding()V"), cancellable = true)
+    private void injectCheckGliding(CallbackInfoReturnable<Boolean> cir) {
+        if ((Object) this != Lambda.getMc().player) return;
+        cir.setReturnValue(false);
+        if (AutoElytraSwap.INSTANCE.isEnabled()) {
+            AutoElytraSwap.registerOnGlide(sc -> {
+                AutoElytraSwap.onGlide(sc);
+                return Unit.INSTANCE;
+            });
+        }
         final var elytraFly = ElytraFly.getMode().getElytraFly();
-        if (!elytraFly.isEnabled() || !ElytraFly.INSTANCE.getFakeFly()) {
-            original.call(instance);
+        if (!elytraFly.isEnabled()) {
+            AutoElytraSwap.registerOnGlide(sc -> { glideWithPacket(); return Unit.INSTANCE; });
             return;
         }
-        runSafe(safeContext -> {
-            elytraFly.flyOrFakeFly(safeContext, null);
-            return Unit.INSTANCE;
-        });
+        AutoElytraSwap.registerOnGlide(sc -> { elytraFly.flyOrFakeFly(sc, null); return Unit.INSTANCE; });
+    }
+
+    @Unique
+    private void glideWithPacket() {
+        startGliding();
+        final var networkHandler = Lambda.getMc().getNetworkHandler();
+        if (networkHandler == null) return;
+        networkHandler.sendPacket(new ClientCommandC2SPacket((Entity) (Object) this, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
     }
 }

@@ -110,6 +110,7 @@ object InventoryManager : Manager<InventoryRequest>(
 
 		if (request.fresh) populateFrom(request)
 
+
 		processActiveRequest()
 		if (request.nowOrNothing) {
 			activeRequest = null
