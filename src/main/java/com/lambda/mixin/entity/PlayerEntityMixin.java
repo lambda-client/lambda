@@ -80,25 +80,8 @@ public abstract class PlayerEntityMixin {
     private void injectCheckGliding(CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this != Lambda.getMc().player) return;
         cir.setReturnValue(false);
-        if (AutoElytraSwap.INSTANCE.isEnabled()) {
-            AutoElytraSwap.registerOnGlide(sc -> {
-                AutoElytraSwap.onGlide(sc);
-                return Unit.INSTANCE;
-            });
-        }
+        AutoElytraSwap.registerOnGlide(AutoElytraSwap::onGlide);
         final var elytraFly = ElytraFly.getMode().getElytraFly();
-        if (!elytraFly.isEnabled()) {
-            AutoElytraSwap.registerOnGlide(sc -> { glideWithPacket(); return Unit.INSTANCE; });
-            return;
-        }
-        AutoElytraSwap.registerOnGlide(sc -> { elytraFly.flyOrFakeFly(sc, null); return Unit.INSTANCE; });
-    }
-
-    @Unique
-    private void glideWithPacket() {
-        startGliding();
-        final var networkHandler = Lambda.getMc().getNetworkHandler();
-        if (networkHandler == null) return;
-        networkHandler.sendPacket(new ClientCommandC2SPacket((Entity) (Object) this, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
+        AutoElytraSwap.registerOnGlide(sc -> elytraFly.flyOrFakeFly(sc, null));
     }
 }

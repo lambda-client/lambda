@@ -38,6 +38,7 @@ import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.item.Items
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.registry.tag.ItemTags
 import net.minecraft.screen.slot.Slot
 
@@ -46,6 +47,8 @@ object AutoElytraSwap : Module(
 	description = "Automatically equips an elytra when attempting to glide, and removes it afterward",
 	tag = ModuleTag.PLAYER
 ) {
+	@JvmStatic val elytraFlyOnly by setting("ElytraFly Only", false, "Only swaps the chest piece when the ElytraFly module is enabled and gliding")
+
 	val ELYTRA_SELECTION =
 		selectStack {
 			sortByDescending {
@@ -81,7 +84,7 @@ object AutoElytraSwap : Module(
 		}
 
 	private var manuallySwapped = false
-	@JvmStatic var pendingGlides = mutableListOf<SafeContext.() -> Unit>()
+	@JvmStatic var pendingGlides = mutableListOf<SafeContext.() -> Boolean>()
 
 	init {
 		listen<TickEvent.Pre>({ -1000 }) {
@@ -89,13 +92,27 @@ object AutoElytraSwap : Module(
 		}
 
 		listen<TickEvent.Player.Post>(alwaysListen = true) {
-			pendingGlides.forEach { it() }
+			pendingGlides.forEach {
+				if (!it()) {
+					pendingGlides.clear()
+					return@listen
+				}
+			}
 			pendingGlides.clear()
 		}
 	}
 
 	@JvmStatic
 	fun SafeContext.onGlide(): Boolean {
+		if (isDisabled || (elytraFlyOnly && ElytraFly.isDisabled)) {
+			if (ElytraFly.isDisabled) {
+				if (!player.canGlideWithChestPiece()) return false
+				player.startGliding()
+				connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
+				return false
+			}
+			return ElytraFly.isEnabled
+		}
 		val elytra = ElytraFly.isDisabled || !ElytraFly.fakeFly
 		AutoArmor.overriddenElytraPriority = elytra
 		if (AutoArmor.isEnabled)  {
@@ -146,7 +163,7 @@ object AutoElytraSwap : Module(
 		LivingEntity.canGlideWith(getEquippedStack(EquipmentSlot.CHEST), EquipmentSlot.CHEST)
 
 	@JvmStatic
-	fun registerOnGlide(block: SafeContext.() -> Unit) {
+	fun registerOnGlide(block: SafeContext.() -> Boolean) {
 		pendingGlides.add(block)
 	}
 }
