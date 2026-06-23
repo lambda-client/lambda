@@ -79,9 +79,7 @@ public abstract class PlayerEntityMixin {
     @Inject(method = "checkGliding", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;startGliding()V"), cancellable = true)
     private void injectCheckGliding(CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this != Lambda.getMc().player) return;
+        AutoElytraSwap.onGlide();
         cir.setReturnValue(false);
-        AutoElytraSwap.registerOnGlide(AutoElytraSwap::onGlide);
-        final var elytraFly = ElytraFly.getMode().getElytraFly();
-        AutoElytraSwap.registerOnGlide(sc -> elytraFly.flyOrFakeFly(sc, null));
     }
 }
