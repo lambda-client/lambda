@@ -34,9 +34,9 @@ import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.Timer
 import com.lambda.util.math.MathUtils.toFloat
+import com.lambda.util.player.PlayerUtils.hasFirework
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.player.SlotUtils.inventoryStacks
-import com.lambda.util.player.hasFirework
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
@@ -76,6 +76,8 @@ class GrimControlElytraFly(
 		listen<TickEvent.Pre> {
 			if (!player.isGliding) return@listen
 
+			if (fakeGliding) flyOrFakeFly()
+
 			var vec = Vec3d.ZERO
 			val yaw = player.yaw
 			if (mc.options.forwardKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw))
@@ -92,7 +94,6 @@ class GrimControlElytraFly(
 			if (still && flipFlopMode != FlipFlopMode.Full) {
 				stillTickTimer.tick()
 				hasFirework = player.hasFirework
-				checkGliding()
 				if (!flipFlopMode.isFlipFlopping(hasFirework)) return@listen
 			} else {
 				if (fireworkTimer.timePassed(lastDuration.seconds - safetyMargin.seconds)) {
@@ -100,9 +101,9 @@ class GrimControlElytraFly(
 					hasFirework = firework != null
 					if (firework == null) return@listen
 					lastDuration = (firework.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
-					checkGliding { startFirework(inventory) }
+					startFirework(inventory)
 					fireworkTimer.reset()
-				} else checkGliding()
+				}
 			}
 
 			if (still) {
@@ -132,11 +133,6 @@ class GrimControlElytraFly(
 			}
 			event.cancel()
 		}
-	}
-
-	private fun SafeContext.checkGliding(onFly: (SafeContext.() -> Unit)? = null) {
-		if (fakeGliding) flyOrFakeFly(onFly)
-		else onFly?.invoke(this)
 	}
 
 	private fun SafeContext.findFirework(): ItemStack? {

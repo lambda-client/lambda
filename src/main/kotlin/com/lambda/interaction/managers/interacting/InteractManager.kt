@@ -53,9 +53,9 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.player.MovementUtils.sneaking
-import com.lambda.util.player.gamemode
-import com.lambda.util.player.isItemOnCooldown
-import com.lambda.util.player.swingHand
+import com.lambda.util.player.PlayerUtils.gamemode
+import com.lambda.util.player.PlayerUtils.isItemOnCooldown
+import com.lambda.util.player.PlayerUtils.swingHand
 import kotlinx.coroutines.delay
 import net.minecraft.block.AbstractSignBlock
 import net.minecraft.block.BlockState

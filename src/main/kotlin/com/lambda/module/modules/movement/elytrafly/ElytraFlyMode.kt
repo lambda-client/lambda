@@ -61,10 +61,9 @@ abstract class ElytraFlyMode(
 
 	protected fun onFlag(callback: SafeContext.() -> Unit) { onFlagListeners.add(callback) }
 
-	fun SafeContext.flyOrFakeFly(onFly: (SafeContext.() -> Unit)? = null): Boolean {
+	fun SafeContext.flyOrFakeFly(): Boolean {
 		if (!fakeFly) {
 			startFly()
-			onFly?.invoke(this)
 			return true
 		}
 
@@ -95,7 +94,7 @@ abstract class ElytraFlyMode(
 
 		return inventoryRequest {
 			swapChest()
-			action { startFly(); onFly?.invoke(this) }
+			action { startFly() }
 			swapChest()
 		}.submit(false).done
 	}

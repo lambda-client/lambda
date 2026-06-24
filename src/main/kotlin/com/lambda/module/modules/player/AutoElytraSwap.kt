@@ -27,9 +27,9 @@ import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.mode
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.EnchantmentUtils.getEnchantment
+import com.lambda.util.player.PlayerUtils.canStartGliding
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.client.network.ClientPlayerEntity
@@ -49,7 +49,7 @@ object AutoElytraSwap : Module(
 	tag = ModuleTag.PLAYER
 ) {
 	@JvmStatic val elytraFlyOnly by setting("ElytraFly Only", false, "Only swaps the chest piece when the ElytraFly module is enabled and gliding")
-	private val glideDelay by setting("Glide Delay", 1, 0..20, 1, "The delay, in ticks, between swapping to elytra, and starting to glide")
+	private val glideDelay by setting("Glide Delay", 0, 0..20, 1, "The delay, in ticks, between swapping to elytra, and starting to glide")
 
 	val ELYTRA_SELECTION =
 		selectStack {
@@ -85,39 +85,54 @@ object AutoElytraSwap : Module(
 				.and { it.damage < it.maxDamage }
 		}
 
+	@JvmStatic val overridingGlide
+		get() = (isEnabled && !elytraFlyOnly) || ElytraFly.isEnabled
+	private val activeSwapChecking
+		get() = isEnabled && (!elytraFlyOnly || ElytraFly.isEnabled)
+
+	private var swapped = false
 	private var manuallySwapped = false
 	private var prevGliding = false
 	private val pendingGlides = mutableListOf<PendingGlideAction>()
 
 	init {
-		listen<TickEvent.Pre>({ -1000 }) {
+		listen<TickEvent.Pre>({ -1000 }, alwaysListen = true) {
 			if (!player.isGliding && pendingGlides.isEmpty()) reset()
 			prevGliding = player.isGliding
 			tickPendingGlides()
 		}
 
-		listen<TickEvent.Player.Pre> {
+		listen<TickEvent.Player.Pre>(alwaysListen = true) {
+			if (!overridingGlide) return@listen
+			if (player.isGliding || pendingGlides.isNotEmpty()) return@listen
 
+			val preJump = player.input?.playerInput?.jump ?: false
+			val postJump = mc.options.jumpKey.isPressed
+
+			if (postJump && !preJump && player.canStartGliding) onGlide()
 		}
+
+		onDisable { reset() }
 	}
 
-	@JvmStatic
-	fun onGlide() =
-		runSafe {
-			prepForGlide()
-			if (ElytraFly.isEnabled) {
-				val elytraFly = mode.elytraFly
-				registerOnGlide { with(elytraFly) { flyOrFakeFly(null) } }
-			} else {
-				registerOnGlide {
-					player.startGliding()
-					connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
-					true
-				}
+	context(safeContext: SafeContext)
+	fun onGlide() {
+		if (!safeContext.prepForGlide()) return
+		val delay = if (swapped) glideDelay else 0
+		if (ElytraFly.isEnabled) {
+			val elytraFly = mode.elytraFly
+			registerOnGlide(delay) { with(elytraFly) { flyOrFakeFly() } }
+		} else {
+			registerOnGlide(delay) {
+				if (!player.canStartGliding) return@registerOnGlide false
+				player.startGliding()
+				connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
+				true
 			}
-
-			tickPendingGlides()
 		}
+
+		safeContext.tickPendingGlides()
+	}
 
 	private fun SafeContext.tickPendingGlides() {
 		val iterator = pendingGlides.iterator()
@@ -135,26 +150,24 @@ object AutoElytraSwap : Module(
 		}
 	}
 
-	private fun prepForGlide() {
-		registerOnGlide(0) {
-			if (isDisabled || (elytraFlyOnly && ElytraFly.isDisabled)) {
-				return@registerOnGlide ElytraFly.isEnabled || player.canGlideWithChestPiece()
-			}
-			val elytra = ElytraFly.isDisabled || !ElytraFly.fakeFly
-			AutoArmor.overriddenElytraPriority = elytra
-			if (AutoArmor.isEnabled)  {
-				with(AutoArmor) { tick() }
-				return@registerOnGlide player.canGlideWithChestPiece()
-			}
+	private fun SafeContext.prepForGlide(): Boolean {
+		val elytra = ElytraFly.isDisabled || !ElytraFly.fakeFly
+		val readyToGlide = player.canGlideWithChestPiece() == elytra
+		if (!activeSwapChecking || readyToGlide) return readyToGlide
 
-			if (player.canGlideWithChestPiece() == elytra) return@registerOnGlide true
-			val swapped = swap(elytra)
-			if (swapped) manuallySwapped = true
-			return@registerOnGlide swapped
+		swapped = true
+
+		AutoArmor.overriddenElytraPriority = elytra
+		if (AutoArmor.isEnabled)  {
+			with(AutoArmor) { tick() }
+			return elytra == player.canGlideWithChestPiece()
 		}
+
+		manuallySwapped = manualSwap(elytra)
+		return manuallySwapped
 	}
 
-	private fun SafeContext.swap(elytra: Boolean): Boolean {
+	private fun SafeContext.manualSwap(elytra: Boolean): Boolean {
 		val swapSlot =
 			player.hotbarAndInventorySlots.let { slots ->
 				if (elytra) ELYTRA_SELECTION.filterSlots(slots)
@@ -180,9 +193,10 @@ object AutoElytraSwap : Module(
 
 	private fun SafeContext.reset() {
 		AutoArmor.overriddenElytraPriority = null
+		swapped = false
 		if (!manuallySwapped) return
 		val hasElytra = player.canGlideWithChestPiece()
-		swap(!hasElytra)
+		manualSwap(!hasElytra)
 		manuallySwapped = false
 	}
 
@@ -190,9 +204,22 @@ object AutoElytraSwap : Module(
 		LivingEntity.canGlideWith(getEquippedStack(EquipmentSlot.CHEST), EquipmentSlot.CHEST)
 
 	@JvmStatic
-	fun registerOnGlide(delay: Int = glideDelay, block: SafeContext.() -> Boolean) {
+	fun registerOnGlide(delay: Int = 0, block: SafeContext.() -> Boolean) {
 		pendingGlides.add(PendingGlideAction(delay, block))
 	}
+
+	context(safeContext: SafeContext)
+	@JvmStatic
+	fun canGlide(): Boolean =
+		with(safeContext) {
+			val fakeFly = ElytraFly.isEnabled && ElytraFly.fakeFly
+			val canGlideAlready = player.canGlideWithChestPiece() != fakeFly
+			if (!activeSwapChecking || canGlideAlready) return canGlideAlready
+			return player.hotbarAndInventorySlots.let { slots ->
+				if (fakeFly) CHESTPLATE_SELECTION.filterSlots(slots).isNotEmpty()
+				else ELYTRA_SELECTION.filterSlots(slots).isNotEmpty()
+			}
+		}
 
 	private class PendingGlideAction(
 		var delay: Int,

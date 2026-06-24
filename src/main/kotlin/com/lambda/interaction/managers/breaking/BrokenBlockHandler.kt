@@ -39,7 +39,7 @@ import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.collections.LimitedDecayQueue
-import com.lambda.util.player.gamemode
+import com.lambda.util.player.PlayerUtils.gamemode
 import net.minecraft.block.OperatorBlock
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos

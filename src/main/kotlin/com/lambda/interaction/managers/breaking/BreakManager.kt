@@ -84,8 +84,8 @@ import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.extension.tickDelta
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
-import com.lambda.util.player.gamemode
-import com.lambda.util.player.swingHand
+import com.lambda.util.player.PlayerUtils.gamemode
+import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance

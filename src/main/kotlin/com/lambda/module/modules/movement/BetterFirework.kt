@@ -30,19 +30,21 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.module.Module
+import com.lambda.module.modules.player.AutoElytraSwap
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
+import com.lambda.util.player.PlayerUtils
+import com.lambda.util.player.PlayerUtils.canStartGliding
 import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.Items
-import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
@@ -59,18 +61,14 @@ object BetterFirework : Module(
 				!middleClickCancel &&
 				activateButton.mouse == Lambda.mc.options.pickItemKey.boundKey.code) return@onPress
 
-			if (!player.isElytraEquipped) {
-				warn("You need to equip an elytra to use this module!")
-				return@onPress
-			}
 			if (!player.hasFireworks) {
 				warn("You need to have fireworks in your inventory to use this module!")
 				return@onPress
 			}
 			// Prevent using multiple times
-			if (takeoffState != TakeoffState.None) return@onPress
+			if (takeoffState != TakeoffState.Idle) return@onPress
 			// If already gliding use another firework
-			if (player.canOpenElytra || player.isGliding) takeoffState = TakeoffState.StartFlying
+			if (player.canStartGliding || player.isGliding) takeoffState = TakeoffState.StartFlying
 			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
 		}
 	@Suppress("unused")
@@ -83,21 +81,16 @@ object BetterFirework : Module(
 	private var clientSwing by setting("Swing", true, "Swing hand client side")
 	private var invUse by setting("Inventory", true, "Use fireworks from inventory") { activateButton.key != KeyCode.Unbound.code }
 
-	private var takeoffState = TakeoffState.None
-
-	val ClientPlayerEntity.isElytraEquipped: Boolean
-		get() = inventory.equipment.get(EquipmentSlot.CHEST)?.item == Items.ELYTRA
+	private var takeoffState = TakeoffState.Idle
 
 	val ClientPlayerEntity.hasFireworks: Boolean
-		get() = selectStack { isItem(Items.FIREWORK_ROCKET) }
-			.filterStacks(inventory.mainStacks)
+		get() = Items.FIREWORK_ROCKET.select()
+			.filterStacks(hotbarAndInventoryStacks)
 			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
 
+	context(_: SafeContext)
 	private val ClientPlayerEntity.canTakeoff: Boolean
-		get() = (isOnGround || canOpenElytra) && isElytraEquipped && hasFireworks
-
-	val ClientPlayerEntity.canOpenElytra: Boolean
-		get() = !isGliding && !isClimbing && !isTouchingWater && canGlide()
+		get() = with(PlayerUtils) { canTakeoff } && hasFireworks
 
 	init {
 		setDefaultAutomationConfig()
@@ -109,20 +102,15 @@ object BetterFirework : Module(
 
 		listen<TickEvent.Pre> {
 			when (takeoffState) {
-				TakeoffState.None -> {}
-
+				TakeoffState.Idle -> {}
 				TakeoffState.Jumping -> {
 					player.jump()
 					takeoffState = TakeoffState.StartFlying
 				}
-
 				TakeoffState.StartFlying -> {
-					if (player.canOpenElytra) {
-						player.startGliding()
-						connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
-					}
+					if (player.canStartGliding) AutoElytraSwap.onGlide()
 					startFirework(invUse)
-					takeoffState = TakeoffState.None
+					takeoffState = TakeoffState.Idle
 				}
 			}
 		}
@@ -144,7 +132,7 @@ object BetterFirework : Module(
 					val cancelInteract = player.canTakeoff || fireworkInteractCancel
 					if (player.canTakeoff) {
 						takeoffState = TakeoffState.Jumping
-					} else if (player.canOpenElytra) {
+					} else if (player.canStartGliding) {
 						takeoffState = TakeoffState.StartFlying
 					}
 					cancelInteract
@@ -204,7 +192,7 @@ object BetterFirework : Module(
 	}
 
 	enum class TakeoffState {
-		None,
+		Idle,
 		Jumping,
 		StartFlying
 	}

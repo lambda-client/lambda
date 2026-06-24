@@ -46,8 +46,8 @@ import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.minus
 import com.lambda.util.player.CheckedHit
 import com.lambda.util.player.MovementUtils.sneaking
+import com.lambda.util.player.PlayerUtils.copyPlayer
 import com.lambda.util.player.RotationUtils.lookInDirection
-import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel

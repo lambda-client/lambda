@@ -19,7 +19,7 @@ package com.lambda.util
 
 import com.lambda.context.SafeContext
 import com.lambda.util.EnchantmentUtils.getEnchantment
-import com.lambda.util.player.gamemode
+import com.lambda.util.player.PlayerUtils.gamemode
 import com.lambda.util.world.WorldUtils.isLoaded
 import net.minecraft.block.AbstractCauldronBlock
 import net.minecraft.block.AbstractFurnaceBlock

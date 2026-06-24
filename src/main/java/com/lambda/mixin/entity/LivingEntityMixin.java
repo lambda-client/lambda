@@ -45,6 +45,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import static com.lambda.threading.ThreadingKt.runSafe;
+
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
 
@@ -204,8 +206,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
     @ModifyExpressionValue(method = "canGlide", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;canGlideWith(Lnet/minecraft/item/ItemStack;Lnet/minecraft/entity/EquipmentSlot;)Z"))
     private boolean modifyCanGlideWith(boolean original) {
-        if ((Object) this != Lambda.getMc().player) return original;
-        if (AutoElytraSwap.INSTANCE.isEnabled()) return true;
-        return original;
+        if ((LivingEntity) (Object) this != Lambda.getMc().player) return original;
+        return runSafe(AutoElytraSwap::canGlide);
     }
 }

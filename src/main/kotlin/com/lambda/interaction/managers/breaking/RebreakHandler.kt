@@ -30,7 +30,7 @@ import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.managers.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.player.swingHand
+import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.util.Hand
 
 /**

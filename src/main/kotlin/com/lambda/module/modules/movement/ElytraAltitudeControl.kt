@@ -31,7 +31,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.SpeedUnit
 import com.lambda.util.Timer
-import com.lambda.util.player.hasFirework
+import com.lambda.util.player.PlayerUtils.hasFirework
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.text.Text.literal
 import net.minecraft.util.math.Vec3d

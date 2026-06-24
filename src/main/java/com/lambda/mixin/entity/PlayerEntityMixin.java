@@ -29,15 +29,14 @@ import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import kotlin.Unit;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import static com.lambda.threading.ThreadingKt.runSafe;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin {
@@ -79,7 +78,6 @@ public abstract class PlayerEntityMixin {
     @Inject(method = "checkGliding", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;startGliding()V"), cancellable = true)
     private void injectCheckGliding(CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this != Lambda.getMc().player) return;
-        AutoElytraSwap.onGlide();
-        cir.setReturnValue(false);
+        if (AutoElytraSwap.getOverridingGlide()) cir.setReturnValue(false);
     }
 }
