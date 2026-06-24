@@ -18,7 +18,7 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.math.MathUtils.ceilToInt

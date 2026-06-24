@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction
+package com.lambda.interaction.handlers
 
 import baritone.api.BaritoneAPI
 import baritone.api.IBaritone
@@ -37,7 +37,7 @@ import net.minecraft.util.BlockRotation
 @Suppress("unused")
 object BaritoneHandler : Config(
     "baritone",
-    LambdaCategory
+	LambdaCategory
 ), Automated by AutomationConfig.DEFAULT {
     val baritoneAvailable by lazy {
         runCatching {
@@ -106,8 +106,8 @@ object BaritoneHandler : Config(
     }
 
     class BaritoneConfigSettings(
-        override val c: Config,
-        private val bSettings: Settings
+	    override val c: Config,
+	    private val bSettings: Settings
     ) : ConfigBlock {
         companion object {
             private const val GENERAL_TAB = "General"

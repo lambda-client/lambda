@@ -21,7 +21,7 @@ import baritone.api.pathing.goals.GoalGetToBlock
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.context.SafeContext
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.module.hud.Speedometer
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.threading.runGameScheduled

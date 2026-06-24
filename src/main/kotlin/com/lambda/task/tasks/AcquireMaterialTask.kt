@@ -20,8 +20,8 @@ package com.lambda.task.tasks
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.ContainerHandler
-import com.lambda.interaction.material.container.ContainerHandler.findContainerWithMaterial
+import com.lambda.interaction.handlers.ContainerHandler
+import com.lambda.interaction.handlers.ContainerHandler.findContainerWithMaterial
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated

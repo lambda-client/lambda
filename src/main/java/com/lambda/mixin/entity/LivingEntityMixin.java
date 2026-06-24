@@ -20,7 +20,8 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.BaritoneHandler;
+import com.lambda.interaction.handlers.BaritoneHandler;
+import com.lambda.interaction.handlers.GlideHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
@@ -204,13 +205,8 @@ public abstract class LivingEntityMixin extends EntityMixin {
     }
 
     @ModifyExpressionValue(method = "canGlide", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;canGlideWith(Lnet/minecraft/item/ItemStack;Lnet/minecraft/entity/EquipmentSlot;)Z"))
-    private boolean injectCanGlide(boolean original) {
-        if (lambda$instance != Lambda.getMc().player) return original;
-        if (original) return true;
-        if (!ElytraFly.INSTANCE.getFakeFly()) return false;
-        return Boolean.TRUE.equals(runSafe(safeContext -> {
-            final var mode = ElytraFly.getMode().getElytraFly();
-            return mode.isEnabled() && mode.findElytra(safeContext) != null;
-        }));
+    private boolean modifyCanGlideWith(boolean original) {
+        if ((Object) this != Lambda.getMc().player) return original;
+        return runSafe(GlideHandler::canGlide);
     }
 }

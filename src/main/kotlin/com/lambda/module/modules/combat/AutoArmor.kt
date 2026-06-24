@@ -29,6 +29,7 @@ import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inve
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EnchantmentUtils.getEnchantment
+import com.lambda.util.item.ItemUtils.armorSlot
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.component.DataComponentTypes
@@ -47,7 +48,7 @@ object AutoArmor : Module(
 	description = "Automatically equips armor",
 	tag = ModuleTag.COMBAT
 ) {
-	private var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
+	var elytraPriority by setting("Elytra Priority", true, "Prioritizes elytra's over other armor pieces in the chest slot")
 	private val toggleElytraPriority by setting("Toggle Elytra Priority", Bind.EMPTY)
 		.onPress { elytraPriority = !elytraPriority }
 	private val minDurabilityPercentage by setting("Min Durability", 5, 0..100, 1, "Minimum durability percentage before being swapped for a new piece", "%")
@@ -57,12 +58,16 @@ object AutoArmor : Module(
 	private val feetProtection by setting("Preferred Feet Protection", Protection.Protection)
 	private val ignoreBinding by setting("Ignore Binding", true, "Ignores curse of binding armor pieces")
 
-	val sorter = compareByDescending<Slot> {
+	private var tickedThisTick = false
+
+	var overriddenElytraPriority: Boolean? = null
+
+	val SORTER = compareByDescending<Slot> {
 		if (it.stack.isDamageable && 1 - (it.stack.damage.toFloat() / it.stack.maxDamage) < minDurabilityPercentage.toFloat() / 100)
 			-Double.MAX_VALUE
 		else 0.0
 	}.thenByDescending {
-		if (elytraPriority) {
+		if (overriddenElytraPriority ?: elytraPriority) {
 			if (it.stack.item == Items.ELYTRA) 1.0
 			else 0.0
 		} else 0.0
@@ -102,41 +107,44 @@ object AutoArmor : Module(
 			}
 
 		listen<TickEvent.Pre> {
-			val armorSlots = player.armorSlots
+			if (!tickedThisTick) tick()
+		}
 
-			val swappable = player.hotbarAndInventorySlots
-				.filter { it.stack.isEquipable && (!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0) }
-				.sortedWith(sorter)
-				.distinctBy { it.stack.armorSlot }
-
-			val swaps = mutableListOf<Pair<Slot, Slot>>()
-			armorSlots.forEach { equipped ->
-				val new = swappable.find { new ->
-					equipped.canInsert(new.stack) && sorter.compare(equipped, new) > 0
-				} ?: return@forEach
-
-				swaps.add(Pair(new, equipped))
-			}
-
-			if (swaps.isEmpty()) return@listen
-			inventoryRequest {
-				swaps.forEach {
-					pickup(it.first.id)
-					pickup(it.second.id)
-					if (!it.second.stack.isEmpty)
-						pickup(it.first.id)
-				}
-			}.submit()
+		listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+			tickedThisTick = false
 		}
 	}
 
-	context(safeContext: SafeContext)
-	private val ItemStack.isEquipable get() =
-		safeContext.player.armorSlots.any { it.canInsert(this) }
+	fun SafeContext.tick() {
+		tickedThisTick = true
+		val armorSlots = player.armorSlots
+
+		val swappable = player.hotbarAndInventorySlots
+			.filter { it.stack.isEquipable && (!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0) }
+			.sortedWith(SORTER)
+			.distinctBy { it.stack.armorSlot }
+
+		val swaps = mutableListOf<Pair<Slot, Slot>>()
+		armorSlots.forEach { equipped ->
+			val new = swappable.find { new ->
+				equipped.canInsert(new.stack) && SORTER.compare(equipped, new) > 0
+			} ?: return@forEach
+
+			swaps.add(Pair(new, equipped))
+		}
+
+		if (swaps.isEmpty()) return
+		inventoryRequest {
+			swaps.forEach {
+				moveSlot(it.first.id, it.second.id)
+				if (!it.second.stack.isEmpty) pickup(it.first.id)
+			}
+		}.submit()
+	}
 
 	context(safeContext: SafeContext)
-	private val ItemStack.armorSlot get() =
-		safeContext.player.armorSlots.firstOrNull { it.canInsert(this) }
+	private val ItemStack.isEquipable
+		get() = safeContext.player.armorSlots.any { it.canInsert(this) }
 
 	private enum class Protection(val enchant: RegistryKey<Enchantment>) {
 		Protection(Enchantments.PROTECTION),

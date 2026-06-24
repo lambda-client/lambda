@@ -18,7 +18,7 @@
 package com.lambda.mixin.render;
 
 import com.lambda.Lambda;
-import com.lambda.interaction.BaritoneHandler;
+import com.lambda.interaction.handlers.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.render.Nametags;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;

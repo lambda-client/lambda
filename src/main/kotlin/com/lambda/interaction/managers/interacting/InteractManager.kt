@@ -31,8 +31,8 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
-import com.lambda.interaction.managers.PacketLimitHandler
-import com.lambda.interaction.managers.PacketType
+import com.lambda.interaction.handlers.packet.PacketLimitHandler
+import com.lambda.interaction.handlers.packet.PacketType
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -41,9 +41,9 @@ import com.lambda.interaction.managers.interacting.InteractManager.maxInteractio
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.managers.interacting.InteractManager.processRequest
-import com.lambda.interaction.managers.interacting.InteractedBlockHandler.pendingActions
-import com.lambda.interaction.managers.interacting.InteractedBlockHandler.setPendingConfigs
-import com.lambda.interaction.managers.interacting.InteractedBlockHandler.startPending
+import com.lambda.interaction.handlers.interacting.InteractedBlockHandler.pendingActions
+import com.lambda.interaction.handlers.interacting.InteractedBlockHandler.setPendingConfigs
+import com.lambda.interaction.handlers.interacting.InteractedBlockHandler.startPending
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.modules.world.AutoSign.signWriteDelay
 import com.lambda.threading.runConcurrent
@@ -53,9 +53,9 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.player.MovementUtils.sneaking
-import com.lambda.util.player.gamemode
-import com.lambda.util.player.isItemOnCooldown
-import com.lambda.util.player.swingHand
+import com.lambda.util.player.PlayerUtils.gamemode
+import com.lambda.util.player.PlayerUtils.isItemOnCooldown
+import com.lambda.util.player.PlayerUtils.swingHand
 import kotlinx.coroutines.delay
 import net.minecraft.block.AbstractSignBlock
 import net.minecraft.block.BlockState

@@ -34,7 +34,7 @@ import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.ContainerHandler.findContainersWithMaterial
+import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
@@ -46,8 +46,8 @@ import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.minus
 import com.lambda.util.player.CheckedHit
 import com.lambda.util.player.MovementUtils.sneaking
+import com.lambda.util.player.PlayerUtils.copyPlayer
 import com.lambda.util.player.RotationUtils.lookInDirection
-import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel

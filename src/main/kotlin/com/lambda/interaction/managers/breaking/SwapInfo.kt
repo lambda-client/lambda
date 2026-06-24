@@ -21,6 +21,7 @@ import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.blocks.BreakConfig
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
+import com.lambda.interaction.handlers.breaking.RebreakHandler
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta

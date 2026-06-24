@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.managers
+package com.lambda.interaction.handlers.packet
 
 import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.Automated

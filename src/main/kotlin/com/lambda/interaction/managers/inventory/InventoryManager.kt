@@ -23,9 +23,9 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.PacketLimitHandler.canSendPackets
-import com.lambda.interaction.managers.PacketLimitHandler.sentPackets
-import com.lambda.interaction.managers.PacketType
+import com.lambda.interaction.handlers.packet.PacketLimitHandler.canSendPackets
+import com.lambda.interaction.handlers.packet.PacketLimitHandler.sentPackets
+import com.lambda.interaction.handlers.packet.PacketType
 import com.lambda.interaction.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.managers.inventory.InventoryManager.alteredSlots
@@ -109,6 +109,7 @@ object InventoryManager : Manager<InventoryRequest>(
 			!request.mustPerform) return
 
 		if (request.fresh) populateFrom(request)
+
 
 		processActiveRequest()
 		if (request.nowOrNothing) {

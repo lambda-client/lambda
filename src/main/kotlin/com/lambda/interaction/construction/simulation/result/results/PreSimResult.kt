@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable

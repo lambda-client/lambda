@@ -22,7 +22,7 @@ import com.lambda.config.ConfigBlock
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
-import com.lambda.friend.FriendHandler.isFriend
+import com.lambda.interaction.handlers.FriendHandler.isFriend
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo

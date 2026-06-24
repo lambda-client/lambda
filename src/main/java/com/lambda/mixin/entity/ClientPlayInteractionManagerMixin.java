@@ -20,7 +20,7 @@ package com.lambda.mixin.entity;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
-import com.lambda.interaction.BaritoneHandler;
+import com.lambda.interaction.handlers.BaritoneHandler;
 import com.lambda.interaction.managers.inventory.InventoryManager;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -123,7 +123,7 @@ public class ClientPlayInteractionManagerMixin {
      * }
      * }</pre>
      */
-    @Inject(method = "syncSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V", shift = At.Shift.BEFORE))
+    @Inject(method = "syncSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;sendPacket(Lnet/minecraft/network/packet/Packet;)V"))
     public void overrideSelectedSlotSync(CallbackInfo ci) {
         EventFlow.post(new InventoryEvent.HotbarSlot.Update(lastSelectedSlot));
     }

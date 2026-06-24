@@ -25,7 +25,7 @@ import com.lambda.config.migration.ConfigMigrationHandler
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.BaritoneHandler.primary
+import com.lambda.interaction.handlers.BaritoneHandler.primary
 import com.lambda.threading.runIO
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.logError

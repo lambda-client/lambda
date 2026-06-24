@@ -20,6 +20,7 @@ package com.lambda.interaction.managers.breaking
 import com.lambda.config.blocks.BreakConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
+import com.lambda.interaction.handlers.breaking.RebreakHandler
 import com.lambda.interaction.managers.ActionInfo
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Rebreak

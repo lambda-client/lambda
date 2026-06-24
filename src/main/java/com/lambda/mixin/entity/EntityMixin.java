@@ -20,7 +20,7 @@ package com.lambda.mixin.entity;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
-import com.lambda.interaction.BaritoneHandler;
+import com.lambda.interaction.handlers.BaritoneHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.render.NoRender;

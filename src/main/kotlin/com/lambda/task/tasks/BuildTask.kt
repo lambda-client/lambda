@@ -26,7 +26,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint

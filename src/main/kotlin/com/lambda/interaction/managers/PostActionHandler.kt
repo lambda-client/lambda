@@ -22,7 +22,7 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.managers.breaking.BrokenBlockHandler
+import com.lambda.interaction.handlers.breaking.BrokenBlockHandler
 import com.lambda.util.collections.LimitedDecayQueue
 
 /**

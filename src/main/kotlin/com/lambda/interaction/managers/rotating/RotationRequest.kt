@@ -19,7 +19,7 @@ package com.lambda.interaction.managers.rotating
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.Request
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.requestCount
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist

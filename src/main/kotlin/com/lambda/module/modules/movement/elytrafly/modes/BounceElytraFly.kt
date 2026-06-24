@@ -25,11 +25,11 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handlers.GlideHandler
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.module.hud.Speedometer
-import com.lambda.module.modules.movement.BetterFirework.isElytraEquipped
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.module.modules.movement.elytrafly.ObstaclePassingMode
@@ -39,7 +39,8 @@ import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
-import net.minecraft.client.network.ClientPlayerEntity
+import com.lambda.util.player.PlayerUtils.canStartGliding
+import com.lambda.util.player.PlayerUtils.canTakeoff
 import net.minecraft.entity.Entity
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
@@ -88,12 +89,6 @@ class BounceElytraFly(
 	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
 	private val sendPacketQueue = LinkedList<Packet<*>>()
 
-	private val ClientPlayerEntity.canTakeoff: Boolean
-		get() = (isOnGround || canOpenElytra) && (isElytraEquipped xor fakeFly)
-
-	private val ClientPlayerEntity.canOpenElytra: Boolean
-		get() = !isGliding && !isClimbing && canGlide()
-
 	private val SafeContext.queuePackets
 		get() = fakeLag && player.isGliding && !yMotion &&
 				player.y - startPos.y < if (passerConfig.passObstacles) passerConfig.minObstacleHeight + 0.1 else 0.163
@@ -110,7 +105,7 @@ class BounceElytraFly(
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
-					if (player.canOpenElytra) flyOrFakeFly()
+					if (player.canStartGliding) GlideHandler.onGlide()
 					else jumpThisTick = true
 				}
 				return@listen
@@ -146,7 +141,10 @@ class BounceElytraFly(
 
 		onFlag { pauseTimer.reset() }
 
-		onDisable { flushPackets() }
+		onDisable {
+			prevGliding = false
+			flushPackets()
+		}
 	}
 
 	private fun SafeContext.flushPackets() {

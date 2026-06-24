@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.managers.breaking
+package com.lambda.interaction.handlers.breaking
 
 import com.lambda.config.automation.AutomationConfig.Companion.DEFAULT
 import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
@@ -27,7 +27,8 @@ import com.lambda.interaction.construction.simulation.processing.ProcessorRegist
 import com.lambda.interaction.managers.PostActionHandler
 import com.lambda.interaction.managers.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.managers.breaking.BreakManager.matchesBlockItem
-import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
+import com.lambda.interaction.handlers.breaking.RebreakHandler.rebreak
+import com.lambda.interaction.managers.breaking.BreakInfo
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runGameScheduled
@@ -39,7 +40,7 @@ import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.collections.LimitedDecayQueue
-import com.lambda.util.player.gamemode
+import com.lambda.util.player.PlayerUtils.gamemode
 import net.minecraft.block.OperatorBlock
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos
@@ -48,7 +49,7 @@ import net.minecraft.util.math.ChunkSectionPos
  * Designed to handle blocks that are deemed broken, yet are awaiting
  * confirmation from the server and/or an item drop.
  *
- * @see BreakManager
+ * @see com.lambda.interaction.managers.breaking.BreakManager
  */
 object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 	override val pendingActions = LimitedDecayQueue<BreakInfo>(

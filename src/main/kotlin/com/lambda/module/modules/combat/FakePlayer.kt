@@ -28,7 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.network.mojang.getProfile
 import com.lambda.threading.onShutdown
 import com.lambda.util.Timer
-import com.lambda.util.player.FAKE_PLAYER_ID
+import com.lambda.util.player.PlayerUtils.FAKE_PLAYER_ID
 import com.mojang.authlib.GameProfile
 import com.mojang.datafixers.util.Either
 import net.minecraft.client.network.OtherClientPlayerEntity
