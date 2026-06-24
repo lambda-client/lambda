@@ -41,7 +41,7 @@ import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiStyleVar
 import com.lambda.imgui.type.ImBoolean
 import com.lambda.imgui.flag.ImGuiWindowFlags
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
 import com.lambda.module.tag.ModuleTag

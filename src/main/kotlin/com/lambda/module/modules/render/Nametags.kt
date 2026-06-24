@@ -25,7 +25,7 @@ import com.lambda.config.Tab
 import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.blocks.ScreenTextSettings
 import com.lambda.config.withEdits
-import com.lambda.friend.FriendHandler.isFriend
+import com.lambda.interaction.handlers.FriendHandler.isFriend
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.mc.renderer.RendererUtils.worldToScreenNormalized

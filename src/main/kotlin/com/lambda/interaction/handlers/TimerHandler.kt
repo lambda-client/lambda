@@ -15,8 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.core
+package com.lambda.interaction.handlers
 
+import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ClientEvent
 import kotlin.concurrent.fixedRateTimer

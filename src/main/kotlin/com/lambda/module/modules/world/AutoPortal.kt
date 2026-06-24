@@ -34,7 +34,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DirectionMask
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
@@ -174,7 +174,7 @@ object AutoPortal : Module(
 							colors(obiColor.setAlpha(fillAlpha), obiColor)
 							hideSides(DirectionMask.buildSideMesh(posAndBox.first) { it in obiPositions }.inv())
 						}
-				}
+					}
 			}
 		}
 	}

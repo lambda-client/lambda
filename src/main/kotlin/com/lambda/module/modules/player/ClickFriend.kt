@@ -20,10 +20,10 @@ package com.lambda.module.modules.player
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
-import com.lambda.friend.FriendHandler
-import com.lambda.friend.FriendHandler.befriend
-import com.lambda.friend.FriendHandler.isFriend
-import com.lambda.friend.FriendHandler.unfriend
+import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.handlers.FriendHandler.befriend
+import com.lambda.interaction.handlers.FriendHandler.isFriend
+import com.lambda.interaction.handlers.FriendHandler.unfriend
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.CommunicationUtils.info

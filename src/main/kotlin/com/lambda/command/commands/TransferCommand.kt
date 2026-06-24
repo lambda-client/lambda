@@ -29,9 +29,9 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerHandler
-import com.lambda.interaction.material.container.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.material.container.ContainerHandler.findContainersWithSpace
+import com.lambda.interaction.handlers.ContainerHandler
+import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
+import com.lambda.interaction.handlers.ContainerHandler.findContainersWithSpace
 import com.lambda.task.RootTask
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated

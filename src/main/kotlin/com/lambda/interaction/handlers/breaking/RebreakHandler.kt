@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.managers.breaking
+package com.lambda.interaction.handlers.breaking
 
 import com.lambda.config.blocks.BreakConfig
 import com.lambda.context.SafeContext
@@ -24,17 +24,20 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.BreakContext
-import com.lambda.interaction.managers.PacketLimitHandler
-import com.lambda.interaction.managers.PacketType
+import com.lambda.interaction.handlers.packet.PacketLimitHandler
+import com.lambda.interaction.handlers.packet.PacketType
+import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
-import com.lambda.interaction.managers.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.managers.breaking.RebreakHandler.rebreak
+import com.lambda.interaction.handlers.breaking.RebreakHandler.rebreak
+import com.lambda.interaction.managers.breaking.BreakInfo
+import com.lambda.interaction.managers.breaking.BreakManager
+import com.lambda.interaction.managers.breaking.BreakRequest
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.util.Hand
 
 /**
- * Designed to track the latest primary-broken [BreakInfo] in order to exploit a flaw in Minecraft's code that allows
+ * Designed to track the latest primary-broken [com.lambda.interaction.managers.breaking.BreakInfo] in order to exploit a flaw in Minecraft's code that allows
  * the user to break any block placed in said position using the progress from the previously broken block.
  */
 object RebreakHandler {
@@ -57,7 +60,7 @@ object RebreakHandler {
 
 	/**
 	 * Tests to see if the [BreakInfo] can be accepted. If not, nothing happens. Otherwise,
-	 * the [rebreak] is set, and the [BreakRequest.onReBreakStart] callback is invoked.
+	 * the [rebreak] is set, and the [com.lambda.interaction.managers.breaking.BreakRequest.onReBreakStart] callback is invoked.
 	 */
 	context(safeContext: SafeContext)
 	fun offerRebreak(info: BreakInfo) {

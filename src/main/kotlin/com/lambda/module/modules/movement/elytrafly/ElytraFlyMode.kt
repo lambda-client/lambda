@@ -23,11 +23,11 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
-import com.lambda.module.modules.player.AutoElytraSwap.ELYTRA_SELECTION
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.player.SlotUtils.armorSlots

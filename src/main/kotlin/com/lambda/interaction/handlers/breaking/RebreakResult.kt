@@ -15,7 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.managers.breaking
+package com.lambda.interaction.handlers.breaking
+
+import com.lambda.interaction.managers.breaking.BreakInfo
 
 sealed class RebreakResult {
 	data object Ignored : RebreakResult()

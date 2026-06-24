@@ -29,7 +29,7 @@ import com.lambda.brigadier.CommandResult
 import com.lambda.config.blocks.RotationConfig
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
-import com.lambda.core.TimerHandler
+import com.lambda.interaction.handlers.TimerHandler
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent

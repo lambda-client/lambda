@@ -19,9 +19,11 @@ package com.lambda.util.player
 
 import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.SafeContext
-import com.lambda.module.modules.player.AutoElytraSwap
+import com.lambda.interaction.handlers.GlideHandler
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.entity.EquipmentSlot
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.item.ItemStack
@@ -50,7 +52,7 @@ object PlayerUtils {
                 !isTouchingWater &&
                 !hasVehicle() &&
                 !hasStatusEffect(StatusEffects.LEVITATION) &&
-                AutoElytraSwap.canGlide()
+                GlideHandler.canGlide()
 
     fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
         ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.lastPlayerInput, entity.isSprinting).apply {
@@ -89,4 +91,7 @@ object PlayerUtils {
     }
 
     fun SafeContext.isItemOnCooldown(stack: ItemStack) = player.itemCooldownManager.isCoolingDown(stack)
+
+    fun ClientPlayerEntity.canGlideWithChestPiece() =
+        LivingEntity.canGlideWith(getEquippedStack(EquipmentSlot.CHEST), EquipmentSlot.CHEST)
 }

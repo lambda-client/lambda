@@ -31,8 +31,8 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
-import com.lambda.interaction.managers.PacketLimitHandler
-import com.lambda.interaction.managers.PacketType
+import com.lambda.interaction.handlers.packet.PacketLimitHandler
+import com.lambda.interaction.handlers.packet.PacketType
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -41,9 +41,9 @@ import com.lambda.interaction.managers.interacting.InteractManager.maxInteractio
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.managers.interacting.InteractManager.processRequest
-import com.lambda.interaction.managers.interacting.InteractedBlockHandler.pendingActions
-import com.lambda.interaction.managers.interacting.InteractedBlockHandler.setPendingConfigs
-import com.lambda.interaction.managers.interacting.InteractedBlockHandler.startPending
+import com.lambda.interaction.handlers.interacting.InteractedBlockHandler.pendingActions
+import com.lambda.interaction.handlers.interacting.InteractedBlockHandler.setPendingConfigs
+import com.lambda.interaction.handlers.interacting.InteractedBlockHandler.startPending
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.modules.world.AutoSign.signWriteDelay
 import com.lambda.threading.runConcurrent

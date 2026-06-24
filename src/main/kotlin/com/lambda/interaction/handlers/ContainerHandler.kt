@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.handlers
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -26,10 +26,11 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.ChestContainer
 import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.util.BlockUtils.blockEntity
-import com.lambda.util.ReflectionUtils.getInstances
+import com.lambda.util.ReflectionUtils
 import com.lambda.util.extension.containerStacks
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.ChestBlockEntity
@@ -44,7 +45,7 @@ object ContainerHandler : Loadable {
     private val containers: List<MaterialContainer>
         get() = compileContainers + runtimeContainers
 
-    private val compileContainers = getInstances<MaterialContainer>()
+    private val compileContainers = ReflectionUtils.getInstances<MaterialContainer>()
     private val runtimeContainers = mutableSetOf<MaterialContainer>()
 
     var lastInteractedBlockEntity: BlockEntity? = null
@@ -104,7 +105,7 @@ object ContainerHandler : Loadable {
 
     context(_: SafeContext)
     fun findContainer(
-        block: (MaterialContainer) -> Boolean,
+	    block: (MaterialContainer) -> Boolean,
     ): MaterialContainer? = containers().find(block)
 
     context(automatedSafeContext: AutomatedSafeContext)
@@ -114,7 +115,7 @@ object ContainerHandler : Loadable {
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.findContainersWithMaterial(
-        containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection,
+	    containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection,
     ): List<MaterialContainer> =
         containers()
             .filter { containerSelection.matches(it) }

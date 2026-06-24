@@ -25,7 +25,8 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.BaritoneHandler
+import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handlers.GlideHandler
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.module.hud.Speedometer
@@ -33,7 +34,6 @@ import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.module.modules.movement.elytrafly.ObstaclePassingMode
 import com.lambda.module.modules.movement.elytrafly.PasserSettings
-import com.lambda.module.modules.player.AutoElytraSwap
 import com.lambda.threading.runSafe
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
@@ -105,7 +105,7 @@ class BounceElytraFly(
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
-					if (player.canStartGliding) AutoElytraSwap.onGlide()
+					if (player.canStartGliding) GlideHandler.onGlide()
 					else jumpThisTick = true
 				}
 				return@listen
