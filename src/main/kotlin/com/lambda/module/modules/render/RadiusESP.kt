@@ -35,6 +35,7 @@ import com.lambda.util.math.setAlpha
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.Blocks
 import net.minecraft.block.entity.BeaconBlockEntity
+import net.minecraft.block.entity.BlockEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
 
@@ -48,6 +49,7 @@ object RadiusESP : Module(
 	private const val OUTLINE_GROUP = "Outline"
 
 	private val beacons by setting("Beacons", true).onValueChange(::rebuildMesh)
+	private val showMaxBeaconRange by setting("Show Max Beacon Range", true) { beacons }.onValueChange(::rebuildMesh)
 	private val spawners by setting("Spawners", true).onValueChange(::rebuildMesh)
 
 	@Group(RENDER_GROUP) private val beaconColor by setting("Beacon Color", Color(0, 255, 255, 255)) { beacons }.onValueChange(::rebuildMesh)
@@ -87,23 +89,38 @@ object RadiusESP : Module(
 					chunks.get(chunk)?.blockEntities?.values?.forEach { blockEntity ->
 						val beacon = blockEntity as? BeaconBlockEntity ?: return@forEach
 						val level = beacon.level
-						val radius = (level * 10) + 10.0
-						val box =
-							Box(blockEntity.pos).expand(radius)
-								.stretch(0.0, world.height.toDouble(), 0.0)
-						renderBox(box, beaconColor)
+						if (!showMaxBeaconRange) {
+							withBeaconBox(blockEntity, level) { box ->
+								renderBox(box, beaconColor)
+							}
+							return@runSafe
+						}
+
+						withBeaconBox(blockEntity, 4) { box ->
+							renderBox(box, beaconColor)
+						}
 					}
 				}
 			}
 		}
 	}
 
-	private fun RenderBuilder.renderBox(box: Box, color: Color) =
-		box(box, worldLineConfig) {
-			colors(color.setAlpha(fillAlpha), color)
-			if (!fill) hideFill()
-			if (!outline) hideOutline()
-		}
+	private fun SafeContext.withBeaconBox(blockEntity: BlockEntity, level: Int, block: (Box) -> Unit) {
+		val radius = (level * 10) + 10.0
+		val box =
+			Box(blockEntity.pos).expand(radius)
+				.stretch(0.0, world.height.toDouble(), 0.0)
+		block(box)
+	}
+
+	private fun RenderBuilder.renderBox(
+		box: Box,
+		color: Color
+	) = box(box, worldLineConfig) {
+		colors(color.setAlpha(fillAlpha), color)
+		if (!fill) hideFill()
+		if (!outline) hideOutline()
+	}
 
 	private fun rebuildMesh(ctx: SafeContext, from: Any? = null, to: Any? = null): Unit = chunkedRenderer.rebuild()
 }
