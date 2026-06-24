@@ -32,7 +32,8 @@ object CommandRegistry : Config(
     LambdaCategory
 ), Loadable {
     override val priority get() = -2
-    val prefix by setting("prefix", ';')
+    val prefixSetting = setting("prefix", ';')
+    val prefix by prefixSetting
 
     val commands = getInstances<LambdaCommand>().toMutableList()
 
