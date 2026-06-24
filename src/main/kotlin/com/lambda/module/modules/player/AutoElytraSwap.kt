@@ -49,7 +49,7 @@ object AutoElytraSwap : Module(
 	tag = ModuleTag.PLAYER
 ) {
 	@JvmStatic val elytraFlyOnly by setting("ElytraFly Only", false, "Only swaps the chest piece when the ElytraFly module is enabled and gliding")
-	private val glideDelay by setting("Glide Delay", 0, 0..20, 1, "The delay, in ticks, between swapping to elytra, and starting to glide")
+	private val glideDelay by setting("Glide Delay", 0, 0..20, 1, "The delay, in ticks, between swapping to elytra, and starting to glide", unit = " ticks")
 
 	val ELYTRA_SELECTION =
 		selectStack {
