@@ -20,29 +20,21 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.BaritoneHandler;
+import com.lambda.interaction.handlers.BaritoneHandler;
+import com.lambda.interaction.handlers.GlideHandler;
 import com.lambda.interaction.managers.rotating.RotationManager;
-import com.lambda.module.modules.movement.elytrafly.ElytraFly;
-import com.lambda.module.modules.player.AutoElytraSwap;
 import com.lambda.module.modules.player.Reach;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import kotlin.Unit;
 import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import static com.lambda.threading.ThreadingKt.runSafe;
-
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin {
-    @Shadow
-    public abstract void startGliding();
-
     @Inject(method = "clipAtLedge", at = @At(value = "HEAD"), cancellable = true)
     private void injectSafeWalk(CallbackInfoReturnable<Boolean> cir) {
         MovementEvent.ClipAtLedge event = new MovementEvent.ClipAtLedge(((PlayerEntity) (Object) this).isSneaking());
@@ -78,6 +70,6 @@ public abstract class PlayerEntityMixin {
     @Inject(method = "checkGliding", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;startGliding()V"), cancellable = true)
     private void injectCheckGliding(CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this != Lambda.getMc().player) return;
-        if (AutoElytraSwap.getOverridingGlide()) cir.setReturnValue(false);
+        if (GlideHandler.getOverridingGlide()) cir.setReturnValue(false);
     }
 }
