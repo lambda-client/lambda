@@ -18,10 +18,13 @@
 package com.lambda.module.hud
 
 import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.imgui.ImColor
+import com.lambda.imgui.ImGui
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.NamedEnum
 import java.awt.Color
 
 @Suppress("unused")
@@ -29,27 +32,104 @@ object ModuleList : HudModule(
     name = "ModuleList",
     tag = ModuleTag.HUD,
 ) {
-	val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
-	val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
+	private val onlyBound by setting("Only Bound", false, "Only displays modules with a keybind")
+	private val showKeybind by setting("Show Keybind", true, "Display keybind next to a module")
+	private val textColor by setting(
+		"Text Color",
+		Color(80, 210, 255),
+		"Module name color"
+	)
+	private val alignment by setting("Alignment", Alignment.Left, "Align shorter names to the left or right")
+	private val sortOrder by setting("Sort Order", SortOrder.LengthLongToShort, "Order the module list")
+	private val boundKeybindColor by setting(
+		"Bound Keybind Color",
+		Color(90, 255, 120),
+		"Color for modules with a keybind",
+		visibility = { showKeybind }
+	)
+	private val unboundKeybindColor by setting(
+		"Unbound Keybind Color",
+		Color(255, 80, 80),
+		"Color for modules without a keybind",
+		visibility = { showKeybind && !onlyBound }
+	)
 
     init {
         drawSetting.value = false
     }
 
     override fun ImGuiBuilder.buildLayout() {
-        val enabled = ModuleRegistry.modules.filter { it.isEnabled && it.draw }
+        val rows = ModuleRegistry.modules
+            .asSequence()
+            .filter { it.isEnabled && it.draw }
+            .mapNotNull {
+                val bound = it.keybind.key != 0 || it.keybind.mouse != -1
+                if (onlyBound && !bound) return@mapNotNull null
 
-        enabled.forEach {
-            val bound = it.keybind.key != 0 || it.keybind.mouse != -1
-            if (onlyBound && !bound) return@forEach
-            text(it.name)
+                val keybindText = if (showKeybind) " [${it.keybind.name}]" else ""
+                val fullText = it.name + keybindText
 
-	        if (showKeybind) {
-		        val color = if (!bound) Color.RED else Color.GREEN
+                ModuleRow(
+                    name = it.name,
+                    keybindText = keybindText,
+                    bound = bound,
+                    width = ImGui.calcTextSize(fullText).x
+                )
+            }
+            .toList()
+            .sorted()
 
-		        sameLine()
-		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
-	        }
+        val maxWidth = rows.maxOfOrNull { it.width } ?: return
+        val lineStartX = cursorPosX
+
+        rows.forEach { row ->
+            cursorPosX = when (alignment) {
+                Alignment.Left -> lineStartX
+                Alignment.Right -> lineStartX + maxWidth - row.width
+            }
+
+            withStyleColor(ImGuiCol.Text, textColor.toImColor()) {
+                text(row.name)
+            }
+
+            if (row.keybindText.isNotEmpty()) {
+                val keybindColor = if (row.bound) boundKeybindColor else unboundKeybindColor
+                sameLine(0f, 0f)
+                withStyleColor(ImGuiCol.Text, keybindColor.toImColor()) {
+                    text(row.keybindText)
+                }
+            }
         }
     }
+
+	private fun List<ModuleRow>.sorted() =
+		when (sortOrder) {
+			SortOrder.Default -> this
+			SortOrder.LengthLongToShort -> sortedByDescending { it.width }
+			SortOrder.LengthShortToLong -> sortedBy { it.width }
+			SortOrder.NameAToZ -> sortedBy { it.name.lowercase() }
+			SortOrder.NameZToA -> sortedByDescending { it.name.lowercase() }
+		}
+
+	private fun Color.toImColor() = ImColor.rgba(red, green, blue, alpha)
+
+	private data class ModuleRow(
+		val name: String,
+		val keybindText: String,
+		val bound: Boolean,
+		val width: Float,
+	)
+
+	private enum class Alignment(override val displayName: String) : NamedEnum {
+		Left("Left"),
+		Right("Right")
+	}
+
+	private enum class SortOrder(override val displayName: String) : NamedEnum {
+		Default("Default"),
+		LengthLongToShort("Length: Long to Short"),
+		LengthShortToLong("Length: Short to Long"),
+		NameAToZ("Name: A to Z"),
+		NameZToA("Name: Z to A")
+	}
 }

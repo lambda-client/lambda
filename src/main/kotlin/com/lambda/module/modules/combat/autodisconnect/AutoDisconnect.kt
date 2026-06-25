@@ -32,6 +32,7 @@ import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils
 import com.lambda.util.CommunicationUtils.prefix
 import com.lambda.util.FormattingUtils.format
+import com.lambda.util.NamedEnum
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
@@ -80,11 +81,20 @@ object AutoDisconnect : Module(
 
     private const val PACKET_DISCONNECT_GROUP = "Packet Disconnect Methods"
     private const val DAMAGE_DISCONNECT_GROUP = "Disconnects by Damage Type"
+    private const val COORDINATE_DISCONNECT_GROUP = "Coordinate Disconnect"
+    private const val WORLD_BORDER_COORDINATE = 30_000_000
 
     @Tab(DISCONNECT_CONDITIONS_TAB) private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
     @Tab(DISCONNECT_CONDITIONS_TAB) private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
     @Tab(DISCONNECT_CONDITIONS_TAB) private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
     @Tab(DISCONNECT_CONDITIONS_TAB) private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(COORDINATE_DISCONNECT_GROUP) private val coordinates by setting("Coordinates", false, "Disconnect from the server when selected coordinate limits are reached or passed.")
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(COORDINATE_DISCONNECT_GROUP) private val xCoordinate by setting("X Axis", false, "Check the player's X coordinate.") { coordinates }
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(COORDINATE_DISCONNECT_GROUP) private val xCoordinateMode by setting("X Mode", CoordinateMode.LowerOrEqual, "Choose whether X disconnects at or below the limit, or at or above it.") { coordinates && xCoordinate }
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(COORDINATE_DISCONNECT_GROUP) private val xCoordinateLimit by setting("X Value", 0, -WORLD_BORDER_COORDINATE..WORLD_BORDER_COORDINATE, 1, "The X coordinate limit to disconnect at or beyond.") { coordinates && xCoordinate }
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(COORDINATE_DISCONNECT_GROUP) private val zCoordinate by setting("Z Axis", false, "Check the player's Z coordinate.") { coordinates }
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(COORDINATE_DISCONNECT_GROUP) private val zCoordinateMode by setting("Z Mode", CoordinateMode.LowerOrEqual, "Choose whether Z disconnects at or below the limit, or at or above it.") { coordinates && zCoordinate }
+    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(COORDINATE_DISCONNECT_GROUP) private val zCoordinateLimit by setting("Z Value", 0, -WORLD_BORDER_COORDINATE..WORLD_BORDER_COORDINATE, 1, "The Z coordinate limit to disconnect at or beyond.") { coordinates && zCoordinate }
     @Tab(DISCONNECT_CONDITIONS_TAB) private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
     @Tab(DISCONNECT_CONDITIONS_TAB) private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
     @Tab(DISCONNECT_CONDITIONS_TAB) private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")
@@ -282,6 +292,29 @@ object AutoDisconnect : Module(
         }
     }
 
+    private fun CoordinateMode.reached(value: Double, limit: Int): Boolean =
+        when (this) {
+            CoordinateMode.GreaterOrEqual -> value >= limit
+            CoordinateMode.LowerOrEqual -> value <= limit
+        }
+
+    private fun buildCoordinateDisconnectReason(
+        axis: String,
+        value: Double,
+        limit: Int,
+        mode: CoordinateMode
+    ) = buildText {
+        literal("Player ")
+        highlighted(axis)
+        literal(" coordinate ")
+        highlighted(value.format())
+        literal(" reached ")
+        highlighted(mode.displayName.lowercase())
+        literal(" ")
+        highlighted("$limit")
+        literal("!")
+    }
+
     enum class Reason(val check: () -> Boolean, val generateReason: SafeContext.() -> Text?) {
         Health({ health }, {
             if (player.fullHealth < minimumHealth) {
@@ -302,6 +335,15 @@ object AutoDisconnect : Module(
                     literal("!")
                 }
             } else null
+        }),
+        Coordinates({ coordinates && (xCoordinate || zCoordinate) }, {
+            when {
+                xCoordinate && xCoordinateMode.reached(player.pos.x, xCoordinateLimit) ->
+                    buildCoordinateDisconnectReason("X", player.pos.x, xCoordinateLimit, xCoordinateMode)
+                zCoordinate && zCoordinateMode.reached(player.pos.z, zCoordinateLimit) ->
+                    buildCoordinateDisconnectReason("Z", player.pos.z, zCoordinateLimit, zCoordinateMode)
+                else -> null
+            }
         }),
         Totem({ totem }, {
             val totemCount = player.allStacks.count { it.item == Items.TOTEM_OF_UNDYING }
@@ -356,6 +398,11 @@ object AutoDisconnect : Module(
             ) buildText { literal("You were about to fall and die") }
             else null
         })
+    }
+
+    private enum class CoordinateMode(override val displayName: String) : NamedEnum {
+        GreaterOrEqual("Greater or Equal"),
+        LowerOrEqual("Lower or Equal")
     }
 }
 
