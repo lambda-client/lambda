@@ -45,9 +45,9 @@ import tools.jackson.module.kotlin.jsonMapper
 import tools.jackson.module.kotlin.kotlinModule
 
 object Lambda : ClientModInitializer {
-	const val MOD_NAME = "Lambda"
-	const val MOD_ID = "lambda"
-	const val SYMBOL = "λ"
+	const val MOD_NAME = "Comet"
+	const val MOD_ID = "comet"
+	const val SYMBOL = "☄"
 	const val APP_ID = "1221289599427416127"
 	const val REPO_URL = "https://github.com/lambda-client/lambda"
 	val VERSION: String =
