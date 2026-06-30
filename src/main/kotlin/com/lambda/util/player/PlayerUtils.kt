@@ -20,6 +20,7 @@ package com.lambda.util.player
 import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.GlideHandler
+import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.EquipmentSlot
@@ -66,7 +67,7 @@ object PlayerUtils {
             bodyYaw = entity.bodyYaw
             velocity = entity.velocity
             movementSpeed = entity.movementSpeed
-            isSneaking = entity.isSneaking
+            input.sneaking = entity.isSneaking
             isSprinting = entity.isSprinting
             isSwimming = entity.isSwimming
             isOnGround = entity.isOnGround

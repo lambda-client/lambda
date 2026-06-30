@@ -95,7 +95,7 @@ object HighwayTools : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig.apply {
-					editTypedSettings(::pathing, ::stayInRange) { defaultValue(true) }
+					editTypedSettings(::pathing) { defaultValue(true) }
 				}
             }
 

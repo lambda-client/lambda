@@ -36,7 +36,6 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.PlaceDirection
@@ -110,17 +109,12 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 		val fakePlayer = copyPlayer(player).apply {
 			val newPos = pov - (this.eyePos - this.pos)
 			setPos(newPos.x, newPos.y, newPos.z)
-			if (preProcessing.info.sneak == false) {
-				if (testBlockState.block::class in BlockUtils.interactionBlocks) return
-				input.sneaking = false
-				updatePose()
-			} else {
-				val shouldNotInteract = testBlockState.block::class in BlockUtils.interactionBlocks && preProcessing.info.placing
-				if (shouldNotInteract || preProcessing.info.sneak == true) {
-					input.sneaking = true
-					updatePose()
-				}
-			}
+			val prevSneak = input.sneaking
+			val interacting = !preProcessing.info.placing
+			val sneak = preProcessing.info.sneak
+			if (interacting && (sneak == true || (sneak == null && prevSneak))) return
+			input.sneaking = preProcessing.info.sneak ?: prevSneak && !interacting
+			if (prevSneak != isSneaking) updatePose()
 		}
 		val pov = fakePlayer.eyePos
 

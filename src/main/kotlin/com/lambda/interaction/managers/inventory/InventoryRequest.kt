@@ -51,6 +51,7 @@ class InventoryRequest private constructor(
 	override val tickStageMask get() = inventoryConfig.tickStageMask
 	override var done = false
 
+	@InvRequestDsl
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		InventoryManager.request(this, queueIfMismatchedStage)
 
@@ -63,12 +64,10 @@ class InventoryRequest private constructor(
 		val actions = mutableListOf<InventoryAction>()
 		var onComplete: (SafeContext.() -> Unit)? = null
 
-		@InvRequestDsl
 		fun click(slotId: Int, button: Int, actionType: SlotActionType) {
 			InventoryAction.Inventory { clickSlot(slotId, button, actionType) }.addToActions()
 		}
 
-		@InvRequestDsl
 		fun resyncInventory() {
 			InventoryAction.Inventory {
 				connection.sendPacket {
@@ -84,19 +83,16 @@ class InventoryRequest private constructor(
 			}.addToActions()
 		}
 
-		@InvRequestDsl
 		fun pickFromInventory(slotId: Int) {
 			InventoryAction.Inventory {
 				clickSlot(slotId, player.inventory.selectedSlot, SlotActionType.SWAP)
 			}.addToActions()
 		}
 
-		@InvRequestDsl
 		fun dropItemInHand(entireStack: Boolean = true) {
 			InventoryAction.Inventory { player.dropSelectedItem(entireStack) }.addToActions()
 		}
 
-		@InvRequestDsl
 		fun swapHands() {
 			InventoryAction.Player {
 				val offhandStack = player.getStackInHand(Hand.OFF_HAND)
@@ -112,78 +108,61 @@ class InventoryRequest private constructor(
 			}.addToActions()
 		}
 
-		@InvRequestDsl
 		fun clickCreativeStack(stack: ItemStack, slotId: Int) {
 			InventoryAction.Inventory { interaction.clickCreativeStack(stack, slotId) }.addToActions()
 		}
 
-		@InvRequestDsl
 		fun pickup(slotId: Int, button: Int = 0) = click(slotId, button, SlotActionType.PICKUP)
 
 		// Quick move action (Shift-click)
-		@InvRequestDsl
 		fun quickMove(slotId: Int) = click(slotId, 0, SlotActionType.QUICK_MOVE)
 
-		@InvRequestDsl
 		fun swap(slotId: Int, hotbarSlot: Int) = click(slotId, hotbarSlot, SlotActionType.SWAP)
 
 		// Clone action (Creative mode)
-		@InvRequestDsl
 		fun clone(slotId: Int) = click(slotId, 2, SlotActionType.CLONE)
 
 		// Throw stack or single item
-		@InvRequestDsl
 		fun throwStack(slotId: Int) = click(slotId, 1, SlotActionType.THROW)
 
-		@InvRequestDsl
 		fun throwSingle(slotId: Int) = click(slotId, 0, SlotActionType.THROW)
 
 		// Quick craft action
-		@InvRequestDsl
 		fun quickCraftStart(slotId: Int) = click(slotId, 0, SlotActionType.QUICK_CRAFT)
 
-		@InvRequestDsl
 		fun quickCraftDrag(slotId: Int) = click(slotId, 1, SlotActionType.QUICK_CRAFT)
 
-		@InvRequestDsl
 		fun quickCraftEnd(slotId: Int) = click(slotId, 2, SlotActionType.QUICK_CRAFT)
 
 		// Pickup all items (double-click)
-		@InvRequestDsl
 		fun pickupAll(slotId: Int) = click(slotId, 0, SlotActionType.PICKUP_ALL)
 
 		// Helper function: Move items from one slot to another
-		@InvRequestDsl
 		fun moveSlot(fromSlotId: Int, toSlotId: Int, button: Int = 0) {
 			pickup(fromSlotId, button)
 			pickup(toSlotId, button)
 		}
 
 		// Helper function: Split a stack into two
-		@InvRequestDsl
 		fun splitStack(slotId: Int, targetSlotId: Int) {
 			pickup(slotId, 1) // Pickup half the stack
 			pickup(targetSlotId, 0) // Place it in the target slot
 		}
 
 		// Helper function: Merge stacks
-		@InvRequestDsl
 		fun mergeStacks(sourceSlotId: Int, targetSlotId: Int) {
 			pickup(sourceSlotId, 0)
 			pickup(targetSlotId, 0)
 		}
 
-		@InvRequestDsl
 		fun action(action: SafeContext.() -> Unit) {
 			InventoryAction.Other(action).addToActions()
 		}
 
-		@InvRequestDsl
 		fun onComplete(callback: SafeContext.() -> Unit) {
 			onComplete = callback
 		}
 
-		@InvRequestDsl
 		private fun InventoryAction.addToActions() {
 			actions.add(this)
 		}

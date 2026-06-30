@@ -84,37 +84,30 @@ data class BreakRequest private constructor(
 	) {
 		val request = BreakRequest(contexts, pendingInteractions, automated, nowOrNothing)
 
-		@BreakRequestDsl
 		fun onStart(callback: SafeContext.(BlockPos) -> Unit) {
 			request.onStart = callback
 		}
 
-		@BreakRequestDsl
 		fun onUpdate(callback: SafeContext.(BlockPos) -> Unit) {
 			request.onUpdate = callback
 		}
 
-		@BreakRequestDsl
 		fun onStop(callback: SafeContext.(BlockPos) -> Unit) {
 			request.onStop = callback
 		}
 
-		@BreakRequestDsl
 		fun onCancel(callback: SafeContext.(BlockPos) -> Unit) {
 			request.onCancel = callback
 		}
 
-		@BreakRequestDsl
 		fun onItemDrop(callback: SafeContext.(ItemEntity) -> Unit) {
 			request.onItemDrop = callback
 		}
 
-		@BreakRequestDsl
 		fun onReBreakStart(callback: SafeContext.(BlockPos) -> Unit) {
 			request.onReBreakStart = callback
 		}
 
-		@BreakRequestDsl
 		fun onReBreak(callback: SafeContext.(BlockPos) -> Unit) {
 			request.onReBreak = callback
 		}

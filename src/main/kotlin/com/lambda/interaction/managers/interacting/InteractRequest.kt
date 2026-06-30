@@ -62,7 +62,6 @@ data class InteractRequest private constructor(
 	) {
 		val request = InteractRequest(contexts, pendingInteractions, automated, nowOrNothing)
 
-		@PlaceRequestDsl
 		fun onPlace(callback: SafeContext.(BlockPos) -> Unit) {
 			request.onPlace = callback
 		}

@@ -31,9 +31,9 @@ interface BuildConfig {
     val interactBlocks: Boolean
 
     val pathing: Boolean
-    val stayInRange: Boolean
     val collectDrops: Boolean
     val spleefEntities: Boolean
+    val cautionDoubleBlocks: Boolean
     val maxPendingActions: Int
     val actionTimeout: Int
     val maxBuildDependencies: Int

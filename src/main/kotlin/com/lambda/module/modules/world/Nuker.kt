@@ -61,7 +61,7 @@ object Nuker : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig.apply {
-					editTypedSettings(::pathing, ::stayInRange) { defaultValue(false) }
+					editTypedSettings(::pathing) { defaultValue(false) }
 				}
 			}
 

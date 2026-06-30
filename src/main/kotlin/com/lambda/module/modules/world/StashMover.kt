@@ -183,8 +183,8 @@ object StashMover : Module(
 		setDefaultAutomationConfig()
 			.withEdits {
 				buildConfig.apply {
-					editTypedSettings(::pathing, ::stayInRange, ::checkSideVisibility) { defaultValue(true) }
-					hide(::pathing, ::stayInRange, ::collectDrops, ::spleefEntities, ::entityReach)
+					editTypedSettings(::pathing, ::checkSideVisibility) { defaultValue(true) }
+					hide(::pathing, ::collectDrops, ::spleefEntities, ::entityReach)
 					hideBlock(::eatConfig)
 				}
 				interactConfig::airPlace.editSetting { defaultValue(InteractConfig.AirPlaceMode.None) }
