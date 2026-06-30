@@ -74,7 +74,10 @@ class BounceElytraFly(
 	context(safeContext: SafeContext)
 	private val yMotion
 		get() = yMotionSetting &&
-				(!onlyOnDiagonal || abs(RotationManager.activeRotation.yaw % 90) > minDiagonalAngle) &&
+				(!onlyOnDiagonal || run {
+					val normalised = abs(RotationManager.activeRotation.yaw % 90)
+					normalised > minDiagonalAngle && normalised < 90 - minDiagonalAngle
+				}) &&
 				safeContext.player.isOnGround &&
 				safeContext.player.isGliding &&
 				Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond).let { speed ->
