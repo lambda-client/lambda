@@ -27,6 +27,7 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
@@ -34,7 +35,6 @@ import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
@@ -60,6 +60,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
+import net.minecraft.item.Items
 import net.minecraft.screen.slot.Slot
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
@@ -210,7 +211,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 			supervisorScope.cancel()
 			return null
 		}
-		val stackSelection = item?.select()
+		val stackSelection = item?.select()?.apply { if (item == Items.AIR) count = 0 }
 			?: StackSelection.selectStack(0, sorter = compareByDescending { it.inventoryIndex == player.inventory.selectedSlot })
 		val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
 		val container = stackSelection.findContainersWithMaterial(containerSelection).firstOrNull() ?: run {
