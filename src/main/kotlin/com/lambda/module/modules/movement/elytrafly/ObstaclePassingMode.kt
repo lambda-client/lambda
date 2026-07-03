@@ -125,7 +125,7 @@ abstract class ObstaclePassingMode(
 		return false
 	}
 
-	private fun SafeContext.getSnappedDir(): Vec3d {
+	protected fun SafeContext.getSnappedDir(): Vec3d {
 		val travelDiff = player.pos.subtract(startPos).normalize().let { Vec3d(it.x, 0.0, it.z) }
 		return lockYawToStep(travelDiff)
 	}
@@ -150,8 +150,7 @@ abstract class ObstaclePassingMode(
 		return Vec3d(x, vector.y, z)
 	}
 
-	context(safeContext: SafeContext)
-	private fun pathToValidPoint(startSearchPos: Vec3d, dir: Vec3d, initialBlockedCheck: Boolean = false) {
+	private fun SafeContext.pathToValidPoint(startSearchPos: Vec3d, dir: Vec3d, initialBlockedCheck: Boolean = false) {
 		var skippingFirstCheck = !initialBlockedCheck
 		var searchPos = startSearchPos
 		while (skippingFirstCheck || searchPos.isObstructed(dir)) {
@@ -159,7 +158,7 @@ abstract class ObstaclePassingMode(
 			skippingFirstCheck = false
 		}
 		passTo(searchPos)
-		safeContext.player.stopGliding()
+		interrupt()
 	}
 
 	private fun passTo(pos: Vec3d) {
@@ -167,7 +166,7 @@ abstract class ObstaclePassingMode(
 		BaritoneHandler.setGoalAndPath(GoalGetToBlock(pos.flooredBlockPos))
 	}
 
-	private fun Vec3d.findClosestPointOnLine(snappedDirection: Vec3d): Vec3d {
+	protected fun Vec3d.findClosestPointOnLine(snappedDirection: Vec3d): Vec3d {
 		val startToCurrent = subtract(startPos)
 		val t = startToCurrent.dotProduct(snappedDirection) / snappedDirection.dotProduct(snappedDirection)
 		return startPos.add(snappedDirection.multiply(t))

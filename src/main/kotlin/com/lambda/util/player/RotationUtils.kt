@@ -35,6 +35,7 @@ import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.Entity
+import net.minecraft.util.PlayerInput
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
@@ -42,12 +43,16 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import org.joml.Math.toRadians
 import java.util.*
+import kotlin.math.PI
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.sin
 
 /**
  * Object for handling visibility checks, rotation calculations, and hit detection.
@@ -360,6 +365,72 @@ object RotationUtils {
 	) = if (automated.buildConfig.checkSideVisibility || automated.buildConfig.strictRayCast) {
 		intersect(box.getVisibleSurfaces(eye))
 	} else this
+
+	context(safeContext: SafeContext)
+	fun getInputRelativeTo(yaw: Float, input: PlayerInput, actualYaw: Float): PlayerInput {
+		val strafe = (if (input.left()) 1 else 0) - (if (input.right()) 1 else 0)
+		val forward = (if (input.forward()) 1 else 0) - (if (input.backward()) 1 else 0)
+
+		if (strafe == 0 && forward == 0) return input
+
+		val deltaYawRad = toRadians(actualYaw - yaw)
+		val cos = cos(deltaYawRad)
+		val sin = sin(deltaYawRad)
+
+		val newStrafe = strafe * cos - forward * sin
+		val newForward = strafe * sin + forward * cos
+
+		val angle = atan2(newStrafe.toDouble(), newForward.toDouble())
+
+		val sector = PI / 4.0          // 45°
+		val boundary = PI / 8.0        // 22.5°
+
+		var pressForward = false
+		var pressBackward = false
+		var pressLeft = false
+		var pressRight = false
+
+		when {
+			angle > -boundary && angle <= boundary -> {
+				pressForward = true
+			}
+			angle > boundary && angle <= boundary + sector -> {
+				pressForward = true
+				pressLeft = true
+			}
+			angle > boundary + sector && angle <= boundary + 2 * sector -> {
+				pressLeft = true
+			}
+			angle > boundary + 2 * sector && angle <= boundary + 3 * sector -> {
+				pressBackward = true
+				pressLeft = true
+			}
+			angle > boundary + 3 * sector || angle <= -(boundary + 3 * sector) -> {
+				pressBackward = true
+			}
+			angle > -(boundary + 3 * sector) && angle <= -(boundary + 2 * sector) -> {
+				pressBackward = true
+				pressRight = true
+			}
+			angle > -(boundary + 2 * sector) && angle <= -(boundary + sector) -> {
+				pressRight = true
+			}
+			angle > -(boundary + sector) && angle <= -boundary -> {
+				pressForward = true
+				pressRight = true
+			}
+		}
+
+		return PlayerInput(
+			pressForward,
+			pressBackward,
+			pressLeft,
+			pressRight,
+			input.jump(),
+			input.sneak(),
+			input.sprint()
+		)
+	}
 }
 
 class CheckedHit(

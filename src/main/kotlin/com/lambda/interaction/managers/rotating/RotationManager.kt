@@ -37,19 +37,14 @@ import com.lambda.interaction.managers.rotating.RotationManager.updateActiveRota
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.rotation
-import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
+import com.lambda.util.player.RotationUtils.getInputRelativeTo
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
-import net.minecraft.util.PlayerInput
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.Vec2f
-import kotlin.math.PI
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * Manager designed to rotate the player and adjust movement input to match the camera's direction.
@@ -208,74 +203,11 @@ object RotationManager : Manager<RotationRequest>(
 	@JvmStatic
 	fun redirectStrafeInputs(input: Input) = runSafe {
 		val movementYaw = movementYaw ?: return@runSafe
-		val playerYaw = player.yaw
+		val viewYaw = player.yaw
 
-		if (movementYaw.minus(playerYaw).rem(360f).let { it * it } < 0.001f) return@runSafe
+		val newPlayerInput = getInputRelativeTo(movementYaw, input.playerInput, viewYaw)
 
-		val originalStrafe = input.movementVector.x
-		val originalForward = input.movementVector.y
-
-		if (originalStrafe == 0.0f && originalForward == 0.0f) return@runSafe
-
-		val deltaYawRad = (playerYaw - movementYaw).toRadian()
-
-		val cos = cos(deltaYawRad)
-		val sin = sin(deltaYawRad)
-		val newStrafe = originalStrafe * cos - originalForward * sin
-		val newForward = originalStrafe * sin + originalForward * cos
-
-		val angle = atan2(newStrafe.toDouble(), newForward.toDouble())
-
-		// Define the boundaries for our 8 sectors (in radians). Each sector is 45 degrees (PI/4).
-		val sector = (PI / 4.0).toFloat()
-		val boundary = (PI / 8.0).toFloat() // The halfway point between sectors (22.5 degrees)
-
-		var pressForward = false
-		var pressBackward = false
-		var pressLeft = false
-		var pressRight = false
-
-		// Determine which 45-degree sector the angle falls into and set the corresponding keys.
-		when {
-			angle > -boundary && angle <= boundary -> {
-				pressForward = true
-			}
-			angle > boundary && angle <= boundary + sector -> {
-				pressForward = true
-				pressLeft = true
-			}
-			angle > boundary + sector && angle <= boundary + 2 * sector -> {
-				pressLeft = true
-			}
-			angle > boundary + 2 * sector && angle <= boundary + 3 * sector -> {
-				pressBackward = true
-				pressLeft = true
-			}
-			angle > boundary + 3 * sector || angle <= -(boundary + 3 * sector) -> {
-				pressBackward = true
-			}
-			angle > -(boundary + 3 * sector) && angle <= -(boundary + 2 * sector) -> {
-				pressBackward = true
-				pressRight = true
-			}
-			angle > -(boundary + 2 * sector) && angle <= -(boundary + sector) -> {
-				pressRight = true
-			}
-			angle > -(boundary + sector) && angle <= -boundary -> {
-				pressForward = true
-				pressRight = true
-			}
-		}
-
-		input.playerInput = PlayerInput(
-			pressForward,
-			pressBackward,
-			pressLeft,
-			pressRight,
-			input.playerInput.jump(),
-			input.playerInput.sneak(),
-			input.playerInput.sprint()
-		)
+		input.playerInput = newPlayerInput
 
 		val x = multiplier(input.playerInput.left(), input.playerInput.right())
 		val y = multiplier(input.playerInput.forward(), input.playerInput.backward())
@@ -283,7 +215,7 @@ object RotationManager : Manager<RotationRequest>(
 	}
 
 	private fun multiplier(positive: Boolean, negative: Boolean) =
-		((if (positive) 1 else 0) - (if (negative) 1 else 0)).toFloat()
+		(if (positive) 1f else 0f) - (if (negative) 1f else 0f)
 
 	@JvmStatic fun onRotationSend() {
 		prevServerRotation = serverRotation
@@ -301,16 +233,16 @@ object RotationManager : Manager<RotationRequest>(
 	 */
 	private fun SafeContext.updateActiveRotation() {
 		val newYaw = yawRequest?.let { yawRequest ->
-			val toYaw = if (yawRequest.keepTicks >= 0)
-				yawRequest.yaw.value ?: activeRotation.yaw
-			else player.rotation.yaw
+			val toYaw =
+				if (yawRequest.keepTicks >= 0) yawRequest.yaw.value ?: activeRotation.yaw
+				else player.rotation.yaw
 			serverRotation.slerpYaw(toYaw, yawRequest.rotationConfig.turnSpeed)
 		} ?: player.rotation.yaw
 
 		val newPitch = pitchRequest?.let { pitchRequest ->
-			val toPitch = if (pitchRequest.keepTicks >= 0)
-				pitchRequest.pitch.value ?: activeRotation.pitch
-			else player.rotation.pitch
+			val toPitch =
+				if (pitchRequest.keepTicks >= 0) pitchRequest.pitch.value ?: activeRotation.pitch
+				else player.rotation.pitch
 			serverRotation.slerpPitch(toPitch, pitchRequest.rotationConfig.turnSpeed)
 		} ?: player.rotation.pitch
 
@@ -369,17 +301,15 @@ object RotationManager : Manager<RotationRequest>(
 
 	@JvmStatic
 	val movementYaw: Float?
-		get() {
-			return if (yawRequest == null || yawRequest?.rotationConfig?.rotationMode == RotationMode.Silent) null
+		get() =
+			if (yawRequest == null || yawRequest?.rotationConfig?.rotationMode == RotationMode.Silent) null
 			else activeRotation.yaw.toFloat()
-		}
 
 	@JvmStatic
 	val movementPitch: Float?
-		get() {
-			return if (pitchRequest == null || pitchRequest?.rotationConfig?.rotationMode == RotationMode.Silent) null
+		get() =
+			if (pitchRequest == null || pitchRequest?.rotationConfig?.rotationMode == RotationMode.Silent) null
 			else activeRotation.pitch.toFloat()
-		}
 
 	@JvmStatic
 	fun getRotationForVector(deltaTime: Double): Vec2d? = runSafe {
