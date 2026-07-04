@@ -31,10 +31,11 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.random.Random
-import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
 import org.lwjgl.system.MemoryUtil
+import java.awt.Color
+import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
 
@@ -42,6 +43,57 @@ object OutlineIdPassRenderer {
     private val vertexSize = 28
 
     private class DrawBatch(val textureView: GpuTextureView?, val vertexCount: Int, val vertexOffset: Int)
+
+    private fun packColor(color: Color): Int =
+        (0xFF shl 24) or
+            ((color.blue and 0xFF) shl 16) or
+            ((color.green and 0xFF) shl 8) or
+            (color.red and 0xFF)
+
+    private fun putVertex(buffer: ByteBuffer, vertex: CapturedVertex, packedColor: Int) {
+        buffer.putFloat(vertex.x).putFloat(vertex.y).putFloat(vertex.z).putFloat(vertex.w)
+        buffer.putFloat(vertex.u).putFloat(vertex.v)
+        buffer.putInt(packedColor)
+    }
+
+    private fun putVertex(buffer: ByteBuffer, position: Vector4f, u: Float, v: Float, packedColor: Int) {
+        buffer.putFloat(position.x).putFloat(position.y).putFloat(position.z).putFloat(position.w)
+        buffer.putFloat(u).putFloat(v)
+        buffer.putInt(packedColor)
+    }
+
+    private fun emitQuad(buffer: ByteBuffer, v0: CapturedVertex, v1: CapturedVertex, v2: CapturedVertex, v3: CapturedVertex, packedColor: Int) {
+        putVertex(buffer, v0, packedColor)
+        putVertex(buffer, v1, packedColor)
+        putVertex(buffer, v2, packedColor)
+        putVertex(buffer, v0, packedColor)
+        putVertex(buffer, v2, packedColor)
+        putVertex(buffer, v3, packedColor)
+    }
+
+    private fun emitQuad(
+        buffer: ByteBuffer,
+        c0: Vector4f,
+        u0: Float,
+        v0: Float,
+        c1: Vector4f,
+        u1: Float,
+        v1: Float,
+        c2: Vector4f,
+        u2: Float,
+        v2: Float,
+        c3: Vector4f,
+        u3: Float,
+        v3: Float,
+        packedColor: Int
+    ) {
+        putVertex(buffer, c0, u0, v0, packedColor)
+        putVertex(buffer, c1, u1, v1, packedColor)
+        putVertex(buffer, c2, u2, v2, packedColor)
+        putVertex(buffer, c0, u0, v0, packedColor)
+        putVertex(buffer, c2, u2, v2, packedColor)
+        putVertex(buffer, c3, u3, v3, packedColor)
+    }
     
     private var depthTestedVertexBuffer: GpuBuffer? = null
     private val depthTestedBatches = mutableListOf<DrawBatch>()
@@ -117,40 +169,19 @@ object OutlineIdPassRenderer {
                 
                 for ((geometry, style) in group) {
                     val capturedVerts = geometry.getVertices()
-                    val color = style.color
-                    var alpha =
-                        if (style.fill) (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
-                        else 1
-                    
-                    if (isDepthTested) alpha = alpha or 128
-                    
-                    val packedColor = (alpha shl 24) or
-                            ((color.blue and 0xFF) shl 16) or
-                            ((color.green and 0xFF) shl 8) or
-                            (color.red and 0xFF)
+                    val packedColor = packColor(style.color)
 
                     val quadCount = capturedVerts.size / 4
                     for (q in 0 until quadCount) {
                         val baseIdx = q * 4
-                        val quadVerts = arrayOf(
+                        emitQuad(
+                            buffer,
                             capturedVerts[baseIdx],
                             capturedVerts[baseIdx + 1],
                             capturedVerts[baseIdx + 2],
-                            capturedVerts[baseIdx + 3]
+                            capturedVerts[baseIdx + 3],
+                            packedColor
                         )
-
-                        val v0 = quadVerts[0]
-                        val v1 = quadVerts[1]
-                        val v2 = quadVerts[2]
-                        val v3 = quadVerts[3]
-
-                        buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putFloat(v0.w).putFloat(v0.u).putFloat(v0.v).putInt(packedColor)
-                        buffer.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putFloat(v1.w).putFloat(v1.u).putFloat(v1.v).putInt(packedColor)
-                        buffer.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putFloat(v2.w).putFloat(v2.u).putFloat(v2.v).putInt(packedColor)
-
-                        buffer.putFloat(v0.x).putFloat(v0.y).putFloat(v0.z).putFloat(v0.w).putFloat(v0.u).putFloat(v0.v).putInt(packedColor)
-                        buffer.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putFloat(v2.w).putFloat(v2.u).putFloat(v2.v).putInt(packedColor)
-                        buffer.putFloat(v3.x).putFloat(v3.y).putFloat(v3.z).putFloat(v3.w).putFloat(v3.u).putFloat(v3.v).putInt(packedColor)
                         
                         currentVertexOffset += 6
                         batchVertexCount += 6
@@ -191,13 +222,6 @@ object OutlineIdPassRenderer {
         val fallbackTexture = blockAtlas.glTextureView
         val nearestSampler = RenderSystem.getSamplerCache().get(com.mojang.blaze3d.textures.FilterMode.NEAREST)
 
-        val idUniform = RenderSystem.getDynamicUniforms().write(
-            Matrix4f(),
-            Vector4f(1f, 1f, 1f, 1f),
-            Vector3f(0f, 0f, 0f),
-            Matrix4f()
-        )
-
         val renderPass = RenderSystem.getDevice()
             .createCommandEncoder()
             .createRenderPass(
@@ -210,8 +234,6 @@ object OutlineIdPassRenderer {
 
 	    renderPass.use { renderPass ->
 		    renderPass.setPipeline(LambdaRenderPipelines.OUTLINE_ID)
-
-		    renderPass.setUniform("DynamicTransforms", idUniform)
 
 		    renderPass.setVertexBuffer(0, vertexBuffer)
 
@@ -293,17 +315,7 @@ object OutlineIdPassRenderer {
             var batchVertexCount = 0
             
             for ((style, quads) in blockData) {
-                val color = style.color
-                var alpha =
-                    if (style.fill) (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
-                    else 1
-                
-                if (useMcDepth) alpha = alpha or 128
-                
-                val packedColor = (alpha shl 24) or
-                        ((color.blue and 0xFF) shl 16) or
-                        ((color.green and 0xFF) shl 8) or
-                        (color.red and 0xFF)
+                val packedColor = packColor(style.color)
 
                 for ((offset, quad) in quads) {
                     val p0 = quad.getPosition(0)
@@ -319,54 +331,25 @@ object OutlineIdPassRenderer {
                     val c3 = viewProj.transform(p3.x() + offset.x, p3.y() + offset.y, p3.z() + offset.z, 1.0f, Vector4f())
 
                     val anyBehind = c0.w <= 0.05f || c1.w <= 0.05f || c2.w <= 0.05f || c3.w <= 0.05f
-                    
-                    if (anyBehind) {
-                        repeat(6) {
-                            buffer.putFloat(0f).putFloat(0f).putFloat(0f).putFloat(1f)
-                            buffer.putFloat(0f).putFloat(0f)
-                            buffer.putInt(0)
-                        }
-                    } else {
-                        val uvA = quad.getTexcoords(0)
-                        val uA = Vector2f.getX(uvA)
-                        val vA = Vector2f.getY(uvA)
-                        
-                        val uvB = quad.getTexcoords(1)
-                        val uB = Vector2f.getX(uvB)
-                        val vB = Vector2f.getY(uvB)
-                        
-                        val uvC = quad.getTexcoords(2)
-                        val uC = Vector2f.getX(uvC)
-                        val vC = Vector2f.getY(uvC)
-                        
-                        val uvD = quad.getTexcoords(3)
-                        val uD = Vector2f.getX(uvD)
-                        val vD = Vector2f.getY(uvD)
+                    if (anyBehind) continue
 
-                        buffer.putFloat(c0.x).putFloat(c0.y).putFloat(c0.z).putFloat(c0.w)
-                        buffer.putFloat(uA).putFloat(vA)
-                        buffer.putInt(packedColor)
-                        
-                        buffer.putFloat(c1.x).putFloat(c1.y).putFloat(c1.z).putFloat(c1.w)
-                        buffer.putFloat(uB).putFloat(vB)
-                        buffer.putInt(packedColor)
-                        
-                        buffer.putFloat(c2.x).putFloat(c2.y).putFloat(c2.z).putFloat(c2.w)
-                        buffer.putFloat(uC).putFloat(vC)
-                        buffer.putInt(packedColor)
+                    val uvA = quad.getTexcoords(0)
+                    val uA = Vector2f.getX(uvA)
+                    val vA = Vector2f.getY(uvA)
 
-                        buffer.putFloat(c0.x).putFloat(c0.y).putFloat(c0.z).putFloat(c0.w)
-                        buffer.putFloat(uA).putFloat(vA)
-                        buffer.putInt(packedColor)
-                        
-                        buffer.putFloat(c2.x).putFloat(c2.y).putFloat(c2.z).putFloat(c2.w)
-                        buffer.putFloat(uC).putFloat(vC)
-                        buffer.putInt(packedColor)
-                        
-                        buffer.putFloat(c3.x).putFloat(c3.y).putFloat(c3.z).putFloat(c3.w)
-                        buffer.putFloat(uD).putFloat(vD)
-                        buffer.putInt(packedColor)
-                    }
+                    val uvB = quad.getTexcoords(1)
+                    val uB = Vector2f.getX(uvB)
+                    val vB = Vector2f.getY(uvB)
+
+                    val uvC = quad.getTexcoords(2)
+                    val uC = Vector2f.getX(uvC)
+                    val vC = Vector2f.getY(uvC)
+
+                    val uvD = quad.getTexcoords(3)
+                    val uD = Vector2f.getX(uvD)
+                    val vD = Vector2f.getY(uvD)
+
+                    emitQuad(buffer, c0, uA, vA, c1, uB, vB, c2, uC, vC, c3, uD, vD, packedColor)
                     
                     batchVertexCount += 6
                 }
@@ -391,50 +374,19 @@ object OutlineIdPassRenderer {
                 
                 for ((geometry, style) in group) {
                     val capturedVerts = geometry.getVertices()
-                    val color = style.color
-                    var alpha =
-                        if (style.fill) (style.fillOpacity * 125f).toInt().coerceIn(2, 125)
-                        else 1
-                    
-                    if (useMcDepth) alpha = alpha or 128
-                    
-                    val packedColor = (alpha shl 24) or
-                            ((color.blue and 0xFF) shl 16) or
-                            ((color.green and 0xFF) shl 8) or
-                            (color.red and 0xFF)
+                    val packedColor = packColor(style.color)
 
                     val quadCount = capturedVerts.size / 4
                     for (q in 0 until quadCount) {
                         val baseIdx = q * 4
-                        val quadVerts = arrayOf(
-                            capturedVerts[baseIdx],
-                            capturedVerts[baseIdx + 1],
-                            capturedVerts[baseIdx + 2],
-                            capturedVerts[baseIdx + 3]
-                        )
-                        
-                        val anyBehind = quadVerts.any { it.w <= 0.0f }
-                        if (anyBehind) {
-                            repeat(6) {
-                                buffer.putFloat(0f).putFloat(0f).putFloat(0f).putFloat(1f)
-                                buffer.putFloat(0f).putFloat(0f)
-                                buffer.putInt(0)
-                            }
-                        } else {
-                            buffer.putFloat(quadVerts[0].x).putFloat(quadVerts[0].y).putFloat(quadVerts[0].z).putFloat(quadVerts[0].w)
-                                .putFloat(quadVerts[0].u).putFloat(quadVerts[0].v).putInt(packedColor)
-                            buffer.putFloat(quadVerts[1].x).putFloat(quadVerts[1].y).putFloat(quadVerts[1].z).putFloat(quadVerts[1].w)
-                                .putFloat(quadVerts[1].u).putFloat(quadVerts[1].v).putInt(packedColor)
-                            buffer.putFloat(quadVerts[2].x).putFloat(quadVerts[2].y).putFloat(quadVerts[2].z).putFloat(quadVerts[2].w)
-                                .putFloat(quadVerts[2].u).putFloat(quadVerts[2].v).putInt(packedColor)
+                        val v0 = capturedVerts[baseIdx]
+                        val v1 = capturedVerts[baseIdx + 1]
+                        val v2 = capturedVerts[baseIdx + 2]
+                        val v3 = capturedVerts[baseIdx + 3]
 
-                            buffer.putFloat(quadVerts[0].x).putFloat(quadVerts[0].y).putFloat(quadVerts[0].z).putFloat(quadVerts[0].w)
-                                .putFloat(quadVerts[0].u).putFloat(quadVerts[0].v).putInt(packedColor)
-                            buffer.putFloat(quadVerts[2].x).putFloat(quadVerts[2].y).putFloat(quadVerts[2].z).putFloat(quadVerts[2].w)
-                                .putFloat(quadVerts[2].u).putFloat(quadVerts[2].v).putInt(packedColor)
-                            buffer.putFloat(quadVerts[3].x).putFloat(quadVerts[3].y).putFloat(quadVerts[3].z).putFloat(quadVerts[3].w)
-                                .putFloat(quadVerts[3].u).putFloat(quadVerts[3].v).putInt(packedColor)
-                        }
+                        if (v0.w <= 0.0f || v1.w <= 0.0f || v2.w <= 0.0f || v3.w <= 0.0f) continue
+
+                        emitQuad(buffer, v0, v1, v2, v3, packedColor)
                         entBatchVertexCount += 6
                         currentVertexOffset += 6
                     }
@@ -445,6 +397,8 @@ object OutlineIdPassRenderer {
                 }
             }
             
+            if (targetBatches.isEmpty()) return
+
             buffer.flip()
             if (useMcDepth) {
                 blockDepthTestedVertexBuffer?.close()
@@ -460,7 +414,7 @@ object OutlineIdPassRenderer {
         } finally {
             MemoryUtil.memFree(buffer)
         }
-        
+
         val vbo = if (useMcDepth) blockDepthTestedVertexBuffer else blockXrayVertexBuffer
         if (vbo != null && targetBatches.isNotEmpty()) {
             OutlineIdBuffer.markHasData()

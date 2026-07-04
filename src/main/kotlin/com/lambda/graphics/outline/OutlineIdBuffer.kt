@@ -90,7 +90,7 @@ object OutlineIdBuffer {
                 OptionalDouble.of(1.0)
             )?.close()
     }
-    
+
     fun markHasData() {
         hasData = true
     }

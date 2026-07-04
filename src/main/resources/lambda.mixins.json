@@ -65,6 +65,7 @@
     "render.RenderLayersMixin",
     "render.ScreenHandlerMixin",
     "render.ScreenMixin",
+    "render.ShaderLoaderMixin",
     "render.SodiumBlockRendererMixin",
     "render.SodiumFluidRendererImplMixin",
     "render.SodiumLightDataAccessMixin",

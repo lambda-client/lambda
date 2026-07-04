@@ -1,7 +1,5 @@
 #version 330
 
-#moj_import <minecraft:dynamictransforms.glsl>
-
 uniform sampler2D Sampler0;
 
 in vec2 v_TexCoord;
@@ -14,5 +12,5 @@ void main() {
     if (alpha < 0.1) discard;
 
     vec4 baseColor = v_Color;
-    fragColor = vec4(baseColor.rgb, baseColor.a);
+    fragColor = vec4(baseColor.rgb, 1.0);
 }

@@ -18,14 +18,18 @@
 package com.lambda.graphics.mc
 
 import com.lambda.core.Loadable
+import com.lambda.Lambda
 import com.mojang.blaze3d.pipeline.BlendFunction
 import com.mojang.blaze3d.pipeline.RenderPipeline
 import com.mojang.blaze3d.platform.DepthTestFunction
+import com.mojang.blaze3d.shaders.ShaderType
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.client.gl.UniformType
 import net.minecraft.client.render.VertexFormats
 import net.minecraft.util.Identifier
+import java.io.IOException
+import java.nio.charset.StandardCharsets
 
 object LambdaRenderPipelines : Loadable {
 	override val priority get() = 100
@@ -264,7 +268,7 @@ object LambdaRenderPipelines : Loadable {
 
 	val OUTLINE_ID: RenderPipeline =
 		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET, RenderPipelines.GLOBALS_SNIPPET)
+			RenderPipeline.builder()
 				.withLocation(Identifier.of("lambda", "pipeline/outline_id"))
 				.withVertexShader(Identifier.of("lambda", "core/outline_id"))
 				.withFragmentShader(Identifier.of("lambda", "core/outline_id"))
@@ -280,24 +284,71 @@ object LambdaRenderPipelines : Loadable {
 				.build()
 		)
 
-	val OUTLINE_SOBEL: RenderPipeline =
-		RenderPipelines.register(
-			RenderPipeline.builder(LAMBDA_ESP_SNIPPET)
-				.withLocation(Identifier.of("lambda", "pipeline/outline_sobel"))
-				.withVertexShader(Identifier.of("lambda", "core/outline_sobel"))
-				.withFragmentShader(Identifier.of("lambda", "core/outline_sobel"))
-				.withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-				.withSampler("Sampler0")
-				.withSampler("Sampler1")
-				.withSampler("Sampler2")
-				.withBlend(BlendFunction.TRANSLUCENT)
-				.withDepthWrite(false)
-				.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-				.withCull(false)
-				.withVertexFormat(
-					VertexFormats.POSITION_TEXTURE,
-					VertexFormat.DrawMode.QUADS
-				)
-				.build()
+	private fun buildOutlinePostPipeline(
+		location: String,
+		fragmentShader: Identifier,
+		uniforms: List<String> = emptyList(),
+		samplers: List<String>,
+		blend: Boolean = false
+	): RenderPipeline {
+		val builder = RenderPipeline.builder()
+			.withLocation(Identifier.of("lambda", location))
+			.withVertexShader(Identifier.of("lambda", "core/outline_sobel"))
+			.withFragmentShader(fragmentShader)
+			.withDepthWrite(false)
+			.withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+			.withCull(false)
+			.withVertexFormat(VertexFormats.POSITION_TEXTURE, VertexFormat.DrawMode.QUADS)
+
+		uniforms.forEach { builder.withUniform(it, UniformType.UNIFORM_BUFFER) }
+		samplers.forEach(builder::withSampler)
+		if (blend) builder.withBlend(BlendFunction.TRANSLUCENT) else builder.withoutBlend()
+		return builder.build()
+	}
+
+	private fun outlinePostPipeline(
+		location: String,
+		fragmentShader: Identifier,
+		uniforms: List<String> = emptyList(),
+		samplers: List<String>,
+		blend: Boolean = false
+	): RenderPipeline = RenderPipelines.register(
+		buildOutlinePostPipeline(location, fragmentShader, uniforms, samplers, blend)
+	)
+
+	val OUTLINE_GLOW: RenderPipeline = outlinePostPipeline(
+		location = "pipeline/outline_glow",
+		fragmentShader = Identifier.of("lambda", "core/outline_glow"),
+		uniforms = listOf("GlowData"),
+		samplers = listOf("Sampler0", "Sampler1", "Sampler2")
+	)
+
+	val OUTLINE_COMPOSITE: RenderPipeline = outlinePostPipeline(
+		location = "pipeline/outline_composite",
+		fragmentShader = Identifier.of("lambda", "core/outline_composite"),
+		uniforms = listOf("PostData", "OutlineData"),
+		samplers = listOf("Sampler0", "Sampler1", "Sampler2", "Sampler3"),
+		blend = true
+	)
+
+	fun createCustomOutlineCompositePipeline(encodedName: String, versionToken: String, shaderIdentifier: Identifier): RenderPipeline =
+		buildOutlinePostPipeline(
+			location = "pipeline/outline_composite/$encodedName/$versionToken",
+			fragmentShader = shaderIdentifier,
+			uniforms = listOf("PostData", "OutlineData"),
+			samplers = listOf("Sampler0", "Sampler1", "Sampler2", "Sampler3"),
+			blend = true
 		)
+
+	@Throws(IOException::class)
+	fun getShaderSource(identifier: Identifier): String {
+		val resource = Lambda.mc.resourceManager.getResource(identifier).orElseThrow()
+		resource.inputStream.use { input ->
+			return input.readBytes().toString(StandardCharsets.UTF_8)
+		}
+	}
+
+	@Throws(IOException::class)
+	fun getShaderSource(identifier: Identifier, shaderType: ShaderType): String =
+		getShaderSource(shaderType.idConverter().toResourcePath(identifier))
 }

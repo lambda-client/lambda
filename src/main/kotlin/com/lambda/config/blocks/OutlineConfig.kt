@@ -17,10 +17,19 @@
 
 package com.lambda.config.blocks
 
+import com.lambda.graphics.outline.GlowPosition
+import com.lambda.graphics.outline.OutlineMode
+
 interface OutlineConfig {
-	val thickness: Float
-	val glowIntensity: Float
-	val glowRadius: Float
-	val fill: Boolean
+	val outlineMode: OutlineMode
 	val fillOpacity: Float
+	val lineWidth: Float
+	val lineIntensity: Float
+	val glowPosition: GlowPosition
+	val glowMultiplier: Float
+	val glowPasses: Int
+	val glowOffset: Float
+	val glowResolution: Float
+	val glowDownsample: Float
+	val customShader: String
 }

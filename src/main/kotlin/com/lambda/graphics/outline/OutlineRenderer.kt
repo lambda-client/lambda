@@ -19,6 +19,7 @@ package com.lambda.graphics.outline
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.mc.LambdaRenderPipelines
+import com.lambda.graphics.shader.CustomShaders
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
@@ -26,11 +27,10 @@ import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
 import com.mojang.blaze3d.vertex.VertexFormat
-import org.joml.Matrix4f
-import org.joml.Vector3f
-import org.joml.Vector4f
+import net.minecraft.util.math.BlockPos
 import org.lwjgl.system.MemoryUtil
-import java.util.*
+import java.util.OptionalDouble
+import java.util.OptionalInt
 
 object OutlineRenderer {
     private var silhouetteTexture: GpuTexture? = null
@@ -40,9 +40,10 @@ object OutlineRenderer {
     private var silhouetteWidth = 0
     private var silhouetteHeight = 0
 
-    private var silhouetteVertexBuffer: GpuBuffer? = null
-
     private var fullscreenQuadBuffer: GpuBuffer? = null
+
+    private val groupGlow = OutlineGlow("Group")
+    private val idGlow = OutlineGlow("Captured")
 
     fun getGroupView(): GpuTextureView? = silhouetteView
 
@@ -66,48 +67,22 @@ object OutlineRenderer {
 
     fun endGroupPass(style: OutlineStyle, depthTest: Boolean = false) {
         val groupView = silhouetteView ?: return
-        val framebuffer = mc.framebuffer ?: return
-
+        val silDepth = if (depthTest) silhouetteDepthView ?: return else null
+        val worldDepth = if (depthTest) mc.framebuffer?.depthAttachmentView ?: return else null
         ensureFullscreenQuad()
         val quadBuffer = fullscreenQuadBuffer ?: return
 
-        val outlineColor = Vector4f(style.color.red / 255f, style.color.green / 255f, style.color.blue / 255f, 1.0f)
-        val styleMat = buildStyleMatrix(style)
-        val dynamicTransform = RenderSystem.getDynamicUniforms().write(
-            Matrix4f(),
-            outlineColor,
-            Vector3f(1f, if (depthTest) 1f else 0f, 0f),
-            styleMat
+        renderComposite(
+            source = groupView,
+            glowed = if (style.usesGlow()) groupGlow.glow(groupView, style, quadBuffer, silDepth, worldDepth) else groupView,
+            style = style,
+            label = "Lambda End Group Pass",
+            quadBuffer = quadBuffer,
+            silhouetteDepth = silDepth,
+            worldDepth = worldDepth
         )
-
-        RenderSystem.getDevice()
-            .createCommandEncoder()
-            .createRenderPass(
-                { "Lambda End Group Pass" },
-                framebuffer.colorAttachmentView,
-                OptionalInt.empty(),
-                null,
-                OptionalDouble.empty()
-            )?.use { pass ->
-                pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
-                val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
-                pass.bindTexture("Sampler0", groupView, nearestSampler)
-
-                val silDepth = silhouetteDepthView
-                if (silDepth != null) pass.bindTexture("Sampler1", silDepth, nearestSampler)
-
-                val worldDepth = framebuffer.depthAttachmentView
-                if (worldDepth != null) pass.bindTexture("Sampler2", worldDepth, nearestSampler)
-
-                pass.setUniform("DynamicTransforms", dynamicTransform)
-                pass.setVertexBuffer(0, quadBuffer)
-                
-                val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
-                val indexBuffer = shapeIndexBuffer.getIndexBuffer(4)
-                pass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
-                pass.drawIndexed(0, 0, 6, 1)
-            }
     }
+
     private fun ensureSilhouetteFBO(): Boolean {
         val framebuffer = mc.framebuffer ?: return false
         val width = framebuffer.textureWidth
@@ -172,17 +147,6 @@ object OutlineRenderer {
         }
     }
 
-    private data class StyleKey(
-        val color: java.awt.Color,
-        val thickness: Float,
-        val glowIntensity: Float,
-        val glowRadius: Float,
-        val fill: Boolean,
-        val fillOpacity: Float
-    )
-
-    private fun OutlineStyle.toKey() = StyleKey(color, thickness, glowIntensity, glowRadius, fill, fillOpacity)
-
     fun renderAllIDPasses() {
         val depthTestedEntityStyles = OutlineHandler.getDepthTestedEntityStyles()
         val xrayEntityStyles = OutlineHandler.getXrayEntityStyles()
@@ -190,75 +154,124 @@ object OutlineRenderer {
         val depthTestedBlockStyles = OutlineHandler.getDepthTestedBlockStyles()
         val xrayBlockStyles = OutlineHandler.getXrayBlockStyles()
 
-        val depthTestedEntityGroups = depthTestedEntityStyles.entries.groupBy({ it.value.toKey() }, { it.key })
-        val xrayEntityGroups = xrayEntityStyles.entries.groupBy({ it.value.toKey() }, { it.key })
-
-        val depthTestedBlockGroups = depthTestedBlockStyles.entries.groupBy({ it.value.toKey() }, { it.key to it.value })
-        val xrayBlockGroups = xrayBlockStyles.entries.groupBy({ it.value.toKey() }, { it.key to it.value })
-
-        val allStyleKeys = (depthTestedEntityGroups.keys + xrayEntityGroups.keys + depthTestedBlockGroups.keys + xrayBlockGroups.keys).distinct()
-
-        for (styleKey in allStyleKeys) {
-            OutlineIdBuffer.beginFrame()
-
-            val depthTestedIds = depthTestedEntityGroups[styleKey]
-            val xrayIds = xrayEntityGroups[styleKey]
-            val depthTestedBlocks = depthTestedBlockGroups[styleKey]
-            val xrayBlocks = xrayBlockGroups[styleKey]
-
-            if (!depthTestedIds.isNullOrEmpty()) {
-                OutlineIdPassRenderer.render(depthTestedIds.toSet(), useMcDepth = true)
-            }
-            if (!xrayIds.isNullOrEmpty()) {
-                OutlineIdPassRenderer.render(xrayIds.toSet(), useMcDepth = false)
-            }
-
-            if (!depthTestedBlocks.isNullOrEmpty()) {
-                val blockMap = depthTestedBlocks.associate { it.first to it.second }
-                OutlineIdPassRenderer.renderBlocks(blockMap, useMcDepth = true)
-            }
-            if (!xrayBlocks.isNullOrEmpty()) {
-                val blockMap = xrayBlocks.associate { it.first to it.second }
-                OutlineIdPassRenderer.renderBlocks(blockMap, useMcDepth = false)
-            }
-
-            if (OutlineIdBuffer.hasData) {
-                val representativeStyle = when {
-                    !depthTestedIds.isNullOrEmpty() -> OutlineHandler.getEntityOutlineStyle(depthTestedIds.first())
-                    !xrayIds.isNullOrEmpty() -> OutlineHandler.getEntityOutlineStyle(xrayIds.first())
-                    !depthTestedBlocks.isNullOrEmpty() -> depthTestedBlocks.first().second
-                    !xrayBlocks.isNullOrEmpty() -> xrayBlocks.first().second
-                    else -> null
-                } ?: continue
-                applyEdgeDetection(representativeStyle)
-            }
-        }
-    }
-
-    private fun applyEdgeDetection(style: OutlineStyle = OutlineStyle.DEFAULT) {
-        val idBufferView = OutlineIdBuffer.getTextureView() ?: return
-        applySobel(idBufferView, style)
-    }
-
-    private fun buildStyleMatrix(style: OutlineStyle): Matrix4f {
-        val mat = Matrix4f()
-        mat.m00(style.thickness)
-        mat.m01(style.glowIntensity)
-        mat.m02(style.glowRadius)
-        mat.m03(if (style.fill) style.fillOpacity else 0f)
-        return mat
-    }
-
-    private fun applySobel(textureView: GpuTextureView, style: OutlineStyle = OutlineStyle.DEFAULT) {
-        val framebuffer = mc.framebuffer ?: return
-        
         ensureFullscreenQuad()
         val quadBuffer = fullscreenQuadBuffer ?: return
 
-        val styleMat = buildStyleMatrix(style)
-        val dynamicTransform = RenderSystem.getDynamicUniforms().write(
-            Matrix4f(), Vector4f(1f, 1f, 1f, 1f), Vector3f(0f, 0f, 0f), styleMat
+        val depthTestedEntityGroups = depthTestedEntityStyles.entries.groupBy({ it.value }, { it.key })
+        val depthTestedBlockGroups = depthTestedBlockStyles.entries.groupBy({ it.value }, { it.key to it.value })
+
+        val xrayEntityGroups = xrayEntityStyles.entries.groupBy({ it.value }, { it.key })
+        val xrayBlockGroups = xrayBlockStyles.entries.groupBy({ it.value }, { it.key to it.value })
+
+        val cameraPos = mc.gameRenderer?.camera?.pos
+        val depthTestedStyles = (depthTestedEntityGroups.keys + depthTestedBlockGroups.keys).distinct()
+            .sortedByDescending { style ->
+                if (cameraPos != null) computeGroupDistance(
+                    depthTestedEntityGroups[style], depthTestedBlockGroups[style], cameraPos
+                ) else 0f
+            }
+
+        for (style in depthTestedStyles) {
+            renderCapturedGroup(
+                entityIds = depthTestedEntityGroups[style]?.toSet().orEmpty(),
+                blocks = depthTestedBlockGroups[style]?.associate { it.first to it.second }.orEmpty(),
+                useMcDepth = true,
+                style = style,
+                quadBuffer = quadBuffer
+            )
+        }
+
+        val xrayStyles = (xrayEntityGroups.keys + xrayBlockGroups.keys).distinct()
+
+        for (style in xrayStyles) {
+            renderCapturedGroup(
+                entityIds = xrayEntityGroups[style]?.toSet().orEmpty(),
+                blocks = xrayBlockGroups[style]?.associate { it.first to it.second }.orEmpty(),
+                useMcDepth = false,
+                style = style,
+                quadBuffer = quadBuffer
+            )
+        }
+    }
+
+    private fun computeGroupDistance(
+        entityIds: List<Int>?,
+        blocks: List<Pair<BlockPos, OutlineStyle>>?,
+        cameraPos: net.minecraft.util.math.Vec3d
+    ): Float {
+        var minDistSq = Float.MAX_VALUE
+        val world = mc.world
+
+        entityIds?.forEach { id ->
+            val entity = world?.getEntityById(id) ?: return@forEach
+            val distSq = entity.squaredDistanceTo(cameraPos).toFloat()
+            if (distSq < minDistSq) minDistSq = distSq
+        }
+
+        blocks?.forEach { (pos, _) ->
+            val distSq = pos.getSquaredDistance(cameraPos.x, cameraPos.y, cameraPos.z).toFloat()
+            if (distSq < minDistSq) minDistSq = distSq
+        }
+
+        return if (minDistSq == Float.MAX_VALUE) 0f else minDistSq
+    }
+
+    private fun renderCapturedGroup(
+        entityIds: Set<Int>,
+        blocks: Map<BlockPos, OutlineStyle>,
+        useMcDepth: Boolean,
+        style: OutlineStyle,
+        quadBuffer: GpuBuffer
+    ) {
+        if (entityIds.isEmpty() && blocks.isEmpty()) return
+
+        OutlineIdBuffer.beginFrame()
+
+        if (entityIds.isNotEmpty()) {
+            OutlineIdPassRenderer.render(entityIds, useMcDepth = useMcDepth)
+        }
+
+        if (blocks.isNotEmpty()) {
+            OutlineIdPassRenderer.renderBlocks(blocks, useMcDepth = useMcDepth)
+        }
+
+        if (!OutlineIdBuffer.hasData) return
+
+        val idBufferView = OutlineIdBuffer.getTextureView() ?: return
+        val silDepth = if (useMcDepth) OutlineIdBuffer.getSilhouetteDepthView() ?: return else null
+        val worldDepth = if (useMcDepth) OutlineIdBuffer.getMcDepthView() ?: return else null
+        val glowed = if (style.usesGlow()) idGlow.glow(idBufferView, style, quadBuffer, silDepth, worldDepth) else idBufferView
+        renderComposite(
+            source = idBufferView,
+            glowed = glowed,
+            style = style,
+            label = if (useMcDepth) "Lambda Captured Outline Composite (Depth)" else "Lambda Captured Outline Composite (Xray)",
+            quadBuffer = quadBuffer,
+            silhouetteDepth = silDepth,
+            worldDepth = worldDepth
         )
+    }
+
+    private fun renderComposite(
+        source: GpuTextureView,
+        glowed: GpuTextureView,
+        style: OutlineStyle,
+        label: String,
+        quadBuffer: GpuBuffer,
+        silhouetteDepth: GpuTextureView? = null,
+        worldDepth: GpuTextureView? = null
+    ) {
+        val framebuffer = mc.framebuffer ?: return
+        val depthTest = silhouetteDepth != null && worldDepth != null
+        val postUniform = OutlinePostUniforms.write(framebuffer.textureWidth.toFloat(), framebuffer.textureHeight.toFloat())
+        val outlineUniform = OutlineCompositeUniforms.write(style, depthTest)
+        val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
+        val linearSampler = RenderSystem.getSamplerCache().get(FilterMode.LINEAR)
+        val pipeline = if (CustomShaders.OUTLINE.isSelected(style.customShader)) {
+            CustomShaders.OUTLINE.getOrDefault(style.customShader, LambdaRenderPipelines.OUTLINE_COMPOSITE)
+        } else {
+            LambdaRenderPipelines.OUTLINE_COMPOSITE
+        }
 
         RenderSystem.getDevice()
             .createCommandEncoder()
@@ -269,17 +282,15 @@ object OutlineRenderer {
                 null,
                 OptionalDouble.empty()
             )?.use { pass ->
-                pass.setPipeline(LambdaRenderPipelines.OUTLINE_SOBEL)
-                val nearestSampler = RenderSystem.getSamplerCache().get(FilterMode.NEAREST)
-                pass.bindTexture("Sampler0", textureView, nearestSampler)
-
-                val silDepth = OutlineIdBuffer.getSilhouetteDepthView()
-                if (silDepth != null) pass.bindTexture("Sampler1", silDepth, nearestSampler)
-
-                val worldDepth = OutlineIdBuffer.getMcDepthView()
-                if (worldDepth != null) pass.bindTexture("Sampler2", worldDepth, nearestSampler)
-                pass.setUniform("DynamicTransforms", dynamicTransform)
+                pass.setPipeline(pipeline)
+                pass.bindTexture("Sampler0", source, nearestSampler)
+                pass.bindTexture("Sampler1", glowed, linearSampler)
+                pass.bindTexture("Sampler2", silhouetteDepth ?: source, nearestSampler)
+                pass.bindTexture("Sampler3", worldDepth ?: source, nearestSampler)
+                pass.setUniform("PostData", postUniform)
+                pass.setUniform("OutlineData", outlineUniform)
                 pass.setVertexBuffer(0, quadBuffer)
+
                 val shapeIndexBuffer = RenderSystem.getSequentialBuffer(VertexFormat.DrawMode.QUADS)
                 val indexBuffer = shapeIndexBuffer.getIndexBuffer(4)
                 pass.setIndexBuffer(indexBuffer, shapeIndexBuffer.indexType)
@@ -292,14 +303,17 @@ object OutlineRenderer {
         silhouetteTexture?.close()
         silhouetteDepthView?.close()
         silhouetteDepthTexture?.close()
-        silhouetteVertexBuffer?.close()
         fullscreenQuadBuffer?.close()
+        groupGlow.cleanup()
+        idGlow.cleanup()
+        OutlinePostUniforms.clear()
+        OutlineGlowUniforms.clear()
+        OutlineCompositeUniforms.clear()
 
         silhouetteView = null
         silhouetteTexture = null
         silhouetteDepthView = null
         silhouetteDepthTexture = null
-        silhouetteVertexBuffer = null
         fullscreenQuadBuffer = null
         silhouetteWidth = 0
         silhouetteHeight = 0

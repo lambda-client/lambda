@@ -17,16 +17,51 @@
 
 package com.lambda.graphics.outline
 
+import com.lambda.graphics.shader.CustomShaderSet
 import java.awt.Color
+
+enum class OutlineMode {
+    Line,
+    Glow,
+    Both;
+
+    fun usesLine() = this == Line || this == Both
+
+    fun usesGlow() = this == Glow || this == Both
+}
+
+enum class GlowPosition {
+    Inset,
+    Outset,
+    InsetOutset;
+
+    fun usesInset() = this == Inset || this == InsetOutset
+
+    fun usesOutset() = this == Outset || this == InsetOutset
+}
 
 data class OutlineStyle(
     val color: Color,
-    val thickness: Float = 0.0005f,
-    val glowIntensity: Float = 0.5f,
-    val glowRadius: Float = 0.001f,
-    val fill: Boolean = true,
-    val fillOpacity: Float = 0.4f
+    val lineWidth: Float = 1.0f,
+    val glowMultiplier: Float = 3.5f,
+    val glowPasses: Int = 2,
+    val glowOffset: Float = 1.25f,
+    val lineIntensity: Float = 1.0f,
+    val outlineMode: OutlineMode = OutlineMode.Both,
+    val glowPosition: GlowPosition = GlowPosition.Outset,
+    val fillOpacity: Float = 0.3f,
+    val glowResolution: Float = 0.5f,
+    val glowDownsample: Float = 0.5f,
+    val customShader: String = CustomShaderSet.NONE,
 ) {
+    fun usesLine() = outlineMode.usesLine()
+
+    fun usesGlow() = outlineMode.usesGlow()
+
+    fun usesInset() = glowPosition.usesInset()
+
+    fun usesOutset() = glowPosition.usesOutset()
+
     companion object {
         val DEFAULT = OutlineStyle(Color.WHITE)
     }

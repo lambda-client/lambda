@@ -26,6 +26,7 @@ import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.FunctionSetting
+import com.lambda.config.settings.ProvidedStringSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.BlockCollectionSetting
 import com.lambda.config.settings.collections.ClassCollectionSetting
@@ -221,6 +222,15 @@ abstract class Config(
 		description: String = "",
 		visibility: () -> Boolean = { true }
 	) = setting(name) { layer -> StringSetting(name, description, this, layer, defaultValue, visibility, multiline, flags) }
+
+	@ConfigEntryDsl
+	fun setting(
+		name: String,
+		defaultValue: String,
+		supplier: () -> Array<String>,
+		description: String = "",
+		visibility: () -> Boolean = { true }
+	) = setting(name) { layer -> ProvidedStringSetting(name, description, this, layer, defaultValue, visibility, supplier) }
 
 	@ConfigEntryDsl
 	@JvmName("collectionSetting1")

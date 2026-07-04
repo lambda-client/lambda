@@ -57,9 +57,6 @@ object OutlineHandler {
         }
     }
 
-    fun getEntityOutlineStyle(id: Int): OutlineStyle? =
-        depthTestedEntityOutlines[id] ?: xrayEntityOutlines[id]
-
     fun getEntityOutline(entityId: Int): OutlineStyle? = 
         depthTestedEntityOutlines[entityId] ?: xrayEntityOutlines[entityId]
     fun getBlockOutline(pos: BlockPos): OutlineStyle? =

@@ -31,6 +31,8 @@ object FolderRegistry : Loadable {
     val minecraft: Path = mc.runDirectory.toPath()
     val lambda: Path = minecraft.resolve("lambda")
     val config: Path = lambda.resolve("config")
+    val shaders: Path = lambda.resolve("shaders")
+    val outlineShaders: Path = shaders.resolve("outline")
     val packetLogs: Path = lambda.resolve("packet-log")
     val replay: Path = lambda.resolve("replay")
     val cache: Path = lambda.resolve("cache")
@@ -42,7 +44,7 @@ object FolderRegistry : Loadable {
     val File.relativeMCPath: Path get() = minecraft.relativize(toPath())
 
     override fun load(): String {
-        val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps, fonts)
+        val folders = listOf(lambda, config, shaders, outlineShaders, packetLogs, replay, cache, capes, structure, maps, fonts)
         val createdFolders = folders.mapNotNull {
             if (it.notExists()) {
                 it.createDirectories()

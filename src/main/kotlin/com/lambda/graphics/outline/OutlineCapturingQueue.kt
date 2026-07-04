@@ -115,6 +115,16 @@ class OutlineCapturingQueue @JvmOverloads constructor(
         private val outlineOnly: Boolean
     ) : BatchingRenderCommandQueue(parent) {
 
+        private inline fun captureOutline(renderLayer: RenderLayer, sprite: Sprite?, render: (VertexConsumer) -> Unit) {
+            if (!renderLayer.isOutline && !renderLayer.affectedOutline.isPresent) return
+
+            VertexCapture.setActiveTexture(getTextureView(renderLayer, sprite))
+            val baseConsumer = CapturingConsumer(renderLayer)
+            val consumer = if (sprite != null) SpriteTexturedVertexConsumer(baseConsumer, sprite) else baseConsumer
+            render(consumer)
+            baseConsumer.flush()
+        }
+
         override fun submitShadowPieces(matrices: MatrixStack, radius: Float, pieces: List<EntityRenderState.ShadowPiece>) {
             if (!outlineOnly) batchedDelegate.submitShadowPieces(matrices, radius, pieces)
         }
@@ -161,13 +171,9 @@ class OutlineCapturingQueue @JvmOverloads constructor(
             outlineColor: Int,
             crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?
         ) {
-            if (renderLayer.isOutline || renderLayer.affectedOutline.isPresent) {
-                VertexCapture.setActiveTexture(getTextureView(renderLayer, sprite))
-                val baseConsumer = CapturingConsumer(renderLayer)
-                val consumer = if (sprite != null) SpriteTexturedVertexConsumer(baseConsumer, sprite) else baseConsumer
+            captureOutline(renderLayer, sprite) { consumer ->
                 model.setAngles(state)
                 model.render(matrices, consumer, light, overlay, tintedColor)
-                baseConsumer.flush()
             }
             if (!outlineOnly) batchedDelegate.submitModel(model, state, matrices, renderLayer, light, overlay, tintedColor, sprite, outlineColor, crumblingOverlay)
         }
@@ -185,12 +191,8 @@ class OutlineCapturingQueue @JvmOverloads constructor(
             crumblingOverlay: ModelCommandRenderer.CrumblingOverlayCommand?,
             i: Int
         ) {
-            if (renderLayer.isOutline || renderLayer.affectedOutline.isPresent) {
-                VertexCapture.setActiveTexture(getTextureView(renderLayer, sprite))
-                val baseConsumer = CapturingConsumer(renderLayer)
-                val consumer = if (sprite != null) SpriteTexturedVertexConsumer(baseConsumer, sprite) else baseConsumer
+            captureOutline(renderLayer, sprite) { consumer ->
                 part.render(matrices, consumer, light, overlay, tintedColor)
-                baseConsumer.flush()
             }
             if (!outlineOnly) batchedDelegate.submitModelPart(part, matrices, renderLayer, light, overlay, sprite, sheeted, hasGlint, tintedColor, crumblingOverlay, i)
         }

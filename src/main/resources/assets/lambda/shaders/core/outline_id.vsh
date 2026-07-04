@@ -1,8 +1,5 @@
 #version 330
 
-#moj_import <minecraft:dynamictransforms.glsl>
-#moj_import <minecraft:projection.glsl>
-
 in vec4 Position;
 in vec2 UV0;
 in vec4 Color;
