@@ -87,6 +87,7 @@ import com.lambda.util.extension.tickDelta
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
 import com.lambda.util.player.PlayerUtils.gamemode
+import com.lambda.util.player.PlayerUtils.isEating
 import com.lambda.util.player.PlayerUtils.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.client.sound.PositionedSoundInstance
@@ -747,6 +748,7 @@ object BreakManager : Manager<BreakRequest>(
 
 			val swing = breakConfig.swing
 			if (progress >= info.getBreakThreshold()) {
+				if (breakConfig.pauseWhenEating && player.isEating) return
 				if (info.swapInfo.swap && !swapped) return
 				if (info.type == Primary && !PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
 
@@ -815,7 +817,7 @@ object BreakManager : Manager<BreakRequest>(
 
 		val blockState = blockState(ctx.blockPos)
 		val progress = blockState.calcBreakDelta(ctx.blockPos)
-		val instantBreakable = progress >= info.getBreakThreshold()
+		val instantBreakable = progress >= info.getBreakThreshold() && !(breakConfig.pauseWhenEating && player.isEating)
 
 		var packetCount = 1
 		if (breakConfig.breakMode == BreakMode.Packet) packetCount++

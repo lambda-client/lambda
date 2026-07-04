@@ -26,6 +26,7 @@ import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Secondary
 import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.player.PlayerUtils.isEating
 
 /**
  * A simple data class to store info about when the [BreakManager] should swap tool.
@@ -63,7 +64,7 @@ data class SwapInfo(
 				swapTickProgress >= threshold
 			}
 
-			val swap = when (breakConfig.swapMode) {
+			val swap = !(breakConfig.pauseWhenEating && player.isEating) && when (breakConfig.swapMode) {
 				BreakConfig.SwapMode.None -> false
 				BreakConfig.SwapMode.Start -> !breaking
 				BreakConfig.SwapMode.End -> swapAtEnd

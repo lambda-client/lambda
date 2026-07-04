@@ -36,6 +36,7 @@ interface BreakConfig : ActionConfig {
 	//ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
 //    abstract val desyncFix: Boolean
 	val breakDelay: Int
+	val pauseWhenEating: Boolean
 
 	val swapMode: SwapMode
 

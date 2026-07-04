@@ -28,6 +28,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.item.consume.UseAction
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.world.GameMode
@@ -44,6 +45,9 @@ object PlayerUtils {
 
     val ClientPlayerEntity.canStartGliding: Boolean
         get() = !isGliding && !isClimbing && !isTouchingWater && canGlide()
+
+    val ClientPlayerEntity.isEating: Boolean
+        get() = isUsingItem && (activeItem.useAction == UseAction.EAT || activeItem.useAction == UseAction.DRINK)
 
     context(_: SafeContext)
     val ClientPlayerEntity.canTakeoff: Boolean

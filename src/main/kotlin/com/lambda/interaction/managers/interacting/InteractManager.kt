@@ -54,6 +54,7 @@ import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.item.ItemUtils.blockItem
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.PlayerUtils.gamemode
+import com.lambda.util.player.PlayerUtils.isEating
 import com.lambda.util.player.PlayerUtils.isItemOnCooldown
 import com.lambda.util.player.PlayerUtils.swingHand
 import kotlinx.coroutines.delay
@@ -155,6 +156,7 @@ object InteractManager : Manager<InteractRequest>(
 	 * @see populateFrom
 	 */
 	fun AutomatedSafeContext.processRequest(request: InteractRequest)  {
+		if (interactConfig.pauseWhenEating && player.isEating) return
 		if (request.fresh) populateFrom(request)
 
 		if (potentialInteractions.isNotEmpty()) {

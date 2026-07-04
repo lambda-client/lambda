@@ -50,6 +50,7 @@ class BreakSettings(override val c: Config) : BreakConfig, ConfigBlock {
 	override val serverSwapTicks by c.setting("Server Swap", 0, 0..5, 1, "The number of ticks to give the server time to recognize the player attributes on the swapped item", " tick(s)")
 //	@Group(GeneralGroup) override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position") { page == Page.General }
 	override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)")
+	override val pauseWhenEating by c.setting("Pause When Eating", false, "Keeps progressing block breaks while eating, but won't finish them until eating ends")
 	// Timing
 	override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true)
 	override val swapMode by c.setting("Break Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
