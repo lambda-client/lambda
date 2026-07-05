@@ -39,6 +39,7 @@ import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.player.SlotUtils.allStacks
+import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.highlighted
@@ -99,6 +100,7 @@ object AutoDisconnect : Module(
     private const val CREEPERS_GROUP = "Creepers Settings"
     private const val TOTEM_GROUP = "Totem Settings"
     private const val PLAYERS_GROUP = "Players Settings"
+    private const val ARMOR_GROUP = "Armor Settings"
 
     @Tab(TRIGGERS_TAB) private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
     @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
@@ -130,6 +132,10 @@ object AutoDisconnect : Module(
     @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
     @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val ignoreFriends by setting("Ignore Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
     @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val playersSmart by setting("Smart Toggle", false, "Stop re-triggering on players until none are within range.") { players }
+
+    @Tab(TRIGGERS_TAB) private val armor by setting("Armor", false, "Disconnect when an equipped armor piece's durability drops below the set limit.")
+    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val minArmorDurability by setting("Min Armor Durability", 10, 1..50, 1, "Disconnect when any equipped armor piece's remaining durability falls below this.") { armor }
+    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val armorSmart by setting("Smart Toggle", true, "Stop re-triggering on armor until durability climbs back above the minimum.") { armor }
 
     // ToDo: Only those DamageTypes are reported by the server. why?
     @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val generic by setting("Generic", false, "Disconnect from the server when you take generic damage. (will always trigger!)")
@@ -462,6 +468,21 @@ object AutoDisconnect : Module(
                 (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SURVIVAL)
             ) buildText { literal("You just fell more than ${player.fallDistance} blocks and would take lethal damage") }
             else null
+        }),
+        Armor("Armor", { armor }, { armorSmart }, {
+            player.armorSlots.firstOrNull { slot ->
+                slot.stack.isDamageable && slot.stack.maxDamage - slot.stack.damage < minArmorDurability
+            }?.let { slot ->
+                buildText {
+                    literal("Armor piece ")
+                    text(slot.stack.name)
+                    literal(" has only ")
+                    highlighted("${slot.stack.maxDamage - slot.stack.damage}")
+                    literal(" durability left, below minimum of ")
+                    highlighted("$minArmorDurability")
+                    literal("!")
+                }
+            }
         });
 
         /**
