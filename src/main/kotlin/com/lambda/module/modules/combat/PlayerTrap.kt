@@ -60,7 +60,6 @@ object PlayerTrap : Module(
 				buildConfig.apply {
 					editTypedSettings(
 						::pathing,
-						::stayInRange,
 						::spleefEntities,
 						::collectDrops
 					) { defaultValue(false); hide() }

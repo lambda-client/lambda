@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.movement.elytrafly
 
+import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.forEachSetting
 import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
@@ -26,6 +27,7 @@ import com.lambda.config.withEdits
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.elytrafly.modes.BounceElytraFly
@@ -72,6 +74,7 @@ object ElytraFly : Module(
     init {
         setDefaultAutomationConfig()
             .withEdits {
+                hotbarConfig::tickStageMask.editSetting { defaultValue(TickEvent.ALL_STAGES.toMutableList()) }
 	            hideAllExcept(::inventoryConfig, ::rotationConfig)
             }
 

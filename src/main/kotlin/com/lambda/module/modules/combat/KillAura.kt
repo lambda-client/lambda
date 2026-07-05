@@ -93,7 +93,7 @@ object KillAura : Module(
                 hideAllExcept(::buildConfig, ::hotbarConfig, ::rotationConfig)
                 buildConfig.apply {
                     hide(
-                        ::pathing, ::stayInRange, ::collectDrops,
+                        ::pathing, ::collectDrops,
                         ::spleefEntities, ::maxPendingActions, ::actionTimeout,
                         ::maxBuildDependencies, ::blockReach
                     )

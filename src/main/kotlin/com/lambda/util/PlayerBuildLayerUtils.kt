@@ -32,12 +32,12 @@ object PlayerBuildLayerUtils {
 
 		if (flattenMode == FlattenMode.Staircase) {
 			val up = pos.up()
-			if ((blockState(up).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up) == !baritoneSelectionInverted)))
-				|| (blockState(up.east()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.east()) == !baritoneSelectionInverted)))
-				|| (blockState(up.south()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.south()) == !baritoneSelectionInverted)))
-				|| (blockState(up.west()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.west()) == !baritoneSelectionInverted)))
-				|| (blockState(up.north()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.north()) == !baritoneSelectionInverted)))
-			)  { return false }
+			if ((blockState(up).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up) == !baritoneSelectionInverted))) ||
+				(blockState(up.east()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.east()) == !baritoneSelectionInverted))) ||
+				(blockState(up.south()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.south()) == !baritoneSelectionInverted))) ||
+				(blockState(up.west()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.west()) == !baritoneSelectionInverted))) ||
+				(blockState(up.north()).isNotEmpty && (!baritoneSelection || (isInBaritoneSelection(up.north()) == !baritoneSelectionInverted)))
+			) { return false }
 		}
 
 		val flattenY = player.y.ceilToInt()
@@ -46,8 +46,7 @@ object PlayerBuildLayerUtils {
 			if (sneakLowersFlatten && player.isSneaking) flattenY - 1
 			else flattenY
 
-		if (!flattenMode.isSmart && pos.y < flattenLevel)
-			return false
+		if (!flattenMode.isSmart && pos.y < flattenLevel) return false
 
 		if (pos == player.supportingBlockPos) return false
 
@@ -60,19 +59,19 @@ object PlayerBuildLayerUtils {
 
 		val zeroedPos = pos.add(-playerPos.x, -flattenY, -playerPos.z)
 
-		return (zeroedPos.x < 0 && smartFlattenDir == Direction.EAST)
-				|| (zeroedPos.z < 0 && smartFlattenDir == Direction.SOUTH)
-				|| (zeroedPos.x > 0 && smartFlattenDir == Direction.WEST)
-				|| (zeroedPos.z > 0 && smartFlattenDir == Direction.NORTH)
+		return (zeroedPos.x < 0 && smartFlattenDir == Direction.EAST) ||
+				(zeroedPos.z < 0 && smartFlattenDir == Direction.SOUTH) ||
+				(zeroedPos.x > 0 && smartFlattenDir == Direction.WEST) ||
+				(zeroedPos.z > 0 && smartFlattenDir == Direction.NORTH)
 	}
 
 	fun isInBaritoneSelection(pos: BlockPos) =
 		BaritoneHandler.primary?.selectionManager?.selections?.any {
 			val min = it.min()
 			val max = it.max()
-			pos.x >= min.x && pos.x <= max.x
-					&& pos.y >= min.y && pos.y <= max.y
-					&& pos.z >= min.z && pos.z <= max.z
+			pos.x >= min.x && pos.x <= max.x &&
+					pos.y >= min.y && pos.y <= max.y &&
+					pos.z >= min.z && pos.z <= max.z
 		} ?: false
 
 	fun inSchematic(pos: BlockPos): Boolean {

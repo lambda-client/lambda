@@ -110,7 +110,6 @@ object PacketMine : Module(
 				buildConfig.apply {
 					hide(
 						::pathing,
-						::stayInRange,
 						::spleefEntities,
 						::maxBuildDependencies,
 						::collectDrops,

@@ -21,9 +21,12 @@ import com.lambda.config.ConfigBlock
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.GlideHandler.ELYTRA_SELECTION
+import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.inventory.InventoryManager
 import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
@@ -36,7 +39,10 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
+import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
+import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
 import net.minecraft.screen.slot.Slot
+import net.minecraft.util.Hand
 
 abstract class ElytraFlyMode(
 	val flyMode: FlyMode
@@ -53,6 +59,11 @@ abstract class ElytraFlyMode(
 	init {
 		listen<TickEvent.Pre>({ 100 }) {
 			fakeGliding = fakeFly && fakeGliding && player.canGlide()
+		}
+
+		listen<PacketEvent.Receive.Pre>({ 100 }) { event ->
+			if (event.packet !is InventoryS2CPacket && event.packet !is ScreenHandlerSlotUpdateS2CPacket) return@listen
+			if (fakeGliding) event.cancel()
 		}
 	}
 
@@ -82,22 +93,37 @@ abstract class ElytraFlyMode(
 		}
 		val elytraInHotbar = elytraSlot.index in 0..8
 
-		val chestSlot = player.armorSlots[1]
+		val chestSlot = player.armorSlots.getOrNull(1) ?: return false
 
+		if (elytraInHotbar) {
+			val hotbarRequest = HotbarRequest(
+				elytraSlot.index,
+				ElytraFly,
+				keepTicks = 0,
+				nowOrNothing = true
+			).submit()
+			if (!hotbarRequest.done) return false
+		}
 		fun InventoryRequest.InvRequestBuilder.swapChest() {
-			if (elytraInHotbar) swap(chestSlot.id, elytraSlot.index)
-			else {
+			if (elytraInHotbar) {
+				interaction.interactItem(player, Hand.MAIN_HAND)
+				InventoryManager.indexInventoryChanges()
+			} else {
 				moveSlot(elytraSlot.id, chestSlot.id)
 				if (!chestSlot.stack.isEmpty) pickup(elytraSlot.id)
 			}
 		}
 
-		return inventoryRequest {
+		val inventoryRequest = inventoryRequest {
 			swapChest()
 			action { startFly() }
 			swapChest()
-		}.submit(false).done
+		}.submit(false)
+
+		return inventoryRequest.done
 	}
+
+	open fun interrupt() {}
 
 	fun SafeContext.findElytra(): Slot? =
 		ELYTRA_SELECTION.filterSlots(player.hotbarAndInventorySlots).minByOrNull { it.index }

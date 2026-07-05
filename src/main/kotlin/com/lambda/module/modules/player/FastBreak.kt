@@ -48,7 +48,6 @@ object FastBreak : Module(
 				buildConfig.apply {
 					hide(
 						::pathing,
-						::stayInRange,
 						::spleefEntities,
 						::maxBuildDependencies,
 						::collectDrops,

@@ -22,10 +22,10 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.handlers.packet.PacketLimitHandler.canSendPackets
 import com.lambda.interaction.handlers.packet.PacketLimitHandler.sentPackets
 import com.lambda.interaction.handlers.packet.PacketType
+import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.managers.inventory.InventoryManager.activeRequest
 import com.lambda.interaction.managers.inventory.InventoryManager.alteredSlots
@@ -163,15 +163,18 @@ object InventoryManager : Manager<InventoryRequest>(
 	 * incoming [InventoryS2CPacket] and [ScreenHandlerSlotUpdateS2CPacket] packets to decide whether to
 	 * block certain updates.
 	 */
-	private fun SafeContext.indexInventoryChanges() {
-		if (player.currentScreenHandler.syncId != screenHandler?.syncId) return
-		val changes = screenHandler?.slots
-			?.filter { !it.stack.equal(slots[it.id]) }
-			?.map { InventoryChange(it.id, slots[it.id], it.stack.copy()) }
-			?: emptyList()
-		if (player.currentScreenHandler.syncId == 0) alteredPlayerSlots.addAll(changes)
-		else alteredSlots.addAll(changes)
-		slots = getStacks(player.currentScreenHandler.slots)
+	context(safeContext: SafeContext)
+	fun indexInventoryChanges() {
+		with(safeContext) {
+			if (player.currentScreenHandler.syncId != screenHandler?.syncId) return
+			val changes = screenHandler?.slots
+				?.filter { !it.stack.equal(slots[it.id]) }
+				?.map { InventoryChange(it.id, slots[it.id], it.stack.copy()) }
+				?: emptyList()
+			if (player.currentScreenHandler.syncId == 0) alteredPlayerSlots.addAll(changes)
+			else alteredSlots.addAll(changes)
+			slots = getStacks(player.currentScreenHandler.slots)
+		}
 	}
 
 	private fun getStacks(slots: Collection<Slot>) = slots.map { it.stack.copy() }
