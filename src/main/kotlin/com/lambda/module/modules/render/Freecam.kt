@@ -233,7 +233,7 @@ object Freecam : Module(
 
 		listen<PacketEvent.Receive.Pre> { event ->
 			val packet = event.packet
-			if (packet is PlayerRespawnS2CPacket) toggle()
+			if (packet is PlayerRespawnS2CPacket) disable()
 		}
 	}
 
