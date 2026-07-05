@@ -53,6 +53,7 @@ import net.minecraft.client.network.ServerInfo
 import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.util.ScreenshotRecorder
 import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityType
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
 import net.minecraft.entity.decoration.EndCrystalEntity
@@ -64,6 +65,7 @@ import net.minecraft.item.Items
 import net.minecraft.network.message.LastSeenMessageList
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
+import net.minecraft.registry.Registries
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
@@ -101,6 +103,7 @@ object AutoDisconnect : Module(
     private const val TOTEM_GROUP = "Totem Settings"
     private const val PLAYERS_GROUP = "Players Settings"
     private const val ARMOR_GROUP = "Armor Settings"
+    private const val ENTITY_GROUP = "Entity Settings"
 
     @Tab(TRIGGERS_TAB) private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
     @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
@@ -137,19 +140,25 @@ object AutoDisconnect : Module(
     @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val minArmorDurability by setting("Min Armor Durability", 10, 1..50, 1, "Disconnect when any equipped armor piece's remaining durability falls below this.") { armor }
     @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val armorSmart by setting("Smart Toggle", true, "Stop re-triggering on armor until durability climbs back above the minimum.") { armor }
 
+    @Tab(TRIGGERS_TAB) private val entities by setting("Entity", false, "Disconnect when an entity of a selected type is within range.")
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val selectedEntities by setting("Entities", setOf(Registries.ENTITY_TYPE.getId(EntityType.TNT_MINECART).path), Registries.ENTITY_TYPE.ids.map { it.path }.sorted(), "Select specific entities.") { entities }
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entityRange by setting("Entity Range", 10.0, 0.0..100.0, 1.0, "The range to check for entities.", unit = " blocks") { entities }
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entitiesSmart by setting("Smart Toggle", true, "Stop re-triggering on entities until none of the selected types are within range.") { entities }
+
     // ToDo: Only those DamageTypes are reported by the server. why?
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val generic by setting("Generic", false, "Disconnect from the server when you take generic damage. (will always trigger!)")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val lava by setting("Lava", false, "Disconnect from the server when you take lava damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you take \"hot floor\" damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val drown by setting("Drown", false, "Disconnect from the server when you take drowning damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val cactus by setting("Cactus", false, "Disconnect from the server when you take cactus damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val fall by setting("Fall", false, "Disconnect from the server when you take fall damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you take \"out of the world\" damage")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val wither by setting("Wither", false, "Disconnect from the server when you take wither damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you take stalagmite damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you take arrow damage.")
-    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you take trident damage.")
+    @Tab(TRIGGERS_TAB) private val damage by setting("Damage", false, "Disconnect when taking damage of a selected type.")
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val generic by setting("Generic", false, "Disconnect from the server when you take generic damage. (will always trigger!)") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val lava by setting("Lava", false, "Disconnect from the server when you take lava damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you take \"hot floor\" damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val drown by setting("Drown", false, "Disconnect from the server when you take drowning damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val cactus by setting("Cactus", false, "Disconnect from the server when you take cactus damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val fall by setting("Fall", false, "Disconnect from the server when you take fall damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you take \"out of the world\" damage") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val wither by setting("Wither", false, "Disconnect from the server when you take wither damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you take stalagmite damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you take arrow damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you take trident damage.") { damage }
 
     @Tab(GENERAL_TAB) private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val invalidHotbarDisconnect by setting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
@@ -358,15 +367,6 @@ object AutoDisconnect : Module(
         }
     }
 
-
-    /**
-     * Continue reviewing past this
-     */
-
-
-
-
-
     enum class Reason(
         val displayName: String,
         val enabled: () -> Boolean,
@@ -480,6 +480,22 @@ object AutoDisconnect : Module(
                     highlighted("${slot.stack.maxDamage - slot.stack.damage}")
                     literal(" durability left, below minimum of ")
                     highlighted("$minArmorDurability")
+                    literal("!")
+                }
+            }
+        }),
+        NearbyEntity("Entity", { entities }, { entitiesSmart }, {
+            fastEntitySearch<Entity>(entityRange).find { entity ->
+                entity != player
+                        && player.distanceTo(entity) <= entityRange
+                        && Registries.ENTITY_TYPE.getId(entity.type).path in selectedEntities
+            }?.let { entity ->
+                buildText {
+                    literal("A ")
+                    if (entity.customName != null) text(entity.name)
+                    else highlighted(entity.name.string)
+                    literal(" was ")
+                    highlighted("${entity.distanceTo(player).format()} blocks away")
                     literal("!")
                 }
             }
