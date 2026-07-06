@@ -167,15 +167,15 @@ object AutoDisconnect : Module(
 
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false
-    private var ticksSinceJoin = 0
+    private val joinTimer = TickTimer()
     var lastReconnectTarget: ReconnectTarget? = null
 
     init {
         listen<TickEvent.Pre> {
-            if (ticksSinceJoin < JOIN_GRACE_TICKS) ticksSinceJoin++
+            joinTimer.tick()
 
             // Re-enable disarmed triggers once everything is loaded
-            if (isLoaded(player.blockPos) && !isIn2b2tQueue() && ticksSinceJoin >= JOIN_GRACE_TICKS) {
+            if (isLoaded(player.blockPos) && !isIn2b2tQueue() && joinTimer.hasSurpassed(JOIN_GRACE_TICKS)) {
                 Reason.entries.forEach { reason ->
                     if (reason.smartToggle() && !reason.armed && (!reason.enabled() || reason.shouldRearm(this))) {
                         reason.armed = true
@@ -202,7 +202,7 @@ object AutoDisconnect : Module(
 
         listen<WorldEvent.Join> {
             disconnectInProgress = false
-            ticksSinceJoin = 0
+            joinTimer.reset()
         }
 
         listen<PlayerEvent.Health> { event ->
