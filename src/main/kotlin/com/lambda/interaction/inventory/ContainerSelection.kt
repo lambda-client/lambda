@@ -15,23 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material
+package com.lambda.interaction.inventory
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.inventory.container.Container
 
 /**
  * ContainerSelection is a class that holds a predicate for matching MaterialContainers.
  * It can be combined using "and", "or", etc.
  */
 class ContainerSelection {
-    private var selector: (MaterialContainer) -> Boolean = { true }
+    private var selector: (Container) -> Boolean = { true }
 
     /**
      * Tests whether the provided container matches this selection.
      */
     @ContainerSelectionDsl
-    fun matches(container: MaterialContainer): Boolean = selector(container)
+    fun matches(container: Container): Boolean = selector(container)
 
     /**
      * Returns a function that matches containers having at least one stack
@@ -39,7 +39,7 @@ class ContainerSelection {
      */
     @ContainerSelectionDsl
     context(_: SafeContext)
-    fun matches(stackSelection: StackSelection): (MaterialContainer) -> Boolean =
+    fun matches(stackSelection: StackSelection): (Container) -> Boolean =
         { container -> container.matchingSlots(stackSelection).isNotEmpty() }
 
     /**
@@ -47,42 +47,42 @@ class ContainerSelection {
      * defined in the provided ContainerSelection.
      */
     @ContainerSelectionDsl
-    fun matches(containerSelection: ContainerSelection): (MaterialContainer) -> Boolean =
+    fun matches(containerSelection: ContainerSelection): (Container) -> Boolean =
         { container -> containerSelection.matches(container) }
 
     /**
      * Returns a function that matches containers whose rank is any of the types provided.
      */
     @ContainerSelectionDsl
-    fun ofAnyType(vararg types: MaterialContainer.Rank): (MaterialContainer) -> Boolean =
+    fun ofAnyType(vararg types: Container.Rank): (Container) -> Boolean =
         { container -> types.contains(container.rank) }
 
     /**
      * Returns a function that matches containers whose rank is not any of the types provided.
      */
     @ContainerSelectionDsl
-    fun noneOfType(vararg types: MaterialContainer.Rank): (MaterialContainer) -> Boolean =
+    fun noneOfType(vararg types: Container.Rank): (Container) -> Boolean =
         { container -> !types.contains(container.rank) }
 
     /**
      * Returns a function that combines two container predicates using logical AND.
      */
     @ContainerSelectionDsl
-    infix fun ((MaterialContainer) -> Boolean).and(other: (MaterialContainer) -> Boolean): (MaterialContainer) -> Boolean =
+    infix fun ((Container) -> Boolean).and(other: (Container) -> Boolean): (Container) -> Boolean =
         { container -> this(container) && other(container) }
 
     /**
      * Returns a function that combines two container predicates using logical OR.
      */
     @ContainerSelectionDsl
-    infix fun ((MaterialContainer) -> Boolean).or(other: (MaterialContainer) -> Boolean): (MaterialContainer) -> Boolean =
+    infix fun ((Container) -> Boolean).or(other: (Container) -> Boolean): (Container) -> Boolean =
         { container -> this(container) || other(container) }
 
     /**
      * Returns a function that negates the current selection predicate.
      */
     @ContainerSelectionDsl
-    fun ((MaterialContainer) -> Boolean).negate(): (MaterialContainer) -> Boolean =
+    fun ((Container) -> Boolean).negate(): (Container) -> Boolean =
         { container -> !this(container) }
 
     companion object {
@@ -91,8 +91,7 @@ class ContainerSelection {
 
         @ContainerSelectionDsl
         fun selectContainer(
-            block: ContainerSelection.() -> (MaterialContainer) -> Boolean
-        ): ContainerSelection =
-            ContainerSelection().apply { selector = block() }
+            block: ContainerSelection.() -> (Container) -> Boolean
+        ): ContainerSelection = ContainerSelection().apply { selector = block() }
     }
 }

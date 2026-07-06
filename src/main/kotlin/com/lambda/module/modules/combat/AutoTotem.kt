@@ -25,7 +25,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.FriendHandler
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.inventory.StackSelection.Companion.select
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal

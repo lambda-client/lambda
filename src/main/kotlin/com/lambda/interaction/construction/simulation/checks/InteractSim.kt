@@ -32,10 +32,10 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.StackSelection.Companion.select
+import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.PlaceDirection
@@ -213,7 +213,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 		}
 		val stackSelection = item?.select()?.apply { if (item == Items.AIR) count = 0 }
 			?: StackSelection.selectStack(0, sorter = compareByDescending { it.inventoryIndex == player.inventory.selectedSlot })
-		val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
+		val containerSelection = selectContainer { ofAnyType(Container.Rank.Hotbar) }
 		val container = stackSelection.findContainersWithMaterial(containerSelection).firstOrNull() ?: run {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null

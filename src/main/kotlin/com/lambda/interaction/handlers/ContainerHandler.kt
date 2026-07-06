@@ -23,12 +23,12 @@ import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.ContainerSelection
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.container.containers.ChestContainer
-import com.lambda.interaction.material.container.containers.EnderChestContainer
+import com.lambda.interaction.inventory.ContainerSelection
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.StackSelection.Companion.select
+import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.containers.ChestContainer
+import com.lambda.interaction.inventory.container.containers.EnderChestContainer
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.ReflectionUtils
 import com.lambda.util.extension.containerStacks
@@ -42,11 +42,11 @@ import net.minecraft.screen.slot.Slot
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 @Suppress("unused")
 object ContainerHandler : Loadable {
-    private val containers: List<MaterialContainer>
+    private val containers: List<Container>
         get() = compileContainers + runtimeContainers
 
-    private val compileContainers = ReflectionUtils.getInstances<MaterialContainer>()
-    private val runtimeContainers = mutableSetOf<MaterialContainer>()
+    private val compileContainers = ReflectionUtils.getInstances<Container>()
+    private val runtimeContainers = mutableSetOf<Container>()
 
     var lastInteractedBlockEntity: BlockEntity? = null
 
@@ -89,7 +89,7 @@ object ContainerHandler : Loadable {
     fun containers() = containers.flatMap { setOf(it) + it.shulkerContainer }.sorted()
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun StackSelection.transfer(destination: MaterialContainer) =
+    fun StackSelection.transfer(destination: Container) =
         with(automatedSafeContext) {
             findContainerWithMaterial(
                 inventoryConfig.containerSelection
@@ -98,25 +98,25 @@ object ContainerHandler : Loadable {
         }
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun StackSelection.transferByTask(destination: MaterialContainer) =
+    fun StackSelection.transferByTask(destination: Container) =
         with(automatedSafeContext) {
             findContainerWithMaterial()?.transferByTask(this@transferByTask, destination)
         }
 
     context(_: SafeContext)
     fun findContainer(
-	    block: (MaterialContainer) -> Boolean,
-    ): MaterialContainer? = containers().find(block)
+        block: (Container) -> Boolean,
+    ): Container? = containers().find(block)
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.findContainerWithMaterial(
         containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
-    ): MaterialContainer? = findContainersWithMaterial(containerSelection).firstOrNull()
+    ): Container? = findContainersWithMaterial(containerSelection).firstOrNull()
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.findContainersWithMaterial(
 	    containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection,
-    ): List<MaterialContainer> =
+    ): List<Container> =
         containers()
             .filter { containerSelection.matches(it) }
             .filter { it.materialAvailable(this) >= count }
@@ -125,12 +125,12 @@ object ContainerHandler : Loadable {
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.findContainerWithSpace(
         containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
-    ): MaterialContainer? = findContainersWithSpace(containerSelection).firstOrNull()
+    ): Container? = findContainersWithSpace(containerSelection).firstOrNull()
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.findContainersWithSpace(
         containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
-    ): List<MaterialContainer> =
+    ): List<Container> =
         containers()
             .filter { containerSelection.matches(it) }
             .filter { it.spaceAvailable(this) >= count }

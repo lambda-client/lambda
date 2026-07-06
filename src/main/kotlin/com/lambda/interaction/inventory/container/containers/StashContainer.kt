@@ -15,11 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container.containers
+package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.math.roundedBlockPos
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -31,7 +31,7 @@ import net.minecraft.util.math.Box
 data class StashContainer(
     val chests: Set<ChestContainer>,
     val pos: Box,
-) : MaterialContainer(Rank.Stash) {
+) : Container(Rank.Stash) {
     context(_: SafeContext)
     override val slots: List<Slot>
         get() = chests.flatMap { it.slots }

@@ -19,9 +19,9 @@ package com.lambda.config.blocks
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.material.ContainerSelection
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.inventory.ContainerSelection
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
@@ -41,11 +41,11 @@ interface InventoryConfig {
 	val containerSelection: ContainerSelection
 		get() = ContainerSelection.selectContainer {
 			val allowedContainers = buildSet {
-				addAll(MaterialContainer.Rank.entries)
-				if (!accessShulkerBoxes) remove(MaterialContainer.Rank.ShulkerBox)
-				if (!accessEnderChest) remove(MaterialContainer.Rank.EnderChest)
-				if (!accessChests) remove(MaterialContainer.Rank.Chest)
-				if (!accessStashes) remove(MaterialContainer.Rank.Stash)
+				addAll(Container.Rank.entries)
+				if (!accessShulkerBoxes) remove(Container.Rank.ShulkerBox)
+				if (!accessEnderChest) remove(Container.Rank.EnderChest)
+				if (!accessChests) remove(Container.Rank.Chest)
+				if (!accessStashes) remove(Container.Rank.Stash)
 			}
 			ofAnyType(*allowedContainers.toTypedArray())
 		}
@@ -60,11 +60,11 @@ interface InventoryConfig {
 		context(_: SafeContext)
 		fun materialComparator(selection: StackSelection) =
 			when (this) {
-				WithMaxItems -> compareBy<MaterialContainer> { it.rank }
+				WithMaxItems -> compareBy<Container> { it.rank }
 					.thenByDescending { it.materialAvailable(selection) }
 					.thenBy { it.name }
 
-				WithMinItems -> compareBy<MaterialContainer> { it.rank }
+				WithMinItems -> compareBy<Container> { it.rank }
 					.thenBy { it.materialAvailable(selection) }
 					.thenBy { it.name }
 			}
@@ -72,11 +72,11 @@ interface InventoryConfig {
 		context(_: SafeContext)
 		fun spaceComparator(selection: StackSelection) =
 			when (this) {
-				WithMaxItems -> compareBy<MaterialContainer> { it.rank }
+				WithMaxItems -> compareBy<Container> { it.rank }
 					.thenByDescending { it.spaceAvailable(selection) }
 					.thenBy { it.name }
 
-				WithMinItems -> compareBy<MaterialContainer> { it.rank }
+				WithMinItems -> compareBy<Container> { it.rank }
 					.thenBy { it.spaceAvailable(selection) }
 					.thenBy { it.name }
 			}

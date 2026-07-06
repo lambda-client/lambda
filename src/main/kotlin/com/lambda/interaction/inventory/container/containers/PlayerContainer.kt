@@ -15,18 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.event.events
+package com.lambda.interaction.inventory.container.containers
 
-import com.lambda.event.callback.Cancellable
-import com.lambda.event.callback.ICancellable
+import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.util.player.SlotUtils.allSlots
+import com.lambda.util.player.SlotUtils.allStacks
+import com.lambda.util.text.buildText
+import com.lambda.util.text.literal
+import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-sealed class ContainerEvent {
-	data class Transfer(
-		val fromSlot: Slot,
-		val toSlot: Slot,
-		val from: Container,
-		val to: Container
-	) : ICancellable by Cancellable()
+@Suppress("unused")
+object PlayerContainer : Container(Rank.Player) {
+	context(safeContext: SafeContext)
+	override val slots: List<Slot>
+		get() = safeContext.player.allSlots
+	override var stacks: List<ItemStack>
+		get() = mc.player?.allStacks ?: emptyList()
+		set(_) {}
+
+	override val description = buildText { literal("Player") }
 }

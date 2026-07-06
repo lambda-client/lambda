@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.inventory.container
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
@@ -24,9 +24,8 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.containers.ShulkerBoxContainer
-import com.lambda.task.Task
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.container.containers.ShulkerBoxContainer
 import com.lambda.task.tasks.ContainerTransferTask
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
@@ -47,9 +46,9 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.text.Text
 
 // ToDo: Make jsonable to persistently store them
-abstract class MaterialContainer(
+abstract class Container(
     val rank: Rank
-) : Nameable, Comparable<MaterialContainer> {
+) : Nameable, Comparable<Container> {
     context(_: SafeContext)
     abstract val slots: List<Slot>
     abstract var stacks: List<ItemStack>
@@ -106,19 +105,13 @@ abstract class MaterialContainer(
             }.map { slot ->
                 ShulkerBoxContainer(
                     slot.stack.shulkerBoxContents,
-                    containedIn = this@MaterialContainer,
+                    containedIn = this@Container,
                     shulkerSlot = slot
                 )
             }.toSet()
 
     fun update(slots: List<ItemStack>) {
         this.stacks = slots
-    }
-
-    class FailureTask(override val name: String) : Task<Unit>() {
-        override fun SafeContext.onStart() {
-            failure(name)
-        }
     }
 
     context(_: SafeContext)
@@ -131,11 +124,11 @@ abstract class MaterialContainer(
     }
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun transfer(stackSelection: StackSelection, destination: MaterialContainer): Boolean =
+    fun transfer(stackSelection: StackSelection, destination: Container): Boolean =
         with(automatedSafeContext) {
             val fromSlot = getSlot(stackSelection) ?: return false
             val toSlot = destination.getReplaceableSlot() ?: return false
-            val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@MaterialContainer, destination)
+            val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@Container, destination)
             if (transferEvent.post().isCanceled()) return false
             return inventoryRequest {
                 if (swapMethodPriority > destination.swapMethodPriority) transfer(fromSlot, toSlot)
@@ -144,7 +137,7 @@ abstract class MaterialContainer(
         }
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun transferByTask(stackSelection: StackSelection, destination: MaterialContainer, failIfNoMaterial: Boolean = false) =
+    fun transferByTask(stackSelection: StackSelection, destination: Container, failIfNoMaterial: Boolean = false) =
         ContainerTransferTask(this, destination, stackSelection, automatedSafeContext, failIfNoMaterial)
 
     protected fun InventoryRequest.InvRequestBuilder.pickupAndPlace(fromId: Int, toId: Int) {
@@ -180,6 +173,8 @@ abstract class MaterialContainer(
         OffHand,
         Hotbar,
         Inventory,
+        Armor,
+        Player,
         Creative,
         ShulkerBox,
         EnderChest,
@@ -187,8 +182,8 @@ abstract class MaterialContainer(
         Stash
     }
 
-    override fun compareTo(other: MaterialContainer) =
-        compareBy<MaterialContainer> {
+    override fun compareTo(other: Container) =
+        compareBy<Container> {
             it.rank
         }.compare(this, other)
 }

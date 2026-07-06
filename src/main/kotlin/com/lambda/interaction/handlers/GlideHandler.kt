@@ -20,7 +20,7 @@ package com.lambda.interaction.handlers
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.mode

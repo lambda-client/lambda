@@ -73,8 +73,8 @@ import com.lambda.interaction.managers.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationRequest
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.StackSelection.Companion.select
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated

@@ -23,16 +23,16 @@ import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.ExternalContainer
-import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.container.containers.InventoryContainer
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.container.ExternalContainer
+import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.containers.InventoryContainer
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 
 class ContainerTransferTask(
-	private var fromContainer: MaterialContainer,
-	private val toContainer: MaterialContainer,
+	private var fromContainer: Container,
+	private val toContainer: Container,
 	private val stackSelection: StackSelection,
 	automated: Automated,
 	private val failIfNoMaterial: Boolean = false

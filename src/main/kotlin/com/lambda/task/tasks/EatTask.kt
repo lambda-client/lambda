@@ -24,8 +24,8 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.material.container.containers.HotbarContainer
-import com.lambda.interaction.material.container.containers.InventoryContainer
+import com.lambda.interaction.inventory.container.containers.HotbarContainer
+import com.lambda.interaction.inventory.container.containers.InventoryContainer
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.item.ItemStack

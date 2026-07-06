@@ -31,12 +31,12 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarManager
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.StackSelection.Companion.EVERYTHING
+import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
@@ -168,7 +168,7 @@ class BreakSim private constructor(simInfo: SimInfo)
 		}
 
 		val silentSwapSelection = selectContainer {
-			ofAnyType(MaterialContainer.Rank.Hotbar)
+			ofAnyType(Container.Rank.Hotbar)
 		}
 
 		val hotbarCandidates = stackSelection

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.inventory.container
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.task.Task

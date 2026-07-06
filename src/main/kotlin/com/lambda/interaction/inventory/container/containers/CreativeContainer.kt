@@ -15,12 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container.containers
+package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.inventory.InventoryRequest
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
@@ -30,7 +30,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.slot.Slot
 
-data object CreativeContainer : MaterialContainer(Rank.Creative) {
+data object CreativeContainer : Container(Rank.Creative) {
 	context(_: SafeContext)
 	override val slots: List<Slot>
 		get() = emptyList()

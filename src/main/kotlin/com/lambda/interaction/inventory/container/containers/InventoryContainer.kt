@@ -15,32 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container.containers
+package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.inventory.InventoryRequest
-import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.player.SlotUtils.hotbarSlots
-import com.lambda.util.player.SlotUtils.hotbarStacks
+import com.lambda.interaction.inventory.container.Container
+import com.lambda.util.player.SlotUtils.inventorySlots
+import com.lambda.util.player.SlotUtils.inventoryStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object HotbarContainer : MaterialContainer(Rank.Hotbar) {
+object InventoryContainer : Container(Rank.Inventory) {
     context(safeContext: SafeContext)
     override val slots: List<Slot>
-        get() = safeContext.player.hotbarSlots
-    override var stacks
-        get() = mc.player?.hotbarStacks ?: emptyList()
+        get() = safeContext.player.inventorySlots
+    override var stacks: List<ItemStack>
+        get() = mc.player?.inventoryStacks ?: emptyList()
         set(_) {}
 
-    override val swapMethodPriority = 9
-
-    override val description = buildText { literal("Hotbar") }
-
-    context(safeContext: SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
-        swap(toSlot.id, safeContext.player.hotbarSlots.indexOf(fromHere))
-    }
+    override val description = buildText { literal("Inventory") }
 }

@@ -38,7 +38,7 @@ import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions

@@ -15,13 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container.containers
+package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.ContainerHandler
-import com.lambda.interaction.material.container.ExternalContainer
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.inventory.container.ExternalContainer
+import com.lambda.interaction.inventory.container.Container
 import com.lambda.task.TaskGenerator
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
@@ -38,9 +38,9 @@ import net.minecraft.util.math.BlockPos
 
 data class ShulkerBoxContainer(
     override var stacks: List<ItemStack>,
-    val containedIn: MaterialContainer,
+    val containedIn: Container,
     val shulkerSlot: Slot,
-) : MaterialContainer(Rank.ShulkerBox), ExternalContainer {
+) : Container(Rank.ShulkerBox), ExternalContainer {
     context(safeContext: SafeContext)
     override val slots
         get(): List<Slot> =

@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.Tab
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.complex.Bind
-import com.lambda.interaction.material.container.containers.EnderChestContainer
+import com.lambda.interaction.inventory.container.containers.EnderChestContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe

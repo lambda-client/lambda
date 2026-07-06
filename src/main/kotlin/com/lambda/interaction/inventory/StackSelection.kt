@@ -15,9 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material
+package com.lambda.interaction.inventory
 
-import com.lambda.interaction.material.StackSelection.Companion.StackSelectionDsl
+import com.lambda.interaction.inventory.StackSelection.Companion.StackSelectionDsl
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.item.ItemUtils

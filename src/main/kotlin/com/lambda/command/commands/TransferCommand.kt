@@ -28,7 +28,7 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithSpace
