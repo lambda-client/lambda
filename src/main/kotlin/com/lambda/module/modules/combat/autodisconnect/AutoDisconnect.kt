@@ -33,11 +33,13 @@ import com.lambda.util.CommunicationUtils
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.prefix
 import com.lambda.util.FormattingUtils.format
+import com.lambda.util.TickTimer
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.tickDeltaF
+import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.text.buildText
@@ -255,14 +257,6 @@ object AutoDisconnect : Module(
         }.let {
             requestDisconnect(it)
         }
-    }
-
-    private fun SafeContext.isIn2b2tQueue(): Boolean {
-        if (player.gameMode != GameMode.SPECTATOR) return false
-
-        if (connection.listedPlayerListEntries.any { it.profile.id != player.uuid }) return false
-
-        return (0 until world.height).all { world.getBlockState(player.blockPos.x, world.bottomY + it, player.blockPos.z).isAir }
     }
 
     /**

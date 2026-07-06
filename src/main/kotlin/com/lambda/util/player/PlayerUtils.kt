@@ -20,6 +20,7 @@ package com.lambda.util.player
 import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.GlideHandler
+import com.lambda.util.extension.getBlockState
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
@@ -95,4 +96,12 @@ object PlayerUtils {
 
     fun ClientPlayerEntity.canGlideWithChestPiece() =
         LivingEntity.canGlideWith(getEquippedStack(EquipmentSlot.CHEST), EquipmentSlot.CHEST)
+
+    fun SafeContext.isIn2b2tQueue(): Boolean {
+        if (player.gameMode != GameMode.SPECTATOR) return false
+
+        if (connection.listedPlayerListEntries.any { it.profile.id != player.uuid }) return false
+
+        return (0 until world.height).all { world.getBlockState(player.blockPos.x, world.bottomY + it, player.blockPos.z).isAir }
+    }
 }
