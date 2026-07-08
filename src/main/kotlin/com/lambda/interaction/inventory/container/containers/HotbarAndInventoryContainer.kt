@@ -20,20 +20,20 @@ package com.lambda.interaction.inventory.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.container.Container
-import com.lambda.util.player.SlotUtils.armorSlots
-import com.lambda.util.player.SlotUtils.armorStacks
+import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
+import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object ArmorContainer : Container(Rank.Armor) {
+object HotbarAndInventoryContainer : Container(Rank.HotbarAndInventory) {
 	context(safeContext: SafeContext)
 	override val slots: List<Slot>
-		get() = safeContext.player.armorSlots
+		get() = safeContext.player.hotbarAndInventorySlots
 	override var stacks: List<ItemStack>
-		get() = mc.player?.armorStacks ?: emptyList()
+		get() = mc.player?.hotbarAndInventoryStacks ?: emptyList()
 		set(_) {}
 
-	override val description = buildText { literal("Armor") }
+	override val description = buildText { literal("Hotbar and Inventory") }
 }

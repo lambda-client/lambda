@@ -28,9 +28,10 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
+import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -39,7 +40,6 @@ import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
 import com.lambda.util.player.RotationUtils.lookAtEntity
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
@@ -119,12 +119,17 @@ object KillAura : Module(
                 }
 
                 if (swap) {
-                    val selection = selectStack().sortByDescending {
-                        damageMode.block(this, it)
-                    }
+                    val selection =
+                        selectStack {
+                            sortedWith {
+                                compareByDescending {
+                                    damageMode.block(this@listen, it.stack)
+                                }
+                            }
+                        }
 
-                    selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
-                        val slotId = player.hotbarStacks.indexOf(bestStack)
+                    selection.bestMatch(HotbarContainer.stacks)?.let { bestStack ->
+                        val slotId = HotbarContainer.stacks.indexOf(bestStack)
                         if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
                     }
                 }

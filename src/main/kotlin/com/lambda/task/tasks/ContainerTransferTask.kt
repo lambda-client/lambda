@@ -22,11 +22,11 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.containers.InventoryContainer
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 

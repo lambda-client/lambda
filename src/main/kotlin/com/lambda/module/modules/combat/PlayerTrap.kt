@@ -22,9 +22,10 @@ import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.FriendHandler.isFriend
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.FriendHandler.isFriend
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
@@ -34,7 +35,6 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.shrinkByEpsilon
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.flooredBlockPos
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import com.lambda.util.world.entitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -69,7 +69,7 @@ object PlayerTrap : Module(
 
 		onEnable {
 			task = tickingBlueprint {
-				val block = player.hotbarAndInventoryStacks.firstOrNull {
+				val block = HotbarAndInventoryContainer.stacks.firstOrNull {
 					it.item is BlockItem && blocks.contains(it.item.block)
 				}?.item?.block ?: return@tickingBlueprint emptyMap()
 				val targetPlayer = if (self) player

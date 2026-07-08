@@ -31,9 +31,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
-import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
+import com.lambda.interaction.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -82,7 +82,9 @@ object Scaffold : Module(
 
 		listen<TickEvent.Pre> {
 			val selection = selectStack {
-				{ it.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks } }
+				custom { stack, _ ->
+					stack.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks }
+				}
 			}
 			val stack = player.mainHandStack.takeIf { selection.filterStack(it) }
 				?: selection.filterStacks(HotbarContainer.stacks).firstOrNull() ?: return@listen

@@ -27,8 +27,8 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode
-import com.lambda.util.item.ItemStackUtils.bundleContents
-import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
+import com.lambda.util.item.ItemStackUtils.bundleStacks
+import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils.bundles
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import com.lambda.util.text.buildText
@@ -261,7 +261,7 @@ object ContainerPreview : Module(
 
     private fun getContainerContents(stack: ItemStack): List<ItemStack> {
         return when {
-            isShulkerBox(stack) -> stack.shulkerBoxContents
+            isShulkerBox(stack) -> stack.shulkerBoxStacks
             isEnderChest(stack) -> EnderChestContainer.stacks
             else -> emptyList()
         }
@@ -360,7 +360,7 @@ object ContainerPreview : Module(
         val hash = container.hashCode()
 
         return containerCache.computeIfAbsent(hash) {
-            val contents = container.shulkerBoxContents + container.bundleContents
+            val contents = container.shulkerBoxStacks + container.bundleStacks
             if (contents.isEmpty()) return@computeIfAbsent ContainerPreviewInfo(null, false)
 
             val group = contents.filter { stack -> stack.item != Items.AIR }

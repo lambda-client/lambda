@@ -34,11 +34,18 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.Manager
-import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
+import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.destroyBlock
+import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.pendingActions
+import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.setPendingConfigs
+import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.startPending
+import com.lambda.interaction.handlers.breaking.RebreakHandler
+import com.lambda.interaction.handlers.breaking.RebreakHandler.getRebreakPotential
+import com.lambda.interaction.handlers.breaking.RebreakResult
 import com.lambda.interaction.handlers.packet.PacketLimitHandler
 import com.lambda.interaction.handlers.packet.PacketType
-import com.lambda.interaction.handlers.breaking.RebreakHandler
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.managers.Manager
+import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.managers.breaking.BreakInfo.BreakType.Rebreak
@@ -63,18 +70,10 @@ import com.lambda.interaction.managers.breaking.BreakManager.rotationRequest
 import com.lambda.interaction.managers.breaking.BreakManager.simulateAbandoned
 import com.lambda.interaction.managers.breaking.BreakManager.updateBreakProgress
 import com.lambda.interaction.managers.breaking.BreakManager.updatePreProcessing
-import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.pendingActions
-import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.setPendingConfigs
-import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.startPending
-import com.lambda.interaction.handlers.breaking.RebreakHandler.getRebreakPotential
-import com.lambda.interaction.handlers.breaking.RebreakResult
 import com.lambda.interaction.managers.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationRequest
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.StackSelection.Companion.select
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
@@ -141,7 +140,7 @@ object BreakManager : Manager<BreakRequest>(
 			.lastOrNull {
 				it.breakConfig.doubleBreak || it.type == Secondary
 			}?.context?.itemSelection
-			?: StackSelection.EVERYTHING.select()
+			?: StackSelection.EVERYTHING
 
 	override val blockedPositions
 		get() = activeInfos.map { it.context.blockPos } + pendingActions.map { it.context.blockPos }

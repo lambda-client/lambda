@@ -28,15 +28,15 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.hotbar.HotbarManager
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.StackSelection.Companion.EVERYTHING
-import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
+import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.inventory.StackAndSlot
+import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.managers.hotbar.HotbarManager
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
@@ -145,26 +145,20 @@ class BreakSim private constructor(simInfo: SimInfo)
 
 	private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
 		// Stack size 0 to account for attacking with an empty hand. Empty slots have stack size 0
-		val stackSelection = selectStack(
-			count = 0,
-			sorter = compareByDescending<ItemStack> {
-				it.canBreak(CachedBlockPosition(world, pos, false))
-			}.thenByDescending {
-				state.calcItemBlockBreakingDelta(pos, it)
-			}.thenByDescending {
-				it.inventoryIndex == HotbarManager.serverSlot
-			}
-		) {
-			EVERYTHING
-				.andIf(breakConfig.efficientOnly) {
-					isEfficientForBreaking(state)
-				}.andIf(breakConfig.suitableToolsOnly) {
-					isSuitableForBreaking(state)
-				}.andIf(breakConfig.forceSilkTouch) {
-					hasEnchantment(Enchantments.SILK_TOUCH)
-				}.andIf(breakConfig.forceFortunePickaxe) {
-					hasEnchantment(Enchantments.FORTUNE)
+		val stackSelection = selectStack {
+			if (breakConfig.efficientOnly) isEfficientForBreaking(state)
+			if(breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
+			if (breakConfig.forceSilkTouch) hasEnchantment(Enchantments.SILK_TOUCH)
+			if (breakConfig.forceFortunePickaxe) hasEnchantment(Enchantments.FORTUNE)
+			sortedWith {
+				compareByDescending<StackAndSlot<*>> {
+					it.stack.canBreak(CachedBlockPosition(world, pos, false))
+				}.thenByDescending {
+					state.calcItemBlockBreakingDelta(pos, it.stack)
+				}.thenByDescending {
+					it.stack.inventoryIndex == HotbarManager.serverSlot
 				}
+			}
 		}
 
 		val silentSwapSelection = selectContainer {

@@ -22,15 +22,15 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
-import com.lambda.interaction.managers.inventory.InventoryRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.ShulkerBoxContainer
+import com.lambda.interaction.managers.inventory.InventoryRequest
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.task.tasks.ContainerTransferTask
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
-import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
+import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemStackUtils.spaceLeft
 import com.lambda.util.item.ItemUtils
 import com.lambda.util.item.ItemUtils.toItemCount
@@ -104,7 +104,7 @@ abstract class Container(
                 it.stack.item in ItemUtils.shulkerBoxes
             }.map { slot ->
                 ShulkerBoxContainer(
-                    slot.stack.shulkerBoxContents,
+                    slot.stack.shulkerBoxStacks,
                     containedIn = this@Container,
                     shulkerSlot = slot
                 )
@@ -159,7 +159,7 @@ abstract class Container(
 
     context(_: SafeContext)
     open fun spaceAvailable(selection: StackSelection) =
-        matchingStacks(selection).spaceLeft + stacks.empty * selection.stackSize
+        matchingStacks(selection).spaceLeft + stacks.empty * selection.count
 
     context(_: AutomatedSafeContext)
     open fun getReplaceableSlot() = slots.sortedWith(replaceSorter).firstOrNull()
@@ -173,6 +173,7 @@ abstract class Container(
         OffHand,
         Hotbar,
         Inventory,
+        HotbarAndInventory,
         Armor,
         Player,
         Creative,

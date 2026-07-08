@@ -23,6 +23,7 @@ import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomat
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
 import com.lambda.module.tag.ModuleTag
@@ -30,7 +31,6 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.block.Blocks
 import net.minecraft.item.BlockItem
 
@@ -59,7 +59,7 @@ object Surround : Module(
 
 		onEnable {
 			task = tickingBlueprint {
-				val block = player.hotbarAndInventoryStacks.firstOrNull {
+				val block = HotbarAndInventoryContainer.stacks.firstOrNull {
 					it.item is BlockItem && blocks.contains(it.item.block)
 				}?.item?.block ?: return@tickingBlueprint emptyMap()
 				getTrapPositions(player)

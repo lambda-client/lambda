@@ -25,6 +25,8 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.GlideHandler.ELYTRA_SELECTION
+import com.lambda.interaction.inventory.container.containers.ArmorContainer
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryManager
 import com.lambda.interaction.managers.inventory.InventoryRequest
@@ -33,8 +35,6 @@ import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError
-import com.lambda.util.player.SlotUtils.armorSlots
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.item.Items
@@ -93,7 +93,7 @@ abstract class ElytraFlyMode(
 		}
 		val elytraInHotbar = elytraSlot.index in 0..8
 
-		val chestSlot = player.armorSlots.getOrNull(1) ?: return false
+		val chestSlot = ArmorContainer.slots.getOrNull(1) ?: return false
 
 		if (elytraInHotbar) {
 			val hotbarRequest = HotbarRequest(
@@ -126,7 +126,7 @@ abstract class ElytraFlyMode(
 	open fun interrupt() {}
 
 	fun SafeContext.findElytra(): Slot? =
-		ELYTRA_SELECTION.filterSlots(player.hotbarAndInventorySlots).minByOrNull { it.index }
+		ELYTRA_SELECTION.filterSlots(HotbarAndInventoryContainer.slots).minByOrNull { it.index }
 
 	protected fun SafeContext.startFly() {
 		player.setFlag(Entity.GLIDING_FLAG_INDEX, true)

@@ -25,7 +25,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.inventory.ContainerSelection
 import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.StackSelection.Companion.select
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.containers.ChestContainer
 import com.lambda.interaction.inventory.container.containers.EnderChestContainer

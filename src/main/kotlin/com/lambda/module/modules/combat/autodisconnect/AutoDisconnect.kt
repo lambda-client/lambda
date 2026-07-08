@@ -26,6 +26,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.inventory.container.containers.PlayerContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
@@ -37,10 +38,8 @@ import com.lambda.util.TickTimer
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
-import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -389,7 +388,7 @@ object AutoDisconnect : Module(
             } else null
         }),
         Totem("Totem", { totem }, { totemSmart }, {
-            val totemCount = player.allStacks.count { it.item == Items.TOTEM_OF_UNDYING }
+            val totemCount = PlayerContainer.stacks.count { it.item == Items.TOTEM_OF_UNDYING }
             if (totemCount < minTotems) {
                 buildText {
                     literal("Only ")

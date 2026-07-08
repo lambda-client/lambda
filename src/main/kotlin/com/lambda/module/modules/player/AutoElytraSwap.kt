@@ -22,14 +22,14 @@ import com.lambda.interaction.handlers.GlideHandler.CHESTPLATE_SELECTION
 import com.lambda.interaction.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handlers.GlideHandler.manuallySwapped
 import com.lambda.interaction.handlers.GlideHandler.swapped
+import com.lambda.interaction.inventory.container.containers.ArmorContainer
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.PlayerUtils.canGlideWithChestPiece
-import com.lambda.util.player.SlotUtils.armorSlots
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.screen.slot.Slot
 
 object AutoElytraSwap : Module(
@@ -47,7 +47,7 @@ object AutoElytraSwap : Module(
 	context(safeContext: SafeContext)
 	fun manualSwap(elytra: Boolean): Boolean {
 		val swapSlot =
-			safeContext.player.hotbarAndInventorySlots.let { slots ->
+			HotbarAndInventoryContainer.slots.let { slots ->
 				if (elytra) ELYTRA_SELECTION.filterSlots(slots)
 				else CHESTPLATE_SELECTION.filterSlots(slots)
 			}.minByOrNull { it.index } ?: run {
@@ -59,7 +59,7 @@ object AutoElytraSwap : Module(
 	}
 
 	private fun SafeContext.swapWithChestplate(swapSlot: Slot): Boolean {
-		val chestplateSlot = player.armorSlots[1]
+		val chestplateSlot = ArmorContainer.slots.getOrNull(1) ?: return false
 		return AutoElytraSwap.inventoryRequest {
 			if (swapSlot.index in 0..8) swap(chestplateSlot.id, swapSlot.index)
 			else {

@@ -18,9 +18,9 @@
 package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen

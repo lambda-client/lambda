@@ -111,11 +111,11 @@ object ItemStackUtils {
         return listOf(copyWithCount(maxCount), copyWithCount(remainder))
     }
 
-    val ItemStack.shulkerBoxContents: List<ItemStack> by cacheable { stack ->
+    val ItemStack.shulkerBoxStacks: List<ItemStack> by cacheable { stack ->
         stack.components.get(DataComponentTypes.CONTAINER)?.stream()?.toList() ?: emptyList()
     }
 
-    val ItemStack.bundleContents: List<ItemStack> by cacheable { stack ->
+    val ItemStack.bundleStacks: List<ItemStack> by cacheable { stack ->
         stack.components.get(DataComponentTypes.BUNDLE_CONTENTS)?.stream()?.toList() ?: emptyList()
     }
 

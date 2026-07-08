@@ -20,7 +20,9 @@ package com.lambda.interaction.handlers
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
+import com.lambda.interaction.inventory.StackAndSlot
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.mode
@@ -30,7 +32,6 @@ import com.lambda.module.modules.player.AutoElytraSwap.glideDelay
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.player.PlayerUtils.canGlideWithChestPiece
 import com.lambda.util.player.PlayerUtils.canStartGliding
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.attribute.EntityAttributes
@@ -41,36 +42,40 @@ import net.minecraft.registry.tag.ItemTags
 object GlideHandler {
 	val ELYTRA_SELECTION =
 		selectStack {
-			sortByDescending {
-				it.getEnchantment(Enchantments.UNBREAKING)
-			}.thenByDescending {
-				it.getEnchantment(Enchantments.MENDING)
-			}
 			isItem(Items.ELYTRA)
-				.and { it.damage < it.maxDamage }
+			custom { stack, _ -> stack.damage < stack.maxDamage }
+			sortedWith {
+				compareByDescending<StackAndSlot<*>> {
+					it.stack.getEnchantment(Enchantments.UNBREAKING)
+				}.thenByDescending {
+					it.stack.getEnchantment(Enchantments.MENDING)
+				}
+			}
 		}
 	val CHESTPLATE_SELECTION =
 		selectStack {
-			sortByDescending {
-				it.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-					?.modifiers
-					?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
-					?.modifier?.value
-					?: 0.0
-			}.thenByDescending {
-				it.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-					?.modifiers
-					?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
-					?.modifier?.value
-					?: 0.0
-			}.thenByDescending {
-				it.getEnchantment(Enchantments.UNBREAKING)
-			}.thenByDescending {
-				it.getEnchantment(Enchantments.MENDING)
-			}
 			hasTag(ItemTags.CHEST_ARMOR)
-				.and { it.item != Items.ELYTRA }
-				.and { it.damage < it.maxDamage }
+			inverted { isItem(Items.ELYTRA) }
+			custom { stack, _ -> stack.damage < stack.maxDamage }
+			sortedWith {
+				compareByDescending<StackAndSlot<*>> {
+					it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
+						?.modifiers
+						?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
+						?.modifier?.value
+						?: 0.0
+				}.thenByDescending {
+					it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
+						?.modifiers
+						?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
+						?.modifier?.value
+						?: 0.0
+				}.thenByDescending {
+					it.stack.getEnchantment(Enchantments.UNBREAKING)
+				}.thenByDescending {
+					it.stack.getEnchantment(Enchantments.MENDING)
+				}
+			}
 		}
 
 	@JvmStatic val overridingGlide
@@ -84,7 +89,10 @@ object GlideHandler {
 
 	init {
 		listen<TickEvent.Pre>({ -1000 }) {
-			if (!player.isGliding && pendingGlides.isEmpty()) AutoElytraSwap.restore()
+			if (pendingGlides.isEmpty()) {
+				if (swapped && !player.isGliding) AutoElytraSwap.restore()
+				return@listen
+			}
 			tickPendingGlides()
 		}
 
@@ -163,7 +171,7 @@ object GlideHandler {
 			val fakeFly = ElytraFly.isEnabled && ElytraFly.fakeFly
 			val canGlideAlready = player.canGlideWithChestPiece() != fakeFly
 			if (!autoSwapChecking || canGlideAlready) return canGlideAlready
-			return player.hotbarAndInventorySlots.let { slots ->
+			return HotbarAndInventoryContainer.slots.let { slots ->
 				if (fakeFly) CHESTPLATE_SELECTION.filterSlots(slots).isNotEmpty()
 				else ELYTRA_SELECTION.filterSlots(slots).isNotEmpty()
 			}

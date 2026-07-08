@@ -19,11 +19,11 @@ package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.inventory.StackSelection.Companion.select
 import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.handlers.ContainerHandler.findSlotsWithMaterial
-import com.lambda.interaction.inventory.container.ExternalContainer
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.task.TaskGenerator
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask

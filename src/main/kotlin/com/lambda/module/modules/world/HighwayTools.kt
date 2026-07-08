@@ -20,10 +20,10 @@ package com.lambda.module.modules.world
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run

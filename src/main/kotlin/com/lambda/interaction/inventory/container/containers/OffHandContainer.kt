@@ -19,8 +19,8 @@ package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.managers.inventory.InventoryRequest
 import com.lambda.util.player.SlotUtils.offHandSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal

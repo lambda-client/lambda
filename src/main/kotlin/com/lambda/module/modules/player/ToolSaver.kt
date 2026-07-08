@@ -23,14 +23,13 @@ import com.lambda.config.withEdits
 import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
+import com.lambda.interaction.inventory.container.containers.InventoryContainer
+import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.EnchantmentUtils.getEnchantment
-import com.lambda.util.player.SlotUtils.hotbarSlots
-import com.lambda.util.player.SlotUtils.inventorySlots
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
@@ -50,9 +49,9 @@ object ToolSaver : Module(
 			}
 
 		listen<TickEvent.Pre> {
-			val endangeredStacks = player.hotbarSlots.filter { it.stack.isEndangered }
+			val endangeredStacks = HotbarContainer.slots.filter { it.stack.isEndangered }
 
-			val inventorySlots = player.inventorySlots
+			val inventorySlots = InventoryContainer.slots
 			val swaps = endangeredStacks
 				.mapNotNull { endangered ->
 					val sorter = compareByDescending<Slot> { swapSlot ->

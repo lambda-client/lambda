@@ -19,12 +19,12 @@ package com.lambda.module.modules.world
 
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.inventory.container.containers.PlayerContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.FileUtils.locationBoundDirectory
 import com.lambda.util.FolderRegistry
 import com.lambda.util.StringUtils.hashString
-import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.world.entitySearch
 import net.minecraft.block.MapColor
 import net.minecraft.entity.decoration.ItemFrameEntity
@@ -43,7 +43,7 @@ object MapDownloader : Module(
         listen<TickEvent.Pre> {
             val mapStates = entitySearch<ItemFrameEntity>(128.0)
                 .mapNotNull { FilledMapItem.getMapState(it.heldItemStack, world) } +
-                    player.allStacks.mapNotNull { FilledMapItem.getMapState(it, world) }
+                    PlayerContainer.stacks.mapNotNull { FilledMapItem.getMapState(it, world) }
 
             mapStates.forEach { map ->
                 val name = map.hash

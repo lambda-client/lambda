@@ -23,7 +23,7 @@ import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.TickTimer

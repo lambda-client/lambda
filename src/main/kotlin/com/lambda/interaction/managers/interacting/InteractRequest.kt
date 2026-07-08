@@ -25,21 +25,21 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.managers.Request
+import com.lambda.interaction.managers.interacting.InteractRequest.PlaceRequestMarker
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
-data class InteractRequest private constructor(
+data class InteractRequest(
 	val contexts: Collection<InteractContext>,
 	val pendingInteractions: MutableCollection<BuildContext>,
-	private val automated: Automated,
 	override val nowOrNothing: Boolean = false,
+	private val automated: Automated,
+	val onPlace: (SafeContext.(BlockPos) -> Unit)?
 ) : Request(), Automated by automated {
 	override val requestId = ++requestCount
 	override val tickStageMask get() = interactConfig.tickStageMask
-
-	var onPlace: (SafeContext.(BlockPos) -> Unit)? = null
 
 	override val done: Boolean
 		get() = runSafe {
@@ -47,30 +47,41 @@ data class InteractRequest private constructor(
 		} == true
 
 	@DslMarker
-	annotation class PlaceRequestDsl
+	annotation class PlaceRequestMarker
 
-	@PlaceRequestDsl
+	@PlaceRequestMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		InteractManager.request(this, queueIfMismatchedStage)
 
-	@PlaceRequestDsl
-	class PlaceRequestBuilder(
-		contexts: Collection<InteractContext>,
-		pendingInteractions: MutableCollection<BuildContext>,
-		nowOrNothing: Boolean,
-		automated: Automated
-	) {
-		val request = InteractRequest(contexts, pendingInteractions, automated, nowOrNothing)
-
-		fun onPlace(callback: SafeContext.(BlockPos) -> Unit) {
-			request.onPlace = callback
-		}
-	}
-
 	companion object {
 		var requestCount = 0
+	}
+}
 
-		@PlaceRequestDsl
+@PlaceRequestMarker
+class PlaceRequestBuilder(
+	private val contexts: Collection<InteractContext>,
+	private val pendingInteractions: MutableCollection<BuildContext>,
+	private val nowOrNothing: Boolean,
+	private val automated: Automated
+) {
+	private var onPlace: (SafeContext.(BlockPos) -> Unit)? = null
+
+	fun onPlace(callback: SafeContext.(BlockPos) -> Unit) {
+		onPlace = callback
+	}
+
+	@PlaceRequestMarker
+	private fun build() =
+		InteractRequest(
+			contexts,
+			pendingInteractions,
+			nowOrNothing,
+			automated,
+			onPlace
+		)
+
+	companion object {
 		@JvmName("interactRequest1")
 		context(automated: Automated)
 		fun Collection<BuildResult>.interactRequest(
@@ -80,7 +91,6 @@ data class InteractRequest private constructor(
 		) = asSequence()
 			.interactRequest(pendingInteractions, nowOrNothing, builder)
 
-		@PlaceRequestDsl
 		@JvmName("interactRequest2")
 		context(automated: Automated)
 		fun Sequence<BuildResult>.interactRequest(
@@ -95,16 +105,17 @@ data class InteractRequest private constructor(
 			.takeIf { it.isNotEmpty() }
 			?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
 
-		@PlaceRequestDsl
 		@JvmName("interactRequest3")
 		fun Automated.interactRequest(
 			contexts: Collection<InteractContext>,
 			pendingInteractions: MutableCollection<BuildContext>,
 			nowOrNothing: Boolean = false,
 			builder: (PlaceRequestBuilder.() -> Unit)? = null
-		) = PlaceRequestBuilder(contexts, pendingInteractions, nowOrNothing, this).apply { builder?.invoke(this) }.build()
-
-		@PlaceRequestDsl
-		fun PlaceRequestBuilder.build() = request
+		) = PlaceRequestBuilder(
+			contexts,
+			pendingInteractions,
+			nowOrNothing,
+			this
+		).apply { builder?.invoke(this) }.build()
 	}
 }

@@ -18,7 +18,7 @@
 package com.lambda.util.item
 
 import com.lambda.context.SafeContext
-import com.lambda.util.player.SlotUtils.armorSlots
+import com.lambda.interaction.inventory.container.containers.ArmorContainer
 import net.minecraft.block.Block
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.BlockItem
@@ -150,7 +150,7 @@ object ItemUtils {
 
     context(safeContext: SafeContext)
     val ItemStack.armorSlot get() =
-        safeContext.player.armorSlots.firstOrNull { it.canInsert(this) }
+        ArmorContainer.slots.firstOrNull { it.canInsert(this) }
 
     fun Int.toItemCount(): String {
         if (this < 0) {

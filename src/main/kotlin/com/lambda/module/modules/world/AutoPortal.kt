@@ -34,11 +34,13 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DirectionMask
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
+import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
@@ -58,8 +60,6 @@ import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
-import com.lambda.util.player.SlotUtils.hotbarSlots
 import net.minecraft.block.Blocks
 import net.minecraft.item.FlintAndSteelItem
 import net.minecraft.item.Items
@@ -326,7 +326,7 @@ object AutoPortal : Module(
 
 			val sel = selectStack(1) { isItem<FlintAndSteelItem>() }
 
-			val hotbarStack = sel.filterSlots(player.hotbarSlots).firstOrNull()
+			val hotbarStack = sel.filterSlots(HotbarContainer.slots).firstOrNull()
 			if (hotbarStack != null) {
 				val request = HotbarRequest(
 					hotbarStack.index,
@@ -338,14 +338,14 @@ object AutoPortal : Module(
 			}
 
 			val invSlot =
-				if (inventory) sel.filterSlots(player.hotbarAndInventorySlots).firstOrNull()
+				if (inventory) sel.filterSlots(HotbarAndInventoryContainer.slots).firstOrNull()
 				else null
 			if (invSlot == null) {
 				failure("No Flint and Steel!")
 				return
 			}
 			val hotbarSlotToSwapWith =
-				player.hotbarSlots.find { slot ->
+				HotbarContainer.slots.find { slot ->
 					slot.stack.isEmpty
 				}?.index ?: 8
 

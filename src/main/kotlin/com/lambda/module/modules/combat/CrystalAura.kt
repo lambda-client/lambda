@@ -27,14 +27,14 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.interaction.handlers.ContainerHandler.transfer
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.OffHandContainer
+import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -55,7 +55,6 @@ import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
 import com.lambda.util.player.RotationUtils.getVisibleSurfaces
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
@@ -361,7 +360,7 @@ object CrystalAura : Module(
 
                 val entitiesNearby = fastEntitySearch<Entity>(3.5, pos)
                 val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
-                val otherEntities = entitiesNearby - crystals + player
+                val otherEntities = entitiesNearby - crystals.toSet() + player
 
                 if (otherEntities.any {
                         it.boundingBox.intersects(crystalBox)
@@ -487,14 +486,14 @@ object CrystalAura : Module(
 				(swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
 			) runSafeAutomated {
 				if (!swap) return@runSafe
-				var crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
+				var crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.filterStack(it) }
 				if (crystalSlot < 0) {
 					val swapTo = when (swapHand) {
 						Hand.MAIN_HAND -> HotbarContainer
 						Hand.OFF_HAND -> OffHandContainer
 					}
 					if (!selection.transfer(swapTo)) return@runSafe
-					crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
+					crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.filterStack(it) }
 				}
 				if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
 			}

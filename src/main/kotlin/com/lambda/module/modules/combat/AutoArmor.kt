@@ -25,13 +25,13 @@ import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.inventory.container.containers.ArmorContainer
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemUtils.armorSlot
-import com.lambda.util.player.SlotUtils.armorSlots
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.Enchantments
@@ -98,7 +98,7 @@ object AutoArmor : Module(
 	}.thenByDescending { slot ->
 		slot.stack.getEnchantment(Enchantments.UNBREAKING) +
 				slot.stack.getEnchantment(Enchantments.MENDING)
-	}
+	}.thenBy { it.index in 0..8 }
 
 	init {
 		setDefaultAutomationConfig()
@@ -117,9 +117,9 @@ object AutoArmor : Module(
 
 	fun SafeContext.tick() {
 		tickedThisTick = true
-		val armorSlots = player.armorSlots
+		val armorSlots = ArmorContainer.slots
 
-		val swappable = player.hotbarAndInventorySlots
+		val swappable = HotbarAndInventoryContainer.slots
 			.filter { it.stack.isEquipable && (!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0) }
 			.sortedWith(SORTER)
 			.distinctBy { it.stack.armorSlot }
@@ -142,9 +142,9 @@ object AutoArmor : Module(
 		}.submit()
 	}
 
-	context(safeContext: SafeContext)
+	context(_: SafeContext)
 	private val ItemStack.isEquipable
-		get() = safeContext.player.armorSlots.any { it.canInsert(this) }
+		get() = ArmorContainer.slots.any { it.canInsert(this) }
 
 	private enum class Protection(val enchant: RegistryKey<Enchantment>) {
 		Protection(Enchantments.PROTECTION),

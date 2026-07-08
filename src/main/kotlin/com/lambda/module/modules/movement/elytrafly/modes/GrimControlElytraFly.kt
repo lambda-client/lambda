@@ -18,14 +18,15 @@
 package com.lambda.module.modules.movement.elytrafly.modes
 
 import com.lambda.config.Config
-import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
+import com.lambda.interaction.inventory.container.containers.HotbarContainer
+import com.lambda.interaction.inventory.container.containers.InventoryContainer
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.inventory.StackSelection.Companion.select
+import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode
@@ -35,8 +36,6 @@ import com.lambda.util.TickTimer
 import com.lambda.util.Timer
 import com.lambda.util.math.MathUtils.toFloat
 import com.lambda.util.player.PlayerUtils.hasFirework
-import com.lambda.util.player.SlotUtils.hotbarStacks
-import com.lambda.util.player.SlotUtils.inventoryStacks
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
@@ -135,8 +134,8 @@ class GrimControlElytraFly(
 		}
 	}
 
-	private fun SafeContext.findFirework(): ItemStack? {
+	private fun findFirework(): ItemStack? {
 		val stack = Items.FIREWORK_ROCKET.select()
-		return stack.bestItemMatch(player.hotbarStacks) ?: if (inventory) stack.bestItemMatch(player.inventoryStacks) else null
+		return stack.bestMatch(HotbarContainer.stacks) ?: if (inventory) stack.bestMatch(InventoryContainer.stacks) else null
 	}
 }

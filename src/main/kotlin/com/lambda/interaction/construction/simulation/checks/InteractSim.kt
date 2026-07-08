@@ -28,14 +28,14 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.StackSelection.Companion.select
-import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.PlaceDirection
@@ -60,7 +60,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
-import net.minecraft.item.Items
 import net.minecraft.screen.slot.Slot
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
@@ -211,8 +210,8 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 			supervisorScope.cancel()
 			return null
 		}
-		val stackSelection = item?.select()?.apply { if (item == Items.AIR) count = 0 }
-			?: StackSelection.selectStack(0, sorter = compareByDescending { it.inventoryIndex == player.inventory.selectedSlot })
+		val stackSelection = item?.select()
+			?: selectStack { sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } } }
 		val containerSelection = selectContainer { ofAnyType(Container.Rank.Hotbar) }
 		val container = stackSelection.findContainersWithMaterial(containerSelection).firstOrNull() ?: run {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))

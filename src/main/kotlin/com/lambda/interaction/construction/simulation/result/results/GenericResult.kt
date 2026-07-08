@@ -20,15 +20,15 @@ package com.lambda.interaction.construction.simulation.result.results
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
-import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.handlers.ContainerHandler.transferByTask
+import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
 import net.minecraft.client.data.TextureMap.side

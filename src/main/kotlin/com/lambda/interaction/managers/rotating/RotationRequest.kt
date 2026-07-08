@@ -22,17 +22,18 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.Request
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.requestCount
+import com.lambda.interaction.managers.rotating.IRotationRequest.Full
+import com.lambda.interaction.managers.rotating.IRotationRequest.Pitch
+import com.lambda.interaction.managers.rotating.IRotationRequest.Yaw
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.wrap
+import com.lambda.interaction.managers.rotating.RotationRequest.RotationRequestMarker
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.UpdatableLazy
 import com.lambda.util.collections.updatableLazy
 import kotlin.math.abs
 import kotlin.math.hypot
-
-@DslMarker
-annotation class RotationRequestDsl
 
 abstract class RotationRequest(automated: Automated) : Request(), Automated by automated {
 	override val requestId = requestCount++
@@ -41,7 +42,10 @@ abstract class RotationRequest(automated: Automated) : Request(), Automated by a
 
 	abstract infix fun dist(rotation: Rotation): Double
 
-	@RotationRequestDsl
+	@DslMarker
+	annotation class RotationRequestMarker
+
+	@RotationRequestMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		RotationManager.request(this, queueIfMismatchedStage)
 }
@@ -136,72 +140,61 @@ interface IRotationRequest : Automated {
 	interface PitchRot : IRotationRequest { val pitch: UpdatableLazy<Double?> }
 	interface FullRot : YawRot, PitchRot { val rotation: UpdatableLazy<Rotation?> }
 
-	class RotationRequestBuilder {
-		var pitchBuilder: (SafeContext.() -> Double)? = null
-		var yawBuilder: (SafeContext.() -> Double)? = null
-		var rotationBuilder: (SafeContext.() -> Rotation)? = null
+	companion object {
+		var requestCount = 0
+	}
+}
 
-		@JvmName("yawBuilder1")
-		@RotationRequestDsl
-		fun yaw(builder: SafeContext.() -> Double) { yawBuilder = builder }
+@RotationRequestMarker
+class RotationRequestBuilder {
+	private var pitchBuilder: (SafeContext.() -> Double)? = null
+	private var yawBuilder: (SafeContext.() -> Double)? = null
+	private var rotationBuilder: (SafeContext.() -> Rotation)? = null
 
-		@JvmName("yawBuilder2")
-		@RotationRequestDsl
-		fun yaw(builder: SafeContext.() -> Float) { yawBuilder = { builder().toDouble() } }
+	@JvmName("yawBuilder1")
+	fun yaw(builder: SafeContext.() -> Double) { yawBuilder = builder }
 
-		@RotationRequestDsl
-		fun yaw(yaw: Double) { yawBuilder = { yaw } }
+	@JvmName("yawBuilder2")
+	fun yaw(builder: SafeContext.() -> Float) { yawBuilder = { builder().toDouble() } }
 
-		@RotationRequestDsl
-		fun yaw(yaw: Float) { yawBuilder = { yaw.toDouble() } }
+	fun yaw(yaw: Double) { yawBuilder = { yaw } }
 
-		@JvmName("pitchBuilder1")
-		@RotationRequestDsl
-		fun pitch(builder: SafeContext.() -> Double) { pitchBuilder = builder }
+	fun yaw(yaw: Float) { yawBuilder = { yaw.toDouble() } }
 
-		@JvmName("pitchBuilder2")
-		@RotationRequestDsl
-		fun pitch(builder: SafeContext.() -> Float) { pitchBuilder = { builder().toDouble() } }
+	@JvmName("pitchBuilder1")
+	fun pitch(builder: SafeContext.() -> Double) { pitchBuilder = builder }
 
-		@RotationRequestDsl
-		fun pitch(pitch: Double) { pitchBuilder = { pitch } }
+	@JvmName("pitchBuilder2")
+	fun pitch(builder: SafeContext.() -> Float) { pitchBuilder = { builder().toDouble() } }
 
-		@RotationRequestDsl
-		fun pitch(pitch: Float) { pitchBuilder = { pitch.toDouble() } }
+	fun pitch(pitch: Double) { pitchBuilder = { pitch } }
 
-		@RotationRequestDsl
-		fun rotation(builder: SafeContext.() -> Rotation) { rotationBuilder = builder }
+	fun pitch(pitch: Float) { pitchBuilder = { pitch.toDouble() } }
 
-		@RotationRequestDsl
-		fun rotation(yaw: Double, pitch: Double) { rotationBuilder = { Rotation(yaw, pitch) } }
+	fun rotation(builder: SafeContext.() -> Rotation) { rotationBuilder = builder }
 
-		@RotationRequestDsl
-		fun rotation(yaw: Float, pitch: Float) { rotationBuilder = { Rotation(yaw, pitch) } }
+	fun rotation(yaw: Double, pitch: Double) { rotationBuilder = { Rotation(yaw, pitch) } }
 
-		@RotationRequestDsl
-		fun rotation(rotation: Rotation) { rotationBuilder = { rotation } }
+	fun rotation(yaw: Float, pitch: Float) { rotationBuilder = { Rotation(yaw, pitch) } }
+
+	fun rotation(rotation: Rotation) { rotationBuilder = { rotation } }
+
+	context(automated: Automated)
+	private fun build(): RotationRequest {
+		val yawBuilder = yawBuilder
+		val pitchBuilder = pitchBuilder
+		val rotationBuilder = rotationBuilder
+		return when {
+			rotationBuilder != null -> Full(automated, rotationBuilder)
+			yawBuilder != null && pitchBuilder != null -> Full(automated) { Rotation(yawBuilder(), pitchBuilder()) }
+			yawBuilder != null -> Yaw(automated, yawBuilder)
+			pitchBuilder != null -> Pitch(automated, pitchBuilder)
+			else -> throw IllegalArgumentException("Must specify at least one rotation value to build a rotation request")
+		}
 	}
 
 	companion object {
-		var requestCount = 0
-
-		@RotationRequestDsl
 		fun Automated.rotationRequest(builder: RotationRequestBuilder.() -> Unit) =
 			RotationRequestBuilder().apply(builder).build()
-
-		@RotationRequestDsl
-		context(automated: Automated)
-		private fun RotationRequestBuilder.build(): RotationRequest {
-			val yawBuilder = yawBuilder
-			val pitchBuilder = pitchBuilder
-			val rotationBuilder = rotationBuilder
-			return when {
-				rotationBuilder != null -> Full(automated, rotationBuilder)
-				yawBuilder != null && pitchBuilder != null -> Full(automated) { Rotation(yawBuilder(), pitchBuilder()) }
-				yawBuilder != null -> Yaw(automated, yawBuilder)
-				pitchBuilder != null -> Pitch(automated, pitchBuilder)
-				else -> throw IllegalArgumentException("Must specify at least one rotation value to build a rotation request")
-			}
-		}
 	}
 }

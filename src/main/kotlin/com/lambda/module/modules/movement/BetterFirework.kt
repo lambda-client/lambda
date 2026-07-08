@@ -29,10 +29,12 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.GlideHandler
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
+import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.inventory.StackSelection.Companion.select
-import com.lambda.interaction.inventory.StackSelection.Companion.selectStack
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -41,8 +43,6 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.player.PlayerUtils
 import com.lambda.util.player.PlayerUtils.canStartGliding
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
@@ -85,7 +85,7 @@ object BetterFirework : Module(
 
 	val ClientPlayerEntity.hasFireworks: Boolean
 		get() = Items.FIREWORK_ROCKET.select()
-			.filterStacks(hotbarAndInventoryStacks)
+			.filterStacks(HotbarAndInventoryContainer.stacks)
 			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
 
 	context(_: SafeContext)
@@ -156,11 +156,11 @@ object BetterFirework : Module(
 	 * Return true if a firework has been used
 	 */
 	fun SafeContext.startFirework(inventory: Boolean) {
-		val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
+		val stack = selectStack(1) { isItem(Items.FIREWORK_ROCKET) }
 
-		stack.bestItemMatch(player.hotbarStacks)
+		stack.bestMatch(HotbarContainer.stacks)
 			?.let {
-				val request = HotbarRequest(player.hotbarStacks.indexOf(it), this@BetterFirework, keepTicks = 0)
+				val request = HotbarRequest(HotbarContainer.stacks.indexOf(it), this@BetterFirework, keepTicks = 0)
 					.submit(queueIfMismatchedStage = false)
 				if (request.done) {
 					interaction.interactItem(player, Hand.MAIN_HAND)
@@ -171,10 +171,10 @@ object BetterFirework : Module(
 
 		if (!inventory) return
 
-		stack.bestItemMatch(player.hotbarAndInventoryStacks)
+		stack.bestMatch(HotbarContainer.stacks)
 			?.let {
-				val swapSlotId = player.hotbarAndInventoryStacks.indexOf(it)
-				val hotbarSlotToSwapWith = player.hotbarStacks.find { slot -> slot.isEmpty }?.let { slot -> player.hotbarStacks.indexOf(slot) } ?: 8
+				val swapSlotId = HotbarAndInventoryContainer.stacks.indexOf(it)
+				val hotbarSlotToSwapWith = HotbarContainer.stacks.find { slot -> slot.isEmpty }?.let { slot -> HotbarContainer.stacks.indexOf(slot) } ?: 8
 
 				inventoryRequest {
 					swap(swapSlotId, hotbarSlotToSwapWith)

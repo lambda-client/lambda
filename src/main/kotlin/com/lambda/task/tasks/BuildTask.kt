@@ -26,7 +26,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
@@ -47,8 +46,10 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
-import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
+import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
+import com.lambda.interaction.managers.breaking.BreakRequestBuilder.Companion.breakRequest
+import com.lambda.interaction.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
@@ -63,7 +64,6 @@ import com.lambda.util.FormattingUtils.format
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.playerSlots
 import com.lambda.util.math.dist
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import net.minecraft.block.BlockState
@@ -322,7 +322,7 @@ class BuildTask private constructor(
                     return@let true
                 }
 
-                if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
+                if (HotbarAndInventoryContainer.stacks.none { it.isEmpty }) {
                     val stackToThrow = player.currentScreenHandler.playerSlots.firstOrNull {
                         it.stack.item in inventoryConfig.disposables
                     } ?: run {
