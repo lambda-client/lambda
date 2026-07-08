@@ -19,6 +19,7 @@ package com.lambda.pathing.manager
 
 import com.lambda.config.blocks.PlannerConfig
 import com.lambda.pathing.goal.TraversalGoal
+import com.lambda.pathing.metrics.PlannerMetrics
 import com.lambda.pathing.refinement.PathRefinementDebug
 import com.lambda.pathing.refinement.PathRefinementStats
 import com.lambda.pathing.refinement.PathRefiner.pathLength
@@ -65,12 +66,14 @@ class TraversalHandle internal constructor(
     fun cancel() {
         if (status.isTerminal) return
         status = Status.Cancelled
+        PlannerMetrics.sink.traversalEnd(id, status.name)
     }
 
     internal fun succeed() {
         if (status.isTerminal) return
         status = Status.Succeeded
         failureReason = null
+        PlannerMetrics.sink.traversalEnd(id, status.name)
     }
 
     fun debugString() = buildString {

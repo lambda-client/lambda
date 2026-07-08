@@ -17,10 +17,12 @@
 
 package com.lambda.bench
 
+import com.lambda.Lambda.LOG
 import com.lambda.pathing.goal.TraversalGoal
 import com.lambda.pathing.manager.PathfinderExecutor
 import com.lambda.pathing.manager.PathfinderManager
 import com.lambda.pathing.manager.TraversalHandle
+import com.lambda.pathing.metrics.PlannerMetrics
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.world.toBlockPos
@@ -55,6 +57,7 @@ data class ScenarioReport(
     val failureReason: String?,
     val endDistanceToGoal: Double,
     val coarsePathDump: String,
+    val plannerStats: BenchPlannerMetrics.PlannerStats = BenchPlannerMetrics.PlannerStats.EMPTY,
 ) {
     // In an unbounded world a truly unreachable goal manifests as
     // Partial-forever (the backward search can never exhaust the goal's
@@ -69,6 +72,9 @@ data class ScenarioReport(
         append(" ticks=").append(ticks)
         append(" nodes=").append(plannedNodes)
         append(" jumps(in/air)=").append(jumpInputTicks).append('/').append(airborneJumps)
+        append(" initUs=").append(plannerStats.initialWallMicros)
+        append(" repairs=").append(plannerStats.repairs)
+        append("(p50=").append(plannerStats.repairWallUsP50).append("us)")
         if (flightToggled) append(" FLIGHT-TOGGLED")
         append(" status=").append(finalStatus)
         failureReason?.let { append(" reason=").append(it) }
@@ -97,6 +103,7 @@ data class ScenarioReport(
         append(",\"finalStatus\":\"").append(finalStatus).append('"')
         append(",\"failureReason\":").append(failureReason?.let { "\"$it\"" } ?: "null")
         append(",\"endDistanceToGoal\":").append("%.3f".format(endDistanceToGoal))
+        append(',').append(plannerStats.toJsonFields())
         append(",\"coarsePath\":\"").append(coarsePathDump).append('"')
         append('}')
     }
@@ -126,20 +133,21 @@ object ScenarioRunner {
         scenario.probeNode?.let { probe ->
             val edges = computeOnClient<String, IllegalStateException> {
                 runSafe {
-                    with(com.lambda.pathing.movement.WalkingMovementModel) {
-                        successors(probe, BenchPlannerConfig(allowJump = scenario.allowJump))
-                            .entries.joinToString(" ") { (node, cost) ->
-                                val b = node.toBlockPos()
-                                "(" + b.x + "," + b.y + "," + b.z + ")=" + "%.2f".format(cost)
-                            }
-                    }
+                    com.lambda.pathing.movement.WalkingMovementModel
+                        .successors(com.lambda.worldview.LiveWorldView(world), probe, BenchPlannerConfig(allowJump = scenario.allowJump))
+                        .entries.joinToString(" ") { (node, cost) ->
+                            val b = node.toBlockPos()
+		                    "(${b.x},${b.y},${b.z})=${"%.2f".format(cost)}"
+                        }
                 } ?: "unsafe"
             }
             val pb = probe.toBlockPos()
-            com.lambda.Lambda.LOG.info("[Bench] probe successors of (" + pb.x + "," + pb.y + "," + pb.z + "): " + edges)
+            LOG.info("[Bench] probe successors of (${pb.x},${pb.y},${pb.z}): $edges")
         }
 
         // --- Request traversal ---
+        val plannerMetrics = BenchPlannerMetrics()
+        PlannerMetrics.sink = plannerMetrics
         val requested = computeOnClient<Boolean, IllegalStateException> {
             val handle = with(PathfinderManager) {
                 runSafeAutomated {
@@ -263,13 +271,16 @@ object ScenarioRunner {
                     val b = it.toBlockPos()
                     "(" + b.x + "," + b.y + "," + b.z + ")"
                 },
+                plannerStats = plannerMetrics.stats(),
             )
         }
 
         runOnClient<IllegalStateException> { PathfinderManager.cancelActiveTraversal() }
         waitTicks(5)
+        PlannerMetrics.sink = PlannerMetrics.NoOp
 
         File(outputDir, "${scenario.name}.jsonl").writeText(telemetry.toString())
+        File(outputDir, "${scenario.name}.planner.jsonl").writeText(plannerMetrics.jsonLines())
         return report
     }
 

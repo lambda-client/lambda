@@ -19,13 +19,14 @@ package com.lambda.pathing.movement
 
 import com.lambda.context.SafeContext
 import com.lambda.config.blocks.PlannerConfig
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
-import com.lambda.util.world.toBlockPos
+import com.lambda.util.world.x
+import com.lambda.util.world.y
+import com.lambda.util.world.z
+import com.lambda.worldview.WorldView
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
-import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import kotlin.math.sqrt
 
@@ -35,6 +36,12 @@ import kotlin.math.sqrt
  * This deliberately avoids jumps, drops, breaking, and placing. It gives the
  * manager something real to plan through while keeping asymmetric action design
  * out of the initial integration path.
+ *
+ * Plan-time queries (successor/predecessor generation, node traversability)
+ * read a [WorldView] — precomputed traits over int-encoded blockstates, never
+ * live Minecraft collision shapes (WP1). Execution-time checks at continuous
+ * positions stay on the live world via [SafeContext]: the executor's job is to
+ * monitor reality, not the planner's model of it.
  */
 object WalkingMovementModel {
     // Pairs of (dx, dz) flattened — cardinal first, then diagonals.
@@ -119,30 +126,35 @@ object WalkingMovementModel {
      * e.g. mirroring a legal step-down into an illegal jump under a low
      * ceiling.)
      */
-    private fun SafeContext.evaluateMove(
-        origin: BlockPos,
+    private fun evaluateMove(
+        view: WorldView,
+        ox: Int,
+        oy: Int,
+        oz: Int,
         dx: Int,
         dy: Int,
         dz: Int,
         gap: Boolean,
         config: PlannerConfig,
     ): Double? {
-        val target = BlockPos(origin.x + dx, origin.y + dy, origin.z + dz)
-        if (!isTraversable(target)) return null
+        val tx = ox + dx
+        val ty = oy + dy
+        val tz = oz + dz
+        if (!isTraversable(view, tx, ty, tz)) return null
 
         if (gap) {
             // Gap jump (2 forward, same y or +1): needs launch headroom and a
             // clear arc over the gap column (feet + head; +1y variant also
             // needs the apex column above the landing height).
-            if (!config.allowJump || !config.allowVertical || !hasHeadClearance(origin)) return null
-            val gapBlock = BlockPos(origin.x + dx / 2, origin.y, origin.z + dz / 2)
-            if (!isPassableColumnSlice(gapBlock)) return null
-            if (!isPassableColumnSlice(BlockPos(gapBlock.x, gapBlock.y + 1, gapBlock.z))) return null
+            if (!config.allowJump || !config.allowVertical || !hasHeadClearance(view, ox, oy, oz)) return null
+            val gx = ox + dx / 2
+            val gz = oz + dz / 2
+            if (!isSlicePassable(view, gx, oy, gz)) return null
+            if (!isSlicePassable(view, gx, oy + 1, gz)) return null
             return when (dy) {
                 0 -> JUMP_COST
                 1 -> {
-                    val apex = BlockPos(gapBlock.x, gapBlock.y + 1, gapBlock.z)
-                    if (isPassableColumnSlice(apex) && isPassableColumnSlice(BlockPos(apex.x, apex.y + 1, apex.z))) JUMP_UP_COST else null
+                    if (isSlicePassable(view, gx, oy + 1, gz) && isSlicePassable(view, gx, oy + 2, gz)) JUMP_UP_COST else null
                 }
                 else -> null
             }
@@ -155,22 +167,20 @@ object WalkingMovementModel {
                     CARDINAL_COST
                 } else {
                     if (!config.allowDiagonal) return null
-                    val sideA = BlockPos(origin.x + dx, origin.y, origin.z)
-                    val sideB = BlockPos(origin.x, origin.y, origin.z + dz)
                     // Fast path: both side blocks are fully traversable (has
                     // clearance AND support). This is the standard case.
                     // Otherwise allow the checkerboard / corner-edge walk: the
                     // side blocks are passable (clearance OK) even if not
                     // fully standable — feet span the diagonal, support only
                     // needs to exist at the destination.
-                    if ((isTraversable(sideA) && isTraversable(sideB)) ||
-                        (isPassableDiagonalSide(sideA, origin) && isPassableDiagonalSide(sideB, origin))
+                    if ((isTraversable(view, ox + dx, oy, oz) && isTraversable(view, ox, oy, oz + dz)) ||
+                        (isPassableDiagonalSide(view, ox + dx, oy, oz) && isPassableDiagonalSide(view, ox, oy, oz + dz))
                     ) DIAGONAL_COST else null
                 }
             }
 
             // Step-up (+1 y, cardinal only): needs jump headroom at the origin.
-            1 -> if (config.allowVertical && hasHeadClearance(origin)) STEP_UP_COST else null
+            1 -> if (config.allowVertical && hasHeadClearance(view, ox, oy, oz)) STEP_UP_COST else null
 
             // Step-down / drop (-1..-maxDropHeight y, cardinal only): walking
             // off a ledge and falling h blocks. Asymmetric — the reverse move
@@ -186,9 +196,9 @@ object WalkingMovementModel {
                 if (dy > 0 || !config.allowVertical) return null
                 val depth = -dy
                 if (depth > config.maxDropHeight && depth > 1) return null
-                var y = origin.y + 1
-                while (y > target.y) {
-                    if (!isPassableColumnSlice(BlockPos(target.x, y, target.z))) return null
+                var y = oy + 1
+                while (y > ty) {
+                    if (!isSlicePassable(view, tx, y, tz)) return null
                     y--
                 }
                 dropCost(depth)
@@ -237,14 +247,16 @@ object WalkingMovementModel {
         }
     }
 
-    fun SafeContext.successors(node: FastVector, config: PlannerConfig): Map<FastVector, Double> {
-        val origin = node.toBlockPos()
-        if (!isTraversable(origin)) return emptyMap()
+    fun successors(view: WorldView, node: FastVector, config: PlannerConfig): Map<FastVector, Double> {
+        val ox = node.x
+        val oy = node.y
+        val oz = node.z
+        if (!isTraversable(view, ox, oy, oz)) return emptyMap()
 
         val result = HashMap<FastVector, Double>(16)
         forEachMoveDelta(config) { dx, dy, dz, gap ->
-            evaluateMove(origin, dx, dy, dz, gap, config)?.let { cost ->
-                result[fastVectorOf(origin.x + dx, origin.y + dy, origin.z + dz)] = cost
+            evaluateMove(view, ox, oy, oz, dx, dy, dz, gap, config)?.let { cost ->
+                result[fastVectorOf(ox + dx, oy + dy, oz + dz)] = cost
             }
         }
         return result
@@ -257,16 +269,20 @@ object WalkingMovementModel {
      * successors as predecessors silently assumes every move is reversible,
      * which drops (down-only ledges) and headroom-gated jumps are not.
      */
-    fun SafeContext.predecessors(node: FastVector, config: PlannerConfig): Map<FastVector, Double> {
-        val target = node.toBlockPos()
-        if (!isTraversable(target)) return emptyMap()
+    fun predecessors(view: WorldView, node: FastVector, config: PlannerConfig): Map<FastVector, Double> {
+        val tx = node.x
+        val ty = node.y
+        val tz = node.z
+        if (!isTraversable(view, tx, ty, tz)) return emptyMap()
 
         val result = HashMap<FastVector, Double>(16)
         forEachMoveDelta(config) { dx, dy, dz, gap ->
-            val origin = BlockPos(target.x - dx, target.y - dy, target.z - dz)
-            if (isTraversable(origin)) {
-                evaluateMove(origin, dx, dy, dz, gap, config)?.let { cost ->
-                    result[fastVectorOf(origin.x, origin.y, origin.z)] = cost
+            val ox = tx - dx
+            val oy = ty - dy
+            val oz = tz - dz
+            if (isTraversable(view, ox, oy, oz)) {
+                evaluateMove(view, ox, oy, oz, dx, dy, dz, gap, config)?.let { cost ->
+                    result[fastVectorOf(ox, oy, oz)] = cost
                 }
             }
         }
@@ -292,6 +308,29 @@ object WalkingMovementModel {
         }
     }
 
+    // ------------------------------------------------------------------
+    // Plan-time predicates over WorldView traits.
+    // ------------------------------------------------------------------
+
+    /**
+     * A player-footprint slice of this voxel is unobstructed: the center
+     * column of the voxel itself is clear and the block below does not poke
+     * above its own voxel top into this one (fences, walls: 1.5 tall).
+     */
+    private fun isSlicePassable(view: WorldView, x: Int, y: Int, z: Int): Boolean =
+        view.traits(x, y, z).centerPassable && !view.traits(x, y - 1, z).intrudesAbove
+
+    /**
+     * A node the player can stand on: full-square support below, feet slice
+     * unobstructed, head voxel's center column clear.
+     */
+    fun isTraversable(view: WorldView, x: Int, y: Int, z: Int): Boolean =
+        view.traits(x, y - 1, z).standableFullTop &&
+            isSlicePassable(view, x, y, z) &&
+            view.traits(x, y + 1, z).centerPassable
+
+    fun isTraversable(view: WorldView, pos: BlockPos): Boolean = isTraversable(view, pos.x, pos.y, pos.z)
+
     /**
      * Checks that the block above the head (i.e. y+2 relative to feet) leaves
      * room for the jump apex without bonking. Required before allowing a
@@ -303,25 +342,24 @@ object WalkingMovementModel {
      * the jump is physically impossible — the executor then bonked and
      * retried forever.
      */
-    private fun SafeContext.hasHeadClearance(origin: BlockPos): Boolean {
-        val aboveHead = BlockPos(origin.x, origin.y + 2, origin.z)
-        return isPassableColumnSlice(aboveHead)
-    }
+    private fun hasHeadClearance(view: WorldView, x: Int, y: Int, z: Int): Boolean =
+        isSlicePassable(view, x, y + 2, z)
 
     /**
-     * Returns true if a 1-block-tall, player-footprint-wide slice centered on
-     * [pos] is empty. Used to validate non-feet clearance areas like jump apex
-     * or step-down chest height.
+     * Returns true if a diagonal side block is passable: its volume at the
+     * player's height is clear even if the block position itself isn't a
+     * fully valid standing node (no support required).
+     *
+     * This allows diagonal checkerboard walking where only corner-to-corner
+     * blocks exist without their cardinal neighbors.
      */
-    private fun SafeContext.isPassableColumnSlice(pos: BlockPos): Boolean {
-        val cx = pos.x + 0.5
-        val cz = pos.z + 0.5
-        val box = Box(
-            cx - PLAYER_HALF_WIDTH, pos.y.toDouble(), cz - PLAYER_HALF_WIDTH,
-            cx + PLAYER_HALF_WIDTH, pos.y + 1.0, cz + PLAYER_HALF_WIDTH,
-        ).contract(COLLISION_EPSILON)
-        return world.isSpaceEmpty(box)
-    }
+    private fun isPassableDiagonalSide(view: WorldView, x: Int, y: Int, z: Int): Boolean =
+        isSlicePassable(view, x, y, z) && view.traits(x, y + 1, z).centerPassable
+
+    // ------------------------------------------------------------------
+    // Execution-time checks at continuous positions — live world on
+    // purpose: the executor monitors reality, not the planner's model.
+    // ------------------------------------------------------------------
 
     /**
      * Execution-time headroom check for issuing a step-up jump from an
@@ -343,36 +381,11 @@ object WalkingMovementModel {
         return world.isSpaceEmpty(box)
     }
 
-    /**
-     * Returns true if a diagonal side block is passable: its volume at the
-     * player's height is clear and the block below provides a solid surface
-     * (even if the block position itself isn't a fully valid standing node).
-     *
-     * This allows diagonal checkerboard walking where only corner-to-corner
-     * blocks exist without their cardinal neighbors.
-     */
-    private fun SafeContext.isPassableDiagonalSide(sidePos: BlockPos, origin: BlockPos): Boolean {
-        val cx = sidePos.x + 0.5
-        val cz = sidePos.z + 0.5
-        val box = Box(
-            cx - PLAYER_HALF_WIDTH, sidePos.y.toDouble(), cz - PLAYER_HALF_WIDTH,
-            cx + PLAYER_HALF_WIDTH, sidePos.y + PLAYER_HEIGHT, cz + PLAYER_HALF_WIDTH,
-        ).contract(COLLISION_EPSILON)
-        return world.isSpaceEmpty(box)
-    }
-
-    fun SafeContext.isTraversable(pos: BlockPos): Boolean = hasClearance(Vec3d.ofBottomCenter(pos)) && hasBlockSupport(pos)
-
     fun SafeContext.isStandingPositionTraversable(pos: Vec3d, horizontalClearanceMargin: Double = 0.0): Boolean =
         hasClearance(pos, horizontalClearanceMargin) && hasContinuousSupport(pos)
 
     private fun SafeContext.hasClearance(pos: Vec3d, horizontalClearanceMargin: Double = 0.0): Boolean =
         world.isSpaceEmpty(playerBox(pos, horizontalClearanceMargin))
-
-    private fun SafeContext.hasBlockSupport(pos: BlockPos): Boolean {
-        val support = pos.down()
-        return blockState(support).isSideSolidFullSquare(world, support, Direction.UP)
-    }
 
     private fun SafeContext.hasContinuousSupport(pos: Vec3d): Boolean =
         !world.isSpaceEmpty(supportBox(pos))
@@ -392,8 +405,6 @@ object WalkingMovementModel {
             pos.y + SUPPORT_EPSILON,
             pos.z + PLAYER_HALF_WIDTH - SUPPORT_INSET,
         )
-
-    private fun BlockPos.toFastVector() = fastVectorOf(x, y, z)
 
     private const val PLAYER_HALF_WIDTH = 0.3
     private const val PLAYER_HEIGHT = 1.8

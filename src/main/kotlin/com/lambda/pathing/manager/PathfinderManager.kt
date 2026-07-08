@@ -31,9 +31,9 @@ import com.lambda.pathing.core.DStarLite
 import com.lambda.pathing.core.Key
 import com.lambda.pathing.core.LazyGraph
 import com.lambda.pathing.goal.TraversalGoal
+import com.lambda.pathing.metrics.PlannerMetrics
 import com.lambda.pathing.movement.WalkingMovementModel
 import com.lambda.pathing.refinement.PathRefiner
-import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toFastVec
@@ -41,6 +41,7 @@ import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.x
 import com.lambda.util.world.y
 import com.lambda.util.world.z
+import com.lambda.worldview.SnapshotWorldView
 import net.minecraft.util.math.BlockPos
 import kotlin.math.sqrt
 import kotlin.time.DurationUnit
@@ -58,9 +59,22 @@ object PathfinderManager : Loadable,
     init {
         listen<WorldEvent.BlockUpdate.Client>(alwaysListen = true) { event ->
             if (event.oldState == event.newState) return@listen
+            // Snapshot write-through must precede graph resynchronization:
+            // synchronizeAffected regenerates edges by reading the view.
+            activeSession?.view?.applyObserved(event.pos, event.newState)
             runSafeAutomated {
                 synchronizeWorldChange(event.pos)
             }
+        }
+
+        listen<WorldEvent.ChunkEvent.Load>(alwaysListen = true) { event ->
+            activeSession?.view?.evictChunk(event.chunk.pos)
+        }
+
+        listen<WorldEvent.ChunkEvent.Unload>(alwaysListen = true) { event ->
+            // Parity with live reads, which turn to air on unload. Keeping
+            // observed terrain across unloads is WP7 (lifelong memory) work.
+            activeSession?.view?.evictChunk(event.chunk.pos)
         }
 
         listen<TickEvent.Player.Post>(alwaysListen = true) {
@@ -76,6 +90,11 @@ object PathfinderManager : Loadable,
         config: PlannerConfig = plannerConfig,
     ): TraversalHandle {
         activeSession?.handle?.cancel()
+
+        // The session's base world view: a copy-on-read snapshot the block
+        // update listener writes observed changes through. All plan-time
+        // world reads go through it (WP1).
+        val view = SnapshotWorldView(world)
 
         val caps = WalkingMovementModel.heuristicCaps(config)
         // Execution-feedback overlay: edges the executor reported as blocked
@@ -96,13 +115,13 @@ object PathfinderManager : Loadable,
 
         val graph = LazyGraph<FastVector>(
             successorProvider = { node ->
-                penalized(node, runSafe { with(WalkingMovementModel) { successors(node, config) } } ?: emptyMap())
+                penalized(node, WalkingMovementModel.successors(view, node, config))
             },
             // True inverse enumeration — never default to the symmetric
             // assumption: it mirrors legal step-downs into illegal step-ups
             // (e.g. under low ceilings) with the wrong cost attached.
             predecessorProvider = { node ->
-                val edges = runSafe { with(WalkingMovementModel) { predecessors(node, config) } } ?: emptyMap()
+                val edges = WalkingMovementModel.predecessors(view, node, config)
                 if (edgePenalties.isEmpty()) edges
                 else edges.mapValues { (from, cost) -> cost * (edgePenalties[edgeKey(from, node)] ?: 1.0) }
             },
@@ -117,7 +136,7 @@ object PathfinderManager : Loadable,
 
         val planner = DStarLite(
             graph = graph,
-            start = currentStablePlannerNode() ?: player.blockPos.toFastVec(),
+            start = currentStablePlannerNode(view) ?: player.blockPos.toFastVec(),
             goal = goal.targetNode,
             heuristic = { a, b -> movementHeuristic(caps, a, b) },
             // Stable tie-break between equal-cost successors so the coarse path
@@ -126,7 +145,8 @@ object PathfinderManager : Loadable,
             nodeTieBreaker = naturalOrder(),
         )
 
-        activeSession = ActiveSession(handle, graph, planner, edgePenalties)
+        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view)
+        PlannerMetrics.sink.planStart(handle.id, planner.start, goal.targetNode)
         computeActivePath()
         return handle
     }
@@ -188,7 +208,16 @@ object PathfinderManager : Loadable,
         if (session.handle.status.isTerminal) return session.handle
 
         val affectedNodes = WalkingMovementModel.affectedNodes(pos, session.handle.config)
+        val syncStartNanos = System.nanoTime()
         val sync = session.planner.synchronizeAffected(affectedNodes)
+        PlannerMetrics.sink.syncEnd(
+            traversalId = session.handle.id,
+            nodesChecked = sync.nodesChecked,
+            edgesAdded = sync.edgesAdded,
+            edgesRemoved = sync.edgesRemoved,
+            edgesChanged = sync.edgesChanged,
+            wallMicros = (System.nanoTime() - syncStartNanos) / 1_000,
+        )
         session.handle.lastSynchronization = TraversalHandle.SynchronizationStats(
             nodesChecked = sync.nodesChecked,
             edgesAdded = sync.edgesAdded,
@@ -258,8 +287,16 @@ object PathfinderManager : Loadable,
         if (handle.status == TraversalHandle.Status.Cancelled) return
 
         handle.status = TraversalHandle.Status.Planning
+        val computeStartNanos = System.nanoTime()
         val result = session.planner.computeShortestPath(handle.config.computeBudget.toDuration(DurationUnit.MILLISECONDS))
+        val computeWallMicros = (System.nanoTime() - computeStartNanos) / 1_000
         val coarsePath = session.planner.path(handle.config.maxPathLength)
+        val reachedGoal = coarsePath.lastOrNull() == handle.goal.targetNode
+        if (session.computeCount++ == 0) {
+            PlannerMetrics.sink.initialPath(handle.id, result.processedNodes, computeWallMicros, result.timedOut, coarsePath.size, reachedGoal)
+        } else {
+            PlannerMetrics.sink.repairEnd(handle.id, result.processedNodes, computeWallMicros, result.timedOut, coarsePath.size, reachedGoal)
+        }
 
         // If the new coarse path is just a forward-advance of the prior coarse
         // path (player walked along it without any topology change), reuse the
@@ -287,6 +324,17 @@ object PathfinderManager : Loadable,
         }
 
         val refinement = with(PathRefiner) { refine(coarsePath, refinementConfig) }
+        if (refinement.stats.enabled) {
+            PlannerMetrics.sink.refineEnd(
+                traversalId = handle.id,
+                coarseNodes = refinement.stats.coarseNodes,
+                refinedNodes = refinement.stats.refinedNodes,
+                shortcutChecks = refinement.stats.shortcutChecks,
+                accepted = refinement.debug.acceptedCandidates,
+                rejected = refinement.debug.rejectedCandidates,
+                durationMs = refinement.stats.durationMs,
+            )
+        }
         session.lastCoarsePath = coarsePath
         session.lastRefinedPath = refinement.path
 
@@ -320,11 +368,13 @@ object PathfinderManager : Loadable,
         else -> TraversalHandle.Status.Ready
     }
 
-    private fun AutomatedSafeContext.currentStablePlannerNode(): FastVector? {
+    private fun AutomatedSafeContext.currentStablePlannerNode(
+        view: SnapshotWorldView? = activeSession?.view,
+    ): FastVector? {
         if (!player.isOnGround) return null
+        view ?: return null
         val blockPos = player.blockPos
-        val traversable = with(WalkingMovementModel) { isTraversable(blockPos) }
-        return if (traversable) blockPos.toFastVec() else null
+        return if (WalkingMovementModel.isTraversable(view, blockPos)) blockPos.toFastVec() else null
     }
 
     /**
@@ -348,9 +398,11 @@ object PathfinderManager : Loadable,
         val graph: LazyGraph<FastVector>,
         val planner: DStarLite<FastVector>,
         val edgePenalties: HashMap<Long, Double>,
+        val view: SnapshotWorldView,
         var lastRefinementLogKey: String? = null,
         var lastCoarsePath: List<FastVector>? = null,
         var lastRefinedPath: List<FastVector>? = null,
+        var computeCount: Int = 0,
     )
 
     private fun logRefinementSummaryIfChanged(session: ActiveSession) {
@@ -414,6 +466,7 @@ object PathfinderManager : Loadable,
         val factor = ((session.edgePenalties[key] ?: 1.0) * OBSTRUCTION_PENALTY_FACTOR)
             .coerceAtMost(MAX_OBSTRUCTION_PENALTY)
         session.edgePenalties[key] = factor
+        PlannerMetrics.sink.edgeObstructed(session.handle.id, from, to, factor)
         LOG.info("[Pathfinder] Edge obstructed ${from.toBlockPos().toShortString()} -> ${to.toBlockPos().toShortString()}, penalty x${"%.0f".format(factor)}")
 
         session.lastCoarsePath = null
