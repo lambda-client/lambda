@@ -26,6 +26,10 @@ import com.lambda.config.blocks.EatSettings
 import com.lambda.config.blocks.HotbarSettings
 import com.lambda.config.blocks.InteractSettings
 import com.lambda.config.blocks.InventorySettings
+import com.lambda.config.blocks.MovementSettings
+import com.lambda.config.blocks.PathfinderRenderSettings
+import com.lambda.config.blocks.PathRefinementSettings
+import com.lambda.config.blocks.PlannerSettings
 import com.lambda.config.blocks.RotationSettings
 import com.lambda.config.categories.AutomationCategory
 import com.lambda.context.Automated
@@ -45,6 +49,10 @@ open class AutomationConfig(
 	@Tab(INVENTORY_TAB) override val inventoryConfig by configBlock(InventorySettings(this))
 	@Tab(HOTBAR_TAB) override val hotbarConfig by configBlock(HotbarSettings(this))
 	@Tab(EAT_TAB) override val eatConfig by configBlock(EatSettings(this))
+	@Tab(PLANNER_TAB) override val plannerConfig by configBlock(PlannerSettings(this))
+	@Tab(REFINEMENT_TAB) override val refinementConfig by configBlock(PathRefinementSettings(this))
+	@Tab(MOVEMENT_TAB) override val movementConfig by configBlock(MovementSettings(this))
+	@Tab(PATH_RENDER_TAB) override val renderConfig by configBlock(PathfinderRenderSettings(this))
 
 	companion object {
 		private const val BUILD_TAB = "Build"
@@ -54,6 +62,10 @@ open class AutomationConfig(
 		private const val INVENTORY_TAB = "Inventory"
 		private const val HOTBAR_TAB = "Hotbar"
 		private const val EAT_TAB = "Eat"
+		private const val PLANNER_TAB = "Planner"
+		private const val REFINEMENT_TAB = "Refinement"
+		private const val MOVEMENT_TAB = "Path Movement"
+		private const val PATH_RENDER_TAB = "Path Render"
 
 		@DslMarker
 		private annotation class AutomationConfigMarker

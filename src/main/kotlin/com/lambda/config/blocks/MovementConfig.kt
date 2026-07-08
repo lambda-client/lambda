@@ -15,6 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.config.blocks
+interface MovementConfig {
 
-typealias PredictionTick = MovementSimulationTick
+    val enabled: Boolean
+
+    val followPartialPaths: Boolean
+    val allowSprint: Boolean
+    val lookaheadDistance: Double
+    val corridorRadius: Double
+    val verticalTolerance: Double
+    val backtrackAllowance: Double
+    val overshootAllowance: Double
+    val reachDistance: Double
+    val finalApproachDistance: Double
+    val minimumThrottle: Double
+    val sprintMinRemaining: Double
+    val searchBehindSegments: Int
+    val searchAheadSegments: Int
+    val relocalizeDistance: Double
+    val maxLostTicks: Int
+
+    val maxDebugSamples: Int
+    val logExecutionDebug: Boolean
+    val logDebugInterval: Int
+}

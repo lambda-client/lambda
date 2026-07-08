@@ -15,6 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.refinement
 
-typealias PredictionTick = MovementSimulationTick
+data class PathRefinementDebug(
+    val acceptedCandidates: Int = 0,
+    val rejectedCandidates: Int = 0,
+    val skippedCandidates: Int = 0,
+    val profileAttempts: Int = 0,
+    val acceptedByProfile: Map<String, Int> = emptyMap(),
+    val rejectedByReason: Map<String, Int> = emptyMap(),
+    val recentAttempts: List<ShortcutAttemptDebug> = emptyList(),
+) {
+    val lastAttempt: ShortcutAttemptDebug? get() = recentAttempts.lastOrNull()
+}

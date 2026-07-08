@@ -15,6 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.refinement
 
-typealias PredictionTick = MovementSimulationTick
+import com.lambda.util.world.FastVector
+
+data class ShortcutAttemptDebug(
+	val from: FastVector,
+	val to: FastVector,
+	val profile: String,
+	val accepted: Boolean,
+	val reason: String,
+	val ticks: Int = 0,
+	val bestRemaining: Double = 0.0,
+)

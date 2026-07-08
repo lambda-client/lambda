@@ -15,6 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.execution
 
-typealias PredictionTick = MovementSimulationTick
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.toBlockPos
+import net.minecraft.util.math.Vec3d
+
+/**
+ * Continuous execution-space pose derived from a discrete planner node.
+ *
+ * The planner still operates on block-foot nodes. The executor converts those
+ * nodes into feet-center positions so segment following can work in continuous
+ * space without changing the global D* Lite state space.
+ */
+data class ExecutionPose(
+    val node: FastVector,
+    val position: Vec3d = Vec3d.ofBottomCenter(node.toBlockPos()),
+)

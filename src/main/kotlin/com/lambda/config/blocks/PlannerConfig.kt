@@ -15,6 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.config.blocks
 
-typealias PredictionTick = MovementSimulationTick
+interface PlannerConfig {
+    val computeBudget: Long
+    val maxPathLength: Int
+    val allowDiagonal: Boolean
+    val allowVertical: Boolean
+    val allowJump: Boolean
+}

@@ -23,6 +23,10 @@ import com.lambda.config.blocks.EatConfig
 import com.lambda.config.blocks.HotbarConfig
 import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.blocks.InventoryConfig
+import com.lambda.config.blocks.MovementConfig
+import com.lambda.config.blocks.PathfinderRenderConfig
+import com.lambda.config.blocks.PathRefinementConfig
+import com.lambda.config.blocks.PlannerConfig
 import com.lambda.config.blocks.RotationConfig
 
 interface Automated {
@@ -33,4 +37,8 @@ interface Automated {
 	val inventoryConfig: InventoryConfig
 	val hotbarConfig: HotbarConfig
 	val eatConfig: EatConfig
+	val plannerConfig: PlannerConfig
+	val refinementConfig: PathRefinementConfig
+	val movementConfig: MovementConfig
+	val renderConfig: PathfinderRenderConfig
 }

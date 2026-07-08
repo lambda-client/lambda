@@ -15,6 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.core
 
-typealias PredictionTick = MovementSimulationTick
+/**
+ * Lexicographic priority key used by D* Lite.
+ */
+data class Key(
+    val first: Double,
+    val second: Double,
+) : Comparable<Key> {
+    override fun compareTo(other: Key) = compareValuesBy(this, other, Key::first, Key::second)
+
+    override fun toString() = "(%.3f, %.3f)".format(first, second)
+
+    companion object {
+        val INFINITY = Key(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY)
+    }
+}

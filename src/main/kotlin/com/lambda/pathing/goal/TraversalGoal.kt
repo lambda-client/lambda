@@ -15,6 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.goal
 
-typealias PredictionTick = MovementSimulationTick
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.toBlockPos
+
+sealed interface TraversalGoal {
+    val targetNode: FastVector
+
+    fun isInGoal(node: FastVector): Boolean = node == targetNode
+
+    data class Block(
+        override val targetNode: FastVector,
+    ) : TraversalGoal {
+        override fun toString() = "BlockGoal(${targetNode.toBlockPos().toShortString()})"
+    }
+}

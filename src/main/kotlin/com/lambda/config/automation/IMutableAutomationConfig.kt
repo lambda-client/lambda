@@ -25,6 +25,10 @@ import com.lambda.config.blocks.EatConfig
 import com.lambda.config.blocks.HotbarConfig
 import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.blocks.InventoryConfig
+import com.lambda.config.blocks.MovementConfig
+import com.lambda.config.blocks.PathfinderRenderConfig
+import com.lambda.config.blocks.PathRefinementConfig
+import com.lambda.config.blocks.PlannerConfig
 import com.lambda.config.blocks.RotationConfig
 import com.lambda.config.entries.Setting
 import com.lambda.context.Automated
@@ -41,6 +45,10 @@ interface IMutableAutomationConfig : Automated {
 	override val inventoryConfig: InventoryConfig get() = automationConfig.inventoryConfig
 	override val hotbarConfig: HotbarConfig get() = automationConfig.hotbarConfig
 	override val eatConfig: EatConfig get() = automationConfig.eatConfig
+	override val plannerConfig: PlannerConfig get() = automationConfig.plannerConfig
+	override val refinementConfig: PathRefinementConfig get() = automationConfig.refinementConfig
+	override val movementConfig: MovementConfig get() = automationConfig.movementConfig
+	override val renderConfig: PathfinderRenderConfig get() = automationConfig.renderConfig
 }
 
 class MutableAutomationConfig : IMutableAutomationConfig {
