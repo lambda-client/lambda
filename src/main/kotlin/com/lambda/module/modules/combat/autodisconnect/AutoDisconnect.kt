@@ -30,33 +30,44 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.prefix
 import com.lambda.util.FormattingUtils.format
-import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
+import com.lambda.util.TickTimer
+import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
+import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.tickDeltaF
+import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.SlotUtils.allStacks
+import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import com.lambda.util.text.text
+import com.lambda.util.world.WorldUtils.isLoaded
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.CookieStorage
 import net.minecraft.client.network.ServerAddress
 import net.minecraft.client.network.ServerInfo
 import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.util.ScreenshotRecorder
+import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityType
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
+import net.minecraft.entity.decoration.EndCrystalEntity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.entity.projectile.ProjectileEntity
 import net.minecraft.item.Items
 import net.minecraft.network.message.LastSeenMessageList
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
+import net.minecraft.registry.Registries
 import net.minecraft.sound.SoundEvents
 import net.minecraft.text.Text
 import net.minecraft.util.Identifier
@@ -75,39 +86,81 @@ object AutoDisconnect : Module(
     private const val INVALID_HOTBAR_SLOT = 42
     private const val IMPOSSIBLE_CHAT_TIMESTAMP = -1L
 
-    private const val DISCONNECT_CONDITIONS_TAB = "Conditions"
+    private const val MAX_CRYSTAL_DAMAGE_RANGE = 12.0
+    private const val CRYSTAL_TRIGGER_RANGE = 6.0
+    // Ticks to wait after (re)joining before re-arming, so triggers don't re-arm against a
+    // world whose entities haven't synced in yet (there's no clean "entities loaded" signal).
+    private const val JOIN_GRACE_TICKS = 20
+
+    private const val TRIGGERS_TAB = "Triggers"
     private const val GENERAL_TAB = "General"
 
     private const val PACKET_DISCONNECT_GROUP = "Packet Disconnect Methods"
-    private const val DAMAGE_DISCONNECT_GROUP = "Disconnects by Damage Type"
+    private const val DAMAGE_TRIGGER_GROUP = "Damage Triggers"
+    private const val HEALTH_GROUP = "Health Settings"
+    private const val Y_LEVEL_GROUP = "Y Level Settings"
+    private const val FALLS_GROUP = "Falls Settings"
+    private const val CRYSTALS_GROUP = "Crystals Settings"
+    private const val CREEPERS_GROUP = "Creepers Settings"
+    private const val TOTEM_GROUP = "Totem Settings"
+    private const val PLAYERS_GROUP = "Players Settings"
+    private const val ARMOR_GROUP = "Armor Settings"
+    private const val ENTITY_GROUP = "Entity Settings"
 
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val totem by setting("Totem", false, "Disconnect if the number of Totems of Undying is below the required amount.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val minTotems by setting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val players by setting("Players", false, "Disconnect if a nearby player is detected within the set distance.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
-    @Tab(DISCONNECT_CONDITIONS_TAB) private val friends by setting("Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
+    @Tab(TRIGGERS_TAB) private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
+    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val minimumHealth by setting("Min Health", 10, 1..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
+    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val healthSmart by setting("Smart Toggle", true, "Stop re-triggering on health until it climbs back above the minimum.") { health }
+    @Tab(TRIGGERS_TAB) @Group(HEALTH_GROUP) private val reEnableThreshold by setting("Re-enable Threshold", 14, 1..36, 1, "Once health climbs above this, the Health trigger re-arms. Never lower than Min Health.", unit = " half-hearts") { health && healthSmart }
+
+    @Tab(TRIGGERS_TAB) private val yLevel by setting("Y Level", false, "Disconnect from the server when the player is below a certain y level")
+    @Tab(TRIGGERS_TAB) @Group(Y_LEVEL_GROUP) private val minimumYLevel by setting("Minimum Y Level", 50, 0..319, 1, "The minimum y level the player can be at before disconnecting") { yLevel }
+    @Tab(TRIGGERS_TAB) @Group(Y_LEVEL_GROUP) private val yLevelSmart by setting("Smart Toggle", true, "Stop re-triggering on y level until the player climbs back above it.") { yLevel }
+
+    @Tab(TRIGGERS_TAB) private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
+    @Tab(TRIGGERS_TAB) @Group(FALLS_GROUP) private val fallDistance by setting("Fall Distance", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
+    @Tab(TRIGGERS_TAB) @Group(FALLS_GROUP) private val fallsSmart by setting("Smart Toggle", true, "Stop re-triggering on fall damage until the threat clears.") { falls }
+
+    @Tab(TRIGGERS_TAB) private val crystals by setting("Crystals", false, "Disconnect if an End Crystal is close by")
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val playerNearCrystal by setting("Player Near Crystal", true, "Disconnect if a player is near an End Crystal near you") { crystals }
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val projectileNearCrystal by setting("Projectile Near Crystal", true, "Disconnect if a projectile is near an End Crystal near you") { crystals }
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val crystalIgnoreFriends by setting("Ignore Friends", false, "Exclude friends from triggering crystal-based disconnections.") { crystals && playerNearCrystal }
+    @Tab(TRIGGERS_TAB) @Group(CRYSTALS_GROUP) private val crystalsSmart by setting("Smart Toggle", false, "Stop re-triggering on crystals until it will no longer be triggered ") { crystals }
+
+    @Tab(TRIGGERS_TAB) private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")
+    @Tab(TRIGGERS_TAB) @Group(CREEPERS_GROUP) private val creeperSmart by setting("Smart Toggle", true, "Stop re-triggering on creepers until none are nearby.") { creeper }
+
+    @Tab(TRIGGERS_TAB) private val totem by setting("Totem", false, "Disconnect if the number of Totems is below the required amount.")
+    @Tab(TRIGGERS_TAB) @Group(TOTEM_GROUP) private val minTotems by setting("Min Totems", 2, 1..10, 1, "Set the minimum number of Totems of Undying required to prevent disconnection.") { totem }
+    @Tab(TRIGGERS_TAB) @Group(TOTEM_GROUP) private val totemSmart by setting("Smart Toggle", true, "Stop re-triggering on totems until you're back above the minimum.") { totem }
+
+    @Tab(TRIGGERS_TAB) private val players by setting("Players", false, "Disconnect if a nearby player is detected within the set distance.")
+    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
+    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val ignoreFriends by setting("Ignore Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
+    @Tab(TRIGGERS_TAB) @Group(PLAYERS_GROUP) private val playersSmart by setting("Smart Toggle", false, "Stop re-triggering on players until none are within range.") { players }
+
+    @Tab(TRIGGERS_TAB) private val armor by setting("Armor", false, "Disconnect when an equipped armor piece's durability drops below the set limit.")
+    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val minArmorDurability by setting("Min Armor Durability", 10, 1..50, 1, "Disconnect when any equipped armor piece's remaining durability falls below this.") { armor }
+    @Tab(TRIGGERS_TAB) @Group(ARMOR_GROUP) private val armorSmart by setting("Smart Toggle", true, "Stop re-triggering on armor until durability climbs back above the minimum.") { armor }
+
+    @Tab(TRIGGERS_TAB) private val entities by setting("Entity", false, "Disconnect when an entity of a selected type is within range.")
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val selectedEntities by setting("Entities", setOf(Registries.ENTITY_TYPE.getId(EntityType.TNT_MINECART).path), Registries.ENTITY_TYPE.ids.map { it.path }.sorted(), "Select specific entities.") { entities }
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entityRange by setting("Entity Range", 10.0, 0.0..100.0, 1.0, "The range to check for entities.", unit = " blocks") { entities }
+    @Tab(TRIGGERS_TAB) @Group(ENTITY_GROUP) private val entitiesSmart by setting("Smart Toggle", true, "Stop re-triggering on entities until none of the selected types are within range.") { entities }
 
     // ToDo: Only those DamageTypes are reported by the server. why?
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val generic by setting("Generic", false, "Disconnect from the server when you get generic damage. (will always trigger!)")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val lava by setting("Lava", false, "Disconnect from the server when you get lava.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you get hot floor.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val drown by setting("Drown", false, "Disconnect from the server when you get drown.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val cactus by setting("Cactus", false, "Disconnect from the server when you get cactus.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val fall by setting("Fall", false, "Disconnect from the server when you fall.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you get out of the world.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val wither by setting("Wither", false, "Disconnect from the server when you get wither damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you get stalagmite damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you get arrow damage.")
-    @Tab(DISCONNECT_CONDITIONS_TAB) @Group(DAMAGE_DISCONNECT_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.")
+    @Tab(TRIGGERS_TAB) private val damage by setting("Damage", false, "Disconnect when taking damage of a selected type.")
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val generic by setting("Generic", false, "Disconnect from the server when you take generic damage. (will always trigger!)") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val lava by setting("Lava", false, "Disconnect from the server when you take lava damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you take \"hot floor\" damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val drown by setting("Drown", false, "Disconnect from the server when you take drowning damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val cactus by setting("Cactus", false, "Disconnect from the server when you take cactus damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val fall by setting("Fall", false, "Disconnect from the server when you take fall damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you take \"out of the world\" damage") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val wither by setting("Wither", false, "Disconnect from the server when you take wither damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you take stalagmite damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you take arrow damage.") { damage }
+    @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you take trident damage.") { damage }
 
     @Tab(GENERAL_TAB) private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val invalidHotbarDisconnect by setting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
@@ -116,22 +169,42 @@ object AutoDisconnect : Module(
 
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false
+    private val joinTimer = TickTimer()
     var lastReconnectTarget: ReconnectTarget? = null
 
     init {
         listen<TickEvent.Pre> {
-            Reason.entries.filter {
-                it.check()
-            }.forEach { reason ->
-                reason.generateReason(this)?.let { reasonText ->
-                    disconnect(reasonText, reason)
-                    return@listen
+            joinTimer.tick()
+
+            // Re-enable disarmed triggers once everything is loaded
+            if (isLoaded(player.blockPos) && !isIn2b2tQueue() && joinTimer.hasSurpassed(JOIN_GRACE_TICKS)) {
+                Reason.entries.forEach { reason ->
+                    if (reason.smartToggle() && !reason.armed && (!reason.enabled() || reason.shouldRearm(this))) {
+                        reason.armed = true
+                        // Notify only when it recovered while active, not when it re-armed due to being disabled.
+                        if (reason.enabled()) AutoDisconnect.info("${reason.displayName} re-armed")
+                    }
+                }
+            }
+            //check for reasons to disconnect
+            val matchingReason = Reason.entries
+                .firstNotNullOfOrNull { reason ->
+                    if (reason.enabled() && (!reason.smartToggle() || reason.armed) && reason.generateReason(this) != null) {
+                        reason
+                    }
+                    else null
+                }
+            if (matchingReason != null) {
+                val reasonText = matchingReason.generateReason(this) ?: buildText { literal("Reason lost to the abyss") }
+                if (requestDisconnect(reasonText) && matchingReason.smartToggle()) {
+                    matchingReason.armed = false
                 }
             }
         }
 
         listen<WorldEvent.Join> {
             disconnectInProgress = false
+            joinTimer.reset()
         }
 
         listen<PlayerEvent.Health> { event ->
@@ -182,13 +255,17 @@ object AutoDisconnect : Module(
             }
             literal(".")
         }.let {
-            disconnect(it)
+            requestDisconnect(it)
         }
     }
 
-    private fun SafeContext.disconnect(reasonText: Text, reason: Reason? = null) {
-        if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE || disconnectInProgress) return
-        if (reason == Reason.Health || reason == Reason.Totem) disable()
+    /**
+     * Performs the disconnect for [reasonText] if allowed, returning true if it went
+     * through. Returns false (and does nothing) when the player isn't in a survival-like
+     * game mode or a disconnect is already in progress.
+     */
+    private fun SafeContext.requestDisconnect(reasonText: Text): Boolean {
+        if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE || disconnectInProgress) return false
         disconnectInProgress = true
         ScreenshotRecorder.takeScreenshot(Lambda.mc.framebuffer, 1) { image ->
             val imageIdentifier = Identifier.of("lambda", "auto_disconnect_screenshot")
@@ -199,15 +276,17 @@ object AutoDisconnect : Module(
                 imageHeight = image.height,
                 imageWidth = image.width,
                 reason = reasonText,
-                details = generateInfo(reasonText),
+                details = disconnectScreenText(reasonText),
                 hideDetails = hideDetails
             )
 
             sendForcedDisconnectPackets()
-            connection.connection.disconnect(generateInfo(reasonText))
+            //message should never appear to the user, but text is included as a backup in case it does
+            connection.connection.disconnect(buildText{ literal("AutoDisconnect: $reasonText") })
 
             playSound(SoundEvents.BLOCK_ANVIL_LAND)
         }
+        return true
     }
 
     private fun SafeContext.sendForcedDisconnectPackets() {
@@ -245,7 +324,7 @@ object AutoDisconnect : Module(
         return details
     }
 
-    private fun SafeContext.generateInfo(text: Text) = buildText {
+    private fun SafeContext.disconnectScreenText(text: Text) = buildText {
         text(prefix(CommunicationUtils.LogLevel.Warn.logoColor))
         text(text)
         literal("\n\n")
@@ -282,8 +361,14 @@ object AutoDisconnect : Module(
         }
     }
 
-    enum class Reason(val check: () -> Boolean, val generateReason: SafeContext.() -> Text?) {
-        Health({ health }, {
+    enum class Reason(
+        val displayName: String,
+        val enabled: () -> Boolean,
+        val smartToggle: () -> Boolean,
+        val generateReason: SafeContext.() -> Text?,
+        val shouldRearm: SafeContext.() -> Boolean = { generateReason(this) == null }
+    ) {
+        Health("Health", { health }, { healthSmart }, {
             if (player.fullHealth < minimumHealth) {
                 buildText {
                     literal("Health ")
@@ -293,8 +378,8 @@ object AutoDisconnect : Module(
                     literal("!")
                 }
             } else null
-        }),
-        YLevel({ yLevel }, {
+        }, shouldRearm = { player.fullHealth > maxOf(reEnableThreshold, minimumHealth) }),
+        YLevel("Y Level", { yLevel }, { yLevelSmart }, {
             if (player.pos.y < minimumYLevel) {
                 buildText {
                     literal("Player went below y level ")
@@ -303,7 +388,7 @@ object AutoDisconnect : Module(
                 }
             } else null
         }),
-        Totem({ totem }, {
+        Totem("Totem", { totem }, { totemSmart }, {
             val totemCount = player.allStacks.count { it.item == Items.TOTEM_OF_UNDYING }
             if (totemCount < minTotems) {
                 buildText {
@@ -315,7 +400,7 @@ object AutoDisconnect : Module(
                 }
             } else null
         }),
-        Creeper({ creeper }, {
+        Creeper("Creepers", { creeper }, { creeperSmart }, {
             fastEntitySearch<CreeperEntity>(15.0).find {
                 it.getLerpedFuseTime(mc.tickDeltaF) > 0.0
                         && it.pos.distanceTo(player.pos) <= 5.0
@@ -327,11 +412,11 @@ object AutoDisconnect : Module(
                 }
             }
         }),
-        Player({ players }, {
+        Player("Players", { players }, { playersSmart }, {
             fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).find { otherPlayer ->
                 otherPlayer != player
                         && player.distanceTo(otherPlayer) <= minPlayerDistance
-                        && (!friends || !FriendHandler.isFriend(otherPlayer.uuid))
+                        && (!ignoreFriends || FriendHandler.isFriend(otherPlayer.uuid))
             }?.let { otherPlayer ->
                 buildText {
                     literal("The player ")
@@ -342,20 +427,79 @@ object AutoDisconnect : Module(
                 }
             }
         }),
-        EndCrystal({ crystals }, {
-            if (hasDeadlyCrystal())
-                buildText {
-                    literal("There was an end crystal close to you that would've killed you")
+        EndCrystal("Crystals", { crystals }, { crystalsSmart }, {
+            fastEntitySearch<EndCrystalEntity>(MAX_CRYSTAL_DAMAGE_RANGE).firstNotNullOfOrNull { crystal ->
+                if (crystalDamage(crystal.pos, player) <= 0.0) return@firstNotNullOfOrNull null
+
+                val requiresTrigger = playerNearCrystal || projectileNearCrystal
+                var potentialCrystalTriggerer: Entity? = null
+                if (playerNearCrystal) {
+                    potentialCrystalTriggerer = fastEntitySearch<PlayerEntity>(CRYSTAL_TRIGGER_RANGE, crystal.blockPos)
+                        .firstOrNull { !(crystalIgnoreFriends && FriendHandler.isFriend(it.uuid)) }
                 }
-            else null
+                if (potentialCrystalTriggerer == null && projectileNearCrystal) {
+                    potentialCrystalTriggerer = fastEntitySearch<ProjectileEntity>(CRYSTAL_TRIGGER_RANGE, crystal.blockPos).firstOrNull()
+                }
+                if (requiresTrigger && potentialCrystalTriggerer == null) {
+                    return@firstNotNullOfOrNull null
+                }
+
+                buildText {
+                    literal("An End Crystal was ")
+                    highlighted(crystal.pos.distanceTo(player.pos).format())
+                    literal(" blocks away")
+                    potentialCrystalTriggerer?.let {
+                        literal(" and could be detonated by ")
+                        if (it.customName != null) text(it.name)
+                        else highlighted(it.name.string)
+                    }
+                }
+            }
         }),
-        FallDamage({ falls }, {
+        FallDamage("Falls", { falls }, { fallsSmart }, {
             if (isFallDeadly() && player.fallDistance > fallDistance &&
                 !player.hasStatusEffect(StatusEffects.LEVITATION) &&
                 (player.gameMode == GameMode.ADVENTURE || player.gameMode == GameMode.SURVIVAL)
-            ) buildText { literal("You were about to fall and die") }
+            ) buildText { literal("You just fell more than ${player.fallDistance} blocks and would take lethal damage") }
             else null
-        })
+        }),
+        Armor("Armor", { armor }, { armorSmart }, {
+            player.armorSlots.firstOrNull { slot ->
+                slot.stack.isDamageable && slot.stack.maxDamage - slot.stack.damage < minArmorDurability
+            }?.let { slot ->
+                buildText {
+                    literal("Armor piece ")
+                    text(slot.stack.name)
+                    literal(" has only ")
+                    highlighted("${slot.stack.maxDamage - slot.stack.damage}")
+                    literal(" durability left, below minimum of ")
+                    highlighted("$minArmorDurability")
+                    literal("!")
+                }
+            }
+        }),
+        NearbyEntity("Entity", { entities }, { entitiesSmart }, {
+            fastEntitySearch<Entity>(entityRange).find { entity ->
+                entity != player
+                        && player.distanceTo(entity) <= entityRange
+                        && Registries.ENTITY_TYPE.getId(entity.type).path in selectedEntities
+            }?.let { entity ->
+                buildText {
+                    literal("A ")
+                    if (entity.customName != null) text(entity.name)
+                    else highlighted(entity.name.string)
+                    literal(" was ")
+                    highlighted("${entity.distanceTo(player).format()} blocks away")
+                    literal("!")
+                }
+            }
+        });
+
+        /**
+         * A reason that fires is disarmed and won't trigger
+         * again until its condition clears (it is then re-armed in the tick loop)
+         */
+        var armed: Boolean = true
     }
 }
 
