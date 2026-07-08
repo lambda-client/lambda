@@ -32,7 +32,7 @@ import com.lambda.pathing.core.Key
 import com.lambda.pathing.core.LazyGraph
 import com.lambda.pathing.goal.TraversalGoal
 import com.lambda.pathing.metrics.PlannerMetrics
-import com.lambda.pathing.movement.WalkingMovementModel
+import com.lambda.pathing.primitives.MoveTable
 import com.lambda.pathing.refinement.PathRefiner
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.world.FastVector
@@ -96,7 +96,9 @@ object PathfinderManager : Loadable,
         // world reads go through it (WP1).
         val view = SnapshotWorldView(world)
 
-        val caps = WalkingMovementModel.heuristicCaps(config)
+        // The enabled primitive set: templates plus everything derived from
+        // them — heuristic caps and invalidation extents included (WP2).
+        val moves = MoveTable.build(config)
         // Execution-feedback overlay: edges the executor reported as blocked
         // in the real world get their cost multiplied, so replans learn to
         // route around them even though the world model still believes in
@@ -115,13 +117,13 @@ object PathfinderManager : Loadable,
 
         val graph = LazyGraph<FastVector>(
             successorProvider = { node ->
-                penalized(node, WalkingMovementModel.successors(view, node, config))
+                penalized(node, moves.successors(view, node))
             },
             // True inverse enumeration — never default to the symmetric
             // assumption: it mirrors legal step-downs into illegal step-ups
             // (e.g. under low ceilings) with the wrong cost attached.
             predecessorProvider = { node ->
-                val edges = WalkingMovementModel.predecessors(view, node, config)
+                val edges = moves.predecessors(view, node)
                 if (edgePenalties.isEmpty()) edges
                 else edges.mapValues { (from, cost) -> cost * (edgePenalties[edgeKey(from, node)] ?: 1.0) }
             },
@@ -138,14 +140,14 @@ object PathfinderManager : Loadable,
             graph = graph,
             start = currentStablePlannerNode(view) ?: player.blockPos.toFastVec(),
             goal = goal.targetNode,
-            heuristic = { a, b -> movementHeuristic(caps, a, b) },
+            heuristic = { a, b -> movementHeuristic(moves.caps, a, b) },
             // Stable tie-break between equal-cost successors so the coarse path
             // doesn't flip between runs and force a re-refinement / shortcut
             // angle change. FastVector is a Long; natural ordering is enough.
             nodeTieBreaker = naturalOrder(),
         )
 
-        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view)
+        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view, moves)
         PlannerMetrics.sink.planStart(handle.id, planner.start, goal.targetNode)
         computeActivePath()
         return handle
@@ -207,7 +209,7 @@ object PathfinderManager : Loadable,
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
 
-        val affectedNodes = WalkingMovementModel.affectedNodes(pos, session.handle.config)
+        val affectedNodes = session.moves.affectedNodes(pos.x, pos.y, pos.z)
         val syncStartNanos = System.nanoTime()
         val sync = session.planner.synchronizeAffected(affectedNodes)
         PlannerMetrics.sink.syncEnd(
@@ -374,7 +376,7 @@ object PathfinderManager : Loadable,
         if (!player.isOnGround) return null
         view ?: return null
         val blockPos = player.blockPos
-        return if (WalkingMovementModel.isTraversable(view, blockPos)) blockPos.toFastVec() else null
+        return if (MoveTable.isStance(view, blockPos.x, blockPos.y, blockPos.z)) blockPos.toFastVec() else null
     }
 
     /**
@@ -399,6 +401,7 @@ object PathfinderManager : Loadable,
         val planner: DStarLite<FastVector>,
         val edgePenalties: HashMap<Long, Double>,
         val view: SnapshotWorldView,
+        val moves: MoveTable.MoveSet,
         var lastRefinementLogKey: String? = null,
         var lastCoarsePath: List<FastVector>? = null,
         var lastRefinedPath: List<FastVector>? = null,
@@ -495,7 +498,7 @@ object PathfinderManager : Loadable,
      * traversal's config, so cheaper edge types (drops, jumps) can never
      * silently make the heuristic overestimate.
      */
-    private fun movementHeuristic(caps: WalkingMovementModel.HeuristicCaps, a: FastVector, b: FastVector): Double {
+    private fun movementHeuristic(caps: MoveTable.HeuristicCaps, a: FastVector, b: FastVector): Double {
         val dx = (a.x - b.x).toDouble()
         val dz = (a.z - b.z).toDouble()
         val dy = (b.y - a.y).toDouble()

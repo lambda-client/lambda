@@ -19,6 +19,7 @@ package com.lambda.pathing.movement
 
 import com.lambda.context.SafeContext
 import com.lambda.config.blocks.PlannerConfig
+import com.lambda.pathing.primitives.MoveCosts
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.x
@@ -63,24 +64,6 @@ object WalkingMovementModel {
         1, 1,
     )
 
-    private const val CARDINAL_COST = 1.0
-    private val DIAGONAL_COST = sqrt(2.0)
-
-    // Step-up costs more than flat to discourage unnecessary stairs; jumping
-    // takes ~10 ticks to clear a block while flat sprint covers it in ~7.
-    private const val STEP_UP_COST = 1.5
-
-    // Step-down is slightly costlier than flat to prefer level paths when both
-    // exist (avoids the bot spamming small drops just to skim a corner).
-    private const val STEP_DOWN_COST = 1.05
-
-    // Gap jump costs — more expensive than walking to avoid pointless jumping.
-    private const val JUMP_COST = 2.2
-    private const val JUMP_UP_COST = 2.5
-
-    // Fall time is terminal-velocity bound, so deeper drops pay less per block.
-    private const val DROP_COST_PER_BLOCK = 0.35
-
     /**
      * Admissibility caps for the planner's anisotropic heuristic: the minimum
      * cost any *enabled* move pays per block of displacement along each axis
@@ -95,20 +78,20 @@ object WalkingMovementModel {
     )
 
     fun heuristicCaps(config: PlannerConfig): HeuristicCaps {
-        var horizontal = CARDINAL_COST / 1.0
-        if (config.allowDiagonal) horizontal = minOf(horizontal, DIAGONAL_COST / sqrt(2.0))
+        var horizontal = MoveCosts.CARDINAL / 1.0
+        if (config.allowDiagonal) horizontal = minOf(horizontal, MoveCosts.DIAGONAL / sqrt(2.0))
         var ascended = Double.POSITIVE_INFINITY
         var descended = Double.POSITIVE_INFINITY
         if (config.allowVertical) {
-            ascended = minOf(ascended, STEP_UP_COST / 1.0)
-            descended = minOf(descended, STEP_DOWN_COST / 1.0)
+            ascended = minOf(ascended, MoveCosts.STEP_UP / 1.0)
+            descended = minOf(descended, MoveCosts.STEP_DOWN / 1.0)
             for (depth in 2..config.maxDropHeight) {
-                descended = minOf(descended, dropCost(depth) / depth)
+                descended = minOf(descended, MoveCosts.drop(depth) / depth)
             }
         }
         if (config.allowJump && config.allowVertical) {
-            horizontal = minOf(horizontal, JUMP_COST / 2.0)
-            ascended = minOf(ascended, JUMP_UP_COST / 1.0)
+            horizontal = minOf(horizontal, MoveCosts.JUMP / 2.0)
+            ascended = minOf(ascended, MoveCosts.JUMP_UP / 1.0)
         }
         return HeuristicCaps(horizontal, ascended, descended)
     }
@@ -152,9 +135,9 @@ object WalkingMovementModel {
             if (!isSlicePassable(view, gx, oy, gz)) return null
             if (!isSlicePassable(view, gx, oy + 1, gz)) return null
             return when (dy) {
-                0 -> JUMP_COST
+                0 -> MoveCosts.JUMP
                 1 -> {
-                    if (isSlicePassable(view, gx, oy + 1, gz) && isSlicePassable(view, gx, oy + 2, gz)) JUMP_UP_COST else null
+                    if (isSlicePassable(view, gx, oy + 1, gz) && isSlicePassable(view, gx, oy + 2, gz)) MoveCosts.JUMP_UP else null
                 }
                 else -> null
             }
@@ -164,7 +147,7 @@ object WalkingMovementModel {
             0 -> {
                 val diagonal = dx != 0 && dz != 0
                 if (!diagonal) {
-                    CARDINAL_COST
+                    MoveCosts.CARDINAL
                 } else {
                     if (!config.allowDiagonal) return null
                     // Fast path: both side blocks are fully traversable (has
@@ -175,12 +158,12 @@ object WalkingMovementModel {
                     // needs to exist at the destination.
                     if ((isTraversable(view, ox + dx, oy, oz) && isTraversable(view, ox, oy, oz + dz)) ||
                         (isPassableDiagonalSide(view, ox + dx, oy, oz) && isPassableDiagonalSide(view, ox, oy, oz + dz))
-                    ) DIAGONAL_COST else null
+                    ) MoveCosts.DIAGONAL else null
                 }
             }
 
             // Step-up (+1 y, cardinal only): needs jump headroom at the origin.
-            1 -> if (config.allowVertical && hasHeadClearance(view, ox, oy, oz)) STEP_UP_COST else null
+            1 -> if (config.allowVertical && hasHeadClearance(view, ox, oy, oz)) MoveCosts.STEP_UP else null
 
             // Step-down / drop (-1..-maxDropHeight y, cardinal only): walking
             // off a ledge and falling h blocks. Asymmetric — the reverse move
@@ -201,19 +184,12 @@ object WalkingMovementModel {
                     if (!isSlicePassable(view, tx, y, tz)) return null
                     y--
                 }
-                dropCost(depth)
+                MoveCosts.drop(depth)
             }
         }
     }
 
-    /**
-     * Cost of a walk-off descent of [depth] blocks. Depth 1 keeps its legacy
-     * tuned value; deeper drops pay a base plus fall time that grows slower
-     * than linearly per block (terminal-velocity-bound), which keeps a real
-     * drop cheaper than a long staircase detour of the same height.
-     */
-    private fun dropCost(depth: Int): Double =
-        if (depth <= 1) STEP_DOWN_COST else STEP_DOWN_COST + DROP_COST_PER_BLOCK * depth
+
 
     /**
      * Iterates every enabled move delta as (dx, dy, dz, gap) and invokes
