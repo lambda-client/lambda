@@ -275,6 +275,7 @@ object PathfinderRender : Loadable {
         TraversalHandle.Status.Ready -> true
         TraversalHandle.Status.Partial -> renderConfig.renderPartial
         TraversalHandle.Status.Planning,
+        TraversalHandle.Status.Succeeded,
         TraversalHandle.Status.Failed,
         TraversalHandle.Status.Cancelled -> false
     }

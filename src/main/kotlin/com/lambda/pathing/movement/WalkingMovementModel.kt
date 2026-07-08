@@ -71,28 +71,146 @@ object WalkingMovementModel {
     private const val JUMP_COST = 2.2
     private const val JUMP_UP_COST = 2.5
 
-    // Heuristic caps, derived from the cost table above as the minimum cost any
-    // edge pays per block of movement along each axis class. The planner's
-    // admissible heuristic is built from these, so they must stay true minima:
-    // when adding a cheaper edge type, update the corresponding cap (per-axis
-    // ratio of the new edge), or the heuristic silently overestimates.
-    // Horizontal: cardinal walk (1 cost / 1 block) is beaten by nothing yet —
-    // gap jumps pay 2.2 / 2 blocks. Ascent: step-up pays 1.5 / 1 block (jump-up
-    // pays 2.5 for 1 up). Descent: step-down pays 1.05 / 1 block.
-    const val MIN_COST_PER_HORIZONTAL_BLOCK = 1.0
-    const val MIN_COST_PER_ASCENDED_BLOCK = STEP_UP_COST
-    const val MIN_COST_PER_DESCENDED_BLOCK = STEP_DOWN_COST
+    // Fall time is terminal-velocity bound, so deeper drops pay less per block.
+    private const val DROP_COST_PER_BLOCK = 0.35
 
-    fun SafeContext.successors(node: FastVector, config: PlannerConfig): Map<FastVector, Double> {
-        val origin = node.toBlockPos()
-        if (!isTraversable(origin)) return emptyMap()
+    /**
+     * Admissibility caps for the planner's anisotropic heuristic: the minimum
+     * cost any *enabled* move pays per block of displacement along each axis
+     * class. Derived from the move table itself (not hand-written) so adding
+     * a cheaper move type can never silently make the heuristic overestimate
+     * — the exact failure mode theory note T1 documents.
+     */
+    data class HeuristicCaps(
+        val minCostPerHorizontalBlock: Double,
+        val minCostPerAscendedBlock: Double,
+        val minCostPerDescendedBlock: Double,
+    )
 
+    fun heuristicCaps(config: PlannerConfig): HeuristicCaps {
+        var horizontal = CARDINAL_COST / 1.0
+        if (config.allowDiagonal) horizontal = minOf(horizontal, DIAGONAL_COST / sqrt(2.0))
+        var ascended = Double.POSITIVE_INFINITY
+        var descended = Double.POSITIVE_INFINITY
+        if (config.allowVertical) {
+            ascended = minOf(ascended, STEP_UP_COST / 1.0)
+            descended = minOf(descended, STEP_DOWN_COST / 1.0)
+            for (depth in 2..config.maxDropHeight) {
+                descended = minOf(descended, dropCost(depth) / depth)
+            }
+        }
+        if (config.allowJump && config.allowVertical) {
+            horizontal = minOf(horizontal, JUMP_COST / 2.0)
+            ascended = minOf(ascended, JUMP_UP_COST / 1.0)
+        }
+        return HeuristicCaps(horizontal, ascended, descended)
+    }
+
+    /**
+     * The forward move set, evaluated origin-relative. Both [successors] and
+     * [predecessors] enumerate this same table — successors by applying the
+     * delta to the origin, predecessors by *subtracting* it from the target
+     * and validating the identical forward conditions. Sharing one validity
+     * check per move type is what makes Succ/Pred provably mirror images:
+     * a move exists backward iff it exists forward, evaluated at its true
+     * origin. (This is the primitive-template inverse idea from the research
+     * plan, specialized to the walking model — and it fixes the phantom
+     * step-up edges the symmetric-predecessor assumption used to create,
+     * e.g. mirroring a legal step-down into an illegal jump under a low
+     * ceiling.)
+     */
+    private fun SafeContext.evaluateMove(
+        origin: BlockPos,
+        dx: Int,
+        dy: Int,
+        dz: Int,
+        gap: Boolean,
+        config: PlannerConfig,
+    ): Double? {
+        val target = BlockPos(origin.x + dx, origin.y + dy, origin.z + dz)
+        if (!isTraversable(target)) return null
+
+        if (gap) {
+            // Gap jump (2 forward, same y or +1): needs launch headroom and a
+            // clear arc over the gap column (feet + head; +1y variant also
+            // needs the apex column above the landing height).
+            if (!config.allowJump || !config.allowVertical || !hasHeadClearance(origin)) return null
+            val gapBlock = BlockPos(origin.x + dx / 2, origin.y, origin.z + dz / 2)
+            if (!isPassableColumnSlice(gapBlock)) return null
+            if (!isPassableColumnSlice(BlockPos(gapBlock.x, gapBlock.y + 1, gapBlock.z))) return null
+            return when (dy) {
+                0 -> JUMP_COST
+                1 -> {
+                    val apex = BlockPos(gapBlock.x, gapBlock.y + 1, gapBlock.z)
+                    if (isPassableColumnSlice(apex) && isPassableColumnSlice(BlockPos(apex.x, apex.y + 1, apex.z))) JUMP_UP_COST else null
+                }
+                else -> null
+            }
+        }
+
+        return when (dy) {
+            0 -> {
+                val diagonal = dx != 0 && dz != 0
+                if (!diagonal) {
+                    CARDINAL_COST
+                } else {
+                    if (!config.allowDiagonal) return null
+                    val sideA = BlockPos(origin.x + dx, origin.y, origin.z)
+                    val sideB = BlockPos(origin.x, origin.y, origin.z + dz)
+                    // Fast path: both side blocks are fully traversable (has
+                    // clearance AND support). This is the standard case.
+                    // Otherwise allow the checkerboard / corner-edge walk: the
+                    // side blocks are passable (clearance OK) even if not
+                    // fully standable — feet span the diagonal, support only
+                    // needs to exist at the destination.
+                    if ((isTraversable(sideA) && isTraversable(sideB)) ||
+                        (isPassableDiagonalSide(sideA, origin) && isPassableDiagonalSide(sideB, origin))
+                    ) DIAGONAL_COST else null
+                }
+            }
+
+            // Step-up (+1 y, cardinal only): needs jump headroom at the origin.
+            1 -> if (config.allowVertical && hasHeadClearance(origin)) STEP_UP_COST else null
+
+            // Step-down / drop (-1..-maxDropHeight y, cardinal only): walking
+            // off a ledge and falling h blocks. Asymmetric — the reverse move
+            // does not exist, which is exactly why the planner needs the true
+            // predecessor enumeration.
+            //
+            // Clearance: while stepping off, the player briefly occupies the
+            // target column at origin height (slices origin.y and origin.y+1
+            // — the +1 slice matters because the head tops out at +1.8), and
+            // then falls through every slice of the target column down to the
+            // landing feet level.
+            else -> {
+                if (dy > 0 || !config.allowVertical) return null
+                val depth = -dy
+                if (depth > config.maxDropHeight && depth > 1) return null
+                var y = origin.y + 1
+                while (y > target.y) {
+                    if (!isPassableColumnSlice(BlockPos(target.x, y, target.z))) return null
+                    y--
+                }
+                dropCost(depth)
+            }
+        }
+    }
+
+    /**
+     * Cost of a walk-off descent of [depth] blocks. Depth 1 keeps its legacy
+     * tuned value; deeper drops pay a base plus fall time that grows slower
+     * than linearly per block (terminal-velocity-bound), which keeps a real
+     * drop cheaper than a long staircase detour of the same height.
+     */
+    private fun dropCost(depth: Int): Double =
+        if (depth <= 1) STEP_DOWN_COST else STEP_DOWN_COST + DROP_COST_PER_BLOCK * depth
+
+    /**
+     * Iterates every enabled move delta as (dx, dy, dz, gap) and invokes
+     * [emit]. One enumeration shared by both search directions.
+     */
+    private inline fun forEachMoveDelta(config: PlannerConfig, emit: (dx: Int, dy: Int, dz: Int, gap: Boolean) -> Unit) {
         val offsets = if (config.allowDiagonal) cardinalAndDiagonalOffsets else cardinalOffsets
-        val result = HashMap<FastVector, Double>(offsets.size)
-
-        // Jump head clearance is independent of direction — compute once.
-        val canJumpFromHere = config.allowVertical && hasHeadClearance(origin)
-
         var i = 0
         while (i < offsets.size) {
             val dx = offsets[i]
@@ -100,100 +218,73 @@ object WalkingMovementModel {
             i += 2
             val diagonal = dx != 0 && dz != 0
 
-            // ---- Same-y move (flat walk) ----
-            val flat = BlockPos(origin.x + dx, origin.y, origin.z + dz)
-            if (isTraversable(flat)) {
-                if (!diagonal) {
-                    result[flat.toFastVector()] = CARDINAL_COST
-                } else {
-                    val sideA = BlockPos(origin.x + dx, origin.y, origin.z)
-                    val sideB = BlockPos(origin.x, origin.y, origin.z + dz)
-                    // Fast path: both side blocks are fully traversable (has
-                    // clearance AND support). This is the standard case.
-                    if (isTraversable(sideA) && isTraversable(sideB)) {
-                        result[flat.toFastVector()] = DIAGONAL_COST
-                    } else if (isPassableDiagonalSide(sideA, origin) && isPassableDiagonalSide(sideB, origin)) {
-                        // Checkerboard / corner-edge walk: the side blocks are
-                        // passable (clearance OK) even if not fully standable
-                        // (no support). The player walks on the shared corner
-                        // edge — feet span the diagonal, support only needs
-                        // to exist at the destination.
-                        result[flat.toFastVector()] = DIAGONAL_COST
-                    }
-                }
-            }
+            emit(dx, 0, dz, false)
 
             // Vertical moves: cardinal directions only for now. Diagonal step
             // up/down has fiddly corner-clearance rules and the executor's
             // any-angle controller doesn't yet steer mid-segment rises.
             if (diagonal || !config.allowVertical) continue
-
-            // ---- Step-up (+1 y) ----
-            if (canJumpFromHere) {
-                val up = BlockPos(origin.x + dx, origin.y + 1, origin.z + dz)
-                if (isTraversable(up)) {
-                    result[up.toFastVector()] = STEP_UP_COST
-                }
+            emit(dx, 1, dz, false)
+            emit(dx, -1, dz, false)
+            for (depth in 2..config.maxDropHeight) {
+                emit(dx, -depth, dz, false)
             }
 
-            // ---- Step-down (-1 y) ----
-            // Walking off a ledge: target column must be standable, and the
-            // block at the destination column at the player's chest-level
-            // (origin.y) must be passable so the player doesn't clip the lip
-            // while stepping off.
-            val down = BlockPos(origin.x + dx, origin.y - 1, origin.z + dz)
-            val frontHead = BlockPos(origin.x + dx, origin.y, origin.z + dz)
-            if (isTraversable(down) && isPassableColumnSlice(frontHead)) {
-                result[down.toFastVector()] = STEP_DOWN_COST
+            if (config.allowJump) {
+                emit(dx * 2, 0, dz * 2, true)
+                emit(dx * 2, 1, dz * 2, true)
             }
         }
+    }
 
-        // ---- Gap jumps (cardinal, 2 blocks forward, same or +1 y) ----
-        if (config.allowJump && canJumpFromHere) {
-            var ji = 0
-            while (ji < cardinalOffsets.size) {
-                val jdx = cardinalOffsets[ji]
-                val jdz = cardinalOffsets[ji + 1]
-                ji += 2
+    fun SafeContext.successors(node: FastVector, config: PlannerConfig): Map<FastVector, Double> {
+        val origin = node.toBlockPos()
+        if (!isTraversable(origin)) return emptyMap()
 
-                val gapBlock = BlockPos(origin.x + jdx, origin.y, origin.z + jdz)
-                // The gap must be clear for the full jump arc. At the apex the
-                // player's head reaches ~y+3, so both the gap block and the
-                // block above it need clearance.
-                val gapClearFeet = isPassableColumnSlice(gapBlock)
-                val gapClearHead = isPassableColumnSlice(BlockPos(gapBlock.x, gapBlock.y + 1, gapBlock.z))
-
-                if (gapClearFeet && gapClearHead) {
-                    // Same-y gap jump: jump across 1-block gap, land 2 blocks away flat.
-                    val landFlat = BlockPos(origin.x + jdx * 2, origin.y, origin.z + jdz * 2)
-                    if (isTraversable(landFlat)) {
-                        result[landFlat.toFastVector()] = JUMP_COST
-                    }
-
-                    // +1y gap jump: jump across gap and up one block.
-                    val landUp = BlockPos(origin.x + jdx * 2, origin.y + 1, origin.z + jdz * 2)
-                    val jumpApex = BlockPos(origin.x + jdx, origin.y + 1, origin.z + jdz)
-                    if (isTraversable(landUp) && isPassableColumnSlice(jumpApex) && isPassableColumnSlice(BlockPos(jumpApex.x, jumpApex.y + 1, jumpApex.z))) {
-                        result[landUp.toFastVector()] = JUMP_UP_COST
-                    }
-                }
+        val result = HashMap<FastVector, Double>(16)
+        forEachMoveDelta(config) { dx, dy, dz, gap ->
+            evaluateMove(origin, dx, dy, dz, gap, config)?.let { cost ->
+                result[fastVectorOf(origin.x + dx, origin.y + dy, origin.z + dz)] = cost
             }
         }
-
         return result
     }
 
     /**
-     * Conservative node invalidation around a changed block.
-     *
-     * A changed block can affect the feet clearance, head clearance (now also
-     * the jump-apex y+2 block), or support block for nearby nodes. Vertical
-     * range is ±2 to cover step-up head clearance; horizontal range covers
-     * diagonal corner-cuts and adjacent step-up/down cells.
+     * True incoming edges of [node]: every origin that has a forward move
+     * landing exactly on [node], validated with the forward conditions at
+     * that origin. Required by D* Lite's backward expansion — using
+     * successors as predecessors silently assumes every move is reversible,
+     * which drops (down-only ledges) and headroom-gated jumps are not.
      */
-    fun affectedNodes(changedBlock: BlockPos): Set<FastVector> = buildSet {
+    fun SafeContext.predecessors(node: FastVector, config: PlannerConfig): Map<FastVector, Double> {
+        val target = node.toBlockPos()
+        if (!isTraversable(target)) return emptyMap()
+
+        val result = HashMap<FastVector, Double>(16)
+        forEachMoveDelta(config) { dx, dy, dz, gap ->
+            val origin = BlockPos(target.x - dx, target.y - dy, target.z - dz)
+            if (isTraversable(origin)) {
+                evaluateMove(origin, dx, dy, dz, gap, config)?.let { cost ->
+                    result[fastVectorOf(origin.x, origin.y, origin.z)] = cost
+                }
+            }
+        }
+        return result
+    }
+
+    /**
+     * Conservative node invalidation around a changed block: every node whose
+     * outgoing edges could read this block. Extents are derived from the move
+     * table so they stay correct as moves are added: horizontally the longest
+     * move reaches 2 (gap jump); downward a change up to (maxDropHeight + 1)
+     * below a node can be its drop landing's support; upward a change 2 above
+     * can be its jump headroom.
+     */
+    fun affectedNodes(changedBlock: BlockPos, config: PlannerConfig): Set<FastVector> = buildSet {
+        val up = 2 + config.maxDropHeight.coerceAtLeast(1)
         for (dx in -2..2) {
-            for (dy in -2..2) {
+            for (dy in -2..up) {
                 for (dz in -2..2) {
                     add(fastVectorOf(changedBlock.x + dx, changedBlock.y + dy, changedBlock.z + dz))
                 }
@@ -205,10 +296,16 @@ object WalkingMovementModel {
      * Checks that the block above the head (i.e. y+2 relative to feet) leaves
      * room for the jump apex without bonking. Required before allowing a
      * step-up from this position.
+     *
+     * The +2 slice is what matters: standing only needs feet (+0) and head
+     * (+1) clear, but a jump raises the head into the +2 slice. Checking +1
+     * here (a past bug) generated step-up edges under 2-high ceilings where
+     * the jump is physically impossible — the executor then bonked and
+     * retried forever.
      */
     private fun SafeContext.hasHeadClearance(origin: BlockPos): Boolean {
-        val above = BlockPos(origin.x, origin.y + 1, origin.z)
-        return isPassableColumnSlice(above)
+        val aboveHead = BlockPos(origin.x, origin.y + 2, origin.z)
+        return isPassableColumnSlice(aboveHead)
     }
 
     /**
@@ -222,6 +319,26 @@ object WalkingMovementModel {
         val box = Box(
             cx - PLAYER_HALF_WIDTH, pos.y.toDouble(), cz - PLAYER_HALF_WIDTH,
             cx + PLAYER_HALF_WIDTH, pos.y + 1.0, cz + PLAYER_HALF_WIDTH,
+        ).contract(COLLISION_EPSILON)
+        return world.isSpaceEmpty(box)
+    }
+
+    /**
+     * Execution-time headroom check for issuing a step-up jump from an
+     * arbitrary continuous position. Plan-time clearance ([hasHeadClearance])
+     * is validated at node centers only — the player usually stands somewhere
+     * between nodes when the executor wants to jump, and the ceiling there was
+     * never part of any plan check.
+     *
+     * Deliberately requires [STEP_UP_HEADROOM] of rise rather than the full
+     * free-flight apex ([JUMP_APEX_RISE]): a ceiling that clips the top of the
+     * arc but still allows a one-block rise (tunnel staircases with 3-block
+     * ceilings) must not block the jump.
+     */
+    fun SafeContext.hasJumpApexClearance(feetPos: Vec3d): Boolean {
+        val box = Box(
+            feetPos.x - PLAYER_HALF_WIDTH, feetPos.y + PLAYER_HEIGHT, feetPos.z - PLAYER_HALF_WIDTH,
+            feetPos.x + PLAYER_HALF_WIDTH, feetPos.y + STEP_UP_HEADROOM + PLAYER_HEIGHT, feetPos.z + PLAYER_HALF_WIDTH,
         ).contract(COLLISION_EPSILON)
         return world.isSpaceEmpty(box)
     }
@@ -280,6 +397,16 @@ object WalkingMovementModel {
 
     private const val PLAYER_HALF_WIDTH = 0.3
     private const val PLAYER_HEIGHT = 1.8
+
+    // Vanilla jump apex height (initial vy 0.42 with per-tick drag/gravity
+    // tops out at ~1.252 blocks). Nominal — replaced by the WP0 calibration
+    // pass once the harness measures it.
+    private const val JUMP_APEX_RISE = 1.252
+
+    // Minimum unobstructed rise above the head required to complete a
+    // one-block step-up (1.0 needed to land, plus margin). Lower than
+    // JUMP_APEX_RISE on purpose — see hasJumpApexClearance.
+    private const val STEP_UP_HEADROOM = 1.1
     private const val COLLISION_EPSILON = 1.0E-6
     private const val SUPPORT_EPSILON = 1.0E-6
     private const val SUPPORT_INSET = 0.05

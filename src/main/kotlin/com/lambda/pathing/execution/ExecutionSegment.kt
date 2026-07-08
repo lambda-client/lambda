@@ -168,22 +168,18 @@ data class WalkSegment(
     val start: ExecutionPose,
     val end: ExecutionPose,
 ) : LinearExecutionSegment(index, start, end) {
-    /** +1 step-up, -1 step-down, 0 flat. */
-    val verticalStep: Int = when {
-        delta.y > 0.5 -> 1
-        delta.y < -0.5 -> -1
-        else -> 0
-    }
-    override val typeName: String = when (verticalStep) {
-        1 -> "Walk(+1)"
-        -1 -> "Walk(-1)"
+    /** +1 step-up, negative for step-down/drop depth, 0 flat. */
+    val verticalStep: Int = Math.round(delta.y).toInt()
+    override val typeName: String = when {
+        verticalStep > 0 -> "Walk(+$verticalStep)"
+        verticalStep < 0 -> "Walk($verticalStep)"
         else -> "Walk"
     }
     override val safeToCancel: Boolean = true
-    // Walk segments now also handle a single-block step in either direction;
-    // the executor schedules a jump input for step-ups and lets gravity handle
-    // step-downs. Anything beyond ±1 still falls to UnsupportedSegment.
-    override val supportedByController: Boolean = abs(delta.y) <= 1.0 + 1.0E-6
+    // Walk segments handle a single-block step up (executor schedules a jump
+    // input) and walk-off drops of any planned depth (gravity does the work).
+    // Multi-block rises still fall to UnsupportedSegment.
+    override val supportedByController: Boolean = delta.y <= 1.0 + 1.0E-6
 
     /**
      * Step segments are discrete: the player is either on the lower floor

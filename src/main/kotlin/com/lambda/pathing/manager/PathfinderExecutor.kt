@@ -35,11 +35,13 @@ import com.lambda.pathing.execution.RecoveryMode
 import com.lambda.pathing.execution.SegmentSelection
 import com.lambda.pathing.execution.WalkSegment
 import com.lambda.pathing.execution.projectWorldDeltaToLocalInput
+import com.lambda.pathing.movement.WalkingMovementModel
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.toBlockPos
 import net.minecraft.client.input.Input
 import net.minecraft.util.math.Vec3d
 import kotlin.math.hypot
@@ -63,6 +65,15 @@ object PathfinderExecutor : Loadable {
     private var rewoundSegments = 0
     private var replansRequested = 0
     private var lastNotifiedTerminalId: Int? = null
+    private var jumpAttemptActive = false
+    private var jumpHoldUntilTick = Int.MIN_VALUE
+    private var jumpRetryAllowedTick = Int.MIN_VALUE
+    private var lastJumpCommandGate = ""
+    private var lastJumpInputGate = ""
+    private var stuckTraversalId = Int.MIN_VALUE
+    private var stuckSegmentIndex = Int.MIN_VALUE
+    private var stuckBestRemaining = Double.MAX_VALUE
+    private var stuckTicks = 0
 
     val state: PathExecutorDebugState
         get() = debugState
@@ -99,20 +110,20 @@ object PathfinderExecutor : Loadable {
 
     private fun AutomatedSafeContext.applyFollowInput(input: Input) {
         val command = currentCommand ?: return
-        // The input written here feeds vanilla physics directly, and vanilla
-        // moves the player relative to the live player.yaw — regardless of what
-        // the rotation manager reports to the server. Projecting the steering
-        // into that basis keeps the world-space motion correct in every
-        // rotation mode, including Silent.
-        val basisYaw = player.yaw.toDouble()
+        // Entity.updateVelocity is mixed to use RotationManager.movementYaw when
+        // a non-silent rotation request is active, and player.yaw otherwise.
+        // Project into that exact physics basis so mouse/camera yaw changes do
+        // not perturb path-following while Sync/Lock rotation is split.
+        val basisYaw = movementPhysicsBasisYaw()
         val desiredDelta = command.lookaheadPoint.subtract(player.pos).flattenY()
         val steering = projectWorldDeltaToLocalInput(desiredDelta, basisYaw)
         val sprint = command.sprint && steering.forward > 0.05
+        val jump = shouldIssueJumpInput(command)
 
         input.update(
             forward = steering.forward,
             strafe = steering.strafe,
-            jump = command.jump && player.isOnGround,
+            jump = jump,
             sneak = false,
             sprint = sprint,
         )
@@ -140,6 +151,9 @@ object PathfinderExecutor : Loadable {
             commandedForward = input.movementVector.y.toDouble(),
             commandedStrafe = input.movementVector.x.toDouble(),
             sprintCommand = sprint,
+            jumpCommand = jump,
+            jumpCommandGate = lastJumpCommandGate,
+            jumpInputGate = lastJumpInputGate,
         )
     }
 
@@ -193,6 +207,34 @@ object PathfinderExecutor : Loadable {
         val projectedPoint = segment.closestPoint(playerPos)
         val projectedDistance = segment.projectedDistance(playerPos).coerceIn(0.0, segment.horizontalLength)
         val verticalError = segment.verticalError(playerPos)
+        val finalSegmentReached = currentSegmentIndex == path.lastSegmentIndex &&
+            segment.hasReached(playerPos, movementConfig.reachDistance, movementConfig.verticalTolerance)
+
+        if (finalSegmentReached) {
+            stopFollowing()
+            PathfinderManager.completeActiveTraversal()
+            debugState = baseDebugState(active = false, status = "AtGoal", handle = activeHandle).copy(
+                segmentIndex = currentSegmentIndex,
+                segmentCount = path.segments.size,
+                segmentType = segment.typeName,
+                recoveryMode = selection.recoveryMode,
+                remainingDistance = 0.0,
+                segmentLength = segment.horizontalLength,
+                projectedDistance = projectedDistance,
+                lateralError = selection.lateralError,
+                verticalError = verticalError,
+                skippedSegments = skippedSegments,
+                rewoundSegments = rewoundSegments,
+                replansRequested = replansRequested,
+                segmentStart = segment.startPose.position,
+                segmentEnd = segment.endPose.position,
+                projectedPoint = projectedPoint,
+                supportedSegment = segment.supportedByController,
+            )
+            pushDebugSample(debugState)
+            maybeLogDebugState(player.age)
+            return
+        }
 
         if (!segment.supportedByController) {
             stopFollowing()
@@ -224,6 +266,7 @@ object PathfinderExecutor : Loadable {
         val desiredDelta = lookaheadPoint.subtract(playerPos).flattenY()
         val desiredYaw = playerPos.rotationTo(lookaheadPoint).yaw
         val remainingDistance = segment.remainingDistance(playerPos)
+        trackExecutionProgress(activeHandle, remainingDistance, playerPos)
         val isFinalSegment = currentSegmentIndex == path.lastSegmentIndex
         val throttle = if (isFinalSegment && movementConfig.finalApproachDistance > 0.0 && remainingDistance < movementConfig.finalApproachDistance) {
             max(movementConfig.minimumThrottle, remainingDistance / movementConfig.finalApproachDistance)
@@ -242,7 +285,7 @@ object PathfinderExecutor : Loadable {
         )
         currentCommand = command
 
-        val basisYaw = player.yaw.toDouble()
+        val basisYaw = movementPhysicsBasisYaw()
         debugState = baseDebugState(active = true, status = "Following", handle = activeHandle).copy(
             segmentIndex = currentSegmentIndex,
             segmentCount = path.segments.size,
@@ -268,6 +311,8 @@ object PathfinderExecutor : Loadable {
             commandedForward = lastSteeringTelemetry.commandedForward,
             commandedStrafe = lastSteeringTelemetry.commandedStrafe,
             sprintCommand = lastSteeringTelemetry.sprint || sprint,
+            jumpCommandGate = lastJumpCommandGate,
+            jumpInputGate = lastJumpInputGate,
             supportedSegment = true,
         )
         debugState = applySteeringTelemetry(debugState)
@@ -298,6 +343,105 @@ object PathfinderExecutor : Loadable {
     private fun stopFollowing() {
         currentCommand = null
         lastSteeringTelemetry = SteeringTelemetry()
+        stuckTraversalId = Int.MIN_VALUE
+        stuckSegmentIndex = Int.MIN_VALUE
+        stuckBestRemaining = Double.MAX_VALUE
+        stuckTicks = 0
+    }
+
+    /**
+     * Execution-feedback loop (research plan §4.6): if the player makes no
+     * progress on the active segment for a sustained window while grounded,
+     * the world disagrees with the plan — report the coarse edge under the
+     * player as obstructed so the planner reroutes, instead of pushing into
+     * a wall forever.
+     */
+    private fun AutomatedSafeContext.trackExecutionProgress(
+        handle: TraversalHandle,
+        remainingDistance: Double,
+        playerPos: Vec3d,
+    ) {
+        if (handle.id != stuckTraversalId || currentSegmentIndex != stuckSegmentIndex ||
+            remainingDistance < stuckBestRemaining - STUCK_PROGRESS_EPSILON
+        ) {
+            stuckTraversalId = handle.id
+            stuckSegmentIndex = currentSegmentIndex
+            stuckBestRemaining = remainingDistance
+            stuckTicks = 0
+            return
+        }
+
+        if (!player.isOnGround) return
+        stuckTicks++
+        if (stuckTicks < STUCK_REPORT_TICKS) return
+        stuckTicks = 0
+        stuckBestRemaining = Double.MAX_VALUE
+
+        val coarse = handle.coarsePath
+        if (coarse.size < 2) return
+        val playerBlock = player.blockPos
+        var nearest = 0
+        var nearestDistance = Double.MAX_VALUE
+        coarse.forEachIndexed { index, node ->
+            val b = node.toBlockPos()
+            val dx = (b.x - playerBlock.x).toDouble()
+            val dy = (b.y - playerBlock.y).toDouble()
+            val dz = (b.z - playerBlock.z).toDouble()
+            val distance = dx * dx + dy * dy + dz * dz
+            if (distance < nearestDistance) {
+                nearestDistance = distance
+                nearest = index
+            }
+        }
+        if (nearest >= coarse.size - 1) return
+
+        replansRequested++
+        with(PathfinderManager) { reportEdgeObstructed(coarse[nearest], coarse[nearest + 1]) }
+    }
+
+    private fun SafeContext.movementPhysicsBasisYaw(): Double =
+        RotationManager.movementYaw?.toDouble() ?: player.yaw.toDouble()
+
+    private fun AutomatedSafeContext.shouldIssueJumpInput(command: FollowCommand): Boolean {
+        if (!command.jump) {
+            jumpAttemptActive = false
+            lastJumpInputGate = "noCommand"
+            return false
+        }
+
+        if (!player.isOnGround) {
+            // The previous request actually got us airborne. Do not keep the
+            // key latched while in the air, and do not immediately re-fire on
+            // the first landing tick if the same step-up command is still true.
+            jumpAttemptActive = false
+            jumpRetryAllowedTick = player.age + JUMP_RETRY_COOLDOWN_TICKS
+            lastJumpInputGate = "airborne"
+            return false
+        }
+
+        if (player.age < jumpRetryAllowedTick) {
+            lastJumpInputGate = "cooldown(${jumpRetryAllowedTick - player.age})"
+            return false
+        }
+
+        if (!jumpAttemptActive) {
+            jumpAttemptActive = true
+            jumpHoldUntilTick = player.age + JUMP_HOLD_TICKS
+        }
+
+        if (player.age <= jumpHoldUntilTick) {
+            lastJumpInputGate = "issued"
+            return true
+        }
+
+        // If the held jump did not make the player leave the ground, back off
+        // before trying again. This keeps failed step-up jumps from becoming a
+        // creative-mode double-tap spam loop, while still holding long enough
+        // for vanilla/survival jumps to be consumed reliably.
+        jumpAttemptActive = false
+        jumpRetryAllowedTick = player.age + JUMP_RETRY_COOLDOWN_TICKS
+        lastJumpInputGate = "backoff"
+        return false
     }
 
     private fun AutomatedSafeContext.handleNotFollowing(handle: TraversalHandle?) {
@@ -312,6 +456,7 @@ object PathfinderExecutor : Loadable {
             handle?.status == null -> "Idle"
             handle.status == TraversalHandle.Status.Planning -> "WaitingForPath"
             handle.status == TraversalHandle.Status.Partial -> "PartialDisabled"
+            handle.status == TraversalHandle.Status.Succeeded -> "TraversalSucceeded"
             handle.status == TraversalHandle.Status.Failed -> "TraversalFailed"
             handle.status == TraversalHandle.Status.Cancelled -> "TraversalCancelled"
             handle.status == TraversalHandle.Status.Ready -> "NoPath"
@@ -348,6 +493,7 @@ object PathfinderExecutor : Loadable {
             TraversalHandle.Status.Ready -> handle.path.size >= 2
             TraversalHandle.Status.Partial -> movementConfig.followPartialPaths && handle.path.size >= 2
             TraversalHandle.Status.Planning,
+            TraversalHandle.Status.Succeeded,
             TraversalHandle.Status.Failed,
             TraversalHandle.Status.Cancelled -> false
         }
@@ -391,6 +537,7 @@ object PathfinderExecutor : Loadable {
         lastSteeringTelemetry = SteeringTelemetry()
         lastLoggedSignature = ""
         lastLoggedTick = Int.MIN_VALUE
+        resetJumpState()
     }
 
     private fun resetTelemetry() {
@@ -398,6 +545,13 @@ object PathfinderExecutor : Loadable {
         skippedSegments = 0
         rewoundSegments = 0
         replansRequested = 0
+        resetJumpState()
+    }
+
+    private fun resetJumpState() {
+        jumpAttemptActive = false
+        jumpHoldUntilTick = Int.MIN_VALUE
+        jumpRetryAllowedTick = Int.MIN_VALUE
     }
 
     private fun applySteeringTelemetry(state: PathExecutorDebugState): PathExecutorDebugState = state.copy(
@@ -491,6 +645,7 @@ object PathfinderExecutor : Loadable {
             return
         }
         val isTerminalish = handle.status == TraversalHandle.Status.Failed ||
+            handle.status == TraversalHandle.Status.Succeeded ||
             handle.status == TraversalHandle.Status.Cancelled
         if (!isTerminalish) {
             if (lastNotifiedTerminalId == handle.id) lastNotifiedTerminalId = null
@@ -500,6 +655,9 @@ object PathfinderExecutor : Loadable {
         lastNotifiedTerminalId = handle.id
 
         when (handle.status) {
+            TraversalHandle.Status.Succeeded -> {
+                this@PathfinderExecutor.info("Pathfinder traversal complete.")
+            }
             TraversalHandle.Status.Failed -> {
                 val reason = handle.failureReason ?: "unknown reason"
                 this@PathfinderExecutor.warn("Pathfinder stopped: $reason. Re-enable to retry.")
@@ -517,21 +675,58 @@ object PathfinderExecutor : Loadable {
         currentSegment: ExecutionSegment,
         playerPos: Vec3d,
     ): Boolean {
-        if (!player.isOnGround) return false
-
-        val current = currentSegment as? WalkSegment
-
-        if (current != null && current.verticalStep > 0 && playerPos.y < current.endPose.position.y - 0.1) {
-            return true
+        if (!player.isOnGround) {
+            lastJumpCommandGate = "airborne"
+            return false
+        }
+        val current = currentSegment as? WalkSegment ?: run {
+            lastJumpCommandGate = "notWalk"
+            return false
         }
 
-        if (current != null && !current.requiresVerticalMotion) {
-            val next = path.segments.getOrNull(currentSegmentIndex + 1) as? WalkSegment ?: return false
-            if (next.verticalStep > 0 && current.remainingDistance(playerPos) <= 0.6) {
-                return true
+        // Resolve which rise we are approaching: either the current segment
+        // itself or, in anticipation, the next one.
+        val rise = when {
+            current.verticalStep > 0 -> current
+            !current.requiresVerticalMotion ->
+                (path.segments.getOrNull(currentSegmentIndex + 1) as? WalkSegment)
+                    ?.takeIf { it.verticalStep > 0 && current.remainingDistance(playerPos) <= JUMP_ANTICIPATION_DISTANCE }
+                    ?: run {
+                        lastJumpCommandGate = "noRiseAhead"
+                        return false
+                    }
+            else -> {
+                lastJumpCommandGate = "verticalCurrent"
+                return false
             }
         }
-        return false
+        if (playerPos.y >= rise.endPose.position.y - 0.1) {
+            lastJumpCommandGate = "alreadyUp"
+            return false
+        }
+
+        // Proximity gate: a jump issued too far from the rise completes its
+        // arc before reaching the ledge and is a guaranteed failure. Only jump
+        // once the landing block is within the arc's horizontal reach.
+        val end = rise.endPose.position
+        val horizontalToEnd = hypot(end.x - playerPos.x, end.z - playerPos.z)
+        if (horizontalToEnd > JUMP_TRIGGER_DISTANCE) {
+            lastJumpCommandGate = "tooFar(%.2f)".format(horizontalToEnd)
+            return false
+        }
+
+        // Headroom gate: plan-time clearance was checked at node centers, but
+        // we are jumping from between nodes — a ceiling here (tunnel stairs,
+        // tree canopy) bonks the head, kills the arc, and turns the retry loop
+        // into a creative-flight double-tap. Walking closer first is always
+        // valid: the validated node itself has clearance.
+        if (!with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }) {
+            lastJumpCommandGate = "noHeadroom"
+            return false
+        }
+
+        lastJumpCommandGate = "commanded"
+        return true
     }
 
     private data class FollowCommand(
@@ -551,4 +746,21 @@ object PathfinderExecutor : Loadable {
         val throttle: Double = 1.0,
         val sprint: Boolean = false,
     )
+
+    private const val JUMP_HOLD_TICKS = 4
+    private const val JUMP_RETRY_COOLDOWN_TICKS = 8
+
+    // How close (horizontally, in blocks) the rise segment's landing block
+    // must be before a jump is issued. A walk-speed jump covers ~1.2-2 blocks
+    // of air time; issuing beyond this lands the arc short of the ledge.
+    private const val JUMP_TRIGGER_DISTANCE = 1.05
+
+    // How early (remaining distance on the flat segment) the executor may
+    // anticipate the next rise segment's jump.
+    private const val JUMP_ANTICIPATION_DISTANCE = 0.6
+
+    // Stuck detection: how long the player may sit on a segment without net
+    // progress before the edge is reported as obstructed to the planner.
+    private const val STUCK_REPORT_TICKS = 40
+    private const val STUCK_PROGRESS_EPSILON = 0.02
 }

@@ -116,8 +116,16 @@ object LambdaTest : FabricClientGameTest {
             horizontalDistance(player.pos, start) > 0.75
         }
 
-        waitForSafe("player reaches path goal", timeoutTicks = 240) {
+        waitForSafe("player reaches path goal despite camera yaw perturbation", timeoutTicks = 240) {
+            // Simulate the user moving the camera while the executor is driving.
+            // The rotation manager splits movement yaw from camera yaw, so this
+            // should not perturb path following.
+            player.yaw = 180.0f
             horizontalDistance(player.pos, Vec3d(8.5, 64.0, 0.5)) <= 1.1
+        }
+
+        waitForSafe("pathfinder traversal completes", timeoutTicks = 20) {
+            PathfinderManager.activeTraversal?.status == TraversalHandle.Status.Succeeded
         }
     }
 

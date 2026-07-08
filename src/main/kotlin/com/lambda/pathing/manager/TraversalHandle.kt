@@ -67,6 +67,12 @@ class TraversalHandle internal constructor(
         status = Status.Cancelled
     }
 
+    internal fun succeed() {
+        if (status.isTerminal) return
+        status = Status.Succeeded
+        failureReason = null
+    }
+
     fun debugString() = buildString {
         appendLine("Traversal #$id: $status")
         appendLine("Goal: $goal")
@@ -93,10 +99,11 @@ class TraversalHandle internal constructor(
         Planning,
         Ready,
         Partial,
+        Succeeded,
         Failed,
         Cancelled;
 
-        val isTerminal get() = this == Cancelled
+        val isTerminal get() = this == Succeeded || this == Cancelled
     }
 
     data class SynchronizationStats(

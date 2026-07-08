@@ -44,6 +44,7 @@ import com.lambda.util.world.z
 import net.minecraft.util.math.BlockPos
 import kotlin.math.sqrt
 import kotlin.time.DurationUnit
+
 import kotlin.time.toDuration
 
 object PathfinderManager : Loadable,
@@ -76,10 +77,35 @@ object PathfinderManager : Loadable,
     ): TraversalHandle {
         activeSession?.handle?.cancel()
 
+        val caps = WalkingMovementModel.heuristicCaps(config)
+        // Execution-feedback overlay: edges the executor reported as blocked
+        // in the real world get their cost multiplied, so replans learn to
+        // route around them even though the world model still believes in
+        // them. Session-scoped — a fresh traversal starts unprejudiced.
+        val edgePenalties = HashMap<Long, Double>()
+        fun penalized(from: FastVector, edges: Map<FastVector, Double>): Map<FastVector, Double> {
+            if (edgePenalties.isEmpty()) return edges
+            var result: HashMap<FastVector, Double>? = null
+            edges.forEach { (to, cost) ->
+                edgePenalties[edgeKey(from, to)]?.let { factor ->
+                    (result ?: HashMap(edges).also { result = it })[to] = cost * factor
+                }
+            }
+            return result ?: edges
+        }
+
         val graph = LazyGraph<FastVector>(
             successorProvider = { node ->
-                runSafe { with(WalkingMovementModel) { successors(node, config) } } ?: emptyMap()
-            }
+                penalized(node, runSafe { with(WalkingMovementModel) { successors(node, config) } } ?: emptyMap())
+            },
+            // True inverse enumeration — never default to the symmetric
+            // assumption: it mirrors legal step-downs into illegal step-ups
+            // (e.g. under low ceilings) with the wrong cost attached.
+            predecessorProvider = { node ->
+                val edges = runSafe { with(WalkingMovementModel) { predecessors(node, config) } } ?: emptyMap()
+                if (edgePenalties.isEmpty()) edges
+                else edges.mapValues { (from, cost) -> cost * (edgePenalties[edgeKey(from, node)] ?: 1.0) }
+            },
         )
 
         val handle = TraversalHandle(
@@ -91,16 +117,16 @@ object PathfinderManager : Loadable,
 
         val planner = DStarLite(
             graph = graph,
-            start = player.blockPos.toFastVec(),
+            start = currentStablePlannerNode() ?: player.blockPos.toFastVec(),
             goal = goal.targetNode,
-            heuristic = ::movementHeuristic,
+            heuristic = { a, b -> movementHeuristic(caps, a, b) },
             // Stable tie-break between equal-cost successors so the coarse path
             // doesn't flip between runs and force a re-refinement / shortcut
             // angle change. FastVector is a Long; natural ordering is enough.
             nodeTieBreaker = naturalOrder(),
         )
 
-        activeSession = ActiveSession(handle, graph, planner)
+        activeSession = ActiveSession(handle, graph, planner, edgePenalties)
         computeActivePath()
         return handle
     }
@@ -108,7 +134,8 @@ object PathfinderManager : Loadable,
     fun AutomatedSafeContext.refreshActiveTraversal(): TraversalHandle? {
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
-        session.planner.updateStart(player.blockPos.toFastVec())
+        val stableNode = currentStablePlannerNode() ?: return session.handle
+        session.planner.updateStart(stableNode)
         computeActivePath()
         return session.handle
     }
@@ -117,7 +144,12 @@ object PathfinderManager : Loadable,
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
 
-        val playerBlock = player.blockPos.toFastVec()
+        val playerBlock = currentStablePlannerNode() ?: return session.handle
+        if (playerBlock == session.handle.goal.targetNode) {
+            completeActiveTraversal()
+            return session.handle
+        }
+
         val planner = session.planner
         if (playerBlock == planner.start) return session.handle
 
@@ -155,7 +187,7 @@ object PathfinderManager : Loadable,
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
 
-        val affectedNodes = WalkingMovementModel.affectedNodes(pos)
+        val affectedNodes = WalkingMovementModel.affectedNodes(pos, session.handle.config)
         val sync = session.planner.synchronizeAffected(affectedNodes)
         session.handle.lastSynchronization = TraversalHandle.SynchronizationStats(
             nodesChecked = sync.nodesChecked,
@@ -169,9 +201,15 @@ object PathfinderManager : Loadable,
             session.lastRefinedPath = null
         }
 
-        session.planner.updateStart(player.blockPos.toFastVec())
+        currentStablePlannerNode()?.let { session.planner.updateStart(it) }
         computeActivePath()
         return session.handle
+    }
+
+    fun completeActiveTraversal(): Boolean {
+        val session = activeSession ?: return false
+        session.handle.succeed()
+        return true
     }
 
     fun debugInfo(): String = activeSession?.handle?.debugString() ?: "No active traversal"
@@ -262,6 +300,9 @@ object PathfinderManager : Loadable,
         logRefinementSummaryIfChanged(session)
 
         handle.status = pathStatus(result.timedOut, coarsePath, handle)
+        if (handle.status == TraversalHandle.Status.Ready && coarsePath.size <= 1 && coarsePath.lastOrNull() == handle.goal.targetNode) {
+            handle.succeed()
+        }
     }
 
     private fun pathStatus(
@@ -277,6 +318,13 @@ object PathfinderManager : Loadable,
         }
         coarsePath.last() != handle.goal.targetNode -> TraversalHandle.Status.Partial
         else -> TraversalHandle.Status.Ready
+    }
+
+    private fun AutomatedSafeContext.currentStablePlannerNode(): FastVector? {
+        if (!player.isOnGround) return null
+        val blockPos = player.blockPos
+        val traversable = with(WalkingMovementModel) { isTraversable(blockPos) }
+        return if (traversable) blockPos.toFastVec() else null
     }
 
     /**
@@ -299,6 +347,7 @@ object PathfinderManager : Loadable,
         val handle: TraversalHandle,
         val graph: LazyGraph<FastVector>,
         val planner: DStarLite<FastVector>,
+        val edgePenalties: HashMap<Long, Double>,
         var lastRefinementLogKey: String? = null,
         var lastCoarsePath: List<FastVector>? = null,
         var lastRefinedPath: List<FastVector>? = null,
@@ -352,27 +401,56 @@ object PathfinderManager : Loadable,
     }
 
     /**
+     * Execution feedback (research plan §4.6): the executor observed that a
+     * planned edge cannot actually be traversed. Multiply its cost so repair
+     * reroutes around it; repeated reports compound. The graph "learns" from
+     * execution without mutating the world model.
+     */
+    fun AutomatedSafeContext.reportEdgeObstructed(from: FastVector, to: FastVector): Boolean {
+        val session = activeSession ?: return false
+        if (session.handle.status.isTerminal) return false
+
+        val key = edgeKey(from, to)
+        val factor = ((session.edgePenalties[key] ?: 1.0) * OBSTRUCTION_PENALTY_FACTOR)
+            .coerceAtMost(MAX_OBSTRUCTION_PENALTY)
+        session.edgePenalties[key] = factor
+        LOG.info("[Pathfinder] Edge obstructed ${from.toBlockPos().toShortString()} -> ${to.toBlockPos().toShortString()}, penalty x${"%.0f".format(factor)}")
+
+        session.lastCoarsePath = null
+        session.lastRefinedPath = null
+        session.planner.synchronizeAffected(setOf(from, to))
+        currentStablePlannerNode()?.let { session.planner.updateStart(it) }
+        computeActivePath()
+        return true
+    }
+
+    /** Packs two FastVectors (Longs) into one map key without allocation. */
+    private fun edgeKey(from: FastVector, to: FastVector): Long =
+        from * 31 + to
+
+    private const val OBSTRUCTION_PENALTY_FACTOR = 8.0
+    private const val MAX_OBSTRUCTION_PENALTY = 4096.0
+
+    /**
      * Anisotropic admissible heuristic for the cost of traveling a -> b.
      *
-     * Movement costs are strongly direction-dependent: the cheapest edge per
-     * horizontal block costs [WalkingMovementModel.MIN_COST_PER_HORIZONTAL_BLOCK],
-     * per ascended block [WalkingMovementModel.MIN_COST_PER_ASCENDED_BLOCK], and
-     * per descended block [WalkingMovementModel.MIN_COST_PER_DESCENDED_BLOCK].
-     * Any path must cover all three components, so the max of the per-component
-     * lower bounds is admissible and consistent — and strictly tighter than the
-     * plain Euclidean distance whenever vertical travel is involved. The caps
-     * are derived from the movement model's cost table, so adding cheaper edge
-     * types there keeps this heuristic admissible automatically.
+     * Movement costs are strongly direction-dependent, so each displacement
+     * axis class gets its own lower bound and the max of the three is taken —
+     * admissible and consistent, and strictly tighter than plain Euclidean
+     * whenever vertical travel is involved (see theory note T1). The [caps]
+     * are derived from the movement model's enabled move table for this
+     * traversal's config, so cheaper edge types (drops, jumps) can never
+     * silently make the heuristic overestimate.
      */
-    private fun movementHeuristic(a: FastVector, b: FastVector): Double {
+    private fun movementHeuristic(caps: WalkingMovementModel.HeuristicCaps, a: FastVector, b: FastVector): Double {
         val dx = (a.x - b.x).toDouble()
         val dz = (a.z - b.z).toDouble()
         val dy = (b.y - a.y).toDouble()
-        val horizontal = sqrt(dx * dx + dz * dz) * WalkingMovementModel.MIN_COST_PER_HORIZONTAL_BLOCK
+        val horizontal = sqrt(dx * dx + dz * dz) * caps.minCostPerHorizontalBlock
         val vertical = if (dy > 0.0) {
-            dy * WalkingMovementModel.MIN_COST_PER_ASCENDED_BLOCK
+            dy * caps.minCostPerAscendedBlock
         } else {
-            -dy * WalkingMovementModel.MIN_COST_PER_DESCENDED_BLOCK
+            -dy * caps.minCostPerDescendedBlock
         }
         return maxOf(horizontal, vertical)
     }

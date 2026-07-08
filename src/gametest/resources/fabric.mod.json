@@ -9,6 +9,10 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.LambdaTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.bench.PathfinderScenarioTest"
       }
     ]
   }

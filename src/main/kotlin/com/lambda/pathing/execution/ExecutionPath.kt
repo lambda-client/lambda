@@ -17,7 +17,10 @@
 
 package com.lambda.pathing.execution
 
+import com.lambda.util.math.lerp
 import com.lambda.util.world.FastVector
+import net.minecraft.util.math.Vec3d
+import kotlin.math.abs
 
 /**
  * Continuous execution representation derived from the current refined path.
@@ -45,10 +48,10 @@ data class ExecutionPath(
      * player flows through it instead of decelerating to hit it exactly.
      */
     fun lookaheadAcrossSegments(
-        position: net.minecraft.util.math.Vec3d,
+        position: Vec3d,
         currentSegmentIndex: Int,
         lookaheadDistance: Double,
-    ): net.minecraft.util.math.Vec3d {
+    ): Vec3d {
         if (segments.isEmpty()) return position
         val current = segments[currentSegmentIndex.coerceIn(0, lastSegmentIndex)]
 
@@ -67,7 +70,7 @@ data class ExecutionPath(
             val seg = segments[idx]
             if (remaining <= seg.horizontalLength) {
                 val t = if (seg.horizontalLength > 1.0E-9) remaining / seg.horizontalLength else 0.0
-                return lerp(seg.startPose.position, seg.endPose.position, t)
+                return lerp(t, seg.startPose.position, seg.endPose.position)
             }
             remaining -= seg.horizontalLength
             idx++
@@ -75,20 +78,13 @@ data class ExecutionPath(
         return segments[lastSegmentIndex].endPose.position
     }
 
-    private fun lerp(a: net.minecraft.util.math.Vec3d, b: net.minecraft.util.math.Vec3d, t: Double) =
-        net.minecraft.util.math.Vec3d(
-            a.x + (b.x - a.x) * t,
-            a.y + (b.y - a.y) * t,
-            a.z + (b.z - a.z) * t,
-        )
-
     /**
      * Tries to keep the executor anchored to the current segment, but can also
      * skip forward, rewind, or globally relocalize within a bounded radius when
      * the player is displaced.
      */
     fun locateSegment(
-        position: net.minecraft.util.math.Vec3d,
+        position: Vec3d,
         currentIndex: Int?,
         searchBehind: Int,
         searchAhead: Int,
@@ -120,8 +116,10 @@ data class ExecutionPath(
             else -> indices.map { index ->
                 val segment = segments[index]
                 SegmentSelection(index, segment, segment.lateralError(position), segment.remainingDistance(position))
-            }.filter { it.lateralError <= relocalizeDistance }
-                .minByOrNull { relocationScore(it, currentIndex) }
+            }.filter {
+                it.lateralError <= relocalizeDistance &&
+                    abs(it.segment.verticalError(position)) <= verticalTolerance
+            }.minByOrNull { relocationScore(it, currentIndex) }
         } ?: return null
 
         val recoveryMode = when {
@@ -148,7 +146,9 @@ data class ExecutionPath(
                     val endPose = ExecutionPose(end)
                     val dy = endPose.position.y - startPose.position.y
                     when {
-                        kotlin.math.abs(dy) <= 1.0 + 1.0E-6 -> WalkSegment(index, startPose, endPose)
+                        // Rises above one block are unsupported; drops of any
+                        // planned depth execute as walk-offs.
+                        dy <= 1.0 + 1.0E-6 -> WalkSegment(index, startPose, endPose)
                         else -> UnsupportedSegment(index, startPose, endPose, "UnsupportedVertical")
                     }
                 }
@@ -176,7 +176,7 @@ data class ExecutionPath(
         candidate: SegmentSelection,
         currentIndex: Int?,
     ): Double {
-        val indexPenalty = currentIndex?.let { kotlin.math.abs(candidate.index - it) * 0.35 } ?: 0.0
+        val indexPenalty = currentIndex?.let { abs(candidate.index - it) * 0.35 } ?: 0.0
         return candidate.lateralError + candidate.remainingDistance * 0.05 + indexPenalty
     }
 }

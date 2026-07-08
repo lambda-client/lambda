@@ -1,0 +1,281 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.bench
+
+import com.lambda.pathing.goal.TraversalGoal
+import com.lambda.pathing.manager.PathfinderExecutor
+import com.lambda.pathing.manager.PathfinderManager
+import com.lambda.pathing.manager.TraversalHandle
+import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeAutomated
+import com.lambda.util.world.toBlockPos
+import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
+import net.fabricmc.loader.api.FabricLoader
+import net.minecraft.util.math.Vec3d
+import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.math.hypot
+
+/** Aggregated outcome of one scenario run — one row of the suite report. */
+data class ScenarioReport(
+    val name: String,
+    val expectSuccess: Boolean,
+    val reachedGoal: Boolean,
+    val failedCleanly: Boolean,
+    val ticks: Int,
+    val plannedNodes: Int,
+    val coarseNodes: Int,
+    val plannedLength: Double,
+    val processedNodes: Int,
+    val graphSize: Int,
+    val refinementSavedPercent: Double,
+    val jumpInputTicks: Int,
+    val airborneJumps: Int,
+    val flightToggled: Boolean,
+    val maxLostTicks: Int,
+    val replansRequested: Int,
+    val finalStatus: String,
+    val failureReason: String?,
+    val endDistanceToGoal: Double,
+    val coarsePathDump: String,
+) {
+    // In an unbounded world a truly unreachable goal manifests as
+    // Partial-forever (the backward search can never exhaust the goal's
+    // component), so expect-failure scenarios pass when the agent neither
+    // reaches the goal nor misbehaves (creative-flight toggle).
+    val passed: Boolean get() = if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled
+
+    fun summaryLine(): String = buildString {
+        append(if (passed) "PASS" else "FAIL")
+        append("  ").append(name.padEnd(26))
+        append(" reached=").append(reachedGoal)
+        append(" ticks=").append(ticks)
+        append(" nodes=").append(plannedNodes)
+        append(" jumps(in/air)=").append(jumpInputTicks).append('/').append(airborneJumps)
+        if (flightToggled) append(" FLIGHT-TOGGLED")
+        append(" status=").append(finalStatus)
+        failureReason?.let { append(" reason=").append(it) }
+        if (!passed) append("\n      coarse=").append(coarsePathDump)
+    }
+
+    fun toJson(): String = buildString {
+        append('{')
+        append("\"name\":\"").append(name).append('"')
+        append(",\"passed\":").append(passed)
+        append(",\"expectSuccess\":").append(expectSuccess)
+        append(",\"reachedGoal\":").append(reachedGoal)
+        append(",\"failedCleanly\":").append(failedCleanly)
+        append(",\"ticks\":").append(ticks)
+        append(",\"plannedNodes\":").append(plannedNodes)
+        append(",\"coarseNodes\":").append(coarseNodes)
+        append(",\"plannedLength\":").append("%.3f".format(plannedLength))
+        append(",\"processedNodes\":").append(processedNodes)
+        append(",\"graphSize\":").append(graphSize)
+        append(",\"refinementSavedPercent\":").append("%.2f".format(refinementSavedPercent))
+        append(",\"jumpInputTicks\":").append(jumpInputTicks)
+        append(",\"airborneJumps\":").append(airborneJumps)
+        append(",\"flightToggled\":").append(flightToggled)
+        append(",\"maxLostTicks\":").append(maxLostTicks)
+        append(",\"replansRequested\":").append(replansRequested)
+        append(",\"finalStatus\":\"").append(finalStatus).append('"')
+        append(",\"failureReason\":").append(failureReason?.let { "\"$it\"" } ?: "null")
+        append(",\"endDistanceToGoal\":").append("%.3f".format(endDistanceToGoal))
+        append(",\"coarsePath\":\"").append(coarsePathDump).append('"')
+        append('}')
+    }
+}
+
+/**
+ * Executes [TraversalScenario]s inside a client gametest and records per-tick
+ * telemetry as JSON Lines under `logs/benchmarks/<run-id>/` in the game
+ * directory, plus a `summary.json` for the whole suite.
+ */
+object ScenarioRunner {
+    private val runId: String = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now())
+
+    val outputDir: File by lazy {
+        FabricLoader.getInstance().gameDir.resolve("logs/benchmarks/$runId").toFile().apply { mkdirs() }
+    }
+
+    fun ClientGameTestContext.runScenario(scenario: TraversalScenario, server: TestServerContext): ScenarioReport {
+        // --- Fixture + placement ---
+        runOnClient<IllegalStateException> { PathfinderManager.cancelActiveTraversal() }
+        scenario.fixture.forEach(server::runCommand)
+        server.runCommand("/tp Steve ${scenario.start.x} ${scenario.start.y} ${scenario.start.z} ${scenario.startYaw} 0")
+        waitTicks(10) // chunk/physics settle after fill + teleport
+
+        val goalCenter = Vec3d.ofBottomCenter(scenario.goal.toBlockPos())
+
+        scenario.probeNode?.let { probe ->
+            val edges = computeOnClient<String, IllegalStateException> {
+                runSafe {
+                    with(com.lambda.pathing.movement.WalkingMovementModel) {
+                        successors(probe, BenchPlannerConfig(allowJump = scenario.allowJump))
+                            .entries.joinToString(" ") { (node, cost) ->
+                                val b = node.toBlockPos()
+                                "(" + b.x + "," + b.y + "," + b.z + ")=" + "%.2f".format(cost)
+                            }
+                    }
+                } ?: "unsafe"
+            }
+            val pb = probe.toBlockPos()
+            com.lambda.Lambda.LOG.info("[Bench] probe successors of (" + pb.x + "," + pb.y + "," + pb.z + "): " + edges)
+        }
+
+        // --- Request traversal ---
+        val requested = computeOnClient<Boolean, IllegalStateException> {
+            val handle = with(PathfinderManager) {
+                runSafeAutomated {
+                    requestTraversal(
+                        goal = TraversalGoal.Block(scenario.goal),
+                        owner = ScenarioRunner,
+                        config = BenchPlannerConfig(allowJump = scenario.allowJump),
+                    )
+                }
+            }
+            handle != null
+        }
+
+        val telemetry = StringBuilder()
+        var ticks = 0
+        var reached = false
+        var failedCleanly = false
+        var jumpInputTicks = 0
+        var airborneJumps = 0
+        var flightToggled = false
+        var wasOnGround = true
+        var wasJumpInput = false
+
+        if (requested) {
+            while (ticks < scenario.timeoutTicks) {
+                waitTick()
+                ticks++
+
+                scenario.mutations.forEach { (tick, command) ->
+                    if (tick == ticks) server.runCommand(command)
+                }
+
+                val sample = computeOnClient<String, IllegalStateException> {
+                    runSafe {
+                        val state = PathfinderExecutor.state
+                        val handle = PathfinderManager.activeTraversal
+                        val pos = player.pos
+                        val distance = hypot(hypot(pos.x - goalCenter.x, pos.z - goalCenter.z), pos.y - goalCenter.y)
+                        buildString {
+                            append('{')
+                            append("\"t\":").append(ticks)
+                            append(",\"x\":").append("%.3f".format(pos.x))
+                            append(",\"y\":").append("%.3f".format(pos.y))
+                            append(",\"z\":").append("%.3f".format(pos.z))
+                            append(",\"vy\":").append("%.3f".format(player.velocity.y))
+                            append(",\"ground\":").append(player.isOnGround)
+                            append(",\"flying\":").append(player.abilities.flying)
+                            append(",\"status\":\"").append(state.status).append('"')
+                            append(",\"seg\":").append(state.segmentIndex)
+                            append(",\"segType\":\"").append(state.segmentType ?: "").append('"')
+                            append(",\"jump\":").append(state.jumpCommand)
+                            append(",\"jumpCmdGate\":\"").append(state.jumpCommandGate).append('"')
+                            append(",\"jumpInGate\":\"").append(state.jumpInputGate).append('"')
+                            append(",\"fwd\":").append("%.2f".format(state.commandedForward))
+                            append(",\"strafe\":").append("%.2f".format(state.commandedStrafe))
+                            append(",\"lost\":").append(state.lostTicks)
+                            append(",\"dist\":").append("%.3f".format(distance))
+                            append(",\"handleStatus\":\"").append(handle?.status ?: "None").append('"')
+                            append('}')
+                        }
+                    } ?: "{}"
+                }
+                telemetry.appendLine(sample)
+
+                // Cheap stream-side aggregation from the JSON we just built.
+                // Jump issuance is read from the input gate: the sampled
+                // jumpCommand flag gets overwritten by the end-of-tick state
+                // rebuild and is unreliable.
+                val onGround = "\"ground\":true" in sample
+                val jumpInput = "\"jumpInGate\":\"issued\"" in sample
+                val flying = "\"flying\":true" in sample
+                if (jumpInput && !wasJumpInput) jumpInputTicks++
+                if (!onGround && wasOnGround && jumpInput) airborneJumps++
+                if (flying) flightToggled = true
+                wasOnGround = onGround
+                wasJumpInput = jumpInput
+
+                val distance = sample.substringAfter("\"dist\":").substringBefore(",").toDoubleOrNull()
+                    ?: Double.MAX_VALUE
+                val handleStatus = sample.substringAfter("\"handleStatus\":\"").substringBefore("\"")
+                if (distance <= scenario.goalTolerance || handleStatus == "Succeeded") {
+                    reached = true
+                    break
+                }
+                if (handleStatus == "Failed") {
+                    failedCleanly = true
+                    break
+                }
+            }
+        }
+
+        // --- Final snapshot + teardown ---
+        val report = computeOnClient<ScenarioReport, IllegalStateException> {
+            val handle = PathfinderManager.activeTraversal
+            val state = PathfinderExecutor.state
+            val endDistance = runSafe {
+                val pos = player.pos
+                hypot(hypot(pos.x - goalCenter.x, pos.z - goalCenter.z), pos.y - goalCenter.y)
+            } ?: Double.NaN
+            ScenarioReport(
+                name = scenario.name,
+                expectSuccess = scenario.expectSuccess,
+                reachedGoal = reached,
+                failedCleanly = failedCleanly || handle?.status == TraversalHandle.Status.Failed,
+                ticks = ticks,
+                plannedNodes = handle?.path?.size ?: 0,
+                coarseNodes = handle?.coarsePath?.size ?: 0,
+                plannedLength = handle?.pathLength ?: 0.0,
+                processedNodes = handle?.processedNodes ?: 0,
+                graphSize = handle?.graphSize ?: 0,
+                refinementSavedPercent = handle?.lastRefinement?.savedPercent ?: 0.0,
+                jumpInputTicks = jumpInputTicks,
+                airborneJumps = airborneJumps,
+                flightToggled = flightToggled,
+                maxLostTicks = state.lostTicks,
+                replansRequested = state.replansRequested,
+                finalStatus = handle?.status?.toString() ?: "None",
+                failureReason = handle?.failureReason,
+                endDistanceToGoal = endDistance,
+                coarsePathDump = handle?.coarsePath.orEmpty().take(16).joinToString(" ") {
+                    val b = it.toBlockPos()
+                    "(" + b.x + "," + b.y + "," + b.z + ")"
+                },
+            )
+        }
+
+        runOnClient<IllegalStateException> { PathfinderManager.cancelActiveTraversal() }
+        waitTicks(5)
+
+        File(outputDir, "${scenario.name}.jsonl").writeText(telemetry.toString())
+        return report
+    }
+
+    fun writeSummary(reports: List<ScenarioReport>) {
+        File(outputDir, "summary.json").writeText(
+            reports.joinToString(",\n", prefix = "[\n", postfix = "\n]") { it.toJson() }
+        )
+    }
+}

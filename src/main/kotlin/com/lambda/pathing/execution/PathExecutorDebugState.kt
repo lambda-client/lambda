@@ -55,6 +55,11 @@ data class PathExecutorDebugState(
     val commandedForward: Double = 0.0,
     val commandedStrafe: Double = 0.0,
     val sprintCommand: Boolean = false,
+    val jumpCommand: Boolean = false,
+    /** Why the step-up jump command was or wasn't set this tick (planning side). */
+    val jumpCommandGate: String = "",
+    /** Why the jump input was or wasn't issued this tick (input side). */
+    val jumpInputGate: String = "",
     val horizontalSpeed: Double = 0.0,
     val movedLastTick: Double = 0.0,
     val supportedSegment: Boolean = true,
