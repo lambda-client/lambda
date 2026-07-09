@@ -68,6 +68,10 @@ object PathfinderScenarioTest : FabricClientGameTest {
                 LOG.info("[Bench] ${report.summaryLine()}")
                 reports += report
             }
+
+            // WP0.6 calibration in the same world/session — a second client
+            // world costs ~30s of startup for nothing.
+            CalibrationRuns.run(context, server)
         } finally {
             context.runOnClient<IllegalStateException> {
                 PathfinderManager.cancelActiveTraversal()
@@ -77,7 +81,13 @@ object PathfinderScenarioTest : FabricClientGameTest {
             singleplayerContext.close()
         }
 
-        val failed = reports.filterNot { it.passed }
+        // Ungated (H6 baseline) misses are the measurement, not a regression:
+        // log them loudly, fail the suite only on gated scenarios.
+        reports.filter { !it.gated && !it.passed }.forEach {
+            LOG.warn("[Bench] baseline miss (ungated): ${it.summaryLine()}")
+        }
+
+        val failed = reports.filterNot { it.passed || !it.gated }
         check(failed.isEmpty()) {
             buildString {
                 appendLine("${failed.size}/${reports.size} scenarios failed:")

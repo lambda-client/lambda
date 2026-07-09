@@ -17,43 +17,50 @@
 
 package com.lambda.pathing.primitives
 
+import kotlin.math.max
 import kotlin.math.sqrt
 
 /**
  * The one source of movement edge costs, shared by the template library and
- * the reference walking model. Values are hand-tuned relative units for now;
- * the WP0 calibration pass replaces them with simulator-measured
- * tick-denominated constants (single-source is what makes that swap safe).
+ * the reference walking model. Unit: expected game ticks (WP3.1/F1 — the
+ * fixed common currency every layer sums, research plan §4.2), derived from
+ * the measured [MoveRates] instead of hand-tuned relative units.
+ *
+ * Costing policy mirrors the executor: flat runs sprint; step-ups pay the
+ * measured sustained climb rate; walk-off drops pay the fall time, which
+ * runs concurrently with the forward step (max, not sum); gap jumps pay
+ * their arc time.
  */
 object MoveCosts {
-    const val CARDINAL = 1.0
-    val DIAGONAL = sqrt(2.0)
+    /** Flat cardinal step, executed sprinting: ≈ 3.56 ticks. */
+    val CARDINAL = 1.0 / MoveRates.SPRINT_BPT
+
+    val DIAGONAL = sqrt(2.0) * CARDINAL
 
     /**
-     * Step-up costs more than flat to discourage unnecessary stairs; jumping
-     * takes ~10 ticks to clear a block while flat sprint covers it in ~7.
+     * One-block step-up: the measured sustained staircase rate — ≈ 10
+     * ticks per block climbed, forward progress of the arc included.
      */
-    const val STEP_UP = 1.5
+    val STEP_UP = 1.0 / MoveRates.JUMP_UP_ASCENT_BPT
 
     /**
-     * Step-down is slightly costlier than flat to prefer level paths when
-     * both exist (avoids the bot spamming small drops to skim corners).
+     * Gap jumps (2 forward, ±0/+1): the arc time measured on the S3
+     * gauntlets — ~11–12 airborne ticks takeoff to touchdown at the
+     * executor's takeoff policy (flat gaps walk, rising gaps sprint).
      */
-    const val STEP_DOWN = 1.05
+    val JUMP = 12.0
+    val JUMP_UP = 12.0
 
-    /** Gap jump costs — more expensive than walking to avoid pointless jumping. */
-    const val JUMP = 2.2
-    const val JUMP_UP = 2.5
-
-    /** Fall time is terminal-velocity bound: deeper drops pay less per block. */
-    const val DROP_PER_BLOCK = 0.35
+    private const val DROP_LANDING_TICKS = 1.0
 
     /**
-     * Cost of a walk-off descent of [depth] blocks. Depth 1 keeps its legacy
-     * tuned value; deeper drops pay a base plus fall time that grows slower
-     * than linearly per block, which keeps a real drop cheaper than a long
-     * staircase detour of the same height.
+     * Walk-off drop of [depth] blocks: the fall runs concurrently with the
+     * forward step, so the edge costs the longer of the two plus a landing
+     * tick. Deeper drops pay less per block (fall acceleration) — the
+     * asymmetry the plan's drop primitives exist for.
      */
-    fun drop(depth: Int): Double =
-        if (depth <= 1) STEP_DOWN else STEP_DOWN + DROP_PER_BLOCK * depth
+    fun drop(depth: Int): Double = max(CARDINAL, MoveRates.fallTicks(depth)) + DROP_LANDING_TICKS
+
+    /** Walk-off descent of one block. */
+    val STEP_DOWN = drop(1)
 }

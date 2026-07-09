@@ -363,7 +363,13 @@ object WalkingMovementModel {
     private fun SafeContext.hasClearance(pos: Vec3d, horizontalClearanceMargin: Double = 0.0): Boolean =
         world.isSpaceEmpty(playerBox(pos, horizontalClearanceMargin))
 
-    private fun SafeContext.hasContinuousSupport(pos: Vec3d): Boolean =
+    /**
+     * Execution-time ground probe at a continuous position: true when the
+     * inset footprint at [pos] rests on collision. Public for the executor's
+     * gap-ahead detection — a flat segment whose midpoint has no support is
+     * a gap-jump edge, not a walk.
+     */
+    fun SafeContext.hasContinuousSupport(pos: Vec3d): Boolean =
         !world.isSpaceEmpty(supportBox(pos))
 
     private fun playerBox(pos: Vec3d, horizontalClearanceMargin: Double = 0.0): Box {

@@ -152,7 +152,7 @@ object PathRefiner {
             refined += coarsePath.last()
         }
 
-        val outputPath = refined.simplifyCollinearSegments()
+        val outputPath = refined.simplifyCollinearSegments(view, halfWidth)
         return PathRefinementResult(
             path = outputPath,
             stats = coarsePath.stats(
@@ -294,7 +294,14 @@ object PathRefiner {
         sqrt(dx * dx + dy * dy + dz * dz)
     }.sum()
 
-    private fun List<FastVector>.simplifyCollinearSegments(): List<FastVector> {
+    /**
+     * Collinearity alone is not sufficient to drop a node: a gap-jump edge
+     * is collinear with its neighbouring walk edges, and merging across it
+     * erases the takeoff/landing nodes the executor keys its maneuvers on
+     * (the agent then walks the merged segment straight into the hole). A
+     * middle node is removed only when the merged span is corridor-walkable.
+     */
+    private fun List<FastVector>.simplifyCollinearSegments(view: WorldView, halfWidth: Double): List<FastVector> {
         if (size <= 2) {
             return this
         }
@@ -306,13 +313,21 @@ object PathRefiner {
             val previous = simplified.last()
             val current = this[index]
             val next = this[index + 1]
-            if (!areCollinear(previous, current, next)) {
+            if (!areCollinear(previous, current, next) || !corridorWalkable(view, previous, next, halfWidth)) {
                 simplified += current
             }
         }
 
         simplified += last()
         return simplified
+    }
+
+    private fun corridorWalkable(view: WorldView, start: FastVector, end: FastVector, halfWidth: Double): Boolean {
+        val startPos = start.toFeetCenter()
+        val endPos = end.toFeetCenter()
+        return ShortcutCorridor.firstBlockedColumn(
+            view, startPos.x, startPos.z, endPos.x, endPos.z, start.y, halfWidth,
+        ) == null
     }
 
     private fun horizontalDistance(a: Vec3d, b: Vec3d): Double {

@@ -31,6 +31,7 @@ interface MovementConfig {
     val finalApproachDistance: Double
     val minimumThrottle: Double
     val sprintMinRemaining: Double
+    val goalStopSpeed: Double
     val searchBehindSegments: Int
     val searchAheadSegments: Int
     val relocalizeDistance: Double

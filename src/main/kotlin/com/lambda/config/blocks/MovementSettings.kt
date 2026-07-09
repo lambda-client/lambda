@@ -39,6 +39,7 @@ class MovementSettings(override val c: Config) : MovementConfig, ConfigBlock {
     @Group(GENERAL_GROUP) override val finalApproachDistance by c.setting("Final Approach Distance", 0.90, 0.10..3.00, 0.05, "Distance from the active segment end where movement starts slowing down.")
     @Group(GENERAL_GROUP) override val minimumThrottle by c.setting("Minimum Throttle", 0.35, 0.05..1.0, 0.05, "Minimum analog movement strength used during the final approach slowdown.")
     @Group(GENERAL_GROUP) override val sprintMinRemaining by c.setting("Sprint Min Remaining", 1.60, 0.0..8.0, 0.1, "Minimum remaining segment distance required before sprint is allowed.")
+    @Group(GENERAL_GROUP) override val goalStopSpeed by c.setting("Goal Stop Speed", 0.08, 0.01..0.50, 0.01, "Maximum horizontal speed for goal arrival: the traversal only completes once the player has braked to a stand on the final node instead of sliding through it.", " blocks/tick")
     @Group(GENERAL_GROUP) override val searchBehindSegments by c.setting("Search Behind", 2, 0..16, 1, "How many previous segments relocalization may inspect.")
     @Group(GENERAL_GROUP) override val searchAheadSegments by c.setting("Search Ahead", 6, 0..32, 1, "How many future segments relocalization may inspect.")
     @Group(GENERAL_GROUP) override val relocalizeDistance by c.setting("Relocalize Distance", 2.50, 0.20..10.0, 0.10, "Maximum lateral distance for snapping back onto a nearby segment after displacement.")

@@ -178,7 +178,20 @@ object PathfinderExecutor : Loadable {
 
         val playerPos = player.pos
         val previousIndex = currentSegmentIndex
-        while (currentSegmentIndex < path.lastSegmentIndex && path.segments[currentSegmentIndex].hasReached(playerPos, movementConfig.reachDistance, movementConfig.verticalTolerance)) {
+
+        // A jump arc tops out ~1.25 blocks above the segment line — well past
+        // the grounded vertical tolerance. Without airborne slack the executor
+        // goes Lost at every apex, stopFollowing() zeroes the inputs, and the
+        // arc flies ballistic on takeoff momentum alone (2.2 blocks instead of
+        // 3.5+) — the H6 telemetry signature of gap jumps landing short.
+        // Goal arrival below stays on the strict tolerance.
+        val trackingVerticalTolerance = if (player.isOnGround) {
+            movementConfig.verticalTolerance
+        } else {
+            max(movementConfig.verticalTolerance, AIRBORNE_VERTICAL_TOLERANCE)
+        }
+
+        while (currentSegmentIndex < path.lastSegmentIndex && path.segments[currentSegmentIndex].hasReached(playerPos, movementConfig.reachDistance, trackingVerticalTolerance)) {
             currentSegmentIndex++
         }
 
@@ -188,7 +201,7 @@ object PathfinderExecutor : Loadable {
             searchBehind = movementConfig.searchBehindSegments,
             searchAhead = movementConfig.searchAheadSegments,
             corridorRadius = movementConfig.corridorRadius,
-            verticalTolerance = movementConfig.verticalTolerance,
+            verticalTolerance = trackingVerticalTolerance,
             relocalizeDistance = movementConfig.relocalizeDistance,
             backtrackAllowance = movementConfig.backtrackAllowance,
             overshootAllowance = movementConfig.overshootAllowance,
@@ -207,8 +220,13 @@ object PathfinderExecutor : Loadable {
         val projectedPoint = segment.closestPoint(playerPos)
         val projectedDistance = segment.projectedDistance(playerPos).coerceIn(0.0, segment.horizontalLength)
         val verticalError = segment.verticalError(playerPos)
+        // Arrival means *standing* on the final node, not passing through its
+        // tolerance sphere at speed: position + grounded + braked. Downstream
+        // consumers (stance-precise tasks) and the bench oracle rely on it.
         val finalSegmentReached = currentSegmentIndex == path.lastSegmentIndex &&
-            segment.hasReached(playerPos, movementConfig.reachDistance, movementConfig.verticalTolerance)
+            segment.hasReached(playerPos, movementConfig.reachDistance, movementConfig.verticalTolerance) &&
+            player.isOnGround &&
+            horizontalSpeed(player.velocity) <= movementConfig.goalStopSpeed
 
         if (finalSegmentReached) {
             stopFollowing()
@@ -261,27 +279,62 @@ object PathfinderExecutor : Loadable {
             return
         }
 
-        val lookaheadPointRaw = path.lookaheadAcrossSegments(playerPos, currentSegmentIndex, movementConfig.lookaheadDistance)
-        val lookaheadPoint = Vec3d(lookaheadPointRaw.x, playerPos.y, lookaheadPointRaw.z)
-        val desiredDelta = lookaheadPoint.subtract(playerPos).flattenY()
-        val desiredYaw = playerPos.rotationTo(lookaheadPoint).yaw
         val remainingDistance = segment.remainingDistance(playerPos)
         trackExecutionProgress(activeHandle, remainingDistance, playerPos)
         val isFinalSegment = currentSegmentIndex == path.lastSegmentIndex
-        val throttle = if (isFinalSegment && movementConfig.finalApproachDistance > 0.0 && remainingDistance < movementConfig.finalApproachDistance) {
+        var throttle = if (isFinalSegment && movementConfig.finalApproachDistance > 0.0 && remainingDistance < movementConfig.finalApproachDistance) {
             max(movementConfig.minimumThrottle, remainingDistance / movementConfig.finalApproachDistance)
         } else {
             1.0
         }
         val pathRemaining = remainingPathLength(path, currentSegmentIndex, playerPos)
-        val sprint = movementConfig.allowSprint && pathRemaining >= movementConfig.sprintMinRemaining
+        // Sprint discipline (Baritone's field rules): never sprint into a
+        // short step-up — the extra speed reaches the riser face before the
+        // arc has gained a block of height (the chest-bonk failure) — and
+        // never sprint short *flat* gap jumps: Baritone only sprints jumps
+        // of 4 blocks or ascending ones; a walk arc covers ~2.5 blocks,
+        // plenty for a flat 1-gap, while a sprint arc overshoots. Rising gap
+        // jumps are the ascend case and DO sprint ([riseWithin] skips them).
+        val sprint = movementConfig.allowSprint &&
+            pathRemaining >= movementConfig.sprintMinRemaining &&
+            !riseWithin(path, currentSegmentIndex, playerPos, RISE_SPRINT_CUT_DISTANCE) &&
+            !isGapJumpSegment(segment)
         val needsStepUpJump = needsStepUpJump(path, currentSegmentIndex, segment, playerPos)
+        val needsGapJump = !needsStepUpJump && needsGapJump(segment, playerPos)
+        val jumpRequested = needsStepUpJump || needsGapJump
+
+        // Steering target. Default: lookahead along the path. On a gap
+        // segment two overrides apply (Baritone MovementParkour semantics):
+        // mid-arc, fly at the landing node — the cross-segment lookahead
+        // already points around the next corner and drags the arc off the
+        // landing line; grounded on the takeoff side without a committed
+        // jump, steer *to the takeoff point* at reduced throttle instead of
+        // charging the edge unaligned (the align phase).
+        val lookaheadPointRaw = path.lookaheadAcrossSegments(playerPos, currentSegmentIndex, movementConfig.lookaheadDistance)
+        var steerTarget = Vec3d(lookaheadPointRaw.x, playerPos.y, lookaheadPointRaw.z)
+        val walkSegment = segment as? WalkSegment
+        val gapSegmentActive = walkSegment != null &&
+            (isGapJumpSegment(walkSegment) || isRisingGapSegment(walkSegment))
+        if (gapSegmentActive) {
+            val progress = segment.projectedDistance(playerPos)
+            if (!player.isOnGround) {
+                steerTarget = Vec3d(segment.endPose.position.x, playerPos.y, segment.endPose.position.z)
+            } else if (!jumpRequested && progress > -0.5 && progress < GAP_TAKEOFF_MAX_PROGRESS) {
+                steerTarget = Vec3d(segment.startPose.position.x, playerPos.y, segment.startPose.position.z)
+                throttle = kotlin.math.min(throttle, GAP_ALIGN_THROTTLE)
+            }
+        }
+        val lookaheadPoint = steerTarget
+        val desiredDelta = lookaheadPoint.subtract(playerPos).flattenY()
+        val desiredYaw = playerPos.rotationTo(lookaheadPoint).yaw
+
         val command = FollowCommand(
             lookaheadPoint = lookaheadPoint,
             desiredYaw = desiredYaw,
             throttle = throttle,
             sprint = sprint,
-            jump = needsStepUpJump,
+            jump = jumpRequested,
+            jumpUrgent = needsGapJump,
         )
         currentCommand = command
 
@@ -419,7 +472,11 @@ object PathfinderExecutor : Loadable {
             return false
         }
 
-        if (player.age < jumpRetryAllowedTick) {
+        // Urgent jumps (gap ahead) skip the retry cooldown: the alternative
+        // to jumping is walking into the hole, and flight-toggle safety is
+        // inherent — consecutive presses are separated by a full arc's air
+        // time, well past the double-tap window.
+        if (!command.jumpUrgent && player.age < jumpRetryAllowedTick) {
             lastJumpInputGate = "cooldown(${jumpRetryAllowedTick - player.age})"
             return false
         }
@@ -705,21 +762,60 @@ object PathfinderExecutor : Loadable {
             return false
         }
 
-        // Proximity gate: a jump issued too far from the rise completes its
-        // arc before reaching the ledge and is a guaranteed failure. Only jump
-        // once the landing block is within the arc's horizontal reach.
-        val end = rise.endPose.position
-        val horizontalToEnd = hypot(end.x - playerPos.x, end.z - playerPos.z)
-        if (horizontalToEnd > JUMP_TRIGGER_DISTANCE) {
-            lastJumpCommandGate = "tooFar(%.2f)".format(horizontalToEnd)
+        // Rising gap jump (Baritone: "ascend ⇒ sprint", edge takeoff): the
+        // +1 landing must be met while the arc still has a block of height —
+        // an early launch puts the descending tail at the pad face instead.
+        // Not a step-up: route through the shared edge-takeoff gate.
+        if (rise.horizontalLength >= GAP_SEGMENT_MIN_LENGTH) {
+            if (rise !== current) {
+                lastJumpCommandGate = "riseGapApproach"
+                return false
+            }
+            return edgeTakeoffReady(rise, playerPos, "riseGap")
+        }
+
+        // Drift gate (Baritone MovementAscend): a jump launched while sliding
+        // sideways lands off the validated column. Wait for steering to
+        // settle — one or two ticks — before committing the arc.
+        if (perpendicularSpeed(rise, player.velocity) > JUMP_MAX_LATERAL_DRIFT) {
+            lastJumpCommandGate = "drifting"
             return false
         }
 
-        // Headroom gate: plan-time clearance was checked at node centers, but
-        // we are jumping from between nodes — a ceiling here (tunnel stairs,
-        // tree canopy) bonks the head, kills the arc, and turns the retry loop
-        // into a creative-flight double-tap. Walking closer first is always
-        // valid: the validated node itself has clearance.
+        val end = rise.endPose.position
+        val horizontalToEnd = hypot(end.x - playerPos.x, end.z - playerPos.z)
+        val towardX = (end.x - playerPos.x) / horizontalToEnd.coerceAtLeast(1.0E-9)
+        val towardZ = (end.z - playerPos.z) / horizontalToEnd.coerceAtLeast(1.0E-9)
+        val aheadPos = Vec3d(playerPos.x + towardX * 0.5, playerPos.y, playerPos.z + towardZ * 0.5)
+        val apexClear = with(WalkingMovementModel) {
+            hasJumpApexClearance(playerPos) && hasJumpApexClearance(aheadPos)
+        }
+
+        if (apexClear) {
+            // Open air: jump *early* (Baritone's tactic) — launching before
+            // the riser face means a full block of height is gained before
+            // arrival, so the chest never hits the ledge. A walk-speed arc
+            // covers ~2.5 blocks, so anything inside the window lands on or
+            // past the ledge lip.
+            if (horizontalToEnd > EARLY_JUMP_TRIGGER_DISTANCE) {
+                lastJumpCommandGate = "tooFar(%.2f)".format(horizontalToEnd)
+                return false
+            }
+            lastJumpCommandGate = "commanded"
+            return true
+        }
+
+        // Confined (ceiling nearby): Baritone's ActionClimb rule — walk in
+        // until at most ~1.2 blocks out and laterally centered, then hop.
+        // Walking closer is always valid: the validated node has clearance.
+        if (horizontalToEnd > CONFINED_JUMP_TRIGGER_DISTANCE) {
+            lastJumpCommandGate = "tooFar(%.2f)".format(horizontalToEnd)
+            return false
+        }
+        if (rise.lateralError(playerPos) > CONFINED_JUMP_MAX_SIDE_OFFSET) {
+            lastJumpCommandGate = "misaligned"
+            return false
+        }
         if (!with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }) {
             lastJumpCommandGate = "noHeadroom"
             return false
@@ -729,12 +825,111 @@ object PathfinderExecutor : Loadable {
         return true
     }
 
+    /**
+     * Flat gap-jump segments carry no vertical step, so [needsStepUpJump]
+     * can never fire for them — the H6 baseline failure mode (gauntlet
+     * telemetry: agents sprint-carry small gaps or fall in, `noCommand` the
+     * whole way). Detect them structurally: a gap-jump edge survives
+     * refinement as exactly a cardinal 2-block flat segment (the corridor
+     * can never merge across the unsupported middle column), so a flat
+     * segment of length 2 with no ground under its midpoint is a gap jump.
+     * Longer flat segments are corridor-validated and therefore gap-free.
+     *
+     * Interim reactive gate — WP3.3 replaces this with scripted maneuvers
+     * carrying entry envelopes; until then takeoff happens as soon as the
+     * segment is active, trading landing precision for never undershooting.
+     */
+    /** The structural gap-jump signature — see [needsGapJump]. */
+    private fun SafeContext.isGapJumpSegment(segment: ExecutionSegment): Boolean {
+        val walk = segment as? WalkSegment ?: return false
+        if (walk.verticalStep != 0) return false
+        if (walk.horizontalLength !in GAP_SEGMENT_MIN_LENGTH..GAP_SEGMENT_MAX_LENGTH) return false
+        val mid = walk.startPose.position.add(walk.endPose.position).multiply(0.5)
+        return !with(WalkingMovementModel) { hasContinuousSupport(mid) }
+    }
+
+    private fun SafeContext.needsGapJump(segment: ExecutionSegment, playerPos: Vec3d): Boolean {
+        if (!player.isOnGround) return false
+        if (!isGapJumpSegment(segment)) return false
+        return edgeTakeoffReady(segment as WalkSegment, playerPos, "gap")
+    }
+
+    /**
+     * Rising gap-jump signature: a 2-block edge climbing one block — the
+     * gapJump(rise=1) template. Only real gap edges survive refinement at
+     * this shape (corridor shortcuts are flat), so no support probe needed.
+     */
+    private fun isRisingGapSegment(walk: WalkSegment): Boolean =
+        walk.verticalStep > 0 && walk.horizontalLength >= GAP_SEGMENT_MIN_LENGTH
+
+    /**
+     * Shared takeoff gate for gap-class jumps, flat and rising (Baritone
+     * MovementParkour's lineup rules): launch only from the takeoff-side
+     * window — never early (a short arc lands in the gap), never from the
+     * landing side (a pointless hop) — centered on the segment line and
+     * drift-free, so the arc cannot clip the gap corner.
+     */
+    private fun SafeContext.edgeTakeoffReady(walk: WalkSegment, playerPos: Vec3d, prefix: String): Boolean {
+        val progress = walk.projectedDistance(playerPos)
+        if (progress < 0.0) {
+            lastJumpCommandGate = "${prefix}NotAtTakeoff"
+            return false
+        }
+        if (progress > GAP_TAKEOFF_MAX_PROGRESS) {
+            lastJumpCommandGate = "${prefix}PastTakeoff"
+            return false
+        }
+        if (walk.lateralError(playerPos) > GAP_MAX_LATERAL_ERROR) {
+            lastJumpCommandGate = "${prefix}Misaligned"
+            return false
+        }
+        if (perpendicularSpeed(walk, player.velocity) > GAP_MAX_LATERAL_DRIFT) {
+            lastJumpCommandGate = "${prefix}Drifting"
+            return false
+        }
+        if (!with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }) {
+            lastJumpCommandGate = "${prefix}NoHeadroom"
+            return false
+        }
+        lastJumpCommandGate = "${prefix}Commanded"
+        return true
+    }
+
+    /** Speed component perpendicular to the segment line, in blocks/tick. */
+    private fun perpendicularSpeed(segment: ExecutionSegment, velocity: Vec3d): Double {
+        val dx = segment.endPose.position.x - segment.startPose.position.x
+        val dz = segment.endPose.position.z - segment.startPose.position.z
+        val length = hypot(dx, dz)
+        if (length < 1.0E-9) return 0.0
+        return kotlin.math.abs(velocity.x * -dz + velocity.z * dx) / length
+    }
+
+    /**
+     * A short step-up starts within [distance] blocks of path ahead. Rising
+     * *gap* segments are deliberately excluded: they are the ascend-parkour
+     * case that needs sprint speed, not the chest-bonk case that forbids it.
+     */
+    private fun riseWithin(path: ExecutionPath, index: Int, playerPos: Vec3d, distance: Double): Boolean {
+        var remaining = distance
+        var i = index
+        while (i <= path.lastSegmentIndex && remaining > 0.0) {
+            val segment = path.segments[i]
+            val walk = segment as? WalkSegment
+            if (walk != null && walk.verticalStep > 0 && !isRisingGapSegment(walk)) return true
+            remaining -= if (i == index) segment.remainingDistance(playerPos) else segment.horizontalLength
+            i++
+        }
+        return false
+    }
+
     private data class FollowCommand(
         val lookaheadPoint: Vec3d,
         val desiredYaw: Double,
         val throttle: Double,
         val sprint: Boolean,
         val jump: Boolean = false,
+        /** Gap-ahead jump: skips the retry cooldown (falling is worse). */
+        val jumpUrgent: Boolean = false,
     )
 
     private data class SteeringTelemetry(
@@ -750,14 +945,44 @@ object PathfinderExecutor : Loadable {
     private const val JUMP_HOLD_TICKS = 4
     private const val JUMP_RETRY_COOLDOWN_TICKS = 8
 
-    // How close (horizontally, in blocks) the rise segment's landing block
-    // must be before a jump is issued. A walk-speed jump covers ~1.2-2 blocks
-    // of air time; issuing beyond this lands the arc short of the ledge.
-    private const val JUMP_TRIGGER_DISTANCE = 1.05
+    // Step-up trigger windows, following Baritone MovementAscend: with clear
+    // apex headroom, jump early (height is gained before the riser face —
+    // never a chest bonk); under a ceiling, walk to ~1.2 out and hop from a
+    // centered, drift-free stance (their ActionClimb rule).
+    private const val EARLY_JUMP_TRIGGER_DISTANCE = 2.2
+    private const val CONFINED_JUMP_TRIGGER_DISTANCE = 1.2
+    private const val CONFINED_JUMP_MAX_SIDE_OFFSET = 0.2
+    private const val JUMP_MAX_LATERAL_DRIFT = 0.10
 
     // How early (remaining distance on the flat segment) the executor may
     // anticipate the next rise segment's jump.
     private const val JUMP_ANTICIPATION_DISTANCE = 0.6
+
+    // Gap-jump segment signature: cardinal gap edges are exactly 2 blocks
+    // long; the band tolerates float noise, nothing else.
+    private const val GAP_SEGMENT_MIN_LENGTH = 1.9
+    private const val GAP_SEGMENT_MAX_LENGTH = 2.1
+
+    // Vertical segment-tracking slack while airborne: vanilla jump apex
+    // (~1.252, nominal — WP0 calibration owns the measured value) plus
+    // margin, so an ordinary arc never triggers Lost.
+    private const val AIRBORNE_VERTICAL_TOLERANCE = 1.5
+
+    // Gap takeoff alignment gates (Baritone MovementParkour: launch from the
+    // edge, centered, not while sliding sideways). The takeoff window ends
+    // well before the gap so a landing-side stand never re-triggers a hop.
+    private const val GAP_MAX_LATERAL_ERROR = 0.25
+    private const val GAP_MAX_LATERAL_DRIFT = 0.12
+    private const val GAP_TAKEOFF_MAX_PROGRESS = 0.9
+
+    // Align-phase throttle: grounded on the takeoff side without a committed
+    // jump, walk gently back to the takeoff point instead of charging the
+    // edge (Baritone's lineup walk-back).
+    private const val GAP_ALIGN_THROTTLE = 0.6
+
+    // Sprint is cut when a rise begins within this much path distance —
+    // sprint arcs reach the riser face before gaining a block of height.
+    private const val RISE_SPRINT_CUT_DISTANCE = 2.5
 
     // Stuck detection: how long the player may sit on a segment without net
     // progress before the edge is reported as obstructed to the planner.

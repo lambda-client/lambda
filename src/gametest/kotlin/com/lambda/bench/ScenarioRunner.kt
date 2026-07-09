@@ -39,6 +39,7 @@ import kotlin.math.hypot
 data class ScenarioReport(
     val name: String,
     val expectSuccess: Boolean,
+    val gated: Boolean,
     val reachedGoal: Boolean,
     val failedCleanly: Boolean,
     val ticks: Int,
@@ -48,6 +49,9 @@ data class ScenarioReport(
     val processedNodes: Int,
     val graphSize: Int,
     val refinementSavedPercent: Double,
+    val traveledLength: Double,
+    val pathDeviationMean: Double,
+    val pathDeviationMax: Double,
     val jumpInputTicks: Int,
     val airborneJumps: Int,
     val flightToggled: Boolean,
@@ -65,11 +69,18 @@ data class ScenarioReport(
     // reaches the goal nor misbehaves (creative-flight toggle).
     val passed: Boolean get() = if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled
 
+    /** Movement beyond the planned line, in percent of the planned length. */
+    val movementWastePercent: Double
+        get() = if (plannedLength > 0.5) ((traveledLength - plannedLength) / plannedLength * 100.0).coerceAtLeast(0.0) else 0.0
+
     fun summaryLine(): String = buildString {
         append(if (passed) "PASS" else "FAIL")
+        if (!gated) append(" [baseline]")
         append("  ").append(name.padEnd(26))
         append(" reached=").append(reachedGoal)
         append(" ticks=").append(ticks)
+        append(" dev=").append("%.2f/%.2f".format(pathDeviationMean, pathDeviationMax))
+        append(" waste=").append("%.0f%%".format(movementWastePercent))
         append(" nodes=").append(plannedNodes)
         append(" jumps(in/air)=").append(jumpInputTicks).append('/').append(airborneJumps)
         append(" initUs=").append(plannerStats.initialWallMicros)
@@ -86,6 +97,7 @@ data class ScenarioReport(
         append("\"name\":\"").append(name).append('"')
         append(",\"passed\":").append(passed)
         append(",\"expectSuccess\":").append(expectSuccess)
+        append(",\"gated\":").append(gated)
         append(",\"reachedGoal\":").append(reachedGoal)
         append(",\"failedCleanly\":").append(failedCleanly)
         append(",\"ticks\":").append(ticks)
@@ -95,6 +107,10 @@ data class ScenarioReport(
         append(",\"processedNodes\":").append(processedNodes)
         append(",\"graphSize\":").append(graphSize)
         append(",\"refinementSavedPercent\":").append("%.2f".format(refinementSavedPercent))
+        append(",\"traveledLength\":").append("%.3f".format(traveledLength))
+        append(",\"movementWastePercent\":").append("%.2f".format(movementWastePercent))
+        append(",\"pathDeviationMean\":").append("%.3f".format(pathDeviationMean))
+        append(",\"pathDeviationMax\":").append("%.3f".format(pathDeviationMax))
         append(",\"jumpInputTicks\":").append(jumpInputTicks)
         append(",\"airborneJumps\":").append(airborneJumps)
         append(",\"flightToggled\":").append(flightToggled)
@@ -115,6 +131,9 @@ data class ScenarioReport(
  * directory, plus a `summary.json` for the whole suite.
  */
 object ScenarioRunner {
+    /** Horizontal speed below which the agent counts as standing still. */
+    private const val ORACLE_STOP_SPEED = 0.10
+
     private val runId: String = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now())
 
     val outputDir: File by lazy {
@@ -170,6 +189,12 @@ object ScenarioRunner {
         var flightToggled = false
         var wasOnGround = true
         var wasJumpInput = false
+        var traveled = 0.0
+        var previousX = Double.NaN
+        var previousZ = Double.NaN
+        var deviationSum = 0.0
+        var deviationMax = 0.0
+        var deviationSamples = 0
 
         if (requested) {
             while (ticks < scenario.timeoutTicks) {
@@ -193,6 +218,7 @@ object ScenarioRunner {
                             append(",\"y\":").append("%.3f".format(pos.y))
                             append(",\"z\":").append("%.3f".format(pos.z))
                             append(",\"vy\":").append("%.3f".format(player.velocity.y))
+                            append(",\"spd\":").append("%.4f".format(hypot(player.velocity.x, player.velocity.z)))
                             append(",\"ground\":").append(player.isOnGround)
                             append(",\"flying\":").append(player.abilities.flying)
                             append(",\"status\":\"").append(state.status).append('"')
@@ -204,6 +230,7 @@ object ScenarioRunner {
                             append(",\"fwd\":").append("%.2f".format(state.commandedForward))
                             append(",\"strafe\":").append("%.2f".format(state.commandedStrafe))
                             append(",\"lost\":").append(state.lostTicks)
+                            append(",\"latErr\":").append("%.3f".format(state.lateralError))
                             append(",\"dist\":").append("%.3f".format(distance))
                             append(",\"handleStatus\":\"").append(handle?.status ?: "None").append('"')
                             append('}')
@@ -225,10 +252,41 @@ object ScenarioRunner {
                 wasOnGround = onGround
                 wasJumpInput = jumpInput
 
+                // Path-following efficiency: total ground covered (waste vs
+                // the planned length) and the executor's lateral error from
+                // its active segment — segment-relative, so it stays honest
+                // across replans, unlike a distance to the final path.
+                val sampleX = sample.substringAfter("\"x\":").substringBefore(",").toDoubleOrNull()
+                val sampleZ = sample.substringAfter("\"z\":").substringBefore(",").toDoubleOrNull()
+                if (sampleX != null && sampleZ != null) {
+                    if (!previousX.isNaN()) traveled += hypot(sampleX - previousX, sampleZ - previousZ)
+                    previousX = sampleX
+                    previousZ = sampleZ
+                }
+                if ("\"status\":\"Following\"" in sample) {
+                    sample.substringAfter("\"latErr\":").substringBefore(",").toDoubleOrNull()?.let { latErr ->
+                        deviationSum += latErr
+                        deviationSamples++
+                        if (latErr > deviationMax) deviationMax = latErr
+                    }
+                }
+
                 val distance = sample.substringAfter("\"dist\":").substringBefore(",").toDoubleOrNull()
                     ?: Double.MAX_VALUE
+                val sampleY = sample.substringAfter("\"y\":").substringBefore(",").toDoubleOrNull()
+                    ?: Double.MAX_VALUE
+                val sampleSpeed = sample.substringAfter("\"spd\":").substringBefore(",").toDoubleOrNull()
+                    ?: Double.MAX_VALUE
+                val grounded = "\"ground\":true" in sample
+                // Arrival = *standing still on the goal block*, not passing
+                // through a tolerance sphere at speed. The 3D sphere alone
+                // accepted both fly-throughs (overshoot counted as success)
+                // and standing on the floor *under* a goal pad one block up
+                // (observed bypass on the gauntlet).
+                val atGoalLevel = kotlin.math.abs(sampleY - goalCenter.y) <= 0.9
+                val standing = grounded && sampleSpeed <= ORACLE_STOP_SPEED
                 val handleStatus = sample.substringAfter("\"handleStatus\":\"").substringBefore("\"")
-                if (distance <= scenario.goalTolerance || handleStatus == "Succeeded") {
+                if ((distance <= scenario.goalTolerance && atGoalLevel && standing) || handleStatus == "Succeeded") {
                     reached = true
                     break
                 }
@@ -250,6 +308,7 @@ object ScenarioRunner {
             ScenarioReport(
                 name = scenario.name,
                 expectSuccess = scenario.expectSuccess,
+                gated = scenario.gated,
                 reachedGoal = reached,
                 failedCleanly = failedCleanly || handle?.status == TraversalHandle.Status.Failed,
                 ticks = ticks,
@@ -259,6 +318,9 @@ object ScenarioRunner {
                 processedNodes = handle?.processedNodes ?: 0,
                 graphSize = handle?.graphSize ?: 0,
                 refinementSavedPercent = handle?.lastRefinement?.savedPercent ?: 0.0,
+                traveledLength = traveled,
+                pathDeviationMean = if (deviationSamples > 0) deviationSum / deviationSamples else 0.0,
+                pathDeviationMax = deviationMax,
                 jumpInputTicks = jumpInputTicks,
                 airborneJumps = airborneJumps,
                 flightToggled = flightToggled,
