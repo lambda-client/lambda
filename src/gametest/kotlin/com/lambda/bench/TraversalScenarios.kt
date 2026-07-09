@@ -69,6 +69,8 @@ data class BenchPlannerConfig(
     override val allowVertical: Boolean = true,
     override val allowJump: Boolean = false,
     override val maxDropHeight: Int = 3,
+    /** WP3.2 discovery rides with jumps in the bench. */
+    override val allowManeuverDiscovery: Boolean = allowJump,
 ) : PlannerConfig
 
 object TraversalScenarios {
@@ -181,6 +183,41 @@ object TraversalScenarios {
             goal = fastVectorOf(8, 65, 0),
             timeoutTicks = 600,
             probeNode = fastVectorOf(3, 64, 0),
+        ),
+
+        scenario(
+            "maze-corridors",
+            "S1 maze class: three walls force an S-shaped route with four 90° turns — longer " +
+                "multi-turn search, wall-memory refinement, and cornering at speed on one course.",
+            "/fill 3 64 -8 3 66 14 minecraft:stone",
+            "/fill 8 64 -14 8 66 8 minecraft:stone",
+            "/fill 13 64 -8 13 66 14 minecraft:stone",
+            goal = fastVectorOf(17, 64, 0),
+            timeoutTicks = 900,
+        ),
+
+        scenario(
+            "stair-down-4",
+            "Four consecutive 1-block step-downs: sustained descent execution — drop-2 covers one " +
+                "walk-off, nothing covered a descending staircase (the asymmetric mirror of " +
+                "stair-up-4-open).",
+            "/fill -2 64 -2 1 67 2 minecraft:stone",
+            "/fill 2 64 -2 3 66 2 minecraft:stone",
+            "/fill 4 64 -2 5 65 2 minecraft:stone",
+            "/fill 6 64 -2 7 64 2 minecraft:stone",
+            start = Vec3d(0.5, 68.0, 0.5),
+            goal = fastVectorOf(11, 64, 0),
+            timeoutTicks = 400,
+        ),
+
+        scenario(
+            "drop-3-boundary",
+            "Walk-off drop of exactly maxDropHeight (3): the deepest allowed drop edge — probes " +
+                "the config boundary from the allowed side (drop-5-too-deep covers the refusal).",
+            "/fill -2 64 -2 2 66 2 minecraft:stone",
+            start = Vec3d(0.5, 67.0, 0.5),
+            goal = fastVectorOf(8, 64, 0),
+            timeoutTicks = 300,
         ),
 
         scenario(
@@ -306,11 +343,82 @@ object TraversalScenarios {
 
         scenario(
             "f3-gap2-sprint",
-            "F3 probe: 2-block gap needs a sprint jump (3 forward) — no template exists, and the " +
-                "base floor offers no route up. Passes today as a clean no-path; flips to " +
-                "expectSuccess when WP3.2 maneuver discovery lands.",
+            "WP3.2 discovery: 2-block gap crossed by a discovered sprint-jump edge (3 forward) — " +
+                "no template represents it. Ungated H8 baseline until discovery+execution prove " +
+                "stable across runs.",
             "/fill 0 65 -1 3 65 1 minecraft:stone",
             "/fill 6 65 -1 9 65 1 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(8, 66, 0),
+            allowJump = true,
+            timeoutTicks = 300,
+            gated = false,
+        ),
+
+        scenario(
+            "f3-gap3-sprint",
+            "WP3.2 discovery: 3-block gap — near the sprint-jump distance limit; the discovered " +
+                "edge is validated at full sprint entry. Ungated H8 baseline.",
+            "/fill 0 65 -1 3 65 1 minecraft:stone",
+            "/fill 7 65 -1 10 65 1 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(9, 66, 0),
+            allowJump = true,
+            timeoutTicks = 300,
+            gated = false,
+        ),
+
+        scenario(
+            "f3-gap-angled",
+            "WP3.2 discovery (T5 gadget class): the only crossing is an oblique ~18° sprint jump " +
+                "(displacement 3,1) no 45°-quantized edge can represent — the arbitrary-angle case " +
+                "discovery exists for. Ungated H8 baseline.",
+            "/fill 0 65 -1 2 65 1 minecraft:stone",
+            "/fill 5 65 1 6 65 2 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(6, 66, 2),
+            allowJump = true,
+            timeoutTicks = 300,
+            gated = false,
+        ),
+
+        scenario(
+            "disc-gap-diag45",
+            "WP3.2 discovery at pure 45°: 1-wide pads force the diagonal sprint jump " +
+                "(displacement 3,3 ≈ 4.24, no shallower candidate reaches) — the maximal-angle " +
+                "discovery case plus a narrow-pad landing; f3-gap-angled covers the shallow " +
+                "angle. Ungated H8 baseline.",
+            "/fill 0 65 0 2 65 0 minecraft:stone",
+            "/fill 5 65 3 7 65 3 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(6, 66, 3),
+            allowJump = true,
+            timeoutTicks = 300,
+            gated = false,
+        ),
+
+        scenario(
+            "disc-gap4-too-far",
+            "Discovery band cap: a 4-wide gap (displacement 5) exceeds the flat sprint-jump " +
+                "envelope — no candidate may be proposed, no edge hallucinated; clean no-path. " +
+                "Regression guard against band inflation without envelope support.",
+            "/fill 0 65 -1 3 65 1 minecraft:stone",
+            "/fill 8 65 -1 11 65 1 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(10, 66, 0),
+            allowJump = true,
+            timeoutTicks = 200,
+            expectSuccess = false,
+        ),
+
+        scenario(
+            "disc-gap-ceiling",
+            "Discovery under a 2-high ceiling: the arc is physically impossible, the validation " +
+                "sims must fail (head bonk → short arc → below start), no edge, clean no-path — " +
+                "the sims respect world collision, not just the yaw line.",
+            "/fill 0 65 -1 3 65 1 minecraft:stone",
+            "/fill 6 65 -1 9 65 1 minecraft:stone",
+            "/fill 0 68 -1 9 68 1 minecraft:stone",
             start = Vec3d(0.5, 66.0, 0.5),
             goal = fastVectorOf(8, 66, 0),
             allowJump = true,
@@ -319,37 +427,27 @@ object TraversalScenarios {
         ),
 
         scenario(
-            "f3-gap3-sprint",
-            "F3 probe: 3-block gap — near the sprint-jump distance limit; discovery must find it " +
-                "with a full-speed entry envelope. Flips with WP3.2.",
+            "mutation-jump-blocked",
+            "S2 × WP3.2: the planned route uses a discovered jump; at tick 4 a wall fills the " +
+                "gap's flight path. invalidateAround must drop the edge, re-discovery must fail " +
+                "against the wall, and the repair must reroute over the walk bridge — nothing " +
+                "else exercises discovery invalidation.",
             "/fill 0 65 -1 3 65 1 minecraft:stone",
-            "/fill 7 65 -1 10 65 1 minecraft:stone",
+            "/fill 6 65 -1 9 65 1 minecraft:stone",
+            "/fill 0 65 2 9 65 3 minecraft:stone",
             start = Vec3d(0.5, 66.0, 0.5),
-            goal = fastVectorOf(9, 66, 0),
+            goal = fastVectorOf(8, 66, 0),
             allowJump = true,
-            timeoutTicks = 200,
-            expectSuccess = false,
-        ),
-
-        scenario(
-            "f3-gap-angled",
-            "F3 probe (T5 gadget class): the only crossing is an oblique ~18° sprint jump " +
-                "(displacement 3,1) that no 45°-quantized edge can represent — the arbitrary-angle " +
-                "case the collision-guided yaw sweep exists for. Flips with WP3.2.",
-            "/fill 0 65 -1 2 65 1 minecraft:stone",
-            "/fill 5 65 1 6 65 2 minecraft:stone",
-            start = Vec3d(0.5, 66.0, 0.5),
-            goal = fastVectorOf(6, 66, 2),
-            allowJump = true,
-            timeoutTicks = 200,
-            expectSuccess = false,
+            timeoutTicks = 600,
+            mutations = listOf(4 to "/fill 4 66 -1 5 67 1 minecraft:stone"),
         ),
 
         scenario(
             "f3-momentum-chain",
-            "F3 probe: two 2-block gaps bridged by a single landing block — requires carrying " +
-                "momentum through the middle landing, i.e. a validated chain, not two independent " +
-                "jumps. Flips with WP3.3 (chain solver), not WP3.2.",
+            "Two 2-block gaps bridged by a single landing block: the 1-wide landing only works " +
+                "at one exact entry speed, so the envelope-validated discovery correctly refuses " +
+                "the edge (the fast-entry sim overshoots the block). Clean no-path until WP3.3's " +
+                "scripted chain controls entry speed precisely.",
             "/fill 0 65 -1 3 65 1 minecraft:stone",
             "/setblock 6 65 0 minecraft:stone",
             "/fill 9 65 -1 12 65 1 minecraft:stone",

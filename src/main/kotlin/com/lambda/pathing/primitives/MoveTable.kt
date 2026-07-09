@@ -147,7 +147,22 @@ object MoveTable {
                 forEachDiagonal { dx, dz -> walkDiagonal(dx, dz) }
             }
         }
-        return MoveSet(templates, deriveCaps(templates), deriveReadOffsets(templates))
+
+        // T1: caps must cover every enabled movement *mode*, including
+        // runtime-discovered maneuvers — a sprint-jump edge moves faster
+        // per block than any template, and a cap that ignores it silently
+        // breaks admissibility the moment discovery finds one (the exact
+        // failure the theory note flags).
+        var caps = deriveCaps(templates)
+        if (config.allowJump && config.allowManeuverDiscovery) {
+            caps = caps.copy(
+                minCostPerHorizontalBlock = minOf(
+                    caps.minCostPerHorizontalBlock,
+                    1.0 / MoveRates.SPRINT_JUMP_BPT,
+                ),
+            )
+        }
+        return MoveSet(templates, caps, deriveReadOffsets(templates))
     }
 
     // ------------------------------------------------------------------

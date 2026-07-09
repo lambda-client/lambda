@@ -32,6 +32,7 @@ import com.lambda.pathing.core.Key
 import com.lambda.pathing.core.LazyGraph
 import com.lambda.pathing.goal.TraversalGoal
 import com.lambda.pathing.metrics.PlannerMetrics
+import com.lambda.pathing.maneuver.ManeuverDiscovery
 import com.lambda.pathing.primitives.MoveTable
 import com.lambda.pathing.refinement.PathRefiner
 import com.lambda.threading.runSafeAutomated
@@ -115,15 +116,29 @@ object PathfinderManager : Loadable,
             return result ?: edges
         }
 
+        // WP3.2 landing-anchored maneuver discovery: extra sprint-jump edges
+        // proposed and sim-validated the first time the backward search
+        // expands a ledge node. Provider-level merging is T2's discovery-
+        // monotone model — edges only ever appear, through the same lazy
+        // machinery as template edges.
+        val discovery = if (config.allowJump && config.allowManeuverDiscovery) {
+            ManeuverDiscovery(player, view)
+        } else {
+            null
+        }
+
         val graph = LazyGraph<FastVector>(
             successorProvider = { node ->
-                penalized(node, moves.successors(view, node))
+                var edges = moves.successors(view, node)
+                discovery?.successorsFrom(node)?.takeIf { it.isNotEmpty() }?.let { edges = edges + it }
+                penalized(node, edges)
             },
             // True inverse enumeration — never default to the symmetric
             // assumption: it mirrors legal step-downs into illegal step-ups
             // (e.g. under low ceilings) with the wrong cost attached.
             predecessorProvider = { node ->
-                val edges = moves.predecessors(view, node)
+                var edges = moves.predecessors(view, node)
+                discovery?.predecessorsInto(node)?.takeIf { it.isNotEmpty() }?.let { edges = edges + it }
                 if (edgePenalties.isEmpty()) edges
                 else edges.mapValues { (from, cost) -> cost * (edgePenalties[edgeKey(from, node)] ?: 1.0) }
             },
@@ -147,7 +162,7 @@ object PathfinderManager : Loadable,
             nodeTieBreaker = naturalOrder(),
         )
 
-        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view, moves)
+        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view, moves, discovery)
         PlannerMetrics.sink.planStart(handle.id, planner.start, goal.targetNode)
         computeActivePath()
         return handle
@@ -210,8 +225,14 @@ object PathfinderManager : Loadable,
         if (session.handle.status.isTerminal) return session.handle
 
         val affectedNodes = session.moves.affectedNodes(pos.x, pos.y, pos.z)
+        // Discovered maneuver edges read a larger region than templates:
+        // drop and re-open any whose flight volume could see this change,
+        // and resync their endpoints through the same pass.
+        val maneuverAffected = session.discovery?.invalidateAround(pos.x, pos.y, pos.z) ?: emptySet()
         val syncStartNanos = System.nanoTime()
-        val sync = session.planner.synchronizeAffected(affectedNodes)
+        val sync = session.planner.synchronizeAffected(
+            if (maneuverAffected.isEmpty()) affectedNodes else affectedNodes + maneuverAffected
+        )
         PlannerMetrics.sink.syncEnd(
             traversalId = session.handle.id,
             nodesChecked = sync.nodesChecked,
@@ -402,6 +423,7 @@ object PathfinderManager : Loadable,
         val edgePenalties: HashMap<Long, Double>,
         val view: SnapshotWorldView,
         val moves: MoveTable.MoveSet,
+        val discovery: ManeuverDiscovery?,
         var lastRefinementLogKey: String? = null,
         var lastCoarsePath: List<FastVector>? = null,
         var lastRefinedPath: List<FastVector>? = null,

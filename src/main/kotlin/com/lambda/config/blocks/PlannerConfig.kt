@@ -24,4 +24,5 @@ interface PlannerConfig {
     val allowVertical: Boolean
     val allowJump: Boolean
     val maxDropHeight: Int
+    val allowManeuverDiscovery: Boolean
 }

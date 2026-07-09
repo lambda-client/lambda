@@ -62,16 +62,27 @@ object PathfinderScenarioTest : FabricClientGameTest {
             server.runCommand("/gamerule randomTickSpeed 0")
             server.runCommand("/time set noon")
 
-            for (scenario in TraversalScenarios.all) {
+            // -Pbench.filter=gap,stair → run matching scenarios only.
+            val filter = System.getProperty("lambda.bench.filter")
+                .orEmpty().split(',').map(String::trim).filter(String::isNotEmpty)
+            val selected = if (filter.isEmpty()) TraversalScenarios.all
+            else TraversalScenarios.all.filter { s -> filter.any(s.name::contains) }
+
+            for (scenario in selected) {
                 LOG.info("[Bench] Running scenario '${scenario.name}' — ${scenario.purpose}")
                 val report = context.runScenario(scenario, server)
                 LOG.info("[Bench] ${report.summaryLine()}")
                 reports += report
             }
 
-            // WP0.6 calibration in the same world/session — a second client
-            // world costs ~30s of startup for nothing.
-            CalibrationRuns.run(context, server)
+            // WP0.6 calibration (same world/session): opt-in — the constants
+            // are stable measurements, only worth re-running after an MC
+            // version bump or a movement-simulator change.
+            if (System.getProperty("lambda.bench.calibrate").toBoolean()) {
+                CalibrationRuns.run(context, server)
+            } else {
+                LOG.info("[Bench] Calibration skipped (-Pbench.calibrate=true to run)")
+            }
         } finally {
             context.runOnClient<IllegalStateException> {
                 PathfinderManager.cancelActiveTraversal()

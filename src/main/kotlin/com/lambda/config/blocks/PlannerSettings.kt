@@ -34,4 +34,5 @@ class PlannerSettings(override val c: Config) : PlannerConfig, ConfigBlock {
     @Group(EDGES_GROUP) override val allowVertical by c.setting("Allow Vertical", true, "Allow vertical walking edges in the coarse walking graph.")
     @Group(EDGES_GROUP) override val allowJump by c.setting("Allow Jump", false, "Allow jump successors (up to 2 blocks horizontally, 1 block up) in the coarse walking graph.") { allowVertical }
     @Group(EDGES_GROUP) override val maxDropHeight by c.setting("Max Drop Height", 3, 1..8, 1, "Maximum walk-off drop depth the planner may use. Drops deeper than 3 deal fall damage without mitigation.", " blocks") { allowVertical }
+    @Group(EDGES_GROUP) override val allowManeuverDiscovery by c.setting("Maneuver Discovery", false, "Discover sprint-jump edges beyond the template range at platform ledges (simulation-validated, up to ~4 blocks). Experimental — WP3.2.") { allowJump }
 }

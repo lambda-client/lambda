@@ -52,6 +52,7 @@ class MoveTableDifferentialTest {
         override val maxDropHeight: Int,
         override val computeBudget: Long = 50,
         override val maxPathLength: Int = 1000,
+        override val allowManeuverDiscovery: Boolean = false,
     ) : PlannerConfig
 
     private val configMatrix = listOf(
