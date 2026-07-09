@@ -325,7 +325,7 @@ object PathfinderManager : Loadable,
             return
         }
 
-        val refinement = with(PathRefiner) { refine(coarsePath, refinementConfig) }
+        val refinement = PathRefiner.refine(session.view, coarsePath, refinementConfig)
         if (refinement.stats.enabled) {
             PlannerMetrics.sink.refineEnd(
                 traversalId = handle.id,

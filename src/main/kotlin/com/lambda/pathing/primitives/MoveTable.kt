@@ -118,6 +118,18 @@ object MoveTable {
             view.traits(x, y, z).centerPassable && !view.traits(x, y - 1, z).intrudesAbove &&
             view.traits(x, y + 1, z).centerPassable
 
+    /**
+     * A column a swept, off-center footprint may cross: full-square support
+     * below with no intrusion, and *fully* passable feet and head voxels.
+     * [isStance]'s center-passability is only valid where the agent stands
+     * at column centers; an any-angle corridor sweeps the whole column, so
+     * partial shapes (fences, walls, open doors) must reject it.
+     */
+    fun isSweptStance(view: WorldView, x: Int, y: Int, z: Int): Boolean =
+        view.traits(x, y - 1, z).standableFullTop && !view.traits(x, y - 1, z).intrudesAbove &&
+            view.traits(x, y, z).passable &&
+            view.traits(x, y + 1, z).passable
+
     fun build(config: PlannerConfig): MoveSet {
         val templates = buildList {
             forEachCardinal { dx, dz ->

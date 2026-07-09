@@ -17,58 +17,45 @@
 
 package com.lambda.pathing.refinement
 
-import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.util.player.prediction.MovementSimulator
 import com.lambda.config.blocks.PathRefinementConfig
-import com.lambda.pathing.movement.WalkingMovementModel
-import com.lambda.util.math.flooredBlockPos
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.MovementSimulationTick
-import com.lambda.util.player.prediction.buildMovementSimulator
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.x
 import com.lambda.util.world.y
 import com.lambda.util.world.z
-import net.minecraft.util.math.BlockPos
+import com.lambda.worldview.WorldView
 import net.minecraft.util.math.Vec3d
-import kotlin.math.abs
-import kotlin.math.ceil
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
  * Greedy post-processing pass that shortens a coarse D* Lite path.
  *
- * The planner intentionally keeps only short local edges. Refinement looks for
- * the farthest future waypoint that can replace a whole run of coarse nodes
- * while still being traversable. Four validators are used, selected by the
- * vertical delta between anchor and candidate:
+ * Refinement is F2 repair only (research plan §3.0): it removes the
+ * 45°-quantization overhead of the coarse grid by replacing runs of
+ * same-height nodes with straight any-angle segments, each validated
+ * exactly against the swept player footprint ([ShortcutCorridor]). It never
+ * crosses a vertical transition — merging steps, drops, and jumps into
+ * shortcuts is maneuver-layer work (macro-edges with entry envelopes, WP3),
+ * not refinement.
  *
- * 1. **Flat walk sweep** — same-height shortcuts. Dense standing-position
- *    checks along the straight segment.
- *
- * 2. **Hybrid (sim + sweep)** — ±1 block vertical shortcuts. Simulates only
- *    the vertical transition (step down or jump up), then sweeps the flat
- *    remainder. Much cheaper than full simulation for long segments.
- *
- * 3. **Movement simulation** — non-flat shortcuts beyond ±1 block (future
- *    multi-step jumps). Full tick-by-tick simulation of the entire segment.
- *
- * 4. **Precheck reject** — fallback when simulation is disabled; endpoint
- *    standing checks fail for any vertical delta.
+ * Failed corridors leave a *wall memory*: candidates whose segment passes
+ * through a recently blocking column are skipped without re-validation,
+ * which is what stops the farthest-first descent from probing the same wall
+ * dozens of times per anchor.
  */
 object PathRefiner {
     private const val EPSILON = 1.0E-9
     private const val PLAYER_HALF_WIDTH = 0.3
     private const val MAX_DEBUG_ATTEMPTS = 96
-    private const val MIN_SAMPLE_STEP = 1.0E-4
+    private const val WALL_MEMORY_SIZE = 8
 
-    fun SafeContext.refine(coarsePath: List<FastVector>, config: PathRefinementConfig): PathRefinementResult {
+    private const val PROFILE_CORRIDOR = "Corridor"
+
+    fun refine(
+        view: WorldView,
+        coarsePath: List<FastVector>,
+        config: PathRefinementConfig,
+    ): PathRefinementResult {
         val startedAt = System.nanoTime()
         val debugCollector = DebugCollector(MAX_DEBUG_ATTEMPTS)
 
@@ -84,10 +71,11 @@ object PathRefiner {
             )
         }
 
-        val clearanceMargin = config.clearanceMargin.coerceAtLeast(0.0)
+        val halfWidth = PLAYER_HALF_WIDTH + config.clearanceMargin.coerceAtLeast(0.0)
         val maxLookahead = config.maxLookahead.coerceAtLeast(1)
         val maxChecks = config.maxChecks.coerceAtLeast(1)
         val refined = arrayListOf(coarsePath.first())
+        val wallMemory = ArrayDeque<FastVector>()
 
         var anchorIndex = 0
         var shortcutChecks = 0
@@ -103,23 +91,10 @@ object PathRefiner {
             }
 
             val anchor = coarsePath[anchorIndex]
+            val anchorPos = anchor.toFeetCenter()
             val furthestCandidate = (anchorIndex + maxLookahead).coerceAtMost(coarsePath.lastIndex)
             var committedIndex = (anchorIndex + 1).coerceAtMost(coarsePath.lastIndex)
             var foundShortcut = false
-
-            if (!config.useHybridRefinement) {
-                val anchorY = anchor.y
-                val nextY = coarsePath[anchorIndex + 1].y
-                if (anchorY != nextY) {
-                    val allForwardSameY = (anchorIndex + 1..furthestCandidate).all { coarsePath[it].y == nextY }
-                    if (allForwardSameY) {
-                        skippedCandidates += furthestCandidate - anchorIndex
-                        debugCollector.recordSkipBatch(furthestCandidate - anchorIndex)
-                        anchorIndex = commitAnchor(refined, coarsePath, anchorIndex + 1, anchorIndex)
-                        continue
-                    }
-                }
-            }
 
             for (candidateIndex in furthestCandidate downTo (anchorIndex + 1)) {
                 if (shortcutChecks >= maxChecks) {
@@ -134,8 +109,23 @@ object PathRefiner {
                     continue
                 }
 
+                val candidatePos = candidate.toFeetCenter()
+                if (hitsRememberedWall(wallMemory, anchorPos, candidatePos, candidate.y, halfWidth)) {
+                    skippedCandidates++
+                    debugCollector.recordSkipped()
+                    continue
+                }
+
                 shortcutChecks++
-                val evaluation = evaluateShortcut(anchor, candidate, config, clearanceMargin, coarsePath, anchorIndex)
+                val evaluation = evaluateCorridorShortcut(
+                    view = view,
+                    start = anchor,
+                    end = candidate,
+                    startPos = anchorPos,
+                    endPos = candidatePos,
+                    halfWidth = halfWidth,
+                    wallMemory = wallMemory,
+                )
                 debugCollector.record(evaluation)
 
                 if (evaluation.traversable) {
@@ -177,426 +167,60 @@ object PathRefiner {
         )
     }
 
+    /** Same height and an actual horizontal displacement to cut across. */
     private fun isShortcutCandidate(start: FastVector, end: FastVector): Boolean {
+        if (start.y != end.y) return false
         val dx = (end.x - start.x).toDouble()
         val dz = (end.z - start.z).toDouble()
         return dx * dx + dz * dz > EPSILON
     }
 
-    private fun SafeContext.evaluateShortcut(
-        start: FastVector,
-        end: FastVector,
-        refinement: PathRefinementConfig,
-        horizontalClearanceMargin: Double,
-        coarsePath: List<FastVector>,
-        anchorIndex: Int,
-    ): ShortcutEvaluation {
-        val startPos = start.toFeetCenter()
-        val endPos = end.toFeetCenter()
-
-        if (startPos.squaredDistanceTo(endPos) <= EPSILON) {
-            return singleAttemptEvaluation(
-                traversable = true,
-                start = start,
-                end = end,
-                profile = ShortcutProfile.Precheck,
-                reason = ShortcutFailureReason.Accepted,
-            )
-        }
-
-        if (!isBlockTraversable(startPos.flooredBlockPos, horizontalClearanceMargin)) {
-            return singleAttemptEvaluation(
-                traversable = false,
-                start = start,
-                end = end,
-                profile = ShortcutProfile.Precheck,
-                reason = ShortcutFailureReason.StartBlocked,
-            )
-        }
-
-        if (!isBlockTraversable(endPos.flooredBlockPos, horizontalClearanceMargin)) {
-            return singleAttemptEvaluation(
-                traversable = false,
-                start = start,
-                end = end,
-                profile = ShortcutProfile.Precheck,
-                reason = ShortcutFailureReason.EndBlocked,
-            )
-        }
-
-        val dy = end.y - start.y
-        return when {
-            dy == 0 -> evaluateFlatWalkShortcut(start, end, startPos, endPos, horizontalClearanceMargin, refinement)
-            abs(dy) <= refinement.hybridVerticalStepLimit && refinement.useHybridRefinement && isAtStepBoundary(anchorIndex, coarsePath) ->
-                evaluateHybridShortcut(start, end, startPos, endPos, horizontalClearanceMargin, refinement)
-            else -> singleAttemptEvaluation(
-                traversable = false,
-                start = start,
-                end = end,
-                profile = ShortcutProfile.Precheck,
-                reason = ShortcutFailureReason.UnplannedRise,
-            )
-        }
-    }
-
     /**
-     * True when the anchor node is at a vertical step boundary in the coarse
-     * path — its y differs from the next node. Only step-boundary anchors are
-     * eligible for hybrid refinement. Without this gate, flat-ground anchors
-     * would produce shortcuts that begin before the stairs and create
-     * impossible steering angles that require flight.
+     * True if the segment to this candidate passes through a column that
+     * already blocked an earlier corridor at the same level — skip it
+     * without paying for another validation.
      */
-    private fun isAtStepBoundary(anchorIndex: Int, coarsePath: List<FastVector>): Boolean {
-        if (anchorIndex >= coarsePath.lastIndex) return false
-        return coarsePath[anchorIndex].y != coarsePath[anchorIndex + 1].y
+    private fun hitsRememberedWall(
+        wallMemory: ArrayDeque<FastVector>,
+        startPos: Vec3d,
+        endPos: Vec3d,
+        candidateY: Int,
+        halfWidth: Double,
+    ): Boolean = wallMemory.any { wall ->
+        wall.y == candidateY && ShortcutCorridor.segmentTouchesColumn(
+            startPos.x, startPos.z, endPos.x, endPos.z, wall.x, wall.z, halfWidth,
+        )
     }
 
-    private fun SafeContext.isBlockTraversable(pos: BlockPos, clearanceMargin: Double): Boolean =
-        with(WalkingMovementModel) {
-            isStandingPositionTraversable(Vec3d.ofBottomCenter(pos), clearanceMargin)
-        }
+    private fun rememberWall(wallMemory: ArrayDeque<FastVector>, column: FastVector) {
+        if (column in wallMemory) return
+        wallMemory += column
+        while (wallMemory.size > WALL_MEMORY_SIZE) wallMemory.removeFirst()
+    }
 
-    private fun SafeContext.evaluateFlatWalkShortcut(
+    private fun evaluateCorridorShortcut(
+        view: WorldView,
         start: FastVector,
         end: FastVector,
         startPos: Vec3d,
         endPos: Vec3d,
-        horizontalClearanceMargin: Double,
-        refinement: PathRefinementConfig,
+        halfWidth: Double,
+        wallMemory: ArrayDeque<FastVector>,
     ): ShortcutEvaluation {
-        val sampleStep = refinement.flatWalkSampleStep.coerceAtLeast(MIN_SAMPLE_STEP)
-        val distance = horizontalDistance(startPos, endPos)
-        val sampleCount = ceil(distance / sampleStep).toInt().coerceAtLeast(1)
-        val anchorY = startPos.flooredBlockPos.y
-        val halfWidth = PLAYER_HALF_WIDTH + horizontalClearanceMargin.coerceAtLeast(0.0)
-
-        for (sampleIndex in 1 until sampleCount) {
-            val sampleT = sampleIndex.toDouble() / sampleCount.toDouble()
-            val samplePos = interpolate(startPos, endPos, sampleT)
-
-            val xMin = floorInt(samplePos.x - halfWidth)
-            val xMax = floorInt(samplePos.x + halfWidth)
-            val zMin = floorInt(samplePos.z - halfWidth)
-            val zMax = floorInt(samplePos.z + halfWidth)
-
-            var blocked = false
-            for (bx in xMin..xMax) {
-                for (bz in zMin..zMax) {
-                    if (!isBlockTraversable(BlockPos(bx, anchorY, bz), horizontalClearanceMargin)) {
-                        blocked = true
-                        break
-                    }
-                }
-                if (blocked) break
-            }
-            if (blocked) {
-                return singleAttemptEvaluation(
-                    traversable = false,
-                    start = start,
-                    end = end,
-                    profile = ShortcutProfile.FlatWalk,
-                    reason = ShortcutFailureReason.SweepBlocked,
-                    ticks = sampleIndex,
-                    bestRemaining = horizontalDistance(samplePos, endPos),
-                )
-            }
-        }
-
-        return singleAttemptEvaluation(
-            traversable = true,
-            start = start,
-            end = end,
-            profile = ShortcutProfile.FlatWalk,
-            reason = ShortcutFailureReason.Accepted,
-            ticks = sampleCount,
-            bestRemaining = 0.0,
+        val blocked = ShortcutCorridor.firstBlockedColumn(
+            view, startPos.x, startPos.z, endPos.x, endPos.z, start.y, halfWidth,
         )
-    }
-
-    private fun SafeContext.evaluateHybridShortcut(
-        start: FastVector,
-        end: FastVector,
-        startPos: Vec3d,
-        endPos: Vec3d,
-        horizontalClearanceMargin: Double,
-        refinement: PathRefinementConfig,
-    ): ShortcutEvaluation {
-        val dy = end.y - start.y
-        val segmentRotation = startPos.rotationTo(endPos)
-
-        val simulator = buildMovementSimulator(
-            initialState = MovementSimulationState.at(
-                player = player,
-                position = startPos,
-                rotation = segmentRotation,
-                velocity = Vec3d.ZERO,
-                onGround = true,
-                isSprinting = false,
-            ),
-            inputProvider = { MovementSimulationInput() },
-        ).also { it.skipEntityCollisions = true }
-
-        val maxPhaseATicks = min(refinement.hybridSimMaxTicks.coerceAtLeast(10), 80)
-        val corridorRadius = PLAYER_HALF_WIDTH + horizontalClearanceMargin + refinement.simulationCorridorMargin.coerceAtLeast(0.0)
-        val targetY = end.y
-
-        val transitionTick = if (dy < 0) {
-            simulateWalkDownTransition(this, simulator, startPos, endPos, targetY, maxPhaseATicks, corridorRadius, refinement, horizontalClearanceMargin)
-        } else {
-            simulateJumpUpTransition(this, simulator, startPos, endPos, targetY, maxPhaseATicks, corridorRadius, refinement, horizontalClearanceMargin)
-        }
-
-        if (transitionTick == null) {
+        if (blocked != null) {
+            rememberWall(wallMemory, blocked)
             return singleAttemptEvaluation(
                 traversable = false,
                 start = start,
                 end = end,
-                profile = ShortcutProfile.Hybrid,
-                reason = ShortcutFailureReason.HybridStepBlocked,
+                reason = ShortcutFailureReason.SweepBlocked,
+                bestRemaining = horizontalDistance(blocked.toFeetCenter(), endPos),
             )
         }
-
-        // The vertical transition must complete within a physically plausible
-        // horizontal distance from the start. A single-block step-up or
-        // step-down reaches at most ~3 blocks forward; if the sim walked
-        // further the anchor cannot serve as the actual takeoff point.
-        val transitionDist = horizontalDistance(startPos, transitionTick.position)
-        if (transitionDist > 3.5) {
-            return singleAttemptEvaluation(
-                traversable = false,
-                start = start,
-                end = end,
-                profile = ShortcutProfile.Hybrid,
-                reason = ShortcutFailureReason.HybridStepBlocked,
-            )
-        }
-
-        val sweepResult = evaluateSweepSubsegment(
-            fromPos = transitionTick.position,
-            toPos = endPos,
-            supportY = targetY,
-            sampleStep = refinement.hybridFlatSampleStep.coerceAtLeast(MIN_SAMPLE_STEP),
-            horizontalClearanceMargin = horizontalClearanceMargin,
-        )
-
-        if (!sweepResult) {
-            return singleAttemptEvaluation(
-                traversable = false,
-                start = start,
-                end = end,
-                profile = ShortcutProfile.Hybrid,
-                reason = ShortcutFailureReason.HybridSweepBlocked,
-            )
-        }
-
-        return singleAttemptEvaluation(
-            traversable = true,
-            start = start,
-            end = end,
-            profile = ShortcutProfile.Hybrid,
-            reason = ShortcutFailureReason.Accepted,
-        )
-    }
-
-    private fun simulateWalkDownTransition(
-        context: SafeContext,
-        simulator: MovementSimulator,
-        startPos: Vec3d,
-        endPos: Vec3d,
-        targetY: Int,
-        maxTicks: Int,
-        corridorRadius: Double,
-        refinement: PathRefinementConfig,
-        horizontalClearanceMargin: Double,
-    ): MovementSimulationTick? {
-        for (tick in 0 until maxTicks) {
-            val current = simulator.lastTick
-
-            if (current.onGround && current.position.flooredBlockPos.y == targetY) {
-                if (with(context) { isBlockTraversable(current.position.flooredBlockPos, horizontalClearanceMargin) }) {
-                    return current
-                }
-            }
-
-            val failureReason = current.classifyFailure(
-                startPos = startPos,
-                endPos = endPos,
-                corridorRadius = corridorRadius,
-                profile = ShortcutProfile.Hybrid,
-                refinement = refinement,
-            )
-            if (failureReason != null) {
-                if (failureReason == ShortcutFailureReason.UnplannedRise ||
-                    failureReason == ShortcutFailureReason.UnplannedDrop
-                ) {
-                    // Expected during vertical transition phase
-                } else {
-                    return null
-                }
-            }
-
-            val nextInput = MovementSimulationInput(
-                forward = 1.0,
-                strafe = 0.0,
-                jump = false,
-                sneak = false,
-                sprint = false,
-                useItemSlowdown = false,
-                rotation = startPos.rotationTo(endPos),
-            )
-            simulator.tickMovement(nextInput)
-        }
-        return null
-    }
-
-    private fun simulateJumpUpTransition(
-        context: SafeContext,
-        simulator: MovementSimulator,
-        startPos: Vec3d,
-        endPos: Vec3d,
-        targetY: Int,
-        maxTicks: Int,
-        corridorRadius: Double,
-        refinement: PathRefinementConfig,
-        horizontalClearanceMargin: Double,
-    ): MovementSimulationTick? {
-        for (jumpTick in 0..2) {
-            simulator.reset(
-                MovementSimulationState.at(
-                    player = simulator.player,
-                    position = startPos,
-                    rotation = startPos.rotationTo(endPos),
-                    velocity = Vec3d.ZERO,
-                    onGround = true,
-                    isSprinting = true,
-                )
-            )
-
-            for (tick in 0 until maxTicks) {
-                val current = simulator.lastTick
-
-                if (current.onGround && current.position.flooredBlockPos.y == targetY) {
-                    if (with(context) { isBlockTraversable(current.position.flooredBlockPos, horizontalClearanceMargin) }) {
-                        return current
-                    }
-                }
-
-                val failureReason = current.classifyFailure(
-                    startPos = startPos,
-                    endPos = endPos,
-                    corridorRadius = corridorRadius,
-                    profile = ShortcutProfile.Hybrid,
-                    refinement = refinement,
-                )
-                if (failureReason != null) {
-                    if (failureReason == ShortcutFailureReason.UnplannedRise ||
-                        failureReason == ShortcutFailureReason.UnplannedDrop ||
-                        failureReason == ShortcutFailureReason.HorizontalCollision
-                    ) {
-                        // Normal during jump arc transitions
-                    } else {
-                        break
-                    }
-                }
-
-                val nextInput = MovementSimulationInput(
-                    forward = 1.0,
-                    strafe = 0.0,
-                    jump = tick == jumpTick,
-                    sneak = false,
-                    sprint = true,
-                    useItemSlowdown = false,
-                    rotation = startPos.rotationTo(endPos),
-                )
-                simulator.tickMovement(nextInput)
-            }
-        }
-        return null
-    }
-
-    private fun SafeContext.evaluateSweepSubsegment(
-        fromPos: Vec3d,
-        toPos: Vec3d,
-        supportY: Int,
-        sampleStep: Double,
-        horizontalClearanceMargin: Double,
-    ): Boolean {
-        val distance = horizontalDistance(fromPos, toPos)
-        if (distance <= EPSILON) return true
-
-        val sampleCount = ceil(distance / sampleStep).toInt().coerceAtLeast(1)
-        val halfWidth = PLAYER_HALF_WIDTH + horizontalClearanceMargin.coerceAtLeast(0.0)
-
-        for (sampleIndex in 1 until sampleCount) {
-            val samplePos = interpolate(fromPos, toPos, sampleIndex.toDouble() / sampleCount.toDouble())
-            val xMin = floorInt(samplePos.x - halfWidth)
-            val xMax = floorInt(samplePos.x + halfWidth)
-            val zMin = floorInt(samplePos.z - halfWidth)
-            val zMax = floorInt(samplePos.z + halfWidth)
-
-            var blocked = false
-            for (bx in xMin..xMax) {
-                for (bz in zMin..zMax) {
-                    if (!isBlockTraversable(BlockPos(bx, supportY, bz), horizontalClearanceMargin)) {
-                        blocked = true
-                        break
-                    }
-                }
-                if (blocked) break
-            }
-            if (blocked) return false
-        }
-
-        return true
-    }
-
-    private fun floorInt(value: Double): Int {
-        val i = value.toInt()
-        return if (value < i) i - 1 else i
-    }
-
-    private fun SafeContext.evaluateSimulatedShortcut(
-        start: FastVector,
-        end: FastVector,
-        startPos: Vec3d,
-        endPos: Vec3d,
-        horizontalClearanceMargin: Double,
-        refinement: PathRefinementConfig,
-    ): ShortcutEvaluation {
-        val attempts = ArrayList<ShortcutAttemptDebug>()
-        val segmentDistance = horizontalDistance(startPos, endPos)
-        val segmentRotation = startPos.rotationTo(endPos)
-        val simulator = buildMovementSimulator(
-            initialState = MovementSimulationState.at(
-                player = player,
-                position = startPos,
-                rotation = segmentRotation,
-                velocity = Vec3d.ZERO,
-                onGround = true,
-                isSprinting = false,
-            ),
-            inputProvider = { MovementSimulationInput() },
-        ).also { it.skipEntityCollisions = true }
-
-        for (profile in shortcutProfiles(startPos, endPos)) {
-            val result = simulateProfile(
-                simulator = simulator,
-                startPos = startPos,
-                endPos = endPos,
-                segmentDistance = segmentDistance,
-                segmentRotation = segmentRotation,
-                horizontalClearanceMargin = horizontalClearanceMargin,
-                refinement = refinement,
-                profile = profile,
-            )
-            val attempt = result.toAttempt(start, end, profile)
-            attempts += attempt
-            if (result.accepted) {
-                return ShortcutEvaluation(traversable = true, attempts = attempts)
-            }
-        }
-
-        return ShortcutEvaluation(traversable = false, attempts = attempts)
+        return singleAttemptEvaluation(true, start, end, ShortcutFailureReason.Accepted)
     }
 
     private fun commitAnchor(
@@ -624,288 +248,11 @@ object PathRefiner {
 
     private fun FastVector.toFeetCenter(): Vec3d = Vec3d.ofBottomCenter(toBlockPos())
 
-    private fun SafeContext.simulateProfile(
-        simulator: MovementSimulator,
-        startPos: Vec3d,
-        endPos: Vec3d,
-        segmentDistance: Double,
-        segmentRotation: Rotation,
-        horizontalClearanceMargin: Double,
-        refinement: PathRefinementConfig,
-        profile: ShortcutProfile,
-    ): ShortcutSimulationResult {
-        simulator.reset(
-            MovementSimulationState.at(
-                player = player,
-                position = startPos,
-                rotation = segmentRotation,
-                velocity = Vec3d.ZERO,
-                onGround = true,
-                isSprinting = profile.sprint,
-            )
-        )
-
-        val corridorRadius = PLAYER_HALF_WIDTH + horizontalClearanceMargin + refinement.simulationCorridorMargin.coerceAtLeast(0.0)
-        val reachThreshold = refinement.reachThreshold.coerceAtLeast(EPSILON)
-        val maxTicks = min(
-            refinement.simulationMaxTicks.coerceAtLeast(1),
-            estimateSimulationTicks(segmentDistance, profile, refinement),
-        )
-        val stagnationLimit = refinement.simulationStagnationTicks.coerceAtLeast(1)
-
-        var bestRemaining = segmentDistance
-        var bestTick = simulator.lastTick
-        var stagnantTicks = 0
-
-        repeat(maxTicks) { tick ->
-            val current = simulator.lastTick
-            val remaining = horizontalDistance(current.position, endPos)
-
-            if (remaining + refinement.stagnationProgressEpsilon < bestRemaining) {
-                bestRemaining = remaining
-                bestTick = current
-                stagnantTicks = 0
-            } else {
-                stagnantTicks++
-            }
-
-            if (reachedTarget(current, endPos, horizontalClearanceMargin, refinement)) {
-                return ShortcutSimulationResult(true, ShortcutFailureReason.Accepted, tick, bestRemaining)
-            }
-
-            val failureReason = current.classifyFailure(
-                startPos = startPos,
-                endPos = endPos,
-                corridorRadius = corridorRadius,
-                profile = profile,
-                refinement = refinement,
-            )
-            if (failureReason != null) {
-                if (softReached(current, endPos, horizontalClearanceMargin, refinement) ||
-                    softReached(bestTick, endPos, horizontalClearanceMargin, refinement)
-                ) {
-                    return ShortcutSimulationResult(true, ShortcutFailureReason.Accepted, tick, bestRemaining)
-                }
-                return ShortcutSimulationResult(false, failureReason, tick, bestRemaining)
-            }
-
-            if (stagnantTicks >= stagnationLimit) {
-                return if (softReached(bestTick, endPos, horizontalClearanceMargin, refinement)) {
-                    ShortcutSimulationResult(true, ShortcutFailureReason.Accepted, tick, bestRemaining)
-                } else {
-                    ShortcutSimulationResult(false, ShortcutFailureReason.Stagnated, tick, bestRemaining)
-                }
-            }
-
-            val steeringTarget = if (profile.useLookahead) {
-                current.lookaheadTarget(startPos, endPos, refinement.simulationLookaheadDistance.coerceAtLeast(0.0))
-            } else {
-                endPos
-            }
-
-            val nextInput = MovementSimulationInput(
-                forward = current.forwardInputFor(endPos, reachThreshold, profile, refinement),
-                strafe = 0.0,
-                jump = profile.shouldJump(tick),
-                sneak = false,
-                sprint = profile.sprint,
-                useItemSlowdown = false,
-                rotation = if (profile.useLookahead) current.position.rotationTo(steeringTarget) else segmentRotation,
-            )
-            simulator.tickMovement(nextInput)
-        }
-
-        return if (
-            reachedTarget(simulator.lastTick, endPos, horizontalClearanceMargin, refinement) ||
-            softReached(bestTick, endPos, horizontalClearanceMargin, refinement)
-        ) {
-            ShortcutSimulationResult(true, ShortcutFailureReason.Accepted, maxTicks, bestRemaining)
-        } else {
-            ShortcutSimulationResult(
-                accepted = false,
-                reason = ShortcutFailureReason.Timeout,
-                ticks = maxTicks,
-                bestRemaining = horizontalDistance(simulator.lastTick.position, endPos),
-            )
-        }
-    }
-
-    private fun SafeContext.reachedTarget(
-        tick: MovementSimulationTick,
-        endPos: Vec3d,
-        horizontalClearanceMargin: Double,
-        refinement: PathRefinementConfig,
-    ): Boolean {
-        val standsSafely = with(WalkingMovementModel) {
-            isStandingPositionTraversable(tick.position, horizontalClearanceMargin)
-        }
-        if (!tick.onGround || !standsSafely) {
-            return false
-        }
-
-        val endBlock = endPos.flooredBlockPos
-        if (tick.position.flooredBlockPos == endBlock) {
-            return true
-        }
-
-        return horizontalDistance(tick.position, endPos) <= refinement.reachThreshold &&
-            abs(tick.position.y - endPos.y) <= refinement.verticalReachThreshold
-    }
-
-    private fun SafeContext.softReached(
-        tick: MovementSimulationTick,
-        endPos: Vec3d,
-        horizontalClearanceMargin: Double,
-        refinement: PathRefinementConfig,
-    ): Boolean {
-        val endBlock = endPos.flooredBlockPos
-        val closeEnough = horizontalDistance(tick.position, endPos) <= max(
-            refinement.softReachThreshold,
-            refinement.reachThreshold * refinement.softReachMultiplier,
-        )
-        val inTargetBlock = tick.position.flooredBlockPos == endBlock
-        val lowVelocity = tick.horizontalSpeed() <= refinement.softReachMaxSpeed
-        val verticallyClose = abs(tick.position.y - endPos.y) <= refinement.softVerticalReachThreshold
-
-        if (!(inTargetBlock || closeEnough) || !lowVelocity || !verticallyClose) {
-            return false
-        }
-
-        return with(WalkingMovementModel) {
-            isStandingPositionTraversable(endPos, horizontalClearanceMargin)
-        }
-    }
-
-    private fun MovementSimulationTick.classifyFailure(
-        startPos: Vec3d,
-        endPos: Vec3d,
-        corridorRadius: Double,
-        profile: ShortcutProfile,
-        refinement: PathRefinementConfig,
-    ): ShortcutFailureReason? {
-        if (simulator.state.horizontalCollision) {
-            return ShortcutFailureReason.HorizontalCollision
-        }
-
-        val progress = horizontalProgress(position, startPos, endPos)
-        if (progress < -refinement.backtrackTolerance) {
-            return ShortcutFailureReason.Backtracked
-        }
-
-        val segmentLength = horizontalDistance(startPos, endPos).coerceAtLeast(EPSILON)
-        val overshootDistance = ((progress - 1.0).coerceAtLeast(0.0)) * segmentLength
-        if (
-            overshootDistance > refinement.maxOvershootDistance &&
-            horizontalDistance(position, endPos) > refinement.maxOvershootRemainingDistance
-        ) {
-            return ShortcutFailureReason.Overshot
-        }
-
-        if (distanceToSegmentXZ(position, startPos, endPos) > corridorRadius) {
-            return ShortcutFailureReason.LeftCorridor
-        }
-
-        if (!profile.allowRise && position.y > startPos.y + refinement.maxUnplannedRise) {
-            return ShortcutFailureReason.UnplannedRise
-        }
-
-        if (!profile.allowDrop && position.y < min(startPos.y, endPos.y) - refinement.maxUnplannedDrop) {
-            return ShortcutFailureReason.UnplannedDrop
-        }
-
-        return null
-    }
-
-    private fun MovementSimulationTick.lookaheadTarget(
-        startPos: Vec3d,
-        endPos: Vec3d,
-        lookaheadDistance: Double,
-    ): Vec3d {
-        val progress = horizontalProgress(position, startPos, endPos)
-        val segmentLength = horizontalDistance(startPos, endPos)
-        if (segmentLength <= EPSILON) {
-            return endPos
-        }
-
-        val lookaheadProgress = (progress + lookaheadDistance / segmentLength).coerceIn(0.0, 1.0)
-        return interpolate(startPos, endPos, lookaheadProgress)
-    }
-
-    private fun MovementSimulationTick.forwardInputFor(
-        endPos: Vec3d,
-        reachThreshold: Double,
-        profile: ShortcutProfile,
-        refinement: PathRefinementConfig,
-    ): Double {
-        val remaining = horizontalDistance(position, endPos)
-        if (position.flooredBlockPos == endPos.flooredBlockPos) {
-            return 0.0
-        }
-
-        val brakingWindow = max(
-            refinement.minBrakingWindow,
-            horizontalSpeed() * if (profile.sprint) refinement.sprintBrakingTicks else refinement.walkBrakingTicks,
-        )
-
-        return when {
-            remaining <= reachThreshold -> 0.0
-            remaining <= brakingWindow * 0.35 -> if (profile.sprint) 0.35 else 0.5
-            remaining <= brakingWindow * 0.6 -> if (profile.sprint) 0.55 else 0.7
-            remaining <= brakingWindow -> if (profile.sprint) 0.8 else 0.9
-            else -> 1.0
-        }
-    }
-
-    private fun MovementSimulationTick.horizontalSpeed(): Double {
-        val vx = velocity.x
-        val vz = velocity.z
-        return sqrt(vx * vx + vz * vz)
-    }
-
-    private fun estimateSimulationTicks(
-        horizontalDistance: Double,
-        profile: ShortcutProfile,
-        refinement: PathRefinementConfig,
-    ): Int {
-        val expectedSpeed = when {
-            profile.jumpTick != null && profile.sprint -> refinement.expectedSprintJumpSpeed
-            profile.jumpTick != null -> refinement.expectedJumpSpeed
-            profile.sprint -> refinement.expectedSprintWalkSpeed
-            else -> refinement.expectedWalkSpeed
-        }.coerceAtLeast(EPSILON)
-
-        return max(
-            refinement.minSimulationTicks.coerceAtLeast(1),
-            ceil(horizontalDistance / expectedSpeed).toInt() + refinement.simulationTickBudgetPadding.coerceAtLeast(0),
-        )
-    }
-
-    private fun shortcutProfiles(startPos: Vec3d, endPos: Vec3d): List<ShortcutProfile> {
-        val verticalDelta = endPos.y - startPos.y
-        return buildList {
-            add(ShortcutProfile.Walk)
-            add(ShortcutProfile.SprintWalk)
-
-            if (verticalDelta < -EPSILON) {
-                add(ShortcutProfile.DropWalk)
-                add(ShortcutProfile.SprintDropWalk)
-            }
-
-            if (verticalDelta > EPSILON) {
-                add(ShortcutProfile.JumpNow)
-                add(ShortcutProfile.SprintJumpOneTick)
-                add(ShortcutProfile.SprintJumpTwoTicks)
-            }
-        }
-    }
-
     private fun singleAttemptEvaluation(
         traversable: Boolean,
         start: FastVector,
         end: FastVector,
-        profile: ShortcutProfile,
         reason: ShortcutFailureReason,
-        ticks: Int = 0,
         bestRemaining: Double = 0.0,
     ) = ShortcutEvaluation(
         traversable = traversable,
@@ -913,27 +260,12 @@ object PathRefiner {
             ShortcutAttemptDebug(
                 from = start,
                 to = end,
-                profile = profile.name,
+                profile = PROFILE_CORRIDOR,
                 accepted = traversable,
                 reason = reason.name,
-                ticks = ticks,
                 bestRemaining = bestRemaining,
             )
         ),
-    )
-
-    private fun ShortcutSimulationResult.toAttempt(
-        start: FastVector,
-        end: FastVector,
-        profile: ShortcutProfile,
-    ) = ShortcutAttemptDebug(
-        from = start,
-        to = end,
-        profile = profile.name,
-        accepted = accepted,
-        reason = reason.name,
-        ticks = ticks,
-        bestRemaining = bestRemaining,
     )
 
     private fun List<FastVector>.stats(
@@ -989,33 +321,6 @@ object PathRefiner {
         return sqrt(dx * dx + dz * dz)
     }
 
-    private fun horizontalProgress(point: Vec3d, start: Vec3d, end: Vec3d): Double {
-        val dx = end.x - start.x
-        val dz = end.z - start.z
-        val lengthSquared = dx * dx + dz * dz
-        if (lengthSquared <= EPSILON) {
-            return 1.0
-        }
-
-        val px = point.x - start.x
-        val pz = point.z - start.z
-        return (px * dx + pz * dz) / lengthSquared
-    }
-
-    private fun distanceToSegmentXZ(point: Vec3d, start: Vec3d, end: Vec3d): Double {
-        val projection = horizontalProgress(point, start, end).coerceIn(0.0, 1.0)
-        val closestPoint = interpolate(start, end, projection)
-        val dx = point.x - closestPoint.x
-        val dz = point.z - closestPoint.z
-        return sqrt(dx * dx + dz * dz)
-    }
-
-    private fun interpolate(start: Vec3d, end: Vec3d, t: Double): Vec3d = Vec3d(
-        start.x + (end.x - start.x) * t,
-        start.y + (end.y - start.y) * t,
-        start.z + (end.z - start.z) * t,
-    )
-
     private fun areCollinear(a: FastVector, b: FastVector, c: FastVector): Boolean {
         if (a.y != b.y || b.y != c.y) return false
 
@@ -1037,130 +342,9 @@ object PathRefiner {
         return dot >= 0
     }
 
-    private data class ShortcutProfile(
-        val name: String,
-        val description: String,
-        val sprint: Boolean,
-        val jumpTick: Int?,
-        val allowRise: Boolean,
-        val allowDrop: Boolean,
-        val useLookahead: Boolean,
-    ) {
-        fun shouldJump(tick: Int): Boolean = jumpTick == tick
-
-        companion object {
-            val Precheck = ShortcutProfile(
-                name = "Precheck",
-                description = "Only endpoint standing checks; no movement validation is needed yet.",
-                sprint = false,
-                jumpTick = null,
-                allowRise = false,
-                allowDrop = false,
-                useLookahead = false,
-            )
-
-            val FlatWalk = ShortcutProfile(
-                name = "FlatWalk",
-                description = "Dense same-height standing-position sweep.",
-                sprint = false,
-                jumpTick = null,
-                allowRise = false,
-                allowDrop = false,
-                useLookahead = false,
-            )
-
-            val Walk = ShortcutProfile(
-                name = "Walk",
-                description = "Grounded non-sprinting simulation that follows the segment directly.",
-                sprint = false,
-                jumpTick = null,
-                allowRise = false,
-                allowDrop = false,
-                useLookahead = false,
-            )
-
-            val SprintWalk = ShortcutProfile(
-                name = "SprintWalk",
-                description = "Grounded sprinting simulation used for longer flat or shallow shortcuts.",
-                sprint = true,
-                jumpTick = null,
-                allowRise = false,
-                allowDrop = false,
-                useLookahead = false,
-            )
-
-            val DropWalk = ShortcutProfile(
-                name = "DropWalk",
-                description = "Walking profile that allows planned descent but still rejects unexpected rises.",
-                sprint = false,
-                jumpTick = null,
-                allowRise = false,
-                allowDrop = true,
-                useLookahead = false,
-            )
-
-            val SprintDropWalk = ShortcutProfile(
-                name = "SprintDropWalk",
-                description = "Sprinting drop profile for faster descending shortcuts.",
-                sprint = true,
-                jumpTick = null,
-                allowRise = false,
-                allowDrop = true,
-                useLookahead = false,
-            )
-
-            val JumpNow = ShortcutProfile(
-                name = "JumpNow",
-                description = "Immediate jump on the first simulated tick with lookahead steering.",
-                sprint = false,
-                jumpTick = 0,
-                allowRise = true,
-                allowDrop = true,
-                useLookahead = true,
-            )
-
-            val SprintJumpOneTick = ShortcutProfile(
-                name = "SprintJump+1",
-                description = "Sprint jump delayed by one tick to test a slightly later takeoff window.",
-                sprint = true,
-                jumpTick = 1,
-                allowRise = true,
-                allowDrop = true,
-                useLookahead = true,
-            )
-
-            val SprintJumpTwoTicks = ShortcutProfile(
-                name = "SprintJump+2",
-                description = "Sprint jump delayed by two ticks for even later takeoff timing.",
-                sprint = true,
-                jumpTick = 2,
-                allowRise = true,
-                allowDrop = true,
-                useLookahead = true,
-            )
-
-            val Hybrid = ShortcutProfile(
-                name = "Hybrid",
-                description = "Simulates the vertical transition then sweeps the flat remainder. Covers ±1 block steps up or down.",
-                sprint = true,
-                jumpTick = null,
-                allowRise = true,
-                allowDrop = true,
-                useLookahead = false,
-            )
-        }
-    }
-
     private data class ShortcutEvaluation(
         val traversable: Boolean,
         val attempts: List<ShortcutAttemptDebug>,
-    )
-
-    private data class ShortcutSimulationResult(
-        val accepted: Boolean,
-        val reason: ShortcutFailureReason,
-        val ticks: Int,
-        val bestRemaining: Double,
     )
 
     private class DebugCollector(private val maxRecentAttempts: Int) {
@@ -1174,10 +358,6 @@ object PathRefiner {
 
         fun recordSkipped() {
             skippedCandidates++
-        }
-
-        fun recordSkipBatch(count: Int) {
-            skippedCandidates += count
         }
 
         fun record(evaluation: ShortcutEvaluation) {

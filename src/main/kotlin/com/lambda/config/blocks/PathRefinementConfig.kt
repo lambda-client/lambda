@@ -22,35 +22,4 @@ interface PathRefinementConfig {
     val clearanceMargin: Double
     val maxLookahead: Int
     val maxChecks: Int
-    val flatWalkSampleStep: Double
-    val useSimulation: Boolean
-    val useHybridRefinement: Boolean
-    val hybridVerticalStepLimit: Int
-    val hybridSimMaxTicks: Int
-    val hybridFlatSampleStep: Double
-    val simulationMaxTicks: Int
-    val minSimulationTicks: Int
-    val simulationTickBudgetPadding: Int
-    val simulationLookaheadDistance: Double
-    val simulationCorridorMargin: Double
-    val simulationStagnationTicks: Int
-    val expectedWalkSpeed: Double
-    val expectedSprintWalkSpeed: Double
-    val expectedJumpSpeed: Double
-    val expectedSprintJumpSpeed: Double
-    val reachThreshold: Double
-    val verticalReachThreshold: Double
-    val softReachThreshold: Double
-    val softReachMultiplier: Double
-    val softVerticalReachThreshold: Double
-    val softReachMaxSpeed: Double
-    val stagnationProgressEpsilon: Double
-    val backtrackTolerance: Double
-    val maxOvershootDistance: Double
-    val maxOvershootRemainingDistance: Double
-    val maxUnplannedRise: Double
-    val maxUnplannedDrop: Double
-    val minBrakingWindow: Double
-    val walkBrakingTicks: Double
-    val sprintBrakingTicks: Double
 }
