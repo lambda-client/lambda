@@ -33,7 +33,7 @@ object SafeWalk : Module(
 ) {
     private val sneakOnLedge by setting("Sneak On Ledge", true)
     private val ledgeDistance by setting("Ledge Distance", 0.2, 0.0..0.5, 0.01, unit = " blocks")
-    private val stepHeight by setting("Step Height", 1.1, 0.0..4.0, 0.05, unit = " blocks")
+    private val stepHeight by setting("Step Height", 0.5, 0.0..4.0, 0.05, unit = " blocks")
 
     init {
         listen<MovementEvent.InputUpdate> {
