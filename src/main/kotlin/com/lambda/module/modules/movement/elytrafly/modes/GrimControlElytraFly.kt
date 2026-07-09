@@ -121,11 +121,22 @@ class GrimControlElytraFly(
 			val rot = RotationManager.activeRotation
 			val flipFlop = rotFlipFlop.toFloat() * 0.0001f
 			rotFlipFlop = !rotFlipFlop
-			event.packet = PlayerMoveC2SPacket.Full(player.pos, rot.yawF + flipFlop, rot.pitchF, player.isOnGround, player.horizontalCollision)
+			event.packet =
+				PlayerMoveC2SPacket.Full(
+					player.pos,
+					rot.yawF + flipFlop,
+					rot.pitchF,
+					player.isOnGround,
+					player.horizontalCollision
+				)
 		}
 
 		listen<PacketEvent.Send.Pre> { event ->
-			if (event.packet !is PlayerMoveC2SPacket || !player.isGliding || flipFlopMode.isFlipFlopping(hasFirework) || moving) return@listen
+			if (event.packet !is PlayerMoveC2SPacket ||
+				!player.isGliding ||
+				flipFlopMode.isFlipFlopping(hasFirework) ||
+				moving
+				) return@listen
 			if (stillTickTimer.hasSurpassed(packetGap)) {
 				stillTickTimer.reset()
 				return@listen

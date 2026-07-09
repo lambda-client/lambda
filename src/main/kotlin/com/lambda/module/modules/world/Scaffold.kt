@@ -86,8 +86,8 @@ object Scaffold : Module(
 					stack.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks }
 				}
 			}
-			val stack = player.mainHandStack.takeIf { selection.filterStack(it) }
-				?: selection.filterStacks(HotbarContainer.stacks).firstOrNull() ?: return@listen
+			val stack = player.mainHandStack.takeIf { selection.matches(it) }
+				?: selection.filter(HotbarContainer.stacks).firstOrNull() ?: return@listen
 			val playerSupport = player.blockPos.down()
 			val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
 			if (alreadySupported) return@listen

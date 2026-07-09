@@ -25,8 +25,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
-import com.lambda.interaction.inventory.container.containers.InventoryContainer
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 
@@ -39,40 +39,30 @@ class ContainerTransferTask(
 ) : Task<Unit>(), Automated by automated {
 	override val name = "Transferring $stackSelection from $fromContainer to $toContainer"
 
-	private var delegateTask: Task<*>? = null
-
 	init {
 		listen<TickEvent.Pre> {
-			if (delegateTask?.isCompleted == true) {
-				success()
-				return@listen
-			}
 			runSafeAutomated {
-				val fromExternal = fromContainer as? ExternalContainer
 				val slots = fromContainer.slots
 				val toSlots = toContainer.slots
-				fromExternal.takeIf { slots.isEmpty() }?.let { fromExternal ->
+				if (fromContainer is ExternalContainer && slots.isEmpty()) {
 					if (toContainer is ExternalContainer && toSlots.isEmpty()) {
-						fromContainer.transferByTask(stackSelection, InventoryContainer).finally {
-							fromContainer = InventoryContainer
-						}.execute(this@ContainerTransferTask)
-						return@listen
-					}
-					delegateTask = fromExternal.accessThen {
-						fromContainer.transferByTask(stackSelection, toContainer)
-					}?.execute(this@ContainerTransferTask) ?: run {
-						checkFail()
+						fromContainer
+							.transferByTask(stackSelection, HotbarAndInventoryContainer)
+							.finally { fromContainer = HotbarAndInventoryContainer }
+							.execute(this@ContainerTransferTask)
 						return@listen
 					}
 					return@listen
 				}
 				if (toContainer is ExternalContainer && toSlots.isEmpty()) {
-					delegateTask = toContainer.accessThen {
-						fromContainer.transferByTask(stackSelection, toContainer)
-					}?.execute(this@ContainerTransferTask) ?: run {
-						checkFail()
-						return@listen
-					}
+					toContainer
+						.accessThen {
+							fromContainer.transferByTask(stackSelection, toContainer)
+						}?.finally { success() }
+						?.execute(this@ContainerTransferTask) ?: run {
+							checkFail()
+							return@listen
+						}
 					return@listen
 				}
 
@@ -97,9 +87,10 @@ class ContainerTransferTask(
 
 
 	private fun checkFail(): Boolean =
-		failIfNoMaterial.also {
+		if (failIfNoMaterial) {
 			failure(NoMaterialAccessException(stackSelection))
-		}
+			true
+		} else false
 
 	private class NoMaterialAccessException(stackSelection: StackSelection) : IllegalStateException("Unable to access $stackSelection.")
 }

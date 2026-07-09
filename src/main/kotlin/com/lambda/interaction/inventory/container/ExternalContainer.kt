@@ -19,9 +19,11 @@ package com.lambda.interaction.inventory.container
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.TaskGenerator
 
 interface ExternalContainer {
+	@Ta5kBuilder
 	context(_: AutomatedSafeContext)
 	fun accessThen(exitAfter: Boolean = true, taskGenerator: TaskGenerator<Unit>): Task<*>?
 }

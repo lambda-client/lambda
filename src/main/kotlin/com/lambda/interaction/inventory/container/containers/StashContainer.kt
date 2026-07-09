@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.inventory.container.containers
 
-import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.math.roundedBlockPos
@@ -32,7 +31,6 @@ data class StashContainer(
     val chests: Set<ChestContainer>,
     val pos: Box,
 ) : Container(Rank.Stash) {
-    context(_: SafeContext)
     override val slots: List<Slot>
         get() = chests.flatMap { it.slots }
     override var stacks: List<ItemStack>
@@ -44,7 +42,6 @@ data class StashContainer(
         highlighted(pos.center.roundedBlockPos.toShortString())
     }
 
-    context(_: SafeContext)
     override fun materialAvailable(selection: StackSelection): Int =
         chests.sumOf {
             it.materialAvailable(selection)

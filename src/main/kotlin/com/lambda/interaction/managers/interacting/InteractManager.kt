@@ -38,13 +38,13 @@ import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.ManagerUtils.isPosBlocked
 import com.lambda.interaction.managers.PositionBlocking
 import com.lambda.interaction.managers.breaking.BreakManager
-import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.managers.interacting.InteractManager.activeRequest
 import com.lambda.interaction.managers.interacting.InteractManager.maxInteractionsThisTick
 import com.lambda.interaction.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.managers.interacting.InteractManager.processRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.modules.world.AutoSign.signWriteDelay
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeAutomated
@@ -162,10 +162,7 @@ object InteractManager : Manager<InteractRequest>(
 				if (!canInteractThisTick()) break
 				val firstInteraction = potentialInteractions.first()
 				if (player.inventory.selectedSlot != firstInteraction.hotbarIndex) {
-					val hotbarRequest = HotbarRequest(
-						firstInteraction.hotbarIndex,
-						this
-					).submit(queueIfMismatchedStage = false)
+					val hotbarRequest = hotbarRequest(firstInteraction.hotbarIndex).submit(false)
 					if (!hotbarRequest.done) break
 				}
 				var interactResult: InteractResult? = null

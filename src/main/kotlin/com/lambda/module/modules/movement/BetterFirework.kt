@@ -33,8 +33,9 @@ import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.inventory.container.containers.InventoryContainer
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -85,7 +86,7 @@ object BetterFirework : Module(
 
 	val ClientPlayerEntity.hasFireworks: Boolean
 		get() = Items.FIREWORK_ROCKET.select()
-			.filterStacks(HotbarAndInventoryContainer.stacks)
+			.filter(HotbarAndInventoryContainer.stacks)
 			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
 
 	context(_: SafeContext)
@@ -156,39 +157,35 @@ object BetterFirework : Module(
 	 * Return true if a firework has been used
 	 */
 	fun SafeContext.startFirework(inventory: Boolean) {
-		val stack = selectStack(1) { isItem(Items.FIREWORK_ROCKET) }
+		val selection = Items.FIREWORK_ROCKET.select(1)
 
-		stack.bestMatch(HotbarContainer.stacks)
-			?.let {
-				val request = HotbarRequest(HotbarContainer.stacks.indexOf(it), this@BetterFirework, keepTicks = 0)
-					.submit(queueIfMismatchedStage = false)
-				if (request.done) {
-					interaction.interactItem(player, Hand.MAIN_HAND)
-					sendSwing()
-				}
-				return
-			}
+		val hotbarMatch = selection.bestMatch(HotbarContainer.slots)
+		if (hotbarMatch != null) {
+			swapAndFirework(hotbarMatch.index)
+			return
+		}
 
 		if (!inventory) return
 
-		stack.bestMatch(HotbarContainer.stacks)
-			?.let {
-				val swapSlotId = HotbarAndInventoryContainer.stacks.indexOf(it)
-				val hotbarSlotToSwapWith = HotbarContainer.stacks.find { slot -> slot.isEmpty }?.let { slot -> HotbarContainer.stacks.indexOf(slot) } ?: 8
+		val inventoryMatch = selection.bestMatch(InventoryContainer.slots) ?: return
+		val hotbarSlot = selectStack { isEmpty() }.bestMatch(HotbarContainer.slots)?.index ?: 8
 
-				inventoryRequest {
-					swap(swapSlotId, hotbarSlotToSwapWith)
-					action {
-						val request = HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true)
-							.submit(queueIfMismatchedStage = false)
-						if (request.done) {
-							interaction.interactItem(player, Hand.MAIN_HAND)
-							sendSwing()
-						}
-					}
-					swap(swapSlotId, hotbarSlotToSwapWith)
-				}.submit()
-			}
+		inventoryRequest {
+			swapWithHotbar(inventoryMatch.id, hotbarSlot)
+			action { swapAndFirework(hotbarSlot) }
+			swapWithHotbar(inventoryMatch.id, hotbarSlot)
+		}.submit()
+	}
+
+	private fun SafeContext.swapAndFirework(hotbarSlot: Int) {
+		val request =
+			hotbarRequest(hotbarSlot, true) {
+				keepTicks(0)
+			}.submit(false)
+		if (request.done) {
+			interaction.interactItem(player, Hand.MAIN_HAND)
+			sendSwing()
+		}
 	}
 
 	enum class TakeoffState {

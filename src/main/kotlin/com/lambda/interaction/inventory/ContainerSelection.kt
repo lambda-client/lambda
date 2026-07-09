@@ -17,81 +17,89 @@
 
 package com.lambda.interaction.inventory
 
-import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.container.Container
 
 /**
  * ContainerSelection is a class that holds a predicate for matching MaterialContainers.
- * It can be combined using "and", "or", etc.
  */
-class ContainerSelection {
-    private var selector: (Container) -> Boolean = { true }
+@Suppress("unused")
+class ContainerSelection(
+    val selector: (Container) -> Boolean,
+    val comparator: Comparator<Container> = compareBy { it.rank }
+) {
+    @ContainerSelectionMarker
+    fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
 
-    /**
-     * Tests whether the provided container matches this selection.
-     */
-    @ContainerSelectionDsl
+    @ContainerSelectionMarker
     fun matches(container: Container): Boolean = selector(container)
 
-    /**
-     * Returns a function that matches containers having at least one stack
-     * which matches the given StackSelection.
-     */
-    @ContainerSelectionDsl
-    context(_: SafeContext)
-    fun matches(stackSelection: StackSelection): (Container) -> Boolean =
-        { container -> container.matchingSlots(stackSelection).isNotEmpty() }
-
-    /**
-     * Returns a function that checks whether a given MaterialContainer matches the criteria
-     * defined in the provided ContainerSelection.
-     */
-    @ContainerSelectionDsl
-    fun matches(containerSelection: ContainerSelection): (Container) -> Boolean =
-        { container -> containerSelection.matches(container) }
-
-    /**
-     * Returns a function that matches containers whose rank is any of the types provided.
-     */
-    @ContainerSelectionDsl
-    fun ofAnyType(vararg types: Container.Rank): (Container) -> Boolean =
-        { container -> types.contains(container.rank) }
-
-    /**
-     * Returns a function that matches containers whose rank is not any of the types provided.
-     */
-    @ContainerSelectionDsl
-    fun noneOfType(vararg types: Container.Rank): (Container) -> Boolean =
-        { container -> !types.contains(container.rank) }
-
-    /**
-     * Returns a function that combines two container predicates using logical AND.
-     */
-    @ContainerSelectionDsl
-    infix fun ((Container) -> Boolean).and(other: (Container) -> Boolean): (Container) -> Boolean =
-        { container -> this(container) && other(container) }
-
-    /**
-     * Returns a function that combines two container predicates using logical OR.
-     */
-    @ContainerSelectionDsl
-    infix fun ((Container) -> Boolean).or(other: (Container) -> Boolean): (Container) -> Boolean =
-        { container -> this(container) || other(container) }
-
-    /**
-     * Returns a function that negates the current selection predicate.
-     */
-    @ContainerSelectionDsl
-    fun ((Container) -> Boolean).negate(): (Container) -> Boolean =
-        { container -> !this(container) }
+    @ContainerSelectionMarker
+    fun filter(containers: Iterable<Container>) =
+        containers
+            .filter(selector)
+            .sortedWith(comparator)
 
     companion object {
-        @DslMarker
-        annotation class ContainerSelectionDsl
+        val EVERYTHING = ContainerSelection({ true })
+        val NOTHING = ContainerSelection({ false })
+    }
+}
 
-        @ContainerSelectionDsl
+@DslMarker
+annotation class ContainerSelectionMarker
+
+@Suppress("unused")
+@ContainerSelectionMarker
+class ContainerSelectionBuilder private constructor() {
+    private var selector: (Container) -> Boolean = { true }
+    private var comparator: Comparator<Container> = compareBy { it.rank }
+    private var invertNewSelectors = false
+
+    fun ofAnyType(vararg types: Container.Rank) {
+        appendSelector { container -> types.contains(container.rank) }
+    }
+
+    fun noneOfType(vararg types: Container.Rank) {
+        appendSelector { container -> !types.contains(container.rank) }
+    }
+
+    fun matches(stackSelection: StackSelection) {
+        appendSelector { container -> container.matchingSlots(stackSelection).isNotEmpty() }
+    }
+
+    fun matches(containerSelection: ContainerSelection) {
+        appendSelector { container -> containerSelection.matches(container) }
+    }
+
+    fun custom(predicate: (Container) -> Boolean) {
+        appendSelector { predicate(it) }
+    }
+
+    fun inverted(block: () -> Boolean) {
+        invertNewSelectors = true
+        block()
+        invertNewSelectors = false
+    }
+
+    fun sortedWith(comparator: Comparator<Container>) {
+        this.comparator = comparator
+    }
+
+    fun sortedWith(comparatorSupplier: () -> Comparator<Container>) {
+        this.comparator = comparatorSupplier()
+    }
+
+    private fun appendSelector(selector: (Container) -> Boolean) {
+        val invert = invertNewSelectors
+        val currentSelector = this.selector
+        this.selector = { currentSelector(it) && selector(it) xor invert }
+    }
+
+    private fun build() = ContainerSelection(selector, comparator)
+
+    companion object {
         fun selectContainer(
-            block: ContainerSelection.() -> (Container) -> Boolean
-        ): ContainerSelection = ContainerSelection().apply { selector = block() }
+            builder: ContainerSelectionBuilder.() -> Unit
+        ) = ContainerSelectionBuilder().apply(builder).build()
     }
 }

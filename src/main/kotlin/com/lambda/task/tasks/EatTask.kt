@@ -25,7 +25,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.InventoryContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.item.ItemStack
@@ -57,17 +57,15 @@ class EatTask @Ta5kBuilder constructor(
             }
 
             val foodFinder = reason.selector()
-            val hotbarSlot = foodFinder.filterSlots(HotbarContainer.slots).firstOrNull()
+            val hotbarSlot = foodFinder.filter(HotbarContainer.slots).firstOrNull()
             if (hotbarSlot != null) {
-                val request = HotbarRequest(
-                    hotbarSlot.index,
-                    this@EatTask,
-                    keepTicks = hotbarConfig.keepTicks.coerceAtLeast(1),
-                    nowOrNothing = false
-                ).submit()
+                val request =
+                    hotbarRequest(hotbarSlot.index) {
+                        keepTicks(hotbarConfig.keepTicks.coerceAtLeast(1))
+                    }.submit()
                 if (!request.done) return@listen
             } else {
-                val inventorySlot = foodFinder.filterSlots(InventoryContainer.slots).firstOrNull()
+                val inventorySlot = foodFinder.filter(InventoryContainer.slots).firstOrNull()
                 if (inventorySlot != null) runSafeAutomated {
                     InventoryContainer.transfer(foodFinder, HotbarContainer)
                 }

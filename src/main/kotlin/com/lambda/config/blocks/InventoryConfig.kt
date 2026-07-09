@@ -20,6 +20,7 @@ package com.lambda.config.blocks
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.inventory.ContainerSelection
+import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.Describable
@@ -39,7 +40,7 @@ interface InventoryConfig {
 	val accessStashes: Boolean
 
 	val containerSelection: ContainerSelection
-		get() = ContainerSelection.selectContainer {
+		get() = selectContainer {
 			val allowedContainers = buildSet {
 				addAll(Container.Rank.entries)
 				if (!accessShulkerBoxes) remove(Container.Rank.ShulkerBox)

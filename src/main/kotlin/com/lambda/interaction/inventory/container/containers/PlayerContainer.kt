@@ -18,7 +18,6 @@
 package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.util.player.SlotUtils.allSlots
 import com.lambda.util.player.SlotUtils.allStacks
@@ -29,9 +28,8 @@ import net.minecraft.screen.slot.Slot
 
 @Suppress("unused")
 object PlayerContainer : Container(Rank.Player) {
-	context(safeContext: SafeContext)
 	override val slots: List<Slot>
-		get() = safeContext.player.allSlots
+		get() = mc.player?.allSlots ?: emptyList()
 	override var stacks: List<ItemStack>
 		get() = mc.player?.allStacks ?: emptyList()
 		set(_) {}

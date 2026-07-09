@@ -30,7 +30,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -130,7 +130,7 @@ object KillAura : Module(
 
                     selection.bestMatch(HotbarContainer.stacks)?.let { bestStack ->
                         val slotId = HotbarContainer.stacks.indexOf(bestStack)
-                        if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
+                        if (!hotbarRequest(slotId).submit().done) return@listen
                     }
                 }
 

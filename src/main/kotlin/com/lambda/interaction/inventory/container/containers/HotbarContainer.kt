@@ -20,7 +20,7 @@ package com.lambda.interaction.inventory.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.managers.inventory.InventoryRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder
 import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.text.buildText
@@ -28,9 +28,8 @@ import com.lambda.util.text.literal
 import net.minecraft.screen.slot.Slot
 
 object HotbarContainer : Container(Rank.Hotbar) {
-    context(safeContext: SafeContext)
     override val slots: List<Slot>
-        get() = safeContext.player.hotbarSlots
+        get() = mc.player?.hotbarSlots ?: emptyList()
     override var stacks
         get() = mc.player?.hotbarStacks ?: emptyList()
         set(_) {}
@@ -40,7 +39,7 @@ object HotbarContainer : Container(Rank.Hotbar) {
     override val description = buildText { literal("Hotbar") }
 
     context(safeContext: SafeContext)
-    override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
-        swap(toSlot.id, safeContext.player.hotbarSlots.indexOf(fromHere))
+    override fun InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        swapWithHotbar(toSlot.id, safeContext.player.hotbarSlots.indexOf(fromHere))
     }
 }

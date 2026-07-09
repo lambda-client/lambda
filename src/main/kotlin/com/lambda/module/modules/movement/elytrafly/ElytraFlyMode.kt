@@ -27,10 +27,10 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.inventory.container.containers.ArmorContainer
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.interaction.managers.inventory.InventoryManager
-import com.lambda.interaction.managers.inventory.InventoryRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.threading.runSafe
@@ -96,15 +96,13 @@ abstract class ElytraFlyMode(
 		val chestSlot = ArmorContainer.slots.getOrNull(1) ?: return false
 
 		if (elytraInHotbar) {
-			val hotbarRequest = HotbarRequest(
-				elytraSlot.index,
-				ElytraFly,
-				keepTicks = 0,
-				nowOrNothing = true
-			).submit()
+			val hotbarRequest =
+				hotbarRequest(elytraSlot.index) {
+					keepTicks(0)
+				}.submit()
 			if (!hotbarRequest.done) return false
 		}
-		fun InventoryRequest.InvRequestBuilder.swapChest() {
+		fun InvRequestBuilder.swapChest() {
 			if (elytraInHotbar) {
 				interaction.interactItem(player, Hand.MAIN_HAND)
 				InventoryManager.indexInventoryChanges()
@@ -125,8 +123,7 @@ abstract class ElytraFlyMode(
 
 	open fun interrupt() {}
 
-	fun SafeContext.findElytra(): Slot? =
-		ELYTRA_SELECTION.filterSlots(HotbarAndInventoryContainer.slots).minByOrNull { it.index }
+	fun findElytra(): Slot? = ELYTRA_SELECTION.filter(HotbarAndInventoryContainer.slots).minByOrNull { it.index }
 
 	protected fun SafeContext.startFly() {
 		player.setFlag(Entity.GLIDING_FLAG_INDEX, true)

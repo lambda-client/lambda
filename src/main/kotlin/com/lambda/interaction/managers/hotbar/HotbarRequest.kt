@@ -22,10 +22,10 @@ import com.lambda.interaction.managers.Request
 
 class HotbarRequest(
 	val slot: Int,
-	automated: Automated,
 	var keepTicks: Int = automated.hotbarConfig.keepTicks,
 	val swapPause: Int = automated.hotbarConfig.swapPause,
-	override val nowOrNothing: Boolean = true
+	override val nowOrNothing: Boolean = true,
+	automated: Automated
 ) : Request(), Automated by automated {
 	override val requestId = ++requestCount
 	override val tickStageMask get() = hotbarConfig.tickStageMask
@@ -36,10 +36,41 @@ class HotbarRequest(
 	override val done: Boolean
 		get() = slot == HotbarManager.activeSlot && swapPauseAge >= swapPause
 
+	@HotbarRequestMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		HotbarManager.request(this, queueIfMismatchedStage)
 
 	companion object {
 		var requestCount = 0
+			private set
+	}
+}
+
+@DslMarker
+private annotation class HotbarRequestMarker
+
+@Suppress("unused")
+@HotbarRequestMarker
+class HotbarRequestBuilder private constructor(
+	private val slot: Int,
+	private val nowOrNothing: Boolean,
+	private val automated: Automated,
+) {
+	private var keepTicks: Int = automated.hotbarConfig.keepTicks
+	private var swapPause: Int = automated.hotbarConfig.swapPause
+
+	fun keepTicks(keepTicks: Int) {
+		this.keepTicks = keepTicks
+	}
+
+	fun swapPause(swapPause: Int) {
+		this.swapPause = swapPause
+	}
+
+	private fun build() = HotbarRequest(slot, keepTicks, swapPause, nowOrNothing, automated)
+
+	companion object {
+		fun Automated.hotbarRequest(slot: Int, nowOrNothing: Boolean = false, builder: (HotbarRequestBuilder.() -> Unit)? = null) =
+			HotbarRequestBuilder(slot, nowOrNothing, this).apply { builder?.invoke(this) }.build()
 	}
 }

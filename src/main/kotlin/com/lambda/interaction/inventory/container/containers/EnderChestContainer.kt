@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.inventory.container.containers
 
+import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.handlers.ContainerHandler.findSlotsWithMaterial
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
@@ -36,12 +36,11 @@ import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 
 object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
-	context(safeContext: SafeContext)
 	override val slots
 		get() =
-			if (ContainerHandler.lastInteractedBlockEntity is EnderChestBlockEntity)
-				safeContext.player.currentScreenHandler.containerSlots
-			else emptyList()
+			if (ContainerHandler.lastInteractedBlockEntity is EnderChestBlockEntity) {
+				mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
+			} else emptyList()
 	override var stacks = emptyList<ItemStack>()
 
 	override val description = buildText { literal("Ender Chest") }
@@ -49,14 +48,16 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 	context(automatedSafeContext: AutomatedSafeContext)
 	override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
 		Items.ENDER_CHEST
-			.select()
+			.select(1)
 			.findSlotsWithMaterial()
 			.firstOrNull()?.let { slot ->
 				PlaceContainerTask(slot, automatedSafeContext).then { pos ->
 					OpenContainerTask(pos, automatedSafeContext).then {
 						taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
-							if (exitAfter) automatedSafeContext.breakAndCollectBlock(pos, lifeMaintenance = false)
-							else null
+							if (exitAfter) {
+								player.closeHandledScreen()
+								automatedSafeContext.breakAndCollectBlock(pos, lifeMaintenance = false)
+							} else null
 						}
 					}
 				}

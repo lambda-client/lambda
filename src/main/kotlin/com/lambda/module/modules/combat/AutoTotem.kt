@@ -25,7 +25,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handlers.FriendHandler
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
@@ -66,7 +66,7 @@ object AutoTotem : Module(
 
             if ((!ignoreWhenHolding || !player.isHolding(Items.TOTEM_OF_UNDYING)) && player.offHandStack.item != Items.TOTEM_OF_UNDYING) {
                 Items.TOTEM_OF_UNDYING.select()
-	                .filterSlots(player.currentScreenHandler.slots)
+	                .filter(player.currentScreenHandler.slots)
 	                .takeIf { it.isNotEmpty() }
 	                ?.let { totems ->
 		                val cursor = player.currentScreenHandler.cursorStack
@@ -75,7 +75,7 @@ object AutoTotem : Module(
 
 						inventoryRequest {
 							targetSlot?.let { pickup(it.id, 0) }
-							swap(totems.first().id, 40)
+							swapWithHotbar(totems.first().id, 40)
 						}.submit()
 	                }
             }

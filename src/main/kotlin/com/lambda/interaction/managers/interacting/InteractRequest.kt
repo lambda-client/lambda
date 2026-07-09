@@ -25,7 +25,6 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.managers.Request
-import com.lambda.interaction.managers.interacting.InteractRequest.PlaceRequestMarker
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
@@ -46,20 +45,21 @@ data class InteractRequest(
 			contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
 		} == true
 
-	@DslMarker
-	annotation class PlaceRequestMarker
-
-	@PlaceRequestMarker
+	@InteractRequestMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		InteractManager.request(this, queueIfMismatchedStage)
 
 	companion object {
 		var requestCount = 0
+			private set
 	}
 }
 
-@PlaceRequestMarker
-class PlaceRequestBuilder(
+@DslMarker
+annotation class InteractRequestMarker
+
+@InteractRequestMarker
+class PlaceRequestBuilder private constructor(
 	private val contexts: Collection<InteractContext>,
 	private val pendingInteractions: MutableCollection<BuildContext>,
 	private val nowOrNothing: Boolean,
@@ -71,7 +71,6 @@ class PlaceRequestBuilder(
 		onPlace = callback
 	}
 
-	@PlaceRequestMarker
 	private fun build() =
 		InteractRequest(
 			contexts,

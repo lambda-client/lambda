@@ -22,7 +22,7 @@ import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomat
 import com.lambda.config.withEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.CommunicationUtils.info
@@ -39,7 +39,7 @@ object SilentSwap : Module(
             }
 
         listen<PlayerEvent.Attack.Block> {
-            if (!HotbarRequest(0, this@SilentSwap).submit().done) {
+            if (!hotbarRequest(0).submit().done) {
                 it.cancel()
                 return@listen
             }

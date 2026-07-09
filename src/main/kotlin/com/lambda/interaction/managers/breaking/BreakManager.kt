@@ -72,6 +72,7 @@ import com.lambda.interaction.managers.breaking.BreakManager.updateBreakProgress
 import com.lambda.interaction.managers.breaking.BreakManager.updatePreProcessing
 import com.lambda.interaction.managers.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.interaction.managers.rotating.RotationRequest
 import com.lambda.threading.runGameScheduled
@@ -447,12 +448,10 @@ object BreakManager : Manager<BreakRequest>(
 				val serverSwapTicks = max(first.breakConfig.serverSwapTicks, last.breakConfig.serverSwapTicks)
 
 				hotbarRequest = with(last) {
-					HotbarRequest(
-						context.hotbarIndex,
-						request,
-						request.hotbarConfig.keepTicks.coerceAtLeast(minKeepTicks),
-						request.hotbarConfig.swapPause.coerceAtLeast(serverSwapTicks - 1)
-					).submit(false)
+					request.hotbarRequest(context.hotbarIndex) {
+						keepTicks(request.hotbarConfig.keepTicks.coerceAtLeast(minKeepTicks))
+						swapPause(request.hotbarConfig.swapPause.coerceAtLeast(serverSwapTicks - 1))
+					}.submit(false)
 				}
 
 				return
@@ -474,7 +473,7 @@ object BreakManager : Manager<BreakRequest>(
 
 			breaks.forEach { ctx ->
 				if (breaksThisTick >= maxBreaksThisTick) return false
-				if (!currentStackSelection.filterStack(player.inventory.getStack(ctx.hotbarIndex))) return@forEach
+				if (!currentStackSelection.matches(player.inventory.getStack(ctx.hotbarIndex))) return@forEach
 
 				initNewBreak(ctx, request) ?: return false
 				breaks.remove(ctx)

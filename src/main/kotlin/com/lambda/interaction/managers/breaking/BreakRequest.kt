@@ -28,7 +28,6 @@ import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.Request
-import com.lambda.interaction.managers.breaking.BreakRequest.BreakRequestMarker
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
@@ -67,20 +66,21 @@ data class BreakRequest(
 	override val done: Boolean
 		get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
 
-	@DslMarker
-	annotation class BreakRequestMarker
-
 	@BreakRequestMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		BreakManager.request(this, queueIfMismatchedStage)
 
 	companion object {
 		var requestCount = 0
+			private set
 	}
 }
 
+@DslMarker
+annotation class BreakRequestMarker
+
 @BreakRequestMarker
-class BreakRequestBuilder(
+class BreakRequestBuilder private constructor(
 	private val contexts: Collection<BreakContext>,
 	private val pendingInteractions: MutableCollection<BuildContext>,
 	private val nowOrNothing: Boolean,
@@ -122,7 +122,6 @@ class BreakRequestBuilder(
 		onReBreak = callback
 	}
 
-	@BreakRequestMarker
 	private fun build() =
 		BreakRequest(
 			contexts,
@@ -139,7 +138,6 @@ class BreakRequestBuilder(
 		)
 
 	companion object {
-		@BreakRequestMarker
 		@JvmName("breakRequest1")
 		fun AutomatedSafeContext.breakRequest(
 			positions: Collection<BlockPos>,
@@ -151,7 +149,6 @@ class BreakRequestBuilder(
 			.simulate()
 			.breakRequest(pendingInteractions, nowOrNothing, builder)
 
-		@BreakRequestMarker
 		@JvmName("breakRequest2")
 		context(automated: Automated)
 		fun Collection<BuildResult>.breakRequest(
@@ -161,7 +158,6 @@ class BreakRequestBuilder(
 		) = asSequence()
 			.breakRequest(pendingInteractions, nowOrNothing, builder)
 
-		@BreakRequestMarker
 		@JvmName("breakRequest3")
 		context(automated: Automated)
 		fun Sequence<BuildResult>.breakRequest(
@@ -176,7 +172,6 @@ class BreakRequestBuilder(
 			.takeIf { it.isNotEmpty() }
 			?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
 
-		@BreakRequestMarker
 		@JvmName("breakRequest4")
 		fun Automated.breakRequest(
 			contexts: Collection<BreakContext>,

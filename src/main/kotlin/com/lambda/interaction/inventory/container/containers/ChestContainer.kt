@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.inventory.container.containers
 
+import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
@@ -39,12 +39,11 @@ data class ChestContainer(
     val blockPos: BlockPos,
     val containedInStash: StashContainer? = null
 ) : Container(Rank.Chest), ExternalContainer {
-    context(safeContext: SafeContext)
     override val slots
         get(): List<Slot> =
-            if (ContainerHandler.lastInteractedBlockEntity is ChestBlockEntity)
-                safeContext.player.currentScreenHandler.containerSlots
-            else emptyList()
+            if (ContainerHandler.lastInteractedBlockEntity is ChestBlockEntity) {
+                mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
+            } else emptyList()
 
     override val description =
         buildText {

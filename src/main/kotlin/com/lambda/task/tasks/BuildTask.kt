@@ -50,7 +50,7 @@ import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.managers.breaking.BreakRequestBuilder.Companion.breakRequest
 import com.lambda.interaction.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat

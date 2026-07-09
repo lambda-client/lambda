@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.inventory.container.containers
 
+import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.ContainerHandler
@@ -41,11 +42,10 @@ data class ShulkerBoxContainer(
     val containedIn: Container,
     val shulkerSlot: Slot,
 ) : Container(Rank.ShulkerBox), ExternalContainer {
-    context(safeContext: SafeContext)
     override val slots
         get(): List<Slot> =
             if (ContainerHandler.lastInteractedBlockEntity is ShulkerBoxBlockEntity)
-                safeContext.player.currentScreenHandler.containerSlots
+                mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
             else emptyList()
 
     override val description =

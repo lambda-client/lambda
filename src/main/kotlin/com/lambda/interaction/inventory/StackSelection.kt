@@ -45,35 +45,32 @@ class StackSelection(
 	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
 
 	@StackSelectionMarker
-	fun bestMatch(stacks: List<ItemStack>) = filterStacks(stacks).firstOrNull()
+	fun bestMatch(stacks: Iterable<ItemStack>) = filter(stacks).firstOrNull()
 	@StackSelectionMarker
-	fun bestMatch(slots: List<Slot>) = filterSlots(slots).firstOrNull()
+	fun bestMatch(slots: Iterable<Slot>) = filter(slots).firstOrNull()
 
 	@StackSelectionMarker
-	fun matches(stack: ItemStack) = filterStack(stack)
-	@StackSelectionMarker
-	fun matches(slot: Slot) = filterSlot(slot)
-
-	@StackSelectionMarker
-	fun filterStack(stack: ItemStack) =
+	fun matches(stack: ItemStack) =
 		if (inShulkerBox) stack.shulkerBoxStacks.any { selector(it, null) }
 		else selector(stack, null)
 	@StackSelectionMarker
-	fun filterSlot(slot: Slot): Boolean =
+	fun matches(slot: Slot): Boolean =
 		if (inShulkerBox) slot.stack.shulkerBoxStacks.any { selector(it, null) }
 		else selector(slot.stack, slot)
 
 	@StackSelectionMarker
-	fun filterStacks(stacks: List<ItemStack>): List<ItemStack> =
+	@JvmName("filter1")
+	fun filter(stacks: Iterable<ItemStack>) =
 		stacks
-			.filter(::filterStack)
+			.filter(::matches)
 			.map { StackAndSlot<Slot?>(it, null) }
 			.sortedWith(comparator)
 			.map { it.stack }
 	@StackSelectionMarker
-	fun filterSlots(slots: List<Slot>): List<Slot> =
+	@JvmName("filter2")
+	fun filter(slots: Iterable<Slot>) =
 		slots
-			.filter(::filterSlot)
+			.filter(::matches)
 			.map { StackAndSlot(it.stack, it) }
 			.sortedWith(comparator)
 			.map { it.slot }
@@ -89,7 +86,7 @@ private annotation class StackSelectionMarker
 
 @Suppress("unused")
 @StackSelectionMarker
-class StackSelectionBuilder(private val count: Int = 0) {
+class StackSelectionBuilder private constructor(private val count: Int = 0) {
 	private var selector: (ItemStack, Slot?) -> Boolean = { _, _ -> true }
 	private var item: Item? = null
 	private var stackByRef = false
@@ -100,6 +97,7 @@ class StackSelectionBuilder(private val count: Int = 0) {
 
 	fun isItem(item: Item) {
 		this.item = item
+		appendSelector { stack, _ -> stack.item == item }
 	}
 
 	inline fun <reified T : Item> isItem() {
@@ -190,14 +188,18 @@ class StackSelectionBuilder(private val count: Int = 0) {
 		}
 	}
 
-	fun inverted(block: () -> Unit) {
-		invertNewSelectors = true
-		block()
-		invertNewSelectors = false
+	fun isEmpty() {
+		appendSelector { stack, _ -> stack.isEmpty}
 	}
 
 	fun custom(predicate: (ItemStack, Slot?) -> Boolean) {
 		appendSelector { stack, slot -> predicate(stack, slot) }
+	}
+
+	fun inverted(block: () -> Unit) {
+		invertNewSelectors = true
+		block()
+		invertNewSelectors = false
 	}
 
 	fun sortedWith(comparator: Comparator<StackAndSlot<*>>) {
@@ -211,8 +213,9 @@ class StackSelectionBuilder(private val count: Int = 0) {
 	@PublishedApi
 	internal fun appendSelector(selector: (ItemStack, Slot?) -> Boolean) {
 		val invert = invertNewSelectors
+		val currentSelector = this.selector
 		this.selector = { stack, slot ->
-			this.selector(stack, slot) && (selector(stack, slot) xor invert)
+			currentSelector(stack, slot) && selector(stack, slot) xor invert
 		}
 	}
 
@@ -227,7 +230,7 @@ class StackSelectionBuilder(private val count: Int = 0) {
 		)
 
 	companion object {
-		private val efficientToolCache: MutableMap<BlockState, Boolean> = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
+		private val efficientToolCache = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
 
 		@StackSelectionMarker
 		fun Item.select(count: Int = 0) = selectStack(count) { isItem(this@select) }

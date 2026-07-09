@@ -21,14 +21,12 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.Request
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.requestCount
 import com.lambda.interaction.managers.rotating.IRotationRequest.Full
 import com.lambda.interaction.managers.rotating.IRotationRequest.Pitch
 import com.lambda.interaction.managers.rotating.IRotationRequest.Yaw
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.wrap
-import com.lambda.interaction.managers.rotating.RotationRequest.RotationRequestMarker
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.UpdatableLazy
 import com.lambda.util.collections.updatableLazy
@@ -42,13 +40,18 @@ abstract class RotationRequest(automated: Automated) : Request(), Automated by a
 
 	abstract infix fun dist(rotation: Rotation): Double
 
-	@DslMarker
-	annotation class RotationRequestMarker
-
 	@RotationRequestMarker
 	override fun submit(queueIfMismatchedStage: Boolean) =
 		RotationManager.request(this, queueIfMismatchedStage)
+
+	companion object {
+		var requestCount = 0
+			private set
+	}
 }
+
+@DslMarker
+annotation class RotationRequestMarker
 
 interface IRotationRequest : Automated {
 	var keepTicks: Int
@@ -139,14 +142,10 @@ interface IRotationRequest : Automated {
 	interface YawRot : IRotationRequest { val yaw: UpdatableLazy<Double?> }
 	interface PitchRot : IRotationRequest { val pitch: UpdatableLazy<Double?> }
 	interface FullRot : YawRot, PitchRot { val rotation: UpdatableLazy<Rotation?> }
-
-	companion object {
-		var requestCount = 0
-	}
 }
 
 @RotationRequestMarker
-class RotationRequestBuilder {
+class RotationRequestBuilder private constructor() {
 	private var pitchBuilder: (SafeContext.() -> Double)? = null
 	private var yawBuilder: (SafeContext.() -> Double)? = null
 	private var rotationBuilder: (SafeContext.() -> Rotation)? = null

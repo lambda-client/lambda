@@ -29,7 +29,7 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.inventory.StackAndSlot
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack

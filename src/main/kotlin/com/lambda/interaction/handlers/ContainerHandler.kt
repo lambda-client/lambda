@@ -146,7 +146,7 @@ object ContainerHandler : Loadable {
         containerSelection: ContainerSelection = automatedSafeContext.inventoryConfig.containerSelection
     ): List<Slot> =
         findContainersWithMaterial(containerSelection)
-            .flatMap { filterSlots(it.slots) }
+            .flatMap { filter(it.slots) }
 
 
     context(automatedSafeContext: AutomatedSafeContext)

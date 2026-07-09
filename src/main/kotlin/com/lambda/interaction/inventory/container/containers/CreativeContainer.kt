@@ -17,10 +17,11 @@
 
 package com.lambda.interaction.inventory.container.containers
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.managers.inventory.InventoryRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
@@ -31,22 +32,19 @@ import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.slot.Slot
 
 data object CreativeContainer : Container(Rank.Creative) {
-	context(_: SafeContext)
-	override val slots: List<Slot>
-		get() = emptyList()
+	override val slots = emptyList<Slot>()
 	override var stacks = emptyList<ItemStack>()
 
 	override val swapMethodPriority = 11
 
 	override val description = buildText { literal("Creative") }
 
-	context(safeContext : SafeContext)
-	override fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+	context(safeContext: SafeContext)
+	override fun InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
 		clickCreativeStack(fromHere.stack, toSlot.id)
-		safeContext.player.currentScreenHandler.slots[toSlot.id].stack = fromHere.stack
+		safeContext.player.currentScreenHandler.slots.getOrNull(toSlot.id)?.stack = fromHere.stack
 	}
 
-	context(safeContext: SafeContext)
 	override fun getSlot(stackSelection: StackSelection) =
 		stackSelection.optimalStack?.let { stack ->
 			Slot(
@@ -60,15 +58,12 @@ data object CreativeContainer : Container(Rank.Creative) {
 			)
 		}
 
-	context(safeContext: SafeContext)
 	override fun materialAvailable(selection: StackSelection): Int =
-		if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
-	context(safeContext: SafeContext)
 	override fun spaceAvailable(selection: StackSelection): Int =
-		if (safeContext.player.isCreative && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
-	context(safeContext: SafeContext)
 	private val correctScreenHandler
-		get() = safeContext.player.currentScreenHandler is PlayerScreenHandler || safeContext.player.currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler
+		get() = mc.player?.currentScreenHandler is PlayerScreenHandler || mc.player?.currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler
 }

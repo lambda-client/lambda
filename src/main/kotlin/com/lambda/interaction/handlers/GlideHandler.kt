@@ -172,8 +172,8 @@ object GlideHandler {
 			val canGlideAlready = player.canGlideWithChestPiece() != fakeFly
 			if (!autoSwapChecking || canGlideAlready) return canGlideAlready
 			return HotbarAndInventoryContainer.slots.let { slots ->
-				if (fakeFly) CHESTPLATE_SELECTION.filterSlots(slots).isNotEmpty()
-				else ELYTRA_SELECTION.filterSlots(slots).isNotEmpty()
+				if (fakeFly) CHESTPLATE_SELECTION.filter(slots).isNotEmpty()
+				else ELYTRA_SELECTION.filter(slots).isNotEmpty()
 			}
 		}
 

@@ -41,11 +41,7 @@ import net.minecraft.item.ItemStack
  */
 object HotbarManager : Manager<HotbarRequest>(
 	1,
-	onOpen = {
-		if (activeRequest != null) {
-			setActiveSlot()
-		}
-			 },
+	onOpen = { if (activeRequest != null) setActiveSlot() },
 	onClose = { checkResetSwap() }
 ) {
 	private var activeRequest: HotbarRequest? = null

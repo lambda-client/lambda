@@ -39,8 +39,8 @@ import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
@@ -326,19 +326,18 @@ object AutoPortal : Module(
 
 			val sel = selectStack(1) { isItem<FlintAndSteelItem>() }
 
-			val hotbarStack = sel.filterSlots(HotbarContainer.slots).firstOrNull()
+			val hotbarStack = sel.filter(HotbarContainer.slots).firstOrNull()
 			if (hotbarStack != null) {
-				val request = HotbarRequest(
-					hotbarStack.index,
-					this@AutoPortal,
-					keepTicks = 0
-				).submit(queueIfMismatchedStage = false)
+				val request =
+					hotbarRequest(hotbarStack.index) {
+						keepTicks(0)
+					}.submit(false)
 				if (request.done) block()
 				return
 			}
 
 			val invSlot =
-				if (inventory) sel.filterSlots(HotbarAndInventoryContainer.slots).firstOrNull()
+				if (inventory) sel.filter(HotbarAndInventoryContainer.slots).firstOrNull()
 				else null
 			if (invSlot == null) {
 				failure("No Flint and Steel!")
@@ -350,19 +349,15 @@ object AutoPortal : Module(
 				}?.index ?: 8
 
 			inventoryRequest {
-				swap(invSlot.id, hotbarSlotToSwapWith)
+				swapWithHotbar(invSlot.id, hotbarSlotToSwapWith)
 				action {
-					val request = HotbarRequest(
-						hotbarSlotToSwapWith,
-						this@AutoPortal,
-						keepTicks = 0,
-						nowOrNothing = true
-					).submit(queueIfMismatchedStage = false)
-					if (request.done) {
-						block()
-					}
+					val request =
+						hotbarRequest(hotbarSlotToSwapWith) {
+							keepTicks(0)
+						}.submit(false)
+					if (request.done) block()
 				}
-				swap(invSlot.id, hotbarSlotToSwapWith)
+				swapWithHotbar(invSlot.id, hotbarSlotToSwapWith)
 			}.submit()
 		}
 	}

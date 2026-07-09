@@ -24,8 +24,8 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.ShulkerBoxContainer
-import com.lambda.interaction.managers.inventory.InventoryRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.tasks.ContainerTransferTask
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
@@ -49,7 +49,6 @@ import net.minecraft.text.Text
 abstract class Container(
     val rank: Rank
 ) : Nameable, Comparable<Container> {
-    context(_: SafeContext)
     abstract val slots: List<Slot>
     abstract var stacks: List<ItemStack>
     open val swapMethodPriority = 0
@@ -114,11 +113,11 @@ abstract class Container(
         this.stacks = slots
     }
 
-    context(_: SafeContext)
-    open fun InventoryRequest.InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
-        if (fromHere.stack.isEmpty) pickupAndPlace(toSlot.id, fromHere.id)
+    context(safeContext: SafeContext)
+    open fun InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+        if (fromHere.stack.isEmpty) moveSlot(toSlot.id, fromHere.id)
         else {
-            pickupAndPlace(fromHere.id, toSlot.id)
+            moveSlot(fromHere.id, toSlot.id)
             if (!toSlot.stack.isEmpty) pickup(fromHere.id)
         }
     }
@@ -136,37 +135,24 @@ abstract class Container(
             }.submit().done
         }
 
-    context(automatedSafeContext: AutomatedSafeContext)
+    context(automated: Automated)
     fun transferByTask(stackSelection: StackSelection, destination: Container, failIfNoMaterial: Boolean = false) =
-        ContainerTransferTask(this, destination, stackSelection, automatedSafeContext, failIfNoMaterial)
+        ContainerTransferTask(this, destination, stackSelection, automated, failIfNoMaterial)
 
-    protected fun InventoryRequest.InvRequestBuilder.pickupAndPlace(fromId: Int, toId: Int) {
-        pickup(fromId)
-        pickup(toId)
-    }
+    open fun matchingStacks(selection: StackSelection) = selection.filter(stacks)
+    open fun matchingSlots(selection: StackSelection) = selection.filter(slots)
 
-    context(_: SafeContext)
-    open fun matchingStacks(selection: StackSelection) =
-        selection.filterStacks(stacks)
-
-    context(_: SafeContext)
-    open fun matchingSlots(selection: StackSelection) =
-        selection.filterSlots(slots)
-
-    context(_: SafeContext)
     open fun materialAvailable(selection: StackSelection) =
         matchingStacks(selection).count
 
-    context(_: SafeContext)
     open fun spaceAvailable(selection: StackSelection) =
         matchingStacks(selection).spaceLeft + stacks.empty * selection.count
 
-    context(_: AutomatedSafeContext)
+    context(_: Automated)
     open fun getReplaceableSlot() = slots.sortedWith(replaceSorter).firstOrNull()
 
-    context(_: SafeContext)
     open fun getSlot(stackSelection: StackSelection): Slot? =
-        stackSelection.filterSlots(slots).firstOrNull()
+        stackSelection.filter(slots).firstOrNull()
 
     enum class Rank {
         MainHand,
@@ -183,8 +169,5 @@ abstract class Container(
         Stash
     }
 
-    override fun compareTo(other: Container) =
-        compareBy<Container> {
-            it.rank
-        }.compare(this, other)
+    override fun compareTo(other: Container) = compareBy<Container> { it.rank }.compare(this, other)
 }

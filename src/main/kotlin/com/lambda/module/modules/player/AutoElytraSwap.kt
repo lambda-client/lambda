@@ -24,7 +24,7 @@ import com.lambda.interaction.handlers.GlideHandler.manuallySwapped
 import com.lambda.interaction.handlers.GlideHandler.swapped
 import com.lambda.interaction.inventory.container.containers.ArmorContainer
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.tag.ModuleTag
@@ -44,24 +44,23 @@ object AutoElytraSwap : Module(
 		onDisable { restore() }
 	}
 
-	context(safeContext: SafeContext)
 	fun manualSwap(elytra: Boolean): Boolean {
 		val swapSlot =
 			HotbarAndInventoryContainer.slots.let { slots ->
-				if (elytra) ELYTRA_SELECTION.filterSlots(slots)
-				else CHESTPLATE_SELECTION.filterSlots(slots)
+				if (elytra) ELYTRA_SELECTION.filter(slots)
+				else CHESTPLATE_SELECTION.filter(slots)
 			}.minByOrNull { it.index } ?: run {
 				AutoElytraSwap.warn("The required armor piece was not found for AutoElytraSwap to work.")
 				return false
 			}
 
-		return safeContext.swapWithChestplate(swapSlot)
+		return swapWithChestplate(swapSlot)
 	}
 
-	private fun SafeContext.swapWithChestplate(swapSlot: Slot): Boolean {
+	private fun swapWithChestplate(swapSlot: Slot): Boolean {
 		val chestplateSlot = ArmorContainer.slots.getOrNull(1) ?: return false
 		return AutoElytraSwap.inventoryRequest {
-			if (swapSlot.index in 0..8) swap(chestplateSlot.id, swapSlot.index)
+			if (swapSlot.index in 0..8) swapWithHotbar(chestplateSlot.id, swapSlot.index)
 			else {
 				moveSlot(swapSlot.id, chestplateSlot.id)
 				if (!chestplateSlot.stack.isEmpty) pickup(swapSlot.id)

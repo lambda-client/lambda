@@ -28,7 +28,7 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.inventory.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
@@ -217,7 +217,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null
 		}
-		return stackSelection.filterSlots(container.slots).run {
+		return stackSelection.filter(container.slots).run {
 			firstOrNull { it.index == player.inventory.selectedSlot }
 				?: firstOrNull()
 		}

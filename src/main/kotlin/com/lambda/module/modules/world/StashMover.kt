@@ -46,8 +46,8 @@ import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryC
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.InventoryContainer
 import com.lambda.interaction.inventory.container.containers.OffHandContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.managers.rotating.RotationManager
@@ -639,7 +639,7 @@ object StashMover : Module(
 					inventoryRequest { quickMove(firstSlot.id) }.submit()
 					return
 				} else if (player.offHandStack.isEmpty) {
-					inventoryRequest { swap(firstSlot.id, 40) }.submit()
+					inventoryRequest { swapWithHotbar(firstSlot.id, 40) }.submit()
 					return
 				}
 				failWithLog("No free slots for an ender pearl!")
@@ -683,7 +683,7 @@ object StashMover : Module(
 			if (player.mainHandStack.item != Items.ENDER_PEARL) {
 				val hotbarSlot = HotbarContainer.slots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
 				if (hotbarSlot != null) {
-					val hotbarRequest = HotbarRequest(hotbarSlot.index, StashMover, nowOrNothing = false).submit()
+					val hotbarRequest = hotbarRequest(hotbarSlot.index).submit()
 					if (!hotbarRequest.done) return
 				} else {
 					val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
@@ -691,7 +691,7 @@ object StashMover : Module(
 						failWithLog("No pearl in inventory!")
 						return
 					}
-					inventoryRequest { swap(inventorySlot.id, 0) }.submit()
+					inventoryRequest { swapWithHotbar(inventorySlot.id, 0) }.submit()
 					return
 				}
 			}

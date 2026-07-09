@@ -31,7 +31,7 @@ import com.lambda.interaction.handlers.ContainerHandler.transfer
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.OffHandContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
@@ -486,16 +486,16 @@ object CrystalAura : Module(
 				(swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
 			) runSafeAutomated {
 				if (!swap) return@runSafe
-				var crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.filterStack(it) }
+				var crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.matches(it) }
 				if (crystalSlot < 0) {
 					val swapTo = when (swapHand) {
 						Hand.MAIN_HAND -> HotbarContainer
 						Hand.OFF_HAND -> OffHandContainer
 					}
 					if (!selection.transfer(swapTo)) return@runSafe
-					crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.filterStack(it) }
+					crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.matches(it) }
 				}
-				if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
+				if (!hotbarRequest(crystalSlot).submit().done) return@runSafe
 			}
 
             placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
