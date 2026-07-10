@@ -71,9 +71,15 @@ class ManeuverDiscovery(
     /** takeoff → (landing → cost); mirror for successor queries. */
     private val edgesFrom = HashMap<FastVector, HashMap<FastVector, Double>>()
 
+    /** (takeoff, landing) → intermediate landings, for chain macro-edges. */
+    private val chainMids = HashMap<Pair<FastVector, FastVector>, List<FastVector>>()
+
     var landingsExamined = 0; private set
     var simulationsRun = 0; private set
     var edgesDiscovered = 0; private set
+
+    /** Last chain-sim failure detail, for CHAIN_DEBUG logging only. */
+    private var lastChainFailure: String = ""
 
     /**
      * Discovered incoming edges of [landing], running discovery on first
@@ -104,6 +110,32 @@ class ManeuverDiscovery(
             (found ?: HashMap<FastVector, Double>().also { found = it })[takeoff] = cost + tieBreak
         }
 
+        // WP3.3 chain solver (v1: two colinear hops). Momentum carried
+        // through a mid landing reaches takeoffs the single-jump band never
+        // can — including 1-wide middles that only work with the policy's
+        // mid-air braking, the class the single-jump envelope refuses.
+        for (offset in CANDIDATE_OFFSETS) {
+            val mid = fastVectorOf(landing.x - offset.dx, landing.y, landing.z - offset.dz)
+            if (!MoveTable.isStance(view, mid.x, mid.y, mid.z)) continue
+            if (!lineCrossesGap(mid, landing)) continue
+            val takeoff = fastVectorOf(mid.x - offset.dx, mid.y, mid.z - offset.dz)
+            if (!MoveTable.isStance(view, takeoff.x, takeoff.y, takeoff.z)) continue
+            if (!lineCrossesGap(takeoff, mid)) continue
+
+            val slow = simulateChain(takeoff, mid, landing, ENTRY_SPEED_LOW)
+            val fast = simulateChain(takeoff, mid, landing, ENTRY_SPEED_HIGH)
+            if (CHAIN_DEBUG) {
+                com.lambda.Lambda.LOG.info(
+                    "[ChainDiscovery] takeoff=(${takeoff.x},${takeoff.y},${takeoff.z}) mid=(${mid.x},${mid.z}) " +
+                        "landing=(${landing.x},${landing.z}) slow=$slow fast=$fast lastFail=$lastChainFailure"
+                )
+            }
+            if (slow == null || fast == null) continue
+            val tieBreak = AXIS_TIE_EPSILON * minOf(abs(offset.dx), abs(offset.dz))
+            (found ?: HashMap<FastVector, Double>().also { found = it })[takeoff] = (slow + fast) / 2.0 + tieBreak
+            chainMids[takeoff to landing] = listOf(mid)
+        }
+
         val edges = found ?: return emptyMap()
         edgesInto[landing] = edges
         edges.forEach { (takeoff, cost) ->
@@ -116,6 +148,13 @@ class ManeuverDiscovery(
     /** Discovered outgoing edges of [takeoff] (never triggers discovery). */
     fun successorsFrom(takeoff: FastVector): Map<FastVector, Double> =
         edgesFrom[takeoff] ?: emptyMap()
+
+    /**
+     * Intermediate landings of the discovered chain edge [from] → [to],
+     * or null for single jumps and unknown pairs. The executor keys its
+     * chain-policy playback on this.
+     */
+    fun chainWaypoints(from: FastVector, to: FastVector): List<FastVector>? = chainMids[from to to]
 
     /**
      * A block changed: drop every discovered edge whose flight region could
@@ -137,6 +176,7 @@ class ManeuverDiscovery(
                 affected += landing
                 edges.keys.forEach { takeoff ->
                     edgesFrom[takeoff]?.remove(landing)
+                    chainMids.remove(takeoff to landing)
                     affected += takeoff
                 }
             }
@@ -252,9 +292,95 @@ class ManeuverDiscovery(
         return null
     }
 
+    /**
+     * Policy-driven chain validation ([ManeuverPolicy] — the same rule the
+     * executor plays back): sprint entry at [entrySpeed], jump on every
+     * grounded tick, brake mid-air near each landing. Success = grounded at
+     * the final landing having touched each waypoint in order; grounded
+     * anywhere else fails (a chain that scuffs an unplanned block is not
+     * the validated maneuver). Rim landings count ([ManeuverPolicy.WAYPOINT_TOLERANCE]).
+     */
+    private fun simulateChain(
+        takeoff: FastVector,
+        mid: FastVector,
+        landing: FastVector,
+        entrySpeed: Double,
+    ): Double? {
+        val from = Vec3d.ofBottomCenter(takeoff.toBlockPos())
+        val to = Vec3d.ofBottomCenter(landing.toBlockPos())
+        val rotation = from.rotationTo(to)
+        val direction = to.subtract(from).multiply(1.0, 0.0, 1.0).normalize()
+        val targets = listOf(Vec3d.ofBottomCenter(mid.toBlockPos()), to)
+
+        simulationsRun++
+        val simulator = MovementSimulator(
+            player = player,
+            initialState = MovementSimulationState.at(
+                player = player,
+                position = from,
+                rotation = rotation,
+                velocity = direction.multiply(entrySpeed),
+                onGround = true,
+                isSprinting = true,
+            ),
+        ).also { it.skipEntityCollisions = true }
+
+        var targetIndex = 0
+        for (tick in 0 until ManeuverPolicy.MAX_CHAIN_TICKS) {
+            val before = simulator.lastTick
+            val target = targets[targetIndex]
+            val distanceToTarget = hypot(target.x - before.position.x, target.z - before.position.z)
+            val speed = hypot(before.velocity.x, before.velocity.z)
+            val brake = !before.onGround && ManeuverPolicy.shouldBrake(distanceToTarget, speed)
+
+            val current = simulator.tickMovement(
+                MovementSimulationInput(
+                    forward = if (brake) 0.0 else 1.0,
+                    strafe = 0.0,
+                    jump = before.onGround,
+                    sneak = false,
+                    sprint = true,
+                    useItemSlowdown = false,
+                    rotation = rotation,
+                )
+            )
+
+            if (current.position.y < from.y - 0.2) {
+                lastChainFailure = "fell t=$tick pos=(%.2f,%.2f) target=$targetIndex".format(current.position.x, current.position.z)
+                return null
+            }
+            if (current.simulator.state.horizontalCollision) {
+                lastChainFailure = "collision t=$tick"
+                return null
+            }
+            if (!current.onGround || tick <= 1) continue
+
+            val feet = current.position
+            val onCurrent = hypot(targets[targetIndex].x - feet.x, targets[targetIndex].z - feet.z) <=
+                ManeuverPolicy.WAYPOINT_TOLERANCE
+            val onPrevious = targetIndex > 0 && hypot(targets[targetIndex - 1].x - feet.x, targets[targetIndex - 1].z - feet.z) <=
+                ManeuverPolicy.WAYPOINT_TOLERANCE
+            val onTakeoff = hypot(from.x - feet.x, from.z - feet.z) <= ManeuverPolicy.WAYPOINT_TOLERANCE
+            when {
+                onCurrent && targetIndex == targets.lastIndex -> return (tick + 1).toDouble()
+                onCurrent -> targetIndex++
+                onPrevious || onTakeoff -> Unit // between hops / pre-launch
+                else -> {
+                    lastChainFailure = "offWaypoint t=$tick pos=(%.2f,%.2f) target=$targetIndex".format(feet.x, feet.z)
+                    return null
+                }
+            }
+        }
+        lastChainFailure = "timeout"
+        return null
+    }
+
     private data class Offset(val dx: Int, val dz: Int)
 
     private companion object {
+        /** Chain-candidate outcome logging; keep off outside investigations. */
+        const val CHAIN_DEBUG = false
+
         const val MAX_SIMULATION_TICKS = 20
         const val INVALIDATION_RADIUS_XZ = 5
         const val INVALIDATION_RADIUS_Y = 3

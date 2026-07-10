@@ -213,6 +213,10 @@ object PathfinderManager : Loadable,
         return session.handle
     }
 
+    /** Chain macro-edge lookup for the executor's path build (WP3.3). */
+    fun chainWaypoints(from: FastVector, to: FastVector): List<FastVector>? =
+        activeSession?.discovery?.chainWaypoints(from, to)
+
     fun cancelActiveTraversal(): Boolean {
         val session = activeSession ?: return false
         session.handle.cancel()

@@ -230,6 +230,52 @@ data class WalkSegment(
 }
 
 /**
+ * A discovered chain maneuver (WP3.3): consecutive sprint jumps through
+ * intermediate landings, executed by the shared chain policy (sprint, jump
+ * on grounded ticks, mid-air braking) rather than the reactive walk
+ * controller. Flat and straight in v1 — start, waypoints, and end share one
+ * line and one y level.
+ */
+data class ChainSegment(
+    override val index: Int,
+    val start: ExecutionPose,
+    val end: ExecutionPose,
+    /** Intermediate landing centers, in traversal order. */
+    val waypoints: List<Vec3d>,
+) : LinearExecutionSegment(index, start, end) {
+    override val typeName: String = "Chain(${waypoints.size + 1})"
+
+    /** Mid-chain aborts land in a gap — never cancel between takeoff and end. */
+    override val safeToCancel: Boolean = false
+    override val supportedByController: Boolean = true
+
+    /**
+     * The chain is flat but its execution is a sequence of jump arcs: any y
+     * inside the arc band above the chain level is zero-error (the same
+     * discrete-transition argument as WalkSegment's step handling).
+     */
+    override fun verticalError(position: Vec3d): Double {
+        val base = startPose.position.y
+        if (position.y in (base - 0.05)..(base + 1.4)) return 0.0
+        return position.y - base
+    }
+
+    /** Only a landed position at the end counts — never a mid-arc flyby. */
+    override fun hasReached(position: Vec3d, reachDistance: Double, verticalTolerance: Double): Boolean {
+        val horizontalDistanceToEnd = hypot(position.x - endPose.position.x, position.z - endPose.position.z)
+        return horizontalDistanceToEnd <= reachDistance && abs(position.y - endPose.position.y) <= 0.2
+    }
+
+    /** The next landing to steer at from [progress] blocks along the chain. */
+    fun nextTarget(progress: Double): Vec3d {
+        for (waypoint in waypoints) {
+            if (projectedDistance(waypoint) > progress + 0.4) return waypoint
+        }
+        return endPose.position
+    }
+}
+
+/**
  * Placeholder segment emitted when the refined path contains motion that the
  * current execution layer does not support yet.
  *

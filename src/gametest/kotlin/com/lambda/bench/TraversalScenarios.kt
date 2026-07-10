@@ -444,18 +444,18 @@ object TraversalScenarios {
 
         scenario(
             "f3-momentum-chain",
-            "Two 2-block gaps bridged by a single landing block: the 1-wide landing only works " +
-                "at one exact entry speed, so the envelope-validated discovery correctly refuses " +
-                "the edge (the fast-entry sim overshoots the block). Clean no-path until WP3.3's " +
-                "scripted chain controls entry speed precisely.",
+            "WP3.3 chain: two 2-block gaps bridged by a single 1-wide landing block — a chain " +
+                "macro-edge validated and executed by the shared momentum policy (jump on every " +
+                "grounded tick, mid-air braking into each landing). The single-jump envelope " +
+                "correctly refuses this; only the chain solver connects it. Ungated baseline.",
             "/fill 0 65 -1 3 65 1 minecraft:stone",
             "/setblock 6 65 0 minecraft:stone",
             "/fill 9 65 -1 12 65 1 minecraft:stone",
             start = Vec3d(0.5, 66.0, 0.5),
             goal = fastVectorOf(11, 66, 0),
             allowJump = true,
-            timeoutTicks = 200,
-            expectSuccess = false,
+            timeoutTicks = 300,
+            gated = false,
         ),
     )
 }

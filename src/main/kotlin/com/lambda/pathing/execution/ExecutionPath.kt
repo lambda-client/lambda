@@ -133,7 +133,12 @@ data class ExecutionPath(
     }
 
     companion object {
-        fun fromNodes(traversalId: Int, nodes: List<FastVector>): ExecutionPath {
+        fun fromNodes(
+            traversalId: Int,
+            nodes: List<FastVector>,
+            /** Chain macro-edge lookup: intermediate landings of (from, to), null for plain edges. */
+            maneuverWaypoints: (FastVector, FastVector) -> List<FastVector>? = { _, _ -> null },
+        ): ExecutionPath {
             val deduplicated = nodes.fold(mutableListOf<FastVector>()) { acc, node ->
                 if (acc.lastOrNull() != node) acc += node
                 acc
@@ -145,7 +150,12 @@ data class ExecutionPath(
                     val startPose = ExecutionPose(start)
                     val endPose = ExecutionPose(end)
                     val dy = endPose.position.y - startPose.position.y
+                    val chainMids = maneuverWaypoints(start, end)
                     when {
+                        chainMids != null -> ChainSegment(
+                            index, startPose, endPose,
+                            waypoints = chainMids.map { ExecutionPose(it).position },
+                        )
                         // Rises above one block are unsupported; drops of any
                         // planned depth execute as walk-offs.
                         dy <= 1.0 + 1.0E-6 -> WalkSegment(index, startPose, endPose)

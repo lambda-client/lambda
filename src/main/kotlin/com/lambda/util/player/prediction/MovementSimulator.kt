@@ -270,7 +270,10 @@ class MovementSimulator(
         horizontalCollision = xCollide || zCollide
         verticalCollision = yCollide
 
-        onGround = yCollide && movement.y < 0.0
+        // Vanilla tests the INTENDED vertical motion, not the collision-
+        // adjusted one: standing still presses ~-0.078 into the floor and is
+        // adjusted to 0.0, which must still count as grounded.
+        onGround = yCollide && velocity.y < 0.0
 
         if (horizontalCollision) {
             velocity = Vec3d(
@@ -278,6 +281,15 @@ class MovementSimulator(
                 velocity.y,
                 if (zCollide) 0.0 else velocity.z
             )
+        }
+
+        // Vanilla zeroes vertical velocity on any vertical collision
+        // (Block.onEntityLand on touchdown, the head-bonk branch upward).
+        // Without this, downward velocity survives a landing and cancels a
+        // same-tick or next-tick jump — invisible to single-hop validations
+        // that stop at the landing, fatal to anything simulated through it.
+        if (verticalCollision) {
+            velocity = Vec3d(velocity.x, 0.0, velocity.z)
         }
 
         val velocityMultiplier = run {

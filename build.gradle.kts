@@ -111,6 +111,12 @@ loom {
             property("org.lwjgl.util.DebugFunctions", "true")
             property("mixin.debug.export", "true")
 
+            // Bench harness switches (benchmark-harness-spec.md §7):
+            //   -Pbench.calibrate=true  re-runs the WP0.6 calibration pass
+            //   -Pbench.filter=gap,stair  runs matching scenarios only
+            property("lambda.bench.calibrate", (findProperty("bench.calibrate") ?: "false").toString())
+            property("lambda.bench.filter", (findProperty("bench.filter") ?: "").toString())
+
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")
         }

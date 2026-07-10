@@ -27,8 +27,10 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.pathing.execution.ChainSegment
 import com.lambda.pathing.execution.ExecutionPath
 import com.lambda.pathing.execution.ExecutionSegment
+import com.lambda.pathing.maneuver.ManeuverPolicy
 import com.lambda.pathing.execution.PathExecutorDebugSample
 import com.lambda.pathing.execution.PathExecutorDebugState
 import com.lambda.pathing.execution.RecoveryMode
@@ -296,17 +298,19 @@ object PathfinderExecutor : Loadable {
         // validated landing. Rising gap jumps ([riseWithin] skips them) and
         // discovered long jumps were validated AT sprint speed and require
         // it — a walk-speed launch lands them in the hole.
-        val longGapActive = isLongGapSegment(segment)
+        val chainSegment = segment as? ChainSegment
+        val longGapActive = chainSegment == null && isLongGapSegment(segment)
         val sprint = movementConfig.allowSprint && (
-            longGapActive || (
+            chainSegment != null || longGapActive || (
                 pathRemaining >= movementConfig.sprintMinRemaining &&
                     !riseWithin(path, currentSegmentIndex, playerPos, RISE_SPRINT_CUT_DISTANCE) &&
                     !isGapJumpSegment(segment)
                 )
             )
-        val needsStepUpJump = needsStepUpJump(path, currentSegmentIndex, segment, playerPos)
-        val needsGapJump = !needsStepUpJump && needsGapJump(segment, playerPos)
-        val jumpRequested = needsStepUpJump || needsGapJump
+        val needsChainJump = chainSegment != null && needsChainJump(chainSegment, playerPos)
+        val needsStepUpJump = chainSegment == null && needsStepUpJump(path, currentSegmentIndex, segment, playerPos)
+        val needsGapJump = chainSegment == null && !needsStepUpJump && needsGapJump(segment, playerPos)
+        val jumpRequested = needsChainJump || needsStepUpJump || needsGapJump
 
         // Steering target. Default: lookahead along the path. On a gap
         // segment two overrides apply (Baritone MovementParkour semantics):
@@ -320,7 +324,18 @@ object PathfinderExecutor : Loadable {
         val walkSegment = segment as? WalkSegment
         val gapSegmentActive = walkSegment != null &&
             (isGapJumpSegment(walkSegment) || isRisingGapSegment(walkSegment))
-        if (gapSegmentActive) {
+        if (chainSegment != null) {
+            // Chain policy playback (ManeuverPolicy — same rule the sim
+            // validated): steer at the next landing; brake mid-air when
+            // close to it. Jump input comes from needsChainJump above.
+            val target = chainSegment.nextTarget(chainSegment.projectedDistance(playerPos))
+            steerTarget = Vec3d(target.x, playerPos.y, target.z)
+            if (!player.isOnGround) {
+                val distanceToTarget = hypot(target.x - playerPos.x, target.z - playerPos.z)
+                val speed = hypot(player.velocity.x, player.velocity.z)
+                if (ManeuverPolicy.shouldBrake(distanceToTarget, speed)) throttle = 0.0
+            }
+        } else if (gapSegmentActive) {
             val progress = segment.projectedDistance(playerPos)
             if (!player.isOnGround) {
                 steerTarget = Vec3d(segment.endPose.position.x, playerPos.y, segment.endPose.position.z)
@@ -345,7 +360,7 @@ object PathfinderExecutor : Loadable {
             throttle = throttle,
             sprint = sprint,
             jump = jumpRequested,
-            jumpUrgent = needsGapJump,
+            jumpUrgent = needsGapJump || needsChainJump,
         )
         currentCommand = command
 
@@ -575,7 +590,7 @@ object PathfinderExecutor : Loadable {
         }
 
         val traversalChanged = activeTraversalId != null && activeTraversalId != handle.id
-        val rebuilt = ExecutionPath.fromNodes(handle.id, sourcePath)
+        val rebuilt = ExecutionPath.fromNodes(handle.id, sourcePath, PathfinderManager::chainWaypoints)
         activePath = rebuilt
         activeTraversalId = handle.id
         activeSourcePath = sourcePath
@@ -927,6 +942,45 @@ object PathfinderExecutor : Loadable {
             return false
         }
         lastJumpCommandGate = "${prefix}Commanded"
+        return true
+    }
+
+    /**
+     * Chain jump gate: the first takeoff gets the full alignment gates (a
+     * misaligned chain entry compounds over every hop); every later grounded
+     * tick inside the chain jumps immediately — the validated policy is
+     * jump-on-landing, and hesitation sheds the momentum the next hop needs.
+     * Near the end, stop jumping and let the walk controller settle.
+     */
+    private fun SafeContext.needsChainJump(chain: ChainSegment, playerPos: Vec3d): Boolean {
+        if (!player.isOnGround) {
+            lastJumpCommandGate = "chainAirborne"
+            return false
+        }
+        val progress = chain.projectedDistance(playerPos)
+        if (progress < 0.0) {
+            lastJumpCommandGate = "chainNotAtTakeoff"
+            return false
+        }
+        if (chain.remainingDistance(playerPos) < 1.0) {
+            lastJumpCommandGate = "chainAtEnd"
+            return false
+        }
+        if (progress < 1.0) {
+            if (chain.lateralError(playerPos) > GAP_MAX_LATERAL_ERROR) {
+                lastJumpCommandGate = "chainMisaligned"
+                return false
+            }
+            if (perpendicularSpeed(chain, player.velocity) > GAP_MAX_LATERAL_DRIFT) {
+                lastJumpCommandGate = "chainDrifting"
+                return false
+            }
+        }
+        if (!with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }) {
+            lastJumpCommandGate = "chainNoHeadroom"
+            return false
+        }
+        lastJumpCommandGate = "chainCommanded"
         return true
     }
 
