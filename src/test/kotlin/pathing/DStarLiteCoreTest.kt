@@ -11,6 +11,7 @@ package pathing
 
 import com.lambda.pathing.core.DStarLite
 import com.lambda.pathing.core.Key
+import com.lambda.pathing.core.LazyGraph
 import com.lambda.util.world.fastVectorOf
 import pathing.GridGraphTestUtil.Connectivity.N26
 import pathing.GridGraphTestUtil.Connectivity.N6
@@ -152,6 +153,38 @@ class DStarLiteCoreTest {
 
         assertTrue(blockedNode in repairedPath)
         assertTrue(repairedPath.length() < detour.length())
+    }
+
+    @Test
+    fun `synchronizeAffected regenerates a known node whose adjacency was empty`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(1, 0, 0)
+        var opened = false
+        val graph = LazyGraph<Long>(
+            successorProvider = { node ->
+                if (opened && node == start) mapOf(goal to 1.0) else emptyMap()
+            },
+            predecessorProvider = { node ->
+                if (opened && node == goal) mapOf(start to 1.0) else emptyMap()
+            },
+        )
+        val planner = DStarLite(graph, start, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        assertTrue(planner.path().isEmpty())
+
+        // The search has examined this adjacency and learned that it is a
+        // dead end. It remains a known node even though it stores no edges.
+        assertTrue(graph.successors(start).isEmpty())
+        assertTrue(start in graph)
+
+        opened = true
+        val sync = planner.synchronizeAffected(listOf(start))
+        planner.computeShortestPath()
+
+        assertEquals(1, sync.nodesChecked)
+        assertEquals(1, sync.edgesAdded)
+        assertEquals(listOf(start, goal), planner.path())
     }
 
     @Test

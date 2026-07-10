@@ -34,7 +34,15 @@ class LazyGraph<N>(
     private val initializedPredecessors = HashSet<N>()
 
     val nodes: Set<N>
-        get() = successorEdges.keys + predecessorEdges.keys
+        get() = buildSet {
+            addAll(successorEdges.keys)
+            addAll(predecessorEdges.keys)
+            // A generated empty adjacency is still planner knowledge. Keeping
+            // these nodes visible is essential for world-change invalidation:
+            // an initialized dead end may gain its first edge later.
+            addAll(initializedSuccessors)
+            addAll(initializedPredecessors)
+        }
 
     val size: Int
         get() = nodes.size
@@ -83,7 +91,9 @@ class LazyGraph<N>(
         initializedPredecessors.clear()
     }
 
-    operator fun contains(node: N) = node in nodes
+    operator fun contains(node: N) =
+        node in successorEdges || node in predecessorEdges ||
+            node in initializedSuccessors || node in initializedPredecessors
 
     private fun ensureSuccessors(node: N) {
         if (!initializedSuccessors.add(node)) return

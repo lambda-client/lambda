@@ -69,6 +69,10 @@ data class ScenarioReport(
     // reaches the goal nor misbehaves (creative-flight toggle).
     val passed: Boolean get() = if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled
 
+    /** A harness/incremental-search failure, not an executor baseline miss. */
+    val plannerStalled: Boolean
+        get() = expectSuccess && !reachedGoal && finalStatus == TraversalHandle.Status.Partial.toString() && plannedNodes == 0
+
     /** Movement beyond the planned line, in percent of the planned length. */
     val movementWastePercent: Double
         get() = if (plannedLength > 0.5) ((traveledLength - plannedLength) / plannedLength * 100.0).coerceAtLeast(0.0) else 0.0
@@ -87,6 +91,7 @@ data class ScenarioReport(
         append(" repairs=").append(plannerStats.repairs)
         append("(p50=").append(plannerStats.repairWallUsP50).append("us)")
         if (flightToggled) append(" FLIGHT-TOGGLED")
+        if (plannerStalled) append(" PLANNER-STALLED")
         append(" status=").append(finalStatus)
         failureReason?.let { append(" reason=").append(it) }
         if (!passed) append("\n      coarse=").append(coarsePathDump)
@@ -187,6 +192,7 @@ object ScenarioRunner {
         var jumpInputTicks = 0
         var airborneJumps = 0
         var flightToggled = false
+        var maxLostTicks = 0
         var wasOnGround = true
         var wasJumpInput = false
         var traveled = 0.0
@@ -249,6 +255,9 @@ object ScenarioRunner {
                 if (jumpInput && !wasJumpInput) jumpInputTicks++
                 if (!onGround && wasOnGround && jumpInput) airborneJumps++
                 if (flying) flightToggled = true
+                sample.substringAfter("\"lost\":").substringBefore(",").toIntOrNull()?.let {
+                    if (it > maxLostTicks) maxLostTicks = it
+                }
                 wasOnGround = onGround
                 wasJumpInput = jumpInput
 
@@ -324,7 +333,7 @@ object ScenarioRunner {
                 jumpInputTicks = jumpInputTicks,
                 airborneJumps = airborneJumps,
                 flightToggled = flightToggled,
-                maxLostTicks = state.lostTicks,
+                maxLostTicks = maxLostTicks,
                 replansRequested = state.replansRequested,
                 finalStatus = handle?.status?.toString() ?: "None",
                 failureReason = handle?.failureReason,

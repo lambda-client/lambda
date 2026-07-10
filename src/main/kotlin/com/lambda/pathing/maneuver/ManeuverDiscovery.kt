@@ -157,6 +157,18 @@ class ManeuverDiscovery(
     fun chainWaypoints(from: FastVector, to: FastVector): List<FastVector>? = chainMids[from to to]
 
     /**
+     * Drops all world-dependent discovery state. Used for chunk transitions,
+     * where the conservative unknown/known boundary can change an arbitrary
+     * part of a cached maneuver's swept region.
+     */
+    fun clearWorldCache() {
+        examinedLandings.clear()
+        edgesInto.clear()
+        edgesFrom.clear()
+        chainMids.clear()
+    }
+
+    /**
      * A block changed: drop every discovered edge whose flight region could
      * read it and un-memoize the affected landings so they re-discover on
      * next expansion. Returns the nodes whose edge sets changed, for the
@@ -382,7 +394,6 @@ class ManeuverDiscovery(
         const val CHAIN_DEBUG = false
 
         const val MAX_SIMULATION_TICKS = 20
-        const val INVALIDATION_RADIUS_XZ = 5
         const val INVALIDATION_RADIUS_Y = 3
         const val AXIS_TIE_EPSILON = 0.05
 
@@ -401,5 +412,12 @@ class ManeuverDiscovery(
                 if (distance in 2.3..4.3) add(Offset(dx, dz))
             }
         }
+
+        // A two-hop chain starts at landing - 2*offset. Include one extra
+        // block for the player footprint/collision neighborhood. Derive this
+        // from the candidate library so extending jump reach cannot silently
+        // leave stale discovery edges after a world change.
+        val INVALIDATION_RADIUS_XZ: Int =
+            CANDIDATE_OFFSETS.maxOf { maxOf(abs(it.dx), abs(it.dz)) } * 2 + 1
     }
 }

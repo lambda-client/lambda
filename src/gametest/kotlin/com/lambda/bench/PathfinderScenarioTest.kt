@@ -56,10 +56,13 @@ object PathfinderScenarioTest : FabricClientGameTest {
             }
 
             // Deterministic environment for every scenario.
-            server.runCommand("/gamerule doDaylightCycle false")
-            server.runCommand("/gamerule doWeatherCycle false")
-            server.runCommand("/gamerule doMobSpawning false")
-            server.runCommand("/gamerule randomTickSpeed 0")
+            // Game-rule ids were snake-cased/renamed in 1.21.11. The old
+            // camelCase commands fail without throwing, silently making the
+            // supposedly deterministic harness nondeterministic.
+            server.runCommand("/gamerule advance_time false")
+            server.runCommand("/gamerule advance_weather false")
+            server.runCommand("/gamerule spawn_mobs false")
+            server.runCommand("/gamerule random_tick_speed 0")
             server.runCommand("/time set noon")
 
             // -Pbench.filter=gap,stair → run matching scenarios only.
@@ -98,7 +101,10 @@ object PathfinderScenarioTest : FabricClientGameTest {
             LOG.warn("[Bench] baseline miss (ungated): ${it.summaryLine()}")
         }
 
-        val failed = reports.filterNot { it.passed || !it.gated }
+        // Ungated scenarios may miss because they measure an executor
+        // baseline. A planner that never produced a path is infrastructure,
+        // not a baseline result, and must always fail the suite.
+        val failed = reports.filter { (!it.passed && it.gated) || it.plannerStalled }
         check(failed.isEmpty()) {
             buildString {
                 appendLine("${failed.size}/${reports.size} scenarios failed:")

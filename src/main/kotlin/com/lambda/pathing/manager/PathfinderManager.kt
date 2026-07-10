@@ -69,13 +69,19 @@ object PathfinderManager : Loadable,
         }
 
         listen<WorldEvent.ChunkEvent.Load>(alwaysListen = true) { event ->
-            activeSession?.view?.evictChunk(event.chunk.pos)
+            activeSession?.let { session ->
+                session.view.evictChunk(event.chunk.pos)
+                session.chunkTopologyDirty = true
+            }
         }
 
         listen<WorldEvent.ChunkEvent.Unload>(alwaysListen = true) { event ->
-            // Parity with live reads, which turn to air on unload. Keeping
-            // observed terrain across unloads is WP7 (lifelong memory) work.
-            activeSession?.view?.evictChunk(event.chunk.pos)
+            // Unloaded terrain becomes conservative unknown. Keeping observed
+            // terrain across unloads is WP7 (lifelong memory) work.
+            activeSession?.let { session ->
+                session.view.evictChunk(event.chunk.pos)
+                session.chunkTopologyDirty = true
+            }
         }
 
         listen<TickEvent.Player.Post>(alwaysListen = true) {
@@ -104,12 +110,12 @@ object PathfinderManager : Loadable,
         // in the real world get their cost multiplied, so replans learn to
         // route around them even though the world model still believes in
         // them. Session-scoped — a fresh traversal starts unprejudiced.
-        val edgePenalties = HashMap<Long, Double>()
+        val edgePenalties = HashMap<EdgeKey, Double>()
         fun penalized(from: FastVector, edges: Map<FastVector, Double>): Map<FastVector, Double> {
             if (edgePenalties.isEmpty()) return edges
             var result: HashMap<FastVector, Double>? = null
             edges.forEach { (to, cost) ->
-                edgePenalties[edgeKey(from, to)]?.let { factor ->
+                edgePenalties[EdgeKey(from, to)]?.let { factor ->
                     (result ?: HashMap(edges).also { result = it })[to] = cost * factor
                 }
             }
@@ -140,7 +146,7 @@ object PathfinderManager : Loadable,
                 var edges = moves.predecessors(view, node)
                 discovery?.predecessorsInto(node)?.takeIf { it.isNotEmpty() }?.let { edges = edges + it }
                 if (edgePenalties.isEmpty()) edges
-                else edges.mapValues { (from, cost) -> cost * (edgePenalties[edgeKey(from, node)] ?: 1.0) }
+                else edges.mapValues { (from, cost) -> cost * (edgePenalties[EdgeKey(from, node)] ?: 1.0) }
             },
         )
 
@@ -181,6 +187,21 @@ object PathfinderManager : Loadable,
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
 
+        if (session.chunkTopologyDirty) {
+            // Correctness-first fallback for chunk visibility changes. A
+            // section can switch wholesale between unknown and observed, so
+            // until WP5 supplies section-scoped connectivity/invalidation we
+            // rebuild the lazy graph once for the whole event batch.
+            session.chunkTopologyDirty = false
+            session.discovery?.clearWorldCache()
+            session.planner.initialize(clearGraph = true)
+            session.lastCoarsePath = null
+            session.lastRefinedPath = null
+            currentStablePlannerNode(session.view)?.let { session.planner.updateStart(it) }
+            computeActivePath()
+            return session.handle
+        }
+
         val playerBlock = currentStablePlannerNode() ?: return session.handle
         if (playerBlock == session.handle.goal.targetNode) {
             completeActiveTraversal()
@@ -188,7 +209,14 @@ object PathfinderManager : Loadable,
         }
 
         val planner = session.planner
-        if (playerBlock == planner.start) return session.handle
+        if (playerBlock == planner.start) {
+            // A budgeted compute can time out before producing even a partial
+            // path. The player then cannot move, so waiting for a start-node
+            // change deadlocks the traversal in Partial forever. Continue one
+            // budget slice per player tick until D* Lite becomes consistent.
+            if (session.handle.status == TraversalHandle.Status.Partial) computeActivePath()
+            return session.handle
+        }
 
         val refined = session.lastRefinedPath
         if (refined.isNullOrEmpty()) {
@@ -424,7 +452,7 @@ object PathfinderManager : Loadable,
         val handle: TraversalHandle,
         val graph: LazyGraph<FastVector>,
         val planner: DStarLite<FastVector>,
-        val edgePenalties: HashMap<Long, Double>,
+        val edgePenalties: HashMap<EdgeKey, Double>,
         val view: SnapshotWorldView,
         val moves: MoveTable.MoveSet,
         val discovery: ManeuverDiscovery?,
@@ -432,6 +460,7 @@ object PathfinderManager : Loadable,
         var lastCoarsePath: List<FastVector>? = null,
         var lastRefinedPath: List<FastVector>? = null,
         var computeCount: Int = 0,
+        var chunkTopologyDirty: Boolean = false,
     )
 
     private fun logRefinementSummaryIfChanged(session: ActiveSession) {
@@ -491,7 +520,7 @@ object PathfinderManager : Loadable,
         val session = activeSession ?: return false
         if (session.handle.status.isTerminal) return false
 
-        val key = edgeKey(from, to)
+        val key = EdgeKey(from, to)
         val factor = ((session.edgePenalties[key] ?: 1.0) * OBSTRUCTION_PENALTY_FACTOR)
             .coerceAtMost(MAX_OBSTRUCTION_PENALTY)
         session.edgePenalties[key] = factor
@@ -505,10 +534,6 @@ object PathfinderManager : Loadable,
         computeActivePath()
         return true
     }
-
-    /** Packs two FastVectors (Longs) into one map key without allocation. */
-    private fun edgeKey(from: FastVector, to: FastVector): Long =
-        from * 31 + to
 
     private const val OBSTRUCTION_PENALTY_FACTOR = 8.0
     private const val MAX_OBSTRUCTION_PENALTY = 4096.0
@@ -560,3 +585,6 @@ object PathfinderManager : Loadable,
         )
     }
 }
+
+/** Exact identity of one directed planner edge. */
+internal data class EdgeKey(val from: FastVector, val to: FastVector)

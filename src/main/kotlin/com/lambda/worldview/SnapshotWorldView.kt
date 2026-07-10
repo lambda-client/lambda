@@ -18,6 +18,7 @@
 package com.lambda.worldview
 
 import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
@@ -37,13 +38,16 @@ import net.minecraft.world.chunk.ChunkStatus
  * generation does.
  */
 class SnapshotWorldView(private val world: ClientWorld) : WorldView {
-    private val sections = HashMap<Long, IntArray?>()
+    private val sections = HashMap<Long, IntArray>()
 
     override fun stateId(x: Int, y: Int, z: Int): Int {
         if (world.isOutOfHeightLimit(y)) return BlockTraitRegistry.AIR_ID
         val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-        val section = if (key in sections) sections[key] else copySection(x shr 4, y shr 4, z shr 4).also { sections[key] = it }
-        if (section == null) return BlockTraitRegistry.AIR_ID
+        val section = sections[key] ?: copySection(x shr 4, y shr 4, z shr 4).also { sections[key] = it }
+        if (section === AIR_SECTION) return BlockTraitRegistry.AIR_ID
+        // Unknown is deliberately conservative. Treating an unloaded chunk
+        // as air lets the planner route through terrain it has never observed.
+        if (section === UNKNOWN_SECTION) return UNKNOWN_STATE_ID
         return section[localIndex(x, y, z)]
     }
 
@@ -54,18 +58,22 @@ class SnapshotWorldView(private val world: ClientWorld) : WorldView {
     fun applyObserved(pos: BlockPos, newState: BlockState) {
         if (world.isOutOfHeightLimit(pos.y)) return
         val key = ChunkSectionPos.asLong(pos.x shr 4, pos.y shr 4, pos.z shr 4)
-        val section = sections[key] ?: run {
-            // An all-air section (null sentinel) that gains a block must
-            // materialize; a merely-uncached section can stay lazy.
-            if (key in sections) IntArray(SECTION_VOLUME) { BlockTraitRegistry.AIR_ID }.also { sections[key] = it } else return
+        val cached = sections[key] ?: return
+        // A block update is not evidence for every other voxel in an unloaded
+        // section. Chunk load will evict the unknown sentinel before refresh.
+        if (cached === UNKNOWN_SECTION) return
+        val section = if (cached === AIR_SECTION) {
+            IntArray(SECTION_VOLUME) { BlockTraitRegistry.AIR_ID }.also { sections[key] = it }
+        } else {
+            cached
         }
         section[localIndex(pos.x, pos.y, pos.z)] = BlockTraitRegistry.idOf(newState)
     }
 
     /**
      * Drops cached sections of one chunk so the next read re-copies. Called
-     * on chunk load (previously-unloaded area read as air must refresh) and
-     * unload (parity with live reads, which turn to air).
+     * on chunk load (previously-unknown terrain must refresh) and
+     * unload (the next read becomes conservative unknown).
      */
     fun evictChunk(chunkPos: ChunkPos) {
         val bottom = world.bottomSectionCoord
@@ -76,10 +84,10 @@ class SnapshotWorldView(private val world: ClientWorld) : WorldView {
 
     val cachedSectionCount: Int get() = sections.size
 
-    private fun copySection(sx: Int, sy: Int, sz: Int): IntArray? {
-        val chunk = world.getChunk(sx, sz, ChunkStatus.FULL, false) ?: return null
+    private fun copySection(sx: Int, sy: Int, sz: Int): IntArray {
+        val chunk = world.getChunk(sx, sz, ChunkStatus.FULL, false) ?: return UNKNOWN_SECTION
         val section = chunk.getSection(chunk.sectionCoordToIndex(sy))
-        if (section.isEmpty) return null
+        if (section.isEmpty) return AIR_SECTION
 
         val result = IntArray(SECTION_VOLUME)
         var i = 0
@@ -98,5 +106,8 @@ class SnapshotWorldView(private val world: ClientWorld) : WorldView {
 
     companion object {
         private const val SECTION_VOLUME = 16 * 16 * 16
+        private val AIR_SECTION = IntArray(0)
+        private val UNKNOWN_SECTION = IntArray(0)
+        private val UNKNOWN_STATE_ID by lazy { BlockTraitRegistry.idOf(Blocks.BEDROCK.defaultState) }
     }
 }
