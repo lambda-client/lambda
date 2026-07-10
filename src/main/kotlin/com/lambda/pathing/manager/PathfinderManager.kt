@@ -264,6 +264,10 @@ object PathfinderManager : Loadable,
     fun chainWaypoints(from: FastVector, to: FastVector): List<FastVector>? =
         activeSession?.discovery?.chainWaypoints(from, to)
 
+    /** Discovered-jump provenance lookup for the executor's path build. */
+    fun isDiscoveredJump(from: FastVector, to: FastVector): Boolean =
+        activeSession?.discovery?.isDiscoveredJump(from, to) == true
+
     fun cancelActiveTraversal(): Boolean {
         val session = activeSession ?: return false
         session.handle.cancel()

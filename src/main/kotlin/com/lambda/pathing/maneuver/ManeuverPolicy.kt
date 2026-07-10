@@ -42,6 +42,15 @@ object ManeuverPolicy {
     const val BRAKE_LEAD_TICKS = 8.0
 
     /**
+     * Brake lead for SINGLE discovered jumps. Shorter than the chain lead:
+     * chains hop ≤3 blocks and re-launch, so early braking protects the
+     * next takeoff; a single 3.5–4.3-block jump braked from 8 ticks out
+     * sheds so much carry it lands in the gap (measured: the 3-gap edge
+     * stopped validating entirely at lead 8).
+     */
+    const val SINGLE_BRAKE_LEAD_TICKS = 5.0
+
+    /**
      * How far (horizontally, blocks) a grounded position may be from a
      * waypoint center and still count as standing on it — covers rim
      * landings, where the AABB rests on the block while the feet center
@@ -52,6 +61,16 @@ object ManeuverPolicy {
     /** Chain hops are validated and executed at sprint; ticks cap per chain. */
     const val MAX_CHAIN_TICKS = 40
 
-    fun shouldBrake(horizontalDistanceToTarget: Double, horizontalSpeed: Double): Boolean =
-        horizontalDistanceToTarget < horizontalSpeed * BRAKE_LEAD_TICKS
+    /**
+     * The brake rule applies to SINGLE discovered jumps too, not just
+     * chains: a fast entry sheds its excess speed mid-air and centers on
+     * the landing instead of carrying a block past it. Discovery validation
+     * and the executor both use it — validated == executed, the same
+     * single-policy invariant the chains established.
+     */
+    fun shouldBrake(
+        horizontalDistanceToTarget: Double,
+        horizontalSpeed: Double,
+        leadTicks: Double = BRAKE_LEAD_TICKS,
+    ): Boolean = horizontalDistanceToTarget < horizontalSpeed * leadTicks
 }

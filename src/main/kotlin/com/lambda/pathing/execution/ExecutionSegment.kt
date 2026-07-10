@@ -167,10 +167,18 @@ data class WalkSegment(
     override val index: Int,
     val start: ExecutionPose,
     val end: ExecutionPose,
+    /**
+     * True for discovered (sim-validated) jump edges. The takeoff is the
+     * segment start node — the validation sim jumps on tick 0, flying over
+     * any supported run-in — and entry is sprint. Refiner-merged template
+     * gaps are the opposite on both counts.
+     */
+    val discovered: Boolean = false,
 ) : LinearExecutionSegment(index, start, end) {
     /** +1 step-up, negative for step-down/drop depth, 0 flat. */
     val verticalStep: Int = Math.round(delta.y).toInt()
     override val typeName: String = when {
+        discovered -> "Jump"
         verticalStep > 0 -> "Walk(+$verticalStep)"
         verticalStep < 0 -> "Walk($verticalStep)"
         else -> "Walk"

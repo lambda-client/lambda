@@ -28,6 +28,7 @@ class PathfinderRenderSettings(override val c: Config) : PathfinderRenderConfig,
         private const val PATH_GROUP = "Path"
         private const val PATH_COLORS_GROUP = "Path Colors"
         private const val NODES_GROUP = "Nodes"
+        private const val TRAJECTORY_GROUP = "Trajectories"
         private const val MARKERS_GROUP = "Markers"
         private const val REFINEMENT_GROUP = "Refinement"
         private const val EXECUTION_GROUP = "Execution"
@@ -48,6 +49,8 @@ class PathfinderRenderSettings(override val c: Config) : PathfinderRenderConfig,
     @Group(PATH_GROUP) override val renderCoarsePath by c.setting("Render Coarse Path", false)
     @Group(PATH_GROUP) override val screenWidth by c.setting("Screen Width", 48, 1..150, 1)
     @Group(PATH_GROUP) override val coarseScreenWidth by c.setting("Coarse Path Screen Width", 30, 1..150, 1) { renderCoarsePath }
+    @Group(PATH_GROUP) override val fadeTraversedPath by c.setting("Fade Traversed Path", true, "Dim the part of the path already walked so the remaining plan stands out.") { renderPath }
+    @Group(PATH_GROUP) override val traversedPathOpacity by c.setting("Traversed Path Opacity", 0.25, 0.0..1.0, 0.05) { renderPath && fadeTraversedPath }
 
     @Group(PATH_COLORS_GROUP) override val coarsePathColor by c.setting("Coarse Path Color", Color(255, 220, 80, 150))
     @Group(PATH_COLORS_GROUP) override val readyStartColor by c.setting("Ready Start Color", Color(40, 220, 255, 230))
@@ -58,6 +61,15 @@ class PathfinderRenderSettings(override val c: Config) : PathfinderRenderConfig,
     @Group(NODES_GROUP) override val renderPathNodes by c.setting("Render Path Nodes", true) { renderPath }
     @Group(NODES_GROUP) override val pathNodeSize by c.setting("Path Node Size", 0.11, 0.02..0.5, 0.01) { renderPath && renderPathNodes }
     @Group(NODES_GROUP) override val pathNodeColor by c.setting("Path Node Color", Color(255, 255, 255, 115)) { renderPath && renderPathNodes }
+
+    @Group(TRAJECTORY_GROUP) override val renderPlannedJumps by c.setting("Render Planned Jumps", true, "Simulated flight paths of upcoming jumps, drops and chain maneuvers — what the executor intends to fly.")
+    @Group(TRAJECTORY_GROUP) override val plannedJumpWidth by c.setting("Planned Jump Width", 34, 1..150, 1) { renderPlannedJumps }
+    @Group(TRAJECTORY_GROUP) override val renderLandingMarkers by c.setting("Render Landing Markers", true, "Flat reticle on each planned landing block.") { renderPlannedJumps }
+    @Group(TRAJECTORY_GROUP) override val landingMarkerSize by c.setting("Landing Marker Size", 0.35, 0.1..1.0, 0.05) { renderPlannedJumps && renderLandingMarkers }
+    @Group(TRAJECTORY_GROUP) override val jumpArcColor by c.setting("Jump Arc Color", Color(255, 190, 70, 235)) { renderPlannedJumps }
+    @Group(TRAJECTORY_GROUP) override val chainArcColor by c.setting("Chain Arc Color", Color(255, 120, 220, 235)) { renderPlannedJumps }
+    @Group(TRAJECTORY_GROUP) override val dropArcColor by c.setting("Drop Arc Color", Color(120, 200, 255, 210)) { renderPlannedJumps }
+    @Group(TRAJECTORY_GROUP) override val launchArcColor by c.setting("Launch Arc Color", Color(255, 255, 255, 245), "Flight prediction computed at the actual launch tick — the committed trajectory of the jump in the air.") { renderPlannedJumps }
 
     @Group(MARKERS_GROUP) override val renderMarkers by c.setting("Render Markers", true)
     @Group(MARKERS_GROUP) override val markerSize by c.setting("Marker Size", 0.45, 0.1..1.5, 0.05)

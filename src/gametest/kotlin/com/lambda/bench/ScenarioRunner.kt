@@ -71,6 +71,16 @@ data class ScenarioReport(
     val longestExecutorLostBurstTicks: Int,
     val jumpLandingSuccesses: Int,
     val jumpLandingFailures: Int,
+    /** Following ticks spent scraping a wall (horizontal collision). */
+    val wallCollisionTicks: Int,
+    /** Following ticks with an airborne head bonk (vertical collision off-ground). */
+    val headBonkTicks: Int,
+    /** Mean/max tick-aligned deviation from launch-time flight predictions (sim divergence). */
+    val arcDevMean: Double,
+    val arcDevMax: Double,
+    /** Mean/max nearest-distance to the planned arcs while airborne (plan match). */
+    val planDevMean: Double,
+    val planDevMax: Double,
     val maxFirstFollowingTick: Int?,
     val maxPlanningPauseTicks: Int?,
     val maxLongestPlanningPauseTicks: Int?,
@@ -123,6 +133,9 @@ data class ScenarioReport(
         append(" nodes=").append(plannedNodes)
         append(" jumps(in/air)=").append(jumpInputTicks).append('/').append(airborneJumps)
         append(" land=").append(jumpLandingSuccesses).append('/').append(jumpLandingSuccesses + jumpLandingFailures)
+        append(" coll(wall/head)=").append(wallCollisionTicks).append('/').append(headBonkTicks)
+        append(" arc=").append("%.2f/%.2f".format(arcDevMean, arcDevMax))
+        append(" plan=").append("%.2f/%.2f".format(planDevMean, planDevMax))
         append(" firstFollow=").append(firstFollowingTick)
         append(" pause=").append(planningPauseTicks).append('/').append(longestPlanningPauseTicks)
         append(" stall=").append(movementStallTicks).append('/').append(longestMovementStallTicks)
@@ -179,6 +192,12 @@ data class ScenarioReport(
         append(",\"jumpLandingSuccesses\":").append(jumpLandingSuccesses)
         append(",\"jumpLandingFailures\":").append(jumpLandingFailures)
         append(",\"jumpLandingSuccessRate\":").append("%.3f".format(jumpLandingSuccessRate))
+        append(",\"wallCollisionTicks\":").append(wallCollisionTicks)
+        append(",\"headBonkTicks\":").append(headBonkTicks)
+        append(",\"arcDevMean\":").append("%.3f".format(arcDevMean))
+        append(",\"arcDevMax\":").append("%.3f".format(arcDevMax))
+        append(",\"planDevMean\":").append("%.3f".format(planDevMean))
+        append(",\"planDevMax\":").append("%.3f".format(planDevMax))
         append(",\"qualityPassed\":").append(qualityPassed)
         append(",\"finalStatus\":\"").append(finalStatus).append('"')
         append(",\"failureReason\":").append(failureReason?.let { "\"$it\"" } ?: "null")
@@ -197,7 +216,11 @@ data class ScenarioReport(
 object ScenarioRunner {
     /** Horizontal speed below which the agent counts as standing still. */
     private const val ORACLE_STOP_SPEED = 0.10
-    private const val LANDING_HORIZONTAL_TOLERANCE = 1.15
+
+    // Landing success = feet within the launch-sim gate's own acceptance
+    // (0.9 of the target center). The former 1.15 counted block-off
+    // touchdowns as successes — green numbers over visibly sloppy jumps.
+    private const val LANDING_HORIZONTAL_TOLERANCE = 0.9
     private const val LANDING_VERTICAL_TOLERANCE = 0.30
     private const val MOVEMENT_STALL_SPEED = 0.01
 
@@ -217,7 +240,25 @@ object ScenarioRunner {
         val success: Boolean,
         val horizontalError: Double?,
         val verticalError: Double?,
+        /** Flight-mean/max tick-aligned deviation from the launch prediction. */
+        val arcErrMean: Double? = null,
+        val arcErrMax: Double? = null,
+        /** Flight-mean/max nearest-distance to the planned arc. */
+        val planErrMean: Double? = null,
+        val planErrMax: Double? = null,
     )
+
+    /** Per-flight accumulator for the trajectory-match samples. */
+    private class FlightErrors {
+        var arcSum = 0.0; var arcMax = 0.0; var arcN = 0
+        var planSum = 0.0; var planMax = 0.0; var planN = 0
+        fun add(arc: Double?, plan: Double?) {
+            arc?.let { arcSum += it; arcN++; if (it > arcMax) arcMax = it }
+            plan?.let { planSum += it; planN++; if (it > planMax) planMax = it }
+        }
+        val arcMean: Double? get() = if (arcN > 0) arcSum / arcN else null
+        val planMean: Double? get() = if (planN > 0) planSum / planN else null
+    }
 
     private val runId: String = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now())
 
@@ -302,7 +343,10 @@ object ScenarioRunner {
         var currentExecutorLost = 0
         var longestExecutorLostBurstTicks = 0
         var pendingJump: PendingJump? = null
+        var flightErrors = FlightErrors()
         val jumpLandings = ArrayList<JumpLanding>()
+        var wallCollisionTicks = 0
+        var headBonkTicks = 0
 
         if (requested) {
             while (ticks < scenario.timeoutTicks) {
@@ -328,6 +372,8 @@ object ScenarioRunner {
                             append(",\"vy\":").append("%.3f".format(player.velocity.y))
                             append(",\"spd\":").append("%.4f".format(hypot(player.velocity.x, player.velocity.z)))
                             append(",\"ground\":").append(player.isOnGround)
+                            append(",\"hColl\":").append(player.horizontalCollision)
+                            append(",\"vColl\":").append(player.verticalCollision && !player.isOnGround)
                             append(",\"flying\":").append(player.abilities.flying)
                             append(",\"status\":\"").append(state.status).append('"')
                             append(",\"seg\":").append(state.segmentIndex)
@@ -348,6 +394,8 @@ object ScenarioRunner {
                                 append(",\"jumpTargetY\":").append("%.3f".format(target.y))
                                 append(",\"jumpTargetZ\":").append("%.3f".format(target.z))
                             }
+                            state.arcTickError?.let { append(",\"arcErr\":").append("%.3f".format(it)) }
+                            state.plannedArcError?.let { append(",\"planErr\":").append("%.3f".format(it)) }
                             append('}')
                         }
                     } ?: "{}"
@@ -409,6 +457,12 @@ object ScenarioRunner {
                 if (jumpInput && !wasJumpInput) jumpInputTicks++
                 if (!onGround && wasOnGround && jumpInput) airborneJumps++
                 if (flying) flightToggled = true
+                // Contact-quality counters: wall scrapes and airborne head
+                // bonks while actively following — the sloppy-motion gauges.
+                if (status == "Following") {
+                    if ("\"hColl\":true" in sample) wallCollisionTicks++
+                    if ("\"vColl\":true" in sample) headBonkTicks++
+                }
                 sample.substringAfter("\"lost\":").substringBefore(",").toIntOrNull()?.let {
                     if (it > maxLostTicks) maxLostTicks = it
                 }
@@ -416,6 +470,9 @@ object ScenarioRunner {
                     if (it > maxReplansRequested) maxReplansRequested = it
                 }
 
+                if (pendingJump != null) {
+                    flightErrors.add(sample.numberField("arcErr"), sample.numberField("planErr"))
+                }
                 if (jumpInput && !wasJumpInput) {
                     val x = sample.numberField("x")
                     val y = sample.numberField("y")
@@ -424,6 +481,7 @@ object ScenarioRunner {
                     val targetY = sample.numberField("jumpTargetY")
                     val targetZ = sample.numberField("jumpTargetZ")
                     if (x != null && y != null && z != null) {
+                        flightErrors = FlightErrors()
                         pendingJump = PendingJump(
                             tick = ticks,
                             launch = Vec3d(x, y, z),
@@ -449,7 +507,13 @@ object ScenarioRunner {
                             val success = horizontalError != null && verticalError != null &&
                                 horizontalError <= LANDING_HORIZONTAL_TOLERANCE &&
                                 verticalError <= LANDING_VERTICAL_TOLERANCE
-                            jumpLandings += JumpLanding(attempt, ticks, landing, success, horizontalError, verticalError)
+                            jumpLandings += JumpLanding(
+                                attempt, ticks, landing, success, horizontalError, verticalError,
+                                arcErrMean = flightErrors.arcMean,
+                                arcErrMax = flightErrors.arcMax.takeIf { flightErrors.arcN > 0 },
+                                planErrMean = flightErrors.planMean,
+                                planErrMax = flightErrors.planMax.takeIf { flightErrors.planN > 0 },
+                            )
                         }
                     }
                     pendingJump = null
@@ -559,6 +623,12 @@ object ScenarioRunner {
                 longestExecutorLostBurstTicks = longestExecutorLostBurstTicks,
                 jumpLandingSuccesses = jumpLandings.count { it.success },
                 jumpLandingFailures = jumpLandings.count { !it.success },
+                wallCollisionTicks = wallCollisionTicks,
+                headBonkTicks = headBonkTicks,
+                arcDevMean = jumpLandings.mapNotNull { it.arcErrMean }.let { if (it.isEmpty()) 0.0 else it.average() },
+                arcDevMax = jumpLandings.mapNotNull { it.arcErrMax }.maxOrNull() ?: 0.0,
+                planDevMean = jumpLandings.mapNotNull { it.planErrMean }.let { if (it.isEmpty()) 0.0 else it.average() },
+                planDevMax = jumpLandings.mapNotNull { it.planErrMax }.maxOrNull() ?: 0.0,
                 maxFirstFollowingTick = scenario.maxFirstFollowingTick,
                 maxPlanningPauseTicks = scenario.maxPlanningPauseTicks,
                 maxLongestPlanningPauseTicks = scenario.maxLongestPlanningPauseTicks,
@@ -603,6 +673,10 @@ object ScenarioRunner {
                         .append("%.3f".format(landing.position.z)).append(']')
                     landing.horizontalError?.let { append(",\"horizontalError\":").append("%.3f".format(it)) }
                     landing.verticalError?.let { append(",\"verticalError\":").append("%.3f".format(it)) }
+                    landing.arcErrMean?.let { append(",\"arcErrMean\":").append("%.3f".format(it)) }
+                    landing.arcErrMax?.let { append(",\"arcErrMax\":").append("%.3f".format(it)) }
+                    landing.planErrMean?.let { append(",\"planErrMean\":").append("%.3f".format(it)) }
+                    landing.planErrMax?.let { append(",\"planErrMax\":").append("%.3f".format(it)) }
                     append(",\"success\":").append(landing.success).append('}')
                 }
             }

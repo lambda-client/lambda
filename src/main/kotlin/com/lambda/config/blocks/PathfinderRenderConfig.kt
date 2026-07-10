@@ -74,6 +74,12 @@ interface PathfinderRenderConfig {
     val renderMarkers: Boolean
     val markerSize: Double
     val markerHeight: Double
+    val renderPlannedJumps: Boolean
+    val plannedJumpWidth: Int
+    val renderLandingMarkers: Boolean
+    val landingMarkerSize: Double
+    val fadeTraversedPath: Boolean
+    val traversedPathOpacity: Double
 
     val coarsePathColor: Color
     val readyStartColor: Color
@@ -98,4 +104,8 @@ interface PathfinderRenderConfig {
     val graphDataColor: Color
     val startMarkerColor: Color
     val goalMarkerColor: Color
+    val jumpArcColor: Color
+    val chainArcColor: Color
+    val dropArcColor: Color
+    val launchArcColor: Color
 }

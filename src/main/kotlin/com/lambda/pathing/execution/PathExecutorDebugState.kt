@@ -65,6 +65,14 @@ data class PathExecutorDebugState(
     val horizontalSpeed: Double = 0.0,
     val movedLastTick: Double = 0.0,
     val supportedSegment: Boolean = true,
+    /** Following ticks spent scraping a wall (player.horizontalCollision). */
+    val wallCollisionTicks: Int = 0,
+    /** Following ticks with an airborne head bonk (vertical collision off-ground). */
+    val headBonkTicks: Int = 0,
+    /** Tick-aligned deviation from the launch-time flight prediction (sim divergence). */
+    val arcTickError: Double? = null,
+    /** Nearest distance to the active segment's planned arc while airborne (plan match). */
+    val plannedArcError: Double? = null,
 ) {
     val segmentProgressFraction: Double
         get() = if (segmentLength <= 1.0E-9) 0.0 else (projectedDistance / segmentLength).coerceIn(0.0, 1.0)

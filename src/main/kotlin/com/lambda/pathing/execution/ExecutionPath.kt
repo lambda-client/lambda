@@ -138,6 +138,8 @@ data class ExecutionPath(
             nodes: List<FastVector>,
             /** Chain macro-edge lookup: intermediate landings of (from, to), null for plain edges. */
             maneuverWaypoints: (FastVector, FastVector) -> List<FastVector>? = { _, _ -> null },
+            /** Discovered-jump provenance: true if (from, to) is a sim-validated jump edge. */
+            discoveredJump: (FastVector, FastVector) -> Boolean = { _, _ -> false },
         ): ExecutionPath {
             val deduplicated = nodes.fold(mutableListOf<FastVector>()) { acc, node ->
                 if (acc.lastOrNull() != node) acc += node
@@ -158,7 +160,10 @@ data class ExecutionPath(
                         )
                         // Rises above one block are unsupported; drops of any
                         // planned depth execute as walk-offs.
-                        dy <= 1.0 + 1.0E-6 -> WalkSegment(index, startPose, endPose)
+                        dy <= 1.0 + 1.0E-6 -> WalkSegment(
+                            index, startPose, endPose,
+                            discovered = discoveredJump(start, end),
+                        )
                         else -> UnsupportedSegment(index, startPose, endPose, "UnsupportedVertical")
                     }
                 }

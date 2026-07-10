@@ -22,6 +22,7 @@ import com.lambda.core.Loadable
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.pathing.execution.PathExecutorDebugState
+import com.lambda.pathing.execution.PlannedArc
 import com.lambda.pathing.manager.PathfinderExecutor
 import com.lambda.pathing.manager.PathfinderManager
 import com.lambda.pathing.manager.TraversalHandle
@@ -63,15 +64,102 @@ object PathfinderRender : Loadable {
 
             val startColor = if (handle.status == TraversalHandle.Status.Partial) renderConfig.partialStartColor else renderConfig.readyStartColor
             val endColor = if (handle.status == TraversalHandle.Status.Partial) renderConfig.partialEndColor else renderConfig.readyEndColor
-            renderPath(controlPoints, startColor, endColor, spline = renderConfig.useSplines, width = pathLineWidth())
+            renderPath(
+                controlPoints, startColor, endColor,
+                spline = renderConfig.useSplines,
+                width = pathLineWidth(),
+                traversedFraction = traversedFraction(handle),
+            )
 
             if (renderConfig.renderPathNodes) {
                 renderPathNodes(controlPoints)
             }
 
+            if (renderConfig.renderPlannedJumps) renderPlannedArcs(handle)
+
             if (renderConfig.renderMarkers) {
                 renderMarker(controlPoints.first(), renderConfig.startMarkerColor)
                 renderMarker(controlPoints.last(), renderConfig.goalMarkerColor)
+            }
+        }
+    }
+
+    /**
+     * How far along the rendered path the agent already is, in [0, 1] of the
+     * control-point line — drives the traversed-path fade. Zero when the
+     * executor isn't following this traversal.
+     */
+    private fun traversedFraction(handle: TraversalHandle): Double {
+        if (!renderConfig.fadeTraversedPath) return 0.0
+        val state = PathfinderExecutor.state
+        if (!state.active || state.traversalId != handle.id || state.segmentCount <= 0) return 0.0
+        if (state.segmentIndex < 0) return 0.0
+        return ((state.segmentIndex + state.segmentProgressFraction) / state.segmentCount).coerceIn(0.0, 1.0)
+    }
+
+    /**
+     * Predicted maneuver flight paths (jumps, drops, chains): the active
+     * maneuver draws solid, upcoming ones dashed and dimmed; each landing
+     * gets a flat reticle on its block. Arcs behind the agent are dropped —
+     * the plan ahead is the interesting part.
+     */
+    private fun RenderBuilder.renderPlannedArcs(handle: TraversalHandle) {
+        val arcs = PathfinderExecutor.plannedArcs
+        if (arcs.isEmpty()) return
+        val state = PathfinderExecutor.state
+        if (state.traversalId != null && state.traversalId != handle.id) return
+        val currentIndex = if (state.active) state.segmentIndex else -1
+        val width = plannedArcLineWidth()
+
+        arcs.forEach { arc ->
+            if (arc.segmentIndex < currentIndex) return@forEach
+            val active = arc.segmentIndex == currentIndex
+            val base = when (arc.kind) {
+                PlannedArc.Kind.Chain -> renderConfig.chainArcColor
+                PlannedArc.Kind.Drop -> renderConfig.dropArcColor
+                PlannedArc.Kind.GapJump,
+                PlannedArc.Kind.RisingGap,
+                PlannedArc.Kind.StepUp -> renderConfig.jumpArcColor
+            }
+            val color = if (active) base else base.fade(0.55)
+
+            val points = arc.points
+            for (i in 0 until points.lastIndex) {
+                // Upcoming arcs draw dashed (2 ticks on, 1 off); the active
+                // arc draws solid so the committed maneuver reads instantly.
+                if (!active && i % 3 == 2) continue
+                line(
+                    points[i].add(0.0, ARC_Y_OFFSET, 0.0),
+                    points[i + 1].add(0.0, ARC_Y_OFFSET, 0.0),
+                    color,
+                    width,
+                )
+            }
+
+            if (renderConfig.renderLandingMarkers) {
+                val size = renderConfig.landingMarkerSize
+                box(Box.of(arc.landing.add(0.0, 0.02, 0.0), size, 0.04, size)) {
+                    colors(base.withAlpha(if (active) 0.20 else 0.10), color)
+                    lineWidth(width)
+                }
+            }
+        }
+
+        // The jump currently in the air: its launch-time prediction — the
+        // trajectory simulated from the real launch state the tick the jump
+        // input fired. Rendered brighter than the plan; visible divergence
+        // between the player and THIS line is simulator error, divergence
+        // between this line and the dashed plan is entry mismatch.
+        val launch = PathfinderExecutor.activeLaunchArc
+        if (launch.size >= 2) {
+            val color = renderConfig.launchArcColor
+            for (i in 0 until launch.lastIndex) {
+                line(
+                    launch[i].add(0.0, ARC_Y_OFFSET, 0.0),
+                    launch[i + 1].add(0.0, ARC_Y_OFFSET, 0.0),
+                    color,
+                    width * 1.3f,
+                )
             }
         }
     }
@@ -286,6 +374,7 @@ object PathfinderRender : Loadable {
 	    endColor: Color,
 	    spline: Boolean,
 	    width: Float,
+	    traversedFraction: Double = 0.0,
     ) {
         val pathPoints = if (spline && controlPoints.size >= 3) {
             controlPoints.tightSplinePoints(renderConfig.splineSegments, renderConfig.splineTension)
@@ -297,15 +386,32 @@ object PathfinderRender : Loadable {
 
         val lastSegment = (pathPoints.size - 1).coerceAtLeast(1)
 
+        fun pointColor(t: Double): Color {
+            val color = colorLerp(t, startColor, endColor)
+            return color.fade(traversedFadeScale(t, traversedFraction))
+        }
+
         for (i in 0 until pathPoints.lastIndex) {
             lineGradient(
                 pathPoints[i],
-                colorLerp(i.toDouble() / lastSegment, startColor, endColor),
+                pointColor(i.toDouble() / lastSegment),
                 pathPoints[i + 1],
-                colorLerp((i + 1).toDouble() / lastSegment, startColor, endColor),
+                pointColor((i + 1).toDouble() / lastSegment),
                 width,
             )
         }
+    }
+
+    /**
+     * Alpha scale for a path point at fraction [t]: already-walked points dim
+     * to the configured opacity, with a short ramp back to full just behind
+     * the agent so the transition doesn't pop.
+     */
+    private fun traversedFadeScale(t: Double, traversedFraction: Double): Double {
+        if (traversedFraction <= 0.0) return 1.0
+        val floor = renderConfig.traversedPathOpacity
+        val ramp = ((t - traversedFraction) / FADE_RAMP_FRACTION + 1.0).coerceIn(0.0, 1.0)
+        return floor + (1.0 - floor) * ramp
     }
 
     private fun RenderBuilder.renderMarker(point: Vec3d, color: Color) {
@@ -344,6 +450,8 @@ object PathfinderRender : Loadable {
     private fun executionDebugLineWidth() = -renderConfig.executionDebugWidth * 0.00005f
 
     private fun executionTrailLineWidth() = -renderConfig.executionTrailWidth * 0.00005f
+
+    private fun plannedArcLineWidth() = -renderConfig.plannedJumpWidth * 0.00005f
 
     private fun PathfinderManager.LazyGraphSnapshot.Node.label(): String = buildList {
         if (start) add("START")
@@ -429,4 +537,10 @@ object PathfinderRender : Loadable {
     }
 
     private const val MAX_TANGENT_SEGMENT_RATIO = 0.35
+
+    /** Lift planned arcs slightly off the terrain so they never z-fight it. */
+    private const val ARC_Y_OFFSET = 0.05
+
+    /** Width of the fade ramp behind the agent, as a fraction of the path. */
+    private const val FADE_RAMP_FRACTION = 0.06
 }

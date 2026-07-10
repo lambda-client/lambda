@@ -33,6 +33,7 @@ import com.lambda.pathing.execution.ExecutionSegment
 import com.lambda.pathing.maneuver.ManeuverPolicy
 import com.lambda.pathing.execution.PathExecutorDebugSample
 import com.lambda.pathing.execution.PathExecutorDebugState
+import com.lambda.pathing.execution.PlannedArc
 import com.lambda.pathing.execution.RecoveryMode
 import com.lambda.pathing.execution.SegmentSelection
 import com.lambda.pathing.execution.WalkSegment
@@ -42,6 +43,9 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.MovementUtils.update
+import com.lambda.util.player.prediction.MovementSimulationInput
+import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.util.player.prediction.MovementSimulator
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import net.minecraft.client.input.Input
@@ -83,12 +87,31 @@ object PathfinderExecutor : Loadable {
     private var chainTraversalId = Int.MIN_VALUE
     private var chainSegmentIndex = Int.MIN_VALUE
     private var chainTargetIndex = 0
+    private var wallCollisionTicks = 0
+    private var headBonkTicks = 0
+    private var plannedArcsCache: List<PlannedArc> = emptyList()
+    private var plannedArcsPath: ExecutionPath? = null
+    private var newJumpIssued = false
+    private var launchArcPoints: List<Vec3d> = emptyList()
+    private var launchArcIndex = -1
+    private var lastArcTickError: Double? = null
+    private var lastPlanArcError: Double? = null
+    /** Set when the launch sim vetoed a jump this tick: shed speed and retry. */
+    private var launchSimHold = false
 
     val state: PathExecutorDebugState
         get() = debugState
 
     val recentSamples: List<PathExecutorDebugSample>
         get() = debugSamples.toList()
+
+    /** Predicted maneuver flight paths of the active path, for rendering. */
+    val plannedArcs: List<PlannedArc>
+        get() = plannedArcsCache
+
+    /** Launch-time flight prediction of the jump currently in the air. */
+    val activeLaunchArc: List<Vec3d>
+        get() = if (launchArcIndex >= 0) launchArcPoints else emptyList()
 
     init {
         listen<TickEvent.Player.Post> {
@@ -129,6 +152,10 @@ object PathfinderExecutor : Loadable {
         val sprint = command.sprint && steering.forward > 0.05
         val jump = shouldIssueJumpInput(command)
         lastIssuedJumpTarget = if (jump) command.jumpTarget else null
+        if (jump && newJumpIssued) {
+            newJumpIssued = false
+            predictLaunchArc(command, sprint)
+        }
 
         input.update(
             forward = steering.forward,
@@ -178,6 +205,7 @@ object PathfinderExecutor : Loadable {
 
         val activeHandle = handle ?: return
         val path = rebuildPathIfNeeded(activeHandle)
+        refreshPlannedArcs(path)
         if (path.isEmpty) {
             stopFollowing()
             val status = if (activeHandle.path.size <= 1) "AtGoal" else "NoSegments"
@@ -187,6 +215,7 @@ object PathfinderExecutor : Loadable {
         }
 
         val playerPos = player.pos
+        trackTrajectoryMatch(playerPos)
 
         // A jump arc tops out ~1.25 blocks above the segment line — well past
         // the grounded vertical tolerance. Without airborne slack the executor
@@ -228,6 +257,12 @@ object PathfinderExecutor : Loadable {
         applyRecovery(selection, localizationIndex)
         currentSegmentIndex = selection.index
         pathNeedsRelocalization = false
+
+        // Contact quality while following: wall scrapes (horizontal) and
+        // airborne head bonks (vertical, off-ground) are the "sloppy motion"
+        // signals — a clean run keeps both near zero.
+        if (player.horizontalCollision) wallCollisionTicks++
+        if (player.verticalCollision && !player.isOnGround) headBonkTicks++
 
         val segment = selection.segment
         val projectedPoint = segment.closestPoint(playerPos)
@@ -316,7 +351,7 @@ object PathfinderExecutor : Loadable {
             chainSegment != null || longGapActive || (
                 pathRemaining >= movementConfig.sprintMinRemaining &&
                     !riseWithin(path, currentSegmentIndex, playerPos, RISE_SPRINT_CUT_DISTANCE) &&
-                    !isGapJumpSegment(segment)
+                    !shortFlatGapWithin(path, currentSegmentIndex, playerPos, GAP_SPRINT_CUT_DISTANCE)
                 )
             )
         // Keep the same chain waypoint until it has actually been touched on
@@ -330,6 +365,7 @@ object PathfinderExecutor : Loadable {
                 ?: it.waypoints.firstOrNull()
                 ?: it.endPose.position
         }
+        launchSimHold = false
         val needsChainJump = chainSegment != null && needsChainJump(chainSegment, playerPos)
         val stepUpTarget = if (chainSegment == null) {
             stepUpJumpTarget(path, currentSegmentIndex, segment, playerPos)
@@ -341,6 +377,17 @@ object PathfinderExecutor : Loadable {
             needsChainJump -> chainTarget
             needsStepUpJump -> stepUpTarget.endPose.position
             needsGapJump -> segment.endPose.position
+            else -> null
+        }
+        // Brake-policy playback covers chains AND discovered single jumps,
+        // each with its own lead (chains protect the next takeoff; singles
+        // only trim landing overshoot).
+        val jumpBrakeLead = when {
+            needsChainJump -> ManeuverPolicy.BRAKE_LEAD_TICKS
+            needsGapJump && (segment as? WalkSegment)?.discovered == true ->
+                ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS
+            needsStepUpJump && stepUpTarget?.discovered == true ->
+                ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS
             else -> null
         }
 
@@ -368,18 +415,58 @@ object PathfinderExecutor : Loadable {
                 if (ManeuverPolicy.shouldBrake(distanceToTarget, speed)) throttle = 0.0
             }
         } else if (gapSegmentActive) {
-            val progress = segment.projectedDistance(playerPos)
-            if (!player.isOnGround) {
-                steerTarget = Vec3d(segment.endPose.position.x, playerPos.y, segment.endPose.position.z)
-            } else if (!jumpRequested && !longGapActive && progress > -0.5 && progress < GAP_TAKEOFF_MAX_PROGRESS) {
-                // Short gaps: gentle align walk to the takeoff point. Long
-                // (discovered) gaps deliberately get NO align slowdown — the
-                // launch needs every bit of sprint speed and the edge was
-                // envelope-validated across the whole realistic entry band;
-                // any run-up choreography here fights segment relocalization
-                // and oscillates (measured, not hypothesized).
-                steerTarget = Vec3d(segment.startPose.position.x, playerPos.y, segment.startPose.position.z)
-                throttle = kotlin.math.min(throttle, GAP_ALIGN_THROTTLE)
+            if (!player.isOnGround || jumpRequested) {
+                // Mid-arc AND the launch tick itself: fly at the landing
+                // node. The sprint-jump boost fires along the commanded yaw,
+                // so a launch-tick yaw at the cross-corner lookahead skews
+                // the whole arc off the validated line — the recurring
+                // bedrock miss signature (landing a block off despite a
+                // centered, in-window takeoff).
+                val end = segment.endPose.position
+                steerTarget = Vec3d(end.x, playerPos.y, end.z)
+                // Discovered jumps brake mid-air near the landing — the
+                // same ManeuverPolicy rule their validation sims ran.
+                if (!player.isOnGround && walkSegment?.discovered == true) {
+                    val distanceToEnd = hypot(end.x - playerPos.x, end.z - playerPos.z)
+                    val speed = hypot(player.velocity.x, player.velocity.z)
+                    if (ManeuverPolicy.shouldBrake(distanceToEnd, speed, ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS)) {
+                        throttle = 0.0
+                    }
+                }
+            } else {
+                val takeoffPoint = gapTakeoffPoint(walkSegment)
+                val projected = segment.projectedDistance(playerPos)
+                val relativeProgress = projected - gapTakeoffOffset(walkSegment)
+                val beforeHole = holeStartDistance(walkSegment)?.let { projected < it } != false
+                if (relativeProgress > GAP_TAKEOFF_MAX_PROGRESS && beforeHole) {
+                    // Grounded past the takeoff window without a committed
+                    // jump, still on the takeoff side of the hole — dead
+                    // ahead is the gap. Walk back to the takeoff so the
+                    // window and jump gate re-engage on the way in. Reached
+                    // from drop/arc landings that overshoot the validated
+                    // takeoff node. The hole-side test is load-bearing: a
+                    // landing that touches down short of the segment end is
+                    // also "past the window", and walking back from THERE
+                    // strides backward into the gap just crossed (measured).
+                    steerTarget = Vec3d(takeoffPoint.x, playerPos.y, takeoffPoint.z)
+                    throttle = kotlin.math.min(throttle, GAP_ALIGN_THROTTLE)
+                } else if (relativeProgress > -0.5) {
+                    // Inside (or just before) the takeoff window: aim at the
+                    // LANDING, never at the takeoff point — steering at a
+                    // point one is standing on degenerates and the commanded
+                    // yaw wobbles 90°+, which the yaw gate then blocks
+                    // forever (the bedrock stall-replan signature). Aiming
+                    // down the jump line settles yaw and lateral error
+                    // together; the window cap plus walk-back bound how far
+                    // the approach can carry. Short gaps throttle down for
+                    // the lineup; long (discovered) gaps keep full speed —
+                    // their launch needs sprint carry and the edge was
+                    // validated across the entry band. A launch-sim veto
+                    // overrides either: shed speed and re-check next tick.
+                    val end = segment.endPose.position
+                    steerTarget = Vec3d(end.x, playerPos.y, end.z)
+                    if (!longGapActive || launchSimHold) throttle = kotlin.math.min(throttle, GAP_ALIGN_THROTTLE)
+                }
             }
         }
         val lookaheadPoint = steerTarget
@@ -394,6 +481,7 @@ object PathfinderExecutor : Loadable {
             jump = jumpRequested,
             jumpUrgent = needsGapJump || needsChainJump,
             jumpTarget = jumpTarget,
+            jumpBrakeLead = jumpBrakeLead,
         )
         currentCommand = command
 
@@ -455,6 +543,10 @@ object PathfinderExecutor : Loadable {
             rewoundSegments = rewoundSegments,
             replansRequested = replansRequested,
             jumpTarget = lastIssuedJumpTarget,
+            wallCollisionTicks = wallCollisionTicks,
+            headBonkTicks = headBonkTicks,
+            arcTickError = lastArcTickError,
+            plannedArcError = lastPlanArcError,
         )
     }
 
@@ -549,6 +641,7 @@ object PathfinderExecutor : Loadable {
         if (!jumpAttemptActive) {
             jumpAttemptActive = true
             jumpHoldUntilTick = player.age + JUMP_HOLD_TICKS
+            newJumpIssued = true
         }
 
         if (player.age <= jumpHoldUntilTick) {
@@ -629,7 +722,11 @@ object PathfinderExecutor : Loadable {
         }
 
         val traversalChanged = activeTraversalId != null && activeTraversalId != handle.id
-        val rebuilt = ExecutionPath.fromNodes(handle.id, sourcePath, PathfinderManager::chainWaypoints)
+        val rebuilt = ExecutionPath.fromNodes(
+            handle.id, sourcePath,
+            PathfinderManager::chainWaypoints,
+            PathfinderManager::isDiscoveredJump,
+        )
         activePath = rebuilt
         activeTraversalId = handle.id
         activeSourcePath = sourcePath
@@ -658,6 +755,8 @@ object PathfinderExecutor : Loadable {
         currentSegmentIndex = 0
         pathNeedsRelocalization = false
         currentCommand = null
+        plannedArcsCache = emptyList()
+        plannedArcsPath = null
         debugSamples.clear()
         lastSteeringTelemetry = SteeringTelemetry()
         lastLoggedSignature = ""
@@ -671,6 +770,8 @@ object PathfinderExecutor : Loadable {
         skippedSegments = 0
         rewoundSegments = 0
         replansRequested = 0
+        wallCollisionTicks = 0
+        headBonkTicks = 0
         resetJumpState()
         resetChainState()
     }
@@ -679,6 +780,11 @@ object PathfinderExecutor : Loadable {
         jumpAttemptActive = false
         jumpHoldUntilTick = Int.MIN_VALUE
         jumpRetryAllowedTick = Int.MIN_VALUE
+        newJumpIssued = false
+        launchArcPoints = emptyList()
+        launchArcIndex = -1
+        lastArcTickError = null
+        lastPlanArcError = null
     }
 
     private fun resetChainState() {
@@ -872,7 +978,7 @@ object PathfinderExecutor : Loadable {
             // replanning. This branch is deliberately narrow: below the
             // intended landing, close to its face, centered, and still on
             // continuous support.
-            val progress = rise.projectedDistance(playerPos)
+            val progress = rise.projectedDistance(playerPos) - gapTakeoffOffset(rise)
             val end = rise.endPose.position
             val horizontalToEnd = hypot(end.x - playerPos.x, end.z - playerPos.z)
             if (progress > GAP_TAKEOFF_MAX_PROGRESS &&
@@ -962,6 +1068,9 @@ object PathfinderExecutor : Loadable {
      */
     private fun SafeContext.isGapJumpSegment(segment: ExecutionSegment): Boolean {
         val walk = segment as? WalkSegment ?: return false
+        // Discovered flat and DESCENDING jumps both run the flat-gap
+        // machinery: takeoff at the start node, arc falls to the landing.
+        if (walk.discovered) return walk.verticalStep <= 0
         if (walk.verticalStep != 0) return false
         if (walk.horizontalLength !in GAP_SEGMENT_MIN_LENGTH..GAP_SEGMENT_MAX_LENGTH) return false
 
@@ -981,10 +1090,15 @@ object PathfinderExecutor : Loadable {
         return false
     }
 
-    /** Discovered sprint-jump segment: validated at sprint entry speed. */
-    private fun SafeContext.isLongGapSegment(segment: ExecutionSegment): Boolean =
-        (segment as? WalkSegment)?.horizontalLength?.let { it >= LONG_GAP_MIN_LENGTH } == true &&
-            isGapJumpSegment(segment)
+    /**
+     * Discovered sprint-jump segment: validated at sprint entry speed, must
+     * launch at the segment start. Provenance-keyed — a refiner-merged
+     * template gap of the same length is a *walk*-entry hop whose takeoff
+     * anchors to the hole; classifying by length sprint-launched those from
+     * the merged start and overshot every landing by ~2 blocks (measured).
+     */
+    private fun isLongGapSegment(segment: ExecutionSegment): Boolean =
+        (segment as? WalkSegment)?.discovered == true
 
     private fun SafeContext.needsGapJump(segment: ExecutionSegment, playerPos: Vec3d): Boolean {
         if (!player.isOnGround) return false
@@ -998,7 +1112,9 @@ object PathfinderExecutor : Loadable {
      * this shape (corridor shortcuts are flat), so no support probe needed.
      */
     private fun SafeContext.isRisingGapSegment(walk: WalkSegment): Boolean {
-        if (walk.verticalStep <= 0 || walk.horizontalLength < GAP_SEGMENT_MIN_LENGTH) return false
+        if (walk.verticalStep <= 0) return false
+        if (walk.discovered) return true
+        if (walk.horizontalLength < GAP_SEGMENT_MIN_LENGTH) return false
 
         // Refinement can merge an ordinary step and its flat approach into a
         // two-block rising segment. Length alone therefore does not prove a
@@ -1022,14 +1138,69 @@ object PathfinderExecutor : Loadable {
     }
 
     /**
+     * Where the takeoff window of a gap-class segment begins, as projected
+     * distance from the segment start: one probe step before the first
+     * unsupported interior column. A clean 2-block gap edge yields 0 (the
+     * segment start IS the takeoff block), but refinement legally merges an
+     * approach run into the edge — sim-validated at sprint, where momentum
+     * carries the hole — and then a window measured from the segment start
+     * sits entirely on the approach: the gate reads "past takeoff" while
+     * still blocks before the hole and the agent strides straight into it
+     * (the gauntlet-mixed walk-off regression, exposed the moment the
+     * sprint cut removed the accidental momentum-carry).
+     */
+    /**
+     * Projected distance at which the segment's first unsupported column
+     * begins, or null when the interior is fully supported.
+     */
+    private fun SafeContext.holeStartDistance(walk: WalkSegment): Double? {
+        val start = walk.startPose.position
+        val end = walk.endPose.position
+        val probeY = if (walk.verticalStep > 0) end.y else start.y
+        var distance = 0.8
+        while (distance <= walk.horizontalLength - 0.8 + 1.0E-6) {
+            val t = distance / walk.horizontalLength
+            val probe = Vec3d(
+                start.x + (end.x - start.x) * t,
+                probeY,
+                start.z + (end.z - start.z) * t,
+            )
+            if (!with(WalkingMovementModel) { hasContinuousSupport(probe) }) return distance
+            distance += 0.4
+        }
+        return null
+    }
+
+    private fun SafeContext.gapTakeoffOffset(walk: WalkSegment): Double {
+        if (walk.discovered) return 0.0
+        val holeStart = holeStartDistance(walk) ?: return 0.0
+        return (holeStart - 0.8).coerceAtLeast(0.0)
+    }
+
+    /** The point on the segment line where the takeoff window begins. */
+    private fun SafeContext.gapTakeoffPoint(walk: WalkSegment): Vec3d {
+        val offset = gapTakeoffOffset(walk)
+        if (walk.horizontalLength <= 1.0E-6) return walk.startPose.position
+        val t = (offset / walk.horizontalLength).coerceIn(0.0, 1.0)
+        val start = walk.startPose.position
+        val end = walk.endPose.position
+        return Vec3d(
+            start.x + (end.x - start.x) * t,
+            start.y,
+            start.z + (end.z - start.z) * t,
+        )
+    }
+
+    /**
      * Shared takeoff gate for gap-class jumps, flat and rising (Baritone
      * MovementParkour's lineup rules): launch only from the takeoff-side
      * window — never early (a short arc lands in the gap), never from the
      * landing side (a pointless hop) — centered on the segment line and
-     * drift-free, so the arc cannot clip the gap corner.
+     * drift-free, so the arc cannot clip the gap corner. The window is
+     * anchored to the hole ([gapTakeoffOffset]), not the segment start.
      */
     private fun SafeContext.edgeTakeoffReady(walk: WalkSegment, playerPos: Vec3d, prefix: String): Boolean {
-        val progress = walk.projectedDistance(playerPos)
+        val progress = walk.projectedDistance(playerPos) - gapTakeoffOffset(walk)
         if (progress < 0.0) {
             lastJumpCommandGate = "${prefix}NotAtTakeoff"
             return false
@@ -1046,12 +1217,98 @@ object PathfinderExecutor : Loadable {
             lastJumpCommandGate = "${prefix}Drifting"
             return false
         }
+        // Never launch while still moving toward the takeoff from the
+        // walk-back recovery: a backward-moving arc undershoots into the
+        // hole. One or two ticks of forward input settles this.
+        if (alongSpeed(walk, player.velocity) < -0.02) {
+            lastJumpCommandGate = "${prefix}Reversing"
+            return false
+        }
+        // Yaw settle (the corner-launch failure): the sprint-jump boost and
+        // all airborne acceleration fire along the *commanded yaw*. Landing
+        // from a turn and launching one tick later sends the first airborne
+        // ticks off-line and a 4-block discovered jump falls short by
+        // exactly that loss (measured on the turn gauntlet). One or two
+        // ticks of rotation settles the gate. Loose on purpose — it only
+        // spares the launch sim below from hopeless states.
+        val segmentYaw = walk.startPose.position.rotationTo(walk.endPose.position).yaw
+        val yawError = abs(net.minecraft.util.math.MathHelper.wrapDegrees(movementPhysicsBasisYaw() - segmentYaw))
+        if (yawError > GAP_MAX_YAW_ERROR_DEGREES) {
+            lastJumpCommandGate = "${prefix}Misyawed(%.0f)".format(yawError)
+            return false
+        }
         if (!with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }) {
             lastJumpCommandGate = "${prefix}NoHeadroom"
             return false
         }
+        // The decider: simulate the jump from the LIVE state — position,
+        // velocity, sprint, everything — and only launch if that flight
+        // lands on the target. The heuristic gates above are pre-filters;
+        // this is the ground truth that heuristics kept approximating. A
+        // no-go holds the jump and sheds speed (launchSimHold), and the
+        // next grounded tick re-checks — entry self-tunes per jump instead
+        // of relying on fixed windows matching every terrain shape.
+        if (!launchSimReachesTarget(walk)) {
+            lastJumpCommandGate = "${prefix}SimNoGo"
+            launchSimHold = true
+            return false
+        }
         lastJumpCommandGate = "${prefix}Commanded"
         return true
+    }
+
+    /**
+     * One tick-accurate flight sim from the live player state with the
+     * follow controller's own inputs (steer at landing, hold forward, brake
+     * per policy on discovered jumps): true iff it touches down on the
+     * segment's landing. Runs only on grounded ticks that passed the cheap
+     * gates — a handful of 10–20 tick sims per jump approach.
+     */
+    private fun SafeContext.launchSimReachesTarget(walk: WalkSegment): Boolean {
+        val target = walk.endPose.position
+        val from = player.pos
+        val flat = target.subtract(from).flattenY()
+        if (flat.lengthSquared() < 1.0E-6) return false
+        val rotation = from.rotationTo(target)
+        val simulator = MovementSimulator(
+            player = player,
+            initialState = MovementSimulationState.at(
+                player = player,
+                position = from,
+                rotation = rotation,
+                velocity = player.velocity,
+                onGround = true,
+                isSprinting = player.isSprinting,
+            ),
+        ).also { it.skipEntityCollisions = true }
+
+        for (tick in 0 until ARC_MAX_TICKS) {
+            val before = simulator.lastTick
+            val brake = walk.discovered && tick > 0 && !before.onGround && ManeuverPolicy.shouldBrake(
+                hypot(target.x - before.position.x, target.z - before.position.z),
+                hypot(before.velocity.x, before.velocity.z),
+                ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS,
+            )
+            val current = simulator.tickMovement(
+                MovementSimulationInput(
+                    forward = if (brake) 0.0 else 1.0,
+                    strafe = 0.0,
+                    jump = tick == 0,
+                    sneak = false,
+                    sprint = player.isSprinting,
+                    useItemSlowdown = false,
+                    rotation = rotation,
+                )
+            )
+            if (current.onGround && tick > 1) {
+                return hypot(current.position.x - target.x, current.position.z - target.z) <=
+                    LAUNCH_SIM_LANDING_TOLERANCE &&
+                    abs(current.position.y - target.y) <= 0.3
+            }
+            if (current.simulator.state.horizontalCollision) return false
+            if (current.position.y < minOf(from.y, target.y) - 0.2) return false
+        }
+        return false
     }
 
     /**
@@ -1093,6 +1350,258 @@ object PathfinderExecutor : Loadable {
         return true
     }
 
+    /**
+     * The moment a jump input actually fires, forward-simulate the flight
+     * from the REAL player state (position, velocity, sprint) with the same
+     * steering the follow controller will apply — steer at the jump target,
+     * hold forward, brake per [ManeuverPolicy] on chains. This is the
+     * honest expected trajectory of THIS jump: per-tick deviation from it
+     * measures simulator-vs-server divergence (theory note T3's δ), while
+     * deviation from the pre-planned arc measures how far the executed
+     * entry drifted from the plan's assumptions. Also rendered.
+     */
+    private fun AutomatedSafeContext.predictLaunchArc(command: FollowCommand, sprint: Boolean) {
+        val target = command.jumpTarget ?: command.lookaheadPoint
+        val flat = target.subtract(player.pos).flattenY()
+        if (flat.lengthSquared() < 1.0E-6) return
+        val rotation = player.pos.rotationTo(target)
+        val brakeLead = command.jumpBrakeLead
+        val simulator = MovementSimulator(
+            player = player,
+            initialState = MovementSimulationState.at(
+                player = player,
+                position = player.pos,
+                rotation = rotation,
+                velocity = player.velocity,
+                onGround = true,
+                isSprinting = sprint,
+            ),
+        ).also { it.skipEntityCollisions = true }
+
+        val points = ArrayList<Vec3d>(ARC_MAX_TICKS)
+        for (tick in 0 until ARC_MAX_TICKS) {
+            val before = simulator.lastTick
+            val brake = brakeLead != null && !before.onGround && ManeuverPolicy.shouldBrake(
+                hypot(target.x - before.position.x, target.z - before.position.z),
+                hypot(before.velocity.x, before.velocity.z),
+                brakeLead,
+            )
+            val current = simulator.tickMovement(
+                MovementSimulationInput(
+                    forward = if (brake) 0.0 else 1.0,
+                    strafe = 0.0,
+                    jump = tick == 0,
+                    sneak = false,
+                    sprint = sprint,
+                    useItemSlowdown = false,
+                    rotation = rotation,
+                )
+            )
+            points += current.position
+            if (current.onGround && tick > 1) break
+        }
+        launchArcPoints = points
+        launchArcIndex = -1
+    }
+
+    /**
+     * Per-tick trajectory-match tracking (runs on Player.Post, i.e. after
+     * this tick's physics): tick-aligned distance to the launch prediction,
+     * and nearest distance to the active segment's planned arc while
+     * airborne. Cleared on touchdown.
+     */
+    private fun AutomatedSafeContext.trackTrajectoryMatch(playerPos: Vec3d) {
+        if (launchArcPoints.isEmpty()) {
+            lastArcTickError = null
+            lastPlanArcError = null
+            return
+        }
+        launchArcIndex++
+        if (player.isOnGround && launchArcIndex >= 1 || launchArcIndex > launchArcPoints.lastIndex + 2) {
+            launchArcPoints = emptyList()
+            launchArcIndex = -1
+            lastArcTickError = null
+            lastPlanArcError = null
+            return
+        }
+        lastArcTickError = launchArcPoints.getOrNull(launchArcIndex)?.distanceTo(playerPos)
+        lastPlanArcError = if (!player.isOnGround) {
+            plannedArcsCache.firstOrNull { it.segmentIndex == currentSegmentIndex }
+                ?.points?.minOfOrNull { it.distanceTo(playerPos) }
+        } else null
+    }
+
+    // ------------------------------------------------------------------
+    // Planned-arc prediction: one forward simulation per maneuver segment,
+    // run with the same entry assumptions the follow controller reproduces
+    // (walk entry for short flat gaps and step-ups, sprint for long/rising
+    // gaps and chains). Cached per adopted path object; render-only.
+    // ------------------------------------------------------------------
+
+    // Always computed, not render-gated: the planned-arc polylines are also
+    // the reference the trajectory-match telemetry measures against.
+    private fun AutomatedSafeContext.refreshPlannedArcs(path: ExecutionPath) {
+        if (plannedArcsPath === path) return
+        plannedArcsCache = path.segments.mapNotNull { segment ->
+            when (segment) {
+                is ChainSegment -> predictChainArc(segment)
+                is WalkSegment -> predictWalkArc(segment)
+                else -> null
+            }
+        }
+        plannedArcsPath = path
+    }
+
+    private fun SafeContext.predictWalkArc(segment: WalkSegment): PlannedArc? {
+        val rising = isRisingGapSegment(segment)
+        val gap = !rising && isGapJumpSegment(segment)
+        val kind = when {
+            rising -> PlannedArc.Kind.RisingGap
+            gap -> PlannedArc.Kind.GapJump
+            segment.verticalStep > 0 -> PlannedArc.Kind.StepUp
+            segment.verticalStep < 0 -> PlannedArc.Kind.Drop
+            else -> return null
+        }
+        val sprintEntry = rising || (gap && isLongGapSegment(segment))
+        // Gap arcs launch where the executor will: the segment start for
+        // discovered jumps (the validated takeoff node), the hole-anchored
+        // takeoff point for template/refiner-merged gaps. Step-ups launch
+        // EARLY (the open-air tactic) — measured launches sit ~1.5 blocks
+        // before the rise end, often before the segment start.
+        val start = segment.startPose.position
+        val end = segment.endPose.position
+        val launchPoint = when {
+            (gap || rising) && !segment.discovered -> gapTakeoffPoint(segment)
+            kind == PlannedArc.Kind.StepUp -> {
+                val back = end.subtract(start).flattenY().normalize().multiply(STEP_UP_ARC_LAUNCH_DISTANCE)
+                Vec3d(end.x - back.x, start.y, end.z - back.z)
+            }
+            else -> start
+        }
+        return simulateArc(
+            segmentIndex = segment.index,
+            kind = kind,
+            start = launchPoint,
+            target = segment.endPose.position,
+            entrySpeed = if (sprintEntry) ARC_SPRINT_ENTRY_SPEED else ARC_WALK_ENTRY_SPEED,
+            sprint = sprintEntry,
+            jumpAtStart = kind != PlannedArc.Kind.Drop,
+            brakeLead = if (segment.discovered) ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS else null,
+        )
+    }
+
+    private fun SafeContext.simulateArc(
+        segmentIndex: Int,
+        kind: PlannedArc.Kind,
+        start: Vec3d,
+        target: Vec3d,
+        entrySpeed: Double,
+        sprint: Boolean,
+        jumpAtStart: Boolean,
+        brakeLead: Double? = null,
+    ): PlannedArc? {
+        val flatDelta = target.subtract(start).flattenY()
+        if (flatDelta.lengthSquared() < 1.0E-6) return null
+        val rotation = start.rotationTo(target)
+        val direction = flatDelta.normalize()
+        val simulator = MovementSimulator(
+            player = player,
+            initialState = MovementSimulationState.at(
+                player = player,
+                position = start,
+                rotation = rotation,
+                velocity = direction.multiply(entrySpeed),
+                onGround = true,
+                isSprinting = sprint,
+            ),
+        ).also { it.skipEntityCollisions = true }
+
+        val points = ArrayList<Vec3d>(ARC_MAX_TICKS + 1)
+        points += start
+        for (tick in 0 until ARC_MAX_TICKS) {
+            val before = simulator.lastTick
+            val brake = brakeLead != null && tick > 0 && !before.onGround && ManeuverPolicy.shouldBrake(
+                hypot(target.x - before.position.x, target.z - before.position.z),
+                hypot(before.velocity.x, before.velocity.z),
+                brakeLead,
+            )
+            val current = simulator.tickMovement(
+                MovementSimulationInput(
+                    forward = if (brake) 0.0 else 1.0,
+                    strafe = 0.0,
+                    jump = jumpAtStart && tick == 0,
+                    sneak = false,
+                    sprint = sprint,
+                    useItemSlowdown = false,
+                    rotation = rotation,
+                )
+            )
+            points += current.position
+            // A drop stays grounded while approaching the edge; only a
+            // touchdown *below* the start level ends its arc.
+            val landed = current.onGround && tick > 1 &&
+                (jumpAtStart || current.position.y < start.y - 0.5)
+            if (landed || current.simulator.state.horizontalCollision) break
+        }
+        if (points.size < 3) return null
+        return PlannedArc(segmentIndex, kind, points, target)
+    }
+
+    private fun SafeContext.predictChainArc(chain: ChainSegment): PlannedArc? {
+        val start = chain.startPose.position
+        val end = chain.endPose.position
+        val flatDelta = end.subtract(start).flattenY()
+        if (flatDelta.lengthSquared() < 1.0E-6) return null
+        val rotation = start.rotationTo(end)
+        val targets = chain.waypoints + end
+        val simulator = MovementSimulator(
+            player = player,
+            initialState = MovementSimulationState.at(
+                player = player,
+                position = start,
+                rotation = rotation,
+                velocity = flatDelta.normalize().multiply(ARC_SPRINT_ENTRY_SPEED),
+                onGround = true,
+                isSprinting = true,
+            ),
+        ).also { it.skipEntityCollisions = true }
+
+        val points = ArrayList<Vec3d>(ManeuverPolicy.MAX_CHAIN_TICKS + 1)
+        points += start
+        var targetIndex = 0
+        for (tick in 0 until ManeuverPolicy.MAX_CHAIN_TICKS) {
+            val before = simulator.lastTick
+            val target = targets[targetIndex]
+            val distanceToTarget = hypot(target.x - before.position.x, target.z - before.position.z)
+            val speed = hypot(before.velocity.x, before.velocity.z)
+            val brake = !before.onGround && ManeuverPolicy.shouldBrake(distanceToTarget, speed)
+            val current = simulator.tickMovement(
+                MovementSimulationInput(
+                    forward = if (brake) 0.0 else 1.0,
+                    strafe = 0.0,
+                    jump = before.onGround,
+                    sneak = false,
+                    sprint = true,
+                    useItemSlowdown = false,
+                    rotation = rotation,
+                )
+            )
+            points += current.position
+            if (current.simulator.state.horizontalCollision) break
+            if (current.onGround && tick > 1) {
+                val feet = current.position
+                val onTarget = hypot(targets[targetIndex].x - feet.x, targets[targetIndex].z - feet.z) <=
+                    ManeuverPolicy.WAYPOINT_TOLERANCE
+                if (onTarget) {
+                    if (targetIndex == targets.lastIndex) break
+                    targetIndex++
+                }
+            }
+        }
+        if (points.size < 3) return null
+        return PlannedArc(chain.index, PlannedArc.Kind.Chain, points, end)
+    }
+
     /** Speed component perpendicular to the segment line, in blocks/tick. */
     private fun perpendicularSpeed(segment: ExecutionSegment, velocity: Vec3d): Double {
         val dx = segment.endPose.position.x - segment.startPose.position.x
@@ -1100,6 +1609,35 @@ object PathfinderExecutor : Loadable {
         val length = hypot(dx, dz)
         if (length < 1.0E-9) return 0.0
         return kotlin.math.abs(velocity.x * -dz + velocity.z * dx) / length
+    }
+
+    /** Signed speed along the segment line (negative = moving backward). */
+    private fun alongSpeed(segment: ExecutionSegment, velocity: Vec3d): Double {
+        val dx = segment.endPose.position.x - segment.startPose.position.x
+        val dz = segment.endPose.position.z - segment.startPose.position.z
+        val length = hypot(dx, dz)
+        if (length < 1.0E-9) return 0.0
+        return (velocity.x * dx + velocity.z * dz) / length
+    }
+
+    /**
+     * A short flat gap jump starts within [distance] blocks of path ahead
+     * (the current segment included). Walk arcs were what validated these —
+     * cutting sprint only once the gap segment is current is too late: the
+     * leftover 0.25+ b/t carry lands the arc a block past the validated
+     * node (both landing misses of the 16:26 bedrock run). Long gaps are
+     * excluded — they were validated at sprint entry and need it.
+     */
+    private fun SafeContext.shortFlatGapWithin(path: ExecutionPath, index: Int, playerPos: Vec3d, distance: Double): Boolean {
+        var remaining = distance
+        var i = index
+        while (i <= path.lastSegmentIndex && remaining > 0.0) {
+            val segment = path.segments[i]
+            if (isGapJumpSegment(segment) && !isLongGapSegment(segment)) return true
+            remaining -= if (i == index) segment.remainingDistance(playerPos) else segment.horizontalLength
+            i++
+        }
+        return false
     }
 
     /**
@@ -1129,6 +1667,8 @@ object PathfinderExecutor : Loadable {
         /** Gap-ahead jump: skips the retry cooldown (falling is worse). */
         val jumpUrgent: Boolean = false,
         val jumpTarget: Vec3d? = null,
+        /** Mid-air brake lead ticks for this jump's flight, null = no braking. */
+        val jumpBrakeLead: Double? = null,
     )
 
     private data class SteeringTelemetry(
@@ -1159,12 +1699,11 @@ object PathfinderExecutor : Loadable {
     // anticipate the next rise segment's jump.
     private const val JUMP_ANTICIPATION_DISTANCE = 0.6
 
-    // Gap-jump segment band: template gap edges are exactly 2 blocks;
-    // discovered sprint-jump edges reach ~4.3. Segments at or above
-    // LONG_GAP_MIN_LENGTH were sim-validated at sprint entry.
+    // Structural gap-detection band for non-discovered segments: template
+    // gap edges are exactly 2 blocks; refiner merges extend them. Discovered
+    // jumps carry provenance and skip the band.
     private const val GAP_SEGMENT_MIN_LENGTH = 1.9
     private const val GAP_SEGMENT_MAX_LENGTH = 4.4
-    private const val LONG_GAP_MIN_LENGTH = 2.3
 
     // Vertical segment-tracking slack while airborne: vanilla jump apex
     // (~1.252, nominal — WP0 calibration owns the measured value) plus
@@ -1177,6 +1716,11 @@ object PathfinderExecutor : Loadable {
     private const val GAP_MAX_LATERAL_ERROR = 0.25
     private const val GAP_MAX_LATERAL_DRIFT = 0.08
     private const val GAP_TAKEOFF_MAX_PROGRESS = 0.9
+    private const val GAP_MAX_YAW_ERROR_DEGREES = 20.0
+
+    // Predicted-landing acceptance for the launch sim gate: feet within
+    // this horizontal distance of the landing node center.
+    private const val LAUNCH_SIM_LANDING_TOLERANCE = 0.9
 
     // Align-phase throttle: grounded on the takeoff side without a committed
     // jump, walk gently back to the takeoff point instead of charging the
@@ -1188,8 +1732,25 @@ object PathfinderExecutor : Loadable {
     // sprint arcs reach the riser face before gaining a block of height.
     private const val RISE_SPRINT_CUT_DISTANCE = 2.5
 
+    // Sprint is cut when a short flat gap begins within this much path
+    // distance, so the walk-speed arc those jumps were validated at is the
+    // arc that actually flies (ground drag settles the carry in ~2 blocks).
+    private const val GAP_SPRINT_CUT_DISTANCE = 2.5
+
     // Stuck detection: how long the player may sit on a segment without net
     // progress before the edge is reported as obstructed to the planner.
     private const val STUCK_REPORT_TICKS = 40
     private const val STUCK_PROGRESS_EPSILON = 0.02
+
+    // Planned-arc prediction entry speeds: the middle of the discovery
+    // validation band for sprint launches, a settled walk approach for
+    // short flat gaps and step-ups. Never feeds control — the arcs are the
+    // rendering and the trajectory-match reference.
+    private const val ARC_SPRINT_ENTRY_SPEED = 0.27
+    private const val ARC_WALK_ENTRY_SPEED = 0.15
+    private const val ARC_MAX_TICKS = 30
+
+    // Where a step-up's planned arc launches: this far before the rise end
+    // along the segment line (measured early-jump launches: 1.4–1.7).
+    private const val STEP_UP_ARC_LAUNCH_DISTANCE = 1.5
 }
