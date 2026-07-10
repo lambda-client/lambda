@@ -73,6 +73,9 @@ data class ScenarioReport(
     val jumpLandingFailures: Int,
     /** Following ticks spent scraping a wall (horizontal collision). */
     val wallCollisionTicks: Int,
+    /** Worst ticks from a scheduled mutation to the first published plan
+     *  revision (pathLen change) — the replan-reaction latency. */
+    val replanLatencyTicks: Int,
     /** Following ticks with an airborne head bonk (vertical collision off-ground). */
     val headBonkTicks: Int,
     /** Mean/max tick-aligned deviation from launch-time flight predictions (sim divergence). */
@@ -88,6 +91,7 @@ data class ScenarioReport(
     val maxLongestExecutorLostBurstTicks: Int?,
     val maxReplansRequested: Int?,
     val minJumpLandingSuccessRate: Double?,
+    val maxReplanLatencyTicks: Int?,
     val finalStatus: String,
     val failureReason: String?,
     val endDistanceToGoal: Double,
@@ -109,7 +113,8 @@ data class ScenarioReport(
             (maxLongestMovementStallTicks == null || longestMovementStallTicks <= maxLongestMovementStallTicks) &&
             (maxLongestExecutorLostBurstTicks == null || longestExecutorLostBurstTicks <= maxLongestExecutorLostBurstTicks) &&
             (maxReplansRequested == null || replansRequested <= maxReplansRequested) &&
-            (minJumpLandingSuccessRate == null || jumpLandingSuccessRate >= minJumpLandingSuccessRate)
+            (minJumpLandingSuccessRate == null || jumpLandingSuccessRate >= minJumpLandingSuccessRate) &&
+            (maxReplanLatencyTicks == null || replanLatencyTicks <= maxReplanLatencyTicks)
 
     val passed: Boolean get() =
         (if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled) && qualityPassed
@@ -144,6 +149,7 @@ data class ScenarioReport(
         append(" repairs=").append(plannerStats.repairs)
         append("(p50=").append(plannerStats.repairWallUsP50).append("us)")
         plannerStats.computeCauses["budget_continuation"]?.let { append(" continue=").append(it) }
+        if (replanLatencyTicks > 0) append(" replanLatency=").append(replanLatencyTicks)
         if (plannerStats.chunkVisibilityRebuilds > 0) append(" chunkRebuilds=").append(plannerStats.chunkVisibilityRebuilds)
         if (flightToggled) append(" FLIGHT-TOGGLED")
         if (plannerStalled) append(" PLANNER-STALLED")
@@ -193,6 +199,7 @@ data class ScenarioReport(
         append(",\"jumpLandingFailures\":").append(jumpLandingFailures)
         append(",\"jumpLandingSuccessRate\":").append("%.3f".format(jumpLandingSuccessRate))
         append(",\"wallCollisionTicks\":").append(wallCollisionTicks)
+        append(",\"replanLatencyTicks\":").append(replanLatencyTicks)
         append(",\"headBonkTicks\":").append(headBonkTicks)
         append(",\"arcDevMean\":").append("%.3f".format(arcDevMean))
         append(",\"arcDevMax\":").append("%.3f".format(arcDevMax))
@@ -216,6 +223,10 @@ data class ScenarioReport(
 object ScenarioRunner {
     /** Horizontal speed below which the agent counts as standing still. */
     private const val ORACLE_STOP_SPEED = 0.10
+
+    /** Published-path length change that counts as a plan revision for the
+     *  replan-latency clock (below this, refinement jitter). */
+    private const val REPLAN_PATH_CHANGE_EPSILON = 0.5
 
     // Landing success = feet within the launch-sim gate's own acceptance
     // (0.9 of the target center). The former 1.15 counted block-off
@@ -319,6 +330,10 @@ object ScenarioRunner {
         var maxLostTicks = 0
         var maxReplansRequested = 0
         var wasOnGround = true
+        var airborneImpulseApplied = false
+        var pendingMutationTick = -1
+        var preMutationPathLen = Double.NaN
+        var replanLatencyMax = 0
         var wasJumpInput = false
         var traveled = 0.0
         var previousX = Double.NaN
@@ -354,7 +369,24 @@ object ScenarioRunner {
                 ticks++
 
                 scenario.mutations.forEach { (tick, command) ->
-                    if (tick == ticks) server.runCommand(command)
+                    if (tick == ticks) {
+                        server.runCommand(command)
+                        pendingMutationTick = ticks
+                    }
+                }
+
+                scenario.firstAirborneVelocityImpulse?.let { impulse ->
+                    if (!airborneImpulseApplied && wasOnGround) {
+                        airborneImpulseApplied = computeOnClient<Boolean, IllegalStateException> {
+                            runSafe {
+                                if (player.isOnGround) false
+                                else {
+                                    player.velocity = player.velocity.add(impulse)
+                                    true
+                                }
+                            } ?: false
+                        }
+                    }
                 }
 
                 val sample = computeOnClient<String, IllegalStateException> {
@@ -541,6 +573,23 @@ object ScenarioRunner {
                 }
                 sample.substringAfter("\"pathLen\":").substringBefore(",").substringBefore("}").toDoubleOrNull()?.let {
                     if (it > referencePlannedLength) referencePlannedLength = it
+                    // Replan-reaction latency: ticks from a scheduled world
+                    // mutation until the published plan first changes. Gated
+                    // on the mutation scenarios — the async handoff bug that
+                    // let the executor push a wall for 40 ticks while a
+                    // computed reroute never landed is exactly this number.
+                    if (pendingMutationTick >= 0) {
+                        if (preMutationPathLen.isNaN()) {
+                            preMutationPathLen = it
+                        } else if (kotlin.math.abs(it - preMutationPathLen) > REPLAN_PATH_CHANGE_EPSILON) {
+                            val latency = ticks - pendingMutationTick
+                            if (latency > replanLatencyMax) replanLatencyMax = latency
+                            pendingMutationTick = -1
+                            preMutationPathLen = Double.NaN
+                        }
+                    } else {
+                        preMutationPathLen = it
+                    }
                 }
 
                 val distance = sample.substringAfter("\"dist\":").substringBefore(",").toDoubleOrNull()
@@ -624,6 +673,7 @@ object ScenarioRunner {
                 jumpLandingSuccesses = jumpLandings.count { it.success },
                 jumpLandingFailures = jumpLandings.count { !it.success },
                 wallCollisionTicks = wallCollisionTicks,
+                replanLatencyTicks = replanLatencyMax,
                 headBonkTicks = headBonkTicks,
                 arcDevMean = jumpLandings.mapNotNull { it.arcErrMean }.let { if (it.isEmpty()) 0.0 else it.average() },
                 arcDevMax = jumpLandings.mapNotNull { it.arcErrMax }.maxOrNull() ?: 0.0,
@@ -636,6 +686,7 @@ object ScenarioRunner {
                 maxLongestExecutorLostBurstTicks = scenario.maxLongestExecutorLostBurstTicks,
                 maxReplansRequested = scenario.maxReplansRequested,
                 minJumpLandingSuccessRate = scenario.minJumpLandingSuccessRate,
+                maxReplanLatencyTicks = scenario.maxReplanLatencyTicks,
                 finalStatus = handle?.status?.toString() ?: "None",
                 failureReason = handle?.failureReason,
                 endDistanceToGoal = endDistance,

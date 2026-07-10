@@ -33,35 +33,63 @@ class TraversalHandle internal constructor(
     val goal: TraversalGoal,
     val config: PlannerConfig,
 ) {
-    var status: Status = Status.Planning
+    // Written by the planner worker, read by the executor/render/task code
+    // on the client thread — every published field is volatile and holds
+    // immutable values only.
+    @Volatile var status: Status = Status.Planning
         internal set
 
-    var path: List<FastVector> = emptyList()
+    /** One atomic publication prevents a path from being paired with edge
+     * provenance from the preceding/following worker result. */
+    @Volatile private var publishedPlan: PublishedPlan = PublishedPlan()
+    internal val planSnapshot: PublishedPlan get() = publishedPlan
+
+    val path: List<FastVector> get() = publishedPlan.path
+    val coarsePath: List<FastVector> get() = publishedPlan.coarsePath
+    val edgeAnnotations: Map<Pair<FastVector, FastVector>, EdgeAnnotation>
+        get() = publishedPlan.edgeAnnotations
+
+    @Volatile var graphSize: Int = 0
         internal set
 
-    var coarsePath: List<FastVector> = emptyList()
+    @Volatile var processedNodes: Int = 0
         internal set
 
-    var graphSize: Int = 0
+    @Volatile var lastSynchronization: SynchronizationStats = SynchronizationStats()
         internal set
 
-    var processedNodes: Int = 0
+    @Volatile var lastRefinement: PathRefinementStats = PathRefinementStats()
         internal set
 
-    var lastSynchronization: SynchronizationStats = SynchronizationStats()
+    @Volatile var lastRefinementDebug: PathRefinementDebug = PathRefinementDebug()
         internal set
 
-    var lastRefinement: PathRefinementStats = PathRefinementStats()
-        internal set
-
-    var lastRefinementDebug: PathRefinementDebug = PathRefinementDebug()
-        internal set
-
-    var failureReason: String? = null
+    @Volatile var failureReason: String? = null
         internal set
 
     val pathLength: Double
         get() = path.pathLength()
+
+    internal fun publishPlan(
+        coarsePath: List<FastVector>,
+        path: List<FastVector>,
+        edgeAnnotations: Map<Pair<FastVector, FastVector>, EdgeAnnotation>,
+    ) {
+        // Preserve list identity across equal republications: the executor
+        // keys its rebuild (and the segment-progress reset it implies) on
+        // the path instance, and steady-state repairs republish an unchanged
+        // route many times per traversal.
+        val current = publishedPlan
+        publishedPlan = PublishedPlan(
+            coarsePath = if (current.coarsePath == coarsePath) current.coarsePath else coarsePath.toList(),
+            path = if (current.path == path) current.path else path.toList(),
+            edgeAnnotations = if (current.edgeAnnotations == edgeAnnotations) {
+                current.edgeAnnotations
+            } else {
+                edgeAnnotations.toMap()
+            },
+        )
+    }
 
     fun cancel() {
         if (status.isTerminal) return
@@ -114,5 +142,17 @@ class TraversalHandle internal constructor(
         val edgesAdded: Int = 0,
         val edgesRemoved: Int = 0,
         val edgesChanged: Int = 0,
+    )
+
+    /** Executor-facing provenance of one path edge. */
+    data class EdgeAnnotation(
+        val chainWaypoints: List<FastVector>? = null,
+        val discoveredJump: Boolean = false,
+    )
+
+    internal data class PublishedPlan(
+        val coarsePath: List<FastVector> = emptyList(),
+        val path: List<FastVector> = emptyList(),
+        val edgeAnnotations: Map<Pair<FastVector, FastVector>, EdgeAnnotation> = emptyMap(),
     )
 }

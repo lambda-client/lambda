@@ -22,8 +22,10 @@ import net.minecraft.block.BlockState
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.EmptyBlockView
+import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlin.math.ceil
 
 /**
@@ -55,12 +57,25 @@ class BlockTraits(
     val collisionTopBlips: Int,
     /** False when the shape is world-dependent and values are conservative. */
     val exact: Boolean,
+    /**
+     * Context-free collision shape at the voxel origin, consumed by the
+     * off-thread movement simulation. VoxelShapes are immutable and safe to
+     * share across threads. Conservative states carry the full cube.
+     */
+    val collisionShape: VoxelShape = VoxelShapes.fullCube(),
+    /** `Block.slipperiness` — the ground-friction term of vanilla movement. */
+    val slipperiness: Double = DEFAULT_SLIPPERINESS,
+    /** `Block.velocityMultiplier` (soul sand, honey). */
+    val velocityMultiplier: Double = 1.0,
+    /** `Block.jumpVelocityMultiplier` (honey). */
+    val jumpVelocityMultiplier: Double = 1.0,
 ) {
     /** Collision pokes above the top of the voxel into the one above it. */
     val intrudesAbove: Boolean get() = collisionTopBlips > BLIPS_PER_BLOCK
 
     companion object {
         const val BLIPS_PER_BLOCK = 16
+        const val DEFAULT_SLIPPERINESS = 0.6
 
         val CONSERVATIVE = BlockTraits(
             passable = false,
@@ -73,10 +88,13 @@ class BlockTraits(
 }
 
 /**
- * Lazy per-state-id trait table over [Block.STATE_IDS]. Client thread only.
+ * Lazy per-state-id trait table over [Block.STATE_IDS]. Reads occur on the
+ * planner worker and the client thread, so publication uses an atomic array.
  */
 object BlockTraitRegistry {
-    private val cache: Array<BlockTraits?> by lazy { arrayOfNulls(Block.STATE_IDS.size()) }
+    private val cache: AtomicReferenceArray<BlockTraits?> by lazy {
+        AtomicReferenceArray(Block.STATE_IDS.size())
+    }
 
     /**
      * Player footprint column used for [BlockTraits.centerPassable]:
@@ -90,7 +108,8 @@ object BlockTraitRegistry {
     )
 
     fun of(stateId: Int): BlockTraits {
-        val cached = cache.getOrNull(stateId) ?: return computeAndStore(stateId)
+        if (stateId !in 0 until cache.length()) return BlockTraits.CONSERVATIVE
+        val cached = cache.get(stateId) ?: return computeAndStore(stateId)
         return cached
     }
 
@@ -103,8 +122,8 @@ object BlockTraitRegistry {
     private fun computeAndStore(stateId: Int): BlockTraits {
         val state = Block.STATE_IDS.get(stateId) ?: return BlockTraits.CONSERVATIVE
         val traits = compute(state)
-        if (stateId < cache.size) cache[stateId] = traits
-        return traits
+        if (stateId !in 0 until cache.length()) return traits
+        return if (cache.compareAndSet(stateId, null, traits)) traits else cache.get(stateId) ?: traits
     }
 
     private fun compute(state: BlockState): BlockTraits {
@@ -115,6 +134,7 @@ object BlockTraitRegistry {
                 standableFullTop = false,
                 collisionTopBlips = 0,
                 exact = true,
+                collisionShape = VoxelShapes.empty(),
             )
         }
         if (state.block.hasDynamicBounds()) return BlockTraits.CONSERVATIVE
@@ -128,6 +148,10 @@ object BlockTraitRegistry {
                 standableFullTop = state.isSideSolidFullSquare(EmptyBlockView.INSTANCE, BlockPos.ORIGIN, Direction.UP),
                 collisionTopBlips = if (passable) 0 else ceil(shape.getMax(Direction.Axis.Y) * BlockTraits.BLIPS_PER_BLOCK).toInt(),
                 exact = true,
+                collisionShape = shape,
+                slipperiness = state.block.slipperiness.toDouble(),
+                velocityMultiplier = state.block.velocityMultiplier.toDouble(),
+                jumpVelocityMultiplier = state.block.jumpVelocityMultiplier.toDouble(),
             )
         } catch (_: Exception) {
             // A state that insists on world context despite static bounds:

@@ -17,29 +17,24 @@
 
 package com.lambda.util.player.prediction
 
-import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.module.modules.movement.SafeWalk.isNearLedge
-import com.lambda.threading.runSafe
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.MathUtils.toDouble
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
-import com.lambda.util.player.MovementUtils.forward
 import com.lambda.util.player.MovementUtils.jumping
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.MovementUtils.sprinting
+import com.lambda.util.player.MovementUtils.forward
 import com.lambda.util.player.MovementUtils.strafe
 import com.lambda.util.player.MovementUtils.movementVector
 import net.minecraft.client.input.Input
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
-import net.minecraft.entity.attribute.EntityAttributes
-import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.MathHelper
@@ -55,6 +50,12 @@ import kotlin.math.hypot
  * that can be reused by pathing, jump validation, shortcut refinement, and existing
  * callers like fall-damage prediction.
  *
+ * World reads and player constants are injected ([SimulationEnvironment],
+ * [PlayerPhysicsProfile]), so a simulation over a snapshot environment is
+ * legal on any thread — the planner worker's discovery/validation sims use
+ * this. Live-entity extras (entity collisions, the sneak ledge clamp) exist
+ * only when a [livePlayer] is attached, i.e. on the client thread.
+ *
  * Still intentionally unsupported for now:
  * - fluids
  * - ladders / vines
@@ -62,17 +63,33 @@ import kotlin.math.hypot
  * - elytra
  */
 class MovementSimulator(
-    val player: ClientPlayerEntity,
-    initialState: MovementSimulationState = MovementSimulationState.from(player),
-    private val inputProvider: MovementInputProvider = MovementInputProvider.live(player),
+    val profile: PlayerPhysicsProfile,
+    private val environment: SimulationEnvironment,
+    initialState: MovementSimulationState,
+    private val inputProvider: MovementInputProvider = MovementInputProvider.none(),
     /**
      * Skips entity collision lookups and the live-player state mutation that
      * normally wraps them. Safe for shortcut/path validation where entities
      * are not part of the simulation's intent. Saves a hot-path allocation
-     * and an unsafe player.pos / player.boundingBox swap.
+     * and an unsafe player.pos / player.boundingBox swap. Forced on when no
+     * [livePlayer] is attached.
      */
     var skipEntityCollisions: Boolean = false,
+    private val livePlayer: ClientPlayerEntity? = null,
 ) {
+    /** Client-thread entry: live world environment + profile captured now. */
+    constructor(
+        player: ClientPlayerEntity,
+        initialState: MovementSimulationState = MovementSimulationState.from(player),
+        inputProvider: MovementInputProvider = MovementInputProvider.live(player),
+    ) : this(
+        profile = PlayerPhysicsProfile.capture(player),
+        environment = LiveSimulationEnvironment(player.entityWorld, player),
+        initialState = initialState,
+        inputProvider = inputProvider,
+        livePlayer = player,
+    )
+
     private var position = initialState.position
     private var velocity = initialState.velocity
     private var boundingBox = initialState.boundingBox
@@ -113,13 +130,13 @@ class MovementSimulator(
         rotation = rotation,
         velocity = velocity,
         boundingBox = boundingBox,
-        eyePos = position + Vec3d(0.0, player.standingEyeHeight.toDouble(), 0.0),
+        eyePos = position + Vec3d(0.0, profile.eyeHeight, 0.0),
         onGround = onGround,
         isJumping = isJumping,
         simulator = this,
     )
 
-    fun reset(state: MovementSimulationState = MovementSimulationState.from(player)): MovementSimulationTick {
+    fun reset(state: MovementSimulationState): MovementSimulationTick {
         position = state.position
         velocity = state.velocity
         boundingBox = state.boundingBox
@@ -139,13 +156,11 @@ class MovementSimulator(
     /** @see net.minecraft.client.network.ClientPlayerEntity.tickMovement */
     fun tickMovement(input: MovementSimulationInput? = null): MovementSimulationTick {
         cachedTick = null
-        runSafe {
-            step(input ?: inputProvider.nextInput(this@MovementSimulator))
-        }
+        step(input ?: inputProvider.nextInput(this))
         return lastTick
     }
 
-    private fun SafeContext.step(input: MovementSimulationInput) {
+    private fun step(input: MovementSimulationInput) {
         rotation = input.rotation ?: rotation
         isSprinting = input.sprint
         isSneaking = input.sneak
@@ -168,9 +183,8 @@ class MovementSimulator(
         }
 
         if (isSneaking) {
-            val mod = 0.3f + player.getAttributeValue(EntityAttributes.SNEAKING_SPEED)
-            forwardSpeed *= mod
-            strafeSpeed *= mod
+            forwardSpeed *= profile.sneakSpeedModifier
+            strafeSpeed *= profile.sneakSpeedModifier
         }
 
         if (jumpingCooldown > 0) {
@@ -208,7 +222,7 @@ class MovementSimulator(
     }
 
     /** @see net.minecraft.entity.LivingEntity.travel */
-    private fun SafeContext.travel(
+    private fun travel(
         forwardSpeed: Double,
         strafeSpeed: Double,
         verticalMovement: Double,
@@ -216,11 +230,11 @@ class MovementSimulator(
         val travelVec = Vec3d(strafeSpeed, verticalMovement, forwardSpeed)
 
         val gravity = when {
-            velocity.y < 0.0 && player.hasStatusEffect(StatusEffects.SLOW_FALLING) -> 0.01
+            velocity.y < 0.0 && profile.slowFalling -> 0.01
             else -> 0.08
         }
 
-        val slipperiness = blockState(velocityAffectingPos).block.slipperiness.toDouble()
+        val slipperiness = environment.slipperiness(velocityAffectingPos)
         var friction = 0.91
 
         if (onGround) {
@@ -235,10 +249,15 @@ class MovementSimulator(
     }
 
     /** @see net.minecraft.entity.LivingEntity.applyMovementInput */
-    private fun SafeContext.applyMovementInput(travelVec: Vec3d, slipperiness: Double) {
+    private fun applyMovementInput(travelVec: Vec3d, slipperiness: Double) {
         val movementSpeed = run {
             val slipperinessCubed = slipperiness * slipperiness * slipperiness
-            val movementSpeed = player.movementSpeed.toDouble()
+            // The transient sprint attribute modifier is applied here rather
+            // than read from the live entity: the profile is sprint-neutral,
+            // so worker sims get identical ground acceleration no matter what
+            // the real player happened to be doing at capture time.
+            val movementSpeed = profile.movementSpeed *
+                (if (isSprinting) PlayerPhysicsProfile.SPRINT_SPEED_MULTIPLIER else 1.0)
 
             val groundSpeed = movementSpeed * (0.216 / slipperinessCubed)
             val airSpeed = if (isSprinting) 0.026 else 0.02
@@ -251,7 +270,7 @@ class MovementSimulator(
     }
 
     /** @see net.minecraft.entity.Entity.move */
-    private fun SafeContext.move() {
+    private fun move() {
         var movement = velocity
         movement = adjustMovementForCollisions(movement)
 
@@ -293,8 +312,8 @@ class MovementSimulator(
         }
 
         val velocityMultiplier = run {
-            val f = blockState(position.flooredBlockPos).block.velocityMultiplier.toDouble()
-            val g = blockState(velocityAffectingPos).block.velocityMultiplier.toDouble()
+            val f = environment.velocityMultiplier(position.flooredBlockPos)
+            val g = environment.velocityMultiplier(velocityAffectingPos)
             if (f == 1.0) g else f
         }
 
@@ -305,45 +324,54 @@ class MovementSimulator(
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */
-    private fun SafeContext.jump() {
+    private fun jump() {
         if (isSprinting) {
+            // Vanilla's sprint-jump boost along the facing yaw (the context-
+            // free body of MovementUtils.movementVector).
             val yawRad = rotation.yaw.toRadian()
-            velocity += movementVector(yawRad, 0.0) * 0.2
+            velocity += Vec3d(-kotlin.math.sin(yawRad), 0.0, kotlin.math.cos(yawRad)) * 0.2
         }
 
         val jumpHeight = run {
-            val f = blockState(position.flooredBlockPos).block.jumpVelocityMultiplier.toDouble()
-            val g = blockState(velocityAffectingPos).block.jumpVelocityMultiplier.toDouble()
+            val f = environment.jumpVelocityMultiplier(position.flooredBlockPos)
+            val g = environment.jumpVelocityMultiplier(velocityAffectingPos)
             if (f == 1.0) g else f
-        } * 0.42 + player.jumpBoostVelocityModifier
+        } * 0.42 + profile.jumpBoostVelocityModifier
 
         velocity += Vec3d(0.0, jumpHeight, 0.0)
     }
 
     /** @see net.minecraft.entity.Entity.adjustMovementForCollisions */
-    private fun SafeContext.adjustMovementForCollisions(movement: Vec3d): Vec3d {
+    private fun adjustMovementForCollisions(movement: Vec3d): Vec3d {
         if (movement.lengthSquared() == 0.0) {
             return movement
         }
 
-        if (skipEntityCollisions) {
-            // Block-only collision adjustment. Avoids mutating live player state and
-            // skips entity scans entirely, which is the right tradeoff for shortcut
-            // validation where entities are not part of the simulation's intent.
-            return Entity.adjustMovementForCollisions(player, movement, boundingBox, world, emptyList())
+        val player = livePlayer
+        if (skipEntityCollisions || player == null) {
+            // Block-only collision adjustment through the environment: the
+            // live one defers to vanilla, the snapshot one resolves against
+            // trait-table shapes and is legal on any thread.
+            return environment.adjustMovementForCollisions(movement, boundingBox)
         }
 
-        return withSimulatedPlayerState {
+        return withSimulatedPlayerState(player) {
+            val world = player.entityWorld
             val list = world.getEntityCollisions(player, boundingBox.stretch(movement))
             Entity.adjustMovementForCollisions(player, movement, boundingBox, world, list)
         }
     }
 
-    private fun SafeContext.isNearSimulatedLedge(): Boolean = withSimulatedPlayerState {
-        player.isNearLedge(0.01, 0.0)
+    private fun isNearSimulatedLedge(): Boolean {
+        // Live-entity probe; planner-side sims never sneak, so a missing
+        // live player simply skips the sneak edge clamp.
+        val player = livePlayer ?: return false
+        return withSimulatedPlayerState(player) {
+            player.isNearLedge(0.01, 0.0)
+        }
     }
 
-    private fun <T> withSimulatedPlayerState(block: () -> T): T {
+    private fun <T> withSimulatedPlayerState(player: ClientPlayerEntity, block: () -> T): T {
         val prevPos = player.pos
         val prevBox = player.boundingBox
 
@@ -455,6 +483,41 @@ data class MovementSimulationState(
             horizontalCollision = false,
             verticalCollision = false,
         )
+
+        /**
+         * Player-free synthetic state for off-thread simulations: standard
+         * bounding box from the [profile], grounded at [position]. This is
+         * the discovery/validation entry point — it must never touch the
+         * live entity.
+         */
+        fun synthetic(
+            profile: PlayerPhysicsProfile,
+            position: Vec3d,
+            rotation: Rotation,
+            velocity: Vec3d = Vec3d.ZERO,
+            onGround: Boolean = true,
+            isSprinting: Boolean = false,
+            jumpingCooldown: Int = 0,
+        ): MovementSimulationState {
+            val halfWidth = profile.width * 0.5
+            return MovementSimulationState(
+                position = position,
+                rotation = rotation,
+                velocity = velocity,
+                boundingBox = Box(
+                    position.x - halfWidth, position.y, position.z - halfWidth,
+                    position.x + halfWidth, position.y + profile.height, position.z + halfWidth,
+                ),
+                onGround = onGround,
+                isJumping = false,
+                isSprinting = isSprinting,
+                isSneaking = false,
+                jumpingCooldown = jumpingCooldown,
+                velocityAffectingPos = (position + DOWN * 0.001).flooredBlockPos,
+                horizontalCollision = false,
+                verticalCollision = false,
+            )
+        }
     }
 }
 
@@ -469,6 +532,9 @@ fun interface MovementInputProvider {
                 useItemSlowdown = player.isUsingItem,
             )
         }
+
+        /** For input-driven sims that always pass explicit inputs. */
+        fun none() = MovementInputProvider { _ -> MovementSimulationInput() }
     }
 }
 

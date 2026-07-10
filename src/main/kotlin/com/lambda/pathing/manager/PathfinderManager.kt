@@ -36,6 +36,7 @@ import com.lambda.pathing.maneuver.ManeuverDiscovery
 import com.lambda.pathing.primitives.MoveTable
 import com.lambda.pathing.refinement.PathRefiner
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toFastVec
 import com.lambda.util.world.toBlockPos
@@ -44,6 +45,10 @@ import com.lambda.util.world.y
 import com.lambda.util.world.z
 import com.lambda.worldview.SnapshotWorldView
 import net.minecraft.util.math.BlockPos
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.sqrt
 import kotlin.time.DurationUnit
 
@@ -52,7 +57,11 @@ import kotlin.time.toDuration
 object PathfinderManager : Loadable,
     IMutableAutomationConfig by MutableAutomationConfig() {
     private var nextTraversalId = 0
-    private var activeSession: ActiveSession? = null
+    /** All graph/discovery/D* state is confined to this one worker. */
+    private val plannerWorker = Executors.newSingleThreadExecutor { task ->
+        Thread(task, "Lambda-Pathfinder").apply { isDaemon = true }
+    }
+    @Volatile private var activeSession: ActiveSession? = null
 
     val activeTraversal: TraversalHandle?
         get() = activeSession?.handle
@@ -63,16 +72,21 @@ object PathfinderManager : Loadable,
             // Snapshot write-through must precede graph resynchronization:
             // synchronizeAffected regenerates edges by reading the view.
             activeSession?.view?.applyObserved(event.pos, event.newState)
-            runSafeAutomated {
-                synchronizeWorldChange(event.pos)
-            }
+            // event.pos can be a MUTABLE BlockPos the packet handler reuses
+            // (chunk-delta updates). Anything crossing to the planner worker
+            // must be snapshotted NOW — a captured reference reads whatever
+            // the handler mutated it to last (observed: a 33-block wall fill
+            // reached the worker as 3 stale positions × 15 repeats, so the
+            // wall-crossing edges were never resynced and the planner kept
+            // routing through the wall).
+            runSafeAutomated { synchronizeWorldChange(event.pos.toImmutable()) }
         }
 
         listen<WorldEvent.ChunkEvent.Load>(alwaysListen = true) { event ->
             activeSession?.let { session ->
                 val evictedSections = session.view.evictChunk(event.chunk.pos)
                 if (evictedSections > 0 && session.chunkTransitionAffectsActiveSearch(event.chunk.pos)) {
-                    session.chunkTopologyDirty = true
+                    session.chunkTopologyDirty.set(true)
                     PlannerMetrics.sink.chunkVisibility(
                         session.handle.id, event.chunk.pos.x, event.chunk.pos.z,
                         loaded = true, evictedSections = evictedSections,
@@ -87,7 +101,7 @@ object PathfinderManager : Loadable,
             activeSession?.let { session ->
                 val evictedSections = session.view.evictChunk(event.chunk.pos)
                 if (evictedSections > 0 && session.chunkTransitionAffectsActiveSearch(event.chunk.pos)) {
-                    session.chunkTopologyDirty = true
+                    session.chunkTopologyDirty.set(true)
                     PlannerMetrics.sink.chunkVisibility(
                         session.handle.id, event.chunk.pos.x, event.chunk.pos.z,
                         loaded = false, evictedSections = evictedSections,
@@ -135,16 +149,27 @@ object PathfinderManager : Loadable,
         }
 
         // WP3.2 landing-anchored maneuver discovery: extra sprint-jump edges
-        // proposed and sim-validated the first time the backward search
-        // expands a ledge node. Provider-level merging is T2's discovery-
-        // monotone model — edges only ever appear, through the same lazy
-        // machinery as template edges.
+        // proposed the first time the backward search expands a ledge node,
+        // sim-validated lazily when selected onto the candidate path (LIS).
+        // Provider-level merging is T2's discovery-monotone model — edges
+        // only ever appear, through the same lazy machinery as template
+        // edges. The discovery object is worker-confined and simulates
+        // against the session view + this immutable player profile — never
+        // the live world or entity.
         val initialStart = currentStablePlannerNode(view) ?: player.blockPos.toFastVec()
         val discovery = if (config.allowJump && config.allowManeuverDiscovery) {
-            ManeuverDiscovery(player, view, preferredOrigin = initialStart)
+            ManeuverDiscovery(PlayerPhysicsProfile.capture(player), view, preferredOrigin = initialStart)
         } else {
             null
         }
+
+        // Snapshot the start→goal corridor before the worker starts: section
+        // copies are client-thread-only, and each worker fault costs a frame
+        // of planning latency.
+        view.prefetch(
+            initialStart.x, initialStart.y, initialStart.z,
+            goal.targetNode.x, goal.targetNode.y, goal.targetNode.z,
+        )
 
         val graph = LazyGraph<FastVector>(
             successorProvider = { node ->
@@ -181,9 +206,11 @@ object PathfinderManager : Loadable,
             nodeTieBreaker = naturalOrder(),
         )
 
-        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view, moves, discovery)
+        // The refinement config is captured per session: the worker must not
+        // read the live automation-config object.
+        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view, moves, discovery, refinementConfig)
         PlannerMetrics.sink.planStart(handle.id, planner.start, goal.targetNode)
-        computeActivePath(ComputeCause.Initial)
+        enqueue(activeSession ?: return handle) { computeActivePath(ComputeCause.Initial) }
         return handle
     }
 
@@ -195,8 +222,10 @@ object PathfinderManager : Loadable,
         // Anchor to that actually-overlapped stance instead of repeatedly
         // "replanning" from no start node and leaving the executor Lost.
         val stableNode = currentStablePlannerNode(allowFootprintRecovery = true) ?: return session.handle
-        session.planner.updateStart(stableNode)
-        computeActivePath(ComputeCause.ExplicitRefresh)
+        enqueue(session) {
+            session.planner.updateStart(stableNode)
+            computeActivePath(ComputeCause.ExplicitRefresh)
+        }
         return session.handle
     }
 
@@ -204,69 +233,67 @@ object PathfinderManager : Loadable,
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
 
-        if (session.chunkTopologyDirty) {
+        val playerBlock = currentStablePlannerNode() ?: return session.handle
+        queueStartRefresh(session, playerBlock)
+        return session.handle
+    }
+
+    /** Worker-confined start advance, lazy validation, and budget continuation. */
+    private fun ActiveSession.refreshFromStart(playerBlock: FastVector) {
+        if (!isCurrent(this) || handle.status.isTerminal) return
+
+        if (chunkTopologyDirty.getAndSet(false)) {
             // Correctness-first fallback for chunk visibility changes. A
             // section can switch wholesale between unknown and observed, so
             // until WP5 supplies section-scoped connectivity/invalidation we
             // rebuild the lazy graph once for the whole event batch.
-            session.chunkTopologyDirty = false
-            session.discovery?.clearWorldCache()
-            session.planner.initialize(clearGraph = true)
-            session.lastCoarsePath = null
-            session.lastRefinedPath = null
-            currentStablePlannerNode(session.view)?.let { session.planner.updateStart(it) }
+            discovery?.clearWorldCache()
+            planner.initialize(clearGraph = true)
+            lastCoarsePath = null
+            lastRefinedPath = null
+            lastEdgeAnnotations = emptyMap()
+            planner.updateStart(playerBlock)
             computeActivePath(ComputeCause.ChunkTopology)
-            return session.handle
+            return
         }
 
-        val playerBlock = currentStablePlannerNode() ?: return session.handle
-        if (playerBlock == session.handle.goal.targetNode) {
-            completeActiveTraversal()
-            return session.handle
+        if (playerBlock == handle.goal.targetNode) {
+            handle.succeed()
+            return
         }
 
-        val planner = session.planner
         if (playerBlock == planner.start) {
             // A budgeted compute can time out before producing even a partial
             // path. The player then cannot move, so waiting for a start-node
             // change deadlocks the traversal in Partial forever. Continue one
             // budget slice per player tick until D* Lite becomes consistent.
-            if (session.handle.status == TraversalHandle.Status.Partial) {
+            if (handle.status == TraversalHandle.Status.Partial) {
                 computeActivePath(ComputeCause.BudgetContinuation)
             }
-            return session.handle
+            return
         }
 
-        val refined = session.lastRefinedPath
+        val refined = lastRefinedPath
         if (refined.isNullOrEmpty()) {
             planner.updateStart(playerBlock)
             computeActivePath(ComputeCause.StartAdvanceNoRefinedPath)
-            return session.handle
+            return
         }
 
         val plannerIndex = refined.indexOf(planner.start)
         val searchFrom = (plannerIndex + 1).coerceAtLeast(0)
-        if (searchFrom >= refined.size) return session.handle
+        if (searchFrom >= refined.size) return
 
         val playerIndexInTail = refined.subList(searchFrom, refined.size).indexOf(playerBlock)
         if (playerIndexInTail < 0) {
             // Player is between refined nodes (on a diagonal shortcut). Don't
             // touch planner.start; the cached refined path is still valid.
-            return session.handle
+            return
         }
 
         planner.updateStart(refined[searchFrom + playerIndexInTail])
         computeActivePath(ComputeCause.StartAdvance)
-        return session.handle
     }
-
-    /** Chain macro-edge lookup for the executor's path build (WP3.3). */
-    fun chainWaypoints(from: FastVector, to: FastVector): List<FastVector>? =
-        activeSession?.discovery?.chainWaypoints(from, to)
-
-    /** Discovered-jump provenance lookup for the executor's path build. */
-    fun isDiscoveredJump(from: FastVector, to: FastVector): Boolean =
-        activeSession?.discovery?.isDiscoveredJump(from, to) == true
 
     fun cancelActiveTraversal(): Boolean {
         val session = activeSession ?: return false
@@ -275,28 +302,92 @@ object PathfinderManager : Loadable,
         return true
     }
 
+    private fun enqueue(session: ActiveSession, block: ActiveSession.() -> Unit) {
+        plannerWorker.execute {
+            if (!isCurrent(session)) return@execute
+            try {
+                session.block()
+            } catch (t: Throwable) {
+                LOG.error("[Pathfinder] Planner worker failed for traversal ${session.handle.id}", t)
+                session.handle.failureReason = "Planner worker failed: ${t.message ?: t::class.simpleName}"
+                session.handle.status = TraversalHandle.Status.Failed
+            }
+        }
+    }
+
+    private fun isCurrent(session: ActiveSession): Boolean =
+        activeSession === session && !session.handle.status.isTerminal
+
+    /** Coalesces client ticks while a 50 ms worker slice is still running. */
+    private fun queueStartRefresh(session: ActiveSession, start: FastVector) {
+        session.pendingStart.set(start)
+        if (!session.startRefreshQueued.compareAndSet(false, true)) return
+        enqueue(session) {
+            try {
+                while (isCurrent(this)) {
+                    val latest = pendingStart.getAndSet(null) ?: break
+                    refreshFromStart(latest)
+                }
+            } finally {
+                startRefreshQueued.set(false)
+                val pending = pendingStart.get()
+                if (pending != null && isCurrent(this)) queueStartRefresh(this, pending)
+            }
+        }
+    }
+
     fun AutomatedSafeContext.synchronizeWorldChange(pos: BlockPos): TraversalHandle? {
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
 
-        val affectedNodes = session.moves.affectedNodes(pos.x, pos.y, pos.z)
-        // Discovered maneuver edges read a larger region than templates:
-        // drop and re-open any whose flight volume could see this change,
-        // and resync their endpoints through the same pass.
-        val maneuverAffected = session.discovery?.invalidateAround(pos.x, pos.y, pos.z) ?: emptySet()
+        // Batch: a /fill or explosion delivers dozens of block events in one
+        // client tick. One worker pass over the union costs one graph sync
+        // and ONE republication — per-event passes republished a new path
+        // identity per block, resetting executor segment state every time.
+        session.pendingBlockChanges.add(pos)
+        queueBlockSync(session, currentStablePlannerNode())
+        return session.handle
+    }
+
+    /** Coalesces block-update events while a worker sync is still running. */
+    private fun queueBlockSync(session: ActiveSession, stableNode: FastVector?) {
+        if (!session.blockSyncQueued.compareAndSet(false, true)) return
+        enqueue(session) {
+            try {
+                while (isCurrent(this)) {
+                    val batch = generateSequence { pendingBlockChanges.poll() }.toSet()
+                    if (batch.isEmpty()) break
+                    synchronizeWorldChangesOnWorker(batch, stableNode)
+                }
+            } finally {
+                blockSyncQueued.set(false)
+                if (pendingBlockChanges.isNotEmpty() && isCurrent(this)) queueBlockSync(this, stableNode)
+            }
+        }
+    }
+
+    private fun ActiveSession.synchronizeWorldChangesOnWorker(batch: Set<BlockPos>, stableNode: FastVector?) {
+        if (!isCurrent(this) || handle.status.isTerminal) return
+
+        val affectedNodes = HashSet<FastVector>()
+        for (pos in batch) {
+            affectedNodes += moves.affectedNodes(pos.x, pos.y, pos.z)
+            // Discovered maneuver edges read a larger region than templates:
+            // drop and re-open any whose flight volume could see this change,
+            // and resync their endpoints through the same pass.
+            discovery?.invalidateAround(pos.x, pos.y, pos.z)?.let { affectedNodes += it }
+        }
         val syncStartNanos = System.nanoTime()
-        val sync = session.planner.synchronizeAffected(
-            if (maneuverAffected.isEmpty()) affectedNodes else affectedNodes + maneuverAffected
-        )
+        val sync = planner.synchronizeAffected(affectedNodes)
         PlannerMetrics.sink.syncEnd(
-            traversalId = session.handle.id,
+            traversalId = handle.id,
             nodesChecked = sync.nodesChecked,
             edgesAdded = sync.edgesAdded,
             edgesRemoved = sync.edgesRemoved,
             edgesChanged = sync.edgesChanged,
             wallMicros = (System.nanoTime() - syncStartNanos) / 1_000,
         )
-        session.handle.lastSynchronization = TraversalHandle.SynchronizationStats(
+        handle.lastSynchronization = TraversalHandle.SynchronizationStats(
             nodesChecked = sync.nodesChecked,
             edgesAdded = sync.edgesAdded,
             edgesRemoved = sync.edgesRemoved,
@@ -304,13 +395,12 @@ object PathfinderManager : Loadable,
         )
 
         if (sync.edgesAdded > 0 || sync.edgesRemoved > 0 || sync.edgesChanged > 0) {
-            session.lastCoarsePath = null
-            session.lastRefinedPath = null
+            lastCoarsePath = null
+            lastRefinedPath = null
         }
 
-        currentStablePlannerNode()?.let { session.planner.updateStart(it) }
+        stableNode?.let { planner.updateStart(it) }
         computeActivePath(ComputeCause.WorldChange)
-        return session.handle
     }
 
     fun completeActiveTraversal(): Boolean {
@@ -322,7 +412,17 @@ object PathfinderManager : Loadable,
     fun debugInfo(): String = activeSession?.handle?.debugString() ?: "No active traversal"
 
     fun lazyGraphSnapshot(maxNodes: Int, maxEdges: Int): LazyGraphSnapshot {
-        val graph = activeSession?.graph ?: return LazyGraphSnapshot()
+        val session = activeSession ?: return LazyGraphSnapshot()
+        session.requestedDebugNodes.set(maxNodes.coerceAtLeast(0))
+        session.requestedDebugEdges.set(maxEdges.coerceAtLeast(0))
+        return session.debugSnapshot.trimTo(maxNodes, maxEdges)
+    }
+
+    /** Called only on the planner worker. */
+    private fun ActiveSession.publishDebugSnapshot() {
+        val maxNodes = requestedDebugNodes.get().coerceAtLeast(0)
+        val maxEdges = requestedDebugEdges.get().coerceAtLeast(0)
+        if (maxNodes == 0 && maxEdges == 0) return
         val nodePositions = graph.nodes.take(maxNodes.coerceAtLeast(0))
         val nodeSet = nodePositions.toHashSet()
         val nodes = nodePositions.map { node ->
@@ -351,7 +451,7 @@ object PathfinderManager : Loadable,
             if (edgeLimitReached) break
         }
 
-        return LazyGraphSnapshot(
+        debugSnapshot = LazyGraphSnapshot(
             totalNodes = graph.size,
             nodes = nodes,
             edges = edges,
@@ -359,22 +459,110 @@ object PathfinderManager : Loadable,
         )
     }
 
-    private fun AutomatedSafeContext.computeActivePath(cause: ComputeCause) {
-        val session = activeSession ?: return
-        val handle = session.handle
-        if (handle.status == TraversalHandle.Status.Cancelled) return
-
-        handle.status = TraversalHandle.Status.Planning
-        PlannerMetrics.sink.computeStart(handle.id, cause.metricName, session.planner.start, session.graph.size)
+    /** One budgeted D* Lite slice with its metrics: (result, coarse path). */
+    private fun ActiveSession.runComputeSlice(cause: ComputeCause): Pair<DStarLite.ComputeResult, List<FastVector>> {
+        PlannerMetrics.sink.computeStart(handle.id, cause.metricName, planner.start, graph.size)
         val computeStartNanos = System.nanoTime()
-        val result = session.planner.computeShortestPath(handle.config.computeBudget.toDuration(DurationUnit.MILLISECONDS))
+        val result = planner.computeShortestPath(handle.config.computeBudget.toDuration(DurationUnit.MILLISECONDS))
         val computeWallMicros = (System.nanoTime() - computeStartNanos) / 1_000
-        val coarsePath = session.planner.path(handle.config.maxPathLength)
+        val coarsePath = planner.path(handle.config.maxPathLength)
         val reachedGoal = coarsePath.lastOrNull() == handle.goal.targetNode
-        if (session.computeCount++ == 0) {
+        if (computeCount++ == 0) {
             PlannerMetrics.sink.initialPath(handle.id, result.processedNodes, computeWallMicros, result.timedOut, coarsePath.size, reachedGoal)
         } else {
             PlannerMetrics.sink.repairEnd(handle.id, result.processedNodes, computeWallMicros, result.timedOut, coarsePath.size, reachedGoal)
+        }
+        return result to coarsePath
+    }
+
+    private fun ActiveSession.applyValidationSync(affected: Set<FastVector>) {
+        val syncStartNanos = System.nanoTime()
+        val sync = planner.synchronizeAffected(affected)
+        PlannerMetrics.sink.syncEnd(
+            traversalId = handle.id,
+            nodesChecked = sync.nodesChecked,
+            edgesAdded = sync.edgesAdded,
+            edgesRemoved = sync.edgesRemoved,
+            edgesChanged = sync.edgesChanged,
+            wallMicros = (System.nanoTime() - syncStartNanos) / 1_000,
+        )
+        handle.lastSynchronization = TraversalHandle.SynchronizationStats(
+            nodesChecked = sync.nodesChecked,
+            edgesAdded = sync.edgesAdded,
+            edgesRemoved = sync.edgesRemoved,
+            edgesChanged = sync.edgesChanged,
+        )
+        lastCoarsePath = null
+        lastRefinedPath = null
+    }
+
+    private fun ActiveSession.computeActivePath(cause: ComputeCause) {
+        if (!isCurrent(this)) return
+
+        // Keep executing the last immutable path while a repair runs. Only an
+        // initial/no-path compute exposes Planning to the client executor.
+        if (handle.path.size < 2) handle.status = TraversalHandle.Status.Planning
+        var (result, coarsePath) = runComputeSlice(cause)
+        if (!isCurrent(this)) return
+        var processedNodes = result.processedNodes
+
+        // Lazy edge evaluation (LIS, plan §5): discovery proposes maneuver
+        // edges with lower-bound costs during graph expansion; the physics
+        // sims run here, exclusively for edges the search selected onto the
+        // candidate path. Each correction/removal is an ordinary D* edge
+        // update followed by a repair. The loop runs until the selected path
+        // carries no optimistic edge — with lower-bound optimism that path
+        // is exactly the one eager validation would have chosen, and nothing
+        // is published before then, so the executor can never launch an
+        // unvalidated maneuver. Bounded rounds per worker task keep queued
+        // world updates from starving behind a pathological alternation.
+        if (discovery != null) {
+            var rounds = 0
+            while (true) {
+                if (!isCurrent(this)) return
+                // Partial paths get horizon-limited validation: only edges
+                // the executor could imminently reach are resolved, since
+                // the frontier tail changes with every repair slice anyway.
+                // Once the path claims the goal, validation is exhaustive —
+                // a published Ready path carries no optimistic edge and is
+                // exactly the eager planner's choice.
+                val horizon = if (coarsePath.lastOrNull() == handle.goal.targetNode) {
+                    null
+                } else {
+                    PARTIAL_VALIDATION_HORIZON
+                }
+                val affected = discovery.validatePathEdges(coarsePath, horizon)
+                if (affected.isEmpty()) break
+                applyValidationSync(affected)
+                if (++rounds >= MAX_LAZY_VALIDATION_ROUNDS) {
+                    handle.graphSize = graph.size
+                    handle.processedNodes += processedNodes
+                    if (handle.path.size < 2) handle.status = TraversalHandle.Status.Partial
+                    publishDebugSnapshot()
+                    enqueue(this) { computeActivePath(ComputeCause.LazyValidation) }
+                    return
+                }
+                val (repairResult, repairedPath) = runComputeSlice(ComputeCause.LazyValidation)
+                processedNodes += repairResult.processedNodes
+                result = repairResult
+                coarsePath = repairedPath
+            }
+        }
+
+        // A timed-out slice that hasn't connected the goal yet leaves the
+        // search inconsistent, and a path extracted from that state is NOT
+        // a prefix of the eventual route (observed: a warm-JIT first slice
+        // published a 10-node sideways walk the executor departed on, then
+        // waited 50 ticks at its end). Keep the previous published plan —
+        // the executor continues it — report Partial so the per-tick budget
+        // continuation resumes the search, and publish only consistent
+        // results.
+        if (result.timedOut && coarsePath.lastOrNull() != handle.goal.targetNode) {
+            handle.graphSize = graph.size
+            handle.processedNodes += processedNodes
+            handle.status = TraversalHandle.Status.Partial
+            publishDebugSnapshot()
+            return
         }
 
         // If the new coarse path is just a forward-advance of the prior coarse
@@ -382,8 +570,8 @@ object PathfinderManager : Loadable,
         // previously refined path by reference. This avoids both the cost of
         // re-refining and the downstream executor's rebuild-on-reference-change
         // which would otherwise reset segment progress and cause oscillation.
-        val priorCoarse = session.lastCoarsePath
-        val priorRefined = session.lastRefinedPath
+        val priorCoarse = lastCoarsePath
+        val priorRefined = lastRefinedPath
         // Don't reuse the cache once the coarse path has collapsed to just the
         // goal node — the executor stops on path.size <= 1 and would never see
         // AtGoal if we kept the old long refined path.
@@ -393,16 +581,16 @@ object PathfinderManager : Loadable,
             && isForwardAdvance(priorCoarse, coarsePath)
 
         if (structurallyUnchanged) {
-            handle.coarsePath = coarsePath
-            handle.path = priorRefined
-            handle.graphSize = session.graph.size
-            handle.processedNodes += result.processedNodes
+            handle.publishPlan(coarsePath, priorRefined, lastEdgeAnnotations)
+            handle.graphSize = graph.size
+            handle.processedNodes += processedNodes
             handle.failureReason = null
             handle.status = pathStatus(result.timedOut, coarsePath, handle)
+            publishDebugSnapshot()
             return
         }
 
-        val refinement = PathRefiner.refine(session.view, coarsePath, refinementConfig)
+        val refinement = PathRefiner.refine(view, coarsePath, refinementConfig)
         if (refinement.stats.enabled) {
             PlannerMetrics.sink.refineEnd(
                 traversalId = handle.id,
@@ -414,22 +602,23 @@ object PathfinderManager : Loadable,
                 durationMs = refinement.stats.durationMs,
             )
         }
-        session.lastCoarsePath = coarsePath
-        session.lastRefinedPath = refinement.path
+        lastCoarsePath = coarsePath
+        lastRefinedPath = refinement.path
+        lastEdgeAnnotations = discovery?.annotationsFor(refinement.path).orEmpty()
 
-        handle.coarsePath = coarsePath
-        handle.path = refinement.path
+        handle.publishPlan(coarsePath, refinement.path, lastEdgeAnnotations)
         handle.lastRefinement = refinement.stats
         handle.lastRefinementDebug = refinement.debug
-        handle.graphSize = session.graph.size
-        handle.processedNodes += result.processedNodes
+        handle.graphSize = graph.size
+        handle.processedNodes += processedNodes
         handle.failureReason = null
-        logRefinementSummaryIfChanged(session)
+        logRefinementSummaryIfChanged(this)
 
         handle.status = pathStatus(result.timedOut, coarsePath, handle)
         if (handle.status == TraversalHandle.Status.Ready && coarsePath.size <= 1 && coarsePath.lastOrNull() == handle.goal.targetNode) {
             handle.succeed()
         }
+        publishDebugSnapshot()
     }
 
     private fun pathStatus(
@@ -483,11 +672,23 @@ object PathfinderManager : Loadable,
         val view: SnapshotWorldView,
         val moves: MoveTable.MoveSet,
         val discovery: ManeuverDiscovery?,
+        /** Captured at request time; the worker never reads live config objects. */
+        val refinementConfig: PathRefinementConfig,
         var lastRefinementLogKey: String? = null,
         var lastCoarsePath: List<FastVector>? = null,
         var lastRefinedPath: List<FastVector>? = null,
+        var lastEdgeAnnotations: Map<Pair<FastVector, FastVector>, TraversalHandle.EdgeAnnotation> = emptyMap(),
         var computeCount: Int = 0,
-        var chunkTopologyDirty: Boolean = false,
+        val chunkTopologyDirty: AtomicBoolean = AtomicBoolean(false),
+        val pendingStart: AtomicReference<FastVector?> = AtomicReference(null),
+        val startRefreshQueued: AtomicBoolean = AtomicBoolean(false),
+        /** Immutable positions only — snapshotted at the event listener. */
+        val pendingBlockChanges: java.util.concurrent.ConcurrentLinkedQueue<BlockPos> =
+            java.util.concurrent.ConcurrentLinkedQueue(),
+        val blockSyncQueued: AtomicBoolean = AtomicBoolean(false),
+        val requestedDebugNodes: AtomicInteger = AtomicInteger(0),
+        val requestedDebugEdges: AtomicInteger = AtomicInteger(0),
+        @Volatile var debugSnapshot: LazyGraphSnapshot = LazyGraphSnapshot(),
     )
 
     /**
@@ -498,7 +699,7 @@ object PathfinderManager : Loadable,
      * a later search actually reaches them.
      */
     private fun ActiveSession.chunkTransitionAffectsActiveSearch(chunk: net.minecraft.util.math.ChunkPos): Boolean {
-        val path = lastRefinedPath.orEmpty()
+        val path = handle.path
         if (path.isNotEmpty()) {
             if (path.any { (it.x shr 4) == chunk.x && (it.z shr 4) == chunk.z }) return true
             val minX = chunk.startX
@@ -511,10 +712,12 @@ object PathfinderManager : Loadable,
             }
         }
 
-        val sx = planner.start.x shr 4
-        val sz = planner.start.z shr 4
-        val gx = planner.goal.x shr 4
-        val gz = planner.goal.z shr 4
+        val start = handle.coarsePath.firstOrNull() ?: handle.path.firstOrNull() ?: return true
+        val goal = handle.goal.targetNode
+        val sx = start.x shr 4
+        val sz = start.z shr 4
+        val gx = goal.x shr 4
+        val gz = goal.z shr 4
         return if (kotlin.math.abs(gx - sx) >= kotlin.math.abs(gz - sz)) {
             chunk.x in minOf(sx, gx)..maxOf(sx, gx) &&
                 chunk.z in (minOf(sz, gz) - 1)..(maxOf(sz, gz) + 1)
@@ -581,23 +784,45 @@ object PathfinderManager : Loadable,
         val session = activeSession ?: return false
         if (session.handle.status.isTerminal) return false
 
+        val stableNode = currentStablePlannerNode()
+        enqueue(session) { reportEdgeObstructedOnWorker(from, to, stableNode) }
+        return true
+    }
+
+    private fun ActiveSession.reportEdgeObstructedOnWorker(
+        from: FastVector,
+        to: FastVector,
+        stableNode: FastVector?,
+    ) {
+        if (!isCurrent(this) || handle.status.isTerminal) return
+
         val key = EdgeKey(from, to)
-        val factor = ((session.edgePenalties[key] ?: 1.0) * OBSTRUCTION_PENALTY_FACTOR)
+        val factor = ((edgePenalties[key] ?: 1.0) * OBSTRUCTION_PENALTY_FACTOR)
             .coerceAtMost(MAX_OBSTRUCTION_PENALTY)
-        session.edgePenalties[key] = factor
-        PlannerMetrics.sink.edgeObstructed(session.handle.id, from, to, factor)
+        edgePenalties[key] = factor
+        PlannerMetrics.sink.edgeObstructed(handle.id, from, to, factor)
         LOG.info("[Pathfinder] Edge obstructed ${from.toBlockPos().toShortString()} -> ${to.toBlockPos().toShortString()}, penalty x${"%.0f".format(factor)}")
 
-        session.lastCoarsePath = null
-        session.lastRefinedPath = null
-        session.planner.synchronizeAffected(setOf(from, to))
-        currentStablePlannerNode()?.let { session.planner.updateStart(it) }
+        lastCoarsePath = null
+        lastRefinedPath = null
+        planner.synchronizeAffected(setOf(from, to))
+        stableNode?.let { planner.updateStart(it) }
         computeActivePath(ComputeCause.EdgeObstructed)
-        return true
     }
 
     private const val OBSTRUCTION_PENALTY_FACTOR = 8.0
     private const val MAX_OBSTRUCTION_PENALTY = 4096.0
+
+    // Lazy-validation rounds per worker task before yielding to queued
+    // world updates. Each round validates every optimistic edge on the
+    // candidate path and repairs, so alternation this deep is pathological.
+    private const val MAX_LAZY_VALIDATION_ROUNDS = 16
+
+    // How far ahead of the path start maneuvers are physics-validated while
+    // the path is still partial (executor-imminent edges only). Matches a
+    // couple seconds of travel; the executor's live launch gate re-checks
+    // every jump at execution time regardless.
+    private const val PARTIAL_VALIDATION_HORIZON = 24.0
     private enum class ComputeCause(val metricName: String) {
         Initial("initial"),
         BudgetContinuation("budget_continuation"),
@@ -607,6 +832,7 @@ object PathfinderManager : Loadable,
         WorldChange("world_change"),
         EdgeObstructed("edge_obstructed"),
         ExplicitRefresh("explicit_refresh"),
+        LazyValidation("lazy_validation"),
     }
 
     /**
@@ -639,6 +865,20 @@ object PathfinderManager : Loadable,
         val edges: List<Edge> = emptyList(),
         val truncated: Boolean = false,
     ) {
+        fun trimTo(maxNodes: Int, maxEdges: Int): LazyGraphSnapshot {
+            val keptNodes = nodes.take(maxNodes.coerceAtLeast(0))
+            val keptSet = keptNodes.asSequence().map { it.pos }.toHashSet()
+            val keptEdges = edges.asSequence()
+                .filter { it.from in keptSet && it.to in keptSet }
+                .take(maxEdges.coerceAtLeast(0))
+                .toList()
+            return copy(
+                nodes = keptNodes,
+                edges = keptEdges,
+                truncated = truncated || keptNodes.size < nodes.size || keptEdges.size < edges.size,
+            )
+        }
+
         data class Node(
             val pos: FastVector,
             val g: Double,

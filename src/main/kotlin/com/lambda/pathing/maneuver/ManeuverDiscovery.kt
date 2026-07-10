@@ -20,10 +20,13 @@ package com.lambda.pathing.maneuver
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.pathing.primitives.MoveRates
 import com.lambda.pathing.primitives.MoveTable
+import com.lambda.pathing.manager.TraversalHandle
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.MovementSimulator
+import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
@@ -31,7 +34,6 @@ import com.lambda.util.world.x
 import com.lambda.util.world.y
 import com.lambda.util.world.z
 import com.lambda.worldview.WorldView
-import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -39,42 +41,45 @@ import kotlin.math.max
 
 /**
  * WP3.2 landing-anchored maneuver discovery (research plan §4.4, notes
- * T2/T7): when the backward search first asks for the predecessors of a
- * ledge node, propose sprint-jump takeoffs beyond the template range and
- * validate each candidate with one tick-accurate forward simulation. The
- * survivors become ordinary graph edges (takeoff → landing) with
- * tick-denominated costs — F3 connections the 45°-quantized template set
- * cannot represent (angled gaps, 2-3 block gaps).
+ * T2/T7) with lazy edge evaluation (LIS semantics, plan §5 upgrade table):
+ * when the backward search first asks for the predecessors of a ledge node,
+ * propose sprint-jump takeoffs beyond the template range after cheap
+ * prefilters only, each carrying a provable lower-bound cost. The expensive
+ * tick-accurate simulation runs later, exclusively for edges the search
+ * actually selects onto the candidate path ([validatePathEdges]) — never
+ * for every ledge the backward search expands. Because the optimistic cost
+ * never exceeds the simulated cost, a path whose discovered edges have all
+ * been validated is exactly the path the eager (validate-at-proposal)
+ * planner would have selected; laziness moves work off the critical path
+ * without changing route selection.
+ *
+ * Thread contract: this object is confined to the planner worker. Its
+ * simulations read the session [WorldView] through a
+ * [SnapshotSimulationEnvironment] and the immutable [PlayerPhysicsProfile]
+ * — never the live world or the live player entity (a worker read of either
+ * is torn state; the July 2026 async revert traces to exactly that).
  *
  * Landing-anchored on purpose: D* Lite expands backward from the goal, so
  * predecessor-directed discovery is the search's native direction, and
  * each landing is examined at most once per world state (memoized; a
  * nearby block change re-opens it through [invalidateAround]).
- *
- * v1 scope, honestly stated: flat jumps only (dy = 0) between grid nodes
- * (conjecture C1's voxel-A→voxel-B claim), entry assumed sprinting along
- * the jump line — which the executor's long-gap policy reproduces — and
- * first-collision = failure (T7's discovery semantics; no bonk-and-continue
- * recovery jumps). The analytic yaw sweep and entry envelopes are the
- * planned upgrades, not prerequisites.
  */
 class ManeuverDiscovery(
-    private val player: ClientPlayerEntity,
+    private val profile: PlayerPhysicsProfile,
     private val view: WorldView,
     /**
      * Discovered maneuvers are shortcuts, not the completeness substrate.
      * Only propose takeoffs that make net progress from this traversal's
      * origin; walking templates remain free to detour in every direction.
-     * This avoids simulating the half of the jump fan that points back behind
+     * This avoids proposing the half of the jump fan that points back behind
      * the agent during the expensive initial backward search.
      */
     private val preferredOrigin: FastVector? = null,
 ) {
-    /** Landings already examined for this world state. */
-    private val examinedLandings = HashSet<FastVector>()
+    private val environment = SnapshotSimulationEnvironment(view)
 
-    /** landing → (takeoff → cost); the authoritative store. */
-    private val edgesInto = HashMap<FastVector, Map<FastVector, Double>>()
+    /** Per-landing discovery state; presence = landing was examined. */
+    private val landings = HashMap<FastVector, LandingDiscovery>()
 
     /** takeoff → (landing → cost); mirror for successor queries. */
     private val edgesFrom = HashMap<FastVector, HashMap<FastVector, Double>>()
@@ -85,98 +90,133 @@ class ManeuverDiscovery(
     var landingsExamined = 0; private set
     var simulationsRun = 0; private set
     var edgesDiscovered = 0; private set
+    var edgesValidated = 0; private set
+    var edgesRejected = 0; private set
 
     /** Last chain-sim failure detail, for CHAIN_DEBUG logging only. */
     private var lastChainFailure: String = ""
 
     /**
-     * Discovered incoming edges of [landing], running discovery on first
-     * call. Invoked from the graph's predecessor provider — on the client
-     * thread, inside the planner's compute budget; trigger gating and
-     * memoization keep it off the hot path.
+     * Proposal bookkeeping for one landing. [fanCursor] walks the
+     * longest-first single-jump candidate fan so a failed validation can
+     * back-fill the next candidate — keeping the *live* per-landing edge
+     * budget identical to what eager validation would have produced.
+     */
+    private class LandingDiscovery {
+        var fanCursor = 0
+        /** Simulations spent resolving this landing (budgeted). */
+        var simsUsed = 0
+        /** takeoff → cost; optimistic until removed from [optimistic]. */
+        val edges = HashMap<FastVector, Double>()
+        /**
+         * Takeoffs whose physics has not been evaluated yet, in proposal
+         * (= fan, longest-first) order so resolution validates in the same
+         * sequence eager discovery did.
+         */
+        val optimistic = LinkedHashSet<FastVector>()
+    }
+
+    /**
+     * Discovered incoming edges of [landing], proposing on first call.
+     * Invoked from the graph's predecessor provider on the planner worker;
+     * trigger gating and memoization keep it off the hot path.
      */
     fun predecessorsInto(landing: FastVector): Map<FastVector, Double> {
-        if (!examinedLandings.add(landing)) return edgesInto[landing] ?: emptyMap()
-        if (!isLedge(landing)) return emptyMap()
-
-        landingsExamined++
-        var found: HashMap<FastVector, Double>? = null
-        var landingSims = 0
-        candidateLoop@ for (offset in CANDIDATE_OFFSETS) {
-            for (rise in TAKEOFF_RISES) {
-                // Per-landing budget: offsets are ordered longest-first, so
-                // the path-shortening jumps get validated before the budget
-                // runs out; without a cap the dy-variant fan quadrupled
-                // initial-plan time on jagged terrain.
-                if ((found?.size ?: 0) >= MAX_EDGES_PER_LANDING) break@candidateLoop
-                if (landingSims >= MAX_SIMS_PER_LANDING) break@candidateLoop
-                // Ascending jumps (+1 landing) have shorter sprint reach;
-                // descending ones keep the flat band (falling carries).
-                if (rise < 0 && offset.distance > ASCEND_MAX_DISTANCE) continue
-                val takeoff = fastVectorOf(landing.x - offset.dx, landing.y + rise, landing.z - offset.dz)
-                if (!progressesFromOrigin(takeoff, landing)) continue
-                if (!MoveTable.isStance(view, takeoff.x, takeoff.y, takeoff.z)) continue
-                // Only simulate real gaps: if every column under the jump
-                // line is standable at takeoff level, walking is strictly
-                // cheaper and the templates already connect it. Descending
-                // jumps additionally require the chasm to be real at landing
-                // level — where a walkable floor exists down there, the
-                // walk-off drop templates already serve, and the marginal
-                // tick gain is not worth a simulation fan per ledge.
-                if (!lineCrossesGap(takeoff, landing)) continue
-                if (rise > 0 && !lineCrossesGapAtLevel(takeoff, landing, landing.y)) continue
-                if (!arcPossiblyClear(takeoff, landing)) continue
-
-                val simsBefore = simulationsRun
-                val cost = simulateJump(takeoff, landing)
-                landingSims += simulationsRun - simsBefore
-                if (cost == null) continue
-                // Tiny axis-alignment epsilon: an angled jump and a straight
-                // one often land on the same integer tick, and an arbitrary
-                // tie-break zig-zags the path. Cardinal jumps also carry
-                // symmetric lateral tolerance, so prefer them whenever the
-                // tick cost truly ties.
-                val tieBreak = AXIS_TIE_EPSILON * minOf(abs(offset.dx), abs(offset.dz))
-                (found ?: HashMap<FastVector, Double>().also { found = it })[takeoff] = cost + tieBreak
-            }
+        landings[landing]?.let { return it.edges }
+        if (!isLedge(landing)) {
+            landings[landing] = EMPTY_LANDING
+            return emptyMap()
         }
 
-        // WP3.3 chain solver (v1: two colinear hops). Momentum carried
-        // through a mid landing reaches takeoffs the single-jump band never
-        // can — including 1-wide middles that only work with the policy's
-        // mid-air braking, the class the single-jump envelope refuses.
+        landingsExamined++
+        val discovery = LandingDiscovery()
+        landings[landing] = discovery
+        proposeSingleJumps(landing, discovery)
+        proposeChains(landing, discovery)
+        edgesDiscovered += discovery.edges.size
+        return discovery.edges
+    }
+
+    /**
+     * Walks the single-jump fan from the landing's cursor, admitting
+     * prefilter-clean candidates with optimistic costs until the live-edge
+     * budget is met. Offsets are ordered longest-first, so the
+     * path-shortening jumps are proposed before the budget runs out.
+     */
+    private fun proposeSingleJumps(landing: FastVector, discovery: LandingDiscovery): Set<FastVector> {
+        var added: HashSet<FastVector>? = null
+        while (discovery.edges.size < MAX_EDGES_PER_LANDING && discovery.fanCursor < SINGLE_JUMP_FAN.size) {
+            val (offset, rise) = SINGLE_JUMP_FAN[discovery.fanCursor++]
+            // Ascending jumps (+1 landing) have shorter sprint reach;
+            // descending ones keep the flat band (falling carries).
+            if (rise < 0 && offset.distance > ASCEND_MAX_DISTANCE) continue
+            val takeoff = fastVectorOf(landing.x - offset.dx, landing.y + rise, landing.z - offset.dz)
+            if (takeoff in discovery.edges) continue
+            if (!progressesFromOrigin(takeoff, landing)) continue
+            if (!MoveTable.isStance(view, takeoff.x, takeoff.y, takeoff.z)) continue
+            // Only consider real gaps: if every column under the jump line
+            // is standable at takeoff level, walking is strictly cheaper and
+            // the templates already connect it. Descending jumps additionally
+            // require the chasm to be real at landing level — where a
+            // walkable floor exists down there, the walk-off drop templates
+            // already serve.
+            if (!lineCrossesGap(takeoff, landing)) continue
+            if (rise > 0 && !lineCrossesGapAtLevel(takeoff, landing, landing.y)) continue
+            if (!arcPossiblyClear(takeoff, landing)) continue
+
+            // Tiny axis-alignment epsilon: an angled jump and a straight
+            // one often land on the same integer tick, and an arbitrary
+            // tie-break zig-zags the path. Cardinal jumps also carry
+            // symmetric lateral tolerance, so prefer them whenever the
+            // tick cost truly ties.
+            val tieBreak = AXIS_TIE_EPSILON * minOf(abs(offset.dx), abs(offset.dz))
+            registerEdge(landing, discovery, takeoff, optimisticJumpCost(offset.distance) + tieBreak)
+            (added ?: HashSet<FastVector>().also { added = it }) += takeoff
+        }
+        return added ?: emptySet()
+    }
+
+    /**
+     * WP3.3 chain proposals (v1: two colinear hops). Momentum carried
+     * through a mid landing reaches takeoffs the single-jump band never
+     * can — including 1-wide middles that only work with the policy's
+     * mid-air braking, the class the single-jump envelope refuses. Chains
+     * enter optimistically too: a chain-only connection must be visible to
+     * the search before it can be selected for lazy validation.
+     */
+    private fun proposeChains(landing: FastVector, discovery: LandingDiscovery) {
         for (offset in CANDIDATE_OFFSETS) {
             val mid = fastVectorOf(landing.x - offset.dx, landing.y, landing.z - offset.dz)
             if (!MoveTable.isStance(view, mid.x, mid.y, mid.z)) continue
             if (!lineCrossesGap(mid, landing)) continue
             val takeoff = fastVectorOf(mid.x - offset.dx, mid.y, mid.z - offset.dz)
+            if (takeoff in discovery.edges) continue
             if (!progressesFromOrigin(takeoff, landing)) continue
             if (!MoveTable.isStance(view, takeoff.x, takeoff.y, takeoff.z)) continue
             if (!lineCrossesGap(takeoff, mid)) continue
             if (!arcPossiblyClear(takeoff, mid) || !arcPossiblyClear(mid, landing)) continue
 
-            val slow = simulateChain(takeoff, mid, landing, ENTRY_SPEED_LOW)
-            val fast = simulateChain(takeoff, mid, landing, ENTRY_SPEED_HIGH)
-            if (CHAIN_DEBUG) {
-                com.lambda.Lambda.LOG.info(
-                    "[ChainDiscovery] takeoff=(${takeoff.x},${takeoff.y},${takeoff.z}) mid=(${mid.x},${mid.z}) " +
-                        "landing=(${landing.x},${landing.z}) slow=$slow fast=$fast lastFail=$lastChainFailure"
-                )
-            }
-            if (slow == null || fast == null) continue
             val tieBreak = AXIS_TIE_EPSILON * minOf(abs(offset.dx), abs(offset.dz))
-            (found ?: HashMap<FastVector, Double>().also { found = it })[takeoff] = (slow + fast) / 2.0 + tieBreak
+            registerEdge(landing, discovery, takeoff, 2.0 * optimisticJumpCost(offset.distance) + tieBreak)
             chainMids[takeoff to landing] = listOf(mid)
         }
-
-        val edges = found ?: return emptyMap()
-        edgesInto[landing] = edges
-        edges.forEach { (takeoff, cost) ->
-            edgesFrom.getOrPut(takeoff) { HashMap() }[landing] = cost
-        }
-        edgesDiscovered += edges.size
-        return edges
     }
+
+    private fun registerEdge(landing: FastVector, discovery: LandingDiscovery, takeoff: FastVector, cost: Double) {
+        discovery.edges[takeoff] = cost
+        discovery.optimistic += takeoff
+        edgesFrom.getOrPut(takeoff) { HashMap() }[landing] = cost
+    }
+
+    /**
+     * Admissible optimistic cost in ticks: horizontal displacement at the
+     * measured sustained sprint-jump rate. Entry shaping, mid-air braking,
+     * and landing settle always cost extra ticks on top, so the simulated
+     * cost can only revise upward — the LazySP requirement that makes a
+     * fully-validated path eager-equivalent.
+     */
+    private fun optimisticJumpCost(distance: Double): Double =
+        distance / MoveRates.SPRINT_JUMP_BPT
 
     /** Discovered outgoing edges of [takeoff] (never triggers discovery). */
     fun successorsFrom(takeoff: FastVector): Map<FastVector, Double> =
@@ -199,14 +239,133 @@ class ManeuverDiscovery(
      */
     fun chainWaypoints(from: FastVector, to: FastVector): List<FastVector>? = chainMids[from to to]
 
+    /** True if any edge of [path] is discovered and not yet sim-validated. */
+    fun hasOptimisticEdge(path: List<FastVector>): Boolean =
+        path.zipWithNext().any { (from, to) -> landings[to]?.optimistic?.contains(from) == true }
+
+    /**
+     * Resolves every landing that [path] selects a not-yet-validated edge
+     * into. Resolution is landing-granular on purpose: with lower-bound
+     * optimism, correcting a single edge just makes the repair pick a
+     * sibling candidate into the same landing, so edge-at-a-time validation
+     * alternated once per sibling (408 repair cycles on the bedrock course).
+     * Resolving the whole fan — validate each pending candidate, back-fill
+     * proposals for failures, all under the landing's sim budget — keeps the
+     * LazySP loop at one round per *new landing* the path visits, and the
+     * surviving edge set is the one eager validation would have kept.
+     * Returns the nodes whose edge sets changed for the planner's
+     * synchronizeAffected pass; the caller loops until the selected path
+     * carries no optimistic edge, at which point it is exactly the eager
+     * planner's path and safe to publish.
+     */
+    fun validatePathEdges(path: List<FastVector>, horizon: Double? = null): Set<FastVector> {
+        val affected = HashSet<FastVector>()
+        val origin = path.firstOrNull() ?: return affected
+        for ((takeoff, landing) in path.zipWithNext()) {
+            val discovery = landings[landing] ?: continue
+            if (takeoff !in discovery.optimistic) continue
+            // Horizon-limited passes (partial publications) only resolve
+            // maneuvers the executor could imminently reach; the frontier
+            // tail is re-routed by repair anyway, and validating it burned
+            // a full compute slice per round while the player waited.
+            if (horizon != null &&
+                hypot((takeoff.x - origin.x).toDouble(), (takeoff.z - origin.z).toDouble()) > horizon
+            ) {
+                continue
+            }
+            resolveLanding(landing, discovery, affected)
+        }
+        return affected
+    }
+
+    private fun resolveLanding(
+        landing: FastVector,
+        discovery: LandingDiscovery,
+        affected: MutableSet<FastVector>,
+    ) {
+        while (discovery.optimistic.isNotEmpty()) {
+            if (discovery.simsUsed >= MAX_SIMS_PER_LANDING) {
+                // Budget exhausted: unproven candidates leave the graph —
+                // the same admission bar eager discovery's sim budget set.
+                discovery.fanCursor = SINGLE_JUMP_FAN.size
+                for (takeoff in discovery.optimistic) {
+                    discovery.edges.remove(takeoff)
+                    removeMirror(takeoff, landing)
+                    affected += takeoff
+                }
+                discovery.optimistic.clear()
+                affected += landing
+                return
+            }
+
+            val takeoff = discovery.optimistic.first()
+            discovery.optimistic.remove(takeoff)
+            val edge = takeoff to landing
+            val chain = chainMids[edge]
+            val simsBefore = simulationsRun
+            val simulated = if (chain == null) {
+                simulateJump(takeoff, landing)
+            } else {
+                val mid = chain.single()
+                val slow = simulateChain(takeoff, mid, landing, ENTRY_SPEED_LOW)
+                val fast = simulateChain(takeoff, mid, landing, ENTRY_SPEED_HIGH)
+                if (CHAIN_DEBUG) {
+                    com.lambda.Lambda.LOG.info(
+                        "[ChainDiscovery] takeoff=(${takeoff.x},${takeoff.y},${takeoff.z}) mid=(${mid.x},${mid.z}) " +
+                            "landing=(${landing.x},${landing.z}) slow=$slow fast=$fast lastFail=$lastChainFailure"
+                    )
+                }
+                if (slow == null || fast == null) null else (slow + fast) / 2.0
+            }
+            discovery.simsUsed += simulationsRun - simsBefore
+
+            affected += takeoff
+            affected += landing
+            if (simulated == null) {
+                edgesRejected++
+                discovery.edges.remove(takeoff)
+                removeMirror(takeoff, landing)
+                chainMids.remove(edge)
+                // Restore the live-edge budget with the next fan candidates,
+                // exactly as eager validation would have kept probing. The
+                // proposals join [LandingDiscovery.optimistic] and are
+                // validated by this same loop.
+                affected += proposeSingleJumps(landing, discovery)
+            } else {
+                edgesValidated++
+                val dx = abs(landing.x - takeoff.x)
+                val dz = abs(landing.z - takeoff.z)
+                val cost = simulated + AXIS_TIE_EPSILON * minOf(dx, dz)
+                discovery.edges[takeoff] = cost
+                edgesFrom.getOrPut(takeoff) { HashMap() }[landing] = cost
+            }
+        }
+    }
+
+    private fun removeMirror(takeoff: FastVector, landing: FastVector) {
+        edgesFrom[takeoff]?.let { outgoing ->
+            outgoing.remove(landing)
+            if (outgoing.isEmpty()) edgesFrom.remove(takeoff)
+        }
+    }
+
+    /** Immutable executor-facing provenance for the (validated) edges of [path]. */
+    fun annotationsFor(path: List<FastVector>): Map<Pair<FastVector, FastVector>, TraversalHandle.EdgeAnnotation> =
+        path.zipWithNext().mapNotNull { (from, to) ->
+            if (landings[to]?.optimistic?.contains(from) == true) return@mapNotNull null
+            val chain = chainWaypoints(from, to)
+            val discovered = isDiscoveredJump(from, to)
+            if (chain == null && !discovered) null
+            else (from to to) to TraversalHandle.EdgeAnnotation(chain?.toList(), discovered)
+        }.toMap()
+
     /**
      * Drops all world-dependent discovery state. Used for chunk transitions,
      * where the conservative unknown/known boundary can change an arbitrary
      * part of a cached maneuver's swept region.
      */
     fun clearWorldCache() {
-        examinedLandings.clear()
-        edgesInto.clear()
+        landings.clear()
         edgesFrom.clear()
         chainMids.clear()
     }
@@ -218,22 +377,24 @@ class ManeuverDiscovery(
      * planner's synchronizeAffected pass.
      */
     fun invalidateAround(x: Int, y: Int, z: Int): Set<FastVector> {
-        if (edgesInto.isEmpty() && examinedLandings.isEmpty()) return emptySet()
+        if (landings.isEmpty()) return emptySet()
         val affected = HashSet<FastVector>()
-        val reopened = examinedLandings.filter { landing ->
+        val reopened = landings.keys.filter { landing ->
             abs(landing.x - x) <= INVALIDATION_RADIUS_XZ &&
                 abs(landing.z - z) <= INVALIDATION_RADIUS_XZ &&
                 abs(landing.y - y) <= INVALIDATION_RADIUS_Y
         }
         for (landing in reopened) {
-            examinedLandings.remove(landing)
-            edgesInto.remove(landing)?.let { edges ->
-                affected += landing
-                edges.keys.forEach { takeoff ->
-                    edgesFrom[takeoff]?.remove(landing)
-                    chainMids.remove(takeoff to landing)
-                    affected += takeoff
+            val discovery = landings.remove(landing) ?: continue
+            if (discovery.edges.isEmpty()) continue
+            affected += landing
+            discovery.edges.keys.forEach { takeoff ->
+                edgesFrom[takeoff]?.let { outgoing ->
+                    outgoing.remove(landing)
+                    if (outgoing.isEmpty()) edgesFrom.remove(takeoff)
                 }
+                chainMids.remove(takeoff to landing)
+                affected += takeoff
             }
         }
         return affected
@@ -334,9 +495,9 @@ class ManeuverDiscovery(
     /**
      * One tick-accurate simulation (T7 first-collision semantics): entry at
      * [entrySpeed] along the jump line, jump on the first tick, hold
-     * forward. Runs against the live client world — for a static planning
-     * window this matches the session view; a divergence shows up as an
-     * executor deviation and repairs like any other.
+     * forward. Runs against the session's snapshot view — worker-legal, and
+     * consistent with the planning world by construction; live divergence
+     * shows up at the executor's launch gate and repairs like any other.
      */
     private fun simulateEntry(
         takeoff: FastVector,
@@ -357,16 +518,18 @@ class ManeuverDiscovery(
 
         simulationsRun++
         val simulator = MovementSimulator(
-            player = player,
-            initialState = MovementSimulationState.at(
-                player = player,
+            profile = profile,
+            environment = environment,
+            initialState = MovementSimulationState.synthetic(
+                profile = profile,
                 position = from,
                 rotation = rotation,
                 velocity = direction.multiply(entrySpeed),
                 onGround = true,
                 isSprinting = true,
             ),
-        ).also { it.skipEntityCollisions = true }
+            skipEntityCollisions = true,
+        )
 
         for (tick in 0 until MAX_SIMULATION_TICKS) {
             // The executed flight brakes near the landing (ManeuverPolicy)
@@ -434,16 +597,18 @@ class ManeuverDiscovery(
 
         simulationsRun++
         val simulator = MovementSimulator(
-            player = player,
-            initialState = MovementSimulationState.at(
-                player = player,
+            profile = profile,
+            environment = environment,
+            initialState = MovementSimulationState.synthetic(
+                profile = profile,
                 position = from,
                 rotation = rotation,
                 velocity = direction.multiply(entrySpeed),
                 onGround = true,
                 isSprinting = true,
             ),
-        ).also { it.skipEntityCollisions = true }
+            skipEntityCollisions = true,
+        )
 
         var targetIndex = 0
         for (tick in 0 until ManeuverPolicy.MAX_CHAIN_TICKS) {
@@ -518,6 +683,9 @@ class ManeuverDiscovery(
     }
 
     private companion object {
+        /** Shared empty state for non-ledge landings (memoization marker). */
+        val EMPTY_LANDING = LandingDiscovery()
+
         /** Chain-candidate outcome logging; keep off outside investigations. */
         const val CHAIN_DEBUG = false
 
@@ -552,11 +720,14 @@ class ManeuverDiscovery(
         // Origin-progress slack for candidate pruning (see progressesFromOrigin).
         const val PROGRESS_SLACK_BLOCKS = 1.0
 
-        // Per-landing discovery budget (see predecessorsInto). Sized so a
-        // landing validates ~6 plausible candidates (3–4 sims each) before
-        // moving on — T7 one-sim-per-pattern caching is the planned lever
-        // if initial-plan latency needs to shrink further.
+        // Per-landing budget of LIVE (validated + pending) edges. Sized so
+        // a landing keeps ~6 plausible candidates; validation failures
+        // back-fill from the fan cursor, reproducing eager admission.
         const val MAX_EDGES_PER_LANDING = 6
+
+        // Per-landing simulation budget for resolution — the same admission
+        // bar the eager validator's budget set; candidates beyond it never
+        // enter the graph.
         const val MAX_SIMS_PER_LANDING = 24
 
         // Sprint-jump reach beyond the template gapJump (2 blocks): 2.2–4.3
@@ -565,13 +736,18 @@ class ManeuverDiscovery(
         // knight's-move class (hypot ≈ 2.24) no 45°-quantized template can
         // represent; (2,0) stays template territory. Longest first: with a
         // per-landing budget, the jumps that shorten the path the most get
-        // validated before the budget runs out.
+        // proposed before the budget runs out.
         val CANDIDATE_OFFSETS: List<Offset> = buildList {
             for (dx in -4..4) for (dz in -4..4) {
                 val distance = hypot(dx.toDouble(), dz.toDouble())
                 if (distance in 2.2..4.3) add(Offset(dx, dz))
             }
         }.sortedByDescending { it.distance }
+
+        /** The single-jump proposal fan: offsets × takeoff rises, longest first. */
+        val SINGLE_JUMP_FAN: List<Pair<Offset, Int>> = buildList {
+            for (offset in CANDIDATE_OFFSETS) for (rise in TAKEOFF_RISES) add(offset to rise)
+        }
 
         // A two-hop chain starts at landing - 2*offset. Include one extra
         // block for the player footprint/collision neighborhood. Derive this

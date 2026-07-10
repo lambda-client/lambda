@@ -59,6 +59,10 @@ data class TraversalScenario(
     val probeNode: FastVector? = null,
     /** Scheduled world edits: (tick, server command) executed mid-traversal. */
     val mutations: List<Pair<Int, String>> = emptyList(),
+    /** Gate: worst ticks from a mutation to the first published plan revision. */
+    val maxReplanLatencyTicks: Int? = null,
+    /** One deterministic velocity impulse applied on the first airborne tick. */
+    val firstAirborneVelocityImpulse: Vec3d? = null,
     /**
      * Whether a miss fails the suite. H6 *baseline* scenarios run ungated:
      * they measure the current executor's maneuver reliability (the number
@@ -144,6 +148,8 @@ object TraversalScenarios {
         allowJump: Boolean = false,
         probeNode: FastVector? = null,
         mutations: List<Pair<Int, String>> = emptyList(),
+        maxReplanLatencyTicks: Int? = null,
+        firstAirborneVelocityImpulse: Vec3d? = null,
         gated: Boolean = true,
         serverFixture: ((MinecraftServer) -> Unit)? = null,
         maxFirstFollowingTick: Int? = null,
@@ -166,6 +172,8 @@ object TraversalScenarios {
         allowJump = allowJump,
         probeNode = probeNode,
         mutations = mutations,
+        maxReplanLatencyTicks = maxReplanLatencyTicks,
+        firstAirborneVelocityImpulse = firstAirborneVelocityImpulse,
         gated = gated,
         maxFirstFollowingTick = maxFirstFollowingTick,
         maxPlanningPauseTicks = maxPlanningPauseTicks,
@@ -344,6 +352,10 @@ object TraversalScenarios {
             goal = fastVectorOf(12, 64, 0),
             timeoutTicks = 600,
             mutations = listOf(15 to "/fill 7 64 -5 7 66 5 minecraft:stone"),
+            // The reroute exists within one worker slice; anything slower is
+            // an event-delivery or publication regression (the mutable-pos
+            // capture bug hid behind the 40-tick stuck fallback).
+            maxReplanLatencyTicks = 5,
         ),
 
         scenario(
@@ -355,6 +367,7 @@ object TraversalScenarios {
             goal = fastVectorOf(8, 65, 0),
             timeoutTicks = 600,
             mutations = listOf(8 to "/fill 0 66 -3 3 66 3 minecraft:stone"),
+            maxReplanLatencyTicks = 5,
         ),
 
         // ------------------------------------------------------------------
@@ -476,6 +489,21 @@ object TraversalScenarios {
             allowJump = true,
             timeoutTicks = 300,
             gated = false,
+        ),
+
+        scenario(
+            "f3-gap-angled-disturbed",
+            "Air-control regression: the oblique discovered jump receives a deterministic " +
+                "sideways velocity impulse immediately after takeoff. Receding-horizon input " +
+                "must correct the flight and still land on the narrow target pad.",
+            "/fill 0 65 -1 2 65 1 minecraft:stone",
+            "/fill 5 65 1 6 65 2 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(6, 66, 2),
+            allowJump = true,
+            timeoutTicks = 300,
+            firstAirborneVelocityImpulse = Vec3d(0.0, 0.0, -0.12),
+            minJumpLandingSuccessRate = 1.0,
         ),
 
         scenario(

@@ -84,8 +84,9 @@ object LambdaTest : FabricClientGameTest {
         server.runCommand("/tp Steve ${start.x} ${start.y} ${start.z} 0 0")
         waitTicks(5)
 
+        lateinit var handle: TraversalHandle
         runOnClient<IllegalStateException> {
-            val handle = with(PathfinderManager) {
+            handle = with(PathfinderManager) {
                 runSafeAutomated {
                     requestTraversal(
                         goal = TraversalGoal.Block(goal),
@@ -94,9 +95,12 @@ object LambdaTest : FabricClientGameTest {
                 }
             } ?: throw IllegalStateException("Could not request pathfinder traversal in a safe automated context")
 
-            check(handle.status == TraversalHandle.Status.Ready) {
-                "Expected ready path, got ${handle.status}: ${handle.debugString()}"
-            }
+        }
+
+        waitForSafe("async pathfinder publishes ready path", timeoutTicks = 80) {
+            handle.status == TraversalHandle.Status.Ready && handle.path.size >= 2
+        }
+        runOnClient<IllegalStateException> {
             check(handle.path.size >= 2) {
                 "Expected path with at least two nodes: ${handle.debugString()}"
             }
