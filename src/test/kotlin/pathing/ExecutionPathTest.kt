@@ -20,6 +20,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class ExecutionPathTest {
     @Test
@@ -112,6 +113,43 @@ class ExecutionPathTest {
         assertNotNull(selection)
         assertEquals(0, selection.index)
         assertEquals(RecoveryMode.KeptCurrent, selection.recoveryMode)
+    }
+
+    @Test
+    fun `global relocalization finds progress beyond the bounded current window`() {
+        val path = ExecutionPath.fromNodes(
+            traversalId = 2,
+            nodes = (0..12).map { fastVectorOf(it, 0, 0) },
+        )
+        val position = Vec3d(10.75, 0.0, 0.5)
+
+        val staleWindow = path.locateSegment(
+            position = position,
+            currentIndex = 0,
+            searchBehind = 2,
+            searchAhead = 6,
+            corridorRadius = 0.75,
+            verticalTolerance = 0.6,
+            relocalizeDistance = 1.0,
+            backtrackAllowance = 0.6,
+            overshootAllowance = 0.7,
+        )
+        val global = path.locateSegment(
+            position = position,
+            currentIndex = null,
+            searchBehind = 2,
+            searchAhead = 6,
+            corridorRadius = 0.75,
+            verticalTolerance = 0.6,
+            relocalizeDistance = 1.0,
+            backtrackAllowance = 0.6,
+            overshootAllowance = 0.7,
+        )
+
+        assertNull(staleWindow)
+        assertNotNull(global)
+        assertEquals(10, global.index)
+        assertEquals(RecoveryMode.Relocalized, global.recoveryMode)
     }
 
     @Test

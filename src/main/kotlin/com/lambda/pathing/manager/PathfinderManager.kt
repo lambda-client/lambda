@@ -70,8 +70,14 @@ object PathfinderManager : Loadable,
 
         listen<WorldEvent.ChunkEvent.Load>(alwaysListen = true) { event ->
             activeSession?.let { session ->
-                session.view.evictChunk(event.chunk.pos)
-                session.chunkTopologyDirty = true
+                val evictedSections = session.view.evictChunk(event.chunk.pos)
+                if (evictedSections > 0 && session.chunkTransitionAffectsActiveSearch(event.chunk.pos)) {
+                    session.chunkTopologyDirty = true
+                    PlannerMetrics.sink.chunkVisibility(
+                        session.handle.id, event.chunk.pos.x, event.chunk.pos.z,
+                        loaded = true, evictedSections = evictedSections,
+                    )
+                }
             }
         }
 
@@ -79,8 +85,14 @@ object PathfinderManager : Loadable,
             // Unloaded terrain becomes conservative unknown. Keeping observed
             // terrain across unloads is WP7 (lifelong memory) work.
             activeSession?.let { session ->
-                session.view.evictChunk(event.chunk.pos)
-                session.chunkTopologyDirty = true
+                val evictedSections = session.view.evictChunk(event.chunk.pos)
+                if (evictedSections > 0 && session.chunkTransitionAffectsActiveSearch(event.chunk.pos)) {
+                    session.chunkTopologyDirty = true
+                    PlannerMetrics.sink.chunkVisibility(
+                        session.handle.id, event.chunk.pos.x, event.chunk.pos.z,
+                        loaded = false, evictedSections = evictedSections,
+                    )
+                }
             }
         }
 
@@ -127,8 +139,9 @@ object PathfinderManager : Loadable,
         // expands a ledge node. Provider-level merging is T2's discovery-
         // monotone model — edges only ever appear, through the same lazy
         // machinery as template edges.
+        val initialStart = currentStablePlannerNode(view) ?: player.blockPos.toFastVec()
         val discovery = if (config.allowJump && config.allowManeuverDiscovery) {
-            ManeuverDiscovery(player, view)
+            ManeuverDiscovery(player, view, preferredOrigin = initialStart)
         } else {
             null
         }
@@ -159,7 +172,7 @@ object PathfinderManager : Loadable,
 
         val planner = DStarLite(
             graph = graph,
-            start = currentStablePlannerNode(view) ?: player.blockPos.toFastVec(),
+            start = initialStart,
             goal = goal.targetNode,
             heuristic = { a, b -> movementHeuristic(moves.caps, a, b) },
             // Stable tie-break between equal-cost successors so the coarse path
@@ -170,16 +183,20 @@ object PathfinderManager : Loadable,
 
         activeSession = ActiveSession(handle, graph, planner, edgePenalties, view, moves, discovery)
         PlannerMetrics.sink.planStart(handle.id, planner.start, goal.targetNode)
-        computeActivePath()
+        computeActivePath(ComputeCause.Initial)
         return handle
     }
 
     fun AutomatedSafeContext.refreshActiveTraversal(): TraversalHandle? {
         val session = activeSession ?: return null
         if (session.handle.status.isTerminal) return session.handle
-        val stableNode = currentStablePlannerNode() ?: return session.handle
+        // Lost recovery can end with the player's footprint supported by a
+        // neighbouring block while player.blockPos itself is over the hole.
+        // Anchor to that actually-overlapped stance instead of repeatedly
+        // "replanning" from no start node and leaving the executor Lost.
+        val stableNode = currentStablePlannerNode(allowFootprintRecovery = true) ?: return session.handle
         session.planner.updateStart(stableNode)
-        computeActivePath()
+        computeActivePath(ComputeCause.ExplicitRefresh)
         return session.handle
     }
 
@@ -198,7 +215,7 @@ object PathfinderManager : Loadable,
             session.lastCoarsePath = null
             session.lastRefinedPath = null
             currentStablePlannerNode(session.view)?.let { session.planner.updateStart(it) }
-            computeActivePath()
+            computeActivePath(ComputeCause.ChunkTopology)
             return session.handle
         }
 
@@ -214,14 +231,16 @@ object PathfinderManager : Loadable,
             // path. The player then cannot move, so waiting for a start-node
             // change deadlocks the traversal in Partial forever. Continue one
             // budget slice per player tick until D* Lite becomes consistent.
-            if (session.handle.status == TraversalHandle.Status.Partial) computeActivePath()
+            if (session.handle.status == TraversalHandle.Status.Partial) {
+                computeActivePath(ComputeCause.BudgetContinuation)
+            }
             return session.handle
         }
 
         val refined = session.lastRefinedPath
         if (refined.isNullOrEmpty()) {
             planner.updateStart(playerBlock)
-            computeActivePath()
+            computeActivePath(ComputeCause.StartAdvanceNoRefinedPath)
             return session.handle
         }
 
@@ -237,7 +256,7 @@ object PathfinderManager : Loadable,
         }
 
         planner.updateStart(refined[searchFrom + playerIndexInTail])
-        computeActivePath()
+        computeActivePath(ComputeCause.StartAdvance)
         return session.handle
     }
 
@@ -286,7 +305,7 @@ object PathfinderManager : Loadable,
         }
 
         currentStablePlannerNode()?.let { session.planner.updateStart(it) }
-        computeActivePath()
+        computeActivePath(ComputeCause.WorldChange)
         return session.handle
     }
 
@@ -336,12 +355,13 @@ object PathfinderManager : Loadable,
         )
     }
 
-    private fun AutomatedSafeContext.computeActivePath() {
+    private fun AutomatedSafeContext.computeActivePath(cause: ComputeCause) {
         val session = activeSession ?: return
         val handle = session.handle
         if (handle.status == TraversalHandle.Status.Cancelled) return
 
         handle.status = TraversalHandle.Status.Planning
+        PlannerMetrics.sink.computeStart(handle.id, cause.metricName, session.planner.start, session.graph.size)
         val computeStartNanos = System.nanoTime()
         val result = session.planner.computeShortestPath(handle.config.computeBudget.toDuration(DurationUnit.MILLISECONDS))
         val computeWallMicros = (System.nanoTime() - computeStartNanos) / 1_000
@@ -425,11 +445,14 @@ object PathfinderManager : Loadable,
 
     private fun AutomatedSafeContext.currentStablePlannerNode(
         view: SnapshotWorldView? = activeSession?.view,
+        allowFootprintRecovery: Boolean = false,
     ): FastVector? {
         if (!player.isOnGround) return null
         view ?: return null
         val blockPos = player.blockPos
-        return if (MoveTable.isStance(view, blockPos.x, blockPos.y, blockPos.z)) blockPos.toFastVec() else null
+        if (MoveTable.isStance(view, blockPos.x, blockPos.y, blockPos.z)) return blockPos.toFastVec()
+        if (!allowFootprintRecovery) return null
+        return footprintSupportedStance(view, player.pos, blockPos)
     }
 
     /**
@@ -462,6 +485,40 @@ object PathfinderManager : Loadable,
         var computeCount: Int = 0,
         var chunkTopologyDirty: Boolean = false,
     )
+
+    /**
+     * Chunk traffic at the search fringe must not stop an already executable
+     * route. A transition is immediately relevant only when it intersects the
+     * current refined route, or (before any route exists) the forward corridor
+     * between start and goal. Other evicted snapshots will be copied fresh if
+     * a later search actually reaches them.
+     */
+    private fun ActiveSession.chunkTransitionAffectsActiveSearch(chunk: net.minecraft.util.math.ChunkPos): Boolean {
+        val path = lastRefinedPath.orEmpty()
+        if (path.isNotEmpty()) {
+            if (path.any { (it.x shr 4) == chunk.x && (it.z shr 4) == chunk.z }) return true
+            val minX = chunk.startX
+            val maxX = chunk.endX
+            val minZ = chunk.startZ
+            val maxZ = chunk.endZ
+            return path.zipWithNext().any { (a, b) ->
+                maxOf(a.x, b.x) >= minX && minOf(a.x, b.x) <= maxX &&
+                    maxOf(a.z, b.z) >= minZ && minOf(a.z, b.z) <= maxZ
+            }
+        }
+
+        val sx = planner.start.x shr 4
+        val sz = planner.start.z shr 4
+        val gx = planner.goal.x shr 4
+        val gz = planner.goal.z shr 4
+        return if (kotlin.math.abs(gx - sx) >= kotlin.math.abs(gz - sz)) {
+            chunk.x in minOf(sx, gx)..maxOf(sx, gx) &&
+                chunk.z in (minOf(sz, gz) - 1)..(maxOf(sz, gz) + 1)
+        } else {
+            chunk.z in minOf(sz, gz)..maxOf(sz, gz) &&
+                chunk.x in (minOf(sx, gx) - 1)..(maxOf(sx, gx) + 1)
+        }
+    }
 
     private fun logRefinementSummaryIfChanged(session: ActiveSession) {
         val handle = session.handle
@@ -531,12 +588,22 @@ object PathfinderManager : Loadable,
         session.lastRefinedPath = null
         session.planner.synchronizeAffected(setOf(from, to))
         currentStablePlannerNode()?.let { session.planner.updateStart(it) }
-        computeActivePath()
+        computeActivePath(ComputeCause.EdgeObstructed)
         return true
     }
 
     private const val OBSTRUCTION_PENALTY_FACTOR = 8.0
     private const val MAX_OBSTRUCTION_PENALTY = 4096.0
+    private enum class ComputeCause(val metricName: String) {
+        Initial("initial"),
+        BudgetContinuation("budget_continuation"),
+        StartAdvance("start_advance"),
+        StartAdvanceNoRefinedPath("start_advance_no_refined_path"),
+        ChunkTopology("chunk_topology"),
+        WorldChange("world_change"),
+        EdgeObstructed("edge_obstructed"),
+        ExplicitRefresh("explicit_refresh"),
+    }
 
     /**
      * Anisotropic admissible heuristic for the cost of traveling a -> b.
@@ -588,3 +655,36 @@ object PathfinderManager : Loadable,
 
 /** Exact identity of one directed planner edge. */
 internal data class EdgeKey(val from: FastVector, val to: FastVector)
+
+/**
+ * Finds a same-level stance whose block top overlaps the player's 0.6-wide
+ * footprint. This is intentionally recovery-only: normal D* start advance
+ * remains exact, while a failed jump landing on a block edge can still
+ * acquire a valid graph node and route out.
+ */
+internal fun footprintSupportedStance(
+    view: com.lambda.worldview.WorldView,
+    playerPosition: net.minecraft.util.math.Vec3d,
+    playerBlock: BlockPos,
+): FastVector? {
+    var best: FastVector? = null
+    var bestDistanceSq = Double.POSITIVE_INFINITY
+    for (x in playerBlock.x - 1..playerBlock.x + 1) {
+        val dx = x + 0.5 - playerPosition.x
+        if (kotlin.math.abs(dx) > PLAYER_FOOTPRINT_SUPPORT_REACH) continue
+        for (z in playerBlock.z - 1..playerBlock.z + 1) {
+            val dz = z + 0.5 - playerPosition.z
+            if (kotlin.math.abs(dz) > PLAYER_FOOTPRINT_SUPPORT_REACH) continue
+            if (!MoveTable.isStance(view, x, playerBlock.y, z)) continue
+            val distanceSq = dx * dx + dz * dz
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq
+                best = com.lambda.util.world.fastVectorOf(x, playerBlock.y, z)
+            }
+        }
+    }
+    return best
+}
+
+// Half a block top + half the player's 0.6-wide footprint, plus epsilon.
+private const val PLAYER_FOOTPRINT_SUPPORT_REACH = 0.801

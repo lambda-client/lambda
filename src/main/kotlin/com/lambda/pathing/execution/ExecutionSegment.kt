@@ -266,13 +266,6 @@ data class ChainSegment(
         return horizontalDistanceToEnd <= reachDistance && abs(position.y - endPose.position.y) <= 0.2
     }
 
-    /** The next landing to steer at from [progress] blocks along the chain. */
-    fun nextTarget(progress: Double): Vec3d {
-        for (waypoint in waypoints) {
-            if (projectedDistance(waypoint) > progress + 0.4) return waypoint
-        }
-        return endPose.position
-    }
 }
 
 /**

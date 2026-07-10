@@ -36,6 +36,8 @@ class BenchPlannerMetrics : PlannerMetrics {
     private val repairWallMicros = ArrayList<Long>()
     private val repairExpansions = ArrayList<Long>()
     private val syncWallMicros = ArrayList<Long>()
+    private val computeCauses = HashMap<String, Int>()
+    private var chunkVisibilityRebuilds = 0
 
     var initialWallMicros: Long = -1
         private set
@@ -66,6 +68,31 @@ class BenchPlannerMetrics : PlannerMetrics {
     @Synchronized
     override fun planStart(traversalId: Int, start: FastVector, goal: FastVector) =
         emit("plan_start", "\"id\":$traversalId,\"start\":\"${start.short()}\",\"goal\":\"${goal.short()}\"")
+
+    @Synchronized
+    override fun computeStart(traversalId: Int, cause: String, start: FastVector, graphSize: Int) {
+        computeCauses[cause] = (computeCauses[cause] ?: 0) + 1
+        emit(
+            "compute_start",
+            "\"id\":$traversalId,\"cause\":\"$cause\",\"start\":\"${start.short()}\",\"graph_size\":$graphSize",
+        )
+    }
+
+    @Synchronized
+    override fun chunkVisibility(
+        traversalId: Int,
+        chunkX: Int,
+        chunkZ: Int,
+        loaded: Boolean,
+        evictedSections: Int,
+    ) {
+        chunkVisibilityRebuilds++
+        emit(
+            "chunk_visibility",
+            "\"id\":$traversalId,\"chunk_x\":$chunkX,\"chunk_z\":$chunkZ," +
+                "\"loaded\":$loaded,\"evicted_sections\":$evictedSections",
+        )
+    }
 
     @Synchronized
     override fun initialPath(
@@ -170,6 +197,8 @@ class BenchPlannerMetrics : PlannerMetrics {
         syncWallUsP50 = percentile(syncWallMicros, 50.0),
         syncWallUsMax = syncWallMicros.maxOrNull() ?: 0,
         edgeObstructedReports = edgeObstructedReports,
+        computeCauses = HashMap(computeCauses),
+        chunkVisibilityRebuilds = chunkVisibilityRebuilds,
     )
 
     /** Planner-side distribution summary for one scenario run. */
@@ -187,6 +216,8 @@ class BenchPlannerMetrics : PlannerMetrics {
         val syncWallUsP50: Long,
         val syncWallUsMax: Long,
         val edgeObstructedReports: Int,
+        val computeCauses: Map<String, Int>,
+        val chunkVisibilityRebuilds: Int,
     ) {
         fun toJsonFields(): String = buildString {
             append("\"initialWallUs\":").append(initialWallMicros)
@@ -202,6 +233,10 @@ class BenchPlannerMetrics : PlannerMetrics {
             append(",\"syncWallUsP50\":").append(syncWallUsP50)
             append(",\"syncWallUsMax\":").append(syncWallUsMax)
             append(",\"edgeObstructedReports\":").append(edgeObstructedReports)
+            append(",\"computeCauses\":{")
+            append(computeCauses.entries.sortedBy { it.key }.joinToString(",") { "\"${it.key}\":${it.value}" })
+            append('}')
+            append(",\"chunkVisibilityRebuilds\":").append(chunkVisibilityRebuilds)
         }
 
         companion object {
@@ -219,6 +254,8 @@ class BenchPlannerMetrics : PlannerMetrics {
                 syncWallUsP50 = 0,
                 syncWallUsMax = 0,
                 edgeObstructedReports = 0,
+                computeCauses = emptyMap(),
+                chunkVisibilityRebuilds = 0,
             )
         }
     }

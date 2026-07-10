@@ -61,6 +61,14 @@ import kotlin.math.max
 class ManeuverDiscovery(
     private val player: ClientPlayerEntity,
     private val view: WorldView,
+    /**
+     * Discovered maneuvers are shortcuts, not the completeness substrate.
+     * Only propose takeoffs that make net progress from this traversal's
+     * origin; walking templates remain free to detour in every direction.
+     * This avoids simulating the half of the jump fan that points back behind
+     * the agent during the expensive initial backward search.
+     */
+    private val preferredOrigin: FastVector? = null,
 ) {
     /** Landings already examined for this world state. */
     private val examinedLandings = HashSet<FastVector>()
@@ -95,6 +103,7 @@ class ManeuverDiscovery(
         var found: HashMap<FastVector, Double>? = null
         for (offset in CANDIDATE_OFFSETS) {
             val takeoff = fastVectorOf(landing.x - offset.dx, landing.y, landing.z - offset.dz)
+            if (!progressesFromOrigin(takeoff, landing)) continue
             if (!MoveTable.isStance(view, takeoff.x, takeoff.y, takeoff.z)) continue
             // Only simulate real gaps: if every column under the jump line is
             // standable, walking is strictly cheaper and the templates
@@ -119,6 +128,7 @@ class ManeuverDiscovery(
             if (!MoveTable.isStance(view, mid.x, mid.y, mid.z)) continue
             if (!lineCrossesGap(mid, landing)) continue
             val takeoff = fastVectorOf(mid.x - offset.dx, mid.y, mid.z - offset.dz)
+            if (!progressesFromOrigin(takeoff, landing)) continue
             if (!MoveTable.isStance(view, takeoff.x, takeoff.y, takeoff.z)) continue
             if (!lineCrossesGap(takeoff, mid)) continue
 
@@ -368,11 +378,15 @@ class ManeuverDiscovery(
             if (!current.onGround || tick <= 1) continue
 
             val feet = current.position
-            val onCurrent = hypot(targets[targetIndex].x - feet.x, targets[targetIndex].z - feet.z) <=
+            val onCurrent = abs(targets[targetIndex].y - feet.y) <= WAYPOINT_VERTICAL_TOLERANCE &&
+                hypot(targets[targetIndex].x - feet.x, targets[targetIndex].z - feet.z) <=
                 ManeuverPolicy.WAYPOINT_TOLERANCE
-            val onPrevious = targetIndex > 0 && hypot(targets[targetIndex - 1].x - feet.x, targets[targetIndex - 1].z - feet.z) <=
+            val onPrevious = targetIndex > 0 &&
+                abs(targets[targetIndex - 1].y - feet.y) <= WAYPOINT_VERTICAL_TOLERANCE &&
+                hypot(targets[targetIndex - 1].x - feet.x, targets[targetIndex - 1].z - feet.z) <=
                 ManeuverPolicy.WAYPOINT_TOLERANCE
-            val onTakeoff = hypot(from.x - feet.x, from.z - feet.z) <= ManeuverPolicy.WAYPOINT_TOLERANCE
+            val onTakeoff = abs(from.y - feet.y) <= WAYPOINT_VERTICAL_TOLERANCE &&
+                hypot(from.x - feet.x, from.z - feet.z) <= ManeuverPolicy.WAYPOINT_TOLERANCE
             when {
                 onCurrent && targetIndex == targets.lastIndex -> return (tick + 1).toDouble()
                 onCurrent -> targetIndex++
@@ -389,18 +403,31 @@ class ManeuverDiscovery(
 
     private data class Offset(val dx: Int, val dz: Int)
 
+    private fun progressesFromOrigin(takeoff: FastVector, landing: FastVector): Boolean {
+        val origin = preferredOrigin ?: return true
+        val takeoffDx = (takeoff.x - origin.x).toLong()
+        val takeoffDz = (takeoff.z - origin.z).toLong()
+        val landingDx = (landing.x - origin.x).toLong()
+        val landingDz = (landing.z - origin.z).toLong()
+        return takeoffDx * takeoffDx + takeoffDz * takeoffDz <
+            landingDx * landingDx + landingDz * landingDz
+    }
+
     private companion object {
         /** Chain-candidate outcome logging; keep off outside investigations. */
         const val CHAIN_DEBUG = false
 
         const val MAX_SIMULATION_TICKS = 20
+        const val WAYPOINT_VERTICAL_TOLERANCE = 0.20
         const val INVALIDATION_RADIUS_Y = 3
         const val AXIS_TIE_EPSILON = 0.05
 
-        // Entry-speed envelope endpoints: the sprint band the executor
-        // realistically delivers at a takeoff (short approach after spawn or
-        // a landing → ~0.22; open sprint or post-landing carry → ~0.30).
-        const val ENTRY_SPEED_LOW = 0.22
+        // Entry-speed envelope endpoints. Field telemetry on jagged bedrock
+        // shows turns and fresh landings frequently deliver only ~0.12–0.15
+        // blocks/tick at takeoff; validating from 0.22 admitted jumps the
+        // executor could not reproduce. A maneuver now has to work from the
+        // actual low-entry regime as well as full sprint carry.
+        const val ENTRY_SPEED_LOW = 0.12
         const val ENTRY_SPEED_HIGH = 0.30
 
         // Sprint-jump reach beyond the template gapJump (2 blocks): 2.3–4.3

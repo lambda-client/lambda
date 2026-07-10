@@ -46,6 +46,7 @@ import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import net.minecraft.client.input.Input
 import net.minecraft.util.math.Vec3d
+import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 
@@ -55,6 +56,8 @@ object PathfinderExecutor : Loadable {
     private var activeTraversalId: Int? = null
     private var activeSourcePath: List<FastVector>? = null
     private var currentSegmentIndex = 0
+    /** A replaced refined-path object needs one full-path localization pass. */
+    private var pathNeedsRelocalization = false
     private var currentCommand: FollowCommand? = null
     private var debugState = PathExecutorDebugState()
     private val debugSamples = ArrayDeque<PathExecutorDebugSample>()
@@ -72,10 +75,14 @@ object PathfinderExecutor : Loadable {
     private var jumpRetryAllowedTick = Int.MIN_VALUE
     private var lastJumpCommandGate = ""
     private var lastJumpInputGate = ""
+    private var lastIssuedJumpTarget: Vec3d? = null
     private var stuckTraversalId = Int.MIN_VALUE
     private var stuckSegmentIndex = Int.MIN_VALUE
     private var stuckBestRemaining = Double.MAX_VALUE
     private var stuckTicks = 0
+    private var chainTraversalId = Int.MIN_VALUE
+    private var chainSegmentIndex = Int.MIN_VALUE
+    private var chainTargetIndex = 0
 
     val state: PathExecutorDebugState
         get() = debugState
@@ -121,6 +128,7 @@ object PathfinderExecutor : Loadable {
         val steering = projectWorldDeltaToLocalInput(desiredDelta, basisYaw)
         val sprint = command.sprint && steering.forward > 0.05
         val jump = shouldIssueJumpInput(command)
+        lastIssuedJumpTarget = if (jump) command.jumpTarget else null
 
         input.update(
             forward = steering.forward,
@@ -179,7 +187,6 @@ object PathfinderExecutor : Loadable {
         }
 
         val playerPos = player.pos
-        val previousIndex = currentSegmentIndex
 
         // A jump arc tops out ~1.25 blocks above the segment line — well past
         // the grounded vertical tolerance. Without airborne slack the executor
@@ -193,13 +200,16 @@ object PathfinderExecutor : Loadable {
             max(movementConfig.verticalTolerance, AIRBORNE_VERTICAL_TOLERANCE)
         }
 
-        while (currentSegmentIndex < path.lastSegmentIndex && path.segments[currentSegmentIndex].hasReached(playerPos, movementConfig.reachDistance, trackingVerticalTolerance)) {
-            currentSegmentIndex++
+        if (!pathNeedsRelocalization) {
+            while (currentSegmentIndex < path.lastSegmentIndex && path.segments[currentSegmentIndex].hasReached(playerPos, movementConfig.reachDistance, trackingVerticalTolerance)) {
+                currentSegmentIndex++
+            }
         }
 
+        val localizationIndex = currentSegmentIndex.takeUnless { pathNeedsRelocalization }
         val selection = path.locateSegment(
             position = playerPos,
-            currentIndex = currentSegmentIndex,
+            currentIndex = localizationIndex,
             searchBehind = movementConfig.searchBehindSegments,
             searchAhead = movementConfig.searchAheadSegments,
             corridorRadius = movementConfig.corridorRadius,
@@ -215,8 +225,9 @@ object PathfinderExecutor : Loadable {
         }
 
         lostTicks = 0
-        applyRecovery(selection, previousIndex)
+        applyRecovery(selection, localizationIndex)
         currentSegmentIndex = selection.index
+        pathNeedsRelocalization = false
 
         val segment = selection.segment
         val projectedPoint = segment.closestPoint(playerPos)
@@ -299,6 +310,7 @@ object PathfinderExecutor : Loadable {
         // discovered long jumps were validated AT sprint speed and require
         // it — a walk-speed launch lands them in the hole.
         val chainSegment = segment as? ChainSegment
+        if (chainSegment == null) resetChainState()
         val longGapActive = chainSegment == null && isLongGapSegment(segment)
         val sprint = movementConfig.allowSprint && (
             chainSegment != null || longGapActive || (
@@ -307,10 +319,30 @@ object PathfinderExecutor : Loadable {
                     !isGapJumpSegment(segment)
                 )
             )
+        // Keep the same chain waypoint until it has actually been touched on
+        // the ground. Selecting by projected progress switched to the next
+        // pad while still flying over the current one, re-applied forward
+        // input, and produced exactly the observed overshoot/fall/replan.
+        // The discovery simulator is stateful in the same way, so this also
+        // restores the validator/executor single-policy invariant.
+        val chainTarget = chainSegment?.let {
+            activeTraversalId?.let { traversalId -> activeChainTarget(traversalId, it, playerPos) }
+                ?: it.waypoints.firstOrNull()
+                ?: it.endPose.position
+        }
         val needsChainJump = chainSegment != null && needsChainJump(chainSegment, playerPos)
-        val needsStepUpJump = chainSegment == null && needsStepUpJump(path, currentSegmentIndex, segment, playerPos)
+        val stepUpTarget = if (chainSegment == null) {
+            stepUpJumpTarget(path, currentSegmentIndex, segment, playerPos)
+        } else null
+        val needsStepUpJump = stepUpTarget != null
         val needsGapJump = chainSegment == null && !needsStepUpJump && needsGapJump(segment, playerPos)
         val jumpRequested = needsChainJump || needsStepUpJump || needsGapJump
+        val jumpTarget = when {
+            needsChainJump -> chainTarget
+            needsStepUpJump -> stepUpTarget.endPose.position
+            needsGapJump -> segment.endPose.position
+            else -> null
+        }
 
         // Steering target. Default: lookahead along the path. On a gap
         // segment two overrides apply (Baritone MovementParkour semantics):
@@ -328,7 +360,7 @@ object PathfinderExecutor : Loadable {
             // Chain policy playback (ManeuverPolicy — same rule the sim
             // validated): steer at the next landing; brake mid-air when
             // close to it. Jump input comes from needsChainJump above.
-            val target = chainSegment.nextTarget(chainSegment.projectedDistance(playerPos))
+            val target = chainTarget ?: chainSegment.endPose.position
             steerTarget = Vec3d(target.x, playerPos.y, target.z)
             if (!player.isOnGround) {
                 val distanceToTarget = hypot(target.x - playerPos.x, target.z - playerPos.z)
@@ -361,6 +393,7 @@ object PathfinderExecutor : Loadable {
             sprint = sprint,
             jump = jumpRequested,
             jumpUrgent = needsGapJump || needsChainJump,
+            jumpTarget = jumpTarget,
         )
         currentCommand = command
 
@@ -392,6 +425,7 @@ object PathfinderExecutor : Loadable {
             sprintCommand = lastSteeringTelemetry.sprint || sprint,
             jumpCommandGate = lastJumpCommandGate,
             jumpInputGate = lastJumpInputGate,
+            jumpTarget = lastIssuedJumpTarget,
             supportedSegment = true,
         )
         debugState = applySteeringTelemetry(debugState)
@@ -416,6 +450,11 @@ object PathfinderExecutor : Loadable {
             effectiveMovementYaw = RotationManager.movementYaw?.toDouble(),
             horizontalSpeed = horizontalSpeed(player.velocity),
             movedLastTick = horizontalDistance(moveDelta),
+            lostTicks = lostTicks,
+            skippedSegments = skippedSegments,
+            rewoundSegments = rewoundSegments,
+            replansRequested = replansRequested,
+            jumpTarget = lastIssuedJumpTarget,
         )
     }
 
@@ -595,13 +634,15 @@ object PathfinderExecutor : Loadable {
         activeTraversalId = handle.id
         activeSourcePath = sourcePath
         currentSegmentIndex = 0
+        pathNeedsRelocalization = true
         currentCommand = null
         lastSteeringTelemetry = SteeringTelemetry()
         if (traversalChanged) resetTelemetry()
         return rebuilt
     }
 
-    private fun applyRecovery(selection: SegmentSelection, previousIndex: Int) {
+    private fun applyRecovery(selection: SegmentSelection, previousIndex: Int?) {
+        if (previousIndex == null) return
         when (selection.recoveryMode) {
             RecoveryMode.SkippedForward -> skippedSegments += selection.index - previousIndex
             RecoveryMode.Rewound -> rewoundSegments += previousIndex - selection.index
@@ -615,12 +656,14 @@ object PathfinderExecutor : Loadable {
         activeTraversalId = null
         activeSourcePath = null
         currentSegmentIndex = 0
+        pathNeedsRelocalization = false
         currentCommand = null
         debugSamples.clear()
         lastSteeringTelemetry = SteeringTelemetry()
         lastLoggedSignature = ""
         lastLoggedTick = Int.MIN_VALUE
         resetJumpState()
+        resetChainState()
     }
 
     private fun resetTelemetry() {
@@ -629,12 +672,37 @@ object PathfinderExecutor : Loadable {
         rewoundSegments = 0
         replansRequested = 0
         resetJumpState()
+        resetChainState()
     }
 
     private fun resetJumpState() {
         jumpAttemptActive = false
         jumpHoldUntilTick = Int.MIN_VALUE
         jumpRetryAllowedTick = Int.MIN_VALUE
+    }
+
+    private fun resetChainState() {
+        chainTraversalId = Int.MIN_VALUE
+        chainSegmentIndex = Int.MIN_VALUE
+        chainTargetIndex = 0
+    }
+
+    private fun SafeContext.activeChainTarget(traversalId: Int, chain: ChainSegment, playerPos: Vec3d): Vec3d {
+        if (chainTraversalId != traversalId || chainSegmentIndex != chain.index) {
+            chainTraversalId = traversalId
+            chainSegmentIndex = chain.index
+            chainTargetIndex = 0
+        }
+        val targets = chain.waypoints + chain.endPose.position
+        var target = targets[chainTargetIndex.coerceIn(0, targets.lastIndex)]
+        if (player.isOnGround && chainTargetIndex < targets.lastIndex &&
+            abs(playerPos.y - target.y) <= CHAIN_WAYPOINT_VERTICAL_TOLERANCE &&
+            hypot(playerPos.x - target.x, playerPos.z - target.z) <= ManeuverPolicy.WAYPOINT_TOLERANCE
+        ) {
+            chainTargetIndex++
+            target = targets[chainTargetIndex]
+        }
+        return target
     }
 
     private fun applySteeringTelemetry(state: PathExecutorDebugState): PathExecutorDebugState = state.copy(
@@ -752,19 +820,19 @@ object PathfinderExecutor : Loadable {
         }
     }
 
-    private fun SafeContext.needsStepUpJump(
+    private fun SafeContext.stepUpJumpTarget(
         path: ExecutionPath,
         currentSegmentIndex: Int,
         currentSegment: ExecutionSegment,
         playerPos: Vec3d,
-    ): Boolean {
+    ): WalkSegment? {
         if (!player.isOnGround) {
             lastJumpCommandGate = "airborne"
-            return false
+            return null
         }
         val current = currentSegment as? WalkSegment ?: run {
             lastJumpCommandGate = "notWalk"
-            return false
+            return null
         }
 
         // Resolve which rise we are approaching: either the current segment
@@ -776,28 +844,48 @@ object PathfinderExecutor : Loadable {
                     ?.takeIf { it.verticalStep > 0 && current.remainingDistance(playerPos) <= JUMP_ANTICIPATION_DISTANCE }
                     ?: run {
                         lastJumpCommandGate = "noRiseAhead"
-                        return false
+                        return null
                     }
             else -> {
                 lastJumpCommandGate = "verticalCurrent"
-                return false
+                return null
             }
         }
         if (playerPos.y >= rise.endPose.position.y - 0.1) {
             lastJumpCommandGate = "alreadyUp"
-            return false
+            return null
         }
 
         // Rising gap jump (Baritone: "ascend ⇒ sprint", edge takeoff): the
         // +1 landing must be met while the arc still has a block of height —
         // an early launch puts the descending tail at the pad face instead.
         // Not a step-up: route through the shared edge-takeoff gate.
-        if (rise.horizontalLength >= GAP_SEGMENT_MIN_LENGTH) {
+        if (isRisingGapSegment(rise)) {
             if (rise !== current) {
                 lastJumpCommandGate = "riseGapApproach"
-                return false
+                return null
             }
-            return edgeTakeoffReady(rise, playerPos, "riseGap")
+            // A rising-gap arc can touch down on an adjacent high block, then
+            // slide back onto supported lower ground just beyond the nominal
+            // takeoff window. Treat that stance as a recoverable step-up, not
+            // as an obstruction that must sit motionless for 40 ticks before
+            // replanning. This branch is deliberately narrow: below the
+            // intended landing, close to its face, centered, and still on
+            // continuous support.
+            val progress = rise.projectedDistance(playerPos)
+            val end = rise.endPose.position
+            val horizontalToEnd = hypot(end.x - playerPos.x, end.z - playerPos.z)
+            if (progress > GAP_TAKEOFF_MAX_PROGRESS &&
+                horizontalToEnd <= RECOVERY_STEP_UP_DISTANCE &&
+                rise.lateralError(playerPos) <= CONFINED_JUMP_MAX_SIDE_OFFSET &&
+                with(WalkingMovementModel) {
+                    hasContinuousSupport(playerPos) && hasJumpApexClearance(playerPos)
+                }
+            ) {
+                lastJumpCommandGate = "riseGapRecovery"
+                return rise
+            }
+            return rise.takeIf { edgeTakeoffReady(rise, playerPos, "riseGap") }
         }
 
         // Drift gate (Baritone MovementAscend): a jump launched while sliding
@@ -805,7 +893,7 @@ object PathfinderExecutor : Loadable {
         // settle — one or two ticks — before committing the arc.
         if (perpendicularSpeed(rise, player.velocity) > JUMP_MAX_LATERAL_DRIFT) {
             lastJumpCommandGate = "drifting"
-            return false
+            return null
         }
 
         val end = rise.endPose.position
@@ -825,10 +913,10 @@ object PathfinderExecutor : Loadable {
             // past the ledge lip.
             if (horizontalToEnd > EARLY_JUMP_TRIGGER_DISTANCE) {
                 lastJumpCommandGate = "tooFar(%.2f)".format(horizontalToEnd)
-                return false
+                return null
             }
             lastJumpCommandGate = "commanded"
-            return true
+            return rise
         }
 
         // Confined (ceiling nearby): Baritone's ActionClimb rule — walk in
@@ -836,23 +924,23 @@ object PathfinderExecutor : Loadable {
         // Walking closer is always valid: the validated node has clearance.
         if (horizontalToEnd > CONFINED_JUMP_TRIGGER_DISTANCE) {
             lastJumpCommandGate = "tooFar(%.2f)".format(horizontalToEnd)
-            return false
+            return null
         }
         if (rise.lateralError(playerPos) > CONFINED_JUMP_MAX_SIDE_OFFSET) {
             lastJumpCommandGate = "misaligned"
-            return false
+            return null
         }
         if (!with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }) {
             lastJumpCommandGate = "noHeadroom"
-            return false
+            return null
         }
 
         lastJumpCommandGate = "commanded"
-        return true
+        return rise
     }
 
     /**
-     * Flat gap-jump segments carry no vertical step, so [needsStepUpJump]
+     * Flat gap-jump segments carry no vertical step, so [stepUpJumpTarget]
      * can never fire for them — the H6 baseline failure mode (gauntlet
      * telemetry: agents sprint-carry small gaps or fall in, `noCommand` the
      * whole way). Detect them structurally: a gap-jump edge survives
@@ -909,8 +997,29 @@ object PathfinderExecutor : Loadable {
      * gapJump(rise=1) template. Only real gap edges survive refinement at
      * this shape (corridor shortcuts are flat), so no support probe needed.
      */
-    private fun isRisingGapSegment(walk: WalkSegment): Boolean =
-        walk.verticalStep > 0 && walk.horizontalLength >= GAP_SEGMENT_MIN_LENGTH
+    private fun SafeContext.isRisingGapSegment(walk: WalkSegment): Boolean {
+        if (walk.verticalStep <= 0 || walk.horizontalLength < GAP_SEGMENT_MIN_LENGTH) return false
+
+        // Refinement can merge an ordinary step and its flat approach into a
+        // two-block rising segment. Length alone therefore does not prove a
+        // gap. Probe the interior at the destination stance height: if it is
+        // supported, use the regular ascend controller (including its tighter
+        // lateral-drift gate) instead of edge-parkour playback.
+        val start = walk.startPose.position
+        val end = walk.endPose.position
+        var distance = 0.8
+        while (distance <= walk.horizontalLength - 0.8 + 1.0E-6) {
+            val t = distance / walk.horizontalLength
+            val probe = Vec3d(
+                start.x + (end.x - start.x) * t,
+                end.y,
+                start.z + (end.z - start.z) * t,
+            )
+            if (!with(WalkingMovementModel) { hasContinuousSupport(probe) }) return true
+            distance += 0.4
+        }
+        return false
+    }
 
     /**
      * Shared takeoff gate for gap-class jumps, flat and rising (Baritone
@@ -998,7 +1107,7 @@ object PathfinderExecutor : Loadable {
      * *gap* segments are deliberately excluded: they are the ascend-parkour
      * case that needs sprint speed, not the chest-bonk case that forbids it.
      */
-    private fun riseWithin(path: ExecutionPath, index: Int, playerPos: Vec3d, distance: Double): Boolean {
+    private fun SafeContext.riseWithin(path: ExecutionPath, index: Int, playerPos: Vec3d, distance: Double): Boolean {
         var remaining = distance
         var i = index
         while (i <= path.lastSegmentIndex && remaining > 0.0) {
@@ -1019,6 +1128,7 @@ object PathfinderExecutor : Loadable {
         val jump: Boolean = false,
         /** Gap-ahead jump: skips the retry cooldown (falling is worse). */
         val jumpUrgent: Boolean = false,
+        val jumpTarget: Vec3d? = null,
     )
 
     private data class SteeringTelemetry(
@@ -1033,6 +1143,7 @@ object PathfinderExecutor : Loadable {
 
     private const val JUMP_HOLD_TICKS = 4
     private const val JUMP_RETRY_COOLDOWN_TICKS = 8
+    private const val CHAIN_WAYPOINT_VERTICAL_TOLERANCE = 0.20
 
     // Step-up trigger windows, following Baritone MovementAscend: with clear
     // apex headroom, jump early (height is gained before the riser face —
@@ -1041,6 +1152,7 @@ object PathfinderExecutor : Loadable {
     private const val EARLY_JUMP_TRIGGER_DISTANCE = 2.2
     private const val CONFINED_JUMP_TRIGGER_DISTANCE = 1.2
     private const val CONFINED_JUMP_MAX_SIDE_OFFSET = 0.2
+    private const val RECOVERY_STEP_UP_DISTANCE = 1.25
     private const val JUMP_MAX_LATERAL_DRIFT = 0.10
 
     // How early (remaining distance on the flat segment) the executor may
@@ -1063,7 +1175,7 @@ object PathfinderExecutor : Loadable {
     // edge, centered, not while sliding sideways). The takeoff window ends
     // well before the gap so a landing-side stand never re-triggers a hop.
     private const val GAP_MAX_LATERAL_ERROR = 0.25
-    private const val GAP_MAX_LATERAL_DRIFT = 0.12
+    private const val GAP_MAX_LATERAL_DRIFT = 0.08
     private const val GAP_TAKEOFF_MAX_PROGRESS = 0.9
 
     // Align-phase throttle: grounded on the takeoff side without a committed

@@ -75,11 +75,15 @@ class SnapshotWorldView(private val world: ClientWorld) : WorldView {
      * on chunk load (previously-unknown terrain must refresh) and
      * unload (the next read becomes conservative unknown).
      */
-    fun evictChunk(chunkPos: ChunkPos) {
+    fun evictChunk(chunkPos: ChunkPos): Int {
         val bottom = world.bottomSectionCoord
+        var removed = 0
         for (sy in bottom until bottom + world.countVerticalSections()) {
-            sections.remove(ChunkSectionPos.asLong(chunkPos.x, sy, chunkPos.z))
+            if (sections.remove(ChunkSectionPos.asLong(chunkPos.x, sy, chunkPos.z)) != null) {
+                removed++
+            }
         }
+        return removed
     }
 
     val cachedSectionCount: Int get() = sections.size

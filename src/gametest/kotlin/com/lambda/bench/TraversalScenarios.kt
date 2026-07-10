@@ -20,7 +20,12 @@ package com.lambda.bench
 import com.lambda.config.blocks.PlannerConfig
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
+import net.minecraft.block.Block
+import net.minecraft.block.Blocks
+import net.minecraft.server.MinecraftServer
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import java.util.Random
 
 /**
  * One traversal benchmark case: a world fixture (built via server commands),
@@ -36,6 +41,8 @@ data class TraversalScenario(
     val purpose: String,
     /** Server commands that build the fixture (run in order, after the area reset). */
     val fixture: List<String>,
+    /** Optional bulk fixture construction on the integrated-server thread. */
+    val serverFixture: ((MinecraftServer) -> Unit)? = null,
     val start: Vec3d,
     val startYaw: Float = 0f,
     val goal: FastVector,
@@ -59,6 +66,14 @@ data class TraversalScenario(
      * execution makes them dependable.
      */
     val gated: Boolean = true,
+    /** Optional quality gates beyond eventual goal arrival. */
+    val maxFirstFollowingTick: Int? = null,
+    val maxPlanningPauseTicks: Int? = null,
+    val maxLongestPlanningPauseTicks: Int? = null,
+    val maxLongestMovementStallTicks: Int? = null,
+    val maxLongestExecutorLostBurstTicks: Int? = null,
+    val maxReplansRequested: Int? = null,
+    val minJumpLandingSuccessRate: Double? = null,
 )
 
 /** Plain [PlannerConfig] for benchmarks — independent of any UI config state. */
@@ -81,6 +96,42 @@ object TraversalScenarios {
         "/fill -16 63 -14 24 63 14 minecraft:stone",
     )
 
+    /**
+     * Reconstructs the exposed bottom-bedrock field from the field test: a
+     * guaranteed bottom sheet plus four independently sampled bedrock layers
+     * using vanilla's 80/60/40/20% layer profile. Removing every non-bedrock
+     * block leaves the dense two-dimensional pillars, pockets, overhangs and
+     * narrow landings visible in the reference screenshot — not a 1-D height
+     * strip. Direct server writes avoid thousands of `/setblock` commands.
+     */
+    private val EXPOSED_BEDROCK_FIXTURE: (MinecraftServer) -> Unit = { server ->
+        val world = server.overworld
+        val random = Random(0x5EED_BEDL)
+        for (x in 0..95) {
+            for (z in -20..20) {
+                for (layer in 1..4) {
+                    val probability = (5 - layer) / 5.0
+                    if (random.nextDouble() < probability) {
+                        world.setBlockState(
+                            BlockPos(x, 62 + layer, z),
+                            Blocks.BEDROCK.defaultState,
+                            Block.NOTIFY_ALL,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Flat 3x3 launch and arrival islands make the measured traversal
+        // about the chaotic middle, not spawn/goal placement luck.
+        for (x in 0..2) for (z in -1..1) for (y in 63..66) {
+            world.setBlockState(BlockPos(x, y, z), Blocks.AIR.defaultState, Block.NOTIFY_ALL)
+        }
+        for (x in 93..95) for (z in -1..1) for (y in 63..66) {
+            world.setBlockState(BlockPos(x, y, z), Blocks.AIR.defaultState, Block.NOTIFY_ALL)
+        }
+    }
+
     private fun scenario(
         name: String,
         purpose: String,
@@ -94,10 +145,19 @@ object TraversalScenarios {
         probeNode: FastVector? = null,
         mutations: List<Pair<Int, String>> = emptyList(),
         gated: Boolean = true,
+        serverFixture: ((MinecraftServer) -> Unit)? = null,
+        maxFirstFollowingTick: Int? = null,
+        maxPlanningPauseTicks: Int? = null,
+        maxLongestPlanningPauseTicks: Int? = null,
+        maxLongestMovementStallTicks: Int? = null,
+        maxLongestExecutorLostBurstTicks: Int? = null,
+        maxReplansRequested: Int? = null,
+        minJumpLandingSuccessRate: Double? = null,
     ) = TraversalScenario(
         name = name,
         purpose = purpose,
         fixture = RESET + fixture,
+        serverFixture = serverFixture,
         start = start,
         startYaw = startYaw,
         goal = goal,
@@ -107,6 +167,13 @@ object TraversalScenarios {
         probeNode = probeNode,
         mutations = mutations,
         gated = gated,
+        maxFirstFollowingTick = maxFirstFollowingTick,
+        maxPlanningPauseTicks = maxPlanningPauseTicks,
+        maxLongestPlanningPauseTicks = maxLongestPlanningPauseTicks,
+        maxLongestMovementStallTicks = maxLongestMovementStallTicks,
+        maxLongestExecutorLostBurstTicks = maxLongestExecutorLostBurstTicks,
+        maxReplansRequested = maxReplansRequested,
+        minJumpLandingSuccessRate = minJumpLandingSuccessRate,
     )
 
     // Scenario-set discipline: every case must probe a behavior no other
@@ -194,6 +261,30 @@ object TraversalScenarios {
             "/fill 13 64 -8 13 66 14 minecraft:stone",
             goal = fastVectorOf(17, 64, 0),
             timeoutTicks = 900,
+        ),
+
+        scenario(
+            "bedrock-exposed-100",
+            "Field-test regression: traverse a 95-block span (over 100 planned blocks) through a seeded 96x41 exposed " +
+                "vanilla-profile bedrock field with dense 2-D pillars, pockets, overhangs and " +
+                "narrow landings. Measures maneuver discovery efficiency, jump reliability, " +
+                "refined-path relocalization, unnecessary replans and total traversal ticks.",
+            // Split the clear so every /fill stays below the command's 32768-block cap.
+            "/fill -4 60 -22 50 70 22 minecraft:air",
+            "/fill 51 60 -22 99 70 22 minecraft:air",
+            "/fill -2 62 -21 97 62 21 minecraft:bedrock",
+            start = Vec3d(0.5, 63.0, 0.5),
+            goal = fastVectorOf(95, 63, 0),
+            allowJump = true,
+            timeoutTicks = 2_400,
+            maxFirstFollowingTick = 40,
+            maxPlanningPauseTicks = 10,
+            maxLongestPlanningPauseTicks = 5,
+            maxLongestMovementStallTicks = 10,
+            maxLongestExecutorLostBurstTicks = 8,
+            maxReplansRequested = 2,
+            minJumpLandingSuccessRate = 0.90,
+            serverFixture = EXPOSED_BEDROCK_FIXTURE,
         ),
 
         scenario(

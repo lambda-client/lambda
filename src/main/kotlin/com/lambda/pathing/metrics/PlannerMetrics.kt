@@ -34,6 +34,22 @@ interface PlannerMetrics {
     /** A traversal session was created: `plan_start`. */
     fun planStart(traversalId: Int, start: FastVector, goal: FastVector) {}
 
+    /** Why a planner budget slice is about to run: `compute_start`. */
+    fun computeStart(traversalId: Int, cause: String, start: FastVector, graphSize: Int) {}
+
+    /**
+     * A chunk transition invalidated snapshot sections the planner had actually
+     * read: `chunk_visibility`. Unobserved chunk events are deliberately not
+     * reported because no graph state can depend on them.
+     */
+    fun chunkVisibility(
+        traversalId: Int,
+        chunkX: Int,
+        chunkZ: Int,
+        loaded: Boolean,
+        evictedSections: Int,
+    ) {}
+
     /**
      * First `computeShortestPath` of a session finished: `initial_path`.
      * [expansions] = queue nodes processed, [wallMicros] = wall time of the

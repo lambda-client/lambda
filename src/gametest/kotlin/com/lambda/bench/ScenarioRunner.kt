@@ -57,6 +57,27 @@ data class ScenarioReport(
     val flightToggled: Boolean,
     val maxLostTicks: Int,
     val replansRequested: Int,
+    val firstReadyTick: Int,
+    val firstFollowingTick: Int,
+    val followingTicks: Int,
+    val planningPauseTicks: Int,
+    val planningPauseBursts: Int,
+    val longestPlanningPauseTicks: Int,
+    val movementStallTicks: Int,
+    val movementStallBursts: Int,
+    val longestMovementStallTicks: Int,
+    val executorLostTicks: Int,
+    val executorLostBursts: Int,
+    val longestExecutorLostBurstTicks: Int,
+    val jumpLandingSuccesses: Int,
+    val jumpLandingFailures: Int,
+    val maxFirstFollowingTick: Int?,
+    val maxPlanningPauseTicks: Int?,
+    val maxLongestPlanningPauseTicks: Int?,
+    val maxLongestMovementStallTicks: Int?,
+    val maxLongestExecutorLostBurstTicks: Int?,
+    val maxReplansRequested: Int?,
+    val minJumpLandingSuccessRate: Double?,
     val finalStatus: String,
     val failureReason: String?,
     val endDistanceToGoal: Double,
@@ -67,7 +88,21 @@ data class ScenarioReport(
     // Partial-forever (the backward search can never exhaust the goal's
     // component), so expect-failure scenarios pass when the agent neither
     // reaches the goal nor misbehaves (creative-flight toggle).
-    val passed: Boolean get() = if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled
+    val jumpLandingSuccessRate: Double
+        get() = if (jumpLandingSuccesses + jumpLandingFailures == 0) 1.0
+        else jumpLandingSuccesses.toDouble() / (jumpLandingSuccesses + jumpLandingFailures)
+
+    val qualityPassed: Boolean get() =
+        (maxFirstFollowingTick == null || firstFollowingTick in 1..maxFirstFollowingTick) &&
+            (maxPlanningPauseTicks == null || planningPauseTicks <= maxPlanningPauseTicks) &&
+            (maxLongestPlanningPauseTicks == null || longestPlanningPauseTicks <= maxLongestPlanningPauseTicks) &&
+            (maxLongestMovementStallTicks == null || longestMovementStallTicks <= maxLongestMovementStallTicks) &&
+            (maxLongestExecutorLostBurstTicks == null || longestExecutorLostBurstTicks <= maxLongestExecutorLostBurstTicks) &&
+            (maxReplansRequested == null || replansRequested <= maxReplansRequested) &&
+            (minJumpLandingSuccessRate == null || jumpLandingSuccessRate >= minJumpLandingSuccessRate)
+
+    val passed: Boolean get() =
+        (if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled) && qualityPassed
 
     /** A harness/incremental-search failure, not an executor baseline miss. */
     val plannerStalled: Boolean
@@ -87,11 +122,19 @@ data class ScenarioReport(
         append(" waste=").append("%.0f%%".format(movementWastePercent))
         append(" nodes=").append(plannedNodes)
         append(" jumps(in/air)=").append(jumpInputTicks).append('/').append(airborneJumps)
+        append(" land=").append(jumpLandingSuccesses).append('/').append(jumpLandingSuccesses + jumpLandingFailures)
+        append(" firstFollow=").append(firstFollowingTick)
+        append(" pause=").append(planningPauseTicks).append('/').append(longestPlanningPauseTicks)
+        append(" stall=").append(movementStallTicks).append('/').append(longestMovementStallTicks)
+        append(" lost=").append(executorLostTicks).append('/').append(longestExecutorLostBurstTicks)
         append(" initUs=").append(plannerStats.initialWallMicros)
         append(" repairs=").append(plannerStats.repairs)
         append("(p50=").append(plannerStats.repairWallUsP50).append("us)")
+        plannerStats.computeCauses["budget_continuation"]?.let { append(" continue=").append(it) }
+        if (plannerStats.chunkVisibilityRebuilds > 0) append(" chunkRebuilds=").append(plannerStats.chunkVisibilityRebuilds)
         if (flightToggled) append(" FLIGHT-TOGGLED")
         if (plannerStalled) append(" PLANNER-STALLED")
+        if (!qualityPassed) append(" QUALITY-FAILED")
         append(" status=").append(finalStatus)
         failureReason?.let { append(" reason=").append(it) }
         if (!passed) append("\n      coarse=").append(coarsePathDump)
@@ -121,6 +164,22 @@ data class ScenarioReport(
         append(",\"flightToggled\":").append(flightToggled)
         append(",\"maxLostTicks\":").append(maxLostTicks)
         append(",\"replansRequested\":").append(replansRequested)
+        append(",\"firstReadyTick\":").append(firstReadyTick)
+        append(",\"firstFollowingTick\":").append(firstFollowingTick)
+        append(",\"followingTicks\":").append(followingTicks)
+        append(",\"planningPauseTicks\":").append(planningPauseTicks)
+        append(",\"planningPauseBursts\":").append(planningPauseBursts)
+        append(",\"longestPlanningPauseTicks\":").append(longestPlanningPauseTicks)
+        append(",\"movementStallTicks\":").append(movementStallTicks)
+        append(",\"movementStallBursts\":").append(movementStallBursts)
+        append(",\"longestMovementStallTicks\":").append(longestMovementStallTicks)
+        append(",\"executorLostTicks\":").append(executorLostTicks)
+        append(",\"executorLostBursts\":").append(executorLostBursts)
+        append(",\"longestExecutorLostBurstTicks\":").append(longestExecutorLostBurstTicks)
+        append(",\"jumpLandingSuccesses\":").append(jumpLandingSuccesses)
+        append(",\"jumpLandingFailures\":").append(jumpLandingFailures)
+        append(",\"jumpLandingSuccessRate\":").append("%.3f".format(jumpLandingSuccessRate))
+        append(",\"qualityPassed\":").append(qualityPassed)
         append(",\"finalStatus\":\"").append(finalStatus).append('"')
         append(",\"failureReason\":").append(failureReason?.let { "\"$it\"" } ?: "null")
         append(",\"endDistanceToGoal\":").append("%.3f".format(endDistanceToGoal))
@@ -138,6 +197,27 @@ data class ScenarioReport(
 object ScenarioRunner {
     /** Horizontal speed below which the agent counts as standing still. */
     private const val ORACLE_STOP_SPEED = 0.10
+    private const val LANDING_HORIZONTAL_TOLERANCE = 1.15
+    private const val LANDING_VERTICAL_TOLERANCE = 0.30
+    private const val MOVEMENT_STALL_SPEED = 0.01
+
+    private data class PendingJump(
+        val tick: Int,
+        val launch: Vec3d,
+        val target: Vec3d?,
+        val segmentType: String,
+        val launchSpeed: Double,
+        val segmentIndex: Int,
+    )
+
+    private data class JumpLanding(
+        val attempt: PendingJump,
+        val tick: Int,
+        val position: Vec3d,
+        val success: Boolean,
+        val horizontalError: Double?,
+        val verticalError: Double?,
+    )
 
     private val runId: String = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now())
 
@@ -149,6 +229,9 @@ object ScenarioRunner {
         // --- Fixture + placement ---
         runOnClient<IllegalStateException> { PathfinderManager.cancelActiveTraversal() }
         scenario.fixture.forEach(server::runCommand)
+        scenario.serverFixture?.let { fixture ->
+            server.runOnServer<IllegalStateException> { minecraftServer -> fixture(minecraftServer) }
+        }
         server.runCommand("/tp Steve ${scenario.start.x} ${scenario.start.y} ${scenario.start.z} ${scenario.startYaw} 0")
         waitTicks(10) // chunk/physics settle after fill + teleport
 
@@ -193,6 +276,7 @@ object ScenarioRunner {
         var airborneJumps = 0
         var flightToggled = false
         var maxLostTicks = 0
+        var maxReplansRequested = 0
         var wasOnGround = true
         var wasJumpInput = false
         var traveled = 0.0
@@ -201,6 +285,24 @@ object ScenarioRunner {
         var deviationSum = 0.0
         var deviationMax = 0.0
         var deviationSamples = 0
+        var referencePlannedLength = 0.0
+        var firstReadyTick = 0
+        var firstFollowingTick = 0
+        var followingTicks = 0
+        var planningPauseTicks = 0
+        var planningPauseBursts = 0
+        var currentPlanningPause = 0
+        var longestPlanningPauseTicks = 0
+        var movementStallTicks = 0
+        var movementStallBursts = 0
+        var currentMovementStall = 0
+        var longestMovementStallTicks = 0
+        var executorLostTicks = 0
+        var executorLostBursts = 0
+        var currentExecutorLost = 0
+        var longestExecutorLostBurstTicks = 0
+        var pendingJump: PendingJump? = null
+        val jumpLandings = ArrayList<JumpLanding>()
 
         if (requested) {
             while (ticks < scenario.timeoutTicks) {
@@ -236,9 +338,16 @@ object ScenarioRunner {
                             append(",\"fwd\":").append("%.2f".format(state.commandedForward))
                             append(",\"strafe\":").append("%.2f".format(state.commandedStrafe))
                             append(",\"lost\":").append(state.lostTicks)
+                            append(",\"replans\":").append(state.replansRequested)
                             append(",\"latErr\":").append("%.3f".format(state.lateralError))
                             append(",\"dist\":").append("%.3f".format(distance))
                             append(",\"handleStatus\":\"").append(handle?.status ?: "None").append('"')
+                            append(",\"pathLen\":").append("%.3f".format(handle?.pathLength ?: 0.0))
+                            state.jumpTarget?.let { target ->
+                                append(",\"jumpTargetX\":").append("%.3f".format(target.x))
+                                append(",\"jumpTargetY\":").append("%.3f".format(target.y))
+                                append(",\"jumpTargetZ\":").append("%.3f".format(target.z))
+                            }
                             append('}')
                         }
                     } ?: "{}"
@@ -252,11 +361,98 @@ object ScenarioRunner {
                 val onGround = "\"ground\":true" in sample
                 val jumpInput = "\"jumpInGate\":\"issued\"" in sample
                 val flying = "\"flying\":true" in sample
+                val status = sample.substringAfter("\"status\":\"").substringBefore('"')
+                val handleStatusNow = sample.substringAfter("\"handleStatus\":\"").substringBefore('"')
+                if (firstReadyTick == 0 && handleStatusNow == "Ready") firstReadyTick = ticks
+                if (status == "Following") {
+                    followingTicks++
+                    if (firstFollowingTick == 0) firstFollowingTick = ticks
+                }
+                if (status == "Lost") {
+                    executorLostTicks++
+                    if (currentExecutorLost == 0) executorLostBursts++
+                    currentExecutorLost++
+                    if (currentExecutorLost > longestExecutorLostBurstTicks) {
+                        longestExecutorLostBurstTicks = currentExecutorLost
+                    }
+                } else {
+                    currentExecutorLost = 0
+                }
+
+                val planningPaused = firstFollowingTick > 0 &&
+                    (handleStatusNow == "Partial" || handleStatusNow == "Planning" ||
+                        status == "PartialDisabled" || status == "WaitingForPath")
+                if (planningPaused) {
+                    planningPauseTicks++
+                    if (currentPlanningPause == 0) planningPauseBursts++
+                    currentPlanningPause++
+                    if (currentPlanningPause > longestPlanningPauseTicks) {
+                        longestPlanningPauseTicks = currentPlanningPause
+                    }
+                } else {
+                    currentPlanningPause = 0
+                }
+                val sampleSpeedForStall = sample.numberField("spd") ?: Double.MAX_VALUE
+                val distanceForStall = sample.numberField("dist") ?: 0.0
+                val movementStalled = status == "Following" && onGround &&
+                    sampleSpeedForStall < MOVEMENT_STALL_SPEED && distanceForStall > 1.0
+                if (movementStalled) {
+                    movementStallTicks++
+                    if (currentMovementStall == 0) movementStallBursts++
+                    currentMovementStall++
+                    if (currentMovementStall > longestMovementStallTicks) {
+                        longestMovementStallTicks = currentMovementStall
+                    }
+                } else {
+                    currentMovementStall = 0
+                }
                 if (jumpInput && !wasJumpInput) jumpInputTicks++
                 if (!onGround && wasOnGround && jumpInput) airborneJumps++
                 if (flying) flightToggled = true
                 sample.substringAfter("\"lost\":").substringBefore(",").toIntOrNull()?.let {
                     if (it > maxLostTicks) maxLostTicks = it
+                }
+                sample.substringAfter("\"replans\":").substringBefore(",").toIntOrNull()?.let {
+                    if (it > maxReplansRequested) maxReplansRequested = it
+                }
+
+                if (jumpInput && !wasJumpInput) {
+                    val x = sample.numberField("x")
+                    val y = sample.numberField("y")
+                    val z = sample.numberField("z")
+                    val targetX = sample.numberField("jumpTargetX")
+                    val targetY = sample.numberField("jumpTargetY")
+                    val targetZ = sample.numberField("jumpTargetZ")
+                    if (x != null && y != null && z != null) {
+                        pendingJump = PendingJump(
+                            tick = ticks,
+                            launch = Vec3d(x, y, z),
+                            target = if (targetX != null && targetY != null && targetZ != null) {
+                                Vec3d(targetX, targetY, targetZ)
+                            } else null,
+                            segmentType = sample.substringAfter("\"segType\":\"").substringBefore('"'),
+                            launchSpeed = sample.numberField("spd") ?: 0.0,
+                            segmentIndex = sample.numberField("seg")?.toInt() ?: -1,
+                        )
+                    }
+                }
+                if (onGround && !wasOnGround) {
+                    pendingJump?.let { attempt ->
+                        val x = sample.numberField("x")
+                        val y = sample.numberField("y")
+                        val z = sample.numberField("z")
+                        if (x != null && y != null && z != null) {
+                            val landing = Vec3d(x, y, z)
+                            val target = attempt.target
+                            val horizontalError = target?.let { hypot(landing.x - it.x, landing.z - it.z) }
+                            val verticalError = target?.let { kotlin.math.abs(landing.y - it.y) }
+                            val success = horizontalError != null && verticalError != null &&
+                                horizontalError <= LANDING_HORIZONTAL_TOLERANCE &&
+                                verticalError <= LANDING_VERTICAL_TOLERANCE
+                            jumpLandings += JumpLanding(attempt, ticks, landing, success, horizontalError, verticalError)
+                        }
+                    }
+                    pendingJump = null
                 }
                 wasOnGround = onGround
                 wasJumpInput = jumpInput
@@ -278,6 +474,9 @@ object ScenarioRunner {
                         deviationSamples++
                         if (latErr > deviationMax) deviationMax = latErr
                     }
+                }
+                sample.substringAfter("\"pathLen\":").substringBefore(",").substringBefore("}").toDoubleOrNull()?.let {
+                    if (it > referencePlannedLength) referencePlannedLength = it
                 }
 
                 val distance = sample.substringAfter("\"dist\":").substringBefore(",").toDoubleOrNull()
@@ -306,10 +505,15 @@ object ScenarioRunner {
             }
         }
 
+        // An issued jump that never returned to ground before termination is
+        // not a successful landing.
+        pendingJump?.let { attempt ->
+            jumpLandings += JumpLanding(attempt, ticks, attempt.launch, success = false, null, null)
+        }
+
         // --- Final snapshot + teardown ---
         val report = computeOnClient<ScenarioReport, IllegalStateException> {
             val handle = PathfinderManager.activeTraversal
-            val state = PathfinderExecutor.state
             val endDistance = runSafe {
                 val pos = player.pos
                 hypot(hypot(pos.x - goalCenter.x, pos.z - goalCenter.z), pos.y - goalCenter.y)
@@ -323,7 +527,11 @@ object ScenarioRunner {
                 ticks = ticks,
                 plannedNodes = handle?.path?.size ?: 0,
                 coarseNodes = handle?.coarsePath?.size ?: 0,
-                plannedLength = handle?.pathLength ?: 0.0,
+                // A D* path shrinks as its start advances. Using only the
+                // terminal suffix makes a successful long traversal look
+                // hundreds of percent wasteful, so retain the longest adopted
+                // path as the run's reference length.
+                plannedLength = maxOf(handle?.pathLength ?: 0.0, referencePlannedLength),
                 processedNodes = handle?.processedNodes ?: 0,
                 graphSize = handle?.graphSize ?: 0,
                 refinementSavedPercent = handle?.lastRefinement?.savedPercent ?: 0.0,
@@ -334,7 +542,30 @@ object ScenarioRunner {
                 airborneJumps = airborneJumps,
                 flightToggled = flightToggled,
                 maxLostTicks = maxLostTicks,
-                replansRequested = state.replansRequested,
+                // Terminal handling resets executor runtime counters before
+                // the final snapshot, so use the run maximum from telemetry.
+                replansRequested = maxReplansRequested,
+                firstReadyTick = firstReadyTick,
+                firstFollowingTick = firstFollowingTick,
+                followingTicks = followingTicks,
+                planningPauseTicks = planningPauseTicks,
+                planningPauseBursts = planningPauseBursts,
+                longestPlanningPauseTicks = longestPlanningPauseTicks,
+                movementStallTicks = movementStallTicks,
+                movementStallBursts = movementStallBursts,
+                longestMovementStallTicks = longestMovementStallTicks,
+                executorLostTicks = executorLostTicks,
+                executorLostBursts = executorLostBursts,
+                longestExecutorLostBurstTicks = longestExecutorLostBurstTicks,
+                jumpLandingSuccesses = jumpLandings.count { it.success },
+                jumpLandingFailures = jumpLandings.count { !it.success },
+                maxFirstFollowingTick = scenario.maxFirstFollowingTick,
+                maxPlanningPauseTicks = scenario.maxPlanningPauseTicks,
+                maxLongestPlanningPauseTicks = scenario.maxLongestPlanningPauseTicks,
+                maxLongestMovementStallTicks = scenario.maxLongestMovementStallTicks,
+                maxLongestExecutorLostBurstTicks = scenario.maxLongestExecutorLostBurstTicks,
+                maxReplansRequested = scenario.maxReplansRequested,
+                minJumpLandingSuccessRate = scenario.minJumpLandingSuccessRate,
                 finalStatus = handle?.status?.toString() ?: "None",
                 failureReason = handle?.failureReason,
                 endDistanceToGoal = endDistance,
@@ -351,6 +582,31 @@ object ScenarioRunner {
         PlannerMetrics.sink = PlannerMetrics.NoOp
 
         File(outputDir, "${scenario.name}.jsonl").writeText(telemetry.toString())
+        File(outputDir, "${scenario.name}.jumps.jsonl").writeText(
+            jumpLandings.joinToString("\n", postfix = if (jumpLandings.isEmpty()) "" else "\n") { landing ->
+                buildString {
+                    append("{\"launchTick\":").append(landing.attempt.tick)
+                    append(",\"landingTick\":").append(landing.tick)
+                    append(",\"segmentType\":\"").append(landing.attempt.segmentType).append('"')
+                    append(",\"segmentIndex\":").append(landing.attempt.segmentIndex)
+                    append(",\"launchSpeed\":").append("%.4f".format(landing.attempt.launchSpeed))
+                    append(",\"launch\":[").append("%.3f".format(landing.attempt.launch.x)).append(',')
+                        .append("%.3f".format(landing.attempt.launch.y)).append(',')
+                        .append("%.3f".format(landing.attempt.launch.z)).append(']')
+                    landing.attempt.target?.let { target ->
+                        append(",\"target\":[").append("%.3f".format(target.x)).append(',')
+                            .append("%.3f".format(target.y)).append(',')
+                            .append("%.3f".format(target.z)).append(']')
+                    }
+                    append(",\"landing\":[").append("%.3f".format(landing.position.x)).append(',')
+                        .append("%.3f".format(landing.position.y)).append(',')
+                        .append("%.3f".format(landing.position.z)).append(']')
+                    landing.horizontalError?.let { append(",\"horizontalError\":").append("%.3f".format(it)) }
+                    landing.verticalError?.let { append(",\"verticalError\":").append("%.3f".format(it)) }
+                    append(",\"success\":").append(landing.success).append('}')
+                }
+            }
+        )
         File(outputDir, "${scenario.name}.planner.jsonl").writeText(plannerMetrics.jsonLines())
         return report
     }
@@ -360,4 +616,11 @@ object ScenarioRunner {
             reports.joinToString(",\n", prefix = "[\n", postfix = "\n]") { it.toJson() }
         )
     }
+}
+
+private fun String.numberField(name: String): Double? {
+    val marker = "\"$name\":"
+    val start = indexOf(marker)
+    if (start < 0) return null
+    return substring(start + marker.length).substringBefore(',').substringBefore('}').toDoubleOrNull()
 }

@@ -60,6 +60,8 @@ data class PathExecutorDebugState(
     val jumpCommandGate: String = "",
     /** Why the jump input was or wasn't issued this tick (input side). */
     val jumpInputGate: String = "",
+    /** Landing point associated with the jump input most recently issued. */
+    val jumpTarget: Vec3d? = null,
     val horizontalSpeed: Double = 0.0,
     val movedLastTick: Double = 0.0,
     val supportedSegment: Boolean = true,
