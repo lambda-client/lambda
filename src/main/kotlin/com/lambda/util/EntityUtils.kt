@@ -60,7 +60,7 @@ object EntityUtils {
 
     private fun Any.entityGroup(): EntityGroup {
         val simpleName = javaClass.simpleName
-        return EntityGroup.entries.first { simpleName in it.nameToDisplayNameMap }
+        return EntityGroup.entries.firstOrNull { simpleName in it.nameToDisplayNameMap } ?: EntityGroup.Misc
     }
 
     fun Box.getClosestPointTo(vec: Vec3d) =
