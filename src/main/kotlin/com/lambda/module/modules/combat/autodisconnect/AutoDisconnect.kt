@@ -70,6 +70,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -468,6 +469,7 @@ object AutoDisconnect : Module(
                         }
                     )
                 )
+                effectsSection(player)?.let { add(it) }
                 add(
                     DetailSection.CollapsibleSection(
                         header = Text.literal("Inventory"),
@@ -595,7 +597,8 @@ object AutoDisconnect : Module(
                 header = Text.literal("Armor"),
                 children = armor.map { (label, slot) -> slotEntry(label, slot) },
                 expanded = false
-            )
+            ) +
+            listOfNotNull(effectsSection(other))
 
         return DetailSection.CollapsibleSection(
             header = buildText {
@@ -614,9 +617,9 @@ object AutoDisconnect : Module(
 
     /**
      * A row for a single [entity]: header of "type - distance". Expands to its held
-     * items and armor plus any active status effects (and burning) when it has any;
-     * otherwise it's a plain line. Non-living entities (items, projectiles, …) never
-     * have equipment or effects, so they render as plain lines.
+     * items and armor plus an "Effects" dropdown of active potion effects and related
+     * states (burning, freezing) when it has any; otherwise it's a plain line.
+     * Non-living entities (items, projectiles, …) still surface burning/freezing.
      */
     private fun SafeContext.entitySection(entity: Entity): DetailSection {
         val header = buildText {
@@ -631,22 +634,48 @@ object AutoDisconnect : Module(
                     val stack = entity.getEquippedStack(slot)
                     if (!stack.isEmpty) add(itemRow(stack, label))
                 }
-                entity.statusEffects.forEach { effect ->
-                    add(
-                        DetailSection.TextSection(
-                            buildText {
-                                text(effect.effectType.value().name)
-                                if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
-                            }
-                        )
-                    )
-                }
             }
-            if (entity.isOnFire) add(DetailSection.TextSection(buildText { literal("Burning") }))
+
+            effectsSection(entity)?.let { add(it) }
         }
 
         return if (children.isEmpty()) DetailSection.TextSection(header)
         else DetailSection.CollapsibleSection(header = header, children = children, expanded = false)
+    }
+
+    /**
+     * A collapsible "Effects" section listing [entity]'s active potion effects plus
+     * related non-potion states (burning, freezing), or null when it has none.
+     */
+    private fun effectsSection(entity: Entity): DetailSection.CollapsibleSection? {
+        val effects = buildList {
+            if (entity is LivingEntity) {
+                entity.statusEffects.forEach { effect ->
+                    add(
+                        buildText {
+                            text(effect.effectType.value().name)
+                            if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
+                            color(ClickGuiLayout.textDisabled) { literal(" (${effectDuration(effect)})") }
+                        }
+                    )
+                }
+            }
+            if (entity.isOnFire) add(buildText { literal("Burning") })
+            if (entity.isFrozen) add(buildText { literal("Freezing") })
+        }
+        if (effects.isEmpty()) return null
+        return DetailSection.CollapsibleSection(
+            header = Text.literal("Effects"),
+            children = effects.map { DetailSection.TextSection(it) },
+            expanded = false
+        )
+    }
+
+    /** Formats a status effect's remaining time as m:ss, or ∞ for infinite effects. */
+    private fun effectDuration(effect: StatusEffectInstance): String {
+        if (effect.isInfinite) return "∞"
+        val seconds = effect.duration / 20
+        return "%d:%02d".format(seconds / 60, seconds % 60)
     }
 
     /**
