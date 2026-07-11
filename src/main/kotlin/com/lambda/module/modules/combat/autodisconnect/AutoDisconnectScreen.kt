@@ -22,6 +22,7 @@ import com.lambda.util.render.CursorOverrideProvider
 import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.client.gui.Click
 import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.cursor.Cursor
 import net.minecraft.client.gui.cursor.StandardCursors
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.TitleScreen
@@ -29,21 +30,21 @@ import net.minecraft.client.gui.screen.multiplayer.ConnectScreen
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen
 import net.minecraft.client.gui.screen.world.SelectWorldScreen
 import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.ScrollableTextWidget
 import net.minecraft.text.Text
 import kotlin.math.min
 
 class AutoDisconnectScreen(
     private val details: DisconnectDetails
 ) : Screen(Text.literal("Disconnected: ").append(details.reason)),
-    OverlayBackgroundScreen
+    OverlayBackgroundScreen,
+    CursorOverrideProvider
 {
     //state
     private val parent = TitleScreen()
     private var showDetails = !details.hideDetails
 
     //text
-    private lateinit var detailText: ScrollableTextWidget
+    private lateinit var detailText: DisconnectDetailsWidget
 
     //buttons
     private lateinit var toggleDetailsButton: ButtonWidget
@@ -62,7 +63,7 @@ class AutoDisconnectScreen(
         super.init()
 
         detailText = addDrawableChild(
-	        ScrollableTextWidget(0, 0, 0, 0, details.details, textRenderer)
+	        DisconnectDetailsWidget(0, 0, 0, 0, details.sections, textRenderer)
         )
 
         toggleDetailsButton = addButton(detailToggleText()) { showDetails = !showDetails; updateDetailVisibility() }
@@ -95,6 +96,9 @@ class AutoDisconnectScreen(
 
         return super.mouseClicked(click, doubled)
     }
+
+    override fun getCursorOverride(mouseX: Int, mouseY: Int): Cursor? =
+        if (::detailText.isInitialized) detailText.hoverCursor(mouseX, mouseY) else null
 
     override fun close() {
         releaseTexture()

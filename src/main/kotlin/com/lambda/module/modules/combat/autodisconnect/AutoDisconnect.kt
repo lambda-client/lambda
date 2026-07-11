@@ -25,23 +25,27 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.handlers.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils
 import com.lambda.util.CommunicationUtils.info
-import com.lambda.util.CommunicationUtils.prefix
+import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.TickTimer
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.tickDeltaF
+import com.lambda.util.item.ItemStackUtils.bundleContents
+import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.player.SlotUtils.armorSlots
+import com.lambda.util.player.SlotUtils.hotbarStacks
+import com.lambda.util.player.SlotUtils.inventoryStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.highlighted
@@ -54,8 +58,11 @@ import net.minecraft.client.network.ServerAddress
 import net.minecraft.client.network.ServerInfo
 import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.util.ScreenshotRecorder
+import net.minecraft.component.DataComponentTypes
+import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
+import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
 import net.minecraft.entity.decoration.EndCrystalEntity
@@ -63,6 +70,7 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.projectile.ProjectileEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.message.LastSeenMessageList
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
@@ -88,12 +96,31 @@ object AutoDisconnect : Module(
 
     private const val MAX_CRYSTAL_DAMAGE_RANGE = 12.0
     private const val CRYSTAL_TRIGGER_RANGE = 6.0
+
+    // Equipment slots shown per player, in display order (hands first, then armor).
+    private val EQUIPMENT_SLOTS = listOf(
+        "Main Hand" to EquipmentSlot.MAINHAND,
+        "Off Hand" to EquipmentSlot.OFFHAND,
+        "Head" to EquipmentSlot.HEAD,
+        "Chest" to EquipmentSlot.CHEST,
+        "Legs" to EquipmentSlot.LEGS,
+        "Feet" to EquipmentSlot.FEET,
+    )
+
+    // Armor slots shown in the local inventory's "Armor" group, top to bottom.
+    private val ARMOR_SLOTS = listOf(
+        EquipmentSlot.HEAD,
+        EquipmentSlot.CHEST,
+        EquipmentSlot.LEGS,
+        EquipmentSlot.FEET,
+    )
     // Ticks to wait after (re)joining before re-arming, so triggers don't re-arm against a
     // world whose entities haven't synced in yet (there's no clean "entities loaded" signal).
     private const val JOIN_GRACE_TICKS = 20
 
     private const val TRIGGERS_TAB = "Triggers"
     private const val GENERAL_TAB = "General"
+    private const val DISPLAY_TAB = "Display"
 
     private const val PACKET_DISCONNECT_GROUP = "Packet Disconnect Methods"
     private const val DAMAGE_TRIGGER_GROUP = "Damage Triggers"
@@ -162,10 +189,13 @@ object AutoDisconnect : Module(
     @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you take arrow damage.") { damage }
     @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you take trident damage.") { damage }
 
-    @Tab(GENERAL_TAB) private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val invalidHotbarDisconnect by setting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val attackSelfDisconnect by setting("Attack Self", false, "Sends an attack self packet to force the server to kick the player")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val impossibleTimestampChatDisconnect by setting("Send Impossible Chat Timestamp", false, "Sends a chat message with an impossible timestamp to force the server to kick the player")
+
+    @Tab(DISPLAY_TAB) private val hideDetails by setting("Hide Details on Disconnect Screen", false, "Initially hide all details on the disconnect screen")
+    @Tab(DISPLAY_TAB) private val showCoordinates by setting("Show Coordinates", true, "Show the player's coordinates on the disconnect screen")
+    @Tab(DISPLAY_TAB) private val showTime by setting("Show Time", true, "Show the time of disconnection on the disconnect screen")
 
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false
@@ -276,7 +306,7 @@ object AutoDisconnect : Module(
                 imageHeight = image.height,
                 imageWidth = image.width,
                 reason = reasonText,
-                details = disconnectScreenText(reasonText),
+                sections = disconnectSections(),
                 hideDetails = hideDetails
             )
 
@@ -324,40 +354,214 @@ object AutoDisconnect : Module(
         return details
     }
 
-    private fun SafeContext.disconnectScreenText(text: Text) = buildText {
-        text(prefix(CommunicationUtils.LogLevel.Warn.logoColor))
-        text(text)
-        literal("\n\n")
-        literal("Disconnected at ")
-        highlighted(player.pos.format())
-        literal(" on ")
-        highlighted(CommunicationUtils.currentTime())
-        literal(" with ")
-        highlighted(player.fullHealth.format())
-        literal(" health.")
-        if (player.isSubmergedInWater) {
-            literal("\n")
-            literal("Submerged in water, had ")
-            highlighted("${player.air}")
-            literal(" ticks left of breath.")
-        }
-        if (player.isInLava) {
-            literal("\n")
-            literal("In lava, had ")
-            highlighted("${player.air}")
-            literal(" ticks left of breath.")
-        }
-        if (player.isOnFire) {
-            literal("\n")
-            literal("Burning for ")
-            highlighted("${player.fireTicks}")
-            literal(" ticks.")
-        }
-        if (isDisabled) {
-            color(Color.YELLOW) {
-                literal("\n\n")
-                literal("AutoDisconnect disabled.")
+    private fun SafeContext.disconnectSections(): List<DetailSection> {
+        val sections = mutableListOf<DetailSection>()
+
+        // Always-visible summary: the reason plus where/when/health it happened.
+        // Each detail is opt-in via the Display tab, so the sentence is assembled piecewise.
+        sections += DetailSection.TextSection(
+            buildText {
+                literal("Disconnected")
+                if (showCoordinates) {
+                    literal(" at ")
+                    highlighted(player.pos.format(separator = ", ", precision = 1))
+                }
+                if (showTime) {
+                    literal(" on ")
+                    highlighted(CommunicationUtils.currentTime())
+                }
+                literal(" with ")
+                highlighted(player.fullHealth.format(precision = 1))
+                literal(" health.")
             }
+        )
+
+
+        // Environmental hazards, tucked into a collapsible section when present.
+        val hazards = buildList {
+            if (player.isSubmergedInWater) add(
+                buildText {
+                    literal("Submerged in water, had ")
+                    highlighted("${player.air}")
+                    literal(" ticks left of breath.")
+                }
+            )
+            if (player.isInLava) add(
+                buildText { literal("In lava") }
+            )
+            if (player.isOnFire) add(
+                buildText {
+                    literal("Burning for ")
+                    highlighted("${player.fireTicks}")
+                    literal(" more ticks.")
+                }
+            )
+        }
+        if (hazards.isNotEmpty()) {
+            sections += DetailSection.CollapsibleSection(
+                header = Text.literal("Environment"),
+                body = buildText {
+                    hazards.forEachIndexed { index, hazard ->
+                        if (index > 0) literal("\n")
+                        text(hazard)
+                    }
+                }
+            )
+        }
+
+        // The local player's own inventory, grouped by area.
+        sections += DetailSection.CollapsibleSection(
+            header = Text.literal("Inventory"),
+            children = listOf(
+                itemGroup("Hotbar", player.hotbarStacks, player.inventory.selectedSlot),
+                itemGroup("Off Hand", listOf(player.getEquippedStack(EquipmentSlot.OFFHAND))),
+                itemGroup("Inventory", player.inventoryStacks),
+                itemGroup("Armor", ARMOR_SLOTS.map { player.getEquippedStack(it) }),
+            ),
+            expanded = false
+        )
+
+        // Every tracked player, each expandable into position plus per-item equipment.
+        val otherPlayers = world.players
+            .filter { it != player }
+            .sortedBy { player.distanceTo(it) }
+        if (otherPlayers.isNotEmpty()) {
+            sections += DetailSection.CollapsibleSection(
+                header = Text.literal("Players"),
+                children = otherPlayers.map { playerSection(it) },
+                expanded = false
+            )
+        }
+
+        return sections
+    }
+
+    /**
+     * A collapsible card for [other]: header of "name - distance", a body with its
+     * position, and one expandable child per non-empty equipment slot.
+     */
+    private fun SafeContext.playerSection(other: PlayerEntity): DetailSection.CollapsibleSection {
+        fun slotEntry(label: String, slot: EquipmentSlot): DetailSection {
+            val stack = other.getEquippedStack(slot)
+            return if (stack.isEmpty) {
+                DetailSection.TextSection(
+                    buildText {
+                        literal("$label: ")
+                        color(Color.GRAY) { literal("Empty") }
+                    }
+                )
+            } else {
+                itemRow(stack, label)
+            }
+        }
+
+        val (armor, hands) = EQUIPMENT_SLOTS.partition { it.second in ARMOR_SLOTS }
+
+        val equipment = hands.map { (label, slot) -> slotEntry(label, slot) } +
+            DetailSection.CollapsibleSection(
+                header = Text.literal("Armor"),
+                children = armor.map { (label, slot) -> slotEntry(label, slot) },
+                expanded = false
+            )
+
+        return DetailSection.CollapsibleSection(
+            header = buildText {
+                text(other.name)
+                literal(" - ")
+                highlighted("${other.distanceTo(player).format(precision = 2)} blocks")
+            },
+            body = buildText {
+                literal("Position: ")
+                highlighted(other.pos.format(separator = ", ", precision = 1))
+            },
+            children = equipment,
+            expanded = false
+        )
+    }
+
+    /**
+     * A collapsible group of inventory [stacks] (e.g. Hotbar, Armor). Empty stacks
+     * are dropped; an empty group shows an "Empty" note instead of children. The
+     * stack at [selectedIndex] (index into [stacks], before filtering) is marked
+     * as selected.
+     */
+    private fun itemGroup(title: String, stacks: List<ItemStack>, selectedIndex: Int? = null): DetailSection.CollapsibleSection {
+        val rows = stacks.mapIndexedNotNull { index, stack ->
+            if (stack.isEmpty) null else itemRow(stack, selected = index == selectedIndex)
+        }
+
+        return DetailSection.CollapsibleSection(
+            header = Text.literal(title),
+            body = if (rows.isEmpty()) buildText { color(Color.GRAY) { literal("Empty") } } else null,
+            children = rows,
+            expanded = false
+        )
+    }
+
+    /**
+     * A row for a single [stack], optionally prefixed with a slot [label]. Expands
+     * only when it has something to show: enchantments (listed in the body) and/or
+     * shulker-box/bundle contents (listed as nested rows in the same format).
+     * Otherwise it's a plain line.
+     */
+    private fun itemRow(stack: ItemStack, label: String? = null, selected: Boolean = false): DetailSection {
+        val header = itemHeader(stack, label, selected)
+        val enchantments = stack.forEachEnchantment { entry, level -> Enchantment.getName(entry, level) }
+        val contents = (stack.shulkerBoxContents + stack.bundleContents).filter { !it.isEmpty }
+
+        if (enchantments.isEmpty() && contents.isEmpty()) {
+            return DetailSection.TextSection(header)
+        }
+
+        return DetailSection.CollapsibleSection(
+            header = header,
+            body = if (enchantments.isEmpty()) {
+                null
+            } else {
+                buildText {
+                    enchantments.forEachIndexed { index, enchantment ->
+                        if (index > 0) literal("\n")
+                        text(enchantment)
+                    }
+                }
+            },
+            children = contents.map { itemRow(it) },
+            expanded = false
+        )
+    }
+
+    /**
+     * "{label}: {type} ({name}) ({remaining}/{max}) ({count})" for a stack: the
+     * [label] prefix only when given, the custom name in parentheses after the item
+     * type only when named, the durability (remaining/max) only when damageable, and
+     * the count in parentheses only when stackable. When [selected], appends a
+     * "(selected)" marker in the arrow color.
+     */
+    private fun itemHeader(stack: ItemStack, label: String? = null, selected: Boolean = false): Text = buildText {
+        if (label != null) literal("$label: ")
+
+        val customName = stack.get(DataComponentTypes.CUSTOM_NAME)
+        if (customName != null) {
+            text(stack.itemName)
+            color(ClickGuiLayout.textDisabled) {
+                literal(" (")
+                text(customName)
+                literal(")")
+            }
+        } else {
+            text(stack.itemName)
+        }
+
+        if (stack.isDamageable) {
+            color(ClickGuiLayout.textDisabled) { literal(" (${stack.maxDamage - stack.damage}/${stack.maxDamage})") }
+        }
+
+        if (stack.maxCount > 1) {
+            color(ClickGuiLayout.textDisabled) { literal(" (${stack.count})") }
+        }
+
+        if (selected) {
+            highlighted(" (selected)")
         }
     }
 
@@ -508,7 +712,7 @@ data class DisconnectDetails(
     val imageHeight: Int,
     val imageWidth: Int,
     val reason: Text,
-    val details: Text,
+    val sections: List<DetailSection>,
     val hideDetails: Boolean
 )
 
