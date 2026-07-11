@@ -34,6 +34,8 @@ import com.lambda.util.CommunicationUtils
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.FormattingUtils.format
+import com.lambda.util.ServerTPSUtils
+import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
@@ -42,6 +44,7 @@ import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.item.ItemStackUtils.bundleContents
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
+import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks
@@ -63,6 +66,7 @@ import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.EquipmentSlot
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
 import net.minecraft.entity.decoration.EndCrystalEntity
@@ -226,7 +230,8 @@ object AutoDisconnect : Module(
                 }
             if (matchingReason != null) {
                 val reasonText = matchingReason.generateReason(this) ?: buildText { literal("Reason lost to the abyss") }
-                if (requestDisconnect(reasonText) && matchingReason.smartToggle()) {
+                val willDisarm = matchingReason.smartToggle()
+                if (requestDisconnect(reasonText, matchingReason.takeIf { willDisarm }) && willDisarm) {
                     matchingReason.armed = false
                 }
             }
@@ -294,7 +299,7 @@ object AutoDisconnect : Module(
      * through. Returns false (and does nothing) when the player isn't in a survival-like
      * game mode or a disconnect is already in progress.
      */
-    private fun SafeContext.requestDisconnect(reasonText: Text): Boolean {
+    private fun SafeContext.requestDisconnect(reasonText: Text, disarmedTrigger: Reason? = null): Boolean {
         if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE || disconnectInProgress) return false
         disconnectInProgress = true
         ScreenshotRecorder.takeScreenshot(Lambda.mc.framebuffer, 1) { image ->
@@ -305,8 +310,13 @@ object AutoDisconnect : Module(
                 imageIdentifier = imageIdentifier,
                 imageHeight = image.height,
                 imageWidth = image.width,
-                reason = reasonText,
-                sections = disconnectSections(),
+                reason = if (disarmedTrigger != null) buildText {
+                    text(reasonText)
+                    literal(" (")
+                    highlighted("${disarmedTrigger.displayName} trigger disarmed")
+                    literal(")")
+                } else reasonText,
+                sections = disconnectSections(disarmedTrigger),
                 hideDetails = hideDetails
             )
 
@@ -354,28 +364,49 @@ object AutoDisconnect : Module(
         return details
     }
 
-    private fun SafeContext.disconnectSections(): List<DetailSection> {
+    private fun SafeContext.disconnectSections(disarmedTrigger: Reason? = null): List<DetailSection> {
         val sections = mutableListOf<DetailSection>()
 
-        // Always-visible summary: the reason plus where/when/health it happened.
-        // Each detail is opt-in via the Display tab, so the sentence is assembled piecewise.
-        sections += DetailSection.TextSection(
-            buildText {
-                literal("Disconnected")
-                if (showCoordinates) {
-                    literal(" at ")
-                    highlighted(player.pos.format(separator = ", ", precision = 1))
+        // When this disconnect disarmed a smart trigger, call it out on the first line.
+        if (disarmedTrigger != null) {
+            sections += DetailSection.TextSection(
+                buildText {
+                    literal("Disarmed the ")
+                    highlighted(disarmedTrigger.displayName)
+                    literal(" smart trigger.")
                 }
-                if (showTime) {
-                    literal(" on ")
-                    highlighted(CommunicationUtils.currentTime())
-                }
-                literal(" with ")
-                highlighted(player.fullHealth.format(precision = 1))
-                literal(" health.")
-            }
-        )
+            )
+        }
 
+        // Always-visible summary: the reason plus when it happened.
+        if (showTime) {
+            sections += DetailSection.TextSection(
+            buildText {
+                    literal("Disconnected")
+                        literal(" on ")
+                        highlighted(CommunicationUtils.currentTime())
+                    literal(".")
+                }
+            )
+        }
+
+        // Smart triggers and their armed state, one child per active trigger with its smart toggle on.
+        val smartReasons = Reason.entries.filter { it.enabled() && it.smartToggle() }
+        if (smartReasons.isNotEmpty()) {
+            sections += DetailSection.CollapsibleSection(
+                header = Text.literal("Smart Triggers"),
+                children = smartReasons.map { reason ->
+                    DetailSection.TextSection(
+                        buildText {
+                            literal("${reason.displayName}: ")
+                            if (reason.armed) color(Color.GREEN) { literal("Armed") }
+                            else highlighted("Disarmed")
+                        }
+                    )
+                },
+                expanded = true
+            )
+        }
 
         // Environmental hazards, tucked into a collapsible section when present.
         val hazards = buildList {
@@ -397,29 +428,95 @@ object AutoDisconnect : Module(
                 }
             )
         }
-        if (hazards.isNotEmpty()) {
-            sections += DetailSection.CollapsibleSection(
-                header = Text.literal("Environment"),
-                body = buildText {
-                    hazards.forEachIndexed { index, hazard ->
-                        if (index > 0) literal("\n")
-                        text(hazard)
-                    }
+        // The local player: location, health, speed, environmental hazards, and inventory.
+        sections += DetailSection.CollapsibleSection(
+            header = Text.literal("Player"),
+            children = buildList {
+                if (showCoordinates) add(
+                    DetailSection.TextSection(
+                        buildText {
+                            literal("Coordinates: ")
+                            highlighted(player.pos.format(separator = ", ", precision = 1))
+                        }
+                    )
+                )
+                add(
+                    DetailSection.TextSection(
+                        buildText {
+                            literal("Health: ")
+                            highlighted(player.fullHealth.format(precision = 1))
+                        }
+                    )
+                )
+                add(
+                    DetailSection.TextSection(
+                        buildText {
+                            literal("Speed: ")
+                            highlighted(SpeedUnit.BlocksPerSecond.convertFromMinecraft(player.moveDelta).format(precision = 1))
+                            literal(" ${SpeedUnit.BlocksPerSecond.unitName}")
+                        }
+                    )
+                )
+                if (hazards.isNotEmpty()) add(
+                    DetailSection.CollapsibleSection(
+                        header = Text.literal("Environment"),
+                        body = buildText {
+                            hazards.forEachIndexed { index, hazard ->
+                                if (index > 0) literal("\n")
+                                text(hazard)
+                            }
+                        }
+                    )
+                )
+                add(
+                    DetailSection.CollapsibleSection(
+                        header = Text.literal("Inventory"),
+                        children = listOf(
+                            itemGroup("Hotbar", player.hotbarStacks, player.inventory.selectedSlot),
+                            itemGroup("Off Hand", listOf(player.getEquippedStack(EquipmentSlot.OFFHAND))),
+                            itemGroup("Inventory", player.inventoryStacks),
+                            itemGroup("Armor", ARMOR_SLOTS.map { player.getEquippedStack(it) }),
+                        ),
+                        expanded = false
+                    )
+                )
+            },
+            expanded = true
+        )
+
+        // Server-side metrics, below the player and collapsed by default; each line is opt-in via the Display tab.
+        val serverDetails = buildList {
+            add(DetailSection.TextSection(
+                buildText {
+                    literal("Ping: ")
+                    val ping = connection.getPlayerListEntry(player.uuid)?.latency ?: -1
+                    if (ping >= 0) highlighted("$ping ms") else highlighted("unknown")
                 }
+            ))
+            add(DetailSection.TextSection(
+                buildText {
+                    literal("TPS: ")
+                    val tps = ServerTPSUtils.recentData(ServerTPSUtils.TickFormat.Tps).lastOrNull()
+                    if (tps != null) {
+                        highlighted(tps.format(precision = 1))
+                        literal(" t/s")
+                    } else highlighted("unknown")
+                }
+            ))
+            add(DetailSection.TextSection(
+                buildText {
+                    literal("In-game time: ")
+                    highlighted(formatDayTime(world.timeOfDay))
+                }
+            ))
+        }
+        if (serverDetails.isNotEmpty()) {
+            sections += DetailSection.CollapsibleSection(
+                header = Text.literal("Server Details"),
+                children = serverDetails,
+                expanded = false
             )
         }
-
-        // The local player's own inventory, grouped by area.
-        sections += DetailSection.CollapsibleSection(
-            header = Text.literal("Inventory"),
-            children = listOf(
-                itemGroup("Hotbar", player.hotbarStacks, player.inventory.selectedSlot),
-                itemGroup("Off Hand", listOf(player.getEquippedStack(EquipmentSlot.OFFHAND))),
-                itemGroup("Inventory", player.inventoryStacks),
-                itemGroup("Armor", ARMOR_SLOTS.map { player.getEquippedStack(it) }),
-            ),
-            expanded = false
-        )
 
         // Every tracked player, each expandable into position plus per-item equipment.
         val otherPlayers = world.players
@@ -427,13 +524,49 @@ object AutoDisconnect : Module(
             .sortedBy { player.distanceTo(it) }
         if (otherPlayers.isNotEmpty()) {
             sections += DetailSection.CollapsibleSection(
-                header = Text.literal("Players"),
+                header = Text.literal("Nearby Players"),
                 children = otherPlayers.map { playerSection(it) },
                 expanded = false
             )
         }
 
+        // Every loaded non-player entity, nearest first. Players are covered by the Nearby Players section.
+        val nearbyEntities = world.entities
+            .filter { it !is PlayerEntity }
+            .sortedBy { player.distanceTo(it) }
+        if (nearbyEntities.isNotEmpty()) {
+            sections += DetailSection.CollapsibleSection(
+                header = Text.literal("Nearby Entities"),
+                children = nearbyEntities.map { entitySection(it) },
+                expanded = false
+            )
+        }
+
+        // Everyone on the server tab list, whether or not they're within render distance.
+        val onlinePlayers = connection.listedPlayerListEntries
+            .map { it.profile.name }
+            .sorted()
+        if (onlinePlayers.isNotEmpty()) {
+            sections += DetailSection.CollapsibleSection(
+                header = Text.literal("Online Players"),
+                children = onlinePlayers.map { name ->
+                    DetailSection.TextSection(buildText { literal(name) })
+                },
+                expanded = false
+            )
+        }
+
         return sections
+    }
+
+    /**
+     * Formats a world [timeOfDay] (in ticks) as a 24-hour in-game clock. Tick 0 is
+     * 06:00, so the day-fraction is offset by 6000 ticks before scaling to minutes.
+     */
+    private fun formatDayTime(timeOfDay: Long): String {
+        val dayTick = ((timeOfDay % 24000L) + 24000L) % 24000L
+        val minuteOfDay = ((dayTick + 6000L) % 24000L) * 24 * 60 / 24000
+        return "%02d:%02d".format(minuteOfDay / 60, minuteOfDay % 60)
     }
 
     /**
@@ -477,6 +610,43 @@ object AutoDisconnect : Module(
             children = equipment,
             expanded = false
         )
+    }
+
+    /**
+     * A row for a single [entity]: header of "type - distance". Expands to its held
+     * items and armor plus any active status effects (and burning) when it has any;
+     * otherwise it's a plain line. Non-living entities (items, projectiles, …) never
+     * have equipment or effects, so they render as plain lines.
+     */
+    private fun SafeContext.entitySection(entity: Entity): DetailSection {
+        val header = buildText {
+            text(entity.type.name)
+            literal(" - ")
+            highlighted("${entity.distanceTo(player).format(precision = 2)} blocks")
+        }
+
+        val children = buildList {
+            if (entity is LivingEntity) {
+                EQUIPMENT_SLOTS.forEach { (label, slot) ->
+                    val stack = entity.getEquippedStack(slot)
+                    if (!stack.isEmpty) add(itemRow(stack, label))
+                }
+                entity.statusEffects.forEach { effect ->
+                    add(
+                        DetailSection.TextSection(
+                            buildText {
+                                text(effect.effectType.value().name)
+                                if (effect.amplifier > 0) literal(" ${effect.amplifier + 1}")
+                            }
+                        )
+                    )
+                }
+            }
+            if (entity.isOnFire) add(DetailSection.TextSection(buildText { literal("Burning") }))
+        }
+
+        return if (children.isEmpty()) DetailSection.TextSection(header)
+        else DetailSection.CollapsibleSection(header = header, children = children, expanded = false)
     }
 
     /**
