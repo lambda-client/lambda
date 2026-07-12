@@ -145,6 +145,10 @@ class ManeuverDiscovery(
         return discovery.edges
     }
 
+    /** Existing incoming discoveries without expanding a new landing fan. */
+    fun knownPredecessorsInto(landing: FastVector): Map<FastVector, Double> =
+        landings[landing]?.edges ?: emptyMap()
+
     /**
      * Walks the single-jump fan from the landing's cursor, admitting
      * prefilter-clean candidates with optimistic costs until the live-edge
@@ -260,8 +264,12 @@ class ManeuverDiscovery(
     fun chainWaypoints(from: FastVector, to: FastVector): List<FastVector>? = chainMids[from to to]
 
     /** True if any edge of [path] is discovered and not yet sim-validated. */
-    fun hasOptimisticEdge(path: List<FastVector>): Boolean =
-        path.zipWithNext().any { (from, to) -> landings[to]?.optimistic?.contains(from) == true }
+    fun hasOptimisticEdge(path: List<FastVector>): Boolean {
+        for (index in 0 until path.lastIndex) {
+            if (landings[path[index + 1]]?.optimistic?.contains(path[index]) == true) return true
+        }
+        return false
+    }
 
     /**
      * Resolves every landing that [path] selects a not-yet-validated edge
@@ -281,7 +289,9 @@ class ManeuverDiscovery(
     fun validatePathEdges(path: List<FastVector>, horizon: Double? = null): Set<FastVector> {
         val affected = HashSet<FastVector>()
         val origin = path.firstOrNull() ?: return affected
-        for ((takeoff, landing) in path.zipWithNext()) {
+        for (index in 0 until path.lastIndex) {
+            val takeoff = path[index]
+            val landing = path[index + 1]
             val discovery = landings[landing] ?: continue
             if (takeoff !in discovery.optimistic) continue
             // Horizon-limited passes (partial publications) only resolve
@@ -384,18 +394,24 @@ class ManeuverDiscovery(
     }
 
     /** Immutable executor-facing provenance for the (validated) edges of [path]. */
-    fun annotationsFor(path: List<FastVector>): Map<Pair<FastVector, FastVector>, TraversalHandle.EdgeAnnotation> =
-        path.zipWithNext().mapNotNull { (from, to) ->
-            if (landings[to]?.optimistic?.contains(from) == true) return@mapNotNull null
+    fun annotationsFor(path: List<FastVector>): Map<Pair<FastVector, FastVector>, TraversalHandle.EdgeAnnotation> {
+        val result = HashMap<Pair<FastVector, FastVector>, TraversalHandle.EdgeAnnotation>()
+        for (index in 0 until path.lastIndex) {
+            val from = path[index]
+            val to = path[index + 1]
+            if (landings[to]?.optimistic?.contains(from) == true) continue
             val chain = chainWaypoints(from, to)
             val discovered = isDiscoveredJump(from, to)
-            if (chain == null && !discovered) null
-            else (from to to) to TraversalHandle.EdgeAnnotation(
+            if (chain == null && !discovered) continue
+            val edge = from to to
+            result[edge] = TraversalHandle.EdgeAnnotation(
                 chainWaypoints = chain?.toList(),
                 discoveredJump = discovered,
-                entrySpeedEnvelope = entryEnvelopes[from to to],
+                entrySpeedEnvelope = entryEnvelopes[edge],
             )
-        }.toMap()
+        }
+        return result
+    }
 
     /**
      * Drops all world-dependent discovery state. Used for chunk transitions,
@@ -541,6 +557,14 @@ class ManeuverDiscovery(
             // launch spread is wider than its corridor.
             simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true, progressOffset = DEEP_LAUNCH_PROGRESS)
                 ?: return null
+            if (!robustEntryBox(
+                    takeoff, landing,
+                    minSpeed = ENTRY_SPEED_LOW,
+                    maxSpeed = ENTRY_SPEED_HIGH,
+                    minProgress = 0.0,
+                    maxProgress = DEEP_LAUNCH_PROGRESS,
+                )
+            ) return null
             return JumpValidation((slow + fast) / 2.0)
         }
         if (!samplingEligible) return null
@@ -590,6 +614,12 @@ class ManeuverDiscovery(
             if (ENTRY_SPEED_SAMPLES[run.lo] <= achievable) {
                 val windowEnd = probeWindowEnd(takeoff, landing, run.hi, anchor = 0.0, probes = 3)
                 if (windowEnd >= MIN_TAKEOFF_WINDOW) {
+                    if (!robustEntryBox(
+                            takeoff, landing,
+                            ENTRY_SPEED_SAMPLES[run.lo], ENTRY_SPEED_SAMPLES[run.hi],
+                            0.0, windowEnd,
+                        )
+                    ) return null
                     return admitEnvelope(takeoff, landing, run, minProgress = 0.0, maxProgress = windowEnd)
                 }
                 return null
@@ -612,6 +642,12 @@ class ManeuverDiscovery(
             if (ENTRY_SPEED_SAMPLES[run.lo] > achievable) continue
             val windowEnd = probeWindowEnd(takeoff, landing, run.hi, anchor = anchor, probes = 2)
             if (windowEnd - anchor < MIN_TAKEOFF_WINDOW) continue
+            if (!robustEntryBox(
+                    takeoff, landing,
+                    ENTRY_SPEED_SAMPLES[run.lo], ENTRY_SPEED_SAMPLES[run.hi],
+                    anchor, windowEnd,
+                )
+            ) continue
             val validation = admitEnvelope(takeoff, landing, run, minProgress = anchor, maxProgress = windowEnd)
             if (ENTRY_SPEED_SAMPLES[run.lo] <= ENTRY_SPEED_GROUND_MAX) return validation
             if (fallback == null) fallback = validation
@@ -727,6 +763,45 @@ class ManeuverDiscovery(
     private data class JumpValidation(val cost: Double, val envelope: EntrySpeedEnvelope? = null)
 
     /**
+     * Certify the corners of the live launch-state box, not just its ideal
+     * center line. Production approaches carry small lateral position and
+     * velocity errors that the old harness never generated; an edge that
+     * only works at exactly zero error is not reliable enough to publish.
+     */
+    private fun robustEntryBox(
+        takeoff: FastVector,
+        landing: FastVector,
+        minSpeed: Double,
+        maxSpeed: Double,
+        minProgress: Double,
+        maxProgress: Double,
+    ): Boolean {
+        val states = arrayOf(
+            minSpeed to minProgress,
+            maxSpeed to minProgress,
+            minSpeed to maxProgress,
+            maxSpeed to maxProgress,
+        )
+        for ((speed, progress) in states) {
+            for (side in intArrayOf(-1, 1)) {
+                for (drift in intArrayOf(-1, 1)) {
+                    if (simulateEntry(
+                            takeoff = takeoff,
+                            landing = landing,
+                            entrySpeed = speed,
+                            allowCarryPast = true,
+                            progressOffset = progress,
+                            lateralOffset = side * ROBUST_LATERAL_OFFSET,
+                            lateralVelocity = drift * ROBUST_LATERAL_VELOCITY,
+                        ) == null
+                    ) return false
+                }
+            }
+        }
+        return true
+    }
+
+    /**
      * One tick-accurate simulation (T7 first-collision semantics): entry at
      * [entrySpeed] along the jump line, jump on the first tick, hold
      * forward. Runs against the session's snapshot view — worker-legal, and
@@ -739,13 +814,16 @@ class ManeuverDiscovery(
         entrySpeed: Double,
         allowCarryPast: Boolean,
         progressOffset: Double = 0.0,
+        lateralOffset: Double = 0.0,
+        lateralVelocity: Double = 0.0,
     ): Double? {
         val center = Vec3d.ofBottomCenter(takeoff.toBlockPos())
         val to = Vec3d.ofBottomCenter(landing.toBlockPos())
         val line = to.subtract(center).multiply(1.0, 0.0, 1.0).normalize()
+        val perpendicular = Vec3d(-line.z, 0.0, line.x)
         // Offset entries steer like the executor does: yaw at the landing
         // from where the player actually stands, not along the center line.
-        val from = center.add(line.multiply(progressOffset))
+        val from = center.add(line.multiply(progressOffset)).add(perpendicular.multiply(lateralOffset))
         val rotation = from.rotationTo(to)
         val direction = to.subtract(from).multiply(1.0, 0.0, 1.0).normalize()
         val landingBlock = landing.toBlockPos()
@@ -758,7 +836,7 @@ class ManeuverDiscovery(
                 profile = profile,
                 position = from,
                 rotation = rotation,
-                velocity = direction.multiply(entrySpeed),
+                velocity = direction.multiply(entrySpeed).add(perpendicular.multiply(lateralVelocity)),
                 onGround = true,
                 isSprinting = true,
             ),
@@ -1012,7 +1090,13 @@ class ManeuverDiscovery(
         // 2–10 sims per candidate where whole-band validation cost 1–3,
         // and without headroom the tier-1 fan starves before the edges the
         // bedrock course depends on validate.
-        const val MAX_SIMS_PER_LANDING = 36
+        const val MAX_SIMS_PER_LANDING = 96
+
+        // Robust launch certificate corners. Executor gates are slightly
+        // wider, leaving quantization margin without publishing center-line-
+        // only jumps that fail under ordinary production approach drift.
+        const val ROBUST_LATERAL_OFFSET = 0.12
+        const val ROBUST_LATERAL_VELOCITY = 0.04
 
         // Sprint-jump reach beyond the template gapJump (2 blocks): 2.0–5.0
         // blocks of horizontal displacement, any integer direction — this is

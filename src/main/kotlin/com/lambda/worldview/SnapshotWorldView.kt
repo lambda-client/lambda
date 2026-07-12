@@ -30,6 +30,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Copy-on-read snapshot of the observed world, one planning session's base
@@ -61,14 +62,36 @@ class SnapshotWorldView(private val world: ClientWorld) : WorldView {
      */
     private val observedOverrides = ConcurrentHashMap<Long, ConcurrentHashMap<Int, Int>>()
 
+    /** Most planner reads stay in one 16³ section; bypass a CHM lookup on those reads. */
+    private class SectionCursor {
+        var generation = -1
+        var key = Long.MIN_VALUE
+        var section: IntArray? = null
+    }
+
+    private val sectionGeneration = AtomicInteger()
+    private val sectionCursor = ThreadLocal.withInitial(::SectionCursor)
+
     @Volatile private var faultTimeouts = 0
 
     override fun stateId(x: Int, y: Int, z: Int): Int {
         if (world.isOutOfHeightLimit(y)) return BlockTraitRegistry.AIR_ID
         val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
         val index = localIndex(x, y, z)
-        observedOverrides[key]?.get(index)?.let { return it }
-        val section = sections[key] ?: fetchSection(key, x shr 4, y shr 4, z shr 4)
+        // The override map is empty for virtually every planning session.
+        // Avoid hashing the section key until a mutation has actually landed.
+        if (observedOverrides.isNotEmpty()) observedOverrides[key]?.get(index)?.let { return it }
+        val generation = sectionGeneration.get()
+        val cursor = sectionCursor.get()
+        val section = if (cursor.generation == generation && cursor.key == key) {
+            cursor.section!!
+        } else {
+            (sections[key] ?: fetchSection(key, x shr 4, y shr 4, z shr 4)).also {
+                cursor.generation = generation
+                cursor.key = key
+                cursor.section = it
+            }
+        }
         if (section === AIR_SECTION) return BlockTraitRegistry.AIR_ID
         // Unknown is deliberately conservative. Treating an unloaded chunk
         // as air lets the planner route through terrain it has never observed.
@@ -199,6 +222,7 @@ class SnapshotWorldView(private val world: ClientWorld) : WorldView {
                 removed++
             }
         }
+        if (removed > 0) sectionGeneration.incrementAndGet()
         return removed
     }
 

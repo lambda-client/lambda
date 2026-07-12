@@ -17,6 +17,8 @@
 
 package com.lambda.pathing.core
 
+import java.util.Collections
+
 /**
  * Sparse directed graph that generates adjacency on demand.
  *
@@ -32,20 +34,14 @@ class LazyGraph<N>(
     private val predecessorEdges = HashMap<N, HashMap<N, Double>>()
     private val initializedSuccessors = HashSet<N>()
     private val initializedPredecessors = HashSet<N>()
+    private val knownNodes = HashSet<N>()
+    private val knownNodesView: Set<N> = Collections.unmodifiableSet(knownNodes)
 
     val nodes: Set<N>
-        get() = buildSet {
-            addAll(successorEdges.keys)
-            addAll(predecessorEdges.keys)
-            // A generated empty adjacency is still planner knowledge. Keeping
-            // these nodes visible is essential for world-change invalidation:
-            // an initialized dead end may gain its first edge later.
-            addAll(initializedSuccessors)
-            addAll(initializedPredecessors)
-        }
+        get() = knownNodesView
 
     val size: Int
-        get() = nodes.size
+        get() = knownNodes.size
 
     fun successors(node: N): Map<N, Double> {
         ensureSuccessors(node)
@@ -65,6 +61,7 @@ class LazyGraph<N>(
 
     fun markSuccessorsInitialized(node: N) {
         initializedSuccessors += node
+        knownNodes += node
     }
 
     fun cost(from: N, to: N): Double {
@@ -78,10 +75,23 @@ class LazyGraph<N>(
     }
 
     fun removeNode(node: N) {
-        successorEdges.remove(node)?.keys?.forEach { predecessorEdges[it]?.remove(node) }
-        predecessorEdges.remove(node)?.keys?.forEach { successorEdges[it]?.remove(node) }
+        successorEdges.remove(node)?.keys?.forEach { successor ->
+            predecessorEdges[successor]?.let { edges ->
+                edges.remove(node)
+                if (edges.isEmpty()) predecessorEdges.remove(successor)
+            }
+            refreshKnownNode(successor)
+        }
+        predecessorEdges.remove(node)?.keys?.forEach { predecessor ->
+            successorEdges[predecessor]?.let { edges ->
+                edges.remove(node)
+                if (edges.isEmpty()) successorEdges.remove(predecessor)
+            }
+            refreshKnownNode(predecessor)
+        }
         initializedSuccessors.remove(node)
         initializedPredecessors.remove(node)
+        knownNodes.remove(node)
     }
 
     fun clear() {
@@ -89,23 +99,26 @@ class LazyGraph<N>(
         predecessorEdges.clear()
         initializedSuccessors.clear()
         initializedPredecessors.clear()
+        knownNodes.clear()
     }
 
-    operator fun contains(node: N) =
-        node in successorEdges || node in predecessorEdges ||
-            node in initializedSuccessors || node in initializedPredecessors
+    operator fun contains(node: N) = node in knownNodes
 
     private fun ensureSuccessors(node: N) {
         if (!initializedSuccessors.add(node)) return
+        knownNodes += node
         generateSuccessors(node).forEach { (successor, cost) -> putEdge(node, successor, cost) }
     }
 
     private fun ensurePredecessors(node: N) {
         if (!initializedPredecessors.add(node)) return
+        knownNodes += node
         generatePredecessors(node).forEach { (predecessor, cost) -> putEdge(predecessor, node, cost) }
     }
 
     private fun putEdge(from: N, to: N, cost: Double) {
+        knownNodes += from
+        knownNodes += to
         successorEdges.getOrPut(from) { HashMap() }[to] = cost
         predecessorEdges.getOrPut(to) { HashMap() }[from] = cost
     }
@@ -119,7 +132,27 @@ class LazyGraph<N>(
             edges.remove(from)
             if (edges.isEmpty()) predecessorEdges.remove(to)
         }
+        refreshKnownNode(from)
+        refreshKnownNode(to)
+    }
+
+    private fun refreshKnownNode(node: N) {
+        if (node !in successorEdges && node !in predecessorEdges &&
+            node !in initializedSuccessors && node !in initializedPredecessors
+        ) {
+            knownNodes.remove(node)
+        }
     }
 }
 
-private fun <N> Map<N, Double>.filterFiniteCosts() = filterValues { it.isFinite() }
+/** Keep the provider's map allocation when it is already valid (the common path). */
+private fun <N> Map<N, Double>.filterFiniteCosts(): Map<N, Double> {
+    var filtered: HashMap<N, Double>? = null
+    for ((node, cost) in this) {
+        if (!cost.isFinite()) {
+            val target = filtered ?: HashMap(this).also { filtered = it }
+            target.remove(node)
+        }
+    }
+    return filtered ?: this
+}

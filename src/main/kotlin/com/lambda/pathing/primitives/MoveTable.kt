@@ -74,7 +74,7 @@ object MoveTable {
                 val ox = tx - t.dx
                 val oy = ty - t.dy
                 val oz = tz - t.dz
-                if (isStance(view, ox, oy, oz) && t.matches(view, ox, oy, oz)) {
+                if (isStance(view, ox, oy, oz) && t.matchesAfterTargetStance(view, ox, oy, oz)) {
                     result[fastVectorOf(ox, oy, oz)] = t.cost
                 }
             }
@@ -113,10 +113,12 @@ object MoveTable {
      * check once per node (templates carry the *target* stance in their
      * cells; the origin stance is checked here).
      */
-    fun isStance(view: WorldView, x: Int, y: Int, z: Int): Boolean =
-        view.traits(x, y - 1, z).standableFullTop &&
-            view.traits(x, y, z).centerPassable && !view.traits(x, y - 1, z).intrudesAbove &&
+    fun isStance(view: WorldView, x: Int, y: Int, z: Int): Boolean {
+        val support = view.traits(x, y - 1, z)
+        return support.standableFullTop && !support.intrudesAbove &&
+            view.traits(x, y, z).centerPassable &&
             view.traits(x, y + 1, z).centerPassable
+    }
 
     /**
      * A column a swept, off-center footprint may cross: full-square support
@@ -125,10 +127,12 @@ object MoveTable {
      * at column centers; an any-angle corridor sweeps the whole column, so
      * partial shapes (fences, walls, open doors) must reject it.
      */
-    fun isSweptStance(view: WorldView, x: Int, y: Int, z: Int): Boolean =
-        view.traits(x, y - 1, z).standableFullTop && !view.traits(x, y - 1, z).intrudesAbove &&
+    fun isSweptStance(view: WorldView, x: Int, y: Int, z: Int): Boolean {
+        val support = view.traits(x, y - 1, z)
+        return support.standableFullTop && !support.intrudesAbove &&
             view.traits(x, y, z).passable &&
             view.traits(x, y + 1, z).passable
+    }
 
     fun build(config: PlannerConfig): MoveSet {
         val templates = buildList {

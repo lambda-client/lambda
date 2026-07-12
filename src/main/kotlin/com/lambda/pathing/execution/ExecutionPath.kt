@@ -99,28 +99,39 @@ data class ExecutionPath(
 
         val minIndex = currentIndex?.let { (it - searchBehind).coerceAtLeast(0) } ?: 0
         val maxIndex = currentIndex?.let { (it + searchAhead).coerceAtMost(lastSegmentIndex) } ?: lastSegmentIndex
-        val indices = (minIndex..maxIndex).toList()
-
-        val contained = indices.mapNotNull { index ->
+        val contained = ArrayList<SegmentSelection>(maxIndex - minIndex + 1)
+        for (index in minIndex..maxIndex) {
             val segment = segments[index]
             if (!segment.containsPosition(position, corridorRadius, verticalTolerance, backtrackAllowance, overshootAllowance)
                 && !segment.hasReached(position, corridorRadius, verticalTolerance)
             ) {
-                return@mapNotNull null
+                continue
             }
-            SegmentSelection(index, segment, segment.lateralError(position), segment.remainingDistance(position))
+            contained += SegmentSelection(index, segment, segment.lateralError(position), segment.remainingDistance(position))
         }
 
         val selected = when {
             contained.isNotEmpty() -> containedSelection(contained, currentIndex)
 
-            else -> indices.map { index ->
+            else -> {
+                var best: SegmentSelection? = null
+                var bestScore = Double.POSITIVE_INFINITY
+                for (index in minIndex..maxIndex) {
                 val segment = segments[index]
-                SegmentSelection(index, segment, segment.lateralError(position), segment.remainingDistance(position))
-            }.filter {
-                it.lateralError <= relocalizeDistance &&
-                    abs(it.segment.verticalError(position)) <= verticalTolerance
-            }.minByOrNull { relocationScore(it, currentIndex) }
+                    val candidate = SegmentSelection(
+                        index, segment, segment.lateralError(position), segment.remainingDistance(position)
+                    )
+                    if (candidate.lateralError > relocalizeDistance ||
+                        abs(segment.verticalError(position)) > verticalTolerance
+                    ) continue
+                    val score = relocationScore(candidate, currentIndex)
+                    if (score < bestScore) {
+                        best = candidate
+                        bestScore = score
+                    }
+                }
+                best
+            }
         } ?: return null
 
         val recoveryMode = when {

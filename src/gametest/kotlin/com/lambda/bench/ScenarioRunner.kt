@@ -85,6 +85,7 @@ data class ScenarioReport(
     val planDevMean: Double,
     val planDevMax: Double,
     val maxFirstFollowingTick: Int?,
+    val maxCompletionTicks: Int?,
     val maxPlanningPauseTicks: Int?,
     val maxLongestPlanningPauseTicks: Int?,
     val maxLongestMovementStallTicks: Int?,
@@ -94,12 +95,23 @@ data class ScenarioReport(
     val maxReplanLatencyTicks: Int?,
     val minAllowedY: Double?,
     val minPlayerY: Double,
+    val parkourExpectedLandings: Int,
+    val parkourMatchedTargets: Int,
+    val parkourMatchedLandings: Int,
+    val parkourMismatches: Int,
+    val parkourRetries: Int,
     val finalStatus: String,
     val failureReason: String?,
     val endDistanceToGoal: Double,
     val coarsePathDump: String,
     val plannerStats: BenchPlannerMetrics.PlannerStats = BenchPlannerMetrics.PlannerStats.EMPTY,
 ) {
+    val parkourContractPassed: Boolean get() =
+        parkourExpectedLandings == 0 ||
+            (parkourMatchedTargets == parkourExpectedLandings &&
+                parkourMatchedLandings == parkourExpectedLandings &&
+                parkourMismatches == 0 && parkourRetries == 0)
+
     // In an unbounded world a truly unreachable goal manifests as
     // Partial-forever (the backward search can never exhaust the goal's
     // component), so expect-failure scenarios pass when the agent neither
@@ -109,7 +121,8 @@ data class ScenarioReport(
         else jumpLandingSuccesses.toDouble() / (jumpLandingSuccesses + jumpLandingFailures)
 
     val qualityPassed: Boolean get() =
-        (maxFirstFollowingTick == null || firstFollowingTick in 1..maxFirstFollowingTick) &&
+        (maxCompletionTicks == null || ticks <= maxCompletionTicks) &&
+            (maxFirstFollowingTick == null || firstFollowingTick in 1..maxFirstFollowingTick) &&
             (maxPlanningPauseTicks == null || planningPauseTicks <= maxPlanningPauseTicks) &&
             (maxLongestPlanningPauseTicks == null || longestPlanningPauseTicks <= maxLongestPlanningPauseTicks) &&
             (maxLongestMovementStallTicks == null || longestMovementStallTicks <= maxLongestMovementStallTicks) &&
@@ -117,7 +130,8 @@ data class ScenarioReport(
             (maxReplansRequested == null || replansRequested <= maxReplansRequested) &&
             (minJumpLandingSuccessRate == null || jumpLandingSuccessRate >= minJumpLandingSuccessRate) &&
             (maxReplanLatencyTicks == null || replanLatencyTicks <= maxReplanLatencyTicks) &&
-            (minAllowedY == null || minPlayerY >= minAllowedY)
+            (minAllowedY == null || minPlayerY >= minAllowedY) &&
+            parkourContractPassed
 
     val passed: Boolean get() =
         (if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled) && qualityPassed
@@ -158,6 +172,14 @@ data class ScenarioReport(
         if (plannerStalled) append(" PLANNER-STALLED")
         if (!qualityPassed) append(" QUALITY-FAILED")
         append(" status=").append(finalStatus)
+        if (parkourExpectedLandings > 0) {
+            append(" parkour(target/land/expected)=")
+                .append(parkourMatchedTargets).append('/')
+                .append(parkourMatchedLandings).append('/')
+                .append(parkourExpectedLandings)
+            if (parkourRetries > 0) append(" retries=").append(parkourRetries)
+            if (parkourMismatches > 0) append(" mismatches=").append(parkourMismatches)
+        }
         failureReason?.let { append(" reason=").append(it) }
         if (!passed) append("\n      coarse=").append(coarsePathDump)
     }
@@ -193,6 +215,12 @@ data class ScenarioReport(
         append(",\"planningPauseBursts\":").append(planningPauseBursts)
         append(",\"longestPlanningPauseTicks\":").append(longestPlanningPauseTicks)
         append(",\"minPlayerY\":").append("%.3f".format(minPlayerY))
+        append(",\"parkourExpectedLandings\":").append(parkourExpectedLandings)
+        append(",\"parkourMatchedTargets\":").append(parkourMatchedTargets)
+        append(",\"parkourMatchedLandings\":").append(parkourMatchedLandings)
+        append(",\"parkourMismatches\":").append(parkourMismatches)
+        append(",\"parkourRetries\":").append(parkourRetries)
+        append(",\"parkourContractPassed\":").append(parkourContractPassed)
         append(",\"movementStallTicks\":").append(movementStallTicks)
         append(",\"movementStallBursts\":").append(movementStallBursts)
         append(",\"longestMovementStallTicks\":").append(longestMovementStallTicks)
@@ -209,6 +237,7 @@ data class ScenarioReport(
         append(",\"arcDevMax\":").append("%.3f".format(arcDevMax))
         append(",\"planDevMean\":").append("%.3f".format(planDevMean))
         append(",\"planDevMax\":").append("%.3f".format(planDevMax))
+        append(",\"maxCompletionTicks\":").append(maxCompletionTicks ?: "null")
         append(",\"qualityPassed\":").append(qualityPassed)
         append(",\"finalStatus\":\"").append(finalStatus).append('"')
         append(",\"failureReason\":").append(failureReason?.let { "\"$it\"" } ?: "null")
@@ -241,8 +270,13 @@ object ScenarioRunner {
     // The worker's carry-landing acceptance (±1 block, same level) for
     // momentum-class jumps; see the success computation.
     private const val LANDING_CARRY_TOLERANCE = 1.5
-    private const val MOMENTUM_JUMP_MIN_DISTANCE = 4.4
+    // Template jumps cannot approach four blocks. At this distance the edge
+    // is necessarily discovery-simulated, whose fast-entry contract permits
+    // a same-platform ±1-block carry landing. Using 4.4 here misclassified a
+    // validated 4.18-block bedrock jump as a strict node-centre miss.
+    private const val MOMENTUM_JUMP_MIN_DISTANCE = 4.0
     private const val MOVEMENT_STALL_SPEED = 0.01
+    private const val PARKOUR_FOOTPRINT_HALF_WIDTH = 0.31
 
     private data class PendingJump(
         val tick: Int,
@@ -294,6 +328,10 @@ object ScenarioRunner {
             server.runOnServer<IllegalStateException> { minecraftServer -> fixture(minecraftServer) }
         }
         server.runCommand("/tp Steve ${scenario.start.x} ${scenario.start.y} ${scenario.start.z} ${scenario.startYaw} 0")
+        // Each case starts from the same survival sprint eligibility instead
+        // of inheriting hunger consumed by earlier scenarios in this world.
+        server.runCommand("/effect give Steve minecraft:saturation 1 10 true")
+        server.runCommand("/effect give Steve minecraft:instant_health 1 10 true")
         waitTicks(10) // chunk/physics settle after fill + teleport
 
         val goalCenter = Vec3d.ofBottomCenter(scenario.goal.toBlockPos())
@@ -372,6 +410,13 @@ object ScenarioRunner {
         var wallCollisionTicks = 0
         var headBonkTicks = 0
         var minPlayerY = scenario.start.y
+        val parkourExpected = scenario.parkourContract?.landings.orEmpty()
+        val parkourAttempts = IntArray(parkourExpected.size)
+        var parkourIndex = 0
+        var parkourMatchedTargets = 0
+        var parkourMatchedLandings = 0
+        var parkourMismatches = 0
+        var parkourRetries = 0
 
         if (requested) {
             while (ticks < scenario.timeoutTicks) {
@@ -385,6 +430,15 @@ object ScenarioRunner {
                     }
                 }
 
+                scenario.perturbCameraYaw?.let { yaw ->
+                    // Simulate the user moving the camera while the executor
+                    // drives: the rotation-manager split must keep movement
+                    // unaffected, so the scenario still has to pass.
+                    runOnClient<IllegalStateException> {
+                        runSafe { player.yaw = yaw }
+                    }
+                }
+
                 scenario.firstAirborneVelocityImpulse?.let { impulse ->
                     if (!airborneImpulseApplied && wasOnGround) {
                         airborneImpulseApplied = computeOnClient<Boolean, IllegalStateException> {
@@ -395,6 +449,17 @@ object ScenarioRunner {
                                     true
                                 }
                             } ?: false
+                        }
+                    }
+                }
+
+                if (scenario.airborneVelocityImpulseCycle.isNotEmpty() && wasOnGround) {
+                    val impulse = scenario.airborneVelocityImpulseCycle[
+                        airborneJumps % scenario.airborneVelocityImpulseCycle.size
+                    ]
+                    runOnClient<IllegalStateException> {
+                        runSafe {
+                            if (!player.isOnGround) player.velocity = player.velocity.add(impulse)
                         }
                     }
                 }
@@ -537,6 +602,22 @@ object ScenarioRunner {
                             launchSpeed = sample.numberField("spd") ?: 0.0,
                             segmentIndex = sample.numberField("seg")?.toInt() ?: -1,
                         )
+                        if (parkourIndex < parkourExpected.size) {
+                            parkourAttempts[parkourIndex]++
+                            if (parkourAttempts[parkourIndex] > 1) parkourRetries++
+                            val expected = parkourExpected[parkourIndex]
+                            if (targetX != null && targetY != null && targetZ != null &&
+                                expected.contains(targetX, targetY, targetZ)
+                            ) {
+                                if (parkourAttempts[parkourIndex] == 1) parkourMatchedTargets++
+                            } else {
+                                parkourMismatches++
+                            }
+                        } else if (parkourExpected.isNotEmpty()) {
+                            // An extra jump after the complete intended chain
+                            // is usually an overshoot/recovery maneuver.
+                            parkourMismatches++
+                        }
                     }
                 }
                 if (onGround && !wasOnGround) {
@@ -560,9 +641,19 @@ object ScenarioRunner {
                             val horizontalTolerance =
                                 if (jumpDistance >= MOMENTUM_JUMP_MIN_DISTANCE) LANDING_CARRY_TOLERANCE
                                 else LANDING_HORIZONTAL_TOLERANCE
-                            val success = horizontalError != null && verticalError != null &&
+                            val genericSuccess = horizontalError != null && verticalError != null &&
                                 horizontalError <= horizontalTolerance &&
                                 verticalError <= LANDING_VERTICAL_TOLERANCE
+                            val parkourPadSuccess = parkourExpected.getOrNull(parkourIndex)?.contains(
+                                landing.x, landing.y, landing.z, margin = PARKOUR_FOOTPRINT_HALF_WIDTH,
+                            )
+                            // Generated courses define success by exact pad
+                            // contact, not distance from its chosen target
+                            // node. A wide pad intentionally permits braking
+                            // carry onto an adjacent block; counting that as a
+                            // generic miss while the exact contract passes is
+                            // contradictory telemetry.
+                            val success = parkourPadSuccess ?: genericSuccess
                             jumpLandings += JumpLanding(
                                 attempt, ticks, landing, success, horizontalError, verticalError,
                                 arcErrMean = flightErrors.arcMean,
@@ -570,6 +661,18 @@ object ScenarioRunner {
                                 planErrMean = flightErrors.planMean,
                                 planErrMax = flightErrors.planMax.takeIf { flightErrors.planN > 0 },
                             )
+                            if (parkourIndex < parkourExpected.size) {
+                                // Contact is valid when the player's 0.6-wide
+                                // footprint overlaps the intended quartz pad;
+                                // requiring its centre inside the block falsely
+                                // rejected legitimate rim touchdowns.
+                                if (parkourPadSuccess == true) {
+                                    parkourMatchedLandings++
+                                    parkourIndex++
+                                } else {
+                                    parkourMismatches++
+                                }
+                            }
                         }
                     }
                     pendingJump = null
@@ -704,6 +807,7 @@ object ScenarioRunner {
                 planDevMean = jumpLandings.mapNotNull { it.planErrMean }.let { if (it.isEmpty()) 0.0 else it.average() },
                 planDevMax = jumpLandings.mapNotNull { it.planErrMax }.maxOrNull() ?: 0.0,
                 maxFirstFollowingTick = scenario.maxFirstFollowingTick,
+                maxCompletionTicks = scenario.maxCompletionTicks,
                 maxPlanningPauseTicks = scenario.maxPlanningPauseTicks,
                 maxLongestPlanningPauseTicks = scenario.maxLongestPlanningPauseTicks,
                 maxLongestMovementStallTicks = scenario.maxLongestMovementStallTicks,
@@ -713,6 +817,11 @@ object ScenarioRunner {
                 maxReplanLatencyTicks = scenario.maxReplanLatencyTicks,
                 minAllowedY = scenario.minAllowedY,
                 minPlayerY = minPlayerY,
+                parkourExpectedLandings = parkourExpected.size,
+                parkourMatchedTargets = parkourMatchedTargets,
+                parkourMatchedLandings = parkourMatchedLandings,
+                parkourMismatches = parkourMismatches,
+                parkourRetries = parkourRetries,
                 finalStatus = handle?.status?.toString() ?: "None",
                 failureReason = handle?.failureReason,
                 endDistanceToGoal = endDistance,

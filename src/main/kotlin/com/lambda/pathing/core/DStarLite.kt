@@ -76,7 +76,10 @@ class DStarLite<N>(
         var timedOut = false
 
         while (shouldCompute()) {
-            if (System.nanoTime() > deadline) {
+            // nanoTime is observable in profiles on large searches. A D* step
+            // is small, so checking every few steps retains a tight budget
+            // without paying for a clock read on every expanded node.
+            if ((processed and DEADLINE_CHECK_MASK) == 0 && System.nanoTime() > deadline) {
                 timedOut = true
                 break
             }
@@ -89,10 +92,11 @@ class DStarLite<N>(
                 oldKey < newKey -> queue.update(node, newKey)
 
                 g(node) > rhs(node) -> {
-                    setG(node, rhs(node))
+                    val settledG = rhs(node)
+                    setG(node, settledG)
                     queue.remove(node)
                     graph.predecessors(node).forEach { (predecessor, cost) ->
-                        if (predecessor != goal) setRhs(predecessor, min(rhs(predecessor), cost + g(node)))
+                        if (predecessor != goal) setRhs(predecessor, min(rhs(predecessor), cost + settledG))
                         updateVertex(predecessor)
                     }
                 }
@@ -101,11 +105,20 @@ class DStarLite<N>(
                     val oldG = g(node)
                     setG(node, INF)
 
-                    (graph.predecessors(node).keys + node).forEach { predecessor ->
+                    val predecessors = graph.predecessors(node)
+                    for (predecessor in predecessors.keys) {
                         if (predecessor != goal && sameCost(rhs(predecessor), graph.cost(predecessor, node) + oldG)) {
                             setRhs(predecessor, minSuccessorCost(predecessor))
                         }
                         updateVertex(predecessor)
+                    }
+                    // D* Lite also updates the popped node. Avoid allocating
+                    // `predecessors.keys + node`, while preserving self-loop behavior.
+                    if (node !in predecessors) {
+                        if (node != goal && sameCost(rhs(node), graph.cost(node, node) + oldG)) {
+                            setRhs(node, minSuccessorCost(node))
+                        }
+                        updateVertex(node)
                     }
                 }
             }
@@ -136,9 +149,12 @@ class DStarLite<N>(
         var edgesRemoved = 0
         var edgesChanged = 0
 
-        affectedNodes.toSet().forEach { node ->
+        val uniqueNodes = if (affectedNodes is Set<*>) affectedNodes else affectedNodes.toHashSet()
+        for (nodeValue in uniqueNodes) {
+            @Suppress("UNCHECKED_CAST")
+            val node = nodeValue as N
             val knownView = graph.knownSuccessors(node)
-            if (node !in graph && knownView.isEmpty()) return@forEach
+            if (node !in graph && knownView.isEmpty()) continue
 
             // Snapshot before any updateEdge mutates the underlying view.
             val oldSuccessors = if (knownView.isEmpty()) emptyMap() else HashMap(knownView)
@@ -146,12 +162,14 @@ class DStarLite<N>(
             graph.markSuccessorsInitialized(node)
             nodesChecked++
 
-            (oldSuccessors.keys - newSuccessors.keys).forEach { removed ->
-                updateEdge(node, removed, INF)
-                edgesRemoved++
+            for (removed in oldSuccessors.keys) {
+                if (removed !in newSuccessors) {
+                    updateEdge(node, removed, INF)
+                    edgesRemoved++
+                }
             }
 
-            newSuccessors.forEach { (successor, newCost) ->
+            for ((successor, newCost) in newSuccessors) {
                 val oldCost = oldSuccessors[successor]
                 when {
                     oldCost == null -> {
@@ -170,7 +188,12 @@ class DStarLite<N>(
     }
 
     fun updateEdge(from: N, to: N, newCost: Double) {
-        val oldCost = graph.cost(from, to)
+        // Read the old cost WITHOUT lazily initializing `from`: an external
+        // provider (maneuver discovery) may have registered this edge in its
+        // own maps already, and triggering successor generation here would
+        // make oldCost == newCost — the rhs update below would then never
+        // fire and the edge would stay invisible to the search forever.
+        val oldCost = graph.knownSuccessors(from)[to] ?: INF
         graph.setCost(from, to, newCost)
 
         when {
@@ -195,16 +218,19 @@ class DStarLite<N>(
             if (current == goal) return path
             val successors = graph.successors(current)
             if (successors.isEmpty()) return path
-            val next = if (nodeTieBreaker != null) {
-                successors.entries.minWithOrNull(
-                    Comparator { a, b ->
-                        val cmp = (a.value + g(a.key)).compareTo(b.value + g(b.key))
-                        if (cmp != 0) cmp else nodeTieBreaker.compare(a.key, b.key)
-                    }
-                )?.key
-            } else {
-                successors.minByOrNull { (successor, cost) -> cost + g(successor) }?.key
-            } ?: return path
+            var next: N? = null
+            var bestCost = INF
+            for ((successor, edgeCost) in successors) {
+                val candidateCost = edgeCost + g(successor)
+                val better = candidateCost < bestCost ||
+                    (candidateCost.compareTo(bestCost) == 0 && next != null &&
+                        (nodeTieBreaker?.compare(successor, next) ?: 0) < 0)
+                if (next == null || better) {
+                    next = successor
+                    bestCost = candidateCost
+                }
+            }
+            next ?: return path
             if (!seen.add(next)) return path
             path += next
             current = next
@@ -223,11 +249,13 @@ class DStarLite<N>(
 
     fun updateVertex(node: N) {
         val inQueue = node in queue
-        val inconsistent = !sameCost(g(node), rhs(node))
+        val nodeG = g(node)
+        val nodeRhs = rhs(node)
+        val inconsistent = !sameCost(nodeG, nodeRhs)
 
         when {
-            inconsistent && inQueue -> queue.update(node, calculateKey(node))
-            inconsistent && !inQueue -> queue.insert(node, calculateKey(node))
+            inconsistent && inQueue -> queue.update(node, calculateKey(node, nodeG, nodeRhs))
+            inconsistent && !inQueue -> queue.insert(node, calculateKey(node, nodeG, nodeRhs))
             !inconsistent && inQueue -> queue.remove(node)
         }
     }
@@ -235,11 +263,22 @@ class DStarLite<N>(
     private fun shouldCompute() = queue.topKey(Key.INFINITY) < calculateKey(start) || !sameCost(rhs(start), g(start))
 
     private fun calculateKey(node: N): Key {
-        val minCost = min(g(node), rhs(node))
+        return calculateKey(node, g(node), rhs(node))
+    }
+
+    private fun calculateKey(node: N, nodeG: Double, nodeRhs: Double): Key {
+        val minCost = min(nodeG, nodeRhs)
         return Key(minCost + heuristic(start, node) + km, minCost)
     }
 
-    private fun minSuccessorCost(node: N) = graph.successors(node).minOfOrNull { (successor, cost) -> cost + g(successor) } ?: INF
+    private fun minSuccessorCost(node: N): Double {
+        var best = INF
+        for ((successor, cost) in graph.successors(node)) {
+            val candidate = cost + g(successor)
+            if (candidate < best) best = candidate
+        }
+        return best
+    }
 
     private fun setG(node: N, value: Double) {
         if (value == INF) gValues.remove(node) else gValues[node] = value
@@ -264,6 +303,7 @@ class DStarLite<N>(
     companion object {
         private const val INF = Double.POSITIVE_INFINITY
         private const val EPSILON = 1e-9
+        private const val DEADLINE_CHECK_MASK = 0x0F
 
         private fun sameCost(a: Double, b: Double, tolerance: Double = EPSILON): Boolean = when {
             a.isInfinite() || b.isInfinite() -> a == b

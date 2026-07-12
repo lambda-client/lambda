@@ -83,4 +83,21 @@ class UpdatablePriorityQueueTest {
         assertEquals(best, keyQueue.topKey(Key.INFINITY))
         assertEquals("B", keyQueue.top())
     }
+
+    @Test
+    fun `removing an interior node restores the heap in the required direction`() {
+        // Exercise both replacement cases repeatedly rather than relying on
+        // the root-only pop path.
+        val expected = (0 until 200).associateWith { (it * 73) % 211 }.toMutableMap()
+        for ((value, key) in expected) queue.insert(value.toString(), key)
+
+        for (value in (0 until 200 step 3)) {
+            assertTrue(queue.remove(value.toString()))
+            expected.remove(value)
+        }
+
+        val ordered = ArrayList<Int>()
+        while (!queue.isEmpty()) ordered += queue.pop().toInt()
+        assertEquals(expected.entries.sortedBy { it.value }.map { it.key }, ordered)
+    }
 }

@@ -114,8 +114,10 @@ loom {
             // Bench harness switches (benchmark-harness-spec.md §7):
             //   -Pbench.calibrate=true  re-runs the WP0.6 calibration pass
             //   -Pbench.filter=gap,stair  runs matching scenarios only
+            //   -Pbench.parkour=true     adds the deterministic generated quartz corpus
             property("lambda.bench.calibrate", (findProperty("bench.calibrate") ?: "false").toString())
             property("lambda.bench.filter", (findProperty("bench.filter") ?: "").toString())
+            property("lambda.bench.parkour", (findProperty("bench.parkour") ?: "false").toString())
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")

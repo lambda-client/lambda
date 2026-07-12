@@ -287,12 +287,18 @@ object PathRefiner {
         durationMs = durationNanos / 1_000_000.0,
     )
 
-    fun List<FastVector>.pathLength(): Double = zipWithNext { a, b ->
-        val dx = (a.x - b.x).toDouble()
-        val dy = (a.y - b.y).toDouble()
-        val dz = (a.z - b.z).toDouble()
-        sqrt(dx * dx + dy * dy + dz * dz)
-    }.sum()
+    fun List<FastVector>.pathLength(): Double {
+        var length = 0.0
+        for (index in 0 until lastIndex) {
+            val a = this[index]
+            val b = this[index + 1]
+            val dx = (a.x - b.x).toDouble()
+            val dy = (a.y - b.y).toDouble()
+            val dz = (a.z - b.z).toDouble()
+            length += sqrt(dx * dx + dy * dy + dz * dz)
+        }
+        return length
+    }
 
     /**
      * Collinearity alone is not sufficient to drop a node: a gap-jump edge

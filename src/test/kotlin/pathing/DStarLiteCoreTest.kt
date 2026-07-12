@@ -23,6 +23,7 @@ import pathing.GridGraphTestUtil.manhattan
 import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -185,6 +186,76 @@ class DStarLiteCoreTest {
         assertEquals(1, sync.nodesChecked)
         assertEquals(1, sync.edgesAdded)
         assertEquals(listOf(start, goal), planner.path())
+    }
+
+    @Test
+    fun `lazy graph maintains known nodes without rebuilding its node set`() {
+        val graph = LazyGraph<Int>({ node -> if (node == 1) mapOf(2 to 1.0) else emptyMap() })
+
+        assertTrue(graph.successors(1).containsKey(2))
+        assertEquals(setOf(1, 2), graph.nodes)
+        assertEquals(2, graph.size)
+        assertFailsWith<UnsupportedOperationException> {
+            @Suppress("UNCHECKED_CAST")
+            (graph.nodes as MutableSet<Int>).add(3)
+        }
+
+        graph.setCost(1, 2, Double.POSITIVE_INFINITY)
+        // Initialized node 1 remains planner knowledge; endpoint 2 was only
+        // known through the removed edge and is pruned.
+        assertEquals(setOf(1), graph.nodes)
+        graph.clear()
+        assertTrue(graph.nodes.isEmpty())
+    }
+
+    @Test
+    fun `updateEdge from an uninitialized node reactivates the search even when the provider already knows the edge`() {
+        // The maneuver-improvement pass declares a discovered edge whose
+        // takeoff node the search never expanded, AND whose provider (the
+        // discovery object) already returns it from its own maps. A naive
+        // old-cost read would lazily initialize the takeoff, see the edge as
+        // pre-existing, and skip the rhs update — leaving the shortcut
+        // permanently invisible.
+        val start = fastVectorOf(0, 0, 0)
+        val middle = fastVectorOf(1, 0, 0)
+        val takeoff = fastVectorOf(0, 0, 1)
+        val goal = fastVectorOf(5, 0, 0)
+        var discovered = false
+        val graph = LazyGraph<Long>(
+            successorProvider = { node ->
+                buildMap {
+                    if (node == start) {
+                        put(middle, 1.0)
+                        if (discovered) put(takeoff, 1.0)
+                    }
+                    if (node == middle) put(goal, 10.0)
+                    if (discovered && node == takeoff) put(goal, 1.0)
+                }
+            },
+            predecessorProvider = { node ->
+                buildMap {
+                    if (node == middle) put(start, 1.0)
+                    if (node == goal) {
+                        put(middle, 10.0)
+                        if (discovered) put(takeoff, 1.0)
+                    }
+                    if (discovered && node == takeoff) put(start, 1.0)
+                }
+            },
+        )
+        val planner = DStarLite(graph, start, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        assertEquals(listOf(start, middle, goal), planner.path())
+
+        // The discovery provider learns the edge, then the improvement pass
+        // declares it — in that order, exactly as in production.
+        discovered = true
+        planner.updateEdge(takeoff, goal, 1.0)
+        planner.computeShortestPath()
+
+        assertEquals(listOf(start, takeoff, goal), planner.path())
+        assertEquals(2.0, planner.g(start), 0.001)
     }
 
     @Test

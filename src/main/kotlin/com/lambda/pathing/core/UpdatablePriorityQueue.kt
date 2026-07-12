@@ -100,9 +100,10 @@ class UpdatablePriorityQueue<V, K : Comparable<K>> {
         values[index] = movedValue
         keys[index] = movedKey
         indices[movedValue] = index
-        // Either direction may be needed depending on movedKey vs. parent/children.
-        siftDown(index)
-        siftUp(index)
+        // A replacement can violate only one side of the heap invariant. The
+        // old implementation always walked both directions after every remove.
+        val parent = (index - 1) ushr 1
+        if (index > 0 && movedKey < keys[parent]) siftUp(index) else siftDown(index)
     }
 
     private fun siftUp(start: Int) {

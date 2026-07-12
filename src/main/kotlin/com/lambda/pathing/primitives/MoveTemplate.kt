@@ -62,14 +62,29 @@ class MoveTemplate(
 
     /** All conditions hold with the origin anchor at (x, y, z). */
     fun matches(view: WorldView, x: Int, y: Int, z: Int): Boolean {
-        for (cell in cells) {
+        return matchesFrom(view, x, y, z, 0)
+    }
+
+    /**
+     * Incoming enumeration has already checked the shared target stance once.
+     * Every MoveTable template stores those three cells first, so it can avoid
+     * re-reading the same target floor/feet/head for every candidate template.
+     */
+    internal fun matchesAfterTargetStance(view: WorldView, x: Int, y: Int, z: Int): Boolean =
+        matchesFrom(view, x, y, z, TARGET_STANCE_CELL_COUNT)
+
+    private fun matchesFrom(view: WorldView, x: Int, y: Int, z: Int, startIndex: Int): Boolean {
+        for (index in startIndex until cells.size) {
+            val cell = cells[index]
             val cx = x + cell.ox
             val cy = y + cell.oy
             val cz = z + cell.oz
             when (cell.condition) {
                 Condition.SUPPORT -> if (!view.traits(cx, cy, cz).standableFullTop) return false
-                Condition.SLICE ->
-                    if (!view.traits(cx, cy, cz).centerPassable || view.traits(cx, cy - 1, cz).intrudesAbove) return false
+                Condition.SLICE -> {
+                    if (!view.traits(cx, cy, cz).centerPassable) return false
+                    if (view.traits(cx, cy - 1, cz).intrudesAbove) return false
+                }
                 Condition.HEAD -> if (!view.traits(cx, cy, cz).centerPassable) return false
             }
         }
@@ -86,5 +101,9 @@ class MoveTemplate(
             yield(Triple(cell.ox, cell.oy, cell.oz))
             if (cell.condition == Condition.SLICE) yield(Triple(cell.ox, cell.oy - 1, cell.oz))
         }
+    }
+
+    private companion object {
+        const val TARGET_STANCE_CELL_COUNT = 3
     }
 }

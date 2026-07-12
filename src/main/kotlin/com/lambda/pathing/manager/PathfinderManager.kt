@@ -137,11 +137,15 @@ object PathfinderManager : Loadable,
         // route around them even though the world model still believes in
         // them. Session-scoped — a fresh traversal starts unprejudiced.
         val edgePenalties = HashMap<EdgeKey, Double>()
+        val approachRejectedEdges = HashSet<EdgeKey>()
         fun penalized(from: FastVector, edges: Map<FastVector, Double>): Map<FastVector, Double> {
-            if (edgePenalties.isEmpty()) return edges
+            if (edgePenalties.isEmpty() && approachRejectedEdges.isEmpty()) return edges
             var result: HashMap<FastVector, Double>? = null
             edges.forEach { (to, cost) ->
-                edgePenalties[EdgeKey(from, to)]?.let { factor ->
+                val edge = EdgeKey(from, to)
+                if (edge in approachRejectedEdges) {
+                    (result ?: HashMap(edges).also { result = it }).remove(to)
+                } else edgePenalties[edge]?.let { factor ->
                     (result ?: HashMap(edges).also { result = it })[to] = cost * factor
                 }
             }
@@ -162,6 +166,17 @@ object PathfinderManager : Loadable,
         } else {
             null
         }
+        // Anytime two-phase search: the initial search runs template-only
+        // (cheap, publishes a walkable path fast); discovery joins once a
+        // first plan is out — or once templates provably/probably cannot
+        // connect — and from then on proposes at expansion time as before.
+        // The improvement pass then upgrades the adopted route with the
+        // expensive maneuver edges, behind the plan-swap hysteresis.
+        val discoveryGate = AtomicBoolean(false)
+        // A connected template path uses explicit, route-local anytime
+        // discovery. Opening a jump fan on every later D* predecessor
+        // expansion floods repairs with unrelated optimistic edges.
+        val discoverOnExpansion = AtomicBoolean(false)
 
         // Snapshot the start→goal corridor before the worker starts: section
         // copies are client-thread-only, and each worker fault costs a frame
@@ -174,7 +189,9 @@ object PathfinderManager : Loadable,
         val graph = LazyGraph<FastVector>(
             successorProvider = { node ->
                 var edges = moves.successors(view, node)
-                discovery?.successorsFrom(node)?.takeIf { it.isNotEmpty() }?.let { edges = edges + it }
+                if (discoveryGate.get()) {
+                    discovery?.successorsFrom(node)?.takeIf { it.isNotEmpty() }?.let { edges = edges + it }
+                }
                 penalized(node, edges)
             },
             // True inverse enumeration — never default to the symmetric
@@ -182,9 +199,25 @@ object PathfinderManager : Loadable,
             // (e.g. under low ceilings) with the wrong cost attached.
             predecessorProvider = { node ->
                 var edges = moves.predecessors(view, node)
-                discovery?.predecessorsInto(node)?.takeIf { it.isNotEmpty() }?.let { edges = edges + it }
-                if (edgePenalties.isEmpty()) edges
-                else edges.mapValues { (from, cost) -> cost * (edgePenalties[EdgeKey(from, node)] ?: 1.0) }
+                if (discoveryGate.get()) {
+                    discovery?.let {
+                        val maneuvers = if (discoverOnExpansion.get()) {
+                            it.predecessorsInto(node)
+                        } else {
+                            it.knownPredecessorsInto(node)
+                        }
+                        if (maneuvers.isNotEmpty()) edges = edges + maneuvers
+                    }
+                }
+                if (edgePenalties.isEmpty() && approachRejectedEdges.isEmpty()) edges
+                else buildMap(edges.size) {
+                    for ((from, cost) in edges) {
+                        val edge = EdgeKey(from, node)
+                        if (edge !in approachRejectedEdges) {
+                            put(from, cost * (edgePenalties[edge] ?: 1.0))
+                        }
+                    }
+                }
             },
         )
 
@@ -208,7 +241,10 @@ object PathfinderManager : Loadable,
 
         // The refinement config is captured per session: the worker must not
         // read the live automation-config object.
-        activeSession = ActiveSession(handle, graph, planner, edgePenalties, view, moves, discovery, refinementConfig)
+        activeSession = ActiveSession(
+            handle, graph, planner, edgePenalties, approachRejectedEdges, view, moves, discovery,
+            discoveryGate, discoverOnExpansion, refinementConfig,
+        )
         PlannerMetrics.sink.planStart(handle.id, planner.start, goal.targetNode)
         enqueue(activeSession ?: return handle) { computeActivePath(ComputeCause.Initial) }
         return handle
@@ -247,12 +283,21 @@ object PathfinderManager : Loadable,
             // section can switch wholesale between unknown and observed, so
             // until WP5 supplies section-scoped connectivity/invalidation we
             // rebuild the lazy graph once for the whole event batch.
+            //
+            // Re-anchor to the adopted route, not the raw player column: a
+            // mid-shortcut rebuild anchored off-lattice regenerates a
+            // geometrically different refined path and snaps the executor's
+            // steering angle — the churn source on long outdoor traversals,
+            // where chunks load ahead of the path every few seconds.
+            val anchor = lastRefinedPath?.let { refined ->
+                refinedRouteAnchorIndex(refined, playerBlock)?.let { refined[it] }
+            } ?: playerBlock
             discovery?.clearWorldCache()
             planner.initialize(clearGraph = true)
             lastCoarsePath = null
             lastRefinedPath = null
             lastEdgeAnnotations = emptyMap()
-            planner.updateStart(playerBlock)
+            planner.updateStart(anchor)
             computeActivePath(ComputeCause.ChunkTopology)
             return
         }
@@ -280,18 +325,29 @@ object PathfinderManager : Loadable,
             return
         }
 
+        // Anchor the start by PROJECTION onto the refined route, never to the
+        // raw player column: while walking an any-angle shortcut the player's
+        // block is usually on neither the refined nor the coarse node list,
+        // and an exact-match-only advance left the start pinned at the
+        // shortcut head for its whole length. Projection advances the start
+        // segment-by-segment along the adopted route; a player genuinely off
+        // the route keeps the cached plan and is owned by Lost recovery.
         val plannerIndex = refined.indexOf(planner.start)
-        val searchFrom = (plannerIndex + 1).coerceAtLeast(0)
-        if (searchFrom >= refined.size) return
-
-        val playerIndexInTail = refined.subList(searchFrom, refined.size).indexOf(playerBlock)
-        if (playerIndexInTail < 0) {
-            // Player is between refined nodes (on a diagonal shortcut). Don't
-            // touch planner.start; the cached refined path is still valid.
+        val anchorIndex = refinedRouteAnchorIndex(refined, playerBlock) ?: return
+        if (anchorIndex <= plannerIndex) {
+            // Partial is a search state, not an execution state: it still
+            // needs one continuation slice per tick even while the player is
+            // inside a long refined shortcut and therefore remains anchored
+            // to that segment's head. Restricting continuation to
+            // playerBlock == planner.start deadlocked dynamic repair after an
+            // invalidated shortcut was republished as a partial segment.
+            if (handle.status == TraversalHandle.Status.Partial) {
+                computeActivePath(ComputeCause.BudgetContinuation)
+            }
             return
         }
 
-        planner.updateStart(refined[searchFrom + playerIndexInTail])
+        planner.updateStart(refined[anchorIndex])
         computeActivePath(ComputeCause.StartAdvance)
     }
 
@@ -345,28 +401,28 @@ object PathfinderManager : Loadable,
         // and ONE republication — per-event passes republished a new path
         // identity per block, resetting executor segment state every time.
         session.pendingBlockChanges.add(pos)
-        queueBlockSync(session, currentStablePlannerNode())
+        queueBlockSync(session)
         return session.handle
     }
 
     /** Coalesces block-update events while a worker sync is still running. */
-    private fun queueBlockSync(session: ActiveSession, stableNode: FastVector?) {
+    private fun queueBlockSync(session: ActiveSession) {
         if (!session.blockSyncQueued.compareAndSet(false, true)) return
         enqueue(session) {
             try {
                 while (isCurrent(this)) {
                     val batch = generateSequence { pendingBlockChanges.poll() }.toSet()
                     if (batch.isEmpty()) break
-                    synchronizeWorldChangesOnWorker(batch, stableNode)
+                    synchronizeWorldChangesOnWorker(batch)
                 }
             } finally {
                 blockSyncQueued.set(false)
-                if (pendingBlockChanges.isNotEmpty() && isCurrent(this)) queueBlockSync(this, stableNode)
+                if (pendingBlockChanges.isNotEmpty() && isCurrent(this)) queueBlockSync(this)
             }
         }
     }
 
-    private fun ActiveSession.synchronizeWorldChangesOnWorker(batch: Set<BlockPos>, stableNode: FastVector?) {
+    private fun ActiveSession.synchronizeWorldChangesOnWorker(batch: Set<BlockPos>) {
         if (!isCurrent(this) || handle.status.isTerminal) return
 
         val affectedNodes = HashSet<FastVector>()
@@ -394,13 +450,64 @@ object PathfinderManager : Loadable,
             edgesChanged = sync.edgesChanged,
         )
 
+        // Only a change that can touch the adopted route invalidates the
+        // published plan. Off-route changes still repair the search tree,
+        // but the executing plan (and therefore the executor's segment state
+        // and steering angle) survives them — replacing it on EVERY remote
+        // edge change was the main source of mid-shortcut trajectory snaps.
+        // The search start is deliberately NOT re-anchored to the player
+        // here: start advancement is owned by the route-projection logic in
+        // refreshFromStart, and Lost recovery owns genuine displacement.
         if (sync.edgesAdded > 0 || sync.edgesRemoved > 0 || sync.edgesChanged > 0) {
-            lastCoarsePath = null
-            lastRefinedPath = null
+            if (adoptedRouteAffected(affectedNodes, batch)) {
+                lastCoarsePath = null
+                lastRefinedPath = null
+            }
         }
 
-        stableNode?.let { planner.updateStart(it) }
         computeActivePath(ComputeCause.WorldChange)
+    }
+
+    /**
+     * True when a world-change batch can invalidate the adopted plan: an
+     * affected node lies on the route, or a changed block sits inside a
+     * refined segment's swept corridor (shortcuts cut corners, so corridor
+     * blocks are not necessarily near any route node). Conservative when no
+     * plan is adopted.
+     */
+    private fun ActiveSession.adoptedRouteAffected(
+        affectedNodes: Set<FastVector>,
+        changedBlocks: Set<BlockPos> = emptySet(),
+    ): Boolean {
+        val coarse = lastCoarsePath ?: return true
+        val refined = lastRefinedPath ?: return true
+        if (coarse.isEmpty() || refined.isEmpty()) return true
+        val routeNodes = HashSet<FastVector>(coarse.size + refined.size).apply {
+            addAll(coarse)
+            addAll(refined)
+        }
+        if (affectedNodes.any(routeNodes::contains)) return true
+        return changedBlocks.any { pos ->
+            refined.zipWithNext().any { (a, b) -> posNearSegment(pos, a, b) }
+        }
+    }
+
+    private fun posNearSegment(pos: BlockPos, a: FastVector, b: FastVector): Boolean {
+        if (pos.y < minOf(a.y, b.y) - 1 || pos.y > maxOf(a.y, b.y) + 2) return false
+        val px = pos.x + 0.5
+        val pz = pos.z + 0.5
+        val ax = a.x + 0.5
+        val az = a.z + 0.5
+        val dx = (b.x - a.x).toDouble()
+        val dz = (b.z - a.z).toDouble()
+        val lengthSq = dx * dx + dz * dz
+        if (lengthSq < 1.0E-9) {
+            return kotlin.math.abs(px - ax) <= ROUTE_CORRIDOR_MARGIN &&
+                kotlin.math.abs(pz - az) <= ROUTE_CORRIDOR_MARGIN
+        }
+        val t = (((px - ax) * dx + (pz - az) * dz) / lengthSq).coerceIn(0.0, 1.0)
+        return kotlin.math.abs(px - (ax + dx * t)) <= ROUTE_CORRIDOR_MARGIN &&
+            kotlin.math.abs(pz - (az + dz * t)) <= ROUTE_CORRIDOR_MARGIN
     }
 
     fun completeActiveTraversal(): Boolean {
@@ -492,8 +599,13 @@ object PathfinderManager : Loadable,
             edgesRemoved = sync.edgesRemoved,
             edgesChanged = sync.edgesChanged,
         )
-        lastCoarsePath = null
-        lastRefinedPath = null
+        // Validation corrects CANDIDATE-path maneuver costs; the adopted
+        // plan's own edges were validated when it was adopted, so it only
+        // needs to go when the corrected landings actually lie on it.
+        if (adoptedRouteAffected(affected)) {
+            lastCoarsePath = null
+            lastRefinedPath = null
+        }
     }
 
     private fun ActiveSession.computeActivePath(cause: ComputeCause) {
@@ -549,6 +661,23 @@ object PathfinderManager : Loadable,
             }
         }
 
+        // Position-only graph nodes do not encode arrival heading. A
+        // rising gap jump can therefore look legal even when the selected
+        // route reaches its takeoff through a 90° turn — the production
+        // turn-then-rise deadlock. Remove that edge unless this route
+        // supplies an aligned incoming runway.
+        invalidMomentumApproach(coarsePath)?.let { (from, to) ->
+            approachRejectedEdges += EdgeKey(from, to)
+            planner.updateEdge(from, to, Double.POSITIVE_INFINITY)
+            lastCoarsePath = null
+            lastRefinedPath = null
+            lastEdgeAnnotations = emptyMap()
+            handle.graphSize = graph.size
+            handle.processedNodes += processedNodes
+            enqueue(this) { computeActivePath(ComputeCause.ApproachValidation) }
+            return
+        }
+
         // A timed-out slice that hasn't connected the goal yet leaves the
         // search inconsistent, and a path extracted from that state is NOT
         // a prefix of the eventual route (observed: a warm-JIT first slice
@@ -562,6 +691,34 @@ object PathfinderManager : Loadable,
             handle.processedNodes += processedNodes
             handle.status = TraversalHandle.Status.Partial
             publishDebugSnapshot()
+            // Template-phase cap: in an unbounded world a goal separated by
+            // a jump-only link never exhausts (the backward component is
+            // infinite), so a phase-1 search that keeps timing out without
+            // connecting brings discovery in after a few full slices instead
+            // of walking the frontier forever.
+            if (discovery != null && !discoveryGate.get() &&
+                ++templateSlices >= TEMPLATE_PHASE_MAX_SLICES
+            ) {
+                activateDiscoveryOverKnownGraph()
+                enqueue(this) { computeActivePath(ComputeCause.DiscoveryPhase) }
+            }
+            return
+        }
+
+        // Template-only search concluded without connecting the goal (the
+        // reachable component is exhausted, or extraction dead-ends): the
+        // missing links are exactly what discovery provides. Retrofit its
+        // proposals onto the explored graph and continue the same search —
+        // a traversal is never failed out of phase 1.
+        if (coarsePath.lastOrNull() != handle.goal.targetNode &&
+            discovery != null && !discoveryGate.get()
+        ) {
+            activateDiscoveryOverKnownGraph()
+            handle.graphSize = graph.size
+            handle.processedNodes += processedNodes
+            if (handle.path.size < 2) handle.status = TraversalHandle.Status.Partial
+            publishDebugSnapshot()
+            enqueue(this) { computeActivePath(ComputeCause.DiscoveryPhase) }
             return
         }
 
@@ -587,7 +744,39 @@ object PathfinderManager : Loadable,
             handle.failureReason = null
             handle.status = pathStatus(result.timedOut, coarsePath, handle)
             publishDebugSnapshot()
+            if (handle.status == TraversalHandle.Status.Ready) scheduleImprovement(this)
             return
+        }
+
+        // Plan-swap hysteresis: a still-valid adopted plan is only replaced
+        // when the planner's new optimum is decisively cheaper. Without
+        // this, every marginal improvement and every off-suffix extraction
+        // re-refines a slightly different geometry, and each republication
+        // snaps the executor's steering angle — the observed fast
+        // trajectory changes while walking the refined path.
+        if (priorCoarse != null && priorRefined != null &&
+            priorCoarse.lastOrNull() == handle.goal.targetNode
+        ) {
+            val adoptedCost = adoptedRemainingCost(priorCoarse)
+            if (adoptedCost != null) {
+                val candidateCost = if (coarsePath.lastOrNull() == handle.goal.targetNode) {
+                    pathCost(coarsePath)
+                } else {
+                    null
+                }
+                val keepAdopted = candidateCost == null ||
+                    candidateCost > adoptedCost * (1.0 - PLAN_SWAP_IMPROVEMENT)
+                if (keepAdopted) {
+                    handle.publishPlan(priorCoarse, priorRefined, lastEdgeAnnotations)
+                    handle.graphSize = graph.size
+                    handle.processedNodes += processedNodes
+                    handle.failureReason = null
+                    handle.status = pathStatus(result.timedOut, priorCoarse, handle)
+                    publishDebugSnapshot()
+                    if (handle.status == TraversalHandle.Status.Ready) scheduleImprovement(this)
+                    return
+                }
+            }
         }
 
         val refinement = PathRefiner.refine(view, coarsePath, refinementConfig)
@@ -605,6 +794,7 @@ object PathfinderManager : Loadable,
         lastCoarsePath = coarsePath
         lastRefinedPath = refinement.path
         lastEdgeAnnotations = discovery?.annotationsFor(refinement.path).orEmpty()
+        improvementCursor = 0
 
         handle.publishPlan(coarsePath, refinement.path, lastEdgeAnnotations)
         handle.lastRefinement = refinement.stats
@@ -619,6 +809,175 @@ object PathfinderManager : Loadable,
             handle.succeed()
         }
         publishDebugSnapshot()
+
+        // First goal-connected plan out: switch to the improvement phase.
+        // Discovery joins expansion from here on, and the pass below starts
+        // proposing maneuver shortcuts along the freshly adopted route.
+        if (handle.status == TraversalHandle.Status.Ready && discovery != null) {
+            discoveryGate.compareAndSet(false, true)
+            scheduleImprovement(this)
+        }
+    }
+
+    /**
+     * Phase flip for a search whose templates could not connect the goal:
+     * enable maneuver proposals and retrofit them onto the already-explored
+     * graph. Discovery is landing-anchored, so proposing INTO every known
+     * node covers exactly the edges the gated providers would have added
+     * had discovery been active during expansion (T2 discovery-monotone:
+     * edges only appear, through the ordinary update machinery).
+     */
+    private fun ActiveSession.activateDiscoveryOverKnownGraph() {
+        if (discovery == null) return
+        if (!discoveryGate.compareAndSet(false, true)) return
+        // Template search failed, so maneuver discovery is now part of the
+        // connectivity substrate and must follow future graph expansion.
+        discoverOnExpansion.set(true)
+        improvementCursor = 0
+        val known = graph.nodes.toList()
+        var gained = 0
+        known.forEach { landing -> if (injectDiscoveredEdges(landing)) gained++ }
+        LOG.info(
+            "[Pathfinder] Discovery joined traversal ${handle.id} after template phase: " +
+                "${known.size} known landings scanned, $gained gained edges"
+        )
+    }
+
+    /**
+     * Proposes discovery edges into [landing] and declares any new or
+     * cheaper ones to the search. Proposals are memoized per landing and
+     * declaration skips known-equal edges, so re-scanning a route is cheap
+     * and idempotent. Returns true if the graph changed.
+     */
+    private fun ActiveSession.injectDiscoveredEdges(landing: FastVector): Boolean {
+        val discovery = discovery ?: return false
+        val proposals = discovery.predecessorsInto(landing)
+        if (proposals.isEmpty()) return false
+        var mutated = false
+        proposals.forEach { (takeoff, cost) ->
+            if (EdgeKey(takeoff, landing) in approachRejectedEdges) return@forEach
+            val penalizedCost = cost * (edgePenalties[EdgeKey(takeoff, landing)] ?: 1.0)
+            val known = graph.knownSuccessors(takeoff)[landing]
+            if (known == null || known > penalizedCost + 1.0E-9) {
+                planner.updateEdge(takeoff, landing, penalizedCost)
+                mutated = true
+            }
+        }
+        return mutated
+    }
+
+    /**
+     * Anytime improvement (research plan §8.1 LIS discipline, user-visible
+     * as "find a cheap path fast, then upgrade it"): walk the adopted route
+     * and propose discovered jump edges into each of its nodes — the
+     * expensive maneuver shortcuts the template path cannot see. Budgeted
+     * per worker slice so world syncs interleave; adoption of anything
+     * found goes through the same plan-swap hysteresis as every replan, so
+     * marginal gains never churn the executing path.
+     */
+    private fun ActiveSession.improveAdoptedPath() {
+        if (!isCurrent(this) || handle.status.isTerminal) return
+        if (discovery == null || !discoveryGate.get()) return
+        val route = lastCoarsePath ?: return
+        var index = improvementCursor
+        var mutated = false
+        var examined = 0
+        while (index < route.size && examined < IMPROVEMENT_LANDINGS_PER_SLICE) {
+            if (injectDiscoveredEdges(route[index])) mutated = true
+            examined++
+            index++
+        }
+        improvementCursor = index
+        if (mutated) computeActivePath(ComputeCause.Improvement)
+        if ((lastCoarsePath?.size ?: 0) > improvementCursor) scheduleImprovement(this)
+    }
+
+    /** Coalesces improvement passes; safe to call from any publish site. */
+    private fun scheduleImprovement(session: ActiveSession) {
+        if (session.discovery == null || !session.discoveryGate.get()) return
+        if ((session.lastCoarsePath?.size ?: 0) <= session.improvementCursor) return
+        if (!session.improvementQueued.compareAndSet(false, true)) return
+        enqueue(session) {
+            improvementQueued.set(false)
+            improveAdoptedPath()
+        }
+    }
+
+    /**
+     * Live-graph cost of the adopted coarse plan from the current search
+     * start — null when the start is no longer on the plan or an edge died,
+     * both of which mean the plan must be replaced, not defended.
+     */
+    private fun ActiveSession.adoptedRemainingCost(adopted: List<FastVector>): Double? {
+        val from = adopted.indexOf(planner.start)
+        if (from < 0) return null
+        return pathCost(adopted.subList(from, adopted.size))
+    }
+
+    /** First long rising edge whose selected predecessor does not form an aligned runway. */
+    private fun ActiveSession.invalidMomentumApproach(path: List<FastVector>): Pair<FastVector, FastVector>? {
+        if (path.size < 2) return null
+        for (index in 0 until path.lastIndex) {
+            val from = path[index]
+            val to = path[index + 1]
+            val dx = (to.x - from.x).toDouble()
+            val dz = (to.z - from.z).toDouble()
+            val horizontal = kotlin.math.hypot(dx, dz)
+            if (horizontal < 1.0E-6) continue
+            // Scope the position-only fallback to the known broken class:
+            // two-forward-or-longer rising jumps. Flat discovered jumps have
+            // live robust certificates and globally removing them based on
+            // one route's heading can strand a later, valid approach.
+            val risingGap = to.y > from.y && horizontal >= MOMENTUM_EDGE_MIN_LENGTH
+            if (!risingGap) continue
+
+            // The coarse predecessor is only a position-graph tie-break; on
+            // a real platform the executor may align along a different pair
+            // of stance blocks before launching. Accept that route when the
+            // world itself supplies two aligned runway blocks. The original
+            // turn-then-rise failure still rejects because its isolated
+            // takeoff has no blocks behind it in the jump direction.
+            if (hasPhysicalMomentumRunway(from, dx, dz, horizontal)) continue
+
+            val predecessor = when {
+                index > 0 -> path[index - 1]
+                else -> lastCoarsePath?.let { prior ->
+                    prior.indexOf(from).takeIf { it > 0 }?.let { prior[it - 1] }
+                }
+            } ?: return from to to
+            val inX = (from.x - predecessor.x).toDouble()
+            val inZ = (from.z - predecessor.z).toDouble()
+            val incomingLength = kotlin.math.hypot(inX, inZ)
+            if (incomingLength < MOMENTUM_RUNWAY_MIN_LENGTH) return from to to
+            val cosine = (inX * dx + inZ * dz) / (incomingLength * horizontal)
+            if (cosine < MOMENTUM_RUNWAY_MIN_COSINE) return from to to
+        }
+        return null
+    }
+
+    private fun ActiveSession.hasPhysicalMomentumRunway(
+        takeoff: FastVector,
+        dx: Double,
+        dz: Double,
+        horizontal: Double,
+    ): Boolean {
+        for (back in 1..2) {
+            val x = takeoff.x - kotlin.math.round(dx / horizontal * back).toInt()
+            val z = takeoff.z - kotlin.math.round(dz / horizontal * back).toInt()
+            if (!MoveTable.isStance(view, x, takeoff.y, z)) return false
+        }
+        return true
+    }
+
+    /** Sum of known graph costs along [path]; null on any missing edge. */
+    private fun ActiveSession.pathCost(path: List<FastVector>): Double? {
+        var total = 0.0
+        for (i in 0 until path.lastIndex) {
+            val cost = graph.knownSuccessors(path[i])[path[i + 1]] ?: return null
+            if (!cost.isFinite()) return null
+            total += cost
+        }
+        return total
     }
 
     private fun pathStatus(
@@ -669,9 +1028,14 @@ object PathfinderManager : Loadable,
         val graph: LazyGraph<FastVector>,
         val planner: DStarLite<FastVector>,
         val edgePenalties: HashMap<EdgeKey, Double>,
+        val approachRejectedEdges: HashSet<EdgeKey>,
         val view: SnapshotWorldView,
         val moves: MoveTable.MoveSet,
         val discovery: ManeuverDiscovery?,
+        /** False during the template-only phase; latched true forever after. */
+        val discoveryGate: AtomicBoolean,
+        /** True only when discovery is required to establish connectivity. */
+        val discoverOnExpansion: AtomicBoolean,
         /** Captured at request time; the worker never reads live config objects. */
         val refinementConfig: PathRefinementConfig,
         var lastRefinementLogKey: String? = null,
@@ -679,6 +1043,11 @@ object PathfinderManager : Loadable,
         var lastRefinedPath: List<FastVector>? = null,
         var lastEdgeAnnotations: Map<Pair<FastVector, FastVector>, TraversalHandle.EdgeAnnotation> = emptyMap(),
         var computeCount: Int = 0,
+        /** Next adopted-route index the improvement pass will scan (worker-only). */
+        var improvementCursor: Int = 0,
+        /** Timed-out template-phase slices, for the phase-1 cap (worker-only). */
+        var templateSlices: Int = 0,
+        val improvementQueued: AtomicBoolean = AtomicBoolean(false),
         val chunkTopologyDirty: AtomicBoolean = AtomicBoolean(false),
         val pendingStart: AtomicReference<FastVector?> = AtomicReference(null),
         val startRefreshQueued: AtomicBoolean = AtomicBoolean(false),
@@ -823,6 +1192,30 @@ object PathfinderManager : Loadable,
     // couple seconds of travel; the executor's live launch gate re-checks
     // every jump at execution time regardless.
     private const val PARTIAL_VALIDATION_HORIZON = 24.0
+
+    // Plan-swap hysteresis: the executing plan is only replaced when the new
+    // optimum is at least this fraction cheaper (or the old plan died).
+    // Below it, geometry stability is worth more than the saved ticks.
+    private const val PLAN_SWAP_IMPROVEMENT = 0.05
+
+    // Timed-out template-only budget slices before discovery joins a search
+    // that has not connected the goal yet (phase-1 latency cap).
+    private const val TEMPLATE_PHASE_MAX_SLICES = 4
+
+    // Adopted-route landings scanned per improvement slice, so world syncs
+    // and start advances interleave with the maneuver-proposal scan.
+    private const val IMPROVEMENT_LANDINGS_PER_SLICE = 48
+
+    // Changed blocks within this lateral distance of a refined segment
+    // (and -1..+2 of its walking level) invalidate the adopted plan.
+    private const val ROUTE_CORRIDOR_MARGIN = 1.5
+
+    // Position-only planner fallback for momentum edges: require at least
+    // one aligned incoming block and reject turns sharper than 15 degrees.
+    private const val MOMENTUM_EDGE_MIN_LENGTH = 1.9
+    private const val MOMENTUM_RUNWAY_MIN_LENGTH = 0.9
+    private const val MOMENTUM_RUNWAY_MIN_COSINE = 0.965925826
+
     private enum class ComputeCause(val metricName: String) {
         Initial("initial"),
         BudgetContinuation("budget_continuation"),
@@ -833,6 +1226,11 @@ object PathfinderManager : Loadable,
         EdgeObstructed("edge_obstructed"),
         ExplicitRefresh("explicit_refresh"),
         LazyValidation("lazy_validation"),
+        ApproachValidation("approach_validation"),
+        /** Discovery retrofit compute after the template phase ends. */
+        DiscoveryPhase("discovery_phase"),
+        /** Adopted-route maneuver-shortcut improvement pass. */
+        Improvement("improvement"),
     }
 
     /**
@@ -906,6 +1304,36 @@ internal data class EdgeKey(val from: FastVector, val to: FastVector)
  * remains exact, while a failed jump landing on a block edge can still
  * acquire a valid graph node and route out.
  */
+/**
+ * Index i such that the player (at block center) lies on refined segment
+ * i → i+1. Mid-segment travel stays anchored to the segment head, shared
+ * nodes resolve forward, and an exact final endpoint resolves to lastIndex.
+ */
+internal fun refinedRouteAnchorIndex(refined: List<FastVector>, playerBlock: FastVector): Int? {
+    var best: Int? = null
+    val px = playerBlock.x + 0.5
+    val pz = playerBlock.z + 0.5
+    for (i in 0 until refined.lastIndex) {
+        val a = refined[i]
+        val b = refined[i + 1]
+        if (playerBlock.y != a.y && playerBlock.y != b.y) continue
+        val ax = a.x + 0.5
+        val az = a.z + 0.5
+        val dx = (b.x - a.x).toDouble()
+        val dz = (b.z - a.z).toDouble()
+        val lengthSq = dx * dx + dz * dz
+        if (lengthSq < 1.0E-9) continue
+        val t = ((px - ax) * dx + (pz - az) * dz) / lengthSq
+        if (t < -0.05 || t > 1.05) continue
+        val lateral = kotlin.math.abs((px - ax) * dz - (pz - az) * dx) / sqrt(lengthSq)
+        if (lateral > START_ADVANCE_CORRIDOR) continue
+        // The final endpoint has no following segment to win the furthest
+        // match, so promote an exact stance there explicitly.
+        best = if (i == refined.lastIndex - 1 && playerBlock == b) i + 1 else i
+    }
+    return best
+}
+
 internal fun footprintSupportedStance(
     view: com.lambda.worldview.WorldView,
     playerPosition: net.minecraft.util.math.Vec3d,
@@ -932,3 +1360,4 @@ internal fun footprintSupportedStance(
 
 // Half a block top + half the player's 0.6-wide footprint, plus epsilon.
 private const val PLAYER_FOOTPRINT_SUPPORT_REACH = 0.801
+private const val START_ADVANCE_CORRIDOR = 1.5

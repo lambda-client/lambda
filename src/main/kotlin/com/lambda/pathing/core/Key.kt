@@ -24,7 +24,11 @@ data class Key(
     val first: Double,
     val second: Double,
 ) : Comparable<Key> {
-    override fun compareTo(other: Key) = compareValuesBy(this, other, Key::first, Key::second)
+    /** This comparison sits in every heap sift; avoid compareValuesBy/property-reference overhead. */
+    override fun compareTo(other: Key): Int {
+        val firstComparison = first.compareTo(other.first)
+        return if (firstComparison != 0) firstComparison else second.compareTo(other.second)
+    }
 
     override fun toString() = "(%.3f, %.3f)".format(first, second)
 

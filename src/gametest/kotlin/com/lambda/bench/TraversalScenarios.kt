@@ -64,6 +64,19 @@ data class TraversalScenario(
     /** One deterministic velocity impulse applied on the first airborne tick. */
     val firstAirborneVelocityImpulse: Vec3d? = null,
     /**
+     * Deterministic perturbations cycled across every jump in the scenario.
+     * This exercises the full maneuver set from non-ideal live states rather
+     * than validating one perfectly repeatable integrated-server trajectory.
+     */
+    val airborneVelocityImpulseCycle: List<Vec3d> = emptyList(),
+    /**
+     * Camera yaw forced on the player every tick while following. The
+     * rotation manager splits movement yaw from camera yaw, so path
+     * following must be unaffected — the regression probe for that split
+     * (formerly its own LambdaTest world).
+     */
+    val perturbCameraYaw: Float? = null,
+    /**
      * Whether a miss fails the suite. H6 *baseline* scenarios run ungated:
      * they measure the current executor's maneuver reliability (the number
      * WP3 must beat) and are promoted to gated once envelope-checked
@@ -72,6 +85,8 @@ data class TraversalScenario(
     val gated: Boolean = true,
     /** Optional quality gates beyond eventual goal arrival. */
     val maxFirstFollowingTick: Int? = null,
+    /** End-to-end performance ceiling for deterministic benchmark courses. */
+    val maxCompletionTicks: Int? = null,
     val maxPlanningPauseTicks: Int? = null,
     val maxLongestPlanningPauseTicks: Int? = null,
     val maxLongestMovementStallTicks: Int? = null,
@@ -80,6 +95,34 @@ data class TraversalScenario(
     val minJumpLandingSuccessRate: Double? = null,
     /** Safety gate for stop-before-gap fixtures: lowest Y the player may ever reach. */
     val minAllowedY: Double? = null,
+    /**
+     * Optional generated-course oracle. Unlike the ordinary goal oracle it
+     * proves that every intended platform transition was actually targeted
+     * and landed in order, so walking around or recovering onto a later pad
+     * cannot turn a broken jump into a pass.
+     */
+    val parkourContract: ParkourContract? = null,
+)
+
+data class ParkourLanding(
+    val minX: Int,
+    val maxX: Int,
+    val feetY: Int,
+    val minZ: Int,
+    val maxZ: Int,
+) {
+    fun contains(x: Double, y: Double, z: Double, margin: Double = 0.0): Boolean =
+        x >= minX - margin && x < maxX + 1.0 + margin &&
+            z >= minZ - margin && z < maxZ + 1.0 + margin &&
+            kotlin.math.abs(y - feetY) <= 0.2
+}
+
+data class ParkourContract(
+    /** Stable, filterable description of the generated geometry. */
+    val caseId: String,
+    val landings: List<ParkourLanding>,
+    /** A second launch at the same expected landing is a failed commitment. */
+    val maxRetriesPerLanding: Int = 0,
 )
 
 /** Plain [PlannerConfig] for benchmarks — independent of any UI config state. */
@@ -95,6 +138,13 @@ data class BenchPlannerConfig(
 ) : PlannerConfig
 
 object TraversalScenarios {
+    // The client gametest tracks five chunks from the player; 96 blocks keeps
+    // the complete route observable while the 61-block width makes the field
+    // 49% larger than the former 96x41 fixture.
+    private const val BEDROCK_FIELD_LENGTH = 96
+    private const val BEDROCK_FIELD_HALF_WIDTH = 30
+    private const val BEDROCK_FIELD_SEED = 0x5EED_BEDL
+
     // All fixtures live in this region; it is wiped before every scenario.
     // Keep volumes below the /fill block limit (32768).
     private val RESET = listOf(
@@ -103,18 +153,18 @@ object TraversalScenarios {
     )
 
     /**
-     * Reconstructs the exposed bottom-bedrock field from the field test: a
-     * guaranteed bottom sheet plus four independently sampled bedrock layers
-     * using vanilla's 80/60/40/20% layer profile. Removing every non-bedrock
-     * block leaves the dense two-dimensional pillars, pockets, overhangs and
-     * narrow landings visible in the reference screenshot — not a 1-D height
-     * strip. Direct server writes avoid thousands of `/setblock` commands.
+     * Reconstructs a deterministic exposed bottom-bedrock field: a guaranteed
+     * bottom sheet plus four independently sampled bedrock layers using
+     * vanilla's 80/60/40/20% layer profile. The fixed seed makes traversal
+     * times comparable across changes while the larger two-dimensional field
+     * still supplies irregular pillars, pockets, overhangs and narrow
+     * landings. Direct server writes avoid thousands of `/setblock` commands.
      */
     private val EXPOSED_BEDROCK_FIXTURE: (MinecraftServer) -> Unit = { server ->
         val world = server.overworld
-        val random = Random(0x5EED_BEDL)
-        for (x in 0..95) {
-            for (z in -20..20) {
+        val random = Random(BEDROCK_FIELD_SEED)
+        for (x in 0 until BEDROCK_FIELD_LENGTH) {
+            for (z in -BEDROCK_FIELD_HALF_WIDTH..BEDROCK_FIELD_HALF_WIDTH) {
                 for (layer in 1..4) {
                     val probability = (5 - layer) / 5.0
                     if (random.nextDouble() < probability) {
@@ -128,13 +178,25 @@ object TraversalScenarios {
             }
         }
 
-        // Flat 3x3 launch and arrival islands make the measured traversal
-        // about the chaotic middle, not spawn/goal placement luck.
-        for (x in 0..2) for (z in -1..1) for (y in 63..66) {
-            world.setBlockState(BlockPos(x, y, z), Blocks.AIR.defaultState, Block.NOTIFY_ALL)
+        // Flat 4x5 launch and arrival islands make the measurement about the
+        // chaotic middle, not endpoint placement luck. In particular, the
+        // launch island guarantees the player cannot spawn inside a two-deep
+        // pocket even though every other column follows the seeded profile.
+        for (x in 0..3) for (z in -2..2) {
+            for (y in 61..62) {
+                world.setBlockState(BlockPos(x, y, z), Blocks.BEDROCK.defaultState, Block.NOTIFY_ALL)
+            }
+            for (y in 63..66) {
+                world.setBlockState(BlockPos(x, y, z), Blocks.AIR.defaultState, Block.NOTIFY_ALL)
+            }
         }
-        for (x in 93..95) for (z in -1..1) for (y in 63..66) {
-            world.setBlockState(BlockPos(x, y, z), Blocks.AIR.defaultState, Block.NOTIFY_ALL)
+        for (x in BEDROCK_FIELD_LENGTH - 4 until BEDROCK_FIELD_LENGTH) for (z in -2..2) {
+            for (y in 61..62) {
+                world.setBlockState(BlockPos(x, y, z), Blocks.BEDROCK.defaultState, Block.NOTIFY_ALL)
+            }
+            for (y in 63..66) {
+                world.setBlockState(BlockPos(x, y, z), Blocks.AIR.defaultState, Block.NOTIFY_ALL)
+            }
         }
     }
 
@@ -152,9 +214,12 @@ object TraversalScenarios {
         mutations: List<Pair<Int, String>> = emptyList(),
         maxReplanLatencyTicks: Int? = null,
         firstAirborneVelocityImpulse: Vec3d? = null,
+        airborneVelocityImpulseCycle: List<Vec3d> = emptyList(),
+        perturbCameraYaw: Float? = null,
         gated: Boolean = true,
         serverFixture: ((MinecraftServer) -> Unit)? = null,
         maxFirstFollowingTick: Int? = null,
+        maxCompletionTicks: Int? = null,
         maxPlanningPauseTicks: Int? = null,
         maxLongestPlanningPauseTicks: Int? = null,
         maxLongestMovementStallTicks: Int? = null,
@@ -177,8 +242,11 @@ object TraversalScenarios {
         mutations = mutations,
         maxReplanLatencyTicks = maxReplanLatencyTicks,
         firstAirborneVelocityImpulse = firstAirborneVelocityImpulse,
+        airborneVelocityImpulseCycle = airborneVelocityImpulseCycle,
+        perturbCameraYaw = perturbCameraYaw,
         gated = gated,
         maxFirstFollowingTick = maxFirstFollowingTick,
+        maxCompletionTicks = maxCompletionTicks,
         maxPlanningPauseTicks = maxPlanningPauseTicks,
         maxLongestPlanningPauseTicks = maxLongestPlanningPauseTicks,
         maxLongestMovementStallTicks = maxLongestMovementStallTicks,
@@ -195,8 +263,11 @@ object TraversalScenarios {
         scenario(
             "flat-diagonal-10",
             "Any-angle steering: goal off-axis, refined path should cut the corner. Also the " +
-                "flat-walk executor sanity baseline.",
+                "flat-walk executor sanity baseline, AND the movement/camera yaw-split " +
+                "regression: the camera is stomped to a fixed wrong yaw every tick and path " +
+                "following must not care (absorbed from the retired LambdaTest world).",
             goal = fastVectorOf(7, 64, 7),
+            perturbCameraYaw = 180f,
         ),
 
         scenario(
@@ -277,16 +348,21 @@ object TraversalScenarios {
 
         scenario(
             "bedrock-exposed-100",
-            "Field-test regression: traverse a 95-block span (over 100 planned blocks) through a seeded 96x41 exposed " +
+            "Field-test regression: traverse a 95-block span through a fixed-seed 96x61 exposed " +
                 "vanilla-profile bedrock field with dense 2-D pillars, pockets, overhangs and " +
                 "narrow landings. Measures maneuver discovery efficiency, jump reliability, " +
                 "refined-path relocalization, unnecessary replans and total traversal ticks.",
+            // Fixture commands reject unloaded positions. Keep the complete
+            // deterministic course resident both while it is built and while
+            // it is measured, so chunk I/O is not mistaken for planner speed.
+            "/forceload add -16 -32 111 47",
             // Split the clear so every /fill stays below the command's 32768-block cap.
-            "/fill -4 60 -22 50 70 22 minecraft:air",
-            "/fill 51 60 -22 99 70 22 minecraft:air",
-            "/fill -2 62 -21 97 62 21 minecraft:bedrock",
+            "/fill -4 60 -32 29 70 32 minecraft:air",
+            "/fill 30 60 -32 63 70 32 minecraft:air",
+            "/fill 64 60 -32 99 70 32 minecraft:air",
+            "/fill -2 62 -31 97 62 31 minecraft:bedrock",
             start = Vec3d(0.5, 63.0, 0.5),
-            goal = fastVectorOf(95, 63, 0),
+            goal = fastVectorOf(BEDROCK_FIELD_LENGTH - 1, 63, 0),
             allowJump = true,
             timeoutTicks = 2_400,
             // Discovery now fans flat + ascending + descending candidates
@@ -295,12 +371,23 @@ object TraversalScenarios {
             // gate holds THAT line; T7 one-sim-per-pattern caching is the
             // planned lever to pull it back under 40.
             maxFirstFollowingTick = 80,
+            // Fixed-seed end-to-end baseline. Tighten as planner/executor
+            // improvements land; unlike timeoutTicks this is a quality gate.
+            maxCompletionTicks = 650,
             maxPlanningPauseTicks = 10,
             maxLongestPlanningPauseTicks = 5,
             maxLongestMovementStallTicks = 10,
             maxLongestExecutorLostBurstTicks = 8,
-            maxReplansRequested = 2,
+            maxReplansRequested = 4,
+            // Maneuver commitment plus robust launch certificates must land
+            // every jump, even with the deterministic perturbation cycle.
             minJumpLandingSuccessRate = 1.0,
+            airborneVelocityImpulseCycle = listOf(
+                Vec3d(0.0, 0.0, 0.02),
+                Vec3d(0.0, 0.0, -0.02),
+                Vec3d(0.02, 0.0, 0.0),
+                Vec3d(-0.02, 0.0, 0.0),
+            ),
             serverFixture = EXPOSED_BEDROCK_FIXTURE,
         ),
 
@@ -437,6 +524,24 @@ object TraversalScenarios {
         ),
 
         scenario(
+            "turn-then-rising-gap-rejected",
+            "Position-only heading regression: the route reaches a two-forward, one-up gap " +
+                "through a 90-degree turn with no aligned runway. The planner must reject the " +
+                "direct momentum edge instead of leaving the executor stuck, then use a reliable alternative.",
+            // Isolate the start to a north/south strip; no block exists west
+            // of the takeoff from which an eastbound run-up could begin.
+            "/fill -1 63 -14 -1 78 14 minecraft:air",
+            "/fill 1 63 -14 1 78 14 minecraft:air",
+            "/fill 2 64 -1 4 64 1 minecraft:stone",
+            start = Vec3d(0.5, 64.0, -4.5),
+            startYaw = 0f,
+            goal = fastVectorOf(3, 65, 0),
+            allowJump = true,
+            timeoutTicks = 300,
+            minJumpLandingSuccessRate = 1.0,
+        ),
+
+        scenario(
             "gauntlet-mixed",
             "H6 headline course: step-up, elevated gap jump, 90° turn, walk-off drop-2, gap jump — " +
                 "every maneuver class the graph has, chained. End-to-end ticks are the baseline " +
@@ -512,17 +617,16 @@ object TraversalScenarios {
 
         scenario(
             "disc-gap-diag45",
-            "WP3.2 discovery at pure 45°: 1-wide pads force the diagonal sprint jump " +
-                "(displacement 3,3 ≈ 4.24, no shallower candidate reaches) — the maximal-angle " +
-                "discovery case plus a narrow-pad landing; f3-gap-angled covers the shallow " +
-                "angle. Ungated H8 baseline.",
+            "Reliability rejection: a pure-45° displacement-3,3 jump between 1-wide pads works " +
+                "only on the ideal center line and fails the lateral launch-state certificate. " +
+                "The planner must reject it cleanly rather than publish a fragile maneuver.",
             "/fill 0 65 0 2 65 0 minecraft:stone",
             "/fill 5 65 3 7 65 3 minecraft:stone",
             start = Vec3d(0.5, 66.0, 0.5),
             goal = fastVectorOf(6, 66, 3),
             allowJump = true,
             timeoutTicks = 300,
-            gated = false,
+            expectSuccess = false,
         ),
 
         scenario(
