@@ -325,20 +325,25 @@ class MovementSimulator(
 
     /** @see net.minecraft.entity.LivingEntity.jump */
     private fun jump() {
-        if (isSprinting) {
-            // Vanilla's sprint-jump boost along the facing yaw (the context-
-            // free body of MovementUtils.movementVector).
-            val yawRad = rotation.yaw.toRadian()
-            velocity += Vec3d(-kotlin.math.sin(yawRad), 0.0, kotlin.math.cos(yawRad)) * 0.2
-        }
-
         val jumpHeight = run {
             val f = environment.jumpVelocityMultiplier(position.flooredBlockPos)
             val g = environment.jumpVelocityMultiplier(velocityAffectingPos)
             if (f == 1.0) g else f
         } * 0.42 + profile.jumpBoostVelocityModifier
 
-        velocity += Vec3d(0.0, jumpHeight, 0.0)
+        // Vanilla SETS velocity.y — it never adds. A grounded player's
+        // stored vy is always ≈ −0.078, so adding launched every live-state
+        // arc ~0.08 low of apex and roughly half a block short: invisible
+        // to synthetic (vy = 0) discovery sims, systematically pessimistic
+        // for the executor's live launch gate.
+        velocity = Vec3d(velocity.x, jumpHeight, velocity.z)
+
+        if (isSprinting) {
+            // Vanilla's sprint-jump boost along the facing yaw (the context-
+            // free body of MovementUtils.movementVector).
+            val yawRad = rotation.yaw.toRadian()
+            velocity += Vec3d(-kotlin.math.sin(yawRad), 0.0, kotlin.math.cos(yawRad)) * 0.2
+        }
     }
 
     /** @see net.minecraft.entity.Entity.adjustMovementForCollisions */

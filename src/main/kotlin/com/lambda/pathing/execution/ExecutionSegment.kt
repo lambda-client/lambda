@@ -17,6 +17,7 @@
 
 package com.lambda.pathing.execution
 
+import com.lambda.pathing.maneuver.EntrySpeedEnvelope
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.sqrt
@@ -174,6 +175,8 @@ data class WalkSegment(
      * gaps are the opposite on both counts.
      */
     val discovered: Boolean = false,
+    /** Worker-validated entry interval for discovered jumps (T3). */
+    val entrySpeedEnvelope: EntrySpeedEnvelope? = null,
 ) : LinearExecutionSegment(index, start, end) {
     /** +1 step-up, negative for step-down/drop depth, 0 flat. */
     val verticalStep: Int = Math.round(delta.y).toInt()

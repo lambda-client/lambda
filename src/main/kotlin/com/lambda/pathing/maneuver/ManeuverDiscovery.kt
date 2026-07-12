@@ -87,6 +87,14 @@ class ManeuverDiscovery(
     /** (takeoff, landing) → intermediate landings, for chain macro-edges. */
     private val chainMids = HashMap<Pair<FastVector, FastVector>, List<FastVector>>()
 
+    /**
+     * Validated entry interval per accepted single-jump edge (T3). Only
+     * momentum-critical edges appear here: an edge validated across the
+     * whole field band publishes NO envelope, and the executor plays it
+     * exactly as it did before envelopes existed.
+     */
+    private val entryEnvelopes = HashMap<Pair<FastVector, FastVector>, EntrySpeedEnvelope>()
+
     var landingsExamined = 0; private set
     var simulationsRun = 0; private set
     var edgesDiscovered = 0; private set
@@ -150,6 +158,10 @@ class ManeuverDiscovery(
             // Ascending jumps (+1 landing) have shorter sprint reach;
             // descending ones keep the flat band (falling carries).
             if (rise < 0 && offset.distance > ASCEND_MAX_DISTANCE) continue
+            // Flat 2-gaps are the gapJump template's own move; the 2.0–2.2
+            // band exists for the rise classes no template represents. The
+            // cardinal-2 ascend is likewise the rise-1 gapJump template.
+            if (offset.distance < FLAT_MIN_DISTANCE && rise <= 0) continue
             val takeoff = fastVectorOf(landing.x - offset.dx, landing.y + rise, landing.z - offset.dz)
             if (takeoff in discovery.edges) continue
             if (!progressesFromOrigin(takeoff, landing)) continue
@@ -163,6 +175,7 @@ class ManeuverDiscovery(
             if (!lineCrossesGap(takeoff, landing)) continue
             if (rise > 0 && !lineCrossesGapAtLevel(takeoff, landing, landing.y)) continue
             if (!arcPossiblyClear(takeoff, landing)) continue
+            if (offset.distance >= MOMENTUM_RUNWAY_MIN_DISTANCE && !hasEntryRunway(takeoff, landing)) continue
 
             // Tiny axis-alignment epsilon: an angled jump and a straight
             // one often land on the same integer tick, and an arbitrary
@@ -170,7 +183,14 @@ class ManeuverDiscovery(
             // symmetric lateral tolerance, so prefer them whenever the
             // tick cost truly ties.
             val tieBreak = AXIS_TIE_EPSILON * minOf(abs(offset.dx), abs(offset.dz))
-            registerEdge(landing, discovery, takeoff, optimisticJumpCost(offset.distance) + tieBreak)
+            // The envelope risk surcharge must be in the OPTIMISTIC bound
+            // too: penalizing only at validation put every envelope edge +2
+            // over what the search assumed, and LazySP then walked the
+            // entire extension fan edge by edge before settling (measured:
+            // ~1s repair passes on exhaustive expect-failure searches).
+            val envelopeRisk =
+                if (isEnvelopeSamplingClass(takeoff, landing)) ENVELOPE_RISK_PENALTY_TICKS else 0.0
+            registerEdge(landing, discovery, takeoff, optimisticJumpCost(offset.distance) + tieBreak + envelopeRisk)
             (added ?: HashSet<FastVector>().also { added = it }) += takeoff
         }
         return added ?: emptySet()
@@ -185,7 +205,7 @@ class ManeuverDiscovery(
      * the search before it can be selected for lazy validation.
      */
     private fun proposeChains(landing: FastVector, discovery: LandingDiscovery) {
-        for (offset in CANDIDATE_OFFSETS) {
+        for (offset in CHAIN_OFFSETS) {
             val mid = fastVectorOf(landing.x - offset.dx, landing.y, landing.z - offset.dz)
             if (!MoveTable.isStance(view, mid.x, mid.y, mid.z)) continue
             if (!lineCrossesGap(mid, landing)) continue
@@ -303,7 +323,7 @@ class ManeuverDiscovery(
             val edge = takeoff to landing
             val chain = chainMids[edge]
             val simsBefore = simulationsRun
-            val simulated = if (chain == null) {
+            val validation = if (chain == null) {
                 simulateJump(takeoff, landing)
             } else {
                 val mid = chain.single()
@@ -315,17 +335,18 @@ class ManeuverDiscovery(
                             "landing=(${landing.x},${landing.z}) slow=$slow fast=$fast lastFail=$lastChainFailure"
                     )
                 }
-                if (slow == null || fast == null) null else (slow + fast) / 2.0
+                if (slow == null || fast == null) null else JumpValidation((slow + fast) / 2.0)
             }
             discovery.simsUsed += simulationsRun - simsBefore
 
             affected += takeoff
             affected += landing
-            if (simulated == null) {
+            if (validation == null) {
                 edgesRejected++
                 discovery.edges.remove(takeoff)
                 removeMirror(takeoff, landing)
                 chainMids.remove(edge)
+                entryEnvelopes.remove(edge)
                 // Restore the live-edge budget with the next fan candidates,
                 // exactly as eager validation would have kept probing. The
                 // proposals join [LandingDiscovery.optimistic] and are
@@ -335,9 +356,22 @@ class ManeuverDiscovery(
                 edgesValidated++
                 val dx = abs(landing.x - takeoff.x)
                 val dz = abs(landing.z - takeoff.z)
-                val cost = simulated + AXIS_TIE_EPSILON * minOf(dx, dz)
+                // Envelope (momentum) edges carry execution risk a whole-band
+                // edge does not — a narrow certified entry box, phase-aligned
+                // launches, no disturbance slack. Price that risk so they win
+                // only when they genuinely shorten the route, never on ties
+                // against robust edges (observed: an envelope edge outbidding
+                // P0's whole-band edge by ε and then missing strict landings).
+                // Keyed on geometry, not the envelope outcome, so the cost
+                // matches the optimistic bound and only ever revises upward
+                // (the LazySP invariant).
+                val riskPenalty = if (chain == null && isEnvelopeSamplingClass(takeoff, landing)) {
+                    ENVELOPE_RISK_PENALTY_TICKS
+                } else 0.0
+                val cost = validation.cost + AXIS_TIE_EPSILON * minOf(dx, dz) + riskPenalty
                 discovery.edges[takeoff] = cost
                 edgesFrom.getOrPut(takeoff) { HashMap() }[landing] = cost
+                validation.envelope?.let { entryEnvelopes[edge] = it }
             }
         }
     }
@@ -356,7 +390,11 @@ class ManeuverDiscovery(
             val chain = chainWaypoints(from, to)
             val discovered = isDiscoveredJump(from, to)
             if (chain == null && !discovered) null
-            else (from to to) to TraversalHandle.EdgeAnnotation(chain?.toList(), discovered)
+            else (from to to) to TraversalHandle.EdgeAnnotation(
+                chainWaypoints = chain?.toList(),
+                discoveredJump = discovered,
+                entrySpeedEnvelope = entryEnvelopes[from to to],
+            )
         }.toMap()
 
     /**
@@ -368,6 +406,7 @@ class ManeuverDiscovery(
         landings.clear()
         edgesFrom.clear()
         chainMids.clear()
+        entryEnvelopes.clear()
     }
 
     /**
@@ -394,6 +433,7 @@ class ManeuverDiscovery(
                     if (outgoing.isEmpty()) edgesFrom.remove(takeoff)
                 }
                 chainMids.remove(takeoff to landing)
+                entryEnvelopes.remove(takeoff to landing)
                 affected += takeoff
             }
         }
@@ -480,17 +520,211 @@ class ManeuverDiscovery(
      * measured launches are center-aligned (≤0.06 error; the alignment
      * gates work) and the extra sims tripled discovery cost.
      */
-    private fun simulateJump(takeoff: FastVector, landing: FastVector): Double? {
-        val slow = simulateEntry(takeoff, landing, ENTRY_SPEED_LOW, allowCarryPast = false) ?: return null
-        val fast = simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true) ?: return null
-        // Deep launch is probed at fast entry only: a slow approach covers
-        // little ground between takeoff-gate evaluations and always launches
-        // near the window front, so slow+deep is not a pose the executor
-        // produces. Fast+deep is (measured 0.45–0.7 past center).
-        simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true, progressOffset = DEEP_LAUNCH_PROGRESS)
-            ?: return null
-        return (slow + fast) / 2.0
+    private fun simulateJump(takeoff: FastVector, landing: FastVector): JumpValidation? {
+        // T3 envelope sampling is reserved for the classes that need it:
+        // the extension fan (distance/rise outside the pre-P2 bands) and
+        // ascending jumps (speed-critical by nature). The pre-P2 flat and
+        // descend-1 fan keeps its exact 1–3-sim whole-band admission —
+        // sampling here retunes every landing's sim budget and the bedrock
+        // course loses its proven edges to admission noise (measured).
+        val samplingEligible = isEnvelopeSamplingClass(takeoff, landing)
+        val slow = simulateEntry(takeoff, landing, ENTRY_SPEED_LOW, allowCarryPast = false)
+        if (slow == null && !samplingEligible) return null
+        val fast = simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true)
+        if (slow != null && fast != null) {
+            // Deep launch is probed at fast entry only: a slow approach
+            // covers little ground between takeoff-gate evaluations and
+            // always launches near the window front, so slow+deep is not a
+            // pose the executor produces. Fast+deep is (measured 0.45–0.7
+            // past center). A whole-band edge that cannot take the deep
+            // pose is rejected outright, exactly as before T3: its field
+            // launch spread is wider than its corridor.
+            simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true, progressOffset = DEEP_LAUNCH_PROGRESS)
+                ?: return null
+            return JumpValidation((slow + fast) / 2.0)
+        }
+        if (!samplingEligible) return null
+        return sampleEnvelope(takeoff, landing, slow, fast)
     }
+
+    private fun isEnvelopeSamplingClass(takeoff: FastVector, landing: FastVector): Boolean {
+        val rise = takeoff.y - landing.y
+        if (rise < 0 || rise > 1) return true
+        val distance = hypot((landing.x - takeoff.x).toDouble(), (landing.z - takeoff.z).toDouble())
+        return distance < 2.2 || distance > 4.3
+    }
+
+    /**
+     * T3 entry-envelope admission: a field-band endpoint failed, so the
+     * generic whole-band rule rejects — but a momentum-bound jump (long,
+     * ascending, or deep-descending) may still be valid on a narrower entry
+     * interval. Find the largest contiguous successful run of
+     * [ENTRY_SPEED_SAMPLES] anchored at whichever endpoint passed
+     * (interior-only intervals are probed from the band middle), then probe
+     * progressively deeper launch poses at the run's hot end to certify how
+     * far past the node center the launch may fire. A single-sample run is
+     * legitimate — maximum-distance jumps can have exactly one working
+     * speed. The executor refuses to launch outside the published interval
+     * and the planner replans instead, so a narrow envelope never turns
+     * into edge choreography.
+     */
+    private fun sampleEnvelope(
+        takeoff: FastVector,
+        landing: FastVector,
+        slow: Double?,
+        fast: Double?,
+    ): JumpValidation? {
+        if (ENVELOPE_DEBUG) {
+            com.lambda.Lambda.LOG.info(
+                "[EnvelopeDiscovery] sampling takeoff=(${takeoff.x},${takeoff.y},${takeoff.z}) " +
+                    "landing=(${landing.x},${landing.y},${landing.z}) slow=$slow fast=$fast"
+            )
+        }
+        // Stage 1: node-center anchor. An executable run must include at
+        // least one speed real ground movement can deliver — a run of only
+        // the 0.30 robustness endpoint describes an entry state sprint
+        // equilibrium (0.2806) never produces, and admitting it publishes
+        // an edge the executor can only refuse.
+        val achievable = achievableEntry(takeoff, landing)
+        sampleSpeedRun(takeoff, landing, progressOffset = 0.0, seeded = true, seedSlow = slow, seedFast = fast)?.let { run ->
+            if (ENTRY_SPEED_SAMPLES[run.lo] <= achievable) {
+                val windowEnd = probeWindowEnd(takeoff, landing, run.hi, anchor = 0.0, probes = 3)
+                if (windowEnd >= MIN_TAKEOFF_WINDOW) {
+                    return admitEnvelope(takeoff, landing, run, minProgress = 0.0, maxProgress = windowEnd)
+                }
+                return null
+            }
+        }
+        // Stage 2/3: deep and lip anchors. Maximum-distance jumps are
+        // launched at (or near) the lip — the shorter remaining flight is
+        // what brings the required entry speed down into the achievable
+        // range, exactly how the class is jumped by hand ("you need to
+        // jump right on the edge, not much tolerance"). The certified
+        // window then STARTS deep and the executor's phase alignment plus
+        // launch sim own the precision.
+        // Prefer an envelope whose minimum speed plain ground sprint can
+        // deliver (stored ~0.153); an ice-tier envelope is only a
+        // fallback — publishing it when a ground-executable lip window
+        // exists strands every ordinary approach below vmin.
+        var fallback: JumpValidation? = null
+        for (anchor in ENVELOPE_ANCHORS) {
+            val run = sampleSpeedRun(takeoff, landing, progressOffset = anchor) ?: continue
+            if (ENTRY_SPEED_SAMPLES[run.lo] > achievable) continue
+            val windowEnd = probeWindowEnd(takeoff, landing, run.hi, anchor = anchor, probes = 2)
+            if (windowEnd - anchor < MIN_TAKEOFF_WINDOW) continue
+            val validation = admitEnvelope(takeoff, landing, run, minProgress = anchor, maxProgress = windowEnd)
+            if (ENTRY_SPEED_SAMPLES[run.lo] <= ENTRY_SPEED_GROUND_MAX) return validation
+            if (fallback == null) fallback = validation
+        }
+        return fallback
+    }
+
+    /**
+     * Deepest certified launch pose past [anchor]: probe in
+     * [WINDOW_PROBE_STEP] increments at the run's hot speed; the first
+     * failure ends the window. The certified window is what the executor's
+     * phase alignment aims a launch tick into.
+     */
+    private fun probeWindowEnd(
+        takeoff: FastVector,
+        landing: FastVector,
+        hiIndex: Int,
+        anchor: Double,
+        probes: Int,
+    ): Double {
+        var end = anchor
+        for (k in 1..probes) {
+            // Clamp to the deepest pose a real player can stand on — a
+            // synthetic sim start hanging past the physical support would
+            // "validate" a pose that never occurs.
+            val progress = (anchor + k * WINDOW_PROBE_STEP).coerceAtMost(MAX_LIP_PROGRESS)
+            if (progress <= end) break
+            simulateEntry(
+                takeoff, landing, ENTRY_SPEED_SAMPLES[hiIndex], allowCarryPast = true, progressOffset = progress,
+            ) ?: break
+            end = progress
+        }
+        return end
+    }
+
+    private class SpeedRun(val lo: Int, val hi: Int, val loCost: Double, val hiCost: Double)
+
+    /**
+     * Largest contiguous successful run of [ENTRY_SPEED_SAMPLES] at one
+     * launch pose, anchored at whichever field-band endpoint passes
+     * (interior-only runs are probed from the band middle). A single-sample
+     * run is legitimate — maximum-distance jumps can have exactly one
+     * working speed.
+     */
+    private fun sampleSpeedRun(
+        takeoff: FastVector,
+        landing: FastVector,
+        progressOffset: Double,
+        seeded: Boolean = false,
+        seedSlow: Double? = null,
+        seedFast: Double? = null,
+    ): SpeedRun? {
+        val n = ENTRY_SPEED_SAMPLES.size
+        val costs = arrayOfNulls<Double>(n)
+        fun probe(i: Int): Double? = simulateEntry(
+            takeoff, landing, ENTRY_SPEED_SAMPLES[i], allowCarryPast = true, progressOffset = progressOffset,
+        ).also { costs[i] = it }
+
+        val slow = if (seeded) seedSlow.also { costs[0] = it } else probe(0)
+        val fast = if (seeded) seedFast.also { costs[n - 1] = it } else probe(n - 1)
+        var lo: Int
+        var hi: Int
+        when {
+            fast != null -> {
+                hi = n - 1
+                lo = n - 1
+                while (lo > 0 && probe(lo - 1) != null) lo--
+            }
+            slow != null -> {
+                lo = 0
+                hi = 0
+                while (hi < n - 1 && probe(hi + 1) != null) hi++
+            }
+            else -> {
+                // Both endpoints failed: reject. Interior-only intervals
+                // were sampled once (band-middle probe + expansion) and
+                // never admitted a useful edge, while the extra sims per
+                // hopeless candidate starved landing budgets on dense
+                // terrain — cheap rejection is worth more than the class.
+                return null
+            }
+        }
+        return SpeedRun(lo, hi, costs[lo]!!, costs[hi]!!)
+    }
+
+    private fun admitEnvelope(
+        takeoff: FastVector,
+        landing: FastVector,
+        run: SpeedRun,
+        minProgress: Double,
+        maxProgress: Double,
+    ): JumpValidation {
+        val envelope = EntrySpeedEnvelope(
+            min = ENTRY_SPEED_SAMPLES[run.lo],
+            max = ENTRY_SPEED_SAMPLES[run.hi],
+            minTakeoffProgress = minProgress,
+            maxTakeoffProgress = maxProgress,
+        )
+        if (ENVELOPE_DEBUG) {
+            com.lambda.Lambda.LOG.info(
+                "[EnvelopeDiscovery] admitted takeoff=(${takeoff.x},${takeoff.y},${takeoff.z}) " +
+                    "landing=(${landing.x},${landing.y},${landing.z}) envelope=$envelope"
+            )
+        }
+        return JumpValidation(cost = (run.loCost + run.hiCost) / 2.0, envelope = envelope)
+    }
+
+    /**
+     * Admission result of one candidate edge: simulated tick cost plus the
+     * validated entry interval — null envelope for whole-band edges (the
+     * executor plays those with no entry constraints, as before T3).
+     */
+    private data class JumpValidation(val cost: Double, val envelope: EntrySpeedEnvelope? = null)
 
     /**
      * One tick-accurate simulation (T7 first-collision semantics): entry at
@@ -682,12 +916,58 @@ class ManeuverDiscovery(
         return hypot(takeoffDx, takeoffDz) < hypot(landingDx, landingDz) + PROGRESS_SLACK_BLOCKS
     }
 
+    /**
+     * Cheap geometric half of the momentum contract: a candidate that can
+     * only validate near sprint carry needs at least two standable blocks
+     * behind its takeoff along the jump line, or no approach can ever
+     * deliver the entry state and every simulation is wasted budget.
+     */
+    private fun hasEntryRunway(takeoff: FastVector, landing: FastVector): Boolean {
+        val dx = (landing.x - takeoff.x).toDouble()
+        val dz = (landing.z - takeoff.z).toDouble()
+        val length = hypot(dx, dz)
+        if (length <= 1.0E-6) return false
+        for (back in 1..2) {
+            val bx = takeoff.x - Math.round(dx / length * back).toInt()
+            val bz = takeoff.z - Math.round(dz / length * back).toInt()
+            if (!MoveTable.isStance(view, bx, takeoff.y, bz)) return false
+        }
+        return true
+    }
+
+    /**
+     * The stored entry speed the approach surface can actually deliver at
+     * this takeoff. Plain ground sprint stores ~0.153 regardless of runway
+     * length; only a low-friction (ice-family) runway preserves stored
+     * velocity near the field band's hot end. An envelope demanding more
+     * than the surface can produce is a poison edge: the planner selects
+     * it, the executor refuses it, and the penalization cascade starves
+     * the graph (measured on bedrock: 27 previously-green edges).
+     */
+    private fun achievableEntry(takeoff: FastVector, landing: FastVector): Double {
+        val dx = (landing.x - takeoff.x).toDouble()
+        val dz = (landing.z - takeoff.z).toDouble()
+        val length = hypot(dx, dz)
+        if (length <= 1.0E-6) return ENTRY_SPEED_GROUND_MAX
+        for (back in 0..2) {
+            val bx = takeoff.x - Math.round(dx / length * back).toInt()
+            val bz = takeoff.z - Math.round(dz / length * back).toInt()
+            if (view.traits(bx, takeoff.y - 1, bz).slipperiness < ICE_SLIPPERINESS_MIN) {
+                return ENTRY_SPEED_GROUND_MAX
+            }
+        }
+        return ENTRY_SPEED_ACHIEVABLE_MAX
+    }
+
     private companion object {
         /** Shared empty state for non-ledge landings (memoization marker). */
         val EMPTY_LANDING = LandingDiscovery()
 
         /** Chain-candidate outcome logging; keep off outside investigations. */
         const val CHAIN_DEBUG = false
+
+        /** Envelope-sampling outcome logging; keep off outside investigations. */
+        const val ENVELOPE_DEBUG = false
 
         const val MAX_SIMULATION_TICKS = 20
         const val WAYPOINT_VERTICAL_TOLERANCE = 0.20
@@ -707,11 +987,12 @@ class ManeuverDiscovery(
         const val DEEP_LAUNCH_PROGRESS = 0.45
 
         // Takeoff levels relative to the landing, landing-anchored: same
-        // level, one above (descending jump across a chasm), one below
-        // (ascending sprint jump onto a +1 landing). Descend-2 was tried
-        // and dropped: zero uses on the bedrock course, one full fan slot
-        // of initial-planning cost.
-        val TAKEOFF_RISES = intArrayOf(0, 1, -1)
+        // level, one below (ascending sprint jump onto a +1 landing), and
+        // one to three above (descending jumps across chasms). Descend-2/-3
+        // originally cost a full fan slot for zero bedrock uses under
+        // whole-band admission; T3 envelope admission is what makes them
+        // land often enough to keep (P2).
+        val TAKEOFF_RISES = intArrayOf(0, 1, -1, 2, 3)
 
         // Ascending (+1 landing) sprint-jump reach cap; flat/descending
         // keep the candidate band's own limit.
@@ -727,26 +1008,108 @@ class ManeuverDiscovery(
 
         // Per-landing simulation budget for resolution — the same admission
         // bar the eager validator's budget set; candidates beyond it never
-        // enter the graph.
-        const val MAX_SIMS_PER_LANDING = 24
+        // enter the graph. Raised from 24 with T3: envelope sampling costs
+        // 2–10 sims per candidate where whole-band validation cost 1–3,
+        // and without headroom the tier-1 fan starves before the edges the
+        // bedrock course depends on validate.
+        const val MAX_SIMS_PER_LANDING = 36
 
-        // Sprint-jump reach beyond the template gapJump (2 blocks): 2.2–4.3
+        // Sprint-jump reach beyond the template gapJump (2 blocks): 2.0–5.0
         // blocks of horizontal displacement, any integer direction — this is
-        // where the F3 connections live. The lower bound admits the (2,1)
-        // knight's-move class (hypot ≈ 2.24) no 45°-quantized template can
-        // represent; (2,0) stays template territory. Longest first: with a
-        // per-landing budget, the jumps that shorten the path the most get
-        // proposed before the budget runs out.
+        // where the F3 connections live. 2.0–2.2 admits the two-ahead class
+        // when a rise is involved (no template covers a real 2-gap with a
+        // vertical delta; flat (2,0) stays template territory — see
+        // FLAT_MIN_DISTANCE). 4.3–5.0 is the momentum band (4-wide gaps),
+        // valid only on a narrow entry interval — T3 envelope territory.
+        // Longest first: with a per-landing budget, the jumps that shorten
+        // the path the most get proposed before the budget runs out.
         val CANDIDATE_OFFSETS: List<Offset> = buildList {
-            for (dx in -4..4) for (dz in -4..4) {
+            for (dx in -5..5) for (dz in -5..5) {
                 val distance = hypot(dx.toDouble(), dz.toDouble())
-                if (distance in 2.2..4.3) add(Offset(dx, dz))
+                if (distance in 2.0..5.0) add(Offset(dx, dz))
             }
         }.sortedByDescending { it.distance }
 
-        /** The single-jump proposal fan: offsets × takeoff rises, longest first. */
+        // Chains keep the pre-P2 proposal band: a two-hop macro over 5-block
+        // hops would span 10 blocks of corridor, and the momentum band is
+        // exactly what single-jump envelopes now represent more cheaply.
+        val CHAIN_OFFSETS: List<Offset> = CANDIDATE_OFFSETS.filter { it.distance in 2.2..4.3 }
+
+        // Flat same-level jumps below this stay template territory; a rise
+        // in either direction has no template and enters the fan from 2.0.
+        const val FLAT_MIN_DISTANCE = 2.2
+
+        // Candidates at or beyond this displacement can only validate on
+        // the hot end of the entry band, so they are proposed only when the
+        // world has a physical runway behind the takeoff. Without this
+        // prefilter the momentum fan monopolizes every landing's sim budget
+        // on runway-less proposals that reject after seven sims each.
+        const val MOMENTUM_RUNWAY_MIN_DISTANCE = 4.5
+
+        // Entry speeds sampled by T3 envelope admission (endpoints match
+        // ENTRY_SPEED_LOW/HIGH; interior step 0.03 b/t).
+        val ENTRY_SPEED_SAMPLES = doubleArrayOf(0.12, 0.15, 0.18, 0.21, 0.24, 0.27, 0.30)
+
+        // Entry speeds are STORED velocity (player.velocity is sampled
+        // post-friction): sustained ground sprint stores only ~0.153 even
+        // though it displaces 0.281/tick. Higher stored entries exist —
+        // ice runways (~0.255) and landing carry — but nothing on foot
+        // stores more than this. An envelope whose minimum exceeds it is
+        // unexecutable by definition and must not enter the graph.
+        const val ENTRY_SPEED_ACHIEVABLE_MAX = 0.26
+
+        // Stored-velocity ceiling of a plain ground sprint approach; an
+        // envelope executable at or below this works from any runway.
+        const val ENTRY_SPEED_GROUND_MAX = 0.16
+
+        // Slipperiness at or above this preserves stored velocity like ice
+        // (ice 0.98, packed/blue ice 0.989); anything lower is ground-tier.
+        const val ICE_SLIPPERINESS_MIN = 0.97
+
+        // Launch-pose anchors for momentum classes: deep (0.30), at the
+        // lip (0.50), and on the last standable sliver (0.65) — where
+        // maximum-distance jumps are actually launched. The shorter
+        // remaining flight brings the required entry speed into the
+        // achievable range; feet stay supported up to ~0.8 past center
+        // (0.5 block edge + 0.3 hitbox radius).
+        val ENVELOPE_ANCHORS = doubleArrayOf(0.30, 0.50, 0.65)
+
+        // Deepest pose a real player can still stand on (with margin).
+        const val MAX_LIP_PROGRESS = 0.75
+
+        // Window-extent probe step past an anchor, and the minimum
+        // certified window width. The executor's launch-phase alignment
+        // places a launch tick inside ~0.10 of position (one 0.6-throttle
+        // trim shifts the lattice by (1−0.6)·stride ≈ 0.11), so a 0.10
+        // window is executable; anything narrower is a phase lottery and
+        // never becomes a graph edge.
+        const val WINDOW_PROBE_STEP = 0.13
+        const val MIN_TAKEOFF_WINDOW = 0.10
+
+        // Flat cost surcharge on envelope-admitted edges (see resolveLanding).
+        const val ENVELOPE_RISK_PENALTY_TICKS = 2.0
+
+        /**
+         * The single-jump proposal fan, tiered: the pre-P2 proven fan
+         * proposes first — putting the extended momentum classes ahead of
+         * it (global longest-first) let their expensive envelope sampling
+         * exhaust every landing's sim budget before a single P0 winner
+         * validated, and the bedrock course lost its jump edges wholesale.
+         * Extension classes spend only leftover budget.
+         */
         val SINGLE_JUMP_FAN: List<Pair<Offset, Int>> = buildList {
-            for (offset in CANDIDATE_OFFSETS) for (rise in TAKEOFF_RISES) add(offset to rise)
+            val p0Band = 2.2..4.3
+            for (offset in CANDIDATE_OFFSETS) {
+                if (offset.distance !in p0Band) continue
+                for (rise in intArrayOf(0, 1, -1)) add(offset to rise)
+            }
+            for (offset in CANDIDATE_OFFSETS) {
+                val inP0Band = offset.distance in p0Band
+                for (rise in TAKEOFF_RISES) {
+                    if (inP0Band && rise in -1..1) continue
+                    add(offset to rise)
+                }
+            }
         }
 
         // A two-hop chain starts at landing - 2*offset. Include one extra

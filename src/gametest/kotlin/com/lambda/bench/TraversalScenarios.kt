@@ -78,6 +78,8 @@ data class TraversalScenario(
     val maxLongestExecutorLostBurstTicks: Int? = null,
     val maxReplansRequested: Int? = null,
     val minJumpLandingSuccessRate: Double? = null,
+    /** Safety gate for stop-before-gap fixtures: lowest Y the player may ever reach. */
+    val minAllowedY: Double? = null,
 )
 
 /** Plain [PlannerConfig] for benchmarks — independent of any UI config state. */
@@ -159,6 +161,7 @@ object TraversalScenarios {
         maxLongestExecutorLostBurstTicks: Int? = null,
         maxReplansRequested: Int? = null,
         minJumpLandingSuccessRate: Double? = null,
+        minAllowedY: Double? = null,
     ) = TraversalScenario(
         name = name,
         purpose = purpose,
@@ -182,6 +185,7 @@ object TraversalScenarios {
         maxLongestExecutorLostBurstTicks = maxLongestExecutorLostBurstTicks,
         maxReplansRequested = maxReplansRequested,
         minJumpLandingSuccessRate = minJumpLandingSuccessRate,
+        minAllowedY = minAllowedY,
     )
 
     // Scenario-set discipline: every case must probe a behavior no other
@@ -522,14 +526,90 @@ object TraversalScenarios {
         ),
 
         scenario(
-            "disc-gap4-too-far",
-            "Discovery band cap: a 4-wide gap (displacement 5) exceeds the flat sprint-jump " +
-                "envelope — no candidate may be proposed, no edge hallucinated; clean no-path. " +
-                "Regression guard against band inflation without envelope support.",
-            "/fill 0 65 -1 3 65 1 minecraft:stone",
+            "disc-2ahead-1down",
+            "Entry-envelope/fan coverage: a two-ahead jump landing one block down. Distance 2 " +
+                "used to be excluded as template territory, but no template represents a real " +
+                "2-gap with a vertical delta.",
+            "/fill 0 67 -1 2 67 1 minecraft:stone",
+            "/fill 4 66 -1 7 66 1 minecraft:stone",
+            start = Vec3d(0.5, 68.0, 0.5),
+            goal = fastVectorOf(6, 67, 0),
+            allowJump = true,
+            timeoutTicks = 350,
+            minJumpLandingSuccessRate = 1.0,
+        ),
+
+        scenario(
+            "disc-2ahead-3down",
+            "Fan-rise coverage: a two-ahead jump landing three blocks down. Requires takeoff " +
+                "rise +3, which the pre-P2 fan omitted for simulation cost.",
+            "/fill 0 64 -1 2 69 1 minecraft:stone",
+            "/fill 4 66 -1 7 66 1 minecraft:stone",
+            start = Vec3d(0.5, 70.0, 0.5),
+            goal = fastVectorOf(6, 67, 0),
+            allowJump = true,
+            timeoutTicks = 350,
+            minJumpLandingSuccessRate = 1.0,
+        ),
+
+        scenario(
+            "disc-gap4-momentum",
+            "Entry-envelope coverage: a four-block gap (displacement 5) that is legal only with " +
+                "sprint momentum. The edge must publish a narrow entry interval and the executor " +
+                "must launch inside it.",
+            // Blue ice supplies the certified stored entry (~0.255 ∈ the
+            // deep-anchor envelope). The sim-validated truth: at plain
+            // ground sprint (stored 0.153) the quad does NOT land even
+            // from the last standable sliver — the iceless human quad
+            // rides a hop-carry entry (stored ≥0.18 for one tick after a
+            // jump landing), which is chain territory (runway-hop chain,
+            // future work). The paired too-slow fixture proves a
+            // no-runway entry stops.
+            "/fill -12 65 -1 3 65 1 minecraft:blue_ice",
             "/fill 8 65 -1 11 65 1 minecraft:stone",
-            start = Vec3d(0.5, 66.0, 0.5),
+            start = Vec3d(-10.5, 66.0, 0.5),
             goal = fastVectorOf(10, 66, 0),
+            allowJump = true,
+            timeoutTicks = 400,
+        ),
+
+        scenario(
+            "disc-3ahead-1up",
+            "Entry-envelope coverage: a three-ahead jump onto a landing one block higher. It " +
+                "requires speed, so whole-band validation used to reject it wholesale.",
+            "/fill 0 65 -1 3 65 1 minecraft:stone",
+            "/fill 6 66 -1 9 66 1 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(8, 67, 0),
+            allowJump = true,
+            timeoutTicks = 400,
+            minJumpLandingSuccessRate = 1.0,
+        ),
+
+        scenario(
+            "disc-gap4-too-slow-stop",
+            "Envelope safety: spawn at a four-gap edge without runway. The executor must honor " +
+                "vmin and stop on the takeoff block rather than force-launch or walk off; the " +
+                "planner reports the edge infeasible and fails cleanly.",
+            "/setblock 3 67 0 minecraft:stone",
+            "/fill 8 67 -1 11 67 1 minecraft:stone",
+            start = Vec3d(3.5, 68.0, 0.5),
+            goal = fastVectorOf(10, 68, 0),
+            allowJump = true,
+            timeoutTicks = 160,
+            expectSuccess = false,
+            minAllowedY = 67.95,
+        ),
+
+        scenario(
+            "disc-gap4-too-far",
+            "Discovery band cap: a 5-wide gap (displacement 6) exceeds even the extended " +
+                "momentum fan — no candidate may be proposed, no edge hallucinated; clean " +
+                "no-path. Regression guard against band inflation without envelope support.",
+            "/fill 0 65 -1 3 65 1 minecraft:stone",
+            "/fill 9 65 -1 12 65 1 minecraft:stone",
+            start = Vec3d(0.5, 66.0, 0.5),
+            goal = fastVectorOf(11, 66, 0),
             allowJump = true,
             timeoutTicks = 200,
             expectSuccess = false,

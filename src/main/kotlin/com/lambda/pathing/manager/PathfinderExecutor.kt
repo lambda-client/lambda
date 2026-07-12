@@ -44,6 +44,7 @@ import com.lambda.pathing.movement.WalkingMovementModel
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
+import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
@@ -79,6 +80,17 @@ object PathfinderExecutor : Loadable {
     private var jumpAttemptActive = false
     private var jumpHoldUntilTick = Int.MIN_VALUE
     private var jumpRetryAllowedTick = Int.MIN_VALUE
+    private var stepUpRetrySegment = -1
+    private var stepUpRetryCount = 0
+
+    // Sprint the CURRENT follow command applies — what the launch sims must
+    // model; player.isSprinting lags it by at least a tick.
+    private var commandSprint = false
+
+    // Set when the launch sim proved the jump only lands WITHOUT the
+    // sprint boost (short ascend hops): the command drops sprint for the
+    // launch tick, exactly the walk-speed hop a human would do.
+    private var launchSprintSuppressed = false
     private var lastJumpCommandGate = ""
     private var lastJumpInputGate = ""
     private var lastIssuedJumpTarget: Vec3d? = null
@@ -495,7 +507,12 @@ object PathfinderExecutor : Loadable {
         val chainSegment = segment as? ChainSegment
         if (chainSegment == null) resetChainState()
         val longGapActive = chainSegment == null && isLongGapSegment(segment)
-        val sprint = movementConfig.allowSprint && (
+        // The launch sims must model the sprint state THIS COMMAND applies,
+        // not the entity's latched flag: at a rise the command cuts sprint
+        // while player.isSprinting still reads true, and simulating the
+        // stale flag fires a +0.2 boost the real jump won't have — every
+        // boostless rise launch then reads as a 2-block overshoot (NoGo).
+        commandSprint = movementConfig.allowSprint && (
             chainSegment != null || longGapActive || (
                 pathRemaining >= movementConfig.sprintMinRemaining &&
                     !riseWithin(path, currentSegmentIndex, playerPos, RISE_SPRINT_CUT_DISTANCE) &&
@@ -515,6 +532,7 @@ object PathfinderExecutor : Loadable {
         }
         launchSimHold = false
         launchSimBuild = false
+        launchSprintSuppressed = false
         launchEdgeStop = false
         structuralJumpBlock = false
         val needsChainJump = chainSegment != null && needsChainJump(chainSegment, playerPos)
@@ -522,12 +540,49 @@ object PathfinderExecutor : Loadable {
             stepUpJumpTarget(path, currentSegmentIndex, segment, playerPos)
         } else null
         val needsStepUpJump = stepUpTarget != null
+        if (stepUpTarget != null) {
+            if (stepUpRetrySegment == stepUpTarget.index) stepUpRetryCount++ else {
+                stepUpRetrySegment = stepUpTarget.index
+                stepUpRetryCount = 1
+            }
+            if (ENVELOPE_EXEC_DEBUG && stepUpRetryCount in 2..3) {
+                info("[StepUpGuard] counting seg=${stepUpTarget.index} count=$stepUpRetryCount stuck=$stuckTicks segIdx=$currentSegmentIndex")
+            }
+            // A step-up that keeps re-commanding without ever mounting is
+            // jumping at a face the clearance probes miss. The vertical
+            // bouncing defeats the stall detector (each bounce reads as
+            // movement), so burn the stuck clock structurally instead —
+            // measured: 182 wall-jumps over 2000 ticks with zero reports.
+            if (stepUpRetryCount > STEP_UP_MAX_RETRY_COMMANDS) {
+                structuralJumpBlock = true
+                if (ENVELOPE_EXEC_DEBUG && stepUpRetryCount % 8 == 0) {
+                    info("[StepUpGuard] seg=${stepUpTarget.index} retries=$stepUpRetryCount stuckTicks=$stuckTicks")
+                }
+            }
+        } else if (player.isOnGround && currentSegmentIndex > stepUpRetrySegment) {
+            // Mounted: standing past the segment the retries targeted. The
+            // grounded requirement is load-bearing — a failed bounce's arc
+            // relocalizes one segment ahead at its apex and back on landing,
+            // and an airborne reset here erased the count every bounce.
+            stepUpRetrySegment = -1
+            stepUpRetryCount = 0
+        }
         val needsGapJump = chainSegment == null && !needsStepUpJump && needsGapJump(segment, playerPos)
-        val jumpRequested = needsChainJump || needsStepUpJump || needsGapJump
+        // A momentum (envelope) edge certifies a tight takeoff window, and
+        // at sprint speed the segment often becomes current only after that
+        // window has passed. Arm the NEXT segment's envelope gap while
+        // finishing the approach segment — scoped strictly to envelope
+        // edges so every ordinary jump keeps its segment-advance timing.
+        val nextEnvelopeGap = if (chainSegment == null && !needsStepUpJump && !needsGapJump) {
+            nextEnvelopeGapSegment(path, currentSegmentIndex, segment, playerPos)
+        } else null
+        val needsEnvelopeAnticipation = nextEnvelopeGap != null && needsGapJump(nextEnvelopeGap, playerPos)
+        val jumpRequested = needsChainJump || needsStepUpJump || needsGapJump || needsEnvelopeAnticipation
         val jumpTarget = when {
             needsChainJump -> chainTarget
             needsStepUpJump -> stepUpTarget.endPose.position
             needsGapJump -> segment.endPose.position
+            needsEnvelopeAnticipation -> nextEnvelopeGap.endPose.position
             else -> null
         }
         // Brake-policy playback covers chains AND discovered single jumps,
@@ -537,6 +592,7 @@ object PathfinderExecutor : Loadable {
             needsChainJump -> ManeuverPolicy.BRAKE_LEAD_TICKS
             needsGapJump && (segment as? WalkSegment)?.discovered == true ->
                 ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS
+            needsEnvelopeAnticipation -> ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS
             needsStepUpJump && stepUpTarget?.discovered == true ->
                 ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS
             else -> null
@@ -589,7 +645,12 @@ object PathfinderExecutor : Loadable {
                 val projected = segment.projectedDistance(playerPos)
                 val relativeProgress = projected - gapTakeoffOffset(walkSegment)
                 val beforeHole = holeStartDistance(walkSegment)?.let { projected < it } != false
-                if (relativeProgress > GAP_TAKEOFF_MAX_PROGRESS && beforeHole && !launchSimBuild) {
+                // Envelope edges end their usable window at the certified
+                // launch depth, not the generic 0.9 cap.
+                val takeoffWindowEnd = walkSegment.entrySpeedEnvelope
+                    ?.maxTakeoffProgress?.coerceAtMost(GAP_TAKEOFF_MAX_PROGRESS)
+                    ?: GAP_TAKEOFF_MAX_PROGRESS
+                if (relativeProgress > takeoffWindowEnd && beforeHole && !launchSimBuild) {
                     // Grounded past the takeoff window without a committed
                     // jump, still on the takeoff side of the hole — dead
                     // ahead is the gap. Walk back to the takeoff so the
@@ -628,10 +689,32 @@ object PathfinderExecutor : Loadable {
                         throttle = kotlin.math.min(throttle, GAP_ALIGN_THROTTLE)
                     }
                 }
+                // The stutter-step: trim the approach early when the launch
+                // ticks would straddle a tight certified window.
+                if (player.isOnGround && walkSegment.entrySpeedEnvelope != null) {
+                    phaseAlignmentThrottle(walkSegment, playerPos)?.let {
+                        throttle = kotlin.math.min(throttle, it)
+                    }
+                }
                 // Edge-stop overrides everything: no headroom to jump and no
                 // room to keep rolling — kill the input entirely.
                 if (launchEdgeStop) throttle = 0.0
             }
+        } else if (nextEnvelopeGap != null) {
+            if (needsEnvelopeAnticipation) {
+                // Launch tick armed from the approach segment: aim at the
+                // landing, exactly as the in-segment launch-tick rule — the
+                // sprint-jump boost fires along the commanded yaw.
+                val end = nextEnvelopeGap.endPose.position
+                steerTarget = Vec3d(end.x, playerPos.y, end.z)
+            } else {
+                phaseAlignmentThrottle(nextEnvelopeGap, playerPos)?.let {
+                    throttle = kotlin.math.min(throttle, it)
+                }
+            }
+            // The gate may have edge-stopped the approach (entry state not
+            // certifiable and support about to end): honor it here too.
+            if (launchEdgeStop) throttle = 0.0
         }
         val lookaheadPoint = steerTarget
         val desiredDelta = lookaheadPoint.subtract(playerPos).flattenY()
@@ -641,9 +724,9 @@ object PathfinderExecutor : Loadable {
             lookaheadPoint = lookaheadPoint,
             desiredYaw = desiredYaw,
             throttle = throttle,
-            sprint = sprint,
+            sprint = commandSprint && !launchSprintSuppressed,
             jump = jumpRequested,
-            jumpUrgent = needsGapJump || needsChainJump,
+            jumpUrgent = needsGapJump || needsChainJump || needsEnvelopeAnticipation,
             jumpTarget = jumpTarget,
             jumpBrakeLead = jumpBrakeLead,
         )
@@ -674,7 +757,7 @@ object PathfinderExecutor : Loadable {
             throttle = throttle,
             commandedForward = lastSteeringTelemetry.commandedForward,
             commandedStrafe = lastSteeringTelemetry.commandedStrafe,
-            sprintCommand = lastSteeringTelemetry.sprint || sprint,
+            sprintCommand = lastSteeringTelemetry.sprint || commandSprint,
             jumpCommandGate = lastJumpCommandGate,
             jumpInputGate = lastJumpInputGate,
             jumpTarget = lastIssuedJumpTarget,
@@ -735,17 +818,25 @@ object PathfinderExecutor : Loadable {
         remainingDistance: Double,
         playerPos: Vec3d,
     ) {
-        if (handle.id != stuckTraversalId || currentSegmentIndex != stuckSegmentIndex ||
-            remainingDistance < stuckBestRemaining - STUCK_PROGRESS_EPSILON
-        ) {
+        // Stuck tracking is grounded-only, including the segment-identity
+        // rekey: a failed bounce's arc relocalizes one segment ahead at its
+        // apex and back on landing, and letting airborne ticks rekey (or
+        // letting the apex's shrinking 3D remaining distance count as
+        // progress) reset the clock every bounce — 187 wall-jumps over
+        // 2000 ticks without a single stuck report (measured).
+        if (!player.isOnGround) return
+        if (handle.id != stuckTraversalId || currentSegmentIndex != stuckSegmentIndex) {
             stuckTraversalId = handle.id
             stuckSegmentIndex = currentSegmentIndex
             stuckBestRemaining = remainingDistance
             stuckTicks = 0
             return
         }
-
-        if (!player.isOnGround) return
+        if (remainingDistance < stuckBestRemaining - STUCK_PROGRESS_EPSILON) {
+            stuckBestRemaining = remainingDistance
+            stuckTicks = 0
+            return
+        }
         // Geometric blocks (no jump headroom) never self-resolve — no speed
         // or alignment tuning helps — so they burn the report clock faster
         // than plain no-progress ticks, which still deserve the full window
@@ -898,6 +989,7 @@ object PathfinderExecutor : Loadable {
             handle.id, sourcePath,
             maneuverWaypoints = { from, to -> annotations[from to to]?.chainWaypoints },
             discoveredJump = { from, to -> annotations[from to to]?.discoveredJump == true },
+            entrySpeedEnvelope = { from, to -> annotations[from to to]?.entrySpeedEnvelope },
         )
         activePath = rebuilt
         activeTraversalId = handle.id
@@ -952,6 +1044,8 @@ object PathfinderExecutor : Loadable {
         jumpAttemptActive = false
         jumpHoldUntilTick = Int.MIN_VALUE
         jumpRetryAllowedTick = Int.MIN_VALUE
+        stepUpRetrySegment = -1
+        stepUpRetryCount = 0
         newJumpIssued = false
         launchArcPoints = emptyList()
         launchArcIndex = -1
@@ -1279,6 +1373,62 @@ object PathfinderExecutor : Loadable {
     }
 
     /**
+     * Launch-phase alignment for envelope edges (the stutter-step): tick
+     * quantization makes the launch fire at discrete positions one ground
+     * stride (~0.28 blocks at sprint) apart, and a certified takeoff window
+     * narrower than that stride is only reachable if the approach is
+     * trimmed EARLY so that a future tick lands inside it — exactly how a
+     * human lines up a max-distance jump. Returns a reduced throttle for
+     * this tick when the predicted landing tick overshoots the window, or
+     * null when the phase is already good (or it is too late to trim
+     * without arriving below the envelope's minimum entry speed).
+     */
+    private fun SafeContext.phaseAlignmentThrottle(walk: WalkSegment, playerPos: Vec3d): Double? {
+        val envelope = walk.entrySpeedEnvelope ?: return null
+        if (!player.isOnGround) return null
+        val progress = walk.projectedDistance(playerPos) - gapTakeoffOffset(walk)
+        if (progress >= envelope.minTakeoffProgress) return null
+        val stored = alongSpeed(walk, player.velocity)
+        if (stored <= 0.03) return null
+        // Stored velocity is post-friction; the actual per-tick displacement
+        // divides the ground friction factor back out.
+        val slipperiness = world.getBlockState(player.velocityAffectingPos).block.slipperiness.toDouble()
+        val stride = stored / (slipperiness * GROUND_DRAG)
+        val distance = envelope.minTakeoffProgress - progress
+        val ticksToWindow = kotlin.math.ceil(distance / stride - 1.0E-6)
+        val landingProgress = progress + ticksToWindow * stride
+        if (landingProgress <= envelope.maxTakeoffProgress - PHASE_LANDING_MARGIN) return null
+        // Trim only while there is room to rebuild the envelope speed
+        // before the window; at the lip the launch sim owns the decision.
+        if (distance < stride * PHASE_TRIM_MIN_STRIDES) return null
+        return PHASE_TRIM_THROTTLE
+    }
+
+    /**
+     * The upcoming envelope gap to arm from the current approach segment,
+     * or null. Only envelope (momentum-critical) edges get early arming —
+     * their certified takeoff window can be narrower than one sprint
+     * stride, so waiting for segment advancement can skip it entirely.
+     */
+    private fun SafeContext.nextEnvelopeGapSegment(
+        path: ExecutionPath,
+        index: Int,
+        segment: ExecutionSegment,
+        playerPos: Vec3d,
+    ): WalkSegment? {
+        if (!player.isOnGround) return null
+        val current = segment as? WalkSegment ?: return null
+        if (current.discovered) return null
+        val next = path.segments.getOrNull(index + 1) as? WalkSegment ?: return null
+        if (next.entrySpeedEnvelope == null) return null
+        // Rising gaps have their own look-ahead (stepUpJumpTarget); this
+        // arming covers the flat/descending gap machinery only.
+        if (!isGapJumpSegment(next)) return null
+        if (current.remainingDistance(playerPos) > GAP_SEGMENT_ANTICIPATION_DISTANCE) return null
+        return next
+    }
+
+    /**
      * Rising gap-jump signature: a 2-block edge climbing one block — the
      * gapJump(rise=1) template. Only real gap edges survive refinement at
      * this shape (corridor shortcuts are flat), so no support probe needed.
@@ -1402,7 +1552,11 @@ object PathfinderExecutor : Loadable {
         if (forwardSpeed <= 0.03) return false
         val physicalEdge = holeStart + EDGE_OVERHANG_SLACK
         if (projectedAbs + forwardSpeed > physicalEdge) {
+            // Envelope edges never force-launch outside their certified
+            // interval — an uncertified arc into a momentum gap is a
+            // guaranteed miss; the hard stop below is strictly better.
             val committed = forwardSpeed >= EDGE_FORCE_MIN_SPEED &&
+                walk.entrySpeedEnvelope?.contains(forwardSpeed, ENTRY_SPEED_TOLERANCE) != false &&
                 with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }
             if (committed) {
                 lastJumpCommandGate = "${prefix}EdgeForced($lastJumpCommandGate)"
@@ -1423,8 +1577,28 @@ object PathfinderExecutor : Loadable {
         val holeStart = holeStartDistance(walk)
         val projectedAbs = walk.projectedDistance(playerPos)
         val progress = projectedAbs - gapTakeoffOffset(walk)
-        if (progress < 0.0) {
+        val envelope = walk.entrySpeedEnvelope
+        // A jump commanded this tick processes on the next physics tick
+        // FROM THE CURRENT POSITION, so in-window means fire-now — there is
+        // no extra latency stride to anticipate (measured; an anticipation
+        // tick was tried and simulated launches from positions that never
+        // occur). Tight windows are hit by approach phase alignment
+        // ([phaseAlignmentThrottle]), not by gate timing tricks.
+        if (progress < (if (envelope != null) envelope.minTakeoffProgress - ENTRY_PROGRESS_TOLERANCE else 0.0)) {
             lastJumpCommandGate = "${prefix}NotAtTakeoff"
+            return false
+        }
+        if (envelope != null && progress > envelope.maxTakeoffProgress + ENTRY_PROGRESS_TOLERANCE) {
+            // Beyond the certified launch depth nothing is validated —
+            // never deep-launch an envelope edge. Steering's walk-back
+            // covers ordinary overshoot; the edge guard covers a hot
+            // approach that can no longer stop. Below envelope speed this
+            // stance cannot be recovered by in-segment shaping — tell the
+            // planner instead of dancing at the lip.
+            lastJumpCommandGate = "${prefix}PastEnvelope"
+            if (alongSpeed(walk, player.velocity) < envelope.min - ENTRY_SPEED_TOLERANCE) {
+                structuralJumpBlock = true
+            }
             return false
         }
         if (progress > GAP_TAKEOFF_MAX_PROGRESS) {
@@ -1475,6 +1649,53 @@ object PathfinderExecutor : Loadable {
             structuralJumpBlock = true
             return false
         }
+        // Never launch a discovered jump from a (near-)standstill: the
+        // sprint latch and yaw settling both lag the command by a tick, so
+        // the sim cannot know whether the real launch gets its boost — a
+        // predicted rim-landing then flips to an undershoot (measured at
+        // spawn-adjacent takeoffs). Two build ticks later the state is
+        // settled and the sim's authority is real.
+        if (walk.discovered && alongSpeed(walk, player.velocity) < LAUNCH_MIN_ENTRY_SPEED) {
+            lastJumpCommandGate = "${prefix}EntrySettling"
+            launchSimBuild = true
+            return false
+        }
+        // Envelope interval gate (T3): the worker certified this edge only
+        // for entries inside [min, max] — the whole-band disturbance margin
+        // ordinary edges carry does not exist here, so the live entry state
+        // must match before the launch sim gets a vote.
+        if (envelope != null) {
+            val entrySpeed = alongSpeed(walk, player.velocity)
+            if (entrySpeed > envelope.max + ENTRY_SPEED_TOLERANCE) {
+                lastJumpCommandGate = "${prefix}AboveEnvelope(%.2f>%.2f)".format(entrySpeed, envelope.max)
+                launchSimHold = true
+                return false
+            }
+            if (entrySpeed < envelope.min - ENTRY_SPEED_TOLERANCE) {
+                // Too slow for the certified interval: keep building
+                // forward (launchSimBuild = full throttle). If the window
+                // ends before another build tick can deliver vmin, the edge
+                // is infeasible from this approach — report it structurally
+                // (5× stuck clock) and let the planner reroute. Entry
+                // shaping at the lip is never a recovery: it oscillates
+                // against relocalization (tried twice in this project).
+                lastJumpCommandGate = "${prefix}BelowEnvelope(%.2f<%.2f)".format(entrySpeed, envelope.min)
+                launchSimBuild = true
+                if (progress + entrySpeed.coerceAtLeast(0.0) > envelope.maxTakeoffProgress) {
+                    structuralJumpBlock = true
+                }
+                return false
+            }
+        }
+        if (ENVELOPE_EXEC_DEBUG) {
+            val verdict = launchSimVerdict(walk)
+            info(
+                "[EnvelopeGate] $prefix progress=%.3f speed=%.3f sprint=%b window=[%.2f,%.2f] verdict=%s seg=%d".format(
+                    progress, alongSpeed(walk, player.velocity), player.isSprinting,
+                    envelope?.minTakeoffProgress ?: 0.0, envelope?.maxTakeoffProgress ?: 9.9, verdict, walk.index,
+                )
+            )
+        }
         // The decider: simulate the jump from the LIVE state — position,
         // velocity, sprint, everything — and only launch if that flight
         // lands on the target. The verdict is directional: an entry that's
@@ -1498,6 +1719,15 @@ object PathfinderExecutor : Loadable {
                 return false
             }
             LaunchSimVerdict.NoGo -> {
+                // A sprint-boosted arc that overflies a short landing can
+                // still be a clean walk-speed hop (ascend rises): prove it
+                // in the sim and drop sprint for the launch tick — the
+                // walk-speed hop a human does at a one-block step gap.
+                if (commandSprint && launchSimVerdict(walk, sprint = false) == LaunchSimVerdict.Go) {
+                    launchSprintSuppressed = true
+                    lastJumpCommandGate = "${prefix}CommandedNoSprint"
+                    return true
+                }
                 lastJumpCommandGate = "${prefix}SimNoGo"
                 launchSimHold = true
                 return false
@@ -1525,7 +1755,7 @@ object PathfinderExecutor : Loadable {
      * miss, not be assumed away. Runs only on grounded ticks that passed
      * the cheap gates — a handful of 10–30 tick sims per jump approach.
      */
-    private fun SafeContext.launchSimVerdict(walk: WalkSegment): LaunchSimVerdict {
+    private fun SafeContext.launchSimVerdict(walk: WalkSegment, sprint: Boolean = commandSprint): LaunchSimVerdict {
         val target = walk.endPose.position
         val from = player.pos
         val flat = target.subtract(from).flattenY()
@@ -1555,7 +1785,7 @@ object PathfinderExecutor : Loadable {
                 rotation = liveRotation,
                 velocity = player.velocity,
                 onGround = true,
-                isSprinting = player.isSprinting,
+                isSprinting = sprint,
             ),
         ).also { it.skipEntityCollisions = true }
 
@@ -1572,20 +1802,52 @@ object PathfinderExecutor : Loadable {
                     strafe = 0.0,
                     jump = tick == 0,
                     sneak = false,
-                    sprint = player.isSprinting,
+                    sprint = sprint,
                     useItemSlowdown = false,
                     rotation = if (tick == 0) liveRotation else aimRotation,
                 )
             )
             if (current.simulator.state.verticalCollision && !current.onGround) headBonked = true
             if (current.onGround && tick > 1) {
+                // Discovered jumps launch on the sim's word alone, so their
+                // Go needs disturbance margin: the predicted touchdown must
+                // sit well inside the pad, not on its rim — one more build
+                // tick otherwise. Template walk-arcs keep the full pad (an
+                // honest 2-gap walk arc legitimately lands 0.6–0.8 past
+                // center and always did); envelope edges live off their
+                // certified entry box instead.
+                val tolerance = if (walk.discovered && walk.entrySpeedEnvelope == null) {
+                    LAUNCH_SIM_COMMIT_TOLERANCE
+                } else {
+                    LAUNCH_SIM_LANDING_TOLERANCE
+                }
                 val onTarget = hypot(current.position.x - target.x, current.position.z - target.z) <=
-                    LAUNCH_SIM_LANDING_TOLERANCE &&
+                    tolerance &&
                     abs(current.position.y - target.y) <= 0.3
-                return if (onTarget) LaunchSimVerdict.Go else terminalVerdict(current.position)
+                // Envelope edges are validated with same-level carry (±1
+                // block onto the landing platform); hold the live gate to
+                // the same predicate or the worker admits edges the
+                // executor then vetoes forever.
+                val feet = current.position.flooredBlockPos
+                val targetFeet = target.flooredBlockPos
+                val carryTarget = !onTarget && walk.entrySpeedEnvelope != null &&
+                    feet.y == targetFeet.y &&
+                    abs(feet.x - targetFeet.x) <= 1 && abs(feet.z - targetFeet.z) <= 1 &&
+                    with(WalkingMovementModel) { hasContinuousSupport(current.position) }
+                return if (onTarget || carryTarget) LaunchSimVerdict.Go else terminalVerdict(current.position)
             }
-            if (current.simulator.state.horizontalCollision) return LaunchSimVerdict.NoGo
-            if (current.position.y < minOf(from.y, target.y) - 0.2) return terminalVerdict(current.position)
+            if (current.simulator.state.horizontalCollision) {
+                if (ENVELOPE_EXEC_DEBUG) {
+                    info("[EnvelopeGate] sim hColl tick=$tick at %.2f,%.2f,%.2f".format(current.position.x, current.position.y, current.position.z))
+                }
+                return LaunchSimVerdict.NoGo
+            }
+            if (current.position.y < minOf(from.y, target.y) - 0.2) {
+                if (ENVELOPE_EXEC_DEBUG) {
+                    info("[EnvelopeGate] sim fell tick=$tick at %.2f,%.2f".format(current.position.x, current.position.z))
+                }
+                return terminalVerdict(current.position)
+            }
         }
         return LaunchSimVerdict.NoGo
     }
@@ -1979,6 +2241,35 @@ object PathfinderExecutor : Loadable {
     // anticipate the next rise segment's jump.
     private const val JUMP_ANTICIPATION_DISTANCE = 0.6
 
+    // How early (remaining distance on the approach segment) the gap gate
+    // may arm the NEXT segment's envelope jump — about one sprint stride.
+    private const val GAP_SEGMENT_ANTICIPATION_DISTANCE = 0.8
+
+    // Consecutive grounded step-up jump commands on the same segment before
+    // the block is reported structural (each wall-bounce produces ~1).
+    private const val STEP_UP_MAX_RETRY_COMMANDS = 6
+
+    // Live velocity has small per-tick jitter around the worker's sampled
+    // envelope endpoints; this is measurement tolerance, not band widening —
+    // the launch sim keeps final authority inside it.
+    private const val ENTRY_SPEED_TOLERANCE = 0.008
+    private const val ENTRY_PROGRESS_TOLERANCE = 0.08
+
+    // Minimum stored entry speed before a discovered-jump launch may fire;
+    // below it the sprint latch and yaw are still settling and the sim's
+    // boost assumption is unreliable (field: turns deliver 0.12–0.15).
+    private const val LAUNCH_MIN_ENTRY_SPEED = 0.10
+
+    // Envelope gate/sim outcome logging; keep off outside investigations.
+    private const val ENVELOPE_EXEC_DEBUG = false
+
+    // Launch-phase alignment (see phaseAlignmentThrottle). Vanilla ground
+    // friction multiplies stored velocity by slipperiness × 0.91 per tick.
+    private const val GROUND_DRAG = 0.91
+    private const val PHASE_TRIM_THROTTLE = 0.6
+    private const val PHASE_LANDING_MARGIN = 0.04
+    private const val PHASE_TRIM_MIN_STRIDES = 1.5
+
     // Structural gap-detection band for non-discovered segments: template
     // gap edges are exactly 2 blocks; refiner merges extend them. Discovered
     // jumps carry provenance and skip the band.
@@ -2007,8 +2298,13 @@ object PathfinderExecutor : Loadable {
     private const val CHAIN_MAX_LATERAL_DRIFT = 0.08
 
     // Predicted-landing acceptance for the launch sim gate: feet within
-    // this horizontal distance of the landing node center.
+    // this horizontal distance of the landing node center. With the
+    // vy-set simulator fix the prediction equals the real touchdown, so
+    // this matches the bench oracle's own strict-landing tolerance; a
+    // tighter gate was tried and rejected template walk-arcs whose honest
+    // overshoot P0 always accepted in reality.
     private const val LAUNCH_SIM_LANDING_TOLERANCE = 0.9
+    private const val LAUNCH_SIM_COMMIT_TOLERANCE = 0.55
 
     // A simulated terminal state at least this far short of the landing
     // (along the segment) reads as an undershoot: keep speed and re-check,

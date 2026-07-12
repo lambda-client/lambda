@@ -17,6 +17,7 @@
 
 package com.lambda.pathing.execution
 
+import com.lambda.pathing.maneuver.EntrySpeedEnvelope
 import com.lambda.util.math.lerp
 import com.lambda.util.world.FastVector
 import net.minecraft.util.math.Vec3d
@@ -140,6 +141,8 @@ data class ExecutionPath(
             maneuverWaypoints: (FastVector, FastVector) -> List<FastVector>? = { _, _ -> null },
             /** Discovered-jump provenance: true if (from, to) is a sim-validated jump edge. */
             discoveredJump: (FastVector, FastVector) -> Boolean = { _, _ -> false },
+            /** Validated entry interval of a discovered (from, to) jump edge. */
+            entrySpeedEnvelope: (FastVector, FastVector) -> EntrySpeedEnvelope? = { _, _ -> null },
         ): ExecutionPath {
             val deduplicated = nodes.fold(mutableListOf<FastVector>()) { acc, node ->
                 if (acc.lastOrNull() != node) acc += node
@@ -163,6 +166,7 @@ data class ExecutionPath(
                         dy <= 1.0 + 1.0E-6 -> WalkSegment(
                             index, startPose, endPose,
                             discovered = discoveredJump(start, end),
+                            entrySpeedEnvelope = entrySpeedEnvelope(start, end),
                         )
                         else -> UnsupportedSegment(index, startPose, endPose, "UnsupportedVertical")
                     }

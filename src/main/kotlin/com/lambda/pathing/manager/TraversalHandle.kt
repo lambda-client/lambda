@@ -19,6 +19,7 @@ package com.lambda.pathing.manager
 
 import com.lambda.config.blocks.PlannerConfig
 import com.lambda.pathing.goal.TraversalGoal
+import com.lambda.pathing.maneuver.EntrySpeedEnvelope
 import com.lambda.pathing.metrics.PlannerMetrics
 import com.lambda.pathing.refinement.PathRefinementDebug
 import com.lambda.pathing.refinement.PathRefinementStats
@@ -148,6 +149,7 @@ class TraversalHandle internal constructor(
     data class EdgeAnnotation(
         val chainWaypoints: List<FastVector>? = null,
         val discoveredJump: Boolean = false,
+        val entrySpeedEnvelope: EntrySpeedEnvelope? = null,
     )
 
     internal data class PublishedPlan(

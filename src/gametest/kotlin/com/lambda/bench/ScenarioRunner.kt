@@ -92,6 +92,8 @@ data class ScenarioReport(
     val maxReplansRequested: Int?,
     val minJumpLandingSuccessRate: Double?,
     val maxReplanLatencyTicks: Int?,
+    val minAllowedY: Double?,
+    val minPlayerY: Double,
     val finalStatus: String,
     val failureReason: String?,
     val endDistanceToGoal: Double,
@@ -114,7 +116,8 @@ data class ScenarioReport(
             (maxLongestExecutorLostBurstTicks == null || longestExecutorLostBurstTicks <= maxLongestExecutorLostBurstTicks) &&
             (maxReplansRequested == null || replansRequested <= maxReplansRequested) &&
             (minJumpLandingSuccessRate == null || jumpLandingSuccessRate >= minJumpLandingSuccessRate) &&
-            (maxReplanLatencyTicks == null || replanLatencyTicks <= maxReplanLatencyTicks)
+            (maxReplanLatencyTicks == null || replanLatencyTicks <= maxReplanLatencyTicks) &&
+            (minAllowedY == null || minPlayerY >= minAllowedY)
 
     val passed: Boolean get() =
         (if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled) && qualityPassed
@@ -189,6 +192,7 @@ data class ScenarioReport(
         append(",\"planningPauseTicks\":").append(planningPauseTicks)
         append(",\"planningPauseBursts\":").append(planningPauseBursts)
         append(",\"longestPlanningPauseTicks\":").append(longestPlanningPauseTicks)
+        append(",\"minPlayerY\":").append("%.3f".format(minPlayerY))
         append(",\"movementStallTicks\":").append(movementStallTicks)
         append(",\"movementStallBursts\":").append(movementStallBursts)
         append(",\"longestMovementStallTicks\":").append(longestMovementStallTicks)
@@ -233,6 +237,11 @@ object ScenarioRunner {
     // touchdowns as successes — green numbers over visibly sloppy jumps.
     private const val LANDING_HORIZONTAL_TOLERANCE = 0.9
     private const val LANDING_VERTICAL_TOLERANCE = 0.30
+
+    // The worker's carry-landing acceptance (±1 block, same level) for
+    // momentum-class jumps; see the success computation.
+    private const val LANDING_CARRY_TOLERANCE = 1.5
+    private const val MOMENTUM_JUMP_MIN_DISTANCE = 4.4
     private const val MOVEMENT_STALL_SPEED = 0.01
 
     private data class PendingJump(
@@ -362,6 +371,7 @@ object ScenarioRunner {
         val jumpLandings = ArrayList<JumpLanding>()
         var wallCollisionTicks = 0
         var headBonkTicks = 0
+        var minPlayerY = scenario.start.y
 
         if (requested) {
             while (ticks < scenario.timeoutTicks) {
@@ -413,6 +423,8 @@ object ScenarioRunner {
                             append(",\"jump\":").append(state.jumpCommand)
                             append(",\"jumpCmdGate\":\"").append(state.jumpCommandGate).append('"')
                             append(",\"jumpInGate\":\"").append(state.jumpInputGate).append('"')
+                            append(",\"sprintCmd\":").append(state.sprintCommand)
+                            append(",\"sprinting\":").append(player.isSprinting)
                             append(",\"fwd\":").append("%.2f".format(state.commandedForward))
                             append(",\"strafe\":").append("%.2f".format(state.commandedStrafe))
                             append(",\"lost\":").append(state.lostTicks)
@@ -439,6 +451,7 @@ object ScenarioRunner {
                 // jumpCommand flag gets overwritten by the end-of-tick state
                 // rebuild and is unreliable.
                 val onGround = "\"ground\":true" in sample
+                sample.numberField("y")?.let { if (it < minPlayerY) minPlayerY = it }
                 val jumpInput = "\"jumpInGate\":\"issued\"" in sample
                 val flying = "\"flying\":true" in sample
                 val status = sample.substringAfter("\"status\":\"").substringBefore('"')
@@ -536,8 +549,19 @@ object ScenarioRunner {
                             val target = attempt.target
                             val horizontalError = target?.let { hypot(landing.x - it.x, landing.z - it.z) }
                             val verticalError = target?.let { kotlin.math.abs(landing.y - it.y) }
+                            // Momentum-class jumps (≳4.5-block displacement)
+                            // are worker-validated WITH same-level carry
+                            // landings (±1 block of the node); the oracle
+                            // holds them to the contract that admitted them,
+                            // strict node-centering to everything shorter.
+                            val jumpDistance = target?.let {
+                                hypot(it.x - attempt.launch.x, it.z - attempt.launch.z)
+                            } ?: 0.0
+                            val horizontalTolerance =
+                                if (jumpDistance >= MOMENTUM_JUMP_MIN_DISTANCE) LANDING_CARRY_TOLERANCE
+                                else LANDING_HORIZONTAL_TOLERANCE
                             val success = horizontalError != null && verticalError != null &&
-                                horizontalError <= LANDING_HORIZONTAL_TOLERANCE &&
+                                horizontalError <= horizontalTolerance &&
                                 verticalError <= LANDING_VERTICAL_TOLERANCE
                             jumpLandings += JumpLanding(
                                 attempt, ticks, landing, success, horizontalError, verticalError,
@@ -687,6 +711,8 @@ object ScenarioRunner {
                 maxReplansRequested = scenario.maxReplansRequested,
                 minJumpLandingSuccessRate = scenario.minJumpLandingSuccessRate,
                 maxReplanLatencyTicks = scenario.maxReplanLatencyTicks,
+                minAllowedY = scenario.minAllowedY,
+                minPlayerY = minPlayerY,
                 finalStatus = handle?.status?.toString() ?: "None",
                 failureReason = handle?.failureReason,
                 endDistanceToGoal = endDistance,
