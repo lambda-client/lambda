@@ -15,7 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.interaction.inventory.container.containers.external
 
-interface ExternalContainer {
+import com.lambda.interaction.inventory.container.Container
+import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
+import net.minecraft.text.Text
+import net.minecraft.util.math.BlockPos
+
+class PlacedShulkerBoxContainer(
+	val blockPos: BlockPos,
+	val
+) : Container(Rank.PlacedShulkerBox) {
+	override val slots: List<Slot>
+		get() = TODO("Not yet implemented")
+	override var stacks: List<ItemStack>
+		get() = TODO("Not yet implemented")
+		set(value) {}
+	override val description: Text
+		get() = TODO("Not yet implemented")
 }

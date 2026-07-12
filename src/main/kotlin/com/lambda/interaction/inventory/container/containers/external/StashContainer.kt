@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers
+package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
@@ -42,8 +42,8 @@ data class StashContainer(
         highlighted(pos.center.roundedBlockPos.toShortString())
     }
 
-    override fun materialAvailable(selection: StackSelection): Int =
+    override fun stackCount(selection: StackSelection): Int =
         chests.sumOf {
-            it.materialAvailable(selection)
+            it.stackCount(selection)
         }
 }

@@ -45,8 +45,8 @@ data object CreativeContainer : Container(Rank.Creative) {
 		safeContext.player.currentScreenHandler.slots.getOrNull(toSlot.id)?.stack = fromHere.stack
 	}
 
-	override fun getSlot(stackSelection: StackSelection) =
-		stackSelection.optimalStack?.let { stack ->
+	override fun getSlot(selection: StackSelection) =
+		selection.optimalStack?.let { stack ->
 			Slot(
 				object : SingleStackInventory {
 					override fun getStack() = stack
@@ -58,7 +58,7 @@ data object CreativeContainer : Container(Rank.Creative) {
 			)
 		}
 
-	override fun materialAvailable(selection: StackSelection): Int =
+	override fun stackCount(selection: StackSelection): Int =
 		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
 
 	override fun spaceAvailable(selection: StackSelection): Int =

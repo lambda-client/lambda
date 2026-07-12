@@ -15,25 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers
+package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.handlers.ContainerHandler
-import com.lambda.interaction.handlers.ContainerHandler.findSlotsWithMaterial
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskOrNullGenerator
+import com.lambda.task.tasks.AcquirePlacedBlockTask
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
-import com.lambda.task.tasks.PlaceContainerTask
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.block.Blocks
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.item.Items
 
 object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 	override val slots
@@ -46,20 +45,22 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 	override val description = buildText { literal("Ender Chest") }
 
 	context(automatedSafeContext: AutomatedSafeContext)
-	override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
-		Items.ENDER_CHEST
-			.select(1)
-			.findSlotsWithMaterial()
-			.firstOrNull()?.let { slot ->
-				PlaceContainerTask(slot, automatedSafeContext).then { pos ->
-					OpenContainerTask(pos, automatedSafeContext).then {
-						taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
-							if (exitAfter) {
-								player.closeHandledScreen()
-								automatedSafeContext.breakAndCollectBlock(pos, lifeMaintenance = false)
-							} else null
-						}
-					}
+	override fun accessThen(
+		closeAfter: Boolean,
+		afterClose: TaskOrNullGenerator<Unit>?,
+		afterOpen: TaskGenerator<Unit>
+	) =
+		AcquirePlacedBlockTask(
+			Blocks.ENDER_CHEST,
+			automated = automatedSafeContext
+		).then { pos ->
+			OpenContainerTask(pos, automatedSafeContext).then {
+				afterOpen.invoke(automatedSafeContext, Unit).thenOrNull {
+					if (closeAfter) {
+						player.closeHandledScreen()
+						automatedSafeContext.breakAndCollectBlock(pos, lifeMaintenance = false)
+					} else null
 				}
 			}
+		}
 }

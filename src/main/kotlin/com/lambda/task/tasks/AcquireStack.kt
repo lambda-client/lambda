@@ -26,7 +26,7 @@ import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 
-class AcquireMaterialTask @Ta5kBuilder constructor(
+class AcquireStack @Ta5kBuilder constructor(
     val selection: StackSelection,
     automated: Automated
 ) : Task<StackSelection>(), Automated by automated {
@@ -39,7 +39,7 @@ class AcquireMaterialTask @Ta5kBuilder constructor(
                 ?.transferByTask(selection, HotbarContainer)
                 ?.finally {
                     success(selection)
-                }?.execute(this@AcquireMaterialTask)
+                }?.execute(this@AcquireStack)
                 ?: failure(ContainerHandler.NoContainerFound(selection)) // ToDo: Create crafting path
         }
     }
@@ -47,6 +47,6 @@ class AcquireMaterialTask @Ta5kBuilder constructor(
     companion object {
         @Ta5kBuilder
         fun Automated.acquire(selection: () -> StackSelection) =
-            AcquireMaterialTask(selection(), this)
+            AcquireStack(selection(), this)
     }
 }

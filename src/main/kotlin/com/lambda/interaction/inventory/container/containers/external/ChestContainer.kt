@@ -15,15 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers
+package com.lambda.interaction.inventory.container.containers.external
 
-import com.lambda.Lambda.mc
+import com.lambda.Lambda
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.task.Task
-import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
@@ -31,36 +31,41 @@ import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 data class ChestContainer(
-    override var stacks: List<ItemStack>,
-    val blockPos: BlockPos,
-    val containedInStash: StashContainer? = null
+	override var stacks: List<ItemStack>,
+	val blockPos: BlockPos,
+	val containedInStash: StashContainer? = null
 ) : Container(Rank.Chest), ExternalContainer {
     override val slots
         get(): List<Slot> =
-            if (ContainerHandler.lastInteractedBlockEntity is ChestBlockEntity) {
-                mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
-            } else emptyList()
+            ContainerHandler.lastInteractedBlockEntity?.let { blockEntity ->
+                if (blockEntity is ChestBlockEntity && blockEntity.pos == blockPos) {
+                    Lambda.mc.player?.currentScreenHandler?.containerSlots
+                } else emptyList()
+            } ?: emptyList()
 
     override val description =
-        buildText {
-            literal("Chest at ")
-            highlighted(blockPos.toShortString())
-            containedInStash?.let { stash ->
-                literal(" (contained in ")
-                highlighted(stash.name)
-                literal(")")
-            }
-        }
+	    buildText {
+		    literal("Chest at ")
+		    highlighted(blockPos.toShortString())
+		    containedInStash?.let { stash ->
+			    literal(" (contained in ")
+			    highlighted(stash.name)
+			    literal(")")
+		    }
+	    }
 
     context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>): Task<*> =
-        OpenContainerTask(blockPos, automatedSafeContext).then {
-            taskGenerator.invoke(automatedSafeContext, Unit).finally {
-                if (exitAfter) automatedSafeContext.player.closeHandledScreen()
-            }
-        }
+    override fun accessThen(
+	    exitAfter: Boolean,
+	    afterOpen: TaskOrNullGenerator<ScreenHandler> = { null },
+	    afterClose: TaskOrNullGenerator<Unit> = { null }
+    ): Task<*> =
+        OpenContainerTask(blockPos, automatedSafeContext)
+            .thenOrNull(afterOpen)
+            .then { if (exitAfter) automatedSafeContext.player.closeHandledScreen() }
 }

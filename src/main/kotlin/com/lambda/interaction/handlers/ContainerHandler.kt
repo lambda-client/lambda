@@ -27,8 +27,8 @@ import com.lambda.interaction.inventory.ContainerSelection
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.containers.ChestContainer
-import com.lambda.interaction.inventory.container.containers.EnderChestContainer
+import com.lambda.interaction.inventory.container.containers.external.ChestContainer
+import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.ReflectionUtils
 import com.lambda.util.extension.containerStacks
@@ -86,7 +86,7 @@ object ContainerHandler : Loadable {
     }
 
     context(_: SafeContext)
-    fun containers() = containers.flatMap { setOf(it) + it.shulkerContainer }.sorted()
+    fun containers() = containers.flatMap { setOf(it) + it.shulkerContainers }.sorted()
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun StackSelection.transfer(destination: Container) =
@@ -119,7 +119,7 @@ object ContainerHandler : Loadable {
     ): List<Container> =
         containers()
             .filter { containerSelection.matches(it) }
-            .filter { it.materialAvailable(this) >= count }
+            .filter { it.stackCount(this) >= count }
             .sortedWith(automatedSafeContext.inventoryConfig.providerPriority.materialComparator(this))
 
     context(automatedSafeContext: AutomatedSafeContext)
@@ -151,7 +151,7 @@ object ContainerHandler : Loadable {
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun findDisposable() = containers().find { container ->
-        automatedSafeContext.inventoryConfig.disposables.any { container.materialAvailable(it.asItem().select()) > 0 }
+        automatedSafeContext.inventoryConfig.disposables.any { container.stackCount(it.asItem().select()) > 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

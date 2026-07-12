@@ -62,11 +62,11 @@ interface InventoryConfig {
 		fun materialComparator(selection: StackSelection) =
 			when (this) {
 				WithMaxItems -> compareBy<Container> { it.rank }
-					.thenByDescending { it.materialAvailable(selection) }
+					.thenByDescending { it.stackCount(selection) }
 					.thenBy { it.name }
 
 				WithMinItems -> compareBy<Container> { it.rank }
-					.thenBy { it.materialAvailable(selection) }
+					.thenBy { it.stackCount(selection) }
 					.thenBy { it.name }
 			}
 

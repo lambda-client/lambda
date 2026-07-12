@@ -23,10 +23,14 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.container.containers.ShulkerBoxContainer
+import com.lambda.interaction.inventory.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.ContainerTransferTask
+import com.lambda.task.tasks.NoopTask.Companion.noop
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
@@ -74,7 +78,7 @@ abstract class Container(
     fun TextBuilder.stock(selection: StackSelection) {
         literal("\n")
         literal("Contains ")
-        val available = materialAvailable(selection)
+        val available = stackCount(selection)
         highlighted(if (available == Int.MAX_VALUE) "∞" else available.toItemCount())
         literal(" of ")
         highlighted("${selection.optimalStack?.name?.string}")
@@ -96,21 +100,46 @@ abstract class Container(
     override val name: String
         get() = buildText { text(description) }.string
 
-    context(_: SafeContext)
-    val shulkerContainer
+    //ToDo: Bundles
+    val shulkerContainers
         get() =
-            slots.filter {
+            slots.takeIf {
+                it.isEmpty()
+            }?.filter {
                 it.stack.item in ItemUtils.shulkerBoxes
-            }.map { slot ->
+            }?.map { slot ->
                 ShulkerBoxContainer(
                     slot.stack.shulkerBoxStacks,
                     containedIn = this@Container,
                     shulkerSlot = slot
                 )
-            }.toSet()
+            }?.toSet()
+                ?: stacks.map { stack ->
+                    ShulkerBoxContainer(
+                        stack.shulkerBoxStacks,
+                        containedIn = this@Container,
+                        shulkerSlot = null
+                    )
+                }.toSet()
+
+    open val isAccessed get() = true
 
     fun update(slots: List<ItemStack>) {
         this.stacks = slots
+    }
+
+    @Ta5kBuilder
+    context(automatedSafeContext: AutomatedSafeContext)
+    open fun accessThen(
+        closeAfter: Boolean = true,
+        afterClose: TaskOrNullGenerator<Unit>? = null,
+        afterOpen: TaskGenerator<Unit> = { noop() }
+    ) = with(automatedSafeContext) {
+        afterOpen(Unit).also {
+            if (closeAfter && afterClose != null) {
+                it.thenOrNull { afterClose(Unit) }
+            }
+        }
     }
 
     context(safeContext: SafeContext)
@@ -123,10 +152,10 @@ abstract class Container(
     }
 
     context(automatedSafeContext: AutomatedSafeContext)
-    fun transfer(stackSelection: StackSelection, destination: Container): Boolean =
+    fun transfer(selection: StackSelection, destination: Container): Boolean =
         with(automatedSafeContext) {
-            val fromSlot = getSlot(stackSelection) ?: return false
-            val toSlot = destination.getReplaceableSlot() ?: return false
+            val fromSlot = getSlot(selection) ?: return false
+            val toSlot = destination.getReplaceSlot() ?: return false
             val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@Container, destination)
             if (transferEvent.post().isCanceled()) return false
             return inventoryRequest {
@@ -137,22 +166,18 @@ abstract class Container(
 
     context(automated: Automated)
     fun transferByTask(stackSelection: StackSelection, destination: Container, failIfNoMaterial: Boolean = false) =
-        ContainerTransferTask(this, destination, stackSelection, automated, failIfNoMaterial)
+        ContainerTransferTask(this, destination, stackSelection, failIfNoMaterial, automated)
 
-    open fun matchingStacks(selection: StackSelection) = selection.filter(stacks)
-    open fun matchingSlots(selection: StackSelection) = selection.filter(slots)
-
-    open fun materialAvailable(selection: StackSelection) =
-        matchingStacks(selection).count
+    open fun stackCount(selection: StackSelection) =
+        selection.filter(stacks).count
 
     open fun spaceAvailable(selection: StackSelection) =
-        matchingStacks(selection).spaceLeft + stacks.empty * selection.count
+        selection.filter(stacks).spaceLeft + stacks.empty
 
     context(_: Automated)
-    open fun getReplaceableSlot() = slots.sortedWith(replaceSorter).firstOrNull()
+    open fun getReplaceSlot() = slots.sortedWith(replaceSorter).firstOrNull()
 
-    open fun getSlot(stackSelection: StackSelection): Slot? =
-        stackSelection.filter(slots).firstOrNull()
+    open fun getSlot(selection: StackSelection) = selection.bestMatch(slots)
 
     enum class Rank {
         MainHand,
@@ -165,6 +190,7 @@ abstract class Container(
         Creative,
         ShulkerBox,
         EnderChest,
+        PlacedShulkerBox,
         Chest,
         Stash
     }

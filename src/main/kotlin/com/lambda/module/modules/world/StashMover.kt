@@ -41,7 +41,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.inventory.container.containers.EnderChestContainer
+import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.InventoryContainer

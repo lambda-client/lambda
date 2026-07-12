@@ -34,8 +34,8 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
-typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
-typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
+typealias TaskOrNullGenerator<R> = SafeContext.(R) -> Task<*>?
+typealias TaskUnitGenerator<R> = SafeContext.(R) -> Unit
 
 @Suppress("unused")
 abstract class Task<Result> : Nameable, Muteable {
@@ -50,11 +50,11 @@ abstract class Task<Result> : Nameable, Muteable {
     val size: Int get() = subTasks.sumOf { it.size } + 1
 
     private var nextTask: TaskGenerator<Result>? = null
-    private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
-    private var onFinish: TaskGeneratorUnit<Result>? = null
+    private var nextTaskOrNull: TaskOrNullGenerator<Result>? = null
+    private var onFinish: TaskUnitGenerator<Result>? = null
 
     private var onFail: TaskGenerator<Unit>? = null
-    private var onFailOrNull: TaskGeneratorOrNull<Unit>? = null
+    private var onFailOrNull: TaskOrNullGenerator<Unit>? = null
     private var softFail = false
 
     enum class State {
@@ -249,7 +249,7 @@ abstract class Task<Result> : Nameable, Muteable {
     @Ta5kBuilder
     infix fun then(task: Task<*>): Task<Result> {
         require(task != this) { "Cannot link a task to itself" }
-        nextTask = { task }
+        then { task }
         return this
     }
 
@@ -287,7 +287,7 @@ abstract class Task<Result> : Nameable, Muteable {
      */
     @Ta5kBuilder
     fun then(taskGenerator: TaskGenerator<Result>): Task<Result> {
-        require(nextTask == null) { "Cannot link multiple tasks to a single task" }
+        require(nextTask == null && nextTaskOrNull == null) { "Cannot link multiple tasks to a single task" }
         nextTask = taskGenerator
         return this
     }
@@ -297,7 +297,7 @@ abstract class Task<Result> : Nameable, Muteable {
      *
      * This method specifies the next task to be executed after the current task
      * completes successfully. The next task is generated dynamically using the provided
-     * [TaskGeneratorOrNull]. This allows chaining tasks together flexibly,
+     * [TaskOrNullGenerator]. This allows chaining tasks together flexibly,
      * where the next task is conditionally determined or null.
      *
      * @param taskGenerator A function that generates the next task based on the
@@ -307,23 +307,23 @@ abstract class Task<Result> : Nameable, Muteable {
      * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun thenOrNull(taskGenerator: TaskGeneratorOrNull<Result>): Task<Result> {
-        require(nextTask == null) { "Cannot link multiple tasks to a single task" }
+    fun thenOrNull(taskGenerator: TaskOrNullGenerator<Result>): Task<Result> {
+        require(nextTask == null && nextTaskOrNull == null) { "Cannot link multiple tasks to a single task" }
         nextTaskOrNull = taskGenerator
         return this
     }
 
     @Ta5kBuilder
     fun onFail(taskGenerator: TaskGenerator<Unit>): Task<Result> {
-        require(onFail == null) { "Cannot have multiple onFail callbacks on a single task" }
+        require(onFail == null && onFailOrNull == null) { "Cannot have multiple onFail callbacks on a single task" }
         onFail = taskGenerator
         softFail()
         return this
     }
 
     @Ta5kBuilder
-    fun onFailOrNull(taskGenerator: TaskGeneratorOrNull<Unit>): Task<Result> {
-        require(onFailOrNull == null) { "Cannot have multiple onFailOrNull callbacks on a single task" }
+    fun onFailOrNull(taskGenerator: TaskOrNullGenerator<Unit>): Task<Result> {
+        require(onFail == null && onFailOrNull == null) { "Cannot have multiple onFail callbacks on a single task" }
         onFailOrNull = taskGenerator
         softFail()
         return this
@@ -347,7 +347,7 @@ abstract class Task<Result> : Nameable, Muteable {
      * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun finally(onFinish: TaskGeneratorUnit<Result>): Task<Result> {
+    fun finally(onFinish: TaskUnitGenerator<Result>): Task<Result> {
         require(this.onFinish == null) { "Cannot link multiple finally blocks to a single task" }
         this.onFinish = onFinish
         return this

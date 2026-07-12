@@ -15,15 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers
+package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.ContainerHandler
+import com.lambda.interaction.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
+import com.lambda.task.Task
 import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.PlaceContainerTask
@@ -35,22 +37,21 @@ import com.lambda.util.text.literal
 import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
-import net.minecraft.util.math.BlockPos
 
 data class ShulkerBoxContainer(
     override var stacks: List<ItemStack>,
     val containedIn: Container,
-    val shulkerSlot: Slot,
+    val shulkerSlot: Slot?,
 ) : Container(Rank.ShulkerBox), ExternalContainer {
     override val slots
         get(): List<Slot> =
-            if (ContainerHandler.lastInteractedBlockEntity is ShulkerBoxBlockEntity)
+            if (lastInteractedBlockEntity is ShulkerBoxBlockEntity)
                 mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
             else emptyList()
 
     override val description =
         buildText {
-            highlighted(shulkerSlot.stack.name.string)
+            highlighted(shulkerSlot?.stack?.name?.string ?: "Shulker Box")
             literal(" in ")
             highlighted(containedIn.name)
             literal(" in slot ")
@@ -60,17 +61,19 @@ data class ShulkerBoxContainer(
     context(_: SafeContext)
     private val slotInContainer: Int get() = containedIn.slots.indexOf(shulkerSlot)
 
-    private var placePos = BlockPos.ORIGIN
+    override val isAccessed get() = lastInteractedBlockEntity is ShulkerBoxBlockEntity
 
     context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
-        PlaceContainerTask(shulkerSlot, automatedSafeContext).then { pos ->
-            placePos = pos
+    override fun accessThen(closeAfter: Boolean, afterClose: TaskOrNullGenerator<Unit>?, afterOpen: TaskGenerator<Unit>): Task<*> {
+        return PlaceContainerTask(shulkerSlot, automatedSafeContext).then { pos ->
             OpenContainerTask(pos, automatedSafeContext).then {
-                taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
-                    if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos)
-                    else null
+                afterOpen.invoke(automatedSafeContext, Unit).thenOrNull {
+                    if (closeAfter) {
+                        player.closeHandledScreen()
+                        automatedSafeContext.breakAndCollectBlock(pos)
+                    } else null
                 }
             }
         }
+    }
 }

@@ -176,12 +176,33 @@ sealed class TargetState : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.block == block
 
-        context(automatedSafeContext: AutomatedSafeContext)
+        context(_: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack = itemStack
 
         context(_: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = block.defaultState
 
-        override fun isEmpty() = false
+        override fun isEmpty() = block.defaultState.isEmpty
+    }
+
+    data class SpecificStack(val itemStack: ItemStack) : TargetState() {
+        override fun toString() = "Specific stack of ${itemStack.item.name.string.capitalize()}"
+
+        private val block = itemStack.item.block
+
+        context(safeContext: SafeContext)
+        override fun matches(
+            state: BlockState,
+            pos: BlockPos,
+            ignoredProperties: Collection<Property<*>>
+        ) = state.block == block
+
+        context(_: AutomatedSafeContext)
+        override fun getStack(pos: BlockPos) = itemStack
+
+        context(_: AutomatedSafeContext)
+        override fun getState(pos: BlockPos): BlockState = block.defaultState
+
+        override fun isEmpty() = block.defaultState.isEmpty
     }
 }

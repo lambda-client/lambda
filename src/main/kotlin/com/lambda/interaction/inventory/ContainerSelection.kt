@@ -64,7 +64,7 @@ class ContainerSelectionBuilder private constructor() {
     }
 
     fun matches(stackSelection: StackSelection) {
-        appendSelector { container -> container.matchingSlots(stackSelection).isNotEmpty() }
+        appendSelector { container -> stackSelection.filter(container.slots).isNotEmpty() }
     }
 
     fun matches(containerSelection: ContainerSelection) {

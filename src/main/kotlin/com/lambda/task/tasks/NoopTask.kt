@@ -15,7 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.task.tasks
 
-interface ExternalContainer {
+import com.lambda.context.SafeContext
+import com.lambda.task.Task
+
+class NoopTask : Task<Unit>() {
+	override val name = "No-operation task"
+
+	override fun SafeContext.onStart() {
+		success()
+	}
+
+	companion object {
+		@Ta5kBuilder
+		fun noop() = NoopTask()
+	}
 }

@@ -34,4 +34,6 @@ object ArmorContainer : Container(Rank.Armor) {
 		set(_) {}
 
 	override val description = buildText { literal("Armor") }
+
+	override val isAccessed get() = mc.player?.currentScreenHandler?.syncId == 0
 }

@@ -102,11 +102,9 @@ object AutoPortal : Module(
 				.thenOrNull {
 					if (light) LightTask(currAnchorPos.up(), walkIn)
 					else null
-				}
-				.finally {
+				}.finally {
 					buildTask = null
-				}
-				.run()
+				}.run()
 		}
 	private val corners by setting("Corners", false)
 	private val light by setting("Light", true, "Attempts to automatically light the portal after building")
