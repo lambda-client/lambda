@@ -96,8 +96,6 @@ public class GameRendererMixin {
 
     @WrapOperation(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;applyCursorTo(Lnet/minecraft/client/util/Window;)V"))
     private void applyCursorOverride(DrawContext context, Window window, Operation<Void> original) {
-        original.call(context, window);
-
         if (Lambda.getMc().currentScreen instanceof CursorOverrideProvider provider) {
             int mouseX = (int) Lambda.getMc().mouse.getScaledX(window);
             int mouseY = (int) Lambda.getMc().mouse.getScaledY(window);
@@ -108,7 +106,7 @@ public class GameRendererMixin {
                 return;
             }
         }
-        Cursor.DEFAULT.applyTo(window);
+        original.call(context, window);
     }
 
     @Inject(method = "shouldRenderBlockOutline()Z", at = @At("HEAD"), cancellable = true)
