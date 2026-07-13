@@ -113,11 +113,9 @@ class DisconnectDetailsWidget(
         }
     }
 
-    /** X of the row's left text edge, in widget space. */
-    private val Placed.left get() = textX + indent
+    private val PlacedSection.left get() = textX + indent
 
-    /** Width of the row's widest wrapped line. */
-    private val Placed.textWidth get() = lines.maxOf { textRenderer.getWidth(it) }
+    private val PlacedSection.textWidth get() = lines.maxOf { textRenderer.getWidth(it) }
 
     override fun drawBox(context: DrawContext) {
         val right = x + width
@@ -129,12 +127,6 @@ class DisconnectDetailsWidget(
         context.fill(right - 1, y, right, bottomEdge, COLOR_BORDER)     // right
     }
 
-    /**
-     * The cursor to show for the point ([mouseX], [mouseY]) in screen space: a
-     * pointing hand when hovering a collapsible header, otherwise null. The owning
-     * screen must surface this via [com.lambda.util.render.CursorOverrideProvider],
-     * since the game render loop resets the cursor every frame.
-     */
     fun hoverCursor(mouseX: Int, mouseY: Int): Cursor? =
         if (visible && headerNodeAt(mouseX.toDouble(), mouseY.toDouble()) != null) {
             StandardCursors.POINTING_HAND
@@ -167,11 +159,6 @@ class DisconnectDetailsWidget(
         }
     }
 
-    /**
-     * Fills a rectangle with rounded corners by insetting each corner row along
-     * the circle equation. Aliased at the corners, which is fine for a small,
-     * translucent highlight; [DrawContext] has no rounded-rect primitive.
-     */
     @Suppress("SameParameterValue")
     private fun fillRounded(context: DrawContext, left: Int, top: Int, right: Int, bottom: Int, radius: Int, color: Int) {
         val r = radius.coerceIn(0, minOf((right - left) / 2, (bottom - top) / 2))
@@ -179,8 +166,9 @@ class DisconnectDetailsWidget(
             context.fill(left, top, right, bottom, color)
             return
         }
-
+        //fill the main body area
         context.fill(left, top + r, right, bottom - r, color)
+        //fill the top and bottom rectangles one pixel height at a time
         for (dy in 0 until r) {
             val inset = r - sqrt((r * r - (r - dy) * (r - dy)).toDouble()).roundToInt()
             context.fill(left + inset, top + dy, right - inset, top + dy + 1, color)
@@ -188,18 +176,14 @@ class DisconnectDetailsWidget(
         }
     }
 
-    /**
-     * Returns the collapsible section whose header row contains the point
-     * ([x], [y]) in screen space, or null if none does.
-     */
-    private fun headerNodeAt(x: Double, y: Double): DetailSection.CollapsibleSection? {
-        if (y < getY() || y >= bottom) return null
+    private fun headerNodeAt(targetX: Double, targetY: Double): DetailSection.CollapsibleSection? {
+        if (targetY < y || targetY >= bottom) return null
 
-        layout().forEach { placed ->
-            if (placed.node != null) {
-                val top = textY + placed.top - scrollY
-                val bottom = top + placed.height
-                if (x >= placed.left && x < placed.left + placed.textWidth && y >= top && y < bottom) return placed.node
+        layout().forEach { placedSection ->
+            if (placedSection.node != null) {
+                val top = textY + placedSection.top - scrollY
+                val bottom = top + placedSection.height
+                if (targetX >= placedSection.left && targetX < placedSection.left + placedSection.textWidth && targetY >= top && targetY < bottom) return placedSection.node
             }
         }
 
@@ -213,12 +197,12 @@ class DisconnectDetailsWidget(
      * given how few sections a disconnect screen holds. Returns their position
      * relative to the top of the scrollable content, not the screen.
      */
-    private fun layout(): List<Placed> {
-        val placements = ArrayList<Placed>()
+    private fun layout(): List<PlacedSection> {
+        val placements = ArrayList<PlacedSection>()
         var y = 0
 
         fun emit(node: DetailSection.CollapsibleSection?, indent: Int, lines: List<OrderedText>, gap: Int) {
-            placements += Placed(node, indent, y, lines, lines.size * LINE_HEIGHT)
+            placements += PlacedSection(node, indent, y, lines, lines.size * LINE_HEIGHT)
             y += lines.size * LINE_HEIGHT + gap
         }
 
@@ -265,7 +249,7 @@ class DisconnectDetailsWidget(
      * A single positioned row of wrapped lines. [node] is non-null only for
      * clickable headers; text and body blocks leave it null.
      */
-    private data class Placed(
+    private data class PlacedSection(
         val node: DetailSection.CollapsibleSection?,
         val indent: Int,
         val top: Int,
