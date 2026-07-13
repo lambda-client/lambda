@@ -382,7 +382,7 @@ object AutoDisconnect : Module(
         // Always-visible summary: the reason plus when it happened.
         if (showTime) {
             sections += DetailSection.TextSection(
-            buildText {
+                buildText {
                     literal("Disconnected")
                         literal(" on ")
                         highlighted(CommunicationUtils.currentTime())
