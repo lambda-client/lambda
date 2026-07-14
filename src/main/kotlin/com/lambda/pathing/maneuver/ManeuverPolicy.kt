@@ -73,4 +73,29 @@ object ManeuverPolicy {
         horizontalSpeed: Double,
         leadTicks: Double = BRAKE_LEAD_TICKS,
     ): Boolean = horizontalDistanceToTarget < horizontalSpeed * leadTicks
+
+    /**
+     * Gain of the mid-air lateral correction, in input units per block/tick of
+     * sideways drift. Sized to saturate at the drift the takeoff gate still
+     * permits (~0.06 b/t), so any launch the executor is willing to make is
+     * one the correction can straighten out.
+     */
+    const val LATERAL_CORRECTION_GAIN = 20.0
+
+    /**
+     * Strafe input that cancels sideways drift during flight, given the
+     * drift's component to the LEFT of the direction being flown.
+     *
+     * The executor already does this — its airborne MPC carries full-strafe
+     * candidates and picks whichever lands closest. The validation sim did
+     * not, so it flew every arc open-loop and let a lateral perturbation ride
+     * all the way to the ground. Over a 10-tick flight an 0.04 b/t drift
+     * integrates to ~0.44 blocks under air drag, which is more than a
+     * single-block pad can absorb — so the robustness box rejected every 1x1
+     * landing as unreachable, in principle, forever. Cancelling drift is what
+     * a human does in mid-air, and it belongs in the shared policy so that
+     * "validated" and "executed" keep meaning the same flight.
+     */
+    fun lateralCorrection(leftwardDrift: Double): Double =
+        (leftwardDrift * LATERAL_CORRECTION_GAIN).coerceIn(-1.0, 1.0)
 }

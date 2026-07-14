@@ -74,6 +74,8 @@ interface PathfinderRenderConfig {
     val renderMarkers: Boolean
     val markerSize: Double
     val markerHeight: Double
+    val renderSimulatedWalk: Boolean
+    val simulatedWalkColor: java.awt.Color
     val renderPlannedJumps: Boolean
     val plannedJumpWidth: Int
     val renderLandingMarkers: Boolean

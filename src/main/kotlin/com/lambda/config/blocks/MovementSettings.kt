@@ -48,4 +48,5 @@ class MovementSettings(override val c: Config) : MovementConfig, ConfigBlock {
     @Group(DEBUG_GROUP) override val maxDebugSamples by c.setting("Max Debug Samples", 80, 0..400, 1, "How many recent executor samples to retain for HUD/render debugging.")
     @Group(DEBUG_GROUP) override val logExecutionDebug by c.setting("Log Debug To Console", false, "Writes a compact execution summary to the log on state changes and at the chosen interval.")
     @Group(DEBUG_GROUP) override val logDebugInterval by c.setting("Log Interval", 10, 1..200, 1, "Ticks between periodic executor debug log lines while following.") { logExecutionDebug }
+    @Group(DEBUG_GROUP) override val logJumpDiagnostics by c.setting("Log Jump Diagnostics", false, "One chat line per jump: the planned edge, entry state, launch verdict and landing result — plus a loud warning when the planner emits a jump the physics simulation refuses (an edge whose arc passes through a block). Paste these when reporting a jump failure.")
 }

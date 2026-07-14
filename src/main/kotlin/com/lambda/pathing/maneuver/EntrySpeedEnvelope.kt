@@ -25,6 +25,17 @@ data class EntrySpeedEnvelope(
     val max: Double,
     val minTakeoffProgress: Double = 0.0,
     val maxTakeoffProgress: Double = 0.45,
+    /**
+     * Whether the validated flight was a SPRINT jump.
+     *
+     * Sprint is part of the entry state, not a global preference. A
+     * sprint-jump's launch boost alone carries ~3.5 blocks, so a short hop
+     * onto a narrow landing is impossible at sprint *at every entry speed* —
+     * a human walks those, and so must the agent. Discovery used to simulate
+     * sprint unconditionally, which is why short jumps onto single-block pads
+     * could never be admitted: the validator overflew the pad every time.
+     */
+    val sprint: Boolean = true,
 ) {
     init {
         require(min >= 0.0 && max >= min) { "Invalid entry-speed envelope [$min, $max]" }

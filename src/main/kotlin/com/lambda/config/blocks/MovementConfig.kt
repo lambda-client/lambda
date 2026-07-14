@@ -40,4 +40,5 @@ interface MovementConfig {
     val maxDebugSamples: Int
     val logExecutionDebug: Boolean
     val logDebugInterval: Int
+    val logJumpDiagnostics: Boolean
 }

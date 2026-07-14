@@ -134,11 +134,20 @@ object WalkingMovementModel {
             val gz = oz + dz / 2
             if (!isSlicePassable(view, gx, oy, gz)) return null
             if (!isSlicePassable(view, gx, oy + 1, gz)) return null
+            // The APEX slice over the gap column is not optional for a flat
+            // jump either. By the time the arc crosses the mid column the feet
+            // are ~1 block above the takeoff, so the body occupies oy+1 AND
+            // oy+2 there — a block at oy+2 is a head bonk that flattens the
+            // arc and drops the player into the gap. Checking only oy/oy+1 let
+            // the graph emit jump edges whose arc passes straight through a
+            // block; the executor's flight sim then (correctly) refused to
+            // launch and the agent stalled at the lip. Both this oracle and
+            // MoveTable shared the omission, which is why the differential
+            // test held them equal and never caught it.
+            if (!isSlicePassable(view, gx, oy + 2, gz)) return null
             return when (dy) {
                 0 -> MoveCosts.JUMP
-                1 -> {
-                    if (isSlicePassable(view, gx, oy + 1, gz) && isSlicePassable(view, gx, oy + 2, gz)) MoveCosts.JUMP_UP else null
-                }
+                1 -> MoveCosts.JUMP_UP
                 else -> null
             }
         }

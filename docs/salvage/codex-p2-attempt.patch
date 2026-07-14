@@ -1,0 +1,998 @@
+diff --git a/src/gametest/kotlin/com/lambda/bench/ScenarioRunner.kt b/src/gametest/kotlin/com/lambda/bench/ScenarioRunner.kt
+index 99c78d6e5..b610a65b0 100644
+--- a/src/gametest/kotlin/com/lambda/bench/ScenarioRunner.kt
++++ b/src/gametest/kotlin/com/lambda/bench/ScenarioRunner.kt
+@@ -92,6 +92,8 @@ data class ScenarioReport(
+     val maxReplansRequested: Int?,
+     val minJumpLandingSuccessRate: Double?,
+     val maxReplanLatencyTicks: Int?,
++    val minAllowedY: Double?,
++    val minPlayerY: Double,
+     val finalStatus: String,
+     val failureReason: String?,
+     val endDistanceToGoal: Double,
+@@ -114,7 +116,8 @@ data class ScenarioReport(
+             (maxLongestExecutorLostBurstTicks == null || longestExecutorLostBurstTicks <= maxLongestExecutorLostBurstTicks) &&
+             (maxReplansRequested == null || replansRequested <= maxReplansRequested) &&
+             (minJumpLandingSuccessRate == null || jumpLandingSuccessRate >= minJumpLandingSuccessRate) &&
+-            (maxReplanLatencyTicks == null || replanLatencyTicks <= maxReplanLatencyTicks)
++            (maxReplanLatencyTicks == null || replanLatencyTicks <= maxReplanLatencyTicks) &&
++            (minAllowedY == null || minPlayerY >= minAllowedY)
+ 
+     val passed: Boolean get() =
+         (if (expectSuccess) reachedGoal else !reachedGoal && !flightToggled) && qualityPassed
+@@ -201,6 +204,7 @@ data class ScenarioReport(
+         append(",\"wallCollisionTicks\":").append(wallCollisionTicks)
+         append(",\"replanLatencyTicks\":").append(replanLatencyTicks)
+         append(",\"headBonkTicks\":").append(headBonkTicks)
++        append(",\"minPlayerY\":").append("%.3f".format(minPlayerY))
+         append(",\"arcDevMean\":").append("%.3f".format(arcDevMean))
+         append(",\"arcDevMax\":").append("%.3f".format(arcDevMax))
+         append(",\"planDevMean\":").append("%.3f".format(planDevMean))
+@@ -362,6 +366,7 @@ object ScenarioRunner {
+         val jumpLandings = ArrayList<JumpLanding>()
+         var wallCollisionTicks = 0
+         var headBonkTicks = 0
++        var minPlayerY = scenario.start.y
+ 
+         if (requested) {
+             while (ticks < scenario.timeoutTicks) {
+@@ -439,6 +444,7 @@ object ScenarioRunner {
+                 // jumpCommand flag gets overwritten by the end-of-tick state
+                 // rebuild and is unreliable.
+                 val onGround = "\"ground\":true" in sample
++                sample.numberField("y")?.let { if (it < minPlayerY) minPlayerY = it }
+                 val jumpInput = "\"jumpInGate\":\"issued\"" in sample
+                 val flying = "\"flying\":true" in sample
+                 val status = sample.substringAfter("\"status\":\"").substringBefore('"')
+@@ -687,6 +693,8 @@ object ScenarioRunner {
+                 maxReplansRequested = scenario.maxReplansRequested,
+                 minJumpLandingSuccessRate = scenario.minJumpLandingSuccessRate,
+                 maxReplanLatencyTicks = scenario.maxReplanLatencyTicks,
++                minAllowedY = scenario.minAllowedY,
++                minPlayerY = minPlayerY,
+                 finalStatus = handle?.status?.toString() ?: "None",
+                 failureReason = handle?.failureReason,
+                 endDistanceToGoal = endDistance,
+diff --git a/src/gametest/kotlin/com/lambda/bench/TraversalScenarios.kt b/src/gametest/kotlin/com/lambda/bench/TraversalScenarios.kt
+index 74cef261e..0ebd4daca 100644
+--- a/src/gametest/kotlin/com/lambda/bench/TraversalScenarios.kt
++++ b/src/gametest/kotlin/com/lambda/bench/TraversalScenarios.kt
+@@ -78,6 +78,8 @@ data class TraversalScenario(
+     val maxLongestExecutorLostBurstTicks: Int? = null,
+     val maxReplansRequested: Int? = null,
+     val minJumpLandingSuccessRate: Double? = null,
++    /** Safety gate for stop-before-gap fixtures. */
++    val minAllowedY: Double? = null,
+ )
+ 
+ /** Plain [PlannerConfig] for benchmarks — independent of any UI config state. */
+@@ -159,6 +161,7 @@ object TraversalScenarios {
+         maxLongestExecutorLostBurstTicks: Int? = null,
+         maxReplansRequested: Int? = null,
+         minJumpLandingSuccessRate: Double? = null,
++        minAllowedY: Double? = null,
+     ) = TraversalScenario(
+         name = name,
+         purpose = purpose,
+@@ -182,6 +185,7 @@ object TraversalScenarios {
+         maxLongestExecutorLostBurstTicks = maxLongestExecutorLostBurstTicks,
+         maxReplansRequested = maxReplansRequested,
+         minJumpLandingSuccessRate = minJumpLandingSuccessRate,
++        minAllowedY = minAllowedY,
+     )
+ 
+     // Scenario-set discipline: every case must probe a behavior no other
+@@ -521,15 +525,81 @@ object TraversalScenarios {
+             gated = false,
+         ),
+ 
++        scenario(
++            "disc-2ahead-1down",
++            "Entry-envelope/fan coverage: a two-ahead jump landing one block down. Distance 2 " +
++                "used to be excluded as template territory, but no template represents this real gap.",
++            "/fill 0 67 -1 2 67 1 minecraft:stone",
++            "/fill 4 66 -1 7 66 1 minecraft:stone",
++            start = Vec3d(0.5, 68.0, 0.5),
++            goal = fastVectorOf(6, 67, 0),
++            allowJump = true,
++            timeoutTicks = 350,
++            minJumpLandingSuccessRate = 1.0,
++        ),
++
++        scenario(
++            "disc-2ahead-3down",
++            "Fan-rise coverage: a two-ahead jump landing three blocks down. Requires takeoff " +
++                "rise +3, which eager discovery previously omitted for simulation cost.",
++            "/fill 0 64 -1 2 69 1 minecraft:stone",
++            "/fill 4 66 -1 7 66 1 minecraft:stone",
++            start = Vec3d(0.5, 70.0, 0.5),
++            goal = fastVectorOf(6, 67, 0),
++            allowJump = true,
++            timeoutTicks = 350,
++            minJumpLandingSuccessRate = 1.0,
++        ),
++
++        scenario(
++            "disc-gap4-momentum",
++            "Entry-envelope coverage: a four-block gap (displacement 5) that is legal only with " +
++                "sprint momentum. The edge must publish a nonzero minimum entry speed.",
++            // Low-friction runway supplies the validated 0.30 entry state;
++            // the paired too-slow fixture proves ordinary no-runway entry stops.
++            "/fill -12 65 -1 3 65 1 minecraft:blue_ice",
++            "/fill 8 65 -1 11 65 1 minecraft:stone",
++            start = Vec3d(-10.5, 66.0, 0.5),
++            goal = fastVectorOf(10, 66, 0),
++            allowJump = true,
++            timeoutTicks = 400,
++        ),
++
++        scenario(
++            "disc-3ahead-1up",
++            "Entry-envelope coverage: a three-ahead jump onto a landing one block higher. It " +
++                "requires speed, so whole-band validation used to reject it wholesale.",
++            "/fill 0 65 -1 3 65 1 minecraft:stone",
++            "/fill 6 66 -1 9 66 1 minecraft:stone",
++            start = Vec3d(0.5, 66.0, 0.5),
++            goal = fastVectorOf(8, 67, 0),
++            allowJump = true,
++            timeoutTicks = 400,
++            minJumpLandingSuccessRate = 1.0,
++        ),
++
++        scenario(
++            "disc-gap4-too-slow-stop",
++            "Envelope safety: spawn at a four-gap edge without runway. The executor must honor " +
++                "vmin and stop on the takeoff block rather than force-launch or walk off.",
++            "/setblock 3 67 0 minecraft:stone",
++            "/fill 8 67 -1 11 67 1 minecraft:stone",
++            start = Vec3d(3.5, 68.0, 0.5),
++            goal = fastVectorOf(10, 68, 0),
++            allowJump = true,
++            timeoutTicks = 160,
++            expectSuccess = false,
++            minAllowedY = 67.95,
++        ),
++
+         scenario(
+             "disc-gap4-too-far",
+-            "Discovery band cap: a 4-wide gap (displacement 5) exceeds the flat sprint-jump " +
+-                "envelope — no candidate may be proposed, no edge hallucinated; clean no-path. " +
+-                "Regression guard against band inflation without envelope support.",
++            "Discovery band cap: a 5-wide gap (displacement 6) exceeds the extended momentum " +
++                "fan — no candidate may be proposed and no edge may be hallucinated.",
+             "/fill 0 65 -1 3 65 1 minecraft:stone",
+-            "/fill 8 65 -1 11 65 1 minecraft:stone",
++            "/fill 9 65 -1 12 65 1 minecraft:stone",
+             start = Vec3d(0.5, 66.0, 0.5),
+-            goal = fastVectorOf(10, 66, 0),
++            goal = fastVectorOf(11, 66, 0),
+             allowJump = true,
+             timeoutTicks = 200,
+             expectSuccess = false,
+diff --git a/src/main/kotlin/com/lambda/pathing/execution/ExecutionPath.kt b/src/main/kotlin/com/lambda/pathing/execution/ExecutionPath.kt
+index d17ef1b54..8990f4b86 100644
+--- a/src/main/kotlin/com/lambda/pathing/execution/ExecutionPath.kt
++++ b/src/main/kotlin/com/lambda/pathing/execution/ExecutionPath.kt
+@@ -18,6 +18,7 @@
+ package com.lambda.pathing.execution
+ 
+ import com.lambda.util.math.lerp
++import com.lambda.pathing.maneuver.EntrySpeedEnvelope
+ import com.lambda.util.world.FastVector
+ import net.minecraft.util.math.Vec3d
+ import kotlin.math.abs
+@@ -140,6 +141,8 @@ data class ExecutionPath(
+             maneuverWaypoints: (FastVector, FastVector) -> List<FastVector>? = { _, _ -> null },
+             /** Discovered-jump provenance: true if (from, to) is a sim-validated jump edge. */
+             discoveredJump: (FastVector, FastVector) -> Boolean = { _, _ -> false },
++            /** Validated entry-speed interval for a discovered single jump. */
++            entrySpeedEnvelope: (FastVector, FastVector) -> EntrySpeedEnvelope? = { _, _ -> null },
+         ): ExecutionPath {
+             val deduplicated = nodes.fold(mutableListOf<FastVector>()) { acc, node ->
+                 if (acc.lastOrNull() != node) acc += node
+@@ -163,6 +166,7 @@ data class ExecutionPath(
+                         dy <= 1.0 + 1.0E-6 -> WalkSegment(
+                             index, startPose, endPose,
+                             discovered = discoveredJump(start, end),
++                            entrySpeedEnvelope = entrySpeedEnvelope(start, end),
+                         )
+                         else -> UnsupportedSegment(index, startPose, endPose, "UnsupportedVertical")
+                     }
+diff --git a/src/main/kotlin/com/lambda/pathing/execution/ExecutionSegment.kt b/src/main/kotlin/com/lambda/pathing/execution/ExecutionSegment.kt
+index f0a03b780..5822f210a 100644
+--- a/src/main/kotlin/com/lambda/pathing/execution/ExecutionSegment.kt
++++ b/src/main/kotlin/com/lambda/pathing/execution/ExecutionSegment.kt
+@@ -17,6 +17,7 @@
+ 
+ package com.lambda.pathing.execution
+ 
++import com.lambda.pathing.maneuver.EntrySpeedEnvelope
+ import kotlin.math.abs
+ import kotlin.math.hypot
+ import kotlin.math.sqrt
+@@ -174,6 +175,8 @@ data class WalkSegment(
+      * gaps are the opposite on both counts.
+      */
+     val discovered: Boolean = false,
++    /** Worker-validated launch-speed interval for discovered jumps. */
++    val entrySpeedEnvelope: EntrySpeedEnvelope? = null,
+ ) : LinearExecutionSegment(index, start, end) {
+     /** +1 step-up, negative for step-down/drop depth, 0 flat. */
+     val verticalStep: Int = Math.round(delta.y).toInt()
+diff --git a/src/main/kotlin/com/lambda/pathing/manager/PathfinderExecutor.kt b/src/main/kotlin/com/lambda/pathing/manager/PathfinderExecutor.kt
+index 898ef61e0..ed43d7edf 100644
+--- a/src/main/kotlin/com/lambda/pathing/manager/PathfinderExecutor.kt
++++ b/src/main/kotlin/com/lambda/pathing/manager/PathfinderExecutor.kt
+@@ -44,6 +44,7 @@ import com.lambda.pathing.movement.WalkingMovementModel
+ import com.lambda.threading.runSafeAutomated
+ import com.lambda.util.CommunicationUtils.info
+ import com.lambda.util.CommunicationUtils.warn
++import com.lambda.util.math.flooredBlockPos
+ import com.lambda.util.player.MovementUtils.update
+ import com.lambda.util.player.prediction.MovementSimulationInput
+ import com.lambda.util.player.prediction.MovementSimulationState
+@@ -193,7 +194,11 @@ object PathfinderExecutor : Loadable {
+             forward = steering.forward,
+             strafe = steering.strafe,
+             jump = jump,
+-            sneak = false,
++            // Zero throttle alone cannot cancel already-carried ground
++            // velocity within one tick. Sneak supplies Minecraft's own
++            // ledge clamp while the structural edge-stop is active, making
++            // the promised "stop rather than walk off" invariant physical.
++            sneak = launchEdgeStop,
+             sprint = sprint,
+         )
+         val appliedThrottle = if (airborneCorrection != null) 1.0 else command.throttle
+@@ -475,6 +480,30 @@ object PathfinderExecutor : Loadable {
+             return
+         }
+ 
++        // A failed/carry jump can leave the player grounded on the far side
++        // while localization still selects the crossed gap. Never run the
++        // takeoff controller backwards from there: on the intended landing
++        // level the edge is complete; below it, the published suffix is no
++        // longer executable and must be repaired from the observed stance.
++        val selectedGap = segment as? WalkSegment
++        if (player.isOnGround && selectedGap != null &&
++            (isGapJumpSegment(selectedGap) || isRisingGapSegment(selectedGap)) &&
++            isGroundedPastGap(selectedGap, playerPos)
++        ) {
++            stopFollowing()
++            if (abs(playerPos.y - selectedGap.endPose.position.y) <= 0.3 &&
++                currentSegmentIndex < path.lastSegmentIndex
++            ) {
++                currentSegmentIndex++
++                pathNeedsRelocalization = false
++            } else {
++                with(PathfinderManager) { refreshActiveTraversal() }
++                replansRequested++
++                pathNeedsRelocalization = true
++            }
++            return
++        }
++
+         val remainingDistance = segment.remainingDistance(playerPos)
+         trackExecutionProgress(activeHandle, remainingDistance, playerPos)
+         val isFinalSegment = currentSegmentIndex == path.lastSegmentIndex
+@@ -522,12 +551,30 @@ object PathfinderExecutor : Loadable {
+             stepUpJumpTarget(path, currentSegmentIndex, segment, playerPos)
+         } else null
+         val needsStepUpJump = stepUpTarget != null
+-        val needsGapJump = chainSegment == null && !needsStepUpJump && needsGapJump(segment, playerPos)
++        // Publication/relocalization can leave the executor on the final
++        // approach segment until the player is already crossing the next
++        // segment's takeoff node. Arm that imminent gap one tick early;
++        // waiting for segment advancement made the first gap-control tick an
++        // EdgeBrake tick after the point of no return (bedrock: walk-off at
++        // x≈30 followed by 140 step-up retries behind the player).
++        val currentWalk = segment as? WalkSegment
++        val nextGap = (path.segments.getOrNull(currentSegmentIndex + 1) as? WalkSegment)?.takeIf { next ->
++            player.isOnGround && currentWalk != null &&
++                currentWalk.remainingDistance(playerPos) <= GAP_SEGMENT_ANTICIPATION_DISTANCE &&
++                (isGapJumpSegment(next) || isRisingGapSegment(next))
++        }
++        val gapControlSegment = when {
++            currentWalk != null && (isGapJumpSegment(currentWalk) || isRisingGapSegment(currentWalk)) -> currentWalk
++            nextGap != null -> nextGap
++            else -> null
++        }
++        val needsGapJump = chainSegment == null && !needsStepUpJump && gapControlSegment != null &&
++            player.isOnGround && edgeTakeoffReady(gapControlSegment, playerPos, "gap")
+         val jumpRequested = needsChainJump || needsStepUpJump || needsGapJump
+         val jumpTarget = when {
+             needsChainJump -> chainTarget
+             needsStepUpJump -> stepUpTarget.endPose.position
+-            needsGapJump -> segment.endPose.position
++            needsGapJump -> gapControlSegment.endPose.position
+             else -> null
+         }
+         // Brake-policy playback covers chains AND discovered single jumps,
+@@ -535,7 +582,7 @@ object PathfinderExecutor : Loadable {
+         // only trim landing overshoot).
+         val jumpBrakeLead = when {
+             needsChainJump -> ManeuverPolicy.BRAKE_LEAD_TICKS
+-            needsGapJump && (segment as? WalkSegment)?.discovered == true ->
++            needsGapJump && gapControlSegment?.discovered == true ->
+                 ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS
+             needsStepUpJump && stepUpTarget?.discovered == true ->
+                 ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS
+@@ -551,7 +598,7 @@ object PathfinderExecutor : Loadable {
+         // charging the edge unaligned (the align phase).
+         val lookaheadPointRaw = path.lookaheadAcrossSegments(playerPos, currentSegmentIndex, movementConfig.lookaheadDistance)
+         var steerTarget = Vec3d(lookaheadPointRaw.x, playerPos.y, lookaheadPointRaw.z)
+-        val walkSegment = segment as? WalkSegment
++        val walkSegment = gapControlSegment ?: currentWalk
+         val gapSegmentActive = walkSegment != null &&
+             (isGapJumpSegment(walkSegment) || isRisingGapSegment(walkSegment))
+         if (chainSegment != null) {
+@@ -573,7 +620,7 @@ object PathfinderExecutor : Loadable {
+                 // the whole arc off the validated line — the recurring
+                 // bedrock miss signature (landing a block off despite a
+                 // centered, in-window takeoff).
+-                val end = segment.endPose.position
++                val end = walkSegment.endPose.position
+                 steerTarget = Vec3d(end.x, playerPos.y, end.z)
+                 // Discovered jumps brake mid-air near the landing — the
+                 // same ManeuverPolicy rule their validation sims ran.
+@@ -586,7 +633,7 @@ object PathfinderExecutor : Loadable {
+                 }
+             } else {
+                 val takeoffPoint = gapTakeoffPoint(walkSegment)
+-                val projected = segment.projectedDistance(playerPos)
++                val projected = walkSegment.projectedDistance(playerPos)
+                 val relativeProgress = projected - gapTakeoffOffset(walkSegment)
+                 val beforeHole = holeStartDistance(walkSegment)?.let { projected < it } != false
+                 if (relativeProgress > GAP_TAKEOFF_MAX_PROGRESS && beforeHole && !launchSimBuild) {
+@@ -624,7 +671,14 @@ object PathfinderExecutor : Loadable {
+                     // needs sprint carry and was validated across the band.
+                     val end = segment.endPose.position
+                     steerTarget = Vec3d(end.x, playerPos.y, end.z)
+-                    if (launchSimHold || (!launchSimBuild && !longGapActive)) {
++                    if (launchSimHold) {
++                        // SimNoGo means the current state overshoots, lands
++                        // off-line, or collides. "Shed speed" must be zero
++                        // input, not the old 0.6 align throttle; that throttle
++                        // carried the player through two more gate evaluations
++                        // and off the bedrock edge.
++                        throttle = 0.0
++                    } else if (!launchSimBuild && !longGapActive) {
+                         throttle = kotlin.math.min(throttle, GAP_ALIGN_THROTTLE)
+                     }
+                 }
+@@ -898,6 +952,7 @@ object PathfinderExecutor : Loadable {
+             handle.id, sourcePath,
+             maneuverWaypoints = { from, to -> annotations[from to to]?.chainWaypoints },
+             discoveredJump = { from, to -> annotations[from to to]?.discoveredJump == true },
++            entrySpeedEnvelope = { from, to -> annotations[from to to]?.entrySpeedEnvelope },
+         )
+         activePath = rebuilt
+         activeTraversalId = handle.id
+@@ -1133,6 +1188,14 @@ object PathfinderExecutor : Loadable {
+             lastJumpCommandGate = "alreadyUp"
+             return null
+         }
++        // A relocalized player can be spatially closest to a rise that is
++        // already behind them after falling from the following gap. Never
++        // turn that stale rise into an infinite jump loop; let lost/stuck
++        // recovery replan from the observed stance instead.
++        if (rise.projectedDistance(playerPos) > rise.horizontalLength + STEP_UP_PAST_END_TOLERANCE) {
++            lastJumpCommandGate = "pastRise"
++            return null
++        }
+ 
+         // Rising gap jump (Baritone: "ascend ⇒ sprint", edge takeoff): the
+         // +1 landing must be met while the arc still has a block of height —
+@@ -1349,6 +1412,11 @@ object PathfinderExecutor : Loadable {
+         return (holeStart - 0.8).coerceAtLeast(0.0)
+     }
+ 
++    private fun SafeContext.isGroundedPastGap(walk: WalkSegment, playerPos: Vec3d): Boolean {
++        val holeStart = holeStartDistance(walk) ?: return false
++        return walk.projectedDistance(playerPos) > holeStart + EDGE_NEAR_SIDE_MAX
++    }
++
+     /** The point on the segment line where the takeoff window begins. */
+     private fun SafeContext.gapTakeoffPoint(walk: WalkSegment): Vec3d {
+         val offset = gapTakeoffOffset(walk)
+@@ -1402,7 +1470,12 @@ object PathfinderExecutor : Loadable {
+         if (forwardSpeed <= 0.03) return false
+         val physicalEdge = holeStart + EDGE_OVERHANG_SLACK
+         if (projectedAbs + forwardSpeed > physicalEdge) {
+-            val committed = forwardSpeed >= EDGE_FORCE_MIN_SPEED &&
++            val relativeProgress = projectedAbs - gapTakeoffOffset(walk)
++            val envelopeAllowsLaunch = walk.entrySpeedEnvelope?.let {
++                it.contains(forwardSpeed, ENTRY_SPEED_GATE_TOLERANCE) &&
++                    relativeProgress <= it.maxTakeoffProgress + ENTRY_PROGRESS_GATE_TOLERANCE
++            } != false
++            val committed = forwardSpeed >= EDGE_FORCE_MIN_SPEED && envelopeAllowsLaunch &&
+                 with(WalkingMovementModel) { hasJumpApexClearance(playerPos) }
+             if (committed) {
+                 lastJumpCommandGate = "${prefix}EdgeForced($lastJumpCommandGate)"
+@@ -1424,10 +1497,20 @@ object PathfinderExecutor : Loadable {
+         val projectedAbs = walk.projectedDistance(playerPos)
+         val progress = projectedAbs - gapTakeoffOffset(walk)
+         if (progress < 0.0) {
+-            lastJumpCommandGate = "${prefix}NotAtTakeoff"
+-            return false
++            // Commands chosen in this post-tick controller feed the next
++            // physics tick. At momentum speed that tick crosses the node
++            // center, so waiting for a non-negative sampled progress launches
++            // one full tick deep and makes center-only envelopes impossible.
++            val reachesTakeoffNextTick = walk.entrySpeedEnvelope != null &&
++                walk.horizontalLength >= MOMENTUM_CARRY_MIN_LENGTH &&
++                progress + alongSpeed(walk, player.velocity).coerceAtLeast(0.0) >= 0.0
++            if (!reachesTakeoffNextTick) {
++                lastJumpCommandGate = "${prefix}NotAtTakeoff"
++                return false
++            }
+         }
+-        if (progress > GAP_TAKEOFF_MAX_PROGRESS) {
++        val maxProgress = minOf(GAP_TAKEOFF_MAX_PROGRESS, walk.entrySpeedEnvelope?.maxTakeoffProgress ?: Double.MAX_VALUE)
++        if (progress > maxProgress + ENTRY_PROGRESS_GATE_TOLERANCE) {
+             // Past the nominal window but still on the takeoff side of the
+             // hole: a deep launch is usually still valid — discovery
+             // validates launches 0.45 past center, and the sim below is
+@@ -1439,6 +1522,13 @@ object PathfinderExecutor : Loadable {
+             val deepLaunchable = holeStart == null || projectedAbs < holeStart - DEEP_LAUNCH_HOLE_MARGIN
+             if (!deepLaunchable) {
+                 lastJumpCommandGate = "${prefix}PastTakeoff"
++                // Clamp carried velocity first; once stable, release the
++                // clamp so the steering phase can walk back to the takeoff.
++                // Holding edge-stop forever was safe but turned every deep
++                // arrival into an 8-tick penalty/replan cycle.
++                if (alongSpeed(walk, player.velocity) > ENTRY_WALKBACK_STOP_SPEED) {
++                    launchEdgeStop = true
++                }
+                 return false
+             }
+         }
+@@ -1475,6 +1565,50 @@ object PathfinderExecutor : Loadable {
+             structuralJumpBlock = true
+             return false
+         }
++        // Discovered edges no longer have to work across the entire generic
++        // 0.12..0.30 band. Honor the worker's validated sub-band before the
++        // live launch sim: below it, keep building speed; above it, shed.
++        // The edge guard remains the safety backstop and will stop a short
++        // runway rather than force-launch outside this envelope.
++        walk.entrySpeedEnvelope?.let { envelope ->
++            val speed = alongSpeed(walk, player.velocity)
++            if (speed < envelope.min - ENTRY_SPEED_GATE_TOLERANCE) {
++                lastJumpCommandGate = "${prefix}BelowEnvelope(%.2f<%.2f)".format(speed, envelope.min)
++                // A center-only momentum edge has no in-segment shaping
++                // room. If the preceding segment did not deliver vmin,
++                // stop immediately; accelerating toward the lip can never
++                // enter the certified state before support ends.
++                // Once past the takeoff center, rebuilding vmin is not a
++                // recovery: the next input tick is even deeper. The old
++                // build/hold oscillation (0 throttle, then full throttle)
++                // ratcheted the player off the edge despite every individual
++                // tick looking guarded.
++                val tooDeepToBuild = progress > 0.0 ||
++                    progress + speed * ENTRY_BUILD_STOP_LEAD >= envelope.maxTakeoffProgress
++                val unrecoverable = envelope.maxTakeoffProgress <= ENTRY_PROGRESS_GATE_TOLERANCE ||
++                    !hasEntryRunway(walk)
++                if (unrecoverable) {
++                    launchEdgeStop = true
++                    structuralJumpBlock = true
++                } else if (tooDeepToBuild && speed > ENTRY_WALKBACK_STOP_SPEED) {
++                    // First brake to a stable stance. Once stopped, leave the
++                    // edge-stop flag clear so the steering phase walks back
++                    // to the takeoff instead of reporting/replanning an edge
++                    // that is valid after ordinary entry shaping.
++                    launchEdgeStop = true
++                } else if (!tooDeepToBuild) {
++                    launchSimBuild = true
++                } else {
++                    // Stopped past center: gap steering targets the takeoff.
++                }
++                return false
++            }
++            if (speed > envelope.max + ENTRY_SPEED_GATE_TOLERANCE) {
++                lastJumpCommandGate = "${prefix}AboveEnvelope(%.2f>%.2f)".format(speed, envelope.max)
++                launchSimHold = true
++                return false
++            }
++        }
+         // The decider: simulate the jump from the LIVE state — position,
+         // velocity, sprint, everything — and only launch if that flight
+         // lands on the target. The verdict is directional: an entry that's
+@@ -1490,6 +1624,18 @@ object PathfinderExecutor : Loadable {
+                 return true
+             }
+             LaunchSimVerdict.Short -> {
++                // The command is consumed on the next physics tick. For an
++                // envelope-validated momentum edge, a short verdict from just
++                // before the node is expected: the real launch occurs after
++                // the already-carried velocity crosses into the certified
++                // takeoff window. Waiting one controller tick instead moves
++                // the launch a full block-step deep and turns it into NoGo.
++                if (walk.entrySpeedEnvelope != null && walk.horizontalLength >= MOMENTUM_CARRY_MIN_LENGTH && progress < 0.0 &&
++                    progress + alongSpeed(walk, player.velocity).coerceAtLeast(0.0) >= 0.0
++                ) {
++                    lastJumpCommandGate = "${prefix}EnvelopeAnticipated"
++                    return true
++                }
+                 // Keep building speed; the edge guard in [edgeTakeoffReady]
+                 // brakes the charge if the stopping envelope is ever
+                 // violated, so safety needs no second rule here.
+@@ -1500,11 +1646,33 @@ object PathfinderExecutor : Loadable {
+             LaunchSimVerdict.NoGo -> {
+                 lastJumpCommandGate = "${prefix}SimNoGo"
+                 launchSimHold = true
++                structuralJumpBlock = true
+                 return false
+             }
+         }
+     }
+ 
++    /**
++     * Cheap geometric half of the entry-envelope contract. A momentum edge
++     * may ask control to build toward vmin only when at least two clear,
++     * supported blocks exist behind its takeoff. Otherwise no future tick on
++     * this segment can create the required state, so the safe action is stop.
++     */
++    private fun SafeContext.hasEntryRunway(walk: WalkSegment): Boolean {
++        if (walk.horizontalLength <= 1.0E-6) return false
++        val dx = (walk.endPose.position.x - walk.startPose.position.x) / walk.horizontalLength
++        val dz = (walk.endPose.position.z - walk.startPose.position.z) / walk.horizontalLength
++        for (distance in listOf(0.75, 1.75)) {
++            val probe = Vec3d(
++                walk.startPose.position.x - dx * distance,
++                walk.startPose.position.y,
++                walk.startPose.position.z - dz * distance,
++            )
++            if (!with(WalkingMovementModel) { hasContinuousSupport(probe) }) return false
++        }
++        return true
++    }
++
+     /** Directional launch-sim outcome; see [edgeTakeoffReady]. */
+     private enum class LaunchSimVerdict {
+         /** Predicted touchdown on the landing — fire the jump now. */
+@@ -1579,9 +1747,22 @@ object PathfinderExecutor : Loadable {
+             )
+             if (current.simulator.state.verticalCollision && !current.onGround) headBonked = true
+             if (current.onGround && tick > 1) {
+-                val onTarget = hypot(current.position.x - target.x, current.position.z - target.z) <=
++                val preciseTarget = hypot(current.position.x - target.x, current.position.z - target.z) <=
+                     LAUNCH_SIM_LANDING_TOLERANCE &&
+                     abs(current.position.y - target.y) <= 0.3
++                // Discovery validates fast/deep entries onto an adjacent
++                // block of the same landing platform. Keep the live gate's
++                // success predicate identical; otherwise a speed-envelope
++                // edge can be accepted by the worker and vetoed forever at
++                // runtime solely because it carries one block past the
++                // anchor node.
++                val feet = current.position.flooredBlockPos
++                val targetFeet = target.flooredBlockPos
++                val carryTarget = walk.discovered && walk.horizontalLength >= MOMENTUM_CARRY_MIN_LENGTH &&
++                    feet.y == targetFeet.y &&
++                    abs(feet.x - targetFeet.x) <= 1 && abs(feet.z - targetFeet.z) <= 1 &&
++                    with(WalkingMovementModel) { hasContinuousSupport(current.position) }
++                val onTarget = preciseTarget || carryTarget
+                 return if (onTarget) LaunchSimVerdict.Go else terminalVerdict(current.position)
+             }
+             if (current.simulator.state.horizontalCollision) return LaunchSimVerdict.NoGo
+@@ -1978,6 +2159,8 @@ object PathfinderExecutor : Loadable {
+     // How early (remaining distance on the flat segment) the executor may
+     // anticipate the next rise segment's jump.
+     private const val JUMP_ANTICIPATION_DISTANCE = 0.6
++    private const val GAP_SEGMENT_ANTICIPATION_DISTANCE = 0.8
++    private const val STEP_UP_PAST_END_TOLERANCE = 0.35
+ 
+     // Structural gap-detection band for non-discovered segments: template
+     // gap edges are exactly 2 blocks; refiner merges extend them. Discovered
+@@ -2009,6 +2192,7 @@ object PathfinderExecutor : Loadable {
+     // Predicted-landing acceptance for the launch sim gate: feet within
+     // this horizontal distance of the landing node center.
+     private const val LAUNCH_SIM_LANDING_TOLERANCE = 0.9
++    private const val MOMENTUM_CARRY_MIN_LENGTH = 4.8
+ 
+     // A simulated terminal state at least this far short of the landing
+     // (along the segment) reads as an undershoot: keep speed and re-check,
+@@ -2043,18 +2227,26 @@ object PathfinderExecutor : Loadable {
+     // grounded farther than this means the hole is behind the player.
+     private const val EDGE_NEAR_SIDE_MAX = 0.5
+ 
++    // Live velocity has small tick/float jitter around the worker's sampled
++    // envelope endpoints. This is not an expansion of the simulated band;
++    // the launch sim still has final authority inside the tolerance.
++    private const val ENTRY_SPEED_GATE_TOLERANCE = 0.008
++    private const val ENTRY_PROGRESS_GATE_TOLERANCE = 0.08
++    private const val ENTRY_BUILD_STOP_LEAD = 2.0
++    private const val ENTRY_WALKBACK_STOP_SPEED = 0.02
++
+ 
+     // Bounded receding-horizon correction while airborne. Inputs include
+     // nominal steering, partial/zero/reverse acceleration, and two lateral
+     // probes; only a predicted touchdown improvement changes the command.
+     private const val AIR_MPC_MAX_TICKS = 16
+-    private const val AIR_MPC_LATERAL_INPUT = 0.55
++    private const val AIR_MPC_LATERAL_INPUT = 1.0
+     private const val AIR_MPC_REVERSE_INPUT = 0.45
+     private const val AIR_MPC_VERTICAL_PENALTY = 8.0
+     private const val AIR_MPC_COLLISION_PENALTY = 50.0
+     private const val AIR_MPC_FALL_PENALTY = 40.0
+     private const val AIR_MPC_NO_LANDING_PENALTY = 25.0
+-    private const val AIR_MPC_MIN_IMPROVEMENT = 0.02
++    private const val AIR_MPC_MIN_IMPROVEMENT = 0.005
+ 
+     // Align-phase throttle: grounded on the takeoff side without a committed
+     // jump, walk gently back to the takeoff point instead of charging the
+diff --git a/src/main/kotlin/com/lambda/pathing/manager/TraversalHandle.kt b/src/main/kotlin/com/lambda/pathing/manager/TraversalHandle.kt
+index 4957df0f9..7d28fd709 100644
+--- a/src/main/kotlin/com/lambda/pathing/manager/TraversalHandle.kt
++++ b/src/main/kotlin/com/lambda/pathing/manager/TraversalHandle.kt
+@@ -19,6 +19,7 @@ package com.lambda.pathing.manager
+ 
+ import com.lambda.config.blocks.PlannerConfig
+ import com.lambda.pathing.goal.TraversalGoal
++import com.lambda.pathing.maneuver.EntrySpeedEnvelope
+ import com.lambda.pathing.metrics.PlannerMetrics
+ import com.lambda.pathing.refinement.PathRefinementDebug
+ import com.lambda.pathing.refinement.PathRefinementStats
+@@ -148,6 +149,7 @@ class TraversalHandle internal constructor(
+     data class EdgeAnnotation(
+         val chainWaypoints: List<FastVector>? = null,
+         val discoveredJump: Boolean = false,
++        val entrySpeedEnvelope: EntrySpeedEnvelope? = null,
+     )
+ 
+     internal data class PublishedPlan(
+diff --git a/src/main/kotlin/com/lambda/pathing/maneuver/ManeuverDiscovery.kt b/src/main/kotlin/com/lambda/pathing/maneuver/ManeuverDiscovery.kt
+index 62f3d7d81..a4d65acf3 100644
+--- a/src/main/kotlin/com/lambda/pathing/maneuver/ManeuverDiscovery.kt
++++ b/src/main/kotlin/com/lambda/pathing/maneuver/ManeuverDiscovery.kt
+@@ -87,6 +87,9 @@ class ManeuverDiscovery(
+     /** (takeoff, landing) → intermediate landings, for chain macro-edges. */
+     private val chainMids = HashMap<Pair<FastVector, FastVector>, List<FastVector>>()
+ 
++    /** Validated speed sub-band for every accepted single-jump edge. */
++    private val entryEnvelopes = HashMap<Pair<FastVector, FastVector>, EntrySpeedEnvelope>()
++
+     var landingsExamined = 0; private set
+     var simulationsRun = 0; private set
+     var edgesDiscovered = 0; private set
+@@ -163,6 +166,13 @@ class ManeuverDiscovery(
+             if (!lineCrossesGap(takeoff, landing)) continue
+             if (rise > 0 && !lineCrossesGapAtLevel(takeoff, landing, landing.y)) continue
+             if (!arcPossiblyClear(takeoff, landing)) continue
++            // A five-block momentum proposal cannot validate below the hot
++            // end of the speed band. Reject it before any simulation when
++            // the world has no physical runway; doing this after seven sims
++            // made the extended fan monopolize every bedrock landing budget.
++            if (offset.distance >= MOMENTUM_ENVELOPE_MIN_DISTANCE &&
++                !hasEntryRunway(takeoff, landing, ENTRY_SPEED_HIGH)
++            ) continue
+ 
+             // Tiny axis-alignment epsilon: an angled jump and a straight
+             // one often land on the same integer tick, and an arbitrary
+@@ -303,7 +313,7 @@ class ManeuverDiscovery(
+             val edge = takeoff to landing
+             val chain = chainMids[edge]
+             val simsBefore = simulationsRun
+-            val simulated = if (chain == null) {
++            val validation = if (chain == null) {
+                 simulateJump(takeoff, landing)
+             } else {
+                 val mid = chain.single()
+@@ -315,17 +325,19 @@ class ManeuverDiscovery(
+                             "landing=(${landing.x},${landing.z}) slow=$slow fast=$fast lastFail=$lastChainFailure"
+                     )
+                 }
+-                if (slow == null || fast == null) null else (slow + fast) / 2.0
++                if (slow == null || fast == null) null
++                else JumpValidation((slow + fast) / 2.0, EntrySpeedEnvelope(ENTRY_SPEED_LOW, ENTRY_SPEED_HIGH))
+             }
+             discovery.simsUsed += simulationsRun - simsBefore
+ 
+             affected += takeoff
+             affected += landing
+-            if (simulated == null) {
++            if (validation == null) {
+                 edgesRejected++
+                 discovery.edges.remove(takeoff)
+                 removeMirror(takeoff, landing)
+                 chainMids.remove(edge)
++                entryEnvelopes.remove(edge)
+                 // Restore the live-edge budget with the next fan candidates,
+                 // exactly as eager validation would have kept probing. The
+                 // proposals join [LandingDiscovery.optimistic] and are
+@@ -335,9 +347,10 @@ class ManeuverDiscovery(
+                 edgesValidated++
+                 val dx = abs(landing.x - takeoff.x)
+                 val dz = abs(landing.z - takeoff.z)
+-                val cost = simulated + AXIS_TIE_EPSILON * minOf(dx, dz)
++                val cost = validation.cost + AXIS_TIE_EPSILON * minOf(dx, dz)
+                 discovery.edges[takeoff] = cost
+                 edgesFrom.getOrPut(takeoff) { HashMap() }[landing] = cost
++                if (chain == null) entryEnvelopes[edge] = validation.envelope
+             }
+         }
+     }
+@@ -356,7 +369,11 @@ class ManeuverDiscovery(
+             val chain = chainWaypoints(from, to)
+             val discovered = isDiscoveredJump(from, to)
+             if (chain == null && !discovered) null
+-            else (from to to) to TraversalHandle.EdgeAnnotation(chain?.toList(), discovered)
++            else (from to to) to TraversalHandle.EdgeAnnotation(
++                chainWaypoints = chain?.toList(),
++                discoveredJump = discovered,
++                entrySpeedEnvelope = entryEnvelopes[from to to],
++            )
+         }.toMap()
+ 
+     /**
+@@ -368,6 +385,7 @@ class ManeuverDiscovery(
+         landings.clear()
+         edgesFrom.clear()
+         chainMids.clear()
++        entryEnvelopes.clear()
+     }
+ 
+     /**
+@@ -394,6 +412,7 @@ class ManeuverDiscovery(
+                     if (outgoing.isEmpty()) edgesFrom.remove(takeoff)
+                 }
+                 chainMids.remove(takeoff to landing)
++                entryEnvelopes.remove(takeoff to landing)
+                 affected += takeoff
+             }
+         }
+@@ -480,18 +499,133 @@ class ManeuverDiscovery(
+      * measured launches are center-aligned (≤0.06 error; the alignment
+      * gates work) and the extra sims tripled discovery cost.
+      */
+-    private fun simulateJump(takeoff: FastVector, landing: FastVector): Double? {
+-        val slow = simulateEntry(takeoff, landing, ENTRY_SPEED_LOW, allowCarryPast = false) ?: return null
+-        val fast = simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true) ?: return null
+-        // Deep launch is probed at fast entry only: a slow approach covers
+-        // little ground between takeoff-gate evaluations and always launches
+-        // near the window front, so slow+deep is not a pose the executor
+-        // produces. Fast+deep is (measured 0.45–0.7 past center).
+-        simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true, progressOffset = DEEP_LAUNCH_PROGRESS)
+-            ?: return null
+-        return (slow + fast) / 2.0
++    private fun simulateJump(takeoff: FastVector, landing: FastVector): JumpValidation? {
++        val horizontalDistance = hypot(
++            (landing.x - takeoff.x).toDouble(),
++            (landing.z - takeoff.z).toDouble(),
++        )
++        // Preserve the proven P0 validator for ordinary flat jumps. Entry
++        // sub-bands are needed by vertical and maximum-distance momentum
++        // classes, not by the existing bedrock/angled library. Sampling all
++        // seven speeds here both multiplied initial latency and admitted
++        // corner-landing envelopes that destroyed disturbance margin.
++        if (landing.y == takeoff.y && horizontalDistance < MOMENTUM_ENVELOPE_MIN_DISTANCE) {
++            val slow = simulateEntry(takeoff, landing, ENTRY_SPEED_LOW, allowCarryPast = false) ?: return null
++            val fast = simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true) ?: return null
++            simulateEntry(
++                takeoff,
++                landing,
++                ENTRY_SPEED_HIGH,
++                allowCarryPast = true,
++                progressOffset = DEEP_LAUNCH_PROGRESS,
++            ) ?: return null
++            return JumpValidation(
++                cost = (slow + fast) / 2.0,
++                envelope = EntrySpeedEnvelope(ENTRY_SPEED_LOW, ENTRY_SPEED_HIGH, DEEP_LAUNCH_PROGRESS),
++            )
++        }
++        // Most vertical candidates still work across the complete field
++        // band. Preserve their three-simulation fast path; only sample the
++        // interior when an endpoint proves this is genuinely speed-critical.
++        val endpointSlow = simulateEntry(takeoff, landing, ENTRY_SPEED_LOW, allowCarryPast = false)
++        val endpointFast = simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true)
++        if (endpointSlow != null && endpointFast != null &&
++            simulateEntry(
++                takeoff,
++                landing,
++                ENTRY_SPEED_HIGH,
++                allowCarryPast = true,
++                progressOffset = DEEP_LAUNCH_PROGRESS,
++            ) != null
++        ) {
++            return JumpValidation(
++                cost = (endpointSlow + endpointFast) / 2.0,
++                envelope = EntrySpeedEnvelope(ENTRY_SPEED_LOW, ENTRY_SPEED_HIGH, DEEP_LAUNCH_PROGRESS),
++            )
++        }
++        // T3 entry-envelope sampling: retain the largest contiguous speed
++        // interval that succeeds instead of requiring both extremes of the
++        // global field band. This is what admits genuinely momentum-bound
++        // long/ascending jumps without weakening slower edges.
++        val outcomes = ENTRY_SPEED_SAMPLES.map { speed ->
++            speed to simulateEntry(takeoff, landing, speed, allowCarryPast = true)
++        }
++        val run = largestSuccessfulRun(outcomes) ?: return null
++
++        val accepted = outcomes.subList(run.first, run.last + 1)
++        // Position is part of T3's entry state too. Probe progressively
++        // deeper launch poses and publish the last contiguous success. A
++        // maximum-distance jump may only work from the node center; rejecting
++        // it because the old generic 0.45-deep pose overshoots would recreate
++        // the whole-band bug in another coordinate.
++        val hotSpeed = accepted.last().first
++        var maxProgress = 0.0
++        for (progress in DEEP_LAUNCH_PROBES) {
++            if (simulateEntry(takeoff, landing, hotSpeed, allowCarryPast = true, progressOffset = progress) == null) break
++            maxProgress = progress
++        }
++        val envelope = EntrySpeedEnvelope(
++            accepted.first().first,
++            accepted.last().first,
++            maxTakeoffProgress = maxProgress,
++        )
++        // A speed-critical edge is only useful to a position-space planner
++        // when the world actually contains a straight approach that can
++        // supply its vmin. Without this geometric half of T3, dense bedrock
++        // admitted high-vmin edges from isolated ledges; the executor safely
++        // stopped, but the planner selected sibling impossible envelopes for
++        // hundreds of ticks. Path alignment is still checked live, while
++        // this rejects candidates with no possible runway at all.
++        if (envelope.min > ENTRY_SPEED_LOW + 1.0E-6 && !hasEntryRunway(takeoff, landing, envelope.min)) {
++            return null
++        }
++        val meanTicks = accepted.mapNotNull { it.second }.average()
++        return JumpValidation(meanTicks, envelope)
+     }
+ 
++    private fun hasEntryRunway(takeoff: FastVector, landing: FastVector, minSpeed: Double): Boolean {
++        val dx = (landing.x - takeoff.x).toDouble()
++        val dz = (landing.z - takeoff.z).toDouble()
++        val length = hypot(dx, dz)
++        if (length <= 1.0E-9) return false
++        val ux = dx / length
++        val uz = dz / length
++        val blocks = when {
++            minSpeed >= 0.27 -> 3
++            minSpeed >= 0.18 -> 2
++            else -> 1
++        }
++        for (step in 1..blocks) {
++            val x = Math.floor(takeoff.x + 0.5 - ux * step).toInt()
++            val z = Math.floor(takeoff.z + 0.5 - uz * step).toInt()
++            if (!MoveTable.isStance(view, x, takeoff.y, z)) return false
++        }
++        return true
++    }
++
++    private fun largestSuccessfulRun(outcomes: List<Pair<Double, Double?>>): IntRange? {
++        var bestStart = -1
++        var bestEnd = -1
++        var start = -1
++        for (index in outcomes.indices) {
++            if (outcomes[index].second != null) {
++                if (start < 0) start = index
++                if (bestStart < 0 || index - start > bestEnd - bestStart) {
++                    bestStart = start
++                    bestEnd = index
++                }
++            } else {
++                start = -1
++            }
++        }
++        return if (bestStart >= 0) bestStart..bestEnd else null
++    }
++
++    private data class JumpValidation(
++        val cost: Double,
++        val envelope: EntrySpeedEnvelope,
++    )
++
+     /**
+      * One tick-accurate simulation (T7 first-collision semantics): entry at
+      * [entrySpeed] along the jump line, jump on the first tick, hold
+@@ -689,9 +823,9 @@ class ManeuverDiscovery(
+         /** Chain-candidate outcome logging; keep off outside investigations. */
+         const val CHAIN_DEBUG = false
+ 
+-        const val MAX_SIMULATION_TICKS = 20
++        const val MAX_SIMULATION_TICKS = 30
+         const val WAYPOINT_VERTICAL_TOLERANCE = 0.20
+-        const val INVALIDATION_RADIUS_Y = 3
++        const val INVALIDATION_RADIUS_Y = 5
+         const val AXIS_TIE_EPSILON = 0.05
+ 
+         // Entry-speed envelope endpoints. Field telemetry on jagged bedrock
+@@ -702,16 +836,22 @@ class ManeuverDiscovery(
+         const val ENTRY_SPEED_LOW = 0.12
+         const val ENTRY_SPEED_HIGH = 0.30
+ 
++        // One speed class per 0.03 blocks/tick. Validation keeps the largest
++        // contiguous successful run; the executor then enforces its endpoints.
++        val ENTRY_SPEED_SAMPLES = listOf(0.12, 0.15, 0.18, 0.21, 0.24, 0.27, 0.30)
++
+         // How far past the takeoff center the deep-launch probes start
+         // (see simulateJump). Matches the measured launch spread.
+         const val DEEP_LAUNCH_PROGRESS = 0.45
++        const val MOMENTUM_ENVELOPE_MIN_DISTANCE = 4.8
++        val DEEP_LAUNCH_PROBES = listOf(0.15, 0.30, DEEP_LAUNCH_PROGRESS)
+ 
+         // Takeoff levels relative to the landing, landing-anchored: same
+         // level, one above (descending jump across a chasm), one below
+         // (ascending sprint jump onto a +1 landing). Descend-2 was tried
+         // and dropped: zero uses on the bedrock course, one full fan slot
+         // of initial-planning cost.
+-        val TAKEOFF_RISES = intArrayOf(0, 1, -1)
++        val TAKEOFF_RISES = intArrayOf(0, 1, -1, 2, 3)
+ 
+         // Ascending (+1 landing) sprint-jump reach cap; flat/descending
+         // keep the candidate band's own limit.
+@@ -728,9 +868,11 @@ class ManeuverDiscovery(
+         // Per-landing simulation budget for resolution — the same admission
+         // bar the eager validator's budget set; candidates beyond it never
+         // enter the graph.
+-        const val MAX_SIMS_PER_LANDING = 24
++        const val MAX_SIMS_PER_LANDING = 32
+ 
+-        // Sprint-jump reach beyond the template gapJump (2 blocks): 2.2–4.3
++        // Full lazy proposal fan: displacement 2.0–5.0 and takeoff rises
++        // -1..+3 relative to the landing. Distance 2 admits the missing
++        // short-descending class; distance 5 admits momentum four-gaps.
+         // blocks of horizontal displacement, any integer direction — this is
+         // where the F3 connections live. The lower bound admits the (2,1)
+         // knight's-move class (hypot ≈ 2.24) no 45°-quantized template can
+@@ -738,15 +880,28 @@ class ManeuverDiscovery(
+         // per-landing budget, the jumps that shorten the path the most get
+         // proposed before the budget runs out.
+         val CANDIDATE_OFFSETS: List<Offset> = buildList {
+-            for (dx in -4..4) for (dz in -4..4) {
++            for (dx in -5..5) for (dz in -5..5) {
+                 val distance = hypot(dx.toDouble(), dz.toDouble())
+-                if (distance in 2.2..4.3) add(Offset(dx, dz))
++                if (distance in 2.0..5.0) add(Offset(dx, dz))
+             }
+         }.sortedByDescending { it.distance }
+ 
+-        /** The single-jump proposal fan: offsets × takeoff rises, longest first. */
++        /**
++         * Preserve the proven library's admission order, then append P2
++         * extensions. A global longest-first sort let speculative 4.3–5.0
++         * edges consume the live-edge/simulation budget before the reliable
++         * old bedrock edges were even proposed.
++         */
+         val SINGLE_JUMP_FAN: List<Pair<Offset, Int>> = buildList {
+-            for (offset in CANDIDATE_OFFSETS) for (rise in TAKEOFF_RISES) add(offset to rise)
++            val legacy = CANDIDATE_OFFSETS.filter { it.distance in 2.2..4.3 }
++            for (offset in legacy) for (rise in intArrayOf(0, 1, -1)) add(offset to rise)
++            for (offset in CANDIDATE_OFFSETS.filter { it.distance in 2.0..<2.2 }) {
++                for (rise in TAKEOFF_RISES) add(offset to rise)
++            }
++            for (offset in legacy) for (rise in intArrayOf(2, 3)) add(offset to rise)
++            for (offset in CANDIDATE_OFFSETS.filter { it.distance > 4.3 }) {
++                for (rise in TAKEOFF_RISES) add(offset to rise)
++            }
+         }
+ 
+         // A two-hop chain starts at landing - 2*offset. Include one extra
+
+=== NEW FILE: src/main/kotlin/com/lambda/pathing/maneuver/EntrySpeedEnvelope.kt ===
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+package com.lambda.pathing.maneuver
+
+/** Worker-validated launch-state interval for a discovered maneuver. */
+data class EntrySpeedEnvelope(
+    val min: Double,
+    val max: Double,
+    val maxTakeoffProgress: Double = 0.45,
+) {
+    init {
+        require(min >= 0.0 && max >= min) { "Invalid entry-speed envelope [$min, $max]" }
+        require(maxTakeoffProgress >= 0.0) { "Invalid takeoff progress $maxTakeoffProgress" }
+    }
+
+    fun contains(speed: Double, tolerance: Double = 0.0): Boolean =
+        speed >= min - tolerance && speed <= max + tolerance
+}

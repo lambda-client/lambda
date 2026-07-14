@@ -118,6 +118,8 @@ loom {
             property("lambda.bench.calibrate", (findProperty("bench.calibrate") ?: "false").toString())
             property("lambda.bench.filter", (findProperty("bench.filter") ?: "").toString())
             property("lambda.bench.parkour", (findProperty("bench.parkour") ?: "false").toString())
+            //   -Pbench.jacobian=true    measures the jump physics constants (W0)
+            property("lambda.bench.jacobian", (findProperty("bench.jacobian") ?: "false").toString())
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****")

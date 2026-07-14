@@ -34,6 +34,7 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 /** Aggregated outcome of one scenario run — one row of the suite report. */
 data class ScenarioReport(
@@ -105,6 +106,8 @@ data class ScenarioReport(
     val endDistanceToGoal: Double,
     val coarsePathDump: String,
     val plannerStats: BenchPlannerMetrics.PlannerStats = BenchPlannerMetrics.PlannerStats.EMPTY,
+    /** Every jump this scenario executed, for the suite-wide rating matrix. */
+    val jumpRecords: List<JumpRecord> = emptyList(),
 ) {
     val parkourContractPassed: Boolean get() =
         parkourExpectedLandings == 0 ||
@@ -285,7 +288,46 @@ object ScenarioRunner {
         val segmentType: String,
         val launchSpeed: Double,
         val segmentIndex: Int,
+        /** The planned edge this launch was serving, from executor telemetry. */
+        val edgeStart: Vec3d? = null,
+        val edgeEnd: Vec3d? = null,
+        /** Ticks spent on this segment before the jump finally fired. */
+        val approachTicks: Int = 0,
+        /** Of those, grounded ticks where the jump gate actively refused. */
+        val refusalTicks: Int = 0,
+        /** The refusal repeated most at the lip — the motion-waste fingerprint. */
+        val dominantGate: String = "",
+        /** Heading change from the previous planned segment into this one. */
+        val approachTurnDegrees: Double? = null,
+        /** 1 for the first launch at this edge; 2+ means an earlier one missed. */
+        val attemptIndex: Int = 1,
     )
+
+    /** Heading change between two consecutive planned segments, in degrees. */
+    private fun turnBetween(previous: Vec3d, current: Vec3d): Double? {
+        val a = hypot(previous.x, previous.z)
+        val b = hypot(current.x, current.z)
+        if (a < 1.0E-6 || b < 1.0E-6) return null
+        val cosine = ((previous.x * current.x + previous.z * current.z) / (a * b)).coerceIn(-1.0, 1.0)
+        return Math.toDegrees(kotlin.math.acos(cosine))
+    }
+
+    /**
+     * A gate string is a REFUSAL unless it is the executor committing to fire.
+     * Everything else — Misaligned, SimShort, CommitBuild, PastTakeoff,
+     * BelowEnvelope, the walk-back dance — is the executor declining to launch
+     * from the state the path delivered, which is the cost this program exists
+     * to drive to zero.
+     */
+    private fun isRefusalGate(gate: String): Boolean = gate.isNotEmpty() &&
+        !gate.contains("Commanded") &&
+        !gate.contains("EdgeForced") &&
+        gate != "noCommand" &&
+        gate != "airborne" &&
+        gate != "chainAirborne" &&
+        gate != "notWalk" &&
+        gate != "noRiseAhead" &&
+        gate != "alreadyUp"
 
     private data class JumpLanding(
         val attempt: PendingJump,
@@ -407,6 +449,19 @@ object ScenarioRunner {
         var pendingJump: PendingJump? = null
         var flightErrors = FlightErrors()
         val jumpLandings = ArrayList<JumpLanding>()
+        // Approach quality, tracked per active segment: how long the executor
+        // sat on the takeoff segment and how much of that it spent refusing to
+        // launch. Keyed on the planned edge's landing node, which survives the
+        // segment renumbering a replan causes.
+        var approachSegment = Int.MIN_VALUE
+        var approachEntryTick = 0
+        var approachRefusalTicks = 0
+        val approachGates = HashMap<String, Int>()
+        val edgeAttempts = HashMap<String, Int>()
+        // Direction of the segment the executor is on, and of the one before
+        // it: their angle is how sharply the PLAN turns into this takeoff.
+        var currentSegmentDirection: Vec3d? = null
+        var previousSegmentDirection: Vec3d? = null
         var wallCollisionTicks = 0
         var headBonkTicks = 0
         var minPlayerY = scenario.start.y
@@ -485,6 +540,20 @@ object ScenarioRunner {
                             append(",\"status\":\"").append(state.status).append('"')
                             append(",\"seg\":").append(state.segmentIndex)
                             append(",\"segType\":\"").append(state.segmentType ?: "").append('"')
+                            // The PLANNED edge under this jump. Classifying by
+                            // launch->target displacement instead would fold the
+                            // executor's own launch-position error into the class
+                            // key; the matrix must be keyed on what was planned.
+                            state.segmentStart?.let { start ->
+                                append(",\"segStartX\":").append("%.3f".format(start.x))
+                                append(",\"segStartY\":").append("%.3f".format(start.y))
+                                append(",\"segStartZ\":").append("%.3f".format(start.z))
+                            }
+                            state.segmentEnd?.let { end ->
+                                append(",\"segEndX\":").append("%.3f".format(end.x))
+                                append(",\"segEndY\":").append("%.3f".format(end.y))
+                                append(",\"segEndZ\":").append("%.3f".format(end.z))
+                            }
                             append(",\"jump\":").append(state.jumpCommand)
                             append(",\"jumpCmdGate\":\"").append(state.jumpCommandGate).append('"')
                             append(",\"jumpInGate\":\"").append(state.jumpInputGate).append('"')
@@ -583,6 +652,32 @@ object ScenarioRunner {
                 if (pendingJump != null) {
                     flightErrors.add(sample.numberField("arcErr"), sample.numberField("planErr"))
                 }
+
+                // Approach bookkeeping for the jump rating matrix. A segment
+                // change resets the clock; every grounded tick whose gate
+                // refused to launch is motion the path did not have to spend.
+                val segmentNow = sample.numberField("seg")?.toInt() ?: -1
+                val gateNow = sample.substringAfter("\"jumpCmdGate\":\"").substringBefore('"')
+                if (segmentNow != approachSegment) {
+                    approachSegment = segmentNow
+                    approachEntryTick = ticks
+                    approachRefusalTicks = 0
+                    approachGates.clear()
+                    previousSegmentDirection = currentSegmentDirection
+                    currentSegmentDirection = null
+                }
+                if (currentSegmentDirection == null) {
+                    val from = vecField(sample, "segStart")
+                    val to = vecField(sample, "segEnd")
+                    if (from != null && to != null) {
+                        currentSegmentDirection = to.subtract(from)
+                    }
+                }
+                if (onGround && isRefusalGate(gateNow)) {
+                    approachRefusalTicks++
+                    approachGates[gateNow] = (approachGates[gateNow] ?: 0) + 1
+                }
+
                 if (jumpInput && !wasJumpInput) {
                     val x = sample.numberField("x")
                     val y = sample.numberField("y")
@@ -590,14 +685,30 @@ object ScenarioRunner {
                     val targetX = sample.numberField("jumpTargetX")
                     val targetY = sample.numberField("jumpTargetY")
                     val targetZ = sample.numberField("jumpTargetZ")
+                    val edgeStart = vecField(sample, "segStart")
+                    val edgeEnd = vecField(sample, "segEnd")
                     if (x != null && y != null && z != null) {
                         flightErrors = FlightErrors()
+                        val edgeKey = edgeEnd?.let {
+                            "${it.x.roundToInt()},${it.y.roundToInt()},${it.z.roundToInt()}"
+                        } ?: "seg$segmentNow"
+                        val attempt = (edgeAttempts[edgeKey] ?: 0) + 1
+                        edgeAttempts[edgeKey] = attempt
                         pendingJump = PendingJump(
                             tick = ticks,
                             launch = Vec3d(x, y, z),
                             target = if (targetX != null && targetY != null && targetZ != null) {
                                 Vec3d(targetX, targetY, targetZ)
                             } else null,
+                            edgeStart = edgeStart,
+                            edgeEnd = edgeEnd,
+                            approachTicks = ticks - approachEntryTick,
+                            refusalTicks = approachRefusalTicks,
+                            dominantGate = approachGates.maxByOrNull { it.value }?.key.orEmpty(),
+                            approachTurnDegrees = previousSegmentDirection?.let { previous ->
+                                currentSegmentDirection?.let { turnBetween(previous, it) }
+                            },
+                            attemptIndex = attempt,
                             segmentType = sample.substringAfter("\"segType\":\"").substringBefore('"'),
                             launchSpeed = sample.numberField("spd") ?: 0.0,
                             segmentIndex = sample.numberField("seg")?.toInt() ?: -1,
@@ -830,6 +941,7 @@ object ScenarioRunner {
                     "(" + b.x + "," + b.y + "," + b.z + ")"
                 },
                 plannerStats = plannerMetrics.stats(),
+                jumpRecords = jumpLandings.map { it.toRecord(scenario.name) },
             )
         }
 
@@ -875,7 +987,44 @@ object ScenarioRunner {
         File(outputDir, "summary.json").writeText(
             reports.joinToString(",\n", prefix = "[\n", postfix = "\n]") { it.toJson() }
         )
+        JumpMatrix.write(outputDir, reports.flatMap(ScenarioReport::jumpRecords))
     }
+
+    /**
+     * The planned edge is what classifies a jump. Fall back to the executor's
+     * launch->target displacement only when the segment telemetry is missing,
+     * so a jump is never silently dropped from the matrix.
+     */
+    private fun JumpLanding.toRecord(scenario: String): JumpRecord {
+        val start = attempt.edgeStart ?: attempt.launch
+        val end = attempt.edgeEnd ?: attempt.target
+        return JumpRecord(
+            scenario = scenario,
+            segmentType = attempt.segmentType.ifEmpty { "?" },
+            edgeDx = end?.let { (it.x - start.x).roundToInt() },
+            edgeDy = end?.let { (it.y - start.y).roundToInt() },
+            edgeDz = end?.let { (it.z - start.z).roundToInt() },
+            launchSpeed = attempt.launchSpeed,
+            approachTicks = attempt.approachTicks,
+            refusalTicks = attempt.refusalTicks,
+            dominantGate = attempt.dominantGate,
+            approachTurnDegrees = attempt.approachTurnDegrees,
+            attemptIndex = attempt.attemptIndex,
+            success = success,
+            horizontalError = horizontalError,
+            verticalError = verticalError,
+            arcErrMax = arcErrMax,
+            planErrMax = planErrMax,
+        )
+    }
+}
+
+/** Reads a `"<name>X"/"<name>Y"/"<name>Z"` triple out of a telemetry sample. */
+private fun vecField(sample: String, name: String): Vec3d? {
+    val x = sample.numberField("${name}X") ?: return null
+    val y = sample.numberField("${name}Y") ?: return null
+    val z = sample.numberField("${name}Z") ?: return null
+    return Vec3d(x, y, z)
 }
 
 private fun String.numberField(name: String): Double? {

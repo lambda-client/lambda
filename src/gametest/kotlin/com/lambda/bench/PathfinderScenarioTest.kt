@@ -81,15 +81,21 @@ object PathfinderScenarioTest : FabricClientGameTest {
             val filter = System.getProperty("lambda.bench.filter")
                 .orEmpty().split(',').map(String::trim).filter(String::isNotEmpty)
             val parkourEnabled = System.getProperty("lambda.bench.parkour").toBoolean()
-            val universe = if (parkourEnabled) TraversalScenarios.all + ParkourCourseGenerator.all
-            else TraversalScenarios.all
+            val universe = if (parkourEnabled) {
+                TraversalScenarios.all + ParkourCourseGenerator.all + ParkourChainGenerator.all
+            } else {
+                TraversalScenarios.all
+            }
             val selected = if (filter.isEmpty()) universe
             else universe.filter { s -> filter.any(s.name::contains) }
 
             if (parkourEnabled) {
                 ParkourCourseGenerator.writeManifest(ScenarioRunner.outputDir)
+                ParkourChainGenerator.writeManifest(ScenarioRunner.outputDir)
                 LOG.info("[Bench] Generated quartz parkour corpus enabled: " +
-                    "${ParkourCourseGenerator.all.size} deterministic cases")
+                    "${ParkourCourseGenerator.all.size} isolated cases, " +
+                    "${ParkourChainGenerator.chains.size} random-walk chains, " +
+                    "${ParkourChainGenerator.entrySweep.size} entry-state sweeps")
             }
 
             for (scenario in selected) {
@@ -106,6 +112,11 @@ object PathfinderScenarioTest : FabricClientGameTest {
                 CalibrationRuns.run(context, server)
             } else {
                 LOG.info("[Bench] Calibration skipped (-Pbench.calibrate=true to run)")
+            }
+
+            // W0: the physics constants the window solver's search rests on.
+            if (System.getProperty("lambda.bench.jacobian").toBoolean()) {
+                JumpJacobian.run(context, server)
             }
         } finally {
             context.runOnClient<IllegalStateException> {
@@ -125,13 +136,16 @@ object PathfinderScenarioTest : FabricClientGameTest {
         // Ungated scenarios may miss because they measure an executor
         // baseline. A planner that never produced a path is infrastructure,
         // not a baseline result, and must always fail the suite.
+        val generated = { name: String ->
+            name.startsWith("parkour-") || name.startsWith("chain-") || name.startsWith("entry-")
+        }
         val failed = reports.filter {
             (!it.passed && it.gated) ||
                 // Generated corpus rows are diagnostic until promoted: an
                 // unsupported generated connection is data, not harness
                 // infrastructure failure. Hand-authored baseline scenarios
                 // retain the stricter planner-stall rule.
-                (it.plannerStalled && !it.name.startsWith("parkour-"))
+                (it.plannerStalled && !generated(it.name))
         }
         check(failed.isEmpty()) {
             buildString {

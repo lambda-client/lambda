@@ -62,6 +62,8 @@ class PathfinderRenderSettings(override val c: Config) : PathfinderRenderConfig,
     @Group(NODES_GROUP) override val pathNodeSize by c.setting("Path Node Size", 0.11, 0.02..0.5, 0.01) { renderPath && renderPathNodes }
     @Group(NODES_GROUP) override val pathNodeColor by c.setting("Path Node Color", Color(255, 255, 255, 115)) { renderPath && renderPathNodes }
 
+    @Group(TRAJECTORY_GROUP) override val renderSimulatedWalk by c.setting("Render Simulated Walk", true, "The walk the solver rolled out through real physics from the live state: corners rounded, the lattice zig-zag pulled straight. Where this line and the path polyline disagree, the polyline is the one that is wrong.")
+    @Group(TRAJECTORY_GROUP) override val simulatedWalkColor by c.setting("Simulated Walk Color", Color(90, 255, 180, 230)) { renderSimulatedWalk }
     @Group(TRAJECTORY_GROUP) override val renderPlannedJumps by c.setting("Render Planned Jumps", true, "Simulated flight paths of upcoming jumps, drops and chain maneuvers — what the executor intends to fly.")
     @Group(TRAJECTORY_GROUP) override val plannedJumpWidth by c.setting("Planned Jump Width", 34, 1..150, 1) { renderPlannedJumps }
     @Group(TRAJECTORY_GROUP) override val renderLandingMarkers by c.setting("Render Landing Markers", true, "Flat reticle on each planned landing block.") { renderPlannedJumps }

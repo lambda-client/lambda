@@ -31,7 +31,10 @@ import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.execution.ChainSegment
 import com.lambda.pathing.execution.ExecutionPath
 import com.lambda.pathing.execution.ExecutionSegment
+import com.lambda.pathing.maneuver.ManeuverController
 import com.lambda.pathing.maneuver.ManeuverPolicy
+import com.lambda.pathing.solver.WalkRollout
+import com.lambda.pathing.solver.WalkSolver
 import com.lambda.pathing.execution.PathExecutorDebugSample
 import com.lambda.pathing.execution.PathExecutorDebugState
 import com.lambda.pathing.execution.PlannedArc
@@ -48,7 +51,9 @@ import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.util.player.prediction.LiveSimulationEnvironment
 import com.lambda.util.player.prediction.MovementSimulator
+import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import net.minecraft.client.input.Input
@@ -137,6 +142,61 @@ object PathfinderExecutor : Loadable {
     /** Set when the launch sim vetoed a jump this tick: shed speed and retry. */
     private var launchSimHold = false
 
+    // Jump diagnostics (movementConfig.logJumpDiagnostics): one line per
+    // launch, one per touchdown, and one loud warning when the planner keeps
+    // offering an edge whose arc the physics sim refuses — the signature of a
+    // jump edge admitted by voxel mask alone (template gap jumps are never
+    // simulated at plan time, and their mask does not cover the arc's apex,
+    // so an edge can legally pass through a block).
+    private var diagRefusalSegment = Int.MIN_VALUE
+    private var diagRefusalTicks = 0
+    private var diagRefusalReported = false
+    /** movementConfig lives on AutomatedSafeContext; the gate helpers below
+     *  run on a plain SafeContext, so latch the flag once per follow tick. */
+    private var jumpDiagnostics = false
+    /** True while the certified trajectory is driving the inputs. */
+    private var plannedInputActive = false
+    private var plannedJumpIssued = false
+
+    // W2a: the rolled-out walk trajectory, refreshed periodically (not every
+    // tick — it is a ~100-tick physics rollout and nothing about it changes
+    // fast enough to need 20 Hz).
+    private var simulatedWalkPoints: List<Vec3d> = emptyList()
+    private var simulatedWalkCost = 0
+    // NOT Int.MIN_VALUE: these are compared with `player.age - x < n`, and
+    // `age - Int.MIN_VALUE` OVERFLOWS to a negative number, so the throttle
+    // guard passed forever and the rollout never ran a single time.
+    /** Pure-pursuit lookahead chosen by [WalkSolver]; null before the first solve. */
+    private var solvedLookahead: Double? = null
+    /**
+     * The certified trajectory — a CONTRACT, not a suggestion.
+     *
+     * The simulator predicts every tick of it: position, velocity, grounded
+     * state. The executor presses its inputs in order and, each tick, checks the
+     * live player against the prediction. Two things follow, and they are the
+     * whole point:
+     *
+     *  - **If the contract holds, there is nothing to recompute.** Re-solving
+     *    from scratch at 20 Hz was hiding the divergence, not fixing it: every
+     *    tick produced a fresh plan from the live state, so a sim that was
+     *    quietly wrong looked fine right up until the lip. Following one plan
+     *    and *measuring* the error is the only way to learn whether the physics
+     *    model is actually exact — and if it is exact, the CPU spent re-deriving
+     *    it is free budget for searching further ahead instead.
+     *  - **If the contract breaks, we know immediately** — at the tick it breaks,
+     *    with a number — instead of discovering it as a fall three seconds later.
+     *
+     * [planCursor] is the index of the input to press THIS tick, advanced once
+     * per follow tick after the prediction has been checked. Every consumer
+     * (inputs, sprint, yaw) reads that one index, so they cannot disagree about
+     * which tick of the plan is being executed.
+     */
+    private var solvedPlan: WalkSolver.Plan? = null
+    private var planCursor = 0
+    /** Worst position error against the contract on the current plan. */
+    private var planDriftPeak = 0.0
+    private var simulatedWalkLogTick = -1000
+
     /** The launch sim predicted an undershoot: keep building speed toward
      *  the takeoff instead of walk-back/align — shedding on a short arc
      *  guarantees it stays short. Reset every follow tick. */
@@ -165,6 +225,20 @@ object PathfinderExecutor : Loadable {
     val activeLaunchArc: List<Vec3d>
         get() = if (launchArcIndex >= 0) launchArcPoints else emptyList()
 
+    /**
+     * W2a — the walk the solver believes we will actually trace: the shared
+     * controller rolled forward through real physics from the LIVE state along
+     * the remaining corridor. This is "what it thinks it will do", and the
+     * point of drawing it is that any divergence between this line and the
+     * player is immediately visible.
+     */
+    val simulatedWalk: List<Vec3d>
+        get() = simulatedWalkPoints
+
+    /** True cost, in simulated ticks, of the rolled-out walk. */
+    val simulatedWalkTicks: Int
+        get() = simulatedWalkCost
+
     init {
         listen<TickEvent.Player.Post> {
             PathfinderManager.runSafeAutomated {
@@ -173,8 +247,13 @@ object PathfinderExecutor : Loadable {
         }
 
         listen<TickEvent.Pre> {
-            val command = currentCommand ?: return@listen
-            PathfinderManager.rotationRequest { yaw(command.desiredYaw) }.submit()
+            // The plan's yaw, when there is a plan: the sprint-jump boost fires
+            // along the commanded yaw, so the launch tick's heading is part of
+            // the certified trajectory and must not be second-guessed here.
+            val yaw = plannedInput()?.rotation?.yaw
+                ?: currentCommand?.desiredYaw
+                ?: return@listen
+            PathfinderManager.rotationRequest { yaw(yaw) }.submit()
         }
 
         // Master's input hook: fires after Input.tick() and after RotationManager's
@@ -187,13 +266,60 @@ object PathfinderExecutor : Loadable {
         }
 
         listen<MovementEvent.Sprint> { event ->
+            // The PLAN owns sprint when there is one. This hook used to hand the
+            // gate forest's `command.sprint` straight to the physics while
+            // `applyFollowInput` wrote the plan's sprint into the input — so the
+            // simulator could certify a sprint jump and the client would fire a
+            // walk jump, or the reverse. Two sources of truth for a flag that
+            // moves the landing by ~1.5 blocks is not a tuning bug, it is the
+            // certified trajectory being quietly unexecutable.
+            plannedInput()?.let { event.sprint = it.sprint; return@listen }
             val command = currentCommand ?: return@listen
             event.sprint = command.sprint
         }
     }
 
+    /** The one input the certified trajectory says to press this tick. */
+    private fun plannedInput(): ManeuverController.Inputs? =
+        solvedPlan?.rollout?.inputs?.getOrNull(planCursor)
+
     private fun AutomatedSafeContext.applyFollowInput(input: Input) {
         val command = currentCommand ?: return
+
+        // THE CERTIFIED TRAJECTORY IS THE PLAN. Press the input the plan says to
+        // press this tick — including the jump — and re-decide nothing here. The
+        // failure mode this replaces is two decision makers: a simulation that
+        // proves a launch, and a gate forest at the lip that then fires a
+        // different one.
+        //
+        // This is now an OPEN-LOOP replay of a certified trajectory, guarded by
+        // a per-tick check that the world is still where the simulator said it
+        // would be (see maintainTrajectory). Not because open loop is safer than
+        // feedback — it is not — but because it is the only arrangement in which
+        // a wrong physics model announces itself instead of hiding behind a
+        // re-solve.
+        val planned = plannedInput()
+        if (planned != null) {
+            input.update(
+                forward = planned.forward,
+                strafe = planned.strafe,
+                jump = planned.jump,
+                sneak = false,
+                sprint = planned.sprint,
+            )
+            plannedInputActive = true
+            plannedJumpIssued = planned.jump
+            debugState = debugState.copy(
+                commandedForward = planned.forward,
+                commandedStrafe = planned.strafe,
+                sprintCommand = planned.sprint,
+                jumpCommand = planned.jump,
+                jumpCommandGate = "planned",
+                jumpInputGate = if (planned.jump) "planned" else "noCommand",
+            )
+            return
+        }
+        plannedInputActive = false
         // Entity.updateVelocity is mixed to use RotationManager.movementYaw when
         // a non-silent rotation request is active, and player.yaw otherwise.
         // Project into that exact physics basis so mouse/camera yaw changes do
@@ -224,6 +350,7 @@ object PathfinderExecutor : Loadable {
             newJumpIssued = false
             latchActiveManeuver(command)
             predictLaunchArc(command, sprint)
+            logJumpLaunch(command, sprint)
         }
 
         input.update(
@@ -373,6 +500,7 @@ object PathfinderExecutor : Loadable {
 
     private fun AutomatedSafeContext.updateExecutorState() {
         val handle = PathfinderManager.activeTraversal
+        jumpDiagnostics = movementConfig.logJumpDiagnostics
         notifyTerminalIfChanged(handle)
 
         if (!shouldFollow(handle)) {
@@ -384,6 +512,7 @@ object PathfinderExecutor : Loadable {
         val path = rebuildPathIfNeeded(activeHandle)
         updateActiveManeuver(path)
         refreshPlannedArcs(path)
+        refreshSimulatedWalk(path)
         if (path.isEmpty) {
             stopFollowing()
             val status = if (activeHandle.path.size <= 1) "AtGoal" else "NoSegments"
@@ -567,7 +696,14 @@ object PathfinderExecutor : Loadable {
         // while player.isSprinting still reads true, and simulating the
         // stale flag fires a +0.2 boost the real jump won't have — every
         // boostless rise launch then reads as a 2-block overshoot (NoGo).
-        commandSprint = movementConfig.allowSprint && (
+        // An envelope edge names the GAIT it was validated with. A short hop
+        // onto a narrow landing only lands at walk speed — the sprint-jump
+        // boost alone overflies it — so forcing sprint on every discovered
+        // jump (as `longGapActive` did unconditionally) guarantees a miss on
+        // exactly the edges the worker validated as walk jumps. Validated ==
+        // executed applies to the gait too, not just to the brake policy.
+        val walkGaitEdge = (segment as? WalkSegment)?.entrySpeedEnvelope?.sprint == false
+        commandSprint = movementConfig.allowSprint && !walkGaitEdge && (
             chainSegment != null || longGapActive || (
                 pathRemaining >= movementConfig.sprintMinRemaining &&
                     !riseWithin(path, currentSegmentIndex, playerPos, RISE_SPRINT_CUT_DISTANCE) &&
@@ -667,7 +803,13 @@ object PathfinderExecutor : Loadable {
         // landing line; grounded on the takeoff side without a committed
         // jump, steer *to the takeoff point* at reduced throttle instead of
         // charging the edge unaligned (the align phase).
-        val lookaheadPointRaw = path.lookaheadAcrossSegments(playerPos, currentSegmentIndex, movementConfig.lookaheadDistance)
+        // The corner-cutting radius is now a SOLVED quantity: the walk solver
+        // rolled several lines through real physics and this is the lookahead
+        // of the one it measured fastest. The config value is only the fallback
+        // for the ticks before the first rollout lands.
+        val lookaheadPointRaw = path.lookaheadAcrossSegments(
+            playerPos, currentSegmentIndex, solvedLookahead ?: movementConfig.lookaheadDistance,
+        )
         var steerTarget = Vec3d(lookaheadPointRaw.x, playerPos.y, lookaheadPointRaw.z)
         val walkSegment = segment as? WalkSegment
         val gapSegmentActive = walkSegment != null &&
@@ -1138,6 +1280,8 @@ object PathfinderExecutor : Loadable {
         // Segment indices refer to the new path now; a stale takeoff commit
         // keyed to the old numbering must never drive the new geometry.
         resetTakeoffState()
+        solvedPlan = null
+        solvedLookahead = null
         if (traversalChanged) resetTelemetry()
         return rebuilt
     }
@@ -1184,6 +1328,18 @@ object PathfinderExecutor : Loadable {
         val correctHeight = abs(player.y - maneuver.target.y) <= MANEUVER_LANDING_VERTICAL_TOLERANCE
         val landedAsPlanned = correctHeight && (targetDistance <= MANEUVER_LANDING_TOLERANCE || passedLanding)
 
+        if (movementConfig.logJumpDiagnostics) {
+            info(
+                "[Jump] LAND %s seg=%d target=(%.1f,%.1f,%.1f) at=(%.2f,%.2f,%.2f) err=%.2f".format(
+                    if (landedAsPlanned) "OK" else "MISS",
+                    maneuver.segmentIndex,
+                    maneuver.target.x, maneuver.target.y, maneuver.target.z,
+                    player.x, player.y, player.z,
+                    targetDistance,
+                ) + if (landedAsPlanned) "" else " -> edge reported obstructed, replanning"
+            )
+        }
+
         if (landedAsPlanned && maneuver.completesSegment) {
             minimumSegmentIndex = (maneuver.segmentIndex + 1).coerceAtMost(path.lastSegmentIndex)
             currentSegmentIndex = currentSegmentIndex.coerceAtLeast(minimumSegmentIndex)
@@ -1195,6 +1351,69 @@ object PathfinderExecutor : Loadable {
             with(PathfinderManager) { reportEdgeObstructed(maneuver.from, maneuver.to) }
         }
         activeManeuver = null
+    }
+
+    /** One line per launch: the planned edge and the exact state it fired from. */
+    private fun SafeContext.logJumpLaunch(command: FollowCommand, sprint: Boolean) {
+        if (!jumpDiagnostics) return
+        val path = activePath ?: return
+        val index = command.jumpSegmentIndex ?: currentSegmentIndex
+        val segment = path.segments.getOrNull(index) ?: return
+        val start = segment.startPose.position
+        val end = segment.endPose.position
+        val walk = segment as? WalkSegment
+        val envelope = walk?.entrySpeedEnvelope
+        val speed = alongSpeed(segment, player.velocity)
+        info(
+            "[Jump] LAUNCH seg=%d %s edge=(%.0f,%.0f,%.0f)->(%.0f,%.0f,%.0f) d=%.2f dy=%+d | entry v=%.3f %s | sprint=%b | gate=%s".format(
+                index,
+                if (walk?.discovered == true) "discovered" else "template",
+                start.x, start.y, start.z, end.x, end.y, end.z,
+                segment.horizontalLength,
+                walk?.verticalStep ?: 0,
+                speed,
+                envelope?.let { "envelope[%.2f,%.2f]@[%.2f,%.2f]".format(it.min, it.max, it.minTakeoffProgress, it.maxTakeoffProgress) }
+                    ?: "no-envelope(whole-band)",
+                sprint,
+                lastJumpCommandGate,
+            )
+        )
+    }
+
+    /**
+     * The planner and the physics disagree: the executor is standing in the
+     * takeoff window of a jump edge the launch simulation keeps refusing.
+     *
+     * That is not a tuning problem. A template gap jump is admitted by voxel
+     * mask alone — the mask checks the mid column only at the takeoff's own
+     * feet/head height, while the real arc is ~1 block higher by the time it
+     * crosses there — so the graph can contain a jump whose arc passes
+     * straight through a block. The sim sees it; the mask never did.
+     */
+    private fun SafeContext.trackPlannerDisagreement(segmentIndex: Int, gate: String) {
+        if (!jumpDiagnostics) return
+        val blocked = gate.contains("SimNoGo") || gate.contains("NoHeadroom") || gate.contains("SimShort")
+        if (segmentIndex != diagRefusalSegment) {
+            diagRefusalSegment = segmentIndex
+            diagRefusalTicks = 0
+            diagRefusalReported = false
+        }
+        if (!blocked) return
+        diagRefusalTicks++
+        if (diagRefusalTicks < DIAG_DISAGREEMENT_TICKS || diagRefusalReported) return
+        diagRefusalReported = true
+
+        val segment = activePath?.segments?.getOrNull(segmentIndex)
+        val start = segment?.startPose?.position
+        val end = segment?.endPose?.position
+        warn(
+            "[Jump] PLANNER/PHYSICS DISAGREEMENT seg=$segmentIndex gate=$gate for ${diagRefusalTicks}t: " +
+                (if (start != null && end != null) {
+                    "edge=(%.0f,%.0f,%.0f)->(%.0f,%.0f,%.0f) ".format(start.x, start.y, start.z, end.x, end.y, end.z)
+                } else "") +
+                "the planner offers this jump but the flight sim refuses it (arc blocked / no apex clearance). " +
+                "Template gap jumps are mask-validated only — this is the through-block edge class."
+        )
     }
 
     private fun applyRecovery(selection: SegmentSelection, previousIndex: Int?) {
@@ -1480,8 +1699,23 @@ object PathfinderExecutor : Loadable {
                     hasContinuousSupport(playerPos) && hasJumpApexClearance(playerPos)
                 }
             ) {
-                lastJumpCommandGate = "riseGapRecovery"
-                return rise
+                // Geometry alone is NOT a licence to launch. This branch used
+                // to return the jump without ever consulting the flight sim,
+                // so a deep, slow stance (field: entry 0.099 b/t on a
+                // two-forward/one-up edge) fired an arc that could not reach
+                // the landing — an unvalidated hop straight into the gap, and
+                // the single most common way the agent falls. The stance may
+                // be recoverable; whether the ARC lands is the simulator's
+                // call, exactly as for every other takeoff. If it says no, we
+                // report the edge structurally blocked and let the planner
+                // reroute rather than guess.
+                if (launchSimVerdict(rise) == LaunchSimVerdict.Go) {
+                    lastJumpCommandGate = "riseGapRecovery"
+                    return rise
+                }
+                lastJumpCommandGate = "riseGapRecoveryNoGo"
+                structuralJumpBlock = true
+                return null
             }
             return rise.takeIf { edgeTakeoffReady(rise, playerPos, "riseGap") }
         }
@@ -1554,7 +1788,11 @@ object PathfinderExecutor : Loadable {
         if (walk.discovered) return walk.verticalStep <= 0
         if (walk.verticalStep != 0) return false
         if (walk.horizontalLength !in GAP_SEGMENT_MIN_LENGTH..GAP_SEGMENT_MAX_LENGTH) return false
+        return hasUnsupportedInterior(walk)
+    }
 
+    /** Is there a hole under the inside of this segment? The hole is what makes it a jump. */
+    private fun SafeContext.hasUnsupportedInterior(walk: WalkSegment): Boolean {
         val start = walk.startPose.position
         val end = walk.endPose.position
         var distance = 0.8
@@ -1572,6 +1810,38 @@ object PathfinderExecutor : Loadable {
     }
 
     /**
+     * The segment the walk corridor must END at, because it is a JUMP — and a
+     * jump's launch tick belongs to the solver, not to pure pursuit.
+     *
+     * Deliberately broader than [isGapJumpSegment]. That predicate answers a
+     * different question ("does the gate forest's flat-gap machinery own this
+     * segment") and it excludes ASCENDING edges, because the takeoff FSM claims
+     * those instead. Routing the *solver* by it left every rising jump outside
+     * the plan — including the two-forward/one-up the field keeps falling on.
+     * The corridor then kept the hole in it, pure pursuit walked cheerfully at
+     * the lip, and the rollout's step-up heuristic only fires within 1.3 blocks:
+     * so the "certified trajectory" was a certified walk into the gap. Once the
+     * executor genuinely obeys the plan, that stops being survivable — which is
+     * precisely how this hole announced itself.
+     *
+     * What makes a segment a jump is a HOLE, not a height.
+     */
+    private fun SafeContext.isSolverJumpSegment(segment: ExecutionSegment): Boolean {
+        val walk = segment as? WalkSegment ?: return false
+        // Discovered edges are simulator-validated jumps by construction —
+        // rising, flat or descending.
+        if (walk.discovered) return true
+        // A rise the player can step onto is a walk; a rise across a hole is a
+        // jump. Below the step-up height it is never either.
+        if (walk.verticalStep > 0) return hasUnsupportedInterior(walk)
+        if (walk.verticalStep == 0) {
+            return walk.horizontalLength in GAP_SEGMENT_MIN_LENGTH..GAP_SEGMENT_MAX_LENGTH &&
+                hasUnsupportedInterior(walk)
+        }
+        return false
+    }
+
+    /**
      * Discovered sprint-jump segment: validated at sprint entry speed, must
      * launch at the segment start. Provenance-keyed — a refiner-merged
      * template gap of the same length is a *walk*-entry hop whose takeoff
@@ -1584,7 +1854,9 @@ object PathfinderExecutor : Loadable {
     private fun SafeContext.needsGapJump(segment: ExecutionSegment, playerPos: Vec3d): Boolean {
         if (!player.isOnGround) return false
         if (!isGapJumpSegment(segment)) return false
-        return edgeTakeoffReady(segment as WalkSegment, playerPos, "gap")
+        val ready = edgeTakeoffReady(segment as WalkSegment, playerPos, "gap")
+        if (!ready) trackPlannerDisagreement(segment.index, lastJumpCommandGate)
+        return ready
     }
 
     /**
@@ -2131,29 +2403,51 @@ object PathfinderExecutor : Loadable {
             ),
         ).also { it.skipEntityCollisions = true }
 
+        val gait = if (sprint) ManeuverController.Gait.Sprint else ManeuverController.Gait.Walk
         for (tick in 0 until ARC_MAX_TICKS + runUpTicks) {
             val before = simulator.lastTick
-            val brake = walk.discovered && tick > runUpTicks && !before.onGround && ManeuverPolicy.shouldBrake(
-                hypot(target.x - before.position.x, target.z - before.position.z),
-                hypot(before.velocity.x, before.velocity.z),
-                ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS,
-            )
-            val forward = when {
-                tick < runUpTicks -> runUpForward
-                brake -> 0.0
-                else -> 1.0
-            }
-            val current = simulator.tickMovement(
-                MovementSimulationInput(
-                    forward = forward,
-                    strafe = 0.0,
-                    jump = tick == runUpTicks,
-                    sneak = false,
-                    sprint = sprint,
-                    useItemSlowdown = false,
-                    rotation = aimRotation,
+            // W1: the launch gate flies the SHARED controller — the same object
+            // the validating simulation drives and the same one the live flight
+            // uses. Previously this loop had its own copy (frozen yaw, no
+            // lateral correction, brake only on `discovered` edges) while the
+            // validator had a different one, so "the sim said it lands" and
+            // "the flight lands" were statements about two different flights.
+            // The run-up ticks before the launch are the scheduler's own input,
+            // not the controller's.
+            val current = if (tick < runUpTicks) {
+                simulator.tickMovement(
+                    MovementSimulationInput(
+                        forward = runUpForward,
+                        strafe = 0.0,
+                        jump = false,
+                        sneak = false,
+                        sprint = sprint,
+                        useItemSlowdown = false,
+                        rotation = aimRotation,
+                    )
                 )
-            )
+            } else {
+                val inputs = ManeuverController.inputs(
+                    position = before.position,
+                    velocity = before.velocity,
+                    onGround = before.onGround,
+                    target = target,
+                    gait = gait,
+                    launch = tick == runUpTicks,
+                    launchYaw = aimRotation,
+                )
+                simulator.tickMovement(
+                    MovementSimulationInput(
+                        forward = inputs.forward,
+                        strafe = inputs.strafe,
+                        jump = inputs.jump,
+                        sneak = false,
+                        sprint = inputs.sprint,
+                        useItemSlowdown = false,
+                        rotation = inputs.rotation,
+                    )
+                )
+            }
             if (tick < runUpTicks && !current.onGround) {
                 // The scheduled run-up walks off the edge before its launch
                 // tick — this schedule is invalid, not merely short.
@@ -2350,6 +2644,166 @@ object PathfinderExecutor : Loadable {
 
     // Always computed, not render-gated: the planned-arc polylines are also
     // the reference the trajectory-match telemetry measures against.
+    /**
+     * Roll the shared controller forward along the remaining corridor and keep
+     * the resulting trajectory for the renderer.
+     *
+     * This is W2a's visible half: the coarse path is a polyline on a lattice,
+     * and this is the line the agent would *actually* trace walking it —
+     * corners rounded, the 0/45-degree zig-zag pulled straight, speed carried
+     * through bends. Where this line and the polyline disagree, the polyline is
+     * the one that is wrong.
+     */
+    /**
+     * Hold the executor to the certified trajectory, and re-solve only when it
+     * no longer applies.
+     *
+     * Returns null while the contract holds — meaning: the player is where the
+     * simulator predicted it would be, the plan still has inputs left, and there
+     * is therefore *nothing to compute*. That freed budget is the whole reason
+     * to do this: a plan we trust is a plan we do not have to rebuild 20 times a
+     * second, and the time goes into searching further ahead instead.
+     *
+     * Returns a reason string when the plan must be rebuilt. Two very different
+     * things live in that string and both matter:
+     *
+     *  - `exhausted` — we reached the end of the plan. This is a CHECKPOINT, the
+     *    normal, healthy way a plan ends: a landing, or the goal.
+     *  - `drift` / `vdrift` — the world left the trajectory. This is the
+     *    simulator being *wrong*, and it is the number that says whether any of
+     *    this architecture is sound. It should be ~0. If it is not, no amount of
+     *    searching further ahead will help, because we would be searching with a
+     *    model that does not predict our own client.
+     */
+    private fun AutomatedSafeContext.trajectoryBreak(): String? {
+        val plan = solvedPlan ?: return "none"
+        val expected = plan.rollout.trace.getOrNull(planCursor + 1) ?: return "exhausted"
+
+        val drift = player.pos.distanceTo(expected.position)
+        val velocityDrift = hypot(
+            player.velocity.x - expected.velocity.x,
+            player.velocity.z - expected.velocity.z,
+        )
+        planDriftPeak = max(planDriftPeak, drift)
+
+        if (drift > TRAJECTORY_POSITION_TOLERANCE) return "drift=%.3f".format(drift)
+        if (velocityDrift > TRAJECTORY_VELOCITY_TOLERANCE) return "vdrift=%.3f".format(velocityDrift)
+
+        // Prediction confirmed. Advance to the next tick of the contract.
+        planCursor++
+        return if (planCursor < plan.rollout.inputs.size) null else "exhausted"
+    }
+
+    private fun AutomatedSafeContext.refreshSimulatedWalk(path: ExecutionPath) {
+        val reason = trajectoryBreak() ?: return
+
+        if (jumpDiagnostics && solvedPlan != null && !reason.startsWith("exhausted")) {
+            info(
+                "[Track] CONTRACT BROKEN at tick %d/%d: %s (peak %.3f) — the simulator does not predict the client".format(
+                    planCursor, solvedPlan?.rollout?.inputs?.size ?: 0, reason, planDriftPeak,
+                )
+            )
+        }
+
+        // THE CORRIDOR, AND NOTHING ELSE.
+        //
+        // A flat list of nodes ahead. No takeoffs, no landings, no "this segment
+        // is a jump" — the executor does not know what a jump is and has no
+        // business knowing. Every previous version of this handed the solver a
+        // pre-identified maneuver, which meant something up here was deciding,
+        // from block metadata, what the physics was going to do. That is a second
+        // planner, and a second planner is what we have been deleting all along.
+        //
+        // Give the simulator the route and let it find out. Holes, ledges, drops
+        // and stairs are all just consequences of walking, and the ones that need
+        // a jump announce themselves by the rollout falling.
+        val corridor = ArrayList<Vec3d>()
+        for (index in currentSegmentIndex..path.lastSegmentIndex) {
+            val segment = path.segments[index]
+            if (segment !is WalkSegment) break
+            corridor += segment.endPose.position
+            if (corridor.size >= SIMULATED_WALK_MAX_NODES) break
+        }
+        if (corridor.isEmpty()) {
+            simulatedWalkPoints = emptyList()
+            simulatedWalkCost = 0
+            solvedLookahead = null
+            solvedPlan = null
+            return
+        }
+
+        // SEARCH the line, don't just predict one. The corner-cutting radius
+        // (pure-pursuit lookahead) is chosen by the simulator per situation
+        // instead of being one hand-tuned constant in the config: a wide line
+        // is faster in the open and scrapes the wall in a corridor, and only
+        // the physics knows which of those this is.
+        //
+        // The gait search is deliberately restricted to the gait the follow
+        // rules already chose. Sprint interacts with the jump gates (a rise
+        // within 2.5 blocks cuts it), and letting the walk solver overrule that
+        // before the JUMP solver exists would just trade a slow approach for an
+        // overshot landing. Sprint becomes a solved quantity in W2b, together
+        // with the launch it feeds.
+        val gait = if (commandSprint) ManeuverController.Gait.Sprint else ManeuverController.Gait.Walk
+        // Arrival means STANDING on the goal, so when the corridor runs all the
+        // way to the final node the plan must contain the stop.
+        val brakeAtEnd = currentSegmentIndex + corridor.size > path.lastSegmentIndex
+
+        val plan = WalkSolver.solve(
+            profile = PlayerPhysicsProfile.capture(player),
+            environment = LiveSimulationEnvironment(world, player),
+            start = WalkRollout.State(player.pos, player.velocity, player.isOnGround),
+            corridor = corridor,
+            gaits = listOf(gait),
+            maxTicks = SIMULATED_WALK_MAX_TICKS,
+            brakeAtEnd = brakeAtEnd,
+            // Where we are ACTUALLY pointing, and how fast the yaw actuator can
+            // slew off it. A plan that assumes it is already facing the jump line
+            // is a plan for a different player than the one we have.
+            startYaw = RotationManager.activeRotation.yaw,
+            turnSpeed = PathfinderManager.rotationConfig.turnSpeed,
+        )
+        if (plan == null) {
+            // No certified trajectory from here. Do NOT keep pressing a stale
+            // one — that is open-loop replay of a plan the world has moved on
+            // from. Hand back to the follow controller, which will report the
+            // edge if it really is stuck.
+            simulatedWalkPoints = emptyList()
+            solvedPlan = null
+            solvedLookahead = null
+            return
+        }
+
+        simulatedWalkPoints = plan.points
+        simulatedWalkCost = plan.ticks
+        solvedLookahead = plan.lookahead
+        // A new contract starts at its first tick, with a clean drift record.
+        planCursor = 0
+        planDriftPeak = 0.0
+        // A trajectory that falls is not a plan, it is a fall with extra steps.
+        // Refuse it and hand back to the follow controller rather than pressing
+        // certified inputs into a hole.
+        solvedPlan = plan.takeIf { !it.rollout.fell }
+
+        if (jumpDiagnostics && player.age - simulatedWalkLogTick >= SIMULATED_WALK_LOG_TICKS) {
+            simulatedWalkLogTick = player.age
+            info(
+                "[Walk] lookahead=%.1f gait=%s | %d ticks / %d nodes | endSpeed=%.3f | %s".format(
+                    plan.lookahead, plan.gait, plan.ticks, corridor.size, plan.rollout.endSpeed,
+                    when {
+                        plan.rollout.fell -> "FELL — no trajectory survives this corridor"
+                        plan.launch == null -> "walk"
+                        else -> "jump@%d lands err=%.2f from v=%.3f".format(
+                            plan.launch.traceIndex,
+                            plan.launch.error,
+                            hypot(plan.launch.state.velocity.x, plan.launch.state.velocity.z),
+                        )
+                    },
+                )
+            )
+        }
+    }
+
     private fun AutomatedSafeContext.refreshPlannedArcs(path: ExecutionPath) {
         if (plannedArcsPath === path) return
         plannedArcsCache = path.segments.mapNotNull { segment ->
@@ -2772,6 +3226,23 @@ object PathfinderExecutor : Loadable {
 
     // Stuck detection: how long the player may sit on a segment without net
     // progress before the edge is reported as obstructed to the planner.
+    /** Grounded ticks of sim-refusal on one edge before it is called a bug. */
+    private const val DIAG_DISAGREEMENT_TICKS = 12
+
+    /** The walk rollout is ~100 physics ticks; 20 Hz would be waste. */
+    // How far the live player may stray from the certified trajectory before the
+    // contract is void. These are NOT tuning knobs to be relaxed when they fire
+    // — they are the alarm. A correct simulator of our own client should hold a
+    // trajectory to a rounding error, so a drift that trips these means the
+    // model is missing a term (an actuator, a flag, an environment effect), and
+    // the fix is to find that term, not to widen the tolerance. They are set
+    // loose enough that only a real modelling error trips them.
+    private const val TRAJECTORY_POSITION_TOLERANCE = 0.30
+    private const val TRAJECTORY_VELOCITY_TOLERANCE = 0.08
+    private const val SIMULATED_WALK_MAX_TICKS = 80
+    private const val SIMULATED_WALK_MAX_NODES = 12
+    private const val SIMULATED_WALK_LOG_TICKS = 40
+
     private const val STUCK_REPORT_TICKS = 40
 
     // Stuck-clock ticks charged per structurally-blocked tick (see

@@ -231,15 +231,21 @@ object MoveTable {
 
     /**
      * Gap jump two forward (rise 0 or 1): launch headroom at the origin plus
-     * a clear arc over the mid column — feet and head slices, and for the
-     * rising variant the apex slice above the landing height as well.
+     * a clear arc over the mid column.
+     *
+     * The mid column needs THREE slices, not two. The arc is ~1 block above
+     * the takeoff by the time it crosses that column, so the body occupies
+     * `oy+1` and `oy+2` there — a block at `oy+2` is a head bonk that flattens
+     * the arc into the gap. Checking only the takeoff's own feet/head heights
+     * admitted jump edges whose arc passes through a block (the flight sim
+     * then refused the launch and the agent stalled at the lip).
      */
     private fun MutableList<MoveTemplate>.gapJump(dx: Int, dz: Int, rise: Int) {
         val arc = buildList {
             add(Cell(0, 2, 0, Condition.SLICE))
             add(Cell(dx, 0, dz, Condition.SLICE))
             add(Cell(dx, 1, dz, Condition.SLICE))
-            if (rise == 1) add(Cell(dx, 2, dz, Condition.SLICE))
+            add(Cell(dx, 2, dz, Condition.SLICE))
         }
         add(
             MoveTemplate(

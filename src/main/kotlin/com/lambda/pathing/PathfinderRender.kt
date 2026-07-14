@@ -51,6 +51,13 @@ object PathfinderRender : Loadable {
             if (renderConfig.renderRefinementDebug) renderRefinementDebug(handle)
             if (renderConfig.renderExecutionDebug) renderExecutionDebug()
 
+            // Above the path guard on purpose: the simulated walk is what the
+            // body will actually do, and it is most useful when the path
+            // polyline is switched OFF and you want to see the trajectory
+            // alone. Gating it behind "Render Path" made it invisible to
+            // exactly the person trying to look at it.
+            if (renderConfig.renderSimulatedWalk) renderSimulatedWalk()
+
             if (!renderConfig.renderPath || !handle.status.shouldRender()) return@immediateRenderer
 
             if (renderConfig.renderCoarsePath && handle.coarsePath != handle.path) {
@@ -103,6 +110,30 @@ object PathfinderRender : Loadable {
      * gets a flat reticle on its block. Arcs behind the agent are dropped —
      * the plan ahead is the interesting part.
      */
+    /**
+     * W2a — the walk rolled out through real physics from the live state.
+     *
+     * The path polyline says what the grid thinks; this says what the body will
+     * actually do. A lattice route toward an off-axis bearing zig-zags 0/45; a
+     * pure-pursuit rollout cuts it straight and bows inside the corners while
+     * holding speed. Drawn against the path, the difference between the two IS
+     * the grid's error — and it is the thing the solver is going to optimize.
+     */
+    private fun RenderBuilder.renderSimulatedWalk() {
+        val points = PathfinderExecutor.simulatedWalk
+        if (points.size < 2) return
+        val color = renderConfig.simulatedWalkColor
+        val width = plannedArcLineWidth()
+        for (i in 0 until points.lastIndex) {
+            line(
+                points[i].add(0.0, ARC_Y_OFFSET, 0.0),
+                points[i + 1].add(0.0, ARC_Y_OFFSET, 0.0),
+                color,
+                width,
+            )
+        }
+    }
+
     private fun RenderBuilder.renderPlannedArcs(handle: TraversalHandle) {
         val arcs = PathfinderExecutor.plannedArcs
         if (arcs.isEmpty()) return

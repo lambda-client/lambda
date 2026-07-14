@@ -536,18 +536,27 @@ class ManeuverDiscovery(
      * measured launches are center-aligned (≤0.06 error; the alignment
      * gates work) and the extra sims tripled discovery cost.
      */
+    /**
+     * Admit a jump edge, searching BOTH gaits.
+     *
+     * Sprint is part of the entry state, not a global setting. A sprint-jump's
+     * launch boost alone carries ~3.5 blocks, so a short hop onto a narrow
+     * landing overflies the pad at every entry speed — validating only the
+     * sprint gait therefore declared human-trivial short jumps impossible and
+     * left single-block chains with no route at all. Try sprint first (it is
+     * the faster edge and the common case); fall back to the walk gait and
+     * publish that requirement in the envelope so the executor reproduces the
+     * flight it was validated with.
+     */
     private fun simulateJump(takeoff: FastVector, landing: FastVector): JumpValidation? {
-        // T3 envelope sampling is reserved for the classes that need it:
-        // the extension fan (distance/rise outside the pre-P2 bands) and
-        // ascending jumps (speed-critical by nature). The pre-P2 flat and
-        // descend-1 fan keeps its exact 1–3-sim whole-band admission —
-        // sampling here retunes every landing's sim budget and the bedrock
-        // course loses its proven edges to admission noise (measured).
-        val samplingEligible = isEnvelopeSamplingClass(takeoff, landing)
-        val slow = simulateEntry(takeoff, landing, ENTRY_SPEED_LOW, allowCarryPast = false)
-        if (slow == null && !samplingEligible) return null
-        val fast = simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true)
-        if (slow != null && fast != null) {
+        validateGait(takeoff, landing, sprint = true)?.let { return it }
+        return validateGait(takeoff, landing, sprint = false)
+    }
+
+    private fun validateGait(takeoff: FastVector, landing: FastVector, sprint: Boolean): JumpValidation? {
+        val slow = simulateEntry(takeoff, landing, ENTRY_SPEED_LOW, allowCarryPast = false, sprint = sprint)
+        val fast = simulateEntry(takeoff, landing, ENTRY_SPEED_HIGH, allowCarryPast = true, sprint = sprint)
+        if (slow != null && fast != null && sprint) {
             // Deep launch is probed at fast entry only: a slow approach
             // covers little ground between takeoff-gate evaluations and
             // always launches near the window front, so slow+deep is not a
@@ -567,10 +576,30 @@ class ManeuverDiscovery(
             ) return null
             return JumpValidation((slow + fast) / 2.0)
         }
-        if (!samplingEligible) return null
-        return sampleEnvelope(takeoff, landing, slow, fast)
+        // A band endpoint failed. That does NOT mean the jump is impossible —
+        // it usually means the landing cannot absorb the fast anchor's carry.
+        // A single-block pad is the pure case: nothing to carry onto, so the
+        // 0.30 anchor overshoots into the void and the old rule rejected the
+        // edge outright, which is why 1x1 parkour was unplannable end to end.
+        //
+        // Every class now falls back to envelope sampling: certify the
+        // contiguous entry-speed interval that DOES land, publish it, and let
+        // the executor's envelope gate hold the launch to it. Restricting this
+        // to "extension geometry" was the reason a human-trivial chain of
+        // single blocks had no path at all.
+        return sampleEnvelope(takeoff, landing, slow, fast, sprint)
     }
 
+    /**
+     * Geometry that carries the envelope RISK SURCHARGE.
+     *
+     * This no longer gates admission — any class may now be admitted on a
+     * certified entry interval (see [simulateJump]). It only prices the
+     * classes whose entry window is inherently tight, and it stays keyed on
+     * geometry alone, never on the envelope outcome, because the optimistic
+     * bound and the validated cost must agree on it: LazySP requires costs to
+     * revise only upward.
+     */
     private fun isEnvelopeSamplingClass(takeoff: FastVector, landing: FastVector): Boolean {
         val rise = takeoff.y - landing.y
         if (rise < 0 || rise > 1) return true
@@ -597,11 +626,12 @@ class ManeuverDiscovery(
         landing: FastVector,
         slow: Double?,
         fast: Double?,
+        sprint: Boolean = true,
     ): JumpValidation? {
         if (ENVELOPE_DEBUG) {
             com.lambda.Lambda.LOG.info(
                 "[EnvelopeDiscovery] sampling takeoff=(${takeoff.x},${takeoff.y},${takeoff.z}) " +
-                    "landing=(${landing.x},${landing.y},${landing.z}) slow=$slow fast=$fast"
+                    "landing=(${landing.x},${landing.y},${landing.z}) sprint=$sprint slow=$slow fast=$fast"
             )
         }
         // Stage 1: node-center anchor. An executable run must include at
@@ -610,19 +640,54 @@ class ManeuverDiscovery(
         // equilibrium (0.2806) never produces, and admitting it publishes
         // an edge the executor can only refuse.
         val achievable = achievableEntry(takeoff, landing)
-        sampleSpeedRun(takeoff, landing, progressOffset = 0.0, seeded = true, seedSlow = slow, seedFast = fast)?.let { run ->
+        val centerRun = sampleSpeedRun(
+            takeoff, landing, progressOffset = 0.0,
+            seeded = true, seedSlow = slow, seedFast = fast, sprint = sprint,
+        )
+        if (ENVELOPE_DEBUG) {
+            com.lambda.Lambda.LOG.info(
+                "[EnvelopeDiscovery]   centerRun=" +
+                    (centerRun?.let { "[${ENTRY_SPEED_SAMPLES[it.lo]}..${ENTRY_SPEED_SAMPLES[it.hi]}]" } ?: "none") +
+                    " achievable=$achievable"
+            )
+        }
+        centerRun?.let { run ->
             if (ENTRY_SPEED_SAMPLES[run.lo] <= achievable) {
-                val windowEnd = probeWindowEnd(takeoff, landing, run.hi, anchor = 0.0, probes = 3)
-                if (windowEnd >= MIN_TAKEOFF_WINDOW) {
+                // The workable region is DIAGONAL — the faster the entry, the
+                // earlier the launch must fire — so a rectangle drawn to the
+                // hottest speed usually has a failing corner. Shrink the hot
+                // end until the box actually fits inside the region instead of
+                // discarding the edge: probing the window only at the run's
+                // hottest speed is what reported a zero-width takeoff window
+                // (and thus no envelope) for landings that are perfectly
+                // jumpable a little slower.
+                for (hi in run.hi downTo run.lo) {
+                    val windowEnd = probeWindowEnd(
+                        takeoff, landing, hi, anchor = 0.0, probes = 3, sprint = sprint,
+                    )
+                    if (windowEnd < MIN_TAKEOFF_WINDOW) continue
                     if (!robustEntryBox(
                             takeoff, landing,
-                            ENTRY_SPEED_SAMPLES[run.lo], ENTRY_SPEED_SAMPLES[run.hi],
-                            0.0, windowEnd,
+                            ENTRY_SPEED_SAMPLES[run.lo], ENTRY_SPEED_SAMPLES[hi],
+                            0.0, windowEnd, sprint,
                         )
-                    ) return null
-                    return admitEnvelope(takeoff, landing, run, minProgress = 0.0, maxProgress = windowEnd)
+                    ) continue
+                    if (ENVELOPE_DEBUG) {
+                        com.lambda.Lambda.LOG.info(
+                            "[EnvelopeDiscovery]   ADMIT sprint=$sprint " +
+                                "speeds=[${ENTRY_SPEED_SAMPLES[run.lo]}..${ENTRY_SPEED_SAMPLES[hi]}] window=[0,$windowEnd]"
+                        )
+                    }
+                    return admitEnvelope(
+                        takeoff, landing, SpeedRun(run.lo, hi, run.loCost, run.hiCost),
+                        minProgress = 0.0, maxProgress = windowEnd, sprint = sprint,
+                    )
                 }
-                return null
+                // Fall through to the deeper anchors instead of giving up.
+                // The center anchor failing means only that THIS launch pose
+                // has no usable window — a deeper pose usually does, with its
+                // own (slower) speed run, because launching later leaves less
+                // distance to cover.
             }
         }
         // Stage 2/3: deep and lip anchors. Maximum-distance jumps are
@@ -638,19 +703,27 @@ class ManeuverDiscovery(
         // exists strands every ordinary approach below vmin.
         var fallback: JumpValidation? = null
         for (anchor in ENVELOPE_ANCHORS) {
-            val run = sampleSpeedRun(takeoff, landing, progressOffset = anchor) ?: continue
+            val run = sampleSpeedRun(takeoff, landing, progressOffset = anchor, sprint = sprint) ?: continue
             if (ENTRY_SPEED_SAMPLES[run.lo] > achievable) continue
-            val windowEnd = probeWindowEnd(takeoff, landing, run.hi, anchor = anchor, probes = 2)
-            if (windowEnd - anchor < MIN_TAKEOFF_WINDOW) continue
-            if (!robustEntryBox(
-                    takeoff, landing,
-                    ENTRY_SPEED_SAMPLES[run.lo], ENTRY_SPEED_SAMPLES[run.hi],
-                    anchor, windowEnd,
+            for (hi in run.hi downTo run.lo) {
+                val windowEnd = probeWindowEnd(
+                    takeoff, landing, hi, anchor = anchor, probes = 2, sprint = sprint,
                 )
-            ) continue
-            val validation = admitEnvelope(takeoff, landing, run, minProgress = anchor, maxProgress = windowEnd)
-            if (ENTRY_SPEED_SAMPLES[run.lo] <= ENTRY_SPEED_GROUND_MAX) return validation
-            if (fallback == null) fallback = validation
+                if (windowEnd - anchor < MIN_TAKEOFF_WINDOW) continue
+                if (!robustEntryBox(
+                        takeoff, landing,
+                        ENTRY_SPEED_SAMPLES[run.lo], ENTRY_SPEED_SAMPLES[hi],
+                        anchor, windowEnd, sprint,
+                    )
+                ) continue
+                val validation = admitEnvelope(
+                    takeoff, landing, SpeedRun(run.lo, hi, run.loCost, run.hiCost),
+                    minProgress = anchor, maxProgress = windowEnd, sprint = sprint,
+                )
+                if (ENTRY_SPEED_SAMPLES[run.lo] <= ENTRY_SPEED_GROUND_MAX) return validation
+                if (fallback == null) fallback = validation
+                break
+            }
         }
         return fallback
     }
@@ -667,6 +740,7 @@ class ManeuverDiscovery(
         hiIndex: Int,
         anchor: Double,
         probes: Int,
+        sprint: Boolean = true,
     ): Double {
         var end = anchor
         for (k in 1..probes) {
@@ -676,7 +750,8 @@ class ManeuverDiscovery(
             val progress = (anchor + k * WINDOW_PROBE_STEP).coerceAtMost(MAX_LIP_PROGRESS)
             if (progress <= end) break
             simulateEntry(
-                takeoff, landing, ENTRY_SPEED_SAMPLES[hiIndex], allowCarryPast = true, progressOffset = progress,
+                takeoff, landing, ENTRY_SPEED_SAMPLES[hiIndex], allowCarryPast = true,
+                progressOffset = progress, sprint = sprint,
             ) ?: break
             end = progress
         }
@@ -699,11 +774,13 @@ class ManeuverDiscovery(
         seeded: Boolean = false,
         seedSlow: Double? = null,
         seedFast: Double? = null,
+        sprint: Boolean = true,
     ): SpeedRun? {
         val n = ENTRY_SPEED_SAMPLES.size
         val costs = arrayOfNulls<Double>(n)
         fun probe(i: Int): Double? = simulateEntry(
-            takeoff, landing, ENTRY_SPEED_SAMPLES[i], allowCarryPast = true, progressOffset = progressOffset,
+            takeoff, landing, ENTRY_SPEED_SAMPLES[i], allowCarryPast = true,
+            progressOffset = progressOffset, sprint = sprint,
         ).also { costs[i] = it }
 
         val slow = if (seeded) seedSlow.also { costs[0] = it } else probe(0)
@@ -739,10 +816,12 @@ class ManeuverDiscovery(
         run: SpeedRun,
         minProgress: Double,
         maxProgress: Double,
+        sprint: Boolean = true,
     ): JumpValidation {
         val envelope = EntrySpeedEnvelope(
             min = ENTRY_SPEED_SAMPLES[run.lo],
             max = ENTRY_SPEED_SAMPLES[run.hi],
+            sprint = sprint,
             minTakeoffProgress = minProgress,
             maxTakeoffProgress = maxProgress,
         )
@@ -775,6 +854,7 @@ class ManeuverDiscovery(
         maxSpeed: Double,
         minProgress: Double,
         maxProgress: Double,
+        sprint: Boolean = true,
     ): Boolean {
         val states = arrayOf(
             minSpeed to minProgress,
@@ -793,6 +873,7 @@ class ManeuverDiscovery(
                             progressOffset = progress,
                             lateralOffset = side * ROBUST_LATERAL_OFFSET,
                             lateralVelocity = drift * ROBUST_LATERAL_VELOCITY,
+                            sprint = sprint,
                         ) == null
                     ) return false
                 }
@@ -803,10 +884,24 @@ class ManeuverDiscovery(
 
     /**
      * One tick-accurate simulation (T7 first-collision semantics): entry at
-     * [entrySpeed] along the jump line, jump on the first tick, hold
-     * forward. Runs against the session's snapshot view — worker-legal, and
-     * consistent with the planning world by construction; live divergence
-     * shows up at the executor's launch gate and repairs like any other.
+     * [entrySpeed] along the jump line, jump on the first tick, then fly the
+     * executor's own closed-loop policy — steer at the landing every airborne
+     * tick, brake per [ManeuverPolicy]. Runs against the session's snapshot
+     * view — worker-legal, and consistent with the planning world by
+     * construction; live divergence shows up at the executor's launch gate and
+     * repairs like any other.
+     *
+     * **The flight must be closed-loop, because the executed one is.** This
+     * sim used to hold a frozen yaw and zero strafe for the whole arc, so a
+     * lateral perturbation (which [robustEntryBox] injects deliberately) was
+     * never corrected and simply drifted the arc sideways until it missed.
+     * The real executor steers at the landing node every tick and runs an
+     * airborne correction MPC on top. Validating open-loop therefore rejected
+     * edges the executor can comfortably fly — and it rejected them exactly
+     * where the landing is narrow, which made single-block pads unreachable in
+     * principle: every 1x1 chain failed admission and the planner reported no
+     * path at all. Humans land 1x1 pads by steering mid-air; forbidding the
+     * validator to model that was the bug.
      */
     private fun simulateEntry(
         takeoff: FastVector,
@@ -816,6 +911,7 @@ class ManeuverDiscovery(
         progressOffset: Double = 0.0,
         lateralOffset: Double = 0.0,
         lateralVelocity: Double = 0.0,
+        sprint: Boolean = true,
     ): Double? {
         val center = Vec3d.ofBottomCenter(takeoff.toBlockPos())
         val to = Vec3d.ofBottomCenter(landing.toBlockPos())
@@ -838,29 +934,36 @@ class ManeuverDiscovery(
                 rotation = rotation,
                 velocity = direction.multiply(entrySpeed).add(perpendicular.multiply(lateralVelocity)),
                 onGround = true,
-                isSprinting = true,
+                isSprinting = sprint,
             ),
             skipEntityCollisions = true,
         )
 
+        val gait = if (sprint) ManeuverController.Gait.Sprint else ManeuverController.Gait.Walk
         for (tick in 0 until MAX_SIMULATION_TICKS) {
-            // The executed flight brakes near the landing (ManeuverPolicy)
-            // — validate with the same inputs, never a different rule.
+            // W1: the flight is flown by the SHARED controller — the same
+            // object the executor drives. Not "the same rules, written twice";
+            // the same object. Every jump bug of the July 2026 round was a
+            // divergence between two copies of this logic.
             val before = simulator.lastTick
-            val brake = !before.onGround && tick > 0 && ManeuverPolicy.shouldBrake(
-                hypot(to.x - before.position.x, to.z - before.position.z),
-                hypot(before.velocity.x, before.velocity.z),
-                ManeuverPolicy.SINGLE_BRAKE_LEAD_TICKS,
+            val inputs = ManeuverController.inputs(
+                position = before.position,
+                velocity = before.velocity,
+                onGround = before.onGround,
+                target = to,
+                gait = gait,
+                launch = tick == 0,
+                launchYaw = rotation,
             )
             val current = simulator.tickMovement(
                 MovementSimulationInput(
-                    forward = if (brake) 0.0 else 1.0,
-                    strafe = 0.0,
-                    jump = tick == 0,
+                    forward = inputs.forward,
+                    strafe = inputs.strafe,
+                    jump = inputs.jump,
                     sneak = false,
-                    sprint = true,
+                    sprint = inputs.sprint,
                     useItemSlowdown = false,
-                    rotation = rotation,
+                    rotation = inputs.rotation,
                 )
             )
 
