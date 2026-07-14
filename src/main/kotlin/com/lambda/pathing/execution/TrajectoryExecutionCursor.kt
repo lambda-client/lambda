@@ -18,12 +18,16 @@ import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 
 data class ExecutionStateTolerance(
-    val position: Double = 1e-5,
+    /** Base simulator-vs-vanilla position allowance at frame zero. */
+    val position: Double = 2e-6,
+    /** Measured float-rounding accumulation per continuously replayed frame. */
+    val positionPerFrame: Double = 8e-8,
     val velocity: Double = 1e-5,
     val rotationDegrees: Double = 1e-3,
 ) {
     init {
         require(position >= 0.0 && position.isFinite())
+        require(positionPerFrame >= 0.0 && positionPerFrame.isFinite())
         require(velocity >= 0.0 && velocity.isFinite())
         require(rotationDegrees >= 0.0 && rotationDegrees.isFinite())
     }
@@ -100,18 +104,19 @@ class TrajectoryExecutionCursor(
         if (actual == plan.snapshotRevision) null else ExecutionDeviation.WorldRevision(plan.snapshotRevision, actual)
 
     private fun stateDeviation(expected: MovementSimulationState, actual: MovementSimulationState): ExecutionDeviation? {
-        componentDeviation("x", expected.position.x, actual.position.x, tolerance.position)?.let { return it }
-        componentDeviation("y", expected.position.y, actual.position.y, tolerance.position)?.let { return it }
-        componentDeviation("z", expected.position.z, actual.position.z, tolerance.position)?.let { return it }
+        val positionTolerance = tolerance.position + tolerance.positionPerFrame * nextFrame
+        componentDeviation("x", expected.position.x, actual.position.x, positionTolerance)?.let { return it }
+        componentDeviation("y", expected.position.y, actual.position.y, positionTolerance)?.let { return it }
+        componentDeviation("z", expected.position.z, actual.position.z, positionTolerance)?.let { return it }
         velocityDeviation("x", expected.velocity.x, actual.velocity.x)?.let { return it }
         velocityDeviation("y", expected.velocity.y, actual.velocity.y)?.let { return it }
         velocityDeviation("z", expected.velocity.z, actual.velocity.z)?.let { return it }
-        componentDeviation("box.minX", expected.boundingBox.minX, actual.boundingBox.minX, tolerance.position)?.let { return it }
-        componentDeviation("box.minY", expected.boundingBox.minY, actual.boundingBox.minY, tolerance.position)?.let { return it }
-        componentDeviation("box.minZ", expected.boundingBox.minZ, actual.boundingBox.minZ, tolerance.position)?.let { return it }
-        componentDeviation("box.maxX", expected.boundingBox.maxX, actual.boundingBox.maxX, tolerance.position)?.let { return it }
-        componentDeviation("box.maxY", expected.boundingBox.maxY, actual.boundingBox.maxY, tolerance.position)?.let { return it }
-        componentDeviation("box.maxZ", expected.boundingBox.maxZ, actual.boundingBox.maxZ, tolerance.position)?.let { return it }
+        componentDeviation("box.minX", expected.boundingBox.minX, actual.boundingBox.minX, positionTolerance)?.let { return it }
+        componentDeviation("box.minY", expected.boundingBox.minY, actual.boundingBox.minY, positionTolerance)?.let { return it }
+        componentDeviation("box.minZ", expected.boundingBox.minZ, actual.boundingBox.minZ, positionTolerance)?.let { return it }
+        componentDeviation("box.maxX", expected.boundingBox.maxX, actual.boundingBox.maxX, positionTolerance)?.let { return it }
+        componentDeviation("box.maxY", expected.boundingBox.maxY, actual.boundingBox.maxY, positionTolerance)?.let { return it }
+        componentDeviation("box.maxZ", expected.boundingBox.maxZ, actual.boundingBox.maxZ, positionTolerance)?.let { return it }
         // Yaw is the movement yaw, and it steers every input in the tape.
         if (abs(Rotation.wrap(expected.rotation.yaw - actual.rotation.yaw)) > tolerance.rotationDegrees) {
             return ExecutionDeviation.Rotation("yaw", expected.rotation.yaw, actual.rotation.yaw)

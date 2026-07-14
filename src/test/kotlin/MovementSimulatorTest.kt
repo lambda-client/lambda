@@ -121,7 +121,7 @@ class MovementSimulatorTest {
     }
 
     @Test
-    fun `sprint is an input property and increases ordinary ground progress`() {
+    fun `sprint input starts sprinting and increases ordinary ground progress`() {
         val walking = simulator(groundedState())
             .tickMovement(MovementSimulationInput(forward = 1.0))
         val sprinting = simulator(groundedState())
@@ -133,6 +133,26 @@ class MovementSimulatorTest {
             sprinting.position.z,
             "sprint ground acceleration",
         )
+    }
+
+    @Test
+    fun `releasing sprint while holding forward preserves vanilla sprint state`() {
+        val simulator = simulator(groundedState())
+        simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true))
+
+        val released = simulator.tickMovement(MovementSimulationInput(forward = 1.0)).simulator.state
+
+        assertTrue(released.isSprinting)
+    }
+
+    @Test
+    fun `releasing forward clears vanilla sprint state`() {
+        val simulator = simulator(groundedState())
+        simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true))
+
+        val coast = simulator.tickMovement(MovementSimulationInput()).simulator.state
+
+        assertTrue(!coast.isSprinting)
     }
 
     @Test

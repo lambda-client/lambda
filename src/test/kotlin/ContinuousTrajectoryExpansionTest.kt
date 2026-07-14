@@ -32,78 +32,71 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 /**
- * A trajectory can only be certified as far as the simulator reaches inside its frame
- * budget. Beyond that a route must be walked as a series of windows, each ending at a
- * certified stop -- the body never crosses the certified frontier on faith.
+ * Local search horizons are worker-internal. A route beyond one horizon is expanded
+ * from exact predicted moving states and flattened into one replayable trajectory;
+ * execution must never stop merely because a controller horizon ended.
  */
-class RouteWindowTest {
+class ContinuousTrajectoryExpansionTest {
+    @Test
+    fun `a singleton route certifies an already stopped body`() {
+        val environment = corridor(length = 0)
+        val route = route(environment, Stance(0, 0, 0))
+
+        val result = assertIs<WalkingSeedSearchResult.Success>(
+            WalkingSeedSearch.search(route, initialState(), PROFILE, environment),
+        )
+
+        assertTrue(result.rollout.finalState.onGround)
+        assertTrue(result.tape.frameCount >= WalkingSeedSearchConfig().stableStopFrames)
+    }
+
     @Test
     fun `a route longer than the frame budget cannot be certified whole`() {
         val environment = corridor(length = 120)
         val route = route(environment, Stance(120, 0, 0))
 
-        val result = WalkingSeedSearch.search(route, initialState(), PROFILE, environment)
+        val config = WalkingSeedSearchConfig()
+        val result = WalkingSeedSearch.search(route, initialState(), PROFILE, environment, config)
 
-        assertIs<WalkingSeedSearchResult.NoSafeStop>(result, "120 blocks must not fit in one tape")
+        val refused = assertIs<WalkingSeedSearchResult.NoSafeStop>(result, "120 blocks must not fit in one tape")
+        val extension = checkNotNull(refused.extension)
+        assertTrue(extension.spliceNodeIndex > 0)
+        assertTrue(extension.rollout.finalState.velocity.horizontalLength() > config.stoppedSpeed)
     }
 
     @Test
-    fun `its window does certify, and stops short of the goal on purpose`() {
+    fun `a route beyond one horizon expands through moving states into one tape`() {
         val environment = corridor(length = 120)
         val route = route(environment, Stance(120, 0, 0))
         val config = WalkingSeedSearchConfig()
 
-        val sizes = TrajectoryPlanner.windowSizes(route, config)
-        val window = route.prefix(sizes.first())
-
         val result = assertIs<WalkingSeedSearchResult.Success>(
-            WalkingSeedSearch.search(window, initialState(), PROFILE, environment, config),
+            WalkingSeedSearch.searchContinuously(route, initialState(), PROFILE, environment, config),
         )
 
-        assertTrue(window.goal != route.goal, "the window must stop short of the goal")
+        assertTrue(result.controlSegments > 1)
+        assertTrue(result.spliceFrames.isNotEmpty())
+        assertTrue(result.tape.frameCount > config.maxFrames)
+        assertTrue(result.spliceFrames.all { it in 1 until result.tape.frameCount })
+        assertTrue(result.spliceFrames.all { frame ->
+            result.rollout.frames[frame - 1].state.velocity.horizontalLength() > config.stoppedSpeed
+        }, "every internal boundary must preserve momentum rather than certify a stop")
         assertTrue(result.rollout.finalState.onGround)
-        assertTrue(result.tape.frameCount <= config.maxFrames)
+        assertTrue(result.rollout.finalState.velocity.horizontalLength() <= config.stoppedSpeed)
     }
 
-    /** A window must not carry the tail's read set, or a block it never touches invalidates it. */
     @Test
-    fun `a window recomputes its own cost and dependencies`() {
+    fun `a suffix recomputes cost and dependencies from its moving splice node`() {
         val environment = corridor(length = 120)
         val route = route(environment, Stance(120, 0, 0))
 
-        val window = route.prefix(10)
+        val suffix = route.suffix(40)
 
-        assertEquals(10, window.nodes.size)
-        assertEquals(9, window.edges.size)
-        assertEquals(Stance(9, 0, 0), window.goal)
-        assertTrue(window.lowerBoundTicks < route.lowerBoundTicks)
-        assertTrue(window.dependencies.size < route.dependencies.size)
-        assertTrue(route.dependencies.containsAll(window.dependencies))
-        assertTrue(!window.exactFromStart, "only a goal-reaching route has an exact cost to the goal")
-    }
-
-    /** Shrinking retries exist because the first estimate is a guess, not a proof. */
-    @Test
-    fun `window sizes shrink and never exceed the route`() {
-        val environment = corridor(length = 120)
-        val route = route(environment, Stance(120, 0, 0))
-
-        val sizes = TrajectoryPlanner.windowSizes(route, WalkingSeedSearchConfig())
-
-        assertTrue(sizes.isNotEmpty())
-        assertTrue(sizes.all { it in 2..route.nodes.size })
-        assertEquals(sizes.sortedDescending(), sizes, "longest window first")
-        assertEquals(sizes.distinct(), sizes)
-    }
-
-    @Test
-    fun `a short route is planned whole, not windowed`() {
-        val environment = corridor(length = 120)
-        val route = route(environment, Stance(10, 0, 0))
-
-        val sizes = TrajectoryPlanner.windowSizes(route, WalkingSeedSearchConfig())
-
-        assertEquals(route.nodes.size, sizes.first(), "a route inside the budget needs no window")
+        assertEquals(Stance(40, 0, 0), suffix.nodes.first())
+        assertEquals(route.goal, suffix.goal)
+        assertEquals(route.nodes.size - 40, suffix.nodes.size)
+        assertTrue(suffix.lowerBoundTicks < route.lowerBoundTicks)
+        assertTrue(route.dependencies.containsAll(suffix.dependencies))
     }
 
     private fun route(environment: SnapshotSimulationEnvironment, goal: Stance) = run {

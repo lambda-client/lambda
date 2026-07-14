@@ -181,13 +181,28 @@ class MovementSimulator(
 
     private fun step(input: MovementSimulationInput) {
         rotation = input.rotation ?: rotation
-        isSprinting = input.sprint
         isSneaking = input.sneak
 
         var movementInput = Vec2f(
             input.strafe.coerceIn(-1.0, 1.0).toFloat(),
             input.forward.coerceIn(-1.0, 1.0).toFloat(),
         ).normalize()
+
+        // ClientPlayerEntity.tickMovement treats the sprint bit as a request to
+        // *start* sprinting, not as the sprint state for this frame. Releasing the
+        // key while forward remains held keeps vanilla sprinting; it stops only
+        // when forward movement is lost (or a prior horizontal collision blocks
+        // it). Flattened trajectory controllers can change their preferred gait at
+        // a moving boundary, so assigning `isSprinting = input.sprint` here caused
+        // the first post-splice frame to use walking acceleration in simulation
+        // while the live player correctly retained sprint acceleration.
+        val hasForwardMovement = movementInput.y > FORWARD_MOVEMENT_EPSILON
+        if (!isSprinting && input.sprint && hasForwardMovement && !isSneaking) {
+            isSprinting = true
+        }
+        if (isSprinting && (!hasForwardMovement || horizontalCollision)) {
+            isSprinting = false
+        }
 
         // ClientPlayerEntity.applyMovementSpeedFactors. The final directional
         // factor is significant in 1.21.11: a full diagonal input recovers a
@@ -405,6 +420,9 @@ class MovementSimulator(
     private companion object {
         /** @see net.minecraft.entity.Entity.getVelocityAffectingPos */
         const val VELOCITY_AFFECTING_Y_OFFSET = 0.500001
+
+        /** @see net.minecraft.client.input.Input.hasForwardMovement */
+        const val FORWARD_MOVEMENT_EPSILON = 1.0E-5F
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */

@@ -254,6 +254,39 @@ class WalkingSeedSearchTest {
     }
 
     @Test
+    fun `a refused whole hairpin expands continuously through predicted moving splices`() {
+        val environment = hairpinEnvironment()
+        val moves = SimpleMoveLibrary.build(
+            costs = CoarseKinematicEnvelope(0.6, 0.5, 4.0).moveCosts(),
+            options = SimpleMoveOptions(
+                allowDiagonal = false,
+                allowStepUp = false,
+                maxWalkOffDepth = 0,
+                allowJumpCandidates = false,
+            ),
+        )
+        val planner = CoarsePlanner(environment, moves, Stance(0, 0, 0), Stance(4, 0, 0))
+        assertTrue(planner.repair(Duration.INFINITE).converged)
+        val route = requireNotNull(planner.routePlan(snapshotRevision = 16L))
+        val initial = initialState(Rotation(0.0, 0.0))
+        val config = WalkingSeedSearchConfig(maxFrames = 35)
+
+        assertIs<WalkingSeedSearchResult.NoSafeStop>(
+            WalkingSeedSearch.search(route, initial, PROFILE, environment, config),
+        )
+        val expanded = assertIs<WalkingSeedSearchResult.Success>(
+            WalkingSeedSearch.searchContinuously(route, initial, PROFILE, environment, config),
+        )
+
+        assertTrue(expanded.controlSegments > 1)
+        assertTrue(expanded.spliceFrames.all { frame ->
+            expanded.rollout.frames[frame - 1].state.velocity.horizontalLength() > config.stoppedSpeed
+        })
+        assertTrue(expanded.rollout.frames.none { it.state.horizontalCollision })
+        assertTrue(hypot(expanded.rollout.finalState.position.x - 4.5, expanded.rollout.finalState.position.z - 0.5) <= 0.20)
+    }
+
+    @Test
     fun `a survivable drop is walked off and certified`() {
         val environment = dropEnvironment(depth = 3)
         val moves = SimpleMoveLibrary.build(

@@ -50,7 +50,7 @@ class CoarseMoveCosts(
     val stepUp: Double,
     val walkOff: (depth: Int) -> Double,
     /** A jump candidate's lower bound depends on how far it reaches. */
-    val jumpCandidate: (span: Int, rise: Int) -> Double,
+    val jumpCandidate: (span: Int, verticalOffset: Int) -> Double,
 ) {
     init {
         validate("cardinalWalk", cardinalWalk)
@@ -58,9 +58,11 @@ class CoarseMoveCosts(
         validate("stepUp", stepUp)
     }
 
-    fun jumpCandidateCost(span: Int, rise: Int): Double {
+    fun jumpCandidateCost(span: Int, verticalOffset: Int): Double {
         require(span >= 2) { "a jump candidate must reach past the adjacent stance" }
-        return jumpCandidate(span, rise).also { validate("jumpCandidate($span, $rise)", it) }
+        return jumpCandidate(span, verticalOffset).also {
+            validate("jumpCandidate($span, $verticalOffset)", it)
+        }
     }
 
     fun walkOffCost(depth: Int): Double {
@@ -83,13 +85,17 @@ data class SimpleMoveOptions(
      *
      * The mask is deliberately permissive (§5.1): a false positive costs one local
      * simulation, a false negative deletes topology the body could actually cross.
-     * A span of 2 clears no hole at all -- a sprint walks that -- so anything under
-     * 3 makes jump discovery pointless.
+     * A span of 2 crosses one intermediate cell. A flat sprint often coasts over
+     * that cell without jumping, but a vertically offset landing still needs the
+     * connection to exist in coarse topology.
      */
     val maxJumpSpan: Int = 4,
+    /** Deepest lower landing a jump candidate may target. */
+    val maxJumpDrop: Int = 1,
 ) {
     init {
         require(maxWalkOffDepth >= 0) { "maxWalkOffDepth must be non-negative" }
         require(maxJumpSpan >= 2) { "maxJumpSpan must reach past the adjacent stance" }
+        require(maxJumpDrop >= 0) { "maxJumpDrop must be non-negative" }
     }
 }

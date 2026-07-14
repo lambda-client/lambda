@@ -17,6 +17,7 @@ import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.trajectory.TrajectoryPlan
+import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.WalkingSeedSearch
 import com.lambda.pathing.trajectory.WalkingSeedSearchConfig
@@ -52,12 +53,60 @@ sealed interface PathPlanResult {
                     .joinToString { "${it.value} ${it.key}" }
                 val nearest = result.nearest
                 val closest = nearest?.let {
-                    "; closest ended %.2f blocks short at %.3f b/t (%s)".format(
-                        it.finalGoalError, it.finalHorizontalSpeed, it.diagnostic,
+                    "; closest ended %.2f blocks from the remaining goal at %.3f b/t: %s; %s".format(
+                        it.finalGoalError, it.finalHorizontalSpeed, it.diagnostic.describe(),
+                        it.parameters.describe(),
                     )
                 } ?: ""
-                return "no certified stop from ${attempts.size} attempts: $byKind$closest"
+                val launchDepths = attempts.groupBy { it.parameters.gapLaunchFrames.size }
+                    .entries.sortedBy { it.key }
+                    .joinToString("; ") { (depth, atDepth) ->
+                        val failures = atDepth.groupingBy {
+                            it.diagnostic?.let { diagnostic -> diagnostic::class.simpleName } ?: "Success"
+                        }.eachCount().entries.sortedByDescending { it.value }
+                            .joinToString { (kind, count) -> "$count $kind" }
+                        "${depth}j[$failures]"
+                    }
+                val expansion = if (result.completedSegments > 0) {
+                    val start = result.remainingStart?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "?"
+                    val goal = result.remainingGoal?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "?"
+                    " after ${result.completedSegments} moving segment(s) through frames " +
+                        "${result.spliceFrames.joinToString()}, while expanding $start -> $goal" +
+                        result.remainingMoveSummary.takeIf { it.isNotEmpty() }
+                            ?.let { " over {$it}" }.orEmpty()
+                } else ""
+                return "no certified continuous trajectory$expansion from ${attempts.size} attempts: " +
+                    "$byKind; search depths $launchDepths$closest"
             }
+
+        private fun com.lambda.pathing.trajectory.WalkingSeedParameters.describe(): String =
+            "sprint=$sprint, lookAhead=$lookAheadNodes, brake=%.2f, stepLead=%s, launches=%s".format(
+                brakeDistance,
+                stepUpJumpLeadDistance?.let { "%.2f".format(it) } ?: "none",
+                gapLaunchFrames.joinToString(prefix = "[", postfix = "]"),
+            )
+
+        private fun TrajectoryDiagnostic?.describe(): String = when (this) {
+            null -> "no diagnostic"
+            is TrajectoryDiagnostic.HorizontalCollision ->
+                "ground collision at frame $frame near ${position.short()}"
+            is TrajectoryDiagnostic.HeadBonk ->
+                "head bonk at frame $frame near ${position.short()}"
+            is TrajectoryDiagnostic.FellBelowRoute ->
+                "fell %.2f blocks below the route at frame %d".format(depth, frame)
+            is TrajectoryDiagnostic.LeftCorridor ->
+                "left the corridor by %.2f blocks at frame %d".format(deviation, frame)
+            is TrajectoryDiagnostic.HarmfulFall ->
+                "unsafe %.2f-block fall at frame %d".format(fallDistance, frame)
+            is TrajectoryDiagnostic.NoStop ->
+                "no stable stop (%.2f blocks away, %.3f b/t) after %d frames"
+                    .format(goalError, speed, frame)
+            is TrajectoryDiagnostic.UnsupportedPhysics ->
+                "unsupported physics at frame $frame: $reason"
+        }
+
+        private fun net.minecraft.util.math.Vec3d.short(): String =
+            "(%.2f, %.2f, %.2f)".format(x, y, z)
     }
 }
 
@@ -98,6 +147,7 @@ object TrajectoryPlanner {
             maxWalkOffDepth = config.maxWalkOffDepth,
             allowJumpCandidates = config.allowJumpCandidates,
             maxJumpSpan = config.maxJumpSpan,
+            maxJumpDrop = config.maxJumpDrop,
         )
         val seedConfig = WalkingSeedSearchConfig(
             maxFrames = config.maxFrames,
@@ -135,71 +185,41 @@ object TrajectoryPlanner {
             val route = planner.routePlan(snapshotRevision = snapshot.capturedWorldTime)
                 ?: return@supplyAsync PathPlanResult.NoRoute("no coarse route to the goal")
 
-            var failure: WalkingSeedSearchResult? = null
-
-            // A trajectory can only be certified as far as the simulator can reach
-            // inside its frame budget, so a long route is walked as a series of
-            // windows -- each ending at a *certified stop*, which is what invariant 5
-            // demands before the body may cross the certified frontier. The manager
-            // continues from that stop; nothing is executed on faith.
-            for (nodeCount in windowSizes(route, seedConfig)) {
-                val window = route.prefix(nodeCount)
-                when (val seed = WalkingSeedSearch.search(window, initial, profile, snapshot, seedConfig)) {
-                    is WalkingSeedSearchResult.Success -> return@supplyAsync PathPlanResult.Planned(
-                        PathingManager.PublishedPath(
-                            route = window,
-                            plan = TrajectoryPlan.fromWalkingSeed(
-                                TrajectoryPlanId(planIds.incrementAndGet()), seed, profile,
-                            ),
-                            profile = profile,
-                            parameters = seed.parameters,
-                            attempts = seed.attempts.size,
-                            planMillis = System.currentTimeMillis() - started,
-                            finalGoal = goal,
-                        )
+            // Local controllers are only search pieces. A failed piece may publish a
+            // safe *simulated* moving prefix to the next worker-local expansion, but
+            // never to execution. The final result is one concatenated tape replayed
+            // from the original state through the final stable stop. There are no
+            // runtime stop-and-replan legs hidden behind trajectory windowing.
+            when (val seed = WalkingSeedSearch.searchContinuously(
+                route, initial, profile, snapshot, seedConfig,
+            )) {
+                is WalkingSeedSearchResult.Success -> PathPlanResult.Planned(
+                    PathingManager.PublishedPath(
+                        route = route,
+                        plan = TrajectoryPlan.fromWalkingSeed(
+                            TrajectoryPlanId(planIds.incrementAndGet()), seed, profile,
+                        ),
+                        profile = profile,
+                        parameters = seed.parameters,
+                        attempts = seed.attempts.size,
+                        planMillis = System.currentTimeMillis() - started,
+                        finalGoal = goal,
+                        controlSegments = seed.controlSegments,
+                        spliceFrames = seed.spliceFrames,
                     )
+                )
 
-                    is WalkingSeedSearchResult.UnsupportedRoute -> return@supplyAsync PathPlanResult.NoRoute(
-                        "route needs unsupported moves: ${seed.edgeKinds.joinToString()}"
-                    )
+                is WalkingSeedSearchResult.UnsupportedRoute -> PathPlanResult.NoRoute(
+                    "route needs unsupported moves: ${seed.edgeKinds.joinToString()}"
+                )
 
-                    is WalkingSeedSearchResult.UnstableReplay -> return@supplyAsync PathPlanResult.NoRoute(
-                        "certified tape did not reproduce: ${seed.reason}"
-                    )
+                is WalkingSeedSearchResult.UnstableReplay -> PathPlanResult.NoRoute(
+                    "certified expanded tape did not reproduce: ${seed.reason}"
+                )
 
-                    is WalkingSeedSearchResult.NoSafeStop -> failure = seed
-                }
+                is WalkingSeedSearchResult.NoSafeStop -> PathPlanResult.NoSafeStop(seed)
             }
-
-            PathPlanResult.NoSafeStop(failure as WalkingSeedSearchResult.NoSafeStop)
         }
-    }
-
-    /**
-     * Window sizes to try, longest first.
-     *
-     * The coarse cost is a *lower* bound -- it assumes the body moves at the envelope's
-     * maximum -- so the real walk takes rather longer. The first guess deflates it by
-     * [TICK_PESSIMISM] and leaves [STOP_MARGIN_TICKS] to brake in. If that still will
-     * not certify, shrink: a window that cannot be simulated is worth nothing, and a
-     * shorter certified one is worth everything.
-     */
-    internal fun windowSizes(route: CoarseRoutePlan, config: WalkingSeedSearchConfig): List<Int> {
-        if (route.nodes.size < 2) return emptyList()
-
-        val budget = config.maxFrames - STOP_MARGIN_TICKS
-        var ticks = 0.0
-        var reachable = 1
-        for (edge in route.edges) {
-            ticks += edge.lowerBoundTicks * TICK_PESSIMISM
-            if (ticks > budget) break
-            reachable++
-        }
-
-        val first = reachable.coerceIn(2, route.nodes.size)
-        return listOf(first, first * 3 / 4, first / 2, 2)
-            .map { it.coerceIn(2, route.nodes.size) }
-            .distinct()
     }
 
     /** The snapshot must cover the whole search region plus jump/fall headroom. */
@@ -211,12 +231,6 @@ object TrajectoryPlanner {
         maxY = maxOf(start.y, goal.y) + VERTICAL_MARGIN,
         maxZ = maxOf(start.z, goal.z) + MARGIN,
     )
-
-    /** The coarse cost assumes envelope-max speed; a real walk takes about twice that. */
-    private const val TICK_PESSIMISM = 2.0
-
-    /** Frames left free at the end of a window so the body can actually brake. */
-    private const val STOP_MARGIN_TICKS = 20
 
     private const val MARGIN = 12
     private const val VERTICAL_MARGIN = 6
