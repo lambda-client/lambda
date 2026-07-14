@@ -253,6 +253,82 @@ class WalkingSeedSearchTest {
         assertTrue(result.rollout.frames.any { it.state.position.z >= 6.0 }, "the tape must round the hairpin")
     }
 
+    @Test
+    fun `a survivable drop is walked off and certified`() {
+        val environment = dropEnvironment(depth = 3)
+        val moves = SimpleMoveLibrary.build(
+            costs = CoarseKinematicEnvelope(0.6, 0.5, 4.0).moveCosts(),
+            options = SimpleMoveOptions(
+                allowDiagonal = false,
+                allowStepUp = false,
+                maxWalkOffDepth = 3,
+                allowJumpCandidates = false,
+            ),
+        )
+        val planner = CoarsePlanner(environment, moves, Stance(0, 0, 0), Stance(6, -3, 0))
+        assertTrue(planner.repair(Duration.INFINITE).converged)
+        val route = requireNotNull(planner.routePlan(snapshotRevision = 20L))
+        assertTrue(route.edges.any { it.kind == CoarseMoveKind.WALK_OFF }, "the route must drop")
+
+        val result = assertIs<WalkingSeedSearchResult.Success>(
+            WalkingSeedSearch.search(route, initialState(), PROFILE, environment),
+        )
+
+        assertTrue(result.rollout.finalState.onGround)
+        assertTrue(kotlin.math.abs(result.rollout.finalState.position.y - (-3.0)) <= 0.05)
+        assertTrue(hypot(result.rollout.finalState.position.x - 6.5, result.rollout.finalState.position.z - 0.5) <= 0.20)
+    }
+
+    /**
+     * The coarse layer proposes a drop from geometry alone -- it knows the shaft is
+     * clear, not that the landing is survivable. Only simulation can tell, and it must
+     * refuse rather than execute. Safety is a hard gate.
+     */
+    @Test
+    fun `a lethal drop the coarse layer proposed is refused by simulation`() {
+        val environment = dropEnvironment(depth = 8)
+        val moves = SimpleMoveLibrary.build(
+            costs = CoarseKinematicEnvelope(0.6, 0.5, 4.0).moveCosts(),
+            options = SimpleMoveOptions(
+                allowDiagonal = false,
+                allowStepUp = false,
+                // Deliberately optimistic: the graph is allowed to propose an 8-block drop.
+                maxWalkOffDepth = 8,
+                allowJumpCandidates = false,
+            ),
+        )
+        val planner = CoarsePlanner(environment, moves, Stance(0, 0, 0), Stance(6, -8, 0))
+        assertTrue(planner.repair(Duration.INFINITE).converged)
+        val route = requireNotNull(planner.routePlan(snapshotRevision = 21L))
+        assertTrue(route.edges.any { it.kind == CoarseMoveKind.WALK_OFF })
+
+        val result = assertIs<WalkingSeedSearchResult.NoSafeStop>(
+            WalkingSeedSearch.search(route, initialState(), PROFILE, environment),
+        )
+
+        val diagnostics = result.attempts.mapNotNull { it.diagnostic }
+        assertTrue(
+            diagnostics.any { it is TrajectoryDiagnostic.HarmfulFall },
+            "expected a HarmfulFall refusal, got ${diagnostics.map { it::class.simpleName }.distinct()}",
+        )
+    }
+
+    /** Floor at y=-1 up to x=2, then the ground drops [depth] blocks for the rest. */
+    private fun dropEnvironment(depth: Int): SnapshotSimulationEnvironment {
+        val blocks = buildMap {
+            for (x in -3..2) for (z in -3..3) {
+                put(BlockPos(x, -1, z), SnapshotBlockPhysics.FULL_CUBE)
+            }
+            for (x in 3..9) for (z in -3..3) {
+                put(BlockPos(x, -1 - depth, z), SnapshotBlockPhysics.FULL_CUBE)
+            }
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            bounds = SimulationSnapshotBounds(-3, -4 - depth, -3, 9, 5, 3),
+            blocks = blocks,
+        )
+    }
+
     /** Floor up to x=2, then a one-block rise whose top *is* the goal stance. */
     private fun finalRiseEnvironment(): SnapshotSimulationEnvironment {
         val blocks = buildMap {

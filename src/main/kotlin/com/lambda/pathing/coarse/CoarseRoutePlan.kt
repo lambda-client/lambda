@@ -28,4 +28,29 @@ data class CoarseRoutePlan(
             "Coarse route edges must connect consecutive nodes"
         }
     }
+
+    val goal: Stance get() = nodes.last()
+
+    /**
+     * The first [nodeCount] nodes as a route in their own right.
+     *
+     * A trajectory can only be certified as far as the simulator can reach inside its
+     * frame budget, so a long route is walked as a series of windows. Costs and
+     * dependencies are recomputed from the surviving edges: a window must not carry
+     * the tail's read set, or it would be invalidated by a block it never touches.
+     */
+    fun prefix(nodeCount: Int): CoarseRoutePlan {
+        require(nodeCount in 2..nodes.size) { "A window must contain at least one edge" }
+        if (nodeCount == nodes.size) return this
+
+        val windowEdges = edges.take(nodeCount - 1)
+        return copy(
+            nodes = nodes.take(nodeCount),
+            edges = windowEdges,
+            lowerBoundTicks = windowEdges.sumOf { it.lowerBoundTicks },
+            // Only the goal-reaching route can claim an exact cost to the goal.
+            exactFromStart = false,
+            dependencies = windowEdges.flatMapTo(HashSet()) { it.readSet },
+        )
+    }
 }

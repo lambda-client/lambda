@@ -23,6 +23,26 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
     override val allowSprint by c.setting("Allow Sprint", true, "Let the seed search try sprinting gaits.")
 
+    @Group(MOVES_GROUP)
+    override val maxWalkOffDepth by c.setting(
+        "Max Walk Off Depth", 3, 0..8, 1,
+        "Deepest drop the coarse layer may propose. The trajectory layer still refuses landings that would hurt.",
+        unit = " blocks",
+    )
+
+    @Group(MOVES_GROUP)
+    override val allowJumpCandidates by c.setting(
+        "Gap Jumps", true,
+        "Let the coarse layer propose gap jumps. Each still needs a simulated launch before it is walked.",
+    )
+
+    @Group(MOVES_GROUP)
+    override val maxJumpSpan by c.setting(
+        "Max Jump Span", 4, 2..5, 1,
+        "Furthest a candidate jump may reach. Each still needs a simulated launch.",
+        unit = " blocks",
+    ) { allowJumpCandidates }
+
     @Group(SEARCH_GROUP)
     override val maxFrames by c.setting(
         "Max Frames", 160, 40..600, 10,

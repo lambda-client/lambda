@@ -12,6 +12,7 @@ package com.lambda.pathing
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
@@ -35,16 +36,27 @@ sealed interface PathPlanResult {
 
     /** A refusal, not a failure: no parameter set reached a certified stop. */
     data class NoSafeStop(val result: WalkingSeedSearchResult.NoSafeStop) : PathPlanResult {
+        /**
+         * Names *why*, not just that it refused. The dominant diagnostic is the one
+         * M4's failure-directed branching should attack first.
+         */
         val summary: String
             get() {
                 val attempts = result.attempts
-                val collided = attempts.count { it.collidedHorizontally }
-                val leftCorridor = attempts.count { it.leftCorridor }
-                val unsupported = attempts.count { it.rejectedByEnvironment }
-                val noStop = attempts.size - collided - leftCorridor - unsupported
-                return "no certified stop from ${attempts.size} attempts " +
-                    "($collided collided, $leftCorridor left the corridor, " +
-                    "$unsupported unsupported physics, $noStop never stopped at the goal)"
+                val byKind = attempts
+                    .mapNotNull { it.diagnostic }
+                    .groupingBy { it::class.simpleName ?: "?" }
+                    .eachCount()
+                    .entries
+                    .sortedByDescending { it.value }
+                    .joinToString { "${it.value} ${it.key}" }
+                val nearest = result.nearest
+                val closest = nearest?.let {
+                    "; closest ended %.2f blocks short at %.3f b/t (%s)".format(
+                        it.finalGoalError, it.finalHorizontalSpeed, it.diagnostic,
+                    )
+                } ?: ""
+                return "no certified stop from ${attempts.size} attempts: $byKind$closest"
             }
     }
 }
@@ -80,12 +92,12 @@ object TrajectoryPlanner {
         goal: Stance,
         config: PathingConfig,
     ): CompletableFuture<PathPlanResult> {
-        // Walk-offs and jump candidates stay off: M3 cannot certify them.
         val moveOptions = SimpleMoveOptions(
             allowDiagonal = config.allowDiagonal,
             allowStepUp = config.allowStepUp,
-            maxWalkOffDepth = 0,
-            allowJumpCandidates = false,
+            maxWalkOffDepth = config.maxWalkOffDepth,
+            allowJumpCandidates = config.allowJumpCandidates,
+            maxJumpSpan = config.maxJumpSpan,
         )
         val seedConfig = WalkingSeedSearchConfig(
             maxFrames = config.maxFrames,
@@ -96,6 +108,19 @@ object TrajectoryPlanner {
         val initial = MovementSimulationState.from(player)
         val profile = PlayerPhysicsProfile.capture(player)
         val start = Stance(player.blockPos.x, player.blockPos.y, player.blockPos.z)
+
+        // Every coarse cost is a lower bound derived from this envelope, so a start
+        // state outside it makes the whole route's optimism unfounded. Refuse rather
+        // than plan against costs that do not bound the body we actually have.
+        if (!envelope.contains(initial.velocity)) {
+            return CompletableFuture.completedFuture(
+                PathPlanResult.NoRoute(
+                    "entry velocity %.3f b/t is outside the coarse kinematic envelope"
+                        .format(initial.velocity.horizontalLength())
+                )
+            )
+        }
+
         val snapshot = SnapshotSimulationEnvironment.capture(
             player.entityWorld, player, boundsCovering(start, goal),
         )
@@ -110,27 +135,71 @@ object TrajectoryPlanner {
             val route = planner.routePlan(snapshotRevision = snapshot.capturedWorldTime)
                 ?: return@supplyAsync PathPlanResult.NoRoute("no coarse route to the goal")
 
-            when (val seed = WalkingSeedSearch.search(route, initial, profile, snapshot, seedConfig)) {
-                is WalkingSeedSearchResult.Success -> PathPlanResult.Planned(
-                    PathingManager.PublishedPath(
-                        route = route,
-                        plan = TrajectoryPlan.fromWalkingSeed(
-                            TrajectoryPlanId(planIds.incrementAndGet()), seed, profile,
-                        ),
-                        profile = profile,
-                        parameters = seed.parameters,
-                        attempts = seed.attempts.size,
-                        planMillis = System.currentTimeMillis() - started,
+            var failure: WalkingSeedSearchResult? = null
+
+            // A trajectory can only be certified as far as the simulator can reach
+            // inside its frame budget, so a long route is walked as a series of
+            // windows -- each ending at a *certified stop*, which is what invariant 5
+            // demands before the body may cross the certified frontier. The manager
+            // continues from that stop; nothing is executed on faith.
+            for (nodeCount in windowSizes(route, seedConfig)) {
+                val window = route.prefix(nodeCount)
+                when (val seed = WalkingSeedSearch.search(window, initial, profile, snapshot, seedConfig)) {
+                    is WalkingSeedSearchResult.Success -> return@supplyAsync PathPlanResult.Planned(
+                        PathingManager.PublishedPath(
+                            route = window,
+                            plan = TrajectoryPlan.fromWalkingSeed(
+                                TrajectoryPlanId(planIds.incrementAndGet()), seed, profile,
+                            ),
+                            profile = profile,
+                            parameters = seed.parameters,
+                            attempts = seed.attempts.size,
+                            planMillis = System.currentTimeMillis() - started,
+                            finalGoal = goal,
+                        )
                     )
-                )
 
-                is WalkingSeedSearchResult.UnsupportedRoute -> PathPlanResult.NoRoute(
-                    "route needs unsupported moves: ${seed.edgeKinds.joinToString()}"
-                )
+                    is WalkingSeedSearchResult.UnsupportedRoute -> return@supplyAsync PathPlanResult.NoRoute(
+                        "route needs unsupported moves: ${seed.edgeKinds.joinToString()}"
+                    )
 
-                is WalkingSeedSearchResult.NoSafeStop -> PathPlanResult.NoSafeStop(seed)
+                    is WalkingSeedSearchResult.UnstableReplay -> return@supplyAsync PathPlanResult.NoRoute(
+                        "certified tape did not reproduce: ${seed.reason}"
+                    )
+
+                    is WalkingSeedSearchResult.NoSafeStop -> failure = seed
+                }
             }
+
+            PathPlanResult.NoSafeStop(failure as WalkingSeedSearchResult.NoSafeStop)
         }
+    }
+
+    /**
+     * Window sizes to try, longest first.
+     *
+     * The coarse cost is a *lower* bound -- it assumes the body moves at the envelope's
+     * maximum -- so the real walk takes rather longer. The first guess deflates it by
+     * [TICK_PESSIMISM] and leaves [STOP_MARGIN_TICKS] to brake in. If that still will
+     * not certify, shrink: a window that cannot be simulated is worth nothing, and a
+     * shorter certified one is worth everything.
+     */
+    internal fun windowSizes(route: CoarseRoutePlan, config: WalkingSeedSearchConfig): List<Int> {
+        if (route.nodes.size < 2) return emptyList()
+
+        val budget = config.maxFrames - STOP_MARGIN_TICKS
+        var ticks = 0.0
+        var reachable = 1
+        for (edge in route.edges) {
+            ticks += edge.lowerBoundTicks * TICK_PESSIMISM
+            if (ticks > budget) break
+            reachable++
+        }
+
+        val first = reachable.coerceIn(2, route.nodes.size)
+        return listOf(first, first * 3 / 4, first / 2, 2)
+            .map { it.coerceIn(2, route.nodes.size) }
+            .distinct()
     }
 
     /** The snapshot must cover the whole search region plus jump/fall headroom. */
@@ -142,6 +211,12 @@ object TrajectoryPlanner {
         maxY = maxOf(start.y, goal.y) + VERTICAL_MARGIN,
         maxZ = maxOf(start.z, goal.z) + MARGIN,
     )
+
+    /** The coarse cost assumes envelope-max speed; a real walk takes about twice that. */
+    private const val TICK_PESSIMISM = 2.0
+
+    /** Frames left free at the end of a window so the body can actually brake. */
+    private const val STOP_MARGIN_TICKS = 20
 
     private const val MARGIN = 12
     private const val VERTICAL_MARGIN = 6
