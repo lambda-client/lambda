@@ -135,6 +135,26 @@ object LambdaTest : FabricClientGameTest {
 
         server.runCommand("/setblock 0 100 2 minecraft:air")
 
+        // ClientPlayerEntity classifies a near-parallel edge scrape as a soft
+        // collision. It preserves sprint on the following tick even though
+        // horizontalCollision is true; this is the exact state transition that
+        // diverged during a rising-edge jump in live pathing.
+        server.runCommand("/fill -1 100 -2 -1 101 5 minecraft:stone")
+        server.runCommand("/tp Steve 0.3001 100 0.5 0.7 0")
+        repeat(5) { context.waitTick() }
+        assertMovementReplay(
+            context,
+            "sprint-glancing-edge",
+            List(6) {
+                MovementSimulationInput(
+                    forward = 1.0,
+                    sprint = true,
+                    rotation = Rotation(0.7, 0.0),
+                )
+            },
+        )
+        server.runCommand("/fill -1 100 -2 -1 101 5 minecraft:air")
+
         // Vanilla's sprint-jump boost goes through MathHelper's sine table. Yaw
         // 0/45/90 land exactly on table indices, so only an off-axis heading can
         // expose a simulator that used Math.sin instead.
@@ -188,6 +208,47 @@ object LambdaTest : FabricClientGameTest {
         )
         server.runCommand("/fill -2 100 10 2 100 14 minecraft:air")
         server.runCommand("/fill -2 99 9 2 99 22 minecraft:air")
+
+        // A sequence of rises ending immediately at a long descending gap is the
+        // live shape that exposed greedy continuous expansion. The focused JVM test
+        // forces the hazard-driven runway boundary; this live companion forces an
+        // ordinary frame-horizon boundary and proves the combined tape still retains
+        // momentum, launches across span four, and never inserts a runtime stop.
+        server.runCommand("/fill -8 100 3 8 100 5 minecraft:stone")
+        server.runCommand("/fill -8 101 6 8 101 8 minecraft:stone")
+        server.runCommand("/fill -8 102 9 8 102 12 minecraft:stone")
+        server.runCommand("/fill -8 101 16 8 101 24 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-ascent-to-descending-gap-splice", Stance(0, 102, 20),
+            maxLegs = 1, minGapLaunches = 1, minContinuousSegments = 2,
+            requireMovingSplices = true, requireJumpInput = true,
+            plannerMaxFrames = 53, maxDeviation = EXECUTION_TOLERANCE,
+        )
+        server.runCommand("/fill -8 100 3 8 102 24 minecraft:air")
+
+        // Two-block treads climbing to a top that sits three blocks above *both*
+        // endpoints, then back down. Every other live rise ends on the high ground,
+        // whose height is therefore already in the snapshot's own bounds -- so none of
+        // them could ever exercise a route that peaks above what start and goal see.
+        // The capture must budget a sprint jump's ceiling above a stance neither
+        // endpoint reaches; when it did not, entering these stairs one step lower was
+        // the whole difference between a refusal and a certified trajectory.
+        server.runCommand("/fill -8 99 3 8 99 8 minecraft:air")
+        server.runCommand("/fill -2 100 3 2 100 4 minecraft:stone")
+        server.runCommand("/fill -2 101 5 2 101 6 minecraft:stone")
+        server.runCommand("/fill -2 102 7 2 102 8 minecraft:stone")
+        // A two-wide hole across the top: crossing it is the only thing that launches
+        // *from* the peak, and a launch is the only motion that reads four blocks up.
+        server.runCommand("/fill -2 102 11 2 102 14 minecraft:stone")
+        server.runCommand("/fill -2 101 15 2 101 16 minecraft:stone")
+        server.runCommand("/fill -2 99 17 2 99 24 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-staircase-above-both-endpoints", Stance(0, 100, 22),
+            maxLegs = 1, minGapLaunches = 1, requireJumpInput = true,
+        )
+        server.runCommand("/fill -2 100 3 2 102 16 minecraft:air")
+        server.runCommand("/fill -2 99 17 2 99 24 minecraft:air")
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
 
         // Walk-off: the ground drops three blocks past z = 3. Survivable, so the
         // trajectory layer must certify it rather than refuse the whole route.
@@ -488,6 +549,14 @@ object LambdaTest : FabricClientGameTest {
                 assertNear(predicted.velocity.z, player.velocity.z, "$scenario frame $frame velocity.z")
                 check(predicted.onGround == player.isOnGround) {
                     "$scenario frame $frame onGround: expected ${predicted.onGround}, actual ${player.isOnGround}"
+                }
+                check(predicted.isSprinting == player.isSprinting) {
+                    "$scenario frame $frame isSprinting: expected ${predicted.isSprinting}, " +
+                        "actual ${player.isSprinting}"
+                }
+                check(predicted.collidedSoftly == player.collidedSoftly) {
+                    "$scenario frame $frame collidedSoftly: expected ${predicted.collidedSoftly}, " +
+                        "actual ${player.collidedSoftly}"
                 }
                 // The block the player stands on, and the block vanilla reads
                 // friction from. Both are derived, not observed, so a simulator

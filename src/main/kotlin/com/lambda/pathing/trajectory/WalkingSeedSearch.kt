@@ -17,6 +17,7 @@ import com.lambda.pathing.world.VoxelPos
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.util.player.prediction.SimulationSnapshotOutOfBoundsException
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -97,6 +98,8 @@ sealed interface WalkingSeedSearchResult {
         val parameters: WalkingSeedParameters,
         /** Node which becomes node zero of the next continuously simulated suffix. */
         val spliceNodeIndex: Int,
+        /** Failure this worker-only prefix deliberately leaves runway before. */
+        val sourceDiagnostic: TrajectoryDiagnostic,
     )
 
     data class Success(
@@ -453,10 +456,13 @@ object WalkingSeedSearch {
         val rollout: TrajectoryRollout,
         val spliceNodeIndex: Int,
         val goalError: Double,
+        val sourceDiagnostic: TrajectoryDiagnostic,
     ) {
         fun toPublished(): WalkingSeedSearchResult.Extension {
             val tape = InputTape(rollout.frames.map { it.input })
-            return WalkingSeedSearchResult.Extension(tape, rollout, parameters, spliceNodeIndex)
+            return WalkingSeedSearchResult.Extension(
+                tape, rollout, parameters, spliceNodeIndex, sourceDiagnostic,
+            )
         }
     }
 
@@ -543,9 +549,29 @@ object WalkingSeedSearch {
         val diagnostic = evaluation.diagnostic ?: return null
         val safeLast = minOf(rollout.frames.lastIndex, diagnostic.frame - 1)
         if (safeLast < 0) return null
-        val spliceFrame = (safeLast downTo 0).firstOrNull { rollout.frames[it].state.onGround } ?: return null
+        val groundedMovingFrames = (safeLast downTo 0).filter { frame ->
+            val state = rollout.frames[frame].state
+            state.onGround && state.velocity.horizontalLength() > config.stoppedSpeed
+        }
+        val latestGrounded = groundedMovingFrames.firstOrNull() ?: return null
+        val runwayFrame = when (diagnostic) {
+            is TrajectoryDiagnostic.HorizontalCollision,
+            is TrajectoryDiagnostic.FellBelowRoute -> {
+                // A failure boundary is not a horizon boundary. Handing off at the
+                // last safe ground tick puts the new controller directly on the
+                // obstacle, often with landing cooldown and no distance in which to
+                // discover a span-4 launch. Keep an already-simulated moving runway
+                // before the hazard; execution still sees one continuous tape.
+                groundedMovingFrames.firstOrNull {
+                    it <= safeLast - HAZARD_SPLICE_RUNWAY_FRAMES
+                } ?: latestGrounded
+            }
+
+            else -> latestGrounded
+        }
+        val spliceFrame = runwayFrame.takeIf { routeProgress(rollout, it, nodes) > 0 }
+            ?: latestGrounded
         val state = rollout.frames[spliceFrame].state
-        if (state.velocity.horizontalLength() <= config.stoppedSpeed) return null
         val spliceNodeIndex = routeProgress(rollout, spliceFrame, nodes)
         if (spliceNodeIndex <= 0) return null
 
@@ -561,6 +587,7 @@ object WalkingSeedSearch {
             ),
             spliceNodeIndex = spliceNodeIndex,
             goalError = goalError,
+            sourceDiagnostic = diagnostic,
         )
     }
 
@@ -669,7 +696,15 @@ object WalkingSeedSearch {
         (rollout.termination as? TrajectoryRolloutTermination.Rejected)?.let { rejected ->
             return Evaluation(
                 null,
-                TrajectoryDiagnostic.UnsupportedPhysics(rejected.frame, rejected.failure.message ?: "unsupported"),
+                when (val failure = rejected.failure) {
+                    // Terrain we never captured is our bug, not the world's; it must not
+                    // be counted alongside genuine lava/ladder refusals.
+                    is SimulationSnapshotOutOfBoundsException ->
+                        TrajectoryDiagnostic.OutsideSnapshot(rejected.frame, failure.pos)
+
+                    else ->
+                        TrajectoryDiagnostic.UnsupportedPhysics(rejected.frame, failure.message ?: "unsupported")
+                },
             )
         }
 
@@ -862,4 +897,7 @@ object WalkingSeedSearch {
 
     /** Below the lowest route node by this much means the body left the route downward. */
     private const val FALL_TOLERANCE = 0.6
+
+    /** Worker-only overlap retained before a collision/fall-driven controller handoff. */
+    private const val HAZARD_SPLICE_RUNWAY_FRAMES = 16
 }

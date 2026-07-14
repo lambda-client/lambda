@@ -451,13 +451,32 @@ object PathingManager : Manager<PathingRequest>(0) {
             )
         }.orEmpty()
         val stateDetail = expected?.let {
-            "; expected/live yaw %.3f/%.3f, sprint %s/%s, velocity %s/%s".format(
+            ("; expected/live yaw %.3f/%.3f, sprint %s/%s, ground %s/%s, " +
+                "hCollision %s/%s, soft %s/%s, vCollision %s/%s, jumpCooldown %d/%d, " +
+                "position %s/%s, velocity %s/%s").format(
                 it.rotation.yaw, observed.rotation.yaw,
                 it.isSprinting, observed.isSprinting,
+                it.onGround, observed.onGround,
+                it.horizontalCollision, observed.horizontalCollision,
+                it.collidedSoftly, observed.collidedSoftly,
+                it.verticalCollision, observed.verticalCollision,
+                it.jumpingCooldown, observed.jumpingCooldown,
+                it.position.short(), observed.position.short(),
                 it.velocity.short(), observed.velocity.short(),
             )
         }.orEmpty()
-        fail("frame $frame $phase$splice: $deviation$inputDetail$stateDetail")
+        val previousInputDetail = path?.plan?.tape?.asList()?.getOrNull(frame - 1)?.let {
+            "; previous input f=%.1f jump=%s sprintKey=%s".format(it.forward, it.jump, it.sprint)
+        }.orEmpty()
+        val liveInputDetail = mc.player?.input?.let {
+            "; live input f=%.1f jump=%s sprintKey=%s".format(
+                it.movementVector.y, it.playerInput.jump(), it.playerInput.sprint(),
+            )
+        }.orEmpty()
+        fail(
+            "frame $frame $phase$splice: $deviation$inputDetail$previousInputDetail" +
+                "$liveInputDetail$stateDetail",
+        )
     }
 
     /**

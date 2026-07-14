@@ -28,6 +28,18 @@ data class CoarseVoxel(
     }
 }
 
-fun interface CoarseVoxelView {
+interface CoarseVoxelView {
     fun voxel(x: Int, y: Int, z: Int): CoarseVoxel
+
+    /**
+     * Stance heights the trajectory layer can fully simulate.
+     *
+     * The coarse mask may only propose stances the simulator can certify *every* move
+     * from, and it cannot see that constraint itself: it inspects two cells above a
+     * stance, while a sprint jump from that stance reads four. A view backed by a
+     * bounded snapshot narrows this; an unbounded one leaves it open.
+     *
+     * @see com.lambda.util.player.prediction.SimulationSnapshotBounds.simulableStanceY
+     */
+    val simulableStanceY: IntRange get() = Int.MIN_VALUE..Int.MAX_VALUE
 }

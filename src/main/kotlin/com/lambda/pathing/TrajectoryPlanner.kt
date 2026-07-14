@@ -22,6 +22,7 @@ import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.WalkingSeedSearch
 import com.lambda.pathing.trajectory.WalkingSeedSearchConfig
 import com.lambda.pathing.trajectory.WalkingSeedSearchResult
+import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
@@ -103,6 +104,9 @@ sealed interface PathPlanResult {
                     .format(goalError, speed, frame)
             is TrajectoryDiagnostic.UnsupportedPhysics ->
                 "unsupported physics at frame $frame: $reason"
+            is TrajectoryDiagnostic.OutsideSnapshot ->
+                "read outside the captured snapshot at frame $frame near " +
+                    "(${position.x}, ${position.y}, ${position.z}) -- the capture is too small, not the world"
         }
 
         private fun net.minecraft.util.math.Vec3d.short(): String =
@@ -178,7 +182,7 @@ object TrajectoryPlanner {
         return CompletableFuture.supplyAsync {
             val started = System.currentTimeMillis()
             val moves = SimpleMoveLibrary.build(costs = envelope.moveCosts(), options = moveOptions)
-            val planner = CoarsePlanner(snapshot, moves, start, goal)
+            val planner = CoarsePlanner(snapshot.withinBudget(start, goal), moves, start, goal)
             if (!planner.repair(Duration.INFINITE).converged) {
                 return@supplyAsync PathPlanResult.NoRoute("D* did not converge")
             }
@@ -222,16 +226,63 @@ object TrajectoryPlanner {
         }
     }
 
-    /** The snapshot must cover the whole search region plus jump/fall headroom. */
-    private fun boundsCovering(start: Stance, goal: Stance) = SimulationSnapshotBounds(
+    /**
+     * The snapshot must cover the whole search region plus jump/fall headroom.
+     *
+     * The vertical budget is two independent things, and conflating them is what made a
+     * plain staircase unplannable: a route leaves the band its endpoints sit in
+     * ([VERTICAL_EXCURSION]), *and* the simulator reads past whatever stance the route
+     * reaches. Sized from the endpoints alone, a route climbing three blocks got one
+     * block of jump headroom -- so every candidate that pressed jump on the high ground
+     * died reading terrain nobody captured, while the same route entered one step higher
+     * fit and certified.
+     */
+    internal fun boundsCovering(start: Stance, goal: Stance) = SimulationSnapshotBounds(
         minX = minOf(start.x, goal.x) - MARGIN,
-        minY = minOf(start.y, goal.y) - VERTICAL_MARGIN,
+        minY = minOf(start.y, goal.y) - VERTICAL_EXCURSION - FALL_OBSERVATION_DEPTH,
         minZ = minOf(start.z, goal.z) - MARGIN,
         maxX = maxOf(start.x, goal.x) + MARGIN,
-        maxY = maxOf(start.y, goal.y) + VERTICAL_MARGIN,
+        maxY = maxOf(start.y, goal.y) + VERTICAL_EXCURSION + SimulationSnapshotBounds.CEILING_REACH,
         maxZ = maxOf(start.z, goal.z) + MARGIN,
     )
 
+    /**
+     * Restricts the coarse search to stances this plan actually budgeted for.
+     *
+     * [SimulationSnapshotBounds.simulableStanceY] answers a narrower question -- can a
+     * body *stand* here -- and its floor is only two blocks above the capture, because
+     * that is all a grounded body reads. But a walk that leaves the route *falls*, and
+     * `FellBelowRoute` can only report a frame the rollout actually recorded. A stance
+     * sitting at the very bottom of the snapshot is simulable and still useless: the
+     * first tick of a fall from it reads past the floor, so the frame is dropped and the
+     * fall is misreported as terrain we never captured. Deepening the capture cannot fix
+     * that, because the simulable floor is defined relative to it and moves down too.
+     *
+     * So the planner clamps the band to its own excursion budget instead, which leaves
+     * [FALL_OBSERVATION_DEPTH] blocks under the lowest stance a route may use.
+     */
+    internal fun SnapshotSimulationEnvironment.withinBudget(start: Stance, goal: Stance): CoarseVoxelView {
+        val floor = minOf(start.y, goal.y) - VERTICAL_EXCURSION
+        val ceiling = maxOf(start.y, goal.y) + VERTICAL_EXCURSION
+        val budgeted = maxOf(floor, simulableStanceY.first)..minOf(ceiling, simulableStanceY.last)
+        return object : CoarseVoxelView {
+            override val simulableStanceY = budgeted
+            override fun voxel(x: Int, y: Int, z: Int) = this@withinBudget.voxel(x, y, z)
+        }
+    }
+
     private const val MARGIN = 12
-    private const val VERTICAL_MARGIN = 6
+
+    /** How far above or below its endpoints a coarse route may travel. */
+    private const val VERTICAL_EXCURSION = 8
+
+    /**
+     * Room under the lowest usable stance for a fall to be *diagnosed* rather than
+     * truncated.
+     *
+     * A rollout keeps simulating after it leaves the route, so a body that walks into a
+     * hole falls for the rest of the tape. `FellBelowRoute` is only reported for a frame
+     * that was recorded, so the capture has to outlast the first ticks of that fall.
+     */
+    private const val FALL_OBSERVATION_DEPTH = 6
 }

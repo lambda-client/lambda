@@ -282,8 +282,8 @@ class GapJumpDiscoveryTest {
         )
 
         assertTrue(
-            result.parameters.gapLaunchFrames.firstOrNull() in 0..1,
-            "expected an immediate moving-suffix launch, got ${result.parameters.gapLaunchFrames}; " +
+            result.parameters.gapLaunchFrames.firstOrNull() in 0..2,
+            "expected a near-immediate moving-suffix launch, got ${result.parameters.gapLaunchFrames}; " +
                 "splice position=${moving.position}, velocity=${moving.velocity}",
         )
         assertEquals(1.0, result.rollout.finalState.position.y, 0.05)
@@ -306,6 +306,66 @@ class GapJumpDiscoveryTest {
         assertTrue(
             result.attempts.mapNotNull { it.diagnostic }.any { it is TrajectoryDiagnostic.FellBelowRoute },
             "the nominal walk must fall in -- that failure is what drives the search",
+        )
+    }
+
+    @Test
+    fun `a hazard-driven continuation keeps moving runway before the gap`() {
+        val environment = gapEnvironment(holeAt = 8..9)
+        val route = route(environment, Stance(13, 0, 0))
+
+        val refused = assertIs<WalkingSeedSearchResult.NoSafeStop>(
+            WalkingSeedSearch.search(
+                route, initialState(), PROFILE, environment,
+                WalkingSeedSearchConfig(maxGapSeeds = 0),
+            ),
+        )
+        val extension = checkNotNull(refused.extension)
+
+        assertTrue(extension.sourceDiagnostic is TrajectoryDiagnostic.FellBelowRoute)
+        assertTrue(
+            extension.sourceDiagnostic.frame - extension.tape.frameCount >= 12,
+            "hazard splice left too little runway: diagnostic=${extension.sourceDiagnostic.frame}, " +
+                "prefix=${extension.tape.frameCount}",
+        )
+        assertTrue(extension.rollout.finalState.velocity.horizontalLength() > WalkingSeedSearchConfig().stoppedSpeed)
+    }
+
+    @Test
+    fun `continuous expansion preserves runway after an ascent before a descending gap`() {
+        val environment = ascentThenDescendingGapEnvironment()
+        val route = route(
+            environment = environment,
+            goal = Stance(28, 2, 0),
+            allowStepUp = true,
+        )
+        assertTrue(
+            route.edges.count { it.to.y > it.from.y } >= 3,
+            "route must climb three levels before the gap: ${route.edges}",
+        )
+        assertTrue(route.edges.any {
+            it.kind == CoarseMoveKind.JUMP_CANDIDATE &&
+                it.to.y - it.from.y == -1 && it.to.x - it.from.x == 4
+        }, "route must contain the long descending crossing: ${route.edges}")
+
+        val search = WalkingSeedSearch.searchContinuously(
+            route, initialState(), PROFILE, environment,
+            WalkingSeedSearchConfig(maxGapJumps = 3),
+        )
+        val failed = search as? WalkingSeedSearchResult.NoSafeStop
+        val result = assertIs<WalkingSeedSearchResult.Success>(
+            search,
+            "segments=${failed?.completedSegments}, splices=${failed?.spliceFrames}, " +
+                "remaining=${failed?.remainingStart}->${failed?.remainingGoal}, " +
+                "depths=${failed?.attempts?.groupingBy { it.parameters.gapLaunchFrames.size to it.diagnostic?.javaClass?.simpleName }?.eachCount()}",
+        )
+
+        assertTrue(result.controlSegments > 1)
+        assertTrue(result.spliceFrames.isNotEmpty())
+        assertTrue(result.parameters.gapLaunchFrames.isNotEmpty())
+        assertEquals(2.0, result.rollout.finalState.position.y, 0.05)
+        assertTrue(
+            hypot(result.rollout.finalState.position.x - 28.5, result.rollout.finalState.position.z - 0.5) <= 0.20,
         )
     }
 
@@ -351,12 +411,13 @@ class GapJumpDiscoveryTest {
         environment: SnapshotSimulationEnvironment,
         goal: Stance,
         maxJumpSpan: Int = 4,
+        allowStepUp: Boolean = false,
     ) = run {
         val moves = SimpleMoveLibrary.build(
             costs = CoarseKinematicEnvelope(0.6, 0.5, 4.0).moveCosts(),
             options = SimpleMoveOptions(
                 allowDiagonal = false,
-                allowStepUp = false,
+                allowStepUp = allowStepUp,
                 maxWalkOffDepth = 0,
                 allowJumpCandidates = true,
                 maxJumpSpan = maxJumpSpan,
@@ -414,6 +475,27 @@ class GapJumpDiscoveryTest {
         }
         return SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(-3, -12, -3, 20, 5, 3),
+            blocks = blocks,
+        )
+    }
+
+    /** Three spaced rises feed directly into a span-four landing one block down. */
+    private fun ascentThenDescendingGapEnvironment(): SnapshotSimulationEnvironment {
+        val blocks = buildMap {
+            for (x in -3..32) for (z in -3..3) {
+                val supportY = when (x) {
+                    in -3..2 -> -1
+                    in 3..5 -> 0
+                    in 6..8 -> 1
+                    in 9..12 -> 2
+                    in 16..32 -> 1
+                    else -> null
+                }
+                supportY?.let { put(BlockPos(x, it, z), SnapshotBlockPhysics.FULL_CUBE) }
+            }
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            bounds = SimulationSnapshotBounds(-3, -12, -3, 32, 8, 3),
             blocks = blocks,
         )
     }

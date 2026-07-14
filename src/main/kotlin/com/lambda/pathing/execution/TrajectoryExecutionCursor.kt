@@ -80,11 +80,17 @@ class TrajectoryExecutionCursor(
         revisionDeviation(worldRevision)?.let { return rejectInput(it) }
 
         val expectedBefore = if (nextFrame == 0) plan.initialState else plan.frames[nextFrame - 1].state
-        stateDeviation(expectedBefore, observed)?.let { return rejectInput(it) }
+        stateDeviation(expectedBefore, observed, compareSprinting = false)?.let { return rejectInput(it) }
         if (nextFrame >= plan.tape.frameCount) return ExecutionInputResult.Complete
 
+        val input = plan.tape[nextFrame]
+        if (!sprintTransitionConverges(input, expectedBefore)) {
+            flagDeviation("sprinting", expectedBefore.isSprinting, observed.isSprinting)
+                ?.let { return rejectInput(it) }
+        }
+
         awaitingObservation = true
-        return ExecutionInputResult.Apply(nextFrame, plan.tape[nextFrame])
+        return ExecutionInputResult.Apply(nextFrame, input)
     }
 
     fun observeAfterTick(observed: MovementSimulationState, worldRevision: Long): ExecutionObservationResult {
@@ -93,7 +99,13 @@ class TrajectoryExecutionCursor(
         revisionDeviation(worldRevision)?.let { return rejectObservation(it) }
 
         val observedFrame = nextFrame
-        stateDeviation(plan.frames[observedFrame].state, observed)?.let { return rejectObservation(it) }
+        // The raw sprint data-tracker bit can briefly lag the locally applied key
+        // while all movement-bearing state still agrees. Judge it immediately
+        // before the next input instead: a held sprint key, a lost forward input,
+        // or a hard collision deterministically makes both states converge before
+        // the next physics step. Reject only when the next input cannot do that.
+        stateDeviation(plan.frames[observedFrame].state, observed, compareSprinting = false)
+            ?.let { return rejectObservation(it) }
         nextFrame++
         awaitingObservation = false
         return if (nextFrame == plan.tape.frameCount) ExecutionObservationResult.Complete
@@ -103,7 +115,11 @@ class TrajectoryExecutionCursor(
     private fun revisionDeviation(actual: Long): ExecutionDeviation? =
         if (actual == plan.snapshotRevision) null else ExecutionDeviation.WorldRevision(plan.snapshotRevision, actual)
 
-    private fun stateDeviation(expected: MovementSimulationState, actual: MovementSimulationState): ExecutionDeviation? {
+    private fun stateDeviation(
+        expected: MovementSimulationState,
+        actual: MovementSimulationState,
+        compareSprinting: Boolean = true,
+    ): ExecutionDeviation? {
         val positionTolerance = tolerance.position + tolerance.positionPerFrame * nextFrame
         componentDeviation("x", expected.position.x, actual.position.x, positionTolerance)?.let { return it }
         componentDeviation("y", expected.position.y, actual.position.y, positionTolerance)?.let { return it }
@@ -126,8 +142,11 @@ class TrajectoryExecutionCursor(
         // user's. Rejecting a walk because someone looked up would be theatre.
         flagDeviation("onGround", expected.onGround, actual.onGround)?.let { return it }
         flagDeviation("horizontalCollision", expected.horizontalCollision, actual.horizontalCollision)?.let { return it }
+        flagDeviation("collidedSoftly", expected.collidedSoftly, actual.collidedSoftly)?.let { return it }
         flagDeviation("verticalCollision", expected.verticalCollision, actual.verticalCollision)?.let { return it }
-        flagDeviation("sprinting", expected.isSprinting, actual.isSprinting)?.let { return it }
+        if (compareSprinting) {
+            flagDeviation("sprinting", expected.isSprinting, actual.isSprinting)?.let { return it }
+        }
         flagDeviation("jumping", expected.isJumping, actual.isJumping)?.let { return it }
         flagDeviation("sneaking", expected.isSneaking, actual.isSneaking)?.let { return it }
         if (expected.jumpingCooldown != actual.jumpingCooldown) {
@@ -140,6 +159,17 @@ class TrajectoryExecutionCursor(
             return ExecutionDeviation.SupportingBlock(expected.supportingBlockPos, actual.supportingBlockPos)
         }
         return null
+    }
+
+    /** Whether applying [input] makes either raw sprint bit produce the same state. */
+    private fun sprintTransitionConverges(
+        input: MovementSimulationInput,
+        state: MovementSimulationState,
+    ): Boolean {
+        val hasForwardMovement = input.forward > FORWARD_MOVEMENT_EPSILON
+        val forcedStop = !hasForwardMovement || state.horizontalCollision && !state.collidedSoftly
+        val forcedStart = input.sprint && hasForwardMovement && !input.sneak
+        return forcedStop || forcedStart
     }
 
     private fun componentDeviation(axis: String, expected: Double, actual: Double, allowed: Double): ExecutionDeviation? =
@@ -159,5 +189,9 @@ class TrajectoryExecutionCursor(
     private fun rejectObservation(deviation: ExecutionDeviation): ExecutionObservationResult.Rejected {
         rejection = deviation
         return ExecutionObservationResult.Rejected(nextFrame, deviation)
+    }
+
+    private companion object {
+        const val FORWARD_MOVEMENT_EPSILON = 1.0E-5
     }
 }
