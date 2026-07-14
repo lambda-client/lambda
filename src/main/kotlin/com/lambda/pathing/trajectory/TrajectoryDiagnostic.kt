@@ -9,6 +9,7 @@
 
 package com.lambda.pathing.trajectory
 
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
 /**
@@ -87,5 +88,23 @@ sealed interface TrajectoryDiagnostic {
     data class UnsupportedPhysics(
         override val frame: Int,
         val reason: String,
+    ) : TrajectoryDiagnostic
+
+    /**
+     * The rollout needed terrain the snapshot never captured.
+     *
+     * This is not a refusal about the world -- it is a bug in *us*, and it must not be
+     * reported as though the body ran into something. It once hid inside
+     * [UnsupportedPhysics] alongside genuine lava/ladder refusals while a snapshot one
+     * block too short quietly deleted every jumping candidate from a staircase.
+     *
+     * [SimulationSnapshotBounds.simulableStanceY] is what keeps this unreachable; seeing
+     * it means the coarse layer proposed a stance the capture does not cover.
+     *
+     * @see com.lambda.util.player.prediction.SimulationSnapshotBounds.simulableStanceY
+     */
+    data class OutsideSnapshot(
+        override val frame: Int,
+        val position: BlockPos,
     ) : TrajectoryDiagnostic
 }

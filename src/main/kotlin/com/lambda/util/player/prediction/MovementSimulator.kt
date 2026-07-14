@@ -101,6 +101,7 @@ class MovementSimulator(
     private var jumpingCooldown = initialState.jumpingCooldown
     private var velocityAffectingPos = initialState.velocityAffectingPos
     private var horizontalCollision = initialState.horizontalCollision
+    private var collidedSoftly = initialState.collidedSoftly
     private var verticalCollision = initialState.verticalCollision
     private var supportingBlockPos = initialState.supportingBlockPos
     private var forceUpdateSupportingBlockPos = initialState.supportingBlockPos == null
@@ -120,6 +121,7 @@ class MovementSimulator(
             jumpingCooldown = jumpingCooldown,
             velocityAffectingPos = velocityAffectingPos,
             horizontalCollision = horizontalCollision,
+            collidedSoftly = collidedSoftly,
             verticalCollision = verticalCollision,
             supportingBlockPos = supportingBlockPos,
         )
@@ -150,6 +152,7 @@ class MovementSimulator(
         jumpingCooldown = state.jumpingCooldown
         velocityAffectingPos = state.velocityAffectingPos
         horizontalCollision = state.horizontalCollision
+        collidedSoftly = state.collidedSoftly
         verticalCollision = state.verticalCollision
         supportingBlockPos = state.supportingBlockPos
         forceUpdateSupportingBlockPos = state.supportingBlockPos == null
@@ -200,7 +203,7 @@ class MovementSimulator(
         if (!isSprinting && input.sprint && hasForwardMovement && !isSneaking) {
             isSprinting = true
         }
-        if (isSprinting && (!hasForwardMovement || horizontalCollision)) {
+        if (isSprinting && (!hasForwardMovement || horizontalCollision && !collidedSoftly)) {
             isSprinting = false
         }
 
@@ -293,7 +296,7 @@ class MovementSimulator(
         }
 
         applyMovementInput(travelVec, slipperiness)
-        move()
+        move(travelVec)
 
         velocity += DOWN * gravity
         velocity *= Vec3d(friction, 0.98F.toDouble(), friction)
@@ -321,7 +324,7 @@ class MovementSimulator(
     }
 
     /** @see net.minecraft.entity.Entity.move */
-    private fun move() {
+    private fun move(movementInput: Vec3d) {
         var movement = velocity
         movement = adjustMovementForCollisions(movement)
 
@@ -338,6 +341,7 @@ class MovementSimulator(
         val zCollide = !MathHelper.approximatelyEquals(movement.z, velocity.z)
 
         horizontalCollision = xCollide || zCollide
+        collidedSoftly = horizontalCollision && hasCollidedSoftly(movementInput, movement)
         verticalCollision = yCollide
 
         // Vanilla tests the INTENDED vertical motion, not the collision-
@@ -373,6 +377,24 @@ class MovementSimulator(
         boundingBox = normalizedBoundingBox().offset(position)
         updateSupportingBlockPos(onGround, movement)
         velocityAffectingPos = posWithYOffset(VELOCITY_AFFECTING_Y_OFFSET)
+    }
+
+    /** @see net.minecraft.client.network.ClientPlayerEntity.hasCollidedSoftly */
+    private fun hasCollidedSoftly(input: Vec3d, adjustedMovement: Vec3d): Boolean {
+        val yawRadians = rotation.yawF * (Math.PI / 180.0).toFloat()
+        val sin = MathHelper.sin(yawRadians.toDouble()).toDouble()
+        val cos = MathHelper.cos(yawRadians.toDouble()).toDouble()
+        val intendedX = input.x * cos - input.z * sin
+        val intendedZ = input.z * cos + input.x * sin
+        val intendedSquared = intendedX * intendedX + intendedZ * intendedZ
+        val adjustedSquared = adjustedMovement.x * adjustedMovement.x + adjustedMovement.z * adjustedMovement.z
+        if (intendedSquared < SOFT_COLLISION_MIN_SQUARED || adjustedSquared < SOFT_COLLISION_MIN_SQUARED) {
+            return false
+        }
+
+        val dot = intendedX * adjustedMovement.x + intendedZ * adjustedMovement.z
+        val cosine = dot / kotlin.math.sqrt(intendedSquared * adjustedSquared)
+        return kotlin.math.acos(cosine) < SOFT_COLLISION_MAX_ANGLE_RADIANS
     }
 
     /** @see net.minecraft.entity.Entity.updateSupportingBlockPos */
@@ -423,6 +445,9 @@ class MovementSimulator(
 
         /** @see net.minecraft.client.input.Input.hasForwardMovement */
         const val FORWARD_MOVEMENT_EPSILON = 1.0E-5F
+
+        private const val SOFT_COLLISION_MIN_SQUARED = 1.0E-5
+        private const val SOFT_COLLISION_MAX_ANGLE_RADIANS = 0.13962634
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */
@@ -572,6 +597,8 @@ data class MovementSimulationState(
     val jumpingCooldown: Int,
     val velocityAffectingPos: BlockPos,
     val horizontalCollision: Boolean,
+    /** Glancing collision which vanilla allows to retain sprint on the next tick. */
+    val collidedSoftly: Boolean,
     val verticalCollision: Boolean,
     /**
      * The block the player is standing on. Null while airborne. Its X/Z are not
@@ -595,6 +622,7 @@ data class MovementSimulationState(
             // which is NOT the supporting block itself. Read its own answer.
             velocityAffectingPos: BlockPos = player.velocityAffectingPos,
             horizontalCollision: Boolean = player.horizontalCollision,
+            collidedSoftly: Boolean = player.collidedSoftly,
             verticalCollision: Boolean = player.verticalCollision,
             boundingBox: Box = player.boundingBox.offset(position.subtract(player.pos)),
             supportingBlockPos: BlockPos? = player.supportingBlockPos.getOrNull(),
@@ -610,6 +638,7 @@ data class MovementSimulationState(
             jumpingCooldown = jumpingCooldown,
             velocityAffectingPos = velocityAffectingPos,
             horizontalCollision = horizontalCollision,
+            collidedSoftly = collidedSoftly,
             verticalCollision = verticalCollision,
             supportingBlockPos = supportingBlockPos,
         )
@@ -633,6 +662,7 @@ data class MovementSimulationState(
             isSneaking = isSneaking,
             jumpingCooldown = jumpingCooldown,
             horizontalCollision = false,
+            collidedSoftly = false,
             verticalCollision = false,
         )
 
@@ -666,6 +696,7 @@ data class MovementSimulationState(
                 jumpingCooldown = jumpingCooldown,
                 velocityAffectingPos = (position + DOWN * 0.500001F.toDouble()).flooredBlockPos,
                 horizontalCollision = false,
+                collidedSoftly = false,
                 verticalCollision = false,
             )
         }

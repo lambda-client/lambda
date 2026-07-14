@@ -53,6 +53,28 @@ data class SimulationSnapshotBounds(
 
     operator fun contains(pos: BlockPos): Boolean =
         pos.x in minX..maxX && pos.y in minY..maxY && pos.z in minZ..maxZ
+
+    /**
+     * Stance heights whose whole motion envelope this snapshot covers.
+     *
+     * A stance is only usable if *every* move the trajectory layer may attempt from it
+     * can be simulated, and the tallest of those is a sprint jump: apex 1.2522 blocks
+     * above the stance, carrying a 1.8-block body, and collision resolution reads one
+     * block past the box -- so it reads [CEILING_REACH] blocks up. The coarse mask
+     * inspects only two (§5.1), so it will happily accept a ledge whose jump envelope
+     * was never captured. Every jumping candidate from that ledge then dies reading
+     * outside the snapshot, and the refusal reads as a physics problem rather than as
+     * the capture problem it is.
+     */
+    val simulableStanceY: IntRange get() = (minY + FLOOR_REACH)..(maxY - CEILING_REACH)
+
+    companion object {
+        /** Blocks read above a stance: sprint-jump apex + body height, floored, plus the collision pad. */
+        const val CEILING_REACH = 4
+
+        /** Blocks read below a stance: the supporting block, plus the collision pad. */
+        const val FLOOR_REACH = 2
+    }
 }
 
 /** Immutable, context-resolved physics for one captured block position. */
@@ -115,6 +137,8 @@ class SnapshotSimulationEnvironment private constructor(
     private val defaultBlock: SnapshotBlockPhysics?,
 ) : SimulationEnvironment, CoarseVoxelView {
     private val blocks = Collections.unmodifiableMap(HashMap(blocks))
+
+    override val simulableStanceY: IntRange = bounds.simulableStanceY
 
     override fun slipperiness(pos: BlockPos): Double = checkedBlockAt(pos, null).slipperiness
 

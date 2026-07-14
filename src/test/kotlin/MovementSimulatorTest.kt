@@ -156,6 +156,30 @@ class MovementSimulatorTest {
     }
 
     @Test
+    fun `a glancing edge collision is soft and does not cancel sprint`() {
+        val initial = MovementSimulationState.synthetic(
+            profile = PROFILE,
+            position = Vec3d(0.3001, 0.0, 0.5),
+            rotation = Rotation(0.7, 0.0),
+            velocity = Vec3d(0.0, -0.0784, 0.0),
+            onGround = true,
+        )
+        val simulator = MovementSimulator(PROFILE, glancingWallEnvironment(), initial)
+        val input = MovementSimulationInput(
+            forward = 1.0,
+            sprint = true,
+            rotation = Rotation(0.7, 0.0),
+        )
+
+        val collision = simulator.tickMovement(input).simulator.state
+        assertTrue(collision.horizontalCollision)
+        assertTrue(collision.collidedSoftly)
+
+        val retained = simulator.tickMovement(input).simulator.state
+        assertTrue(retained.isSprinting)
+    }
+
+    @Test
     fun `current vanilla directional factor is applied to diagonal input`() {
         val cardinal = simulator(groundedState())
             .tickMovement(MovementSimulationInput(forward = 1.0))
@@ -196,6 +220,19 @@ class MovementSimulatorTest {
         onGround = true,
     )
 
+    private fun glancingWallEnvironment(): SnapshotSimulationEnvironment {
+        val blocks = buildMap {
+            for (x in -3..3) for (z in -3..6) {
+                put(BlockPos(x, -1, z), SnapshotBlockPhysics.FULL_CUBE)
+            }
+            for (z in -2..5) put(BlockPos(-1, 0, z), SnapshotBlockPhysics.FULL_CUBE)
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-3, -3, -3, 3, 4, 6),
+            blocks,
+        )
+    }
+
     private fun assertStateEquals(
         expected: MovementSimulationState,
         actual: MovementSimulationState,
@@ -211,6 +248,7 @@ class MovementSimulatorTest {
         assertEquals(expected.jumpingCooldown, actual.jumpingCooldown, "$message jumpingCooldown")
         assertEquals(expected.velocityAffectingPos, actual.velocityAffectingPos, "$message velocityAffectingPos")
         assertEquals(expected.horizontalCollision, actual.horizontalCollision, "$message horizontalCollision")
+        assertEquals(expected.collidedSoftly, actual.collidedSoftly, "$message collidedSoftly")
         assertEquals(expected.verticalCollision, actual.verticalCollision, "$message verticalCollision")
         assertClose(expected.boundingBox.minX, actual.boundingBox.minX, "$message box minX")
         assertClose(expected.boundingBox.minY, actual.boundingBox.minY, "$message box minY")

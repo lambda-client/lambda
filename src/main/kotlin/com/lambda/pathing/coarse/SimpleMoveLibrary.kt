@@ -29,6 +29,10 @@ class SimpleMoveLibrary private constructor(
     )
 
     fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
+        // Not a mask condition but a certifiability one: standing here is only useful
+        // if the trajectory layer can simulate leaving here, and the tallest departure
+        // (a sprint jump) reads further up than any cell this mask checks.
+        if (stance.y !in view.simulableStanceY) return false
         val support = view.voxel(stance.x, stance.y - 1, stance.z)
         return support.standableFullTop && !support.intrudesAbove &&
             view.voxel(stance.x, stance.y, stance.z).centerPassable &&
