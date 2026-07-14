@@ -107,7 +107,7 @@ abstract class ObstaclePassingMode(
 		if (!player.isOnGround) return false
 
 		val notProgressing = Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond) < 0.01
-		if (notProgressing) {
+		if (player.isGliding && notProgressing) {
 			pathToValidPoint(closestLinePoint, snappedDir)
 			return true
 		}
@@ -214,5 +214,5 @@ class PasserSettings(override val c: Config) : ConfigBlock {
 	val headHitters by c.setting("Head Hitters", true, "Flags obstacles above the y level you started flying at") { passObstacles }
 	val acceptableOffsetRange by c.setting("Acceptable Offset Range", 2.0, 0.1..5.0, 0.01, "Acceptable offset from the original flight line to allow when starting to fly again after passing obstacles") { passObstacles }
 	val obstacleLookAhead by c.setting("Obstacle Look-Ahead", 8, 0..50, 1, "Looks ahead of the player to see if obstacles are in the way") { passObstacles }
-	val directionStep by c.setting("Direction Step", 45.0, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { passObstacles }
+	val directionStep by c.setting("Direction Step", 22.5, 0.0..180.0, 0.1, "The step size to use when locking the flight direction") { passObstacles }
 }
