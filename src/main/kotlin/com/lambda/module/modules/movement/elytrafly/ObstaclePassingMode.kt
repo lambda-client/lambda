@@ -29,6 +29,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.SpeedUnit
 import com.lambda.util.math.dist
+import com.lambda.util.math.distSq
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.isLoaded
 import com.lambda.util.world.raycast.InteractionMask
@@ -88,6 +89,15 @@ abstract class ObstaclePassingMode(
 		val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
 
 		passingToPos?.let { passingTo ->
+			if (passingTo distSq startPos < playerPos distSq startPos) {
+				val atClosestPointBlockPos = closestLinePoint.flooredBlockPos == player.blockPos
+				if (!atClosestPointBlockPos) pathToValidPoint(closestLinePoint, snappedDir, false)
+				else {
+					BaritoneHandler.cancel()
+					passingToPos = null
+					return@let
+				}
+			}
 			if (passingTo.isObstructed(snappedDir)) {
 				pathToValidPoint(passingTo, snappedDir)
 			}
@@ -97,7 +107,7 @@ abstract class ObstaclePassingMode(
 		if (!player.isOnGround) return false
 
 		val notProgressing = Speedometer.calculateSpeed(true, SpeedUnit.BlocksPerSecond) < 0.01
-		if (player.isGliding && notProgressing) {
+		if (notProgressing) {
 			pathToValidPoint(closestLinePoint, snappedDir)
 			return true
 		}
@@ -110,7 +120,7 @@ abstract class ObstaclePassingMode(
 			.dist(closestLinePoint) + (playerPos.y - closestLinePoint.y)
 			.coerceAtMost(0.0)
 		if (distanceToLine > passerConfig.acceptableOffsetRange) {
-			pathToValidPoint(closestLinePoint, snappedDir, true)
+			pathToValidPoint(closestLinePoint, snappedDir, false)
 			return true
 		}
 
@@ -150,8 +160,8 @@ abstract class ObstaclePassingMode(
 		return Vec3d(x, vector.y, z)
 	}
 
-	private fun SafeContext.pathToValidPoint(startSearchPos: Vec3d, dir: Vec3d, initialBlockedCheck: Boolean = false) {
-		var skippingFirstCheck = !initialBlockedCheck
+	private fun SafeContext.pathToValidPoint(startSearchPos: Vec3d, dir: Vec3d, guaranteeOneSkip: Boolean = true) {
+		var skippingFirstCheck = guaranteeOneSkip
 		var searchPos = startSearchPos
 		while (skippingFirstCheck || searchPos.isObstructed(dir)) {
 			searchPos = searchPos.add(dir.multiply(passerConfig.obstacleLookAhead.toDouble()))
