@@ -19,6 +19,10 @@ package com.lambda
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.config.automation.AutomationConfig
+import com.lambda.pathing.PathingManager
+import com.lambda.pathing.PathingRequest
+import com.lambda.pathing.coarse.Stance
 import com.lambda.threading.runSafe
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.player.MovementUtils.buildMovementInput
@@ -32,8 +36,11 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.minecraft.client.input.Input
 import net.minecraft.client.gui.screen.world.WorldCreator
+import net.minecraft.client.network.ClientPlayerEntity
 import java.util.concurrent.CompletableFuture
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
+import kotlin.time.Duration
 
 @Suppress("UnstableApiUsage")
 object LambdaTest : FabricClientGameTest {
@@ -109,7 +116,88 @@ object LambdaTest : FabricClientGameTest {
             scenario = "full-block-wall",
             tape = List(12) { MovementSimulationInput(forward = 1.0) },
         )
+
+        server.runCommand("/setblock 0 100 2 minecraft:air")
+
+        // Vanilla's sprint-jump boost goes through MathHelper's sine table. Yaw
+        // 0/45/90 land exactly on table indices, so only an off-axis heading can
+        // expose a simulator that used Math.sin instead.
+        server.runCommand("/tp Steve 0 100 0 37 0")
+        repeat(5) { context.waitTick() }
+        assertMovementReplay(context, "sprint-jump-offaxis", buildList {
+            val facing = Rotation(37.0, 0.0)
+            repeat(4) { add(MovementSimulationInput(forward = 1.0, sprint = true, rotation = facing)) }
+            add(MovementSimulationInput(forward = 1.0, sprint = true, jump = true, rotation = facing))
+            repeat(10) { add(MovementSimulationInput(forward = 1.0, sprint = true, rotation = facing)) }
+        })
+
+        testPathingManagerWalk(context, server)
     }
+
+    /**
+     * The planner's own tapes, walked live by [PathingManager] -- the same path a
+     * `.path` command takes. A simulator-vs-simulator unit test cannot see vanilla
+     * divergence, so every coarse move kind M3 claims must land here.
+     */
+    private fun testPathingManagerWalk(
+        context: ClientGameTestContext,
+        server: net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext,
+    ) {
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+        server.runCommand("/fill -8 100 -8 8 105 8 minecraft:air")
+
+        assertPathingWalk(context, server, "pathing-straight", Stance(0, 100, 5))
+        assertPathingWalk(context, server, "pathing-diagonal", Stance(5, 100, 5))
+
+        // One-block rise across the corridor: the seed search must find a launch
+        // tick, and the manager must steer the turn through the rotation manager.
+        server.runCommand("/fill -2 100 2 2 100 8 minecraft:stone")
+        assertPathingWalk(context, server, "pathing-step-up", Stance(0, 101, 6))
+        server.runCommand("/fill -2 100 2 2 100 8 minecraft:air")
+    }
+
+    private fun assertPathingWalk(
+        context: ClientGameTestContext,
+        server: net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext,
+        scenario: String,
+        goal: Stance,
+    ) {
+        server.runCommand("/tp Steve 0.5 100 0.5 0 0")
+        repeat(5) { context.waitTick() }
+
+        context.runOnClient<IllegalStateException> {
+            val player = Lambda.mc.player ?: error("Missing client player")
+            check(player.isOnGround) { "$scenario: player did not settle" }
+            PathingManager.clear()
+            PathingRequest(AutomationConfig.DEFAULT, goal).submit()
+        }
+
+        // The manager owns planning and replay; just let the client tick.
+        repeat(MAX_PATHING_TICKS) {
+            context.waitTick()
+            val status = PathingManager.status
+            if (status is PathingManager.Status.Complete || status is PathingManager.Status.Failed) {
+                return@repeat
+            }
+        }
+
+        context.runOnClient<IllegalStateException> {
+            val status = PathingManager.status
+            check(status is PathingManager.Status.Complete) { "$scenario: ended $status" }
+
+            val path = checkNotNull(PathingManager.published) { "$scenario: nothing published" }
+            check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
+
+            // maxDeviation is a 3D distance, so it may reach sqrt(3) times the
+            // per-axis epsilon the fixed-tape replays assert.
+            check(PathingManager.maxDeviation <= REPLAY_DEVIATION_EPSILON) {
+                "$scenario: max deviation ${PathingManager.maxDeviation} exceeded $REPLAY_DEVIATION_EPSILON"
+            }
+            PathingManager.clear()
+        }
+    }
+
+    private fun PathingManager.PublishedPath.dependencies() = plan.dependencies
 
     private fun assertMovementReplay(
         context: ClientGameTestContext,
@@ -190,6 +278,18 @@ object LambdaTest : FabricClientGameTest {
                 check(predicted.onGround == player.isOnGround) {
                     "$scenario frame $frame onGround: expected ${predicted.onGround}, actual ${player.isOnGround}"
                 }
+                // The block the player stands on, and the block vanilla reads
+                // friction from. Both are derived, not observed, so a simulator
+                // can drift on them while position and velocity still agree --
+                // which is exactly how this went unnoticed.
+                check(predicted.supportingBlockPos == player.supportingBlockPos.getOrNull()) {
+                    "$scenario frame $frame supportingBlockPos: expected ${predicted.supportingBlockPos}, " +
+                        "actual ${player.supportingBlockPos.getOrNull()}"
+                }
+                check(predicted.velocityAffectingPos == player.velocityAffectingPos) {
+                    "$scenario frame $frame velocityAffectingPos: expected ${predicted.velocityAffectingPos}, " +
+                        "actual ${player.velocityAffectingPos}"
+                }
             }
         }
 
@@ -216,4 +316,10 @@ object LambdaTest : FabricClientGameTest {
     }
 
     private const val MOVEMENT_EPSILON = 1.0E-6
+
+    /** Euclidean counterpart of [MOVEMENT_EPSILON]: sqrt(3) * per-axis, rounded up. */
+    private const val REPLAY_DEVIATION_EPSILON = 2.0E-6
+
+    /** Plan latency plus tape length; a walk that needs longer has already failed. */
+    private const val MAX_PATHING_TICKS = 400
 }

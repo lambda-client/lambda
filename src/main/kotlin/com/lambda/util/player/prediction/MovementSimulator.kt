@@ -20,7 +20,6 @@ package com.lambda.util.player.prediction
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.module.modules.movement.SafeWalk.isNearLedge
 import com.lambda.util.math.DOWN
-import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
@@ -103,6 +102,8 @@ class MovementSimulator(
     private var velocityAffectingPos = initialState.velocityAffectingPos
     private var horizontalCollision = initialState.horizontalCollision
     private var verticalCollision = initialState.verticalCollision
+    private var supportingBlockPos = initialState.supportingBlockPos
+    private var forceUpdateSupportingBlockPos = initialState.supportingBlockPos == null
 
     private var cachedTick: MovementSimulationTick? = null
 
@@ -120,6 +121,7 @@ class MovementSimulator(
             velocityAffectingPos = velocityAffectingPos,
             horizontalCollision = horizontalCollision,
             verticalCollision = verticalCollision,
+            supportingBlockPos = supportingBlockPos,
         )
 
     val lastTick: MovementSimulationTick
@@ -149,6 +151,8 @@ class MovementSimulator(
         velocityAffectingPos = state.velocityAffectingPos
         horizontalCollision = state.horizontalCollision
         verticalCollision = state.verticalCollision
+        supportingBlockPos = state.supportingBlockPos
+        forceUpdateSupportingBlockPos = state.supportingBlockPos == null
         cachedTick = null
         return lastTick
     }
@@ -352,26 +356,84 @@ class MovementSimulator(
         velocity *= Vec3d(velocityMultiplier, 1.0, velocityMultiplier)
 
         boundingBox = normalizedBoundingBox().offset(position)
-        velocityAffectingPos = (position + DOWN * 0.500001F.toDouble()).flooredBlockPos
+        updateSupportingBlockPos(onGround, movement)
+        velocityAffectingPos = posWithYOffset(VELOCITY_AFFECTING_Y_OFFSET)
+    }
+
+    /** @see net.minecraft.entity.Entity.updateSupportingBlockPos */
+    private fun updateSupportingBlockPos(onGround: Boolean, movement: Vec3d?) {
+        if (!onGround) {
+            forceUpdateSupportingBlockPos = false
+            supportingBlockPos = null
+            return
+        }
+
+        // A paper-thin probe box directly beneath the feet.
+        val probe = Box(
+            boundingBox.minX, boundingBox.minY - 1.0E-6, boundingBox.minZ,
+            boundingBox.maxX, boundingBox.minY, boundingBox.maxZ,
+        )
+        var found = environment.findSupportingBlockPos(probe, position)
+        if (found != null || forceUpdateSupportingBlockPos) {
+            supportingBlockPos = found
+        } else if (movement != null) {
+            // Nothing underneath now: vanilla retries where the entity came from,
+            // so a step off a ledge keeps the block it actually pushed off.
+            val rewound = probe.offset(-movement.x, 0.0, -movement.z)
+            found = environment.findSupportingBlockPos(rewound, position)
+            supportingBlockPos = found
+        }
+        forceUpdateSupportingBlockPos = found == null
+    }
+
+    /**
+     * @see net.minecraft.entity.Entity.getPosWithYOffset
+     *
+     * The X and Z come from the *supporting block*, not from the column under
+     * the entity's centre -- near a block edge those differ, and the difference
+     * decides which block's friction the next tick reads.
+     */
+    private fun posWithYOffset(offset: Double): BlockPos {
+        val supporting = supportingBlockPos
+            ?: return (position + DOWN * offset).flooredBlockPos
+
+        if (offset <= 1.0E-5) return supporting
+        if (environment.isFenceLike(supporting)) return supporting
+        return supporting.withY(MathHelper.floor(position.y - offset))
+    }
+
+    private companion object {
+        /** @see net.minecraft.entity.Entity.getVelocityAffectingPos */
+        const val VELOCITY_AFFECTING_Y_OFFSET = 0.500001
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */
     private fun jump() {
-        val jumpHeight = run {
+        // Vanilla evaluates getJumpVelocity() entirely in float; keeping the
+        // width here matters because the result seeds the whole airborne arc.
+        val multiplier = run {
             val f = environment.jumpVelocityMultiplier(position.flooredBlockPos)
             val g = environment.jumpVelocityMultiplier(velocityAffectingPos)
             if (f == 1.0) g else f
-        } * profile.jumpStrength + profile.jumpBoostVelocityModifier
+        }.toFloat()
+        val jumpVelocity = profile.jumpStrength.toFloat() * multiplier +
+            profile.jumpBoostVelocityModifier.toFloat()
+        if (jumpVelocity <= 1.0E-5F) return
 
         // Vanilla replaces ordinary grounded fall velocity, while preserving
         // a stronger pre-existing upward impulse.
-        velocity = Vec3d(velocity.x, maxOf(jumpHeight, velocity.y), velocity.z)
+        velocity = Vec3d(velocity.x, maxOf(jumpVelocity.toDouble(), velocity.y), velocity.z)
 
         if (isSprinting) {
-            // Vanilla's sprint-jump boost along the facing yaw (the context-
-            // free body of MovementUtils.movementVector).
-            val yawRad = rotation.yaw.toRadian()
-            velocity += Vec3d(-kotlin.math.sin(yawRad), 0.0, kotlin.math.cos(yawRad)) * 0.2
+            // Vanilla's sprint-jump boost reads the float yaw and goes through
+            // MathHelper's 65536-entry sine table, whose ~5e-5 quantization error
+            // is far larger than the differential tolerance. Math.sin would drift.
+            val yawRad = rotation.yawF * (Math.PI / 180.0).toFloat()
+            velocity += Vec3d(
+                -MathHelper.sin(yawRad.toDouble()).toDouble() * 0.2,
+                0.0,
+                MathHelper.cos(yawRad.toDouble()).toDouble() * 0.2,
+            )
         }
     }
 
@@ -493,6 +555,12 @@ data class MovementSimulationState(
     val velocityAffectingPos: BlockPos,
     val horizontalCollision: Boolean,
     val verticalCollision: Boolean,
+    /**
+     * The block the player is standing on. Null while airborne. Its X/Z are not
+     * necessarily the column under the player's centre, and [velocityAffectingPos]
+     * is derived from it, so it is physics-bearing and must be carried across ticks.
+     */
+    val supportingBlockPos: BlockPos? = null,
 ) {
     companion object {
         fun from(
@@ -505,11 +573,13 @@ data class MovementSimulationState(
             isSprinting: Boolean = player.isSprinting,
             isSneaking: Boolean = player.isSneaking,
             jumpingCooldown: Int = player.jumpingCooldown,
-            velocityAffectingPos: BlockPos = player.supportingBlockPos.getOrNull()
-                ?: (position + DOWN * 0.500001F.toDouble()).flooredBlockPos,
+            // Vanilla derives this as supportingBlockPos.withY(floor(y - 0.500001)),
+            // which is NOT the supporting block itself. Read its own answer.
+            velocityAffectingPos: BlockPos = player.velocityAffectingPos,
             horizontalCollision: Boolean = player.horizontalCollision,
             verticalCollision: Boolean = player.verticalCollision,
             boundingBox: Box = player.boundingBox.offset(position.subtract(player.pos)),
+            supportingBlockPos: BlockPos? = player.supportingBlockPos.getOrNull(),
         ) = MovementSimulationState(
             position = position,
             rotation = rotation,
@@ -523,6 +593,7 @@ data class MovementSimulationState(
             velocityAffectingPos = velocityAffectingPos,
             horizontalCollision = horizontalCollision,
             verticalCollision = verticalCollision,
+            supportingBlockPos = supportingBlockPos,
         )
 
         fun at(

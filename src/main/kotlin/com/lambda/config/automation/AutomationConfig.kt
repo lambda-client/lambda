@@ -26,6 +26,8 @@ import com.lambda.config.blocks.EatSettings
 import com.lambda.config.blocks.HotbarSettings
 import com.lambda.config.blocks.InteractSettings
 import com.lambda.config.blocks.InventorySettings
+import com.lambda.config.blocks.PathingRenderSettings
+import com.lambda.config.blocks.PathingSettings
 import com.lambda.config.blocks.RotationSettings
 import com.lambda.config.categories.AutomationCategory
 import com.lambda.context.Automated
@@ -45,6 +47,8 @@ open class AutomationConfig(
 	@Tab(INVENTORY_TAB) override val inventoryConfig by configBlock(InventorySettings(this))
 	@Tab(HOTBAR_TAB) override val hotbarConfig by configBlock(HotbarSettings(this))
 	@Tab(EAT_TAB) override val eatConfig by configBlock(EatSettings(this))
+	@Tab(PATHING_TAB) override val pathingConfig by configBlock(PathingSettings(this))
+	@Tab(PATHING_RENDER_TAB) override val pathingRenderConfig by configBlock(PathingRenderSettings(this))
 
 	companion object {
 		private const val BUILD_TAB = "Build"
@@ -54,6 +58,8 @@ open class AutomationConfig(
 		private const val INVENTORY_TAB = "Inventory"
 		private const val HOTBAR_TAB = "Hotbar"
 		private const val EAT_TAB = "Eat"
+		private const val PATHING_TAB = "Pathing"
+		private const val PATHING_RENDER_TAB = "Pathing Render"
 
 		@DslMarker
 		private annotation class AutomationConfigMarker
