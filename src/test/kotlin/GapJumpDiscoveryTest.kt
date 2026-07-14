@@ -23,6 +23,9 @@ import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotBlockPhysics
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.util.player.prediction.UnsupportedPhysics
+import com.lambda.util.player.prediction.UnsupportedPhysicsKind
+import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.hypot
@@ -112,6 +115,35 @@ class GapJumpDiscoveryTest {
         assertTrue(result.tape.asList().any { it.jump })
         assertTrue(result.rollout.finalState.onGround)
         assertTrue(hypot(result.rollout.finalState.position.x - 8.5, result.rollout.finalState.position.z - 0.5) <= 0.20)
+    }
+
+    /**
+     * The same two-wide hole, floored with lava instead of void.
+     *
+     * A hole with lava in it is still a hole, but the search used to go blind at it. The
+     * snapshot throws on the lava *during* the step, so the frame is never recorded and
+     * `evaluate` never reaches its below-route test: the hazard arrives as
+     * `UnsupportedPhysics`, which seeded nothing, and the whole search died at depth zero
+     * having never pressed jump once. In the field this read as "84 attempts, 84
+     * UnsupportedPhysics, search depths 0j[84]" -- a refusal with no search behind it.
+     */
+    @Test
+    fun `a hole floored with lava still seeds launch discovery`() {
+        val environment = lavaGapEnvironment(holeAt = 3..4)
+        val route = route(environment, Stance(9, 0, 0))
+
+        val result = assertIs<WalkingSeedSearchResult.Success>(
+            WalkingSeedSearch.search(route, initialState(), PROFILE, environment),
+            "walking into lava is a fall like any other; a launch has to be discovered for it",
+        )
+
+        assertTrue(result.tape.asList().any { it.jump }, "a two-wide hole cannot be walked")
+        assertTrue(result.parameters.gapLaunchFrames.isNotEmpty())
+        assertTrue(result.rollout.finalState.onGround)
+        assertTrue(
+            result.rollout.frames.none { frame -> frame.state.position.y < -0.5 },
+            "the certified tape must never dip into the lava it is clearing",
+        )
     }
 
     @Test
@@ -435,6 +467,27 @@ class GapJumpDiscoveryTest {
             for (x in -3..14) for (z in -3..3) {
                 if (holes.any { x in it }) continue
                 put(BlockPos(x, -1, z), SnapshotBlockPhysics.FULL_CUBE)
+            }
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            bounds = SimulationSnapshotBounds(-3, -12, -3, 14, 5, 3),
+            blocks = blocks,
+        )
+    }
+
+    /** The same flat floor with a hole, but the hole is floored with lava rather than void. */
+    private fun lavaGapEnvironment(holeAt: IntRange): SnapshotSimulationEnvironment {
+        val lava = SnapshotBlockPhysics(
+            collisionShape = VoxelShapes.empty(),
+            unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.FLUID, "minecraft:lava"),
+        )
+        val blocks = buildMap {
+            for (x in -3..14) for (z in -3..3) {
+                if (x in holeAt) {
+                    for (y in -3..-1) put(BlockPos(x, y, z), lava)
+                } else {
+                    put(BlockPos(x, -1, z), SnapshotBlockPhysics.FULL_CUBE)
+                }
             }
         }
         return SnapshotSimulationEnvironment.synthetic(

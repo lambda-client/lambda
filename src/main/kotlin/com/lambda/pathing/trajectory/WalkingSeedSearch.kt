@@ -321,12 +321,7 @@ object WalkingSeedSearch {
                             diagnostic = evaluation.diagnostic,
                         )
 
-                        // Only seed from obstacles a launch could actually clear.
-                        val blocked = when (val diagnostic = evaluation.diagnostic) {
-                            is TrajectoryDiagnostic.FellBelowRoute -> diagnostic.frame
-                            is TrajectoryDiagnostic.HorizontalCollision -> diagnostic.frame
-                            else -> null
-                        }
+                        val blocked = launchSeedFrame(evaluation.diagnostic)
                         if (blocked != null) {
                             launchSeeds += LaunchSeed(
                                 parameters = parameters,
@@ -386,11 +381,7 @@ object WalkingSeedSearch {
                             diagnostic = evaluation.diagnostic,
                         )
 
-                        val blocked = when (val diagnostic = evaluation.diagnostic) {
-                            is TrajectoryDiagnostic.FellBelowRoute -> diagnostic.frame
-                            is TrajectoryDiagnostic.HorizontalCollision -> diagnostic.frame
-                            else -> null
-                        }
+                        val blocked = launchSeedFrame(evaluation.diagnostic)
                         if (blocked != null) {
                             nextFrontier += LaunchSeed(
                                 parameters = parameters,
@@ -443,6 +434,27 @@ object WalkingSeedSearch {
             dependencies = route.dependencies + tracked.dependencies(),
             attempts = attempts.toList(),
         )
+    }
+
+    /**
+     * The frame a launch would have to beat, or null if no launch could help.
+     *
+     * `UnsupportedPhysics` belongs here even though it reads like a refusal about the
+     * world. A body that walks off a ledge into lava is *falling*; the snapshot throws
+     * during the step, so that frame is never recorded and [evaluate] never reaches its
+     * below-route test, and the hazard surfaces as a physics problem instead of as the
+     * fall it is. To a solver both mean the one thing that matters: the body needed to
+     * leave the ground here. Without this, a route with lava under it dies at search
+     * depth zero having never once tried pressing jump.
+     *
+     * [TrajectoryDiagnostic.OutsideSnapshot] is deliberately *not* a seed. That one is a
+     * bug in our capture, and no launch can fix a block we never read.
+     */
+    private fun launchSeedFrame(diagnostic: TrajectoryDiagnostic?): Int? = when (diagnostic) {
+        is TrajectoryDiagnostic.FellBelowRoute -> diagnostic.frame
+        is TrajectoryDiagnostic.HorizontalCollision -> diagnostic.frame
+        is TrajectoryDiagnostic.UnsupportedPhysics -> diagnostic.frame
+        else -> null
     }
 
     private class Candidate(
@@ -556,7 +568,8 @@ object WalkingSeedSearch {
         val latestGrounded = groundedMovingFrames.firstOrNull() ?: return null
         val runwayFrame = when (diagnostic) {
             is TrajectoryDiagnostic.HorizontalCollision,
-            is TrajectoryDiagnostic.FellBelowRoute -> {
+            is TrajectoryDiagnostic.FellBelowRoute,
+            is TrajectoryDiagnostic.UnsupportedPhysics -> {
                 // A failure boundary is not a horizon boundary. Handing off at the
                 // last safe ground tick puts the new controller directly on the
                 // obstacle, often with landing cooldown and no distance in which to
@@ -591,14 +604,21 @@ object WalkingSeedSearch {
         )
     }
 
-    /** Same monotone local progress rule as the controller; never snap across a folded route. */
+    /**
+     * Same monotone local progress rule as the controller; never snap across a folded route.
+     *
+     * [throughFrame] may name a frame that was never recorded: a rejected step (lava, an
+     * uncaptured block) reports the frame it *died on*, and the rollout stops one short of
+     * it. Progress through a frame that does not exist is progress through the last one
+     * that does.
+     */
     private fun routeProgress(
         rollout: TrajectoryRollout,
         throughFrame: Int,
         nodes: List<HorizontalPoint>,
     ): Int {
         var progress = 0
-        for (frame in 0..throughFrame) {
+        for (frame in 0..minOf(throughFrame, rollout.frames.lastIndex)) {
             val state = rollout.frames[frame].state
             val limit = minOf(nodes.lastIndex, progress + 2)
             var best = progress
@@ -764,6 +784,7 @@ object WalkingSeedSearch {
         private var progressIndex = 0
         private var braking = false
         private var terminalApproach = false
+        private var terminalReleased = false
         private var nextRise = 0
         private var jumpWasAirborne = false
 
@@ -785,6 +806,16 @@ object WalkingSeedSearch {
             // clear a step-up, so a rise on the final edge could never launch.
             val risePending = nextRise < rises.size
             val gapPending = parameters.gapLaunchFrames.any { frame <= it }
+
+            // Once the body has stopped short of a tight goal, closing the last fraction
+            // of a block is its own mode -- not more braking. The old code set the flag
+            // and then fell straight back into the brake test below (remaining distance
+            // is *inside* brakeDistance, that is what "short" means), so it re-braked to a
+            // standstill every tick and never actually moved. The body then sat one
+            // stride from the goal until the frame budget expired: "no stable stop after
+            // 160 frames" with the closest attempt 0.23 blocks out.
+            if (terminalApproach) return terminalApproachInput(observed, jump)
+
             if (braking) {
                 val stoppedShort = observed.onGround &&
                     observed.velocity.horizontalLength() <= config.stoppedSpeed &&
@@ -793,14 +824,11 @@ object WalkingSeedSearch {
                         nodes.last().z - observed.position.z,
                     ) > config.goalRadius
                 if (stoppedShort) {
-                    // Discrete keyboard braking can settle just outside a tight goal
-                    // radius. Resume with a non-sprinting terminal walk instead of
-                    // declaring an otherwise complete multi-jump route impossible.
                     braking = false
                     terminalApproach = true
-                } else {
-                    return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
+                    return terminalApproachInput(observed, jump)
                 }
+                return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
             }
             if (!risePending && !gapPending &&
                 remainingPathDistance(observed) <= parameters.brakeDistance
@@ -814,7 +842,58 @@ object WalkingSeedSearch {
             val yawDelta = Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
             return MovementSimulationInput(
                 forward = 1.0,
-                sprint = parameters.sprint && !terminalApproach,
+                sprint = parameters.sprint,
+                jump = jump,
+                rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
+            )
+        }
+
+        /**
+         * Closes the last fraction of a block to a goal the body stopped short of.
+         *
+         * A plain non-sprint walk that releases -- and *latches* released
+         * ([terminalReleased]) -- the moment either the body enters the goal radius or its
+         * committed momentum will coast it there. Each piece is forced on us:
+         *
+         * - **Not sneak.** The manager writes its input after vanilla's `input.tick()` has
+         *   already built the movement vector, so a pressed sneak never slows the live body;
+         *   the simulator would certify a slowdown the client cannot reproduce (a live
+         *   differential caught exactly this). Only a full walk is honest.
+         * - **Release inside the radius, do not steer to the centre.** A walk from rest
+         *   barely reaches the near edge, but chasing the centre overshoots it -- and once
+         *   past, `atan2` flips 180° while the 30 deg/tick yaw cap cannot turn the body
+         *   around, so it drives far past and slowly loops back. That loop *is* the
+         *   circle-around-the-goal. Stopping at the near edge is inside the radius and does
+         *   not trigger it.
+         * - **The coast term** ([TERMINAL_COAST_PER_SPEED]) only matters for a faster entry:
+         *   release early enough that friction lands the body in the radius rather than
+         *   through it.
+         * - **The latch** keeps a post-release drift from re-pressing and reopening the loop.
+         */
+        private fun terminalApproachInput(
+            observed: MovementSimulationState,
+            jump: Boolean,
+        ): MovementSimulationInput {
+            val goal = nodes.last()
+            val dx = goal.x - observed.position.x
+            val dz = goal.z - observed.position.z
+            val distance = hypot(dx, dz)
+
+            // Speed already committed toward the goal, and how far that coasts once the key
+            // is released -- a decaying-friction geometric series, ~2.2 blocks per b/t.
+            val speedTowardGoal = if (distance <= 1e-9) 0.0
+            else (observed.velocity.x * dx + observed.velocity.z * dz) / distance
+            val coast = speedTowardGoal * TERMINAL_COAST_PER_SPEED
+
+            if (terminalReleased || distance <= config.goalRadius || coast >= distance) {
+                terminalReleased = true
+                return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
+            }
+            val desiredYaw = Math.toDegrees(atan2(dz, dx)) - 90.0
+            val yawDelta = Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
+            return MovementSimulationInput(
+                forward = 1.0,
+                sprint = false,
                 jump = jump,
                 rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
             )
@@ -865,6 +944,15 @@ object WalkingSeedSearch {
         private companion object {
             /** A tick advances well under one block, so two nodes is generous headroom. */
             const val MAX_PROGRESS_ADVANCE = 2
+
+            /**
+             * Blocks a released walk coasts per b/t of committed speed. On ground the
+             * next tick still advances by the full velocity before friction (~0.546)
+             * decays it, so the coast sums to speed / (1 - 0.546) ~= 2.2. The terminal
+             * approach releases when this coast reaches the goal, so a faster entry drifts
+             * to rest in the radius rather than through it.
+             */
+            const val TERMINAL_COAST_PER_SPEED = 2.2
         }
     }
 

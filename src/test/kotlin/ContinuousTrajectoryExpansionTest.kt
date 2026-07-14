@@ -50,6 +50,47 @@ class ContinuousTrajectoryExpansionTest {
         assertTrue(result.tape.frameCount >= WalkingSeedSearchConfig().stableStopFrames)
     }
 
+    /**
+     * A body handed to a singleton suffix already stopped *outside* the goal radius.
+     *
+     * This is what a continuous splice near the goal produces: the last extension ends
+     * grounded and barely moving 0.23 blocks out -- exactly the live refusal -- and no
+     * brake distance can help, because the body is not braking, it has stopped. The old
+     * terminal reacquisition set its flag and then fell straight back into the brake test
+     * (remaining distance is inside brakeDistance, that is what "short" means), re-braking
+     * to a standstill every tick without moving. The result was "no stable stop after 160
+     * frames" with the closest attempt frozen a fifth of a block from the goal. The
+     * reacquisition now sneak-steps the last fraction in and stops inside the radius.
+     */
+    @Test
+    fun `a singleton goal is reacquired from just outside the radius`() {
+        val config = WalkingSeedSearchConfig()
+        val environment = corridor(length = 4)
+        val route = route(environment, Stance(0, 0, 0))
+
+        // 0.23 blocks short of the goal centre and essentially stopped, still facing it
+        // as a real arrival would: the exact state and distance of the live singleton
+        // refusal. Yaw 0 is +z, straight at the goal.
+        val stoppedShort = MovementSimulationState.synthetic(
+            profile = PROFILE,
+            position = Vec3d(0.5, 0.0, 0.5 - 0.23),
+            rotation = Rotation(0.0, 0.0),
+            velocity = Vec3d(0.0, -0.0784, 0.006),
+            onGround = true,
+        )
+
+        val result = assertIs<WalkingSeedSearchResult.Success>(
+            WalkingSeedSearch.searchContinuously(route, stoppedShort, PROFILE, environment, config),
+            "a body stopped a fifth of a block short must sneak in, not re-brake forever",
+        )
+
+        val finalState = result.rollout.finalState
+        val distance = kotlin.math.hypot(finalState.position.x - 0.5, finalState.position.z - 0.5)
+        assertTrue(distance <= config.goalRadius, "must come to rest inside the goal radius, ended $distance")
+        assertTrue(finalState.onGround)
+        assertTrue(finalState.velocity.horizontalLength() <= config.stoppedSpeed)
+    }
+
     @Test
     fun `a route longer than the frame budget cannot be certified whole`() {
         val environment = corridor(length = 120)

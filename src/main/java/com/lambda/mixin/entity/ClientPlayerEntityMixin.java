@@ -155,6 +155,31 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         return BaritoneHandler.isActive() ? original.call(instance) : Objects.requireNonNullElse(RotationManager.getHandYaw(), original.call(instance));
     }
 
+    /**
+     * {@code hasCollidedSoftly} decides whether scraping a wall cancels sprint, by measuring
+     * the angle between the direction the body <em>meant</em> to move and the direction the
+     * collision actually left it. Vanilla derives "meant to" from {@code getYaw()} -- the
+     * camera -- which is right only while the camera is what steers the body.
+     *
+     * <p>It is not, the moment a rotation request supplies a movement yaw:
+     * {@link com.lambda.mixin.entity.EntityMixin#velocityYaw} already redirects
+     * {@code Entity.updateVelocity} to it, so the body walks along the movement yaw while
+     * this test still asks about the camera. Under {@code RotationMode.Sync} the camera is
+     * never written at all, so the two point apart by however far the user happens to be
+     * looking, and the whole disagreement lands on {@code collidedSoftly} -- on whether
+     * sprint survives -- with position, velocity and yaw all identical.
+     *
+     * <p>The invariant is that this test must use the same yaw {@code updateVelocity} used.
+     * It holds for a hand-written input too: {@code redirectStrafeInputs} counter-rotates
+     * {@code forwardSpeed}/{@code sidewaysSpeed} against the movement yaw precisely so that
+     * rotating them <em>by</em> the movement yaw reproduces the user's intended heading.
+     */
+    @WrapOperation(method = "hasCollidedSoftly", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
+    float wrapCollidedSoftlyYaw(ClientPlayerEntity instance, Operation<Float> original) {
+        if (BaritoneHandler.isActive()) return original.call(instance);
+        return Objects.requireNonNullElse(RotationManager.getMovementYaw(), original.call(instance));
+    }
+
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
     float wrapGetPitch(ClientPlayerEntity instance, Operation<Float> original) {
         return BaritoneHandler.isActive() ? original.call(instance) : Objects.requireNonNullElse(RotationManager.getHandPitch(), original.call(instance));

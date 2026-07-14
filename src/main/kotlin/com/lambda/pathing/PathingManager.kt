@@ -39,6 +39,7 @@ import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.Vec3d
 import java.util.Collections
 import kotlin.math.abs
@@ -73,6 +74,14 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     sealed interface Status {
         data object Idle : Status
+
+        /**
+         * Bringing the body to true rest before the initial state is captured. A plan
+         * begins from the exact state it was simulated at; capturing a still-drifting
+         * body freezes a moving frame zero that no longer exists once the async plan
+         * returns, and the cursor then rejects it. Only entered when actually moving.
+         */
+        data class Settling(val goal: String) : Status
         data class Planning(val goal: String) : Status
         data class Aligning(val leg: Int, val yawError: Double) : Status
         data class Executing(val frame: Int, val frames: Int, val leg: Int) : Status
@@ -115,6 +124,7 @@ object PathingManager : Manager<PathingRequest>(0) {
     /** A certified plan waiting for movement yaw to match its immutable initial state. */
     private var pendingPath: PublishedPath? = null
     private var alignmentTicks = 0
+    private var settleTicks = 0
     private var cursor: TrajectoryExecutionCursor? = null
     /**
      * The input the tape says to press this tick. Written in [TickEvent.Pre] and read
@@ -136,7 +146,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         planningYaw = null
         pendingPath = null
         alignmentTicks = 0
-        if (status is Status.Planning || status is Status.Aligning || status is Status.Executing) {
+        settleTicks = 0
+        if (status is Status.Settling || status is Status.Planning ||
+            status is Status.Aligning || status is Status.Executing
+        ) {
             status = Status.Idle
         }
     }
@@ -168,9 +181,44 @@ object PathingManager : Manager<PathingRequest>(0) {
     /**
      * Plans one full trajectory. Local search horizons may be concatenated from
      * predicted moving states on the worker, but no partial route is executable.
+     *
+     * If the body still carries drift from a previous action, it is settled to true
+     * rest first: the plan's frame zero is the exact state it was simulated at, and a
+     * moving capture is stale before the async worker even returns.
      */
     private fun planTrajectory(request: PathingRequest) {
         val player = mc.player ?: return fail("no player")
+        if (player.velocity.horizontalLength() > SETTLED_SPEED) {
+            settleTicks = 0
+            tickInput = ALIGNMENT_INPUT
+            status = Status.Settling("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
+            return
+        }
+        capturePlan(request, player)
+    }
+
+    /**
+     * Presses zero movement input until the body reaches the rest vanilla clamps to,
+     * then captures and plans. Bounded: a body that will not settle in time is planned
+     * from where it is, with the drift guard in [begin] as the backstop.
+     */
+    private fun settle(request: PathingRequest) {
+        val player = mc.player ?: return fail("no player")
+        tickInput = ALIGNMENT_INPUT
+        if (player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround) {
+            return capturePlan(request, player)
+        }
+        if (++settleTicks > MAX_SETTLE_TICKS) {
+            // Something keeps the body moving with no input of ours -- a slope, ice, a
+            // current. Better a clear refusal than a capture the cursor will reject.
+            fail("could not settle to a stable start (%.3f b/t after %d ticks)".format(
+                player.velocity.horizontalLength(), settleTicks,
+            ))
+        }
+    }
+
+    private fun capturePlan(request: PathingRequest, player: ClientPlayerEntity) {
+        tickInput = null
 
         // Movement yaw is part of the simulator's immutable initial state. A prior
         // leg's request can decay back toward the camera while this worker runs, so
@@ -296,6 +344,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
         listen<TickEvent.Pre> {
             val request = activeRequest ?: return@listen
+            if (status is Status.Settling) return@listen settle(request)
             if (status is Status.Planning) return@listen holdPlanningYaw(request)
             if (status is Status.Aligning) return@listen align(request)
 
@@ -496,6 +545,21 @@ object PathingManager : Manager<PathingRequest>(0) {
     private const val START_YAW_TOLERANCE = 1.0
 
     private const val MAX_ALIGNMENT_TICKS = 20
+
+    /**
+     * Horizontal speed below which the body counts as at rest for capture.
+     *
+     * It must mean *actually stopped*, not almost: vanilla clamps horizontal velocity to
+     * exactly zero under 0.003, and only after that clamp fires does the body stop moving.
+     * Capturing at, say, 0.0029 would still bleed up to that much drift across the async
+     * plan, and frame zero is checked to 2e-6. So this waits for the post-clamp zero --
+     * one or two ticks longer, and the difference between a valid capture and a rejected
+     * one.
+     */
+    private const val SETTLED_SPEED = 1e-6
+
+    /** From any settleable speed the clamp fires within ~10 ticks; this is ample headroom. */
+    private const val MAX_SETTLE_TICKS = 40
 
     /** The seed search caps yaw change at 30 deg/frame; the turn must clear that. */
     private const val MIN_TURN_SPEED = 30.0

@@ -137,6 +137,7 @@ object PathingRenderer : Loadable {
 
     private fun statusLabel(): String = when (val status = PathingManager.status) {
         is PathingManager.Status.Idle -> "idle"
+        is PathingManager.Status.Settling -> "settling ${status.goal}"
         is PathingManager.Status.Planning -> "planning ${status.goal}"
         is PathingManager.Status.Aligning ->
             "aligning trajectory  yaw error %.1f°".format(status.yawError)
