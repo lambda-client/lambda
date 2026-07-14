@@ -19,6 +19,7 @@ package com.lambda.util.player.prediction
 
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.VoxelPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.ShapeContext
@@ -62,6 +63,8 @@ data class SnapshotBlockPhysics(
     val jumpVelocityMultiplier: Double = 1.0,
     val unsupportedPhysics: UnsupportedPhysics? = null,
     val coarseVoxel: CoarseVoxel = CoarseVoxel.UNKNOWN,
+    /** Fences/walls/gates anchor the velocity-affecting pos to themselves. */
+    val fenceLike: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_SLIPPERINESS = 0.6
@@ -93,6 +96,10 @@ class SimulationSnapshotOutOfBoundsException(val pos: BlockPos) :
 class UnsupportedBlockPhysicsException(val pos: BlockPos, val physics: UnsupportedPhysics) :
     SimulationEnvironmentException("Unsupported movement physics at $pos: $physics")
 
+private fun interface SnapshotReadObserver {
+    fun onRead(pos: BlockPos)
+}
+
 /**
  * Bounded immutable environment for worker-thread rollouts.
  *
@@ -109,11 +116,11 @@ class SnapshotSimulationEnvironment private constructor(
 ) : SimulationEnvironment, CoarseVoxelView {
     private val blocks = Collections.unmodifiableMap(HashMap(blocks))
 
-    override fun slipperiness(pos: BlockPos): Double = blockAt(pos).checked(pos).slipperiness
+    override fun slipperiness(pos: BlockPos): Double = checkedBlockAt(pos, null).slipperiness
 
-    override fun velocityMultiplier(pos: BlockPos): Double = blockAt(pos).checked(pos).velocityMultiplier
+    override fun velocityMultiplier(pos: BlockPos): Double = checkedBlockAt(pos, null).velocityMultiplier
 
-    override fun jumpVelocityMultiplier(pos: BlockPos): Double = blockAt(pos).checked(pos).jumpVelocityMultiplier
+    override fun jumpVelocityMultiplier(pos: BlockPos): Double = checkedBlockAt(pos, null).jumpVelocityMultiplier
 
     /** Planner reads fail closed at snapshot bounds and unsupported physics. */
     override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel {
@@ -129,15 +136,23 @@ class SnapshotSimulationEnvironment private constructor(
         boundingBox: Box,
         onGround: Boolean,
         stepHeight: Double,
+    ): Vec3d = adjustMovementForCollisions(movement, boundingBox, onGround, stepHeight, null)
+
+    private fun adjustMovementForCollisions(
+        movement: Vec3d,
+        boundingBox: Box,
+        onGround: Boolean,
+        stepHeight: Double,
+        observer: SnapshotReadObserver?,
     ): Vec3d = VanillaBlockCollisionResolver.adjust(
         movement = movement,
         boundingBox = boundingBox,
         onGround = onGround,
         stepHeight = stepHeight,
-        collisionShapes = ::collectBlockShapes,
+        collisionShapes = { collectBlockShapes(it, observer) },
     )
 
-    private fun collectBlockShapes(query: Box): List<VoxelShape> {
+    private fun collectBlockShapes(query: Box, observer: SnapshotReadObserver?): List<VoxelShape> {
         val minX = MathHelper.floor(query.minX - COLLISION_EPSILON) - 1
         val maxX = MathHelper.floor(query.maxX + COLLISION_EPSILON) + 1
         val minY = MathHelper.floor(query.minY - COLLISION_EPSILON) - 1
@@ -151,6 +166,7 @@ class SnapshotSimulationEnvironment private constructor(
             for (z in minZ..maxZ) {
                 for (x in minX..maxX) {
                     val pos = mutable.set(x, y, z)
+                    observer?.onRead(pos)
                     val block = blockAt(pos)
                     val unsupported = block.unsupportedPhysics
                     if (unsupported != null && query.intersectsUnitBlock(x, y, z)) {
@@ -165,6 +181,66 @@ class SnapshotSimulationEnvironment private constructor(
         return result ?: emptyList()
     }
 
+    override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
+        findSupportingBlockPos(box, entityPos, null)
+
+    override fun isFenceLike(pos: BlockPos): Boolean = isFenceLike(pos, null)
+
+    private fun isFenceLike(pos: BlockPos, observer: SnapshotReadObserver?): Boolean =
+        checkedBlockAt(pos, observer).fenceLike
+
+    /**
+     * Vanilla picks the colliding block nearest the entity, breaking ties by
+     * BlockPos order. Both halves matter: the nearest block is often *not* the
+     * column under the entity's centre, and the tie-break is what makes the
+     * choice deterministic when two blocks are equidistant.
+     *
+     * @see net.minecraft.world.CollisionView.findSupportingBlockPos
+     */
+    private fun findSupportingBlockPos(
+        box: Box,
+        entityPos: Vec3d,
+        observer: SnapshotReadObserver?,
+    ): BlockPos? {
+        val minX = MathHelper.floor(box.minX - COLLISION_EPSILON) - 1
+        val maxX = MathHelper.floor(box.maxX + COLLISION_EPSILON) + 1
+        val minY = MathHelper.floor(box.minY - COLLISION_EPSILON) - 1
+        val maxY = MathHelper.floor(box.maxY + COLLISION_EPSILON) + 1
+        val minZ = MathHelper.floor(box.minZ - COLLISION_EPSILON) - 1
+        val maxZ = MathHelper.floor(box.maxZ + COLLISION_EPSILON) + 1
+
+        var best: BlockPos? = null
+        var bestDistance = Double.MAX_VALUE
+        val mutable = BlockPos.Mutable()
+
+        for (y in minY..maxY) {
+            for (z in minZ..maxZ) {
+                for (x in minX..maxX) {
+                    val pos = mutable.set(x, y, z)
+                    observer?.onRead(pos)
+                    val block = blockAt(pos)
+                    if (block.collisionShape.isEmpty) continue
+
+                    val collides = block.collisionShape
+                        .offset(x.toDouble(), y.toDouble(), z.toDouble())
+                        .boundingBoxes
+                        .any { it.intersects(box) }
+                    if (!collides) continue
+
+                    val candidate = pos.toImmutable()
+                    val distance = candidate.getSquaredDistance(entityPos)
+                    if (distance < bestDistance ||
+                        (distance == bestDistance && (best == null || best!! < candidate))
+                    ) {
+                        best = candidate
+                        bestDistance = distance
+                    }
+                }
+            }
+        }
+        return best
+    }
+
     private fun blockAt(pos: BlockPos): SnapshotBlockPhysics {
         if (pos !in bounds) throw SimulationSnapshotOutOfBoundsException(pos.toImmutable())
         return blocks[BlockPos.asLong(pos.x, pos.y, pos.z)]
@@ -177,6 +253,14 @@ class SnapshotSimulationEnvironment private constructor(
         if (unsupported != null) throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
         return this
     }
+
+    private fun checkedBlockAt(pos: BlockPos, observer: SnapshotReadObserver?): SnapshotBlockPhysics {
+        observer?.onRead(pos)
+        return blockAt(pos).checked(pos)
+    }
+
+    /** Creates a worker-local dependency collector over this immutable snapshot. */
+    fun trackingView(): TrackedSnapshotSimulationEnvironment = TrackedSnapshotSimulationEnvironment(this)
 
     private fun Box.intersectsUnitBlock(x: Int, y: Int, z: Int): Boolean =
         maxX > x && minX < x + 1.0 &&
@@ -249,6 +333,7 @@ class SnapshotSimulationEnvironment private constructor(
                 jumpVelocityMultiplier = block.jumpVelocityMultiplier.toDouble(),
                 unsupportedPhysics = unsupported,
                 coarseVoxel = coarseVoxel,
+                fenceLike = isFenceLike(),
             )
         }
 
@@ -276,5 +361,33 @@ class SnapshotSimulationEnvironment private constructor(
             1.0 - COLLISION_EPSILON,
             0.8 - COLLISION_EPSILON,
         )
+    }
+
+    class TrackedSnapshotSimulationEnvironment internal constructor(
+        private val snapshot: SnapshotSimulationEnvironment,
+    ) : SimulationEnvironment {
+        private val reads = HashSet<VoxelPos>()
+        private val observer = SnapshotReadObserver { pos -> reads += VoxelPos(pos.x, pos.y, pos.z) }
+
+        /** Immutable copy suitable for publication after the rollout finishes. */
+        fun dependencies(): Set<VoxelPos> = Collections.unmodifiableSet(HashSet(reads))
+
+        override fun slipperiness(pos: BlockPos): Double = snapshot.checkedBlockAt(pos, observer).slipperiness
+
+        override fun velocityMultiplier(pos: BlockPos): Double = snapshot.checkedBlockAt(pos, observer).velocityMultiplier
+
+        override fun jumpVelocityMultiplier(pos: BlockPos): Double = snapshot.checkedBlockAt(pos, observer).jumpVelocityMultiplier
+
+        override fun adjustMovementForCollisions(
+            movement: Vec3d,
+            boundingBox: Box,
+            onGround: Boolean,
+            stepHeight: Double,
+        ): Vec3d = snapshot.adjustMovementForCollisions(movement, boundingBox, onGround, stepHeight, observer)
+
+        override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
+            snapshot.findSupportingBlockPos(box, entityPos, observer)
+
+        override fun isFenceLike(pos: BlockPos): Boolean = snapshot.isFenceLike(pos, observer)
     }
 }

@@ -17,13 +17,17 @@
 
 package com.lambda.util.player.prediction
 
+import net.minecraft.block.BlockState
+import net.minecraft.block.FenceGateBlock
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
+import kotlin.jvm.optionals.getOrNull
 
 /**
  * World-dependent operations used by [MovementSimulator].
@@ -49,6 +53,22 @@ interface SimulationEnvironment {
         onGround: Boolean,
         stepHeight: Double,
     ): Vec3d
+
+    /**
+     * Nearest block colliding with [box], by squared distance to [entityPos] with
+     * a BlockPos-order tie-break.
+     *
+     * This is what the entity is *standing on*, and it is not the same as the
+     * column under its centre: near a block edge the supporting block's X/Z can
+     * differ from `floor(pos)`. Vanilla reads friction and the velocity/jump
+     * multipliers from it, so getting it wrong reads the wrong block's physics.
+     *
+     * @see net.minecraft.world.CollisionView.findSupportingBlockPos
+     */
+    fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos?
+
+    /** Fences, walls and fence gates anchor the velocity-affecting pos to themselves. */
+    fun isFenceLike(pos: BlockPos): Boolean
 }
 
 /** Client-thread environment backed by the live Minecraft world. */
@@ -77,7 +97,16 @@ class LiveSimulationEnvironment(
         stepHeight = stepHeight,
         collisionShapes = { box -> world.getBlockCollisions(player, box).toList() },
     )
+
+    override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
+        world.findSupportingBlockPos(player, box).getOrNull()
+
+    override fun isFenceLike(pos: BlockPos): Boolean = world.getBlockState(pos).isFenceLike()
 }
+
+/** @see net.minecraft.entity.Entity.getPosWithYOffset */
+internal fun BlockState.isFenceLike(): Boolean =
+    isIn(BlockTags.FENCES) || isIn(BlockTags.WALLS) || block is FenceGateBlock
 
 /** Immutable player constants captured once when a simulation is created. */
 data class PlayerPhysicsProfile(

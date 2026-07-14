@@ -23,6 +23,30 @@ import kotlin.test.assertTrue
 
 class SnapshotSimulationEnvironmentTest {
     @Test
+    fun `tracked snapshot view records immutable exact scalar dependencies`() {
+        val environment = environment(emptyMap())
+        val tracked = environment.trackingView()
+
+        tracked.slipperiness(BlockPos(0, 0, 0))
+        tracked.velocityMultiplier(BlockPos(1, 0, 0))
+        val published = tracked.dependencies()
+        tracked.jumpVelocityMultiplier(BlockPos(0, 1, 0))
+
+        assertEquals(
+            setOf(
+                com.lambda.pathing.world.VoxelPos(0, 0, 0),
+                com.lambda.pathing.world.VoxelPos(1, 0, 0),
+            ),
+            published,
+        )
+        assertEquals(3, tracked.dependencies().size)
+        assertFailsWith<UnsupportedOperationException> {
+            @Suppress("UNCHECKED_CAST")
+            (published as MutableSet<com.lambda.pathing.world.VoxelPos>) += com.lambda.pathing.world.VoxelPos(2, 0, 0)
+        }
+    }
+
+    @Test
     fun `snapshot exposes fail closed coarse traits without live world reads`() {
         val environment = SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(-1, -1, -1, 1, 1, 1),

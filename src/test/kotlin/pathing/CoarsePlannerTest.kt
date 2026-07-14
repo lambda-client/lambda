@@ -11,6 +11,7 @@ package pathing
 
 import com.lambda.pathing.coarse.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarseMoveKind
+import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
@@ -19,6 +20,7 @@ import com.lambda.pathing.core.TailCost
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.VoxelPos
+import net.minecraft.util.math.Vec3d
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,6 +31,25 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 class CoarsePlannerTest {
+    @Test
+    fun `kinematic envelope derives optimistic costs and rejects velocity outside its proof scope`() {
+        val envelope = CoarseKinematicEnvelope(
+            maxHorizontalBlocksPerTick = 0.5,
+            maxAscentBlocksPerTick = 0.4,
+            maxDescentBlocksPerTick = 2.0,
+        )
+        val costs = envelope.moveCosts()
+
+        assertEquals(2.0, costs.cardinalWalk, 1e-9)
+        assertEquals(kotlin.math.sqrt(2.0) / 0.5, costs.diagonalWalk, 1e-9)
+        assertEquals(2.5, costs.stepUp, 1e-9)
+        assertEquals(4.0, costs.flatJumpCandidate, 1e-9)
+        assertEquals(2.0, costs.walkOffCost(4), 1e-9)
+        assertTrue(envelope.contains(Vec3d(0.3, 0.2, 0.4)))
+        assertFalse(envelope.contains(Vec3d(0.4, 0.0, 0.4)))
+        assertFalse(envelope.contains(Vec3d(0.0, -2.1, 0.0)))
+    }
+
     @Test
     fun `simple library plans a flat route through the copied D star core`() {
         val world = SyntheticView().apply { fillGround(-8..8, -8..8, y = 0) }
@@ -42,6 +63,13 @@ class CoarsePlannerTest {
         assertEquals(Stance(0, 1, 0), route.nodes.first())
         assertEquals(Stance(5, 1, 0), route.nodes.last())
         assertIs<TailCost.Exact>(planner.tailCost())
+
+        val published = assertNotNull(planner.routePlan(snapshotRevision = 71L))
+        assertEquals(71L, published.snapshotRevision)
+        assertEquals(route.routeVersion, published.routeVersion)
+        assertEquals(route.nodes, published.nodes)
+        assertEquals(route.ticks, published.edges.sumOf { it.lowerBoundTicks }, 1e-9)
+        assertTrue(published.dependencies.isNotEmpty())
     }
 
     @Test

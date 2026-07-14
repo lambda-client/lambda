@@ -1,0 +1,277 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
+package pathing
+
+import com.lambda.pathing.core.DStarLite
+import com.lambda.pathing.core.Key
+import com.lambda.pathing.core.LazyGraph
+import com.lambda.util.world.fastVectorOf
+import pathing.GridGraphTestUtil.Connectivity.N26
+import pathing.GridGraphTestUtil.Connectivity.N6
+import pathing.GridGraphTestUtil.affectedNodes
+import pathing.GridGraphTestUtil.euclidean
+import pathing.GridGraphTestUtil.graph
+import pathing.GridGraphTestUtil.length
+import pathing.GridGraphTestUtil.manhattan
+import kotlin.math.sqrt
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+class DStarLiteCoreTest {
+    @Test
+    fun `initialize sets goal rhs to zero and queues the goal`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(5, 0, 0)
+        val planner = DStarLite(graph(connectivity = N6), start, goal, ::manhattan)
+
+        assertEquals(0.0, planner.rhs(goal))
+        assertEquals(Double.POSITIVE_INFINITY, planner.g(goal))
+        assertEquals(1, planner.queue.size())
+        assertEquals(goal, planner.queue.top())
+        assertEquals(Key(manhattan(start, goal), 0.0), planner.queue.topKey(Key.INFINITY))
+    }
+
+    @Test
+    fun `computeShortestPath finds straight path on six connected grid`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(5, 0, 0)
+        val planner = DStarLite(graph(connectivity = N6), start, goal, ::manhattan)
+
+        val result = planner.computeShortestPath()
+        val path = planner.path()
+
+        assertFalse(result.timedOut)
+        assertEquals(5.0, planner.g(start), 0.001)
+        assertEquals(0.0, planner.g(goal), 0.001)
+        assertEquals(
+            listOf(
+                fastVectorOf(0, 0, 0),
+                fastVectorOf(1, 0, 0),
+                fastVectorOf(2, 0, 0),
+                fastVectorOf(3, 0, 0),
+                fastVectorOf(4, 0, 0),
+                fastVectorOf(5, 0, 0),
+            ),
+            path,
+        )
+    }
+
+    @Test
+    fun `computeShortestPath finds diagonal path on twenty six connected grid`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(2, 2, 2)
+        val planner = DStarLite(graph(connectivity = N26), start, goal, ::euclidean)
+
+        planner.computeShortestPath()
+
+        assertEquals(2.0 * sqrt(3.0), planner.g(start), 0.001)
+        assertEquals(
+            listOf(
+                fastVectorOf(0, 0, 0),
+                fastVectorOf(1, 1, 1),
+                fastVectorOf(2, 2, 2),
+            ),
+            planner.path(),
+        )
+    }
+
+    @Test
+    fun `updateStart advances km and reuses the previous search`() {
+        val start1 = fastVectorOf(0, 0, 0)
+        val start2 = fastVectorOf(1, 0, 0)
+        val goal = fastVectorOf(5, 0, 0)
+        val planner = DStarLite(graph(connectivity = N6), start1, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        planner.updateStart(start2)
+        planner.computeShortestPath()
+
+        assertEquals(1.0, planner.km, 0.001)
+        assertEquals(4.0, planner.g(start2), 0.001)
+        assertEquals(start2, planner.path().first())
+        assertEquals(goal, planner.path().last())
+    }
+
+    @Test
+    fun `start equals goal produces a single node path`() {
+        val start = fastVectorOf(3, 3, 3)
+        val planner = DStarLite(graph(connectivity = N26), start, start, ::euclidean)
+
+        planner.computeShortestPath()
+
+        assertEquals(0.0, planner.g(start), 0.001)
+        assertEquals(listOf(start), planner.path())
+    }
+
+    @Test
+    fun `synchronizeAffected repairs path after a known node becomes blocked`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(5, 0, 0)
+        val blocked = mutableSetOf<Long>()
+        val planner = DStarLite(graph(blocked, N6), start, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        val initialPath = planner.path()
+
+        val blockedNode = fastVectorOf(2, 0, 0)
+        blocked += blockedNode
+        val sync = planner.synchronizeAffected(affectedNodes(blockedNode, N6))
+        planner.computeShortestPath()
+        val repairedPath = planner.path()
+
+        assertTrue(sync.nodesChecked > 0)
+        assertTrue(blockedNode !in repairedPath)
+        assertEquals(start, repairedPath.first())
+        assertEquals(goal, repairedPath.last())
+        assertTrue(repairedPath.length() > initialPath.length())
+    }
+
+    @Test
+    fun `synchronizeAffected repairs path after a blocked node becomes passable`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(5, 0, 0)
+        val blockedNode = fastVectorOf(2, 0, 0)
+        val blocked = mutableSetOf(blockedNode)
+        val planner = DStarLite(graph(blocked, N6), start, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        val detour = planner.path()
+
+        blocked -= blockedNode
+        planner.synchronizeAffected(affectedNodes(blockedNode, N6))
+        planner.computeShortestPath()
+        val repairedPath = planner.path()
+
+        assertTrue(blockedNode in repairedPath)
+        assertTrue(repairedPath.length() < detour.length())
+    }
+
+    @Test
+    fun `synchronizeAffected regenerates a known node whose adjacency was empty`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(1, 0, 0)
+        var opened = false
+        val graph = LazyGraph<Long>(
+            successorProvider = { node ->
+                if (opened && node == start) mapOf(goal to 1.0) else emptyMap()
+            },
+            predecessorProvider = { node ->
+                if (opened && node == goal) mapOf(start to 1.0) else emptyMap()
+            },
+        )
+        val planner = DStarLite(graph, start, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        assertTrue(planner.path().isEmpty())
+
+        // The search has examined this adjacency and learned that it is a
+        // dead end. It remains a known node even though it stores no edges.
+        assertTrue(graph.successors(start).isEmpty())
+        assertTrue(start in graph)
+
+        opened = true
+        val sync = planner.synchronizeAffected(listOf(start))
+        planner.computeShortestPath()
+
+        assertEquals(1, sync.nodesChecked)
+        assertEquals(1, sync.edgesAdded)
+        assertEquals(listOf(start, goal), planner.path())
+    }
+
+    @Test
+    fun `lazy graph maintains known nodes without rebuilding its node set`() {
+        val graph = LazyGraph<Int>({ node -> if (node == 1) mapOf(2 to 1.0) else emptyMap() })
+
+        assertTrue(graph.successors(1).containsKey(2))
+        assertEquals(setOf(1, 2), graph.nodes)
+        assertEquals(2, graph.size)
+        assertFailsWith<UnsupportedOperationException> {
+            @Suppress("UNCHECKED_CAST")
+            (graph.nodes as MutableSet<Int>).add(3)
+        }
+
+        graph.setCost(1, 2, Double.POSITIVE_INFINITY)
+        // Initialized node 1 remains planner knowledge; endpoint 2 was only
+        // known through the removed edge and is pruned.
+        assertEquals(setOf(1), graph.nodes)
+        graph.clear()
+        assertTrue(graph.nodes.isEmpty())
+    }
+
+    @Test
+    fun `updateEdge from an uninitialized node reactivates the search even when the provider already knows the edge`() {
+        // The maneuver-improvement pass declares a discovered edge whose
+        // takeoff node the search never expanded, AND whose provider (the
+        // discovery object) already returns it from its own maps. A naive
+        // old-cost read would lazily initialize the takeoff, see the edge as
+        // pre-existing, and skip the rhs update — leaving the shortcut
+        // permanently invisible.
+        val start = fastVectorOf(0, 0, 0)
+        val middle = fastVectorOf(1, 0, 0)
+        val takeoff = fastVectorOf(0, 0, 1)
+        val goal = fastVectorOf(5, 0, 0)
+        var discovered = false
+        val graph = LazyGraph<Long>(
+            successorProvider = { node ->
+                buildMap {
+                    if (node == start) {
+                        put(middle, 1.0)
+                        if (discovered) put(takeoff, 1.0)
+                    }
+                    if (node == middle) put(goal, 10.0)
+                    if (discovered && node == takeoff) put(goal, 1.0)
+                }
+            },
+            predecessorProvider = { node ->
+                buildMap {
+                    if (node == middle) put(start, 1.0)
+                    if (node == goal) {
+                        put(middle, 10.0)
+                        if (discovered) put(takeoff, 1.0)
+                    }
+                    if (discovered && node == takeoff) put(start, 1.0)
+                }
+            },
+        )
+        val planner = DStarLite(graph, start, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        assertEquals(listOf(start, middle, goal), planner.path())
+
+        // The discovery provider learns the edge, then the improvement pass
+        // declares it — in that order, exactly as in production.
+        discovered = true
+        planner.updateEdge(takeoff, goal, 1.0)
+        planner.computeShortestPath()
+
+        assertEquals(listOf(start, takeoff, goal), planner.path())
+        assertEquals(2.0, planner.g(start), 0.001)
+    }
+
+    @Test
+    fun `synchronizeAffected ignores unknown far away graph nodes`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(5, 0, 0)
+        val planner = DStarLite(graph(connectivity = N6), start, goal, ::manhattan)
+
+        planner.computeShortestPath()
+        val path = planner.path()
+        val beforeKm = planner.km
+        val sync = planner.synchronizeAffected(affectedNodes(fastVectorOf(100, 0, 100), N6))
+        planner.computeShortestPath()
+
+        assertEquals(0, sync.nodesChecked)
+        assertEquals(beforeKm, planner.km)
+        assertEquals(path, planner.path())
+    }
+}

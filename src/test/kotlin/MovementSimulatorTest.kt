@@ -19,6 +19,7 @@ package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
@@ -227,6 +228,16 @@ class MovementSimulatorTest {
             }
             return Vec3d(movement.x, adjustedY, movement.z)
         }
+
+        /** An infinite floor at [FLOOR_Y]: whatever column the feet are over supports them. */
+        override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
+            if (box.minY <= FLOOR_Y) {
+                BlockPos(MathHelper.floor(entityPos.x), MathHelper.floor(FLOOR_Y) - 1, MathHelper.floor(entityPos.z))
+            } else {
+                null
+            }
+
+        override fun isFenceLike(pos: BlockPos) = false
     }
 
     private companion object {

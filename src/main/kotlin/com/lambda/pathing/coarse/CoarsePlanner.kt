@@ -47,6 +47,30 @@ class CoarsePlanner(
 
     fun route(maxLength: Int = 10_000): CoarseRouteCandidate<Stance>? = search.routeCandidate(maxLength)
 
+    /**
+     * Freezes the current route and its exact template dependencies. D* maps,
+     * queues, and the live view never cross the worker/publication boundary.
+     */
+    fun routePlan(snapshotRevision: Long, maxLength: Int = 10_000): CoarseRoutePlan? {
+        val candidate = route(maxLength) ?: return null
+        val edges = candidate.nodes.zipWithNext { from, to ->
+            moves.edgesFrom(view, from)
+                .asSequence()
+                .filter { it.to == to }
+                .minWithOrNull(compareBy<CoarseEdge>({ it.lowerBoundTicks }, { it.id.template.value }))
+                ?: return null
+        }
+        return CoarseRoutePlan(
+            snapshotRevision = snapshotRevision,
+            routeVersion = candidate.routeVersion,
+            nodes = candidate.nodes.toList(),
+            edges = edges,
+            lowerBoundTicks = candidate.ticks,
+            exactFromStart = candidate.exactFromStart,
+            dependencies = edges.flatMapTo(HashSet()) { it.readSet },
+        )
+    }
+
     fun tailCost(): TailCost = search.tailCost()
 
     /** Re-evaluates only known stance origins whose exact template reads overlap a changed voxel. */
