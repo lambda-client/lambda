@@ -20,16 +20,28 @@ package com.lambda.util.player.prediction
 import com.lambda.context.SafeContext
 
 /**
- * Builds the player movement prediction engine based on minecraft physics logic
+ * Builds the player movement prediction engine based on minecraft physics logic.
  *
- * Currently not implemented:
- * - Elytra movement
- * - Movement in fluids
- * - Ladder climbing
- * - Movement in webs
- * - Sneaking safewalk
+ * The simulator is now input-driven so it can be reused for pathing and
+ * movement validation, while this helper keeps the legacy "predict the current
+ * player with current live input" entry point for existing callers.
  *
- * And im fucking tired of merging all shit from minecraft
+ * Still not implemented:
+ * - elytra movement
+ * - movement in fluids
+ * - ladder climbing
+ * - movement in webs
+ * - item-specific movement slowdown
  */
 fun SafeContext.buildPlayerPrediction(): PredictionTick =
-    PredictionEntity(player).lastTick
+    buildMovementSimulator().lastTick
+
+fun SafeContext.buildMovementSimulator(
+    initialState: MovementSimulationState = MovementSimulationState.from(player),
+    inputProvider: MovementInputProvider = MovementInputProvider.live(player),
+): MovementSimulator =
+    MovementSimulator(
+        player = player,
+        initialState = initialState,
+        inputProvider = inputProvider,
+    )
