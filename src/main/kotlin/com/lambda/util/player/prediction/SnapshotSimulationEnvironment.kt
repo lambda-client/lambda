@@ -152,7 +152,11 @@ class SnapshotSimulationEnvironment private constructor(
             return CoarseVoxel.UNKNOWN
         }
         val block = blocks[BlockPos.asLong(x, y, z)] ?: defaultBlock ?: return CoarseVoxel.UNKNOWN
-        return if (block.unsupportedPhysics == null) block.coarseVoxel else CoarseVoxel.UNKNOWN
+        // A block whose physics we refuse to model is still a block we *read*. Reporting it
+        // as UNKNOWN also claims it bulges into the cell above, which silently deletes every
+        // arc that would clear it -- so a lava pool became unjumpable rather than merely
+        // unstandable.
+        return if (block.unsupportedPhysics == null) block.coarseVoxel else CoarseVoxel.HAZARD
     }
 
     override fun adjustMovementForCollisions(

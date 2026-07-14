@@ -19,6 +19,7 @@ import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SnapshotSimulationEnvironmentTest {
@@ -62,8 +63,18 @@ class SnapshotSimulationEnvironmentTest {
 
         assertEquals(CoarseVoxel.FULL_BLOCK, environment.voxel(0, 0, 0))
         assertEquals(CoarseVoxel.AIR, environment.voxel(0, 1, 0))
-        assertEquals(CoarseVoxel.UNKNOWN, environment.voxel(1, 0, 0))
+
+        // A fluid is impassable, never standable -- but it is *read*, not unknown. It does
+        // not bulge into the cell above it, and saying it did made every arc that would
+        // clear a lava pool unroutable.
+        assertEquals(CoarseVoxel.HAZARD, environment.voxel(1, 0, 0))
+        assertFalse(environment.voxel(1, 0, 0).centerPassable)
+        assertFalse(environment.voxel(1, 0, 0).standableFullTop)
+        assertFalse(environment.voxel(1, 0, 0).intrudesAbove)
+
+        // Genuinely unknown: outside the snapshot. Pessimistic on every axis.
         assertEquals(CoarseVoxel.UNKNOWN, environment.voxel(2, 0, 0))
+        assertTrue(environment.voxel(2, 0, 0).intrudesAbove)
     }
 
     @Test

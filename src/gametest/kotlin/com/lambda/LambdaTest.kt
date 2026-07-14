@@ -40,6 +40,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.minecraft.client.input.Input
 import net.minecraft.client.gui.screen.world.WorldCreator
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.util.math.Vec3d
 import java.util.concurrent.CompletableFuture
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
@@ -187,6 +188,14 @@ object LambdaTest : FabricClientGameTest {
         assertPathingWalk(context, server, "pathing-already-there", Stance(0, 100, 0))
         assertPathingWalk(context, server, "pathing-straight", Stance(0, 100, 5))
         assertPathingWalk(context, server, "pathing-diagonal", Stance(5, 100, 5))
+
+        // Submit while the body is still drifting, as a rapid retry does. Capturing that
+        // moving state would freeze a frame zero the player sheds before the async plan
+        // returns, and the cursor would reject it. The manager must settle to rest first.
+        assertPathingWalk(
+            context, server, "pathing-drifting-start", Stance(0, 100, 6),
+            driftBeforeSubmit = Vec3d(0.18, 0.0, 0.12),
+        )
 
         // One-block rise across the corridor: the seed search must find a launch
         // tick, and the manager must steer the turn through the rotation manager.
@@ -379,6 +388,7 @@ object LambdaTest : FabricClientGameTest {
         requireMovingSplices: Boolean = false,
         cameraYawDuringPlanning: Float? = null,
         plannerMaxFrames: Int? = null,
+        driftBeforeSubmit: Vec3d? = null,
     ) {
         server.runCommand("/tp Steve 0.5 100 0.5 0 0")
         repeat(5) { context.waitTick() }
@@ -394,6 +404,10 @@ object LambdaTest : FabricClientGameTest {
                     }
                 }
             } ?: AutomationConfig.DEFAULT
+            // Submit while the body still drifts, reproducing a rapid retry: the manager
+            // must settle to true rest before capturing, or frame zero is a moving state
+            // the player has already shed by the time the async plan returns.
+            driftBeforeSubmit?.let { player.velocity = it }
             PathingRequest(automated, goal).submit()
             // Change view immediately after the manager captured its immutable
             // planning yaw. Waiting for another client tick is racy: short plans
