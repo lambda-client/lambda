@@ -25,6 +25,28 @@ interface PathingConfig {
     /** Let the seed search try sprinting gaits. */
     val allowSprint: Boolean
 
+    /**
+     * Deepest drop the coarse layer may propose.
+     *
+     * The graph knows only that the drop is clear, not that it is survivable, so the
+     * trajectory layer certifies the landing and refuses harmful ones. Raising this
+     * past the safe fall distance does not make the planner jump off cliffs; it makes
+     * it *try*, and be refused.
+     */
+    val maxWalkOffDepth: Int
+
+    /**
+     * Let the coarse layer propose gap jumps.
+     *
+     * These are *candidates* only: the graph masks them permissively from geometry,
+     * and the trajectory layer must find a launch tick that actually lands before any
+     * of them is executed. A candidate with no certificate is never replayed.
+     */
+    val allowJumpCandidates: Boolean
+
+    /** Furthest a candidate jump may reach, in blocks. A span of 2 clears no hole. */
+    val maxJumpSpan: Int
+
     /** Longest tape the seed search may certify. */
     val maxFrames: Int
 

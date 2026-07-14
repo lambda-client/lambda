@@ -43,7 +43,8 @@ class CoarsePlannerTest {
         assertEquals(2.0, costs.cardinalWalk, 1e-9)
         assertEquals(kotlin.math.sqrt(2.0) / 0.5, costs.diagonalWalk, 1e-9)
         assertEquals(2.5, costs.stepUp, 1e-9)
-        assertEquals(4.0, costs.flatJumpCandidate, 1e-9)
+        assertEquals(4.0, costs.jumpCandidateCost(2, 0), 1e-9)
+        assertEquals(6.0, costs.jumpCandidateCost(3, 0), 1e-9)
         assertEquals(2.0, costs.walkOffCost(4), 1e-9)
         assertTrue(envelope.contains(Vec3d(0.3, 0.2, 0.4)))
         assertFalse(envelope.contains(Vec3d(0.4, 0.0, 0.4)))
@@ -152,8 +153,7 @@ class CoarsePlannerTest {
             diagonalWalk = 5.7,
             stepUp = 8.0,
             walkOff = { depth -> 4.0 + depth },
-            flatJumpCandidate = 9.0,
-            risingJumpCandidate = 10.0,
+            jumpCandidate = { span, rise -> 9.0 + span + rise },
         ),
         options = options,
     )

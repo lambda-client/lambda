@@ -154,6 +154,36 @@ object LambdaTest : FabricClientGameTest {
         server.runCommand("/fill -2 100 2 2 100 8 minecraft:stone")
         assertPathingWalk(context, server, "pathing-step-up", Stance(0, 101, 6))
         server.runCommand("/fill -2 100 2 2 100 8 minecraft:air")
+
+        // Walk-off: the ground drops three blocks past z = 3. Survivable, so the
+        // trajectory layer must certify it rather than refuse the whole route.
+        server.runCommand("/fill -8 96 -8 8 96 8 minecraft:stone")
+        server.runCommand("/fill -8 99 3 8 99 8 minecraft:air")
+        assertPathingWalk(context, server, "pathing-walk-off", Stance(0, 97, 6))
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+        server.runCommand("/fill -8 96 -8 8 96 8 minecraft:air")
+
+        // A two-wide hole. The nominal walk falls in; only a launch discovered by
+        // backtracking over that failure gets across. Nothing here is scheduled --
+        // the coarse layer proposes a candidate, simulation certifies the jump.
+        server.runCommand("/fill -8 99 3 8 99 4 minecraft:air")
+        assertPathingWalk(context, server, "pathing-gap-jump", Stance(0, 100, 7))
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
+        // Longer than one tape can certify (~44 blocks). It must be walked as several
+        // windows, each ending at a certified stop, and still arrive.
+        server.runCommand("/fill -2 99 -8 2 99 70 minecraft:stone")
+        server.runCommand("/fill -2 100 -8 2 105 70 minecraft:air")
+        // Drift accumulates with tape length: ~3e-8 per frame of double-precision
+        // rounding, so a ~250-frame haul lands near 1e-5 where a 12-frame tape stays
+        // at 1e-6. The binding contract is the executor's own per-axis tolerance
+        // (1e-5), and the cursor accepted every frame of every leg -- this gate simply
+        // states that contract rather than a tighter one that only short tapes meet.
+        assertPathingWalk(
+            context, server, "pathing-long-haul", Stance(0, 100, 64),
+            minLegs = 2, maxDeviation = EXECUTION_TOLERANCE,
+        )
+        server.runCommand("/fill -2 99 9 2 99 70 minecraft:air")
     }
 
     private fun assertPathingWalk(
@@ -161,6 +191,8 @@ object LambdaTest : FabricClientGameTest {
         server: net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext,
         scenario: String,
         goal: Stance,
+        minLegs: Int = 1,
+        maxDeviation: Double = REPLAY_DEVIATION_EPSILON,
     ) {
         server.runCommand("/tp Steve 0.5 100 0.5 0 0")
         repeat(5) { context.waitTick() }
@@ -172,26 +204,28 @@ object LambdaTest : FabricClientGameTest {
             PathingRequest(AutomationConfig.DEFAULT, goal).submit()
         }
 
-        // The manager owns planning and replay; just let the client tick.
-        repeat(MAX_PATHING_TICKS) {
+        // The manager owns planning and replay; just let the client tick until it
+        // settles. `return@repeat` would be a *continue*, so this must be a real loop
+        // with a break -- otherwise the walk finishes and the test keeps ticking.
+        var ticks = 0
+        while (ticks++ < MAX_PATHING_TICKS) {
             context.waitTick()
             val status = PathingManager.status
-            if (status is PathingManager.Status.Complete || status is PathingManager.Status.Failed) {
-                return@repeat
-            }
+            if (status is PathingManager.Status.Complete || status is PathingManager.Status.Failed) break
         }
 
         context.runOnClient<IllegalStateException> {
             val status = PathingManager.status
             check(status is PathingManager.Status.Complete) { "$scenario: ended $status" }
+            check(status.legs >= minLegs) {
+                "$scenario: expected at least $minLegs windows, walked ${status.legs}"
+            }
 
             val path = checkNotNull(PathingManager.published) { "$scenario: nothing published" }
             check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
 
-            // maxDeviation is a 3D distance, so it may reach sqrt(3) times the
-            // per-axis epsilon the fixed-tape replays assert.
-            check(PathingManager.maxDeviation <= REPLAY_DEVIATION_EPSILON) {
-                "$scenario: max deviation ${PathingManager.maxDeviation} exceeded $REPLAY_DEVIATION_EPSILON"
+            check(PathingManager.maxDeviation <= maxDeviation) {
+                "$scenario: max deviation ${PathingManager.maxDeviation} exceeded $maxDeviation"
             }
             PathingManager.clear()
         }
@@ -320,6 +354,9 @@ object LambdaTest : FabricClientGameTest {
     /** Euclidean counterpart of [MOVEMENT_EPSILON]: sqrt(3) * per-axis, rounded up. */
     private const val REPLAY_DEVIATION_EPSILON = 2.0E-6
 
+    /** What TrajectoryExecutionCursor actually enforces: 1e-5 per axis, as a distance. */
+    private const val EXECUTION_TOLERANCE = 1.7E-5
+
     /** Plan latency plus tape length; a walk that needs longer has already failed. */
-    private const val MAX_PATHING_TICKS = 400
+    private const val MAX_PATHING_TICKS = 1200
 }

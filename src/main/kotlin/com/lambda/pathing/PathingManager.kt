@@ -23,6 +23,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
@@ -59,13 +60,21 @@ object PathingManager : Manager<PathingRequest>(0) {
         val parameters: WalkingSeedParameters,
         val attempts: Int,
         val planMillis: Long,
-    )
+        /** Where the walk is ultimately headed; [route] may only reach a window of it. */
+        val finalGoal: Stance,
+    ) {
+        /** True when this window certifies the whole way to the goal. */
+        val reachesFinalGoal: Boolean get() = route.goal == finalGoal
+    }
 
     sealed interface Status {
         data object Idle : Status
         data class Planning(val goal: String) : Status
-        data class Executing(val frame: Int, val frames: Int) : Status
-        data class Complete(val frames: Int) : Status
+        data class Executing(val frame: Int, val frames: Int, val leg: Int) : Status
+
+        /** Between windows: letting the body come to rest before the next capture. */
+        data class Settling(val leg: Int) : Status
+        data class Complete(val frames: Int, val legs: Int) : Status
         data class Failed(val reason: String) : Status
     }
 
@@ -95,6 +104,11 @@ object PathingManager : Manager<PathingRequest>(0) {
     val liveTrail: List<Vec3d> get() = synchronized(trail) { ArrayList(trail) }
 
     private var activeRequest: PathingRequest? = null
+
+    /** Windows walked so far for the active request, and where the last one ended. */
+    private var leg = 0
+    private var legStart: Stance? = null
+    private var settleTicks = 0
     private var cursor: TrajectoryExecutionCursor? = null
     /**
      * The input the tape says to press this tick. Written in [TickEvent.Pre] and read
@@ -112,7 +126,12 @@ object PathingManager : Manager<PathingRequest>(0) {
         cursor = null
         tickInput = null
         awaitingObservation = false
-        if (status is Status.Planning || status is Status.Executing) status = Status.Idle
+        leg = 0
+        legStart = null
+        settleTicks = 0
+        if (status is Status.Planning || status is Status.Executing || status is Status.Settling) {
+            status = Status.Idle
+        }
     }
 
     fun clear() {
@@ -135,6 +154,29 @@ object PathingManager : Manager<PathingRequest>(0) {
 
         activeRequest = request
         renderConfig = request.pathingRenderConfig
+        leg = 0
+        legStart = null
+        planLeg(request)
+    }
+
+    /**
+     * Plans the next window toward the request's goal.
+     *
+     * A long route is walked as a series of certified windows. Each ends at a stable
+     * stop, so the body never crosses the certified frontier on faith -- invariant 5.
+     * The stop between legs is the price of not having splices yet (M5.2).
+     */
+    private fun planLeg(request: PathingRequest) {
+        val player = mc.player ?: return fail("no player")
+        val start = Stance(player.blockPos.x, player.blockPos.y, player.blockPos.z)
+
+        // A window that ends where it started would replan forever.
+        if (leg > 0 && start == legStart) {
+            return fail("leg $leg made no progress from (${start.x}, ${start.y}, ${start.z})")
+        }
+        if (leg >= MAX_LEGS) return fail("goal needs more than $MAX_LEGS windows")
+        legStart = start
+
         status = Status.Planning("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
 
         val planning = try {
@@ -175,7 +217,8 @@ object PathingManager : Manager<PathingRequest>(0) {
         published = path
         cursor = TrajectoryExecutionCursor(path.plan, path.profile)
         awaitingObservation = false
-        status = Status.Executing(0, path.plan.tape.frameCount)
+        leg++
+        status = Status.Executing(0, path.plan.tape.frameCount, leg)
     }
 
     /**
@@ -207,8 +250,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         listenUnsafe<ConnectionEvent.Disconnect> { clear() }
 
         listen<TickEvent.Pre> {
-            val active = cursor ?: return@listen
             val request = activeRequest ?: return@listen
+            if (status is Status.Settling) return@listen settle(request)
+
+            val active = cursor ?: return@listen
             val path = published ?: return@listen
 
             // snapshotRevision is a capture timestamp, not a content revision, so
@@ -234,7 +279,7 @@ object PathingManager : Manager<PathingRequest>(0) {
                 }
 
                 if (result === ExecutionObservationResult.Complete) {
-                    return@listen complete(path.plan.tape.frameCount)
+                    return@listen finishLeg(request, path)
                 }
             }
 
@@ -242,7 +287,7 @@ object PathingManager : Manager<PathingRequest>(0) {
                 is ExecutionInputResult.Apply -> {
                     tickInput = next.input
                     awaitingObservation = true
-                    status = Status.Executing(next.frame, path.plan.tape.frameCount)
+                    status = Status.Executing(next.frame, path.plan.tape.frameCount, leg)
 
                     // Yaw only, and only as a request. `EntityMixin.velocityYaw` already
                     // routes Entity.updateVelocity through RotationManager.movementYaw,
@@ -255,7 +300,7 @@ object PathingManager : Manager<PathingRequest>(0) {
                     }
                 }
 
-                ExecutionInputResult.Complete -> complete(path.plan.tape.frameCount)
+                ExecutionInputResult.Complete -> finishLeg(request, path)
 
                 is ExecutionInputResult.Rejected -> reject(next.frame, next.deviation)
             }
@@ -284,12 +329,39 @@ object PathingManager : Manager<PathingRequest>(0) {
         // clearing the sprint flag.
     }
 
-    private fun complete(frames: Int) {
-        status = Status.Complete(frames)
-        activeRequest = null
+    /** A window ended on its certified stop. Either that was the goal, or settle and plan the next. */
+    private fun finishLeg(request: PathingRequest, path: PublishedPath) {
         cursor = null
         tickInput = null
         awaitingObservation = false
+
+        if (path.reachesFinalGoal) {
+            status = Status.Complete(path.plan.tape.frameCount, leg)
+            activeRequest = null
+            legStart = null
+            return
+        }
+
+        // Do NOT capture the next leg here. A certified stop means "slower than
+        // stoppedSpeed", not "stopped": the body still carries a few thousandths of a
+        // block per tick. Planning is async, and vanilla clamps horizontal velocity to
+        // *exactly* zero once it drops below 0.003 -- so a state captured now is stale
+        // before the plan comes back, and the cursor rightly rejects frame 0 on a
+        // velocity that no longer exists. Let the body actually come to rest first.
+        settleTicks = 0
+        status = Status.Settling(leg)
+    }
+
+    /** Waits for the body to reach true rest, then captures the next window from it. */
+    private fun settle(request: PathingRequest) {
+        val player = mc.player ?: return fail("no player")
+
+        val atRest = player.isOnGround && player.velocity.horizontalLengthSquared() <= REST_SPEED_SQUARED
+        if (atRest) return planLeg(request)
+
+        if (++settleTicks > MAX_SETTLE_TICKS) {
+            fail("body never came to rest between windows (%.4f b/t)".format(player.velocity.horizontalLength()))
+        }
     }
 
     private fun reject(frame: Int, deviation: ExecutionDeviation) {
@@ -311,6 +383,17 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private const val START_DRIFT_TOLERANCE = 0.35
     private const val START_YAW_TOLERANCE = 1.0
+
+    /** A goal needing more windows than this is not a walk, it is a journey. */
+    private const val MAX_LEGS = 40
+
+    /**
+     * Vanilla snaps horizontal velocity to exactly zero below 0.003 b/t, so true rest
+     * is reachable -- and a state captured at rest cannot go stale while planning.
+     */
+    private const val REST_SPEED_SQUARED = 1.0E-8
+
+    private const val MAX_SETTLE_TICKS = 40
 
     /** The seed search caps yaw change at 30 deg/frame; the turn must clear that. */
     private const val MIN_TURN_SPEED = 30.0

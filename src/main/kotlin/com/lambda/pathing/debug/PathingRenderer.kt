@@ -130,10 +130,15 @@ object PathingRenderer : Loadable {
         is PathingManager.Status.Idle -> "idle"
         is PathingManager.Status.Planning -> "planning ${status.goal}"
         is PathingManager.Status.Executing ->
-            "walking %d/%d  dev %.2e".format(status.frame, status.frames, PathingManager.maxDeviation)
+            "walking leg %d  %d/%d  dev %.2e".format(
+                status.leg, status.frame, status.frames, PathingManager.maxDeviation,
+            )
+
+        is PathingManager.Status.Settling -> "settling after leg ${status.leg}"
+
 
         is PathingManager.Status.Complete ->
-            "complete: %d frames, max deviation %.2e".format(status.frames, PathingManager.maxDeviation)
+            "complete: %d legs, max deviation %.2e".format(status.legs, PathingManager.maxDeviation)
 
         is PathingManager.Status.Failed -> "failed: ${status.reason}"
     }

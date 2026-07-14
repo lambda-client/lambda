@@ -54,8 +54,7 @@ data class CoarseKinematicEnvelope(
         diagonalWalk = lowerBoundTicks(1, 0, 1),
         stepUp = lowerBoundTicks(1, 1, 0),
         walkOff = { depth -> lowerBoundTicks(1, -depth, 0) },
-        flatJumpCandidate = lowerBoundTicks(2, 0, 0),
-        risingJumpCandidate = lowerBoundTicks(2, 1, 0),
+        jumpCandidate = { span, rise -> lowerBoundTicks(span, rise, 0) },
     )
 
     private fun requirePositive(name: String, value: Double) {

@@ -105,8 +105,11 @@ class SimpleMoveLibrary private constructor(
                         )
                     }
                     if (options.allowJumpCandidates) {
-                        add(jumpSpec(dx, dz, rise = 0, costs.flatJumpCandidate))
-                        add(jumpSpec(dx, dz, rise = 1, costs.risingJumpCandidate))
+                        for (span in 2..options.maxJumpSpan) {
+                            for (rise in 0..1) {
+                                add(jumpSpec(dx, dz, span, rise, costs.jumpCandidateCost(span, rise)))
+                            }
+                        }
                     }
                 }
                 if (options.allowDiagonal) {
@@ -136,16 +139,26 @@ class SimpleMoveLibrary private constructor(
             CellCondition(dx, dy + 1, dz, Condition.CENTER_HEAD),
         )
 
-        private fun jumpSpec(dx: Int, dz: Int, rise: Int, cost: Double): Spec {
-            val arc = listOf(
-                CellCondition(0, 2, 0, Condition.CENTER_SLICE),
-                CellCondition(dx, 0, dz, Condition.CENTER_SLICE),
-                CellCondition(dx, 1, dz, Condition.CENTER_SLICE),
-                CellCondition(dx, 2, dz, Condition.CENTER_SLICE),
-            )
+        /**
+         * A candidate jump of [span] stances. The arc must be clear over every cell it
+         * passes, at head height too -- a ceiling three blocks out kills the arc just
+         * as surely as a wall.
+         *
+         * This is a mask, not a promise: whether the body can actually make it is for
+         * the trajectory layer to simulate.
+         */
+        private fun jumpSpec(dx: Int, dz: Int, span: Int, rise: Int, cost: Double): Spec {
+            val arc = buildList {
+                add(CellCondition(0, 2, 0, Condition.CENTER_SLICE))
+                for (step in 1 until span) {
+                    for (y in 0..2) {
+                        add(CellCondition(step * dx, y, step * dz, Condition.CENTER_SLICE))
+                    }
+                }
+            }
             return Spec(
-                2 * dx, rise, 2 * dz, CoarseMoveKind.JUMP_CANDIDATE, cost,
-                stanceConditions(2 * dx, rise, 2 * dz) + arc,
+                span * dx, rise, span * dz, CoarseMoveKind.JUMP_CANDIDATE, cost,
+                stanceConditions(span * dx, rise, span * dz) + arc,
             )
         }
 
