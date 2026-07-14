@@ -61,7 +61,7 @@ object CommunicationUtils {
 
     fun currentTime(): String = LocalDateTime.now()
         .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG))
+        .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM))
 
     fun Any.debug(message: String, source: String = "") = log(LogLevel.Debug.text(message), LogLevel.Debug, source)
     fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.Debug, textSource = source)
