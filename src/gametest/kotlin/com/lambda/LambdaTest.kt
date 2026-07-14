@@ -18,10 +18,13 @@
 package com.lambda
 
 import com.lambda.context.SafeContext
+import com.lambda.context.Automated
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.config.automation.AutomationConfig
+import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.PathingRequest
+import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.Stance
 import com.lambda.threading.runSafe
 import com.lambda.util.combat.DamageUtils.isFallDeadly
@@ -108,6 +111,19 @@ object LambdaTest : FabricClientGameTest {
             repeat(4) { add(MovementSimulationInput(forward = 1.0, rotation = Rotation(90.0, 0.0))) }
         })
 
+        // Internal trajectory expansion may choose a different sprint gait at a
+        // moving controller boundary. That transition is only safe to flatten if
+        // vanilla and the simulator give the sprint input identical tick semantics.
+        server.runCommand("/tp Steve 0 100 0 0 0")
+        repeat(5) { context.waitTick() }
+        assertMovementReplay(context, "moving-sprint-turn-transition", buildList {
+            repeat(5) { add(MovementSimulationInput(forward = 1.0, rotation = Rotation(0.0, 0.0))) }
+            add(MovementSimulationInput(forward = 1.0, sprint = true, rotation = Rotation(30.0, 0.0)))
+            repeat(5) { add(MovementSimulationInput(forward = 1.0, sprint = true, rotation = Rotation(60.0, 0.0))) }
+            add(MovementSimulationInput(forward = 1.0, sprint = false, rotation = Rotation(90.0, 0.0)))
+            repeat(3) { add(MovementSimulationInput(forward = 1.0, rotation = Rotation(90.0, 0.0))) }
+        })
+
         server.runCommand("/setblock 0 100 2 minecraft:stone")
         server.runCommand("/tp Steve 0 100 0 0 0")
         repeat(5) { context.waitTick() }
@@ -146,6 +162,9 @@ object LambdaTest : FabricClientGameTest {
         server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
         server.runCommand("/fill -8 100 -8 8 105 8 minecraft:air")
 
+        // A singleton coarse route used to produce no trajectory windows and then
+        // null-cast the absent failure. It must certify a local stopped tape.
+        assertPathingWalk(context, server, "pathing-already-there", Stance(0, 100, 0))
         assertPathingWalk(context, server, "pathing-straight", Stance(0, 100, 5))
         assertPathingWalk(context, server, "pathing-diagonal", Stance(5, 100, 5))
 
@@ -154,6 +173,21 @@ object LambdaTest : FabricClientGameTest {
         server.runCommand("/fill -2 100 2 2 100 8 minecraft:stone")
         assertPathingWalk(context, server, "pathing-step-up", Stance(0, 101, 6))
         server.runCommand("/fill -2 100 2 2 100 8 minecraft:air")
+
+        // A rise immediately beyond a deliberately short local horizon exercises
+        // the state that failed in-game: the next controller begins with retained
+        // momentum close to the lip and must still discover a valid takeoff. The
+        // raised section then drops back to the original goal height.
+        server.runCommand("/fill -2 99 9 2 99 22 minecraft:stone")
+        server.runCommand("/fill -2 100 10 2 100 14 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-moving-splice-step-up", Stance(0, 100, 20),
+            maxLegs = 1, minContinuousSegments = 2, requireMovingSplices = true,
+            requireJumpInput = true, plannerMaxFrames = 40,
+            maxDeviation = EXECUTION_TOLERANCE,
+        )
+        server.runCommand("/fill -2 100 10 2 100 14 minecraft:air")
+        server.runCommand("/fill -2 99 9 2 99 22 minecraft:air")
 
         // Walk-off: the ground drops three blocks past z = 3. Survivable, so the
         // trajectory layer must certify it rather than refuse the whole route.
@@ -167,11 +201,92 @@ object LambdaTest : FabricClientGameTest {
         // backtracking over that failure gets across. Nothing here is scheduled --
         // the coarse layer proposes a candidate, simulation certifies the jump.
         server.runCommand("/fill -8 99 3 8 99 4 minecraft:air")
-        assertPathingWalk(context, server, "pathing-gap-jump", Stance(0, 100, 7))
+        assertPathingWalk(
+            context, server, "pathing-gap-jump-flat-2", Stance(0, 100, 7),
+            expectedJumpDy = 0, requireJumpInput = true,
+        )
         server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
 
-        // Longer than one tape can certify (~44 blocks). It must be walked as several
-        // windows, each ending at a certified stop, and still arrive.
+        // A three-wide hole exercises the longest flat jump currently covered by
+        // the live corpus. The mask proposes span 4; only vanilla replay proves it.
+        server.runCommand("/fill -8 99 3 8 99 5 minecraft:air")
+        assertPathingWalk(
+            context, server, "pathing-gap-jump-flat-3", Stance(0, 100, 8),
+            expectedJumpDy = 0, requireJumpInput = true,
+        )
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
+        // One missing support cell with the landing one block higher. This is a
+        // rising gap jump, not an adjacent step-up: it needs a span-2 candidate.
+        server.runCommand("/fill -8 99 3 8 99 3 minecraft:air")
+        server.runCommand("/fill -8 100 4 8 100 8 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-gap-jump-rise-1", Stance(0, 101, 6),
+            expectedJumpDy = 1, requireJumpInput = true,
+        )
+        server.runCommand("/fill -8 100 4 8 100 8 minecraft:air")
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
+        // Regression for the live report that a two-stance connection landing one
+        // block down was absent from topology. A sprint may coast over this small
+        // gap without pressing jump; the key contract is that the descending edge
+        // exists and its complete tape is certified.
+        server.runCommand("/fill -8 99 3 8 99 8 minecraft:air")
+        server.runCommand("/fill -8 98 4 8 98 8 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-gap-drop-span-2", Stance(0, 99, 6),
+            expectedJumpDy = -1,
+        )
+        server.runCommand("/fill -8 98 4 8 98 8 minecraft:air")
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
+        // The same lower landing across a genuinely two-wide hole. This one must
+        // launch, and guards the descending variant of the span-3 template.
+        server.runCommand("/fill -8 99 3 8 99 8 minecraft:air")
+        server.runCommand("/fill -8 98 5 8 98 8 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-gap-drop-span-3", Stance(0, 99, 7),
+            expectedJumpDy = -1, requireJumpInput = true,
+        )
+        server.runCommand("/fill -8 98 5 8 98 8 minecraft:air")
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
+        // Three descending gaps reproduce the real suffix that exhausted its
+        // launch beam after a frame-40 moving splice. Every landing is one block
+        // lower; the complete run must keep momentum and still acquire the tight
+        // final stop rather than publishing parts.
+        server.runCommand("/fill -8 99 3 8 99 20 minecraft:air")
+        server.runCommand("/fill -2 98 5 2 98 7 minecraft:stone")
+        server.runCommand("/fill -2 97 10 2 97 12 minecraft:stone")
+        server.runCommand("/fill -2 96 15 2 96 20 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-descending-gap-chain-splice", Stance(0, 97, 17),
+            maxLegs = 1, minGapLaunches = 3, minContinuousSegments = 2,
+            requireMovingSplices = true, requireJumpInput = true,
+            plannerMaxFrames = 40, maxDeviation = EXECUTION_TOLERANCE,
+        )
+        server.runCommand("/fill -2 98 5 2 98 7 minecraft:air")
+        server.runCommand("/fill -2 97 10 2 97 12 minecraft:air")
+        server.runCommand("/fill -2 96 15 2 96 20 minecraft:air")
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
+        // Two independent gaps in one short route must produce one continuous
+        // certified tape. The search used to discover only one gap launch, so the
+        // planner shortened the window and the manager stopped on every platform,
+        // throwing away momentum before planning the next jump.
+        server.runCommand("/fill -2 99 9 2 99 14 minecraft:stone")
+        server.runCommand("/fill -8 99 3 8 99 4 minecraft:air")
+        server.runCommand("/fill -8 99 9 8 99 10 minecraft:air")
+        assertPathingWalk(
+            context, server, "pathing-gap-chain-one-tape", Stance(0, 100, 13),
+            maxLegs = 1, minGapLaunches = 2, requireJumpInput = true,
+        )
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+        server.runCommand("/fill -2 99 9 2 99 14 minecraft:air")
+
+        // Longer than one local controller horizon (~44 blocks). Worker search must
+        // expand through predicted moving states and flatten the pieces into one
+        // tape; the live player must never stop at those internal boundaries.
         server.runCommand("/fill -2 99 -8 2 99 70 minecraft:stone")
         server.runCommand("/fill -2 100 -8 2 105 70 minecraft:air")
         // Drift accumulates with tape length: ~3e-8 per frame of double-precision
@@ -181,7 +296,9 @@ object LambdaTest : FabricClientGameTest {
         // states that contract rather than a tighter one that only short tapes meet.
         assertPathingWalk(
             context, server, "pathing-long-haul", Stance(0, 100, 64),
-            minLegs = 2, maxDeviation = EXECUTION_TOLERANCE,
+            maxLegs = 1, minContinuousSegments = 2, requireMovingSplices = true,
+            maxDeviation = EXECUTION_TOLERANCE,
+            cameraYawDuringPlanning = 90.0f,
         )
         server.runCommand("/fill -2 99 9 2 99 70 minecraft:air")
     }
@@ -192,7 +309,15 @@ object LambdaTest : FabricClientGameTest {
         scenario: String,
         goal: Stance,
         minLegs: Int = 1,
+        maxLegs: Int? = null,
         maxDeviation: Double = REPLAY_DEVIATION_EPSILON,
+        expectedJumpDy: Int? = null,
+        requireJumpInput: Boolean = false,
+        minGapLaunches: Int = 0,
+        minContinuousSegments: Int = 1,
+        requireMovingSplices: Boolean = false,
+        cameraYawDuringPlanning: Float? = null,
+        plannerMaxFrames: Int? = null,
     ) {
         server.runCommand("/tp Steve 0.5 100 0.5 0 0")
         repeat(5) { context.waitTick() }
@@ -201,8 +326,25 @@ object LambdaTest : FabricClientGameTest {
             val player = Lambda.mc.player ?: error("Missing client player")
             check(player.isOnGround) { "$scenario: player did not settle" }
             PathingManager.clear()
-            PathingRequest(AutomationConfig.DEFAULT, goal).submit()
+            val automated = plannerMaxFrames?.let { frames ->
+                object : Automated by AutomationConfig.DEFAULT {
+                    override val pathingConfig = object : PathingConfig by AutomationConfig.DEFAULT.pathingConfig {
+                        override val maxFrames = frames
+                    }
+                }
+            } ?: AutomationConfig.DEFAULT
+            PathingRequest(automated, goal).submit()
+            // Change view immediately after the manager captured its immutable
+            // planning yaw. Waiting for another client tick is racy: short plans
+            // can finish before the test thread observes Status.Planning.
+            cameraYawDuringPlanning?.let { player.yaw = it }
         }
+
+        // Simulates the user looking elsewhere while the worker owns an immutable
+        // start state. Movement yaw must be held/aligned rather than rejecting the
+        // certified continuation because the camera changed during planning.
+        // The assignment above is intentionally in the submit task, before the
+        // worker completion can be installed on a later client task.
 
         // The manager owns planning and replay; just let the client tick until it
         // settles. `return@repeat` would be a *continue*, so this must be a real loop
@@ -220,9 +362,44 @@ object LambdaTest : FabricClientGameTest {
             check(status.legs >= minLegs) {
                 "$scenario: expected at least $minLegs windows, walked ${status.legs}"
             }
+            maxLegs?.let {
+                check(status.legs <= it) {
+                    "$scenario: expected at most $it windows, walked ${status.legs}"
+                }
+            }
 
             val path = checkNotNull(PathingManager.published) { "$scenario: nothing published" }
             check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
+
+            expectedJumpDy?.let { dy ->
+                check(path.route.edges.any { edge ->
+                    edge.kind == CoarseMoveKind.JUMP_CANDIDATE &&
+                        edge.to.y - edge.from.y == dy
+                }) {
+                    "$scenario: no dy=$dy jump candidate in ${path.route.edges}"
+                }
+            }
+            if (requireJumpInput) {
+                check(path.plan.tape.asList().any { it.jump }) {
+                    "$scenario: certified tape never pressed jump"
+                }
+            }
+            check(path.parameters.gapLaunchFrames.size >= minGapLaunches) {
+                "$scenario: expected at least $minGapLaunches discovered gap launches, " +
+                    "got ${path.parameters.gapLaunchFrames}"
+            }
+            check(path.controlSegments >= minContinuousSegments) {
+                "$scenario: expected at least $minContinuousSegments continuous control segments, " +
+                    "got ${path.controlSegments}"
+            }
+            if (requireMovingSplices) {
+                check(path.spliceFrames.isNotEmpty()) { "$scenario: no predicted splice frames published" }
+                check(path.spliceFrames.all { frame ->
+                    path.plan.frames[frame - 1].state.velocity.horizontalLength() > 0.012
+                }) {
+                    "$scenario: an internal splice discarded momentum at ${path.spliceFrames}"
+                }
+            }
 
             check(PathingManager.maxDeviation <= maxDeviation) {
                 "$scenario: max deviation ${PathingManager.maxDeviation} exceeded $maxDeviation"
@@ -354,7 +531,7 @@ object LambdaTest : FabricClientGameTest {
     /** Euclidean counterpart of [MOVEMENT_EPSILON]: sqrt(3) * per-axis, rounded up. */
     private const val REPLAY_DEVIATION_EPSILON = 2.0E-6
 
-    /** What TrajectoryExecutionCursor actually enforces: 1e-5 per axis, as a distance. */
+    /** Stricter measured Euclidean gate than the cursor's frame-scaled per-axis bound. */
     private const val EXECUTION_TOLERANCE = 1.7E-5
 
     /** Plan latency plus tape length; a walk that needs longer has already failed. */

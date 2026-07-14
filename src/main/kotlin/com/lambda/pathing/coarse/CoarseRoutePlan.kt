@@ -32,25 +32,19 @@ data class CoarseRoutePlan(
     val goal: Stance get() = nodes.last()
 
     /**
-     * The first [nodeCount] nodes as a route in their own right.
-     *
-     * A trajectory can only be certified as far as the simulator can reach inside its
-     * frame budget, so a long route is walked as a series of windows. Costs and
-     * dependencies are recomputed from the surviving edges: a window must not carry
-     * the tail's read set, or it would be invalidated by a block it never touches.
+     * The route beginning at [fromNodeIndex], used when a simulated moving prefix
+     * becomes the immutable initial state of a continuous suffix expansion.
      */
-    fun prefix(nodeCount: Int): CoarseRoutePlan {
-        require(nodeCount in 2..nodes.size) { "A window must contain at least one edge" }
-        if (nodeCount == nodes.size) return this
+    fun suffix(fromNodeIndex: Int): CoarseRoutePlan {
+        require(fromNodeIndex in nodes.indices) { "Suffix start must be a route node" }
+        if (fromNodeIndex == 0) return this
 
-        val windowEdges = edges.take(nodeCount - 1)
+        val suffixEdges = edges.drop(fromNodeIndex)
         return copy(
-            nodes = nodes.take(nodeCount),
-            edges = windowEdges,
-            lowerBoundTicks = windowEdges.sumOf { it.lowerBoundTicks },
-            // Only the goal-reaching route can claim an exact cost to the goal.
-            exactFromStart = false,
-            dependencies = windowEdges.flatMapTo(HashSet()) { it.readSet },
+            nodes = nodes.drop(fromNodeIndex),
+            edges = suffixEdges,
+            lowerBoundTicks = suffixEdges.sumOf { it.lowerBoundTicks },
+            dependencies = suffixEdges.flatMapTo(HashSet()) { it.readSet },
         )
     }
 }

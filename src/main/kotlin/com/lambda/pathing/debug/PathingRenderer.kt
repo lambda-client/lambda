@@ -97,14 +97,23 @@ object PathingRenderer : Loadable {
         val parameters = path.parameters
 
         val lines = listOf(
-            "frames %d  route %d nodes  deps %d".format(
-                plan.tape.frameCount, path.route.nodes.size, plan.dependencies.size,
+            "frames %d  route %d nodes  deps %d  controls %d%s".format(
+                plan.tape.frameCount,
+                path.route.nodes.size,
+                plan.dependencies.size,
+                path.controlSegments,
+                path.spliceFrames.takeIf { it.isNotEmpty() }?.let { "  splices=${it.joinToString()}" }.orEmpty(),
             ),
             "sprint=%s look=%d brake=%.2f%s".format(
                 parameters.sprint,
                 parameters.lookAheadNodes,
                 parameters.brakeDistance,
-                parameters.stepUpJumpLeadDistance?.let { "  jumpLead=%.2f".format(it) } ?: "",
+                buildString {
+                    parameters.stepUpJumpLeadDistance?.let { append("  jumpLead=%.2f".format(it)) }
+                    parameters.gapLaunchFrames.takeIf { it.isNotEmpty() }?.let {
+                        append("  gapLaunches=${it.joinToString()}")
+                    }
+                },
             ),
             "coarse lower bound %.1f ticks  |  search %d attempts in %d ms".format(
                 path.route.lowerBoundTicks, path.attempts, path.planMillis,
@@ -129,16 +138,15 @@ object PathingRenderer : Loadable {
     private fun statusLabel(): String = when (val status = PathingManager.status) {
         is PathingManager.Status.Idle -> "idle"
         is PathingManager.Status.Planning -> "planning ${status.goal}"
+        is PathingManager.Status.Aligning ->
+            "aligning trajectory  yaw error %.1f°".format(status.yawError)
         is PathingManager.Status.Executing ->
-            "walking leg %d  %d/%d  dev %.2e".format(
-                status.leg, status.frame, status.frames, PathingManager.maxDeviation,
+            "walking continuous tape  %d/%d  dev %.2e".format(
+                status.frame, status.frames, PathingManager.maxDeviation,
             )
 
-        is PathingManager.Status.Settling -> "settling after leg ${status.leg}"
-
-
         is PathingManager.Status.Complete ->
-            "complete: %d legs, max deviation %.2e".format(status.legs, PathingManager.maxDeviation)
+            "complete: %d frames, max deviation %.2e".format(status.frames, PathingManager.maxDeviation)
 
         is PathingManager.Status.Failed -> "failed: ${status.reason}"
     }

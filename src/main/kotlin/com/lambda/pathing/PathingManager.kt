@@ -10,6 +10,7 @@
 package com.lambda.pathing
 
 import com.lambda.Lambda.mc
+import com.lambda.Lambda.LOG
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.context.AutomatedSafeContext
@@ -36,6 +37,8 @@ import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.Vec3d
 import java.util.Collections
 import kotlin.math.abs
@@ -60,20 +63,20 @@ object PathingManager : Manager<PathingRequest>(0) {
         val parameters: WalkingSeedParameters,
         val attempts: Int,
         val planMillis: Long,
-        /** Where the walk is ultimately headed; [route] may only reach a window of it. */
+        /** Where the continuously expanded tape must end. */
         val finalGoal: Stance,
-    ) {
-        /** True when this window certifies the whole way to the goal. */
-        val reachesFinalGoal: Boolean get() = route.goal == finalGoal
-    }
+        /** Worker-local control pieces expanded into the single published tape. */
+        val controlSegments: Int = 1,
+        /** Predicted moving-state boundaries already flattened into [plan]. */
+        val spliceFrames: List<Int> = emptyList(),
+    )
 
     sealed interface Status {
         data object Idle : Status
         data class Planning(val goal: String) : Status
+        data class Aligning(val leg: Int, val yawError: Double) : Status
         data class Executing(val frame: Int, val frames: Int, val leg: Int) : Status
 
-        /** Between windows: letting the body come to rest before the next capture. */
-        data class Settling(val leg: Int) : Status
         data class Complete(val frames: Int, val legs: Int) : Status
         data class Failed(val reason: String) : Status
     }
@@ -105,10 +108,13 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private var activeRequest: PathingRequest? = null
 
-    /** Windows walked so far for the active request, and where the last one ended. */
+    /** Zero before publication, one while/after replay of the single full trajectory. */
     private var leg = 0
-    private var legStart: Stance? = null
-    private var settleTicks = 0
+    /** Yaw captured with the planning snapshot; held until the worker result arrives. */
+    private var planningYaw: Double? = null
+    /** A certified plan waiting for movement yaw to match its immutable initial state. */
+    private var pendingPath: PublishedPath? = null
+    private var alignmentTicks = 0
     private var cursor: TrajectoryExecutionCursor? = null
     /**
      * The input the tape says to press this tick. Written in [TickEvent.Pre] and read
@@ -127,9 +133,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         tickInput = null
         awaitingObservation = false
         leg = 0
-        legStart = null
-        settleTicks = 0
-        if (status is Status.Planning || status is Status.Executing || status is Status.Settling) {
+        planningYaw = null
+        pendingPath = null
+        alignmentTicks = 0
+        if (status is Status.Planning || status is Status.Aligning || status is Status.Executing) {
             status = Status.Idle
         }
     }
@@ -145,8 +152,6 @@ object PathingManager : Manager<PathingRequest>(0) {
     override fun AutomatedSafeContext.handleRequest(request: PathingRequest) {
         if (!request.fresh) return
 
-        unsteerable(request)?.let { return fail(it) }
-
         cancel()
         published = null
         maxDeviation = 0.0
@@ -155,28 +160,23 @@ object PathingManager : Manager<PathingRequest>(0) {
         activeRequest = request
         renderConfig = request.pathingRenderConfig
         leg = 0
-        legStart = null
-        planLeg(request)
+
+        unsteerable(request)?.let { return fail(it, request.goal) }
+        planTrajectory(request)
     }
 
     /**
-     * Plans the next window toward the request's goal.
-     *
-     * A long route is walked as a series of certified windows. Each ends at a stable
-     * stop, so the body never crosses the certified frontier on faith -- invariant 5.
-     * The stop between legs is the price of not having splices yet (M5.2).
+     * Plans one full trajectory. Local search horizons may be concatenated from
+     * predicted moving states on the worker, but no partial route is executable.
      */
-    private fun planLeg(request: PathingRequest) {
+    private fun planTrajectory(request: PathingRequest) {
         val player = mc.player ?: return fail("no player")
-        val start = Stance(player.blockPos.x, player.blockPos.y, player.blockPos.z)
 
-        // A window that ends where it started would replan forever.
-        if (leg > 0 && start == legStart) {
-            return fail("leg $leg made no progress from (${start.x}, ${start.y}, ${start.z})")
-        }
-        if (leg >= MAX_LEGS) return fail("goal needs more than $MAX_LEGS windows")
-        legStart = start
-
+        // Movement yaw is part of the simulator's immutable initial state. A prior
+        // leg's request can decay back toward the camera while this worker runs, so
+        // keep the captured yaw alive until adoption instead of rejecting a valid
+        // continuation merely because planning crossed a tick boundary.
+        planningYaw = player.moveYaw.toDouble()
         status = Status.Planning("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
 
         val planning = try {
@@ -186,19 +186,27 @@ object PathingManager : Manager<PathingRequest>(0) {
             return
         }
 
-        planning.thenAcceptAsync({ result ->
+        planning.whenCompleteAsync({ result, failure ->
             // Late results from a superseded request must not install themselves.
-            if (activeRequest !== request) return@thenAcceptAsync
-            when (result) {
-                is PathPlanResult.Planned -> begin(request, result.path)
-                is PathPlanResult.NoRoute -> fail(result.reason)
-                is PathPlanResult.NoSafeStop -> fail(result.summary)
+            if (activeRequest !== request) return@whenCompleteAsync
+            if (failure != null) {
+                LOG.error("Pathing worker failed while expanding the trajectory", failure)
+                fail("trajectory expansion crashed: ${failure.rootMessage()}")
+                return@whenCompleteAsync
+            }
+            when (val completed = checkNotNull(result)) {
+                is PathPlanResult.Planned -> begin(completed.path)
+                is PathPlanResult.NoRoute -> fail(completed.reason)
+                is PathPlanResult.NoSafeStop -> fail(completed.summary)
             }
         }, mc)
     }
 
-    private fun begin(request: PathingRequest, path: PublishedPath) {
+    private fun begin(path: PublishedPath) {
         val player = mc.player ?: return fail("no player")
+        if (path.route.goal != path.finalGoal) {
+            return fail("planner attempted to publish a partial route ending at ${path.route.goal.short()}")
+        }
 
         // The tape is only valid from the state it was simulated at; the cursor
         // would reject on frame 0 anyway, but this says why in one line.
@@ -207,18 +215,45 @@ object PathingManager : Manager<PathingRequest>(0) {
             return fail("moved %.2f blocks while planning".format(drift))
         }
 
-        // Frame 0 is steered from the heading the tape was seeded at, and until the
-        // first rotation request lands the movement yaw is still the camera's.
+        // Frame 0 is immutable, but yaw can safely be repaired while the body is
+        // stopped: rotate in place to the captured heading before giving the cursor
+        // any input. Position drift cannot be repaired this way and still refuses.
         val yawDrift = abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
         if (yawDrift > START_YAW_TOLERANCE) {
-            return fail("turned %.1f degrees while planning".format(yawDrift))
+            published = path
+            pendingPath = path
+            alignmentTicks = 0
+            tickInput = ALIGNMENT_INPUT
+            status = Status.Aligning(leg + 1, yawDrift)
+            info(
+                "Certified trajectory; aligning movement yaw by %.1f° before replay.".format(yawDrift),
+                PATHING_SOURCE,
+            )
+            return
         }
 
+        install(path)
+    }
+
+    private fun install(path: PublishedPath) {
+        planningYaw = null
+        pendingPath = null
+        alignmentTicks = 0
         published = path
         cursor = TrajectoryExecutionCursor(path.plan, path.profile)
         awaitingObservation = false
-        leg++
+        leg = 1
         status = Status.Executing(0, path.plan.tape.frameCount, leg)
+        info(
+            "Certified continuous trajectory: ${path.route.nodes.first().short()} -> ${path.route.goal.short()}, " +
+                "${path.plan.tape.frameCount} frames, ${path.attempts} attempts, " +
+                "${path.planMillis} ms, ${path.controlSegments} continuous segment(s)" +
+                path.parameters.gapLaunchFrames.takeIf { it.isNotEmpty() }
+                    ?.let { ", jump launch frames ${it.joinToString()}" }.orEmpty() +
+                path.spliceFrames.takeIf { it.isNotEmpty() }
+                    ?.let { ", predicted splice frames ${it.joinToString()}" }.orEmpty(),
+            PATHING_SOURCE,
+        )
     }
 
     /**
@@ -238,12 +273,22 @@ object PathingManager : Manager<PathingRequest>(0) {
         return null
     }
 
-    private fun fail(reason: String) {
+    private fun fail(reason: String, goal: Stance? = activeRequest?.goal ?: published?.finalGoal) {
+        val position = mc.player?.blockPos?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "unknown position"
+        val destination = goal?.let { " toward ${it.short()}" } ?: ""
         status = Status.Failed(reason)
         activeRequest = null
         cursor = null
         tickInput = null
         awaitingObservation = false
+        planningYaw = null
+        pendingPath = null
+        alignmentTicks = 0
+        warn(
+            "Stopped ${if (leg == 0) "before" else "during"} continuous replay at " +
+                "$position$destination: $reason",
+            PATHING_SOURCE,
+        )
     }
 
     init {
@@ -251,7 +296,8 @@ object PathingManager : Manager<PathingRequest>(0) {
 
         listen<TickEvent.Pre> {
             val request = activeRequest ?: return@listen
-            if (status is Status.Settling) return@listen settle(request)
+            if (status is Status.Planning) return@listen holdPlanningYaw(request)
+            if (status is Status.Aligning) return@listen align(request)
 
             val active = cursor ?: return@listen
             val path = published ?: return@listen
@@ -266,9 +312,10 @@ object PathingManager : Manager<PathingRequest>(0) {
             if (awaitingObservation) {
                 // After the tick, the jump the client holds is the one frame [frame]
                 // wrote -- which observe() reads from tape[f - 1], hence frame + 1.
-                val result = active.observeAfterTick(observe(path.plan, frame + 1), revision)
+                val observed = observe(path.plan, frame + 1)
+                val result = active.observeAfterTick(observed, revision)
                 if (result is ExecutionObservationResult.Rejected) {
-                    return@listen reject(result.frame, result.deviation)
+                    return@listen reject(result.frame, result.deviation, observed, afterInput = true)
                 }
                 awaitingObservation = false
 
@@ -279,11 +326,12 @@ object PathingManager : Manager<PathingRequest>(0) {
                 }
 
                 if (result === ExecutionObservationResult.Complete) {
-                    return@listen finishLeg(request, path)
+                    return@listen finishTrajectory(path)
                 }
             }
 
-            when (val next = active.nextInput(observe(path.plan, active.nextFrame), revision)) {
+            val observed = observe(path.plan, active.nextFrame)
+            when (val next = active.nextInput(observed, revision)) {
                 is ExecutionInputResult.Apply -> {
                     tickInput = next.input
                     awaitingObservation = true
@@ -300,9 +348,11 @@ object PathingManager : Manager<PathingRequest>(0) {
                     }
                 }
 
-                ExecutionInputResult.Complete -> finishLeg(request, path)
+                ExecutionInputResult.Complete -> finishTrajectory(path)
 
-                is ExecutionInputResult.Rejected -> reject(next.frame, next.deviation)
+                is ExecutionInputResult.Rejected -> reject(
+                    next.frame, next.deviation, observed, afterInput = false,
+                )
             }
         }
 
@@ -329,43 +379,85 @@ object PathingManager : Manager<PathingRequest>(0) {
         // clearing the sprint flag.
     }
 
-    /** A window ended on its certified stop. Either that was the goal, or settle and plan the next. */
-    private fun finishLeg(request: PathingRequest, path: PublishedPath) {
-        cursor = null
-        tickInput = null
-        awaitingObservation = false
+    /** Prevents a captured movement yaw from decaying back to the camera while planning. */
+    private fun holdPlanningYaw(request: PathingRequest) {
+        val yaw = planningYaw ?: return
+        request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
+    }
 
-        if (path.reachesFinalGoal) {
-            status = Status.Complete(path.plan.tape.frameCount, leg)
-            activeRequest = null
-            legStart = null
+    /** Rotates in place to the certified initial yaw, then installs the cursor next tick. */
+    private fun align(request: PathingRequest) {
+        val player = mc.player ?: return fail("no player")
+        val path = pendingPath ?: return fail("lost the certified plan while aligning")
+        val positionDrift = player.pos.distanceTo(path.plan.initialState.position)
+        if (positionDrift > START_DRIFT_TOLERANCE) {
+            return fail("moved %.2f blocks while aligning to the plan".format(positionDrift))
+        }
+
+        val targetYaw = path.plan.initialState.rotation.yaw
+        request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
+        val yawDrift = abs(Rotation.wrap(player.moveYaw - targetYaw))
+        if (yawDrift <= START_YAW_TOLERANCE) {
+            // Keep the zero input for this tick. The alignment request is fresh and
+            // cannot be overridden until the next tick; replay starts only then.
+            install(path)
             return
         }
 
-        // Do NOT capture the next leg here. A certified stop means "slower than
-        // stoppedSpeed", not "stopped": the body still carries a few thousandths of a
-        // block per tick. Planning is async, and vanilla clamps horizontal velocity to
-        // *exactly* zero once it drops below 0.003 -- so a state captured now is stale
-        // before the plan comes back, and the cursor rightly rejects frame 0 on a
-        // velocity that no longer exists. Let the body actually come to rest first.
-        settleTicks = 0
-        status = Status.Settling(leg)
-    }
-
-    /** Waits for the body to reach true rest, then captures the next window from it. */
-    private fun settle(request: PathingRequest) {
-        val player = mc.player ?: return fail("no player")
-
-        val atRest = player.isOnGround && player.velocity.horizontalLengthSquared() <= REST_SPEED_SQUARED
-        if (atRest) return planLeg(request)
-
-        if (++settleTicks > MAX_SETTLE_TICKS) {
-            fail("body never came to rest between windows (%.4f b/t)".format(player.velocity.horizontalLength()))
+        status = Status.Aligning(leg + 1, yawDrift)
+        if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
+            fail("could not align movement yaw to the plan (%.1f degrees remain)".format(yawDrift))
         }
     }
 
-    private fun reject(frame: Int, deviation: ExecutionDeviation) {
-        fail("frame $frame: $deviation")
+    /** The one published tape ended at its final certified stop. */
+    private fun finishTrajectory(path: PublishedPath) {
+        cursor = null
+        tickInput = null
+        awaitingObservation = false
+        status = Status.Complete(path.plan.tape.frameCount, 1)
+        activeRequest = null
+        info(
+            "Reached ${path.finalGoal.short()} in one continuous ${path.plan.tape.frameCount}-frame trajectory; " +
+                "max replay deviation %.2e".format(maxDeviation),
+            PATHING_SOURCE,
+        )
+    }
+
+    private fun reject(
+        frame: Int,
+        deviation: ExecutionDeviation,
+        observed: MovementSimulationState,
+        afterInput: Boolean,
+    ) {
+        val path = published
+        val splice = path?.spliceFrames?.let { boundaries ->
+            when {
+                frame in boundaries -> " at predicted splice"
+                frame + 1 in boundaries -> " immediately before predicted splice"
+                else -> ""
+            }
+        }.orEmpty()
+        val input = path?.plan?.tape?.asList()?.getOrNull(frame)
+        val expected = path?.plan?.let { plan ->
+            if (afterInput) plan.frames.getOrNull(frame)?.state
+            else if (frame == 0) plan.initialState else plan.frames.getOrNull(frame - 1)?.state
+        }
+        val phase = if (afterInput) "after input" else "before input"
+        val inputDetail = input?.let {
+            "; input f=%.1f s=%.1f jump=%s sprintKey=%s yaw=%s".format(
+                it.forward, it.strafe, it.jump, it.sprint,
+                it.rotation?.yaw?.let { yaw -> "%.2f".format(yaw) } ?: "hold",
+            )
+        }.orEmpty()
+        val stateDetail = expected?.let {
+            "; expected/live yaw %.3f/%.3f, sprint %s/%s, velocity %s/%s".format(
+                it.rotation.yaw, observed.rotation.yaw,
+                it.isSprinting, observed.isSprinting,
+                it.velocity.short(), observed.velocity.short(),
+            )
+        }.orEmpty()
+        fail("frame $frame $phase$splice: $deviation$inputDetail$stateDetail")
     }
 
     /**
@@ -384,17 +476,22 @@ object PathingManager : Manager<PathingRequest>(0) {
     private const val START_DRIFT_TOLERANCE = 0.35
     private const val START_YAW_TOLERANCE = 1.0
 
-    /** A goal needing more windows than this is not a walk, it is a journey. */
-    private const val MAX_LEGS = 40
-
-    /**
-     * Vanilla snaps horizontal velocity to exactly zero below 0.003 b/t, so true rest
-     * is reachable -- and a state captured at rest cannot go stale while planning.
-     */
-    private const val REST_SPEED_SQUARED = 1.0E-8
-
-    private const val MAX_SETTLE_TICKS = 40
+    private const val MAX_ALIGNMENT_TICKS = 20
 
     /** The seed search caps yaw change at 30 deg/frame; the turn must clear that. */
     private const val MIN_TURN_SPEED = 30.0
+
+    private const val PATHING_SOURCE = "Pathing"
+
+    private val ALIGNMENT_INPUT = MovementSimulationInput()
+
+    private fun Stance.short() = "($x, $y, $z)"
+
+    private fun Vec3d.short() = "(%.4f,%.4f,%.4f)".format(x, y, z)
+
+    private fun Throwable.rootMessage(): String {
+        var root = this
+        while (root.cause != null && root.cause !== root) root = root.cause!!
+        return root.message ?: root::class.simpleName ?: "unknown error"
+    }
 }

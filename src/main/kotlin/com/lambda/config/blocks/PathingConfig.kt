@@ -44,8 +44,11 @@ interface PathingConfig {
      */
     val allowJumpCandidates: Boolean
 
-    /** Furthest a candidate jump may reach, in blocks. A span of 2 clears no hole. */
+    /** Furthest a candidate jump may reach, in blocks. A span of 2 crosses one intermediate cell. */
     val maxJumpSpan: Int
+
+    /** Deepest lower landing a jump candidate may target. */
+    val maxJumpDrop: Int
 
     /** Longest tape the seed search may certify. */
     val maxFrames: Int

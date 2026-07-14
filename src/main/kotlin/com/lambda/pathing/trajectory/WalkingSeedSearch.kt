@@ -40,7 +40,11 @@ data class WalkingSeedSearchConfig(
      */
     val gapLaunchWindowFrames: Int = 14,
     /** How many failed walks are backtracked into launch searches. Bounded work. */
-    val maxGapSeeds: Int = 6,
+    val maxGapSeeds: Int = 12,
+    /** Maximum number of failure-discovered gap launches in one continuous tape. */
+    val maxGapJumps: Int = 8,
+    /** Maximum piecewise controllers expanded into one continuously replayed tape. */
+    val maxContinuousSegments: Int = 32,
 ) {
     init {
         require(maxFrames > 0)
@@ -56,6 +60,8 @@ data class WalkingSeedSearchConfig(
         require(sprintModes.isNotEmpty())
         require(gapLaunchWindowFrames > 0)
         require(maxGapSeeds >= 0)
+        require(maxGapJumps >= 0)
+        require(maxContinuousSegments > 0)
     }
 }
 
@@ -65,10 +71,14 @@ data class WalkingSeedParameters(
     val brakeDistance: Double,
     val stepUpJumpLeadDistance: Double?,
     /**
-     * The grounded frame on which to press jump for a gap, discovered by backtracking
-     * over a failed walk's trace. Null means the nominal walk pressed no gap jump.
+     * Grounded frames on which to press jump for gaps, discovered recursively by
+     * backtracking over failed traces. Empty means the nominal walk pressed none.
+     *
+     * These are absolute tape frames. After one launch changes the rollout, only
+     * that new rollout may discover the next launch; copying timings from the
+     * nominal walk would not be simulation-certified.
      */
-    val gapLaunchFrame: Int? = null,
+    val gapLaunchFrames: List<Int> = emptyList(),
 )
 
 data class WalkingSeedAttempt(
@@ -81,6 +91,14 @@ data class WalkingSeedAttempt(
 )
 
 sealed interface WalkingSeedSearchResult {
+    data class Extension(
+        val tape: InputTape,
+        val rollout: TrajectoryRollout,
+        val parameters: WalkingSeedParameters,
+        /** Node which becomes node zero of the next continuously simulated suffix. */
+        val spliceNodeIndex: Int,
+    )
+
     data class Success(
         val sourceRoute: CoarseRoutePlan,
         val tape: InputTape,
@@ -89,11 +107,26 @@ sealed interface WalkingSeedSearchResult {
         /** Union of coarse template reads and every snapshot voxel read by simulation. */
         val dependencies: Set<VoxelPos>,
         val attempts: List<WalkingSeedAttempt>,
+        /** Piecewise control programs concatenated into this one replayable tape. */
+        val controlSegments: Int = 1,
+        /** Frame boundaries between worker-local controllers; execution ignores them. */
+        val spliceFrames: List<Int> = emptyList(),
     ) : WalkingSeedSearchResult
 
     data class UnsupportedRoute(val edgeKinds: Set<CoarseMoveKind>) : WalkingSeedSearchResult
 
-    data class NoSafeStop(val attempts: List<WalkingSeedAttempt>) : WalkingSeedSearchResult {
+    data class NoSafeStop(
+        val attempts: List<WalkingSeedAttempt>,
+        /** Farthest safe moving prefix available for continuous expansion. */
+        val extension: Extension? = null,
+        /** Moving controller prefixes already flattened before this refusal. */
+        val completedSegments: Int = 0,
+        val spliceFrames: List<Int> = emptyList(),
+        /** Coarse suffix on which continuous expansion finally ran out of options. */
+        val remainingStart: Stance? = null,
+        val remainingGoal: Stance? = null,
+        val remainingMoveSummary: String = "",
+    ) : WalkingSeedSearchResult {
         /** The failure the search got closest to solving; the first thing M4 should attack. */
         val nearest: WalkingSeedAttempt? get() = attempts.minByOrNull { it.finalGoalError }
     }
@@ -107,12 +140,121 @@ sealed interface WalkingSeedSearchResult {
 }
 
 /**
- * First M3 search slice: seed a few smooth corridor followers, simulate each,
- * and publish only a stopped, collision-free input tape. A typed [CoarseMoveKind.STEP_UP]
- * may press jump near its declared takeoff; gaps, drops, and candidate jumps
- * remain explicitly unsupported.
+ * Seed smooth corridor followers, simulate each, and publish only a stopped,
+ * collision-free input tape. Typed step-ups use geometric lead schedules; gap and
+ * rising-jump launches are discovered by backtracking over failed simulated traces.
+ * Multiple hazards are added one rollout at a time so every downstream launch frame
+ * belongs to the state sequence produced by the launches before it.
  */
 object WalkingSeedSearch {
+    /**
+     * Expands a trajectory through exact predicted splice states until the final
+     * stable stop is certified, then replays the concatenated tape from frame zero.
+     *
+     * A failed local controller may contribute its safe moving prefix. The next
+     * controller starts from that prefix's simulated final state and a coarse suffix;
+     * execution never observes the boundary and never stops there. Publication only
+     * happens after one fresh replay certifies the entire concatenated tape.
+     */
+    fun searchContinuously(
+        route: CoarseRoutePlan,
+        initialState: MovementSimulationState,
+        profile: PlayerPhysicsProfile,
+        environment: SnapshotSimulationEnvironment,
+        config: WalkingSeedSearchConfig = WalkingSeedSearchConfig(),
+    ): WalkingSeedSearchResult {
+        var suffix = route
+        var spliceState = initialState
+        val inputs = ArrayList<MovementSimulationInput>()
+        val attempts = ArrayList<WalkingSeedAttempt>()
+        val globalLaunches = ArrayList<Int>()
+        val spliceFrames = ArrayList<Int>()
+        var representativeParameters: WalkingSeedParameters? = null
+        var segmentCount = 0
+
+        fun refusal() = WalkingSeedSearchResult.NoSafeStop(
+            attempts = attempts.toList(),
+            completedSegments = segmentCount,
+            spliceFrames = spliceFrames.toList(),
+            remainingStart = suffix.nodes.first(),
+            remainingGoal = suffix.goal,
+            remainingMoveSummary = suffix.edges.groupingBy { edge ->
+                val span = maxOf(
+                    kotlin.math.abs(edge.to.x - edge.from.x),
+                    kotlin.math.abs(edge.to.z - edge.from.z),
+                )
+                "${edge.kind}(span=$span,dy=${edge.to.y - edge.from.y})"
+            }.eachCount().entries.joinToString { (move, count) -> "$count $move" },
+        )
+
+        repeat(config.maxContinuousSegments) {
+            when (val result = search(suffix, spliceState, profile, environment, config)) {
+                is WalkingSeedSearchResult.Success -> {
+                    val frameOffset = inputs.size
+                    inputs += result.tape.asList()
+                    globalLaunches += result.parameters.gapLaunchFrames
+                        .filter { it < result.tape.frameCount }
+                        .map { frameOffset + it }
+                    attempts += result.attempts
+                    representativeParameters = representativeParameters ?: result.parameters
+                    segmentCount++
+
+                    val tape = InputTape(inputs)
+                    val tracked = environment.trackingView()
+                    val certified = TrajectoryRolloutEngine.rollout(
+                        initialState = initialState,
+                        profile = profile,
+                        environment = tracked,
+                        program = tape,
+                        frameCount = tape.frameCount,
+                    )
+                    if (!certified.completed || certified.frames.size != tape.frameCount) {
+                        return WalkingSeedSearchResult.UnstableReplay(
+                            "expanded tape did not reproduce: ${certified.termination}"
+                        )
+                    }
+                    return WalkingSeedSearchResult.Success(
+                        sourceRoute = route,
+                        tape = tape,
+                        rollout = certified,
+                        parameters = checkNotNull(representativeParameters).copy(
+                            gapLaunchFrames = globalLaunches.toList(),
+                        ),
+                        dependencies = route.dependencies + tracked.dependencies(),
+                        attempts = attempts.toList(),
+                        controlSegments = segmentCount,
+                        spliceFrames = spliceFrames.toList(),
+                    )
+                }
+
+                is WalkingSeedSearchResult.NoSafeStop -> {
+                    attempts += result.attempts
+                    val extension = result.extension
+                        ?: return refusal()
+                    if (extension.spliceNodeIndex !in 1..suffix.nodes.lastIndex) {
+                        return refusal()
+                    }
+
+                    val frameOffset = inputs.size
+                    inputs += extension.tape.asList()
+                    globalLaunches += extension.parameters.gapLaunchFrames
+                        .filter { it < extension.tape.frameCount }
+                        .map { frameOffset + it }
+                    representativeParameters = representativeParameters ?: extension.parameters
+                    segmentCount++
+                    spliceFrames += inputs.size
+                    spliceState = extension.rollout.finalState
+                    suffix = suffix.suffix(extension.spliceNodeIndex)
+                }
+
+                is WalkingSeedSearchResult.UnsupportedRoute -> return result
+                is WalkingSeedSearchResult.UnstableReplay -> return result
+            }
+        }
+
+        return refusal()
+    }
+
     fun search(
         route: CoarseRoutePlan,
         initialState: MovementSimulationState,
@@ -139,7 +281,18 @@ object WalkingSeedSearch {
         }
 
         var best: Candidate? = null
+        var bestExtension: ExtensionCandidate? = null
         val launchSeeds = ArrayList<LaunchSeed>()
+
+        fun retainExtension(parameters: WalkingSeedParameters, rollout: TrajectoryRollout, evaluation: Evaluation) {
+            val candidate = extensionCandidate(parameters, rollout, evaluation, nodes, config) ?: return
+            val previous = bestExtension
+            if (previous == null || candidate.spliceNodeIndex > previous.spliceNodeIndex ||
+                candidate.spliceNodeIndex == previous.spliceNodeIndex && candidate.goalError < previous.goalError
+            ) {
+                bestExtension = candidate
+            }
+        }
 
         for (sprint in config.sprintModes) {
             for (lookAhead in config.lookAheadNodes) {
@@ -150,11 +303,12 @@ object WalkingSeedSearch {
                             initialState = initialState,
                             profile = profile,
                             environment = environment,
-                            program = CorridorWalkingProgram(route.nodes, parameters, config.maxYawDegreesPerFrame),
+                            program = CorridorWalkingProgram(route.nodes, parameters, config),
                             frameCount = config.maxFrames,
                         )
 
                         val evaluation = evaluate(rollout, nodes, goal, config)
+                        retainExtension(parameters, rollout, evaluation)
                         val final = rollout.finalState
                         attempts += WalkingSeedAttempt(
                             parameters = parameters,
@@ -170,11 +324,12 @@ object WalkingSeedSearch {
                             is TrajectoryDiagnostic.HorizontalCollision -> diagnostic.frame
                             else -> null
                         }
-                        if (blocked != null && parameters.gapLaunchFrame == null) {
+                        if (blocked != null) {
                             launchSeeds += LaunchSeed(
                                 parameters = parameters,
                                 rollout = rollout,
                                 blockedFrame = blocked,
+                                blockedProgress = routeProgress(rollout, blocked, nodes),
                                 goalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
                             )
                         }
@@ -188,39 +343,76 @@ object WalkingSeedSearch {
             }
         }
 
-        // Failure-directed branching (§7.3): a nominal walk that fell short of the
-        // route did not fail randomly -- it told us exactly where it left the ground.
-        // Backtrack over its grounded trace and try pressing jump on the ticks that
-        // could still have carried it. Only a full simulation certifies the result.
-        if (best == null && launchSeeds.isNotEmpty()) {
-            for (candidate in launchSeeds.sortedBy { it.goalError }.take(config.maxGapSeeds)) {
-                for (launch in launchLattice(candidate.rollout, candidate.blockedFrame, config)) {
-                    val parameters = candidate.parameters.copy(gapLaunchFrame = launch)
-                    val rollout = TrajectoryRolloutEngine.rollout(
-                        initialState = initialState,
-                        profile = profile,
-                        environment = environment,
-                        program = CorridorWalkingProgram(route.nodes, parameters, config.maxYawDegreesPerFrame),
-                        frameCount = config.maxFrames,
-                    )
-                    val evaluation = evaluate(rollout, nodes, goal, config)
-                    val final = rollout.finalState
-                    attempts += WalkingSeedAttempt(
-                        parameters = parameters,
-                        simulatedFrames = rollout.frames.size,
-                        finalGoalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
-                        finalHorizontalSpeed = final.velocity.horizontalLength(),
-                        diagnostic = evaluation.diagnostic,
-                    )
-                    val frame = evaluation.stopFrame ?: continue
-                    if (best == null || frame < best.stopFrame) {
-                        best = Candidate(parameters, rollout, frame)
+        // Failure-directed branching (§7.3): each failed rollout identifies one
+        // obstacle. Backtrack over its grounded trace, add one launch, then simulate
+        // again. If that rollout reaches another obstacle it becomes the next
+        // frontier. This is deliberately recursive: a nominal trace has no valid
+        // timing for hazards beyond the first jump because the first arc changes all
+        // later states. The bounded beam produces one continuously certified tape,
+        // rather than forcing the manager to stop and replan after every gap.
+        if (best == null && launchSeeds.isNotEmpty() && config.maxGapJumps > 0) {
+            var frontier: List<LaunchSeed> = launchSeeds
+            val triedParameters = HashSet<WalkingSeedParameters>()
+            var jumpCount = 0
+            while (best == null && frontier.isNotEmpty() && jumpCount < config.maxGapJumps) {
+                val nextFrontier = ArrayList<LaunchSeed>()
+                for (candidate in selectGapSeeds(frontier, config.maxGapSeeds)) {
+                    val previousLaunch = candidate.parameters.gapLaunchFrames.lastOrNull() ?: -1
+                    for (launch in launchLattice(candidate.rollout, candidate.blockedFrame, config)) {
+                        // A later hazard must have a later grounded launch. This also
+                        // prevents repeatedly assigning extra presses to one failed arc.
+                        if (launch <= previousLaunch) continue
+                        val launches = candidate.parameters.gapLaunchFrames + launch
+                        val parameters = candidate.parameters.copy(gapLaunchFrames = launches)
+                        if (!triedParameters.add(parameters)) continue
+                        val rollout = TrajectoryRolloutEngine.rollout(
+                            initialState = initialState,
+                            profile = profile,
+                            environment = environment,
+                            program = CorridorWalkingProgram(route.nodes, parameters, config),
+                            frameCount = config.maxFrames,
+                        )
+                        val evaluation = evaluate(rollout, nodes, goal, config)
+                        retainExtension(parameters, rollout, evaluation)
+                        val final = rollout.finalState
+                        attempts += WalkingSeedAttempt(
+                            parameters = parameters,
+                            simulatedFrames = rollout.frames.size,
+                            finalGoalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
+                            finalHorizontalSpeed = final.velocity.horizontalLength(),
+                            diagnostic = evaluation.diagnostic,
+                        )
+
+                        val blocked = when (val diagnostic = evaluation.diagnostic) {
+                            is TrajectoryDiagnostic.FellBelowRoute -> diagnostic.frame
+                            is TrajectoryDiagnostic.HorizontalCollision -> diagnostic.frame
+                            else -> null
+                        }
+                        if (blocked != null) {
+                            nextFrontier += LaunchSeed(
+                                parameters = parameters,
+                                rollout = rollout,
+                                blockedFrame = blocked,
+                                blockedProgress = routeProgress(rollout, blocked, nodes),
+                                goalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
+                            )
+                        }
+
+                        val frame = evaluation.stopFrame ?: continue
+                        if (best == null || frame < best.stopFrame) {
+                            best = Candidate(parameters, rollout, frame)
+                        }
                     }
                 }
+                frontier = nextFrontier
+                jumpCount++
             }
         }
 
-        val winner = best ?: return WalkingSeedSearchResult.NoSafeStop(attempts.toList())
+        val winner = best ?: return WalkingSeedSearchResult.NoSafeStop(
+            attempts = attempts.toList(),
+            extension = bestExtension?.toPublished(),
+        )
 
         // Only the winner is replayed for dependencies. Probing after the stop, and
         // every rejected candidate, must not inflate the plan's correctness-bearing
@@ -256,6 +448,18 @@ object WalkingSeedSearch {
         val stopFrame: Int,
     )
 
+    private class ExtensionCandidate(
+        val parameters: WalkingSeedParameters,
+        val rollout: TrajectoryRollout,
+        val spliceNodeIndex: Int,
+        val goalError: Double,
+    ) {
+        fun toPublished(): WalkingSeedSearchResult.Extension {
+            val tape = InputTape(rollout.frames.map { it.input })
+            return WalkingSeedSearchResult.Extension(tape, rollout, parameters, spliceNodeIndex)
+        }
+    }
+
     /**
      * A walk that could not get past a point *on the ground*. The raw material of
      * jump discovery -- and the obstacle can be either kind:
@@ -270,8 +474,31 @@ object WalkingSeedSearch {
         val parameters: WalkingSeedParameters,
         val rollout: TrajectoryRollout,
         val blockedFrame: Int,
+        val blockedProgress: Int,
         val goalError: Double,
     )
+
+    /**
+     * Keeps the failure beam behaviorally diverse.
+     *
+     * Before the final approach, every brake distance produces the same trace. The
+     * old `sortedBy(goalError).take(6)` therefore spent the entire beam on six brake
+     * variants of one sprint/lookahead controller and silently discarded the other
+     * five gait families. Prefer the failures that reached furthest along the route,
+     * then retain at most one launch schedule per behavioral family.
+     */
+    private fun selectGapSeeds(frontier: List<LaunchSeed>, limit: Int): List<LaunchSeed> =
+        frontier.sortedWith(
+            compareByDescending<LaunchSeed> { it.blockedProgress }
+                .thenByDescending { it.blockedFrame }
+                .thenBy { it.goalError },
+        ).distinctBy {
+            Triple(
+                it.parameters.sprint,
+                it.parameters.lookAheadNodes,
+                it.parameters.stepUpJumpLeadDistance,
+            )
+        }.take(limit)
 
     /**
      * The grounded ticks shortly before the body left the route, latest first.
@@ -285,11 +512,88 @@ object WalkingSeedSearch {
         config: WalkingSeedSearchConfig,
     ): List<Int> {
         val earliest = maxOf(0, blockedFrame - config.gapLaunchWindowFrames)
-        return (blockedFrame - 1 downTo earliest)
-            .filter { rollout.frames.getOrNull(it)?.state?.onGround == true }
+        return (blockedFrame downTo earliest)
+            .filter { launchFrame ->
+                // Input f is evaluated against the state *before* frame f. The old
+                // test inspected frames[f] (the state after the failed walking
+                // input) and also excluded blockedFrame itself. That off-by-one is
+                // mostly invisible on a long flat run, but it removes the only
+                // viable launch when a continuously expanded suffix begins close
+                // to a rising lip.
+                if (launchFrame == 0) rollout.initialState.onGround
+                else rollout.frames.getOrNull(launchFrame - 1)?.state?.onGround == true
+            }
     }
 
     private class Evaluation(val stopFrame: Int?, val diagnostic: TrajectoryDiagnostic?)
+
+    /**
+     * Turns a failed rollout into a certified moving prefix. The diagnostic frame is
+     * excluded; the last grounded state before it is an exact splice state, not a
+     * place where execution will stop. Requiring progress by at least one coarse node
+     * prevents a suffix retry loop at the same obstacle.
+     */
+    private fun extensionCandidate(
+        parameters: WalkingSeedParameters,
+        rollout: TrajectoryRollout,
+        evaluation: Evaluation,
+        nodes: List<HorizontalPoint>,
+        config: WalkingSeedSearchConfig,
+    ): ExtensionCandidate? {
+        val diagnostic = evaluation.diagnostic ?: return null
+        val safeLast = minOf(rollout.frames.lastIndex, diagnostic.frame - 1)
+        if (safeLast < 0) return null
+        val spliceFrame = (safeLast downTo 0).firstOrNull { rollout.frames[it].state.onGround } ?: return null
+        val state = rollout.frames[spliceFrame].state
+        if (state.velocity.horizontalLength() <= config.stoppedSpeed) return null
+        val spliceNodeIndex = routeProgress(rollout, spliceFrame, nodes)
+        if (spliceNodeIndex <= 0) return null
+
+        val node = nodes[spliceNodeIndex]
+        val goalError = hypot(state.position.x - node.x, state.position.z - node.z)
+        val prefixFrames = rollout.frames.take(spliceFrame + 1)
+        return ExtensionCandidate(
+            parameters = parameters,
+            rollout = TrajectoryRollout(
+                initialState = rollout.initialState,
+                frames = prefixFrames,
+                termination = TrajectoryRolloutTermination.Completed,
+            ),
+            spliceNodeIndex = spliceNodeIndex,
+            goalError = goalError,
+        )
+    }
+
+    /** Same monotone local progress rule as the controller; never snap across a folded route. */
+    private fun routeProgress(
+        rollout: TrajectoryRollout,
+        throughFrame: Int,
+        nodes: List<HorizontalPoint>,
+    ): Int {
+        var progress = 0
+        for (frame in 0..throughFrame) {
+            val state = rollout.frames[frame].state
+            val limit = minOf(nodes.lastIndex, progress + 2)
+            var best = progress
+            var bestSquared = spliceDistanceSquared(nodes[progress], state)
+            for (index in progress + 1..limit) {
+                val squared = spliceDistanceSquared(nodes[index], state)
+                if (squared < bestSquared) {
+                    best = index
+                    bestSquared = squared
+                }
+            }
+            progress = best
+        }
+        return progress
+    }
+
+    private fun spliceDistanceSquared(node: HorizontalPoint, state: MovementSimulationState): Double {
+        val dx = state.position.x - node.x
+        val dy = state.position.y - node.y
+        val dz = state.position.z - node.z
+        return dx * dx + dy * dy + dz * dz
+    }
 
     /**
      * Walks the rollout once and reports the **first** thing that went wrong, so the
@@ -387,8 +691,9 @@ object WalkingSeedSearch {
     private class CorridorWalkingProgram(
         stanceNodes: List<Stance>,
         private val parameters: WalkingSeedParameters,
-        private val maxYawChange: Double,
+        private val config: WalkingSeedSearchConfig,
     ) : ControlProgram {
+        private val maxYawChange = config.maxYawDegreesPerFrame
         private val nodes = stanceNodes.map { it.center() }
         /**
          * Rises this program will jump on its step-up schedule.
@@ -423,6 +728,7 @@ object WalkingSeedSearch {
          */
         private var progressIndex = 0
         private var braking = false
+        private var terminalApproach = false
         private var nextRise = 0
         private var jumpWasAirborne = false
 
@@ -433,7 +739,7 @@ object WalkingSeedSearch {
             // observed, so it must run before the brake decision consumes it.
             // A gap launch is a *discovered* frame, not a geometric lead: backtracking
             // over a failed walk is what found it, so it is replayed by index.
-            val gapLaunch = parameters.gapLaunchFrame == frame && observed.onGround
+            val gapLaunch = frame in parameters.gapLaunchFrames && observed.onGround
             val jump = shouldJump(observed) || gapLaunch
 
             // Brake on distance remaining *along the route*, not straight-line
@@ -443,7 +749,24 @@ object WalkingSeedSearch {
             // also holds the brake off -- a coasting player has no momentum to
             // clear a step-up, so a rise on the final edge could never launch.
             val risePending = nextRise < rises.size
-            val gapPending = parameters.gapLaunchFrame != null && frame <= parameters.gapLaunchFrame
+            val gapPending = parameters.gapLaunchFrames.any { frame <= it }
+            if (braking) {
+                val stoppedShort = observed.onGround &&
+                    observed.velocity.horizontalLength() <= config.stoppedSpeed &&
+                    hypot(
+                        nodes.last().x - observed.position.x,
+                        nodes.last().z - observed.position.z,
+                    ) > config.goalRadius
+                if (stoppedShort) {
+                    // Discrete keyboard braking can settle just outside a tight goal
+                    // radius. Resume with a non-sprinting terminal walk instead of
+                    // declaring an otherwise complete multi-jump route impossible.
+                    braking = false
+                    terminalApproach = true
+                } else {
+                    return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
+                }
+            }
             if (!risePending && !gapPending &&
                 remainingPathDistance(observed) <= parameters.brakeDistance
             ) braking = true
@@ -456,7 +779,7 @@ object WalkingSeedSearch {
             val yawDelta = Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
             return MovementSimulationInput(
                 forward = 1.0,
-                sprint = parameters.sprint,
+                sprint = parameters.sprint && !terminalApproach,
                 jump = jump,
                 rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
             )

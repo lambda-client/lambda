@@ -106,8 +106,16 @@ class SimpleMoveLibrary private constructor(
                     }
                     if (options.allowJumpCandidates) {
                         for (span in 2..options.maxJumpSpan) {
-                            for (rise in 0..1) {
-                                add(jumpSpec(dx, dz, span, rise, costs.jumpCandidateCost(span, rise)))
+                            for (verticalOffset in -options.maxJumpDrop..1) {
+                                add(
+                                    jumpSpec(
+                                        dx,
+                                        dz,
+                                        span,
+                                        verticalOffset,
+                                        costs.jumpCandidateCost(span, verticalOffset),
+                                    )
+                                )
                             }
                         }
                     }
@@ -147,7 +155,7 @@ class SimpleMoveLibrary private constructor(
          * This is a mask, not a promise: whether the body can actually make it is for
          * the trajectory layer to simulate.
          */
-        private fun jumpSpec(dx: Int, dz: Int, span: Int, rise: Int, cost: Double): Spec {
+        private fun jumpSpec(dx: Int, dz: Int, span: Int, verticalOffset: Int, cost: Double): Spec {
             val arc = buildList {
                 add(CellCondition(0, 2, 0, Condition.CENTER_SLICE))
                 for (step in 1 until span) {
@@ -157,8 +165,8 @@ class SimpleMoveLibrary private constructor(
                 }
             }
             return Spec(
-                span * dx, rise, span * dz, CoarseMoveKind.JUMP_CANDIDATE, cost,
-                stanceConditions(span * dx, rise, span * dz) + arc,
+                span * dx, verticalOffset, span * dz, CoarseMoveKind.JUMP_CANDIDATE, cost,
+                stanceConditions(span * dx, verticalOffset, span * dz) + arc,
             )
         }
 
