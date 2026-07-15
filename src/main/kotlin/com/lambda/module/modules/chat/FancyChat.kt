@@ -20,7 +20,7 @@ package com.lambda.module.modules.chat
 import com.lambda.command.CommandRegistry.prefix
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ChatUtils.toBlue

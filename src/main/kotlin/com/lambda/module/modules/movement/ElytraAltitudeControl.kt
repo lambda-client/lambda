@@ -23,7 +23,7 @@ import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomat
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.tag.ModuleTag

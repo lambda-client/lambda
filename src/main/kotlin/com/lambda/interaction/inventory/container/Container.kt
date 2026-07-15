@@ -24,13 +24,13 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.external.ShulkerBoxContainer
-import com.lambda.interaction.managers.inventory.InvRequestBuilder
-import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.TaskGenerator
 import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.ContainerTransferTask
-import com.lambda.task.tasks.NoopTask.Companion.noop
+import com.lambda.task.tasks.NoopTask.Companion.noopTask
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
@@ -111,14 +111,14 @@ abstract class Container(
                 ShulkerBoxContainer(
                     slot.stack.shulkerBoxStacks,
                     containedIn = this@Container,
-                    shulkerSlot = slot
+                    slot = slot
                 )
             }?.toSet()
                 ?: stacks.map { stack ->
                     ShulkerBoxContainer(
                         stack.shulkerBoxStacks,
                         containedIn = this@Container,
-                        shulkerSlot = null
+                        slot = null
                     )
                 }.toSet()
 
@@ -133,13 +133,35 @@ abstract class Container(
     open fun accessThen(
         closeAfter: Boolean = true,
         afterClose: TaskOrNullGenerator<Unit>? = null,
-        afterOpen: TaskGenerator<Unit> = { noop() }
+        afterOpen: TaskGenerator<Unit> = { noopTask() }
     ) = with(automatedSafeContext) {
         afterOpen(Unit).also {
             if (closeAfter && afterClose != null) {
                 it.thenOrNull { afterClose(Unit) }
             }
         }
+    }
+
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun transfer(selection: StackSelection, toContainer: Container): Boolean =
+        with(automatedSafeContext) {
+            val (fromSlot, toSlot) = getTransferSlots(selection, toContainer)
+            if (fromSlot == null || toSlot == null) return false
+            return transfer(fromSlot, toSlot, toContainer)
+        }
+
+    context(_: Automated)
+    fun getTransferSlots(selection: StackSelection, destination: Container): Pair<Slot?, Slot?> =
+        Pair(getSlot(selection), destination.getReplaceSlot())
+
+    context(automatedSafeContext: AutomatedSafeContext)
+    fun transfer(fromSlot: Slot, toSlot: Slot, toContainer: Container): Boolean {
+        val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@Container, toContainer)
+        if (transferEvent.post().isCanceled()) return false
+        return automatedSafeContext.inventoryRequest {
+            if (swapMethodPriority > toContainer.swapMethodPriority) transfer(fromSlot, toSlot)
+            else with(toContainer) { transfer(toSlot, fromSlot) }
+        }.submit().done
     }
 
     context(safeContext: SafeContext)
@@ -150,19 +172,6 @@ abstract class Container(
             if (!toSlot.stack.isEmpty) pickup(fromHere.id)
         }
     }
-
-    context(automatedSafeContext: AutomatedSafeContext)
-    fun transfer(selection: StackSelection, destination: Container): Boolean =
-        with(automatedSafeContext) {
-            val fromSlot = getSlot(selection) ?: return false
-            val toSlot = destination.getReplaceSlot() ?: return false
-            val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@Container, destination)
-            if (transferEvent.post().isCanceled()) return false
-            return inventoryRequest {
-                if (swapMethodPriority > destination.swapMethodPriority) transfer(fromSlot, toSlot)
-                else with(destination) { transfer(toSlot, fromSlot) }
-            }.submit().done
-        }
 
     context(automated: Automated)
     fun transferByTask(stackSelection: StackSelection, destination: Container, failIfNoMaterial: Boolean = false) =
@@ -191,6 +200,7 @@ abstract class Container(
         ShulkerBox,
         EnderChest,
         PlacedShulkerBox,
+        PlacedEnderChest,
         Chest,
         Stash
     }

@@ -27,7 +27,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.PlaceContainerTask
 import com.lambda.util.item.ItemUtils.shulkerBoxes
@@ -72,7 +72,7 @@ object InventoryTweaks : Module(
             if (event.screenHandler != lastOpenScreen) return@listen
             lastOpenScreen = null
             placedPos?.let {
-                lastBreak = breakAndCollectBlock(it).run()
+                lastBreak = breakAndCollect(it).run()
                 placedPos = null
             }
         }

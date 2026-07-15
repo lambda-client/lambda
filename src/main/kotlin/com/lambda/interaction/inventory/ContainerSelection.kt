@@ -27,13 +27,13 @@ class ContainerSelection(
     val selector: (Container) -> Boolean,
     val comparator: Comparator<Container> = compareBy { it.rank }
 ) {
-    @ContainerSelectionMarker
+    @ContainerMarker
     fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
 
-    @ContainerSelectionMarker
+    @ContainerMarker
     fun matches(container: Container): Boolean = selector(container)
 
-    @ContainerSelectionMarker
+    @ContainerMarker
     fun filter(containers: Iterable<Container>) =
         containers
             .filter(selector)
@@ -45,11 +45,8 @@ class ContainerSelection(
     }
 }
 
-@DslMarker
-annotation class ContainerSelectionMarker
-
 @Suppress("unused")
-@ContainerSelectionMarker
+@ContainerMarker
 class ContainerSelectionBuilder private constructor() {
     private var selector: (Container) -> Boolean = { true }
     private var comparator: Comparator<Container> = compareBy { it.rank }

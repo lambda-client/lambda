@@ -27,15 +27,15 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.PlaceDirection
@@ -213,7 +213,7 @@ class InteractSim private constructor(simInfo: InteractSimInfo)
 		val stackSelection = item?.select()
 			?: selectStack { sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } } }
 		val containerSelection = selectContainer { ofAnyType(Container.Rank.Hotbar) }
-		val container = stackSelection.findContainersWithMaterial(containerSelection).firstOrNull() ?: run {
+		val container = stackSelection.findContainers(containerSelection).firstOrNull() ?: run {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null
 		}

@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.ContainerHandler.findDisposable
+import com.lambda.interaction.handler.handlers.ContainerHandler.findDisposable
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty

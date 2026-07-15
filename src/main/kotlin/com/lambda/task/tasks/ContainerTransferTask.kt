@@ -20,20 +20,22 @@ package com.lambda.task.tasks
 import com.lambda.context.Automated
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
+import net.minecraft.screen.slot.Slot
 
-class ContainerTransferTask(
+class ContainerTransferTask @Ta5kBuilder constructor(
 	private var fromContainer: Container,
 	private val toContainer: Container,
 	private val stackSelection: StackSelection,
 	private val failIfNoStack: Boolean = false,
 	automated: Automated
-) : Task<Unit>(), Automated by automated {
+) : Task<Slot>(), Automated by automated {
 	override val name = "Transferring $stackSelection from $fromContainer to $toContainer"
 
 	init {
@@ -44,7 +46,7 @@ class ContainerTransferTask(
 						true,
 						{
 							HotbarAndInventoryContainer.transferByTask(stackSelection, toContainer)
-								.finally { success() }
+								.finally { slot -> success(slot) }
 						}
 					) {
 						fromContainer.transferByTask(stackSelection, HotbarAndInventoryContainer)
@@ -54,21 +56,32 @@ class ContainerTransferTask(
 
 				fromContainer.accessThen {
 					toContainer.accessThen {
-						TransferTask()
+						TransferTask().finally { slot ->
+							success(slot)
+						}
 					}
 				}.execute(this@ContainerTransferTask)
 			}
 		}
 	}
 
-	private inner class TransferTask : Task<Unit>() {
+	private inner class TransferTask : Task<Slot>() {
 		override val name = "Transferring"
 
 		init {
 			listen<TickEvent.Pre> {
 				runSafeAutomated {
-					val transferSuccessful = fromContainer.transfer(stackSelection, toContainer)
-					if (transferSuccessful) success()
+					val (fromSlot, toSlot) = fromContainer.getTransferSlots(stackSelection, toContainer)
+					if (fromSlot == null) {
+						checkFail()
+						return@listen
+					}
+					if (toSlot == null) {
+						failure("Unable to find a slot to transfer to.")
+						return@listen
+					}
+					val transferSuccessful = fromContainer.transfer(fromSlot, toSlot, toContainer)
+					if (transferSuccessful) success(toSlot)
 					else checkFail()
 				}
 			}
@@ -79,5 +92,35 @@ class ContainerTransferTask(
 		}
 
 		private inner class NoMaterialAccessException(stackSelection: StackSelection) : IllegalStateException("Unable to access $stackSelection.")
+	}
+
+	companion object {
+		@Ta5kBuilder
+		context(automated: Automated)
+		fun transfer(
+			fromContainer: Container,
+			toContainer: Container,
+			stackSelection: StackSelection,
+			failIfNoStack: Boolean = false
+		) = ContainerTransferTask(fromContainer, toContainer, stackSelection, failIfNoStack, automated)
+
+		@Ta5kBuilder
+		context(automated: Automated)
+		fun transfer(
+			stackSelection: StackSelection,
+			toContainer: Container,
+			failIfNoStack: Boolean = false
+		) = stackSelection.findContainer()?.let {
+			ContainerTransferTask(it, toContainer, stackSelection, failIfNoStack, automated)
+		}
+
+		@Ta5kBuilder
+		context(automated: Automated)
+		fun StackSelection.transfer(
+			toContainer: Container,
+			failIfNoStack: Boolean = false
+		) = findContainer()?.let {
+			ContainerTransferTask(it, toContainer, this, failIfNoStack, automated)
+		}
 	}
 }

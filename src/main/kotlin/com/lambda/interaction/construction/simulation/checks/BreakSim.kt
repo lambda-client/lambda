@@ -28,15 +28,15 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.inventory.StackAndSlot
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.managers.hotbar.HotbarManager
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.hotbar.HotbarManager
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
@@ -166,7 +166,7 @@ class BreakSim private constructor(simInfo: SimInfo)
 		}
 
 		val hotbarCandidates = stackSelection
-			.findContainersWithMaterial(containerSelection)
+			.findContainers(containerSelection)
 			.flatMap { stackSelection.filter(it.stacks) }
 		if (hotbarCandidates.isEmpty()) {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))

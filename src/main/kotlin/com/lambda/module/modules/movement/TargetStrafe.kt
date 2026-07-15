@@ -20,7 +20,7 @@ package com.lambda.module.modules.movement
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag

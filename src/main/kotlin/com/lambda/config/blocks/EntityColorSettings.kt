@@ -20,7 +20,7 @@ package com.lambda.config.blocks
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.FriendHandler.isFriend
+import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
 import com.lambda.util.EntityUtils.EntityGroup
 import com.lambda.util.EntityUtils.entityGroup
 import com.lambda.util.extension.blockColor

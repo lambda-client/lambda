@@ -17,7 +17,7 @@
 
 package com.lambda.mixin;
 
-import com.lambda.interaction.handlers.TimerHandler;
+import com.lambda.interaction.handler.handlers.TimerHandler;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
 import com.lambda.gui.DearImGui;

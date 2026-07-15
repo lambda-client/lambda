@@ -20,7 +20,7 @@ package com.lambda.interaction.construction.simulation
 import com.lambda.interaction.construction.simulation.processing.PreProcessingData
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
 import com.lambda.util.player.CheckedHit

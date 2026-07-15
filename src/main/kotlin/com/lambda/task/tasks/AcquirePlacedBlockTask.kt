@@ -21,7 +21,7 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.ContainerHandler.findSlotsWithMaterial
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
@@ -43,7 +43,7 @@ class AcquirePlacedBlockTask @Ta5kBuilder constructor(
 			runSafeAutomated {
 				Items.ENDER_CHEST
 					.select(1)
-					.findSlotsWithMaterial()
+					.findSlots()
 					.firstOrNull()?.let { slot ->
 						PlaceContainerTask(slot, this).finally {
 							success(it)
@@ -71,4 +71,13 @@ class AcquirePlacedBlockTask @Ta5kBuilder constructor(
 			.firstOrNull { blockPos ->
 				blockState(blockPos).block == block
 			}
+
+	companion object {
+		@Ta5kBuilder
+		context(automated: Automated)
+		fun acquirePlacedBlock(
+			block: Block,
+			maxSearchRadius: Int = 10
+		) = AcquirePlacedBlockTask(block, maxSearchRadius, automated)
+	}
 }

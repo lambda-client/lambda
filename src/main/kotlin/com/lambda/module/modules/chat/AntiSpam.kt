@@ -22,7 +22,7 @@ import com.lambda.config.ConfigBlock
 import com.lambda.config.Group
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ChatUtils.addresses

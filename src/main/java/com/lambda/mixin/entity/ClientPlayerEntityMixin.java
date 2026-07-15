@@ -19,8 +19,8 @@ package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
-import com.lambda.interaction.handlers.BaritoneHandler;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.handler.handlers.BaritoneHandler;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.NoJumpCooldown;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.player.PortalGui;

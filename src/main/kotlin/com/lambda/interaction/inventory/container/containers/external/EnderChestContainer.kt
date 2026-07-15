@@ -19,30 +19,43 @@ package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.handlers.ContainerHandler
+import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.task.TaskGenerator
 import com.lambda.task.TaskOrNullGenerator
-import com.lambda.task.tasks.AcquirePlacedBlockTask
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
+import com.lambda.task.tasks.AcquireStackTask.Companion.acquireStack
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
+import com.lambda.task.tasks.NoopTask.Companion.noopTask
 import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
+import com.lambda.task.tasks.PlaceContainerTask.Companion.placeContainer
+import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
-import net.minecraft.block.Blocks
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.item.Items
+import net.minecraft.screen.ScreenHandlerType
+import kotlin.comparisons.then
 
 object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 	override val slots
 		get() =
-			if (ContainerHandler.lastInteractedBlockEntity is EnderChestBlockEntity) {
-				mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
-			} else emptyList()
+			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
+			else emptyList()
 	override var stacks = emptyList<ItemStack>()
 
 	override val description = buildText { literal("Ender Chest") }
+
+	override val isAccessed
+		get() =
+			lastInteractedBlockEntity?.let { blockEntity ->
+				blockEntity is EnderChestBlockEntity &&
+						mc.player?.currentScreenHandler?.type == ScreenHandlerType.GENERIC_9X3
+			} ?: false
 
 	context(automatedSafeContext: AutomatedSafeContext)
 	override fun accessThen(
@@ -50,17 +63,30 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 		afterClose: TaskOrNullGenerator<Unit>?,
 		afterOpen: TaskGenerator<Unit>
 	) =
-		AcquirePlacedBlockTask(
-			Blocks.ENDER_CHEST,
-			automated = automatedSafeContext
-		).then { pos ->
-			OpenContainerTask(pos, automatedSafeContext).then {
-				afterOpen.invoke(automatedSafeContext, Unit).thenOrNull {
-					if (closeAfter) {
-						player.closeHandledScreen()
-						automatedSafeContext.breakAndCollectBlock(pos, lifeMaintenance = false)
-					} else null
+		with(automatedSafeContext) {
+			if (!isAccessed) {
+				acquireStack(Items.ENDER_CHEST.select()).then { slot ->
+					placeContainer(slot).then { pos ->
+						openContainer(pos).then {
+							afterOpen(Unit).thenOrNull {
+								if (closeAfter) {
+									simpleAction("Close inventory") { player.closeHandledScreen() }.then {
+										breakAndCollect(pos, lifeMaintenance = false).thenOrNull {
+											afterClose?.invoke(this, Unit)
+										}
+									}
+								} else null
+							}
+						}
+					}
 				}
+			} else afterOpen(Unit).thenOrNull {
+				if (closeAfter) {
+					simpleAction("Close inventory") { mc.player?.closeHandledScreen() }.thenOrNull {
+						afterClose?.invoke(this, Unit)
+					}
+				} else null
 			}
 		}
+
 }

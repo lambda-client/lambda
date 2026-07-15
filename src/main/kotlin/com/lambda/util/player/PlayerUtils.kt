@@ -19,7 +19,7 @@ package com.lambda.util.player
 
 import com.lambda.config.blocks.BuildConfig
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.GlideHandler
+import com.lambda.interaction.handler.handlers.GlideHandler
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.world.fastEntitySearch

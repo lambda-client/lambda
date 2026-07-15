@@ -22,10 +22,10 @@ import com.lambda.config.ConfigBlock
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.FriendHandler.isFriend
-import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.dist
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.distSq

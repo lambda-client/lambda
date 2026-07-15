@@ -20,15 +20,16 @@ package com.lambda.interaction.inventory.container.containers.external
 import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.ContainerHandler.lastInteractedBlockEntity
+import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
-import com.lambda.task.Task
+import com.lambda.interaction.inventory.container.NestedContainer
 import com.lambda.task.TaskGenerator
 import com.lambda.task.TaskOrNullGenerator
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.task.tasks.OpenContainerTask
-import com.lambda.task.tasks.PlaceContainerTask
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
+import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
+import com.lambda.task.tasks.PlaceContainerTask.Companion.placeContainer
+import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
@@ -36,44 +37,56 @@ import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
+import net.minecraft.util.math.BlockPos
 
 data class ShulkerBoxContainer(
     override var stacks: List<ItemStack>,
     val containedIn: Container,
-    val shulkerSlot: Slot?,
-) : Container(Rank.ShulkerBox), ExternalContainer {
+    override val slotCache: Slot,
+) : Container(Rank.ShulkerBox), ExternalContainer, NestedContainer {
     override val slots
         get(): List<Slot> =
-            if (lastInteractedBlockEntity is ShulkerBoxBlockEntity)
-                mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
+            if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
             else emptyList()
 
     override val description =
         buildText {
-            highlighted(shulkerSlot?.stack?.name?.string ?: "Shulker Box")
+            highlighted(slotCache.stack.name.string)
             literal(" in ")
             highlighted(containedIn.name)
-            literal(" in slot ")
-            highlighted("${runSafe { slotInContainer }}")
+            literal(" in slot $slotCache")
         }
 
-    context(_: SafeContext)
-    private val slotInContainer: Int get() = containedIn.slots.indexOf(shulkerSlot)
+    private var placed = false
+    private var blockPos: BlockPos? = null
 
-    override val isAccessed get() = lastInteractedBlockEntity is ShulkerBoxBlockEntity
+    override val isAccessed
+        get() =
+            lastInteractedBlockEntity?.let { blockEntity ->
+                blockEntity is ShulkerBoxBlockEntity &&
+                        blockEntity.pos == blockPos &&
+                        mc.player?.currentScreenHandler?.type == ScreenHandlerType.SHULKER_BOX
+            } ?: false
 
     context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(closeAfter: Boolean, afterClose: TaskOrNullGenerator<Unit>?, afterOpen: TaskGenerator<Unit>): Task<*> {
-        return PlaceContainerTask(shulkerSlot, automatedSafeContext).then { pos ->
-            OpenContainerTask(pos, automatedSafeContext).then {
-                afterOpen.invoke(automatedSafeContext, Unit).thenOrNull {
-                    if (closeAfter) {
-                        player.closeHandledScreen()
-                        automatedSafeContext.breakAndCollectBlock(pos)
-                    } else null
-                }
+    override fun accessThen(
+        closeAfter: Boolean,
+        afterClose: TaskOrNullGenerator<Unit>?,
+        afterOpen: TaskGenerator<Unit>
+    ) =
+        with(automatedSafeContext) {
+            if (!isAccessed) {
+
+            } else afterOpen(Unit).thenOrNull {
+                if (closeAfter) {
+                    simpleAction("Close inventory") { player.closeHandledScreen() }.then {
+                        breakAndCollect(blockPos, lifeMaintenance = false).thenOrNull {
+                            afterClose?.invoke(this, Unit)
+                        }
+                    }
+                } else null
             }
         }
-    }
 }

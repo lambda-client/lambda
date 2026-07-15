@@ -34,10 +34,10 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.interaction.handlers.TimerHandler
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.handler.handlers.TimerHandler
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.RotationMode
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag

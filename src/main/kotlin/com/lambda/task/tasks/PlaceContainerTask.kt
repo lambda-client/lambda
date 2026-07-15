@@ -25,7 +25,7 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.ManagerUtils
+import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafeAutomated
@@ -95,5 +95,15 @@ class PlaceContainerTask @Ta5kBuilder constructor(
             world.isSpaceEmpty(box)
         }
         else -> false
+    }
+
+    companion object {
+        @Ta5kBuilder
+        context(automated: Automated)
+        fun placeContainer(slot: Slot) = PlaceContainerTask(slot, automated)
+
+        @Ta5kBuilder
+        context(automated: Automated)
+        fun placeContainer(slot: () -> Slot) = PlaceContainerTask(slot(), automated)
     }
 }

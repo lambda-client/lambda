@@ -1,0 +1,170 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.interaction.manager.managers.rotating
+
+import com.lambda.threading.runSafe
+import com.lambda.util.math.MathUtils.toDegree
+import com.lambda.util.math.MathUtils.toRadian
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
+import com.lambda.util.world.raycast.InteractionMask
+import com.lambda.util.world.raycast.RayCastUtils.rayCast
+import net.minecraft.entity.Entity
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.MathHelper.wrapDegrees
+import net.minecraft.util.math.Vec3d
+import net.minecraft.world.RaycastContext
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
+
+data class Rotation(val yaw: Double, val pitch: Double) {
+    constructor(yaw: Float, pitch: Float) : this(yaw.toDouble(), pitch.toDouble())
+
+    val yawF get() = yaw.toFloat()
+    val pitchF get() = pitch.toFloat()
+    val float get() = floatArrayOf(yawF, pitchF)
+
+    fun equalFloat(other: Rotation): Boolean = yawF == other.yawF && pitchF == other.pitchF
+
+    /**
+     * Returns the player's rotation vector
+     * Same as [net.minecraft.entity.Entity.getRotationVec]
+     */
+    val vector: Vec3d
+        get() {
+            val yawRad = -yaw.toRadian()
+            val pitchRad = pitch.toRadian()
+
+            return Vec3d(sin(yawRad), -1.0, cos(yawRad))
+                .multiply(Vec3d(cos(pitchRad), sin(pitchRad), cos(pitchRad)))
+        }
+
+    fun withDelta(yaw: Double = 0.0, pitch: Double = 0.0) =
+        Rotation(this.yaw + yaw, (this.pitch + pitch).coerceIn(-90.0, 90.0))
+
+    fun rayCast(
+        reach: Double,
+        eye: Vec3d? = null,
+        mask: InteractionMask = InteractionMask.Both,
+        shapeType: RaycastContext.ShapeType = RaycastContext.ShapeType.OUTLINE,
+        fluidHandling: RaycastContext.FluidHandling = RaycastContext.FluidHandling.NONE
+    ) = runSafe {
+        rayCast(eye ?: player.eyePos, vector, reach, mask, shapeType, fluidHandling)
+    }
+
+    fun castBox(
+        box: Box,
+        reach: Double,
+        eye: Vec3d? = null,
+    ) = runSafe {
+        val eyeVec = eye ?: player.eyePos
+        box.raycast(eyeVec, eyeVec + vector * reach).orElse(null)
+    }
+
+    companion object {
+        val Direction.yaw: Float
+            get() = when (this) {
+                Direction.NORTH -> -180.0f
+                Direction.SOUTH -> 0.0f
+                Direction.EAST -> -90.0f
+                Direction.WEST -> 90.0f
+                else -> 0.0f
+            }
+
+        val ZERO = Rotation(0.0, 0.0)
+        val DOWN = Rotation(0.0, 90.0)
+        val UP = Rotation(0.0, -90.0)
+        val Direction.rotation get() = Rotation(yaw.toDouble(), 0.0)
+        var Entity.rotation
+            get() = Rotation(yaw, pitch)
+            set(value) {
+                yaw = value.yawF
+                pitch = value.pitchF
+            }
+
+        fun wrap(deg: Double) = wrapDegrees(deg)
+        fun wrap(deg: Float) = wrapDegrees(deg)
+        fun Rotation.wrap() = Rotation(wrap(yaw), pitch)
+
+        fun Rotation.lerp(other: Rotation, delta: Double): Rotation {
+            // Calculate the wrapped difference to ensure we take the shortest path
+            val yawDiff = wrap(other.yaw - this.yaw)
+            val pitchDiff = other.pitch - this.pitch
+
+            // Apply without wrapping the absolute yaw (keep it continuous)
+            val yaw = this.yaw + delta * yawDiff
+            val pitch = (this.pitch + delta * pitchDiff).coerceIn(-90.0, 90.0)
+
+            return Rotation(yaw, pitch)
+        }
+
+        fun Rotation.slerpYaw(targetYaw: Double, speed: Double): Double {
+            val yawDiff = wrap(targetYaw - yaw)
+            return yaw + yawDiff.coerceIn(-speed, speed)
+        }
+
+        fun Rotation.slerpPitch(targetPitch: Double, speed: Double): Double {
+            val pitchDiff = targetPitch - pitch
+            return (pitch + pitchDiff.coerceIn(-speed, speed)).coerceIn(-90.0, 90.0)
+        }
+
+        fun Rotation.slerp(other: Rotation, speed: Double): Rotation {
+            val yawDiff = wrap(other.yaw - yaw)
+            val pitchDiff = other.pitch - pitch
+
+            val diff = hypot(yawDiff, pitchDiff).let { if (it == 0.0) 1.0 else it }
+
+            val yawSpeed = abs(yawDiff / diff) * speed
+            val pitchSpeed = abs(pitchDiff / diff) * speed
+
+            // Apply without wrapping the absolute yaw (keep it continuous)
+            val yaw = yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed)
+            val pitch = (pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed)).coerceIn(-90.0, 90.0)
+
+            return Rotation(yaw, pitch)
+        }
+
+        fun Vec3d.rotationTo(vec: Vec3d): Rotation {
+            val diffX = vec.x - x
+            val diffY = vec.y - y
+            val diffZ = vec.z - z
+
+            val yawRad = atan2(diffZ, diffX)
+            val pitchRad = -atan2(diffY, hypot(diffX, diffZ))
+
+            // Target yaw can be normalized; our slerp keeps absolute yaw continuous
+            val yaw = yawRad.toDegree() - 90.0
+            val pitch = pitchRad.toDegree().coerceIn(-90.0, 90.0)
+
+            return Rotation(yaw, pitch)
+        }
+
+        infix fun Rotation.dist(b: Rotation) =
+            hypot(
+                wrap(yaw - b.yaw),
+                wrap(pitch - b.pitch)
+            )
+
+        fun angleDifference(a: Double, b: Double) =
+            abs(wrap(a - b))
+    }
+}

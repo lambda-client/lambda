@@ -28,9 +28,9 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
-import com.lambda.interaction.handlers.ContainerHandler
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithSpace
+import com.lambda.interaction.handler.handlers.ContainerHandler
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainersWithSpace
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.task.RootTask
 import com.lambda.task.Task
@@ -55,7 +55,7 @@ object TransferCommand : LambdaCommand(
                             isItem(stack(ctx).value().item)
                         }
                         AutomationConfig.DEFAULT.runSafeAutomated {
-                            val containers = selection.findContainersWithMaterial()
+                            val containers = selection.findContainers()
                             val indexedContainers = containers.withIndex()
 
                             suggestMatching(
@@ -96,11 +96,11 @@ object TransferCommand : LambdaCommand(
                                 isItem(stack().value().item)
                             }
                             AutomationConfig.DEFAULT.runSafeAutomated {
-                                val fromContainer = ContainerHandler.containers().find {
+                                val fromContainer = ContainerHandler.filteredContainers().find {
                                     it.name == from().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("From container not found")
 
-                                val toContainer = ContainerHandler.containers().find {
+                                val toContainer = ContainerHandler.filteredContainers().find {
                                     it.name == to().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("To container not found")
 

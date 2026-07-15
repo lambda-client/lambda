@@ -22,8 +22,8 @@ import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.task.Task
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.TickTimer
@@ -36,9 +36,9 @@ import net.minecraft.util.math.Direction
 
 class OpenContainerTask @Ta5kBuilder constructor(
     private val blockPos: BlockPos,
-    private val automated: Automated,
     private val waitForSlotLoad: Boolean = true,
-    private val sides: Set<Direction> = Direction.entries.toSet()
+    private val sides: Set<Direction> = Direction.entries.toSet(),
+    private val automated: Automated
 ) : Task<ScreenHandler>(), Automated by automated {
     override val name get() = "${containerState.description()} at ${blockPos.toShortString()}"
 
@@ -108,5 +108,15 @@ class OpenContainerTask @Ta5kBuilder constructor(
 
             containerState = State.Opening
         }
+    }
+
+    companion object {
+        @Ta5kBuilder
+        context(automated: Automated)
+        fun openContainer(
+            blockPos: BlockPos,
+            waitForSlotLoad: Boolean = true,
+            sides: Set<Direction> = Direction.entries.toSet()
+        ) = OpenContainerTask(blockPos, waitForSlotLoad, sides, automated)
     }
 }

@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.interaction.handlers.FriendHandler;
+import com.lambda.interaction.handler.handlers.FriendHandler;
 import com.lambda.module.modules.render.ExtraTab;
 import com.lambda.util.text.TextBuilder;
 import com.lambda.util.text.TextDslKt;

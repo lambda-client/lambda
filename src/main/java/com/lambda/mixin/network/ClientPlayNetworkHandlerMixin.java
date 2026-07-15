@@ -22,7 +22,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.ChatEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.WorldEvent;
-import com.lambda.interaction.managers.inventory.InventoryManager;
+import com.lambda.interaction.manager.managers.inventory.InventoryManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.player.NoForceRotate;
 import com.lambda.module.modules.render.NoRender;

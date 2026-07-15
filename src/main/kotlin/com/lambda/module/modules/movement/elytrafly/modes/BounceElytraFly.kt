@@ -25,10 +25,10 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.handlers.GlideHandler
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.GlideHandler
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.hud.Speedometer
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly

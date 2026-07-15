@@ -23,7 +23,7 @@ import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run

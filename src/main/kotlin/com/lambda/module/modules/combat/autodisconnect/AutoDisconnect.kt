@@ -26,7 +26,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
@@ -41,10 +41,10 @@ import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.tickDeltaF
-import com.lambda.util.item.ItemStackUtils.bundleContents
-import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
-import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
+import com.lambda.util.item.ItemStackUtils.bundleStacks
+import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.player.MovementUtils.moveDelta
+import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks
@@ -706,7 +706,7 @@ object AutoDisconnect : Module(
     private fun itemRow(stack: ItemStack, label: String? = null, selected: Boolean = false): DetailSection {
         val header = itemHeader(stack, label, selected)
         val enchantments = stack.forEachEnchantment { entry, level -> Enchantment.getName(entry, level) }
-        val contents = (stack.shulkerBoxContents + stack.bundleContents).filter { !it.isEmpty }
+        val contents = (stack.shulkerBoxStacks + stack.bundleStacks).filter { !it.isEmpty }
 
         if (enchantments.isEmpty() && contents.isEmpty()) {
             return DetailSection.TextSection(header)

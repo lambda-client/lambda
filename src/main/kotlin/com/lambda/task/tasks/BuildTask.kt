@@ -46,11 +46,11 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
-import com.lambda.interaction.managers.breaking.BreakRequestBuilder.Companion.breakRequest
-import com.lambda.interaction.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
-import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder.Companion.breakRequest
+import com.lambda.interaction.manager.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
@@ -78,7 +78,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.sqrt
 
-class BuildTask private constructor(
+class BuildTask @Ta5kBuilder private constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean,
     private val collectDrops: Boolean,
@@ -377,7 +377,8 @@ class BuildTask private constructor(
         ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
 
         @Ta5kBuilder
-        fun Automated.breakAndCollectBlock(
+        context(automated: Automated)
+        fun breakAndCollect(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
             lifeMaintenance: Boolean = false,
@@ -385,7 +386,7 @@ class BuildTask private constructor(
             buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
         ) = BuildTask(
             blockPos.toStructure(TargetState.Empty).toBlueprint(),
-            finishOnDone, true, lifeMaintenance, async, this, buildResultFilter
+            finishOnDone, true, lifeMaintenance, async, automated, buildResultFilter
         )
     }
 }

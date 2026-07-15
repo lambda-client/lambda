@@ -58,7 +58,6 @@ interface InventoryConfig {
 		WithMinItems("With Min Items", "Pick containers with the fewest matching items (or least space) first; useful for topping off or clearing leftovers."),
 		WithMaxItems("With Max Items", "Pick containers with the most matching items (or most space) first; ideal for bulk moves with fewer transfers.");
 
-		context(_: SafeContext)
 		fun materialComparator(selection: StackSelection) =
 			when (this) {
 				WithMaxItems -> compareBy<Container> { it.rank }
@@ -70,7 +69,6 @@ interface InventoryConfig {
 					.thenBy { it.name }
 			}
 
-		context(_: SafeContext)
 		fun spaceComparator(selection: StackSelection) =
 			when (this) {
 				WithMaxItems -> compareBy<Container> { it.rank }

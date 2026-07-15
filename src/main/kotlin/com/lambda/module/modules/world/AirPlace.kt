@@ -32,9 +32,9 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractRequest
-import com.lambda.interaction.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
+import com.lambda.interaction.manager.managers.interacting.InteractRequest
+import com.lambda.interaction.manager.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeAutomated

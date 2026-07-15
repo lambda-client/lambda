@@ -35,12 +35,12 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
-import com.lambda.interaction.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
-import com.lambda.interaction.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions

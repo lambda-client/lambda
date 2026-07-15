@@ -25,8 +25,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.InventoryContainer
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode

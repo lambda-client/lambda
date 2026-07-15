@@ -62,4 +62,11 @@ object SlotUtils {
         val syncId = player.currentScreenHandler?.syncId ?: return
         interaction.clickSlot(syncId, slotId, button, actionType, player)
     }
+
+    infix fun Slot.matches(slot: Slot) =
+        index == slot.index &&
+                inventory::class == slot.inventory::class &&
+                id == slot.id &&
+                x == slot.x &&
+                y == slot.y
 }

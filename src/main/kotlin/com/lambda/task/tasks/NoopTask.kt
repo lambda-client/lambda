@@ -29,6 +29,6 @@ class NoopTask : Task<Unit>() {
 
 	companion object {
 		@Ta5kBuilder
-		fun noop() = NoopTask()
+		fun noopTask() = NoopTask()
 	}
 }
