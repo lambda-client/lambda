@@ -45,8 +45,10 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
     @Group(MOVES_GROUP)
     override val maxJumpDrop by c.setting(
-        "Max Jump Drop", 1, 0..3, 1,
-        "Deepest lower landing a gap jump may target. Unsafe arcs are still refused by simulation.",
+        "Max Jump Drop", 2, 0..3, 1,
+        "Deepest lower landing a gap jump may target. Lets the coarse layer take a straight " +
+            "descending parkour line instead of weaving around drops. Unsafe arcs are still " +
+            "refused by simulation.",
         unit = " blocks",
     ) { allowJumpCandidates }
 

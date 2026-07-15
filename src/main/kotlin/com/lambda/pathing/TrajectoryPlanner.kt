@@ -11,6 +11,7 @@ package com.lambda.pathing
 
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
+import com.lambda.pathing.coarse.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -125,14 +126,24 @@ object TrajectoryPlanner {
     private val planIds = AtomicLong()
 
     /**
-     * Bounds every coarse lower-bound cost. 0.6 b/t sits above any real horizontal
-     * speed, including a sprint jump, so the derived costs stay admissible.
+     * Bounds the entry velocity a plan may start from. 0.6 b/t sits above any real
+     * horizontal speed, including a sprint jump, so a start inside it keeps the coarse
+     * costs admissible. This is only the velocity gate now; edge costs come from
+     * [CoarseMoveCosts.measured].
      */
     val envelope = CoarseKinematicEnvelope(
         maxHorizontalBlocksPerTick = 0.6,
         maxAscentBlocksPerTick = 0.5,
         maxDescentBlocksPerTick = 4.0,
     )
+
+    /**
+     * Edge costs in measured expected ticks, not the uniform-0.6 lower bound. A climb is
+     * priced at its real ~10 ticks, a gap jump at its airborne time, a stride at its
+     * sprinted pace -- so the coarse graph prefers genuinely fast lines instead of being
+     * indifferent between equal-lower-bound routes. The per-edge toll leans off slaloms.
+     */
+    private val moveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
 
     /**
      * Must be called on the client thread: it reads the live player and world.
@@ -181,7 +192,7 @@ object TrajectoryPlanner {
 
         return CompletableFuture.supplyAsync {
             val started = System.currentTimeMillis()
-            val moves = SimpleMoveLibrary.build(costs = envelope.moveCosts(), options = moveOptions)
+            val moves = SimpleMoveLibrary.build(costs = moveCosts, options = moveOptions)
             val planner = CoarsePlanner(snapshot.withinBudget(start, goal), moves, start, goal)
             if (!planner.repair(Duration.INFINITE).converged) {
                 return@supplyAsync PathPlanResult.NoRoute("D* did not converge")

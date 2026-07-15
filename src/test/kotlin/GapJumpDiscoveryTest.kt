@@ -81,6 +81,55 @@ class GapJumpDiscoveryTest {
         assertTrue(hypot(result.rollout.finalState.position.x - 7.5, result.rollout.finalState.position.z - 0.5) <= 0.20)
     }
 
+    /**
+     * A diagonal jump, certified end to end. The coarse layer proposes a diagonal
+     * `JUMP_CANDIDATE` and the trajectory layer launches and lands it -- proving the new
+     * topology is not just reachable on paper but executable, so a diagonal parkour line
+     * replaces the cardinal zigzag rather than producing refusals.
+     */
+    @Test
+    fun `a diagonal gap is crossed by a diagonal jump`() {
+        val environment = diagonalGapEnvironment()
+        val moves = SimpleMoveLibrary.build(
+            costs = CoarseKinematicEnvelope(0.6, 0.5, 4.0).moveCosts(),
+            options = SimpleMoveOptions(
+                allowDiagonal = true, allowStepUp = false, maxWalkOffDepth = 0,
+                allowJumpCandidates = true, maxJumpSpan = 4, maxJumpDrop = 2,
+            ),
+        )
+        val planner = CoarsePlanner(environment, moves, Stance(0, 0, 0), Stance(3, 0, 3))
+        assertTrue(planner.repair(Duration.INFINITE).converged)
+        val route = requireNotNull(planner.routePlan(snapshotRevision = 1L))
+        assertTrue(
+            route.edges.any {
+                it.kind == CoarseMoveKind.JUMP_CANDIDATE && it.from.x != it.to.x && it.from.z != it.to.z
+            },
+            "the coarse layer must propose a diagonal jump: ${route.edges}",
+        )
+
+        val initial = MovementSimulationState.synthetic(
+            profile = PROFILE, position = Vec3d(0.5, 0.0, 0.5),
+            rotation = Rotation(0.0, 0.0), velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
+        )
+        val result = assertIs<WalkingSeedSearchResult.Success>(
+            WalkingSeedSearch.searchContinuously(route, initial, PROFILE, environment, WalkingSeedSearchConfig()),
+            "the trajectory layer must certify the diagonal jump, not refuse it",
+        )
+        assertTrue(result.tape.asList().any { it.jump }, "the diagonal gap cannot be walked")
+        assertTrue(result.rollout.finalState.onGround)
+    }
+
+    /** Flat floor with a diagonal notch of void that only a diagonal jump crosses. */
+    private fun diagonalGapEnvironment(): SnapshotSimulationEnvironment {
+        val blocks = buildMap {
+            for (x in -3..8) for (z in -3..8) put(BlockPos(x, -1, z), SnapshotBlockPhysics.FULL_CUBE)
+            remove(BlockPos(1, -1, 1)); remove(BlockPos(1, -1, 2)); remove(BlockPos(2, -1, 1))
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            bounds = SimulationSnapshotBounds(-3, -8, -3, 8, 5, 8), blocks = blocks,
+        )
+    }
+
     @Test
     fun `the launch beam retains distinct gait families instead of brake duplicates`() {
         val environment = gapEnvironment(holeAt = 3..4)
