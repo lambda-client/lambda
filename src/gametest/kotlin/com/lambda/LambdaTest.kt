@@ -277,6 +277,18 @@ object LambdaTest : FabricClientGameTest {
         )
         server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
 
+        // A diagonal notch of void: the direct line to a diagonally offset goal is a
+        // diagonal jump. Without diagonal jump topology the coarse layer had to zigzag
+        // cardinally -- the "slalom" the body then walked. Vanilla must certify the
+        // off-axis launch, which is where the sine-table jump boost has to be exact.
+        server.runCommand("/fill 1 99 1 1 99 2 minecraft:air")
+        server.runCommand("/fill 2 99 1 2 99 1 minecraft:air")
+        assertPathingWalk(
+            context, server, "pathing-gap-jump-diagonal", Stance(3, 100, 3),
+            requireJumpInput = true,
+        )
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
         // A three-wide hole exercises the longest flat jump currently covered by
         // the live corpus. The mask proposes span 4; only vanilla replay proves it.
         server.runCommand("/fill -8 99 3 8 99 5 minecraft:air")

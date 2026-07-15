@@ -49,12 +49,19 @@ data class CoarseKinematicEnvelope(
         return maxOf(minimumTransitionTicks, horizontal, vertical)
     }
 
+    /**
+     * Uniform kinematic lower bounds -- pure geometry over the top speed. The test
+     * fixtures build with this because they only exercise topology; production prices
+     * edges in measured ticks via [CoarseMoveCosts.measured].
+     */
     fun moveCosts(): CoarseMoveCosts = CoarseMoveCosts(
         cardinalWalk = lowerBoundTicks(1, 0, 0),
         diagonalWalk = lowerBoundTicks(1, 0, 1),
         stepUp = lowerBoundTicks(1, 1, 0),
         walkOff = { depth -> lowerBoundTicks(1, -depth, 0) },
         jumpCandidate = { span, verticalOffset -> lowerBoundTicks(span, verticalOffset, 0) },
+        // A diagonal jump covers `span` along both axes: distance span*sqrt(2).
+        diagonalJumpCandidate = { span, verticalOffset -> lowerBoundTicks(span, verticalOffset, span) },
     )
 
     private fun requirePositive(name: String, value: Double) {

@@ -11,6 +11,7 @@ package pathing
 
 import com.lambda.pathing.coarse.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarseMoveKind
+import com.lambda.pathing.coarse.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -87,6 +88,134 @@ class CoarsePlannerTest {
 
         assertTrue(incoming.any { it.from == origin && it.to == target && it.kind == CoarseMoveKind.WALK_OFF })
         assertFalse(moves.edgesFrom(world, target).any { it.to == origin })
+    }
+
+    @Test
+    fun `measured costs price a climb far above a stride and amortise long jumps`() {
+        val m = CoarseMoveCosts.measured()
+        // A climb is ~10 ticks/block, a stride ~3.6 -- so a step-up is roughly 3x a walk,
+        // where the uniform envelope made them almost equal (2.0 vs 1.67). That is why the
+        // old graph over-climbed.
+        assertEquals(1.0 / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK, m.cardinalWalk, 1e-9)
+        assertEquals(1.0 / CoarseMoveRates.STEP_UP_BLOCKS_PER_TICK, m.stepUp, 1e-9)
+        assertTrue(m.stepUp > 2.5 * m.cardinalWalk, "a climb must cost far more than a stride")
+
+        // A jump is priced by airborne time, which barely grows with span: clearing more
+        // ground in one arc costs the same, so a long jump beats a short one plus a walk.
+        assertEquals(m.jumpCandidateCost(2, 0), m.jumpCandidateCost(4, 0), 1e-9)
+        assertTrue(m.jumpCandidateCost(4, 0) < m.jumpCandidateCost(2, 0) + m.cardinalWalk)
+    }
+
+    @Test
+    fun `measured costs prefer jumping a one-high bump over stepping up and off it`() {
+        // A single-block bump on the direct line. Stepping up then off pays two grounded
+        // vertical moves (~16 ticks); one flat jump clears it in one arc (~12) -- the
+        // momentum-keeping line, which distance-only costs could never see.
+        val moves = SimpleMoveLibrary.build(
+            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+            SimpleMoveOptions(allowDiagonal = false),
+        )
+        val world = SyntheticView().apply {
+            for (x in 0..4) this[VoxelPos(x, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(2, 1, 0)] = CoarseVoxel.FULL_BLOCK // the bump (top at y=2)
+        }
+        val planner = CoarsePlanner(world, moves, Stance(0, 1, 0), Stance(4, 1, 0))
+        planner.repair(timeBudget = Duration.INFINITE)
+        val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
+        assertTrue(
+            route.edges.any { it.kind == CoarseMoveKind.JUMP_CANDIDATE },
+            "the bump should be jumped, not climbed: ${route.edges.map { it.kind }}",
+        )
+        assertFalse(route.edges.any { it.kind == CoarseMoveKind.STEP_UP })
+    }
+
+    @Test
+    fun `the transition toll prefers one long jump over a short jump then a walk`() {
+        // A single flying edge over a short jump-then-walk to the same landing. Measured
+        // jump cost is airborne time (span-independent), so the long jump already wins on
+        // arc time; the per-edge toll widens the margin. x=0 start, x=2 a hoppable ledge,
+        // x=3.. landing: reaching x=3 is one span-3 jump or a span-2 jump plus a walk.
+        val moves = SimpleMoveLibrary.build(
+            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+            SimpleMoveOptions(allowDiagonal = false, allowStepUp = false, maxWalkOffDepth = 0),
+        )
+        val world = SyntheticView().apply {
+            for (x in listOf(0, 2, 3, 4, 5)) this[VoxelPos(x, 0, 0)] = CoarseVoxel.FULL_BLOCK
+        }
+        val planner = CoarsePlanner(world, moves, Stance(0, 1, 0), Stance(3, 1, 0))
+        planner.repair(timeBudget = Duration.INFINITE)
+
+        val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
+        assertEquals(
+            listOf(Stance(0, 1, 0), Stance(3, 1, 0)), route.nodes,
+            "one span-3 jump must beat a span-2 hop plus a walk: ${route.nodes}",
+        )
+        assertEquals(CoarseMoveKind.JUMP_CANDIDATE, route.edges.single().kind)
+    }
+
+    @Test
+    fun `the transition toll keeps a lower bound the heuristic never overestimates`() {
+        // The toll amortises over the longest template (its best per-block rate feeds the
+        // heuristic), so it must remain admissible: h(from) <= edgeCost + h(to) everywhere.
+        val moves = SimpleMoveLibrary.build(
+            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+            SimpleMoveOptions(),
+        )
+        val random = kotlin.random.Random(99)
+        val goal = Stance(7, 3, -4)
+        repeat(20_000) {
+            val from = Stance(random.nextInt(-12, 12), random.nextInt(-12, 12), random.nextInt(-12, 12))
+            val template = moves.templates.random(random)
+            val to = from.offset(template.dx, template.dy, template.dz)
+            assertTrue(
+                moves.heuristic(from, goal) <= template.lowerBoundTicks + moves.heuristic(to, goal) + 1e-9,
+                "toll broke consistency at template=${template.id} from=$from to=$to",
+            )
+        }
+    }
+
+    @Test
+    fun `a jump whose apex arc passes through a block is not proposed`() {
+        // A four-stance gap the body would clear, but with a block sitting at the arc's
+        // apex column (two out) at head-apex height (+3 above the takeoff feet). The body
+        // is at ~1.25 there, so its head is at that block -- a head bonk. The old fixed
+        // y=0..2 arc check never looked at +3 and admitted the jump; the body then drove
+        // straight through the wall.
+        val world = SyntheticView().apply {
+            for (x in 0..4) this[VoxelPos(x, 0, 0)] = CoarseVoxel.FULL_BLOCK // support at ends
+            this[VoxelPos(1, 0, 0)] = CoarseVoxel.AIR                        // carve the gap
+            this[VoxelPos(2, 0, 0)] = CoarseVoxel.AIR
+            this[VoxelPos(3, 0, 0)] = CoarseVoxel.AIR
+            this[VoxelPos(2, 4, 0)] = CoarseVoxel.FULL_BLOCK                 // apex-head block
+        }
+        val moves = library()
+
+        val jumps = moves.edgesFrom(world, Stance(0, 1, 0))
+            .filter { it.kind == CoarseMoveKind.JUMP_CANDIDATE }
+        assertFalse(
+            jumps.any { it.to == Stance(4, 1, 0) },
+            "a jump whose apex head hits the block at (2,4,0) must be rejected: ${jumps.map { it.to }}",
+        )
+    }
+
+    @Test
+    fun `diagonal parkour is a straight diagonal jump line, not a cardinal zigzag`() {
+        // Four stances on a diagonal, everything else air (a void). Only diagonal jumps
+        // connect them; without them the coarse layer finds no route and the trajectory
+        // is handed a cardinal zigzag -- the "slalom" the body walks.
+        val world = SyntheticView().apply {
+            for ((x, z) in listOf(0 to 0, 2 to 2, 4 to 4, 6 to 6)) this[VoxelPos(x, 0, z)] = CoarseVoxel.FULL_BLOCK
+        }
+        val planner = CoarsePlanner(world, library(), Stance(0, 1, 0), Stance(6, 1, 6))
+        planner.repair(timeBudget = Duration.INFINITE)
+
+        val route = assertNotNull(planner.route(), "diagonal platforms must be reachable by diagonal jumps")
+        assertEquals(listOf(Stance(0, 1, 0), Stance(2, 1, 2), Stance(4, 1, 4), Stance(6, 1, 6)), route.nodes)
+        val plan = assertNotNull(planner.routePlan(snapshotRevision = 1L))
+        assertTrue(
+            plan.edges.all { it.kind == CoarseMoveKind.JUMP_CANDIDATE && it.from.x != it.to.x && it.from.z != it.to.z },
+            "every leg must be a diagonal jump: ${plan.edges.map { it.kind }}",
+        )
     }
 
     @Test
