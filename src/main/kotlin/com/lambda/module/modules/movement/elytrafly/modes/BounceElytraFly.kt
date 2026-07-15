@@ -176,6 +176,8 @@ class BounceElytraFly(
 		listen<MovementEvent.InputUpdate> { event ->
 			val input = event.input
 			val playerInput = input.playerInput
+			val sneak = player.velocity.horizontal.length() > 0.001 || !player.isSneaking
+
 			if (sneakLeft || sneakRight) {
 				input.playerInput = PlayerInput(
 					playerInput.forward,
@@ -183,7 +185,7 @@ class BounceElytraFly(
 					sneakLeft,
 					sneakRight,
 					playerInput.jump,
-					true,
+					sneak,
 					false
 				)
 				input.movementVector = Vec2f(
