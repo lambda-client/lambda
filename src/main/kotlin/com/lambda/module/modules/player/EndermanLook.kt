@@ -41,6 +41,7 @@ object EndermanLook : Module(
 ) {
 	private val mode by setting("Mode", Mode.Away, "Whether to stare down endermen or avoid their gaze")
 	private val stunHostiles by setting("Stun Hostiles", true, "Stare back at already provoked endermen to freeze them") { mode == Mode.Away }
+	private val disableWhileGliding by setting("Disable While Gliding", true, "Disables when gliding with an elytra")
 
 	private const val STARE_CONE = 0.025 // vanilla to aggro endermen
 
@@ -53,6 +54,7 @@ object EndermanLook : Module(
 		listen<TickEvent.Pre> {
 			if (player.getEquippedStack(EquipmentSlot.HEAD).isOf(Items.CARVED_PUMPKIN)
 				|| player.abilities.creativeMode
+				|| (disableWhileGliding && player.isGliding)
 			) return@listen
 
 			val endermen = world.entities
@@ -76,7 +78,7 @@ object EndermanLook : Module(
 	private fun SafeContext.stareAt(enderman: EndermanEntity) =
 		rotationRequest { rotation(player.eyePos.rotationTo(enderman.eyePos)) }.submit()
 
-	private fun SafeContext.lookAway() =
+	private fun lookAway() =
 		rotationRequest { pitch(90f) }.submit()
 
 	private fun SafeContext.closest(endermen: List<EndermanEntity>) =
