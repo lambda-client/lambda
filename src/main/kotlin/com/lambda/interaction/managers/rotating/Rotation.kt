@@ -36,6 +36,7 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 
+@Suppress("unused")
 data class Rotation(val yaw: Double, val pitch: Double) {
     constructor(yaw: Float, pitch: Float) : this(yaw.toDouble(), pitch.toDouble())
 
@@ -158,6 +159,7 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             return Rotation(yaw, pitch)
         }
 
+        @JvmStatic
         infix fun Rotation.dist(b: Rotation) =
             hypot(
                 wrap(yaw - b.yaw),

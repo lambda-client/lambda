@@ -102,7 +102,8 @@ object RotationManager : Manager<RotationRequest>(
 			mc.crosshairTarget = blockHit
 		}
 
-        listen<PacketEvent.Receive.Post>({ Int.MIN_VALUE }) { event ->
+		//FixMe: PacketEvent.Receive.Post doesn't work here for some reason, it just never triggers
+        listen<PacketEvent.Receive.Pre>({ Int.MIN_VALUE }) { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listen
 

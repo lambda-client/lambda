@@ -52,10 +52,9 @@ object EndermanLook : Module(
 			}
 
 		listen<TickEvent.Pre> {
-			if (player.getEquippedStack(EquipmentSlot.HEAD).isOf(Items.CARVED_PUMPKIN)
-				|| player.abilities.creativeMode
-				|| (disableWhileGliding && player.isGliding)
-			) return@listen
+			if (player.getEquippedStack(EquipmentSlot.HEAD).isOf(Items.CARVED_PUMPKIN) ||
+				player.abilities.creativeMode ||
+				(disableWhileGliding && player.isGliding)) return@listen
 
 			val endermen = world.entities
 				.filterIsInstance<EndermanEntity>()
