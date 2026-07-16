@@ -105,6 +105,45 @@ class ContinuousTrajectoryExpansionTest {
         assertTrue(extension.rollout.finalState.velocity.horizontalLength() > config.stoppedSpeed)
     }
 
+    /**
+     * The long-route field failure in miniature: every frame budget must certify, no
+     * matter where it happens to cut the final approach. With a single gait there is
+     * exactly one extension donor per segment; a budget that ran out just short of the
+     * goal used to offer only the *latest* grounded frame -- which projects onto the
+     * unarrived terminal node and was rejected -- so a nearly-complete trajectory
+     * contributed nothing and the whole expansion refused ("closest ended 0.39 blocks
+     * from the remaining goal"). It must instead splice one node back and let a fresh
+     * segment certify the stop.
+     */
+    @Test
+    fun `every frame budget certifies regardless of where it cuts the final approach`() {
+        val environment = corridor(length = 12)
+        val route = route(environment, Stance(12, 0, 0))
+
+        for (budget in intArrayOf(40, 43, 46, 49, 52)) {
+            val config = WalkingSeedSearchConfig(
+                maxFrames = budget,
+                sprintModes = listOf(true),
+                lookAheadNodes = listOf(1),
+                brakeDistances = listOf(0.25),
+            )
+            val search = WalkingSeedSearch.searchContinuously(route, initialState(), PROFILE, environment, config)
+            val failed = search as? WalkingSeedSearchResult.NoSafeStop
+            val result = assertIs<WalkingSeedSearchResult.Success>(
+                search,
+                "budget $budget must extend past its horizon, not refuse; nearest=${failed?.nearest}",
+            )
+            assertTrue(result.rollout.finalState.onGround, "budget $budget")
+            assertTrue(
+                kotlin.math.hypot(
+                    result.rollout.finalState.position.x - 12.5,
+                    result.rollout.finalState.position.z - 0.5,
+                ) <= config.goalRadius,
+                "budget $budget stopped away from the goal",
+            )
+        }
+    }
+
     @Test
     fun `a route beyond one horizon expands through moving states into one tape`() {
         val environment = corridor(length = 120)
