@@ -39,8 +39,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest

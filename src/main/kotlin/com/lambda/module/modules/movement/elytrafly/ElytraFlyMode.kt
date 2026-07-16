@@ -123,8 +123,6 @@ abstract class ElytraFlyMode(
 		return inventoryRequest.done
 	}
 
-	open fun interrupt() {}
-
 	fun SafeContext.findElytra(): Slot? =
 		ELYTRA_SELECTION.filterSlots(player.hotbarAndInventorySlots).minByOrNull { it.index }
 

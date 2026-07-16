@@ -20,21 +20,17 @@ package com.lambda.interaction.managers.rotating
 import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpPitch
 import com.lambda.interaction.managers.rotating.Rotation.Companion.slerpYaw
 import com.lambda.interaction.managers.rotating.RotationManager.activeRotation
 import com.lambda.interaction.managers.rotating.RotationManager.serverRotation
 import com.lambda.interaction.managers.rotating.RotationManager.updateActiveRotation
-import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.Vec2d
@@ -42,7 +38,6 @@ import com.lambda.util.math.lerp
 import com.lambda.util.player.RotationUtils.getInputRelativeTo
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.input.Input
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.Vec2f
 
@@ -101,20 +96,6 @@ object RotationManager : Manager<RotationRequest>(
 			val blockHit = player.rotation.rayCast(player.blockInteractionRange, eye).orMiss
 			mc.crosshairTarget = blockHit
 		}
-
-		//FixMe: PacketEvent.Receive.Post doesn't work here for some reason, it just never triggers
-        listen<PacketEvent.Receive.Pre>({ Int.MIN_VALUE }) { event ->
-            val packet = event.packet
-            if (packet !is PlayerPositionLookS2CPacket) return@listen
-
-			runGameScheduled {
-				reset(Rotation(packet.change.yaw, packet.change.pitch))
-			}
-		}
-
-        listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
-            reset(Rotation.ZERO)
-        }
 
         // Override user interactions with max priority
         listen<PlayerEvent.Attack.Block>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
@@ -259,12 +240,24 @@ object RotationManager : Manager<RotationRequest>(
 		}
 	}
 
-	private fun reset(rotation: Rotation) {
-		prevServerRotation = rotation
-		serverRotation = rotation
-		activeRotation = rotation
-		pitchRequest = null
-		yawRequest = null
+	@JvmStatic
+	fun resetYaw(yaw: Double, active: Boolean) {
+		prevServerRotation = Rotation(yaw, prevServerRotation.pitch)
+		serverRotation = Rotation(yaw, serverRotation.pitch)
+		if (active) {
+			activeRotation = Rotation(yaw, activeRotation.pitch)
+			yawRequest = null
+		}
+	}
+
+	@JvmStatic
+	fun resetPitch(pitch: Double, active: Boolean) {
+		prevServerRotation = Rotation(prevServerRotation.yaw, pitch)
+		serverRotation = Rotation(serverRotation.yaw, pitch)
+		if (active) {
+			activeRotation = Rotation(activeRotation.yaw, pitch)
+			pitchRequest = null
+		}
 	}
 
 	@JvmStatic

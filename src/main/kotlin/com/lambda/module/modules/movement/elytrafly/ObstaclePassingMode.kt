@@ -168,7 +168,6 @@ abstract class ObstaclePassingMode(
 			skippingFirstCheck = false
 		}
 		passTo(searchPos)
-		interrupt()
 	}
 
 	private fun passTo(pos: Vec3d) {

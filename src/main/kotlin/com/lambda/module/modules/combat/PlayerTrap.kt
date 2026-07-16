@@ -22,9 +22,9 @@ import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.FriendHandler.isFriend
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.FriendHandler.isFriend
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run

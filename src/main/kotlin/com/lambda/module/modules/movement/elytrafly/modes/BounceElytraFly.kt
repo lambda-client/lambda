@@ -105,8 +105,8 @@ class BounceElytraFly(
 	private var sneakRight = false
 	private var interrupting = false
 
-	private val paused
-		get() = !pauseTimer.hasSurpassed(flagPause)
+	private val flightPaused
+		get() = !pauseTimer.hasSurpassed(flagPause) || interrupting || BaritoneHandler.isActive
 
 	private val SafeContext.queuePackets
 		get() = fakeLag && player.isGliding && (!yMotionSetting || !onYMotionAngle) &&
@@ -135,10 +135,7 @@ class BounceElytraFly(
 				val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
 				val xz = Vec3d(player.x, closestLinePoint.y, player.z)
 				if (xz distSq closestLinePoint > acceptableYMotionRange.pow(2)) {
-					if (player.isGliding) {
-						interrupt()
-						return@listen
-					}
+					interrupting = true
 					val offset = playerPos - startPos
 					val cross = snappedDir.x * offset.z - snappedDir.z * offset.x
 					val rotationRequest = rotationRequest {
@@ -152,7 +149,7 @@ class BounceElytraFly(
 				}
 			}
 
-			if (paused) return@listen
+			if (flightPaused) return@listen
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
@@ -206,7 +203,7 @@ class BounceElytraFly(
 			}
 			if ((!player.isGliding || !jump) && !jumpThisTick) return@listen
 			jumpThisTick = false
-			if (paused || interrupting) return@listen
+			if (flightPaused) return@listen
 			input.jump()
 		}
 
@@ -237,10 +234,6 @@ class BounceElytraFly(
 		}
 	}
 
-	override fun interrupt() {
-		interrupting = true
-	}
-
 	private fun SafeContext.flushPackets() {
 		while (sendPacketQueue.isNotEmpty()) {
 			val packet = sendPacketQueue.poll()
@@ -260,11 +253,8 @@ class BounceElytraFly(
 
 	override fun isGliding() =
 		runSafe {
-			val original: Boolean = player.getFlag(Entity.GLIDING_FLAG_INDEX)
-			if (prevGliding == true &&
-				!interrupting &&
-				!paused &&
-				!BaritoneHandler.isActive) true
+			val original = player.getFlag(Entity.GLIDING_FLAG_INDEX)
+			if (prevGliding == true && !flightPaused) true
 			else {
 				prevGliding = original
 				original
