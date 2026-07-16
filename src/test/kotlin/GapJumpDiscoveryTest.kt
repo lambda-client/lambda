@@ -11,6 +11,7 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
+import com.lambda.pathing.coarse.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -45,6 +46,63 @@ import kotlin.time.Duration
  * strength of the coarse candidate alone: only a full simulation certifies it.
  */
 class GapJumpDiscoveryTest {
+    @Test
+    fun `one raised platform does not trigger a preparatory hop before its real launch`() {
+        // JVM twin of pathing-moving-splice-step-up: a long flat approach, one raised
+        // section, then flat ground again. The recursive beam used to accept two presses
+        // for this one obstacle -- an early hop that landed before the lip, followed by a
+        // second launch at the wall.
+        val blocks = buildMap {
+            for (x in -3..24) for (z in -3..3) {
+                put(BlockPos(x, -1, z), SnapshotBlockPhysics.FULL_CUBE)
+            }
+            for (x in 10..14) for (z in -3..3) {
+                put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
+            }
+        }
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-3, -6, -3, 24, 6, 3), blocks,
+        )
+        val moves = SimpleMoveLibrary.build(
+            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+            SimpleMoveOptions(allowDiagonal = false),
+        )
+        val planner = CoarsePlanner(environment, moves, Stance(0, 0, 0), Stance(20, 0, 0))
+        assertTrue(planner.repair(Duration.INFINITE).converged)
+        val route = requireNotNull(planner.routePlan(snapshotRevision = 40L))
+
+        val result = assertIs<WalkingSeedSearchResult.Success>(
+            WalkingSeedSearch.searchContinuously(
+                route, initialState(), PROFILE, environment,
+                WalkingSeedSearchConfig(maxFrames = 40),
+            ),
+        )
+
+        assertEquals(
+            1,
+            result.parameters.gapLaunchFrames.size,
+            "one raised section needs one launch, got ${result.parameters.gapLaunchFrames.map { frame ->
+                frame to result.rollout.frames[frame].state.position
+            }}; route=${route.edges}",
+        )
+        val launchFrame = result.parameters.gapLaunchFrames.single()
+        val takeoff = if (launchFrame == 0) result.rollout.initialState
+        else result.rollout.frames[launchFrame - 1].state
+        assertTrue(
+            takeoff.position.x <= 9.45,
+            "the launch must begin before wall contact at the x=10 lip, got ${takeoff.position}",
+        )
+
+        val longApproach = result.rollout.frames.filter { frame ->
+            frame.input.forward > 0.0 && frame.state.position.x < 9.0
+        }
+        assertTrue(longApproach.isNotEmpty())
+        assertTrue(
+            longApproach.all { it.input.sprint && it.state.isSprinting },
+            "every powered frame on the long approach must run rather than walk",
+        )
+    }
+
     /**
      * A one-wide hole needs no jump at all: a sprint carries the body across, falling
      * ~0.4 blocks and auto-stepping (0.6) back up on the far side. The trajectory

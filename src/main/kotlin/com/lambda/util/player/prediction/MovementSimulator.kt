@@ -446,8 +446,11 @@ class MovementSimulator(
         /** @see net.minecraft.client.input.Input.hasForwardMovement */
         const val FORWARD_MOVEMENT_EPSILON = 1.0E-5F
 
-        private const val SOFT_COLLISION_MIN_SQUARED = 1.0E-5
-        private const val SOFT_COLLISION_MAX_ANGLE_RADIANS = 0.13962634
+        // ClientPlayerEntity spells both thresholds as float literals. Keeping the
+        // float-to-double widening is observable right on the minimum-motion boundary:
+        // 1.0E-5F is 9.999999747e-6, not the double literal 1.0E-5.
+        private val SOFT_COLLISION_MIN_SQUARED = 1.0E-5F.toDouble()
+        private val SOFT_COLLISION_MAX_ANGLE_RADIANS = 0.13962634F.toDouble()
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */

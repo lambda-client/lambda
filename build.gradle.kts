@@ -102,6 +102,10 @@ loom {
     runs {
         all {
             property("lambda.dev", "youtu.be/RYnFIRc0k6E")
+            property(
+                "lambda.pathing.metrics",
+                layout.buildDirectory.file("reports/pathing/pathing-metrics.jsonl").get().asFile.absolutePath,
+            )
 
             property("org.lwjgl.util.Debug", "true")
             property("org.lwjgl.util.DebugLoader", "true")

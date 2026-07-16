@@ -16,6 +16,8 @@ import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.MotionTemplateId
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.coarse.SimpleMoveLibrary
+import com.lambda.pathing.core.TailCost
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
@@ -131,6 +133,14 @@ class TrajectoryDiagnosticTest {
             lowerBoundTicks = edges.size * 1.667,
             exactFromStart = true,
             dependencies = emptySet(),
+            tailCosts = nodes.indices.map { index ->
+                val ticks = (nodes.lastIndex - index) * 1.667
+                when (index) {
+                    0, nodes.lastIndex -> TailCost.Exact(ticks, 1L)
+                    else -> TailCost.Bounds(ticks, ticks, 1L)
+                }
+            },
+            heuristicCaps = SimpleMoveLibrary.HeuristicCaps(1.667, 0.0, 0.0),
         )
     }
 

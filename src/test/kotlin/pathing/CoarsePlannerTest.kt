@@ -71,6 +71,10 @@ class CoarsePlannerTest {
         assertEquals(route.routeVersion, published.routeVersion)
         assertEquals(route.nodes, published.nodes)
         assertEquals(route.ticks, published.edges.sumOf { it.lowerBoundTicks }, 1e-9)
+        assertEquals(published.nodes.size, published.tailCosts.size)
+        assertIs<TailCost.Exact>(published.tailCosts.first())
+        assertTrue(published.tailCosts.drop(1).dropLast(1).all { it is TailCost.Bounds })
+        assertIs<TailCost.Exact>(published.tailCosts.last())
         assertTrue(published.dependencies.isNotEmpty())
     }
 
