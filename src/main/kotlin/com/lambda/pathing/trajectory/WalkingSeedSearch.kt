@@ -14,6 +14,7 @@ import com.lambda.pathing.coarse.CoarseEdge
 import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.world.VoxelPos
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
@@ -345,6 +346,9 @@ object WalkingSeedSearch {
                         val final = rollout.finalState
                         val blockedProgress = diagnosticProgress(rollout, evaluation, nodes)
                         retainExtension(parameters, rollout, evaluation)
+                        PlanningDebugChannel.publishAttempt(
+                            rollout, evaluation.stopFrame != null, evaluation.diagnostic,
+                        )
                         attempts += WalkingSeedAttempt(
                             parameters = parameters,
                             simulatedFrames = rollout.frames.size,
@@ -393,7 +397,9 @@ object WalkingSeedSearch {
                 val nextFrontier = ArrayList<LaunchSeed>()
                 for (seed in selectGapSeeds(frontier, config.maxGapSeeds)) {
                     val previousLaunch = seed.parameters.gapLaunchFrames.lastOrNull() ?: -1
-                    for (launch in launchLattice(seed.rollout, seed.blockedFrame, config)) {
+                    val lattice = launchLattice(seed.rollout, seed.blockedFrame, config)
+                        .orderedByHint(route, seed)
+                    for (launch in lattice) {
                         // A later hazard must have a later grounded launch. This also
                         // prevents repeatedly assigning extra presses to one failed arc.
                         if (launch <= previousLaunch) continue
@@ -401,8 +407,13 @@ object WalkingSeedSearch {
                         val parameters = seed.parameters.copy(gapLaunchFrames = launches)
                         if (!triedParameters.add(parameters)) continue
                         // Runway this launch left: frames before the hazard the nominal walk
-                        // hit. An earlier launch clears the obstacle with margin to spare.
-                        val margin = seed.marginSoFar + (seed.blockedFrame - launch).coerceAtLeast(0)
+                        // hit. A couple of frames of runway is real safety against clipping
+                        // the lip; more than that is noise, and *unbounded* margin made the
+                        // ranking race to the earliest certifiable frame -- the reported
+                        // "jumps too early". Capped, equal-margin candidates tie and the
+                        // probe's hinted launch ordering decides among them.
+                        val margin = seed.marginSoFar +
+                            (seed.blockedFrame - launch).coerceIn(0, LAUNCH_MARGIN_FRAME_CAP)
                         val rollout = TrajectoryRolloutEngine.rollout(
                             initialState = initialState,
                             profile = profile,
@@ -414,6 +425,9 @@ object WalkingSeedSearch {
                         val final = rollout.finalState
                         val blockedProgress = diagnosticProgress(rollout, evaluation, nodes)
                         retainExtension(parameters, rollout, evaluation, margin)
+                        PlanningDebugChannel.publishAttempt(
+                            rollout, evaluation.stopFrame != null, evaluation.diagnostic,
+                        )
                         attempts += WalkingSeedAttempt(
                             parameters = parameters,
                             simulatedFrames = rollout.frames.size,
@@ -580,6 +594,17 @@ object WalkingSeedSearch {
         return switches
     }
 
+    /**
+     * Index of the route **edge being crossed** when the rollout failed (C3).
+     *
+     * The nearest-node projection alone misattributes mid-edge failures: a long jump
+     * that lands short is already nearer its landing node than its takeoff, so the
+     * projection reports the landing node "reached" and edge attribution then blames
+     * the *next* edge -- which, when that next edge is not a jump, silently disables
+     * the M6 retire-and-reroute for the jump that actually failed. So after
+     * projecting, the failure position decides: not yet arrived at the projected node
+     * and still nearer the previous node means the previous edge is the blocker.
+     */
     private fun diagnosticProgress(
         rollout: TrajectoryRollout,
         evaluation: Evaluation,
@@ -612,7 +637,19 @@ object WalkingSeedSearch {
         } else {
             failureEntryFrame
         }
-        return routeProgress(rollout, throughFrame, nodes)
+        val projected = routeProgress(rollout, throughFrame, nodes)
+        val state = rollout.frames.getOrNull(minOf(throughFrame, rollout.frames.lastIndex))?.state
+            ?: rollout.initialState
+        if (projected > 0 && spliceDistanceSquared(nodes[projected], state) > EDGE_ARRIVAL_RADIUS_SQ) {
+            val towardPrevious = spliceDistanceSquared(nodes[projected - 1], state)
+            val towardNext = if (projected < nodes.lastIndex) {
+                spliceDistanceSquared(nodes[projected + 1], state)
+            } else {
+                Double.POSITIVE_INFINITY
+            }
+            if (towardPrevious < towardNext) return projected - 1
+        }
+        return projected
     }
 
     private class ExtensionCandidate(
@@ -711,6 +748,30 @@ object WalkingSeedSearch {
                 if (launchFrame == 0) rollout.initialState.onGround
                 else rollout.frames.getOrNull(launchFrame - 1)?.state?.onGround == true
             }
+    }
+
+    /**
+     * The coarse probe's launch prior (C1): grounded frames nearest the hinted launch
+     * point are tried first, so the beam lands its first attempts where the measured
+     * reach arithmetic says the launch belongs. Purely an ordering -- every lattice
+     * frame is still tried, and certification still decides -- but under a bounded
+     * refinement budget (Phase 2) order is what makes the budget go far.
+     */
+    private fun List<Int>.orderedByHint(route: CoarseRoutePlan, seed: LaunchSeed): List<Int> {
+        val edge = route.edges.getOrNull(seed.blockedProgress) ?: return this
+        val hint = edge.jumpHint ?: return this
+        val dx = (edge.to.x - edge.from.x).toDouble()
+        val dz = (edge.to.z - edge.from.z).toDouble()
+        val length = hypot(dx, dz)
+        if (length == 0.0) return this
+        val targetX = edge.from.x + 0.5 + dx / length * hint.launchOffsetBlocks
+        val targetZ = edge.from.z + 0.5 + dz / length * hint.launchOffsetBlocks
+        return sortedBy { frame ->
+            val state = if (frame == 0) seed.rollout.initialState else seed.rollout.frames[frame - 1].state
+            val ex = state.position.x - targetX
+            val ez = state.position.z - targetZ
+            ex * ex + ez * ez
+        }
     }
 
     private class Evaluation(val stopFrame: Int?, val diagnostic: TrajectoryDiagnostic?)
@@ -1037,8 +1098,17 @@ object WalkingSeedSearch {
                 }
                 return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
             }
+            // Brake when the committed coast will land the body just SHORT of the goal,
+            // not at a fixed distance: from sprint speed a small fixed latch releases
+            // too late, coasts past the goal, and the terminal approach has to walk
+            // back -- the reported overshoot-and-nudge. The coast is a known closed
+            // form (speed * 2.2), so braking at that distance plus a short bias stops
+            // inside the goal radius on the near side. The swept brakeDistance still
+            // matters when it is *larger* (an earlier, conservative stop).
+            val coastStop = observed.velocity.horizontalLength() * TERMINAL_COAST_PER_SPEED +
+                BRAKE_SHORT_BIAS_BLOCKS
             if (!risePending && !gapPending &&
-                remainingPathDistance(observed) <= parameters.brakeDistance
+                remainingPathDistance(observed) <= maxOf(parameters.brakeDistance, coastStop)
             ) braking = true
             if (braking) {
                 return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
@@ -1097,9 +1167,15 @@ object WalkingSeedSearch {
                 return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
             }
             val desiredYaw = Math.toDegrees(atan2(dz, dx)) - 90.0
-            val yawDelta = Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
+            val yawError = Rotation.wrap(desiredYaw - observed.rotation.yaw)
+            val yawDelta = yawError.coerceIn(-maxYawChange, maxYawChange)
+            // A stop *past* the goal needs a ~180 degree turn. Walking while the yaw cap
+            // crawls around traces a little circle through the goal -- the reported
+            // "circle at the goal". Pivot in place until the heading roughly leads the
+            // walk; only then move.
+            val forward = if (kotlin.math.abs(yawError) > TERMINAL_PIVOT_YAW_DEGREES) 0.0 else 1.0
             return MovementSimulationInput(
-                forward = 1.0,
+                forward = forward,
                 sprint = false,
                 jump = jump,
                 rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
@@ -1153,6 +1229,20 @@ object WalkingSeedSearch {
             const val MAX_PROGRESS_ADVANCE = 2
 
             /**
+             * Heading error above which the terminal approach turns in place instead of
+             * walking. At the 30 deg/tick cap a 45 degree error closes in two ticks of
+             * pivot; walking through it arcs away from a goal this close.
+             */
+            const val TERMINAL_PIVOT_YAW_DEGREES = 45.0
+
+            /**
+             * How far short of the goal centre the physics-latched brake aims. Inside
+             * the 0.20 goal radius, so the coasted stop is already an arrival and the
+             * terminal nudge never runs; landing long would put the body past the goal.
+             */
+            const val BRAKE_SHORT_BIAS_BLOCKS = 0.08
+
+            /**
              * Blocks a released walk coasts per b/t of committed speed. On ground the
              * next tick still advances by the full velocity before friction (~0.546)
              * decays it, so the coast sums to speed / (1 - 0.546) ~= 2.2. The terminal
@@ -1195,6 +1285,16 @@ object WalkingSeedSearch {
 
     /** Worker-only overlap retained before a collision/fall-driven controller handoff. */
     private const val HAZARD_SPLICE_RUNWAY_FRAMES = 16
+
+    /**
+     * Frames of pre-hazard launch runway that still count as safety margin. Roughly one
+     * stride -- enough to clear a lip without scraping it. Anything earlier trades
+     * landing depth for nothing and must not be rewarded.
+     */
+    private const val LAUNCH_MARGIN_FRAME_CAP = 3
+
+    /** Within this of a route node, the body counts as arrived there for attribution. */
+    private const val EDGE_ARRIVAL_RADIUS_SQ = 0.9 * 0.9
 
     /** Below this budget, every published suffix must already be inside its corridor. */
     private const val SHORT_HORIZON_SUFFIX_FRAMES = 40

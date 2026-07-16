@@ -62,8 +62,18 @@ object PathingMetricSink {
 
     /** Small deterministic regression gate; Phase 6 grows this into comparative statistics. */
     fun assertWithinBaseline(run: Run) {
-        val expected = checkNotNull(baseline[run.scenario]) { "No metrics baseline for ${run.scenario}" }
         check(run.success) { "${run.scenario}: run did not complete" }
+        if (REBASELINE) {
+            // Collecting a fresh baseline (a deliberate metric-semantics change): the
+            // run must still complete, but the numeric gates are the thing being reset.
+            return
+        }
+        val expected = baseline[run.scenario] ?: run {
+            // A scenario's first-ever run has nothing to regress against: record it,
+            // then check the emitted line into the baseline to arm the gate.
+            System.err.println("[PathingMetricSink] no baseline for ${run.scenario}; recorded, not gated")
+            return
+        }
         check(run.completionTicks <= expected.completionTicks + COMPLETION_TICK_SLACK) {
             "${run.scenario}: completion regressed ${expected.completionTicks} -> ${run.completionTicks} ticks"
         }
@@ -133,4 +143,7 @@ object PathingMetricSink {
 
     private const val COMPLETION_TICK_SLACK = 8
     private const val MAX_PLAN_LATENCY_MS = 1_500L
+
+    /** `-Dlambda.pathing.rebaseline=true`: record metrics, skip the gates, for baseline refresh. */
+    private val REBASELINE = System.getProperty("lambda.pathing.rebaseline").toBoolean()
 }

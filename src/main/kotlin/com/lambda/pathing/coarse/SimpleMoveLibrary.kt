@@ -14,7 +14,6 @@ import com.lambda.pathing.coarse.MotionTemplate.Condition
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.VoxelPos
 import kotlin.math.abs
-import kotlin.math.floor
 import kotlin.math.hypot
 
 /** Immutable template set and every derived search property. */
@@ -141,9 +140,8 @@ class SimpleMoveLibrary private constructor(
                         if (options.allowJumpCandidates) {
                             // Diagonal parkour. Without it, a diagonal line of platforms is
                             // unreachable, so the coarse layer approximates it with a cardinal
-                            // zigzag -- the "slalom" the body then walks. The arc mask is the
-                            // same permissive diagonal column check as a cardinal jump (§5.1);
-                            // the trajectory layer certifies the actual launch.
+                            // zigzag -- the "slalom" the body then walks. The same swept-arc
+                            // probe masks it; the trajectory layer certifies the actual launch.
                             for (span in 2..options.maxDiagonalJumpSpan) {
                                 for (verticalOffset in -options.maxJumpDrop..1) {
                                     add(
@@ -170,69 +168,19 @@ class SimpleMoveLibrary private constructor(
         )
 
         /**
-         * A candidate jump of [span] stances. The arc must be clear over every cell the
-         * body's box actually sweeps -- and where that is depends on how high the arc has
-         * risen by the time it crosses each column.
-         *
-         * The previous mask checked a fixed `y = 0..2` at every crossed column. That is
-         * only right for a span-2 jump, whose single mid column the body crosses low. A
-         * longer or diagonal jump reaches its ~1.25-block apex in the *middle*, where the
-         * body's head is at `y = 3` -- a cell the fixed check never inspected, so a block
-         * there was a head bonk the mask admitted and the body drove straight through
-         * (the old branch hit exactly this and restricted itself to span 2). Here each
-         * crossed column is cleared across the vertical band its parabolic arc actually
-         * occupies, and with the *swept* (fully-passable) predicate: an any-angle body
-         * crossing off-centre must reject partial shapes (fences, walls, slabs), not just
-         * a blocked column centre.
-         *
-         * Deliberately pessimistic (against §5.1's permissive default, at the reporter's
-         * request): it would rather drop a tight legal jump than propose one that clips a
-         * wall. A dropped candidate costs a longer route; an admitted illegal one is walked.
+         * A candidate jump of [span] stances. The boolean conditions only establish the
+         * landing stance; whether the *arc* is clear is the [JumpArcProbe]'s job, swept
+         * with the real player box against the real captured shapes (C1). This replaces
+         * the analytic parabola checked against boolean traits, which was tuned
+         * pessimistic to stop through-block jumps and deleted legal topology with the
+         * same stroke -- the up-and-down threading on rough terrain was the price.
          */
-        private fun jumpSpec(dx: Int, dz: Int, span: Int, verticalOffset: Int, cost: Double): Spec {
-            val diagonal = dx != 0 && dz != 0
-            val arc = buildList {
-                // Launch headroom directly above the takeoff head.
-                add(CellCondition(0, 2, 0, Condition.FULL_HEAD))
-                for (step in 1 until span) {
-                    // The vertical band the body's box sweeps while crossing this column.
-                    // The arc is a downward parabola, so its highest point over the
-                    // column's horizontal extent is at the vertex (clamped into the
-                    // extent), NOT at the column centre -- on the rising side the body's
-                    // head is highest at the *far* edge, and using the centre there
-                    // under-checked the apex head and let a block at that height through.
-                    val fLo = (step - 0.5) / span
-                    val fHi = (step + 0.5) / span
-                    val fStar = ((verticalOffset + 4.0 * JUMP_APEX_BULGE) / (8.0 * JUMP_APEX_BULGE))
-                        .coerceIn(fLo, fHi)
-                    val maxFeet = arcFeet(fStar, verticalOffset)
-                    val minFeet = minOf(arcFeet(fLo, verticalOffset), arcFeet(fHi, verticalOffset))
-                    val low = floor(minFeet).toInt()
-                    val high = floor(maxFeet + BODY_HEIGHT_BLOCKS).toInt()
-                    for (y in low..high) {
-                        add(CellCondition(step * dx, y, step * dz, Condition.FULL_SLICE))
-                        // A diagonal box also sweeps the two flanking corner columns; a
-                        // wall on either side of the diagonal is just as much a collision.
-                        if (diagonal) {
-                            add(CellCondition(step * dx, y, (step - 1) * dz, Condition.FULL_SLICE))
-                            add(CellCondition((step - 1) * dx, y, step * dz, Condition.FULL_SLICE))
-                        }
-                    }
-                }
-            }
-            return Spec(
+        private fun jumpSpec(dx: Int, dz: Int, span: Int, verticalOffset: Int, cost: Double): Spec =
+            Spec(
                 span * dx, verticalOffset, span * dz, CoarseMoveKind.JUMP_CANDIDATE, cost,
-                stanceConditions(span * dx, verticalOffset, span * dz) + arc,
+                stanceConditions(span * dx, verticalOffset, span * dz),
+                arc = MotionTemplate.ArcSpec(dx, dz, span, verticalOffset),
             )
-        }
-
-        /**
-         * Feet height, in blocks above the takeoff, at horizontal fraction [f] of a jump
-         * landing [rise] blocks up or down. A parabola pinned to `0` at takeoff and [rise]
-         * at the landing, bulged [JUMP_APEX_BULGE] over the chord -- the standard jump arc.
-         */
-        private fun arcFeet(f: Double, rise: Int): Double =
-            rise * f + JUMP_APEX_BULGE * 4.0 * f * (1.0 - f)
 
         private fun deriveCaps(templates: List<MotionTemplate>): HeuristicCaps {
             var horizontal = Double.POSITIVE_INFINITY
@@ -254,18 +202,13 @@ class SimpleMoveLibrary private constructor(
             val kind: CoarseMoveKind,
             val cost: Double,
             val conditions: List<CellCondition>,
+            val arc: MotionTemplate.ArcSpec? = null,
         ) {
             fun toTemplate(id: MotionTemplateId) =
-                MotionTemplate(id, dx, dy, dz, kind, cost, conditions)
+                MotionTemplate(id, dx, dy, dz, kind, cost, conditions, arc)
         }
 
         private val CARDINALS = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
         private val DIAGONALS = listOf(-1 to -1, -1 to 1, 1 to -1, 1 to 1)
-
-        /** A jump's feet rise ~1.25 blocks over the chord between takeoff and landing. */
-        private const val JUMP_APEX_BULGE = 1.25
-
-        /** Player height, for the head cell above the feet along the arc. */
-        private const val BODY_HEIGHT_BLOCKS = 1.8
     }
 }

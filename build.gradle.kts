@@ -208,6 +208,12 @@ tasks {
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     }
 
+    // `./gradlew runClientGameTest -Prebaseline=true` records pathing metrics without
+    // gating them, for refreshing the checked-in baseline after a deliberate change.
+    withType<JavaExec>().matching { it.name == "runClientGameTest" }.configureEach {
+        if (project.findProperty("rebaseline") == "true") jvmArgs("-Dlambda.pathing.rebaseline=true")
+    }
+
     shadowJar {
         archiveClassifier = "dev-shadow"
         archiveVersion = "$modVersion+$minecraftVersion"

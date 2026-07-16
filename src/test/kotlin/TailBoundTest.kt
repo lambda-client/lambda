@@ -36,8 +36,10 @@ class TailBoundTest {
         val first = tailLowerBound(atNode, route, fromNodeIndex = 1)
         val moving = tailLowerBound(movingTowardNext, route, fromNodeIndex = 1)
 
-        assertEquals(4.0, first.ticks, 1e-9)
-        assertEquals(3.5, moving.ticks, 1e-9)
+        // Distances carry the 0.25-block arrival slack: from the node centre the next
+        // stance is (1.0 - 0.25) * 2 t/b + its 2.0-tick tail.
+        assertEquals(3.5, first.ticks, 1e-9)
+        assertEquals(3.0, moving.ticks, 1e-9)
         assertIs<TailCost.Bounds>(moving.tailCost)
         assertTrue(moving.ticks < first.ticks, "progress between stances must reduce the remaining bound")
     }

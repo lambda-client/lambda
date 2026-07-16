@@ -36,6 +36,12 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     @Group(TOGGLES_GROUP)
     override val renderLabels by c.setting("Labels", true, "Frames, dependencies, seed parameters, deviation.") { enabled }
 
+    @Group(TOGGLES_GROUP)
+    override val renderPlanning by c.setting(
+        "Live Planning", true,
+        "Draw the coarse route the moment D* converges and every candidate rollout as the search tries it.",
+    ) { enabled }
+
     @Group(WIDTH_GROUP)
     override val coarseWidth by c.setting("Coarse Width", 26, 1..150, 1, unit = " px") { enabled && renderCoarseRoute }
 

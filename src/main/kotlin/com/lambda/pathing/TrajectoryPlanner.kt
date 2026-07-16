@@ -18,6 +18,7 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryPlanId
@@ -273,6 +274,7 @@ object TrajectoryPlanner {
             // A reroute may blacklist the graph into a corner with no route left; then the
             // best we can report is the closest refusal we already have.
             val route = planner.routePlan(snapshotRevision) ?: return lastRefusal
+            PlanningDebugChannel.publishRoute(route)
             when (val result = search(route)) {
                 is WalkingSeedSearchResult.NoSafeStop -> {
                     lastRefusal = FeedbackSearchOutcome(route, result, reroutes)
@@ -331,6 +333,7 @@ object TrajectoryPlanner {
         return object : CoarseVoxelView {
             override val simulableStanceY = budgeted
             override fun voxel(x: Int, y: Int, z: Int) = this@withinBudget.voxel(x, y, z)
+            override fun collisionShape(x: Int, y: Int, z: Int) = this@withinBudget.collisionShape(x, y, z)
         }
     }
 

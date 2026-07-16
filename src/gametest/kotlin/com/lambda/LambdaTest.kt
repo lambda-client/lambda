@@ -384,6 +384,56 @@ object LambdaTest : FabricClientGameTest {
             cameraYawDuringPlanning = 90.0f,
         )
         server.runCommand("/fill -2 99 9 2 99 70 minecraft:air")
+
+        // The exposed-bedrock field from the retired bench corpus: a fixed-seed
+        // reconstruction of vanilla's 80/60/40/20% bedrock layer profile -- irregular
+        // pillars, pockets, overhangs and narrow landings. This is the terrain class
+        // the whole redesign is measured against ("rough pure natural bedrock
+        // surface"); no synthetic fixture reproduces its jump/route quality pressure.
+        // Flat launch and arrival islands keep the measurement about the chaotic
+        // middle rather than endpoint placement luck.
+        server.runOnServer<IllegalStateException> { minecraftServer ->
+            val world = minecraftServer.overworld
+            val random = kotlin.random.Random(BEDROCK_FIELD_SEED)
+            for (x in 0 until BEDROCK_FIELD_LENGTH) {
+                for (z in -BEDROCK_FIELD_HALF_WIDTH..BEDROCK_FIELD_HALF_WIDTH) {
+                    world.setBlockState(
+                        net.minecraft.util.math.BlockPos(x, 62, z),
+                        net.minecraft.block.Blocks.BEDROCK.defaultState,
+                        net.minecraft.block.Block.NOTIFY_ALL,
+                    )
+                    for (layer in 1..4) {
+                        if (random.nextDouble() < (5 - layer) / 5.0) {
+                            world.setBlockState(
+                                net.minecraft.util.math.BlockPos(x, 62 + layer, z),
+                                net.minecraft.block.Blocks.BEDROCK.defaultState,
+                                net.minecraft.block.Block.NOTIFY_ALL,
+                            )
+                        }
+                    }
+                }
+            }
+            for (x in listOf(0..3, BEDROCK_FIELD_LENGTH - 4 until BEDROCK_FIELD_LENGTH)) {
+                for (ix in x) for (z in -2..2) for (y in 63..67) {
+                    world.setBlockState(
+                        net.minecraft.util.math.BlockPos(ix, y, z),
+                        net.minecraft.block.Blocks.AIR.defaultState,
+                        net.minecraft.block.Block.NOTIFY_ALL,
+                    )
+                }
+            }
+        }
+        repeat(10) { context.waitTick() }
+        assertPathingWalk(
+            context, server, "pathing-bedrock-field", Stance(BEDROCK_FIELD_LENGTH - 2, 63, 0),
+            maxLegs = 1,
+            maxDeviation = EXECUTION_TOLERANCE,
+            start = "1.5 63 0.5 -90 0",
+            maxPathingTicks = 2400,
+        )
+        server.runCommand(
+            "/fill 0 62 -$BEDROCK_FIELD_HALF_WIDTH ${BEDROCK_FIELD_LENGTH - 1} 67 $BEDROCK_FIELD_HALF_WIDTH minecraft:air",
+        )
     }
 
     private fun assertPathingWalk(
@@ -402,8 +452,10 @@ object LambdaTest : FabricClientGameTest {
         cameraYawDuringPlanning: Float? = null,
         plannerMaxFrames: Int? = null,
         driftBeforeSubmit: Vec3d? = null,
+        start: String = "0.5 100 0.5 0 0",
+        maxPathingTicks: Int = MAX_PATHING_TICKS,
     ) {
-        server.runCommand("/tp Steve 0.5 100 0.5 0 0")
+        server.runCommand("/tp Steve $start")
         repeat(5) { context.waitTick() }
 
         context.runOnClient<IllegalStateException> {
@@ -438,7 +490,7 @@ object LambdaTest : FabricClientGameTest {
         // settles. `return@repeat` would be a *continue*, so this must be a real loop
         // with a break -- otherwise the walk finishes and the test keeps ticking.
         var ticks = 0
-        while (ticks++ < MAX_PATHING_TICKS) {
+        while (ticks++ < maxPathingTicks) {
             context.waitTick()
             val status = PathingManager.status
             if (status is PathingManager.Status.Complete || status is PathingManager.Status.Failed) break
@@ -472,6 +524,12 @@ object LambdaTest : FabricClientGameTest {
 
             val path = checkNotNull(published) { "$scenario: nothing published" }
             check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
+            println(
+                "[pathing-diag] $scenario: sprint=${path.parameters.sprint} " +
+                    "frames=${path.plan.tape.frameCount} attempts=${path.attempts} " +
+                    "launches=${path.parameters.gapLaunchFrames} " +
+                    "edges=${path.route.edges.groupingBy { it.kind }.eachCount()}",
+            )
 
             expectedJumpDy?.let { dy ->
                 check(path.route.edges.any { edge ->
@@ -667,4 +725,8 @@ object LambdaTest : FabricClientGameTest {
 
     /** Plan latency plus tape length; a walk that needs longer has already failed. */
     private const val MAX_PATHING_TICKS = 1200
+
+    private const val BEDROCK_FIELD_LENGTH = 40
+    private const val BEDROCK_FIELD_HALF_WIDTH = 8
+    private const val BEDROCK_FIELD_SEED = 0x5EED_BED
 }
