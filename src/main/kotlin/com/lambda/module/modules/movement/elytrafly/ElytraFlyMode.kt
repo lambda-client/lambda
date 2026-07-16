@@ -121,8 +121,6 @@ abstract class ElytraFlyMode(
 		return inventoryRequest.done
 	}
 
-	open fun interrupt() {}
-
 	fun findElytra(): Slot? = ELYTRA_SELECTION.filter(HotbarAndInventoryContainer.slots).minByOrNull { it.index }
 
 	protected fun SafeContext.startFly() {

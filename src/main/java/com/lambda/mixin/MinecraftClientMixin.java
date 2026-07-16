@@ -22,6 +22,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
 import com.lambda.gui.DearImGui;
 import com.lambda.gui.components.ClickGuiLayout;
+import com.lambda.interaction.handlers.TimerHandler;
 import com.lambda.module.modules.movement.BetterFirework;
 import com.lambda.module.modules.player.Interact;
 import com.lambda.module.modules.player.InventoryMove;

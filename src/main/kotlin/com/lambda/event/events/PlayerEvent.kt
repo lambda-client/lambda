@@ -44,6 +44,11 @@ sealed class PlayerEvent {
         val deltaPitch: Double,
     ) : ICancellable by Cancellable()
 
+    data class ServerForceRotate(
+        val yaw: Double,
+        val pitch: Double
+    ) : ICancellable by Cancellable()
+
     /**
      * Represents the player swinging its hand
      */
