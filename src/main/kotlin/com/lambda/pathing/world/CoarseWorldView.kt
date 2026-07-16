@@ -9,6 +9,8 @@
 
 package com.lambda.pathing.world
 
+import net.minecraft.util.shape.VoxelShape
+
 data class VoxelPos(val x: Int, val y: Int, val z: Int)
 
 /**
@@ -55,6 +57,18 @@ data class CoarseVoxel(
 
 interface CoarseVoxelView {
     fun voxel(x: Int, y: Int, z: Int): CoarseVoxel
+
+    /**
+     * The real captured collision shape of a cell, for masks that sweep the player's
+     * box along an arc instead of reading boolean traits (the fidelity fix for
+     * "the coarse jump goes through blocks"). Fail closed: outside the capture, or on
+     * physics the simulator refuses to model, this is a full cube -- the trajectory
+     * layer could never certify motion through such a cell anyway.
+     *
+     * Null means this view carries no shapes at all; shape-based masks must then
+     * propose no edges rather than guess from traits.
+     */
+    fun collisionShape(x: Int, y: Int, z: Int): VoxelShape? = null
 
     /**
      * Stance heights the trajectory layer can fully simulate.

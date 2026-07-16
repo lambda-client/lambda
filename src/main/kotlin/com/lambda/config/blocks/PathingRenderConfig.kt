@@ -27,6 +27,9 @@ interface PathingRenderConfig {
     val renderTrail: Boolean
     val renderLabels: Boolean
 
+    /** Live planning view: the coarse route as it lands, candidates as they are tried. */
+    val renderPlanning: Boolean
+
     /** Screen-space widths, in pixels. */
     val coarseWidth: Int
     val trajectoryWidth: Int

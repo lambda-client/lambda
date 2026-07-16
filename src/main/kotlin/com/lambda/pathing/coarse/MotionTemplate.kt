@@ -25,12 +25,21 @@ class MotionTemplate internal constructor(
     val kind: CoarseMoveKind,
     val lowerBoundTicks: Double,
     private val conditions: List<CellCondition>,
+    private val arc: ArcSpec? = null,
 ) {
     internal data class CellCondition(
         val dx: Int,
         val dy: Int,
         val dz: Int,
         val condition: Condition,
+    )
+
+    /** A swept-arc mask requirement: the probe must clear it against real shapes. */
+    internal data class ArcSpec(
+        val stepX: Int,
+        val stepZ: Int,
+        val span: Int,
+        val rise: Int,
     )
 
     internal enum class Condition {
@@ -55,6 +64,9 @@ class MotionTemplate internal constructor(
 
     internal fun edge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
         if (!matches(view, origin)) return null
+        val probed = arc?.let { spec ->
+            JumpArcProbe.probe(view, origin, spec.stepX, spec.stepZ, spec.span, spec.rise) ?: return null
+        }
         return CoarseEdge(
             id = CoarseEdgeId(id, origin),
             from = origin,
@@ -69,7 +81,9 @@ class MotionTemplate internal constructor(
                         add(VoxelPos(origin.x + condition.dx, origin.y + condition.dy - 1, origin.z + condition.dz))
                     }
                 }
+                probed?.let { addAll(it.reads) }
             },
+            jumpHint = probed?.hint,
         )
     }
 
@@ -79,6 +93,20 @@ class MotionTemplate internal constructor(
             yield(VoxelPos(condition.dx, condition.dy, condition.dz))
             if (condition.condition == Condition.CENTER_SLICE || condition.condition == Condition.FULL_SLICE) {
                 yield(VoxelPos(condition.dx, condition.dy - 1, condition.dz))
+            }
+        }
+        // Static superset of every cell an arc sweep may consult (the probe's exact
+        // reads are runtime data); over-approximating only over-invalidates, safely.
+        arc?.let { spec ->
+            // The clearance margin reads one cell beyond the swept core on every side.
+            for (step in 0..spec.span) {
+                for (y in minOf(spec.rise, 0) - 2..ARC_READ_CEILING) {
+                    for (ox in -1..1) {
+                        for (oz in -1..1) {
+                            yield(VoxelPos(step * spec.stepX + ox, y, step * spec.stepZ + oz))
+                        }
+                    }
+                }
             }
         }
     }
@@ -104,5 +132,8 @@ class MotionTemplate internal constructor(
             VoxelPos(0, 0, 0),
             VoxelPos(0, 1, 0),
         )
+
+        /** Apex feet (~1.26) + body height + clearance margin, in whole cells above takeoff. */
+        const val ARC_READ_CEILING = 4
     }
 }

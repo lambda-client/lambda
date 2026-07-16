@@ -30,12 +30,6 @@ sealed interface TailCost {
         val routeVersion: Long,
     ) : TailCost
 
-    data class Pending(
-        override val lowerBound: Double,
-        val requestId: Long,
-        val routeVersion: Long,
-    ) : TailCost
-
     data class Unreachable(val routeVersion: Long) : TailCost {
         override val lowerBound: Double = Double.POSITIVE_INFINITY
     }

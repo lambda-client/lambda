@@ -25,6 +25,7 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
@@ -164,6 +165,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         status = Status.Idle
         maxDeviation = 0.0
         synchronized(trail) { trail.clear() }
+        PlanningDebugChannel.reset()
     }
 
     override fun AutomatedSafeContext.handleRequest(request: PathingRequest) {
@@ -230,6 +232,9 @@ object PathingManager : Manager<PathingRequest>(0) {
         // continuation merely because planning crossed a tick boundary.
         planningYaw = player.moveYaw.toDouble()
         status = Status.Planning("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
+        PlanningDebugChannel.begin(
+            request.pathingRenderConfig.enabled && request.pathingRenderConfig.renderPlanning,
+        )
 
         val planning = try {
             TrajectoryPlanner.planAsync(player, request.goal, request.pathingConfig)

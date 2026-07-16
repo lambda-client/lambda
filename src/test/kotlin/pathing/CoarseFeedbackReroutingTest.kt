@@ -35,6 +35,8 @@ import com.lambda.util.player.prediction.MovementSimulationState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShape
+import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -182,6 +184,10 @@ class CoarseFeedbackReroutingTest {
 
         override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel =
             voxels[VoxelPos(x, y, z)] ?: CoarseVoxel.AIR
+
+        /** Trait-derived shapes so the swept-arc jump mask works on synthetic worlds. */
+        override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape =
+            if (voxel(x, y, z).fullyPassable) VoxelShapes.empty() else VoxelShapes.fullCube()
 
         operator fun set(pos: VoxelPos, voxel: CoarseVoxel) {
             voxels[pos] = voxel

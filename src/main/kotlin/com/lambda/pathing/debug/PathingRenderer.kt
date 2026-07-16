@@ -36,11 +36,37 @@ object PathingRenderer : Loadable {
     init {
         immediateRenderer("Pathing Debug", depthTest = { PathingManager.renderConfig.depthTest }) {
             if (!config.enabled) return@immediateRenderer
+            if (config.renderPlanning) renderPlanningDebug()
             val path = PathingManager.published ?: return@immediateRenderer
             if (config.renderCoarseRoute) renderCoarseRoute(path.route)
             if (config.renderTrajectory) renderTrajectory(path.plan)
             if (config.renderTrail) renderLiveTrail()
             if (config.renderLabels) renderLabels(path)
+        }
+    }
+
+    /**
+     * The plan as it is being built: the coarse route the instant D* converges (and
+     * after every reroute), and the newest candidate rollouts the seed search tried.
+     * Candidates that certified a stop are drawn in the trajectory colour, cut ones in
+     * the reject colour -- watching where the red ends is watching the search think.
+     */
+    private fun RenderBuilder.renderPlanningDebug() {
+        val published = PathingManager.published
+        PlanningDebugChannel.coarseRoute?.let { route ->
+            // Once a plan publishes, its own coarse render takes over.
+            if (published == null || route !== published.route) renderCoarseRoute(route)
+        }
+        if (published != null) return
+        val width = screenWidth(maxOf(config.trajectoryWidth / 2, 1))
+        PlanningDebugChannel.attempts.forEach { attempt ->
+            if (attempt.points.size < 2) return@forEach
+            val color = if (attempt.certified) config.trajectoryColor else config.rejectColor
+            polyline(
+                attempt.points.map { it.add(0.0, TRAJECTORY_Y, 0.0) },
+                color.setAlpha(if (attempt.certified) 0.65 else 0.30),
+                width,
+            )
         }
     }
 

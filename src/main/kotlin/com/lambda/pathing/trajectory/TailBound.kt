@@ -66,7 +66,13 @@ private fun continuousHeuristic(
 ): Double {
     val dx = to.x + 0.5 - state.position.x
     val dz = to.z + 0.5 - state.position.z
-    val horizontal = hypot(dx, dz) * caps.horizontalTicksPerBlock.finiteOrZero()
+    // Arrival is radius-tolerant (the stop condition accepts anywhere within the goal
+    // radius), so the residual fraction of a block inside that tolerance costs zero
+    // ticks. Without this slack a body already stopped at the goal carried a phantom
+    // tail, and `elapsed + tail` exceeded its own tape's certified total -- the exact
+    // inadmissibility the ranking must never see. Slack only loosens a lower bound.
+    val horizontalBlocks = (hypot(dx, dz) - ARRIVAL_SLACK_BLOCKS).coerceAtLeast(0.0)
+    val horizontal = horizontalBlocks * caps.horizontalTicksPerBlock.finiteOrZero()
     val dy = to.y - state.position.y
     val vertical = when {
         dy > 0.0 -> dy * caps.ascentTicksPerBlock.finiteOrZero()
@@ -79,3 +85,6 @@ private fun continuousHeuristic(
 private fun Double.finiteOrZero(): Double = if (isFinite()) this else 0.0
 
 const val DEFAULT_TAIL_LOOKAHEAD_NODES = 3
+
+/** Covers the largest goal radius in use; must stay >= WalkingSeedSearchConfig.goalRadius. */
+private const val ARRIVAL_SLACK_BLOCKS = 0.25

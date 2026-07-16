@@ -88,6 +88,8 @@ data class CoarseEdge(
     val lowerBoundTicks: Double,
     /** Every voxel whose traits were consulted to validate this edge. */
     val readSet: Set<VoxelPos>,
+    /** Arc-probe prior for a jump candidate; a hint to the launch beam, never a promise. */
+    val jumpHint: JumpHint? = null,
 )
 
 /**

@@ -159,6 +159,19 @@ class SnapshotSimulationEnvironment private constructor(
         return if (block.unsupportedPhysics == null) block.coarseVoxel else CoarseVoxel.HAZARD
     }
 
+    /**
+     * Fail-closed real shapes for arc masks. A cell the simulator would refuse to move
+     * through (lava, cobweb, uncaptured terrain) is a full cube here: an arc that dips
+     * into it could never certify, so proposing it would only buy a guaranteed reroute.
+     */
+    override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape {
+        if (x !in bounds.minX..bounds.maxX || y !in bounds.minY..bounds.maxY || z !in bounds.minZ..bounds.maxZ) {
+            return VoxelShapes.fullCube()
+        }
+        val block = blocks[BlockPos.asLong(x, y, z)] ?: defaultBlock ?: return VoxelShapes.fullCube()
+        return if (block.unsupportedPhysics == null) block.collisionShape else VoxelShapes.fullCube()
+    }
+
     override fun adjustMovementForCollisions(
         movement: Vec3d,
         boundingBox: Box,
