@@ -66,6 +66,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
+    override val corridorAdherentFirst by c.setting(
+        "Adherent Gait First", true,
+        "Certify one corridor-adherent gait before sweeping every gait variant. Much faster " +
+            "discovery on long routes; the full sweep still runs wherever the adherent gait fails.",
+    )
+
+    @Group(SEARCH_GROUP)
     override val goalRadius by c.setting(
         "Goal Radius", 0.20, 0.05..1.0, 0.01,
         "How close to the goal centre the walk must stop.", unit = " blocks",

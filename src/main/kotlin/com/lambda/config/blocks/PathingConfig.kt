@@ -56,6 +56,13 @@ interface PathingConfig {
     /** How far the simulated walk may stray from the coarse route before rejection. */
     val maxCorridorDeviation: Double
 
+    /**
+     * Certify one corridor-adherent gait (with its launch beam) before sweeping the
+     * full gait grid. Much faster discovery on long routes; the full sweep still runs
+     * for any segment the adherent gait cannot solve.
+     */
+    val corridorAdherentFirst: Boolean
+
     /** How close to the goal centre the walk must come to a stable stop. */
     val goalRadius: Double
 }

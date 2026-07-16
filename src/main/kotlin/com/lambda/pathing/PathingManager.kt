@@ -237,7 +237,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         )
 
         val planning = try {
-            TrajectoryPlanner.planAsync(player, request.goal, request.pathingConfig)
+            TrajectoryPlanner.planAsync(
+                player, request.goal, request.pathingConfig,
+                turnSpeed = request.rotationConfig.turnSpeed,
+            )
         } catch (failure: Exception) {
             fail("could not capture a world snapshot: ${failure.message}")
             return
@@ -318,16 +321,16 @@ object PathingManager : Manager<PathingRequest>(0) {
     /**
      * Refuse configs that cannot steer a tape, rather than walking off in a
      * plausible-looking wrong direction. Unsupported physics is a typed result.
+     *
+     * Turn speed is deliberately not gated here: the simulation caps its per-frame yaw
+     * steps at the requester's own turn speed, so any positive value plans honestly --
+     * a slow config simply certifies gentler (or refuses harder) routes.
      */
     private fun unsteerable(request: PathingRequest): String? {
         val config = request.rotationConfig
         if (config.rotationMode == RotationMode.Silent) {
             return "rotation mode Silent cannot steer movement: it nulls movementYaw, " +
                 "so the body would follow the camera instead of the plan. Use Sync or Lock."
-        }
-        if (config.turnSpeed < MIN_TURN_SPEED) {
-            return "turn speed %.0f deg/tick is below the %.0f the plan needs; the turn would fall short each tick"
-                .format(config.turnSpeed, MIN_TURN_SPEED)
         }
         return null
     }
@@ -571,9 +574,6 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     /** From any settleable speed the clamp fires within ~10 ticks; this is ample headroom. */
     private const val MAX_SETTLE_TICKS = 40
-
-    /** The seed search caps yaw change at 30 deg/frame; the turn must clear that. */
-    private const val MIN_TURN_SPEED = 30.0
 
     private const val PATHING_SOURCE = "Pathing"
 

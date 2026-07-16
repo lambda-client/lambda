@@ -151,12 +151,16 @@ object TrajectoryPlanner {
      * Must be called on the client thread: it reads the live player and world.
      *
      * [config] is the requester's own planning config, snapshotted here so the worker
-     * never reads a setting that could change under it.
+     * never reads a setting that could change under it. [turnSpeed] is one sample of
+     * the requester's rotation turn speed, taken here for the same reason: it caps the
+     * per-frame yaw step every simulated controller may plan, so the tape never asks
+     * for a turn the rotation manager was not configured to deliver.
      */
     fun planAsync(
         player: ClientPlayerEntity,
         goal: Stance,
         config: PathingConfig,
+        turnSpeed: Double,
     ): CompletableFuture<PathPlanResult> {
         val moveOptions = SimpleMoveOptions(
             allowDiagonal = config.allowDiagonal,
@@ -168,9 +172,11 @@ object TrajectoryPlanner {
         )
         val seedConfig = WalkingSeedSearchConfig(
             maxFrames = config.maxFrames,
+            maxYawDegreesPerFrame = turnSpeed,
             goalRadius = config.goalRadius,
             maxCorridorDeviation = config.maxCorridorDeviation,
             sprintModes = if (config.allowSprint) listOf(true, false) else listOf(false),
+            corridorAdherentFirst = config.corridorAdherentFirst,
         )
         val initial = MovementSimulationState.from(player)
         val profile = PlayerPhysicsProfile.capture(player)

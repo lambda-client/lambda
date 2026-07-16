@@ -193,10 +193,12 @@ class GapJumpDiscoveryTest {
         val environment = gapEnvironment(holeAt = 3..4)
         val route = route(environment, Stance(7, 0, 0))
 
+        // The full-sweep semantics under test predate the adherent-first ladder; the
+        // family-diversity guarantee must hold whenever the full grid actually runs.
         val result = assertIs<WalkingSeedSearchResult.Success>(
             WalkingSeedSearch.search(
                 route, initialState(), PROFILE, environment,
-                WalkingSeedSearchConfig(maxGapSeeds = 6),
+                WalkingSeedSearchConfig(maxGapSeeds = 6, corridorAdherentFirst = false),
             ),
         )
 
@@ -326,6 +328,40 @@ class GapJumpDiscoveryTest {
         )
         assertTrue(result.parameters.gapLaunchFrames.size >= 3)
         assertEquals(-3.0, result.rollout.finalState.position.y, 0.05)
+    }
+
+    /**
+     * No horizon cliff at the goal. The long-route field failure: every surviving
+     * attempt of a jump chain ran out of frames just short of the goal ("closest ended
+     * 0.39 blocks from the remaining goal at 0.104 b/t"), and the only splice frame
+     * considered was the latest grounded one -- which sits at the *unarrived terminal
+     * node* and is rejected, so a nearly-complete trajectory contributed nothing and
+     * the whole plan refused. Wherever the frame budget happens to cut the rollout,
+     * continuous expansion must now splice one node back and let a fresh segment
+     * certify the stop.
+     */
+    @Test
+    fun `continuous expansion certifies a gap chain under any frame budget`() {
+        val environment = gapEnvironment(3..4, 9..10)
+        val route = route(environment, Stance(13, 0, 0))
+
+        for (budget in intArrayOf(45, 50, 55, 60, 65)) {
+            val search = WalkingSeedSearch.searchContinuously(
+                route, initialState(), PROFILE, environment,
+                WalkingSeedSearchConfig(maxFrames = budget),
+            )
+            val failed = search as? WalkingSeedSearchResult.NoSafeStop
+            val result = assertIs<WalkingSeedSearchResult.Success>(
+                search,
+                "budget $budget must certify via extension, not refuse at the horizon; " +
+                    "segments=${failed?.completedSegments}, nearest=${failed?.nearest}",
+            )
+            assertTrue(result.rollout.finalState.onGround)
+            assertTrue(
+                hypot(result.rollout.finalState.position.x - 13.5, result.rollout.finalState.position.z - 0.5) <= 0.20,
+                "budget $budget stopped away from the goal",
+            )
+        }
     }
 
     @Test
