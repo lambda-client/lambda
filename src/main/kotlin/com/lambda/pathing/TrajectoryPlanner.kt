@@ -12,6 +12,7 @@ package com.lambda.pathing
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarseMoveCosts
+import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -197,20 +198,20 @@ object TrajectoryPlanner {
             if (!planner.repair(Duration.INFINITE).converged) {
                 return@supplyAsync PathPlanResult.NoRoute("D* did not converge")
             }
-            val route = planner.routePlan(snapshotRevision = snapshot.capturedWorldTime)
-                ?: return@supplyAsync PathPlanResult.NoRoute("no coarse route to the goal")
 
             // Local controllers are only search pieces. A failed piece may publish a
             // safe *simulated* moving prefix to the next worker-local expansion, but
             // never to execution. The final result is one concatenated tape replayed
             // from the original state through the final stable stop. There are no
             // runtime stop-and-replan legs hidden behind trajectory windowing.
-            when (val seed = WalkingSeedSearch.searchContinuously(
-                route, initial, profile, snapshot, seedConfig,
-            )) {
+            val outcome = searchWithRerouting(planner, snapshot.capturedWorldTime) { route ->
+                WalkingSeedSearch.searchContinuously(route, initial, profile, snapshot, seedConfig)
+            } ?: return@supplyAsync PathPlanResult.NoRoute("no coarse route to the goal")
+
+            when (val seed = outcome.result) {
                 is WalkingSeedSearchResult.Success -> PathPlanResult.Planned(
                     PathingManager.PublishedPath(
-                        route = route,
+                        route = outcome.route,
                         plan = TrajectoryPlan.fromWalkingSeed(
                             TrajectoryPlanId(planIds.incrementAndGet()), seed, profile,
                         ),
@@ -221,6 +222,8 @@ object TrajectoryPlanner {
                         finalGoal = goal,
                         controlSegments = seed.controlSegments,
                         spliceFrames = seed.spliceFrames,
+                        reroutes = outcome.reroutes,
+                        launchMarginFrames = seed.launchMarginFrames,
                     )
                 )
 
@@ -233,6 +236,55 @@ object TrajectoryPlanner {
                 )
 
                 is WalkingSeedSearchResult.NoSafeStop -> PathPlanResult.NoSafeStop(seed)
+            }
+        }
+    }
+
+    /** A completed search together with how many infeasible-jump reroutes it took. */
+    internal data class FeedbackSearchOutcome(
+        val route: CoarseRoutePlan,
+        val result: WalkingSeedSearchResult,
+        val reroutes: Int,
+    )
+
+    /**
+     * Runs [search] on the current coarse route; if it refuses because a
+     * `JUMP_CANDIDATE` edge cannot be certified, retires that edge in D* and reroutes,
+     * up to [maxReroutes] times (M6 negative feedback, plan §5.3 / anytime design §5).
+     *
+     * Today a single infeasible jump the permissive mask admitted fails the whole plan,
+     * because the coarse layer publishes one route with no alternative. Retiring the dead
+     * edge and repairing lets D* find a detour instead. Only a jump is retired: a walk
+     * that could not certify usually has no alternative and blacklisting it would spiral.
+     *
+     * Returns null only when there is no coarse route at all; otherwise it returns the
+     * last result (a [WalkingSeedSearchResult.Success], an unsupported/unstable refusal,
+     * or the closest [WalkingSeedSearchResult.NoSafeStop] once reroutes are exhausted).
+     */
+    internal fun searchWithRerouting(
+        planner: CoarsePlanner,
+        snapshotRevision: Long,
+        maxReroutes: Int = MAX_REROUTES,
+        search: (CoarseRoutePlan) -> WalkingSeedSearchResult,
+    ): FeedbackSearchOutcome? {
+        var reroutes = 0
+        var lastRefusal: FeedbackSearchOutcome? = null
+        while (true) {
+            // A reroute may blacklist the graph into a corner with no route left; then the
+            // best we can report is the closest refusal we already have.
+            val route = planner.routePlan(snapshotRevision) ?: return lastRefusal
+            when (val result = search(route)) {
+                is WalkingSeedSearchResult.NoSafeStop -> {
+                    lastRefusal = FeedbackSearchOutcome(route, result, reroutes)
+                    val dead = result.deadEdge
+                    if (dead == null || dead.kind != CoarseMoveKind.JUMP_CANDIDATE || reroutes >= maxReroutes) {
+                        return lastRefusal
+                    }
+                    planner.blacklistEdge(dead.from, dead.to)
+                    reroutes++
+                }
+
+                else -> return FeedbackSearchOutcome(route, result, reroutes)
             }
         }
     }
@@ -281,6 +333,13 @@ object TrajectoryPlanner {
             override fun voxel(x: Int, y: Int, z: Int) = this@withinBudget.voxel(x, y, z)
         }
     }
+
+    /**
+     * How many infeasible coarse jumps one plan may reroute around before giving up.
+     * Each reroute is a cheap incremental D* repair; the bound keeps a pathological graph
+     * (every jump admitted, none feasible) from turning one plan into an unbounded search.
+     */
+    private const val MAX_REROUTES = 8
 
     private const val MARGIN = 12
 

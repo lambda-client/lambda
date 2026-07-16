@@ -180,6 +180,7 @@ object LambdaTest : FabricClientGameTest {
         context: ClientGameTestContext,
         server: net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext,
     ) {
+        PathingMetricSink.reset()
         server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
         server.runCommand("/fill -8 100 -8 8 105 8 minecraft:air")
 
@@ -445,6 +446,20 @@ object LambdaTest : FabricClientGameTest {
 
         context.runOnClient<IllegalStateException> {
             val status = PathingManager.status
+            val published = PathingManager.published
+            if (status !is PathingManager.Status.Complete || published == null) {
+                PathingMetricSink.record(
+                    PathingMetricSink.Run(
+                        scenario, success = false, completionTicks = ticks,
+                        trajectoryFrames = published?.plan?.frames?.size ?: 0,
+                        collisionFrames = 0, bumps = 0,
+                        launchMarginFrames = published?.launchMarginFrames ?: 0,
+                        planLatencyMs = published?.planMillis ?: 0L,
+                        reroutes = published?.reroutes ?: 0,
+                        maxReplayDeviation = PathingManager.maxDeviation,
+                    ),
+                )
+            }
             check(status is PathingManager.Status.Complete) { "$scenario: ended $status" }
             check(status.legs >= minLegs) {
                 "$scenario: expected at least $minLegs windows, walked ${status.legs}"
@@ -455,7 +470,7 @@ object LambdaTest : FabricClientGameTest {
                 }
             }
 
-            val path = checkNotNull(PathingManager.published) { "$scenario: nothing published" }
+            val path = checkNotNull(published) { "$scenario: nothing published" }
             check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
 
             expectedJumpDy?.let { dy ->
@@ -491,6 +506,27 @@ object LambdaTest : FabricClientGameTest {
             check(PathingManager.maxDeviation <= maxDeviation) {
                 "$scenario: max deviation ${PathingManager.maxDeviation} exceeded $maxDeviation"
             }
+            val frames = path.plan.frames
+            var previousCollision = frames.firstOrNull()?.let { path.plan.initialState.horizontalCollision } ?: false
+            var bumps = 0
+            frames.forEach { frame ->
+                if (frame.state.horizontalCollision && !previousCollision) bumps++
+                previousCollision = frame.state.horizontalCollision
+            }
+            val metrics = PathingMetricSink.Run(
+                    scenario = scenario,
+                    success = true,
+                    completionTicks = ticks,
+                    trajectoryFrames = frames.size,
+                    collisionFrames = frames.count { it.state.horizontalCollision },
+                    bumps = bumps,
+                    launchMarginFrames = path.launchMarginFrames,
+                    planLatencyMs = path.planMillis,
+                    reroutes = path.reroutes,
+                    maxReplayDeviation = PathingManager.maxDeviation,
+                )
+            PathingMetricSink.record(metrics)
+            PathingMetricSink.assertWithinBaseline(metrics)
             PathingManager.clear()
         }
     }

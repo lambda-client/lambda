@@ -70,6 +70,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         val controlSegments: Int = 1,
         /** Predicted moving-state boundaries already flattened into [plan]. */
         val spliceFrames: List<Int> = emptyList(),
+        /** Infeasible coarse jumps D* was rerouted around before this plan certified. */
+        val reroutes: Int = 0,
+        /** Failure-directed launch runway accumulated across the certified tape. */
+        val launchMarginFrames: Int = 0,
     )
 
     sealed interface Status {
@@ -299,7 +303,9 @@ object PathingManager : Manager<PathingRequest>(0) {
                 path.parameters.gapLaunchFrames.takeIf { it.isNotEmpty() }
                     ?.let { ", jump launch frames ${it.joinToString()}" }.orEmpty() +
                 path.spliceFrames.takeIf { it.isNotEmpty() }
-                    ?.let { ", predicted splice frames ${it.joinToString()}" }.orEmpty(),
+                    ?.let { ", predicted splice frames ${it.joinToString()}" }.orEmpty() +
+                path.reroutes.takeIf { it > 0 }
+                    ?.let { ", rerouted around $it infeasible coarse jump(s)" }.orEmpty(),
             PATHING_SOURCE,
         )
     }
