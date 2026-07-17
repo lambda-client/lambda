@@ -819,6 +819,7 @@ object BreakManager : Manager<BreakRequest>(
 
 		var packetCount = 1
 		if (breakConfig.breakMode == BreakMode.Packet) packetCount++
+		info.vanillaInstantBreakable = progress >= 1
 		val requiresSecondStop = info.type == Secondary || (instantBreakable && !info.vanillaInstantBreakable)
 		if (requiresSecondStop) packetCount++
 
@@ -833,7 +834,6 @@ object BreakManager : Manager<BreakRequest>(
 		}
 
 		if (instantBreakable) {
-			info.vanillaInstantBreakable = progress >= 1
 			onBlockBreak(info)
 			val breakDelay = breakConfig.breakDelay
 			if (!info.vanillaInstantBreakable) breakCooldown = if (breakDelay == 0) 0 else breakDelay + 1
