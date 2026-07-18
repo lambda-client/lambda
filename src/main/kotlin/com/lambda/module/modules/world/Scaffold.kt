@@ -17,12 +17,10 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -68,14 +66,7 @@ object Scaffold : Module(
 						defaultValue(false)
 						hide()
 					}
-					::checkSideVisibility.editSetting { defaultValue(true) }
 					hide(::breakBlocks)
-				}
-				interactConfig::airPlace.editSetting { defaultValue(InteractConfig.AirPlaceMode.None) }
-				rotationConfig.apply {
-					::instant.editSetting { defaultValue(false) }
-					::mean.editSetting { defaultValue(120.0) }
-					::spread.editSetting { defaultValue(0.0) }
 				}
 				hideAllExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
 			}
