@@ -61,7 +61,7 @@ object FakePlayer : Module(
 
         listen<ConnectionEvent.Connect.Pre> { disable() }
 
-        onShutdown { disable() } // FixMe: This doesn't work because the hook triggers after the modules are saved.
+        onShutdown { disable() } // TODO: Hook triggers after modules are saved, so this may not work as expected.
 
         onDisable { fakePlayer?.discard(); fakePlayer = null }
     }

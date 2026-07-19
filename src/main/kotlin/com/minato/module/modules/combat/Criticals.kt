@@ -39,7 +39,7 @@ object Criticals : Module(
                     if (player.isOnGround) posPacket(0.00000001, rotation = player.rotation)
                     posPacket(-0.000000001, rotation = player.eyePos.rotationTo(it.entity.boundingBox.center))
 
-                    connection.sendPacket(PlayerInteractItemC2SPacket(Hand.OFF_HAND, 0, player.yaw, player.pitch)) // TODO: This is wrong, fix it
+                    connection.sendPacket(PlayerInteractItemC2SPacket(Hand.OFF_HAND, 0, player.yaw, player.pitch))
                     connection.sendPacket {
                         PlayerActionC2SPacket(
                             PlayerActionC2SPacket.Action.RELEASE_USE_ITEM,

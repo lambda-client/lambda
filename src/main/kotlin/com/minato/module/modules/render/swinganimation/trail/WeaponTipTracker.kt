@@ -28,8 +28,8 @@ private val PI = kotlin.math.PI.toFloat()
  * 2. **Fallback**: Nếu không có swingStartNanoTime, dùng `handSwingTicks`
  *    của vanilla (vẫn hoạt động khi ViewModel tắt hoặc không intercept).
  *
- * TODO: Cần Mixin vào HeldItemRenderer.renderFirstPersonItem() để capture
- * matrix thật. Hiện tại dùng phương án xấp xỉ (fallback).
+ * TODO: Need to mixin into HeldItemRenderer.renderFirstPersonItem() to capture
+ * the actual matrix. Currently using an approximation (fallback).
  */
 object WeaponTipTracker {
     private val mc = MinecraftClient.getInstance()

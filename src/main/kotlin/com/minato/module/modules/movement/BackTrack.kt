@@ -123,7 +123,7 @@ object BackTrack : Module(
 
                 is EntityPositionS2CPacket -> {
                     if (target.id == packet.entityId) {
-                        targetPos = packet.change().position // TODO: Is this relative ?
+                        targetPos = packet.change().position
                     }
                 }
 

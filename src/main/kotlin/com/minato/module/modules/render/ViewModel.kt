@@ -1,4 +1,3 @@
-
 package com.minato.module.modules.render
 
 import com.minato.Minato.mc
@@ -20,10 +19,20 @@ import org.joml.Vector3f
 import org.joml.Vector3i
 import kotlin.math.tan
 
+/**
+ * Sword blocking animation modes (inspired by PVPUtils).
+ */
+enum class SwordBlockMode(val displayName: String) {
+    MODE_1_7("1.7 Classic"),
+    MODE_PUSH("Push"),
+    MODE_1_7_PLUS("1.7 Plus"),
+    MODE_NEW("Modern");
+}
+
 @Suppress("unused")
 object ViewModel : Module(
 	name = "ViewModel",
-	description = "Adjusts hand and held item rendering",
+	description = "Adjusts hand and held item rendering, sword blocking, and held item position",
 	tag = ModuleTag.RENDER,
 ) {
 	private const val GENERAL_TAB = "General"
@@ -32,6 +41,8 @@ object ViewModel : Module(
 	private const val ROTATION_TAB = "Rotation"
 	private const val FOV_TAB = "FOV"
 	private const val HAND_TAB = "Hand"
+	private const val SWORD_BLOCK_TAB = "Sword Block"
+	private const val HELD_ITEM_TAB = "Held Item"
 
 	@Tab(GENERAL_TAB) private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing")
 	@Tab(GENERAL_TAB)val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", " ticks")
@@ -40,8 +51,6 @@ object ViewModel : Module(
 	@Tab(GENERAL_TAB)val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation")
 	@Tab(GENERAL_TAB)val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8")
 	@Tab(GENERAL_TAB)val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { oldAnimations }
-	//ToDo: Implement
-//    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
 
 	@Tab(SCALE_TAB) private val splitScale by setting("Split Scale", false, "Splits left and right hand scale settings")
 	@Tab(SCALE_TAB) private val xScale by setting("X Scale", 1.0f, 0.0f..2.0f, 0.025f) { !splitScale }.onValueChange { _, to -> leftXScale = to; rightXScale = to }
@@ -96,6 +105,23 @@ object ViewModel : Module(
 	@Tab(HAND_TAB) private val handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { enableHand }
 	@Tab(HAND_TAB) private val handFov by setting("Hand FOV", 70, 10..180, 1) { enableHand }
 	@Tab(HAND_TAB) private val handFovAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands FOV transformation from") { enableHand }
+
+	// ── Sword Blocking Animation ──
+	@Tab(SWORD_BLOCK_TAB) val swordBlocking by setting("Sword Blocking", false, "Enable sword blocking animation when right-clicking with a sword")
+	@Tab(SWORD_BLOCK_TAB) val swordBlockMode by setting("Blocking Mode", SwordBlockMode.MODE_1_7, "Animation style when blocking with sword")
+	@Tab(SWORD_BLOCK_TAB) val autoBlock by setting("Auto Block", false, "Automatically block when an entity is in range")
+	@Tab(SWORD_BLOCK_TAB) val autoBlockRange by setting("Auto Block Range", 3.0, 1.0..6.0, 0.5, "Range to auto-detect entities")
+	@Tab(SWORD_BLOCK_TAB) val swordBlockAnimSpeed by setting("Block Animation Speed", 1.0f, 0.1f..3.0f, 0.1f, "Speed multiplier for block animation")
+	@Tab(SWORD_BLOCK_TAB) val blockingOffsetX by setting("Offset X", 0.0f, -1.0f..1.0f, 0.01f, "X offset while blocking")
+	@Tab(SWORD_BLOCK_TAB) val blockingOffsetY by setting("Offset Y", 0.0f, -1.0f..1.0f, 0.01f, "Y offset while blocking")
+	@Tab(SWORD_BLOCK_TAB) val blockingOffsetZ by setting("Offset Z", 0.0f, -1.0f..1.0f, 0.01f, "Z offset while blocking")
+
+	// ── Held Item Position (transparency + swing speed) ──
+	@Tab(HELD_ITEM_TAB) val heldItemPosition by setting("Held Item Position", false, "Enable held item position/alpha/swing speed customization")
+	@Tab(HELD_ITEM_TAB) val heldItemMainAlpha by setting("Main Hand Alpha", 100, 0..100, 5, "Transparency of main hand item (0=invisible, 100=full)")
+	@Tab(HELD_ITEM_TAB) val heldItemOffAlpha by setting("Off Hand Alpha", 100, 0..100, 5, "Transparency of off hand item (0=invisible, 100=full)")
+	@Tab(HELD_ITEM_TAB) val heldItemMainSwingSpeed by setting("Main Swing Speed", 1.0f, 0.1f..5.0f, 0.1f, "Swing speed multiplier for main hand")
+	@Tab(HELD_ITEM_TAB) val heldItemOffSwingSpeed by setting("Off Swing Speed", 1.0f, 0.1f..5.0f, 0.1f, "Swing speed multiplier for off hand")
 
 	private var attackKeyTicksPressed = -1
 
@@ -227,6 +253,133 @@ object ViewModel : Module(
 				preferredHand = hand
 			}
 		}
+
+	// ── Sword Blocking Helpers (called from HeldItemRendererMixin) ──
+
+	/**
+	 * Check if player is currently blocking with sword.
+	 */
+	fun isBlocking(): Boolean {
+		if (!swordBlocking) return false
+		val player = mc.player ?: return false
+		val stack = player.mainHandStack
+		if (stack.isEmpty || !stack.isIn(net.minecraft.registry.tag.ItemTags.SWORDS)) return false
+		return mc.options.useKey.isPressed || (autoBlock && isEntityInRange())
+	}
+
+	/**
+	 * Check if there's a living entity in auto-block range.
+	 */
+	fun isEntityInRange(): Boolean {
+		val player = mc.player ?: return false
+		val world = mc.world ?: return false
+		val range = autoBlockRange
+		val rangeF = range.toFloat()
+		return world.getEntitiesByClass(
+			net.minecraft.entity.LivingEntity::class.java,
+			player.boundingBox.expand(range),
+		) { it != player && it.isAlive && it.distanceTo(player) <= rangeF }.isNotEmpty()
+	}
+
+	/**
+	 * Apply sword blocking animation transformations.
+	 * Called from HeldItemRendererMixin when blocking is active.
+	 */
+	fun applyBlockingTransform(matrices: MatrixStack, hand: Hand, swingProgress: Float, side: Int) {
+		val mode = swordBlockMode
+		val animSpeed = swordBlockAnimSpeed
+		val h = (swingProgress * animSpeed).coerceIn(0f, 1f)
+
+		// Apply user-configured blocking offset (translate takes float)
+		matrices.translate(blockingOffsetX * side, blockingOffsetY, blockingOffsetZ)
+
+		// sqrt takes float, sin takes double in 1.21.x
+		when (mode) {
+			SwordBlockMode.MODE_1_7 -> {
+				val sqrtH = net.minecraft.util.math.MathHelper.sqrt(h) // Float
+				val factor = net.minecraft.util.math.MathHelper.sin(sqrtH.toDouble() * Math.PI) // Double
+				val blend = 1.0f - factor.toFloat() // Float
+				matrices.translate(side * (-0.139F * blend), 0.06F * blend, 0.20F * blend)
+				matrices.translate(side * 0.430F, -0.190F, 0.520F)
+				matrices.translate(side * -0.141F, 0.08F, -0.72F)
+				val f17 = net.minecraft.util.math.MathHelper.sin((h * h).toDouble() * Math.PI) // Double
+				val f22 = net.minecraft.util.math.MathHelper.sin(sqrtH.toDouble() * Math.PI) // Double
+				matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * (45.0F + f17.toFloat() * -20.0F)))
+				matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * f22.toFloat() * -20.0F))
+				matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(f22.toFloat() * -80.0F))
+				matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * -45.0F))
+				renderOldSwordStance(matrices, side)
+			}
+			SwordBlockMode.MODE_PUSH -> {
+				matrices.translate(side * 0.15F, -0.05F, 0.0F)
+				renderOldSwordStance(matrices, side)
+				val sqrtSwing = net.minecraft.util.math.MathHelper.sqrt(h) // Float
+				val swingAmount = net.minecraft.util.math.MathHelper.sin(sqrtSwing.toDouble() * Math.PI) // Double
+				matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(-side * swingAmount.toFloat() * 35.0F))
+				matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(swingAmount.toFloat() * -10.0F))
+			}
+			SwordBlockMode.MODE_1_7_PLUS -> {
+				matrices.translate(side * 0.15F, -0.05F, 0.0F)
+				renderOldSwordStance(matrices, side)
+				val sqrtSwing = net.minecraft.util.math.MathHelper.sqrt(h) // Float
+				val swingAmount = net.minecraft.util.math.MathHelper.sin(sqrtSwing.toDouble() * Math.PI) // Double
+				matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(swingAmount.toFloat() * -45.0F))
+				matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * swingAmount.toFloat() * 20.0F))
+			}
+			SwordBlockMode.MODE_NEW -> {
+				matrices.translate(side * 0.15F, -0.05F, 0.0F)
+				renderOldSwordStance(matrices, side)
+				if (h > 0.0F) {
+					val sqrtH = net.minecraft.util.math.MathHelper.sqrt(h) // Float
+					val swingFactor = net.minecraft.util.math.MathHelper.sin(sqrtH.toDouble() * Math.PI) // Double
+					matrices.translate(side * 0.430F * swingFactor.toFloat(), -0.190F * swingFactor.toFloat(), 0.520F * swingFactor.toFloat())
+					matrices.translate(side * -0.141F * swingFactor.toFloat(), 0.08F * swingFactor.toFloat(), -0.72F * swingFactor.toFloat())
+					val f17 = net.minecraft.util.math.MathHelper.sin((h * h).toDouble() * Math.PI) // Double
+					val f22 = net.minecraft.util.math.MathHelper.sin(sqrtH.toDouble() * Math.PI) // Double
+					matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * (45.0F + f17.toFloat() * -20.0F)))
+					matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * f22.toFloat() * -20.0F))
+					matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(f22.toFloat() * -80.0F))
+					matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * -45.0F))
+				}
+			}
+		}
+	}
+
+	private fun renderOldSwordStance(matrices: MatrixStack, side: Int) {
+		matrices.translate(-0.2F, 0.126F, 0.2F)
+		matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(-102.25F))
+		matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(side * 15.0F))
+		matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(side * 80.0F))
+	}
+
+	/**
+	 * Get alpha value for held item (0-255).
+	 * Called from HeldItemRendererMixin.
+	 */
+	fun itemAlpha(hand: Hand): Int {
+		if (!heldItemPosition) return 255
+		val percent = if (hand == Hand.MAIN_HAND) heldItemMainAlpha else heldItemOffAlpha
+		return (percent.coerceIn(0, 100) * 2.55f).toInt().coerceIn(0, 255)
+	}
+
+	/**
+	 * Get swing speed multiplier for held item.
+	 * Called from HeldItemRendererMixin.
+	 */
+	fun swingSpeed(hand: Hand): Float {
+		if (!heldItemPosition) return 1.0f
+		return if (hand == Hand.MAIN_HAND) heldItemMainSwingSpeed else heldItemOffSwingSpeed
+	}
+
+	/**
+	 * Apply swing speed modifier to swing progress.
+	 * Called from HeldItemRendererMixin.
+	 */
+	fun applySwingSpeed(hand: Hand, swingProgress: Float): Float {
+		val speed = swingSpeed(hand)
+		if (speed <= 0f) return 0f
+		return (swingProgress * speed).coerceIn(0f, 1f)
+	}
 
 	private enum class Side {
 		Left, Right

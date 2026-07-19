@@ -71,8 +71,10 @@ object DashAfterimageLayer {
 
     /**
      * Render ghost afterimages using RenderBuilder filledQuad for silhouette.
+     *
+     * @param accentColor Optional theme-aware color; falls back to default blue if null.
      */
-    fun RenderBuilder.render(cameraPos: Vec3d, intensity: Float) {
+    fun RenderBuilder.render(cameraPos: Vec3d, intensity: Float, accentColor: Color? = null) {
         if (ghosts.isEmpty() || intensity < 0.01f) return
 
         ghosts.forEach { ghost ->
@@ -80,7 +82,8 @@ object DashAfterimageLayer {
             val alpha = ((1f - progress) * 0.3f * intensity * 255).toInt().coerceIn(0, 255)
             if (alpha <= 0) return@forEach
 
-            val color = Color(0x60, 0xC0, 0xFF, alpha)
+            val base = accentColor ?: Color(0x60, 0xC0, 0xFF)
+            val color = Color(base.red, base.green, base.blue, alpha)
 
             val hw = 0.3
             val h = 1.8

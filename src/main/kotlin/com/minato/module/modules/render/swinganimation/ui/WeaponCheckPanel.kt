@@ -40,6 +40,16 @@ data class PanelSettings(
     // Trail appearance
     val trailWidth: Float,
     val trailLength: Float,
+    // Custom trail colors
+    val useCustomTrailColors: Boolean,
+    val customTrailCoreColor: Color,
+    val customTrailGlowColor: Color,
+    val customTrailSparkColor: Color,
+    val rimLightIntensity: Float,
+    // HudTheme integration
+    val useHudThemeForTrailColors: Boolean,
+    val useHudThemeForKillColors: Boolean,
+    val useHudThemeForSprintEffects: Boolean,
     // Quality properties
     val hasRimLight: Boolean,
     val hasChromaPulse: Boolean,
@@ -203,12 +213,54 @@ private fun ImGuiBuilder.renderWeaponTab(
     drawCheckbox("Crit Chroma Pulse", settings.hasChromaPulse) { onSettingChange("chromaPulse", it) }
 
     ImGui.separator()
-    text("Gradient Colors:")
-    drawColorButton("Start", Color(255, 255, 255))
-    ImGui.sameLine()
-    drawColorButton("Mid", Color(207, 239, 255))
-    ImGui.sameLine()
-    drawColorButton("End", Color(92, 140, 166))
+
+    // ── HudTheme Integration ──
+    ImGui.textColored(0.4f, 0.7f, 1.0f, 1.0f, "HUD Theme Integration")
+    drawCheckbox("Use Theme For Trails", settings.useHudThemeForTrailColors) { onSettingChange("useHudThemeForTrailColors", it) }
+    if (settings.useHudThemeForTrailColors) ImGui.textColored(0.6f, 0.9f, 0.6f, 1.0f, "  Trail colors follow LIGHT/DARK theme")
+
+    ImGui.separator()
+
+    // ── Custom Trail Colors ──
+    drawCheckbox("Custom Trail Colors", settings.useCustomTrailColors) { onSettingChange("useCustomTrailColors", it) }
+
+    if (settings.useCustomTrailColors && !settings.useHudThemeForTrailColors) {
+        ImGui.indent(16f)
+        text("Customize Trail Colors:")
+
+        val coreFloats = settings.customTrailCoreColor.getColorComponents(null)
+        val coreColFloats = floatArrayOf(coreFloats[0], coreFloats[1], coreFloats[2], 1.0f)
+        if (ImGui.colorEdit4("Core", coreColFloats, com.lambda.imgui.flag.ImGuiColorEditFlags.NoAlpha)) {
+            onSettingChange("customTrailCoreColor", java.awt.Color(coreColFloats[0], coreColFloats[1], coreColFloats[2]))
+        }
+
+        val glowFloats = settings.customTrailGlowColor.getColorComponents(null)
+        val glowColFloats = floatArrayOf(glowFloats[0], glowFloats[1], glowFloats[2], 1.0f)
+        if (ImGui.colorEdit4("Glow", glowColFloats, com.lambda.imgui.flag.ImGuiColorEditFlags.NoAlpha)) {
+            onSettingChange("customTrailGlowColor", java.awt.Color(glowColFloats[0], glowColFloats[1], glowColFloats[2]))
+        }
+
+        val sparkFloats = settings.customTrailSparkColor.getColorComponents(null)
+        val sparkColFloats = floatArrayOf(sparkFloats[0], sparkFloats[1], sparkFloats[2], 1.0f)
+        if (ImGui.colorEdit4("Spark", sparkColFloats, com.lambda.imgui.flag.ImGuiColorEditFlags.NoAlpha)) {
+            onSettingChange("customTrailSparkColor", java.awt.Color(sparkColFloats[0], sparkColFloats[1], sparkColFloats[2]))
+        }
+
+        val rim = com.lambda.imgui.type.ImFloat(settings.rimLightIntensity)
+        if (ImGui.sliderFloat("Rim Light Intensity", rim.data, 0.0f, 3.0f, "%.1f")) {
+            onSettingChange("rimLightIntensity", rim.get())
+        }
+        ImGui.unindent(16f)
+    }
+
+    if (!settings.useCustomTrailColors && !settings.useHudThemeForTrailColors) {
+        ImGui.text("Default Colors:")
+        drawColorButton("Start", Color(255, 255, 255))
+        ImGui.sameLine()
+        drawColorButton("Mid", Color(207, 239, 255))
+        ImGui.sameLine()
+        drawColorButton("End", Color(92, 140, 166))
+    }
 }
 
 private fun ImGuiBuilder.renderMovementTab(
@@ -216,6 +268,13 @@ private fun ImGuiBuilder.renderMovementTab(
     onSettingChange: (String, Any) -> Unit,
 ) {
     text("Sprint Trail Settings")
+    ImGui.separator()
+
+    // HudTheme integration for sprint effects
+    drawCheckbox("Use HUD Theme", settings.useHudThemeForSprintEffects) { onSettingChange("useHudThemeForSprintEffects", it) }
+    if (settings.useHudThemeForSprintEffects) {
+        ImGui.textColored(0.6f, 0.9f, 0.6f, 1.0f, "  Sprint colors follow LIGHT/DARK theme")
+    }
     ImGui.separator()
 
     drawCheckbox("Footstep Dust", settings.sprintFootstepDust) { onSettingChange("footstepDust", it) }
@@ -261,11 +320,18 @@ private fun ImGuiBuilder.renderEliminationTab(
     drawColorButton("Lightning", Color(220, 240, 255))
 
     ImGui.separator()
-    drawCheckbox("Use GUI Primary Color", settings.killUseGuiTheme) { onSettingChange("killUseGuiTheme", it) }
-    text("Lightning Colors:")
-    drawColorButton("Core", settings.killCoreColor)
-    ImGui.sameLine()
-    drawColorButton("Glow", settings.killGlowColor)
+    ImGui.textColored(0.4f, 0.7f, 1.0f, 1.0f, "Theme & Colors")
+    drawCheckbox("Use HUD Theme", settings.useHudThemeForKillColors) { onSettingChange("useHudThemeForKillColors", it) }
+    if (settings.useHudThemeForKillColors) {
+        ImGui.textColored(0.6f, 0.9f, 0.6f, 1.0f, "  Kill colors follow LIGHT/DARK theme")
+    }
+    if (!settings.useHudThemeForKillColors) {
+        drawCheckbox("Use GUI Primary Color", settings.killUseGuiTheme) { onSettingChange("killUseGuiTheme", it) }
+        text("Lightning Colors:")
+        drawColorButton("Core", settings.killCoreColor)
+        ImGui.sameLine()
+        drawColorButton("Glow", settings.killGlowColor)
+    }
 }
 
 private fun drawCheckbox(label: String, currentValue: Boolean, onChange: (Boolean) -> Unit) {

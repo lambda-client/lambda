@@ -28,7 +28,7 @@ class LongSetting(
 	unit: String
 ) : NumericSetting<Long>(name, description, config, layer, defaultValue, visibility, range, step, unit) {
     override fun ImGuiBuilder.buildSlider() {
-        // FixMe: No worky for super large numbers
+        // TODO: Does not work correctly for very large numbers (overflow in index calculation)
         val maxIndex = ((range.endInclusive - range.start) / step).toInt()
         val currentIndex = ((value - range.start) / step).toInt()
         val imInt = ImInt(currentIndex)

@@ -28,19 +28,32 @@ object KeystrokesHud : HudModule(
         val width = 180f
         val height = 64f
 
-        hudBackground(width, height, backgroundColor.value, Color(0, 0, 0, 60)) {
+        // Theme-aware colors
+        val theme = effectiveTheme
+        val useThemeCol = useThemeColors.value
+        val useThemeBg = useThemeBackground.value
+        val keyActiveBg = if (useThemeCol) Color(40, 200, 40, 200) else Color(40, 160, 40, 200)
+        val keyInactiveBg = if (useThemeCol) Color(60, 60, 60, 180) else Color(40, 40, 40, 160)
+        val keyBorder = if (useThemeCol) theme.borderColor else Color(0, 0, 0, 120)
+        val keyTextColor = if (useThemeCol) theme.primaryTextColor else Color(230, 230, 230)
+        val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+        val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
+
+        hudBackground(width, height, bg, fallbackBorder) {
             val baseX = windowPos.x + cursorPosX + 8f
             var baseY = windowPos.y + cursorPosY + 6f
 
             fun drawKey(x: Float, y: Float, w: Float, h: Float, label: String, on: Boolean) {
-                val bg = if (on) ImColor.rgba(40, 160, 40, 200) else ImColor.rgba(40, 40, 40, 160)
-                val border = ImColor.rgba(0, 0, 0, 120)
-                windowDrawList.addRectFilled(x, y, x + w, y + h, bg, style.frameRounding)
-                windowDrawList.addRect(x, y, x + w, y + h, border, style.frameRounding, ImDrawListFlags.None, style.frameBorderSize)
+                val bgCol = if (on) keyActiveBg else keyInactiveBg
+                val borderIm = ImColor.rgba(keyBorder.red, keyBorder.green, keyBorder.blue, keyBorder.alpha)
+                val bgIm = ImColor.rgba(bgCol.red, bgCol.green, bgCol.blue, bgCol.alpha)
+                val textIm = ImColor.rgba(keyTextColor.red, keyTextColor.green, keyTextColor.blue, keyTextColor.alpha)
+                windowDrawList.addRectFilled(x, y, x + w, y + h, bgIm, style.frameRounding)
+                windowDrawList.addRect(x, y, x + w, y + h, borderIm, style.frameRounding, ImDrawListFlags.None, style.frameBorderSize)
                 // center text
                 val tx = x + w * 0.5f - (label.length * 4f)
                 val ty = y + h * 0.25f
-                windowDrawList.addText(tx, ty, ImColor.rgba(230, 230, 230, 255), label)
+                windowDrawList.addText(tx, ty, textIm, label)
             }
 
             // WASD layout
@@ -74,14 +87,19 @@ object KeystrokesHud : HudModule(
                 // WASD positions
                 val basePx = baseX
                 var by = windowPos.y + 6f
+                // Theme-aware RenderBuilder colors
+                val rbActiveBg = if (useThemeCol) Color(40, 200, 40, 200) else Color(40, 160, 40, 200)
+                val rbInactiveBg = if (useThemeCol) Color(60, 60, 60, 180) else Color(40, 40, 40, 160)
+                val rbTextColor = if (useThemeCol) theme.primaryTextColor else Color(230, 230, 230)
+
                 fun drawKeyRB(px: Float, py: Float, w: Float, h: Float, label: String, on: Boolean) {
                     val nx = px / sw
                     val ny = py / sh
                     val nw = w / sh
                     val nh = h / sh
-                    val bgCol = if (on) java.awt.Color(40, 160, 40, 200) else java.awt.Color(40, 40, 40, 160)
+                    val bgCol = if (on) rbActiveBg else rbInactiveBg
                     screenRect(nx, ny, nw, nh, bgCol)
-                    // label
+                    // label — use theme-aware text color
                     screenText(label, (px + w * 0.5f) / sw, (py + h * 0.25f) / sh, 12f / sh)
                 }
 

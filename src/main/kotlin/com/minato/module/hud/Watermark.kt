@@ -14,7 +14,7 @@ object Watermark : HudModule(
     enabledByDefault = true,
 ) {
     private val texture = upload("textures/minato.png")
-    private val scale by setting("Scale", 0.15f, 0.01f..1f, 0.01f)
+    private val scale by setting("Watermark Scale", 0.15f, 0.01f..1f, 0.01f)
 
     override fun ImGuiBuilder.buildLayout() {
         val width = texture.width * scale

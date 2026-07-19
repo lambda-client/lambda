@@ -4,7 +4,8 @@ import com.minato.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImColor
 import com.minato.module.HudModule
 import com.minato.module.tag.ModuleTag
-import com.minato.util.player.SlotUtils
+import com.minato.util.player.SlotUtils.hotbarAndInventoryStacks
+import java.awt.Color
 import net.minecraft.item.BlockItem
 
 object BlockCountDisplay : HudModule(
@@ -34,15 +35,26 @@ object BlockCountDisplay : HudModule(
         val lines = 1 + if (showByType && map.isNotEmpty()) map.size.coerceAtMost(6) else 0
         val height = maxOf(20f, frameHeightWithSpacing * lines + style.framePadding.y * 2)
 
-        hudBackground(width, height, backgroundColor.value, Color(0, 0, 0, 60)) {
+        // Theme-aware colors
+        val theme = effectiveTheme
+        val useThemeCol = useThemeColors.value
+        val useThemeBg = useThemeBackground.value
+        val primaryColor = if (useThemeCol) theme.primaryTextColor else Color(220, 220, 220)
+        val secondaryColor = if (useThemeCol) theme.secondaryTextColor else Color(200, 200, 200, 230)
+        val primaryColorIm = ImColor.rgba(primaryColor.red, primaryColor.green, primaryColor.blue, primaryColor.alpha)
+        val secondaryColorIm = ImColor.rgba(secondaryColor.red, secondaryColor.green, secondaryColor.blue, secondaryColor.alpha)
+        val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+        val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
+
+        hudBackground(width, height, bg, fallbackBorder) {
             val baseX = windowPos.x + cursorPosX + 6f
             var y = windowPos.y + cursorPosY + 4f
-            windowDrawList.addText(baseX, y, ImColor.rgba(220, 220, 220, 255), "Blocks: $total")
+            windowDrawList.addText(baseX, y, primaryColorIm, "Blocks: $total")
             y += frameHeightWithSpacing
             if (showByType && map.isNotEmpty()) {
                 map.entries.sortedByDescending { it.value }.take(6).forEach { (k, v) ->
                     val name = k.substringAfterLast('.')
-                    windowDrawList.addText(baseX + 6f, y, ImColor.rgba(200, 200, 200, 230), "${name} : $v")
+                    windowDrawList.addText(baseX + 6f, y, secondaryColorIm, "${name} : $v")
                     y += frameHeightWithSpacing
                 }
             }

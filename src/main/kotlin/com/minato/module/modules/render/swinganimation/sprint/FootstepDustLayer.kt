@@ -99,8 +99,10 @@ object FootstepDustLayer {
 
     /**
      * Render dust particles using RenderBuilder filledQuad.
+     *
+     * @param accentColor Optional theme-aware color; falls back to default dust brown if null.
      */
-    fun RenderBuilder.render(cameraPos: Vec3d, intensity: Float) {
+    fun RenderBuilder.render(cameraPos: Vec3d, intensity: Float, accentColor: Color? = null) {
         if (particles.isEmpty()) return
 
         val alpha = intensity.coerceIn(0f, 1f)
@@ -110,7 +112,8 @@ object FootstepDustLayer {
             val particleAlpha = ((1f - progress) * alpha * 200).toInt().coerceIn(0, 255)
             if (particleAlpha <= 0) return@forEach
 
-            val color = Color(0xD4, 0xB8, 0x96, particleAlpha)
+            val base = accentColor ?: Color(0xD4, 0xB8, 0x96)
+            val color = Color(base.red, base.green, base.blue, particleAlpha)
             val sz = p.size
 
             filledQuadGradient(

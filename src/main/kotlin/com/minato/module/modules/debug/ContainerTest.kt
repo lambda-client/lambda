@@ -18,7 +18,7 @@ object ContainerTest : Module(
 ) {
     init {
         listen<TickEvent.Pre> {
-//            info(task.info)
+            // Task info can be inspected here when debugging
         }
 
         onEnable {

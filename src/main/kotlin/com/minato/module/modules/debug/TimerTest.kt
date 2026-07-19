@@ -23,7 +23,7 @@ object TimerTest : Module(
         }
 
         listenConcurrently<ClientEvent.FixedTick> {
-//            info("${System.currentTimeMillis()} - Fixed Tick Concurrently (but not on mc game thread)")
+            // Concurrent handler (runs off the game thread)
         }
     }
 }

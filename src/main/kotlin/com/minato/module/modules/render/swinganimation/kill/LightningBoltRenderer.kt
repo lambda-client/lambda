@@ -84,6 +84,9 @@ object LightningBoltRenderer {
 
     /**
      * Render lightning bolt using RenderBuilder lineGradient.
+     *
+     * @param coreColorInt Custom core color ARGB (eg. 0xFFDCEFFF). If null, uses default #DCEFFF.
+     * @param glowColorInt Custom glow color ARGB. If null, uses default #DCEFFF at 50% alpha.
      */
     fun RenderBuilder.renderBolt(
         bolts: List<List<Vec3d>>,
@@ -98,8 +101,14 @@ object LightningBoltRenderer {
             return Color(c.red, c.green, c.blue, alphaComponent.coerceIn(0, 255))
         }
 
-        val coreColor = if (coreColorInt != null) colorFromIntWithAlpha(coreColorInt, a) else Color(0xDC, 0xEF, 0xFF, a)
-        val glowColor = if (glowColorInt != null) colorFromIntWithAlpha(glowColorInt, (a * 0.5f).toInt()) else Color(0xDC, 0xEF, 0xFF, (a * 0.5f).toInt())
+        // Resolve custom colors
+        val defaultCoreRgb = 0xDC_EF_FF
+        val coreRgb = if (coreColorInt != null) coreColorInt and 0x00FFFFFF else defaultCoreRgb
+        val glowRgb = if (glowColorInt != null) glowColorInt and 0x00FFFFFF else defaultCoreRgb
+        val defaultGlowAlpha = if (glowColorInt != null) (glowColorInt ushr 24) and 0xFF else 120 // 50% of 255 ≈ 120
+
+        val coreColor = if (coreColorInt != null) colorFromIntWithAlpha(coreColorInt, a) else Color(defaultCoreRgb, true).let { Color(it.red, it.green, it.blue, a) }
+        val glowColor = Color(glowRgb, true).let { Color(it.red, it.green, it.blue, (a * (defaultGlowAlpha / 255f)).toInt().coerceIn(0, 255)) }
 
         bolts.forEach { bolt ->
             for (i in 0 until bolt.size - 1) {
@@ -109,19 +118,23 @@ object LightningBoltRenderer {
                 val heightRatio = (p1.y / 15.0).coerceIn(0.0, 1.0)
                 val thickness = (0.15 * (1.0 - heightRatio * 0.7)).coerceAtLeast(0.03).toFloat()
 
-                // Core line
+                // Core line — use custom colors for fade too
                 val fadeA = (a * (1f - heightRatio.toFloat() * 0.5f)).toInt()
+                val coreR = (coreColor.red * (1f - heightRatio.toFloat() * 0.3f)).toInt().coerceIn(0, 255)
+                val coreG = (coreColor.green * (1f - heightRatio.toFloat() * 0.3f)).toInt().coerceIn(0, 255)
+                val coreB = (coreColor.blue * (1f - heightRatio.toFloat() * 0.3f)).toInt().coerceIn(0, 255)
                 lineGradient(
                     p1, coreColor,
-                    p2, Color(0xDC, 0xEF, 0xFF, fadeA),
+                    p2, Color(coreR, coreG, coreB, fadeA),
                     width = thickness,
                 )
 
-                // Glow line (wider, more transparent)
+                // Glow line (wider, more transparent) — use custom colors
                 if (a > 50) {
+                    val glowFadeA = (a * 0.3f).toInt().coerceIn(0, 255)
                     lineGradient(
                         p1, glowColor,
-                        p2, Color(0xDC, 0xEF, 0xFF, (a * 0.3f).toInt()),
+                        p2, Color(glowColor.red, glowColor.green, glowColor.blue, glowFadeA),
                         width = thickness * 2.5f,
                     )
                 }

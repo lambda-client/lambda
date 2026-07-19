@@ -1,6 +1,7 @@
 
 package com.minato.graphics.text
 
+import com.minato.Minato.LOG
 import com.minato.Minato.mc
 import com.minato.util.stream
 import com.mojang.blaze3d.systems.RenderSystem
@@ -146,7 +147,7 @@ class SDFFontAtlas(
 				}
 
 				if (penY + paddedH >= atlasSize) {
-					System.err.println("SDF Atlas overflow at codepoint $cp")
+					LOG.warn("SDF Atlas overflow at codepoint $cp")
 					break
 				}
 

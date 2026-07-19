@@ -54,6 +54,7 @@
     "render.HandledScreenMixin",
     "render.HeadFeatureRendererMixin",
     "render.HeldItemRendererMixin",
+    "render.ItemRendererMixin",
     "render.InGameHudMixin",
     "render.InGameOverlayRendererMixin",
     "render.ItemFrameEntityRendererMixin",

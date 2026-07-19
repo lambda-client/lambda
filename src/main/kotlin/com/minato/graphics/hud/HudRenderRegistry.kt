@@ -31,10 +31,10 @@ object HudRenderRegistry {
 
     init {
         // register an immediate renderer that draws HUD entries each frame in render pipeline
-        this.immediateRenderer("HUD Render", depthTest = { false }) {
+        immediateRenderer("HUD Render", depthTest = { false }) {
             // draw all registered HUD visuals
             entries.values.forEach { entry ->
-                entry.renderer()
+                entry.renderer(this)
             }
         }
     }

@@ -348,9 +348,8 @@ object InteractManager : Manager<InteractRequest>(
 		if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
 			return ActionResult.SUCCESS
 
-		// TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
-		//  "AwaitThenPlace" confirmation setting is enabled, as the block state setting methods that validate these
-		//  rules are not called.
+		// TODO: Implement restriction checks (world height, etc.) to prevent unnecessary
+		//  server requests when AwaitThenPlace is enabled.
 		if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
 
 		val blockPos = itemPlacementContext.blockPos

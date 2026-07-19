@@ -15,6 +15,7 @@ import com.minato.util.extension.isNether
 import com.minato.util.math.Vec2d
 import com.minato.util.math.netherCoord
 import com.minato.util.math.overworldCoord
+import java.awt.Color
 
 @Suppress("unused")
 object Coordinates : HudModule(
@@ -30,15 +31,10 @@ object Coordinates : HudModule(
 	@Tab(CURRENT_DIMENSION_TAB) private val formatter by configBlock(FormatterSettings(this))
 		.withEdits { ::timeFormat.editSetting { hide() } }
 
-//	private val otherFormatter = FormatterSettings(this, Page.OtherDimension).apply {
-//		::timeFormat.edit { hide() }
-//		::group.edit { defaultValue(FormatterConfig.TupleGrouping.SquareBrackets) }
-//	}
-
 	override fun ImGuiBuilder.buildLayout() {
 		runSafe {
 			val position = player.pos.format(formatter)
-			val otherDimensionPos = // ToDo: The system has forced my hand, too bad!. We need to find a way to allow duplicate setting names.
+			val otherDimensionPos =
 				if (world.isNether) player.overworldCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 				else player.netherCoord.let { Vec2d(it.x, it.z) }.format(formatter.locale, formatter.separator, "[", "]", formatter.precision)
 
@@ -53,7 +49,22 @@ object Coordinates : HudModule(
 			val withBiome =
 				if (showBiome) "$withDimension in ${beautifyBiome(world.getBiome(player.blockPos).idAsString)}"
 				else withDimension
-			textCopyable(withBiome)
+
+			// Theme-aware background + colors
+			val theme = effectiveTheme
+			val useThemeCol = useThemeColors.value
+			val useThemeBg = useThemeBackground.value
+			val textColor = if (useThemeCol) theme.primaryTextColor else Color(220, 220, 220)
+			val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+			val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
+
+			val width = 240f
+			val height = frameHeightWithSpacing + style.framePadding.y * 2
+
+			hudBackground(width, height, bg, fallbackBorder) {
+				textColored(withBiome, textColor)
+				cursorPosY += height
+			}
 		}
 	}
 

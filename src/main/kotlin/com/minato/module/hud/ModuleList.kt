@@ -23,17 +23,33 @@ object ModuleList : HudModule(
     override fun ImGuiBuilder.buildLayout() {
         val enabled = ModuleRegistry.modules.filter { it.isEnabled && it.draw }
 
-        enabled.forEach {
-            val bound = it.keybind.key != 0 || it.keybind.mouse != -1
-            if (onlyBound && !bound) return@forEach
-            text(it.name)
+        val theme = effectiveTheme
+        val useThemeCol = useThemeColors.value
+        val useThemeBg = useThemeBackground.value
+        val textColor = if (useThemeCol) theme.primaryTextColor else Color(220, 220, 220)
+        val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+        val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
 
-	        if (showKeybind) {
-		        val color = if (!bound) Color.RED else Color.GREEN
+        val lineHeight = frameHeightWithSpacing
+        val maxLines = enabled.size.coerceAtMost(30)
+        val width = 160f
+        val height = maxOf(20f, lineHeight * maxLines + style.framePadding.y * 2)
 
-		        sameLine()
-		        withStyleColor(ImGuiCol.Text, color) { text(" [${it.keybind.name}]") }
-	        }
+        hudBackground(width, height, bg, fallbackBorder) {
+            enabled.forEach {
+                val bound = it.keybind.key != 0 || it.keybind.mouse != -1
+                if (onlyBound && !bound) return@forEach
+
+                textColored(it.name, textColor)
+
+                if (showKeybind) {
+                    val keyColor = if (!bound) Color.RED else Color.GREEN
+                    sameLine()
+                    withStyleColor(ImGuiCol.Text, keyColor) { text(" [${it.keybind.name}]") }
+                }
+            }
+
+            cursorPosY += height
         }
     }
 }

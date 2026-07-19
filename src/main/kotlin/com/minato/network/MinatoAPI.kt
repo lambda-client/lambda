@@ -55,7 +55,7 @@ object MinatoAPI : Config(
         }
 
         listenConcurrentlyUnsafe<ConnectionEvent.Connect.Post> {
-            // FixMe: If the player have the properties but are invalid this doesn't work
+            // Note: If the player has properties but they are invalid, this fallback doesn't work
             if (NetworkHandler.isValid || mc.gameProfile.isOffline) return@listenConcurrentlyUnsafe
 
             // If we log in right as the client responds to the encryption request, we start

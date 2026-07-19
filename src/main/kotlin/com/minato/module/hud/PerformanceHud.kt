@@ -31,7 +31,7 @@ object PerformanceHud : HudModule(
     description = "Hiển thị real-time FPS, entity dist, particle cap, render distance",
     tag = ModuleTag.HUD,
 ) {
-    // ── Color constants ──
+    // ── Color constants — fallbacks when theme is disabled ──
     private val GREEN = Color(0x7E, 0xEC, 0x8B)
     private val YELLOW = Color(0xFF, 0xD5, 0x3B)
     private val RED = Color(0xFF, 0x55, 0x55)
@@ -70,88 +70,105 @@ object PerformanceHud : HudModule(
     }
 
     override fun ImGuiBuilder.buildLayout() {
-        // ── Header: [PERFORMANCE] ──
-        textColored("[PERFORMANCE]", CYAN)
-        separator()
+        val theme = effectiveTheme
+        val useThemeCol = useThemeColors.value
+        val useThemeBg = useThemeBackground.value
+        val primColor = if (useThemeCol) theme.primaryTextColor else WHITE
+        val secColor = if (useThemeCol) theme.secondaryTextColor else GRAY
+        val accent = if (useThemeCol) theme.accentColor else CYAN
+        val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+        val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
 
-        // ── 1. FPS ──
-        text("FPS: ")
-        sameLine()
-        val fpsColor = when {
-            cachedFps >= cachedTargetFps -> GREEN
-            cachedFps >= 30 -> YELLOW
-            cachedFps > 0 -> RED
-            else -> GRAY
-        }
-        textColored("$cachedFps", fpsColor)
-        sameLine()
-        textColored("/$cachedTargetFps", GRAY)
+        // Estimate height: header + 4 lines + padding
+        val lineH = frameHeightWithSpacing
+        val width = 220f
+        val height = 24f + lineH * 5
 
-        // ── 2. Entity + BlockEntity cull ──
-        newLine()
-        text("Dist: ")
-        sameLine()
-        if (entitySkipEnabled && perfOptEnabled) {
-            val distColor = when {
-                cachedEntityDist >= 128 -> GREEN
-                cachedEntityDist >= 32 -> YELLOW
-                else -> RED
-            }
-            textColored("${cachedEntityDist.toInt()}", distColor)
-        } else {
-            textColored("OFF", GRAY)
-        }
-        sameLine()
-        text("  BE: ")
-        sameLine()
-        if (blockEntitySkipEnabled && perfOptEnabled) {
-            textColored("ON", GREEN)
-        } else {
-            textColored("OFF", GRAY)
-        }
+        hudBackground(width, height, bg, fallbackBorder) {
+            // ── Header: [PERFORMANCE] ──
+            textColored("[PERFORMANCE]", accent)
+            separator()
 
-        // ── 3. Particle cap + selective ──
-        newLine()
-        text("Part: ")
-        sameLine()
-        if (particleCapEnabled && perfOptEnabled) {
-            val partColor = when {
-                cachedParticleCap >= 500 -> GREEN
-                cachedParticleCap >= 200 -> YELLOW
-                else -> RED
-            }
-            textColored("$cachedParticleCap/frame", partColor)
-        } else {
-            textColored("OFF", GRAY)
-        }
-        sameLine()
-        text("  FW: ")
-        sameLine()
-        if (selectiveParticleEnabled && perfOptEnabled) {
-            textColored("ON", YELLOW)
-        } else {
-            textColored("OFF", GRAY)
-        }
-
-        // ── 4. View distance ──
-        newLine()
-        text("View: ")
-        sameLine()
-        if (perfOptEnabled && cachedAdjustedViewDist < cachedViewDist) {
-            // Module đã adjust — show both
-            textColored("$cachedAdjustedViewDist", YELLOW)
+            // ── 1. FPS ──
+            text("FPS: ")
             sameLine()
-            textColored("($cachedViewDist)", GRAY)
-        } else {
-            textColored("$cachedViewDist", GREEN)
-        }
+            val fpsColor = when {
+                cachedFps >= cachedTargetFps -> GREEN
+                cachedFps >= 30 -> YELLOW
+                cachedFps > 0 -> RED
+                else -> GRAY
+            }
+            textColored("$cachedFps", fpsColor)
+            sameLine()
+            textColored("/$cachedTargetFps", secColor)
 
-        // ── 5. Active indicator ──
-        sameLine()
-        text("  ")
-        sameLine()
-        if (perfOptEnabled) {
-            textColored("⚡", CYAN)
+            // ── 2. Entity + BlockEntity cull ──
+            newLine()
+            textColored("Dist: ", primColor)
+            sameLine()
+            if (entitySkipEnabled && perfOptEnabled) {
+                val distColor = when {
+                    cachedEntityDist >= 128 -> GREEN
+                    cachedEntityDist >= 32 -> YELLOW
+                    else -> RED
+                }
+                textColored("${cachedEntityDist.toInt()}", distColor)
+            } else {
+                textColored("OFF", secColor)
+            }
+            sameLine()
+            textColored("  BE: ", primColor)
+            sameLine()
+            if (blockEntitySkipEnabled && perfOptEnabled) {
+                textColored("ON", GREEN)
+            } else {
+                textColored("OFF", secColor)
+            }
+
+            // ── 3. Particle cap + selective ──
+            newLine()
+            textColored("Part: ", primColor)
+            sameLine()
+            if (particleCapEnabled && perfOptEnabled) {
+                val partColor = when {
+                    cachedParticleCap >= 500 -> GREEN
+                    cachedParticleCap >= 200 -> YELLOW
+                    else -> RED
+                }
+                textColored("$cachedParticleCap/frame", partColor)
+            } else {
+                textColored("OFF", secColor)
+            }
+            sameLine()
+            textColored("  FW: ", primColor)
+            sameLine()
+            if (selectiveParticleEnabled && perfOptEnabled) {
+                textColored("ON", YELLOW)
+            } else {
+                textColored("OFF", secColor)
+            }
+
+            // ── 4. View distance ──
+            newLine()
+            textColored("View: ", primColor)
+            sameLine()
+            if (perfOptEnabled && cachedAdjustedViewDist < cachedViewDist) {
+                textColored("$cachedAdjustedViewDist", YELLOW)
+                sameLine()
+                textColored("($cachedViewDist)", secColor)
+            } else {
+                textColored("$cachedViewDist", GREEN)
+            }
+
+            // ── 5. Active indicator ──
+            sameLine()
+            text("  ")
+            sameLine()
+            if (perfOptEnabled) {
+                textColored("⚡", accent)
+            }
+
+            cursorPosY += height
         }
     }
 }

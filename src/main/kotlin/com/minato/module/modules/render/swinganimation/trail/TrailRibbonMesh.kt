@@ -4,6 +4,7 @@ package com.minato.module.modules.render.swinganimation.trail
 
 import com.minato.graphics.mc.RenderBuilder
 import com.minato.module.modules.render.swinganimation.ActiveSwingEffect
+import com.minato.module.modules.render.swinganimation.WeaponColorScheme
 import com.minato.module.modules.render.swinganimation.WeaponType
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
@@ -26,6 +27,9 @@ object TrailRibbonMesh {
 
     /**
      * Render ribbon trail với đầy đủ hiệu ứng (glow → core → rim → spark → chroma).
+     *
+     * @param customColors Optional custom color scheme — if null, uses weapon default colors
+     * @param rimLightIntensity Multiplier for rim light brightness (default 1.4x)
      */
     fun RenderBuilder.renderTrail(
         effect: ActiveSwingEffect,
@@ -37,6 +41,8 @@ object TrailRibbonMesh {
         sparkCount: Int = 4,
         hasRimLight: Boolean = true,
         hasChromaPulse: Boolean = false,
+        customColors: WeaponColorScheme? = null,
+        rimLightIntensity: Float = 1.4f,
     ) {
         val points = effect.tipHistory
         if (points.size < 2) return
@@ -51,7 +57,8 @@ object TrailRibbonMesh {
         if (splinePoints.size < 2) return
 
         val alpha = effect.alpha
-        val colors = weaponType.defaultColors
+        // Use custom colors if provided, otherwise fall back to weapon defaults
+        val colors = customColors ?: weaponType.defaultColors
         val baseColor = Color(colors.core, true)
         val glowColor = Color(colors.glow, true)
 
@@ -106,13 +113,13 @@ object TrailRibbonMesh {
             )
         }
 
-        // ── 3. Rim light (dải sáng mép) ──
+        // ── 3. Rim light (dải sáng mép) with configurable intensity ──
         if (hasRimLight && alpha > 0.3f) {
-            val rimA = (alpha * 255 * 1.4f).toInt().coerceIn(0, 255)
+            val rimA = (alpha * 255 * rimLightIntensity).toInt().coerceIn(0, 255)
             val rimColor = Color(
-                minOf(255, (baseColor.red * 1.4f).toInt()),
-                minOf(255, (baseColor.green * 1.4f).toInt()),
-                minOf(255, (baseColor.blue * 1.4f).toInt()),
+                minOf(255, (baseColor.red * rimLightIntensity).toInt()),
+                minOf(255, (baseColor.green * rimLightIntensity).toInt()),
+                minOf(255, (baseColor.blue * rimLightIntensity).toInt()),
                 rimA,
             )
 

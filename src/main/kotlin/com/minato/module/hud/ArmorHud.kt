@@ -4,7 +4,7 @@ import com.minato.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImColor
 import com.minato.module.HudModule
 import com.minato.module.tag.ModuleTag
-import com.minato.util.player.SlotUtils
+import com.minato.util.player.SlotUtils.armorSlots
 import net.minecraft.item.ItemStack
 import java.awt.Color
 
@@ -23,7 +23,18 @@ object ArmorHud : HudModule(
         val width = 160f
         val height = maxOf(20f, frameHeightWithSpacing * slotCount + style.framePadding.y * 2)
 
-        hudBackground(width, height, backgroundColor.value, Color(0, 0, 0, 60)) {
+        // Theme-aware colors
+        val theme = effectiveTheme
+        val useThemeCol = useThemeColors.value
+        val useThemeBg = useThemeBackground.value
+        val textColor = if (useThemeCol) theme.primaryTextColor else Color(220, 220, 220)
+        val textColorIm = com.lambda.imgui.ImColor.rgba(textColor.red, textColor.green, textColor.blue, textColor.alpha)
+
+        // Theme-aware background
+        val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+        val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
+
+        hudBackground(width, height, bg, fallbackBorder) {
             // draw using ImGui drawlist for live preview
             visibleSlots.forEachIndexed { idx, slot ->
                 val stack = slot.stack
@@ -31,7 +42,7 @@ object ArmorHud : HudModule(
                 val lineY = windowPos.y + cursorPosY + idx * frameHeightWithSpacing
 
                 val name = stack.name.string
-                windowDrawList.addText(lineX + 6f, lineY + 2f, ImColor.rgba(220, 220, 220, 255), name)
+                windowDrawList.addText(lineX + 6f, lineY + 2f, textColorIm, name)
             }
 
             // register renderer for RenderBuilder (high-performance)
@@ -40,6 +51,9 @@ object ArmorHud : HudModule(
                 val slots = player.armorSlots.filter { !it.stack.isEmpty }
                 val sw = com.minato.Minato.mc.window?.scaledWidth?.toFloat() ?: 1920f
                 val sh = com.minato.Minato.mc.window?.scaledHeight?.toFloat() ?: 1080f
+
+                // RenderBuilder text color from theme
+                val renderTextColor = if (useThemeCol) theme.primaryTextColor else Color(220, 220, 220)
 
                 slots.forEachIndexed { idx, slot ->
                     val stack = slot.stack
@@ -63,13 +77,9 @@ object ArmorHud : HudModule(
                         val bxN = bx / sw
                         val byN = by / sh
                         // background
-                        screenRect(bxN, byN, barPxW / sw, barPxH / sh, java.awt.Color(0, 0, 0, 140))
-                        // fill
-                        val fillColor = when {
-                            pct >= 0.75 -> java.awt.Color(0, 200, 0)
-                            pct >= 0.4 -> java.awt.Color(240, 200, 0)
-                            else -> java.awt.Color(220, 40, 40)
-                        }
+                        screenRect(bxN, byN, barPxW / sw, barPxH / sh, Color(0, 0, 0, 140))
+                        // fill — use theme-aware health bar colors
+                        val fillColor = theme.healthBarColor(pct.toFloat())
                         screenRect(bxN, byN, (barPxW * pct).toFloat() / sw, barPxH / sh, fillColor)
                     }
                 }

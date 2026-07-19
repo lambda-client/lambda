@@ -7,6 +7,7 @@ import com.minato.gui.dsl.ImGuiBuilder
 import com.minato.module.HudModule
 import com.minato.module.tag.ModuleTag
 import com.minato.util.collections.LimitedDecayQueue
+import java.awt.Color
 import kotlin.time.Duration.Companion.seconds
 
 @Suppress("unused")
@@ -45,6 +46,19 @@ object Fps : HudModule(
 	}
 
 	override fun ImGuiBuilder.buildLayout() {
-		text("FPS: $fps")
+		val theme = effectiveTheme
+		val useThemeCol = useThemeColors.value
+		val useThemeBg = useThemeBackground.value
+		val textColor = if (useThemeCol) theme.primaryTextColor else Color(220, 220, 220)
+		val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+		val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
+
+		val width = 120f
+		val height = frameHeightWithSpacing + style.framePadding.y * 2
+
+		hudBackground(width, height, bg, fallbackBorder) {
+			textColored("FPS: $fps", textColor)
+			cursorPosY += height
+		}
 	}
 }

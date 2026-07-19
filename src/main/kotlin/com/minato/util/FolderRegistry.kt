@@ -22,11 +22,12 @@ object FolderRegistry : Loadable {
     val structure: Path = minato.resolve("structure")
     val maps: Path = minato.resolve("maps")
     val fonts: Path = minato.resolve("fonts")
+    val hudPresets: Path = minato.resolve("hud-presets")
 
     val File.relativeMCPath: Path get() = minecraft.relativize(toPath())
 
     override fun load(): String {
-        val folders = listOf(minato, config, packetLogs, replay, cache, capes, structure, maps, fonts)
+        val folders = listOf(minato, config, packetLogs, replay, cache, capes, structure, maps, fonts, hudPresets)
         val createdFolders = folders.mapNotNull {
             if (it.notExists()) {
                 it.createDirectories()

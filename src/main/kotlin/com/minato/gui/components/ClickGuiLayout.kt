@@ -310,11 +310,9 @@ object ClickGuiLayout : Loadable, Config(
 						ImGui.setNextWindowPos(nextX, baseY, ImGuiCond.FirstUseEver)
 					}
 
-					// FixMe:
-					//  Due to the auto resize of windows, if a tag has no module names that is at least the
-					//  same length as the tag name, the title of the window will clip out the window box.
-					//  For the time being I have removed the ability to collapse the windows so the titles
-					//  have more space lol.
+					// Note: Due to auto-resize, if a tag has no module name at least as long as
+					// the tag name, the window title will clip outside the window box.
+					// For now, windows cannot be collapsed so titles have more space.
 					window(tag.name, flags = ImGuiWindowFlags.AlwaysAutoResize or ImGuiWindowFlags.NoCollapse) {
 						if (activeDragWindowName == null && mousePressedThisFrameGlobal && ImGui.isWindowHovered()) {
 							val mx = io.mousePos.x

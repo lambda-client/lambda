@@ -30,40 +30,5 @@ object DebugRendererModule: Module(
     private val gameTestDebugRenderer by setting("Game Test Debug Renderer", false)
     private val gameEventDebugRenderer by setting("Game Event Debug Renderer", false)
     private val lightDebugRenderer by setting("Light Debug Renderer", false)
-//    private val breezeDebugRenderer by setting("Breeze Debug Renderer", false)
-//    private val chunkDebugRenderer by setting("Chunk Debug Renderer", false)
-//    private val octreeDebugRenderer by setting("Octree Debug Renderer", false)
-
-    // ToDo: Was changed in 1.21.11 -> now we have editable HUD but we may want to add all the hidden options here eg pathfinder
-//    @JvmStatic
-//    fun render(
-//        matrices: MatrixStack,
-//        vertexConsumers: VertexConsumerProvider.Immediate,
-//        cameraX: Double,
-//        cameraY: Double, cameraZ: Double
-//    ) {
-//        val renderers = mc.worldRenderer.debugRenderer
-//        mutableListOf<DebugRenderer.Renderer>().apply {
-//            if (waterDebugRenderer) add(renderers.waterDebugRenderer)
-//            if (chunkBorderDebugRenderer) add(renderers.chunkBorderDebugRenderer)
-//            if (heightmapDebugRenderer) add(renderers.heightmapDebugRenderer)
-//            if (collisionDebugRenderer) add(renderers.collisionDebugRenderer)
-//            if (supportingBlockDebugRenderer) add(renderers.supportingBlockDebugRenderer)
-//            if (neighborUpdateDebugRenderer) add(renderers.neighborUpdateDebugRenderer)
-//            if (redstoneUpdateOrderDebugRenderer) add(renderers.redstoneUpdateOrderDebugRenderer)
-//            if (structureDebugRenderer) add(renderers.structureDebugRenderer)
-//            if (skyLightDebugRenderer) add(renderers.skyLightDebugRenderer)
-//            if (worldGenAttemptDebugRenderer) add(renderers.worldGenAttemptDebugRenderer)
-//            if (blockOutlineDebugRenderer) add(renderers.blockOutlineDebugRenderer)
-//            if (chunkLoadingDebugRenderer) add(renderers.chunkLoadingDebugRenderer)
-//            if (villageDebugRenderer) add(renderers.villageDebugRenderer)
-//            if (villageSectionsDebugRenderer) add(renderers.villageSectionsDebugRenderer)
-//            if (beeDebugRenderer) add(renderers.beeDebugRenderer)
-//            if (raidCenterDebugRenderer) add(renderers.raidCenterDebugRenderer)
-//            if (goalSelectorDebugRenderer) add(renderers.goalSelectorDebugRenderer)
-//            if (gameTestDebugRenderer) add(renderers.gameTestDebugRenderer)
-//            if (gameEventDebugRenderer) add(renderers.gameEventDebugRenderer)
-//            if (lightDebugRenderer) add(renderers.lightDebugRenderer)
-//        }.forEach { it.render(matrices, vertexConsumers, cameraX, cameraY, cameraZ) }
-//    }
+    // TODO: Revisit in 1.21.11+ — editable HUD added, may want to expose hidden debug renderers.
 }

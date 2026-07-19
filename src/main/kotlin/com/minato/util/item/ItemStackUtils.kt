@@ -15,10 +15,8 @@ import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.screen.slot.Slot
 
 object ItemStackUtils {
-    // FixMe: Change this fucking retarded stuff when mojang wake up from their coma and realize they fucked this shit up
-    //  - The client and the server entity attributes are not synced,
-    //  - Enchantments do not change attributes,
-    //  - All enchantment utils are bound to the server
+    // Note: Client and server entity attributes are not synced; enchantments do not change attributes.
+    // All enchantment utils are bound to the server.
 
     fun LivingEntity.attributeBaseValue(attribute: RegistryEntry<EntityAttribute>) =
         if (attributes.hasAttribute(attribute)) getAttributeBaseValue(attribute) else 0.0

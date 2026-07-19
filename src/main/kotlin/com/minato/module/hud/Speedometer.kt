@@ -9,6 +9,7 @@ import com.minato.module.HudModule
 import com.minato.module.tag.ModuleTag
 import com.minato.util.SpeedUnit
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 
 object Speedometer : HudModule(
     name = "Speedometer",
@@ -51,6 +52,19 @@ object Speedometer : HudModule(
     }
 
     override fun ImGuiBuilder.buildLayout() {
-        text("Speed: %.2f %s".format(speed, speedUnit.unitName))
+        val theme = effectiveTheme
+        val useThemeCol = useThemeColors.value
+        val useThemeBg = useThemeBackground.value
+        val textColor = if (useThemeCol) theme.primaryTextColor else Color(220, 220, 220)
+        val bg = if (useThemeBg) theme.backgroundColor else backgroundColor.value
+        val fallbackBorder = if (useThemeBg) theme.borderColor else Color(0, 0, 0, 60)
+
+        val width = 180f
+        val height = frameHeightWithSpacing + style.framePadding.y * 2
+
+        hudBackground(width, height, bg, fallbackBorder) {
+            textColored("Speed: %.2f %s".format(speed, speedUnit.unitName), textColor)
+            cursorPosY += height
+        }
     }
 }

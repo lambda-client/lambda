@@ -18,6 +18,7 @@ import com.minato.gui.components.ClickGuiLayout
 import com.minato.gui.components.HudGuiLayout
 import com.minato.gui.components.QuickSearch
 import com.minato.gui.components.SettingsWidget.buildConfigSettingsContext
+import com.minato.module.hud.HudTheme
 import com.minato.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.ImGui.closeCurrentPopup
@@ -226,11 +227,17 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildHudMenu() {
+        menuItem(if (HudGuiLayout.isEditorActive()) "Exit HUD Editor" else "Open HUD Editor") {
+            HudGuiLayout.toggleEditor()
+        }
         menuItem(if (HudGuiLayout.isLocked) "Unlock" else "Lock") {
             HudGuiLayout.isLocked = !HudGuiLayout.isLocked
         }
         menuItem(if (HudGuiLayout.isShownInGUI) "Hide" else "Show") {
             HudGuiLayout.isShownInGUI = !HudGuiLayout.isShownInGUI
+        }
+        menuItem("Theme: ${HudTheme.current.displayName}") {
+            HudTheme.toggle()
         }
         separator()
         menu("HUD Settings") {

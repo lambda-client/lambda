@@ -5,6 +5,7 @@ package com.minato.module.modules.render.swinganimation.sprint
 import com.minato.Minato.mc
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.util.math.random.Random
+import java.awt.Color
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -85,8 +86,10 @@ object SpeedLineLayer {
 
     /**
      * Render speed lines using DrawContext.fill().
+     *
+     * @param accentColor Optional theme-aware color RGB (ignoring alpha); falls back to white if null.
      */
-    fun render(screenWidth: Int, screenHeight: Int, context: DrawContext) {
+    fun render(screenWidth: Int, screenHeight: Int, context: DrawContext, accentColor: Color? = null) {
         if (lines.isEmpty() || currentAlpha < 0.01f) return
 
         lines.forEach { line ->
@@ -95,7 +98,8 @@ object SpeedLineLayer {
             val dy = (cos(angleRad) * line.length / 2).toFloat()
 
             val a = (line.alpha * 255).toInt().coerceIn(0, 255)
-            val color = (a shl 24) or 0xFFFFFF
+            val baseRgb = if (accentColor != null) accentColor.rgb and 0xFFFFFF else 0xFFFFFF
+            val color = (a shl 24) or baseRgb
 
             // Draw thin line as a small filled rectangle
             val x1 = (line.x - dx).toInt()

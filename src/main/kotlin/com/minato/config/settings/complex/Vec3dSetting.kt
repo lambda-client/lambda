@@ -22,7 +22,7 @@ class Vec3dSetting(
     defaultValue: Vec3d
 ) : Setting<Vec3d>(name, description, defaultValue, layer, config, visibility) {
     override fun ImGuiBuilder.buildLayout() {
-        inputVec3d(name, ::value as Vec3d) // FixMe: what the fuck
+        inputVec3d(name, ::value as Vec3d)
         minatoTooltip(description)
     }
 
