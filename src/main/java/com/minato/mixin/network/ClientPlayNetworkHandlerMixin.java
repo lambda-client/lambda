@@ -1,0 +1,162 @@
+
+package com.minato.mixin.network;
+
+import com.minato.Minato;
+import com.minato.event.EventFlow;
+import com.minato.event.events.ChatEvent;
+import com.minato.event.events.InventoryEvent;
+import com.minato.event.events.PlayerEvent;
+import com.minato.event.events.WorldEvent;
+import com.minato.interaction.managers.inventory.InventoryManager;
+import com.minato.interaction.managers.rotating.RotationManager;
+import com.minato.module.modules.movement.Velocity;
+import com.minato.module.modules.render.NoRender;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityPosition;
+import net.minecraft.network.packet.s2c.play.*;
+import org.jetbrains.annotations.Nullable;
+import org.objectweb.asm.Opcodes;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Set;
+
+@Mixin(ClientPlayNetworkHandler.class)
+public class ClientPlayNetworkHandlerMixin {
+    @Unique
+    @Nullable
+    private static PlayerEvent.ServerForceRotate forceRotateEvent = null;
+
+    @Inject(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At("TAIL"))
+    void injectJoinPacket(GameJoinS2CPacket packet, CallbackInfo ci) {
+        EventFlow.post(new WorldEvent.Join());
+    }
+
+    @Inject(method = "handlePlayerListAction(Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Action;Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Entry;Lnet/minecraft/client/network/PlayerListEntry;)V", at = @At("TAIL"))
+    void injectPlayerList(PlayerListS2CPacket.Action action, PlayerListS2CPacket.Entry receivedEntry, PlayerListEntry currentEntry, CallbackInfo ci) {
+        if (action != PlayerListS2CPacket.Action.UPDATE_LISTED) return;
+
+        var name = currentEntry.getProfile().name();
+        var uuid = currentEntry.getProfile().id();
+
+        if (receivedEntry.listed()) {
+            EventFlow.post(new WorldEvent.Player.Join(name, uuid, currentEntry));
+        } else EventFlow.post(new WorldEvent.Player.Leave(name, uuid, currentEntry));
+    }
+
+    @Inject(method = "onUpdateSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/PacketApplyBatcher;)V", shift = At.Shift.AFTER), cancellable = true)
+    private void onUpdateSelectedSlot(UpdateSelectedSlotS2CPacket packet, CallbackInfo ci) {
+        if (EventFlow.post(new InventoryEvent.HotbarSlot.Sync(packet.slot())).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "onScreenHandlerSlotUpdate", at = @At("TAIL"))
+    private void onScreenHandlerSlotUpdate(ScreenHandlerSlotUpdateS2CPacket packet, CallbackInfo ci) {
+        EventFlow.post(new InventoryEvent.SlotUpdate(packet.getSyncId(), packet.getRevision(), packet.getSlot(), packet.getStack()));
+    }
+
+    /**
+     * Sets seenInsecureChatWarning to {@link NoRender#getNoChatVerificationToast()}
+     * <pre>{@code
+     * this.secureChatEnforced = packet.enforcesSecureChat();
+     * if (this.serverInfo != null && !this.seenInsecureChatWarning && !this.isSecureChatEnforced()) {
+     * SystemToast systemToast = SystemToast.create(this.client, SystemToast.Type.UNSECURE_SERVER_WARNING, UNSECURE_SERVER_TOAST_TITLE, UNSECURE_SERVER_TOAST_TEXT);
+     * this.client.getToastManager().add(systemToast);
+     * this.seenInsecureChatWarning = true;
+     * }
+     * }</pre>
+     */
+    @ModifyExpressionValue(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;seenInsecureChatWarning:Z", ordinal = 0, opcode = Opcodes.GETFIELD))
+    public boolean onServerMetadata(boolean original) {
+        return (NoRender.getNoChatVerificationToast() && NoRender.INSTANCE.isEnabled()) || original;
+    }
+
+    /**
+     * Cancels the player velocity if {@link Velocity#getExplosion()} is true
+     * <pre>{@code
+     * 	public void onExplosion(ExplosionS2CPacket packet) {
+     * 		NetworkThreadUtils.forceMainThread(packet, this, this.client);
+     * 		Vec3d vec3d = packet.center();
+     * 		this.client
+     * 			.world
+     * 			.playSoundClient(
+     * 				vec3d.getX(),
+     * 				vec3d.getY(),
+     * 				vec3d.getZ(),
+     * 				packet.explosionSound().value(),
+     * 				SoundCategory.BLOCKS,
+     * 				4.0F,
+     * 				(1.0F + (this.client.world.random.nextFloat() - this.client.world.random.nextFloat()) * 0.2F) * 0.7F,
+     * 				false
+     * 			);
+     * 		this.client.world.addParticleClient(packet.explosionParticle(), vec3d.getX(), vec3d.getY(), vec3d.getZ(), 1.0, 0.0, 0.0);
+     * 		packet.playerKnockback().ifPresent(this.client.player::addVelocityInternal);
+     * }
+     * }</pre>
+     */
+    @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;playerKnockback()Ljava/util/Optional;"), cancellable = true)
+    void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
+        if (Velocity.INSTANCE.isEnabled() && Velocity.getExplosion()) ci.cancel();
+    }
+
+    @WrapMethod(method = "onScreenHandlerSlotUpdate")
+    private void wrapOnScreenHandlerSlotUpdate(ScreenHandlerSlotUpdateS2CPacket packet, Operation<Void> original) {
+        InventoryManager.onSlotUpdate(packet, original);
+    }
+
+    @WrapMethod(method = "onInventory")
+    private void wrapOnInventory(InventoryS2CPacket packet, Operation<Void> original) {
+        InventoryManager.onInventoryUpdate(packet, original);
+    }
+
+    @WrapMethod(method = "sendChatMessage(Ljava/lang/String;)V")
+    void onSendMessage(String content, Operation<Void> original) {
+        var event = new ChatEvent.Send(content);
+
+        if (!EventFlow.post(event).isCanceled())
+            original.call(event.getMessage());
+    }
+
+    @Inject(method = "onOverlayMessage", at = @At("HEAD"), cancellable = true)
+    void onOverlayMessage(OverlayMessageS2CPacket packet, CallbackInfo ci) {
+        if (NoRender.getNo2b2tActionText() && packet.text().getString().equals("2b2t.org")) {
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "setPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;apply(Lnet/minecraft/entity/EntityPosition;Lnet/minecraft/entity/EntityPosition;Ljava/util/Set;)Lnet/minecraft/entity/EntityPosition;", ordinal = 0, shift = At.Shift.AFTER))
+    private static void injectAfterRotationApply(EntityPosition pos, Set<PositionFlag> flags, Entity entity, boolean bl, CallbackInfoReturnable<Boolean> cir) {
+        var player = Minato.getMc().player;
+        if (entity != player) return;
+        forceRotateEvent = EventFlow.post(new PlayerEvent.ServerForceRotate(pos.yaw(), pos.pitch()));
+    }
+
+    @ModifyExpressionValue(method = "setPosition", at = {@At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;yaw()F", ordinal = 0), @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;yaw()F", ordinal = 1)})
+    private static float wrapSetYaw(float original, @Local(argsOnly = true) Entity entity) {
+        var player = Minato.getMc().player;
+        if (entity != player) return original;
+        if (player == null) return original;
+        final var force = forceRotateEvent == null || !forceRotateEvent.isCanceled();
+        RotationManager.resetYaw(original, force);
+        return force ? player.getYaw() : original;
+    }
+
+    @ModifyExpressionValue(method = "setPosition", at = {@At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;pitch()F", ordinal = 0), @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;pitch()F", ordinal = 1)})
+    private static float wrapSetPitch(float original, @Local(argsOnly = true) Entity entity) {
+        var player = Minato.getMc().player;
+        if (entity != player) return original;
+        if (player == null) return original;
+        final var force = forceRotateEvent == null || !forceRotateEvent.isCanceled();
+        RotationManager.resetPitch(original, force);
+        return force ? player.getPitch() : original;
+    }
+}

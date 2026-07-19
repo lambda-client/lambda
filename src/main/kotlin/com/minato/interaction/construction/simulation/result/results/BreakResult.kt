@@ -1,0 +1,179 @@
+
+package com.minato.interaction.construction.simulation.result.results
+
+import com.minato.context.AutomatedSafeContext
+import com.minato.graphics.mc.RenderBuilder
+import com.minato.graphics.util.DirectionMask.mask
+import com.minato.interaction.construction.simulation.context.BreakContext
+import com.minato.interaction.construction.simulation.result.BuildResult
+import com.minato.interaction.construction.simulation.result.ComparableResult
+import com.minato.interaction.construction.simulation.result.Contextual
+import com.minato.interaction.construction.simulation.result.Dependent
+import com.minato.interaction.construction.simulation.result.Drawable
+import com.minato.interaction.construction.simulation.result.Rank
+import com.minato.interaction.construction.simulation.result.Resolvable
+import com.minato.interaction.handlers.ContainerHandler.transferByTask
+import com.minato.interaction.material.StackSelection.Companion.selectStack
+import com.minato.interaction.material.container.containers.HotbarContainer
+import com.minato.task.Task
+import net.minecraft.block.BlockState
+import net.minecraft.item.Item
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
+import java.awt.Color
+
+sealed class BreakResult : BuildResult() {
+    override val name: String get() = "${this::class.simpleName} at ${pos.toShortString()}"
+
+    /**
+     * The break target is out of the world border.
+     * @param pos The position of the block that is outside the world border.
+     */
+    data class OutOfBorder(
+        override val pos: BlockPos,
+    ) : Drawable, BreakResult() {
+        override val name: String get() = "$pos is outside the world border."
+        override val rank = Rank.OutOfWorld
+        private val color = Color(3, 148, 252, 100)
+
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
+            }
+        }
+    }
+
+    /**
+     * Represents a successful break. All checks have been passed.
+     * @param context The context of the break.
+     */
+    data class Break(
+        override val pos: BlockPos,
+        override val context: BreakContext,
+    ) : Contextual, Drawable, BreakResult() {
+        override val rank = Rank.BreakSuccess
+
+        override fun RenderBuilder.render() {
+            with(context) { render() }
+        }
+    }
+
+    /**
+     * Represents a break configuration where the hit side is not exposed to air.
+     * @param pos The position of the block that is not exposed.
+     * @param side The side that is not exposed.
+     */
+    data class NotExposed(
+        override val pos: BlockPos,
+        val side: Direction,
+    ) : Drawable, BreakResult() {
+        override val rank = Rank.BreakNotExposed
+        private val color = Color(46, 0, 0, 30)
+
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
+                hideSides(side.mask.inv())
+            }
+        }
+
+        override fun compareResult(other: ComparableResult<Rank>) =
+            when (other) {
+                is NotExposed -> pos.compareTo(other.pos)
+                else -> super.compareResult(other)
+            }
+    }
+
+    /**
+     * The equipped item is not suitable for breaking blocks.
+     * @param blockState The block state that is being broken.
+     * @param badItem The item that is being used.
+     */
+    data class ItemCantMine(
+        override val pos: BlockPos,
+        val blockState: BlockState,
+        val badItem: Item
+    ) : Resolvable, BreakResult() {
+        override val rank = Rank.BreakItemCantMine
+
+        context(task: Task<*>, _: AutomatedSafeContext)
+        override fun resolve() {
+            selectStack {
+                isItem(badItem).not()
+            }.transferByTask(HotbarContainer)?.softFail()?.execute(task)
+        }
+
+        override fun compareResult(other: ComparableResult<Rank>) =
+            when (other) {
+                is ItemCantMine -> badItem.name.string.compareTo(other.badItem.name.string)
+                else -> super.compareResult(other)
+            }
+    }
+
+    /**
+     * The block is a fluid and first has to be submerged.
+     * @param pos The position of the block that is a fluid.
+     */
+    data class Submerge(
+        override val pos: BlockPos,
+        val blockState: BlockState
+    ) : Drawable, BreakResult() {
+        override val rank = Rank.BreakSubmerge
+        private val color = Color(114, 27, 255, 100)
+
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
+            }
+        }
+    }
+
+    /**
+     * The block is blocked by another fluid block that first has to be submerged.
+     */
+    data class BlockedByFluid(
+        override val pos: BlockPos,
+        val blockState: BlockState,
+        val affectedFluids: Set<BlockPos>
+    ) : Drawable, BreakResult() {
+        override val rank = Rank.BreakIsBlockedByFluid
+        private val color = Color(50, 12, 112, 100)
+
+        override fun RenderBuilder.render() {
+            val center = pos.toCenterPos()
+            val box = Box(
+                center.x - 0.1, center.y - 0.1, center.z - 0.1,
+                center.x + 0.1, center.y + 0.1, center.z + 0.1
+            )
+            box(box) {
+                allColors(color)
+            }
+        }
+    }
+
+    /**
+     * The player is standing on the block.
+     */
+    data class PlayerOnTop(
+        override val pos: BlockPos,
+        val blockState: BlockState,
+    ) : Drawable, BreakResult() {
+        override val rank = Rank.BreakPlayerOnTop
+        private val color = Color(252, 3, 207, 100)
+
+        override fun RenderBuilder.render() {
+            box(pos) {
+                allColors(color)
+            }
+        }
+    }
+
+    data class Dependency(
+        override val pos: BlockPos,
+        override val dependency: BuildResult
+    ) : BreakResult(), Dependent by Dependent.Nested(dependency) {
+        override val rank = dependency.rank
+        override val compareBy = lastDependency
+    }
+}

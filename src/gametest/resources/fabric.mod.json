@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "id": "lambda-tests",
+  "id": "minato-tests",
   "version": "1.0.0",
-  "name": "Lambda Fabric gametest entrypoint",
+  "name": "Minato Client Fabric gametest entrypoint",
   "environment": "*",
   "entrypoints": {
     "fabric-client-gametest": [
       {
         "adapter": "kotlin",
-        "value": "com.lambda.LambdaTest"
+        "value": "com.minato.MinatoTest"
       }
     ]
   }

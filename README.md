@@ -10,20 +10,20 @@
 ![GitHub Repo Stars](https://img.shields.io/github/stars/lambda-client/lambda)
 ![GitHub License](https://img.shields.io/github/license/lambda-client/lambda?logo=gplv3&link=https%3A%2F%2Fwww.gnu.org%2Flicenses%2Fgpl-3.0.en.html)
 
-Lambda is a free, open-source Minecraft Fabric utility mod focused on advanced automation to execute complex, repeatable tasks with minimal micromanagement. This is a complete, ground-up rewrite of the original client that you can find here: [Lambda Legacy](https://github.com/lambda-client/lambda-legacy).
+Minato Client is a free, open-source Minecraft Fabric utility mod focused on advanced automation to execute complex, repeatable tasks with minimal micromanagement. This is a complete, ground-up rewrite of the original client that you can find here: [Lambda Legacy](https://github.com/lambda-client/lambda-legacy).
 
 <p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/0.1.0%2B1.21.11/lambda-0.1.0+1.21.11.jar"><img alt="Click Here to download the latest Lambda release" src="https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/download.svg" width="70%" height="70%"></a>
+    <a href="https://github.com/lambda-client/lambda/releases/download/0.1.0%2B1.21.11/lambda-0.1.0+1.21.11.jar"><img alt="Click Here to download the latest Minato Client release" src="https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/download.svg" width="70%" height="70%"></a>
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/3y3ah5BtjB"><img src="https://invidget.switchblade.xyz/3y3ah5BtjB" alt="Link to the lambda discord server https://discord.gg/3y3ah5BtjB"></a>
+  <a href="https://discord.gg/3y3ah5BtjB"><img src="https://invidget.switchblade.xyz/3y3ah5BtjB" alt="Link to the minato discord server https://discord.gg/3y3ah5BtjB"></a>
 </p>
 
 Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element.io/#/room/#lambda-client:matrix.org).
 
 > [\!WARNING]
-> **Alpha Status:** This version of Lambda is a complete rewrite (2+ years in the making) and is currently in an **Alpha** state. While highly capable, please expect bugs and incomplete features as we progress toward Beta. Old addons are not compatible with this version.
+> **Alpha Status:** This version of Minato Client is a complete rewrite (2+ years in the making) and is currently in an **Alpha** state. While highly capable, please expect bugs and incomplete features as we progress toward Beta. Old addons are not compatible with this version.
 
 -----
 
@@ -56,11 +56,10 @@ Find our backup matrix space at [\#lambda-client:matrix.org](https://app.element
 <a href="https://fabricmc.net/wiki/install"><img src="https://cdn.jonasjones.dev/mod-badges/support-fabric.png" width="150px" alt="Fabric Supported"></a>
 1. Install the Minecraft version corresponding to the mod release [(download)](https://www.minecraft.net/)
 2. Install Fabric [(download)](https://fabricmc.net/use/installer/)
-3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/0.1.0%2B1.21.11/lambda-0.1.0+1.21.11.jar)
-4. Get the corresponding [Baritone](https://github.com/cabaletta/baritone/releases) api fabric build
-5. Get [Kotlin For Fabric](https://modrinth.com/mod/fabric-language-kotlin)
-6. Get the latest [Fabric API](https://modrinth.com/mod/fabric-api/) release
-7. Put the files in your `.minecraft/mods` folder
+3. Get the latest Minato Client version here [(download)](https://github.com/lambda-client/lambda/releases/download/0.1.0%2B1.21.11/lambda-0.1.0+1.21.11.jar)
+4. Get [Kotlin For Fabric](https://modrinth.com/mod/fabric-language-kotlin)
+5. Get the latest [Fabric API](https://modrinth.com/mod/fabric-api/) release
+6. Put the files in your `.minecraft/mods` folder
 
 ## Getting Started
 
@@ -107,5 +106,5 @@ If you have any questions, concerns, or suggestions,
 you can visit our [official Discord server](https://discord.gg/MBAEzyFn).
 
 > ### Disclaimer
-> Lambda is not affiliated with Mojang Studios. Minecraft is a registered trademark of Mojang Studios.
-Use of the Lambda software is subject to the terms outlined in the license agreement [GNU General Public License v3.0](https://github.com/lambda-client/lambda/blob/master/LICENSE.md).
+> Minato Client is not affiliated with Mojang Studios. Minecraft is a registered trademark of Mojang Studios.
+Use of the Minato Client software is subject to the terms outlined in the license agreement [GNU General Public License v3.0](https://github.com/lambda-client/lambda/blob/master/LICENSE.md).

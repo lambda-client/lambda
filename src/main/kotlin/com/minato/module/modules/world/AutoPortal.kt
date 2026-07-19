@@ -1,0 +1,346 @@
+
+package com.minato.module.modules.world
+
+import com.minato.config.ConfigEditor.editSetting
+import com.minato.config.ConfigEditor.forEachSetting
+import com.minato.config.ConfigEditor.hide
+import com.minato.config.ConfigEditor.hideBlock
+import com.minato.config.Group
+import com.minato.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.minato.config.blocks.WorldLineSettings
+import com.minato.config.settings.complex.Bind
+import com.minato.config.settings.complex.KeybindSetting.Companion.onPress
+import com.minato.config.settings.complex.KeybindSetting.Companion.onRelease
+import com.minato.config.withEdits
+import com.minato.context.SafeContext
+import com.minato.event.events.TickEvent
+import com.minato.event.listener.SafeListener.Companion.listen
+import com.minato.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
+import com.minato.graphics.util.DirectionMask
+import com.minato.interaction.construction.verify.TargetState
+import com.minato.interaction.managers.hotbar.HotbarRequest
+import com.minato.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.minato.interaction.material.StackSelection.Companion.selectStack
+import com.minato.module.Module
+import com.minato.module.modules.world.AutoPortal.PosHandler.currAnchorPos
+import com.minato.module.modules.world.AutoPortal.PosHandler.obiPositions
+import com.minato.module.modules.world.AutoPortal.PosHandler.portalPositions
+import com.minato.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
+import com.minato.module.tag.ModuleTag
+import com.minato.task.RootTask.run
+import com.minato.task.Task
+import com.minato.task.tasks.BuildTask.Companion.build
+import com.minato.threading.runSafe
+import com.minato.util.BlockUtils.blockState
+import com.minato.util.BlockUtils.isEmpty
+import com.minato.util.BlockUtils.isNotEmpty
+import com.minato.util.PacketUtils.sendPacket
+import com.minato.util.extension.blockColor
+import com.minato.util.extension.tickDelta
+import com.minato.util.math.lerp
+import com.minato.util.math.setAlpha
+import com.minato.util.math.vec3d
+import com.minato.util.player.SlotUtils.hotbarAndInventorySlots
+import com.minato.util.player.SlotUtils.hotbarSlots
+import net.minecraft.block.Blocks
+import net.minecraft.item.FlintAndSteelItem
+import net.minecraft.item.Items
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
+import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
+
+@Suppress("unused")
+object AutoPortal : Module(
+	name = "AutoPortal",
+	description = "Automatically places and lights a nether portal",
+	tag = ModuleTag.WORLD
+) {
+	private const val RENDER_GROUP = "Renders"
+	private const val FILL_GROUP = "Fill"
+	private const val OUTLINE_GROUP = "Outline"
+
+	private val previewPlace by setting("Preview Place", Bind.EMPTY, "The keybind to preview the portal placement and subsequentially place the portal")
+		.onPress { preview = true }
+		.onRelease {
+			preview = false
+			buildTask?.cancel()
+			val posStateMap =
+				obiPositions.associateWith {
+					TargetState.Block(Blocks.OBSIDIAN)
+				} + portalPositions.associateWith {
+					TargetState.Air
+				}
+			//ToDo: implement non placement interactions like flint and steel in the build sim, in turn, simulating portal lighting too.
+//				+ portalPositions.associateWith {
+//					TargetState.Block(Blocks.NETHER_PORTAL)
+//				}
+			buildTask = posStateMap
+				.build()
+				.thenOrNull {
+					if (light) LightTask(currAnchorPos.up())
+					else null
+				}
+				.finally {
+					buildTask = null
+				}
+				.run()
+		}
+	private val corners by setting("Corners", false)
+	private val light by setting("Light", true, "Attempts to automatically light the portal after building")
+	private val inventory by setting("Inventory", true, "Allows access to the players inventory when retrieving a flint and steel for lighting the portal")
+	private val forwardOffset by setting("Forward Offset", 3, 0..10)
+	private val sidewaysOffset by setting("Sideways Offset", 0, -5..5)
+	private val yOffset by setting("Y Offset", 0, -5..5)
+	private val lockToGround by setting("Lock To Ground", true)
+	private val allowUpwardShift by setting("Allow Upward Shift", true, "Allows shifting the portal up to find ground when it would be placed inside blocks") { lockToGround }
+
+	@Group(RENDER_GROUP) private val renders by setting("Renders", true)
+	@Group(RENDER_GROUP) private val interpolate by setting("Interpolate", true, "Interpolates the portal renders from position to position") { renders }
+	@Group(RENDER_GROUP) private val depthTest by setting("Depth Test", false) { renders }
+	@Group(RENDER_GROUP, FILL_GROUP) private val fillAlpha by setting("Fill Alpha", 0.3, 0.0..1.0, 0.01) { renders }
+	@Group(RENDER_GROUP, OUTLINE_GROUP) private val outlineConfig by configBlock(WorldLineSettings(this))
+		.withEdits {
+			hide(::startColor, ::endColor)
+			forEachSetting {
+				visibility { old -> { old() && renders } }
+			}
+		}
+
+	private var preview = false
+	private var buildTask: Task<*>? = null
+
+	init {
+		setDefaultAutomationConfig()
+			.withEdits {
+				hideBlock(::eatConfig)
+				hotbarConfig::tickStageMask.editSetting {
+					defaultValue(mutableSetOf(TickEvent.Pre, TickEvent.Input.Post))
+				}
+			}
+
+		listen<TickEvent.Pre> {
+			PosHandler.tick()
+		}
+
+		onDisable {
+			buildTask?.cancel()
+			buildTask = null
+		}
+
+		immediateRenderer("AutoPortal Immediate Renderer", { depthTest }) {
+			if (!renders || !preview) return@immediateRenderer
+			runSafe {
+				val obiColor = blockColor(Blocks.OBSIDIAN.defaultState, BlockPos.ORIGIN)
+				obiPositions
+					.map {
+						val box = Box(it).let { box ->
+							if (interpolate) {
+								val offset = lerp(
+									1.0 - mc.tickDelta,
+									Vec3d.ZERO,
+									prevAnchorPos.subtract(currAnchorPos).vec3d
+								)
+								box.offset(offset)
+							} else box
+						}
+						Pair(it, box)
+					}
+					.forEach { posAndBox ->
+						box(posAndBox.second, outlineConfig) {
+							colors(obiColor.setAlpha(fillAlpha), obiColor)
+							hideSides(DirectionMask.buildSideMesh(posAndBox.first) { it in obiPositions }.inv())
+						}
+					}
+			}
+		}
+	}
+
+	private object PosHandler {
+		var currAnchorPos: BlockPos = BlockPos.ORIGIN
+			private set
+		var prevAnchorPos = currAnchorPos
+			private set
+
+		var obiPositions = emptyList<BlockPos>()
+			private set
+		var portalPositions = emptyList<BlockPos>()
+			private set
+
+		private val originObiPositions = getOriginObiPositions()
+		private val originObiPositionsWithCorners = getOriginObiPositions(true)
+		private val originPortalPositions = getOriginPortalPositions()
+
+		context(safeContext: SafeContext)
+		fun tick() =
+			with(safeContext) {
+				if (!preview) return@with
+				val offsetDir = player.horizontalFacing
+
+				val baseAnchorPos = player.blockPos
+					.offset(offsetDir, forwardOffset)
+					.offset(offsetDir.rotateYClockwise(), sidewaysOffset)
+
+				val lockedAnchorPos =
+					if (lockToGround) lockToGround(baseAnchorPos)
+					else baseAnchorPos
+
+				val yOffsetAnchorPos = lockedAnchorPos?.offset(Direction.UP, yOffset)
+
+				if (yOffsetAnchorPos == currAnchorPos || yOffsetAnchorPos == null) {
+					prevAnchorPos = currAnchorPos
+					return@with
+				}
+
+				prevAnchorPos = currAnchorPos
+				currAnchorPos = yOffsetAnchorPos
+				val originObi =
+					if (corners) originObiPositionsWithCorners
+					else originObiPositions
+				obiPositions = originObi
+					.rotatedTo(offsetDir)
+					.map { it.add(yOffsetAnchorPos) }
+				portalPositions = originPortalPositions
+					.rotatedTo(offsetDir)
+					.map { it.add(yOffsetAnchorPos) }
+			}
+
+		private fun SafeContext.lockToGround(pos: BlockPos): BlockPos? {
+			var scanPos = pos
+			val upShifting = blockState(scanPos).isNotEmpty && allowUpwardShift
+			if (upShifting) {
+				while (blockState(scanPos).isNotEmpty && scanPos.y < 320) {
+					scanPos = scanPos.up()
+				}
+			}
+			if (!upShifting || scanPos.y >= 320) {
+				scanPos = pos
+				while (blockState(scanPos.down()).isEmpty && scanPos.y > -64) {
+					scanPos = scanPos.down()
+				}
+				if (scanPos.y <= -64) return null
+			}
+			return scanPos
+		}
+
+		private fun List<BlockPos>.rotatedTo(direction: Direction): List<BlockPos> =
+			map { pos ->
+				when (direction) {
+					Direction.EAST -> pos
+					Direction.SOUTH -> BlockPos(pos.z - 1, pos.y, -pos.x)
+					Direction.WEST -> BlockPos(-pos.x, pos.y, -pos.z)
+					else -> BlockPos(-pos.z + 1, pos.y, pos.x)
+				}
+			}
+
+		private fun getOriginObiPositions(corners: Boolean = false) =
+			buildList {
+				(-1..2).forEach { x ->
+					(0..4).forEach { y ->
+						if (x > -1 && x < 2 && y > 0 && y < 4) return@forEach
+						if (!corners && (x == -1 || x == 2) && (y == 0 || y == 4)) return@forEach
+						add(BlockPos(0, y, x))
+					}
+				}
+			}
+
+		private fun getOriginPortalPositions() =
+			buildList {
+				(0..1).forEach { x ->
+					(1..3).forEach { y ->
+						add(BlockPos(0, y, x))
+					}
+				}
+			}
+	}
+
+	private class LightTask(
+		private val pos: BlockPos
+	) : Task<Unit>() {
+		override val name = "Lighting portal at $pos"
+
+		init {
+			listen<TickEvent.Pre> {
+				withFlintAndSteel {
+					swapPacket()
+					interaction.sendSequencedPacket(world) { sequence ->
+						PlayerInteractBlockC2SPacket(
+							Hand.OFF_HAND,
+							BlockHitResult(
+								pos.down().toCenterPos(),
+								Direction.UP,
+								pos,
+								false,
+								false
+							),
+							sequence
+						)
+					}
+					swapPacket()
+					success()
+				}
+			}
+		}
+
+		private fun SafeContext.swapPacket() =
+			connection.sendPacket {
+				PlayerActionC2SPacket(
+					PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
+					BlockPos.ORIGIN,
+					Direction.DOWN
+				)
+			}
+
+		private fun SafeContext.withFlintAndSteel(block: SafeContext.() -> Unit) {
+			if (player.mainHandStack.item == Items.FLINT_AND_STEEL) {
+				block()
+				return
+			}
+
+			val sel = selectStack(1) { isItem<FlintAndSteelItem>() }
+
+			val hotbarStack = sel.filterSlots(player.hotbarSlots).firstOrNull()
+			if (hotbarStack != null) {
+				val request = HotbarRequest(
+					hotbarStack.index,
+					this@AutoPortal,
+					keepTicks = 0
+				).submit(queueIfMismatchedStage = false)
+				if (request.done) block()
+				return
+			}
+
+			val invSlot =
+				if (inventory) sel.filterSlots(player.hotbarAndInventorySlots).firstOrNull()
+				else null
+			if (invSlot == null) {
+				failure("No Flint and Steel!")
+				return
+			}
+			val hotbarSlotToSwapWith =
+				player.hotbarSlots.find { slot ->
+					slot.stack.isEmpty
+				}?.index ?: 8
+
+			inventoryRequest {
+				swap(invSlot.id, hotbarSlotToSwapWith)
+				action {
+					val request = HotbarRequest(
+						hotbarSlotToSwapWith,
+						this@AutoPortal,
+						keepTicks = 0,
+						nowOrNothing = true
+					).submit(queueIfMismatchedStage = false)
+					if (request.done) {
+						block()
+					}
+				}
+				swap(invSlot.id, hotbarSlotToSwapWith)
+			}.submit()
+		}
+	}
+}

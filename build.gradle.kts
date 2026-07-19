@@ -1,19 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 
 import java.util.*
 
@@ -69,7 +53,6 @@ configurations.all {
 repositories {
     mavenLocal() // Allow the use of local repositories
     maven("https://maven.lambda-client.org/releases")
-    maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
     maven("https://api.modrinth.com/maven")
     mavenCentral()
@@ -101,7 +84,7 @@ loom {
 
     runs {
         all {
-            property("lambda.dev", "youtu.be/RYnFIRc0k6E")
+            property("minato.dev", "youtu.be/RYnFIRc0k6E")
 
             property("org.lwjgl.util.Debug", "true")
             property("org.lwjgl.util.DebugLoader", "true")
@@ -164,8 +147,6 @@ dependencies {
     includeLib("com.lambda:lambda-imgui-java-binding:$spairVersion")
     includeLib("com.lambda:lambda-imgui-java-lwjgl3:$spairVersion")
     includeLib("com.lambda:lambda-imgui-java-natives-windows:$spairVersion")
-    includeLib("com.lambda:lambda-imgui-java-natives-linux:$spairVersion")
-    includeLib("com.lambda:lambda-imgui-java-natives-macos:$spairVersion")
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
@@ -177,12 +158,21 @@ dependencies {
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     includeLib("io.ktor:ktor-serialization-jackson:$ktorVersion")
     includeLib("com.fasterxml.jackson.core:jackson-annotations:2.21")
+    // Jackson 2 core + databind needed by io.ktor:ktor-serialization-jackson (provides
+    // JsonEncoding / ObjectMapper). Coexists with Jackson 3 (tools.jackson.*) via distinct
+    // package namespaces and distinct META-INF/services keys.
+    // Note: jackson-annotations is published with bare minor (`2.21`) while core/databind use
+    // patch versions (`2.21.0`).
+    includeLib("com.fasterxml.jackson.core:jackson-core:2.21.0")
+    includeLib("com.fasterxml.jackson.core:jackson-databind:2.21.0")
+    // Jackson 2 kotlin module required by io.ktor:ktor-serialization-jackson (JacksonConverter).
+    // Without it, ktor crashes with NoClassDefFoundError: com.fasterxml.jackson.module.kotlin.ExtensionsKt.
+    includeLib("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.0")
     includeLib("tools.jackson.core:jackson-core:$jacksonVersion")
     includeLib("tools.jackson.core:jackson-databind:$jacksonVersion")
     includeLib("tools.jackson.module:jackson-module-kotlin:$jacksonVersion")
 
     // Add mods
-    modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion-SNAPSHOT")
     modCompileOnly("maven.modrinth:sodium:$sodiumVersion")
     modCompileOnly("maven.modrinth:malilib:$maLiLibVersion")
     modCompileOnly("maven.modrinth:litematica:$litematicaVersion")
@@ -260,7 +250,7 @@ publishing {
 
     repositories {
         maven(mavenUrl) {
-            name = "lambda-reposilite"
+            name = "minato-reposilite"
 
             credentials {
                 username = project.findProperty("mavenUsername").toString()

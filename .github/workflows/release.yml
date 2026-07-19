@@ -1,4 +1,4 @@
-name: Release Lambda
+name: Release Minato Client
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
 
-    name: Build and Release Lambda
+    name: Build and Release Minato Client
     runs-on: ubuntu-latest
 
     permissions:
@@ -39,7 +39,7 @@ jobs:
           file: gradle.properties
           all: true
 
-      - name: Build Lambda
+      - name: Build Minato Client
         run: ./gradlew build
 
       - name: Publish release to maven
@@ -49,10 +49,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2.0.8
         with:
-          name: Lambda ${{ github.ref_name }}
+          name: Minato Client ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           append_body: true
           make_latest: "true"
           files: |
-            build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            build/libs/minato-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar

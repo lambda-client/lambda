@@ -1,0 +1,79 @@
+
+package com.minato.graphics.texture
+
+import com.pngencoder.PngEncoder
+import net.minecraft.client.texture.NativeImage
+import org.lwjgl.BufferUtils
+import org.lwjgl.opengl.GL45C.GL_CLAMP_TO_EDGE
+import org.lwjgl.opengl.GL45C.GL_TEXTURE0
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_2D
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_MAG_FILTER
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_MIN_FILTER
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_WRAP_S
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_WRAP_T
+import org.lwjgl.opengl.GL45C.GL_UNPACK_ALIGNMENT
+import org.lwjgl.opengl.GL45C.GL_UNPACK_ROW_LENGTH
+import org.lwjgl.opengl.GL45C.GL_UNPACK_SKIP_PIXELS
+import org.lwjgl.opengl.GL45C.GL_UNPACK_SKIP_ROWS
+import org.lwjgl.opengl.GL45C.glActiveTexture
+import org.lwjgl.opengl.GL45C.glBindTexture
+import org.lwjgl.opengl.GL45C.glPixelStorei
+import org.lwjgl.opengl.GL45C.glTexParameteri
+import java.awt.image.BufferedImage
+import java.nio.ByteBuffer
+
+object TextureUtils {
+    val encoderPreset = PngEncoder()
+        .withCompressionLevel(-1)
+        .withMultiThreadedCompressionDisabled()
+
+    fun bindTexture(id: Int, slot: Int = 0) {
+        glActiveTexture(GL_TEXTURE0 + slot)
+        glBindTexture(GL_TEXTURE_2D, id)
+    }
+
+    fun setupTexture(minFilter: Int, magFilter: Int) {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0)
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0)
+        glPixelStorei(GL_UNPACK_SKIP_ROWS, 0)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4)
+    }
+
+    fun readImage(
+        bytes: ByteArray,
+        format: NativeImage.Format = NativeImage.Format.RGBA,
+    ): NativeImage {
+        val buffer = BufferUtils
+            .createByteBuffer(bytes.size)
+            .put(bytes)
+            .flip()
+
+        return NativeImage.read(format, buffer)
+    }
+
+    fun readImage(
+        bufferedImage: BufferedImage,
+        format: NativeImage.Format,
+    ): Long {
+        val bytes = encoderPreset
+            .withBufferedImage(bufferedImage)
+            .toBytes()
+
+        val buffer = BufferUtils
+            .createByteBuffer(bytes.size)
+            .put(bytes)
+            .flip()
+
+        return readImage(buffer, format)
+    }
+
+    fun readImage(
+        image: ByteBuffer,
+        format: NativeImage.Format,
+    ) = NativeImage.read(format, image).pointer
+}

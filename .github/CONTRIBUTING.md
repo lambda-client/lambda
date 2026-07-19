@@ -1,4 +1,4 @@
-# Contributing to Lambda
+# Contributing to Minato Client
 
 First off, thanks for taking the time to contribute! ❤️
 
@@ -41,7 +41,7 @@ We will then take care of the issue as soon as possible.
 
 ### Reporting Bugs
 
-This section guides you through submitting a bug report for Lambda. Following these guidelines helps maintainers and the community understand your report, reproduce the behavior, and find related reports.
+This section guides you through submitting a bug report for Minato Client. Following these guidelines helps maintainers and the community understand your report, reproduce the behavior, and find related reports.
 #### Before Submitting a Bug Report
 
 A good bug report shouldn't leave others needing to chase you up for more information. Therefore, we ask you to investigate carefully, collect information and describe the issue in detail in your report. Please complete the following steps in advance to help us fix any potential bug as fast as possible.
@@ -79,7 +79,7 @@ If you have a bug report that is not reproducible, it will be closed after some 
 
 ### Suggesting Enhancements
 
-This section guides you through submitting an enhancement suggestion for Lambda, **including completely new features and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community to understand your suggestion and find related suggestions.
+This section guides you through submitting an enhancement suggestion for Minato Client, **including completely new features and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community to understand your suggestion and find related suggestions.
 
 #### Before Submitting an Enhancement
 
@@ -96,7 +96,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/lambda
 - Provide a **step-by-step description of the suggested enhancement** in as many details as possible.
 - **Describe the current behavior** and **explain which behavior you expected to see instead** and why. At this point you can also tell which alternatives do not work for you.
 - You may want to **include screenshots or screen recordings** which help you demonstrate the steps or point out the part which the suggestion is related to. You can use [LICEcap](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and the built-in [screen recorder in GNOME](https://help.gnome.org/users/gnome-help/stable/screen-shot-record.html.en) or [SimpleScreenRecorder](https://github.com/MaartenBaert/ssr) on Linux.
-- **Explain why this enhancement would be useful** to most Lambda users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
+- **Explain why this enhancement would be useful** to most Minato Client users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
 
 ### Your First Code Contribution
 First of all, make sure to read or simply check the [Official Kotlin Coding Convention](https://kotlinlang.org/docs/coding-conventions.html)
@@ -109,7 +109,7 @@ After this, you can read the [getting started](https://github.com/lambda-client/
 If you believe that some documentation can be improved or added, please discuss with us on our [Discord](https://discord.gg/QjfBxJzE5x)
 
 ### Naming Convention
-We follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for the Lambda project.
+We follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for the Minato Client project.
 
 Feel free to propose additional compatible naming conventions.
 

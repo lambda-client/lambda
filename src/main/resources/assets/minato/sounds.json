@@ -1,0 +1,37 @@
+{
+  "button_click": {
+    "sounds": [
+      "minato:ui/button_click"
+    ]
+  },
+  "bool_on": {
+    "sounds": [
+      "minato:ui/bool_on"
+    ]
+  },
+  "bool_off": {
+    "sounds": [
+      "minato:ui/bool_off"
+    ]
+  },
+  "module_on": {
+    "sounds": [
+      "minato:ui/module_on"
+    ]
+  },
+  "module_off": {
+    "sounds": [
+      "minato:ui/module_off"
+    ]
+  },
+  "settings_open": {
+    "sounds": [
+      "minato:ui/settings_open"
+    ]
+  },
+  "settings_close": {
+    "sounds": [
+      "minato:ui/settings_close"
+    ]
+  }
+}

@@ -27,7 +27,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: What version of Lambda are you using?
+      description: What version of Minato Client are you using?
     validations:
       required: true
   - type: input

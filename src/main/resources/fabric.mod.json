@@ -16,7 +16,7 @@
     "client": [
       {
         "adapter": "kotlin",
-        "value": "com.lambda.Lambda"
+        "value": "com.minato.Minato"
       }
     ]
   },
@@ -30,8 +30,5 @@
     "fabric-api": ">=$fabricApiVersion+$minecraftVersion",
     "fabric-language-kotlin": ">=$kotlinFabricVersion",
     "java": ">=$javaVersion"
-  },
-  "recommends": {
-    "baritone": "*"
   }
 }
