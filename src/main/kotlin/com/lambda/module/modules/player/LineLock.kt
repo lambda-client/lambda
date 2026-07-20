@@ -43,7 +43,7 @@ import kotlin.math.sin
 object LineLock : Module(
 	name = "LineLock",
 	description = "Locks the player's yaw to a line and steers toward a point ahead on the line",
-	tag = ModuleTag.Companion.PLAYER,
+	tag = ModuleTag.PLAYER,
 ) {
 	private const val YAW_SNAP_INCREMENT = 45.0     // snap the axis to the nearest 45° heading
 	private const val YAW_SNAP_BIAS = 1.0           // nudge before rounding so exact half-steps snap consistently
