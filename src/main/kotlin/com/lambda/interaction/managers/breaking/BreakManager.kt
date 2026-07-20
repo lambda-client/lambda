@@ -166,6 +166,8 @@ object BreakManager : Manager<BreakRequest>(
 			field = value
 		}
 
+	const val OLD_GRIM_Y_OFFSET = 2000
+
 	override fun load(): String {
 		super.load()
 
@@ -818,8 +820,9 @@ object BreakManager : Manager<BreakRequest>(
 		val instantBreakable = progress >= info.getBreakThreshold()
 
 		var packetCount = 1
-		if (breakConfig.breakMode == BreakMode.Packet) packetCount++
 		info.vanillaInstantBreakable = progress >= 1
+		val oldGrim = breakConfig.breakMode == BreakMode.OldGrim && !info.vanillaInstantBreakable
+		if (breakConfig.breakMode == BreakMode.Grim || oldGrim) packetCount++
 		val requiresSecondStop = info.type == Secondary || (instantBreakable && !info.vanillaInstantBreakable)
 		if (requiresSecondStop) packetCount++
 
@@ -846,8 +849,9 @@ object BreakManager : Manager<BreakRequest>(
 			}
 		}
 
-		if (breakConfig.breakMode == BreakMode.Packet) info.stopBreakPacket()
+		if (breakConfig.breakMode == BreakMode.Grim) info.stopBreakPacket()
 		info.startBreakPacket()
+		if (oldGrim) info.startBreakPacket(OLD_GRIM_Y_OFFSET)
 		if (requiresSecondStop) info.stopBreakPacket()
 
 		PacketLimitHandler.sentPackets(packetCount, PacketType.PlayerAction)

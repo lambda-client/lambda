@@ -21,11 +21,14 @@ import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
+import com.lambda.config.blocks.ActionConfig.SortMode
 import com.lambda.config.blocks.BreakConfig.AnimationMode
 import com.lambda.config.blocks.BreakConfig.BreakConfirmationMode
 import com.lambda.config.blocks.BreakConfig.BreakMode
+import com.lambda.config.blocks.BreakConfig.SwapMode
 import com.lambda.config.blocks.BreakConfig.SwingMode
 import com.lambda.config.blocks.BreakConfig.WhitelistMode
+import com.lambda.config.blocks.BuildConfig.SwingType
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
@@ -38,8 +41,8 @@ class BreakSettings(override val c: Config) : BreakConfig, ConfigBlock {
 	}
 
 	// General
-	override val breakMode by c.setting("Break Mode", BreakMode.Packet)
-	override val sorter by c.setting("Break Sorter", ActionConfig.SortMode.Tool, "The order in which breaks are performed")
+	override val breakMode by c.setting("Break Mode", BreakMode.OldGrim)
+	override val sorter by c.setting("Break Sorter", SortMode.Tool, "The order in which breaks are performed")
 	override val rebreak by c.setting("Rebreak", true, "Re-breaks blocks after they've been broken once")
 	// Double break
 	override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once")
@@ -52,9 +55,9 @@ class BreakSettings(override val c: Config) : BreakConfig, ConfigBlock {
 	override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " tick(s)")
 	// Timing
 	override val tickStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Input.Post), ALL_STAGES.toSet(), "The sub-tick timing at which break actions can be performed", displayClassName = true)
-	override val swapMode by c.setting("Break Swap Mode", BreakConfig.SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
+	override val swapMode by c.setting("Break Swap Mode", SwapMode.End, "Decides when to swap to the best suited tool when breaking a block")
 	override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand")
-	override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }
+	override val swingType by c.setting("Break Swing Type", SwingType.Vanilla, "The style of swing") { swing != SwingMode.None }
 	// Rotate
 	override val rotate by c.setting("Rotate For Break", false, "Rotate towards block while breaking")
 	// Pending / Post

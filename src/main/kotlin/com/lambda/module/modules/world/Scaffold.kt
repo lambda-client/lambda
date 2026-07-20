@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.world
 
+import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllExcept
@@ -68,6 +69,7 @@ object Scaffold : Module(
 					}
 					hide(::breakBlocks)
 				}
+				hotbarConfig::keepTicks.editSetting { defaultValue(0) }
 				hideAllExcept(::buildConfig, ::interactConfig, ::rotationConfig, ::hotbarConfig)
 			}
 
