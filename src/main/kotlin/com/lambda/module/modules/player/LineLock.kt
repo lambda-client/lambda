@@ -92,7 +92,7 @@ object LineLock : Module(
 			adjustYaw()
 		}
 
-		immediateRenderer("HighwayFollower Renderer") {
+		immediateRenderer("LineLock Renderer") {
 			if (!renderLine) return@immediateRenderer
 			runSafe {
 				val playerPos = Vec3d(player.x, lineOrigin.y, player.z)
