@@ -41,19 +41,23 @@ object AutoWalk : Module(
 	description = "Automatically walks in the configured direction when certain conditions are met",
 	tag = ModuleTag.MOVEMENT,
 ) {
-	@Group("Movement") private val walkForward by setting("Forward", true, "Automatically walks forward")
-	@Group("Movement") private val walkBackward by setting("Backward", false, "Automatically walks backward")
-	@Group("Movement") private val strafeLeft by setting("Strafe Left", false, "Automatically strafes left")
-	@Group("Movement") private val strafeRight by setting("Strafe Right", false, "Automatically strafes right")
-	@Group("Movement") private val sneak by setting("Sneak", false, "Automatically sneaks")
-	@Group("Movement") private val sprint by setting("Sprint", false, "Automatically sprints")
+	private const val MOVEMENT_GROUP = "Movement"
+	private const val SPEED_GROUP = "Speed"
+	private const val PAUSING_GROUP = "Pausing"
 
-	@Group("Speed") private val limitSpeed by setting("Limit Speed", false)
-	@Group("Speed") private val speed by setting("Speed", 0.5, 0.1..1.0, 0.05) { limitSpeed }
+	@Group(MOVEMENT_GROUP) private val walkForward by setting("Forward", true, "Automatically walks forward")
+	@Group(MOVEMENT_GROUP) private val walkBackward by setting("Backward", false, "Automatically walks backward")
+	@Group(MOVEMENT_GROUP) private val strafeLeft by setting("Strafe Left", false, "Automatically strafes left")
+	@Group(MOVEMENT_GROUP) private val strafeRight by setting("Strafe Right", false, "Automatically strafes right")
+	@Group(MOVEMENT_GROUP) private val sneak by setting("Sneak", false, "Automatically sneaks")
+	@Group(MOVEMENT_GROUP) private val sprint by setting("Sprint", false, "Automatically sprints")
 
-	@Group("Pausing") private val pauseWhileMining by setting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
-	@Group("Pausing") private val pauseWhilePlacing by setting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
-	@Group("Pausing") private val pauseIfPlacedLastTick by setting("Pause If Placed Last Tick", false, "Pauses walking on the tick after placing a block - Works with all placing")
+	@Group(SPEED_GROUP) private val limitSpeed by setting("Limit Speed", false)
+	@Group(SPEED_GROUP) private val speed by setting("Speed", 0.5, 0.1..1.0, 0.05) { limitSpeed }
+
+	@Group(PAUSING_GROUP) private val pauseWhileMining by setting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
+	@Group(PAUSING_GROUP) private val pauseWhilePlacing by setting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
+	@Group(PAUSING_GROUP) private val pauseIfPlacedLastTick by setting("Pause If Placed Last Tick", false, "Pauses walking on the tick after placing a block - Works with all placing")
 
 	private var didPlaceLastTick = false
 
