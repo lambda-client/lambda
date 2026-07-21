@@ -26,7 +26,7 @@ import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.MathUtils.toDouble
+import com.lambda.util.math.MathUtils.toFloat
 import com.lambda.util.player.MovementUtils.forward
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.MovementUtils.sprinting
@@ -89,8 +89,8 @@ object AutoWalk : Module(
 			) return@listen
 
 			val input = event.input
-			if (walkForward || walkBackward) input.forward = (walkForward.toDouble() - walkBackward.toDouble()).toFloat()
-			if (strafeLeft || strafeRight) input.strafe = (strafeRight.toDouble() - strafeLeft.toDouble()).toFloat()
+			if (walkForward || walkBackward) input.forward = (walkForward.toFloat() - walkBackward.toFloat())
+			if (strafeLeft || strafeRight) input.strafe = (strafeRight.toFloat() - strafeLeft.toFloat())
 			if (sneak || sprint) input.update(sneak = sneak || input.sneaking, sprint = sprint || input.sprinting)
 
 			if (limitSpeed) input.movementVector = Vec2f(input.strafe, input.forward).normalize().multiply(speed)
