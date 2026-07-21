@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditor.editSetting
+import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -65,7 +65,7 @@ object LineLock : Module(
 	init {
 		setDefaultAutomationConfig()
 			.withEdits {
-				ConfigEditor.hideAllExcept(::rotationConfig)
+				hideAllExcept(::rotationConfig)
 				rotationConfig::rotationMode.editSetting { defaultValue(RotationMode.Lock) }
 			}
 
