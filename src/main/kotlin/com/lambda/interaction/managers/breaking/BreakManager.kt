@@ -154,7 +154,7 @@ object BreakManager : Manager<BreakRequest>(
 	private var rotationRequest: RotationRequest? = null
 	private val rotated get() = rotationRequest?.done != false
 
-	private var breakCooldown = 0
+	private var breakDelay = 0
 	var breaksThisTick = 0
 	private var maxBreaksThisTick = 0
 
@@ -166,19 +166,15 @@ object BreakManager : Manager<BreakRequest>(
 			field = value
 		}
 
-	const val OLD_GRIM_Y_OFFSET = 2000
+	const val OLD_GRIM_Y_OFFSET = 955
 
 	override fun load(): String {
 		super.load()
 
-		listen<TickEvent.Pre>({ Int.MAX_VALUE }) {
-			if (activeInfos.isEmpty() && breaks.isEmpty()) return@listen
-		}
-
 		listen<TickEvent.Post>({ Int.MIN_VALUE }) {
 			if (primaryBreak?.breaking == false) primaryBreak = null
 			breakInfos.forEach { it?.tickChecks() }
-			if (breakCooldown > 0) breakCooldown--
+			if (breakDelay > 0) breakDelay--
 			activeRequest = null
 			breaks = mutableListOf()
 			breaksThisTick = 0
@@ -231,7 +227,7 @@ object BreakManager : Manager<BreakRequest>(
 		listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
 			primaryBreak = null
 			secondaryBreak = null
-			breakCooldown = 0
+			breakDelay = 0
 		}
 
 		immediateRenderer("BreakManager Immediate Renderer") {
@@ -474,6 +470,7 @@ object BreakManager : Manager<BreakRequest>(
 	private fun SafeContext.processNewBreak(request: BreakRequest): Boolean =
 		request.runSafeAutomated {
 			if (tickStage !in request.breakConfig.tickStageMask) return false
+			if (breakDelay > 0) return false
 
 			breaks.forEach { ctx ->
 				if (breaksThisTick >= maxBreaksThisTick) return false
@@ -505,8 +502,6 @@ object BreakManager : Manager<BreakRequest>(
 		requestCtx: BreakContext,
 		request: BreakRequest
 	): BreakInfo? {
-		if (breakCooldown > 0) return null
-
 		val breakInfo = BreakInfo(requestCtx, Primary, request)
 		primaryBreak?.let { primaryInfo ->
 			if (tickStage !in primaryInfo.breakConfig.tickStageMask) return null
@@ -622,6 +617,7 @@ object BreakManager : Manager<BreakRequest>(
 			}
 		}
 		breaksThisTick++
+		if (info.type == Primary) breakDelay = info.getBreakDelay()
 		info.nullify()
 	}
 
@@ -705,7 +701,7 @@ object BreakManager : Manager<BreakRequest>(
 
 			if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
 				if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
-				breakCooldown = breakConfig.breakDelay
+				breakDelay = info.getBreakDelay()
 				lastPosStarted = ctx.blockPos
 				onBlockBreak(info)
 				info.startBreakPacket()
@@ -722,6 +718,13 @@ object BreakManager : Manager<BreakRequest>(
 			}
 
 			if (breakConfig.swapMode == BreakConfig.SwapMode.Constant && !swapped) return
+
+			val requiresDelayBypassing = info.type == Primary && breakConfig.breakMode == BreakMode.OldGrim && !info.bypassedDelay
+			if (requiresDelayBypassing && PacketLimitHandler.canSendPackets(22, PacketType.PlayerAction) && info.breakingTicks >= 6) {
+				repeat(22) { info.startBreakPacket(OLD_GRIM_Y_OFFSET) }
+				PacketLimitHandler.sentPackets(22, PacketType.PlayerAction)
+				info.bypassedDelay = true
+			}
 
 			info.breakingTicks++
 			val breakDelta = blockState.calcBreakDelta(ctx.blockPos)
@@ -750,7 +753,11 @@ object BreakManager : Manager<BreakRequest>(
 			val swing = breakConfig.swing
 			if (progress >= info.getBreakThreshold()) {
 				if (info.swapInfo.swap && !swapped) return
-				if (info.type == Primary && !PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
+
+				if (info.type == Primary) {
+					if (breakConfig.breakMode == BreakMode.OldGrim && info.breakingTicks < 6) return
+					if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
+				}
 
 				onBlockBreak(info)
 				if (info.type == Primary) {
@@ -758,7 +765,6 @@ object BreakManager : Manager<BreakRequest>(
 					PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 				}
 				if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
-				breakCooldown = breakConfig.breakDelay
 			} else {
 				if (swing == BreakConfig.SwingMode.Constant) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			}
@@ -809,7 +815,7 @@ object BreakManager : Manager<BreakRequest>(
 			onBlockBreak(info)
 			info.startBreakPacket()
 			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
-			breakCooldown = breakConfig.breakDelay
+			breakDelay = info.getBreakDelay()
 			if (breakConfig.swing.isEnabled()) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			return true
 		}
@@ -821,9 +827,12 @@ object BreakManager : Manager<BreakRequest>(
 
 		var packetCount = 1
 		info.vanillaInstantBreakable = progress >= 1
-		val oldGrim = breakConfig.breakMode == BreakMode.OldGrim && !info.vanillaInstantBreakable
-		if (breakConfig.breakMode == BreakMode.Grim || oldGrim) packetCount++
-		val requiresSecondStop = info.type == Secondary || (instantBreakable && !info.vanillaInstantBreakable)
+		val isGrim = breakConfig.breakMode == BreakMode.Grim
+		val oldGrim = breakConfig.breakMode == BreakMode.OldGrim
+		val requiresSecondStop = instantBreakable && !info.vanillaInstantBreakable
+
+		if (isGrim) packetCount++
+		else if (oldGrim) packetCount++
 		if (requiresSecondStop) packetCount++
 
 		if (!PacketLimitHandler.canSendPackets(packetCount, PacketType.PlayerAction)) return false
@@ -838,8 +847,7 @@ object BreakManager : Manager<BreakRequest>(
 
 		if (instantBreakable) {
 			onBlockBreak(info)
-			val breakDelay = breakConfig.breakDelay
-			if (!info.vanillaInstantBreakable) breakCooldown = if (breakDelay == 0) 0 else breakDelay + 1
+			if (!info.vanillaInstantBreakable) breakDelay = info.getBreakDelay()
 		} else {
 			info.apply {
 				breaking = true
@@ -849,7 +857,7 @@ object BreakManager : Manager<BreakRequest>(
 			}
 		}
 
-		if (breakConfig.breakMode == BreakMode.Grim) info.stopBreakPacket()
+		if (isGrim) info.stopBreakPacket()
 		info.startBreakPacket()
 		if (oldGrim) info.startBreakPacket(OLD_GRIM_Y_OFFSET)
 		if (requiresSecondStop) info.stopBreakPacket()

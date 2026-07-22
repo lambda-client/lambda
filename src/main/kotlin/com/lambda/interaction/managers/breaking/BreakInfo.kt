@@ -18,6 +18,7 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.blocks.BreakConfig
+import com.lambda.config.blocks.BreakConfig.BreakMode
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handlers.breaking.RebreakHandler
@@ -35,6 +36,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.util.math.BlockPos
+import net.minecraft.world.attribute.EnvironmentAttributeModifier.override
 
 /**
  * A data class that holds all the information required to process and continue a break.
@@ -66,6 +68,7 @@ data class BreakInfo(
 	var soundsCooldown = 0f
 	var vanillaInstantBreakable = false
 	val rebreakable get() = !vanillaInstantBreakable && type == Primary
+	var bypassedDelay = breakConfig.breakMode != BreakMode.OldGrim
 
 	enum class BreakType(
 		override val displayName: String,
@@ -160,6 +163,8 @@ data class BreakInfo(
 				)
 			}
 		}
+
+	fun getBreakDelay() = if (!bypassedDelay) 6 else breakConfig.breakDelay
 
 	override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
 }
