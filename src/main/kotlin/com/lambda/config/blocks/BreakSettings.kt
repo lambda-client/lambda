@@ -62,7 +62,7 @@ class BreakSettings(override val c: Config) : BreakConfig, ConfigBlock {
 	override val rotate by c.setting("Rotate For Break", false, "Rotate towards block while breaking")
 	// Pending / Post
 	override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking")
-	override val breaksPerTick by c.setting("Breaks Per Tick", 30, 1..30, 1, "Maximum instant block breaks per tick")
+	override val breaksPerTick by c.setting("Breaks Per Tick", 59, 1..60, 1, "Maximum instant block breaks per tick")
 	override val whitelistMode by c.setting("Whitelist Mode", WhitelistMode.None, "The type of block selection used")
 	override val whitelist by c.setting("Whitelist", mutableSetOf(), Registries.BLOCK.toSet(), "Only these selected blocks are allowed to be broken") { whitelistMode == WhitelistMode.Whitelist }
 	override val blacklist by c.setting("Blacklist", mutableSetOf(), Registries.BLOCK.toSet(), "These selected blocks are not allowed to be broken") { whitelistMode == WhitelistMode.Blacklist }

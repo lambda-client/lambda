@@ -617,7 +617,7 @@ object BreakManager : Manager<BreakRequest>(
 			}
 		}
 		breaksThisTick++
-		if (info.type == Primary) breakDelay = info.getBreakDelay()
+		if (info.type == Primary && !info.vanillaInstantBreakable) breakDelay = info.getBreakDelay()
 		info.nullify()
 	}
 
@@ -701,7 +701,6 @@ object BreakManager : Manager<BreakRequest>(
 
 			if (gamemode.isCreative && world.worldBorder.contains(ctx.blockPos)) {
 				if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return
-				breakDelay = info.getBreakDelay()
 				lastPosStarted = ctx.blockPos
 				onBlockBreak(info)
 				info.startBreakPacket()
@@ -815,7 +814,6 @@ object BreakManager : Manager<BreakRequest>(
 			onBlockBreak(info)
 			info.startBreakPacket()
 			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
-			breakDelay = info.getBreakDelay()
 			if (breakConfig.swing.isEnabled()) swingHand(breakConfig.swingType, Hand.MAIN_HAND)
 			return true
 		}
@@ -828,7 +826,7 @@ object BreakManager : Manager<BreakRequest>(
 		var packetCount = 1
 		info.vanillaInstantBreakable = progress >= 1
 		val isGrim = breakConfig.breakMode == BreakMode.Grim
-		val oldGrim = breakConfig.breakMode == BreakMode.OldGrim
+		val oldGrim = breakConfig.breakMode == BreakMode.OldGrim && !info.vanillaInstantBreakable
 		val requiresSecondStop = instantBreakable && !info.vanillaInstantBreakable
 
 		if (isGrim) packetCount++
@@ -845,10 +843,8 @@ object BreakManager : Manager<BreakRequest>(
 			blockState.onBlockBreakStart(world, ctx.blockPos, player)
 		}
 
-		if (instantBreakable) {
-			onBlockBreak(info)
-			if (!info.vanillaInstantBreakable) breakDelay = info.getBreakDelay()
-		} else {
+		if (instantBreakable) onBlockBreak(info)
+		else {
 			info.apply {
 				breaking = true
 				breakingTicks = 1
