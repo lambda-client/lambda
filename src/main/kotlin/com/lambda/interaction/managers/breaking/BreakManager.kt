@@ -509,9 +509,8 @@ object BreakManager : Manager<BreakRequest>(
 
 			if (primaryConfig.breakMode == BreakMode.OldGrim) {
 				val breakDelta = primary.calcBreakDelta()
-				val extraTick = !primary.progressedThisTick
-				val ticks = primary.breakingTicks.let { if (extraTick) it + 1 else it }
-				if (ticks * breakDelta >= primaryConfig.breakThreshold) return null
+				if (!primary.progressedThisTick) return null
+				if (primary.breakingTicks * breakDelta >= primaryConfig.breakThreshold) return null
 			}
 
 			secondaryBreak =
