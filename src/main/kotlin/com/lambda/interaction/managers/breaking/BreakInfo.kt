@@ -36,7 +36,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.util.math.BlockPos
-import net.minecraft.world.attribute.EnvironmentAttributeModifier.override
 
 /**
  * A data class that holds all the information required to process and continue a break.
@@ -130,7 +129,7 @@ data class BreakInfo(
 		val item =
 			if (breakConfig.swapMode.isEnabled() && breakConfig.swapMode != BreakConfig.SwapMode.Start) swapStack
 			else player.mainHandStack
-		val breakDelta = request.runSafeAutomated { context.cachedState.calcBreakDelta(context.blockPos, item) }
+		val breakDelta = request.runSafeAutomated { calcBreakDelta(item) }
 		val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
 		return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
 	}

@@ -24,7 +24,7 @@ import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry
-import com.lambda.interaction.handlers.breaking.RebreakHandler.rebreak
+import com.lambda.interaction.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.managers.PostActionHandler
 import com.lambda.interaction.managers.breaking.BreakInfo
 import com.lambda.interaction.managers.breaking.BreakManager.lastPosStarted
@@ -82,7 +82,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
         listen<WorldEvent.BlockUpdate.Server>({ Int.MIN_VALUE }) { event ->
             run {
                 pendingActions.firstOrNull { it.context.blockPos == event.pos }
-                    ?: if (rebreak?.context?.blockPos == event.pos) rebreak
+                    ?: if (reBreak?.context?.blockPos == event.pos) reBreak
                     else null
             }?.let { pending ->
                 val currentState = pending.context.cachedState
@@ -126,7 +126,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 				if (entity !is ItemEntity) return@runGameScheduled
 				val pending =
 					pendingActions.firstOrNull { info -> matchesBlockItem(info, entity) }
-						?: rebreak?.let { info ->
+						?: reBreak?.let { info ->
 							if (matchesBlockItem(info, entity)) info
 							else return@runGameScheduled
 						} ?: return@runGameScheduled
