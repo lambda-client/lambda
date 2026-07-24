@@ -247,7 +247,7 @@ object TrajectoryPlanner {
         }
     }
 
-    /** A completed search together with how many infeasible-jump reroutes it took. */
+    /** A completed search together with how many proven-all-entry reroutes it took. */
     internal data class FeedbackSearchOutcome(
         val route: CoarseRoutePlan,
         val result: WalkingSeedSearchResult,
@@ -255,14 +255,14 @@ object TrajectoryPlanner {
     )
 
     /**
-     * Runs [search] on the current coarse route; if it refuses because a
-     * `JUMP_CANDIDATE` edge cannot be certified, retires that edge in D* and reroutes,
-     * up to [maxReroutes] times (M6 negative feedback, plan §5.3 / anytime design §5).
+     * Runs [search] on the current coarse route. A jump is retired only when the result
+     * explicitly proves it impossible for the complete bounded entry family, never
+     * merely because one exact entry state/controller search exhausted its budget.
      *
-     * Today a single infeasible jump the permissive mask admitted fails the whole plan,
-     * because the coarse layer publishes one route with no alternative. Retiring the dead
-     * edge and repairing lets D* find a detour instead. Only a jump is retired: a walk
-     * that could not certify usually has no alternative and blacklisting it would spiral.
+     * Retiring a genuinely impossible jump lets D* find a detour. Misclassifying an
+     * entry-state failure here is worse than refusing: it deletes an ordinary gap from
+     * every later route, which produced the misleading "infeasible coarse jump" live
+     * diagnostics on traversable bedrock.
      *
      * Returns null only when there is no coarse route at all; otherwise it returns the
      * last result (a [WalkingSeedSearchResult.Success], an unsupported/unstable refusal,
@@ -285,7 +285,12 @@ object TrajectoryPlanner {
                 is WalkingSeedSearchResult.NoSafeStop -> {
                     lastRefusal = FeedbackSearchOutcome(route, result, reroutes)
                     val dead = result.deadEdge
-                    if (dead == null || dead.kind != CoarseMoveKind.JUMP_CANDIDATE || reroutes >= maxReroutes) {
+                    if (result.edgeFailureScope !=
+                        WalkingSeedSearchResult.EdgeFailureScope.IMPOSSIBLE_FOR_ALL_ENTRIES ||
+                        dead == null ||
+                        dead.kind != CoarseMoveKind.JUMP_CANDIDATE ||
+                        reroutes >= maxReroutes
+                    ) {
                         return lastRefusal
                     }
                     planner.blacklistEdge(dead.from, dead.to)

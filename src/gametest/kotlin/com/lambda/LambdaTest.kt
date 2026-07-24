@@ -26,6 +26,7 @@ import com.lambda.pathing.PathingManager
 import com.lambda.pathing.PathingRequest
 import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.threading.runSafe
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.player.MovementUtils.buildMovementInput
@@ -394,33 +395,16 @@ object LambdaTest : FabricClientGameTest {
         // middle rather than endpoint placement luck.
         server.runOnServer<IllegalStateException> { minecraftServer ->
             val world = minecraftServer.overworld
-            val random = kotlin.random.Random(BEDROCK_FIELD_SEED)
-            for (x in 0 until BEDROCK_FIELD_LENGTH) {
-                for (z in -BEDROCK_FIELD_HALF_WIDTH..BEDROCK_FIELD_HALF_WIDTH) {
-                    world.setBlockState(
-                        net.minecraft.util.math.BlockPos(x, 62, z),
-                        net.minecraft.block.Blocks.BEDROCK.defaultState,
-                        net.minecraft.block.Block.NOTIFY_ALL,
-                    )
-                    for (layer in 1..4) {
-                        if (random.nextDouble() < (5 - layer) / 5.0) {
-                            world.setBlockState(
-                                net.minecraft.util.math.BlockPos(x, 62 + layer, z),
-                                net.minecraft.block.Blocks.BEDROCK.defaultState,
-                                net.minecraft.block.Block.NOTIFY_ALL,
-                            )
-                        }
-                    }
-                }
-            }
-            for (x in listOf(0..3, BEDROCK_FIELD_LENGTH - 4 until BEDROCK_FIELD_LENGTH)) {
-                for (ix in x) for (z in -2..2) for (y in 63..67) {
-                    world.setBlockState(
-                        net.minecraft.util.math.BlockPos(ix, y, z),
-                        net.minecraft.block.Blocks.AIR.defaultState,
-                        net.minecraft.block.Block.NOTIFY_ALL,
-                    )
-                }
+            for (cell in BedrockFieldLayout.solidCells(
+                length = BEDROCK_FIELD_LENGTH,
+                halfWidth = BEDROCK_FIELD_HALF_WIDTH,
+                seed = BEDROCK_FIELD_SEED,
+            )) {
+                world.setBlockState(
+                    net.minecraft.util.math.BlockPos(cell.x, cell.y, cell.z),
+                    net.minecraft.block.Blocks.BEDROCK.defaultState,
+                    net.minecraft.block.Block.NOTIFY_ALL,
+                )
             }
         }
         repeat(10) { context.waitTick() }
@@ -727,6 +711,6 @@ object LambdaTest : FabricClientGameTest {
     private const val MAX_PATHING_TICKS = 1200
 
     private const val BEDROCK_FIELD_LENGTH = 40
-    private const val BEDROCK_FIELD_HALF_WIDTH = 8
-    private const val BEDROCK_FIELD_SEED = 0x5EED_BED
+    private const val BEDROCK_FIELD_HALF_WIDTH = BedrockFieldLayout.HALF_WIDTH
+    private const val BEDROCK_FIELD_SEED = BedrockFieldLayout.SEED
 }

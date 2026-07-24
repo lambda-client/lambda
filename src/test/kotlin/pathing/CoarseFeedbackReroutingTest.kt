@@ -68,7 +68,12 @@ class CoarseFeedbackReroutingTest {
                 val jump = route.edges.firstOrNull { it.kind == CoarseMoveKind.JUMP_CANDIDATE }
                 if (jump != null) {
                     refusals++
-                    WalkingSeedSearchResult.NoSafeStop(attempts = emptyList(), deadEdge = jump)
+                    WalkingSeedSearchResult.NoSafeStop(
+                        attempts = emptyList(),
+                        deadEdge = jump,
+                        edgeFailureScope =
+                            WalkingSeedSearchResult.EdgeFailureScope.IMPOSSIBLE_FOR_ALL_ENTRIES,
+                    )
                 } else {
                     success(route)
                 }
@@ -103,6 +108,31 @@ class CoarseFeedbackReroutingTest {
     }
 
     @Test
+    fun `a jump refusal from one exact entry state is not declared infeasible`() {
+        val world = SyntheticView().apply {
+            this[VoxelPos(0, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(4, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            for (x in 0..4) for (z in 1..2) this[VoxelPos(x, 0, z)] = CoarseVoxel.FULL_BLOCK
+        }
+        val planner = planner(world, allowDiagonal = false)
+        var searches = 0
+
+        val outcome = assertNotNull(
+            TrajectoryPlanner.searchWithRerouting(planner, snapshotRevision = 2L) { route ->
+                searches++
+                WalkingSeedSearchResult.NoSafeStop(
+                    attempts = emptyList(),
+                    deadEdge = route.edges.first { it.kind == CoarseMoveKind.JUMP_CANDIDATE },
+                )
+            }
+        )
+
+        assertEquals(1, searches, "current-entry exhaustion must not trigger D* edge retirement")
+        assertEquals(0, outcome.reroutes)
+        assertIs<WalkingSeedSearchResult.NoSafeStop>(outcome.result)
+    }
+
+    @Test
     fun `rerouting is bounded by maxReroutes`() {
         val world = SyntheticView().apply { fillGround(-4..8, -4..4, y = 0) }
         val planner = planner(world, allowDiagonal = false)
@@ -120,7 +150,12 @@ class CoarseFeedbackReroutingTest {
 
         val outcome = assertNotNull(
             TrajectoryPlanner.searchWithRerouting(planner, snapshotRevision = 1L, maxReroutes = 3) {
-                WalkingSeedSearchResult.NoSafeStop(attempts = emptyList(), deadEdge = stubbornJump)
+                WalkingSeedSearchResult.NoSafeStop(
+                    attempts = emptyList(),
+                    deadEdge = stubbornJump,
+                    edgeFailureScope =
+                        WalkingSeedSearchResult.EdgeFailureScope.IMPOSSIBLE_FOR_ALL_ENTRIES,
+                )
             }
         )
 
