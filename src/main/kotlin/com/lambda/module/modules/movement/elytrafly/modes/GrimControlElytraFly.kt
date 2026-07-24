@@ -49,9 +49,10 @@ class GrimControlElytraFly(
 ) : ElytraFlyMode(FlyMode.GrimControl) {
 	private val inventory by c.setting("Inventory", true, "Allow using fireworks from the players inventory")
 	private val safetyMargin by c.setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
-	val flipFlopMode by c.setting("Flip Flop Mode", FlipFlopMode.WithFirework)
+	val flipFlopMode by c.setting("Flip Flop Mode", FlipFlopMode.None)
 	private val packetGap by c.setting("Packet Gap", 20, 0..100, 1, "The gap between allowing player movement packets to pass") { flipFlopMode != FlipFlopMode.None }
 
+	@Suppress("unused")
 	enum class FlipFlopMode(
 		override val displayName: String,
 		val isFlipFlopping: (hasFirework: Boolean) -> Boolean
