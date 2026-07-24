@@ -51,9 +51,9 @@ class PessimisticDiscoveryTest {
         )
 
         assertEquals(
-            config.sprintModes.size, result.attempts.size,
-            "an unobstructed corridor must cost one adherent rollout per sprint mode, " +
-                "not the full grid: ${result.attempts.map { it.parameters }}",
+            1, result.attempts.size,
+            "a simple corridor should stop after the preferred sprint family certifies: " +
+                "${result.attempts.map { it.parameters }}",
         )
         assertEquals(config.lookAheadNodes.first(), result.parameters.lookAheadNodes)
         assertEquals(config.brakeDistances.first(), result.parameters.brakeDistance)

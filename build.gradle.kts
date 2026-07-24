@@ -204,8 +204,22 @@ dependencies {
 
 tasks {
     test {
-        useJUnitPlatform()
+        useJUnitPlatform {
+            excludeTags("bedrock-corpus")
+        }
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+    }
+
+    register<Test>("bedrockCorpus") {
+        description = "Runs deterministic randomized end-to-end paths over a large exposed-bedrock field."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform {
+            includeTags("bedrock-corpus")
+        }
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        outputs.upToDateWhen { false }
     }
 
     // `./gradlew runClientGameTest -Prebaseline=true` records pathing metrics without

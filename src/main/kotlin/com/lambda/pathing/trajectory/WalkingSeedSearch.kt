@@ -111,6 +111,18 @@ data class WalkingSeedAttempt(
 )
 
 sealed interface WalkingSeedSearchResult {
+    /**
+     * What a trajectory refusal proves about [NoSafeStop.deadEdge].
+     *
+     * A rollout search starts from one exact body state. Exhausting its launch lattice
+     * proves only that this entry state/controller family failed; it does not prove the
+     * geometric coarse edge impossible for every attainable speed and alignment.
+     */
+    enum class EdgeFailureScope {
+        CURRENT_ENTRY,
+        IMPOSSIBLE_FOR_ALL_ENTRIES,
+    }
+
     data class Extension(
         val tape: InputTape,
         val rollout: TrajectoryRollout,
@@ -155,12 +167,17 @@ sealed interface WalkingSeedSearchResult {
         /** Route-node index of the diagnostic in the local suffix. */
         val blockedProgress: Int? = null,
         /**
-         * The first coarse edge of the suffix the search could not get past. When it is a
-         * permissive [CoarseMoveKind.JUMP_CANDIDATE] -- one the mask admitted but no launch
-         * certifies -- the coordinator may retire it and reroute (M6 negative feedback),
-         * rather than failing the whole plan. Null when no edge remained to blame.
+         * The first coarse edge of the suffix this exact entry state could not get past.
+         * Null when no edge remained to blame.
          */
         val deadEdge: CoarseEdge? = null,
+        /**
+         * Whether the failure is local to the simulated entry or proves the edge
+         * impossible for the complete bounded entry family. The rollout search never
+         * upgrades this itself; doing so would turn a controller/search-budget failure
+         * into false negative feedback for D*.
+         */
+        val edgeFailureScope: EdgeFailureScope = EdgeFailureScope.CURRENT_ENTRY,
     ) : WalkingSeedSearchResult {
         /** The failure the search got closest to solving; the first thing M4 should attack. */
         val nearest: WalkingSeedAttempt? get() = attempts.minByOrNull { it.finalGoalError }
@@ -390,8 +407,11 @@ object WalkingSeedSearch {
             )
         }
 
-        fun sweep(gaits: List<Pair<Int, Double>>) {
-            for (sprint in config.sprintModes) {
+        fun sweep(
+            gaits: List<Pair<Int, Double>>,
+            sprintModes: List<Boolean> = config.sprintModes,
+        ) {
+            for (sprint in sprintModes) {
                 for ((lookAhead, brakeDistance) in gaits) {
                     for (jumpLeadDistance in jumpLeadDistances) {
                         val parameters = WalkingSeedParameters(sprint, lookAhead, brakeDistance, jumpLeadDistance)
@@ -456,9 +476,29 @@ object WalkingSeedSearch {
         } else {
             listOf(gaits)
         }
-        for (tier in tiers) {
-            sweep(tier)
-            if (best == null) beam()
+        // Staging is intentionally limited to local/simple suffixes. On a long
+        // hazard chain the alternate sprint family contributes landing-margin
+        // diversity at later jumps; stopping after the first success improved time
+        // but lost one certified runway frame in the live ascent+gap corpus.
+        val stagePreferredSprint = config.corridorAdherentFirst &&
+            route.edges.count { it.kind == CoarseMoveKind.JUMP_CANDIDATE } <= STAGED_BEAM_MAX_JUMP_EDGES
+        for ((tierIndex, tier) in tiers.withIndex()) {
+            if (stagePreferredSprint && tierIndex == 0) {
+                // The old order deliberately ran both sprint families into the same
+                // obstacle before using either diagnostic.  Search the preferred
+                // family's failure-directed beam immediately instead.  If it
+                // certifies (the common case), the second deliberate fall and its
+                // whole launch lattice disappear; if it cannot, the other family is
+                // still tried before the gait grid widens.
+                for (sprint in config.sprintModes) {
+                    sweep(tier, listOf(sprint))
+                    if (best == null) beam()
+                    if (best != null || bestExtension != null) break
+                }
+            } else {
+                sweep(tier)
+                if (best == null) beam()
+            }
             if (best != null || bestExtension != null) break
         }
 
@@ -819,9 +859,10 @@ object WalkingSeedSearch {
             // next segment has a real suffix and fresh frames to certify the stop.
             if (progress == nodes.lastIndex && nodeError > config.goalRadius) return false
             // A deliberately short worker has no spare ticks for a suffix which begins
-            // outside its own corridor: that retry immediately reports LeftCorridor and
-            // used to make the failed hop before this boundary permanent. Longer workers
-            // retain the established runway boundary for multi-rise/gap throughput.
+            // outside its own corridor: that retry immediately reports LeftCorridor.
+            // Longer workers retain the established runway boundary; globally forcing
+            // them to converge first cost a certified launch-margin frame on the live
+            // ascent-to-gap chain.
             if (config.maxFrames <= SHORT_HORIZON_SUFFIX_FRAMES &&
                 nodeError > config.maxCorridorDeviation
             ) return false
@@ -1305,6 +1346,9 @@ object WalkingSeedSearch {
 
     /** Within this of a route node, the body counts as arrived there for attribution. */
     private const val EDGE_ARRIVAL_RADIUS_SQ = 0.9 * 0.9
+
+    /** Beyond this, both sprint families are retained for downstream-margin diversity. */
+    private const val STAGED_BEAM_MAX_JUMP_EDGES = 2
 
     /** Below this budget, every published suffix must already be inside its corridor. */
     private const val SHORT_HORIZON_SUFFIX_FRAMES = 40
