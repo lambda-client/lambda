@@ -90,7 +90,7 @@ object AutoWalk : Module(
 
 			val input = event.input
 			if (walkForward || walkBackward) input.forward = (walkForward.toFloat() - walkBackward.toFloat())
-			if (strafeLeft || strafeRight) input.strafe = (strafeRight.toFloat() - strafeLeft.toFloat())
+			if (strafeLeft || strafeRight) input.strafe = (strafeLeft.toFloat() - strafeRight.toFloat())
 			if (sneak || sprint) input.update(sneak = sneak || input.sneaking, sprint = sprint || input.sprinting)
 
 			if (limitSpeed) input.movementVector = Vec2f(input.strafe, input.forward).normalize().multiply(speed)
