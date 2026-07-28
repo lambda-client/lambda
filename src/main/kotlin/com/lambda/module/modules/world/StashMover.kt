@@ -19,13 +19,11 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
-import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -186,7 +184,6 @@ object StashMover : Module(
 					hide(::pathing, ::collectDrops, ::spleefEntities, ::entityReach)
 					hideBlock(::eatConfig)
 				}
-				interactConfig::airPlace.editSetting { defaultValue(InteractConfig.AirPlaceMode.None) }
 				breakConfig.apply {
 					editTypedSettings(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
 				}

@@ -175,7 +175,7 @@ dependencies {
         exclude(group = "org.slf4j")
     }
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    includeLib("io.ktor:ktor-serialization-jackson:$ktorVersion")
+    includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
     includeLib("com.fasterxml.jackson.core:jackson-annotations:2.21")
     includeLib("tools.jackson.core:jackson-core:$jacksonVersion")
     includeLib("tools.jackson.core:jackson-databind:$jacksonVersion")

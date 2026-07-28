@@ -44,12 +44,12 @@ data class SwapInfo(
 		 */
 		context(_: SafeContext)
 		fun BreakInfo.getSwapInfo() = request.runSafeAutomated {
-			val breakDelta = context.cachedState.calcBreakDelta(context.blockPos, swapStack)
+			val breakDelta = calcBreakDelta(swapStack)
 
 			val threshold = getBreakThreshold()
 
 			// Plus one as this is calculated before this ticks' progress is calculated and the breakingTicks are incremented
-			val breakTicks = (if (rebreakPotential.isPossible()) RebreakHandler.rebreak?.breakingTicks
+			val breakTicks = (if (rebreakPotential.isPossible()) RebreakHandler.reBreak?.breakingTicks
 				?: throw IllegalStateException("Rebreak BreakInfo was null when rebreak was considered possible")
 			else breakingTicks) + 1 - breakConfig.fudgeFactor
 
