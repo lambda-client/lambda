@@ -26,14 +26,13 @@ import com.lambda.interaction.managers.breaking.BreakManager
 import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.MathUtils.toFloat
-import com.lambda.util.player.MovementUtils.forward
+import com.lambda.util.math.MathUtils.toDouble
+import com.lambda.util.player.MovementUtils.roundedForward
+import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.MovementUtils.sprinting
-import com.lambda.util.player.MovementUtils.strafe
 import com.lambda.util.player.MovementUtils.update
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
-import net.minecraft.util.math.Vec2f
 
 @Suppress("unused")
 object AutoWalk : Module(
@@ -42,7 +41,6 @@ object AutoWalk : Module(
 	tag = ModuleTag.MOVEMENT,
 ) {
 	private const val MOVEMENT_GROUP = "Movement"
-	private const val SPEED_GROUP = "Speed"
 	private const val PAUSING_GROUP = "Pausing"
 
 	@Group(MOVEMENT_GROUP) private val walkForward by setting("Forward", true, "Automatically walks forward")
@@ -51,9 +49,6 @@ object AutoWalk : Module(
 	@Group(MOVEMENT_GROUP) private val strafeRight by setting("Strafe Right", false, "Automatically strafes right")
 	@Group(MOVEMENT_GROUP) private val sneak by setting("Sneak", false, "Automatically sneaks")
 	@Group(MOVEMENT_GROUP) private val sprint by setting("Sprint", false, "Automatically sprints")
-
-	@Group(SPEED_GROUP) private val limitSpeed by setting("Limit Speed", false)
-	@Group(SPEED_GROUP) private val speed by setting("Speed", 0.5f, 0.1f..1.0f, 0.05f) { limitSpeed }
 
 	@Group(PAUSING_GROUP) private val pauseWhileMining by setting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
 	@Group(PAUSING_GROUP) private val pauseWhilePlacing by setting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
@@ -90,11 +85,17 @@ object AutoWalk : Module(
 			) return@listen
 
 			val input = event.input
-			if (walkForward || walkBackward) input.forward = (walkForward.toFloat() - walkBackward.toFloat())
-			if (strafeLeft || strafeRight) input.strafe = (strafeLeft.toFloat() - strafeRight.toFloat())
-			if (sneak || sprint) input.update(sneak = sneak || input.sneaking, sprint = sprint || input.sprinting)
+			val forward = if (walkForward || walkBackward) walkForward.toDouble() - walkBackward.toDouble()
+				else input.roundedForward
+			val strafe = if (strafeLeft || strafeRight) strafeLeft.toDouble() - strafeRight.toDouble()
+				else input.roundedStrafing
 
-			if (limitSpeed) input.movementVector = Vec2f(input.strafe, input.forward).normalize().multiply(speed)
+			input.update(
+				forward = forward,
+				strafe = strafe,
+				sneak = sneak || input.sneaking,
+				sprint = sprint || input.sprinting,
+			)
 		}
 	}
 }
