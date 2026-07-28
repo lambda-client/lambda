@@ -20,7 +20,6 @@ package com.lambda.interaction.manager.managers.inventory
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.manager.Request
-import com.lambda.interaction.manager.managers.Request
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.player.SlotUtils.clickSlot
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap

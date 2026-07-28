@@ -96,11 +96,11 @@ object TransferCommand : LambdaCommand(
                                 isItem(stack().value().item)
                             }
                             AutomationConfig.DEFAULT.runSafeAutomated {
-                                val fromContainer = ContainerHandler.filteredContainers().find {
+                                val fromContainer = ContainerHandler.filteredContainers.find {
                                     it.name == from().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("From container not found")
 
-                                val toContainer = ContainerHandler.filteredContainers().find {
+                                val toContainer = ContainerHandler.filteredContainers.find {
                                     it.name == to().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("To container not found")
 

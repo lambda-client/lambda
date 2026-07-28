@@ -25,7 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.rebreak
+import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler
 import com.lambda.interaction.handler.handlers.packet.PacketType
 import com.lambda.interaction.manager.managers.breaking.BreakInfo

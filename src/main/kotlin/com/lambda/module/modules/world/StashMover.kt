@@ -38,13 +38,12 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.InventoryContainer
 import com.lambda.interaction.inventory.container.containers.OffHandContainer
+import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation
@@ -56,7 +55,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
@@ -748,10 +747,7 @@ object StashMover : Module(
 					return
 				}
 
-			OpenContainerTask(
-				pos,
-				StashMover
-			).finally {
+			openContainer(pos).finally {
 				finally(pos)
 			}.execute(this@MoverBot)
 		}

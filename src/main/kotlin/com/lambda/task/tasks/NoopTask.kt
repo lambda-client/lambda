@@ -20,7 +20,7 @@ package com.lambda.task.tasks
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
 
-class NoopTask : Task<Unit>() {
+class NoopTask @Ta5kBuilder constructor() : Task<Unit>() {
 	override val name = "No-operation task"
 
 	override fun SafeContext.onStart() {

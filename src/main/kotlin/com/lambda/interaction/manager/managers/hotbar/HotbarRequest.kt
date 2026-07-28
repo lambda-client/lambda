@@ -19,7 +19,6 @@ package com.lambda.interaction.manager.managers.hotbar
 
 import com.lambda.context.Automated
 import com.lambda.interaction.manager.Request
-import com.lambda.interaction.manager.managers.Request
 
 class HotbarRequest(
 	val slot: Int,

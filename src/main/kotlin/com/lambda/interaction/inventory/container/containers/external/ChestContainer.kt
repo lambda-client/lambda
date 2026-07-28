@@ -23,12 +23,8 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBl
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.PlacedContainer
-import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.task.TaskGenerator
+import com.lambda.task.Task.Companion.taskOrSkipOrNull
 import com.lambda.task.TaskOrNullGenerator
-import com.lambda.task.tasks.NoopTask.Companion.noopTask
-import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
 import com.lambda.util.extension.containerSlots
@@ -38,7 +34,6 @@ import com.lambda.util.text.literal
 import net.minecraft.block.ChestBlock
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
@@ -74,14 +69,20 @@ data class ChestContainer(
 					mc.player?.currentScreenHandler?.type == ScreenHandlerType.GENERIC_9X3
 		} ?: false
 
-	context(_: AutomatedSafeContext)
-	override fun accessThen(
+	context(automatedSafeContext: AutomatedSafeContext)
+	override fun <R> accessThen(
 		closeAfter: Boolean,
-		afterClose: TaskOrNullGenerator<Unit>?,
-		afterOpen: TaskGenerator<Unit>
+		afterOpen: TaskOrNullGenerator<Unit, R?>,
+		afterClose: TaskOrNullGenerator<R?, *>
 	) =
-        openContainer(blockPos).then {
-			afterOpen(Unit).thenOrNull {
+		with(automatedSafeContext) {
+			taskOrSkipOrNull(
+				optional = {
+					openContainer(blockPos).thenOrNull {
+						afterOpen(Unit)
+					}
+				}
+			) {
 				if (closeAfter) {
 					simpleAction("Close inventory") { player.closeHandledScreen() }
 				} else null

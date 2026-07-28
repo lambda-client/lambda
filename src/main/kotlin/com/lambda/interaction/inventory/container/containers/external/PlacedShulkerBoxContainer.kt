@@ -22,9 +22,8 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.PlacedContainer
-import com.lambda.task.TaskGenerator
+import com.lambda.task.Task.Companion.taskOrSkipOrNull
 import com.lambda.task.TaskOrNullGenerator
-import com.lambda.task.tasks.NoopTask.Companion.noopTask
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
 import com.lambda.util.extension.containerSlots
@@ -67,19 +66,25 @@ class PlacedShulkerBoxContainer(
 		} ?: false
 
 	context(automatedSafeContext: AutomatedSafeContext)
-	override fun accessThen(
+	override fun <R> accessThen(
 		closeAfter: Boolean,
-		afterClose: TaskOrNullGenerator<Unit>?,
-		afterOpen: TaskGenerator<Unit>
+		afterOpen: TaskOrNullGenerator<Unit, R?>,
+		afterClose: TaskOrNullGenerator<R?, *>
 	) =
-		run {
-			if (!isAccessed) OpenContainerTask(blockPos, automated = automatedSafeContext)
-			else noopTask()
-		}.then {
-			afterOpen(Unit).thenOrNull {
-				if (closeAfter) {
-					simpleAction("Close Inventory") { automatedSafeContext.player.closeHandledScreen() }
-				} else null
+		with(automatedSafeContext) {
+			taskOrSkipOrNull(
+				optional = {
+					if (!isAccessed) OpenContainerTask(blockPos, automated = automatedSafeContext)
+					else null
+				}
+			) {
+				taskOrSkipOrNull({ afterOpen(Unit) }) { result ->
+					if (closeAfter) {
+						simpleAction("Close Inventory") {
+							automatedSafeContext.player.closeHandledScreen()
+						}.thenOrNull { afterClose(result) }
+					} else null
+				}
 			}
 		}
 }

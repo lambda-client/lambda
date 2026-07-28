@@ -18,7 +18,6 @@
 package com.lambda.interaction.manager.managers.interacting
 
 import com.lambda.config.blocks.InteractConfig
-import com.lambda.config.blocks.InteractConfig.AirPlaceMode
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -29,14 +28,13 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.InteractContext
-import com.lambda.interaction.handler.handlers.interacting.InteractedBlockHandler.pendingActions
-import com.lambda.interaction.handler.handlers.interacting.InteractedBlockHandler.setPendingConfigs
+import com.lambda.interaction.handler.handlers.interacting.InteractedBlockHandler
 import com.lambda.interaction.handler.handlers.interacting.InteractedBlockHandler.startPending
 import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler
 import com.lambda.interaction.handler.handlers.packet.PacketType
-import com.lambda.interaction.manager.managers.Manager
-import com.lambda.interaction.manager.managers.ManagerUtils.isPosBlocked
-import com.lambda.interaction.manager.managers.PositionBlocking
+import com.lambda.interaction.manager.Manager
+import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
+import com.lambda.interaction.manager.PositionBlocking
 import com.lambda.interaction.manager.managers.breaking.BreakManager
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.interacting.InteractManager.activeRequest
@@ -45,7 +43,7 @@ import com.lambda.interaction.manager.managers.interacting.InteractManager.popul
 import com.lambda.interaction.manager.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.manager.managers.interacting.InteractManager.processRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
-import com.lambda.module.modules.world.AutoSign.signWriteDelay
+import com.lambda.module.modules.world.AutoSign
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
@@ -69,7 +67,6 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.ActionResult
-import net.minecraft.util.ActionResult.PassToDefaultBlockAction
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -90,7 +87,7 @@ object InteractManager : Manager<InteractRequest>(
 	private val ClientPlayerEntity.validSneak get() = isSneaking == shouldSneak
 
 	override val blockedPositions
-		get() = pendingActions.map { it.context.blockPos }
+		get() = InteractedBlockHandler.pendingActions.map { it.context.blockPos }
 
 	private var cancellingSignScreens = 0
 
@@ -128,7 +125,7 @@ object InteractManager : Manager<InteractRequest>(
 	}
 
 	/**
-	 * Accepts, and processes the request, as long as the current [activeRequest] is null, and the [BreakManager] has not
+	 * Accepts, and processes the request, as long as the current [activeRequest] is null, and the [com.lambda.interaction.manager.managers.breaking.BreakManager] has not
 	 * been active this tick. If nowOrNothing is true, the request is cleared after the first process.
 	 *
 	 * @see processRequest
@@ -166,7 +163,7 @@ object InteractManager : Manager<InteractRequest>(
 					if (!hotbarRequest.done) break
 				}
 				var interactResult: InteractResult? = null
-				if (interactConfig.airPlace == AirPlaceMode.Grim) {
+				if (interactConfig.airPlace == InteractConfig.AirPlaceMode.Grim) {
 					val inventoryRequest = inventoryRequest {
 						swapHands()
 						action { interactResult = performInteractions(request) }
@@ -194,7 +191,7 @@ object InteractManager : Manager<InteractRequest>(
 			if (!player.validSneak) return InteractResult.CompleteFailure
 			if (tickStage !in interactConfig.tickStageMask) return InteractResult.CompleteFailure
 
-			val hand = if (interactConfig.airPlace == AirPlaceMode.Grim) Hand.OFF_HAND else Hand.MAIN_HAND
+			val hand = if (interactConfig.airPlace == InteractConfig.AirPlaceMode.Grim) Hand.OFF_HAND else Hand.MAIN_HAND
 			val actionResult =
 				if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, hand)
 				else interaction.interactBlock(player, if (ctx.preProcessingInfo.item != null) hand else Hand.MAIN_HAND, ctx.hitResult)
@@ -214,7 +211,7 @@ object InteractManager : Manager<InteractRequest>(
 				if (ctx.preProcessingInfo.placing && expectedState.block is AbstractSignBlock) {
 					cancellingSignScreens++
 					runConcurrent {
-						delay(signWriteDelay)
+						delay(AutoSign.signWriteDelay)
 						runSafeGameScheduled {
 							connection.sendPacket {
 								UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")
@@ -243,7 +240,7 @@ object InteractManager : Manager<InteractRequest>(
 	 * @see isPosBlocked
 	 */
 	private fun Automated.populateFrom(request: InteractRequest) {
-		setPendingConfigs()
+		InteractedBlockHandler.setPendingConfigs()
 		potentialInteractions = request.contexts
 			.distinctBy { it.blockPos }
 			.filter { !isPosBlocked(it.blockPos) }
@@ -287,7 +284,7 @@ object InteractManager : Manager<InteractRequest>(
 			val actionResult = blockState.onUseWithItem(player.getStackInHand(hand), world, player, hand, hitResult)
 			if (actionResult.isAccepted) return actionResult
 
-			if (actionResult is PassToDefaultBlockAction && hand == Hand.MAIN_HAND) {
+			if (actionResult is ActionResult.PassToDefaultBlockAction && hand == Hand.MAIN_HAND) {
 				val actionResult2 = blockState.onUse(world, player, hitResult)
 				if (actionResult2.isAccepted) return actionResult2
 			}

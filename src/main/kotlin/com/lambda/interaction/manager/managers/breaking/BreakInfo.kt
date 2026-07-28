@@ -22,7 +22,7 @@ import com.lambda.config.blocks.BreakConfig.BreakMode
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler
-import com.lambda.interaction.manager.managers.ActionInfo
+import com.lambda.interaction.manager.ActionInfo
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.RedundantSecondary

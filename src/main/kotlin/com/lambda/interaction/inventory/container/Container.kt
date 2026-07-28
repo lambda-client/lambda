@@ -26,11 +26,10 @@ import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.task.Task.Companion.taskOrSkipOrNull
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.task.TaskGenerator
 import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.ContainerTransferTask
-import com.lambda.task.tasks.NoopTask.Companion.noopTask
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
@@ -110,15 +109,15 @@ abstract class Container(
             }?.map { slot ->
                 ShulkerBoxContainer(
                     slot.stack.shulkerBoxStacks,
-                    containedIn = this@Container,
-                    slot = slot
+                    this@Container,
+                    slot
                 )
             }?.toSet()
                 ?: stacks.map { stack ->
                     ShulkerBoxContainer(
                         stack.shulkerBoxStacks,
-                        containedIn = this@Container,
-                        slot = null
+                        this@Container,
+                        null
                     )
                 }.toSet()
 
@@ -130,15 +129,14 @@ abstract class Container(
 
     @Ta5kBuilder
     context(automatedSafeContext: AutomatedSafeContext)
-    open fun accessThen(
+    open fun <R> accessThen(
         closeAfter: Boolean = true,
-        afterClose: TaskOrNullGenerator<Unit>? = null,
-        afterOpen: TaskGenerator<Unit> = { noopTask() }
+        afterOpen: TaskOrNullGenerator<Unit, R?> = { null },
+        afterClose: TaskOrNullGenerator<R?, *> = { null }
     ) = with(automatedSafeContext) {
-        afterOpen(Unit).also {
-            if (closeAfter && afterClose != null) {
-                it.thenOrNull { afterClose(Unit) }
-            }
+        taskOrSkipOrNull({ afterOpen(Unit) }) { result ->
+            if (closeAfter) afterClose(result)
+            else null
         }
     }
 
@@ -174,8 +172,8 @@ abstract class Container(
     }
 
     context(automated: Automated)
-    fun transferByTask(stackSelection: StackSelection, destination: Container, failIfNoMaterial: Boolean = false) =
-        ContainerTransferTask(this, destination, stackSelection, failIfNoMaterial, automated)
+    fun transferByTask(stackSelection: StackSelection, toContainer: Container, failIfNoStack: Boolean = true) =
+        ContainerTransferTask(this, toContainer, stackSelection, failIfNoStack, automated)
 
     open fun stackCount(selection: StackSelection) =
         selection.filter(stacks).count

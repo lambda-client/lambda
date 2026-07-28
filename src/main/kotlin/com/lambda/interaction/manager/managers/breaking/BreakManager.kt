@@ -34,9 +34,9 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.pendingActions
-import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.startPending
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.getRebreakPotential
@@ -45,10 +45,8 @@ import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler
 import com.lambda.interaction.handler.handlers.packet.PacketType
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.manager.Manager
+import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
 import com.lambda.interaction.manager.PositionBlocking
-import com.lambda.interaction.manager.managers.Manager
-import com.lambda.interaction.manager.managers.ManagerUtils.isPosBlocked
-import com.lambda.interaction.manager.managers.PositionBlocking
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Rebreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.RedundantSecondary
@@ -524,7 +522,7 @@ object BreakManager : Manager<BreakRequest>(
 		}
 
 		primaryBreak = breakInfo
-		setPendingConfigs()
+		BrokenBlockHandler.setPendingConfigs()
 		return primaryBreak
 	}
 

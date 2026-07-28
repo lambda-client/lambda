@@ -25,7 +25,7 @@ import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.manager.managers.ManagerUtils.accumulatedManagerPriority
+import com.lambda.interaction.manager.ManagerUtils.accumulatedManagerPriority
 import com.lambda.threading.runSafeAutomated
 import kotlin.reflect.KClass
 

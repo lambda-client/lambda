@@ -23,12 +23,11 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBl
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
-import com.lambda.task.TaskGenerator
+import com.lambda.task.Task.Companion.taskOrSkipOrNull
+import com.lambda.task.Task.Companion.wrappedTask
 import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.AcquireStackTask.Companion.acquireStack
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
-import com.lambda.task.tasks.NoopTask.Companion.noopTask
-import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainerTask.Companion.placeContainer
 import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
@@ -39,7 +38,7 @@ import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandlerType
-import kotlin.comparisons.then
+import net.minecraft.util.math.BlockPos
 
 object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 	override val slots
@@ -58,34 +57,40 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 			} ?: false
 
 	context(automatedSafeContext: AutomatedSafeContext)
-	override fun accessThen(
+	override fun <R> accessThen(
 		closeAfter: Boolean,
-		afterClose: TaskOrNullGenerator<Unit>?,
-		afterOpen: TaskGenerator<Unit>
+		afterOpen: TaskOrNullGenerator<Unit, R?>,
+		afterClose: TaskOrNullGenerator<R?, *>
 	) =
 		with(automatedSafeContext) {
-			if (!isAccessed) {
-				acquireStack(Items.ENDER_CHEST.select()).then { slot ->
-					placeContainer(slot).then { pos ->
-						openContainer(pos).then {
-							afterOpen(Unit).thenOrNull {
-								if (closeAfter) {
-									simpleAction("Close inventory") { player.closeHandledScreen() }.then {
-										breakAndCollect(pos, lifeMaintenance = false).thenOrNull {
-											afterClose?.invoke(this, Unit)
-										}
+			taskOrSkipOrNull(
+				optional = {
+					if (isAccessed) null
+					else {
+						wrappedTask<BlockPos>("Setup Ender Chest") { success ->
+							acquireStack(Items.ENDER_CHEST.select(1)).then { slot ->
+								placeContainer(slot).then { pos ->
+									openContainer(pos).finally {
+										success(pos)
 									}
-								} else null
+								}
 							}
 						}
 					}
 				}
-			} else afterOpen(Unit).thenOrNull {
-				if (closeAfter) {
-					simpleAction("Close inventory") { mc.player?.closeHandledScreen() }.thenOrNull {
-						afterClose?.invoke(this, Unit)
-					}
-				} else null
+			) { pos ->
+				taskOrSkipOrNull({ afterOpen(Unit) }) { afterOpenResult ->
+					if (closeAfter) {
+						simpleAction("Close inventory") { player.closeHandledScreen() }.thenOrNull {
+							taskOrSkipOrNull(
+								optional = {
+									if (pos != null) breakAndCollect(pos)
+									else null
+								}
+							) { afterClose(afterOpenResult) }
+						}
+					} else null
+				}
 			}
 		}
 

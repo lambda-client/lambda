@@ -27,7 +27,8 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.manager.managers.Request
+import com.lambda.interaction.manager.Request
+import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder.Companion.breakRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty

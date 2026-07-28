@@ -68,5 +68,6 @@ object SlotUtils {
                 inventory::class == slot.inventory::class &&
                 id == slot.id &&
                 x == slot.x &&
-                y == slot.y
+                y == slot.y &&
+                ItemStack.areEqual(stack, slot.stack)
 }

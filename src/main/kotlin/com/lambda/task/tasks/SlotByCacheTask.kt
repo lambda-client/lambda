@@ -33,4 +33,9 @@ class SlotByCacheTask @Ta5kBuilder constructor(
 		if (slot != null) success(slot)
 		else failure("Failed to find matching slot by cache: $slotCache")
 	}
+
+	companion object {
+		@Ta5kBuilder
+		fun slotByCache(slotCache: Slot) = SlotByCacheTask(slotCache)
+	}
 }

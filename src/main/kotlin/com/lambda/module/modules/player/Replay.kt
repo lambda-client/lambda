@@ -34,7 +34,6 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
-import com.lambda.interaction.handlers.TimerHandler
 import com.lambda.interaction.handler.handlers.TimerHandler
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.RotationMode

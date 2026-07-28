@@ -24,8 +24,8 @@ import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.processing.ProcessorRegistry
-import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.rebreak
 import com.lambda.interaction.handler.PostActionHandler
+import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 import com.lambda.interaction.manager.managers.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.manager.managers.breaking.BreakManager.matchesBlockItem

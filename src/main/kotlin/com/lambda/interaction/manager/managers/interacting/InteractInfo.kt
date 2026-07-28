@@ -21,7 +21,7 @@ import com.lambda.config.blocks.InteractConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.context.InteractContext
-import com.lambda.interaction.manager.managers.ActionInfo
+import com.lambda.interaction.manager.ActionInfo
 import net.minecraft.util.math.BlockPos
 
 data class InteractInfo(

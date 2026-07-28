@@ -41,12 +41,17 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 class PlaceContainerTask @Ta5kBuilder constructor(
-    val slot: Slot,
+    val slot: Slot?,
     automated: Automated
 ) : Task<BlockPos>(), Automated by automated {
-    override val name: String get() = "Placing container ${slot.stack.name.string}"
+    override val name: String get() = "Placing container ${slot?.stack?.name?.string}"
 
     override fun SafeContext.onStart() {
+        if (slot == null) {
+            failure("No slot provided")
+            return
+        }
+
         val results = runSafeAutomated {
             BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
                 .map { it.blockPos }
@@ -97,13 +102,14 @@ class PlaceContainerTask @Ta5kBuilder constructor(
         else -> false
     }
 
+    @Suppress("unused")
     companion object {
         @Ta5kBuilder
         context(automated: Automated)
-        fun placeContainer(slot: Slot) = PlaceContainerTask(slot, automated)
+        fun placeContainer(slot: Slot?) = PlaceContainerTask(slot, automated)
 
         @Ta5kBuilder
         context(automated: Automated)
-        fun placeContainer(slot: () -> Slot) = PlaceContainerTask(slot(), automated)
+        fun placeContainer(slot: () -> Slot?) = PlaceContainerTask(slot(), automated)
     }
 }

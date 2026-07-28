@@ -19,18 +19,19 @@ package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.NestedContainer
-import com.lambda.task.TaskGenerator
+import com.lambda.interaction.inventory.container.containers.HotbarContainer
+import com.lambda.task.Task.Companion.nullableWrappedTask
+import com.lambda.task.Task.Companion.taskOrSkipOrNull
 import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
 import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainerTask.Companion.placeContainer
 import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
-import com.lambda.threading.runSafe
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -59,7 +60,6 @@ data class ShulkerBoxContainer(
             literal(" in slot $slotCache")
         }
 
-    private var placed = false
     private var blockPos: BlockPos? = null
 
     override val isAccessed
@@ -71,22 +71,45 @@ data class ShulkerBoxContainer(
             } ?: false
 
     context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(
+    override fun <R> accessThen(
         closeAfter: Boolean,
-        afterClose: TaskOrNullGenerator<Unit>?,
-        afterOpen: TaskGenerator<Unit>
+        afterOpen: TaskOrNullGenerator<Unit, R?>,
+        afterClose: TaskOrNullGenerator<R?, *>
     ) =
         with(automatedSafeContext) {
-            if (!isAccessed) {
-
-            } else afterOpen(Unit).thenOrNull {
-                if (closeAfter) {
-                    simpleAction("Close inventory") { player.closeHandledScreen() }.then {
-                        breakAndCollect(blockPos, lifeMaintenance = false).thenOrNull {
-                            afterClose?.invoke(this, Unit)
+            taskOrSkipOrNull(
+                optional = {
+                    if (isAccessed) null
+                    else nullableWrappedTask<BlockPos>("Setup Shulker Box") { success ->
+                        containedIn.accessThen(
+                            afterOpen = {
+                                if (player.currentScreenHandler.syncId == 0) null
+                                else {
+                                    val selection = selectStack { isSlot(slotCache) }
+                                    containedIn.transferByTask(selection, HotbarContainer)
+                                }
+                            }
+                        ) { slot ->
+                            slot?.let { s ->
+                                placeContainer(s).then { pos ->
+                                    openContainer(pos).finally {
+                                        success(pos)
+                                    }
+                                }
+                            }
                         }
                     }
-                } else null
+                }
+            ) { pos ->
+                taskOrSkipOrNull({ afterOpen(Unit) }) { result ->
+                    if (closeAfter && pos != null) {
+                        simpleAction("Close inventory") { player.closeHandledScreen() }.then {
+                            breakAndCollect(pos).thenOrNull {
+                                afterClose(result)
+                            }
+                        }
+                    } else null
+                }
             }
         }
 }

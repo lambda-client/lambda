@@ -20,6 +20,7 @@ package com.lambda.interaction.inventory
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
+import com.lambda.util.player.SlotUtils.matches
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.component.ComponentType
@@ -187,6 +188,16 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 
 	fun isEmpty() {
 		appendSelector { stack, _ -> stack.isEmpty}
+	}
+
+	fun isSlot(slot: Slot) {
+		appendSelector { _, s ->
+			s != null && s matches slot
+		}
+	}
+
+	fun isSlotByReference(slot: Slot) {
+		appendSelector { _, s -> s === slot }
 	}
 
 	fun custom(predicate: (ItemStack, Slot?) -> Boolean) {

@@ -28,7 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
-import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainerTask
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.item.Items
@@ -62,7 +62,7 @@ object InventoryTweaks : Module(
             lastOpenScreen = null
             placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
                 placedPos = placePos
-                OpenContainerTask(placePos, this@InventoryTweaks).finally { screenHandler ->
+                openContainer(placePos).finally { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
             }.run()

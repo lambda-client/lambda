@@ -43,14 +43,13 @@ class ContainerTransferTask @Ta5kBuilder constructor(
 			runSafeAutomated {
 				if (fromContainer is ExternalContainer && toContainer is ExternalContainer) {
 					fromContainer.accessThen(
-						true,
-						{
-							HotbarAndInventoryContainer.transferByTask(stackSelection, toContainer)
-								.finally { slot -> success(slot) }
+						afterOpen = {
+							fromContainer.transferByTask(stackSelection, HotbarAndInventoryContainer, failIfNoStack)
 						}
 					) {
-						fromContainer.transferByTask(stackSelection, HotbarAndInventoryContainer)
-					}.execute(this@ContainerTransferTask)
+						HotbarAndInventoryContainer.transferByTask(stackSelection, toContainer, failIfNoStack)
+							.finally { slot -> success(slot) }
+					}?.execute(this@ContainerTransferTask)
 					return@listen
 				}
 

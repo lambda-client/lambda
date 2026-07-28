@@ -25,6 +25,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
+import com.lambda.task.Task.Companion.taskOrSkip
+import com.lambda.task.Task.Companion.taskOrSkipOrNull
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Nameable
@@ -33,8 +35,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
-typealias TaskOrNullGenerator<R> = SafeContext.(R) -> Task<*>?
+typealias TaskGenerator<R, T> = SafeContext.(R) -> Task<out T>
+typealias TaskOrNullGenerator<R, T> = SafeContext.(R) -> Task<out T>?
 typealias TaskUnitGenerator<R> = SafeContext.(R) -> Unit
 
 @Suppress("unused")
@@ -49,12 +51,12 @@ abstract class Task<Result> : Nameable, Muteable {
     val isCompleted get() = state == State.Completed
     val size: Int get() = subTasks.sumOf { it.size } + 1
 
-    private var nextTask: TaskGenerator<Result>? = null
-    private var nextTaskOrNull: TaskOrNullGenerator<Result>? = null
+    private var nextTask: TaskGenerator<Result, *>? = null
+    private var nextTaskOrNull: TaskOrNullGenerator<Result, *>? = null
     private var onFinish: TaskUnitGenerator<Result>? = null
 
-    private var onFail: TaskGenerator<Unit>? = null
-    private var onFailOrNull: TaskOrNullGenerator<Unit>? = null
+    private var onFail: TaskGenerator<Unit, *>? = null
+    private var onFailOrNull: TaskOrNullGenerator<Unit, *>? = null
     private var softFail = false
 
     enum class State {
@@ -286,8 +288,7 @@ abstract class Task<Result> : Nameable, Muteable {
      * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun then(taskGenerator: TaskGenerator<Result>): Task<Result> {
-        require(nextTask == null && nextTaskOrNull == null) { "Cannot link multiple tasks to a single task" }
+    fun then(taskGenerator: TaskGenerator<Result, *>): Task<Result> {
         nextTask = taskGenerator
         return this
     }
@@ -307,14 +308,42 @@ abstract class Task<Result> : Nameable, Muteable {
      * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun thenOrNull(taskGenerator: TaskOrNullGenerator<Result>): Task<Result> {
-        require(nextTask == null && nextTaskOrNull == null) { "Cannot link multiple tasks to a single task" }
+    fun thenOrNull(taskGenerator: TaskOrNullGenerator<Result, *>): Task<Result> {
         nextTaskOrNull = taskGenerator
         return this
     }
 
+    /**
+     * Chains an optional step whose typed result is forwarded to a mandatory continuation.
+     *
+     * If the [optional] generator returns a non-null [Task] of type [T] that completes
+     * with a result, the [then] continuation receives that result. If the [optional]
+     * generator returns null (step skipped), the [then] continuation receives null.
+     *
+     * This allows downstream steps to use the output of an optional step without
+     * storing state outside the task chain.
+     *
+     * @param T The result type of the optional step.
+     * @param optional A generator that may produce a task, or null to skip.
+     * @param then A continuation that receives the optional step's result as [T?].
+     * @return The current task instance (`Task<R>`) to allow method chaining.
+     */
     @Ta5kBuilder
-    fun onFail(taskGenerator: TaskGenerator<Unit>): Task<Result> {
+    fun <T> thenOrSkip(
+        optional: TaskOrNullGenerator<Result, T>,
+        then: TaskOrNullGenerator<T?, *>
+    ): Task<Result> {
+        thenOrNull { result ->
+            val step = optional(result)
+	        step?.thenOrNull { stepResult ->
+                then(stepResult)
+            } ?: then(null)
+        }
+        return this
+    }
+
+    @Ta5kBuilder
+    fun onFail(taskGenerator: TaskGenerator<Unit, *>): Task<Result> {
         require(onFail == null && onFailOrNull == null) { "Cannot have multiple onFail callbacks on a single task" }
         onFail = taskGenerator
         softFail()
@@ -322,7 +351,7 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun onFailOrNull(taskGenerator: TaskOrNullGenerator<Unit>): Task<Result> {
+    fun onFailOrNull(taskGenerator: TaskOrNullGenerator<Unit, *>): Task<Result> {
         require(onFail == null && onFailOrNull == null) { "Cannot have multiple onFail callbacks on a single task" }
         onFailOrNull = taskGenerator
         softFail()
@@ -370,6 +399,78 @@ abstract class Task<Result> : Nameable, Muteable {
         }
         task.subTasks.takeLast(maxEntries).forEach {
             appendTaskTree(it, level + 1)
+        }
+    }
+
+    companion object {
+        @Ta5kBuilder
+        fun <T> SafeContext.taskOrSkip(
+            optional: TaskOrNullGenerator<Unit, T>,
+            then: TaskGenerator<T?, *>
+        ): Task<*> {
+            val step = optional(Unit)
+            return step?.thenOrNull { stepResult ->
+                then(stepResult)
+            } ?: then(null)
+        }
+
+        @Ta5kBuilder
+        fun <T> SafeContext.taskOrSkipOrNull(
+            optional: TaskOrNullGenerator<Unit, T>,
+            then: TaskOrNullGenerator<T?, *>
+        ): Task<*>? {
+            val step = optional(Unit)
+            return step?.thenOrNull { stepResult ->
+                then(stepResult)
+            } ?: then(null)
+        }
+
+        /**
+         * Creates a task that runs a chain of subtasks and emits a custom result.
+         *
+         * Use this when you need an intermediate result (e.g. a [net.minecraft.util.math.BlockPos] from a
+         * placement step) to be the result type of the returned task, allowing it
+         * to flow through [taskOrSkip] / [thenOrSkip] / [taskOrSkipOrNull] as a nullable scoped value.
+         *
+         * The [builder] receives a `success` callback. Call `success(value)` when
+         * the chain reaches the point where the desired result is available.
+         *
+         * ```kotlin
+         * wrappedTask<BlockPos>("Setup Ender Chest") { success ->
+         *     acquireStack(selection).then { slot ->
+         *         placeContainer(slot).then { pos ->
+         *             openContainer(pos).finally { success(pos) }
+         *         }
+         *     }
+         * }
+         * ```
+         */
+        @Ta5kBuilder
+        fun <R> wrappedTask(
+            name: String,
+            builder: SafeContext.(success: (R) -> Unit) -> Task<*>
+        ) = object : Task<R>() {
+            override val name = name
+            private val self = this
+
+            override fun SafeContext.onStart() {
+                val chain = builder { result -> self.success(result) }
+                chain.execute(self)
+            }
+        }
+
+        @Ta5kBuilder
+        fun <R> nullableWrappedTask(
+            name: String,
+            builder: SafeContext.(success: (R?) -> Unit) -> Task<*>?
+        ) = object : Task<R?>() {
+            override val name = name
+            private val self = this
+
+            override fun SafeContext.onStart() {
+                val chain = builder { result -> self.success(result) }
+                chain?.execute(self) ?: self.success(null)
+            }
         }
     }
 }
