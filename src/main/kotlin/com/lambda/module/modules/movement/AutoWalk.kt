@@ -57,9 +57,10 @@ object AutoWalk : Module(
 
 	@Group(PAUSING_GROUP) private val pauseWhileMining by setting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
 	@Group(PAUSING_GROUP) private val pauseWhilePlacing by setting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
-	@Group(PAUSING_GROUP) private val pauseIfPlacedLastTick by setting("Pause If Placed Last Tick", false, "Pauses walking on the tick after placing a block - Works with all placing")
+	@Group(PAUSING_GROUP) private val pauseAfterPlacing by setting("Pause After Placing", false, "Pauses walking for a period after placing a block - Works with all placing")
+	@Group(PAUSING_GROUP) private val ticksToWaitAfterPlacing by setting("Ticks To Wait After Placing", 1, 1..20, 1, "Extends the pause after placing to this many ticks") { pauseAfterPlacing }
 
-	private var placedLastTick = false
+	private var placeWaitTicks = 0
 
 	private val SafeContext.breakQueued
 		get() = interaction.isBreakingBlock ||
@@ -73,17 +74,17 @@ object AutoWalk : Module(
 			InteractManager.blockedPositions.isNotEmpty()
 
 	init {
-		onDisable { placedLastTick = false }
 
 		listen<PacketEvent.Send.Pre> { event ->
-			if (event.packet is PlayerInteractBlockC2SPacket) placedLastTick = true
+			if (event.packet is PlayerInteractBlockC2SPacket && pauseAfterPlacing)
+				placeWaitTicks = ticksToWaitAfterPlacing
 		}
 
 		listen<MovementEvent.InputUpdate> { event ->
-			val placedLastTick = placedLastTick
-			AutoWalk.placedLastTick = false
+			val waitingAfterPlacing = placeWaitTicks > 0
+			if (placeWaitTicks > 0) placeWaitTicks--
 
-			if (pauseIfPlacedLastTick && placedLastTick ||
+			if (pauseAfterPlacing && waitingAfterPlacing ||
 				pauseWhileMining && breakQueued ||
 				pauseWhilePlacing && placeQueued
 			) return@listen
