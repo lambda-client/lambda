@@ -19,6 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -45,18 +46,21 @@ object LineLock : Module(
 	description = "Locks the player's yaw to a line and steers toward a point ahead on the line",
 	tag = ModuleTag.PLAYER,
 ) {
-	private const val YAW_SNAP_INCREMENT = 45.0     // snap the axis to the nearest 45° heading
 	private const val YAW_SNAP_BIAS = 1.0           // nudge before rounding so exact half-steps snap consistently
 	private const val FULL_CIRCLE_DEGREES = 360.0
 	private const val YAW_DEGREES_OFFSET = 90.0     // atan2 (east = 0°) to Minecraft yaw (south = 0°)
-	private const val MIN_LOOKAHEAD = 2.0           // floor for the look-ahead distance so steering stays stable at low speed
-	private const val ON_LINE_THRESHOLD = 0.1       // how close to the line counts as "on it"
 	private const val TOLERANCE = 0.1               // tolerance for classifying a direction as diagonal vs. straight
 	private const val RENDER_LINE_HALF_LENGTH = 500.0
 
-	private val distance by setting("Distance", 5.0, 0.0..10.0, 0.1, "Look-ahead distance along the axis to steer toward")
+	private const val ADVANCED_GROUP = "Advanced"
+
 	private val renderLine by setting("Render Line", true, "Render the axis line the yaw is snapping to")
 	private val lineColor by setting("Line Color", Color(0, 255, 0, 255)) { renderLine }
+
+	@Group(ADVANCED_GROUP) private val correctionSmoothness by setting("Correction Smoothness", 5.0, 0.0..10.0, 0.1, "Scales how far ahead down the axis to aim by your speed; higher curves back onto the line more gently")
+	@Group(ADVANCED_GROUP) private val yawSnapIncrement by setting("Yaw Snap Increment", 45.0, 1.0..90.0, 1.0, "Snap the locked axis to the nearest multiple of this heading, in degrees")
+	@Group(ADVANCED_GROUP) private val onLineThreshold by setting("On Line Threshold", 0.1, 0.0..1.0, 0.01, "How close to the line counts as \"on it\" before holding the snapped yaw")
+	@Group(ADVANCED_GROUP) private val minLookahead by setting("Min Lookahead", 2.0, 0.0..10.0, 0.1, "Floor for the look-ahead distance so steering stays stable at low speed")
 
 	private var startingYaw = 0.0
 	private var lineOrigin: Vec3d = Vec3d.ZERO
@@ -76,10 +80,10 @@ object LineLock : Module(
 		//                    you ●──╯                → we aim a bit further down the rail
 		//                                              (lookaheadPoint) so you curve back on
 		onEnable {
-			// Snap our facing to the nearest 45° compass direction (N, NE, E, SE, ...)
+			// Snap our facing to the nearest Yaw Snap Increment (e.g. 45° -> N, NE, E, SE, ...)
 			// and lock the rail in from where we're standing.
-			val nearestNotch = ((player.yaw + YAW_SNAP_BIAS) / YAW_SNAP_INCREMENT).roundToInt()  // which 45° notch we're closest to
-			startingYaw = nearestNotch * YAW_SNAP_INCREMENT % FULL_CIRCLE_DEGREES                  // back to degrees, kept in 0–360
+			val nearestNotch = ((player.yaw + YAW_SNAP_BIAS) / yawSnapIncrement).roundToInt()  // which notch we're closest to
+			startingYaw = nearestNotch * yawSnapIncrement % FULL_CIRCLE_DEGREES                  // back to degrees, kept in 0–360
 			lineOrigin = player.pos
 			lineDirection = directionForHeading(startingYaw)
 			adjustYaw()
@@ -108,7 +112,7 @@ object LineLock : Module(
 		val playerPos = Vec3d(player.x, lineOrigin.y, player.z)
 		val closestPoint = closestPointOnLine(playerPos, lineOrigin, lineDirection)
 		val distanceToLine = Vec3d(closestPoint.x, playerPos.y, closestPoint.z).distanceTo(playerPos)
-		val targetYaw = if (distanceToLine < ON_LINE_THRESHOLD) {
+		val targetYaw = if (distanceToLine < onLineThreshold) {
 			// Already on the line - hold the snapped axis yaw.
 			startingYaw
 		} else {
@@ -119,8 +123,9 @@ object LineLock : Module(
 	}
 
 	private fun SafeContext.yawTowardsLine(closestPoint: Vec3d): Double {
-		// Aim a little further down the rail than the nearest spot, so we curve back onto it.
-		val lookaheadPoint = closestPoint.add(lineDirection.multiply(max(MIN_LOOKAHEAD, player.velocity.length() * distance)))
+		// Aim further down the rail than the nearest spot, so we curve back onto it. How far ahead
+		// scales with our speed (times Correction Smoothness), but never less than Min Lookahead.
+		val lookaheadPoint = closestPoint.add(lineDirection.multiply(max(minLookahead, player.velocity.length() * correctionSmoothness)))
 		return headingToward(lookaheadPoint)
 	}
 
