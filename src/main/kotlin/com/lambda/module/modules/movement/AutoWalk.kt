@@ -69,7 +69,6 @@ object AutoWalk : Module(
 			InteractManager.blockedPositions.isNotEmpty()
 
 	init {
-
 		listen<PacketEvent.Send.Pre> { event ->
 			if (event.packet is PlayerInteractBlockC2SPacket && pauseAfterPlacing)
 				placeWaitTicks = ticksToWaitAfterPlacing
@@ -85,16 +84,18 @@ object AutoWalk : Module(
 			) return@listen
 
 			val input = event.input
-			val forward = if (walkForward || walkBackward) walkForward.toDouble() - walkBackward.toDouble()
+			val forward =
+				if (walkForward || walkBackward) walkForward.toDouble() - walkBackward.toDouble()
 				else input.roundedForward
-			val strafe = if (strafeLeft || strafeRight) strafeLeft.toDouble() - strafeRight.toDouble()
+			val strafe =
+				if (strafeLeft || strafeRight) strafeLeft.toDouble() - strafeRight.toDouble()
 				else input.roundedStrafing
 
 			input.update(
 				forward = forward,
 				strafe = strafe,
 				sneak = sneak || input.sneaking,
-				sprint = sprint || input.sprinting,
+				sprint = sprint || input.sprinting
 			)
 		}
 	}
