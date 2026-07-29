@@ -17,28 +17,85 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.Group
+import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.breaking.BreakManager
+import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.player.MovementUtils.forward
-import com.lambda.util.player.MovementUtils.strafe
+import com.lambda.util.math.MathUtils.toDouble
+import com.lambda.util.player.MovementUtils.roundedForward
+import com.lambda.util.player.MovementUtils.roundedStrafing
+import com.lambda.util.player.MovementUtils.sneaking
+import com.lambda.util.player.MovementUtils.sprinting
 import com.lambda.util.player.MovementUtils.update
-import net.minecraft.util.math.Vec2f
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 
 @Suppress("unused")
 object AutoWalk : Module(
 	name = "AutoWalk",
-	description = "Automatically makes your character walk forward",
+	description = "Automatically walks in the configured direction when certain conditions are met",
 	tag = ModuleTag.MOVEMENT,
 ) {
-	val limitSpeed by setting("Limit Speed", false)
-	val speed by setting("Speed", 0.5, 0.1..1.0, 0.05) { limitSpeed }
+	private const val MOVEMENT_GROUP = "Movement"
+	private const val PAUSING_GROUP = "Pausing"
+
+	@Group(MOVEMENT_GROUP) private val walkForward by setting("Forward", true, "Automatically walks forward")
+	@Group(MOVEMENT_GROUP) private val walkBackward by setting("Backward", false, "Automatically walks backward")
+	@Group(MOVEMENT_GROUP) private val strafeLeft by setting("Strafe Left", false, "Automatically strafes left")
+	@Group(MOVEMENT_GROUP) private val strafeRight by setting("Strafe Right", false, "Automatically strafes right")
+	@Group(MOVEMENT_GROUP) private val sneak by setting("Sneak", false, "Automatically sneaks")
+	@Group(MOVEMENT_GROUP) private val sprint by setting("Sprint", false, "Automatically sprints")
+
+	@Group(PAUSING_GROUP) private val pauseWhileMining by setting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
+	@Group(PAUSING_GROUP) private val pauseWhilePlacing by setting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
+	@Group(PAUSING_GROUP) private val pauseAfterPlacing by setting("Pause After Placing", false, "Pauses walking for a period after placing a block - Works with all placing")
+	@Group(PAUSING_GROUP) private val ticksToWaitAfterPlacing by setting("Ticks To Wait After Placing", 1, 1..20, 1, "Extends the pause after placing to this many ticks") { pauseAfterPlacing }
+
+	private var placeWaitTicks = 0
+
+	private val SafeContext.breakQueued
+		get() = interaction.isBreakingBlock ||
+			BreakManager.activeThisTick ||
+			BreakManager.queuedRequest != null ||
+			BreakManager.blockedPositions.isNotEmpty()
+
+	private val placeQueued
+		get() = InteractManager.activeThisTick ||
+			InteractManager.queuedRequest != null ||
+			InteractManager.blockedPositions.isNotEmpty()
 
 	init {
+
+		listen<PacketEvent.Send.Pre> { event ->
+			if (event.packet is PlayerInteractBlockC2SPacket && pauseAfterPlacing)
+				placeWaitTicks = ticksToWaitAfterPlacing
+		}
+
 		listen<MovementEvent.InputUpdate> { event ->
-			event.input.update(forward = 1.0)
-			if (limitSpeed) event.input.movementVector = Vec2f(event.input.strafe, event.input.forward).normalize().multiply(speed.toFloat())
+			val waitingAfterPlacing = placeWaitTicks > 0
+			if (placeWaitTicks > 0) placeWaitTicks--
+
+			if (pauseAfterPlacing && waitingAfterPlacing ||
+				pauseWhileMining && breakQueued ||
+				pauseWhilePlacing && placeQueued
+			) return@listen
+
+			val input = event.input
+			val forward = if (walkForward || walkBackward) walkForward.toDouble() - walkBackward.toDouble()
+				else input.roundedForward
+			val strafe = if (strafeLeft || strafeRight) strafeLeft.toDouble() - strafeRight.toDouble()
+				else input.roundedStrafing
+
+			input.update(
+				forward = forward,
+				strafe = strafe,
+				sneak = sneak || input.sneaking,
+				sprint = sprint || input.sprinting,
+			)
 		}
 	}
 }
