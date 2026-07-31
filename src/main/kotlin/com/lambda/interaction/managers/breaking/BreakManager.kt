@@ -153,6 +153,8 @@ object BreakManager : Manager<BreakRequest>(
 	private val rotated get() = rotationRequest?.done != false
 
 	private var breakDelay = 0
+	private var oldGrimBreakDelay = 0
+	var bypassingOldGrimBreakDelay = false
 	var breaksThisTick = 0
 	private var maxBreaksThisTick = 0
 
@@ -173,6 +175,7 @@ object BreakManager : Manager<BreakRequest>(
 			if (primaryBreak?.breaking == false) primaryBreak = null
 			breakInfos.forEach { it?.tickChecks() }
 			if (breakDelay > 0) breakDelay--
+			if (oldGrimBreakDelay > 0) oldGrimBreakDelay--
 			activeRequest = null
 			breaks = mutableListOf()
 			breaksThisTick = 0
@@ -226,6 +229,7 @@ object BreakManager : Manager<BreakRequest>(
 			primaryBreak = null
 			secondaryBreak = null
 			breakDelay = 0
+			oldGrimBreakDelay = 0
 		}
 
 		immediateRenderer("BreakManager Immediate Renderer") {
@@ -461,6 +465,7 @@ object BreakManager : Manager<BreakRequest>(
 		request.runSafeAutomated {
 			if (tickStage !in request.breakConfig.tickStageMask) return false
 			if (breakDelay > 0) return false
+			if (breakConfig.breakMode == BreakMode.OldGrim && !bypassingOldGrimBreakDelay && oldGrimBreakDelay > 0) return false
 			if (breaksThisTick >= maxBreaksThisTick) return false
 
 			breaks.forEach { ctx ->
@@ -517,6 +522,7 @@ object BreakManager : Manager<BreakRequest>(
 				primary.apply {
 					type = Secondary
 					stopBreakPacket()
+					if (breakConfig.breakMode == BreakMode.OldGrim) oldGrimBreakDelay = 6
 				}
 			PacketLimitHandler.sentPackets(1, PacketType.PlayerAction)
 			return@let
@@ -617,7 +623,11 @@ object BreakManager : Manager<BreakRequest>(
 			}
 		}
 		breaksThisTick++
-		if (info.type == Primary && !info.vanillaInstantBreakable) breakDelay = info.getBreakDelay()
+		if (info.type == Primary && !info.vanillaInstantBreakable) {
+			breakDelay = breakConfig.breakDelay
+			if (breakConfig.breakMode == BreakMode.OldGrim) oldGrimBreakDelay = 6
+			bypassingOldGrimBreakDelay = info.bypassedDelay
+		}
 		info.nullify()
 	}
 
@@ -825,8 +835,10 @@ object BreakManager : Manager<BreakRequest>(
 
 		var packetCount = 1
 		info.vanillaInstantBreakable = progress >= 1
-		val isGrim = breakConfig.breakMode == BreakMode.Grim
-		val oldGrim = breakConfig.breakMode == BreakMode.OldGrim && !info.vanillaInstantBreakable
+		val breakMode = breakConfig.breakMode
+		if (breakMode == BreakMode.OldGrim && info.vanillaInstantBreakable && oldGrimBreakDelay > 0) return false
+		val isGrim = breakMode == BreakMode.Grim
+		val oldGrim = breakMode == BreakMode.OldGrim && !info.vanillaInstantBreakable
 		val requiresSecondStop = instantBreakable && !info.vanillaInstantBreakable
 
 		if (isGrim) packetCount++
