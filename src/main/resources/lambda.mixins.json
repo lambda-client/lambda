@@ -22,6 +22,7 @@
     "input.MouseMixin",
     "items.BlockItemMixin",
     "items.FilledMapItemMixin",
+    "network.BlockListCheckerMixin",
     "network.ClientCommonNetworkHandlerMixin",
     "network.ClientConnectionMixin",
     "network.ClientLoginNetworkMixin",
