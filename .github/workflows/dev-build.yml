@@ -1,0 +1,72 @@
+name: Dev Build
+on:
+  push:
+    branches:
+      - '*.*'
+jobs:
+  build:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    name: Build Lambda
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      SEGMENT_DOWNLOAD_TIMEOUT_MINS: '5'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Get short commit hash
+        id: vars
+        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Set-Up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'oracle'
+          java-version: '21'
+          architecture: x64
+          cache: 'gradle'
+
+      - name: Read Gradle Properties
+        uses: BrycensRanch/read-properties-action@v1.0.4
+        id: all
+        with:
+          file: gradle.properties
+          all: true
+
+      - name: Publish dev build to Maven
+        id: upload-maven
+        run: |
+          ./gradlew publish \
+            -PmavenType=dev \
+            -PbuildNumber=${{ github.run_number }} \
+            -PmavenUsername=${{ secrets.MAVEN_USER }} \
+            -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
+
+      - name: Rename JAR (fallback)
+        run: |
+          mv build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar \
+             build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-dev.${{ github.run_number }}.jar
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        id: upload-git
+        with:
+          name: dev-build
+          path: |
+            build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-dev.${{ github.run_number }}.jar
+
+      - name: Get latest version info
+        if: steps.upload-maven.conclusion == 'success' || steps.upload-git.conclusion == 'success'
+        run: |
+          COMMIT_MESSAGE=$(git log --pretty=format:'- \`%h\` %s' -1 --reverse)
+          echo "COMMIT_MESSAGE=${COMMIT_MESSAGE}" >> $GITHUB_ENV
+          echo "DEV_VERSION=${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-dev.${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Send Discord build message
+        if: steps.upload-maven.conclusion == 'success' || steps.upload-git.conclusion == 'success'
+        run: |
+          curl "${{ secrets.WEBHOOK }}" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build ${{ github.run_number }}\",\"description\":\"**Branch:** ${{ github.ref_name }}\\n**Changes:**\\n${{ env.COMMIT_MESSAGE }}\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [${{ env.DEV_VERSION }}.jar](https://maven.lambda-client.org/dev/com/lambda/lambda/${{ env.DEV_VERSION }}/lambda-${{ env.DEV_VERSION }}.jar)\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda%20logo%20banner%20transparent.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://raw.githubusercontent.com/lambda-client/assets/refs/heads/main/lambda.png\"}"
