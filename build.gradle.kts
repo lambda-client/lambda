@@ -42,7 +42,7 @@ val libs = file("libs")
 val targets = listOf("fabric.mod.json")
 val replacements = file("gradle.properties").inputStream().use { stream ->
     Properties().apply { load(stream) }
-}.map { (k, v) -> k.toString() to v.toString() }.toMap()
+}.map { (k, v) -> k.toString() to v.toString() }.toMap().toMutableMap()
 
 plugins {
     kotlin("jvm") version "2.3.0"
@@ -62,6 +62,7 @@ version = if (isDevBuild && buildNum != null) {
 } else {
     modVersion
 }
+replacements["modVersion"] = version.toString()
 
 base.archivesName = modId
 
@@ -226,6 +227,7 @@ tasks {
     }
 
     processResources {
+        inputs.properties(replacements)
         filesMatching(targets) { expand(replacements) }
 
         // Forces the task to always run
