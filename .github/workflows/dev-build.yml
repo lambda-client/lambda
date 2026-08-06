@@ -46,11 +46,6 @@ jobs:
             -PmavenUsername=${{ secrets.MAVEN_USER }} \
             -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
-      - name: Rename JAR (fallback)
-        run: |
-          mv build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar \
-             build/libs/lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-dev.${{ github.run_number }}.jar
-
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         id: upload-git

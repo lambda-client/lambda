@@ -43,5 +43,16 @@ object ModuleConfigMigration : StepConfigMigration() {
 			properties.put("loaderPromptHandled", loaderPromptHandled.asString())
 			LOG.info("Module config category schema v2 -> v3")
 		}
+
+		step(2, 3) { root ->
+			val autoUpdater = root.get("AutoUpdater") ?: return@step
+			if (!autoUpdater.isObject) return@step
+			val settings = autoUpdater.get("Settings") ?: return@step
+			if (!settings.isObject) return@step
+			val loaderBranch = settings.get("Loader Branch") ?: return@step
+			if (!loaderBranch.isString) return@step
+			if (loaderBranch.asString() != "Snapshot") return@step
+			settings.asObject().put("Loader Branch", "Dev")
+		}
 	}
 }

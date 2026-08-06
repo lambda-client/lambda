@@ -53,7 +53,15 @@ plugins {
 }
 
 group = mavenGroup
-version = modVersion
+
+val isDevBuild = project.hasProperty("mavenType") && project.property("mavenType") == "dev"
+val buildNum = if (project.hasProperty("buildNumber")) project.property("buildNumber") as String else null
+
+version = if (isDevBuild && buildNum != null) {
+    "$modVersion+$minecraftVersion-dev.$buildNum"
+} else {
+    modVersion
+}
 
 base.archivesName = modId
 
@@ -241,7 +249,7 @@ java {
 }
 
 publishing {
-    val mavenType = project.findProperty("mavenType")?.toString() ?: "dev"
+    val mavenType = project.findProperty("mavenType").toString()
     val mavenUrl = "https://maven.lambda-client.org/${mavenType}"
     val versionBase = "$modVersion+$minecraftVersion"
 
