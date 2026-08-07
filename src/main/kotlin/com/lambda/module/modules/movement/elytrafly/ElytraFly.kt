@@ -29,6 +29,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.module.Module
 import com.lambda.module.modules.movement.elytrafly.modes.BounceElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.GeneralElytraFly
@@ -39,6 +40,9 @@ import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.player.MovementUtils.addSpeed
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.sound.SoundEvents
+import net.minecraft.util.math.Vec3d
+import kotlin.math.abs
+import kotlin.math.sin
 
 object ElytraFly : Module(
     name = "ElytraFly",
@@ -51,15 +55,17 @@ object ElytraFly : Module(
             to.elytraFly.onEnableListeners.forEach { it() }
         }
 
-    private val boostSpeed by setting("Boost", 0.00, 0.0..0.5, 0.005, description = "Speed to add when flying")
+    private val boostSpeed by setting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you")
+    private val angledRocketBoost by setting("Angled Rocket Boost", true, description = "Automatically scale the firework rocket boost based on your pitch angle")
+    private val maxAngledBoost by setting("Max Angled Boost", 0.75, 0.0..5.0, 0.05, description = "Additional speed added on top of your base rocket speed when flying diagonally at exactly 45 degrees") { angledRocketBoost }
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
     @JvmStatic val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
 
     private const val BOUNCE_TAB = "Bounce"
-    private const val CONTROL_TAB = "Control"
+//    private const val CONTROL_TAB = "Control"
     private const val GRIM_CONTROL_TAB = "Grim Control"
-    private const val PACKET_TAB = "Packet"
+//    private const val PACKET_TAB = "Packet"
     private const val GENERAL_TAB = "None"
 
     @Tab(GENERAL_TAB) @JvmStatic val generalMode by configBlock(GeneralElytraFly(this))
@@ -101,10 +107,18 @@ object ElytraFly : Module(
 
     @JvmStatic
     fun boostRocket() = runSafe {
-	    val vec = player.rotationVector
+	    val rot = RotationManager.activeRotation
+        
+        var targetSpeed = 1.5 * rocketSpeed
+        if (angledRocketBoost) {
+            val scale = sin(Math.toRadians(abs(rot.pitch) * 2.0))
+            targetSpeed = (1.5 * rocketSpeed) + (maxAngledBoost * scale)
+        }
+
+	    val vec = Vec3d.fromPolar(rot.pitchF, rot.yawF)
 	    val velocity = player.velocity
 
-	    val d = 1.5 * rocketSpeed
+	    val d = targetSpeed
 	    val e = 0.1 * rocketSpeed
 
 	    player.velocity = velocity.add(

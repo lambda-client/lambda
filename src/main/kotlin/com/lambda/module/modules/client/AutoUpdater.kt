@@ -72,13 +72,13 @@ object AutoUpdater : Module(
                 ImGuiWindowFlags.NoScrollWithMouse
 
     init {
-        onEnable {
+        onEnableUnsafe {
             if (mc.currentScreen is LambdaScreen && !showUninstallModal)
                 showInstallModal = true
             showUninstallModal = false
         }
 
-        onDisable {
+        onDisableUnsafe {
             if (mc.currentScreen is LambdaScreen && !showInstallModal)
                 showUninstallModal = true
             showInstallModal = false
@@ -266,8 +266,8 @@ object AutoUpdater : Module(
 
             if (debug) debug("Downloading client for MC $mcVersion from ${branch.name} branch")
 
-            var version: String? = null
-            var baseUrl: String? = null
+            var version: String?
+            var baseUrl: String?
 
             when (branch) {
                 Branch.Stable -> {
@@ -305,7 +305,7 @@ object AutoUpdater : Module(
         try {
             val xml = URI(url).toURL().readText()
             parseLatestVersion(xml, mcVersion)
-        } catch (e: java.io.FileNotFoundException) {
+        } catch (_: java.io.FileNotFoundException) {
             if (debug) warn("Metadata not found at $url (repo might be empty)")
             null
         } catch (e: Exception) {
