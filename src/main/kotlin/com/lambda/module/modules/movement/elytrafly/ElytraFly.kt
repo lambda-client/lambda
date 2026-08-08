@@ -58,7 +58,7 @@ object ElytraFly : Module(
     private val boostSpeed by setting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you")
     private val angledRocketBoost by setting("Angled Rocket Boost", true, description = "Automatically scale the firework rocket boost based on your pitch angle")
-    private val maxAngledBoost by setting("Max Angled Boost", 0.75, 0.0..5.0, 0.05, description = "Additional speed added on top of your base rocket speed when flying diagonally at exactly 45 degrees") { angledRocketBoost }
+    private val maxAngledBoost by setting("Max Angled Boost", 0.75, 0.0..5.0, 0.01, description = "Additional speed added on top of your base rocket speed when flying diagonally at exactly 45 degrees") { angledRocketBoost }
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
     @JvmStatic val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
 
@@ -106,27 +106,28 @@ object ElytraFly : Module(
     }
 
     @JvmStatic
-    fun boostRocket() = runSafe {
-	    val rot = RotationManager.activeRotation
-        
-        var targetSpeed = 1.5 * rocketSpeed
-        if (angledRocketBoost) {
-            val scale = sin(Math.toRadians(abs(rot.pitch) * 2.0))
-            targetSpeed = (1.5 * rocketSpeed) + (maxAngledBoost * scale)
+    fun boostRocket() =
+        runSafe {
+            val rot = RotationManager.activeRotation
+
+            var targetSpeed = 1.5 * rocketSpeed
+            if (angledRocketBoost) {
+                val scale = sin(Math.toRadians(abs(rot.pitch) * 2.0))
+                targetSpeed = (1.5 * rocketSpeed) + (maxAngledBoost * scale)
+            }
+
+	        val vec = Vec3d.fromPolar(rot.pitchF, rot.yawF)
+	        val velocity = player.velocity
+
+	        val d = targetSpeed
+	        val e = 0.1 * rocketSpeed
+
+	        player.velocity = velocity.add(
+	    	    vec.x * e + (vec.x * d - velocity.x) * 0.5,
+	    	    vec.y * e + (vec.y * d - velocity.y) * 0.5,
+	    	    vec.z * e + (vec.z * d - velocity.z) * 0.5
+	        )
         }
-
-	    val vec = Vec3d.fromPolar(rot.pitchF, rot.yawF)
-	    val velocity = player.velocity
-
-	    val d = targetSpeed
-	    val e = 0.1 * rocketSpeed
-
-	    player.velocity = velocity.add(
-		    vec.x * e + (vec.x * d - velocity.x) * 0.5,
-		    vec.y * e + (vec.y * d - velocity.y) * 0.5,
-		    vec.z * e + (vec.z * d - velocity.z) * 0.5
-	    )
-    }
 
     enum class FlyMode(private val elytraFlyGetter: () -> ElytraFlyMode) {
         Bounce({ bounceMode }),

@@ -89,7 +89,7 @@ class GrimControlElytraFly(
 			if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
 
 			val prevStill = still
-			still = (vec.lengthSquared() < 1e-4 || Freecam.isEnabled)
+			still = vec.lengthSquared() < 1e-4 || Freecam.isEnabled
 			if (still) moving = false
 
 			if (still && flipFlopMode != FlipFlopMode.Full) {
@@ -99,22 +99,29 @@ class GrimControlElytraFly(
 			} else {
 				if (fireworkTimer.timePassed(lastDuration.seconds - safetyMargin.seconds)) {
 					val firework = findFirework()
-					hasFirework = firework != null
-					if (firework == null) return@listen
+					if (firework == null) {
+						hasFirework = false
+						return@listen
+					}
 					lastDuration = (firework.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
 					startFirework(inventory)
 					fireworkTimer.reset()
+				} else {
+					hasFirework = hasFirework or player.hasFirework
 				}
 			}
 
 			if (still) {
 				rotationRequest { rotation(if (flipFlop) 0.0 else 180.0, 0.0) }.submit()
 				flipFlop = !flipFlop
-			} else {
+				return@listen
+			}
+
+			val rot = vec.yawAndPitch
+			rotationRequest { rotation(rot.y, rot.x) }.submit()
+			if (hasFirework) {
 				moving = true
-				if (prevStill && !player.hasFirework) player.velocity = Vec3d.ZERO
-				val rot = vec.yawAndPitch
-				rotationRequest { rotation(rot.y, rot.x) }.submit()
+				if (prevStill) player.velocity = Vec3d.ZERO
 			}
 		}
 
