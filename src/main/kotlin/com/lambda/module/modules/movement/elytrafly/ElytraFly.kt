@@ -106,6 +106,19 @@ object ElytraFly : Module(
     }
 
     @JvmStatic
+    fun getFireworkTargetVelocity(rotPitch: Float, rotYaw: Float): Vec3d {
+        var targetSpeed = 1.5 * rocketSpeed
+        if (angledRocketBoost) {
+            val scale = sin(Math.toRadians(abs(rotPitch) * 2.0))
+            targetSpeed = (1.5 * rocketSpeed) + (maxAngledBoost * scale)
+        }
+        val vec = Vec3d.fromPolar(rotPitch, rotYaw)
+        val d = targetSpeed
+        val e = 0.1 * rocketSpeed
+        return vec.multiply(d + e * 2)
+    }
+
+    @JvmStatic
     fun boostRocket() =
         runSafe {
             val rot = RotationManager.activeRotation

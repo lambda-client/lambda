@@ -27,6 +27,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.modules.movement.BetterFirework.startFirework
+import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode
 import com.lambda.module.modules.render.Freecam
@@ -121,7 +122,10 @@ class GrimControlElytraFly(
 			rotationRequest { rotation(rot.y, rot.x) }.submit()
 			if (hasFirework) {
 				moving = true
-				if (prevStill) player.velocity = Vec3d.ZERO
+				if (prevStill) {
+					val activeRot = RotationManager.activeRotation
+					player.velocity = ElytraFly.getFireworkTargetVelocity(activeRot.pitchF, activeRot.yawF)
+				}
 			}
 		}
 
