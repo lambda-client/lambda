@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.movement.elytrafly
 
+import com.lambda.context.SafeContext
+import com.lambda.interaction.managers.rotating.RotationManager
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import kotlin.math.asin
@@ -26,19 +28,18 @@ import kotlin.math.min
 import kotlin.math.sin
 
 object GrimFireworkBox {
-    fun computeFireworksBounds(
+    context(safeContext: SafeContext)
+    fun getFireworkBounds(
 	    lastKnownClientVelocity: Vec3d,
 	    currentRotation: Vec3d,
-	    lastSentPitch: Float,
-	    lastSentYaw: Float,
 	    lastMovementIncludedPosition: Boolean,
-	    rescaleAmount: Double,
-	    gravity: Double
+	    rescaleAmount: Double
     ): DoubleArray? {
-        val simulatedVelocity = calculateGlidingVelocity(lastKnownClientVelocity, currentRotation, gravity)
+        val simulatedVelocity = calcGlidingVelocity(lastKnownClientVelocity, currentRotation, safeContext.player.finalGravity)
 
+        val serverRot = RotationManager.serverRotation
         val currentLook = currentRotation.normalize()
-        val lastLook = Vec3d.fromPolar(lastSentPitch, lastSentYaw).normalize()
+        val lastLook = Vec3d.fromPolar(serverRot.pitchF, serverRot.yawF).normalize()
         val antiTickSkipping = if (lastMovementIncludedPosition) 0.05 else 0.0
 
         var minX = min(-antiTickSkipping, currentLook.x) + min(-antiTickSkipping, lastLook.x)
@@ -67,7 +68,7 @@ object GrimFireworkBox {
         )
     }
 
-    fun calculateGlidingVelocity(oldVelocity: Vec3d, rotation: Vec3d, gravity: Double): Vec3d {
+    fun calcGlidingVelocity(oldVelocity: Vec3d, rotation: Vec3d, gravity: Double): Vec3d {
         val horizontalLookLength = rotation.horizontalLength()
         val horizontalSpeed = oldVelocity.horizontalLength()
         val pitch = asin(MathHelper.clamp(-rotation.y, -1.0, 1.0)).toFloat()

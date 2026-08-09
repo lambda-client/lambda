@@ -40,7 +40,6 @@ import com.lambda.util.Timer
 import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.extension.prevPos
 import com.lambda.util.player.MovementUtils.addSpeed
-import com.lambda.util.player.PlayerUtils.hasFirework
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.MovementType
 import net.minecraft.item.Items
@@ -68,7 +67,7 @@ object ElytraFly : Module(
     private val boostSpeed by setting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you")
     private val grimRocketBoost by setting("Grim Rocket Boost", true, description = "Automatically scale the firework rocket boost based on your pitch angle")
-    private val maxGrimBoost by setting("Max Grim Boost", 10.0, 0.0..10.0, 0.01, description = "Maximum additional speed the firework boost can add on top of the base rocket speed") { grimRocketBoost }
+    private val maxGrimBoost by setting("Max Grim Boost", 3.0, 0.0..3.0, 0.01, description = "Maximum additional speed the firework boost can add on top of the base rocket speed") { grimRocketBoost }
     private val safetyMargin by setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
     @JvmStatic val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
@@ -91,17 +90,14 @@ object ElytraFly : Module(
 
     // Last sent movement packet state, used to rebuild Grim's firework prediction box.
     private var lastMovementIncludedPosition = true
-    private var lastKnownClientVelocity = Vec3d.ZERO
-    private var hasMovementState = false
+    private var prevVelocity = Vec3d.ZERO
     private var targetVelocity: Vec3d? = null
 
     // Shared firework tracking. Vanilla can briefly drop the firework entity for a tick,
-    // so once a firework is used we hold this true until its flight duration runs out.
+    // so once a firework is used, we hold this true until its flight duration runs out.
     private val fireworkTimer = Timer()
     private var lastFireworkDuration = -1.0
     @JvmStatic var hasFirework = false
-    private var fireworkConfirmed = false
-    private var fireworkReady = false
 
     init {
         setDefaultAutomationConfig()
@@ -112,12 +108,9 @@ object ElytraFly : Module(
 
         onEnable {
             mode.elytraFly.onEnableListeners.forEach { it() }
-            lastKnownClientVelocity = Vec3d.ZERO
-            hasMovementState = false
+            prevVelocity = Vec3d.ZERO
             targetVelocity = null
             hasFirework = false
-            fireworkConfirmed = false
-            fireworkReady = false
             fireworkTimer.reset()
             lastFireworkDuration = -1.0
         }
@@ -126,16 +119,10 @@ object ElytraFly : Module(
         listen<TickEvent.Pre>(priority = { 1 }) {
             if (!player.isGliding) {
                 hasFirework = false
-                fireworkConfirmed = false
-                fireworkReady = false
                 return@listen
             }
             if (fireworkTimer.timePassed((lastFireworkDuration - safetyMargin).seconds)) {
                 hasFirework = false
-                fireworkConfirmed = false
-                fireworkReady = false
-            } else if (player.hasFirework) {
-                fireworkConfirmed = true
             }
         }
 
@@ -151,22 +138,19 @@ object ElytraFly : Module(
 
         listen<TickEvent.Pre> {
             if (!grimRocketBoost) return@listen
-            if (!player.isGliding || !hasFirework || !fireworkConfirmed || !fireworkReady || !hasMovementState) return@listen
+            if (!player.isGliding || !hasFirework || mode.elytraFly.pausingMovement()) return@listen
 
             val aiming = Vec3d.fromPolar(
                 RotationManager.movementPitch ?: player.pitch,
                 RotationManager.movementYaw ?: player.yaw,
             )
-            val serverRot = RotationManager.serverRotation
-            val bounds = GrimFireworkBox.computeFireworksBounds(
-                lastKnownClientVelocity,
-                aiming,
-                serverRot.pitchF,
-                serverRot.yawF,
-                lastMovementIncludedPosition,
-                EXPLOIT_RESCALE,
-                player.finalGravity,
-            ) ?: return@listen
+            val bounds =
+                GrimFireworkBox.getFireworkBounds(
+                    prevVelocity,
+                    aiming,
+                    lastMovementIncludedPosition,
+                    EXPLOIT_RESCALE
+                ) ?: return@listen
             val claimed = farthestPointInBox(bounds, aiming)?.let { limitSpeed(it) } ?: return@listen
 
             targetVelocity = claimed
@@ -179,11 +163,9 @@ object ElytraFly : Module(
                 val prevPos = player.prevPos
                 val next = Vec3d(packet.getX(prevPos.x), packet.getY(prevPos.y), packet.getZ(prevPos.z))
                 val delta = next.subtract(prevPos)
-                if (hasMovementState) lastKnownClientVelocity = delta
-                if (fireworkConfirmed) fireworkReady = true
+                prevVelocity = delta
             }
             lastMovementIncludedPosition = packet.changesPosition()
-            hasMovementState = true
         }
 
         listen<MovementEvent.Entity.Pre> { event ->

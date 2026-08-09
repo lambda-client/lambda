@@ -67,7 +67,7 @@ class GrimControlElytraFly(
 	private val stillTickTimer = TickTimer()
 
 	init {
-		listen<TickEvent.Pre> {
+		listen<TickEvent.Pre>({ 1 }) {
 			if (!player.isGliding) return@listen
 
 			if (fakeGliding) flyOrFakeFly()
@@ -92,32 +92,36 @@ class GrimControlElytraFly(
 				specificYaw = true
 			}
 			if (mc.options.jumpKey.isPressed) {
-				val yaw = if (specificYaw) vec.yawAndPitch.y else player.yaw
-				vec = Vec3d.fromPolar(-upDownAngle, yaw)
+				vec =
+					if (specificYaw) Vec3d.fromPolar(-upDownAngle, vec.yawAndPitch.y)
+					else Vec3d.fromPolar(-90f, yaw)
 			}
 			if (mc.options.sneakKey.isPressed) {
-				val yaw = if (specificYaw) vec.yawAndPitch.y else player.yaw
-				vec = Vec3d.fromPolar(upDownAngle, yaw)
+				vec =
+					if (specificYaw) Vec3d.fromPolar(upDownAngle, vec.yawAndPitch.y)
+					else Vec3d.fromPolar(90f, yaw)
 			}
 
 			val prevStill = still
 			still = vec.lengthSquared() < 1e-4 || Freecam.isEnabled
-			if (still) moving = false
 
 			if (still) {
+				moving = false
 				if (!flipFlopMode.isFlipFlopping(hasFirework)) {
 					stillTickTimer.tick()
 					return@listen
 				}
 				rotationRequest { rotation(if (flipFlop) 0.0 else 180.0, 0.0) }.submit()
 				flipFlop = !flipFlop
-				return@listen
+				if (flipFlopMode == FlipFlopMode.WithFirework) return@listen
 			}
 
 			if (!hasFirework) {
 				if (findFirework() == null) return@listen
 				startFirework(inventory)
 			}
+
+			if (still) return@listen
 
 			val rot = vec.yawAndPitch
 			rotationRequest { rotation(rot.y, rot.x) }.submit()
@@ -152,4 +156,6 @@ class GrimControlElytraFly(
 		val stack = Items.FIREWORK_ROCKET.select()
 		return stack.bestItemMatch(player.hotbarStacks) ?: if (inventory) stack.bestItemMatch(player.inventoryStacks) else null
 	}
+
+	override fun pausingMovement() = still
 }
