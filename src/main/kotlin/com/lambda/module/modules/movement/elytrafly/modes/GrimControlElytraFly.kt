@@ -29,27 +29,24 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
+import com.lambda.module.modules.movement.elytrafly.ElytraFly.hasFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode
 import com.lambda.module.modules.render.Freecam
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
-import com.lambda.util.Timer
 import com.lambda.util.math.MathUtils.toFloat
-import com.lambda.util.player.PlayerUtils.hasFirework
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.player.SlotUtils.inventoryStacks
-import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.util.math.Vec3d
-import kotlin.time.Duration.Companion.seconds
 
 class GrimControlElytraFly(
 	override val c: Config
 ) : ElytraFlyMode(FlyMode.GrimControl) {
 	private val inventory by c.setting("Inventory", true, "Allow using fireworks from the players inventory")
-	private val safetyMargin by c.setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
+	private val upDownAngle by c.setting("Up/Down Angle", 33f, 0f..90f, 0.1f)
 	val flipFlopMode by c.setting("Flip Flop Mode", FlipFlopMode.None)
 	private val packetGap by c.setting("Packet Gap", 20, 0..100, 1, "The gap between allowing player movement packets to pass") { flipFlopMode != FlipFlopMode.None }
 
@@ -65,13 +62,8 @@ class GrimControlElytraFly(
 
 	private var flipFlop = false
 	private var rotFlipFlop = false
-	private var lastDuration = -1.0
-	private val fireworkTimer = Timer()
 	var still = false
 	var moving = false
-	// Seems to be a weird bug with fireworks not showing every second or so i'd say.
-	// This ensures it stays constant to avoid random stutters
-	var hasFirework = false
 	private val stillTickTimer = TickTimer()
 
 	init {
@@ -82,40 +74,49 @@ class GrimControlElytraFly(
 
 			var vec = Vec3d.ZERO
 			val yaw = player.yaw
-			if (mc.options.forwardKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw))
-			if (mc.options.backKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 180f))
-			if (mc.options.leftKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw - 90f))
-			if (mc.options.rightKey.isPressed) vec = vec.add(Vec3d.fromPolar(0f, yaw + 90f))
-			if (mc.options.jumpKey.isPressed) vec = vec.add(Vec3d(0.0, 1.0, 0.0))
-			if (mc.options.sneakKey.isPressed) vec = vec.add(Vec3d(0.0, -1.0, 0.0))
+			var specificYaw = false
+			if (mc.options.forwardKey.isPressed) {
+				vec = vec.add(Vec3d.fromPolar(0f, yaw))
+				specificYaw = true
+			}
+			if (mc.options.backKey.isPressed) {
+				vec = vec.add(Vec3d.fromPolar(0f, yaw + 180f))
+				specificYaw = true
+			}
+			if (mc.options.leftKey.isPressed) {
+				vec = vec.add(Vec3d.fromPolar(0f, yaw - 90f))
+				specificYaw = true
+			}
+			if (mc.options.rightKey.isPressed) {
+				vec = vec.add(Vec3d.fromPolar(0f, yaw + 90f))
+				specificYaw = true
+			}
+			if (mc.options.jumpKey.isPressed) {
+				val yaw = if (specificYaw) vec.yawAndPitch.y else player.yaw
+				vec = Vec3d.fromPolar(-upDownAngle, yaw)
+			}
+			if (mc.options.sneakKey.isPressed) {
+				val yaw = if (specificYaw) vec.yawAndPitch.y else player.yaw
+				vec = Vec3d.fromPolar(upDownAngle, yaw)
+			}
 
 			val prevStill = still
 			still = vec.lengthSquared() < 1e-4 || Freecam.isEnabled
 			if (still) moving = false
 
-			if (still && flipFlopMode != FlipFlopMode.Full) {
-				stillTickTimer.tick()
-				hasFirework = player.hasFirework
-				if (!flipFlopMode.isFlipFlopping(hasFirework)) return@listen
-			} else {
-				if (fireworkTimer.timePassed(lastDuration.seconds - safetyMargin.seconds)) {
-					val firework = findFirework()
-					if (firework == null) {
-						hasFirework = false
-						return@listen
-					}
-					lastDuration = (firework.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
-					startFirework(inventory)
-					fireworkTimer.reset()
-				} else {
-					hasFirework = hasFirework or player.hasFirework
-				}
-			}
-
 			if (still) {
+				if (!flipFlopMode.isFlipFlopping(hasFirework)) {
+					stillTickTimer.tick()
+					return@listen
+				}
 				rotationRequest { rotation(if (flipFlop) 0.0 else 180.0, 0.0) }.submit()
 				flipFlop = !flipFlop
 				return@listen
+			}
+
+			if (!hasFirework) {
+				if (findFirework() == null) return@listen
+				startFirework(inventory)
 			}
 
 			val rot = vec.yawAndPitch

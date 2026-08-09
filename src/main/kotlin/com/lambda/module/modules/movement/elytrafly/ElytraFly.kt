@@ -36,13 +36,23 @@ import com.lambda.module.modules.movement.elytrafly.modes.GeneralElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.GrimControlElytraFly
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.Timer
 import com.lambda.util.extension.isElytraFlying
+import com.lambda.util.extension.prevPos
 import com.lambda.util.player.MovementUtils.addSpeed
+import com.lambda.util.player.PlayerUtils.hasFirework
+import net.minecraft.component.DataComponentTypes
+import net.minecraft.entity.MovementType
+import net.minecraft.item.Items
+import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
-import kotlin.math.sin
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.time.Duration.Companion.seconds
 
 object ElytraFly : Module(
     name = "ElytraFly",
@@ -57,8 +67,9 @@ object ElytraFly : Module(
 
     private val boostSpeed by setting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
     private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you")
-    private val angledRocketBoost by setting("Angled Rocket Boost", true, description = "Automatically scale the firework rocket boost based on your pitch angle")
-    private val maxAngledBoost by setting("Max Angled Boost", 0.75, 0.0..5.0, 0.01, description = "Additional speed added on top of your base rocket speed when flying diagonally at exactly 45 degrees") { angledRocketBoost }
+    private val grimRocketBoost by setting("Grim Rocket Boost", true, description = "Automatically scale the firework rocket boost based on your pitch angle")
+    private val maxGrimBoost by setting("Max Grim Boost", 10.0, 0.0..10.0, 0.01, description = "Maximum additional speed the firework boost can add on top of the base rocket speed") { grimRocketBoost }
+    private val safetyMargin by setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
     @JvmStatic val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
 
@@ -67,6 +78,7 @@ object ElytraFly : Module(
     private const val GRIM_CONTROL_TAB = "Grim Control"
 //    private const val PACKET_TAB = "Packet"
     private const val GENERAL_TAB = "None"
+    private const val EXPLOIT_RESCALE = 1.65
 
     @Tab(GENERAL_TAB) @JvmStatic val generalMode by configBlock(GeneralElytraFly(this))
         .withEdits { forEachSetting { visibility { old -> { old() && mode == FlyMode.General } } } }
@@ -77,6 +89,20 @@ object ElytraFly : Module(
 //    @Tab(CONTROL_TAB) @JvmStatic val controlMode by configBlock(ControlElytraFly(this))
 //    @Tab(PACKET_TAB) @JvmStatic val packetMode by configBlock(PacketElytraFly(this))
 
+    // Last sent movement packet state, used to rebuild Grim's firework prediction box.
+    private var lastMovementIncludedPosition = true
+    private var lastKnownClientVelocity = Vec3d.ZERO
+    private var hasMovementState = false
+    private var targetVelocity: Vec3d? = null
+
+    // Shared firework tracking. Vanilla can briefly drop the firework entity for a tick,
+    // so once a firework is used we hold this true until its flight duration runs out.
+    private val fireworkTimer = Timer()
+    private var lastFireworkDuration = -1.0
+    @JvmStatic var hasFirework = false
+    private var fireworkConfirmed = false
+    private var fireworkReady = false
+
     init {
         setDefaultAutomationConfig()
             .withEdits {
@@ -84,8 +110,90 @@ object ElytraFly : Module(
 	            hideAllExcept(::inventoryConfig, ::rotationConfig)
             }
 
-        onEnable { mode.elytraFly.onEnableListeners.forEach { it() } }
+        onEnable {
+            mode.elytraFly.onEnableListeners.forEach { it() }
+            lastKnownClientVelocity = Vec3d.ZERO
+            hasMovementState = false
+            targetVelocity = null
+            hasFirework = false
+            fireworkConfirmed = false
+            fireworkReady = false
+            fireworkTimer.reset()
+            lastFireworkDuration = -1.0
+        }
         onDisable { mode.elytraFly.onDisableListeners.forEach { it() } }
+
+        listen<TickEvent.Pre>(priority = { 1 }) {
+            if (!player.isGliding) {
+                hasFirework = false
+                fireworkConfirmed = false
+                fireworkReady = false
+                return@listen
+            }
+            if (fireworkTimer.timePassed((lastFireworkDuration - safetyMargin).seconds)) {
+                hasFirework = false
+                fireworkConfirmed = false
+                fireworkReady = false
+            } else if (player.hasFirework) {
+                fireworkConfirmed = true
+            }
+        }
+
+        listen<PacketEvent.Send.Pre> { event ->
+            val packet = event.packet
+            if (packet !is PlayerInteractItemC2SPacket) return@listen
+            val stack = player.getStackInHand(packet.hand)
+            if (stack.item != Items.FIREWORK_ROCKET) return@listen
+            fireworkTimer.reset()
+            lastFireworkDuration = (stack.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
+            hasFirework = true
+        }
+
+        listen<TickEvent.Pre> {
+            if (!grimRocketBoost) return@listen
+            if (!player.isGliding || !hasFirework || !fireworkConfirmed || !fireworkReady || !hasMovementState) return@listen
+
+            val aiming = Vec3d.fromPolar(
+                RotationManager.movementPitch ?: player.pitch,
+                RotationManager.movementYaw ?: player.yaw,
+            )
+            val serverRot = RotationManager.serverRotation
+            val bounds = GrimFireworkBox.computeFireworksBounds(
+                lastKnownClientVelocity,
+                aiming,
+                serverRot.pitchF,
+                serverRot.yawF,
+                lastMovementIncludedPosition,
+                EXPLOIT_RESCALE,
+                player.finalGravity,
+            ) ?: return@listen
+            val claimed = farthestPointInBox(bounds, aiming)?.let { limitSpeed(it) } ?: return@listen
+
+            targetVelocity = claimed
+            player.velocity = claimed
+        }
+
+        listen<PacketEvent.Send.Post> { event ->
+            val packet = event.packet as? PlayerMoveC2SPacket ?: return@listen
+            if (packet.changesPosition()) {
+                val prevPos = player.prevPos
+                val next = Vec3d(packet.getX(prevPos.x), packet.getY(prevPos.y), packet.getZ(prevPos.z))
+                val delta = next.subtract(prevPos)
+                if (hasMovementState) lastKnownClientVelocity = delta
+                if (fireworkConfirmed) fireworkReady = true
+            }
+            lastMovementIncludedPosition = packet.changesPosition()
+            hasMovementState = true
+        }
+
+        listen<MovementEvent.Entity.Pre> { event ->
+            if (event.entity != player || !player.isGliding) return@listen
+            val velocity = targetVelocity ?: return@listen
+            targetVelocity = null
+            player.velocity = velocity
+            player.move(MovementType.SELF, velocity)
+            event.cancel()
+        }
 
         listen<PacketEvent.Receive.Pre> { event ->
             if (event.packet !is PlayerPositionLookS2CPacket) return@listen
@@ -107,13 +215,8 @@ object ElytraFly : Module(
 
     @JvmStatic
     fun getFireworkTargetVelocity(rotPitch: Float, rotYaw: Float): Vec3d {
-        var targetSpeed = 1.5 * rocketSpeed
-        if (angledRocketBoost) {
-            val scale = sin(Math.toRadians(abs(rotPitch) * 2.0))
-            targetSpeed = (1.5 * rocketSpeed) + (maxAngledBoost * scale)
-        }
         val vec = Vec3d.fromPolar(rotPitch, rotYaw)
-        val d = targetSpeed
+        val d = 1.5 * rocketSpeed
         val e = 0.1 * rocketSpeed
         return vec.multiply(d + e * 2)
     }
@@ -121,18 +224,10 @@ object ElytraFly : Module(
     @JvmStatic
     fun boostRocket() =
         runSafe {
-            val rot = RotationManager.activeRotation
-
-            var targetSpeed = 1.5 * rocketSpeed
-            if (angledRocketBoost) {
-                val scale = sin(Math.toRadians(abs(rot.pitch) * 2.0))
-                targetSpeed = (1.5 * rocketSpeed) + (maxAngledBoost * scale)
-            }
-
-	        val vec = Vec3d.fromPolar(rot.pitchF, rot.yawF)
+	        val vec = player.rotationVector
 	        val velocity = player.velocity
 
-	        val d = targetSpeed
+	        val d = 1.5 * rocketSpeed
 	        val e = 0.1 * rocketSpeed
 
 	        player.velocity = velocity.add(
@@ -141,6 +236,45 @@ object ElytraFly : Module(
 	    	    vec.z * e + (vec.z * d - velocity.z) * 0.5
 	        )
         }
+
+    private fun farthestPointInBox(bounds: DoubleArray, aim: Vec3d): Vec3d? {
+        val center = Vec3d(
+            (bounds[0] + bounds[3]) / 2.0,
+            (bounds[1] + bounds[4]) / 2.0,
+            (bounds[2] + bounds[5]) / 2.0,
+        )
+        val direction = aim.normalize()
+        var near = Double.NEGATIVE_INFINITY
+        var far = Double.POSITIVE_INFINITY
+	    repeat(3) { axis ->
+		    val origin = if (axis == 0) center.x else if (axis == 1) center.y else center.z
+		    val min = bounds[axis]
+		    val max = bounds[axis + 3]
+		    val d = if (axis == 0) direction.x else if (axis == 1) direction.y else direction.z
+		    if (abs(d) < 1e-12) {
+			    if (origin !in min..max) return null
+			    return@repeat
+		    }
+		    var entry = (min - origin) / d
+		    var exit = (max - origin) / d
+		    if (entry > exit) {
+			    val tmp = entry
+			    entry = exit
+			    exit = tmp
+		    }
+		    near = max(near, entry)
+		    far = min(far, exit)
+	    }
+        if (near > far) return null
+        return center.add(direction.multiply(far))
+    }
+
+    private fun limitSpeed(velocity: Vec3d): Vec3d {
+        val maxSpeed = 1.7 * rocketSpeed + maxGrimBoost
+        val length = velocity.length()
+        if (length <= maxSpeed) return velocity
+        return velocity.multiply(maxSpeed / length)
+    }
 
     enum class FlyMode(private val elytraFlyGetter: () -> ElytraFlyMode) {
         Bounce({ bounceMode }),
