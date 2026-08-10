@@ -47,7 +47,8 @@ class GrimControlElytraFly(
 	override val c: Config
 ) : ElytraFlyMode(FlyMode.GrimControl) {
 	private val inventory by c.setting("Inventory", true, "Allow using fireworks from the players inventory")
-	private val upDownAngle by c.setting("Up/Down Angle", 20f, 0f..90f, 0.1f)
+	private val upAngle by c.setting("Up Angle", 45f, 0f..90f, 0.1f)
+	private val downAngle by c.setting("Down Angle", 20f, 0f..90f, 0.1f)
 	val flipFlopMode by c.setting("Flip Flop Mode", FlipFlopMode.None)
 	private val packetGap by c.setting("Packet Gap", 20, 0..100, 1, "The gap between allowing player movement packets to pass") { flipFlopMode != FlipFlopMode.None }
 
@@ -94,12 +95,12 @@ class GrimControlElytraFly(
 			}
 			if (mc.options.jumpKey.isPressed) {
 				vec =
-					if (specificYaw) Vec3d.fromPolar(-upDownAngle, vec.yawAndPitch.y)
+					if (specificYaw) Vec3d.fromPolar(-upAngle, vec.yawAndPitch.y)
 					else Vec3d.fromPolar(-90f, yaw)
 			}
 			if (mc.options.sneakKey.isPressed) {
 				vec =
-					if (specificYaw) Vec3d.fromPolar(upDownAngle, vec.yawAndPitch.y)
+					if (specificYaw) Vec3d.fromPolar(downAngle, vec.yawAndPitch.y)
 					else Vec3d.fromPolar(90f, yaw)
 			}
 

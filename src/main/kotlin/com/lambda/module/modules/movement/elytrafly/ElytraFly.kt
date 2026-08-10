@@ -67,8 +67,8 @@ object ElytraFly : Module(
         }
 
     enum class RocketBoostMode(override val displayName: String): NamedEnum {
-        Standard("$this"),
-        Grim("$this")
+        Standard("Standard"),
+        Grim("Grim")
     }
 
     private val boostSpeed by setting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
