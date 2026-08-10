@@ -36,6 +36,7 @@ import com.lambda.module.modules.movement.elytrafly.modes.GeneralElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.GrimControlElytraFly
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.NamedEnum
 import com.lambda.util.Timer
 import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.extension.prevPos
@@ -65,10 +66,15 @@ object ElytraFly : Module(
             to.elytraFly.onEnableListeners.forEach { it() }
         }
 
+    enum class RocketBoostMode(override val displayName: String): NamedEnum {
+        Standard("$this"),
+        Grim("$this")
+    }
+
     private val boostSpeed by setting("Boost", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying")
-    private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you")
-    private val grimRocketBoost by setting("Grim Rocket Boost", true, description = "Automatically scale the firework rocket boost based on your pitch angle")
-    private val maxGrimBoost by setting("Max Grim Boost", 3.0, 0.0..3.0, 0.01, description = "Maximum additional speed the firework boost can add on top of the base rocket speed") { grimRocketBoost }
+    @JvmStatic val rocketBoostMode by setting("Rocket Boost Mode", RocketBoostMode.Grim)
+    private val rocketSpeed by setting("Rocket Speed", 1.0, 0.0..2.0, 0.01, description = "Speed multiplier that the rocket gives you") { rocketBoostMode == RocketBoostMode.Standard }
+    private val maxGrimBoost by setting("Max Grim Boost", 3.0, 0.0..3.0, 0.01, description = "Maximum additional speed the firework boost can add on top of the base rocket speed") { rocketBoostMode == RocketBoostMode.Grim }
     private val safetyMargin by setting("Safety Margin", 0.2, 0.0..2.0, 0.01, "The time (in seconds) to shorten the firework use delay to account for ping variation", "s")
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
     @JvmStatic val fakeFly by setting("Fake Fly", false, "Rapidly swaps the chestplate and elytra to give the appearance the player is flying without an elytra. May also reduce durability loss")
@@ -78,7 +84,8 @@ object ElytraFly : Module(
     private const val GRIM_CONTROL_TAB = "Grim Control"
 //    private const val PACKET_TAB = "Packet"
     private const val GENERAL_TAB = "None"
-    private const val EXPLOIT_RESCALE = 1.65
+
+    private const val GRIM_ROCKET_BOOST_RESCALE = 1.65
 
     @Tab(GENERAL_TAB) @JvmStatic val generalMode by configBlock(GeneralElytraFly(this))
         .withEdits { forEachSetting { visibility { old -> { old() && mode == FlyMode.General } } } }
@@ -136,7 +143,7 @@ object ElytraFly : Module(
         }
 
         listen<TickEvent.Pre> {
-            if (!grimRocketBoost) return@listen
+            if (rocketBoostMode != RocketBoostMode.Grim) return@listen
             if (!player.isGliding || !hasFirework || mode.elytraFly.pausingMovement()) return@listen
 
             val aiming = Vec3d.fromPolar(
@@ -148,7 +155,7 @@ object ElytraFly : Module(
                     prevVelocity,
                     aiming,
                     lastMovementIncludedPosition,
-                    EXPLOIT_RESCALE
+                    GRIM_ROCKET_BOOST_RESCALE
                 ) ?: return@listen
             val claimed = farthestPointInBox(bounds, aiming)?.let { limitSpeed(it) } ?: return@listen
 
