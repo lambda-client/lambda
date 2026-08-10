@@ -30,6 +30,7 @@ import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.hasFirework
+import com.lambda.module.modules.movement.elytrafly.ElytraFly.withinFireworkTimeframe
 import com.lambda.module.modules.movement.elytrafly.ElytraFlyMode
 import com.lambda.module.modules.render.Freecam
 import com.lambda.util.NamedEnum
@@ -116,7 +117,7 @@ class GrimControlElytraFly(
 				if (flipFlopMode == FlipFlopMode.WithFirework) return@listen
 			}
 
-			if (!hasFirework) {
+			if (!hasFirework && !withinFireworkTimeframe()) {
 				if (findFirework() == null) return@listen
 				startFirework(inventory)
 			}

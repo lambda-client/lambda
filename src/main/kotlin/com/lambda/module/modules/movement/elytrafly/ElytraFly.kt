@@ -40,6 +40,7 @@ import com.lambda.util.Timer
 import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.extension.prevPos
 import com.lambda.util.player.MovementUtils.addSpeed
+import com.lambda.util.player.PlayerUtils.hasFirework
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.MovementType
 import net.minecraft.item.Items
@@ -116,14 +117,13 @@ object ElytraFly : Module(
         }
         onDisable { mode.elytraFly.onDisableListeners.forEach { it() } }
 
-        listen<TickEvent.Pre>(priority = { 1 }) {
+        listen<TickEvent.Pre>(priority = { 2 }) {
             if (!player.isGliding) {
                 hasFirework = false
                 return@listen
             }
-            if (fireworkTimer.timePassed((lastFireworkDuration - safetyMargin).seconds)) {
-                hasFirework = false
-            }
+            if (!withinFireworkTimeframe()) hasFirework = false
+            hasFirework = hasFirework || player.hasFirework
         }
 
         listen<PacketEvent.Send.Pre> { event ->
@@ -133,7 +133,6 @@ object ElytraFly : Module(
             if (stack.item != Items.FIREWORK_ROCKET) return@listen
             fireworkTimer.reset()
             lastFireworkDuration = (stack.get(DataComponentTypes.FIREWORKS)?.flightDuration ?: 1) * 0.5 + 0.5
-            hasFirework = true
         }
 
         listen<TickEvent.Pre> {
@@ -218,6 +217,8 @@ object ElytraFly : Module(
 	    	    vec.z * e + (vec.z * d - velocity.z) * 0.5
 	        )
         }
+
+    fun withinFireworkTimeframe() = !fireworkTimer.timePassed((lastFireworkDuration - safetyMargin).seconds)
 
     private fun farthestPointInBox(bounds: DoubleArray, aim: Vec3d): Vec3d? {
         val center = Vec3d(
