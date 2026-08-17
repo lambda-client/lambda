@@ -206,10 +206,6 @@ object ClickGuiLayout : Loadable, Config(
 	@Tab(COLORS_TAB) val primaryColor by setting("Primary Color", Color(130, 200, 255))
 	@Tab(COLORS_TAB) val secondaryColor by setting("Secondary Color", Color(225, 130, 225))
 
-	@Tab(COLORS_TAB) val shade by setting("Shade", true)
-	@Tab(COLORS_TAB) val colorWidth by setting("Shade Width", 200.0, 10.0..1000.0, 10.0)
-	@Tab(COLORS_TAB) val colorHeight by setting("Shade Height", 200.0, 10.0..1000.0, 10.0)
-	@Tab(COLORS_TAB) val colorSpeed by setting("Color Speed", 1.0, 0.1..5.0, 0.1)
 	@Tab(COLORS_TAB) val text by setting("Text", Color(255, 255, 255, 255))
 	@Tab(COLORS_TAB) val textDisabled by setting("Text Disabled", Color(128, 128, 128, 255))
 	@Tab(COLORS_TAB) val windowBg by setting("Window Background", Color(35, 0, 14, 240))
