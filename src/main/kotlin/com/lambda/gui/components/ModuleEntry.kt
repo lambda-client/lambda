@@ -33,13 +33,14 @@ class ModuleEntry(val module: Module): Layout {
         lambdaTooltip(module.description)
 
         val popupId = "##ctx-${module.name}"
+        val entryId = getId(popupId)
 
         onItemHover(ImGuiHoveredFlags.AllowWhenBlockedByPopup) {
-            if (isMouseClicked() && isPopupOpen(popupId)) suppressedPopupId = popupId
-            if (isMouseReleased() && suppressedPopupId != popupId) openPopup(popupId)
+            if (isMouseClicked() && isPopupOpen(popupId)) suppressedEntryId = entryId
+            if (isMouseReleased() && suppressedEntryId != entryId) openPopup(popupId)
         }
 
-        if (isMouseReleased() && suppressedPopupId == popupId) suppressedPopupId = null
+        if (isMouseReleased() && suppressedEntryId == entryId) suppressedEntryId = null
 
         ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
         popupContextItem(popupId, ImGuiPopupFlags.None) {
@@ -48,7 +49,7 @@ class ModuleEntry(val module: Module): Layout {
     }
 
     private companion object {
-        /** Popup whose reopen is pending suppression; only one item can be pressed at a time. */
-        var suppressedPopupId: String? = null
+        /** Entry whose reopen is pending suppression; only one item can be pressed at a time. */
+        var suppressedEntryId: Int? = null
     }
 }

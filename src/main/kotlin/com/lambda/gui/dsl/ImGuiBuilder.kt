@@ -176,6 +176,7 @@ annotation class ImGuiDsl
  * Kotlin DSL wrapper for ImGui Java bindings.
  * Provides a more idiomatic Kotlin interface to ImGui functionality.
  */
+@ImGuiDsl
 object ImGuiBuilder {
     /**
      * Access the IO structure (mouse/keyboard/gamepad inputs, time, various configuration options/flags).
@@ -241,7 +242,6 @@ object ImGuiBuilder {
      * @param flags Optional flags to control the behavior of the hover state. The default value is `ImGuiWindowFlags.None`.
      * @param block A lambda block of code to be executed when the window is hovered.
      */
-    @ImGuiDsl
     fun onWindowFocus(flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) =
         if (isWindowHovered(flags)) block() else Unit
 
@@ -252,7 +252,6 @@ object ImGuiBuilder {
      *              Defaults to `ImGuiWindowFlags.None`.
      * @param block The block of code to execute when the hover condition is met.
      */
-    @ImGuiDsl
     fun onWindowHover(flags: Int = ImGuiWindowFlags.None, block: ProcedureBlock) =
         if (isWindowHovered(flags)) block() else Unit
 
@@ -262,7 +261,6 @@ object ImGuiBuilder {
      * @param flags Customization flags for determining hover behavior. Defaults to `ImGuiHoveredFlags.None`.
      * @param block The block of code to execute when the item is hovered.
      */
-    @ImGuiDsl
     fun onItemHover(flags: Int = ImGuiHoveredFlags.None, block: ProcedureBlock) =
         if (isItemHovered(flags)) block() else Unit
 
@@ -271,7 +269,6 @@ object ImGuiBuilder {
      *
      * @param block The block of code to be executed when the item is active.
      */
-    @ImGuiDsl
     fun onItemActive(block: ProcedureBlock) =
         if (isItemActive()) block() else Unit
 
@@ -280,7 +277,6 @@ object ImGuiBuilder {
      *
      * @param block The block of code to execute if the current item is focused.
      */
-    @ImGuiDsl
     fun onItemFocus(block: ProcedureBlock) =
         if (isItemFocused()) block() else Unit
 
@@ -291,7 +287,6 @@ object ImGuiBuilder {
      *
      * this is NOT equivalent to the behavior of e.g. Button(). Read comments in function definition.
      */
-    @ImGuiDsl
     fun onItemClick(button: Int = ImGuiMouseButton.Right, block: ProcedureBlock) =
         if (isItemClicked(button)) block() else Unit
 
@@ -301,16 +296,26 @@ object ImGuiBuilder {
      * Unlike [onItemClick] this does not imply the last item is hovered, so it can be combined with
      * [onItemHover] to observe clicks on items that are blocked by an open popup.
      */
-    @ImGuiDsl
     fun isMouseClicked(button: Int = ImGuiMouseButton.Right, repeat: Boolean = false): Boolean =
         ImGui.isMouseClicked(button, repeat)
 
     /**
      * Returns whether [button] was released this frame, regardless of what is hovered.
      */
-    @ImGuiDsl
     fun isMouseReleased(button: Int = ImGuiMouseButton.Right): Boolean =
         ImGui.isMouseReleased(button)
+
+    /**
+     * Returns whether the current window is hovered.
+     */
+    fun isWindowHovered(flags: Int = ImGuiHoveredFlags.None): Boolean =
+        ImGui.isWindowHovered(flags)
+
+    /**
+     * Resolves [strId] against the current window and ID stack, so the same string used in two
+     * places yields two distinct ids.
+     */
+    fun getId(strId: String): Int = ImGui.getID(strId)
 
     /**
      * Returns whether:
@@ -360,10 +365,8 @@ object ImGuiBuilder {
     /**
      * Add basic help/info block (not a window) on how to manipulate ImGui as an end-user (mouse/keyboard controls).
      */
-    @ImGuiDsl
     fun showUserGuide() = ImGui.showUserGuide()
 
-    @ImGuiDsl
     inline fun window(
         name: String,
         open: KMutableProperty0<Boolean>,
@@ -372,7 +375,6 @@ object ImGuiBuilder {
     ) =
         withBool(open) { window(name, it, flags, block) }
 
-    @ImGuiDsl
     inline fun window(
         name: String,
         open: ImBoolean? = null,
@@ -387,7 +389,6 @@ object ImGuiBuilder {
         end()
     }
 
-    @ImGuiDsl
     inline fun child(
         strId: String,
         width: Float = 0f,
@@ -402,7 +403,6 @@ object ImGuiBuilder {
         endChild()
     }
 
-    @ImGuiDsl
     inline fun child(
         strId: String,
         width: Float = 0f,
@@ -426,7 +426,6 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    @ImGuiDsl
     fun text(text: String) = textUnformatted(text)
 
     /**
@@ -434,7 +433,6 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    @ImGuiDsl
     fun textColored(text: String, color: Color) {
         val floats = floatArrayOf(0f, 0f, 0f, 0f)
         val (r, g, b, a) = color.getColorComponents(floats)
@@ -446,7 +444,6 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    @ImGuiDsl
     fun textDisabled(text: String) = ImGui.textDisabled(text)
 
     /**
@@ -454,7 +451,6 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    @ImGuiDsl
     fun textCopyable(text: String) {
         text(text)
         onItemHover {
@@ -472,7 +468,6 @@ object ImGuiBuilder {
      *
      * @see <a href="https://man.freebsd.org/cgi/man.cgi?query=sprintf">printf() family functions
      */
-    @ImGuiDsl
     fun textFmt(fmt: String, vararg args: Any) = text(fmt.format(*args))
 
     /**
@@ -480,7 +475,6 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    @ImGuiDsl
     fun bulletText(text: String) = ImGui.bulletText(text)
 
     /**
@@ -488,7 +482,6 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    @ImGuiDsl
     fun textRightAligned(text: String) {
         val width = calcTextSize(text).x
         setCursorPosX(windowWidth - width - style.framePadding.x)
@@ -503,7 +496,6 @@ object ImGuiBuilder {
      * @param height Height of the button (0.0f = auto)
      * @param block Action to perform when clicked
      */
-    @ImGuiDsl
     inline fun button(label: String, width: Float = 0f, height: Float = 0f, block: ProcedureBlock = {}) {
         if (ImGui.button(label, width, height))
             block()
@@ -515,7 +507,6 @@ object ImGuiBuilder {
      * @param label The button text
      * @param block Action to perform when clicked
      */
-    @ImGuiDsl
     inline fun smallButton(label: String, block: ProcedureBlock = {}) {
         if (ImGui.smallButton(label))
             block()
@@ -530,7 +521,6 @@ object ImGuiBuilder {
      * @param flags Button flags
      * @param block Action to perform when clicked
      */
-    @ImGuiDsl
     inline fun invisibleButton(strId: String, width: Float, height: Float, flags: Int = 0, block: ProcedureBlock = {}) {
         if (ImGui.invisibleButton(strId, width, height, flags))
             block()
@@ -545,7 +535,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiDir
      */
-    @ImGuiDsl
     inline fun arrowButton(strId: String, dir: Int = ImGuiDir.None, block: ProcedureBlock = {}) {
         if (ImGui.arrowButton(strId, dir))
             block()
@@ -558,7 +547,6 @@ object ImGuiBuilder {
      * @param bool Boolean property to bind to
      * @param block Action to perform when changed
      */
-    @ImGuiDsl
     inline fun checkbox(label: String, bool: KMutableProperty0<Boolean>, block: ProcedureBlock = {}) =
         withBool(bool) { checkbox(label, it, block) }
 
@@ -569,7 +557,6 @@ object ImGuiBuilder {
      * @param bool ImBoolean to bind to
      * @param block Action to perform if checked
      */
-    @ImGuiDsl
     inline fun checkbox(label: String, bool: ImBoolean, block: ProcedureBlock = {}) {
         if (ImGui.checkbox(label, bool)) block()
     }
@@ -582,7 +569,6 @@ object ImGuiBuilder {
      * @param items Items in the group
      * @param block Action to perform when selection changes
      */
-    @ImGuiDsl
     inline fun <T> radioButtons(
         label: String,
         current: KMutableProperty0<T>,
@@ -608,12 +594,10 @@ object ImGuiBuilder {
      * @param active Whether the button is active
      * @param block Action to perform when clicked
      */
-    @ImGuiDsl
     inline fun radioButton(label: String, active: Boolean, block: ProcedureBlock = {}) {
         if (ImGui.radioButton(label, active)) block()
     }
 
-    @ImGuiDsl
     inline fun combo(
         label: String,
         preview: String?,
@@ -635,7 +619,6 @@ object ImGuiBuilder {
      * @param heightInItems Height in items (-1 = auto)
      * @param block Action to perform when selection changes
      */
-    @ImGuiDsl
     inline fun combo(
         label: String,
         currentItem: KMutableProperty0<Int>,
@@ -644,7 +627,6 @@ object ImGuiBuilder {
         block: (ImInt) -> Unit = {},
     ) = withInt(currentItem) { combo(label, it, items, heightInItems, block) }
 
-    @ImGuiDsl
     inline fun combo(
         label: String,
         currentItem: KMutableProperty0<Int>,
@@ -653,7 +635,6 @@ object ImGuiBuilder {
         block: (ImInt) -> Unit = {},
     ) = combo(label, currentItem, items.toTypedArray(), heightInItems, block)
 
-    @ImGuiDsl
     inline fun combo(
         label: String,
         currentItem: ImInt,
@@ -665,7 +646,6 @@ object ImGuiBuilder {
             block(currentItem)
     }
 
-    @ImGuiDsl
     inline fun combo(
         label: String,
         currentItem: ImInt,
@@ -686,7 +666,6 @@ object ImGuiBuilder {
      * @param flags Slider flags
      * @param block Action to perform when value changes
      */
-    @ImGuiDsl
     inline fun drag(
         label: String,
         value: KMutableProperty0<Float>,
@@ -698,7 +677,6 @@ object ImGuiBuilder {
         block: (ImFloat) -> Unit = {},
     ) = withFloat(value) { drag(label, it, vSpeed, vMin, vMax, format, flags, block) }
 
-    @ImGuiDsl
     inline fun drag(
         label: String,
         value: ImFloat,
@@ -725,7 +703,6 @@ object ImGuiBuilder {
      * @param flags Slider flags
      * @param block Action to perform when value changes
      */
-    @ImGuiDsl
     inline fun drag(
         label: String,
         value: KMutableProperty0<Int>,
@@ -737,7 +714,6 @@ object ImGuiBuilder {
         block: (ImInt) -> Unit = {},
     ) = withInt(value) { drag(label, it, vSpeed, vMin, vMax, format, flags, block) }
 
-    @ImGuiDsl
     inline fun drag(
         label: String,
         value: ImInt,
@@ -763,7 +739,6 @@ object ImGuiBuilder {
      * @param flags Slider flags
      * @param block Action to perform when value changes
      */
-    @ImGuiDsl
     inline fun slider(
         label: String,
         value: KMutableProperty0<Float>,
@@ -774,7 +749,6 @@ object ImGuiBuilder {
         block: (ImFloat) -> Unit = {},
     ) = withFloat(value) { slider(label, it, vMin, vMax, format, flags, block) }
 
-    @ImGuiDsl
     inline fun slider(
         label: String,
         value: ImFloat,
@@ -799,7 +773,6 @@ object ImGuiBuilder {
      * @param flags Slider flags
      * @param block Action to perform when value changes
      */
-    @ImGuiDsl
     inline fun slider(
         label: String,
         value: KMutableProperty0<Int>,
@@ -810,7 +783,6 @@ object ImGuiBuilder {
         block: (ImInt) -> Unit = {},
     ) = withInt(value) { slider(label, it, vMin, vMax, format, flags, block) }
 
-    @ImGuiDsl
     inline fun slider(
         label: String,
         value: ImInt,
@@ -834,7 +806,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when value changes
      */
-    @ImGuiDsl
     inline fun inputInt(
         label: String,
         value: KMutableProperty0<Int>,
@@ -844,7 +815,6 @@ object ImGuiBuilder {
         block: (ImInt) -> Unit = {}
     ) = withInt(value) { inputInt(label, it, step, stepFast, flags, block) }
 
-    @ImGuiDsl
     inline fun inputInt(
         label: String,
         value: ImInt,
@@ -865,7 +835,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputInt2(
         label: String,
         values: IntArray,
@@ -884,7 +853,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputInt3(
         label: String,
         values: IntArray,
@@ -895,7 +863,6 @@ object ImGuiBuilder {
             block(values)
     }
 
-    @ImGuiDsl
     inline fun inputVec3i(
         label: String,
         vec: Vec3i,
@@ -916,7 +883,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputInt4(
         label: String,
         values: IntArray,
@@ -938,7 +904,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when value changes
      */
-    @ImGuiDsl
     inline fun inputFloat(
         label: String,
         value: KMutableProperty0<Float>,
@@ -950,7 +915,6 @@ object ImGuiBuilder {
         block: (ImFloat) -> Unit = {}
     ) = withFloat(value) { inputFloat(label, it, step, stepFast, decimals, format, flags, block) }
 
-    @ImGuiDsl
     inline fun inputFloat(
         label: String,
         value: ImFloat,
@@ -974,7 +938,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputFloat2(
         label: String,
         values: FloatArray,
@@ -987,7 +950,6 @@ object ImGuiBuilder {
             block(values)
     }
 
-    @ImGuiDsl
     inline fun inputVec2f(
         label: String,
         vec: Vec2f,
@@ -1011,7 +973,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputFloat3(
         label: String,
         values: FloatArray,
@@ -1033,7 +994,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputFloat4(
         label: String,
         values: FloatArray,
@@ -1057,7 +1017,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when value changes
      */
-    @ImGuiDsl
     inline fun inputDouble(
         label: String,
         value: KMutableProperty0<Double>,
@@ -1083,7 +1042,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputVec2d(
         label: String,
         vec: Vec2d,
@@ -1107,7 +1065,6 @@ object ImGuiBuilder {
      * @param flags Input flags
      * @param block Action to perform when values change
      */
-    @ImGuiDsl
     inline fun inputVec3d(
         label: String,
         vec: Vec3d,
@@ -1132,7 +1089,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiInputTextFlags
      */
-    @ImGuiDsl
     inline fun inputText(
         label: String,
         value: KMutableProperty0<String>,
@@ -1140,7 +1096,6 @@ object ImGuiBuilder {
         block: (ImString) -> Unit = {},
     ) = withString(value) { inputText(label, it, flags, block) }
 
-    @ImGuiDsl
     inline fun inputText(
         label: String,
         value: ImString,
@@ -1164,7 +1119,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiInputTextFlags
      */
-    @ImGuiDsl
     inline fun inputTextMultiline(
         label: String,
         value: KMutableProperty0<String>,
@@ -1174,7 +1128,6 @@ object ImGuiBuilder {
         block: (ImString) -> Unit = {},
     ) = withString(value) { inputTextMultiline(label, it, width, height, flags, block) }
 
-    @ImGuiDsl
     inline fun inputTextMultiline(
         label: String,
         value: ImString,
@@ -1190,7 +1143,6 @@ object ImGuiBuilder {
     /**
      * Color button and picker combined
      */
-    @ImGuiDsl
     inline fun colorEdit(
         label: String,
         color: KMutableProperty0<Color>,
@@ -1219,7 +1171,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiColorEditFlags
      */
-    @ImGuiDsl
     @JvmName("colorPickerReference")
     inline fun colorPicker(
         label: String,
@@ -1239,7 +1190,6 @@ object ImGuiBuilder {
         }
     }
 
-    @ImGuiDsl
     inline fun colorPicker(
         label: String,
         color: KMutableProperty0<FloatArray>,
@@ -1263,7 +1213,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiColorEditFlags
      */
-    @ImGuiDsl
     inline fun colorButton(
         descId: String,
         color: Color,
@@ -1283,7 +1232,6 @@ object ImGuiBuilder {
      * @param label Label for the node
      * @param block Content of the node when expanded
      */
-    @ImGuiDsl
     inline fun treeNode(label: String, block: ProcedureBlock) {
         if (treeNode(label)) {
             block()
@@ -1298,7 +1246,6 @@ object ImGuiBuilder {
      * @param id Unique identifier
      * @param block Content of the node when expanded
      */
-    @ImGuiDsl
     inline fun treeNode(label: String, id: String, block: ProcedureBlock) {
         if (treeNode(id, label)) {
             block()
@@ -1315,7 +1262,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiTreeNodeFlags
      */
-    @ImGuiDsl
     inline fun collapsingHeader(label: String, flags: Int = ImGuiTreeNodeFlags.None, block: ProcedureBlock) {
         if (collapsingHeader(label, flags))
             block()
@@ -1324,7 +1270,6 @@ object ImGuiBuilder {
     /**
      * Creates a text filer
      */
-    @ImGuiDsl
     inline fun filter(label: String, defaultFilter: String = "", block: (ImGuiTextFilter) -> Unit) =
         ImGuiTextFilter(defaultFilter).apply { draw(label) }.apply(block)
 
@@ -1339,7 +1284,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiSelectableFlags
      */
-    @ImGuiDsl
     inline fun selectable(
         label: String,
         selected: Boolean = false,
@@ -1359,7 +1303,6 @@ object ImGuiBuilder {
      * @param items Items in the list
      * @param heightInItems Height in items (-1 = auto)
      */
-    @ImGuiDsl
     fun listBox(
         label: String,
         currentItem: KMutableProperty0<Int>,
@@ -1367,7 +1310,6 @@ object ImGuiBuilder {
         heightInItems: Int = -1,
     ) = withInt(currentItem) { listBox(label, it, items, heightInItems) }
 
-    @ImGuiDsl
     fun listBox(
         label: String,
         currentItem: KMutableProperty0<Int>,
@@ -1375,7 +1317,6 @@ object ImGuiBuilder {
         heightInItems: Int = -1,
     ) = listBox(label, currentItem, items.toTypedArray(), heightInItems)
 
-    @ImGuiDsl
     fun listBox(
         label: String,
         currentItem: ImInt,
@@ -1383,7 +1324,6 @@ object ImGuiBuilder {
         heightInItems: Int = -1,
     ) = ImGui.listBox(label, currentItem, items, heightInItems)
 
-    @ImGuiDsl
     fun listBox(
         label: String,
         currentItem: ImInt,
@@ -1403,7 +1343,6 @@ object ImGuiBuilder {
      * @param graphSize Size of the graph
      * @param stride Sample decimation step (>= 1). Use 0/1 for contiguous data.
      */
-    @ImGuiDsl
     fun plotLines(
         label: String,
         values: FloatArray,
@@ -1436,7 +1375,6 @@ object ImGuiBuilder {
      * @param graphSize Size of the graph
      * @param stride Sample decimation step (>= 1). Use 0/1 for contiguous data.
      */
-    @ImGuiDsl
     fun plotHistogram(
         label: String,
         values: FloatArray,
@@ -1506,7 +1444,6 @@ object ImGuiBuilder {
      *
      * @param block Content of the menu bar
      */
-    @ImGuiDsl
     inline fun mainMenuBar(block: ProcedureBlock) {
         if (beginMainMenuBar()) {
             block()
@@ -1519,7 +1456,6 @@ object ImGuiBuilder {
      *
      * @param block Content of the menu bar
      */
-    @ImGuiDsl
     inline fun menuBar(block: ProcedureBlock) {
         if (beginMenuBar()) {
             block()
@@ -1534,7 +1470,6 @@ object ImGuiBuilder {
      * @param enabled Whether the menu is enabled
      * @param block Content of the menu
      */
-    @ImGuiDsl
     inline fun menu(label: String, enabled: Boolean = true, block: ProcedureBlock) {
         if (beginMenu(label, enabled)) {
             block()
@@ -1553,7 +1488,6 @@ object ImGuiBuilder {
      * @param enabled Whether the item is enabled
      * @param block Action to perform when clicked
      */
-    @ImGuiDsl
     inline fun menuItem(
         label: String,
         shortcut: String = "",
@@ -1570,7 +1504,6 @@ object ImGuiBuilder {
      *
      * @param block Content of the tooltip
      */
-    @ImGuiDsl
     inline fun tooltip(block: ProcedureBlock) {
         beginTooltip()
         block()
@@ -1582,7 +1515,6 @@ object ImGuiBuilder {
      *
      * @param description The text content to display in the tooltip.
      */
-    @ImGuiDsl
     fun lambdaTooltip(description: String) {
         if (description.isBlank()) return
         onItemHover(ClickGuiLayout.tooltipType.flag) {
@@ -1594,12 +1526,10 @@ object ImGuiBuilder {
         }
     }
 
-    @ImGuiDsl
     fun lambdaTooltip(description: () -> String) {
         lambdaTooltip(description())
     }
 
-    @ImGuiDsl
     fun openPopup(strId: String, flags: Int = ImGuiPopupFlags.None) =
         ImGui.openPopup(strId, flags)
 
@@ -1608,9 +1538,13 @@ object ImGuiBuilder {
      *
      * The id is resolved against the current window, matching [openPopup] and the `popupContext*` helpers.
      */
-    @ImGuiDsl
     fun isPopupOpen(strId: String, flags: Int = ImGuiPopupFlags.None): Boolean =
         ImGui.isPopupOpen(strId, flags)
+
+    /**
+     * Closes the popup currently being built. Must be called from inside a `popup*` block.
+     */
+    fun closeCurrentPopup() = ImGui.closeCurrentPopup()
 
     /**
      * Creates a popup. You must first call [openPopup] with the same [strId]
@@ -1619,7 +1553,6 @@ object ImGuiBuilder {
      * @param flags Popup flags
      * @param block Content of the popup
      */
-    @ImGuiDsl
     inline fun popup(strId: String, flags: Int = ImGuiPopupFlags.AnyPopup, block: ProcedureBlock) {
         if (beginPopup(strId, flags)) {
             block()
@@ -1634,7 +1567,6 @@ object ImGuiBuilder {
      * @param popupFlags Popup flags
      * @param block Content of the popup
      */
-    @ImGuiDsl
     inline fun popupContextItem(
         strId: String = "",
         popupFlags: Int = ImGuiPopupFlags.MouseButtonRight,
@@ -1653,7 +1585,6 @@ object ImGuiBuilder {
      * @param popupFlags Popup flags
      * @param block Content of the popup
      */
-    @ImGuiDsl
     inline fun popupContextWindow(
         strId: String = "",
         popupFlags: Int = ImGuiPopupFlags.MouseButtonRight,
@@ -1672,7 +1603,6 @@ object ImGuiBuilder {
      * @param popupFlags Popup flags
      * @param block Content of the popup
      */
-    @ImGuiDsl
     inline fun popupContextVoid(
         strId: String = "",
         popupFlags: Int = ImGuiPopupFlags.MouseButtonRight,
@@ -1694,7 +1624,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiPopupFlags
      */
-    @ImGuiDsl
     inline fun popupModal(
         title: String,
         value: KMutableProperty0<Boolean>,
@@ -1707,7 +1636,6 @@ object ImGuiBuilder {
         }
     }
 
-    @ImGuiDsl
     inline fun popupModal(
         title: String,
         windowFlags: Int = ImGuiWindowFlags.None,
@@ -1728,7 +1656,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiTabBarFlags
      */
-    @ImGuiDsl
     inline fun tabBar(strId: String, flags: Int = ImGuiTabBarFlags.None, block: ProcedureBlock) {
         if (beginTabBar(strId, flags)) {
             block()
@@ -1746,7 +1673,6 @@ object ImGuiBuilder {
      *
      * @see ImGuiTabBarFlags
      */
-    @ImGuiDsl
     inline fun tabItem(
         label: String,
         value: KMutableProperty0<Boolean>,
@@ -1759,7 +1685,6 @@ object ImGuiBuilder {
         }
     }
 
-    @ImGuiDsl
     inline fun tabItem(
         label: String,
         flags: Int = ImGuiTabBarFlags.None,
@@ -1777,7 +1702,6 @@ object ImGuiBuilder {
      * @param flags Drag and drop flags
      * @param block Content of the source
      */
-    @ImGuiDsl
     inline fun dragDropSource(flags: Int = 0, block: ProcedureBlock) {
         if (beginDragDropSource(flags)) {
             block()
@@ -1792,7 +1716,6 @@ object ImGuiBuilder {
      *
      * @param block Content of the target
      */
-    @ImGuiDsl
     inline fun dragDropTarget(block: ProcedureBlock) {
         if (beginDragDropTarget()) {
             block()
@@ -1806,34 +1729,29 @@ object ImGuiBuilder {
      * @param offsetFromStartX Offset from the start
      * @param spacing Spacing between items
      */
-    @ImGuiDsl
     fun sameLine(offsetFromStartX: Float = 0f, spacing: Float = -1f) =
         ImGui.sameLine(offsetFromStartX, spacing)
 
     /**
      * Adds vertical spacing.
      */
-    @ImGuiDsl
     fun spacing() = ImGui.spacing()
 
     /**
      * Adds a separator line.
      */
-    @ImGuiDsl
     fun separator() = ImGui.separator()
 
     /**
      * Indents the next widgets.
      * @param indentWidth Width of the indent
      */
-    @ImGuiDsl
     fun indent(indentWidth: Float = 0f) = ImGui.indent(indentWidth)
 
     /**
      * Unindents the next widgets.
      * @param indentWidth Width of the unindent
      */
-    @ImGuiDsl
     fun unindent(indentWidth: Float = 0f) = ImGui.unindent(indentWidth)
 
     /**
@@ -1841,7 +1759,6 @@ object ImGuiBuilder {
      *
      * @param block Content of the group
      */
-    @ImGuiDsl
     inline fun group(block: ProcedureBlock) {
         beginGroup()
         block()
@@ -1851,13 +1768,11 @@ object ImGuiBuilder {
     /**
      * Creates a new line.
      */
-    @ImGuiDsl
     fun newLine() = ImGui.newLine()
 
     /**
      * Moves to the next column (in a columns layout).
      */
-    @ImGuiDsl
     fun nextColumn() = ImGui.nextColumn()
 
     /**
@@ -1866,7 +1781,6 @@ object ImGuiBuilder {
      * @param x Horizontal scroll position ratio
      * @param y Vertical scroll position ratio
      */
-    @ImGuiDsl
     fun setScrollHere(x: Float = 0.5f, y: Float = 0.5f) {
         setScrollHereX(x)
         setScrollHereY(y)
@@ -1877,14 +1791,12 @@ object ImGuiBuilder {
      *
      * @param y Vertical scroll position ratio
      */
-    @ImGuiDsl
     fun setScrollHereY(y: Float = 0.5f) = ImGui.setScrollHereY(y)
 
     /**
      * Sets the horizontal scroll position.
      * @param centerXRatio Ratio for centering
      */
-    @ImGuiDsl
     fun setScrollHereX(centerXRatio: Float = 0.5f) = ImGui.setScrollHereX(centerXRatio)
 
     /**
@@ -1893,7 +1805,6 @@ object ImGuiBuilder {
      * @param id Integer ID
      * @param block Content of the scope
      */
-    @ImGuiDsl
     inline fun withId(id: Int, block: ProcedureBlock) {
         pushID(id)
         block()
@@ -1906,7 +1817,6 @@ object ImGuiBuilder {
      * @param id String ID
      * @param block Content of the scope
      */
-    @ImGuiDsl
     inline fun withId(id: String, block: ProcedureBlock) {
         pushID(id)
         block()
@@ -1919,7 +1829,6 @@ object ImGuiBuilder {
      * @param id Enum ID (uses ordinal)
      * @param block Content of the scope
      */
-    @ImGuiDsl
     inline fun <E : Enum<E>> withId(id: E, block: ProcedureBlock) {
         pushID(id.ordinal)
         block()
@@ -1935,32 +1844,27 @@ object ImGuiBuilder {
      *
      * See: https://github.com/ocornut/imgui/wiki/Styling
      */
-    @ImGuiDsl
     inline fun withStyleColor(idx: Int, col: Int, block: ProcedureBlock) {
         pushStyleColor(idx, col)
         block()
         popStyleColor()
     }
 
-    @ImGuiDsl
     inline fun withStyleColor(idx: Int, color: Color, block: ProcedureBlock) =
         withStyleColor(idx, color.rgb, block)
 
-    @ImGuiDsl
     inline fun withStyleColor(idx: Int, red: Float, green: Float, blue: Float, alpha: Float, block: ProcedureBlock) {
         pushStyleColor(idx, red, green, blue, alpha)
         block()
         popStyleColor()
     }
 
-    @ImGuiDsl
     inline fun withStyleColor(idx: Int, color: FloatArray, block: ProcedureBlock) {
         pushStyleColor(idx, color[0], color[1], color[2], color[3])
         block()
         popStyleColor()
     }
 
-    @ImGuiDsl
     inline fun withStyleColor(idx: Int, red: Int, green: Int, blue: Int, alpha: Int, block: ProcedureBlock) {
         pushStyleColor(idx, red, green, blue, alpha)
         block()
@@ -1976,7 +1880,6 @@ object ImGuiBuilder {
      *
      * @see com.lambda.imgui.flag.ImGuiStyleVar
      */
-    @ImGuiDsl
     inline fun withStyleVar(styleVar: Int, value: Float, block: ProcedureBlock) {
         pushStyleVar(styleVar, value)
         block()
@@ -1993,7 +1896,6 @@ object ImGuiBuilder {
      *
      * * @see imgui.flag.ImGuiStyleVar
      */
-    @ImGuiDsl
     inline fun withStyleVar(styleVar: Int, valueX: Float, valueY: Float, block: ProcedureBlock) {
         pushStyleVar(styleVar, valueX, valueY)
         block()
@@ -2011,10 +1913,8 @@ object ImGuiBuilder {
      * @param itemWidth Width in pixels
      * @param block Content of the scope
      */
-    @ImGuiDsl
     inline fun withItemWidth(itemWidth: Int, block: ProcedureBlock) = withItemWidth(itemWidth.toFloat(), block)
 
-    @ImGuiDsl
     inline fun withItemWidth(itemWidth: Float, block: ProcedureBlock) {
         pushItemWidth(itemWidth)
         block()
@@ -2030,7 +1930,6 @@ object ImGuiBuilder {
      * @param wrapPos Position to wrap at
      * @param block Content of the scope
      */
-    @ImGuiDsl
     inline fun withTextWrapPos(wrapPos: Float = 0f, block: ProcedureBlock) {
         pushTextWrapPos(wrapPos)
         block()
@@ -2043,54 +1942,42 @@ object ImGuiBuilder {
      * @param font Font to use
      * @param block Content of the scope
      */
-    @ImGuiDsl
     inline fun withFont(font: ImFont, block: ProcedureBlock) {
         pushFont(font)
         block()
         popFont()
     }
 
-    @ImGuiDsl
     inline fun <T> withBool(property: KMutableProperty0<Boolean>, block: WrappedBlock<ImBoolean, T>) =
         ImBoolean(property()).let { v -> block(v).also { property.set(v.get()) } }
 
-    @ImGuiDsl
     inline fun withBool(value: Boolean, block: WrappedBlock<ImBoolean, Unit>) =
         block(ImBoolean(value))
 
-    @ImGuiDsl
     inline fun withFloat(value: Float, block: WrappedBlock<ImFloat, Unit>) =
         block(ImFloat(value))
 
-    @ImGuiDsl
     inline fun withDouble(value: Double, block: WrappedBlock<ImDouble, Unit>) =
         block(ImDouble(value))
 
-    @ImGuiDsl
     inline fun <T : Any> withDouble(property: KMutableProperty0<Double>, block: WrappedBlock<ImDouble, T>) =
         ImDouble(property()).let { v -> block(v).also { property.set(v.get()) } }
 
-    @ImGuiDsl
     inline fun <T : Any> withFloat(property: KMutableProperty0<Float>, block: WrappedBlock<ImFloat, T>) =
         ImFloat(property()).let { v -> block(v).also { property.set(v.get()) } }
 
-    @ImGuiDsl
     inline fun <T : Any> withInt(property: KMutableProperty0<Int>, block: WrappedBlock<ImInt, T>) =
         ImInt(property()).let { v -> block(v).also { property.set(v.get()) } }
 
-    @ImGuiDsl
     inline fun withVec2(value: Vec2d, block: WrappedBlock<ImVec2, Unit>) =
         block(ImVec2(value.x.toFloat(), value.y.toFloat()))
 
-    @ImGuiDsl
     inline fun withVec2(x: Double, y: Double, block: WrappedBlock<ImVec2, Unit>) =
         block(ImVec2(x.toFloat(), y.toFloat()))
 
-    @ImGuiDsl
     inline fun withVec2(x: Float, y: Float, block: WrappedBlock<ImVec2, Unit>) =
         block(ImVec2(x, y))
 
-    @ImGuiDsl
     inline fun <T : Any> withString(
         property: KMutableProperty0<String>,
         allowedChars: String = "",
@@ -2111,19 +1998,16 @@ object ImGuiBuilder {
     /**
      * Gets the current draw list for custom drawing.
      */
-    @ImGuiDsl
     val windowDrawList: ImDrawList get() = getWindowDrawList()
 
     /**
      * Gets the background draw list for custom drawing.
      */
-    @ImGuiDsl
     val backgroundDrawList: ImDrawList get() = getBackgroundDrawList()
 
     /**
      * Gets the foreground draw list for custom drawing.
      */
-    @ImGuiDsl
     val foregroundDrawList: ImDrawList get() = getForegroundDrawList()
 
     /**
@@ -2132,34 +2016,25 @@ object ImGuiBuilder {
      * This value is typically used to calculate the dimensions or positioning
      * of graphical elements relative to the current UI item.
      */
-    @ImGuiDsl
     val itemRectMinX: Float get() = getItemRectMinX()
 
-    @ImGuiDsl
     val itemRectMinY: Float get() = getItemRectMinY()
 
-    @ImGuiDsl
     val itemRectMaxX: Float get() = getItemRectMaxX()
 
-    @ImGuiDsl
     val itemRectMaxY: Float get() = getItemRectMaxY()
 
-    @ImGuiDsl
     val frameHeight: Float get() = getFrameHeight()
 
-    @ImGuiDsl
     val frameHeightWithSpacing: Float get() = getFrameHeightWithSpacing()
 
-    @ImGuiDsl
     val windowContentRegionMaxX: Float get() = getWindowContentRegionMaxX()
 
-    @ImGuiDsl
     val windowContentRegionMaxY: Float get() = getWindowContentRegionMaxY()
 
     /**
      * Creates a frame with optional border.
      */
-    @ImGuiDsl
     fun ImDrawList.addFrame(
         minX: Float,
         minY: Float,
@@ -2186,17 +2061,14 @@ object ImGuiBuilder {
         }
     }
 
-    @ImGuiDsl
     var cursorPosX: Float get() = getCursorPosX(); set(value) {
         setCursorPosX(value)
     }
 
-    @ImGuiDsl
     var cursorPosY: Float get() = getCursorPosY(); set(value) {
         setCursorPosY(value)
     }
 
-    @ImGuiDsl
     fun imageHorizontallyCentered(textureId: Long, width: Float, height: Float) {
         val contentW = getContentRegionAvail().x
         val offsetX = (contentW - width) * 0.5f
@@ -2204,7 +2076,6 @@ object ImGuiBuilder {
         image(textureId, width, height)
     }
 
-    @ImGuiDsl
     fun buildLayout(block: ProcedureBlock) {
         block()
     }
