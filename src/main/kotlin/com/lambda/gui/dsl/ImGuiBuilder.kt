@@ -296,6 +296,23 @@ object ImGuiBuilder {
         if (isItemClicked(button)) block() else Unit
 
     /**
+     * Returns whether [button] went down this frame, regardless of what is hovered.
+     *
+     * Unlike [onItemClick] this does not imply the last item is hovered, so it can be combined with
+     * [onItemHover] to observe clicks on items that are blocked by an open popup.
+     */
+    @ImGuiDsl
+    fun isMouseClicked(button: Int = ImGuiMouseButton.Right, repeat: Boolean = false): Boolean =
+        ImGui.isMouseClicked(button, repeat)
+
+    /**
+     * Returns whether [button] was released this frame, regardless of what is hovered.
+     */
+    @ImGuiDsl
+    fun isMouseReleased(button: Int = ImGuiMouseButton.Right): Boolean =
+        ImGui.isMouseReleased(button)
+
+    /**
      * Returns whether:
      *  - The last item modified its value in this frame
      *  - Was pressed
@@ -1585,6 +1602,15 @@ object ImGuiBuilder {
     @ImGuiDsl
     fun openPopup(strId: String, flags: Int = ImGuiPopupFlags.None) =
         ImGui.openPopup(strId, flags)
+
+    /**
+     * Returns whether the popup identified by [strId] is currently open.
+     *
+     * The id is resolved against the current window, matching [openPopup] and the `popupContext*` helpers.
+     */
+    @ImGuiDsl
+    fun isPopupOpen(strId: String, flags: Int = ImGuiPopupFlags.None): Boolean =
+        ImGui.isPopupOpen(strId, flags)
 
     /**
      * Creates a popup. You must first call [openPopup] with the same [strId]

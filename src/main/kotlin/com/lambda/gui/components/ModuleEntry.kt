@@ -21,6 +21,8 @@ import com.lambda.gui.Layout
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiHoveredFlags
+import com.lambda.imgui.flag.ImGuiPopupFlags
 import com.lambda.module.Module
 
 class ModuleEntry(val module: Module): Layout {
@@ -30,9 +32,23 @@ class ModuleEntry(val module: Module): Layout {
         }
         lambdaTooltip(module.description)
 
+        val popupId = "##ctx-${module.name}"
+
+        onItemHover(ImGuiHoveredFlags.AllowWhenBlockedByPopup) {
+            if (isMouseClicked() && isPopupOpen(popupId)) suppressedPopupId = popupId
+            if (isMouseReleased() && suppressedPopupId != popupId) openPopup(popupId)
+        }
+
+        if (isMouseReleased() && suppressedPopupId == popupId) suppressedPopupId = null
+
         ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
-        popupContextItem("##ctx-${module.name}") {
+        popupContextItem(popupId, ImGuiPopupFlags.None) {
             buildConfigSettingsContext(module)
         }
+    }
+
+    private companion object {
+        /** Popup whose reopen is pending suppression; only one item can be pressed at a time. */
+        var suppressedPopupId: String? = null
     }
 }
