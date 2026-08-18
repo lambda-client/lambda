@@ -46,6 +46,8 @@ object HudGuiLayout : Loadable, Config(
     "HUD",
     HudCategory
 ) {
+    val showInScreens by setting("Show In Screens", false, "Keep HUD elements drawn while a Minecraft screen (inventory, mod settings, ...) is open. The Lambda GUI always shows them.")
+
     // HUD Outline
     val hudOutlineCornerRadius by setting("HUD Corner Radius", 6.0f, 0.5f..24.0f, 0.5f)
     val hudOutlineHaloColor by setting("HUD Corner Halo Color", Color(140, 140, 140, 90))
@@ -79,6 +81,7 @@ object HudGuiLayout : Loadable, Config(
     init {
         listen<GuiEvent.NewImguiFrame> {
             if (mc.options.hudHidden) return@listen
+            if (!ClickGuiLayout.open && mc.currentScreen != null && !showInScreens) return@listen
 
             buildLayout {
                 if (ClickGuiLayout.open && !isShownInGUI) {

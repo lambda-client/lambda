@@ -44,7 +44,7 @@ object AutoUpdater : Module(
 ) {
     private val debug by setting("Debug", false, "Enable debug logging")
     private val loaderBranch by setting("Loader Branch", Branch.Stable, "Select loader update branch")
-    private val clientBranch by setting("Client Branch", Branch.Snapshot, "Select client update branch")
+    private val clientBranch by setting("Client Branch", Branch.Dev, "Select client update branch")
 
     private var loaderPromptHandled by property(false)
 
@@ -54,14 +54,14 @@ object AutoUpdater : Module(
     private var firstLaunchStateInitialized = false
 
     private const val MAVEN_URL = "https://maven.lambda-client.org"
-    private const val LOADER_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda-loader/maven-metadata.xml"
-    private const val LOADER_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/lambda-loader/maven-metadata.xml"
-    private const val CLIENT_RELEASES_META = "$MAVEN_URL/releases/com/lambda/lambda/maven-metadata.xml"
-    private const val CLIENT_SNAPSHOTS_META = "$MAVEN_URL/snapshots/com/lambda/lambda/maven-metadata.xml"
+    private const val LOADER_STABLE_META = "$MAVEN_URL/stable/com/lambda/lambda-loader/maven-metadata.xml"
+    private const val LOADER_DEV_META = "$MAVEN_URL/dev/com/lambda/lambda-loader/maven-metadata.xml"
+    private const val CLIENT_STABLE_META = "$MAVEN_URL/stable/com/lambda/lambda/maven-metadata.xml"
+    private const val CLIENT_DEV_META = "$MAVEN_URL/dev/com/lambda/lambda/maven-metadata.xml"
 
     private enum class Branch {
         Stable,
-        Snapshot
+        Dev
     }
 
     const val WINDOW_FLAGS =
@@ -72,13 +72,13 @@ object AutoUpdater : Module(
                 ImGuiWindowFlags.NoScrollWithMouse
 
     init {
-        onEnable {
+        onEnableUnsafe {
             if (mc.currentScreen is LambdaScreen && !showUninstallModal)
                 showInstallModal = true
             showUninstallModal = false
         }
 
-        onDisable {
+        onDisableUnsafe {
             if (mc.currentScreen is LambdaScreen && !showInstallModal)
                 showUninstallModal = true
             showInstallModal = false
@@ -217,8 +217,8 @@ object AutoUpdater : Module(
         }
     }
 
-    fun downloadLatestLoader(): ByteArray? {
-        return try {
+    fun downloadLatestLoader(): ByteArray? =
+        try {
             val branch = loaderBranch
             val mcVersion = getMinecraftVersion()
 
@@ -229,22 +229,19 @@ object AutoUpdater : Module(
 
             when (branch) {
                 Branch.Stable -> {
-                    val xml = URI(LOADER_RELEASES_META).toURL().readText()
-                    version = parseLatestVersion(xml, null)
-                    baseUrl = "$MAVEN_URL/releases"
+                    version = fetchLatestVersion(LOADER_STABLE_META, null)
+                    baseUrl = "$MAVEN_URL/stable"
                 }
-                Branch.Snapshot -> {
-                    val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
-                    version = parseLatestVersion(xml, null)
-                    baseUrl = "$MAVEN_URL/snapshots"
+                Branch.Dev -> {
+                    version = fetchLatestVersion(LOADER_DEV_META, null)
+                    baseUrl = "$MAVEN_URL/dev"
                 }
             }
 
             if (version == null && branch == Branch.Stable) {
-                warn("No stable loader found, falling back to snapshot")
-                val xml = URI(LOADER_SNAPSHOTS_META).toURL().readText()
-                version = parseLatestVersion(xml, null)
-                baseUrl = "$MAVEN_URL/snapshots"
+                warn("No stable loader found, falling back to dev")
+                version = fetchLatestVersion(LOADER_DEV_META, null)
+                baseUrl = "$MAVEN_URL/dev"
             }
 
             if (version == null) {
@@ -252,13 +249,7 @@ object AutoUpdater : Module(
                 return null
             }
 
-            val jarUrl = if (version.endsWith("-SNAPSHOT")) {
-                val snapshotInfo = getSnapshotInfo(baseUrl, "com/lambda/lambda-loader", version) ?: return null
-                val baseVersion = version.replace("-SNAPSHOT", "")
-                "$baseUrl/com/lambda/lambda-loader/$version/lambda-loader-$baseVersion-${snapshotInfo.timestamp}-${snapshotInfo.buildNumber}.jar"
-            } else {
-                "$baseUrl/com/lambda/lambda-loader/$version/lambda-loader-$version.jar"
-            }
+            val jarUrl = "$baseUrl/com/lambda/lambda-loader/$version/lambda-loader-$version.jar"
 
             if (debug) debug("Downloading from: $jarUrl")
 
@@ -267,10 +258,9 @@ object AutoUpdater : Module(
             logError("Failed to download loader", e)
             null
         }
-    }
 
-    fun downloadLatestClient(): ByteArray? {
-        return try {
+    fun downloadLatestClient(): ByteArray? =
+        try {
             val branch = clientBranch
             val mcVersion = getMinecraftVersion()
 
@@ -281,22 +271,19 @@ object AutoUpdater : Module(
 
             when (branch) {
                 Branch.Stable -> {
-                    val xml = URI(CLIENT_RELEASES_META).toURL().readText()
-                    version = parseLatestVersion(xml, mcVersion)
-                    baseUrl = "$MAVEN_URL/releases"
+                    version = fetchLatestVersion(CLIENT_STABLE_META, mcVersion)
+                    baseUrl = "$MAVEN_URL/stable"
                 }
-                Branch.Snapshot -> {
-                    val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
-                    version = parseLatestVersion(xml, mcVersion)
-                    baseUrl = "$MAVEN_URL/snapshots"
+                Branch.Dev -> {
+                    version = fetchLatestVersion(CLIENT_DEV_META, mcVersion)
+                    baseUrl = "$MAVEN_URL/dev"
                 }
             }
 
             if (version == null && branch == Branch.Stable) {
-                warn("No stable client found for MC $mcVersion, falling back to snapshot")
-                val xml = URI(CLIENT_SNAPSHOTS_META).toURL().readText()
-                version = parseLatestVersion(xml, mcVersion)
-                baseUrl = "$MAVEN_URL/snapshots"
+                warn("No stable client found for MC $mcVersion, falling back to dev")
+                version = fetchLatestVersion(CLIENT_DEV_META, mcVersion)
+                baseUrl = "$MAVEN_URL/dev"
             }
 
             if (version == null) {
@@ -304,11 +291,7 @@ object AutoUpdater : Module(
                 return null
             }
 
-            val jarUrl = if (version.endsWith("-SNAPSHOT")) {
-                val snapshotInfo = getSnapshotInfo(baseUrl, "com/lambda/lambda", version) ?: return null
-                val baseVersion = version.replace("-SNAPSHOT", "")
-                "$baseUrl/com/lambda/lambda/$version/lambda-$baseVersion-${snapshotInfo.timestamp}-${snapshotInfo.buildNumber}.jar"
-            } else "$baseUrl/com/lambda/lambda/$version/lambda-$version.jar"
+            val jarUrl = "$baseUrl/com/lambda/lambda/$version/lambda-$version.jar"
 
             if (debug) debug("Downloading from: $jarUrl")
 
@@ -317,10 +300,21 @@ object AutoUpdater : Module(
             logError("Failed to download client", e)
             null
         }
-    }
 
-    private fun parseLatestVersion(xml: String, mcVersion: String? = null): String? {
-        return try {
+    private fun fetchLatestVersion(url: String, mcVersion: String? = null): String? =
+        try {
+            val xml = URI(url).toURL().readText()
+            parseLatestVersion(xml, mcVersion)
+        } catch (_: java.io.FileNotFoundException) {
+            if (debug) warn("Metadata not found at $url (repo might be empty)")
+            null
+        } catch (e: Exception) {
+            if (debug) logError("Error fetching metadata from $url", e)
+            null
+        }
+
+    private fun parseLatestVersion(xml: String, mcVersion: String? = null): String? =
+        try {
             val factory = DocumentBuilderFactory.newInstance()
             val builder = factory.newDocumentBuilder()
             val document = builder.parse(xml.byteInputStream())
@@ -361,26 +355,6 @@ object AutoUpdater : Module(
             logError("Error parsing version", e)
             null
         }
-    }
-
-    private fun getSnapshotInfo(baseUrl: String, artifactPath: String, version: String): SnapshotInfo? {
-        return try {
-            val snapshotMetaUrl = URI("$baseUrl/$artifactPath/$version/maven-metadata.xml").toURL()
-            val xml = snapshotMetaUrl.readText()
-
-            val factory = DocumentBuilderFactory.newInstance()
-            val builder = factory.newDocumentBuilder()
-            val document = builder.parse(xml.byteInputStream())
-
-            val timestamp = document.getElementsByTagName("timestamp").item(0).textContent
-            val buildNumber = document.getElementsByTagName("buildNumber").item(0).textContent
-
-            SnapshotInfo(version, timestamp, buildNumber)
-        } catch (e: Exception) {
-            logError("Error getting snapshot info", e)
-            null
-        }
-    }
 
     private fun getMinecraftVersion() = SharedConstants.getGameVersion().name()
 
@@ -432,10 +406,4 @@ object AutoUpdater : Module(
         loaderPromptHandled = true
         showFirstLaunchModal = false
     }
-
-    private data class SnapshotInfo(
-        val version: String,
-        val timestamp: String,
-        val buildNumber: String
-    )
 }

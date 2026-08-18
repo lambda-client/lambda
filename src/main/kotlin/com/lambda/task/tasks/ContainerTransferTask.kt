@@ -79,7 +79,10 @@ class ContainerTransferTask(
 				fromContainer.getSlot(stackSelection)?.let { fromSlot ->
 					toContainer.getReplaceableSlot()?.let { toSlot ->
 						val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, fromContainer, toContainer)
-						if (transferEvent.post().isCanceled()) failure("Transfer prevented by an internal interruption")
+						if (transferEvent.post().isCanceled()) {
+							failure("Transfer prevented by an internal interruption")
+							return@listen
+						}
 						inventoryRequest {
 							if (fromContainer.swapMethodPriority > toContainer.swapMethodPriority)
 								with(fromContainer) { transfer(fromSlot, toSlot) }

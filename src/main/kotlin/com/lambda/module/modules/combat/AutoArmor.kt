@@ -98,6 +98,8 @@ object AutoArmor : Module(
 	}.thenByDescending { slot ->
 		slot.stack.getEnchantment(Enchantments.UNBREAKING) +
 				slot.stack.getEnchantment(Enchantments.MENDING)
+	}.thenByDescending { slot ->
+		slot.index in 0..8
 	}
 
 	init {

@@ -26,7 +26,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
@@ -47,6 +46,7 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest

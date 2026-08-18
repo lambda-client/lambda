@@ -50,7 +50,7 @@ object ElytraAltitudeControl : Module(
 	}
 
 	val controlValue by setting("Control Value", Mode.Altitude)
-	val targetAltitude by setting("Target Altitude", 120, 0..256, 10, unit = " blocks", description = "Adjusts pitch to control altitude") { controlValue == Mode.Altitude }
+	val targetAltitude by setting("Target Altitude", 319, 0..1500, 10, unit = " blocks", description = "Adjusts pitch to control altitude") { controlValue == Mode.Altitude }
 	val targetSpeed by setting("Target Speed", 20.0, 0.1..50.0, 0.1, unit = " m/s", description = "Adjusts pitch to control speed") { controlValue == Mode.Speed }
 
 	val horizontalSpeed by setting("Horizontal Speed", false, description = "Uses horizontal speed instead of total speed for speed control") { controlValue == Mode.Speed }
@@ -59,7 +59,7 @@ object ElytraAltitudeControl : Module(
 	val disableOnFirework by setting("Disable On Firework", false, description = "Disables the module when a firework is used")
 
 	val useFireworkOnHeight by setting("Use Firework On Height", false, "Use fireworks when below a certain height")
-	val minHeight by setting("Min Height", 150, 0..256, 10, unit = " blocks", description = "Minimum height to use firework") { useFireworkOnHeight }
+	val minHeight by setting("Min Height", 230, 0..1500, 10, unit = " blocks", description = "Minimum height to use firework") { useFireworkOnHeight }
 
 	val useFireworkOnSpeed by setting("Use Firework On Speed", false, "Use fireworks based on speed")
 	val minSpeed by setting("Min Speed", 20.0, 0.1..50.0, 0.1, unit = " m/s", description = "Minimum speed to use fireworks") { useFireworkOnSpeed }

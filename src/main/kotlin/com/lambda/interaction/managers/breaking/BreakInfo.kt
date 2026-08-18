@@ -18,6 +18,7 @@
 package com.lambda.interaction.managers.breaking
 
 import com.lambda.config.blocks.BreakConfig
+import com.lambda.config.blocks.BreakConfig.BreakMode
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.handlers.breaking.RebreakHandler
@@ -34,6 +35,7 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
+import net.minecraft.util.math.BlockPos
 
 /**
  * A data class that holds all the information required to process and continue a break.
@@ -65,6 +67,7 @@ data class BreakInfo(
 	var soundsCooldown = 0f
 	var vanillaInstantBreakable = false
 	val rebreakable get() = !vanillaInstantBreakable && type == Primary
+	var bypassedDelay = breakConfig.breakMode != BreakMode.OldGrim
 
 	enum class BreakType(
 		override val displayName: String,
@@ -126,7 +129,7 @@ data class BreakInfo(
 		val item =
 			if (breakConfig.swapMode.isEnabled() && breakConfig.swapMode != BreakConfig.SwapMode.Start) swapStack
 			else player.mainHandStack
-		val breakDelta = request.runSafeAutomated { context.cachedState.calcBreakDelta(context.blockPos, item) }
+		val breakDelta = request.runSafeAutomated { calcBreakDelta(item) }
 		val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
 		return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
 	}
@@ -139,26 +142,28 @@ data class BreakInfo(
 		}
 
 	context(_: SafeContext)
-	fun startBreakPacket() = breakPacket(Action.START_DESTROY_BLOCK)
+	fun startBreakPacket(yAddition: Int = 0) = breakPacket(Action.START_DESTROY_BLOCK, yAddition)
 
 	context(_: SafeContext)
-	fun stopBreakPacket() = breakPacket(Action.STOP_DESTROY_BLOCK)
+	fun stopBreakPacket(yAddition: Int = 0) = breakPacket(Action.STOP_DESTROY_BLOCK, yAddition)
 
 	context(_: SafeContext)
-	fun abortBreakPacket() = breakPacket(Action.ABORT_DESTROY_BLOCK)
+	fun abortBreakPacket(yAddition: Int = 0) = breakPacket(Action.ABORT_DESTROY_BLOCK, yAddition)
 
 	context(safeContext: SafeContext)
-	private fun breakPacket(action: Action) =
+	private fun breakPacket(action: Action, yAddition: Int) =
 		with(safeContext) {
 			interaction.sendSequencedPacket(world) { sequence: Int ->
 				PlayerActionC2SPacket(
 					action,
-					context.blockPos,
+					with(context.blockPos) { BlockPos(x, y + yAddition, z) },
 					context.hitResult.side,
 					sequence
 				)
 			}
 		}
+
+	fun getBreakDelay() = if (!bypassedDelay) 6 else breakConfig.breakDelay
 
 	override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
 }

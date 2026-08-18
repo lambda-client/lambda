@@ -17,6 +17,7 @@
 
 package com.lambda.config.blocks
 
+import com.lambda.config.blocks.BuildConfig.SwingType
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.block.Block
@@ -40,7 +41,7 @@ interface BreakConfig : ActionConfig {
 	val swapMode: SwapMode
 
 	val swing: SwingMode
-	val swingType: BuildConfig.SwingType
+	val swingType: SwingType
 
 	val rotate: Boolean
 
@@ -85,7 +86,8 @@ interface BreakConfig : ActionConfig {
 		override val description: String
 	) : NamedEnum, Describable {
 		Vanilla("Vanilla", "Uses vanilla breaking"),
-		Packet("Packet", "Breaks blocks using only using packets")
+		Grim("Grim", "Uses a grim bypass"),
+		OldGrim("Old Grim", "Uses an old grim bypass")
 	}
 
 	enum class SwapMode(

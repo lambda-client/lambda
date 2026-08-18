@@ -32,7 +32,9 @@ import com.lambda.gui.MenuBar
 import com.lambda.gui.MenuBar.buildMenuBar
 import com.lambda.gui.OverlayBackgroundScreen
 import com.lambda.gui.components.QuickSearch.renderQuickSearch
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.gui.dsl.ImGuiBuilder.buildLayout
+import com.lambda.gui.snap.Guide
 import com.lambda.gui.snap.RectF
 import com.lambda.gui.snap.SnapHandler
 import com.lambda.gui.snap.SnapHandler.drawDragGrid
@@ -65,6 +67,7 @@ import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen
 import net.minecraft.client.util.Icons
 import java.awt.Color
+import kotlin.math.abs
 
 @Suppress("unused")
 object ClickGuiLayout : Loadable, Config(
@@ -73,8 +76,6 @@ object ClickGuiLayout : Loadable, Config(
 ) {
 	var open = false
 	var developerMode = false
-	// onPressUnsafe (not onPress) so the GUI can also be toggled from menu screens
-	// (title, multiplayer, world-select) where there is no SafeContext, not just in-game.
 	val keybind by setting("Keybind", KeyCode.Y, screenCheck = false)
 		.onPressUnsafe {
 			if (DearImGui.io.wantTextInput) return@onPressUnsafe
@@ -100,10 +101,17 @@ object ClickGuiLayout : Loadable, Config(
 	private var frameCount = 0
 	private var activeDragWindowName: String? = null
 	private var mouseWasDown = false
-	private var mousePressedThisFrameGlobal = false
 	private var dragOffsetX = 0f
 	private var dragOffsetY = 0f
 	private val lastBounds = mutableMapOf<String, RectF>()
+	private val pendingSizes = mutableMapOf<String, Pair<Float, Float>>()
+	private var activeResizeWindowName: String? = null
+	private var resizeLeftEdge = false
+	private var resizeRightEdge = false
+	private var resizeTopEdge = false
+	private var resizeBottomEdge = false
+	private var resizeGrabOffsetX = 0f
+	private var resizeGrabOffsetY = 0f
 	private val pendingPositions = mutableMapOf<String, Pair<Float, Float>>()
 	private val snapOverlays = mutableMapOf<String, SnapHandler.SnapVisual>()
 
@@ -206,10 +214,6 @@ object ClickGuiLayout : Loadable, Config(
 	@Tab(COLORS_TAB) val primaryColor by setting("Primary Color", Color(130, 200, 255))
 	@Tab(COLORS_TAB) val secondaryColor by setting("Secondary Color", Color(225, 130, 225))
 
-	@Tab(COLORS_TAB) val shade by setting("Shade", true)
-	@Tab(COLORS_TAB) val colorWidth by setting("Shade Width", 200.0, 10.0..1000.0, 10.0)
-	@Tab(COLORS_TAB) val colorHeight by setting("Shade Height", 200.0, 10.0..1000.0, 10.0)
-	@Tab(COLORS_TAB) val colorSpeed by setting("Color Speed", 1.0, 0.1..5.0, 0.1)
 	@Tab(COLORS_TAB) val text by setting("Text", Color(255, 255, 255, 255))
 	@Tab(COLORS_TAB) val textDisabled by setting("Text Disabled", Color(128, 128, 128, 255))
 	@Tab(COLORS_TAB) val windowBg by setting("Window Background", Color(35, 0, 14, 240))
@@ -276,30 +280,32 @@ object ClickGuiLayout : Loadable, Config(
 				SnapHandler.beginFrame(vp.sizeX, vp.sizeY, io.fontGlobalScale)
 
 				val mouseDown = io.mouseDown[0]
-				val mousePressedThisFrame = mouseDown && !mouseWasDown
 				val mouseReleasedThisFrame = !mouseDown && mouseWasDown
 				mouseWasDown = mouseDown
-				mousePressedThisFrameGlobal = mousePressedThisFrame
 
 				if (mouseReleasedThisFrame) {
 					activeDragWindowName = null
+					activeResizeWindowName?.let { pendingSizes.remove(it) }
+					activeResizeWindowName = null
 				}
 
 				pendingPositions.clear()
 				snapOverlays.clear()
 
-				val mouseDownGlobal = io.mouseDown[0]
-				activeDragWindowName?.let { drag ->
-					if (mouseDownGlobal) {
-						updateDragAndSnapping(
-							drag,
-							lastBounds[activeDragWindowName]!!,
-							dragOffsetX,
-							dragOffsetY,
-							pendingPositions,
-							snapOverlays
-						)
-						drawDragGrid()
+				if (mouseDown) {
+					activeDragWindowName?.let { name ->
+						lastBounds[name]?.let { bounds ->
+							updateDragAndSnapping(
+								name, bounds, dragOffsetX, dragOffsetY, pendingPositions, snapOverlays
+							)
+							drawDragGrid()
+						}
+					}
+					activeResizeWindowName?.let { name ->
+						lastBounds[name]?.let { bounds ->
+							updateResizeAndSnapping(name, bounds)
+							drawDragGrid()
+						}
 					}
 				}
 
@@ -310,15 +316,6 @@ object ClickGuiLayout : Loadable, Config(
 				val baseY = MenuBar.height + 10f
 
 				tags.forEach { tag ->
-					val mouseDownGlobal = io.mouseDown[0]
-					activeDragWindowName?.let { drag ->
-						if (mouseDownGlobal) {
-							updateDragAndSnapping(
-								drag, lastBounds[drag]!!, dragOffsetX, dragOffsetY, pendingPositions, snapOverlays
-							)
-						}
-					}
-
 					val override = pendingPositions[tag.name]
 					if (override != null) {
 						ImGui.setNextWindowPos(override.first, override.second)
@@ -326,33 +323,22 @@ object ClickGuiLayout : Loadable, Config(
 						ImGui.setNextWindowPos(nextX, baseY, ImGuiCond.FirstUseEver)
 					}
 
-					// FixMe:
-					//  Due to the auto resize of windows, if a tag has no module names that is at least the
-					//  same length as the tag name, the title of the window will clip out the window box.
-					//  For the time being I have removed the ability to collapse the windows so the titles
-					//  have more space lol.
-					window(tag.name, flags = ImGuiWindowFlags.AlwaysAutoResize or ImGuiWindowFlags.NoCollapse) {
-						if (activeDragWindowName == null && mousePressedThisFrameGlobal && ImGui.isWindowHovered()) {
-							val mx = io.mousePos.x
-							val my = io.mousePos.y
-							val titleBarHeight = ImGui.getFrameHeight()
-							if (my >= windowPos.y && my <= windowPos.y + titleBarHeight) {
-								activeDragWindowName = tag.name
-								dragOffsetX = mx - windowPos.x
-								dragOffsetY = my - windowPos.y
-							}
-						}
+					pendingSizes[tag.name]?.let { (w, h) ->
+						ImGui.setNextWindowSizeConstraints(w, h, w, h)
+					}
 
+					window(tag.name, flags = ImGuiWindowFlags.NoCollapse) {
 						ModuleRegistry.modules
 							.filter { it.tag == tag && it.showInClickGui.value }
 							.forEach { with(ModuleEntry(it)) { buildLayout() } }
 
-						val vis = snapOverlays[tag.name]
-						if (vis != null) {
+						snapOverlays[tag.name]?.let { vis ->
 							drawSnapLines(vis.snapX, vis.kindX, vis.snapY, vis.kindY)
 						}
 
 						val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
+						if (mouseDown) claimInteraction(tag.name, rect)
+
 						SnapHandler.registerElement(tag.name, rect)
 						lastBounds[tag.name] = rect
 
@@ -374,6 +360,88 @@ object ClickGuiLayout : Loadable, Config(
 		}
 	}
 
+	private fun ImGuiBuilder.claimInteraction(name: String, rect: RectF) {
+		if (activeDragWindowName != null || activeResizeWindowName != null) return
+		val previous = lastBounds[name] ?: return
+
+		val movedX = abs(rect.x - previous.x) > 0.5f
+		val movedY = abs(rect.y - previous.y) > 0.5f
+		val sizedX = abs(rect.w - previous.w) > 0.5f
+		val sizedY = abs(rect.h - previous.h) > 0.5f
+
+		when {
+			sizedX || sizedY -> {
+				val grip = ImGui.getFontSize() * 1.35f
+				val toLeft = io.mousePos.x - rect.left
+				val toRight = rect.right - io.mousePos.x
+				val toTop = io.mousePos.y - rect.top
+				val toBottom = rect.bottom - io.mousePos.y
+
+				activeResizeWindowName = name
+				resizeLeftEdge = toLeft <= grip && toLeft < toRight
+				resizeRightEdge = toRight <= grip && toRight <= toLeft
+				resizeTopEdge = toTop <= grip && toTop < toBottom
+				resizeBottomEdge = toBottom <= grip && toBottom <= toTop
+
+				if (sizedX && !resizeLeftEdge && !resizeRightEdge) resizeRightEdge = true
+				if (sizedY && !resizeTopEdge && !resizeBottomEdge) resizeBottomEdge = true
+
+				resizeGrabOffsetX = io.mousePos.x - if (resizeLeftEdge) rect.left else rect.right
+				resizeGrabOffsetY = io.mousePos.y - if (resizeTopEdge) rect.top else rect.bottom
+			}
+			movedX || movedY -> {
+				activeDragWindowName = name
+				dragOffsetX = io.mousePos.x - rect.x
+				dragOffsetY = io.mousePos.y - rect.y
+			}
+		}
+	}
+
+	private fun ImGuiBuilder.updateResizeAndSnapping(name: String, bounds: RectF) {
+		var x = bounds.x
+		var y = bounds.y
+		var width = bounds.w
+		var height = bounds.h
+		var snapX: Float? = null
+		var snapY: Float? = null
+		var kindX: Guide.Kind? = null
+		var kindY: Guide.Kind? = null
+
+		fun snapped(offset: Float, mouse: Float, orientation: Guide.Orientation): Pair<Float, Guide.Kind?> {
+			val proposed = mouse - offset
+			val snap = SnapHandler.snapEdge(proposed, orientation, name)
+			return (snap.pos ?: proposed) to snap.kind
+		}
+
+		if (resizeLeftEdge || resizeRightEdge) {
+			val (edge, kind) = snapped(resizeGrabOffsetX, io.mousePos.x, Guide.Orientation.Vertical)
+			if (resizeLeftEdge) {
+				x = edge.coerceAtMost(bounds.right - style.windowMinSize.x)
+				width = bounds.right - x
+			} else {
+				width = (edge - bounds.left).coerceAtLeast(style.windowMinSize.x)
+			}
+			snapX = edge
+			kindX = kind
+		}
+
+		if (resizeTopEdge || resizeBottomEdge) {
+			val (edge, kind) = snapped(resizeGrabOffsetY, io.mousePos.y, Guide.Orientation.Horizontal)
+			if (resizeTopEdge) {
+				y = edge.coerceAtMost(bounds.bottom - style.windowMinSize.y)
+				height = bounds.bottom - y
+			} else {
+				height = (edge - bounds.top).coerceAtLeast(style.windowMinSize.y)
+			}
+			snapY = edge
+			kindY = kind
+		}
+
+		pendingSizes[name] = width to height
+		if (resizeLeftEdge || resizeTopEdge) pendingPositions[name] = x to y
+		snapOverlays[name] = SnapHandler.SnapVisual(snapX, snapY, kindX, kindY)
+	}
+
 	val Screen?.hasInput: Boolean
 		get() = this is ChatScreen ||
 				this is SignEditScreen ||
@@ -382,16 +450,12 @@ object ClickGuiLayout : Loadable, Config(
 
 	fun toggle() {
 		if (open) {
-			// LambdaScreen.close() restores the background screen and triggers
-			// removed() -> close(), which flips `open` off and plays the sound.
 			LambdaScreen.close()
 		} else {
 			val current = mc.currentScreen
 			if (current.hasInput) return
 			if (Client.clientSounds) LambdaSound.ModuleOn.play()
 			LambdaScreen.parentScreen = if (current is LambdaScreen) null else current
-			// Let the parent retain resources past the removed() that setScreen triggers,
-			// since we restore it when the GUI closes.
 			(current as? OverlayBackgroundScreen)?.onOverlaidByGui()
 			mc.setScreen(LambdaScreen)
 			open = true

@@ -22,7 +22,6 @@ import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.util.DirectionMask.mask
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -32,8 +31,9 @@ import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.handlers.ContainerHandler.transferByTask
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.task.Task
 import net.minecraft.block.BlockState

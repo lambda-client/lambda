@@ -34,7 +34,7 @@ import com.mojang.authlib.GameProfile
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.text.Text
 import java.awt.Color
-import java.util.UUID
+import java.util.*
 
 object FriendHandler : Config(
     "friends",
