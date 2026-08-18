@@ -43,6 +43,19 @@ data class TrajectoryRollout(
     val completed: Boolean get() = termination === TrajectoryRolloutTermination.Completed
 }
 
+/**
+ * Watches a rollout frame by frame and may end it early.
+ *
+ * The frame budget answers "how long may this run"; the observer answers "is there
+ * anything left to learn". A transition between two motion anchors is decided within a
+ * handful of ticks, and simulating past that decision is the super-linear work the
+ * anchor search exists to remove.
+ */
+fun interface RolloutObserver {
+    /** True stops the rollout with [frame] as its last recorded frame. */
+    fun onFrame(frame: SimulatedTrajectoryFrame): Boolean
+}
+
 /** Stateless rollout entry point; safe on workers when [environment] is. */
 object TrajectoryRolloutEngine {
     fun rollout(
@@ -51,6 +64,7 @@ object TrajectoryRolloutEngine {
         environment: SimulationEnvironment,
         program: ControlProgram,
         frameCount: Int,
+        observer: RolloutObserver? = null,
     ): TrajectoryRollout {
         require(frameCount >= 0) { "frameCount must be non-negative" }
 
@@ -64,11 +78,19 @@ object TrajectoryRolloutEngine {
         for (frame in 0 until frameCount) {
             val input = program.input(frame, simulator.state)
             when (val result = simulator.tryTickMovement(input)) {
-                is MovementSimulationStepResult.Advanced -> frames += SimulatedTrajectoryFrame(
-                    index = frame,
-                    input = input,
-                    state = result.tick.simulator.state,
-                )
+                is MovementSimulationStepResult.Advanced -> {
+                    val simulated = SimulatedTrajectoryFrame(
+                        index = frame,
+                        input = input,
+                        state = result.tick.simulator.state,
+                    )
+                    frames += simulated
+                    if (observer?.onFrame(simulated) == true) return TrajectoryRollout(
+                        initialState = initialState,
+                        frames = frames.toList(),
+                        termination = TrajectoryRolloutTermination.Completed,
+                    )
+                }
 
                 is MovementSimulationStepResult.Rejected -> return TrajectoryRollout(
                     initialState = initialState,

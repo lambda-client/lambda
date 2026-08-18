@@ -446,13 +446,28 @@ object LambdaTest : FabricClientGameTest {
             val player = Lambda.mc.player ?: error("Missing client player")
             check(player.isOnGround) { "$scenario: player did not settle" }
             PathingManager.clear()
-            val automated = plannerMaxFrames?.let { frames ->
+            // `-Pneural=true` (see build.gradle) drives the corpus with the trained
+            // neural policy instead of the seed search, so the game tests exercise the
+            // NN's real in-game trajectory, not just the search.
+            val useNeural = System.getProperty("lambda.pathing.neural") == "true"
+            val neuralModel = System.getProperty("lambda.pathing.neuralModel")
+            // `-PvalueField=true` steers discovery by the coarse value field with no
+            // corridor veto, so the live corpus measures the free search on real terrain
+            // and against real vanilla physics — the only honest gate for it.
+            val useValueField = System.getProperty("lambda.pathing.valueField") == "true"
+            val base = AutomationConfig.DEFAULT.pathingConfig
+            val automated = if (plannerMaxFrames != null || useNeural || useValueField) {
                 object : Automated by AutomationConfig.DEFAULT {
-                    override val pathingConfig = object : PathingConfig by AutomationConfig.DEFAULT.pathingConfig {
-                        override val maxFrames = frames
+                    override val pathingConfig = object : PathingConfig by base {
+                        override val maxFrames = plannerMaxFrames ?: base.maxFrames
+                        override val neuralDiscovery = useNeural
+                        override val neuralModelPath = neuralModel ?: base.neuralModelPath
+                        override val valueFieldSearch = useValueField
                     }
                 }
-            } ?: AutomationConfig.DEFAULT
+            } else {
+                AutomationConfig.DEFAULT
+            }
             // Submit while the body still drifts, reproducing a rapid retry: the manager
             // must settle to true rest before capturing, or frame zero is a moving state
             // the player has already shed by the time the async plan returns.

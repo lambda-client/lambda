@@ -136,6 +136,9 @@ class SnapshotSimulationEnvironment private constructor(
     blocks: Map<Long, SnapshotBlockPhysics>,
     private val defaultBlock: SnapshotBlockPhysics?,
 ) : SimulationEnvironment, CoarseVoxelView {
+    /** Captured cells, packed by [BlockPos.asLong]. Debug/serialisation only. */
+    fun snapshotBlocks(): Map<Long, SnapshotBlockPhysics> = blocks
+
     private val blocks = Collections.unmodifiableMap(HashMap(blocks))
 
     override val simulableStanceY: IntRange = bounds.simulableStanceY

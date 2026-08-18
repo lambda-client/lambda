@@ -59,6 +59,17 @@ class CoarsePlanner(
         return repair(Duration.INFINITE)
     }
 
+    /**
+     * Labels the ground *beside* the optimal corridor, so a value-steered trajectory has
+     * somewhere mapped to manoeuvre. See [DStarLite.expandField]; bounded in both time and
+     * expansions because this runs inside the plan.
+     */
+    fun expandField(
+        extraTicks: Double,
+        timeBudget: Duration = 50.milliseconds,
+        maxExpansions: Int = Int.MAX_VALUE,
+    ): DStarLite.ComputeResult = search.expandField(extraTicks, timeBudget, maxExpansions)
+
     fun route(maxLength: Int = 10_000): CoarseRouteCandidate<Stance>? = search.routeCandidate(maxLength)
 
     /**
@@ -88,6 +99,23 @@ class CoarsePlanner(
     }
 
     fun tailCost(node: Stance = search.start): TailCost = search.tailCost(node)
+
+    /**
+     * The cost-to-go labels D* already computed, as a field the trajectory layer can
+     * query anywhere instead of only along the extracted route.
+     *
+     * `min(g, rhs)` rather than `g`: a stance that has been *reached* by the backward
+     * search but not yet expanded carries its value in `rhs` alone, and that frontier
+     * layer is exactly the ground just off the route that a free trajectory search wants
+     * to price. Neither is treated as exact — [CoarseValueField.lowerBound] is what
+     * correctness rests on, and it never reads a label.
+     */
+    fun valueField(): CoarseValueField = CoarseValueField(
+        view = view,
+        moves = moves,
+        label = { stance -> minOf(search.g(stance), search.rhs(stance)) },
+        goal = search.goal,
+    )
 
     /** Re-evaluates only known stance origins whose exact template reads overlap a changed voxel. */
     fun worldChanged(changed: Iterable<VoxelPos>): DStarLite.SynchronizationResult {

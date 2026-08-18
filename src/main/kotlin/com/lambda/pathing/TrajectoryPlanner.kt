@@ -9,6 +9,7 @@
 
 package com.lambda.pathing
 
+import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarseMoveCosts
@@ -18,7 +19,12 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.neural.NeuralPolicyHolder
+import com.lambda.pathing.neural.NeuralTrajectoryDiscovery
+import com.lambda.pathing.trajectory.MotionAnchorSearch
+import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryPlanId
@@ -30,10 +36,12 @@ import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 sealed interface PathPlanResult {
     data class Planned(val path: PathingManager.PublishedPath) : PathPlanResult
@@ -197,6 +205,12 @@ object TrajectoryPlanner {
         val snapshot = SnapshotSimulationEnvironment.capture(
             player.entityWorld, player, boundsCovering(start, goal),
         )
+        // Resolved on the client thread; the worker only writes to it.
+        val dumpDirectory = if (config.dumpFailedPlans) {
+            MinecraftClient.getInstance().runDirectory.toPath().resolve(DUMP_DIRECTORY)
+        } else {
+            null
+        }
 
         return CompletableFuture.supplyAsync {
             val started = System.currentTimeMillis()
@@ -211,9 +225,58 @@ object TrajectoryPlanner {
             // never to execution. The final result is one concatenated tape replayed
             // from the original state through the final stable stop. There are no
             // runtime stop-and-replan legs hidden behind trajectory windowing.
+            val neuralPolicy = if (config.neuralDiscovery) {
+                NeuralPolicyHolder.policy(config.neuralModelPath)
+                    ?: return@supplyAsync PathPlanResult.NoRoute(
+                        NeuralPolicyHolder.lastFailure() ?: "neural policy unavailable",
+                    )
+            } else {
+                null
+            }
+
+            // A value-steered search only goes where the field has labels, so the field
+            // has to be wider than the one corridor `computeShortestPath` settles for.
+            // Bounded: it is paid once per plan, before any rollout.
+            if (config.valueFieldSearch) {
+                planner.expandField(
+                    extraTicks = FIELD_EXPANSION_TICKS,
+                    timeBudget = FIELD_EXPANSION_BUDGET,
+                    maxExpansions = FIELD_EXPANSION_NODES,
+                )
+            }
+
             val outcome = searchWithRerouting(planner, snapshot.capturedWorldTime) { route ->
-                WalkingSeedSearch.searchContinuously(route, initial, profile, snapshot, seedConfig)
+                if (neuralPolicy != null) {
+                    // The policy proposes; the simulator in this rollout still certifies
+                    // every frame, so the published tape is exactly as safe as the search's.
+                    NeuralTrajectoryDiscovery.search(
+                        route, initial, profile, snapshot, neuralPolicy,
+                        maxFrames = config.maxFrames,
+                        goalRadius = config.goalRadius,
+                    )
+                } else if (config.valueFieldSearch) {
+                    ValueFieldAnchorSearch.search(
+                        route, planner.valueField(), initial, profile, snapshot, seedConfig,
+                    )
+                } else if (config.anchorSearch) {
+                    MotionAnchorSearch.search(route, initial, profile, snapshot, seedConfig)
+                } else {
+                    WalkingSeedSearch.searchContinuously(route, initial, profile, snapshot, seedConfig)
+                }
             } ?: return@supplyAsync PathPlanResult.NoRoute("no coarse route to the goal")
+
+            (outcome.result as? WalkingSeedSearchResult.NoSafeStop)?.let { refusal ->
+                dumpDirectory?.let { directory ->
+                    runCatching {
+                        PlanDump.write(
+                            directory, snapshot, start, goal, initial, profile,
+                            moveOptions, seedConfig,
+                            note = "refused after ${refusal.attempts.size} attempts, " +
+                                "blocked at ${refusal.blockedProgress}",
+                        )
+                    }.onFailure { LOG.error("Could not write the failed plan dump", it) }
+                }
+            }
 
             when (val seed = outcome.result) {
                 is WalkingSeedSearchResult.Success -> PathPlanResult.Planned(
@@ -354,6 +417,17 @@ object TrajectoryPlanner {
      * (every jump admitted, none feasible) from turning one plan into an unbounded search.
      */
     private const val MAX_REROUTES = 8
+
+    /**
+     * How far past the optimal cost the value field is labelled for a value-steered
+     * search. Roughly ten blocks of detour room — enough to cut a corner or take a
+     * parallel line, not so much that the plan pays for labelling the whole region.
+     */
+    private const val FIELD_EXPANSION_TICKS = 36.0
+    private val FIELD_EXPANSION_BUDGET = 60.milliseconds
+    private const val FIELD_EXPANSION_NODES = 20_000
+
+    private const val DUMP_DIRECTORY = "neolambda/pathing-dumps"
 
     private const val MARGIN = 12
 

@@ -65,4 +65,40 @@ interface PathingConfig {
 
     /** How close to the goal centre the walk must come to a stable stop. */
     val goalRadius: Double
+
+    /**
+     * Discover the trajectory with the kinodynamic anchor search instead of the
+     * whole-route gait sweep. Local certified transitions between exact grounded body
+     * states, so an extra hazard costs a bounded amount of work rather than replaying
+     * every earlier launch combination. A default member so existing config
+     * implementors keep compiling.
+     */
+    val anchorSearch: Boolean get() = true
+
+    /**
+     * Steer the anchor search by the coarse cost-to-go *field* instead of the one route
+     * D* extracts from it, and drop the corridor-deviation veto. The trajectory is then
+     * free to leave the greedy line wherever the physics is faster; going the wrong way
+     * is priced by the value, not forbidden. Takes precedence over [anchorSearch].
+     */
+    val valueFieldSearch: Boolean get() = false
+
+    /**
+     * On a refusal, write the whole captured plan — collision shapes, endpoints, entry
+     * state, physics profile — to `neolambda/pathing-dumps`. The terrain behind a field
+     * refusal otherwise exists only in the reporter's world; this turns it into a JVM
+     * fixture that replays in a second.
+     */
+    val dumpFailedPlans: Boolean get() = false
+
+    /**
+     * Discover the trajectory with the trained value-guided neural policy instead of
+     * the seed search. The policy proposes; the exact simulator still certifies every
+     * frame, so the published tape is as safe as any other. Off by default and a
+     * default member so existing config implementors keep compiling.
+     */
+    val neuralDiscovery: Boolean get() = false
+
+    /** Filesystem path to the ONNX-exported policy; null resolves the default location. */
+    val neuralModelPath: String? get() = null
 }
