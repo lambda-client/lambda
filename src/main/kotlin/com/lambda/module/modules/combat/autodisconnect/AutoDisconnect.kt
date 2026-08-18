@@ -43,8 +43,8 @@ import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.tickDeltaF
 import com.lambda.util.item.ItemStackUtils.bundleContents
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
-import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.MovementUtils.moveDelta
+import com.lambda.util.player.PlayerUtils.isIn2b2tQueue
 import com.lambda.util.player.SlotUtils.allStacks
 import com.lambda.util.player.SlotUtils.armorSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks

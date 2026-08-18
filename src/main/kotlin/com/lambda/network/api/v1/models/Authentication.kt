@@ -17,29 +17,29 @@
 
 package com.lambda.network.api.v1.models
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.google.gson.annotations.SerializedName
 
 data class Authentication(
-    @JsonProperty("access_token")
+    @SerializedName("access_token")
     val accessToken: String,
 
-    @JsonProperty("expires_in")
+    @SerializedName("expires_in")
     val expiresIn: Long,
 
-    @JsonProperty("token_type")
+    @SerializedName("token_type")
     val tokenType: String,
 ) {
     data class Data(
-        @JsonProperty("nbf")
+        @SerializedName("nbf")
         val notBefore: Long,
 
-        @JsonProperty("iat")
+        @SerializedName("iat")
         val issuedAt: Long,
 
-        @JsonProperty("exp")
+        @SerializedName("exp")
         val expirationDate: Long,
 
-        @JsonProperty("data")
+        @SerializedName("data")
         val data: Player,
     )
 }

@@ -201,6 +201,44 @@ object SnapHandler : Loadable {
         )
     }
 
+    data class EdgeSnapResult(val pos: Float?, val kind: Guide.Kind?)
+
+    fun snapEdge(pos: Float, orientation: Guide.Orientation, currentId: String?): EdgeSnapResult {
+        class Best {
+            var s = Float.POSITIVE_INFINITY
+            var p: Float? = null
+            var k: Guide.Kind? = null
+        }
+
+        val elem = Best(); val screen = Best(); val grid = Best()
+
+        frameGuides.forEach { sg ->
+            val g = sg.guide
+            if (g.orientation != orientation) return@forEach
+
+            val out = when (g.kind) {
+                Guide.Kind.ElementEdge, Guide.Kind.ElementCenter ->
+                    if (sg.sourceId == currentId) return@forEach else elem
+                Guide.Kind.ScreenCenter -> screen
+                Guide.Kind.Grid -> grid
+            }
+
+            val dist = abs(pos - g.pos)
+            if (dist > max(1f, thresholdFor(g.kind))) return@forEach
+
+            val sc = score(dist, g.strength)
+            if (sc < out.s) { out.s = sc; out.p = g.pos; out.k = g.kind }
+        }
+
+        val choice = when {
+            elem.s.isFinite() -> elem
+            screen.s.isFinite() -> screen
+            grid.s.isFinite() -> grid
+            else -> return EdgeSnapResult(null, null)
+        }
+        return EdgeSnapResult(choice.p, choice.k)
+    }
+
     fun ImGuiBuilder.drawSnapLines(snapX: Float?, kindX: Guide.Kind?, snapY: Float?, kindY: Guide.Kind?) {
 		val draw = foregroundDrawList
         val showX = kindX == Guide.Kind.ElementEdge || kindX == Guide.Kind.ElementCenter

@@ -17,20 +17,20 @@
 
 package com.lambda.network.api.v1.models
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.google.gson.annotations.SerializedName
 import java.util.*
 
 data class Player(
-    @JsonProperty("name")
+    @SerializedName("name")
     val name: String,
 
-    @JsonProperty("id")
+    @SerializedName("id")
     val uuid: UUID,
 
-    @JsonProperty("discord_id")
+    @SerializedName("discord_id")
     val discordId: String,
 
     // Whether the player is verified or not
-    @JsonProperty("unsafe")
+    @SerializedName("unsafe")
     val unsafe: Boolean,
 )

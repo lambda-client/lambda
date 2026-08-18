@@ -24,13 +24,13 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.BreakContext
+import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.destroyBlock
+import com.lambda.interaction.handlers.breaking.RebreakHandler.reBreak
 import com.lambda.interaction.handlers.packet.PacketLimitHandler
 import com.lambda.interaction.handlers.packet.PacketType
-import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
-import com.lambda.interaction.handlers.breaking.RebreakHandler.rebreak
 import com.lambda.interaction.managers.breaking.BreakInfo
 import com.lambda.interaction.managers.breaking.BreakManager
+import com.lambda.interaction.managers.breaking.BreakManager.calcBreakDelta
 import com.lambda.interaction.managers.breaking.BreakRequest
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.player.PlayerUtils.swingHand
@@ -41,11 +41,11 @@ import net.minecraft.util.Hand
  * the user to break any block placed in said position using the progress from the previously broken block.
  */
 object RebreakHandler {
-	var rebreak: BreakInfo? = null
+	var reBreak: BreakInfo? = null
 
     init {
         listen<TickEvent.Post>({ Int.MIN_VALUE + 1 }) {
-            rebreak?.run {
+            reBreak?.run {
                 if (!progressedThisTick) {
                     breakingTicks++
                     progressedThisTick = true
@@ -54,19 +54,19 @@ object RebreakHandler {
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
-            rebreak = null
+            reBreak = null
         }
     }
 
 	/**
 	 * Tests to see if the [BreakInfo] can be accepted. If not, nothing happens. Otherwise,
-	 * the [rebreak] is set, and the [com.lambda.interaction.managers.breaking.BreakRequest.onReBreakStart] callback is invoked.
+	 * the [reBreak] is set, and the [com.lambda.interaction.managers.breaking.BreakRequest.onReBreakStart] callback is invoked.
 	 */
 	context(safeContext: SafeContext)
 	fun offerRebreak(info: BreakInfo) {
 		if (!info.rebreakable) return
 
-		rebreak = info.apply {
+		reBreak = info.apply {
 			type = BreakInfo.BreakType.Rebreak
 			breaking = true
 			resetCallbacks()
@@ -75,7 +75,7 @@ object RebreakHandler {
 	}
 
 	fun clearRebreak() {
-		rebreak = null
+		reBreak = null
 	}
 
 	/**
@@ -89,11 +89,11 @@ object RebreakHandler {
 	 */
 	context(_: SafeContext)
 	fun BreakInfo.getRebreakPotential() = request.runSafeAutomated {
-		rebreak?.let { reBreak ->
+		reBreak?.let { reBreak ->
 			val stack = if (breakConfig.swapMode.isEnabled())
 				swapStack
 			else player.mainHandStack
-			val breakDelta = context.cachedState.calcBreakDelta(context.blockPos, stack)
+			val breakDelta = calcBreakDelta(stack)
 			val possible = reBreak.breakConfig.rebreak &&
 					context.blockPos == reBreak.context.blockPos
 			val instant = (reBreak.breakingTicks - breakConfig.fudgeFactor) * breakDelta >= breakConfig.breakThreshold
@@ -106,18 +106,17 @@ object RebreakHandler {
 	}
 
 	/**
-	 * Updates the current [rebreak] with a fresh [BreakContext], and attempts to rebreak the block if possible.
+	 * Updates the current [reBreak] with a fresh [BreakContext], and attempts to rebreak the block if possible.
 	 *
 	 * @return A [RebreakResult] to indicate how the update has been processed.
 	 */
 	context(_: SafeContext)
 	fun handleUpdate(ctx: BreakContext, request: BreakRequest) = request.runSafeAutomated {
-		val reBreak = this@RebreakHandler.rebreak ?: return@runSafeAutomated RebreakResult.Ignored
+		val reBreak = this@RebreakHandler.reBreak ?: return@runSafeAutomated RebreakResult.Ignored
 
 		reBreak.updateInfo(ctx, request)
 
-		val context = reBreak.context
-		val breakDelta = context.cachedState.calcBreakDelta(context.blockPos)
+		val breakDelta = reBreak.calcBreakDelta()
 		val breakTicks = reBreak.breakingTicks - breakConfig.fudgeFactor
 		return@runSafeAutomated if (breakTicks * breakDelta >= reBreak.getBreakThreshold()) {
 			if (!PacketLimitHandler.canSendPackets(1, PacketType.PlayerAction)) return@runSafeAutomated RebreakResult.Ignored

@@ -50,12 +50,12 @@ object ViewModel : Module(
 	private const val HAND_TAB = "Hand"
 
 	@Tab(GENERAL_TAB) private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing")
-	@Tab(GENERAL_TAB)val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", " ticks")
-	@Tab(GENERAL_TAB)private val noSwingDelay by setting("No Swing Delay", false, "Removes the delay between swings")
-	@Tab(GENERAL_TAB)val mainSwingProgress by setting("Main Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players main hand was this progress through the swing animation")
-	@Tab(GENERAL_TAB)val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation")
-	@Tab(GENERAL_TAB)val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8")
-	@Tab(GENERAL_TAB)val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { oldAnimations }
+	@Tab(GENERAL_TAB) val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", " ticks")
+	@Tab(GENERAL_TAB) private val noSwingDelay by setting("No Swing Delay", false, "Removes the delay between swings")
+	@Tab(GENERAL_TAB) val mainSwingProgress by setting("Main Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players main hand was this progress through the swing animation")
+	@Tab(GENERAL_TAB) val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation")
+	@Tab(GENERAL_TAB) val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8")
+	@Tab(GENERAL_TAB) val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { oldAnimations }
 	//ToDo: Implement
 //    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
 

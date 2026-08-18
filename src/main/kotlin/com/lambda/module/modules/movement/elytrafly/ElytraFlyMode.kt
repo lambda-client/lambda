@@ -123,8 +123,6 @@ abstract class ElytraFlyMode(
 		return inventoryRequest.done
 	}
 
-	open fun interrupt() {}
-
 	fun SafeContext.findElytra(): Slot? =
 		ELYTRA_SELECTION.filterSlots(player.hotbarAndInventorySlots).minByOrNull { it.index }
 
@@ -138,4 +136,6 @@ abstract class ElytraFlyMode(
 		connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
 
 	open fun isGliding() = runSafe { player.getFlag(Entity.GLIDING_FLAG_INDEX) || (fakeFly && fakeGliding) } == true
+
+	open fun pausingMovement() = false
 }

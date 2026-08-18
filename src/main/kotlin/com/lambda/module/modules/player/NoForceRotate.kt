@@ -17,11 +17,18 @@
 
 package com.lambda.module.modules.player
 
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
+@Suppress("unused")
 object NoForceRotate : Module(
 	name = "NoForceRotate",
 	description = "Prevents the server from forcing your players rotation",
 	tag = ModuleTag.PLAYER
-)
+) {
+	init {
+		listen<PlayerEvent.ServerForceRotate> { it.cancel() }
+	}
+}

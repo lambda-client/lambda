@@ -19,13 +19,11 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
-import com.lambda.config.ConfigEditor.editSetting
 import com.lambda.config.ConfigEditor.editTypedSettings
 import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.InteractConfig
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -39,8 +37,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
-import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -187,7 +185,6 @@ object StashMover : Module(
 					hide(::pathing, ::collectDrops, ::spleefEntities, ::entityReach)
 					hideBlock(::eatConfig)
 				}
-				interactConfig::airPlace.editSetting { defaultValue(InteractConfig.AirPlaceMode.None) }
 				breakConfig.apply {
 					editTypedSettings(::suitableToolsOnly, ::efficientOnly) { defaultValue(false) }
 				}

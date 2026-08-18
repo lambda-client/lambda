@@ -199,7 +199,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
         if (lambda$instance != Lambda.getMc().player) return;
         final var grimMode = ElytraFly.getGrimControlMode();
         if (ElytraFly.getGrimControlMode().isEnabled() &&
-                !grimMode.getFlipFlopMode().isFlipFlopping().invoke(grimMode.getHasFirework()) &&
+                !grimMode.getFlipFlopMode().isFlipFlopping().invoke(ElytraFly.getHasFirework()) &&
                 !grimMode.getMoving()
         ) ci.cancel();
     }

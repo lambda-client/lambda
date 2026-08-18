@@ -39,6 +39,7 @@ import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.SpeedUnit
 import com.lambda.util.TickTimer
+import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
 import com.lambda.util.math.minus
 import com.lambda.util.player.PlayerUtils.canStartGliding
@@ -67,7 +68,7 @@ class BounceElytraFly(
 
 	private val takeoff by c.setting("Takeoff", true, "Automatically jumps and initiates gliding")
 	private val autoPitch by c.setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds")
-	private val pitch by c.setting("Pitch", 80.0, -90.0..90.0, 0.000001) { autoPitch }
+	private val pitch by c.setting("Pitch", 72.0, -90.0..90.0, 0.000001) { autoPitch }
 	private val jump by c.setting("Jump", true, "Automatically jumps")
 	private val flagPause by c.setting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
 	private val minimizePackets by c.setting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
@@ -80,7 +81,7 @@ class BounceElytraFly(
 	@Group(Y_MOTION_GROUP) val strictYMotionRange by c.setting("Strict Range", true, "provides an extra range check to sneak until within. Typically used for when you need to get within sub-block distances of walls for collision checks") { yMotionSetting }
 	@Group(Y_MOTION_GROUP) val acceptableYMotionRange by c.setting("Acceptable Range", 0.1, 0.01..5.0, 0.01, "The acceptable distance, aside from forward distance, from the start position") { yMotionSetting && strictYMotionRange }
 	@Group(Y_MOTION_GROUP) val yMotionStartSpeed by c.setting("Y Motion Start Speed", 30, 0..40, 1, unit = "bps") { yMotionSetting }
-	@Group(Y_MOTION_GROUP) val speedLimit by c.setting("Speed Limit", 110, 10..400, 1, unit = "bps") { yMotionSetting }
+	@Group(Y_MOTION_GROUP) val speedLimit by c.setting("Speed Limit", 120, 10..400, 1, unit = "bps") { yMotionSetting }
 	private val SafeContext.yMotion
 		get() = yMotionSetting &&
 				onYMotionAngle &&
@@ -104,6 +105,9 @@ class BounceElytraFly(
 	private var sneakRight = false
 	private var interrupting = false
 
+	private val flightPaused
+		get() = !pauseTimer.hasSurpassed(flagPause) || interrupting || BaritoneHandler.isActive
+
 	private val SafeContext.queuePackets
 		get() = fakeLag && player.isGliding && (!yMotionSetting || !onYMotionAngle) &&
 				player.y - startPos.y < if (passerConfig.passObstacles) passerConfig.minObstacleHeight + 0.1 else 0.163
@@ -122,16 +126,17 @@ class BounceElytraFly(
 
 			if (handlePassingObstacles()) return@listen
 
-			if (yMotionSetting && strictYMotionRange && onYMotionAngle && player.isOnGround) {
+			if (yMotionSetting && strictYMotionRange && onYMotionAngle) run yMotionCorrection@ {
+				val playerPos = player.pos
+				val validDistanceFromStart = Vec3d(playerPos.x, startPos.y, playerPos.z) dist startPos > 0.1
+				if (!validDistanceFromStart) return@yMotionCorrection
+
 				val snappedDir = getSnappedDir()
-				val closestLinePoint = player.pos.findClosestPointOnLine(snappedDir)
+				val closestLinePoint = playerPos.findClosestPointOnLine(snappedDir)
 				val xz = Vec3d(player.x, closestLinePoint.y, player.z)
 				if (xz distSq closestLinePoint > acceptableYMotionRange.pow(2)) {
-					if (player.isGliding) {
-						interrupt()
-						return@listen
-					}
-					val offset = player.pos - startPos
+					interrupting = true
+					val offset = playerPos - startPos
 					val cross = snappedDir.x * offset.z - snappedDir.z * offset.x
 					val rotationRequest = rotationRequest {
 						val yawAndPitch = snappedDir.yawAndPitch
@@ -144,7 +149,7 @@ class BounceElytraFly(
 				}
 			}
 
-			if (!pauseTimer.hasSurpassed(flagPause)) return@listen
+			if (flightPaused) return@listen
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
@@ -176,14 +181,16 @@ class BounceElytraFly(
 		listen<MovementEvent.InputUpdate> { event ->
 			val input = event.input
 			val playerInput = input.playerInput
+
 			if (sneakLeft || sneakRight) {
+				val sneak = player.velocity.horizontal.length() > 0.001 || !player.isSneaking
 				input.playerInput = PlayerInput(
 					playerInput.forward,
 					playerInput.backward,
 					sneakLeft,
 					sneakRight,
 					playerInput.jump,
-					true,
+					sneak,
 					false
 				)
 				input.movementVector = Vec2f(
@@ -194,10 +201,10 @@ class BounceElytraFly(
 				sneakRight = false
 				return@listen
 			}
-			if ((player.isGliding && !interrupting && jump) || jumpThisTick) {
-				input.jump()
-				jumpThisTick = false
-			}
+			if ((!player.isGliding || !jump) && !jumpThisTick) return@listen
+			jumpThisTick = false
+			if (flightPaused) return@listen
+			input.jump()
 		}
 
 		listen<PacketEvent.Send.Pre>({ 1 }) { event ->
@@ -227,10 +234,6 @@ class BounceElytraFly(
 		}
 	}
 
-	override fun interrupt() {
-		interrupting = true
-	}
-
 	private fun SafeContext.flushPackets() {
 		while (sendPacketQueue.isNotEmpty()) {
 			val packet = sendPacketQueue.poll()
@@ -250,11 +253,8 @@ class BounceElytraFly(
 
 	override fun isGliding() =
 		runSafe {
-			val original: Boolean = player.getFlag(Entity.GLIDING_FLAG_INDEX)
-			if (prevGliding == true &&
-				!interrupting &&
-				pauseTimer.hasSurpassed(flagPause) &&
-				!BaritoneHandler.isActive) true
+			val original = player.getFlag(Entity.GLIDING_FLAG_INDEX)
+			if (prevGliding == true && !flightPaused) true
 			else {
 				prevGliding = original
 				original

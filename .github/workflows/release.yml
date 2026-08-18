@@ -1,4 +1,4 @@
-name: Release Lambda
+name: Stable Release
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
 
-    name: Build and Release Lambda
+    name: Build and Publish Lambda
     runs-on: ubuntu-latest
 
     permissions:
@@ -42,9 +42,9 @@ jobs:
       - name: Build Lambda
         run: ./gradlew build
 
-      - name: Publish release to maven
+      - name: Publish stable release to Maven
         id: upload
-        run: ./gradlew publish -PmavenType=release -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
+        run: ./gradlew publish -PmavenType=stable -PmavenUsername=${{ secrets.MAVEN_USER }} -PmavenPassword=${{ secrets.MAVEN_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2.0.8

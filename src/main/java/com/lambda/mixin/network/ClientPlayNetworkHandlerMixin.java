@@ -21,10 +21,11 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ChatEvent;
 import com.lambda.event.events.InventoryEvent;
+import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.interaction.managers.inventory.InventoryManager;
+import com.lambda.interaction.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
-import com.lambda.module.modules.player.NoForceRotate;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -33,14 +34,25 @@ import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityPosition;
 import net.minecraft.network.packet.s2c.play.*;
+import org.jetbrains.annotations.Nullable;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Set;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin {
+    @Unique
+    @Nullable
+    private static PlayerEvent.ServerForceRotate forceRotateEvent = null;
+
     @Inject(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At("TAIL"))
     void injectJoinPacket(GameJoinS2CPacket packet, CallbackInfo ci) {
         EventFlow.post(new WorldEvent.Join());
@@ -79,7 +91,7 @@ public class ClientPlayNetworkHandlerMixin {
      * }
      * }</pre>
      */
-    @ModifyExpressionValue(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;seenInsecureChatWarning:Z", ordinal = 0))
+    @ModifyExpressionValue(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;seenInsecureChatWarning:Z", ordinal = 0, opcode = Opcodes.GETFIELD))
     public boolean onServerMetadata(boolean original) {
         return (NoRender.getNoChatVerificationToast() && NoRender.INSTANCE.isEnabled()) || original;
     }
@@ -137,25 +149,30 @@ public class ClientPlayNetworkHandlerMixin {
         }
     }
 
-    @ModifyExpressionValue(method = "setPosition(Lnet/minecraft/entity/EntityPosition;Ljava/util/Set;Lnet/minecraft/entity/Entity;Z)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;yaw()F"))
+    @Inject(method = "setPosition", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;apply(Lnet/minecraft/entity/EntityPosition;Lnet/minecraft/entity/EntityPosition;Ljava/util/Set;)Lnet/minecraft/entity/EntityPosition;", ordinal = 0, shift = At.Shift.AFTER))
+    private static void injectAfterRotationApply(EntityPosition pos, Set<PositionFlag> flags, Entity entity, boolean bl, CallbackInfoReturnable<Boolean> cir) {
+        var player = Lambda.getMc().player;
+        if (entity != player) return;
+        forceRotateEvent = EventFlow.post(new PlayerEvent.ServerForceRotate(pos.yaw(), pos.pitch()));
+    }
+
+    @ModifyExpressionValue(method = "setPosition", at = {@At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;yaw()F", ordinal = 0), @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;yaw()F", ordinal = 1)})
     private static float wrapSetYaw(float original, @Local(argsOnly = true) Entity entity) {
         var player = Lambda.getMc().player;
         if (entity != player) return original;
         if (player == null) return original;
-        if (NoForceRotate.INSTANCE.isEnabled()) {
-            return player.getYaw();
-        }
-        return original;
+        final var force = forceRotateEvent == null || !forceRotateEvent.isCanceled();
+        RotationManager.resetYaw(original, force);
+        return force ? player.getYaw() : original;
     }
 
-    @ModifyExpressionValue(method = "setPosition(Lnet/minecraft/entity/EntityPosition;Ljava/util/Set;Lnet/minecraft/entity/Entity;Z)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;pitch()F"))
+    @ModifyExpressionValue(method = "setPosition", at = {@At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;pitch()F", ordinal = 0), @At(value = "INVOKE", target = "Lnet/minecraft/entity/EntityPosition;pitch()F", ordinal = 1)})
     private static float wrapSetPitch(float original, @Local(argsOnly = true) Entity entity) {
         var player = Lambda.getMc().player;
         if (entity != player) return original;
         if (player == null) return original;
-        if (NoForceRotate.INSTANCE.isEnabled()) {
-            return player.getPitch();
-        }
-        return original;
+        final var force = forceRotateEvent == null || !forceRotateEvent.isCanceled();
+        RotationManager.resetPitch(original, force);
+        return force ? player.getPitch() : original;
     }
 }

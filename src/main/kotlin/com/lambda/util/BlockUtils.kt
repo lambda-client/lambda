@@ -99,6 +99,7 @@ import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 
+@Suppress("unused")
 object BlockUtils {
     val signs = setOf(
         Blocks.OAK_SIGN,
@@ -292,13 +293,14 @@ object BlockUtils {
     }
 
     context(safeContext: SafeContext)
-    fun BlockState.calcItemBlockBreakingDelta(blockPos: BlockPos, stack: ItemStack): Float = with(safeContext) {
-        val hardness = getHardness(world, blockPos)
-        return if (hardness == -1.0f) 0.0f else {
-            val harvestMultiplier = if (stack.canHarvest(this@calcItemBlockBreakingDelta)) 30 else 100
-            player.getItemBlockBreakingSpeed(this@calcItemBlockBreakingDelta, stack) / hardness / harvestMultiplier
+    fun BlockState.calcItemBlockBreakingDelta(blockPos: BlockPos, stack: ItemStack): Float =
+        with(safeContext) {
+            val hardness = getHardness(world, blockPos)
+            return if (hardness == -1.0f) 0.0f else {
+                val harvestMultiplier = if (stack.canHarvest(this@calcItemBlockBreakingDelta)) 30 else 100
+                player.getItemBlockBreakingSpeed(this@calcItemBlockBreakingDelta, stack) / hardness / harvestMultiplier
+            }
         }
-    }
 
     fun ItemStack.canHarvest(state: BlockState) =
         !state.isToolRequired || isSuitableFor(state)

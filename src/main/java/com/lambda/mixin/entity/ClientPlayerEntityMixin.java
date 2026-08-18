@@ -50,11 +50,13 @@ import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
 
 import static com.lambda.Lambda.getMc;
+import static com.lambda.interaction.managers.rotating.Rotation.dist;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {
@@ -129,6 +131,12 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         var event = EventFlow.post(new PlayerPacketEvent.Send((PlayerMoveC2SPacket) packet));
         if (event.isCanceled()) return;
         original.call(instance, event.getPacket());
+    }
+
+    @ModifyVariable(method = "sendMovementPackets", at = @At(value = "STORE"), ordinal = 1)
+    private boolean modifyBl2(boolean original) {
+        boolean rotationMismatch = dist(RotationManager.getActiveRotation(), RotationManager.getServerRotation()) > 0.00001;
+        return original || rotationMismatch;
     }
 
     @Inject(method = "sendMovementPackets", at = @At("TAIL"))
