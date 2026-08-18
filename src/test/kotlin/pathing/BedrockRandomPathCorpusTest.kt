@@ -17,6 +17,9 @@ import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
+import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.trajectory.MotionAnchorSearch
+import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.WalkingSeedSearch
 import com.lambda.pathing.trajectory.WalkingSeedSearchConfig
 import com.lambda.pathing.trajectory.WalkingSeedSearchResult
@@ -48,6 +51,53 @@ import kotlin.time.Duration
 class BedrockRandomPathCorpusTest {
     @Test
     fun `random paths across a large bedrock field produce an honest corpus report`() {
+        runCorpus("legacy", "bedrock-random-corpus.csv") { _, route, initial, environment ->
+            WalkingSeedSearch.searchContinuously(
+                route, initial, PROFILE, environment, WalkingSeedSearchConfig(),
+            )
+        }
+    }
+
+    /**
+     * The Phase 1.5 engine on the same fixed scenarios. Same report shape, so the two
+     * CSVs are directly comparable: certified cases, attempts, frames, and wall time.
+     */
+    @Test
+    fun `the anchor search reports the same corpus`() {
+        runCorpus("anchor", "bedrock-random-corpus-anchor.csv") { _, route, initial, environment ->
+            MotionAnchorSearch.search(
+                route, initial, PROFILE, environment, WalkingSeedSearchConfig(),
+            )
+        }
+    }
+
+    /**
+     * The same scenarios steered by the coarse value field with no corridor veto, so the
+     * three CSVs answer one question directly: does removing the route confinement make
+     * the certified tapes faster, and at what search cost.
+     */
+    @Test
+    fun `the value field search reports the same corpus`() {
+        runCorpus("value-field", "bedrock-random-corpus-value-field.csv") { planner, route, initial, environment ->
+            // Production widens the labelled region before steering by it; the corpus must
+            // measure the same field the game gets.
+            planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+            ValueFieldAnchorSearch.search(
+                route, planner.valueField(), initial, PROFILE, environment, WalkingSeedSearchConfig(),
+            )
+        }
+    }
+
+    private fun runCorpus(
+        label: String,
+        reportName: String,
+        search: (
+            CoarsePlanner,
+            CoarseRoutePlan,
+            MovementSimulationState,
+            SnapshotSimulationEnvironment,
+        ) -> WalkingSeedSearchResult,
+    ) {
         val cells = BedrockFieldLayout.solidCells()
         val environment = SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(
@@ -64,7 +114,7 @@ class BedrockRandomPathCorpusTest {
         )
         val scenarios = BedrockFieldLayout.randomEndpointPairs(count = SCENARIOS)
         val report = ArrayList<String>()
-        report += "case,start,goal,coarseEdges,jumpEdges,result,attempts,frames,segments,millis,reroutes"
+        report += "case,start,goal,coarseEdges,jumpEdges,result,attempts,frames,segments,millis,reroutes,blocked,diagnostic"
 
         for ((index, endpoints) in scenarios.withIndex()) {
             val start = endpoints.first.toStance()
@@ -87,9 +137,7 @@ class BedrockRandomPathCorpusTest {
                 jumpEdges = route.edges.count {
                     it.kind == com.lambda.pathing.coarse.CoarseMoveKind.JUMP_CANDIDATE
                 }
-                WalkingSeedSearch.searchContinuously(
-                    route, initial, PROFILE, environment, WalkingSeedSearchConfig(),
-                )
+                search(planner, route, initial, environment)
             }
             val millis = elapsedMillis(coarseStarted)
             val result = outcome?.result
@@ -106,17 +154,26 @@ class BedrockRandomPathCorpusTest {
             }
             val kind = result?.let { it::class.simpleName } ?: "NO_ROUTE"
             val reroutes = outcome?.reroutes ?: 0
-            report += "$index,${start.csv()},${goal.csv()},$routeEdges,$jumpEdges,$kind,$attempts,$frames,$segments,$millis,$reroutes"
+            val refusal = result as? WalkingSeedSearchResult.NoSafeStop
+            val blocked = refusal?.blockedProgress ?: routeEdges
+            val diagnostic = refusal?.attempts
+                ?.filter { it.blockedProgress >= (refusal.blockedProgress ?: 0) }
+                ?.mapNotNull { it.diagnostic }
+                ?.groupingBy { it::class.simpleName ?: "?" }?.eachCount()
+                ?.entries?.sortedByDescending { it.value }
+                ?.joinToString(" ") { "${it.value}x${it.key}" }
+                ?: ""
+            report += "$index,${start.csv()},${goal.csv()},$routeEdges,$jumpEdges,$kind,$attempts,$frames,$segments,$millis,$reroutes,$blocked,$diagnostic"
 
             // No current search result claims all-entry impossibility, so this corpus
             // must never rewrite the graph and call ordinary gap candidates infeasible.
             assertEquals(0, reroutes, "case $index falsely blacklisted a coarse jump")
         }
 
-        val path = Path.of("build/reports/pathing/bedrock-random-corpus.csv")
+        val path = Path.of("build/reports/pathing/$reportName")
         Files.createDirectories(path.parent)
         Files.write(path, report)
-        report.forEach { println("[bedrock-corpus] $it") }
+        report.forEach { println("[bedrock-corpus-$label] $it") }
     }
 
     private fun initialState(start: Stance, goal: Stance): MovementSimulationState {

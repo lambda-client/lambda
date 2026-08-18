@@ -104,6 +104,75 @@ class DStarLite<N>(
                 break
             }
 
+            step()
+            processed++
+        }
+
+        return ComputeResult(
+            processedNodes = processed,
+            timedOut = timedOut,
+            expansionLimitReached = expansionLimitReached,
+            converged = !shouldCompute(),
+        )
+    }
+
+    /**
+     * Keeps expanding past start-consistency until every node within [extraTicks] of the
+     * start's own cost carries a label.
+     *
+     * [computeShortestPath] stops the instant the start is consistent, which labels little
+     * more than the optimal corridor. That is all a *route* needs. A trajectory search that
+     * steers by the value field needs the ground beside the corridor labelled too —
+     * otherwise the terrain it might legitimately cut across has no value, and anything
+     * that has to guess a value for unlabelled ground will guess it optimistically (a
+     * straight-line heuristic cannot see the walls the labels already price in) and walk
+     * the search off in the wrong direction.
+     */
+    fun expandField(
+        extraTicks: Double,
+        timeBudget: Duration = 50.milliseconds,
+        maxExpansions: Int = Int.MAX_VALUE,
+    ): ComputeResult {
+        require(extraTicks >= 0.0) { "extraTicks must be non-negative" }
+        require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
+
+        val startedAt = System.nanoTime()
+        val budgetNanos = timeBudget.inWholeNanoseconds
+        var processed = 0
+        var timedOut = false
+        var expansionLimitReached = false
+
+        val startCost = g(start)
+        if (!startCost.isFinite()) return ComputeResult(0, timedOut = false, expansionLimitReached = false, converged = true)
+        // Keys carry the same `h(start, node) + km` offset the start's own key does, so
+        // the budget is expressed against `calculateKey(start).first`.
+        val threshold = startCost + km + extraTicks
+
+        while (!queue.isEmpty() && queue.topKey(Key.INFINITY).first <= threshold) {
+            if (processed >= maxExpansions) {
+                expansionLimitReached = true
+                break
+            }
+            if ((processed and DEADLINE_CHECK_MASK) == 0 && System.nanoTime() - startedAt >= budgetNanos) {
+                timedOut = true
+                break
+            }
+
+            step()
+            processed++
+        }
+
+        return ComputeResult(
+            processedNodes = processed,
+            timedOut = timedOut,
+            expansionLimitReached = expansionLimitReached,
+            converged = !shouldCompute(),
+        )
+    }
+
+    /** One D* Lite queue step: the shared body of [computeShortestPath] and [expandField]. */
+    private fun step() {
+        run {
             val oldKey = queue.topKey(Key.INFINITY)
             val node = queue.top()
             val newKey = calculateKey(node)
@@ -142,16 +211,7 @@ class DStarLite<N>(
                     }
                 }
             }
-
-            processed++
         }
-
-        return ComputeResult(
-            processedNodes = processed,
-            timedOut = timedOut,
-            expansionLimitReached = expansionLimitReached,
-            converged = !shouldCompute(),
-        )
     }
 
     fun updateStart(newStart: N) {

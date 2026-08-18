@@ -162,6 +162,8 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
+    // Bridge-free neural inference inside the JVM: loads the ONNX-exported policy.
+    includeLib("com.microsoft.onnxruntime:onnxruntime:1.19.2")
     includeLib("com.github.emyfops:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
@@ -205,9 +207,23 @@ dependencies {
 tasks {
     test {
         useJUnitPlatform {
-            excludeTags("bedrock-corpus")
+            excludeTags("bedrock-corpus", "plan-dumps")
         }
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+    }
+
+    register<Test>("planDumps") {
+        description = "Replays plans dumped from a live refusal on both trajectory engines."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform {
+            includeTags("plan-dumps")
+        }
+        (project.findProperty("dumpDir") as String?)?.let { jvmArgs("-Dlambda.pathing.dumpDir=$it") }
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        testLogging { showStandardStreams = true }
+        outputs.upToDateWhen { false }
     }
 
     register<Test>("bedrockCorpus") {
@@ -222,10 +238,108 @@ tasks {
         outputs.upToDateWhen { false }
     }
 
+    register<JavaExec>("runRlBridge") {
+        description = "Runs the loopback JVM movement-simulator bridge for Sample Factory."
+        group = "application"
+        dependsOn(testClasses)
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
+        standardInput = System.`in`
+    }
+
+    register<JavaExec>("runRlBlockFieldBridge") {
+        description = "Runs the procedural 3-D block-field bridge for Sample Factory."
+        group = "application"
+        dependsOn(testClasses)
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
+        args("--environment", "block-field")
+        standardInput = System.`in`
+    }
+
+    register<Test>("neuralRepro") {
+        description = "Reproduce full-route neural discovery."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform { includeTags("neural-repro") }
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        outputs.upToDateWhen { false }
+    }
+
+    register<Test>("neuralDiscovery") {
+        description = "Validates the production NeuralTrajectoryDiscovery path against bench numbers."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform { includeTags("neural-discovery") }
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        outputs.upToDateWhen { false }
+    }
+
+    register<Test>("neuralSmoke") {
+        description = "Runs the ONNX-exported policy bridge-free in the JVM driving the simulator."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform { includeTags("neural-smoke") }
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        outputs.upToDateWhen { false }
+    }
+
+    register<Test>("dstarProbe") {
+        description = "Times per-episode D* planning on episode-sized patches."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform { includeTags("dstar-probe") }
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        outputs.upToDateWhen { false }
+    }
+
+    register<Test>("bedrockQuality") {
+        description = "Search side of the learned-vs-search trajectory quality head-to-head."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform { includeTags("bedrock-quality") }
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        outputs.upToDateWhen { false }
+    }
+
+    register<JavaExec>("runRlBedrockFieldBridge") {
+        description = "Runs the bedrock-corpus transfer bridge for evaluating a policy."
+        group = "application"
+        dependsOn(testClasses)
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
+        args("--environment", "bedrock-field")
+        standardInput = System.`in`
+    }
+
+    register<JavaExec>("runRlDStarBridge") {
+        description = "Runs the value-guided D*-terrain training bridge for Sample Factory."
+        group = "application"
+        dependsOn(testClasses)
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
+        args("--environment", "dstar-terrain")
+        standardInput = System.`in`
+    }
+
     // `./gradlew runClientGameTest -Prebaseline=true` records pathing metrics without
     // gating them, for refreshing the checked-in baseline after a deliberate change.
     withType<JavaExec>().matching { it.name == "runClientGameTest" }.configureEach {
         if (project.findProperty("rebaseline") == "true") jvmArgs("-Dlambda.pathing.rebaseline=true")
+        // `./gradlew runClientGameTest -Pneural=true -PneuralModel=/abs/policy.onnx`
+        // runs the pathing corpus with the trained neural policy driving discovery.
+        if (project.findProperty("neural") == "true") {
+            jvmArgs("-Dlambda.pathing.neural=true")
+            (project.findProperty("neuralModel") as String?)?.let { jvmArgs("-Dlambda.pathing.neuralModel=$it") }
+        }
+        // `./gradlew runClientGameTest -PvalueField=true` runs the corpus steered by the
+        // coarse value field with no corridor veto, instead of the extracted route.
+        if (project.findProperty("valueField") == "true") jvmArgs("-Dlambda.pathing.valueField=true")
     }
 
     shadowJar {
