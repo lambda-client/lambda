@@ -25,7 +25,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.MovementType
 import net.minecraft.util.math.Vec3d
 
-sealed class MovementEvent {
+abstract class MovementEvent {
     /**
      * Represents player movement update events.
      * This event will even be triggered if the player is not moving.
@@ -37,18 +37,18 @@ sealed class MovementEvent {
         /**
          * Event triggered before player movement.
          *
-         * @property movementType The type of movement.
+         * @property movement Type The type of movement.
          * @property movement The movement vector.
          */
         data class Pre(
             override val movementType: MovementType,
-            override val movement: Vec3d,
+            override var movement: Vec3d,
         ) : Player(), ICancellable by Cancellable()
 
         /**
          * Event triggered after player movement.
          *
-         * @property movementType The type of movement.
+         * @property movement Type The type of movement.
          * @property movement The movement vector.
          */
         data class Post(

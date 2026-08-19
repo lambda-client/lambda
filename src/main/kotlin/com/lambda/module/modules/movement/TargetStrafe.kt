@@ -17,80 +17,192 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.event.events.RotationEvent
+import com.lambda.context.SafeContext
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.distSq
-import com.lambda.util.player.MovementUtils.update
-import kotlin.math.pow
+import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.util.math.Vec3d
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 object TargetStrafe : Module(
     name = "TargetStrafe",
-    description = "Automatically strafes around entities",
+    description = "Strafes around a target in a circle. The default settings work great for old NCP.",
     tag = ModuleTag.MOVEMENT,
 ) {
-    private val targetDistance by setting("Strafe Distance", 1.0, 0.0..5.0, 0.1)
-    private val jitterCompensation by setting("Jitter Compensation", 0.0, 0.0..1.0, 0.1)
-    private val stabilize by setting("Stabilize", StabilizationMode.Normal)
+    private val autoJump by setting("AutoJump", true)
+    private val distanceSetting by setting("PreferredDistance", 1f, 0f..6f, 0.1f)
+    private val maxDistance by setting("MaxDistance", 10f, 1f..32f, 0.5f)
+    private val turnAmount by setting("TurnAmount", 5f, 1f..90f, 0.5f)
+    private val hSpeed by setting("HSpeed", 0.2873f, 0.001f..10.0f, 0.0001f)
 
-    enum class StabilizationMode {
-        None,
-        Weak,
-        Normal,
-        Strong
-    }
+    private val needsAura by setting("NeedsAura", true)
+    private val antiStuck by setting("AntiStuck", true)
 
-    private var forwardDirection = 1.0
-    private var strafeDirection = 1.0
+    // private val renderCircle by setting("RenderCircle", true)
+    // private val renderThickness by setting("RenderThickness", 2f, 0.5f..8f, 0.5f, visibility = { renderCircle })
 
-    @JvmStatic
-    val isActive get() = isEnabled && KillAura.isEnabled && KillAura.target != null
+    private var direction = 1
+
+    private var currentDistance = 0.toDouble()
+    private var currentTargetVec: Vec3d? = null
+
+    private var strafing = false
 
     init {
         listen<TickEvent.Post> {
-            if (player.horizontalCollision) strafeDirection *= -1
 
-            if (KillAura.target == null) {
-                forwardDirection = 1.0
-                strafeDirection = 1.0
+            if (strafing && autoJump && player.isOnGround) {
+                player.jump()
             }
         }
 
-        listen<RotationEvent.StrafeInput> { event ->
-            KillAura.target?.let { target ->
-                event.strafeYaw = player.eyePos.rotationTo(target.boundingBox.center).yaw
+        listen<MovementEvent.Player.Pre> { event ->
+            if (mc.player!!.horizontalCollision && antiStuck) {
+                switchDirection()
+            }
+            val strafe = canStrafe()
 
-                val distSq = player.pos distSq target.pos
-                val keepRange = 0.5 * jitterCompensation
+            if (strafe) {
+                val rotations = KillAura.target?.let { it1 -> player.eyePos!!.rotationTo(it1.pos) } ?: return@listen
+                KillAura.target?.let { it1 -> doStrafeAtSpeed(event, rotations.yawF, it1.pos) }
+                val r: Rotation
 
-                forwardDirection = when {
-                    distSq > (targetDistance + keepRange).pow(2) -> 1.0
-                    distSq < (targetDistance - keepRange).pow(2) -> -1.0
-                    else -> forwardDirection
-                }
-
-                // Premium code, do not touch it bites
-                var shouldStabilize = when (stabilize) {
-                    StabilizationMode.None -> false
-                    StabilizationMode.Weak -> player.age % 4 == 0   // 1/4
-                    StabilizationMode.Normal -> player.age % 2 == 0 // 2/4
-                    StabilizationMode.Strong -> player.age % 4 != 0 // 3/4
-                }
-
-                shouldStabilize = shouldStabilize && distSq > (targetDistance + 0.5).pow(2)
-
-                val strafe = if (shouldStabilize) 0.0 else strafeDirection
-                event.input.update(forwardDirection, strafe, jump = true)
+                strafing = true
+            } else {
+                strafing = false
             }
         }
 
-        onEnable {
-            forwardDirection = 1.0
-            strafeDirection = 1.0
-        }
+        // listen<RenderEvent.RenderWorld> {
+        //     if (strafing && renderCircle) {
+        //         if (currentTargetVec == null) {
+        //             return@listen
+        //         }
+        //         /*
+        //         todo: make rendering work
+        //         drawCircle(currentTargetVec!!, distanceSetting.toDouble(), distanceColor, 360)
+        //         drawCircle(currentTargetVec!!, currentDistance, playerDistanceColor, 360)
+        //         */
+        //     }
+        // }
+
     }
+
+    private fun SafeContext.doStrafeAtSpeed(event: MovementEvent.Player.Pre, rotation: Float, target: Vec3d): Boolean {
+
+
+        var playerSpeed = hSpeed
+        var jumpVelocity = 0.405
+
+        var rotationYaw = rotation + (90f * direction)
+
+
+        val disX = player.pos.x - target.x
+        val disZ = player.pos.z - target.z
+
+        val distance = sqrt(disX * disX + disZ * disZ)
+
+        if (distance < maxDistance) {
+            if (distance > distanceSetting) {
+                rotationYaw -= turnAmount * direction
+            } else if (distance < distanceSetting) {
+                rotationYaw += turnAmount * direction
+            }
+        } else {
+            rotationYaw = rotation
+        }
+
+        currentDistance = distance
+
+
+        // jump boost
+
+        val jumpboost = player.getStatusEffect(StatusEffects.JUMP_BOOST)
+        if (jumpboost != null) {
+            jumpVelocity *= jumpboost.amplifier
+        }
+
+        // speed
+
+        val speed = player.getStatusEffect(StatusEffects.SPEED)
+        if (speed != null) {
+
+            playerSpeed *= 1.0f + 0.2f * (speed.amplifier + 1)
+        }
+
+        event.movement = Vec3d(playerSpeed * cos(Math.toRadians((rotationYaw + 90.0f).toDouble())), event.movement.y, playerSpeed * sin(Math.toRadians((rotationYaw + 90.0f).toDouble())))
+
+
+        return false
+    }
+
+    private fun canStrafe(): Boolean {
+        if ((KillAura.isEnabled || !needsAura) && KillAura.target != null) {
+            return true
+        }
+        return false
+    }
+
+    private fun switchDirection() {
+        direction = -direction
+    }
+
+    // private fun drawCircle(center: Vec3d, radius: Double, color: Color, precision: Int) {
+
+
+    //     val linesToDraw = ArrayList<Pair<Vec3d, Vec3d>>()
+
+    //     val magic = precision / 360
+
+    //     var lastPos = center.add(0.0, 0.0, radius)
+
+
+    //     for (i in 0..precision) {
+
+    //         val yaw = i * magic
+
+    //         val x = radius * cos(Math.toRadians((yaw + 90.0f).toDouble()))
+    //         val z = radius * sin(Math.toRadians((yaw + 90.0f).toDouble()))
+
+    //         val newPos = center.add(x, 0.0, z)
+    //         linesToDraw.add(Pair(lastPos, newPos))
+    //         lastPos = newPos
+    //     }
+
+    //     val tessellator: Tessellator?
+    //     try {
+    //         tessellator = Tessellator.getInstance()
+    //     } catch (e: NoSuchFieldError) {
+    //         e.printStackTrace()
+    //         return
+    //     }
+    //     val buffer: BufferBuilder = tessellator.buffer
+
+    //     GL11.glLineWidth(renderThickness)
+    //     //GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_SMOOTH)
+    //     GlStateManager.disableDepth()
+
+    //     buffer.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION_COLOR)
+    //     for (pair in linesToDraw) {
+    //         try {
+    //             buffer.pos(pair.first.x, center.y, pair.first.z).color(color.r, color.g, color.b, color.a).endVertex()
+    //             buffer.pos(pair.second.x, center.y, pair.second.z).color(color.r, color.g, color.b, color.a).endVertex()
+    //         } catch (e: NullPointerException) {
+    //         }
+    //     }
+    //     tessellator.draw()
+
+
+    //     GlStateManager.enableDepth()
+    //     GL11.glLineWidth(1f)
+    // }
 }
