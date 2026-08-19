@@ -154,7 +154,20 @@ object MotionAnchorSearch {
         val parameters: WalkingSeedParameters,
         val frames: Int,
         val collisionEvents: Int,
-    )
+    ) {
+        /**
+         * Winner selection currency: arrival time plus a toll per contact.
+         *
+         * Ranking on frames alone lets a tape that scrapes a wall and saves one tick beat
+         * a clean one, which is the "it takes a collision instead of the better jump"
+         * report. The toll was established at four frames per bump by the staircase work
+         * (it cut a five-riser climb from ten bumps to four) and was lost when the search
+         * was extracted out of the legacy sweep. It is a preference among *certified*
+         * tapes only, never a safety gate: a necessary scrape — a rising jump grazing the
+         * lip it clears — still wins when nothing cleaner certifies.
+         */
+        val score: Int get() = frames + COLLISION_FRAME_PENALTY * collisionEvents
+    }
 
     private data class AnchorKey(
         val nodeIndex: Int,
@@ -583,11 +596,7 @@ object MotionAnchorSearch {
         /** Keeps the fastest certified completion; ties break toward fewer contacts. */
         private fun retain(solution: Solution) {
             val incumbent = best
-            if (incumbent == null ||
-                solution.frames < incumbent.frames ||
-                (solution.frames == incumbent.frames &&
-                    solution.collisionEvents < incumbent.collisionEvents)
-            ) {
+            if (incumbent == null || solution.score < incumbent.score) {
                 best = solution
             }
         }
@@ -721,6 +730,9 @@ object MotionAnchorSearch {
      * corridor tracker had while the body was still airborne.
      */
     private const val ATTRIBUTION_LOOKAHEAD = 2
+
+    /** Frames a single contact is worth in winner selection; never a safety gate. */
+    private const val COLLISION_FRAME_PENALTY = 4
 
     /** Speed difference below which two anchors are equally useful to a successor. */
     private const val SPEED_DOMINANCE_SLACK = 0.01

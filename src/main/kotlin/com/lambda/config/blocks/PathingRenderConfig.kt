@@ -24,6 +24,7 @@ interface PathingRenderConfig {
     val renderCoarseRoute: Boolean
     val renderTrajectory: Boolean
     val renderJumpMarkers: Boolean
+    val renderSplices: Boolean
     val renderTrail: Boolean
     val renderLabels: Boolean
 
@@ -43,6 +44,8 @@ interface PathingRenderConfig {
     val nodeColor: Color
     val trajectoryColor: Color
     val jumpColor: Color
+    val spliceColor: Color
+    val cutColor: Color
     val stopColor: Color
     val trailColor: Color
     val rejectColor: Color

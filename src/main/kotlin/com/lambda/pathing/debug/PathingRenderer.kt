@@ -57,16 +57,35 @@ object PathingRenderer : Loadable {
             // Once a plan publishes, its own coarse render takes over.
             if (published == null || route !== published.route) renderCoarseRoute(route)
         }
-        if (published != null) return
+
+        // Candidates are drawn while refining too, not only before the first plan. That
+        // phase is most of a long walk, and hiding it is why an improver making hundreds
+        // of attempts looked like it was doing nothing at all. They are dimmed once a tape
+        // is running, so the line the body is actually following stays the bright one.
+        val refining = published != null
         val width = screenWidth(maxOf(config.trajectoryWidth / 2, 1))
         PlanningDebugChannel.attempts.forEach { attempt ->
             if (attempt.points.size < 2) return@forEach
             val color = if (attempt.certified) config.trajectoryColor else config.rejectColor
-            polyline(
-                attempt.points.map { it.add(0.0, TRAJECTORY_Y, 0.0) },
-                color.setAlpha(if (attempt.certified) 0.65 else 0.30),
-                width,
-            )
+            val alpha = when {
+                attempt.certified -> if (refining) 0.40 else 0.65
+                else -> if (refining) 0.15 else 0.30
+            }
+            polyline(attempt.points.map { it.add(0.0, TRAJECTORY_Y, 0.0) }, color.setAlpha(alpha), width)
+        }
+
+        // Where the improver is currently cutting into the tape. Newest brightest, so a
+        // glance says both where it is looking now and where it has been looking.
+        if (config.renderSplices) {
+            val cuts = PlanningDebugChannel.cuts
+            cuts.forEachIndexed { index, position ->
+                val freshness = (index + 1).toDouble() / cuts.size
+                marker(
+                    position.add(0.0, TRAJECTORY_Y + 0.45, 0.0),
+                    0.10 + 0.10 * freshness,
+                    config.cutColor.setAlpha(0.25 + 0.6 * freshness),
+                )
+            }
         }
     }
 
@@ -93,7 +112,18 @@ object PathingRenderer : Loadable {
             add(plan.initialState.position.add(0.0, TRAJECTORY_Y, 0.0))
             plan.frames.forEach { add(it.state.position.add(0.0, TRAJECTORY_Y, 0.0)) }
         }
-        polyline(points, config.trajectoryColor, screenWidth(config.trajectoryWidth))
+
+        // Split the line where the body actually is. Everything behind the cursor is
+        // history and can no longer be improved; everything ahead is what refinement is
+        // still allowed to replace. Seeing which is which is the whole point of watching
+        // an anytime planner work.
+        val walked = (PathingManager.status as? PathingManager.Status.Executing)?.frame
+        if (walked != null && walked in 1 until points.size) {
+            polyline(points.take(walked + 1), config.trailColor, screenWidth(config.trajectoryWidth))
+            polyline(points.drop(walked), config.trajectoryColor, screenWidth(config.trajectoryWidth))
+        } else {
+            polyline(points, config.trajectoryColor, screenWidth(config.trajectoryWidth))
+        }
 
         // Every grounded launch the search chose. A STEP_UP with no marker here was
         // walked, not jumped -- which for a one-block rise means something is wrong.
@@ -105,8 +135,29 @@ object PathingRenderer : Loadable {
             }
         }
 
+        // Where one controller hands the tape to the next. These are the only frames a
+        // refinement or a splice may cut at, so they are the shape of what can still
+        // change -- a stretch with no splice markers is a stretch nothing can improve.
+        if (config.renderSplices) {
+            PathingManager.published?.spliceFrames?.forEach { frame ->
+                plan.frames.getOrNull(frame - 1)?.let { at ->
+                    marker(at.state.position.add(0.0, TRAJECTORY_Y + 0.22, 0.0), 0.13, config.spliceColor)
+                }
+            }
+        }
+
         plan.frames.lastOrNull()?.let { last ->
             marker(last.state.position.add(0.0, TRAJECTORY_Y, 0.0), 0.28, config.stopColor)
+        }
+
+        // Where a safe partial plan brakes to its certified stop. A tape is always safe
+        // run to its end, and this is that end: if refinement never arrives, the body
+        // stops here rather than running out of inputs mid-stride.
+        val path = PathingManager.published
+        if (path != null && path.partial) {
+            plan.frames.lastOrNull()?.let { last ->
+                marker(last.state.position.add(0.0, TRAJECTORY_Y + 0.35, 0.0), 0.34, config.rejectColor)
+            }
         }
     }
 
@@ -167,10 +218,17 @@ object PathingRenderer : Loadable {
         is PathingManager.Status.Planning -> "planning ${status.goal}"
         is PathingManager.Status.Aligning ->
             "aligning trajectory  yaw error %.1f°".format(status.yawError)
-        is PathingManager.Status.Executing ->
-            "walking continuous tape  %d/%d  dev %.2e".format(
-                status.frame, status.frames, PathingManager.maxDeviation,
+        is PathingManager.Status.Executing -> {
+            val path = PathingManager.published
+            val kind = if (path?.partial == true) "safe partial" else "full"
+            val improvements = PathingManager.adopted.takeIf { it > 0 }
+                ?.let { "  improved x$it" }.orEmpty()
+            val late = PathingManager.rejectedImprovements.takeIf { it > 0 }
+                ?.let { "  late x$it" }.orEmpty()
+            "walking %s tape  %d/%d  dev %.2e%s%s".format(
+                kind, status.frame, status.frames, PathingManager.maxDeviation, improvements, late,
             )
+        }
 
         is PathingManager.Status.Complete ->
             "complete: %d frames, max deviation %.2e".format(status.frames, PathingManager.maxDeviation)

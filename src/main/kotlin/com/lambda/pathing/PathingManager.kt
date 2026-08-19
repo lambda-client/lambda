@@ -75,6 +75,12 @@ object PathingManager : Manager<PathingRequest>(0) {
         val reroutes: Int = 0,
         /** Failure-directed launch runway accumulated across the certified tape. */
         val launchMarginFrames: Int = 0,
+        /**
+         * A safe *partial* plan: committed motion ending in a certified stop somewhere
+         * short of the goal. Safe to execute on its own — that is the whole point — and
+         * meant to be superseded by the full plan while it is still running.
+         */
+        val partial: Boolean = false,
     )
 
     sealed interface Status {
@@ -105,6 +111,28 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     @Volatile
     var maxDeviation: Double = 0.0
+        private set
+
+    /** Improvements swapped in while walking; the visible sign that anytime is working. */
+    @Volatile
+    var adopted: Int = 0
+        private set
+
+    private val executedPaths = ArrayList<PublishedPath>()
+
+    /**
+     * Every plan the body actually walked, in the order it walked them.
+     *
+     * [published] is only the newest, which is the wrong thing to judge a whole journey
+     * by: a walk that stops and replans ends on a short final leg, so asking that leg
+     * whether the journey pressed jump, or which route edges it used, answers about the
+     * last few blocks rather than about the trip.
+     */
+    val executed: List<PublishedPath> get() = synchronized(executedPaths) { ArrayList(executedPaths) }
+
+    /** Improvements that arrived too late to splice, so the running tape was kept. */
+    @Volatile
+    var rejectedImprovements: Int = 0
         private set
 
     /**
@@ -138,6 +166,14 @@ object PathingManager : Manager<PathingRequest>(0) {
     private var tickInput: MovementSimulationInput? = null
     private var awaitingObservation = false
 
+    /**
+     * An improvement that arrived mid-tick and must wait for a safe moment to be swapped
+     * in. Replacing the cursor between writing an input and observing its result strands
+     * the handshake — the new cursor has nothing awaiting observation and rightly refuses
+     * the tick that follows.
+     */
+    private var pendingImprovement: PublishedPath? = null
+
     fun isFinished(request: PathingRequest): Boolean =
         activeRequest !== request || status is Status.Complete || status is Status.Failed
 
@@ -164,6 +200,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         published = null
         status = Status.Idle
         maxDeviation = 0.0
+        pendingImprovement = null
+        adopted = 0
+        rejectedImprovements = 0
+        synchronized(executedPaths) { executedPaths.clear() }
         synchronized(trail) { trail.clear() }
         PlanningDebugChannel.reset()
     }
@@ -174,6 +214,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         cancel()
         published = null
         maxDeviation = 0.0
+        pendingImprovement = null
+        adopted = 0
+        rejectedImprovements = 0
+        synchronized(executedPaths) { executedPaths.clear() }
         synchronized(trail) { trail.clear() }
 
         activeRequest = request
@@ -240,6 +284,22 @@ object PathingManager : Manager<PathingRequest>(0) {
             TrajectoryPlanner.planAsync(
                 player, request.goal, request.pathingConfig,
                 turnSpeed = request.rotationConfig.turnSpeed,
+                // Where the body is, so refinement only ever replaces tape ahead of it.
+                cursorFrame = { cursor?.nextFrame },
+                onImprovement = if (System.getProperty("lambda.pathing.noRefine") == "true") null else { improvement ->
+                    mc.execute {
+                        if (activeRequest === request && cursor != null) adopt(improvement)
+                    }
+                },
+                onSafePrefix = { prefix ->
+                    // Worker thread: hand it to the client thread, and drop it if the
+                    // request has moved on or a tape is already running.
+                    mc.execute {
+                        if (activeRequest === request && cursor == null && pendingPath == null) {
+                            begin(prefix)
+                        }
+                    }
+                },
             )
         } catch (failure: Exception) {
             fail("could not capture a world snapshot: ${failure.message}")
@@ -255,7 +315,8 @@ object PathingManager : Manager<PathingRequest>(0) {
                 return@whenCompleteAsync
             }
             when (val completed = checkNotNull(result)) {
-                is PathPlanResult.Planned -> begin(completed.path)
+                is PathPlanResult.Planned ->
+                    if (cursor != null) adopt(completed.path) else begin(completed.path)
                 is PathPlanResult.NoRoute -> fail(completed.reason)
                 is PathPlanResult.NoSafeStop -> fail(completed.summary)
             }
@@ -264,7 +325,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private fun begin(path: PublishedPath) {
         val player = mc.player ?: return fail("no player")
-        if (path.route.goal != path.finalGoal) {
+        if (!path.partial && path.route.goal != path.finalGoal) {
             return fail("planner attempted to publish a partial route ending at ${path.route.goal.short()}")
         }
 
@@ -295,11 +356,70 @@ object PathingManager : Manager<PathingRequest>(0) {
         install(path)
     }
 
+    /**
+     * Swaps a better plan in underneath a tape that is already running.
+     *
+     * Only sound while the improvement agrees with what the body has *already done*: the
+     * executed frames are history, and a plan that would have driven them differently
+     * cannot be resumed from here. Both tapes come from the same search and the same
+     * immutable initial state, so the shared prefix is bit-identical when it exists at
+     * all. When it does not — the improvement diverges behind the cursor — nothing is
+     * lost: the running tape still ends in its certified stop, and planning resumes from
+     * that rest, which is exactly the old behaviour.
+     */
+    private fun adopt(path: PublishedPath) {
+        val running = published
+        val active = cursor
+        if (running == null || active == null) return begin(path)
+        if (awaitingObservation) {
+            // Mid-tick: the input for this frame is already pressed and its result has
+            // not been read yet. Swap at the top of the next tick instead.
+            pendingImprovement = path
+            return
+        }
+
+        val frame = active.nextFrame
+        if (frame > path.plan.tape.frameCount) return keepRunning(path, "improvement is shorter than the walk so far")
+        // Trust nothing about ordering: a worker publishes its passes as it finds them and
+        // the client thread may see them in any order relative to the base plan. Replacing
+        // a full tape with a *longer* full tape is a regression however it arrived. A
+        // partial tape is the exception — it stops short of the goal, so any complete plan
+        // supersedes it regardless of length.
+        if (!running.partial && !path.partial && path.plan.tape.frameCount >= running.plan.tape.frameCount) {
+            return keepRunning(path, "improvement is not shorter than the running tape")
+        }
+        val diverges = (0 until frame).any { running.plan.tape[it] != path.plan.tape[it] }
+        if (diverges) return keepRunning(path, "improvement diverges behind the cursor")
+
+        published = path
+        recordExecuted(path)
+        cursor = TrajectoryExecutionCursor(path.plan, path.profile).apply { resumeAt(frame) }
+        status = Status.Executing(frame, path.plan.tape.frameCount, leg)
+        adopted++
+        info(
+            "Improved the trajectory while walking: frame $frame of " +
+                "${running.plan.tape.frameCount} -> ${path.plan.tape.frameCount} frames" +
+                (if (running.partial) " (was a safe partial plan)" else ""),
+            PATHING_SOURCE,
+        )
+    }
+
+    private fun recordExecuted(path: PublishedPath) {
+        synchronized(executedPaths) { executedPaths += path }
+    }
+
+    /** Lets the running tape finish; it is safe by construction and ends stopped. */
+    private fun keepRunning(rejected: PublishedPath, reason: String) {
+        rejectedImprovements++
+        LOG.info("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
+    }
+
     private fun install(path: PublishedPath) {
         planningYaw = null
         pendingPath = null
         alignmentTicks = 0
         published = path
+        recordExecuted(path)
         cursor = TrajectoryExecutionCursor(path.plan, path.profile)
         awaitingObservation = false
         leg = 1
@@ -393,12 +513,21 @@ object PathingManager : Manager<PathingRequest>(0) {
                 }
             }
 
-            val observed = observe(path.plan, active.nextFrame)
-            when (val next = active.nextInput(observed, revision)) {
+            // The handshake is complete, so an improvement held over from mid-tick can
+            // be installed now, before this tick's input is chosen.
+            pendingImprovement?.let { improvement ->
+                pendingImprovement = null
+                adopt(improvement)
+            }
+            val current = published ?: return@listen
+            val running = cursor ?: return@listen
+
+            val observed = observe(current.plan, running.nextFrame)
+            when (val next = running.nextInput(observed, revision)) {
                 is ExecutionInputResult.Apply -> {
                     tickInput = next.input
                     awaitingObservation = true
-                    status = Status.Executing(next.frame, path.plan.tape.frameCount, leg)
+                    status = Status.Executing(next.frame, current.plan.tape.frameCount, leg)
 
                     // Yaw only, and only as a request. `EntityMixin.velocityYaw` already
                     // routes Entity.updateVelocity through RotationManager.movementYaw,
@@ -478,11 +607,33 @@ object PathingManager : Manager<PathingRequest>(0) {
         cursor = null
         tickInput = null
         awaitingObservation = false
+        // A partial tape ran to its certified stop without the full plan arriving in
+        // time. The body is at rest somewhere useful, so this is a pause, not an
+        // arrival: plan again from here.
+        if (path.partial) {
+            val request = activeRequest
+            if (request != null) {
+                info(
+                    "Safe partial tape complete (${path.plan.tape.frameCount} frames); " +
+                        "continuing toward ${path.finalGoal.short()}.",
+                    PATHING_SOURCE,
+                )
+                planTrajectory(request)
+                return
+            }
+        }
         status = Status.Complete(path.plan.tape.frameCount, 1)
         activeRequest = null
         info(
             "Reached ${path.finalGoal.short()} in one continuous ${path.plan.tape.frameCount}-frame trajectory; " +
-                "max replay deviation %.2e".format(maxDeviation),
+                "max replay deviation %.2e".format(maxDeviation) +
+                // "No improvements" has several very different causes, and only these
+                // counts separate "refinement never ran" from "it ran and the tape was
+                // already the best it could find".
+                ", adopted $adopted improvement(s)" +
+                (if (rejectedImprovements > 0) ", rejected $rejectedImprovements" else "") +
+                ", refinement tried ${TrajectoryPlanner.attempts} and landed " +
+                "${TrajectoryPlanner.improvements}",
             PATHING_SOURCE,
         )
     }

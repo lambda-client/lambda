@@ -88,7 +88,7 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
     @Group(SEARCH_GROUP)
     override val valueFieldSearch by c.setting(
-        "Value Field Search", false,
+        "Value Field Search", true,
         "Steer by the coarse cost-to-go field instead of the single route extracted from " +
             "it, with no corridor-deviation veto. The trajectory may leave the greedy line " +
             "wherever the physics is faster.",

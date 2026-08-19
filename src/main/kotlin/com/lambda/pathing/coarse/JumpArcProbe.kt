@@ -204,9 +204,12 @@ object JumpArcProbe {
         private val baseReach: DoubleArray,
         private val speedGain: DoubleArray,
     ) {
-        fun reach(rise: Int): Double {
+        fun reach(rise: Int): Double = reachAt(entrySpeed, rise)
+
+        /** The same model evaluated at an arbitrary entry speed rather than this gait's. */
+        fun reachAt(speed: Double, rise: Int): Double {
             val index = (RISE_MAX - rise).coerceIn(0, baseReach.lastIndex)
-            return baseReach[index] + speedGain[index] * entrySpeed
+            return baseReach[index] + speedGain[index] * speed
         }
     }
 
@@ -227,6 +230,20 @@ object JumpArcProbe {
             speedGain = doubleArrayOf(4.62, 5.13, 5.44, 5.65, 5.82),
         ),
     )
+
+    /**
+     * Furthest a jump launched at [entrySpeed] reaches, from the takeoff stance centre.
+     *
+     * The same measured linear model the mask uses, exposed for an arbitrary entry speed
+     * so the trajectory search can ask "can this body, moving at *this* speed, reach that
+     * pad at all" before it pays for a rollout. A sprint family and a walk family bracket
+     * the range, and reach is linear in speed within a rise, so interpolating between the
+     * two rows is exact rather than an approximation. Optimistic on purpose: it is a
+     * filter that must never discard a jump the simulator would have certified, so it
+     * takes whichever family reaches further.
+     */
+    fun maxReach(entrySpeed: Double, rise: Int): Double =
+        FAMILIES.maxOf { family -> family.reachAt(entrySpeed, rise) }
 
     private const val JUMP_SPEED = 0.42
     private const val GRAVITY = 0.08

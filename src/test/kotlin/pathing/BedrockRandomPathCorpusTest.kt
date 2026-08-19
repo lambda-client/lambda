@@ -114,7 +114,7 @@ class BedrockRandomPathCorpusTest {
         )
         val scenarios = BedrockFieldLayout.randomEndpointPairs(count = SCENARIOS)
         val report = ArrayList<String>()
-        report += "case,start,goal,coarseEdges,jumpEdges,result,attempts,frames,segments,millis,reroutes,blocked,diagnostic"
+        report += "case,start,goal,coarseEdges,jumpEdges,result,attempts,frames,segments,millis,reroutes,blocked,diagnostic,safeFrames,safeRollouts"
 
         for ((index, endpoints) in scenarios.withIndex()) {
             val start = endpoints.first.toStance()
@@ -163,7 +163,8 @@ class BedrockRandomPathCorpusTest {
                 ?.entries?.sortedByDescending { it.value }
                 ?.joinToString(" ") { "${it.value}x${it.key}" }
                 ?: ""
-            report += "$index,${start.csv()},${goal.csv()},$routeEdges,$jumpEdges,$kind,$attempts,$frames,$segments,$millis,$reroutes,$blocked,$diagnostic"
+            val safe = (result as? WalkingSeedSearchResult.Success)?.safePrefix
+            report += "$index,${start.csv()},${goal.csv()},$routeEdges,$jumpEdges,$kind,$attempts,$frames,$segments,$millis,$reroutes,$blocked,$diagnostic,${safe?.frames ?: 0},${safe?.rolloutsToFind ?: 0}"
 
             // No current search result claims all-entry impossibility, so this corpus
             // must never rewrite the graph and call ordinary gap candidates infeasible.

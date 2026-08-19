@@ -349,6 +349,7 @@ tasks {
         // `./gradlew runClientGameTest -PvalueField=true` runs the corpus steered by the
         // coarse value field with no corridor veto, instead of the extracted route.
         if (project.findProperty("valueField") == "true") jvmArgs("-Dlambda.pathing.valueField=true")
+        if (project.findProperty("noRefine") == "true") jvmArgs("-Dlambda.pathing.noRefine=true")
     }
 
     shadowJar {

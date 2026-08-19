@@ -19,6 +19,7 @@ package com.lambda.util.player.prediction
 
 import net.minecraft.block.BlockState
 import net.minecraft.block.FenceGateBlock
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.effect.StatusEffects
@@ -121,9 +122,21 @@ data class PlayerPhysicsProfile(
     val width: Double,
     val height: Double,
     val eyeHeight: Double,
+    /**
+     * Ticks after releasing forward during which pressing it again starts a sprint.
+     *
+     * Vanilla's double-tap-to-sprint window (`options.sprintWindow`, default 7). It is a
+     * client *option*, not a physics constant, which is why it is captured rather than
+     * assumed -- a player who has turned it off has different physics from one who has
+     * not, for the same keys.
+     */
+    val sprintWindowTicks: Int = DEFAULT_SPRINT_WINDOW_TICKS,
 ) {
     companion object {
         const val SPRINT_SPEED_MULTIPLIER = 1.3
+
+        /** @see net.minecraft.client.option.GameOptions.getSprintWindow */
+        const val DEFAULT_SPRINT_WINDOW_TICKS = 7
 
         /** Client thread only. */
         fun capture(player: ClientPlayerEntity): PlayerPhysicsProfile {
@@ -139,6 +152,7 @@ data class PlayerPhysicsProfile(
                 width = player.boundingBox.lengthX,
                 height = player.boundingBox.lengthY,
                 eyeHeight = player.standingEyeHeight.toDouble(),
+                sprintWindowTicks = MinecraftClient.getInstance().options.sprintWindow.value,
             )
         }
     }
