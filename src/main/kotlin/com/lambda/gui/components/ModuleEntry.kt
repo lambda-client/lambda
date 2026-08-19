@@ -43,7 +43,7 @@ class ModuleEntry(val module: Module): Layout {
         if (isMouseReleased() && suppressedEntryId == entryId) suppressedEntryId = null
 
         ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
-        popupContextItem(popupId, ImGuiPopupFlags.None) {
+        popupContextItem(popupId, ImGuiPopupFlags.MouseButtonRight) {
             buildConfigSettingsContext(module)
         }
     }
