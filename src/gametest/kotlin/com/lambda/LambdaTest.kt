@@ -522,6 +522,10 @@ object LambdaTest : FabricClientGameTest {
             }
 
             val path = checkNotNull(published) { "$scenario: nothing published" }
+            // Every plan the body walked, not just the last one. A journey that stopped
+            // and replanned ends on a short final leg, and asking that leg whether the
+            // trip pressed jump answers about the last few blocks instead.
+            val walked = PathingManager.executed.ifEmpty { listOf(path) }
             check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
             println(
                 "[pathing-diag] $scenario: sprint=${path.parameters.sprint} " +
@@ -531,32 +535,39 @@ object LambdaTest : FabricClientGameTest {
             )
 
             expectedJumpDy?.let { dy ->
-                check(path.route.edges.any { edge ->
-                    edge.kind == CoarseMoveKind.JUMP_CANDIDATE &&
-                        edge.to.y - edge.from.y == dy
+                check(walked.any { leg ->
+                    leg.route.edges.any { edge ->
+                        edge.kind == CoarseMoveKind.JUMP_CANDIDATE &&
+                            edge.to.y - edge.from.y == dy
+                    }
                 }) {
-                    "$scenario: no dy=$dy jump candidate in ${path.route.edges}"
+                    "$scenario: no dy=$dy jump candidate in ${walked.flatMap { it.route.edges }}"
                 }
             }
             if (requireJumpInput) {
-                check(path.plan.tape.asList().any { it.jump }) {
+                check(walked.any { leg -> leg.plan.tape.asList().any { it.jump } }) {
                     "$scenario: certified tape never pressed jump"
                 }
             }
-            check(path.parameters.gapLaunchFrames.size >= minGapLaunches) {
+            val gapLaunches = walked.maxOf { it.parameters.gapLaunchFrames.size }
+            check(gapLaunches >= minGapLaunches) {
                 "$scenario: expected at least $minGapLaunches discovered gap launches, " +
-                    "got ${path.parameters.gapLaunchFrames}"
+                    "got ${walked.map { it.parameters.gapLaunchFrames }}"
             }
-            check(path.controlSegments >= minContinuousSegments) {
+            check(walked.maxOf { it.controlSegments } >= minContinuousSegments) {
                 "$scenario: expected at least $minContinuousSegments continuous control segments, " +
-                    "got ${path.controlSegments}"
+                    "got ${walked.map { it.controlSegments }}"
             }
             if (requireMovingSplices) {
-                check(path.spliceFrames.isNotEmpty()) { "$scenario: no predicted splice frames published" }
-                check(path.spliceFrames.all { frame ->
-                    path.plan.frames[frame - 1].state.velocity.horizontalLength() > 0.012
-                }) {
-                    "$scenario: an internal splice discarded momentum at ${path.spliceFrames}"
+                check(walked.any { it.spliceFrames.isNotEmpty() }) {
+                    "$scenario: no predicted splice frames published"
+                }
+                walked.forEach { leg ->
+                    check(leg.spliceFrames.all { frame ->
+                        leg.plan.frames[frame - 1].state.velocity.horizontalLength() > 0.012
+                    }) {
+                        "$scenario: an internal splice discarded momentum at ${leg.spliceFrames}"
+                    }
                 }
             }
 

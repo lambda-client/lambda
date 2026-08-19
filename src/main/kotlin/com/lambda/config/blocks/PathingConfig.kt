@@ -81,7 +81,7 @@ interface PathingConfig {
      * free to leave the greedy line wherever the physics is faster; going the wrong way
      * is priced by the value, not forbidden. Takes precedence over [anchorSearch].
      */
-    val valueFieldSearch: Boolean get() = false
+    val valueFieldSearch: Boolean get() = true
 
     /**
      * On a refusal, write the whole captured plan — collision shapes, endpoints, entry

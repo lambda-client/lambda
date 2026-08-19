@@ -105,9 +105,10 @@ class CoarseValueField(
         // block, which is a measurably longer and slower line even though every single
         // step was "optimal". Within a band the body's own momentum decides.
         byDestination.values.retainAll { isMapped(it.to) }
+        val reference = reference(stance, heading)
         val ranked = byDestination.values.sortedWith(
             compareBy<CoarseEdge> { floor((it.lowerBoundTicks + guide(it.to)) / TIE_TICKS) }
-                .thenByDescending { alignment(stance, it.to, heading) }
+                .thenByDescending { alignment(stance, it.to, reference) }
                 .thenBy { it.to.y }.thenBy { it.to.x }.thenBy { it.to.z }
         )
         val best = ranked.minOfOrNull { it.lowerBoundTicks + guide(it.to) } ?: return emptyList()
@@ -174,10 +175,27 @@ class CoarseValueField(
         if (candidates.isEmpty()) return null
         val best = candidates.minOf { it.lowerBoundTicks + guide(it.to) }
         val tied = candidates.filter { it.lowerBoundTicks + guide(it.to) <= best + TIE_TICKS }
+        val reference = reference(from, heading)
         return tied.minWithOrNull(
-            compareByDescending<CoarseEdge> { alignment(from, it.to, heading) }
+            compareByDescending<CoarseEdge> { alignment(from, it.to, reference) }
                 .thenBy { it.to.y }.thenBy { it.to.x }.thenBy { it.to.z }
         )?.to
+    }
+
+    /**
+     * The direction ties are resolved toward: the body's own momentum, or — when it has
+     * none — the line to the goal.
+     *
+     * The fallback is the whole point. On open ground many steps tie in value, and with no
+     * momentum to break the tie the order fell through to lattice order `(y, x, z)`, which
+     * simply picks the lowest coordinate: a body starting from rest on a straight route
+     * turned 48 degrees off the line on its first tick and spent the rest of the tape
+     * correcting with full-rate swings. Ties must resolve toward *somewhere*, and the goal
+     * is the one direction that is always meaningful.
+     */
+    private fun reference(from: Stance, heading: Pair<Double, Double>?): Pair<Double, Double> {
+        if (heading != null && hypot(heading.first, heading.second) > 1e-6) return heading
+        return Pair((goal.x - from.x).toDouble(), (goal.z - from.z).toDouble())
     }
 
     /** Cosine of the turn this step asks for; 1.0 is straight on, -1.0 is a reversal. */

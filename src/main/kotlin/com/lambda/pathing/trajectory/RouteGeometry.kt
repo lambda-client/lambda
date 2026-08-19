@@ -107,6 +107,10 @@ internal fun routeProgressByFrame(
     return progressByFrame
 }
 
+/** Compass bearing from one point to another, in the same frame the controllers steer in. */
+internal fun bearingBetween(from: HorizontalPoint, to: HorizontalPoint): Double =
+    Math.toDegrees(kotlin.math.atan2(to.z - from.z, to.x - from.x)) - 90.0
+
 /** A tick advances well under one block, so two nodes is generous headroom. */
 internal const val MAX_PROGRESS_ADVANCE = 2
 

@@ -91,6 +91,20 @@ class ParkourChainProbeTest {
                 else -> "${r?.let { it::class.simpleName }}"
             }
             println("[parkour] $engine: $label")
+            // A tape must be something a player could actually type. Binary keys only:
+            // analog input is both unlike a human and rejected by servers that check for
+            // it, and now that controllers can strafe there is a real way to drift into
+            // fractional values without noticing.
+            (result?.result as? WalkingSeedSearchResult.Success)?.rollout?.let { rollout ->
+                rollout.frames.forEach { frame ->
+                    val input = frame.input
+                    assertTrue(
+                        input.forward in KEYBOARD_VALUES && input.strafe in KEYBOARD_VALUES,
+                        "$engine frame ${frame.index} is not key-pressable: " +
+                            "forward=${input.forward}, strafe=${input.strafe}",
+                    )
+                }
+            }
             assertTrue(
                 result?.result is WalkingSeedSearchResult.Success,
                 "$engine could not cross a 2-wide rising gap, a corner, and a second one: $label",
@@ -99,6 +113,9 @@ class ParkourChainProbeTest {
     }
 
     private companion object {
+        /** What a keyboard can produce: a key is pressed or it is not. */
+        val KEYBOARD_VALUES = setOf(-1.0, 0.0, 1.0)
+
         val PROFILE = PlayerPhysicsProfile(
             movementSpeed = 0.1,
             sneakSpeedModifier = 0.3,

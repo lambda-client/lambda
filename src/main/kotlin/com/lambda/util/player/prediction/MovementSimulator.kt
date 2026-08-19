@@ -18,6 +18,7 @@
 package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.mixin.entity.ClientPlayerEntityAccessor
 import com.lambda.module.modules.movement.SafeWalk.isNearLedge
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.flooredBlockPos
@@ -104,6 +105,8 @@ class MovementSimulator(
     private var collidedSoftly = initialState.collidedSoftly
     private var verticalCollision = initialState.verticalCollision
     private var supportingBlockPos = initialState.supportingBlockPos
+    private var doubleTapSprintTicks = initialState.doubleTapSprintTicks
+    private var hadForwardMovement = initialState.hadForwardMovement
     private var forceUpdateSupportingBlockPos = initialState.supportingBlockPos == null
 
     private var cachedTick: MovementSimulationTick? = null
@@ -124,6 +127,8 @@ class MovementSimulator(
             collidedSoftly = collidedSoftly,
             verticalCollision = verticalCollision,
             supportingBlockPos = supportingBlockPos,
+            doubleTapSprintTicks = doubleTapSprintTicks,
+            hadForwardMovement = hadForwardMovement,
         )
 
     val lastTick: MovementSimulationTick
@@ -155,6 +160,8 @@ class MovementSimulator(
         collidedSoftly = state.collidedSoftly
         verticalCollision = state.verticalCollision
         supportingBlockPos = state.supportingBlockPos
+        doubleTapSprintTicks = state.doubleTapSprintTicks
+        hadForwardMovement = state.hadForwardMovement
         forceUpdateSupportingBlockPos = state.supportingBlockPos == null
         cachedTick = null
         return lastTick
@@ -183,6 +190,13 @@ class MovementSimulator(
     }
 
     private fun step(input: MovementSimulationInput) {
+        // ClientPlayerEntity.tickMovement decrements the double-tap window first, and
+        // reads sneak and forward *before* `Input.tick()` -- which is where the manager
+        // writes the tape, so both describe the frame before this one.
+        if (doubleTapSprintTicks > 0) doubleTapSprintTicks--
+        val hadForward = hadForwardMovement
+        val wasSneaking = isSneaking
+
         rotation = input.rotation ?: rotation
         isSneaking = input.sneak
 
@@ -200,12 +214,24 @@ class MovementSimulator(
         // the first post-splice frame to use walking acceleration in simulation
         // while the live player correctly retained sprint acceleration.
         val hasForwardMovement = movementInput.y > FORWARD_MOVEMENT_EPSILON
-        if (!isSprinting && input.sprint && hasForwardMovement && !isSneaking) {
-            isSprinting = true
+        if (wasSneaking || input.forward < 0.0) doubleTapSprintTicks = 0
+
+        if (!isSprinting && hasForwardMovement && !isSneaking) {
+            // Double-tap-to-sprint. Releasing forward for a tick and pressing it again is
+            // a double tap whether a human or a tape does it, and vanilla starts sprinting
+            // from it with no sprint key held at all. The simulator not modelling this is
+            // what made a certified tape diverge live at a splice boundary: the sim walked
+            // the frame after the gap while the body sprinted it.
+            if (!hadForward) {
+                if (doubleTapSprintTicks > 0) isSprinting = true
+                else doubleTapSprintTicks = profile.sprintWindowTicks
+            }
+            if (input.sprint) isSprinting = true
         }
         if (isSprinting && (!hasForwardMovement || horizontalCollision && !collidedSoftly)) {
             isSprinting = false
         }
+        hadForwardMovement = hasForwardMovement
 
         // ClientPlayerEntity.applyMovementSpeedFactors. The final directional
         // factor is significant in 1.21.11: a full diagonal input recovers a
@@ -609,6 +635,15 @@ data class MovementSimulationState(
      * is derived from it, so it is physics-bearing and must be carried across ticks.
      */
     val supportingBlockPos: BlockPos? = null,
+    /**
+     * Ticks left in vanilla's double-tap-to-sprint window.
+     *
+     * Physics-bearing across ticks: within it, re-pressing forward starts a sprint with
+     * no sprint key. @see net.minecraft.client.network.ClientPlayerEntity.tickMovement
+     */
+    val doubleTapSprintTicks: Int = 0,
+    /** Whether the *previous* tick's input had forward movement; opens the window above. */
+    val hadForwardMovement: Boolean = false,
 ) {
     companion object {
         fun from(
@@ -629,6 +664,9 @@ data class MovementSimulationState(
             verticalCollision: Boolean = player.verticalCollision,
             boundingBox: Box = player.boundingBox.offset(position.subtract(player.pos)),
             supportingBlockPos: BlockPos? = player.supportingBlockPos.getOrNull(),
+            doubleTapSprintTicks: Int =
+                (player as ClientPlayerEntityAccessor).`lambda$getTicksLeftToDoubleTapSprint`(),
+            hadForwardMovement: Boolean = player.input.hasForwardMovement(),
         ) = MovementSimulationState(
             position = position,
             rotation = rotation,
@@ -644,6 +682,8 @@ data class MovementSimulationState(
             collidedSoftly = collidedSoftly,
             verticalCollision = verticalCollision,
             supportingBlockPos = supportingBlockPos,
+            doubleTapSprintTicks = doubleTapSprintTicks,
+            hadForwardMovement = hadForwardMovement,
         )
 
         fun at(

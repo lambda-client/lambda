@@ -146,7 +146,29 @@ sealed interface WalkingSeedSearchResult {
         val spliceFrames: List<Int> = emptyList(),
         /** Accumulated launch runway in frames across the certified tape. */
         val launchMarginFrames: Int = 0,
+        /**
+         * The earliest tape that was already safe to execute: committed motion ending in a
+         * certified stop. Anytime execution publishes this and refines the rest while the
+         * body walks, so the gap between it and the full plan is the window refinement has
+         * to work in.
+         */
+        val safePrefix: SafePrefix? = null,
+        /**
+         * What the search decided, beside what it pressed.
+         *
+         * The tape is what the executor replays and what the live body is checked
+         * against; these are what let the plan be re-derived from a state it was not
+         * originally simulated from, which is what any splice or shortcut needs.
+         */
+        val planDecisions: TrajectoryPlanDecisions? = null,
     ) : WalkingSeedSearchResult
+
+    /** A partial plan that is safe on its own, and what it cost to find. */
+    data class SafePrefix(
+        val frames: Int,
+        val rolloutsToFind: Int,
+        val rolloutsToFull: Int,
+    )
 
     data class UnsupportedRoute(val edgeKinds: Set<CoarseMoveKind>) : WalkingSeedSearchResult
 

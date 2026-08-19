@@ -34,13 +34,19 @@ internal class HeadingFollowerProgram(
     private val launch: LaunchTrigger? = null,
     /** Release forward until the body is pointing where it is going; a turn, not a brake. */
     private val easeUntilAligned: Boolean = false,
+    /** Held key combination. Travel direction is this, rotated into the facing frame. */
+    private val keys: MovementKeys = MovementKeys.FORWARD,
+    /** Keys to hold once airborne, when the search wants to spend the air control. */
+    private val airborneKeys: MovementKeys = keys,
 ) : ControlProgram {
     override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
         val yawError = Rotation.wrap(targetYaw - observed.rotation.yaw)
         val yawDelta = yawError.coerceIn(-maxYawChange, maxYawChange)
-        val forward = if (easeUntilAligned && kotlin.math.abs(yawError) > EASE_TURN_DEGREES) 0.0 else 1.0
+        val held = if (observed.onGround) keys else airborneKeys
+        val easing = easeUntilAligned && kotlin.math.abs(yawError) > EASE_TURN_DEGREES
         return MovementSimulationInput(
-            forward = forward,
+            forward = if (easing) 0.0 else held.forward,
+            strafe = if (easing) 0.0 else held.strafe,
             sprint = sprint,
             jump = launch?.press(observed) == true,
             rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),

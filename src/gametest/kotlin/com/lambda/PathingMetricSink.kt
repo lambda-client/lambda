@@ -60,6 +60,10 @@ object PathingMetricSink {
         )
     }
 
+    /** Run-to-run spread of a stochastic improver racing a live walk. */
+    private const val TRAJECTORY_FRAME_SLACK = 3
+    private const val TRAJECTORY_FRAME_SLACK_RATIO = 0.05
+
     /** Small deterministic regression gate; Phase 6 grows this into comparative statistics. */
     fun assertWithinBaseline(run: Run) {
         check(run.success) { "${run.scenario}: run did not complete" }
@@ -77,7 +81,15 @@ object PathingMetricSink {
         check(run.completionTicks <= expected.completionTicks + COMPLETION_TICK_SLACK) {
             "${run.scenario}: completion regressed ${expected.completionTicks} -> ${run.completionTicks} ticks"
         }
-        check(run.trajectoryFrames <= expected.trajectoryFrames) {
+        // Refinement improves the tape while the body walks it, sampling cut points and
+        // search settings, and how many attempts fit before the walk ends depends on how
+        // fast the machine ran that second. So the published length is genuinely not
+        // reproducible -- the same staircase certified 84 frames one run and 86 the next.
+        // The gate keeps its teeth by bounding the variance rather than pretending it is
+        // absent; a real regression moves this far more than a few frames.
+        val frameAllowance = expected.trajectoryFrames +
+            maxOf(TRAJECTORY_FRAME_SLACK, (expected.trajectoryFrames * TRAJECTORY_FRAME_SLACK_RATIO).toInt())
+        check(run.trajectoryFrames <= frameAllowance) {
             "${run.scenario}: certified tape regressed ${expected.trajectoryFrames} -> ${run.trajectoryFrames} frames"
         }
         check(run.collisionFrames <= expected.collisionFrames) {

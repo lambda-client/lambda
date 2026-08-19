@@ -9,6 +9,7 @@
     "baritone.BaritonePlayerControllerMixin",
     "baritone.ComeCommandMixin",
     "client.sound.SoundSystemMixin",
+    "entity.ClientPlayerEntityAccessor",
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",
     "entity.EntityMixin",

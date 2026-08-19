@@ -74,6 +74,23 @@ class TrajectoryExecutionCursor(
     private var rejection: ExecutionDeviation? =
         ExecutionDeviation.PhysicsProfile.takeIf { activePhysicsProfile != plan.physicsProfile }
 
+    /**
+     * Resumes a replacement plan that shares this one's executed prefix.
+     *
+     * Anytime refinement publishes a safe tape early and improves the rest while the body
+     * is already walking, so the improved plan has to be adopted *mid-replay*. That is only
+     * sound when the new tape's frames up to here are the ones already executed — the
+     * caller proves that — and then the body's real state is exactly the state this frame
+     * expects, because it is the same simulated history. The next comparison the cursor
+     * makes will confirm it against the live player, so a mistaken splice fails closed on
+     * the very next tick rather than walking a tape from the wrong place.
+     */
+    fun resumeAt(frame: Int) {
+        require(frame in 0..plan.tape.frameCount) { "Cannot resume outside the tape" }
+        check(!awaitingObservation) { "Cannot resume while an input is awaiting observation" }
+        nextFrame = frame
+    }
+
     fun nextInput(observed: MovementSimulationState, worldRevision: Long): ExecutionInputResult {
         rejection?.let { return ExecutionInputResult.Rejected(nextFrame, it) }
         if (awaitingObservation) return rejectInput(ExecutionDeviation.Protocol("Previous input has not been observed"))
@@ -142,7 +159,19 @@ class TrajectoryExecutionCursor(
         // user's. Rejecting a walk because someone looked up would be theatre.
         flagDeviation("onGround", expected.onGround, actual.onGround)?.let { return it }
         flagDeviation("horizontalCollision", expected.horizontalCollision, actual.horizontalCollision)?.let { return it }
-        flagDeviation("collidedSoftly", expected.collidedSoftly, actual.collidedSoftly)?.let { return it }
+        // `collidedSoftly` is deliberately *not* a rejection. It has exactly one consumer
+        // in vanilla — whether a glancing scrape lets a sprint survive — and that outcome
+        // is already compared directly, as are the velocity and position it would change.
+        // So the flag predicts something this cursor verifies anyway, and on a marginal
+        // scrape the prediction can be wrong while every physical quantity still matches
+        // to the last digit: a staircase riser struck mid-jump reported identical position,
+        // velocity, yaw and `horizontalCollision`, with only this flag disagreeing. Failing
+        // there aborts a walk that has not actually diverged. It stays in the rejection
+        // report, where it names the cause of a real divergence one tick later.
+        //
+        // Debt: our port of `hasCollidedSoftly` and vanilla's disagree in that marginal
+        // case. It wants a fixed-tape differential fixture; the disagreement is real and
+        // this only stops it from being fatal on its own.
         flagDeviation("verticalCollision", expected.verticalCollision, actual.verticalCollision)?.let { return it }
         if (compareSprinting) {
             flagDeviation("sprinting", expected.isSprinting, actual.isSprinting)?.let { return it }

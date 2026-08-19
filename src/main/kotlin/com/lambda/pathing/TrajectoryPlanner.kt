@@ -12,6 +12,7 @@ package com.lambda.pathing
 import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
+import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.coarse.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarsePlanner
@@ -25,13 +26,19 @@ import com.lambda.pathing.neural.NeuralPolicyHolder
 import com.lambda.pathing.neural.NeuralTrajectoryDiscovery
 import com.lambda.pathing.trajectory.MotionAnchorSearch
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
+import com.lambda.pathing.trajectory.InputTape
+import com.lambda.pathing.trajectory.TrajectoryRolloutEngine
+import com.lambda.pathing.trajectory.ValueFieldSearchConfig
+import com.lambda.pathing.trajectory.TrajectoryDecision
 import com.lambda.pathing.trajectory.TrajectoryPlan
+import com.lambda.pathing.trajectory.TrajectoryPlanDecisions
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.WalkingSeedSearch
 import com.lambda.pathing.trajectory.WalkingSeedSearchConfig
 import com.lambda.pathing.trajectory.WalkingSeedSearchResult
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
@@ -39,6 +46,9 @@ import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -169,6 +179,19 @@ object TrajectoryPlanner {
         goal: Stance,
         config: PathingConfig,
         turnSpeed: Double,
+        /**
+         * Receives a safe partial plan as soon as one exists, so the body can start
+         * walking while the rest is still being searched. Called on the worker thread;
+         * the manager marshals it.
+         */
+        onSafePrefix: ((PathingManager.PublishedPath) -> Unit)? = null,
+        /**
+         * Frame the executor is about to run, or null when nothing is executing yet.
+         * Refinement needs it: only the tape *ahead* of the body may be replaced.
+         */
+        cursorFrame: (() -> Int?)? = null,
+        /** Receives each successively better plan while the body is already walking. */
+        onImprovement: ((PathingManager.PublishedPath) -> Unit)? = null,
     ): CompletableFuture<PathPlanResult> {
         val moveOptions = SimpleMoveOptions(
             allowDiagonal = config.allowDiagonal,
@@ -212,6 +235,9 @@ object TrajectoryPlanner {
             null
         }
 
+        // Per request, so two overlapping plans cannot hand each other their refinement.
+        val refinement = AtomicReference<(() -> Unit)?>(null)
+
         return CompletableFuture.supplyAsync {
             val started = System.currentTimeMillis()
             val moves = SimpleMoveLibrary.build(costs = moveCosts, options = moveOptions)
@@ -237,7 +263,14 @@ object TrajectoryPlanner {
             // A value-steered search only goes where the field has labels, so the field
             // has to be wider than the one corridor `computeShortestPath` settles for.
             // Bounded: it is paid once per plan, before any rollout.
-            if (config.valueFieldSearch) {
+            //
+            // Refinement is value-steered too, whichever engine produced the first tape.
+            // Without this it ran against a field holding only the corridor D* settled
+            // for, so every anchor that stepped off that line was refused as unmapped and
+            // the improvement pass silently found nothing at all -- which is why walking
+            // never got better under the default config, not because there was nothing to
+            // find.
+            if (config.valueFieldSearch || onImprovement != null) {
                 planner.expandField(
                     extraTicks = FIELD_EXPANSION_TICKS,
                     timeBudget = FIELD_EXPANSION_BUDGET,
@@ -257,6 +290,17 @@ object TrajectoryPlanner {
                 } else if (config.valueFieldSearch) {
                     ValueFieldAnchorSearch.search(
                         route, planner.valueField(), initial, profile, snapshot, seedConfig,
+                        onSafePrefix = onSafePrefix?.let { publish ->
+                            { success ->
+                                publish(
+                                    publishedPath(
+                                        success, route, profile, planIds.incrementAndGet(),
+                                        System.currentTimeMillis() - started, reroutes = 0,
+                                        partial = true,
+                                    )
+                                )
+                            }
+                        },
                     )
                 } else if (config.anchorSearch) {
                     MotionAnchorSearch.search(route, initial, profile, snapshot, seedConfig)
@@ -278,22 +322,28 @@ object TrajectoryPlanner {
                 }
             }
 
+            // Refinement improves the tape the body is *walking*, so it can only start
+            // once there is one. Running it here, before the result is returned, meant it
+            // asked for the executor's frame before the plan it was refining had even been
+            // published: `cursorFrame()` was null and every pass returned immediately.
+            // Anytime mode hid this -- there a partial tape is already running by now --
+            // which is why improvements only ever appeared with the value field on.
+            (outcome.result as? WalkingSeedSearchResult.Success)?.let { first ->
+                if (onImprovement != null && cursorFrame != null) {
+                    refinement.set {
+                        refineWhileWalking(
+                            first, outcome.route, planner, profile, snapshot, seedConfig,
+                            cursorFrame, onImprovement, started,
+                        )
+                    }
+                }
+            }
+
             when (val seed = outcome.result) {
                 is WalkingSeedSearchResult.Success -> PathPlanResult.Planned(
-                    PathingManager.PublishedPath(
-                        route = outcome.route,
-                        plan = TrajectoryPlan.fromWalkingSeed(
-                            TrajectoryPlanId(planIds.incrementAndGet()), seed, profile,
-                        ),
-                        profile = profile,
-                        parameters = seed.parameters,
-                        attempts = seed.attempts.size,
-                        planMillis = System.currentTimeMillis() - started,
-                        finalGoal = goal,
-                        controlSegments = seed.controlSegments,
-                        spliceFrames = seed.spliceFrames,
-                        reroutes = outcome.reroutes,
-                        launchMarginFrames = seed.launchMarginFrames,
+                    publishedPath(
+                        seed, outcome.route, profile, planIds.incrementAndGet(),
+                        System.currentTimeMillis() - started, outcome.reroutes, partial = false,
                     )
                 )
 
@@ -307,7 +357,30 @@ object TrajectoryPlanner {
 
                 is WalkingSeedSearchResult.NoSafeStop -> PathPlanResult.NoSafeStop(seed)
             }
+        }.also { planned ->
+            // Handed to a second worker *after* the manager has been given the plan, so
+            // the body is walking by the time the first pass looks for the cursor.
+            planned.thenRunAsync({ refinement.get()?.invoke() }, REFINEMENT_EXECUTOR)
         }
+    }
+
+    /**
+     * How hard the last journey's improvement loop worked, for the completion report.
+     *
+     * "No improvements" has several very different causes, and only the attempt count
+     * separates "the loop never ran" from "it ran hundreds of times and the tape was
+     * already the best it could find".
+     */
+    @Volatile
+    var attempts: Int = 0
+        private set
+
+    @Volatile
+    var improvements: Int = 0
+        private set
+
+    private val REFINEMENT_EXECUTOR: Executor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "lambda-pathing-refine").apply { isDaemon = true }
     }
 
     /** A completed search together with how many proven-all-entry reroutes it took. */
@@ -376,6 +449,494 @@ object TrajectoryPlanner {
      * died reading terrain nobody captured, while the same route entered one step higher
      * fit and certified.
      */
+    /**
+     * Keeps improving the published trajectory while the body walks it.
+     *
+     * The rule that makes this sound is that only the tape *ahead* of the executor may
+     * change: the frames already pressed are history, and a plan that would have driven
+     * them differently cannot be spliced onto them. So each pass re-searches from the
+     * exact simulated state at a frame safely ahead of the cursor and keeps everything
+     * before it verbatim — which is also why the improvement is guaranteed to be
+     * adoptable, rather than being rejected for diverging behind the cursor the way a
+     * fresh whole-route search always would be.
+     *
+     * Passes widen as they go. The first plan is produced by a *diving* search, which is
+     * fast but commits to its early choices; refinement can afford the expensive
+     * exploring settings precisely because a safe tape already exists and the body is
+     * already making progress on it.
+     */
+    internal fun refineWhileWalking(
+        first: WalkingSeedSearchResult.Success,
+        route: CoarseRoutePlan,
+        planner: CoarsePlanner,
+        profile: PlayerPhysicsProfile,
+        snapshot: SnapshotSimulationEnvironment,
+        seedConfig: WalkingSeedSearchConfig,
+        cursorFrame: () -> Int?,
+        onImprovement: (PathingManager.PublishedPath) -> Unit,
+        started: Long,
+    ) {
+        var best = first
+        // The first plan's field is a thin sleeve: FIELD_EXPANSION_TICKS of manoeuvring
+        // room, on a budget sized so the body starts moving quickly. Refinement is not on
+        // that clock, and a field that cannot price a stance refuses every search that
+        // reaches it -- so the sleeve is widened as the walk goes on, which is the only
+        // supported way to buy room to improve in. `valueField()` reads D*'s live labels,
+        // so re-taking it after an expansion is what makes the new ground visible; the
+        // field caches what it has already been asked, infinities included.
+        // What the executor is actually running. The internal best may sit level with it
+        // after a sideways move, and only a strictly shorter tape is worth a swap.
+        var publishedFrames = first.tape.frameCount
+        var horizon = FIELD_EXPANSION_TICKS
+        var field = planner.valueField()
+        var sinceWidened = 0
+        attempts = 0
+        improvements = 0
+
+        // The plan has just been handed to the manager, which installs it on its next
+        // client tick. Give that handshake a moment to happen; without the wait the first
+        // pass reads a null cursor and abandons refinement for the whole journey.
+        var waited = 0
+        while (cursorFrame() == null && waited < INSTALL_WAIT_MILLIS) {
+            Thread.sleep(INSTALL_POLL_MILLIS.toLong())
+            waited += INSTALL_POLL_MILLIS
+        }
+
+        // Keep asking, for as long as the body is walking.
+        //
+        // The hard part is having something new to ask. Enumerating cut points is a finite
+        // and *shrinking* supply -- the set only loses members as the cursor advances --
+        // so a single sweep exhausts it and the rest of the walk is dead time. Measured on
+        // the live corpus: 57 sweeps producing 8 searches, and a 652-frame bedrock route
+        // that adopted one improvement in its first second and then coasted for thirty.
+        //
+        // So the question is *sampled* instead of enumerated: a random cut point, and a
+        // randomly drawn search that is genuinely a different search rather than the same
+        // one re-run. Greediness, how many survivors a dominance bucket keeps and how
+        // hard a sibling is penalised all change which line the search finds, so drawing
+        // them per attempt makes repeats informative instead of wasted. That supply never
+        // runs out, which is the property the enumeration never had.
+        val random = java.util.Random(first.tape.frameCount.toLong() * 31 + started)
+        val deadline = System.nanoTime() +
+            (first.tape.frameCount + REFINEMENT_DEADLINE_MARGIN_FRAMES) * NANOS_PER_TICK
+        while (System.nanoTime() < deadline) {
+            val executing = cursorFrame() ?: return
+
+            // Nothing landing means either the tape is already good or the field is too
+            // narrow to hold anything better. Widening is cheap here and distinguishes
+            // the two by making the second case possible.
+            if (sinceWidened >= WIDEN_AFTER_ATTEMPTS && horizon < MAX_REFINEMENT_HORIZON_TICKS) {
+                horizon += REFINEMENT_HORIZON_STEP_TICKS
+                planner.expandField(
+                    extraTicks = horizon,
+                    timeBudget = REFINEMENT_FIELD_BUDGET,
+                    maxExpansions = REFINEMENT_FIELD_NODES,
+                )
+                field = planner.valueField()
+                sinceWidened = 0
+            }
+
+            val candidates = spliceCandidates(best, executing + REFINEMENT_LEAD_FRAMES, field)
+            if (candidates.isEmpty()) {
+                // No cut point the field can price. Widening may create one; giving up
+                // here is what left long walks improving two or three times and then
+                // coasting.
+                if (horizon >= MAX_REFINEMENT_HORIZON_TICKS) return
+                sinceWidened = WIDEN_AFTER_ATTEMPTS
+                continue
+            }
+            val splice = candidates[random.nextInt(candidates.size)]
+
+            val tape = best.tape.asList()
+            val entry = best.rollout.frames[splice - 1].state
+            PlanningDebugChannel.publishCut(entry.position)
+            attempts++
+            sinceWidened++
+
+            // Two ways to ask for something better, and they cost wildly different
+            // amounts. Re-searching the suffix re-derives every frame from the cut to the
+            // goal, so it must beat the whole remainder to be worth anything -- a hard bar
+            // that a few hundred attempts clear a handful of times. Nudging the *decisions*
+            // and re-running them costs one rollout, and only has to beat the tape by a
+            // frame. Cheap questions are asked far more often; the expensive one is kept
+            // because it is the only one that can find a genuinely different line.
+            val nudging = random.nextInt(100) < nudgeSharePercent(best.tape.frameCount)
+            val edited = if (nudging) {
+                perturbedTail(best, splice, entry, route, field, profile, snapshot, seedConfig, random)
+            } else {
+                null
+            }
+            if (edited != null) {
+                best = edited
+                if (edited.tape.frameCount <= publishedFrames - MIN_REFINEMENT_GAIN) {
+                    publishedFrames = edited.tape.frameCount
+                    improvements++
+                    sinceWidened = 0
+                    onImprovement(
+                        publishedPath(
+                            edited, route, profile, planIds.incrementAndGet(),
+                            System.currentTimeMillis() - started, reroutes = 0, partial = false,
+                        )
+                    )
+                }
+                continue
+            }
+            if (nudging) continue
+
+            val suffixRoute = route.suffix(routeIndexFor(route, entry))
+            val refined = ValueFieldAnchorSearch.search(
+                suffixRoute, field, entry, profile, snapshot, seedConfig,
+                sampledConfig(random),
+            ) as? WalkingSeedSearchResult.Success ?: continue
+
+            if (splice + refined.tape.frameCount > best.tape.frameCount - MIN_REFINEMENT_GAIN) continue
+
+            val combined = tape.take(splice) + refined.tape.asList()
+            val certified = certifyCombined(
+                combined, first, profile, snapshot, refined,
+                spliceDecisions(
+                    best, splice, refined.planDecisions,
+                    refined.planDecisions?.boundaries.orEmpty(),
+                ),
+            ) ?: continue
+            best = certified
+            publishedFrames = certified.tape.frameCount
+            improvements++
+            sinceWidened = 0
+            onImprovement(
+                publishedPath(
+                    certified, route, profile, planIds.incrementAndGet(),
+                    System.currentTimeMillis() - started, reroutes = 0, partial = false,
+                )
+            )
+        }
+    }
+
+    /**
+     * One draw from the family of searches worth trying on a suffix.
+     *
+     * Every knob here changes *which* line the search prefers, not whether the result is
+     * safe: the tape is certified end to end either way. Sampling them is what makes a
+     * second look at the same cut point a new question rather than the same one.
+     *
+     * The budget is deliberately large. Refinement runs while the body is already walking
+     * a certified tape, so its cost is not paid in latency the way the first plan's is.
+     */
+    private fun sampledConfig(random: java.util.Random) = ValueFieldSearchConfig(
+        // From diving, which commits early and is fast, out to full breadth.
+        siblingPenaltyTicks = random.nextDouble() * MAX_SAMPLED_SIBLING_PENALTY,
+        // How greedily the frontier chases the coarse estimate.
+        tailWeight = 1.0 + random.nextDouble() * MAX_SAMPLED_TAIL_WEIGHT_BONUS,
+        // How many near-duplicate states a dominance bucket keeps alive.
+        frontierPerKey = 1 + random.nextInt(MAX_SAMPLED_FRONTIER_PER_KEY),
+        maxExpansions = REFINEMENT_EXPANSIONS,
+        stallExpansions = REFINEMENT_STALL,
+    )
+
+    /**
+     * Every frame ahead of the cursor a refinement could cut at, cheapest first.
+     *
+     * Cheapest is *latest*: a cut near the end leaves a short suffix to re-search, so many
+     * more questions get asked per second than if the sweep always started at the body.
+     * Cuts are spaced out because two a few frames apart pose almost the same problem and
+     * would answer it twice.
+     */
+    private fun spliceCandidates(
+        seed: WalkingSeedSearchResult.Success,
+        earliest: Int,
+        field: CoarseValueField,
+    ): List<Int> {
+        val frames = seed.rollout.frames
+        val boundaries = seed.planDecisions?.boundaries?.toHashSet().orEmpty()
+        val latest = frames.size - MIN_REFINABLE_SUFFIX
+        val grounded = ArrayList<Int>()
+        for (frame in maxOf(earliest, 2)..latest) {
+            if (!frames[frame - 1].state.onGround || !frames[frame - 2].state.onGround) continue
+            // A value-steered search only expands where the field has a cost-to-go, and
+            // refuses every successor that lands off it. Cutting somewhere unlabelled
+            // therefore produces a search that admits its root and dies -- cheap enough
+            // that sampling ran twelve thousand of them on one walk and landed nothing.
+            if (!field.guide(ValueFieldAnchorSearch.stanceOf(frames[frame - 1].state)).isFinite()) continue
+            grounded += frame
+        }
+        // Cutting anywhere else loses the decision list: the head could no longer be
+        // described as whole decisions, and an editable plan is what every cheaper
+        // improver is built on. Grounded-but-unboundaried frames are only used when the
+        // tape records no decisions at all.
+        val onBoundary = grounded.filter { it in boundaries }
+        val preferred = if (boundaries.isEmpty()) grounded else onBoundary
+        val spaced = ArrayList<Int>()
+        preferred.forEach { frame ->
+            if (spaced.isEmpty() || frame - spaced.last() >= SPLICE_SPACING_FRAMES) spaced += frame
+        }
+        return spaced.asReversed()
+    }
+
+    /** Nearest route node to a mid-tape state; the suffix search starts from there. */
+    private fun routeIndexFor(route: CoarseRoutePlan, state: MovementSimulationState): Int {
+        var best = 0
+        var bestDistance = Double.MAX_VALUE
+        route.nodes.forEachIndexed { index, node ->
+            val dx = node.x + 0.5 - state.position.x
+            val dz = node.z + 0.5 - state.position.z
+            val dy = node.y - state.position.y
+            val distance = dx * dx + dy * dy + dz * dz
+            if (distance < bestDistance) {
+                bestDistance = distance
+                best = index
+            }
+        }
+        return best
+    }
+
+    /**
+     * Replays a spliced tape from the original frame zero.
+     *
+     * The prefix was certified in an earlier pass and the suffix in this one, but they
+     * have never been simulated as one thing, and only a single replay of the whole tape
+     * proves the join. Nothing is published that has not been through this.
+     */
+    private fun certifyCombined(
+        inputs: List<MovementSimulationInput>,
+        original: WalkingSeedSearchResult.Success,
+        profile: PlayerPhysicsProfile,
+        snapshot: SnapshotSimulationEnvironment,
+        refined: WalkingSeedSearchResult.Success,
+        decisions: TrajectoryPlanDecisions?,
+    ): WalkingSeedSearchResult.Success? {
+        val tape = InputTape(inputs)
+        val tracked = snapshot.trackingView()
+        val rollout = TrajectoryRolloutEngine.rollout(
+            initialState = original.rollout.initialState,
+            profile = profile,
+            environment = tracked,
+            program = tape,
+            frameCount = tape.frameCount,
+        )
+        if (!rollout.completed || rollout.frames.size != tape.frameCount) return null
+        return original.copy(
+            tape = tape,
+            rollout = rollout,
+            parameters = refined.parameters.copy(
+                gapLaunchFrames = rollout.frames.filter { it.input.jump }.map { it.index },
+            ),
+            dependencies = original.dependencies + refined.dependencies + tracked.dependencies(),
+            controlSegments = original.controlSegments + refined.controlSegments,
+            // Without this the improved tape still carries the decisions of the tape it
+            // replaced, and every later edit is described against a plan that no longer
+            // exists. Null when the join cannot be expressed as whole decisions -- honest
+            // is better than stale.
+            planDecisions = decisions,
+        )
+    }
+
+    /**
+     * One nudged copy of the plan's tail, certified end to end, or null if it is no good.
+     *
+     * The tail is stored as the decisions that produced it, so it can be *edited* rather
+     * than only replayed: change a launch by a tick, let a corner be taken tighter, drop a
+     * sprint, and re-run the rest from the body's real state. The controllers absorb the
+     * difference, because they steer at world targets and fire on grounded ticks rather
+     * than fixed frames, and the whole tape is then replayed once to prove the join.
+     *
+     * Nothing here is trusted: a nudge that breaks the tail simply fails to certify and is
+     * thrown away for the price of a single rollout.
+     */
+    private fun perturbedTail(
+        best: WalkingSeedSearchResult.Success,
+        splice: Int,
+        entry: MovementSimulationState,
+        route: CoarseRoutePlan,
+        field: CoarseValueField,
+        profile: PlayerPhysicsProfile,
+        snapshot: SnapshotSimulationEnvironment,
+        seedConfig: WalkingSeedSearchConfig,
+        random: java.util.Random,
+    ): WalkingSeedSearchResult.Success? {
+        val tail = best.planDecisions?.suffixFrom(splice) ?: return null
+        if (tail.decisions.isEmpty()) return null
+
+        val edits = 1 + random.nextInt(MAX_DECISION_EDITS)
+        val decisions = ArrayList(tail.decisions)
+        repeat(edits) {
+            val index = random.nextInt(decisions.size)
+            decisions[index] = nudge(decisions[index], random)
+        }
+        val nudged = TrajectoryPlanDecisions(
+            decisions = decisions,
+            intended = tail.intended,
+            boundaries = tail.boundaries,
+            terminal = tail.terminal,
+        )
+
+        val segments = ValueFieldAnchorSearch.rerunSegments(
+            nudged, entry, route, field, profile, snapshot, seedConfig,
+        ) ?: return null
+        // The terminal approach contributes a segment but is not a decision.
+        val decisionSegments = segments.take(decisions.size)
+        if (decisionSegments.size != decisions.size) return null
+        var running = 0
+        val boundaries = decisionSegments.map { segment -> running += segment.size; running }
+
+        val combined = best.tape.asList().take(splice) + segments.flatten()
+        // Equal length counts. Frames are integers, so most nudges land exactly level, and
+        // rejecting those leaves the improver re-rolling the same plan forever. A tape of
+        // the same length built from different decisions is a different place to nudge
+        // *from*, which is how a plateau gets crossed to the next step down. It is only
+        // ever adopted internally; publishing still demands a strictly shorter tape.
+        if (combined.size > best.tape.frameCount) return null
+        return certifyCombined(
+            combined, best, profile, snapshot, best,
+            spliceDecisions(
+                best, splice,
+                TrajectoryPlanDecisions(decisions, tail.intended, boundaries, tail.terminal),
+                boundaries,
+            ),
+        )
+    }
+
+    /**
+     * One decision, moved slightly. Never into something unsafe -- the replay gate decides
+     * that -- only into something *different* worth simulating once.
+     */
+    private fun nudge(decision: TrajectoryDecision, random: java.util.Random): TrajectoryDecision =
+        when (decision) {
+            is TrajectoryDecision.Walk -> when (random.nextInt(3)) {
+                0 -> decision.copy(sprint = !decision.sprint)
+                1 -> decision.copy(easeTurns = !decision.easeTurns)
+                else -> decision.copy(
+                    lookAheadNodes = (decision.lookAheadNodes + random.nextInt(3) - 1).coerceIn(1, 8),
+                )
+            }
+
+            is TrajectoryDecision.Launch -> decision.copy(
+                delayFrames = (decision.delayFrames + random.nextInt(3) - 1).coerceAtLeast(0),
+            )
+
+            is TrajectoryDecision.Heading -> when (random.nextInt(2)) {
+                0 -> decision.copy(offsetDegrees = decision.offsetDegrees + (random.nextDouble() - 0.5) * 12.0)
+                else -> decision.copy(
+                    delayFrames = decision.delayFrames?.let { (it + random.nextInt(3) - 1).coerceAtLeast(0) },
+                )
+            }
+        }
+
+    /** The decisions of [best] up to [splice], with a re-derived tail spliced on. */
+    private fun spliceDecisions(
+        best: WalkingSeedSearchResult.Success,
+        splice: Int,
+        tail: TrajectoryPlanDecisions?,
+        tailBoundaries: List<Int>,
+    ): TrajectoryPlanDecisions? {
+        val head = best.planDecisions ?: return null
+        if (tail == null || head.boundaries.size != head.decisions.size) return null
+        val kept = head.boundaries.count { it <= splice }
+        if (head.boundaries.getOrNull(kept - 1) != splice) return null
+        if (tail.decisions.size != tailBoundaries.size) return null
+        return TrajectoryPlanDecisions(
+            decisions = head.decisions.take(kept) + tail.decisions,
+            intended = head.intended.take(kept) + tail.intended,
+            boundaries = head.boundaries.take(kept) + tailBoundaries.map { it + splice },
+            terminal = tail.terminal,
+        )
+    }
+
+    /**
+     * Sibling penalties for successive refinement passes: from the diving value that
+     * found the first tape, down toward full expansion, which measured the best quality
+     * and was previously unaffordable because it delayed the first step.
+     */
+    private const val NANOS_PER_TICK = 50_000_000L
+
+    /**
+     * Slack over the walk's own length before refinement gives up on the cursor.
+     *
+     * The cursor going null when the walk ends is the normal exit; this is the backstop,
+     * because a worker spinning forever is worse than a walk that stops improving.
+     */
+    private const val REFINEMENT_DEADLINE_MARGIN_FRAMES = 200
+
+    /**
+     * How much of the budget goes to nudging decisions rather than re-searching a suffix,
+     * as a function of how long the tape is.
+     *
+     * The two improvers have opposite economics. Re-searching a suffix is thorough but
+     * costs the whole remainder, so on a short tape it is cheap enough to run hundreds of
+     * times and it wins outright -- measured, giving it the whole budget on the live
+     * corpus beat an even split by four or five frames, well outside the run-to-run spread
+     * of one or two. On a long tape the same search re-derives hundreds of frames per
+     * attempt and almost never beats a tape that has already been improved, while a nudge
+     * still costs one rollout. So the split follows the length rather than being guessed
+     * once.
+     */
+    private fun nudgeSharePercent(frames: Int): Int = when {
+        frames <= NUDGE_MIN_FRAMES -> 0
+        frames >= NUDGE_FULL_FRAMES -> MAX_NUDGE_SHARE_PERCENT
+        else -> MAX_NUDGE_SHARE_PERCENT * (frames - NUDGE_MIN_FRAMES) /
+            (NUDGE_FULL_FRAMES - NUDGE_MIN_FRAMES)
+    }
+
+    private const val NUDGE_MIN_FRAMES = 150
+    private const val NUDGE_FULL_FRAMES = 400
+    private const val MAX_NUDGE_SHARE_PERCENT = 80
+
+    private const val MAX_DECISION_EDITS = 3
+
+    /** Attempts without a win before the field is widened to make room for one. */
+    private const val WIDEN_AFTER_ATTEMPTS = 40
+    private const val REFINEMENT_HORIZON_STEP_TICKS = 48.0
+    private const val MAX_REFINEMENT_HORIZON_TICKS = 600.0
+    private val REFINEMENT_FIELD_BUDGET = 250.milliseconds
+    private const val REFINEMENT_FIELD_NODES = 120_000
+
+    private const val MAX_SAMPLED_SIBLING_PENALTY = 2.0
+    private const val MAX_SAMPLED_TAIL_WEIGHT_BONUS = 0.6
+    private const val MAX_SAMPLED_FRONTIER_PER_KEY = 5
+
+    private const val REFINEMENT_EXPANSIONS = 24_000
+    private const val REFINEMENT_STALL = 8_000
+
+    /** Minimum gap between two cut points; closer than this they pose the same question. */
+    private const val SPLICE_SPACING_FRAMES = 8
+
+
+    /** How long refinement waits for the manager to install the plan it is refining. */
+    private const val INSTALL_WAIT_MILLIS = 1_000
+    private const val INSTALL_POLL_MILLIS = 10
+
+    /** Frames ahead of the executor a refinement may start; below this it cannot be adopted. */
+    private const val REFINEMENT_LEAD_FRAMES = 12
+
+    /** A suffix shorter than this is the braking tail; there is nothing to gain there. */
+    private const val MIN_REFINABLE_SUFFIX = 16
+
+    /** Frames an improvement must save to be worth a splice. */
+    private const val MIN_REFINEMENT_GAIN = 1
+
+    /** One place that turns a certified search result into something publishable. */
+    private fun publishedPath(
+        seed: WalkingSeedSearchResult.Success,
+        route: CoarseRoutePlan,
+        profile: PlayerPhysicsProfile,
+        id: Long,
+        planMillis: Long,
+        reroutes: Int,
+        partial: Boolean,
+    ) = PathingManager.PublishedPath(
+        route = route,
+        plan = TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(id), seed, profile),
+        profile = profile,
+        parameters = seed.parameters,
+        attempts = seed.attempts.size,
+        planMillis = planMillis,
+        finalGoal = route.goal,
+        controlSegments = seed.controlSegments,
+        spliceFrames = seed.spliceFrames,
+        reroutes = reroutes,
+        launchMarginFrames = seed.launchMarginFrames,
+        partial = partial,
+    )
+
     internal fun boundsCovering(start: Stance, goal: Stance) = SimulationSnapshotBounds(
         minX = minOf(start.x, goal.x) - MARGIN,
         minY = minOf(start.y, goal.y) - VERTICAL_EXCURSION - FALL_OBSERVATION_DEPTH,

@@ -31,6 +31,12 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     override val renderJumpMarkers by c.setting("Jump Markers", true, "Grounded ticks where jump is pressed.") { enabled }
 
     @Group(TOGGLES_GROUP)
+    override val renderSplices by c.setting(
+        "Splice Points", true,
+        "Frames where one controller hands over to the next, and the cuts refinement is trying.",
+    ) { enabled }
+
+    @Group(TOGGLES_GROUP)
     override val renderTrail by c.setting("Live Trail", true, "Where the body actually went.") { enabled }
 
     @Group(TOGGLES_GROUP)
@@ -74,6 +80,12 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(COLOR_GROUP)
     override val jumpColor by c.setting("Jump Marker", Color(255, 210, 70, 242)) { enabled && renderJumpMarkers }
+
+    @Group(COLOR_GROUP)
+    override val spliceColor by c.setting("Splice Point", Color(90, 200, 255, 235)) { enabled && renderSplices }
+
+    @Group(COLOR_GROUP)
+    override val cutColor by c.setting("Refinement Cut", Color(255, 140, 255, 235)) { enabled && renderSplices }
 
     @Group(COLOR_GROUP)
     override val stopColor by c.setting("Certified Stop", Color(120, 255, 120, 242)) { enabled && renderTrajectory }
