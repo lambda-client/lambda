@@ -27,6 +27,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -231,9 +232,8 @@ object Freecam : Module(
 			mc.crosshairTarget?.let { if (it.type != HitResult.Type.MISS) event.cancel() }
 		}
 
-		listen<PacketEvent.Receive.Pre> { event ->
-			val packet = event.packet
-			if (packet is PlayerRespawnS2CPacket) disable()
+		listenUnsafe<PacketEvent.Receive.Pre> { event ->
+			if (event.packet is PlayerRespawnS2CPacket) disable()
 		}
 	}
 
