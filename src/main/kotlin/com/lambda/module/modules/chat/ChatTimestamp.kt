@@ -17,11 +17,11 @@
 
 package com.lambda.module.modules.chat
 
-import com.lambda.config.ConfigEditor.editTypedSettings
-import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.blocks.FormatterConfig
 import com.lambda.config.blocks.FormatterSettings
+import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.hide
 import com.lambda.config.withEdits
 import com.lambda.event.events.ChatEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

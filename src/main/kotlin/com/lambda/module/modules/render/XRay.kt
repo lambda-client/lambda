@@ -19,8 +19,8 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.config.entries.Setting.Companion.onValueChange
-import com.lambda.config.settings.collections.CollectionSetting.Companion.onDeselect
-import com.lambda.config.settings.collections.CollectionSetting.Companion.onSelect
+import com.lambda.config.settings.collections.onDeselect
+import com.lambda.config.settings.collections.onSelect
 import com.lambda.context.SafeContext
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

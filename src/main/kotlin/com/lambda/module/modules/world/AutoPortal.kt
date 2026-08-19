@@ -18,13 +18,13 @@
 package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.editSetting
+import com.lambda.config.forEachSetting
+import com.lambda.config.hide
+import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease

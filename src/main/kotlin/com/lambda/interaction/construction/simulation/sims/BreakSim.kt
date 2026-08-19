@@ -15,18 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.simulation.checks
+package com.lambda.interaction.construction.simulation.sims
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.simulation.BreakSimInfo
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.simulation.SimInfo
-import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.managers.hotbar.HotbarManager
@@ -57,25 +57,19 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import kotlin.jvm.optionals.getOrNull
 
-class BreakSim private constructor(simInfo: SimInfo)
+@SimDsl
+context(_: AutomatedSafeContext, dependent: Sim<*>)
+internal suspend fun BreakSimInfo.simBreak() =
+	with(BreakSim(this)) { simWithDependent(dependent) }
+
+class BreakSim internal constructor(simInfo: SimInfo)
 	: Sim<BreakResult>(),
 	SimInfo by simInfo
 {
 	override fun dependentUpon(buildResult: BuildResult) =
 		BreakResult.Dependency(pos, buildResult)
 
-	companion object {
-		@SimDsl
-		context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
-		suspend fun BreakSimInfo.simBreak() =
-			BreakSim(this).run {
-				withDependent(dependent) {
-					automatedSafeContext.simBreaks()
-				}
-			}
-	}
-
-	private suspend fun AutomatedSafeContext.simBreaks() {
+	override suspend fun AutomatedSafeContext.sim() {
 		if (!world.worldBorder.contains(pos)) {
 			result(BreakResult.OutOfBorder(pos))
 			return
