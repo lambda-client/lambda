@@ -27,6 +27,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.handlers.ContainerHandler.transfer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -47,13 +48,9 @@ import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
+import com.lambda.util.math.*
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
-import com.lambda.util.math.distSq
-import com.lambda.util.math.flooredBlockPos
-import com.lambda.util.math.getHitVec
-import com.lambda.util.math.minus
-import com.lambda.util.math.plus
 import com.lambda.util.player.RotationUtils.getVisibleSurfaces
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
@@ -135,6 +132,7 @@ object CrystalAura : Module(
 
     private val decay = LimitedDecayQueue<Int>(10000, 3000L)
 
+    private var lastPlace: Pair<BlockPos, Long>? = null
     private val collidingOffsets = mutableListOf<BlockPos>().apply {
         for (x in -1..1) {
             for (z in -1..1) {
@@ -240,6 +238,20 @@ object CrystalAura : Module(
             decay += crystal.id
         }
 
+        immediateRenderer("CrystalAura Immediate Renderer") {
+            runSafe {
+                if (lastPlace != null) {
+                    if (lastPlace!!.second + 50 < System.currentTimeMillis()) {
+                        return@runSafe
+                    }
+
+                    box(
+                        lastPlace!!.first,
+                    )
+                }
+            }
+        }
+
         onEnable {
             currentTarget = null
             resetBlueprint()
@@ -285,12 +297,16 @@ object CrystalAura : Module(
 	}
 
 	private fun SafeContext.placeInternal(opportunity: Opportunity, hand: Hand) {
+        runSafe {
+            lastPlace = Pair(opportunity.blockPos, System.currentTimeMillis())
+        }
 		interaction.syncSelectedSlot()
-		connection.sendPacket {
-			PlayerInteractBlockC2SPacket(
-				hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), 0
-			)
-		}
+        mc.interactionManager!!.sendSequencedPacket(world, { sequence ->
+
+            PlayerInteractBlockC2SPacket(
+                hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), sequence
+            )
+        });
 
         player.swingHand(hand)
     }
