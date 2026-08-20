@@ -95,6 +95,29 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
+    override val recedingHorizon by c.setting(
+        "Receding Horizon", true,
+        "Plan a horizon at a time and keep extending it while walking, instead of " +
+            "certifying a whole trajectory to the goal before the first step.",
+    )
+
+    @Group(SEARCH_GROUP)
+    override val horizonRunwayFrames by c.setting(
+        "Horizon Runway", 20, 5..300, 5,
+        "Committed motion kept ahead of the body. Smaller leaves decisions later, so the " +
+            "search has longer to improve them; too small and the body catches its brake.",
+        unit = " frames",
+    ) { recedingHorizon }
+
+    @Group(SEARCH_GROUP)
+    override val horizonCommitFrames by c.setting(
+        "Horizon Commit", 20, 5..120, 5,
+        "How much motion each step commits. Smaller keeps more of the walk open to be " +
+            "replanned; too small and the search cannot keep ahead of the body.",
+        unit = " frames",
+    ) { recedingHorizon }
+
+    @Group(SEARCH_GROUP)
     override val dumpFailedPlans by c.setting(
         "Dump Failed Plans", false,
         "On a refusal, write the captured world, endpoints and entry state to " +

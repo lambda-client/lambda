@@ -280,6 +280,20 @@ object TrajectoryPlanner {
                 )
             }
 
+            // A horizon walk publishes as it goes and only completes when it arrives, so
+            // it owns the rest of this task rather than returning a plan to be executed.
+            if (config.recedingHorizon && onSafePrefix != null && cursorFrame != null) {
+                val route = planner.routePlan(snapshot.capturedWorldTime)
+                    ?: return@supplyAsync PathPlanResult.NoRoute("no coarse route to the goal")
+                return@supplyAsync walkHorizon(
+                    route, planner, initial, profile, snapshot, seedConfig, cursorFrame,
+                    publish = { path, running -> if (running) onImprovement?.invoke(path) else onSafePrefix(path) },
+                    started = started,
+                    lookahead = config.horizonRunwayFrames,
+                    commitFrames = config.horizonCommitFrames,
+                )
+            }
+
             val outcome = searchWithRerouting(planner, snapshot.capturedWorldTime) { route ->
                 if (neuralPolicy != null) {
                     // The policy proposes; the simulator in this rollout still certifies
@@ -676,6 +690,124 @@ object TrajectoryPlanner {
     )
 
     /**
+     * Walks toward the goal out of one search that never stops or restarts.
+     *
+     * The alternative -- proving a complete tape to the goal before the body moves --
+     * commits so hard that improving it later means beating the entire remainder, and
+     * spends its budget certifying a future that will be re-decided long before the body
+     * gets there.
+     *
+     * But the naive horizon is worse: searching a long lookahead, committing the first
+     * twenty frames and discarding the rest, then searching again from scratch. Each step
+     * costs a full search, and when a step takes longer than the motion it committed the
+     * body reaches its brake and stops -- a walk that visibly ran, halted, waited, and ran
+     * again.
+     *
+     * So the search runs *once*. It commits a little motion whenever the body is about to
+     * run out, re-roots onto what it committed -- every branch leaving the walked line is
+     * unadoptable anyway -- and carries on with the tree it already has. Committing is
+     * deferred until the runway is short precisely because the search keeps improving
+     * until then: the latest possible commitment is the best informed one.
+     *
+     * The safety property is unchanged and is what makes this legal: **every published
+     * tape ends in a certified stop**. If the search ever fails to extend, the body runs
+     * the brake it was already holding and plans again from rest.
+     */
+    /** Test seam: the horizon walk without the async plumbing around it. */
+    internal fun walkHorizonForTest(
+        route: CoarseRoutePlan,
+        planner: CoarsePlanner,
+        initial: MovementSimulationState,
+        profile: PlayerPhysicsProfile,
+        snapshot: SnapshotSimulationEnvironment,
+        seedConfig: WalkingSeedSearchConfig,
+        cursorFrame: () -> Int?,
+        publish: (PathingManager.PublishedPath, Boolean) -> Unit,
+        started: Long,
+        lookahead: Int = HORIZON_FRAMES,
+        commitFrames: Int = HORIZON_CHUNK_FRAMES,
+    ): PathPlanResult = walkHorizon(
+        route, planner, initial, profile, snapshot, seedConfig, cursorFrame, publish, started,
+        lookahead, commitFrames,
+    )
+
+    private fun walkHorizon(
+        route: CoarseRoutePlan,
+        planner: CoarsePlanner,
+        initial: MovementSimulationState,
+        profile: PlayerPhysicsProfile,
+        snapshot: SnapshotSimulationEnvironment,
+        seedConfig: WalkingSeedSearchConfig,
+        cursorFrame: () -> Int?,
+        publish: (PathingManager.PublishedPath, Boolean) -> Unit,
+        started: Long,
+        lookahead: Int = HORIZON_FRAMES,
+        commitFrames: Int = HORIZON_CHUNK_FRAMES,
+    ): PathPlanResult {
+        val field = planner.valueField()
+        var published = 0
+        var last: PathingManager.PublishedPath? = null
+        attempts = 0
+        improvements = 0
+
+        val result = ValueFieldAnchorSearch.search(
+            route, field, initial, profile, snapshot, seedConfig,
+            ValueFieldSearchConfig(
+                // The first commitment is small and immediate: the body has to start
+                // moving. Every one after it waits for the runway to run short.
+                safePrefixFrames = commitFrames,
+                safePrefixDelayMillis = 0,
+                horizonCommitFrames = commitFrames,
+                horizonRunwayFrames = lookahead,
+                commitContinuously = true,
+                // The local window. Beyond it the search parks candidates instead of
+                // expanding them: D* has already answered where to go, and re-answering it
+                // here spends the budget on a future that gets re-decided anyway. The goal
+                // re-enters only when the field says the body is inside braking distance,
+                // which is what the terminal sweep already handles.
+                localHorizonFrames = lookahead + commitFrames * HORIZON_WINDOW_CHUNKS,
+                // Breadth over exactly the stretch about to be locked in, so there is
+                // something to choose between when it is.
+                rootFanFrames = commitFrames * HORIZON_FAN_CHUNKS,
+                // One search now spans the whole walk instead of one plan's worth of
+                // latency, so the budget has to span it too. The default is sized for a
+                // search the body is waiting on; this one runs while the body walks, and
+                // exhausting it strands the walk short of the goal.
+                maxExpansions = HORIZON_EXPANSIONS,
+                minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
+                maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
+            ),
+            onSafePrefix = { step ->
+                val path = publishedPath(
+                    step, route, profile, planIds.incrementAndGet(),
+                    System.currentTimeMillis() - started, reroutes = 0, partial = true, field = field,
+                )
+                publish(path, published > 0)
+                last = path
+                published++
+                improvements++
+            },
+            cursorFrame = cursorFrame,
+        )
+        attempts = published
+
+        return when (result) {
+            is WalkingSeedSearchResult.Success -> PathPlanResult.Planned(
+                publishedPath(
+                    result, route, profile, planIds.incrementAndGet(),
+                    System.currentTimeMillis() - started, reroutes = 0, partial = false, field = field,
+                )
+            )
+
+            // Nothing more could be committed. The body is already holding a certified
+            // brake, so it stops there and the manager plans the next leg from rest --
+            // the behaviour that existed before horizons, kept as the failure mode.
+            else -> last?.let { PathPlanResult.Planned(it) }
+                ?: PathPlanResult.NoRoute("no certified motion from the start state")
+        }
+    }
+
+    /**
      * Picks a cut, favouring the ones standing in front of an expensive stretch.
      *
      * Weighted rather than greedy: the worst stretch is the best guess, not a certainty,
@@ -719,6 +851,62 @@ object TrajectoryPlanner {
     }
 
     private var costCache: Triple<WalkingSeedSearchResult.Success, CoarseValueField, List<SegmentCost>>? = null
+
+    /**
+     * Committed motion kept ahead of the body before another commitment is made.
+     *
+     * How late a decision may be left. Later is better -- every tick not yet committed is
+     * a tick the search is still improving it -- and measured on the live corpus that is
+     * exactly what happens: runway 25 gives 1028 frames, 40 gives 1025, 60 gives 1044,
+     * 200 gives 1099. But the shorter settings leave the body catching the brake it is
+     * holding when a search runs long: 25 and 40 each stopped once across the corpus,
+     * where 60 stopped never. Not stopping is worth nineteen frames.
+     */
+    private const val HORIZON_FRAMES = 20
+
+    /** Motion each extension commits; the granularity at which the future is decided. */
+    private const val HORIZON_CHUNK_FRAMES = 20
+
+    private const val HORIZON_POLL_MILLIS = 20L
+
+    /**
+     * Commit-lengths over which the search fans out rather than dives; zero disables it.
+     *
+     * Off, on measurement. Keeping branches out of each other's dominance buckets is the
+     * only way to stop the population collapsing -- and it does work -- but it means
+     * discarding the pruning map at every commitment, because branch identity is relative
+     * to the committed end. The search then re-explores ground it had already dismissed,
+     * falls behind the body, and the walk turns back into stop-and-go: 22 halts across the
+     * live corpus against none without it.
+     *
+     * And it bought little. With it on, the number of genuinely distinct commitments
+     * available was 6 and 3 at a couple of moments and *one* at the median -- because the
+     * value field has already decided which way to go, so good candidates converge on the
+     * same next stance. The population is real; the choice usually is not.
+     *
+     * Left in and switchable rather than deleted: on open terrain, where the field leaves
+     * real alternatives, the trade may well go the other way.
+     */
+    private const val HORIZON_FAN_CHUNKS = 0
+
+    /** Chunks of growing room past the runway; the window candidates compete inside. */
+    private const val HORIZON_WINDOW_CHUNKS = 3
+
+    /** Commit-lengths the arriving publication may cover; the endgame is committed too. */
+    private const val HORIZON_FINAL_COMMIT_CHUNKS = 2
+
+    /** Exploration a commitment must be backed by, so its quality does not vary with load. */
+    private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400
+
+    /** Expansions one horizon search may spend across an entire walk. */
+    private const val HORIZON_EXPANSIONS = 2_000_000
+
+    /** How far past the wanted commit length a step will look for somewhere to halt. */
+    private const val HORIZON_GROWTH_REACH = 60
+    private const val HORIZON_GROWTH_STEP = 6
+
+    /** Frames of slack over a step's own cost, so the next one is never a photo finish. */
+    private const val HORIZON_KEEP_UP_MARGIN = 10
 
     /** Keeps every cut reachable, however good the stretch in front of it looks. */
     private const val CUT_WEIGHT_FLOOR = 0.5

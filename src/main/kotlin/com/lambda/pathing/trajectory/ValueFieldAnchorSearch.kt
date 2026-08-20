@@ -17,6 +17,7 @@ import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.coarse.JumpArcProbe
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
+import net.minecraft.util.math.Vec3d
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -131,6 +132,89 @@ data class ValueFieldSearchConfig(
      * starting to walk.
      */
     val safePrefixDelayMillis: Long = 250,
+    /**
+     * Stop the moment a safe prefix exists instead of searching on to the goal.
+     *
+     * What makes a receding horizon possible. Certifying a whole tape to the goal spends
+     * the budget proving a future that will be re-decided long before the body reaches it,
+     * and commits to it so hard that improving it later means beating the entire
+     * remainder. Stopping at the prefix hands back committed motion plus a certified brake
+     * -- enough to keep walking safely -- and leaves the rest to be searched from the
+     * state the body actually reaches.
+     */
+    val stopAtSafePrefix: Boolean = false,
+    /**
+     * Motion each commitment adds once the body is walking, and how little runway is left
+     * before one is made.
+     *
+     * The search is not restarted between commitments -- it re-roots onto what has been
+     * committed and carries on with the tree it already has. Restarting instead, searching
+     * a long lookahead and throwing all but the first twenty frames of it away, made each
+     * step slow enough that the body reached its brake and stopped: a walk that visibly
+     * ran, halted, waited, and ran again.
+     *
+     * Committing is deferred until the runway runs low precisely because the search keeps
+     * improving until then. The latest possible commitment is the best informed one.
+     */
+    val horizonCommitFrames: Int = 20,
+    val horizonRunwayFrames: Int = 30,
+    /** Whether commitments keep being made as the body walks, rather than only the first. */
+    val commitContinuously: Boolean = false,
+    /**
+     * How far past the committed end the search may expand, or zero for no limit.
+     *
+     * The trajectory layer solves *local* movement; D* has already solved the global
+     * problem, and the value field carries that answer to every stance. Searching on to
+     * the goal re-solves it, and spends a fixed budget proving a future that will be
+     * re-decided long before the body arrives.
+     *
+     * With a limit, anchors that reach it are parked rather than expanded. The parked set
+     * *is* the population of candidate continuations: several genuinely different ways to
+     * spend the next stretch, all kept alive, none of them committed to. They resume when
+     * the horizon advances -- which happens when motion is committed and the whole window
+     * slides forward.
+     */
+    val localHorizonFrames: Int = 0,
+    /**
+     * Frames from the committed end within which an anchor fans out instead of diving.
+     *
+     * The search dives by design: it expands one action and follows the successor, so
+     * siblings are only reached when the good line stalls. That is what makes it fast, and
+     * it is fatal to keeping a population -- measured, the candidate set was 180 anchors
+     * that between them offered exactly *one* distinct next stance. A choice between one
+     * option is not a choice, and committing "the best candidate" was committing to the
+     * only thing on offer.
+     *
+     * Near the committed end that trade is wrong. Those are the frames about to be locked
+     * in, the ones worth having alternatives for, and breadth there is cheap because the
+     * window is bounded. Beyond it the search dives as before.
+     */
+    val rootFanFrames: Int = 0,
+    /**
+     * Expansions the search must spend between commitments.
+     *
+     * A quality floor. Without one, how good a commitment is depends entirely on how much
+     * the search happened to explore before the body forced the decision -- which depends
+     * on machine load, so the same build produced anywhere from 188 to 238 frames on the
+     * same scenario across consecutive runs, and twice the collisions. Refusing to commit
+     * until a minimum has been explored bounds that: the worst commitment the planner can
+     * make is now a function of this number rather than of how busy the machine was.
+     *
+     * The body can still catch up while the floor is unmet, and then it stops on the brake
+     * it is holding. That is the trade, and it is why the runway exists.
+     */
+    val minCommitExpansions: Int = 0,
+    /**
+     * Most motion a single publication may add once the body is walking.
+     *
+     * Finding a complete solution is not a reason to commit all of it. The search reaches
+     * the goal as soon as the goal falls inside the local window, and publishing the whole
+     * remainder then hands the body several seconds of future in one go -- measured, a
+     * jump from 104 committed frames to 242 -- with nothing left open to improve. Holding
+     * the solution and committing toward it in the ordinary way keeps the tail improvable
+     * right up until it is walked.
+     */
+    val maxFinalCommitFrames: Int = 0,
     /** Steps of value-descending lookahead handed to the steering controller. */
     val chainLength: Int = 6,
     /** Ticks-to-go below which the braking terminal sweep is worth running. */
@@ -161,6 +245,8 @@ data class ValueFieldSearchConfig(
         require(siblingPenaltyTicks >= 0.0)
         require(safePrefixFrames > 0)
         require(safePrefixDelayMillis >= 0)
+        require(horizonCommitFrames > 0)
+        require(horizonRunwayFrames >= 0)
         require(headingFanDegrees.all { it.isFinite() })
         require(headingCommitFrames > 0)
         require(tailWeight >= 1.0)
@@ -209,18 +295,52 @@ object ValueFieldAnchorSearch {
          * against 473 to 2,526 for the complete plan.
          */
         onSafePrefix: ((WalkingSeedSearchResult.Success) -> Unit)? = null,
+        /**
+         * Frame the executor is about to press, or null when nothing is running.
+         *
+         * Read only to decide when the runway is short enough that another commitment is
+         * due. The search never steers by it: what it commits is always a descendant of
+         * what it has already committed, so the tape behind the cursor is identical by
+         * construction.
+         */
+        cursorFrame: (() -> Int?)? = null,
     ): WalkingSeedSearchResult {
         val unsupported = route.edges.mapTo(HashSet()) { it.kind }
             .filterTo(HashSet()) { it !in SUPPORTED_KINDS }
         if (unsupported.isNotEmpty()) return WalkingSeedSearchResult.UnsupportedRoute(unsupported)
 
         return Search(
-            route, field, initialState, profile, environment, config, searchConfig, onSafePrefix,
+            route, field, initialState, profile, environment, config, searchConfig,
+            onSafePrefix, cursorFrame,
         ).run()
     }
 
+    /**
+     * Bench-only view of the candidate population at each commitment.
+     *
+     * The design rests on there being *several genuinely different* ways to spend the next
+     * stretch. Best-first search with dominance pruning is built to collapse alternatives,
+     * so a population that has quietly become one line wearing many hats would look
+     * identical from the outside while giving up everything this is for. Counting distinct
+     * *lines* -- candidates that commit to different next stances -- is what tells them
+     * apart; counting candidates alone would not.
+     */
+    val candidateCensus = java.util.concurrent.ConcurrentLinkedQueue<IntArray>()
+
     /** Bench-only breakdown of why re-run decisions refuse. */
     val rerunDiagnostics = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
+    /** How often the live population is handed to the renderer, in expansions. */
+    private const val CANDIDATE_PUBLISH_INTERVAL = 32
+
+    /** More than this and the picture stops being readable. */
+    private const val MAX_SHOWN_CANDIDATES = 12
+
+    /** Bounded, because a walk makes a commitment every second or so and never stops. */
+    private const val MAX_CENSUS_ENTRIES = 256
+
+    /** Enough to outrank any descendant, so a near-root anchor offers every action. */
+    private const val ROOT_FAN_BONUS = 1_000_000.0
 
     /** Skipping more of a plan than this means it is no longer that plan. */
     private const val MAX_SKIPPED_DECISIONS = 4
@@ -231,6 +351,53 @@ object ValueFieldAnchorSearch {
         CoarseMoveKind.WALK_OFF,
         CoarseMoveKind.JUMP_CANDIDATE,
     )
+
+    /**
+     * A certified stop from [state], or null if the body cannot safely halt from there.
+     *
+     * The reserve a receding horizon holds. The committed tape may end anywhere, provided
+     * this exists from its end: it is never executed unless the search fails to extend,
+     * and it is what keeps "stop searching further ahead" from meaning "run out of inputs
+     * mid-stride".
+     */
+    fun brakeTo(
+        state: MovementSimulationState,
+        field: CoarseValueField,
+        profile: PlayerPhysicsProfile,
+        environment: SnapshotSimulationEnvironment,
+        goal: Stance,
+        config: WalkingSeedSearchConfig = WalkingSeedSearchConfig(),
+    ): List<MovementSimulationInput>? {
+        val stance = stanceOf(state)
+        val evaluator = RolloutEvaluator(
+            state, listOf(stance.center()), goal.center(),
+            config.copy(maxCorridorDeviation = Double.MAX_VALUE),
+        )
+        var previous = state
+        var failed = false
+        val rollout = TrajectoryRolloutEngine.rollout(
+            initialState = state,
+            profile = profile,
+            environment = environment,
+            program = BrakeToStopProgram(state.rotation.yaw),
+            frameCount = BRAKE_TAIL_FRAMES,
+        ) { frame ->
+            val verdict = evaluator.observe(frame.index, frame.state, previous)
+            previous = frame.state
+            if (verdict is RolloutVerdict.Failed) { failed = true; true } else false
+        }
+        if (failed) return null
+        val stopped = rollout.frames.indexOfFirst {
+            it.state.onGround && it.state.velocity.horizontalLength() <= config.stoppedSpeed
+        }
+        if (stopped < 0) return null
+        val frames = rollout.frames.take(stopped + 1)
+        // Same rule the search's own brake follows: a body that comes to rest somewhere
+        // the coarse layer cannot price has moved and can no longer be routed.
+        val resting = stanceOf(frames.last().state)
+        if (!field.isStance(resting) || !field.isMapped(resting)) return null
+        return frames.map { it.input }
+    }
 
     /**
      * Re-derives a plan's inputs from a state it was never simulated from.
@@ -612,6 +779,8 @@ object ValueFieldAnchorSearch {
         val terminal: WalkingSeedParameters? = null,
         /** Frame each decision ends on; what makes a tail of the plan addressable. */
         val decisionEnds: List<Int> = emptyList(),
+        /** The anchor this grew from; how the endgame knows which line to commit along. */
+        val anchor: ValueAnchor? = null,
 
         /** Where each decision was simulated to end; repairs steer back toward these. */
         val intended: List<MovementSimulationState> = emptyList(),
@@ -642,6 +811,21 @@ object ValueFieldAnchorSearch {
         val stance: Stance,
         val yawBucket: Int,
         val speedBucket: Int,
+        /**
+         * Which of the committed end's successors this anchor descends through.
+         *
+         * Anchors on different branches are never comparable. Without this, dominance --
+         * the thing that makes the search fast -- quietly destroys the population it is
+         * supposed to be choosing from: different opening moves converge on similar
+         * stances at similar speeds within a block or two, share a bucket, and all but one
+         * are pruned. Measured, that left 175 live candidates offering exactly *one*
+         * distinct next stance.
+         *
+         * Keeping branches apart costs a wider frontier near the committed end and buys
+         * the only thing the horizon exists for: several genuinely different ways to spend
+         * the next stretch, alive at the moment one of them has to be chosen.
+         */
+        val branch: Stance?,
     )
 
     private sealed interface Outcome {
@@ -659,6 +843,7 @@ object ValueFieldAnchorSearch {
         private val config: WalkingSeedSearchConfig,
         private val searchConfig: ValueFieldSearchConfig,
         private val onSafePrefix: ((WalkingSeedSearchResult.Success) -> Unit)?,
+        private val cursorFrame: (() -> Int?)?,
     ) {
         /**
          * The safety gates with the corridor test disabled. Deviation from a chain that
@@ -688,6 +873,35 @@ object ValueFieldAnchorSearch {
 
         /** The anchor whose brake was published, and the line the search re-rooted onto. */
         private var safeAnchor: ValueAnchor? = null
+
+        /** Set when [ValueFieldSearchConfig.stopAtSafePrefix] ends the search early. */
+        private var haltedPrefix: WalkingSeedSearchResult.Success? = null
+
+        /** Expansions spent when the last commitment was made; the quality floor's datum. */
+        private var expansionsAtCommit = 0
+
+        /** A field rather than a local, because commitment reads it from outside the loop. */
+        private var expansions = 0
+
+        /**
+         * Anchors that reached the local horizon, waiting for it to move.
+         *
+         * The candidate heads. They are not dead ends -- they are the frontier of what the
+         * body could still choose to do, held at arm's length until committing more motion
+         * makes room for them to grow.
+         */
+        private val parked = ArrayList<OpenEntry>()
+
+        /** Elapsed frames past which nothing is expanded; advances with each commitment. */
+        private var horizonEnd = Int.MAX_VALUE
+
+        /**
+         * Whether the executor has ever been seen running this plan.
+         *
+         * A null cursor means both "not installed yet" and "walk over", and only the
+         * history tells them apart.
+         */
+        private var walking = false
 
         /**
          * Whether the search has re-rooted onto the prefix the body is walking.
@@ -738,13 +952,63 @@ object ValueFieldAnchorSearch {
                 )
             )
 
-            var expansions = 0
-            while (open.isNotEmpty() && expansions < searchConfig.maxExpansions) {
+            if (searchConfig.localHorizonFrames > 0) horizonEnd = searchConfig.localHorizonFrames
+            while ((open.isNotEmpty() || parked.isNotEmpty()) && expansions < searchConfig.maxExpansions) {
+                // Lock in only when the body is about to run out of what it has. Every
+                // expansion spent before that is one more spent improving the choice.
+                val root = safeAnchor
+                if (root != null) {
+                    val executing = cursorFrame?.invoke()
+                    if (executing != null) {
+                        walking = true
+                        val runway = root.elapsed - executing
+                        if (runway <= searchConfig.horizonRunwayFrames) {
+                            commitFromCandidates(urgent = runway <= searchConfig.horizonCommitFrames)
+                        }
+                    } else if (walking) {
+                        // The walk is over -- the goal, a stop, or a cancellation. Nothing
+                        // this search decides can be executed any more, and grinding on to
+                        // a budget set never to be reached is how a finished walk kept a
+                        // worker busy for minutes.
+                        //
+                        // Only once the body has actually been seen walking. A null cursor
+                        // also means "not installed yet", and the manager installs on its
+                        // next client tick -- so reading it straight after the first
+                        // commitment always sees null. Treating that as the end abandoned
+                        // every walk one commitment in, and the body stopped and replanned
+                        // instead: 78 halts across the live corpus, none of them real.
+                        return finish(best ?: return abandoned())
+                    }
+                }
+                if (open.isEmpty()) {
+                    // Nothing left to grow without more room. Committing is the only thing
+                    // that makes room, so it happens whether or not the floor is met.
+                    if (parked.isEmpty() || !commitFromCandidates(urgent = true)) break
+                }
+                if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) publishCandidates()
+                haltedPrefix?.let { return it }
                 val entry = open.poll()
+
+                // Past the local horizon: park it as a candidate rather than expanding it.
+                // Growing it further would be planning a future the body has not committed
+                // to reaching, which is exactly the work this layer should not be doing.
+                //
+                // Except within braking distance of the goal. That is the one place the
+                // global problem becomes local again -- the field says there is nothing
+                // left to route, only an arrival to execute -- and parking there means the
+                // walk can never finish, only run out of candidates short of the goal.
+                if (entry.anchor.elapsed >= horizonEnd &&
+                    field.guide(entry.anchor.stance) > searchConfig.finishValueTicks
+                ) {
+                    parked += entry
+                    continue
+                }
                 // Best-first optimality: `elapsed + lowerBound` is admissible, so once the
                 // cheapest open anchor cannot beat the certified incumbent, nothing can.
-                best?.let { if (entry.bound >= it.frames) return finish(it) }
-                if (best != null && expansionsSinceImprovement >= searchConfig.stallExpansions) {
+                best?.let { if (entry.bound >= it.frames && readyToFinish(it)) return finish(it) }
+                if (best != null && readyToFinish(best!!) &&
+                    expansionsSinceImprovement >= searchConfig.stallExpansions
+                ) {
                     return finish(best!!)
                 }
 
@@ -805,6 +1069,7 @@ object ValueFieldAnchorSearch {
                             decisions = anchor.decisions() + action,
                             decisionEnds = anchor.decisionEnds() +
                                 (anchor.elapsed + outcome.stopFrame + 1),
+                            anchor = anchor,
                             intended = anchor.intendedStates(),
                         ),
                     )
@@ -829,8 +1094,21 @@ object ValueFieldAnchorSearch {
                 // wall recovers so slowly it exhausts its budget — a corpus case that used
                 // to certify refused outright.
                 if (anchor.cursor < (anchor.actions?.size ?: 0)) {
-                    val penalty = if (outcome is Outcome.Rejected) RETRY_PENALTY_TICKS
-                    else searchConfig.siblingPenaltyTicks
+                    val committedElapsed = safeAnchor?.elapsed ?: 0
+                    val nearRoot = searchConfig.rootFanFrames > 0 &&
+                        anchor.elapsed - committedElapsed <= searchConfig.rootFanFrames
+                    // Near the committed end the anchor is re-queued *ahead* of its own
+                    // descendants, not merely without a penalty. Zero penalty does not fan:
+                    // ordering is elapsed plus cost-to-go, which stays flat or falls along a
+                    // good line, so each new successor outranks the parent and the dive
+                    // simply continues. Only an explicit bonus brings the parent back to
+                    // offer its next action, and since its action list is finite this
+                    // terminates in a full fan rather than starving anything.
+                    val penalty = when {
+                        outcome is Outcome.Rejected -> RETRY_PENALTY_TICKS
+                        nearRoot -> -ROOT_FAN_BONUS
+                        else -> searchConfig.siblingPenaltyTicks
+                    }
                     open += OpenEntry(
                         order = entry.order + penalty,
                         bound = entry.bound,
@@ -839,7 +1117,21 @@ object ValueFieldAnchorSearch {
                 }
             }
 
-            best?.let { return finish(it) }
+            haltedPrefix?.let { return it }
+            best?.let { solution ->
+                // Reaching the goal is not a reason to hand the body everything between
+                // here and it. The loop's own finish checks are guarded, but this exit is
+                // taken when the frontier simply runs out -- and unguarded it published a
+                // 109-frame jump at the end of a walk whose other commitments were ten or
+                // twenty. Commit along the winning line first, in the ordinary small
+                // steps, and publish only what is left.
+                while (!readyToFinish(solution) &&
+                    commitFromCandidates(urgent = true, along = solution.anchor)
+                ) {
+                    // committing
+                }
+                return finish(solution)
+            }
 
             return WalkingSeedSearchResult.NoSafeStop(
                 attempts = attempts.toList(),
@@ -1339,6 +1631,7 @@ object ValueFieldAnchorSearch {
                             collisionEvents = rank.collisionEvents,
                             decisions = anchor.decisions(),
                             decisionEnds = anchor.decisionEnds(),
+                            anchor = anchor,
                             intended = anchor.intendedStates(),
                             terminal = parameters,
                         )
@@ -1358,6 +1651,7 @@ object ValueFieldAnchorSearch {
                 collisionEvents = winner.first.collisionEvents,
                 decisions = anchor.decisions(),
                 decisionEnds = anchor.decisionEnds(),
+                anchor = anchor,
                 intended = anchor.intendedStates(),
                 terminal = winner.third,
             )
@@ -1383,9 +1677,34 @@ object ValueFieldAnchorSearch {
             val remaining = field.guide(anchor.stance)
             if (!remaining.isFinite() || remaining <= searchConfig.finishValueTicks) return
 
-            if (safeAnchor != null) return
-            if (anchor.elapsed < searchConfig.safePrefixFrames) return
-            if ((System.nanoTime() - startedNanos) / 1_000_000 < searchConfig.safePrefixDelayMillis) return
+            // The bootstrap, and only the bootstrap: the body has to start moving before
+            // there is a population of candidates to choose between. Every commitment after
+            // this one is made by [commitFromCandidates], which compares the parked
+            // candidates and locks in the beginning of whichever is best.
+            //
+            // Committing whichever anchor the search happened to admit -- which is all this
+            // path can do -- means committing to a line nobody weighed against the
+            // alternatives, and it produced single commitments of 266 frames on a route
+            // whose considered ones were six to fourteen.
+            val running = safeAnchor
+            if (running == null) {
+                if (anchor.elapsed < searchConfig.safePrefixFrames) return
+                if ((System.nanoTime() - startedNanos) / 1_000_000 < searchConfig.safePrefixDelayMillis) return
+            } else {
+                // Committing straight off an admitted anchor, without weighing it against
+                // anything. A genuine last resort: it fires only when nothing has been
+                // evaluated across the window at all, because a line nobody compared is
+                // exactly what makes consecutive commitments disagree with each other.
+                // Removing it entirely is worse -- the search then has nothing to commit
+                // and the body stops -- but it must not compete with the weighed path.
+                if (!searchConfig.commitContinuously) return
+                if (parked.isNotEmpty()) return
+                if (!anchor.descendsFrom(running)) return
+                if (anchor.elapsed < running.elapsed + searchConfig.horizonCommitFrames) return
+                if (expansions - expansionsAtCommit < searchConfig.minCommitExpansions) return
+                val executing = cursorFrame?.invoke() ?: return
+                if (running.elapsed - executing > searchConfig.horizonRunwayFrames) return
+            }
             val braked = brakeFrom(anchor) ?: return
             val certified = certify(braked) as? WalkingSeedSearchResult.Success ?: return
             if (firstSafe == null) {
@@ -1393,7 +1712,9 @@ object ValueFieldAnchorSearch {
                 firstSafeRollouts = expansions
             }
             safeAnchor = anchor
+            expansionsAtCommit = expansions
             reRootOnto(anchor)
+            if (searchConfig.stopAtSafePrefix) haltedPrefix = certified
             publish(certified)
         }
 
@@ -1407,11 +1728,191 @@ object ValueFieldAnchorSearch {
          * finds afterwards shares the walked tape by construction, so there is nothing
          * left for adoption to reject.
          */
+        /**
+         * Locks in the beginning of the best candidate, and only its beginning.
+         *
+         * Called when the body is about to run out of committed motion, or when every
+         * candidate has reached the horizon and nothing can grow without more room. The
+         * choice is made as late as possible on purpose: until this moment every candidate
+         * is still being improved, and whichever is best now is the best-informed decision
+         * available.
+         *
+         * What gets locked in is a *chunk* of the winner, not the winner. Candidates that
+         * begin the same way survive; the rest are dropped, because the body can no longer
+         * be steered onto them. Then the horizon slides forward and the survivors grow
+         * again.
+         */
+        private fun commitFromCandidates(urgent: Boolean, along: ValueAnchor? = null): Boolean {
+            if (!searchConfig.commitContinuously) return false
+            val publish = onSafePrefix ?: return false
+            val root = safeAnchor
+            // The quality floor: a commitment should be backed by real exploration, not by
+            // whatever the search happened to have when the body arrived. Waived when the
+            // body is genuinely about to run out -- stopping is worse than deciding early.
+            if (root != null && !urgent &&
+                expansions - expansionsAtCommit < searchConfig.minCommitExpansions
+            ) return false
+
+            val committedElapsed = root?.elapsed ?: 0
+            val target = committedElapsed + searchConfig.horizonCommitFrames
+            // Only lines that have been evaluated across the whole window. A half-explored
+            // anchor from the open frontier looks cheap precisely because nothing has
+            // tested it yet, so committing off one commits to a line nobody compared --
+            // and picking a different such line each time is a body walking back and
+            // forth. The frontier is used only before anything has reached the horizon.
+            //
+            // Everything parked already descends from the committed end: `admit` refuses
+            // anything else once committed, and re-rooting prunes the rest. So no descent
+            // check is needed on that path, which matters -- this runs while the body
+            // walks, and the check is linear in the population times its depth.
+            // An explicit line only counts if it actually continues what is committed.
+            // `lineFrom` walks to the search root when handed an anchor that is not a
+            // descendant, so committing off one moves the tape *backwards* -- observed as a
+            // published tape shrinking by 339 frames, which is not a commitment at all.
+            val leaf = along?.takeIf {
+                it.elapsed > committedElapsed && (root == null || it.descendsFrom(root))
+            }
+            if (leaf == null && along != null) return false
+            val pool = if (parked.isNotEmpty()) parked else open.filter {
+                it.anchor.elapsed > committedElapsed && (root == null || it.anchor.descendsFrom(root))
+            }
+            val best = leaf?.let { OpenEntry(0.0, 0.0, it) }
+                ?: pool.minByOrNull { it.order }
+                ?: return false
+
+            // Distinct *commitments* on offer, not distinct first steps. What matters is
+            // how many different things this decision could actually lock in, and the
+            // chunk is several anchors deep -- candidates that share a first step may
+            // still diverge before the commit point, and candidates that differ at the
+            // first step may converge before it.
+            while (candidateCensus.size >= MAX_CENSUS_ENTRIES) candidateCensus.poll()
+            candidateCensus += intArrayOf(
+                pool.size,
+                pool.mapNotNullTo(HashSet()) { entry ->
+                    lineFrom(root, entry.anchor)
+                        .lastOrNull { it.elapsed <= target }?.stance
+                        ?: lineFrom(root, entry.anchor).firstOrNull()?.stance
+                }.size,
+                parked.size,
+            )
+
+            // The *earliest* point on the winner's line the body could stop at -- the
+            // smallest commitment available, not the one nearest some wanted length.
+            // Everything not yet committed is still open to being improved, so committing
+            // less is strictly better as long as the search can keep up, and commitments
+            // are cheap now: a brake and a replay, no search.
+            //
+            // Aiming at a target length instead let a single commitment cover 61 frames
+            // when an earlier anchor would have done, because that anchor happened to sit
+            // nearer the target. The body can only stop where a brake certifies -- mid-jump
+            // it cannot -- so later anchors remain the fallback, in order.
+            val line = lineFrom(root, best.anchor).filter { it.elapsed > committedElapsed }
+            for (candidate in line.sortedBy { it.elapsed }) {
+                val braked = brakeFrom(candidate) ?: continue
+                val certified = certify(braked) as? WalkingSeedSearchResult.Success ?: continue
+                if (firstSafe == null) {
+                    firstSafe = braked
+                    firstSafeRollouts = expansions
+                }
+                safeAnchor = candidate
+                expansionsAtCommit = expansions
+                reRootOnto(candidate)
+                publish(certified)
+                return true
+            }
+            return false
+        }
+
+        /**
+         * The stance this anchor's line takes first, leaving the committed end.
+         *
+         * Its branch identity. Null for the committed anchor itself, which belongs to no
+         * branch because every branch leaves from it.
+         */
+        private fun branchOf(anchor: ValueAnchor): Stance? {
+            val root = safeAnchor
+            var node: ValueAnchor = anchor
+            while (true) {
+                val parent = node.parent ?: return null
+                if (parent === root || parent.parent == null) return node.stance
+                node = parent
+            }
+        }
+
+        /** Hands the live population to the renderer, best first-flagged. */
+        private fun publishCandidates() {
+            if (!searchConfig.commitContinuously) return
+            val pool = if (parked.isNotEmpty()) parked else open
+            if (pool.isEmpty()) return
+            val root = safeAnchor
+            val best = pool.minByOrNull { it.order }
+            val shown = pool.sortedBy { it.order }.take(MAX_SHOWN_CANDIDATES)
+            PlanningDebugChannel.publishCandidates(
+                shown.map { entry ->
+                    val points = ArrayList<Vec3d>()
+                    root?.let { points += it.state.position }
+                    lineFrom(root, entry.anchor).forEach { points += it.state.position }
+                    PlanningDebugChannel.CandidateLine(points, entry === best)
+                }
+            )
+        }
+
+        /** The anchors strictly between [root] and [leaf], oldest first; [leaf] included. */
+        private fun lineFrom(root: ValueAnchor?, leaf: ValueAnchor): List<ValueAnchor> {
+            val chain = ArrayList<ValueAnchor>()
+            var node: ValueAnchor? = leaf
+            while (node != null && node !== root && node.parent != null) {
+                chain += node
+                node = node.parent
+            }
+            return chain.asReversed()
+        }
+
         private fun reRootOnto(anchor: ValueAnchor) {
             val retained = open.filterTo(ArrayList()) { it.anchor.descendsFrom(anchor) }
             open.clear()
             open.addAll(retained)
+            // The anchor just committed to has itself been popped, and the successors it
+            // will have do not exist yet -- so pruning to its descendants can leave nothing
+            // at all to expand, and the search ends the instant it commits. It goes back in
+            // with whatever actions it has not tried.
+            reopen(anchor)
+            // The horizon slides forward with the commitment, and the candidates that still
+            // begin the way the body is now committed to begin come back to life. The rest
+            // are unreachable and are simply dropped.
+            if (searchConfig.localHorizonFrames > 0) {
+                horizonEnd = anchor.elapsed + searchConfig.localHorizonFrames
+            }
+            // The population survives the commitment. Candidates the new horizon has moved
+            // past go back to growing; the rest stay parked and remain candidates for the
+            // *next* decision.
+            //
+            // Clearing it wholesale -- which is what this did -- destroyed every evaluated
+            // line at every commitment and made them all re-earn their depth from scratch.
+            // The search could not keep up, and it left nothing parked to choose between,
+            // so the next commitment fell back on the half-explored open frontier.
+            val surviving = parked.filter { it.anchor.descendsFrom(anchor) }
+            parked.clear()
+            surviving.forEach { entry ->
+                if (entry.anchor.elapsed < horizonEnd) open += entry else parked += entry
+            }
+            // Branch identity is relative to the committed end, so every key in here now
+            // describes a partition that no longer exists. Keeping them would prune new
+            // branches against the buckets of old ones.
+            if (searchConfig.rootFanFrames > 0) dominance.clear()
             committed = true
+        }
+
+        /** Puts an already-popped anchor back on the frontier, ranked as [admit] would. */
+        private fun reopen(anchor: ValueAnchor) {
+            if (open.any { it.anchor === anchor }) return
+            val guide = field.guide(anchor.stance).takeIf { it.isFinite() } ?: return
+            open += OpenEntry(
+                order = anchor.elapsed + searchConfig.tailWeight * momentumAdjusted(anchor, guide),
+                bound = anchor.elapsed +
+                    (field.lowerBound(anchor.stance) - MOMENTUM_CREDIT_MAX_TICKS).coerceAtLeast(0.0),
+                anchor = anchor,
+            )
         }
 
         private fun ValueAnchor.descendsFrom(other: ValueAnchor): Boolean {
@@ -1470,6 +1971,7 @@ object ValueFieldAnchorSearch {
                 collisionEvents = anchor.collisionEvents + collisionEvents(anchor.state, frames),
                 decisions = anchor.decisions(),
                 decisionEnds = anchor.decisionEnds(),
+                anchor = anchor,
                 intended = anchor.intendedStates(),
             )
         }
@@ -1521,7 +2023,38 @@ object ValueFieldAnchorSearch {
             }
         }
 
+        /**
+         * Whether a complete solution may be published now, or should be committed toward.
+         *
+         * A solution found while the body is still far from it would be published whole,
+         * which is a commitment the size of the entire remaining walk. Committing toward it
+         * first leaves the tail open to improvement until it is nearly walked, and costs
+         * nothing: the solution is held, not discarded.
+         */
+        private fun readyToFinish(solution: Solution): Boolean {
+            if (!searchConfig.commitContinuously || searchConfig.maxFinalCommitFrames <= 0) return true
+            val committedElapsed = safeAnchor?.elapsed ?: return true
+            return solution.frames - committedElapsed <= searchConfig.maxFinalCommitFrames
+        }
+
         private fun finish(solution: Solution): WalkingSeedSearchResult = certify(solution)
+
+        /**
+         * What to return when the walk ended before the search did.
+         *
+         * Not a failure: whatever was committed was published as it was committed, and
+         * every one of those tapes ended in a certified stop. There is simply nothing left
+         * for this search to say.
+         */
+        private fun abandoned(): WalkingSeedSearchResult = WalkingSeedSearchResult.NoSafeStop(
+            attempts = attempts.toList(),
+            blockedProgress = deepestProgress,
+            deadEdge = null,
+            remainingStart = route.nodes.getOrNull(deepestProgress),
+            remainingGoal = goalStance,
+            remainingMoveSummary = "walk ended; %d anchors, %d parked candidates"
+                .format(dominance.values.sumOf { it.size }, parked.size),
+        )
 
         private fun admit(anchor: ValueAnchor) {
             // The body's own stance can be unmapped (it may stand somewhere the coarse
@@ -1537,6 +2070,7 @@ object ValueFieldAnchorSearch {
                 stance = anchor.stance,
                 yawBucket = yawBucket(anchor),
                 speedBucket = speedBucket(anchor),
+                branch = if (searchConfig.rootFanFrames > 0) branchOf(anchor) else null,
             )
             // Past the commitment point only the walked line can still be published.
             if (committed) safeAnchor?.let { if (!anchor.descendsFrom(it)) return }

@@ -48,6 +48,31 @@ object PlanningDebugChannel {
         private set
 
     /**
+     * One candidate continuation: where a line the search is keeping alive would go.
+     *
+     * Coarse by design -- a point per anchor, not per frame. These exist to show *which
+     * options are on the table*, and at anchor resolution the alternatives are already
+     * distinguishable while costing almost nothing to publish.
+     */
+    class CandidateLine(val points: List<Vec3d>, val best: Boolean)
+
+    /**
+     * The candidates the horizon is currently choosing between, best flagged.
+     *
+     * The population is the whole point of a horizon: several ways to spend the next
+     * stretch, kept alive until one has to be picked. Without seeing them there is no way
+     * to tell a search that is genuinely weighing options from one that is following the
+     * only line it has.
+     */
+    @Volatile
+    var candidateLines: List<CandidateLine> = emptyList()
+        private set
+
+    fun publishCandidates(lines: List<CandidateLine>) {
+        if (active) candidateLines = lines
+    }
+
+    /**
      * Cut points refinement has recently tried, newest last.
      *
      * The improver samples where to cut, so where it is *looking* is as much of the story
@@ -67,6 +92,7 @@ object PlanningDebugChannel {
         coarseRoute = null
         attempts = emptyList()
         cuts = emptyList()
+        candidateLines = emptyList()
         synchronized(cutRing) { cutRing.clear() }
         active = enabled
     }
@@ -107,6 +133,7 @@ object PlanningDebugChannel {
         coarseRoute = null
         attempts = emptyList()
         cuts = emptyList()
+        candidateLines = emptyList()
         synchronized(ring) { ring.clear() }
         synchronized(cutRing) { cutRing.clear() }
     }
