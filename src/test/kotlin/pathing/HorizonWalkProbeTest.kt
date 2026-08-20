@@ -43,6 +43,79 @@ class HorizonWalkProbeTest {
     @Test
     fun `a horizon walk with slow steps still keeps ahead of the body`() = walk(60, 5)
 
+    /**
+     * The horizon walked over several routes, for judging changes to the search itself.
+     *
+     * The two single-route fixtures answer "does it arrive, and is every tape stoppable".
+     * They cannot answer "is this change better", because one route is one sample and the
+     * answers have come back split -- a change worth five frames on one and minus five on
+     * the other. This walks a corpus instead, with the same wall-clock cursor, so an action
+     * change can be judged without a Minecraft client in the loop.
+     */
+    @Test
+    fun `horizon corpus`() {
+        val environment = bedrockEnvironment()
+        val moves = SimpleMoveLibrary.build(
+            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+            options = SimpleMoveOptions(maxJumpDrop = 2),
+        )
+        val config = WalkingSeedSearchConfig()
+        var total = 0
+        var arrived = 0
+        var largest = 0
+
+        for ((index, endpoints) in BedrockFieldLayout.randomEndpointPairs(count = 6).withIndex()) {
+            val start = Stance(endpoints.first.x, endpoints.first.y, endpoints.first.z)
+            val goal = Stance(endpoints.second.x, endpoints.second.y, endpoints.second.z)
+            val planner = CoarsePlanner(environment.withinBudget(start, goal), moves, start, goal)
+            if (!planner.repair(Duration.INFINITE).converged) continue
+            planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+            val route = planner.routePlan(index.toLong()) ?: continue
+            val dx = (goal.x - start.x).toDouble()
+            val dz = (goal.z - start.z).toDouble()
+            val initial = MovementSimulationState.synthetic(
+                profile = PROFILE,
+                position = Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5),
+                rotation = Rotation(Math.toDegrees(atan2(-dx, dz)), 0.0),
+                velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
+            )
+
+            val startedAt = System.nanoTime()
+            val sizes = ArrayList<Int>()
+            var previous = 0
+            val outcome = TrajectoryPlanner.walkHorizonForTest(
+                route, planner, initial, PROFILE, environment, config,
+                cursorFrame = { ((System.nanoTime() - startedAt) / 50_000_000L).toInt() },
+                publish = { path, _ ->
+                    sizes += path.plan.tape.frameCount - previous
+                    previous = path.plan.tape.frameCount
+                },
+                started = System.currentTimeMillis(),
+            )
+            val planned = (outcome as? com.lambda.pathing.PathPlanResult.Planned)?.path
+            if (planned != null && !planned.partial) {
+                arrived++
+                total += planned.plan.tape.frameCount
+            }
+            largest = maxOf(largest, sizes.maxOrNull() ?: 0)
+            println("[corpus] case %d: %s %d frames".format(
+                index, if (planned?.partial == false) "arrived" else "STOPPED SHORT",
+                planned?.plan?.tape?.frameCount ?: 0))
+        }
+        println("[corpus] arrived %d, total %d frames, largest commitment %d".format(arrived, total, largest))
+        check(arrived >= 5) { "only $arrived of 6 routes arrived" }
+    }
+
+    private fun bedrockEnvironment() = SnapshotSimulationEnvironment.synthetic(
+        bounds = SimulationSnapshotBounds(
+            -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
+            BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
+        ),
+        blocks = BedrockFieldLayout.solidCells().associate {
+            BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
+        },
+    )
+
     private fun walk(lookahead: Int, commitFrames: Int) {
         val environment = SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(
@@ -93,7 +166,24 @@ class HorizonWalkProbeTest {
             commitFrames = commitFrames,
         )
 
+        // Adoption fidelity: the executor refuses a tape that disagrees with frames it has
+        // already pressed, so a publication that diverges behind the cursor is one the body
+        // will never take -- it walks its old tape to the brake and stops instead. Without
+        // this check the probe accepted every publication and happily green-lit two changes
+        // that halted the live walk four and seven times.
+        var walkedTo = 0
+        var previousTape: List<com.lambda.util.player.prediction.MovementSimulationInput>? = null
         publications.forEach { (millis, path) ->
+            val tape = path.plan.tape.asList()
+            previousTape?.let { earlier ->
+                val shared = minOf(walkedTo, earlier.size, tape.size)
+                check((0 until shared).all { earlier[it] == tape[it] }) {
+                    "tape published at $millis ms diverges within the $shared frames already walked"
+                }
+            }
+            previousTape = tape
+            walkedTo = ((millis * 1_000_000L) / 50_000_000L).toInt()
+
             val last = path.plan.frames.last().state
             check(last.onGround && last.velocity.horizontalLength() <= config.stoppedSpeed) {
                 "tape published at $millis ms does not end stopped: " +

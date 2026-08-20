@@ -78,7 +78,7 @@ class SegmentCostProbeTest {
             costs.filterNot { it.terminal }.sortedByDescending { it.excessTicks }.take(2).forEach { cost ->
                 val decision = boundaries.indexOfFirst { it >= cost.toFrame }
                     .takeIf { it >= 0 }?.let { decisions.getOrNull(it) }
-                worst += Triple(index, cost, decision?.let { it::class.simpleName } ?: "-")
+                worst += Triple(index, cost, describe(decision))
             }
 
             println(
@@ -103,6 +103,20 @@ class SegmentCostProbeTest {
                     )
             )
         }
+    }
+
+    /** The parameters a decision was actually made with, so waste can be traced to them. */
+    private fun describe(decision: TrajectoryDecision?): String = when (decision) {
+        null -> "-"
+        is TrajectoryDecision.Walk ->
+            "Walk sprint=%s look=%d ease=%s".format(decision.sprint, decision.lookAheadNodes, decision.easeTurns)
+        is TrajectoryDecision.Launch ->
+            "Launch sprint=%s delay=%d brake=%d".format(decision.sprint, decision.delayFrames, decision.brakeTicks)
+        is TrajectoryDecision.Heading ->
+            "Heading sprint=%s off=%+.0f delay=%s commit=%s keys=%.0f/%.0f".format(
+                decision.sprint, decision.offsetDegrees, decision.delayFrames, decision.commitFrames,
+                decision.keys.forward, decision.keys.strafe,
+            )
     }
 
     private companion object {

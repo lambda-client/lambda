@@ -684,7 +684,7 @@ object TrajectoryPlanner {
         // How many near-duplicate states a dominance bucket keeps alive.
         frontierPerKey = 1 + random.nextInt(MAX_SAMPLED_FRONTIER_PER_KEY),
         // Affordable here and nowhere else; see the field's own note.
-        offerBrakeTicks = true,
+        offerBrakeTicks = false,
         maxExpansions = REFINEMENT_EXPANSIONS,
         stallExpansions = REFINEMENT_STALL,
     )
@@ -756,7 +756,10 @@ object TrajectoryPlanner {
                 // The first commitment is small and immediate: the body has to start
                 // moving. Every one after it waits for the runway to run short.
                 safePrefixFrames = commitFrames,
-                safePrefixDelayMillis = 0,
+                // Long enough for candidates to reach the horizon, so the first
+                // commitment is chosen rather than taken. The body stands still for this
+                // long; everything after it is decided while walking.
+                safePrefixDelayMillis = HORIZON_BOOTSTRAP_DELAY_MS,
                 horizonCommitFrames = commitFrames,
                 horizonRunwayFrames = lookahead,
                 commitContinuously = true,
@@ -776,6 +779,12 @@ object TrajectoryPlanner {
                 maxExpansions = HORIZON_EXPANSIONS,
                 minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
                 maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
+                // Off, and only just. The headless horizon corpus prefers it on (1229 vs
+                // ~1250 frames) and the live corpus prefers it off (1009 vs 1012) -- both
+                // margins under a third of a percent, and they disagree because the live
+                // scenarios are short, where every extra launch variant is search depth
+                // taken from somewhere that needed it more. Following the shipping gate.
+                offerBrakeTicks = false,
             ),
             onSafePrefix = { step ->
                 val path = publishedPath(
@@ -894,6 +903,9 @@ object TrajectoryPlanner {
 
     /** Commit-lengths the arriving publication may cover; the endgame is committed too. */
     private const val HORIZON_FINAL_COMMIT_CHUNKS = 2
+
+    /** How long the body waits for a population before the first line is committed. */
+    private const val HORIZON_BOOTSTRAP_DELAY_MS = 200L
 
     /** Exploration a commitment must be backed by, so its quality does not vary with load. */
     private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400
