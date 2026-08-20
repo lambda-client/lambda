@@ -19,14 +19,18 @@ package com.lambda.module.modules.combat
 
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.blocks.LineConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
+import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.forEachSetting
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.mc.BoxBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.handlers.ContainerHandler.transfer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -67,6 +71,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 import kotlin.concurrent.fixedRateTimer
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -82,6 +87,7 @@ object CrystalAura : Module(
     private const val EXPLODING_TAB = "Exploding"
     private const val PREDICTION_TAB = "Prediction"
     private const val TARGETING_TAB = "Targeting"
+    private const val RENDERING_TAB = "Rendering"
 
     @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
     @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Async)
@@ -112,6 +118,23 @@ object CrystalAura : Module(
     @Tab(PREDICTION_TAB) private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
 
     @Tab(PREDICTION_TAB) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this, 10.0))
+
+    @Tab(RENDERING_TAB) private val render by setting("Rendering", true)
+    @Tab(RENDERING_TAB) private val renderPlacements by setting("Placement Rendering", true)
+
+    @Tab(RENDERING_TAB) private val renderLineSettings by configBlock(WorldLineSettings(this))
+        .withEdits {
+            hideAllExcept (
+                ::worldWidthSetting
+            )
+            forEachSetting {
+                visibility { old -> { old() && render }}
+            }
+        }
+    @Tab(RENDERING_TAB) val primaryColorLine by setting("Primary Color (outline)", Color(130, 200, 255, 200), visibility = { render })
+    @Tab(RENDERING_TAB) val secondaryColorLine by setting("Secondary Color (outline)", Color(130, 130, 255, 200), visibility = { render })
+    @Tab(RENDERING_TAB) val primaryColor by setting("Primary Color", Color(225, 130, 225, 100), visibility = { render })
+    @Tab(RENDERING_TAB) val secondaryColor by setting("Secondary Color", Color(170, 60, 170, 100), visibility = { render })
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     private var activeOpportunity: Opportunity? = null
@@ -247,7 +270,11 @@ object CrystalAura : Module(
 
                     box(
                         lastPlace!!.first,
-                    )
+                        renderLineSettings
+                    ) {
+                        outlineGradientY(secondaryColorLine, primaryColorLine)
+                        fillGradientY(secondaryColor, primaryColor)
+                    }
                 }
             }
         }
