@@ -871,8 +871,22 @@ object ValueFieldAnchorSearch {
         private var firstSafe: Solution? = null
         private var firstSafeRollouts = 0
 
-        /** The anchor whose brake was published, and the line the search re-rooted onto. */
+        /** The anchor whose brake was published; the end of committed motion. */
         private var safeAnchor: ValueAnchor? = null
+
+        /**
+         * What every live candidate must descend from: the committed line *as far as the
+         * body has actually walked it*, not as far as it has been published.
+         *
+         * Publishing motion does not make alternatives unreachable -- the executor only
+         * refuses a tape that disagrees with frames it has already pressed, so a line
+         * branching anywhere ahead of the cursor can still be adopted. Pruning to the
+         * commitment instead threw those away the instant it was made, and at bootstrap
+         * that is *everything*: the first commitment is made before anything has been
+         * compared, and on two of six corpus routes it committed into a dead end and left
+         * the search with three anchors and nowhere to go.
+         */
+        private var reachableRoot: ValueAnchor? = null
 
         /** Set when [ValueFieldSearchConfig.stopAtSafePrefix] ends the search early. */
         private var haltedPrefix: WalkingSeedSearchResult.Success? = null
@@ -988,6 +1002,13 @@ object ValueFieldAnchorSearch {
                         return finish(best ?: return abandoned())
                     }
                 }
+                // The first commitment, weighed like every other one. Waiting for a
+                // population to exist costs a fraction of a second of standing still and
+                // buys a first line that was actually compared -- committing the first
+                // anchor to appear instead stranded two of six corpus routes in a dead end
+                // that pruning then made permanent.
+                if (safeAnchor == null && parked.isNotEmpty()) commitFromCandidates(urgent = false)
+
                 if (open.isEmpty()) {
                     // Nothing left to grow without more room. Committing is the only thing
                     // that makes room, so it happens whether or not the floor is met.
@@ -1872,6 +1893,16 @@ object ValueFieldAnchorSearch {
             )
         }
 
+        /** The shallowest ancestor of [anchor] that has reached at least [elapsed] frames. */
+        private fun ancestorAt(anchor: ValueAnchor, elapsed: Int): ValueAnchor {
+            var node: ValueAnchor = anchor
+            while (true) {
+                val parent = node.parent ?: return node
+                if (parent.elapsed < elapsed) return node
+                node = parent
+            }
+        }
+
         /** The anchors strictly between [root] and [leaf], oldest first; [leaf] included. */
         private fun lineFrom(root: ValueAnchor?, leaf: ValueAnchor): List<ValueAnchor> {
             val chain = ArrayList<ValueAnchor>()
@@ -1884,7 +1915,24 @@ object ValueFieldAnchorSearch {
         }
 
         private fun reRootOnto(anchor: ValueAnchor) {
-            val retained = open.filterTo(ArrayList()) { it.anchor.descendsFrom(anchor) }
+            // Prune to the committed line, from the first commitment onward.
+            //
+            // Two looser rules were tried and both broke the live walk, for the same
+            // reason. Pruning to the *cursor* (alternatives branching ahead of the body are
+            // formally still adoptable) and letting the *bootstrap* commitment prune
+            // nothing both let candidates leave the published line -- and the executor
+            // refuses a tape that disagrees with frames it has already pressed. Live that
+            // is 4 to 7 halts against none; the headless bench missed it entirely because
+            // it accepts every publication instead of modelling adoption.
+            //
+            // The cost is real and worth naming: the bootstrap is made before anything has
+            // been compared, so a bad first commitment fences the search into a bad line.
+            // On the headless corpus, where nothing is executed, keeping the alternatives
+            // rescues two of six routes. Live, the body has already started walking that
+            // line and the alternatives are gone regardless.
+            val root = anchor
+            reachableRoot = anchor
+            val retained = open.filterTo(ArrayList()) { root == null || it.anchor.descendsFrom(root) }
             open.clear()
             open.addAll(retained)
             // The anchor just committed to has itself been popped, and the successors it
@@ -1906,7 +1954,7 @@ object ValueFieldAnchorSearch {
             // line at every commitment and made them all re-earn their depth from scratch.
             // The search could not keep up, and it left nothing parked to choose between,
             // so the next commitment fell back on the half-explored open frontier.
-            val surviving = parked.filter { it.anchor.descendsFrom(anchor) }
+            val surviving = parked.filter { root == null || it.anchor.descendsFrom(root) }
             parked.clear()
             surviving.forEach { entry ->
                 if (entry.anchor.elapsed < horizonEnd) open += entry else parked += entry
@@ -2087,8 +2135,10 @@ object ValueFieldAnchorSearch {
                 speedBucket = speedBucket(anchor),
                 branch = if (searchConfig.rootFanFrames > 0) branchOf(anchor) else null,
             )
-            // Past the commitment point only the walked line can still be published.
-            if (committed) safeAnchor?.let { if (!anchor.descendsFrom(it)) return }
+            // Past the commitment point only lines the body can still be steered onto may
+            // be published -- which is anything sharing the frames it has already walked,
+            // not only the line that was committed.
+            if (committed) reachableRoot?.let { if (!anchor.descendsFrom(it)) return }
 
             val bucket = dominance.getOrPut(key) { ArrayList() }
             if (bucket.any { it.dominates(anchor) }) return
