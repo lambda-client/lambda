@@ -30,7 +30,7 @@ import kotlin.time.Duration
 @Tag("bedrock-corpus")
 class HorizonWalkProbeTest {
     @Test
-    fun `a horizon walk arrives, and never publishes a tape that cannot stop`() = walk(200, 20)
+    fun `a horizon walk arrives, and never publishes a tape that cannot stop`() = walk(20, 20)
 
     /**
      * The same walk with steps made deliberately expensive.
@@ -41,7 +41,7 @@ class HorizonWalkProbeTest {
      * actually cost, so this fixture makes steps slow on purpose and still demands arrival.
      */
     @Test
-    fun `a horizon walk with slow steps still keeps ahead of the body`() = walk(250, 5)
+    fun `a horizon walk with slow steps still keeps ahead of the body`() = walk(60, 5)
 
     private fun walk(lookahead: Int, commitFrames: Int) {
         val environment = SnapshotSimulationEnvironment.synthetic(
@@ -110,6 +110,11 @@ class HorizonWalkProbeTest {
         }
         ValueFieldAnchorSearch.candidateCensus.clear()
         val commits = publications.map { it.second.plan.tape.frameCount }
+        val steps = commits.zipWithNext { a, b -> b - a }
+        println("[horizon] final tape %d frames".format(
+            (result as? com.lambda.pathing.PathPlanResult.Planned)?.path?.plan?.tape?.frameCount ?: 0))
+        println("[horizon] largest commitment %d, median %d".format(
+            steps.maxOrNull() ?: 0, steps.sorted().getOrElse(steps.size / 2) { 0 }))
         println("[horizon] %d publications, result %s, commit sizes %s".format(
             publications.size, result::class.simpleName,
             commits.zipWithNext { a, b -> b - a }.joinToString(),
