@@ -23,7 +23,6 @@ import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.blocks.LineConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.withEdits
@@ -31,7 +30,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.mc.BoxBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.handlers.ContainerHandler.transfer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -48,21 +46,25 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.log
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
+import com.lambda.util.item.ItemStackUtils.slotId
 import com.lambda.util.math.*
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.player.RotationUtils.getVisibleSurfaces
+import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
@@ -265,7 +267,7 @@ object CrystalAura : Module(
         immediateRenderer("CrystalAura Immediate Renderer") {
             runSafe {
                 if (lastPlace != null) {
-                    if (lastPlace!!.second + 50 < System.currentTimeMillis()) {
+                    if (lastPlace!!.second + 100 < System.currentTimeMillis()) {
                         return@runSafe
                     }
 
@@ -328,7 +330,7 @@ object CrystalAura : Module(
         runSafe {
             lastPlace = Pair(opportunity.blockPos, System.currentTimeMillis())
         }
-		interaction.syncSelectedSlot()
+		interaction.syncSelectedSlot() // TODO: when server only hotbar swap gets implemented, this will be removed
         mc.interactionManager!!.sendSequencedPacket(world, { sequence ->
 
             PlayerInteractBlockC2SPacket(
@@ -405,7 +407,7 @@ object CrystalAura : Module(
 
                 val entitiesNearby = fastEntitySearch<Entity>(3.5, pos)
                 val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
-                val otherEntities = entitiesNearby - crystals + player
+                val otherEntities = entitiesNearby - crystals.toSet() + player
 
                 if (otherEntities.any {
                         it.boundingBox.intersects(crystalBox)
@@ -455,14 +457,13 @@ object CrystalAura : Module(
             // Associate by actions
             blueprint.values.forEach { opportunity ->
                 actionMap.getOrPut(opportunity.actionType, ::mutableListOf) += opportunity
-
                 if (opportunity.actionType.priority > actionType.priority) {
                     actionType = opportunity.actionType
                 }
             }
 
             // Select best action
-            activeOpportunity = actionMap[actionType]?.maxByOrNull {
+            activeOpportunity = actionMap[actionType]?.filter { !it.blocked }?.maxByOrNull {
                 it.priority
             }
         }
@@ -525,26 +526,66 @@ object CrystalAura : Module(
         fun place() = runSafe {
             if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done)
                 return@runSafe
-
+            var crystalHand: Hand? = null
 			val selection = selectStack { isItem(Items.END_CRYSTAL) }
-			if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
-				(swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
+			if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != Items.END_CRYSTAL) ||
+				(swapHand == Hand.OFF_HAND && player.offHandStack.item != Items.END_CRYSTAL)
 			) runSafeAutomated {
 				if (!swap) return@runSafe
-				var crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
-				if (crystalSlot < 0) {
+                var hotbarStack: ItemStack? = null
+
+                fun findInHotbar(): Pair<Boolean, Int> {
+                    hotbarStack = selection.bestItemMatch(player.hotbarStacks)?: return (false to -1)
+                    val hotbarSlot = hotbarStack.slotId
+                    return (hotbarSlot >= 0) to hotbarSlot
+                }
+
+                fun findInOffhand(): Pair<Boolean, Int> {
+                    return (player.offHandStack.item == selection.item) to player.offHandStack.slotId
+                }
+
+                val crystalSearch = when (swapHand) {
+                    Hand.MAIN_HAND -> listOf(
+                        Hand.MAIN_HAND to ::findInHotbar,
+                        Hand.OFF_HAND to ::findInOffhand
+                    )
+                    Hand.OFF_HAND -> listOf(
+                        Hand.OFF_HAND to ::findInOffhand,
+                        Hand.MAIN_HAND to ::findInHotbar
+                    )
+                }
+
+                val searchResult = crystalSearch
+                    .asSequence()
+                    .map { (hand, finder) ->
+                        val (found, slot) = finder()
+                        Triple(found, slot, hand)
+                    }
+                    .firstOrNull { (found) -> found }
+
+                crystalHand = searchResult?.third
+
+				if (crystalHand == null) { // no crystal stack found in main or offhand
 					val swapTo = when (swapHand) {
+                        //TODO: add support for server side hotbar switching
 						Hand.MAIN_HAND -> HotbarContainer
 						Hand.OFF_HAND -> OffHandContainer
 					}
+
+                    // retrieve from inventory, return if the task is not ready
 					if (!selection.transfer(swapTo)) return@runSafe
-					crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
 				}
-				if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
+                if (crystalHand == Hand.MAIN_HAND && swapHand == Hand.MAIN_HAND) {
+                    val s = player.hotbarStacks.indexOf(hotbarStack?: return@runSafe)
+                    Lambda.LOG.info("$s, $swapHand, $crystalHand, ${player.hotbarStacks.size}")
+                    if (!HotbarRequest(s, this@CrystalAura, nowOrNothing = false).submit().done) return@runSafe
+                } else if (crystalHand == null) {
+                    return@runSafe
+                }
 			}
 
             placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
-                placeInternal(this@Opportunity, swapHand)
+                placeInternal(this@Opportunity, crystalHand?: swapHand) // we should not be here without a crystal in hand but ig better to check than not to
 
                 if (prediction.onPlace)
                     predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
