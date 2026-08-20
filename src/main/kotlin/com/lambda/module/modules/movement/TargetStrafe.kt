@@ -17,18 +17,22 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.config.ConfigEditor.forEachSetting
+import com.lambda.config.ConfigEditor.hideAllExcept
+import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -47,8 +51,19 @@ object TargetStrafe : Module(
     private val needsAura by setting("NeedsAura", true)
     private val antiStuck by setting("AntiStuck", true)
 
-    // private val renderCircle by setting("RenderCircle", true)
-    // private val renderThickness by setting("RenderThickness", 2f, 0.5f..8f, 0.5f, visibility = { renderCircle })
+    private val renderCircle by setting("RenderCircle", true)
+    private val renderCircleColor by setting("RenderCircleColor", Color(255, 255, 255, 100), visibility = { renderCircle })
+    private val renderThickness by configBlock(WorldLineSettings(this))
+         .withEdits {
+             hideAllExcept(
+                 ::distanceScaling,
+                 ::worldWidthSetting,
+                 ::screenWidthSetting
+             )
+             forEachSetting {
+                 visibility { old -> { old() && renderCircle } }
+             }
+         }
 
     private var direction = 1
 
@@ -59,22 +74,19 @@ object TargetStrafe : Module(
 
     init {
         listen<TickEvent.Post> {
-
             if (strafing && autoJump && player.isOnGround) {
                 player.jump()
             }
         }
 
         listen<MovementEvent.Player.Pre> { event ->
-            if (mc.player!!.horizontalCollision && antiStuck) {
+            if (player.horizontalCollision && antiStuck) {
                 switchDirection()
             }
-            val strafe = canStrafe()
-
-            if (strafe) {
-                val rotations = KillAura.target?.let { it1 -> player.eyePos!!.rotationTo(it1.pos) } ?: return@listen
+            if (canStrafe()) {
+                val rotations = KillAura.target?.let { it1 -> player.eyePos?.rotationTo(it1.pos) } ?: return@listen
                 KillAura.target?.let { it1 -> doStrafeAtSpeed(event, rotations.yawF, it1.pos) }
-                val r: Rotation
+                currentTargetVec = KillAura.target?.pos
 
                 strafing = true
             } else {
@@ -82,27 +94,22 @@ object TargetStrafe : Module(
             }
         }
 
-        // listen<RenderEvent.RenderWorld> {
-        //     if (strafing && renderCircle) {
-        //         if (currentTargetVec == null) {
-        //             return@listen
-        //         }
-        //         /*
-        //         todo: make rendering work
-        //         drawCircle(currentTargetVec!!, distanceSetting.toDouble(), distanceColor, 360)
-        //         drawCircle(currentTargetVec!!, currentDistance, playerDistanceColor, 360)
-        //         */
-        //     }
-        // }
-
+         immediateRenderer("TargetStrafe immediate renderer") {
+             if (strafing && renderCircle) {
+                 circleLine(
+                     currentTargetVec ?: return@immediateRenderer,
+                     distanceSetting.toDouble(),
+                     renderCircleColor,
+                     renderThickness.width,
+                     segments = 64
+                 )
+             }
+         }
     }
 
     private fun SafeContext.doStrafeAtSpeed(event: MovementEvent.Player.Pre, rotation: Float, target: Vec3d): Boolean {
-
-
         var playerSpeed = hSpeed
         var jumpVelocity = 0.405
-
         var rotationYaw = rotation + (90f * direction)
 
 
@@ -125,14 +132,12 @@ object TargetStrafe : Module(
 
 
         // jump boost
-
         val jumpboost = player.getStatusEffect(StatusEffects.JUMP_BOOST)
         if (jumpboost != null) {
             jumpVelocity *= jumpboost.amplifier
         }
 
         // speed
-
         val speed = player.getStatusEffect(StatusEffects.SPEED)
         if (speed != null) {
 
@@ -140,69 +145,14 @@ object TargetStrafe : Module(
         }
 
         event.movement = Vec3d(playerSpeed * cos(Math.toRadians((rotationYaw + 90.0f).toDouble())), event.movement.y, playerSpeed * sin(Math.toRadians((rotationYaw + 90.0f).toDouble())))
-
-
         return false
     }
 
     private fun canStrafe(): Boolean {
-        if ((KillAura.isEnabled || !needsAura) && KillAura.target != null) {
-            return true
-        }
-        return false
+        return (KillAura.isEnabled || !needsAura) && KillAura.target != null
     }
 
     private fun switchDirection() {
         direction = -direction
     }
-
-    // private fun drawCircle(center: Vec3d, radius: Double, color: Color, precision: Int) {
-
-
-    //     val linesToDraw = ArrayList<Pair<Vec3d, Vec3d>>()
-
-    //     val magic = precision / 360
-
-    //     var lastPos = center.add(0.0, 0.0, radius)
-
-
-    //     for (i in 0..precision) {
-
-    //         val yaw = i * magic
-
-    //         val x = radius * cos(Math.toRadians((yaw + 90.0f).toDouble()))
-    //         val z = radius * sin(Math.toRadians((yaw + 90.0f).toDouble()))
-
-    //         val newPos = center.add(x, 0.0, z)
-    //         linesToDraw.add(Pair(lastPos, newPos))
-    //         lastPos = newPos
-    //     }
-
-    //     val tessellator: Tessellator?
-    //     try {
-    //         tessellator = Tessellator.getInstance()
-    //     } catch (e: NoSuchFieldError) {
-    //         e.printStackTrace()
-    //         return
-    //     }
-    //     val buffer: BufferBuilder = tessellator.buffer
-
-    //     GL11.glLineWidth(renderThickness)
-    //     //GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_SMOOTH)
-    //     GlStateManager.disableDepth()
-
-    //     buffer.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION_COLOR)
-    //     for (pair in linesToDraw) {
-    //         try {
-    //             buffer.pos(pair.first.x, center.y, pair.first.z).color(color.r, color.g, color.b, color.a).endVertex()
-    //             buffer.pos(pair.second.x, center.y, pair.second.z).color(color.r, color.g, color.b, color.a).endVertex()
-    //         } catch (e: NullPointerException) {
-    //         }
-    //     }
-    //     tessellator.draw()
-
-
-    //     GlStateManager.enableDepth()
-    //     GL11.glLineWidth(1f)
-    // }
 }
