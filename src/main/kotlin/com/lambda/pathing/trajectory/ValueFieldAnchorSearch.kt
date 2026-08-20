@@ -38,7 +38,19 @@ data class ValueFieldSearchConfig(
      * immediately. Stalling out instead makes the cost scale with how hard the route
      * actually is, which is what made a trivial live scenario cost a second of planning.
      */
-    val stallExpansions: Int = 1200,
+    /**
+     * Expansions without improving the incumbent before the search gives up.
+     *
+     * The binding constraint on quality, and the only knob that moved it: raising this
+     * from 1200 to 3000 took the corpus from 2147 frames to 2134 and then saturated, while
+     * [maxExpansions] made no difference at any value. The search was not running out of
+     * room to explore, it was concluding too early that it had finished.
+     *
+     * The cost is latency on plans that would have stopped sooner, which is exactly what
+     * the anytime prefix exists to absorb: the body is already walking a certified tape
+     * while the rest is searched.
+     */
+    val stallExpansions: Int = 3000,
     val maxTransitionFrames: Int = 40,
     val launchDelays: List<Int> = listOf(0, 1, 2, 3, 4, 5, 6),
     /** Coarse steps offered out of one anchor. The route offered exactly one. */
@@ -124,6 +136,17 @@ data class ValueFieldSearchConfig(
     /** Ticks-to-go below which the braking terminal sweep is worth running. */
     val finishValueTicks: Double = 11.0,
     val maxFinishSweeps: Int = 64,
+    /**
+     * Whether launches may also choose how much speed to shed before taking off.
+     *
+     * Off for the first plan. It is a real capability -- one corpus route came in fifteen
+     * frames shorter with it -- but every extra launch variant is search depth spent
+     * elsewhere under a fixed expansion budget, and measured across the corpus the first
+     * plan came out *longer* every way it was narrowed. Refinement is not on that budget:
+     * it runs while the body already walks a certified tape, so it can afford the wider
+     * vocabulary that the opening search cannot.
+     */
+    val offerBrakeTicks: Boolean = false,
     val frontierPerKey: Int = 3,
     val speedBucketBlocks: Double = 0.05,
     val yawBucketDegrees: Double = 20.0,
@@ -196,6 +219,12 @@ object ValueFieldAnchorSearch {
         ).run()
     }
 
+    /** Bench-only breakdown of why re-run decisions refuse. */
+    val rerunDiagnostics = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
+    /** Skipping more of a plan than this means it is no longer that plan. */
+    private const val MAX_SKIPPED_DECISIONS = 4
+
     private val SUPPORTED_KINDS = setOf(
         CoarseMoveKind.WALK,
         CoarseMoveKind.STEP_UP,
@@ -247,9 +276,22 @@ object ValueFieldAnchorSearch {
         environment: SnapshotSimulationEnvironment,
         config: WalkingSeedSearchConfig = WalkingSeedSearchConfig(),
         searchConfig: ValueFieldSearchConfig = ValueFieldSearchConfig(),
+        /**
+         * Whether a decision that cannot run from the state it is handed is skipped rather
+         * than abandoning the whole re-run.
+         *
+         * A plan being *edited* needs this. Every decision after an edit is handed a state
+         * its author never saw, and one that no longer applies -- a launch whose pad the
+         * body is already past -- is not a reason to throw away the other thirty-nine.
+         * The controllers steer at world targets, so the ones that follow pick the body up
+         * from wherever skipping left it, and the end-to-end replay still has to certify.
+         * Off by default, so a plain re-run still means strict reproduction.
+         */
+        skipFailures: Boolean = false,
     ): List<List<MovementSimulationInput>>? {
         val segments = ArrayList<List<MovementSimulationInput>>()
         var state = from
+        var skipped = 0
 
         for ((index, decision) in plan.decisions.withIndex()) {
             val intended = plan.intended.getOrNull(index)
@@ -266,7 +308,12 @@ object ValueFieldAnchorSearch {
             // measured *worse* than no repair at all on small errors.
             val frames = repairedDecisions(decision)
                 .mapNotNull { runDecision(it, state, route, field, profile, environment, config, searchConfig) }
-                .minByOrNull { candidate -> intendedError(candidate.last().state, intended) } ?: return null
+                .minByOrNull { candidate -> intendedError(candidate.last().state, intended) }
+            if (frames == null) {
+                if (!skipFailures || ++skipped > MAX_SKIPPED_DECISIONS) return null
+                segments.add(emptyList())
+                continue
+            }
             segments += frames.map { it.input }
             state = frames.last().state
         }
@@ -351,9 +398,14 @@ object ValueFieldAnchorSearch {
         }
         val chain = field.chain(stance, decision.step, searchConfig.chainLength, heading)
         val points = chain.map { it.center() }
+        if (points.isEmpty()) { note("empty-chain"); return null }
+        // Must carry the shed as well as the timing: a decision re-run without its
+        // brake ticks is a different decision, and the tape it produces cannot be the one
+        // that was certified.
         val launch = when (decision) {
-            is TrajectoryDecision.Launch -> LaunchTrigger(decision.delayFrames)
-            is TrajectoryDecision.Heading -> decision.delayFrames?.let { LaunchTrigger(it) }
+            is TrajectoryDecision.Launch -> LaunchTrigger(decision.delayFrames, decision.brakeTicks)
+            is TrajectoryDecision.Heading ->
+                decision.delayFrames?.let { LaunchTrigger(it, decision.brakeTicks) }
             is TrajectoryDecision.Walk -> null
         }
         val program = if (decision is TrajectoryDecision.Heading) {
@@ -404,7 +456,9 @@ object ValueFieldAnchorSearch {
                         val now = stanceOf(frame.state)
                         val done = when {
                             launch != null -> launch.hasFired && airborne
-                            committed -> frame.index + 1 >= searchConfig.headingCommitFrames
+                            committed -> frame.index + 1 >=
+                                ((decision as? TrajectoryDecision.Heading)?.commitFrames
+                                    ?: searchConfig.headingCommitFrames)
                             else -> now != stance
                         }
                         val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed
@@ -413,9 +467,13 @@ object ValueFieldAnchorSearch {
                 }
             }
         }
-        if (failed) return null
-        val frame = eventFrame ?: return null
+        if (failed) { note("gate-failed"); return null }
+        val frame = eventFrame ?: run { note("no-event"); return null }
         return rollout.frames.take(frame + 1)
+    }
+
+    private fun note(reason: String) {
+        rerunDiagnostics.merge(reason, 1, Int::plus)
     }
 
     private fun nearestNodeTo(route: CoarseRoutePlan, state: MovementSimulationState): Int {
@@ -906,8 +964,19 @@ object ValueFieldAnchorSearch {
             for (sprint in config.sprintModes) {
                 for (step in steps.take(LAUNCH_STEPS)) {
                     if (!canReach(anchor, step.to, sprint)) continue
+                    // A pad well inside reach is one the body flies past, and landing long
+                    // on a one-block pad is exactly as fatal as landing short. Only there
+                    // is a shed worth simulating: at the edge of reach every tick of speed
+                    // is needed, and offering a brake costs search depth to prove it.
+                    val sheds = if (searchConfig.offerBrakeTicks && overshoots(anchor, step.to, sprint)) {
+                        BRAKE_TICKS
+                    } else {
+                        NO_BRAKE
+                    }
                     for (delay in launchDelays(anchor, step)) {
-                        launches += TrajectoryDecision.Launch(sprint, step.to, delay)
+                        for (brake in sheds) {
+                            launches += TrajectoryDecision.Launch(sprint, step.to, delay, brake)
+                        }
                     }
                 }
             }
@@ -957,6 +1026,23 @@ object ValueFieldAnchorSearch {
          * only discard jumps that are physically out of range, never ones the simulator
          * would have certified.
          */
+        /**
+         * Whether a full-speed jump would carry the body past [target] rather than onto it.
+         *
+         * The same measured reach model as [canReach], read from the other end: a pad that
+         * sits well inside what this entry speed can throw the body is a pad the arc
+         * overshoots, and shedding a tick of speed is the only lever that fixes it.
+         */
+        private fun overshoots(anchor: ValueAnchor, target: Stance, sprint: Boolean): Boolean {
+            val entrySpeed = maxOf(anchor.speed, if (sprint) SPRINT_TOP_SPEED else WALK_TOP_SPEED)
+            val distance = hypot(
+                target.x + 0.5 - anchor.state.position.x,
+                target.z + 0.5 - anchor.state.position.z,
+            )
+            val rise = target.y - anchor.stance.y
+            return distance < JumpArcProbe.maxReach(entrySpeed, rise) * OVERSHOOT_REACH_FRACTION
+        }
+
         private fun canReach(anchor: ValueAnchor, target: Stance, sprint: Boolean): Boolean {
             val entrySpeed = maxOf(anchor.speed, if (sprint) SPRINT_TOP_SPEED else WALK_TOP_SPEED)
             val distance = hypot(
@@ -998,6 +1084,13 @@ object ValueFieldAnchorSearch {
                 from.x + anchor.state.velocity.x,
                 from.z + anchor.state.velocity.z,
             )
+            // Ordered by the hint's geometry, but never narrowed to it. Keeping only the
+            // two or three delays the arithmetic likes measured far worse (126 -> 192
+            // excess ticks on the corpus): the hint is built for an idealised entry, and
+            // the body that actually arrives -- different speed, different yaw, half a
+            // block off -- often needs a delay the arithmetic ranks poorly. The geometry
+            // is a good guess, and the search dives on the first action, so a good guess
+            // first is most of the value. The rest have to stay reachable.
             return searchConfig.launchDelays.sortedBy { delay ->
                 abs(along + delay * perTick - hint.launchOffsetBlocks)
             }
@@ -1016,8 +1109,9 @@ object ValueFieldAnchorSearch {
             )
             val points = chain.map { it.center() }
             val launch = when (action) {
-                is TrajectoryDecision.Launch -> LaunchTrigger(action.delayFrames)
-                is TrajectoryDecision.Heading -> action.delayFrames?.let { LaunchTrigger(it) }
+                is TrajectoryDecision.Launch -> LaunchTrigger(action.delayFrames, action.brakeTicks)
+                is TrajectoryDecision.Heading ->
+                    action.delayFrames?.let { LaunchTrigger(it, action.brakeTicks) }
                 is TrajectoryDecision.Walk -> null
             }
             val program = if (action is TrajectoryDecision.Heading) {
@@ -1076,9 +1170,15 @@ object ValueFieldAnchorSearch {
                             val stance = stanceOf(frame.state)
                             val done = when {
                                 launch != null -> launch.hasFired && airborne
-                                // A held heading is a commitment, not a per-block choice.
-                                action is TrajectoryDecision.Heading ->
-                                    frame.index + 1 >= searchConfig.headingCommitFrames
+                                // Ending on the value field instead of this counter was
+                                // tried and measured worse: marginally better across the
+                                // short corpus, six frames worse on a 444-frame route, and
+                                // it cut the improver's attempts from 404 to 156 because
+                                // each transition simulates further. A commitment is worth
+                                // more than a well-timed exit.
+                                action is TrajectoryDecision.Heading -> action.commitFrames
+                                    ?.let { frame.index + 1 >= it }
+                                    ?: (frame.index + 1 >= searchConfig.headingCommitFrames)
                                 else -> stance != anchor.stance
                             }
                             val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed
@@ -1126,7 +1226,17 @@ object ValueFieldAnchorSearch {
                     parent = anchor,
                     inputs = frames.map { it.input },
                     boundary = anchor.elapsed + frames.size,
-                    via = action,
+                    // A heading that ended on the field rather than on a counter records
+                    // the length it settled on, so the decision describes itself and a
+                    // re-run reproduces this transition exactly instead of re-deriving a
+                    // stall it cannot see from a different entry state.
+                    via = if (action is TrajectoryDecision.Heading && action.commitFrames == null &&
+                        action.delayFrames == null
+                    ) {
+                        action.copy(commitFrames = frames.size)
+                    } else {
+                        action
+                    },
                 ),
             )
         }
@@ -1555,6 +1665,16 @@ object ValueFieldAnchorSearch {
 
     /** Grounded ticks after the anchor at which an off-axis launch may fire. */
     private val OFF_AXIS_LAUNCH_DELAYS = listOf(0, 2, 4)
+
+    /** Delays kept around the one the jump hint's geometry actually asks for. */
+    private const val SOLVED_LAUNCH_DELAYS = 7
+
+    /** Shedding options where an arc would overshoot; one released tick sheds ~45%. */
+    private val BRAKE_TICKS = listOf(0, 1, 2)
+    private val NO_BRAKE = listOf(0)
+
+    /** Below this share of maximum reach, a full-speed arc flies past the pad. */
+    private const val OVERSHOOT_REACH_FRACTION = 0.75
 
     /**
      * Facings the body may carry while still travelling along the descent bearing.

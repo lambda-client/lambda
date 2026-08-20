@@ -29,6 +29,8 @@ import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.InputTape
 import com.lambda.pathing.trajectory.TrajectoryRolloutEngine
 import com.lambda.pathing.trajectory.ValueFieldSearchConfig
+import com.lambda.pathing.trajectory.SegmentCost
+import com.lambda.pathing.trajectory.SegmentCosts
 import com.lambda.pathing.trajectory.TrajectoryDecision
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanDecisions
@@ -296,7 +298,7 @@ object TrajectoryPlanner {
                                     publishedPath(
                                         success, route, profile, planIds.incrementAndGet(),
                                         System.currentTimeMillis() - started, reroutes = 0,
-                                        partial = true,
+                                        partial = true, field = planner.valueField(),
                                     )
                                 )
                             }
@@ -344,6 +346,7 @@ object TrajectoryPlanner {
                     publishedPath(
                         seed, outcome.route, profile, planIds.incrementAndGet(),
                         System.currentTimeMillis() - started, outcome.reroutes, partial = false,
+                        field = planner.valueField(),
                     )
                 )
 
@@ -378,6 +381,18 @@ object TrajectoryPlanner {
     @Volatile
     var improvements: Int = 0
         private set
+
+    /** Why attempts did not land, for benches; keyed by the stage that refused them. */
+    @Volatile
+    var refusals: Map<String, Int> = emptyMap()
+        private set
+
+    private val refusalCounts = HashMap<String, Int>()
+
+    private fun refuse(stage: String) {
+        refusalCounts[stage] = (refusalCounts[stage] ?: 0) + 1
+        refusals = HashMap(refusalCounts)
+    }
 
     private val REFINEMENT_EXECUTOR: Executor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "lambda-pathing-refine").apply { isDaemon = true }
@@ -484,6 +499,11 @@ object TrajectoryPlanner {
         // supported way to buy room to improve in. `valueField()` reads D*'s live labels,
         // so re-taking it after an expansion is what makes the new ground visible; the
         // field caches what it has already been asked, infinities included.
+        // Frames is not the only thing that makes a tape good. An improvement that saves a
+        // tick by scraping a wall is not an improvement -- it is the "it lands badly and
+        // has to collide" complaint, arriving one frame sooner. Collisions may go down or
+        // stay level, never up, whichever improver produced the tape.
+        var bestCollisions = collisionFrames(first)
         // What the executor is actually running. The internal best may sit level with it
         // after a sideways move, and only a strictly shorter tape is worth a swap.
         var publishedFrames = first.tape.frameCount
@@ -492,6 +512,8 @@ object TrajectoryPlanner {
         var sinceWidened = 0
         attempts = 0
         improvements = 0
+        refusalCounts.clear()
+        refusals = emptyMap()
 
         // The plan has just been handed to the manager, which installs it on its next
         // client tick. Give that handshake a moment to happen; without the wait the first
@@ -545,7 +567,11 @@ object TrajectoryPlanner {
                 sinceWidened = WIDEN_AFTER_ATTEMPTS
                 continue
             }
-            val splice = candidates[random.nextInt(candidates.size)]
+            // Aim where the time is actually being lost. Sampling cut points uniformly
+            // spends most of the budget re-asking about stretches that were already fine;
+            // the attribution says which stretch spent frames without buying progress, and
+            // that is the one worth cutting in front of.
+            val splice = weightedCut(candidates, segmentCosts(best, field), random)
 
             val tape = best.tape.asList()
             val entry = best.rollout.frames[splice - 1].state
@@ -566,8 +592,12 @@ object TrajectoryPlanner {
             } else {
                 null
             }
-            if (edited != null) {
+            if (nudging && edited == null) refuse("nudge-rerun-failed")
+            if (edited != null && collisionFrames(edited) > bestCollisions) refuse("nudge-collides")
+            if (edited != null && collisionFrames(edited) <= bestCollisions) {
                 best = edited
+                bestCollisions = collisionFrames(edited)
+                if (edited.tape.frameCount >= publishedFrames) refuse("nudge-level")
                 if (edited.tape.frameCount <= publishedFrames - MIN_REFINEMENT_GAIN) {
                     publishedFrames = edited.tape.frameCount
                     improvements++
@@ -576,6 +606,7 @@ object TrajectoryPlanner {
                         publishedPath(
                             edited, route, profile, planIds.incrementAndGet(),
                             System.currentTimeMillis() - started, reroutes = 0, partial = false,
+                            field = field,
                         )
                     )
                 }
@@ -587,9 +618,12 @@ object TrajectoryPlanner {
             val refined = ValueFieldAnchorSearch.search(
                 suffixRoute, field, entry, profile, snapshot, seedConfig,
                 sampledConfig(random),
-            ) as? WalkingSeedSearchResult.Success ?: continue
+            ) as? WalkingSeedSearchResult.Success ?: run { refuse("search-failed"); continue }
 
-            if (splice + refined.tape.frameCount > best.tape.frameCount - MIN_REFINEMENT_GAIN) continue
+            if (splice + refined.tape.frameCount > best.tape.frameCount - MIN_REFINEMENT_GAIN) {
+                refuse("search-no-gain")
+                continue
+            }
 
             val combined = tape.take(splice) + refined.tape.asList()
             val certified = certifyCombined(
@@ -598,8 +632,13 @@ object TrajectoryPlanner {
                     best, splice, refined.planDecisions,
                     refined.planDecisions?.boundaries.orEmpty(),
                 ),
-            ) ?: continue
+            ) ?: run { refuse("search-join-failed"); continue }
+            if (collisionFrames(certified) > bestCollisions) {
+                refuse("search-collides")
+                continue
+            }
             best = certified
+            bestCollisions = collisionFrames(certified)
             publishedFrames = certified.tape.frameCount
             improvements++
             sinceWidened = 0
@@ -607,6 +646,7 @@ object TrajectoryPlanner {
                 publishedPath(
                     certified, route, profile, planIds.incrementAndGet(),
                     System.currentTimeMillis() - started, reroutes = 0, partial = false,
+                    field = field,
                 )
             )
         }
@@ -629,9 +669,59 @@ object TrajectoryPlanner {
         tailWeight = 1.0 + random.nextDouble() * MAX_SAMPLED_TAIL_WEIGHT_BONUS,
         // How many near-duplicate states a dominance bucket keeps alive.
         frontierPerKey = 1 + random.nextInt(MAX_SAMPLED_FRONTIER_PER_KEY),
+        // Affordable here and nowhere else; see the field's own note.
+        offerBrakeTicks = true,
         maxExpansions = REFINEMENT_EXPANSIONS,
         stallExpansions = REFINEMENT_STALL,
     )
+
+    /**
+     * Picks a cut, favouring the ones standing in front of an expensive stretch.
+     *
+     * Weighted rather than greedy: the worst stretch is the best guess, not a certainty,
+     * and always attacking it would re-ask the same question forever once it turns out to
+     * be irreducible. Every candidate keeps a floor weight so nothing is unreachable.
+     */
+    private fun weightedCut(
+        candidates: List<Int>,
+        costs: List<SegmentCost>,
+        random: java.util.Random,
+    ): Int {
+        if (costs.isEmpty()) return candidates[random.nextInt(candidates.size)]
+        val excessAt = HashMap<Int, Double>()
+        costs.forEach { cost -> if (!cost.terminal) excessAt[cost.fromFrame] = cost.excessTicks }
+        val weights = candidates.map { CUT_WEIGHT_FLOOR + (excessAt[it] ?: 0.0) }
+        var draw = random.nextDouble() * weights.sum()
+        weights.forEachIndexed { index, weight ->
+            draw -= weight
+            if (draw <= 0.0) return candidates[index]
+        }
+        return candidates.last()
+    }
+
+    /** Ticks the body spends in contact with something it is trying to move through. */
+    private fun collisionFrames(seed: WalkingSeedSearchResult.Success): Int =
+        seed.rollout.frames.count { it.state.horizontalCollision }
+
+    /** Attribution for a tape, recomputed only when the tape or the field changes. */
+    private fun segmentCosts(
+        seed: WalkingSeedSearchResult.Success,
+        field: CoarseValueField,
+    ): List<SegmentCost> {
+        val cached = costCache
+        if (cached != null && cached.first === seed && cached.second === field) return cached.third
+        val boundaries = seed.planDecisions?.boundaries ?: seed.spliceFrames
+        val costs = SegmentCosts.attribute(
+            seed.rollout.initialState, seed.rollout.frames, boundaries, field,
+        )
+        costCache = Triple(seed, field, costs)
+        return costs
+    }
+
+    private var costCache: Triple<WalkingSeedSearchResult.Success, CoarseValueField, List<SegmentCost>>? = null
+
+    /** Keeps every cut reachable, however good the stretch in front of it looks. */
+    private const val CUT_WEIGHT_FLOOR = 0.5
 
     /**
      * Every frame ahead of the cursor a refinement could cut at, cheapest first.
@@ -753,25 +843,66 @@ object TrajectoryPlanner {
         seedConfig: WalkingSeedSearchConfig,
         random: java.util.Random,
     ): WalkingSeedSearchResult.Success? {
-        val tail = best.planDecisions?.suffixFrom(splice) ?: return null
-        if (tail.decisions.isEmpty()) return null
+        val tail = best.planDecisions?.suffixFrom(splice) ?: run { refuse("no-decisions"); return null }
+        if (tail.decisions.isEmpty()) { refuse("empty-tail"); return null }
 
-        val edits = 1 + random.nextInt(MAX_DECISION_EDITS)
         val decisions = ArrayList(tail.decisions)
-        repeat(edits) {
-            val index = random.nextInt(decisions.size)
-            decisions[index] = nudge(decisions[index], random)
+        val intended = ArrayList(tail.intended)
+
+        // Nudging a decision changes how it is executed; it cannot change what the plan
+        // *is*, and a plan of the same shape takes the same number of ticks. Measured on a
+        // 433-frame walk: 322 of 426 attempts re-ran to exactly the same length. Getting
+        // shorter needs a structural edit -- one fewer decision, or one aimed further
+        // ahead -- which is also what "it obviously could have cut that corner" means.
+        if (decisions.size > MIN_TAIL_DECISIONS && random.nextInt(100) < STRUCTURAL_EDIT_PERCENT) {
+            // Later edits have fewer decisions depending on them, so they survive the
+            // re-run more often; the square biases toward the tail end without ever
+            // excluding the early ones, where the biggest detours usually are.
+            val spread = random.nextDouble() * random.nextDouble()
+            val index = ((1.0 - spread) * (decisions.size - 2)).toInt().coerceIn(0, decisions.size - 2)
+
+            // Merge a decision into its successor: aim it where the successor was aimed
+            // and drop the successor. One run straight at the later target instead of two
+            // through the bend -- the corner-cutting move, and the reason a path can look
+            // obviously improvable while every parameter of it is already fine.
+            //
+            // Merging rather than simply deleting matters. Deleting skips a whole stance
+            // transition, which leaves the body a block or more from where the rest of the
+            // plan expects it -- far outside the quarter-block a tail was measured to
+            // absorb, and it took the re-run failures from a third of attempts to two
+            // thirds. A merge lands near where the successor would have, so the decisions
+            // after it face a perturbation they can actually steer out of.
+            // Only merges the coarse layer already believes in. Most straight lines
+            // between two targets run through terrain, and the body finds out by failing a
+            // safety gate mid-rollout -- measured at 2,424 gate failures across 544
+            // attempts, which is the whole budget spent proving corners cannot be cut.
+            // The coarse layer answers the same question for free, before any simulation.
+            val from = if (index == 0) entry else intended.getOrNull(index - 1) ?: return null
+            val target = decisions[index + 1].step ?: return null
+            if (!mergeable(field, ValueFieldAnchorSearch.stanceOf(from), target)) {
+                refuse("merge-implausible")
+                return null
+            }
+            decisions[index] = retarget(decisions[index], decisions[index + 1]) ?: return null
+            decisions.removeAt(index + 1)
+            if (index < intended.size) intended.removeAt(index)
+        } else {
+            repeat(1 + random.nextInt(MAX_DECISION_EDITS)) {
+                val index = random.nextInt(decisions.size)
+                decisions[index] = nudge(decisions[index], random)
+            }
         }
+
         val nudged = TrajectoryPlanDecisions(
             decisions = decisions,
-            intended = tail.intended,
+            intended = intended,
             boundaries = tail.boundaries,
             terminal = tail.terminal,
         )
 
         val segments = ValueFieldAnchorSearch.rerunSegments(
-            nudged, entry, route, field, profile, snapshot, seedConfig,
-        ) ?: return null
+            nudged, entry, route, field, profile, snapshot, seedConfig, skipFailures = true,
+        ) ?: run { refuse("rerun-null"); return null }
         // The terminal approach contributes a segment but is not a decision.
         val decisionSegments = segments.take(decisions.size)
         if (decisionSegments.size != decisions.size) return null
@@ -784,7 +915,7 @@ object TrajectoryPlanner {
         // the same length built from different decisions is a different place to nudge
         // *from*, which is how a plateau gets crossed to the next step down. It is only
         // ever adopted internally; publishing still demands a strictly shorter tape.
-        if (combined.size > best.tape.frameCount) return null
+        if (combined.size > best.tape.frameCount) { refuse("nudge-longer"); return null }
         return certifyCombined(
             combined, best, profile, snapshot, best,
             spliceDecisions(
@@ -793,6 +924,30 @@ object TrajectoryPlanner {
                 boundaries,
             ),
         )
+    }
+
+    /**
+     * Whether the coarse layer thinks [target] can be reached from [from] in one move.
+     *
+     * Cheap and conservative: a direct edge means a merge is at least geometrically
+     * possible, and its absence means the two decisions exist separately for a reason.
+     * A false negative only costs a shortcut nobody tried; a false positive costs a whole
+     * simulated rollout, so the test leans this way deliberately.
+     */
+    private fun mergeable(field: CoarseValueField, from: Stance, target: Stance): Boolean =
+        from != target && field.edgesFrom(from).any { it.to == target }
+
+    /** [decision], aimed at whatever [successor] was aiming at. */
+    private fun retarget(
+        decision: TrajectoryDecision,
+        successor: TrajectoryDecision,
+    ): TrajectoryDecision? {
+        val step = successor.step ?: return null
+        return when (decision) {
+            is TrajectoryDecision.Walk -> decision.copy(step = step)
+            is TrajectoryDecision.Launch -> decision.copy(step = step)
+            is TrajectoryDecision.Heading -> decision.copy(step = step)
+        }
     }
 
     /**
@@ -809,14 +964,27 @@ object TrajectoryPlanner {
                 )
             }
 
-            is TrajectoryDecision.Launch -> decision.copy(
-                delayFrames = (decision.delayFrames + random.nextInt(3) - 1).coerceAtLeast(0),
-            )
-
-            is TrajectoryDecision.Heading -> when (random.nextInt(2)) {
-                0 -> decision.copy(offsetDegrees = decision.offsetDegrees + (random.nextDouble() - 0.5) * 12.0)
+            is TrajectoryDecision.Launch -> when (random.nextInt(2)) {
+                0 -> decision.copy(
+                    delayFrames = (decision.delayFrames + random.nextInt(3) - 1).coerceAtLeast(0),
+                )
+                // Where it takes off, and how fast: the two things that decide where an
+                // arc lands, so both are worth nudging.
                 else -> decision.copy(
+                    brakeTicks = (decision.brakeTicks + random.nextInt(3) - 1).coerceIn(0, 2),
+                )
+            }
+
+            is TrajectoryDecision.Heading -> when (random.nextInt(3)) {
+                0 -> decision.copy(offsetDegrees = decision.offsetDegrees + (random.nextDouble() - 0.5) * 12.0)
+                1 -> decision.copy(
                     delayFrames = decision.delayFrames?.let { (it + random.nextInt(3) - 1).coerceAtLeast(0) },
+                )
+                // How long the bearing is held. A committed run that outlives its
+                // usefulness is the single most repeated waste the attribution finds.
+                else -> decision.copy(
+                    commitFrames = ((decision.commitFrames ?: DEFAULT_COMMIT_FRAMES) +
+                        random.nextInt(9) - 4).coerceIn(MIN_COMMIT_FRAMES, MAX_COMMIT_FRAMES),
                 )
             }
         }
@@ -882,6 +1050,16 @@ object TrajectoryPlanner {
 
     private const val MAX_DECISION_EDITS = 3
 
+    /** Share of nudges that change the plan's shape rather than a decision's parameters. */
+    private const val STRUCTURAL_EDIT_PERCENT = 60
+
+    private const val DEFAULT_COMMIT_FRAMES = 12
+    private const val MIN_COMMIT_FRAMES = 4
+    private const val MAX_COMMIT_FRAMES = 24
+
+    /** Below this a tail is too short for dropping a decision to mean anything. */
+    private const val MIN_TAIL_DECISIONS = 3
+
     /** Attempts without a win before the field is widened to make room for one. */
     private const val WIDEN_AFTER_ATTEMPTS = 40
     private const val REFINEMENT_HORIZON_STEP_TICKS = 48.0
@@ -922,6 +1100,7 @@ object TrajectoryPlanner {
         planMillis: Long,
         reroutes: Int,
         partial: Boolean,
+        field: CoarseValueField? = null,
     ) = PathingManager.PublishedPath(
         route = route,
         plan = TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(id), seed, profile),
@@ -935,6 +1114,7 @@ object TrajectoryPlanner {
         reroutes = reroutes,
         launchMarginFrames = seed.launchMarginFrames,
         partial = partial,
+        segmentCosts = field?.let { segmentCosts(seed, it) }.orEmpty(),
     )
 
     internal fun boundsCovering(start: Stance, goal: Stance) = SimulationSnapshotBounds(

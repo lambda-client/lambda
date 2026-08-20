@@ -44,9 +44,12 @@ internal class HeadingFollowerProgram(
         val yawDelta = yawError.coerceIn(-maxYawChange, maxYawChange)
         val held = if (observed.onGround) keys else airborneKeys
         val easing = easeUntilAligned && kotlin.math.abs(yawError) > EASE_TURN_DEGREES
+        // Shedding releases the movement keys the same way easing does, but for a
+        // different reason: this one is aiming the arc, not turning the body.
+        val coasting = easing || launch?.shedding(observed) == true
         return MovementSimulationInput(
-            forward = if (easing) 0.0 else held.forward,
-            strafe = if (easing) 0.0 else held.strafe,
+            forward = if (coasting) 0.0 else held.forward,
+            strafe = if (coasting) 0.0 else held.strafe,
             sprint = sprint,
             jump = launch?.press(observed) == true,
             rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),

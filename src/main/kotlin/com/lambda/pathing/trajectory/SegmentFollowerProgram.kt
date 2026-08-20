@@ -28,11 +28,32 @@ import kotlin.math.hypot
  * always relative to where the body actually is, so the family is always diverse — and
  * the arc probe's measured launch point still chooses which delay is tried first.
  */
-internal class LaunchTrigger(private val delayFrames: Int) {
+internal class LaunchTrigger(
+    private val delayFrames: Int,
+    /**
+     * Grounded ticks of released forward immediately before the jump fires.
+     *
+     * The speed dial. Where a jump lands is decided by the takeoff point and the speed
+     * carried into it, and until now only the takeoff point was choosable -- gait was a
+     * boolean, so a pad that sprint overshoots and walk falls short of had no answer at
+     * all. Ground friction sheds close to half the speed in a single released tick, so one
+     * or two ticks here spans most of the useful range.
+     *
+     * A single burst, not per-tick regulation: alternating forward would re-arm vanilla's
+     * double-tap-to-sprint window every couple of ticks and start sprinting on its own,
+     * which is the opposite of shedding speed.
+     */
+    private val brakeTicks: Int = 0,
+) {
     private var groundedTicks = 0
     private var fired = false
 
     val hasFired: Boolean get() = fired
+
+    /** Whether this tick is one of the shedding ticks before the launch. */
+    fun shedding(observed: MovementSimulationState): Boolean =
+        !fired && observed.onGround && brakeTicks > 0 &&
+            groundedTicks >= delayFrames - brakeTicks && groundedTicks < delayFrames
 
     fun press(observed: MovementSimulationState): Boolean {
         if (fired || !observed.onGround) return false
@@ -92,7 +113,8 @@ internal class SegmentFollowerProgram(
         // outside wall, which is the "harsh planned turn" the field logs kept reporting.
         // Offered as an action rather than imposed, so the search pays for it only where
         // the straight line genuinely fails.
-        val forward = if (easeTurns && abs(yawError) > EASE_TURN_DEGREES) 0.0 else 1.0
+        val shedding = launch?.shedding(observed) == true
+        val forward = if (shedding || easeTurns && abs(yawError) > EASE_TURN_DEGREES) 0.0 else 1.0
         return MovementSimulationInput(
             forward = forward,
             sprint = sprint,

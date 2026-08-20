@@ -25,6 +25,7 @@ interface PathingRenderConfig {
     val renderTrajectory: Boolean
     val renderJumpMarkers: Boolean
     val renderSplices: Boolean
+    val renderSegmentCost: Boolean
     val renderTrail: Boolean
     val renderLabels: Boolean
 
@@ -46,6 +47,7 @@ interface PathingRenderConfig {
     val jumpColor: Color
     val spliceColor: Color
     val cutColor: Color
+    val costColor: Color
     val stopColor: Color
     val trailColor: Color
     val rejectColor: Color
