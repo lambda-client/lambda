@@ -109,7 +109,6 @@ object TargetStrafe : Module(
 
     private fun SafeContext.doStrafeAtSpeed(event: MovementEvent.Player.Pre, rotation: Float, target: Vec3d): Boolean {
         var playerSpeed = hSpeed
-        var jumpVelocity = 0.405
         var rotationYaw = rotation + (90f * direction)
 
 
@@ -129,13 +128,6 @@ object TargetStrafe : Module(
         }
 
         currentDistance = distance
-
-
-        // jump boost
-        val jumpboost = player.getStatusEffect(StatusEffects.JUMP_BOOST)
-        if (jumpboost != null) {
-            jumpVelocity *= jumpboost.amplifier
-        }
 
         // speed
         val speed = player.getStatusEffect(StatusEffects.SPEED)
