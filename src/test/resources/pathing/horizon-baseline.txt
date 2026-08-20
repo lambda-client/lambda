@@ -1,0 +1,26 @@
+# Characterisation of the shipping horizon planner: PathingManager -> planAsync
+# -> walkHorizon -> ValueFieldAnchorSearch, driven by a VirtualSearchClock so the
+# search-versus-body race resolves identically on every machine.
+#
+# These numbers are a record of current behaviour, not a statement that it is good.
+# Re-record with -Prebaseline=true when a change is meant to move them.
+#
+bedrock-00             arrived  frames=205  collisions=13  jumps=14  pubs=17  maxCommit=26  turn=778
+bedrock-01             arrived  frames=209  collisions=7   jumps=14  pubs=13  maxCommit=25  turn=855
+bedrock-02             arrived  frames=253  collisions=1   jumps=18  pubs=14  maxCommit=61  turn=654
+bedrock-03             arrived  frames=231  collisions=2   jumps=16  pubs=16  maxCommit=37  turn=822
+bedrock-04             arrived  frames=213  collisions=2   jumps=12  pubs=12  maxCommit=51  turn=230
+bedrock-05             arrived  frames=153  collisions=2   jumps=10  pubs=8   maxCommit=74  turn=144
+bedrock-06             no-route frames=0    collisions=0   jumps=0   pubs=0   maxCommit=0   turn=0
+bedrock-07             arrived  frames=193  collisions=1   jumps=13  pubs=11  maxCommit=40  turn=741
+bedrock-08             arrived  frames=380  collisions=1   jumps=23  pubs=27  maxCommit=35  turn=1194
+bedrock-09             no-route frames=0    collisions=0   jumps=0   pubs=0   maxCommit=0   turn=0
+bedrock-10             arrived  frames=255  collisions=6   jumps=18  pubs=15  maxCommit=68  turn=826
+bedrock-11             no-route frames=0    collisions=0   jumps=0   pubs=0   maxCommit=0   turn=0
+bedrock-traverse       arrived  frames=421  collisions=8   jumps=27  pubs=29  maxCommit=39  turn=1119
+flat-straight          arrived  frames=52   collisions=0   jumps=3   pubs=1   maxCommit=43  turn=91
+flat-diagonal          arrived  frames=57   collisions=0   jumps=0   pubs=1   maxCommit=47  turn=0
+flat-shallow           arrived  frames=58   collisions=0   jumps=3   pubs=1   maxCommit=38  turn=77
+parkour-chain          arrived  frames=37   collisions=0   jumps=2   pubs=0   maxCommit=0   turn=249
+parkour-chain-offaxis  short    frames=0    collisions=0   jumps=0   pubs=0   maxCommit=0   turn=0
+staircase-over-both    arrived  frames=102  collisions=2   jumps=6   pubs=1   maxCommit=55  turn=223

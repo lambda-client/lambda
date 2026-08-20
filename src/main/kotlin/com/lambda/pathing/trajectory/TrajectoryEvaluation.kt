@@ -41,7 +41,7 @@ internal class RolloutEvaluator(
     initialState: MovementSimulationState,
     private val nodes: List<HorizontalPoint>,
     private val goal: HorizontalPoint,
-    private val config: WalkingSeedSearchConfig,
+    private val config: MotionConstraints,
 ) {
     private val floor = nodes.minOf { it.y } - FALL_TOLERANCE
 
@@ -91,10 +91,6 @@ internal class RolloutEvaluator(
         if (state.position.y < floor) {
             return RolloutVerdict.Failed(TrajectoryDiagnostic.FellBelowRoute(index, floor - state.position.y))
         }
-        val deviation = horizontalDistanceToPolyline(state.position.x, state.position.z, nodes)
-        if (deviation > config.maxCorridorDeviation) {
-            return RolloutVerdict.Failed(TrajectoryDiagnostic.LeftCorridor(index, deviation))
-        }
 
         val atGoal = hypot(state.position.x - goal.x, state.position.z - goal.z) <= config.goalRadius &&
             abs(state.position.y - goal.y) <= VERTICAL_GOAL_TOLERANCE
@@ -114,7 +110,7 @@ internal fun evaluate(
     rollout: TrajectoryRollout,
     nodes: List<HorizontalPoint>,
     goal: HorizontalPoint,
-    config: WalkingSeedSearchConfig,
+    config: MotionConstraints,
 ): Evaluation {
     val evaluator = RolloutEvaluator(rollout.initialState, nodes, goal, config)
 

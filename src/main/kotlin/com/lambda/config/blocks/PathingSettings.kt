@@ -59,46 +59,9 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
-    override val maxCorridorDeviation by c.setting(
-        "Corridor Deviation", 1.5, 0.5..4.0, 0.1,
-        "How far the simulated walk may stray from the coarse route before it is rejected.",
-        unit = " blocks",
-    )
-
-    @Group(SEARCH_GROUP)
-    override val corridorAdherentFirst by c.setting(
-        "Adherent Gait First", true,
-        "Certify one corridor-adherent gait before sweeping every gait variant. Much faster " +
-            "discovery on long routes; the full sweep still runs wherever the adherent gait fails.",
-    )
-
-    @Group(SEARCH_GROUP)
     override val goalRadius by c.setting(
         "Goal Radius", 0.20, 0.05..1.0, 0.01,
         "How close to the goal centre the walk must stop.", unit = " blocks",
-    )
-
-    @Group(SEARCH_GROUP)
-    override val anchorSearch by c.setting(
-        "Anchor Search", true,
-        "Search short certified transitions between exact grounded body states instead of " +
-            "sweeping whole-route gaits. Adding a hazard then costs bounded work instead of " +
-            "replaying every earlier launch combination.",
-    )
-
-    @Group(SEARCH_GROUP)
-    override val valueFieldSearch by c.setting(
-        "Value Field Search", true,
-        "Steer by the coarse cost-to-go field instead of the single route extracted from " +
-            "it, with no corridor-deviation veto. The trajectory may leave the greedy line " +
-            "wherever the physics is faster.",
-    )
-
-    @Group(SEARCH_GROUP)
-    override val recedingHorizon by c.setting(
-        "Receding Horizon", true,
-        "Plan a horizon at a time and keep extending it while walking, instead of " +
-            "certifying a whole trajectory to the goal before the first step.",
     )
 
     @Group(SEARCH_GROUP)
@@ -107,7 +70,7 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         "Committed motion kept ahead of the body. Smaller leaves decisions later, so the " +
             "search has longer to improve them; too small and the body catches its brake.",
         unit = " frames",
-    ) { recedingHorizon }
+    )
 
     @Group(SEARCH_GROUP)
     override val horizonCommitFrames by c.setting(
@@ -115,7 +78,7 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         "How much motion each step commits. Smaller keeps more of the walk open to be " +
             "replanned; too small and the search cannot keep ahead of the body.",
         unit = " frames",
-    ) { recedingHorizon }
+    )
 
     @Group(SEARCH_GROUP)
     override val dumpFailedPlans by c.setting(
@@ -124,23 +87,8 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
             "neolambda/pathing-dumps so the failure can be replayed and fixed offline.",
     )
 
-    @Group(NEURAL_GROUP)
-    override val neuralDiscovery by c.setting(
-        "Neural Discovery", false,
-        "Discover the trajectory with the trained value-guided policy instead of the seed " +
-            "search. The simulator still certifies every frame, so the tape is just as safe. " +
-            "Requires policy.onnx (see Model Path).",
-    )
-
-    @Group(NEURAL_GROUP)
-    override val neuralModelPath: String? by c.setting(
-        "Model Path", "neolambda/policy.onnx",
-        description = "Path to the ONNX-exported movement policy, relative to the game directory.",
-    ) { neuralDiscovery }
-
     private companion object {
         const val MOVES_GROUP = "Moves"
-        const val SEARCH_GROUP = "Seed Search"
-        const val NEURAL_GROUP = "Neural"
+        const val SEARCH_GROUP = "Search"
     }
 }

@@ -55,10 +55,6 @@ sealed interface TrajectoryDiagnostic {
     ) : TrajectoryDiagnostic
 
     /** Strayed off the coarse corridor -- usually a corner cut into open space. */
-    data class LeftCorridor(
-        override val frame: Int,
-        val deviation: Double,
-    ) : TrajectoryDiagnostic
 
     /**
      * The body landed hard enough to take damage.

@@ -53,44 +53,8 @@ interface PathingConfig {
     /** Longest tape the seed search may certify. */
     val maxFrames: Int
 
-    /** How far the simulated walk may stray from the coarse route before rejection. */
-    val maxCorridorDeviation: Double
-
-    /**
-     * Certify one corridor-adherent gait (with its launch beam) before sweeping the
-     * full gait grid. Much faster discovery on long routes; the full sweep still runs
-     * for any segment the adherent gait cannot solve.
-     */
-    val corridorAdherentFirst: Boolean
-
     /** How close to the goal centre the walk must come to a stable stop. */
     val goalRadius: Double
-
-    /**
-     * Discover the trajectory with the kinodynamic anchor search instead of the
-     * whole-route gait sweep. Local certified transitions between exact grounded body
-     * states, so an extra hazard costs a bounded amount of work rather than replaying
-     * every earlier launch combination. A default member so existing config
-     * implementors keep compiling.
-     */
-    val anchorSearch: Boolean get() = true
-
-    /**
-     * Steer the anchor search by the coarse cost-to-go *field* instead of the one route
-     * D* extracts from it, and drop the corridor-deviation veto. The trajectory is then
-     * free to leave the greedy line wherever the physics is faster; going the wrong way
-     * is priced by the value, not forbidden. Takes precedence over [anchorSearch].
-     */
-    val valueFieldSearch: Boolean get() = true
-
-    /**
-     * Plan a horizon at a time instead of certifying a whole tape to the goal.
-     *
-     * The committed tape grows from the front as the body walks and always ends in a
-     * certified stop, so the search never proves further ahead than it must and always
-     * continues from the state the body will actually be in.
-     */
-    val recedingHorizon: Boolean get() = true
 
     /**
      * Committed motion kept ahead of the body before another commitment is made.
@@ -113,14 +77,4 @@ interface PathingConfig {
      */
     val dumpFailedPlans: Boolean get() = false
 
-    /**
-     * Discover the trajectory with the trained value-guided neural policy instead of
-     * the seed search. The policy proposes; the exact simulator still certifies every
-     * frame, so the published tape is as safe as any other. Off by default and a
-     * default member so existing config implementors keep compiling.
-     */
-    val neuralDiscovery: Boolean get() = false
-
-    /** Filesystem path to the ONNX-exported policy; null resolves the default location. */
-    val neuralModelPath: String? get() = null
 }

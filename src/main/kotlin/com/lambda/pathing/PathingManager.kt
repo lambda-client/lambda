@@ -30,9 +30,8 @@ import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
-import com.lambda.pathing.trajectory.SegmentCost
 import com.lambda.pathing.trajectory.TrajectoryPlan
-import com.lambda.pathing.trajectory.WalkingSeedParameters
+import com.lambda.pathing.trajectory.TerminalApproach
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.update
@@ -63,7 +62,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         val route: CoarseRoutePlan,
         val plan: TrajectoryPlan,
         val profile: PlayerPhysicsProfile,
-        val parameters: WalkingSeedParameters,
+        val parameters: TerminalApproach,
         val attempts: Int,
         val planMillis: Long,
         /** Where the continuously expanded tape must end. */
@@ -72,8 +71,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         val controlSegments: Int = 1,
         /** Predicted moving-state boundaries already flattened into [plan]. */
         val spliceFrames: List<Int> = emptyList(),
-        /** Coarse jumps proven impossible for every bounded entry and retired by D*. */
-        val reroutes: Int = 0,
         /** Failure-directed launch runway accumulated across the certified tape. */
         val launchMarginFrames: Int = 0,
         /**
@@ -82,11 +79,6 @@ object PathingManager : Manager<PathingRequest>(0) {
          * meant to be superseded by the full plan while it is still running.
          */
         val partial: Boolean = false,
-        /**
-         * Where this tape spent its time, against what the coarse layer says each stretch
-         * was worth. The thing to look at when a path is legal but bad.
-         */
-        val segmentCosts: List<SegmentCost> = emptyList(),
     )
 
     sealed interface Status {
@@ -306,7 +298,7 @@ object PathingManager : Manager<PathingRequest>(0) {
                 turnSpeed = request.rotationConfig.turnSpeed,
                 // Where the body is, so refinement only ever replaces tape ahead of it.
                 cursorFrame = { cursor?.nextFrame },
-                onImprovement = if (System.getProperty("lambda.pathing.noRefine") == "true") null else { improvement ->
+                onImprovement = { improvement ->
                     mc.execute {
                         if (activeRequest === request && cursor != null) adopt(improvement)
                     }
@@ -449,12 +441,8 @@ object PathingManager : Manager<PathingRequest>(0) {
             "Certified continuous trajectory: ${path.route.nodes.first().short()} -> ${path.route.goal.short()}, " +
                 "${path.plan.tape.frameCount} frames, ${path.attempts} attempts, " +
                 "${path.planMillis} ms, ${path.controlSegments} continuous segment(s)" +
-                path.parameters.gapLaunchFrames.takeIf { it.isNotEmpty() }
-                    ?.let { ", jump launch frames ${it.joinToString()}" }.orEmpty() +
                 path.spliceFrames.takeIf { it.isNotEmpty() }
-                    ?.let { ", predicted splice frames ${it.joinToString()}" }.orEmpty() +
-                path.reroutes.takeIf { it > 0 }
-                    ?.let { ", rerouted around $it proven-infeasible coarse jump(s)" }.orEmpty(),
+                    ?.let { ", predicted splice frames ${it.joinToString()}" }.orEmpty(),
             PATHING_SOURCE,
         )
     }

@@ -33,13 +33,7 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     @Group(TOGGLES_GROUP)
     override val renderSplices by c.setting(
         "Splice Points", true,
-        "Frames where one controller hands over to the next, and the cuts refinement is trying.",
-    ) { enabled }
-
-    @Group(TOGGLES_GROUP)
-    override val renderSegmentCost by c.setting(
-        "Cost Heat", true,
-        "Highlight stretches that spent frames without buying progress toward the goal.",
+        "Frames where one controller hands over to the next.",
     ) { enabled }
 
     @Group(TOGGLES_GROUP)
@@ -96,12 +90,6 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(COLOR_GROUP)
     override val spliceColor by c.setting("Splice Point", Color(90, 200, 255, 235)) { enabled && renderSplices }
-
-    @Group(COLOR_GROUP)
-    override val cutColor by c.setting("Refinement Cut", Color(255, 140, 255, 235)) { enabled && renderSplices }
-
-    @Group(COLOR_GROUP)
-    override val costColor by c.setting("Cost Heat", Color(255, 70, 40, 235)) { enabled && renderSegmentCost }
 
     @Group(COLOR_GROUP)
     override val bestCandidateColor by c.setting("Best Candidate", Color(255, 255, 140, 240)) { enabled && renderCandidates }

@@ -17,9 +17,9 @@ import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
-import com.lambda.pathing.trajectory.WalkingSeedSearch
-import com.lambda.pathing.trajectory.WalkingSeedSearchConfig
-import com.lambda.pathing.trajectory.WalkingSeedSearchResult
+import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
+import com.lambda.pathing.trajectory.MotionConstraints
+import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.MovementSimulator
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -135,11 +135,12 @@ class TrajectoryExecutionCursorTest {
         )
         val planner = CoarsePlanner(environment, moves, Stance(0, 0, 0), Stance(3, 0, 0))
         assertTrue(planner.repair(Duration.INFINITE).converged)
+        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
         val route = requireNotNull(planner.routePlan(REVISION))
-        val seed = assertIs<WalkingSeedSearchResult.Success>(
-            WalkingSeedSearch.search(
-                route, initial, PROFILE, environment,
-                WalkingSeedSearchConfig(sprintModes = sprintModes),
+        val seed = assertIs<MotionPlanResult.Success>(
+            ValueFieldAnchorSearch.search(
+                route, planner.valueField(), initial, PROFILE, environment,
+                MotionConstraints(sprintModes = sprintModes),
             ),
         )
         return Fixture(environment, initial, TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(1), seed, PROFILE))

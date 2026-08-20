@@ -27,8 +27,8 @@ import kotlin.math.hypot
  */
 internal class CorridorFollowerProgram(
     stanceNodes: List<Stance>,
-    private val parameters: WalkingSeedParameters,
-    private val config: WalkingSeedSearchConfig,
+    private val parameters: TerminalApproach,
+    private val config: MotionConstraints,
 ) : ControlProgram {
     private val maxYawChange = config.maxYawDegreesPerFrame
     private val nodes = stanceNodes.map { it.center() }
@@ -74,12 +74,7 @@ internal class CorridorFollowerProgram(
     override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
         advanceProgress(observed)
 
-        // Resolves this tick's launch and retires a rise once its landing is
-        // observed, so it must run before the brake decision consumes it.
-        // A gap launch is a *discovered* frame, not a geometric lead: backtracking
-        // over a failed walk is what found it, so it is replayed by index.
-        val gapLaunch = frame in parameters.gapLaunchFrames && observed.onGround
-        val jump = shouldJump(observed) || gapLaunch
+        val jump = shouldJump(observed)
 
         // Brake on distance remaining *along the route*, not straight-line
         // distance to the goal: around an obstacle the player can be a stride
@@ -88,7 +83,6 @@ internal class CorridorFollowerProgram(
         // also holds the brake off -- a coasting player has no momentum to
         // clear a step-up, so a rise on the final edge could never launch.
         val risePending = nextRise < rises.size
-        val gapPending = parameters.gapLaunchFrames.any { frame <= it }
 
         // Once the body has stopped short of a tight goal, closing the last fraction
         // of a block is its own mode -- not more braking. The old code set the flag
@@ -122,7 +116,7 @@ internal class CorridorFollowerProgram(
         // matters when it is *larger* (an earlier, conservative stop).
         val coastStop = observed.velocity.horizontalLength() * TERMINAL_COAST_PER_SPEED +
             BRAKE_SHORT_BIAS_BLOCKS
-        if (!risePending && !gapPending &&
+        if (!risePending &&
             remainingPathDistance(observed) <= maxOf(parameters.brakeDistance, coastStop)
         ) braking = true
         if (braking) {

@@ -12,7 +12,7 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.trajectory.WalkingSeedSearchConfig
+import com.lambda.pathing.trajectory.MotionConstraints
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.util.player.prediction.MovementSimulationState
@@ -82,9 +82,8 @@ class PlanDumpRoundTripTest {
             allowDiagonal = false, allowStepUp = true, maxWalkOffDepth = 5,
             allowJumpCandidates = true, maxJumpSpan = 5, maxJumpDrop = 2, maxDiagonalJumpSpan = 3,
         )
-        val searchConfig = WalkingSeedSearchConfig(
-            maxFrames = 240, maxYawDegreesPerFrame = 42.5, goalRadius = 0.33,
-            maxCorridorDeviation = 2.25, sprintModes = listOf(false), corridorAdherentFirst = false,
+        val searchConfig = MotionConstraints(
+            maxFrames = 240, maxYawDegreesPerFrame = 42.5, goalRadius = 0.33, sprintModes = listOf(false),
         )
         val directory = Files.createTempDirectory("plan-dump-round-trip")
         val path = PlanDump.write(
@@ -102,9 +101,7 @@ class PlanDumpRoundTripTest {
         assertEquals(searchConfig.maxFrames, loaded.searchConfig.maxFrames)
         assertEquals(searchConfig.maxYawDegreesPerFrame, loaded.searchConfig.maxYawDegreesPerFrame)
         assertEquals(searchConfig.goalRadius, loaded.searchConfig.goalRadius)
-        assertEquals(searchConfig.maxCorridorDeviation, loaded.searchConfig.maxCorridorDeviation)
         assertEquals(searchConfig.sprintModes, loaded.searchConfig.sprintModes)
-        assertEquals(searchConfig.corridorAdherentFirst, loaded.searchConfig.corridorAdherentFirst)
         assertEquals(initial, loaded.initialState)
         assertEquals("unit round trip", loaded.note)
 

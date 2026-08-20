@@ -17,15 +17,6 @@ import java.util.Collections
 @JvmInline
 value class TrajectoryPlanId(val value: Long)
 
-data class TrajectorySpliceRef(
-    val parentPlanId: TrajectoryPlanId,
-    val spliceFrame: Int,
-) {
-    init {
-        require(spliceFrame >= 0)
-    }
-}
-
 enum class CertifiedTerminal {
     STABLE_GROUNDED_STOP,
 }
@@ -33,7 +24,6 @@ enum class CertifiedTerminal {
 /** Immutable object consumed by execution; it contains no search/controller state. */
 class TrajectoryPlan private constructor(
     val id: TrajectoryPlanId,
-    val parent: TrajectorySpliceRef?,
     val snapshotRevision: Long,
     val coarseRouteVersion: Long,
     val physicsProfile: PlayerPhysicsProfile,
@@ -55,12 +45,10 @@ class TrajectoryPlan private constructor(
     companion object {
         fun fromWalkingSeed(
             id: TrajectoryPlanId,
-            seed: WalkingSeedSearchResult.Success,
+            seed: MotionPlanResult.Success,
             physicsProfile: PlayerPhysicsProfile,
-            parent: TrajectorySpliceRef? = null,
         ): TrajectoryPlan = TrajectoryPlan(
             id = id,
-            parent = parent,
             snapshotRevision = seed.sourceRoute.snapshotRevision,
             coarseRouteVersion = seed.sourceRoute.routeVersion,
             physicsProfile = physicsProfile,

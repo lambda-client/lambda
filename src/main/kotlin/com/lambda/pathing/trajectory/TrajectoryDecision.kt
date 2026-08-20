@@ -109,7 +109,7 @@ data class TrajectoryPlanDecisions(
      */
     val boundaries: List<Int> = emptyList(),
     /** Parameters of the terminal approach, or null when the tape ends in a plain brake. */
-    val terminal: WalkingSeedParameters? = null,
+    val terminal: TerminalApproach? = null,
 ) {
     /**
      * The decisions still outstanding at [frame], and where they were meant to lead.
