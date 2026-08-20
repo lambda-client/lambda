@@ -18,8 +18,8 @@
 package com.lambda.config.settings
 
 import com.lambda.config.Config
-import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -94,22 +94,22 @@ abstract class NumericSetting<T>(
 			dummy(calcTextSize(resetButtonText).x + style.framePadding.x * 2.0f, ImGui.getFrameHeight())
 		}
 	}
+}
 
-	@Suppress("unchecked_cast", "unused")
-	companion object {
-		@ConfigEditorD5l
-		fun <T> ConfigEditor.SettingEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
-			(entries as Collection<NumericSetting<T>>).forEach { it.range = range }
-		}
+@Suppress("unchecked_cast")
+@ConfigEditorD5l
+fun <T> SettingEditBuilder<T>.range(range: ClosedRange<T>) where T : Number, T : Comparable<T> {
+	(entries as Collection<NumericSetting<T>>).forEach { it.range = range }
+}
 
-		@ConfigEditorD5l
-		fun <T> ConfigEditor.SettingEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
-			(entries as Collection<NumericSetting<T>>).forEach { it.step = step }
-		}
+@Suppress("unchecked_cast")
+@ConfigEditorD5l
+fun <T> SettingEditBuilder<T>.step(step: T) where T : Number, T : Comparable<T> {
+	(entries as Collection<NumericSetting<T>>).forEach { it.step = step }
+}
 
-		@ConfigEditorD5l
-		fun <T> ConfigEditor.SettingEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
-			(entries as Collection<NumericSetting<T>>).forEach { it.unit = unit }
-		}
-	}
+@Suppress("unchecked_cast")
+@ConfigEditorD5l
+fun <T> SettingEditBuilder<T>.unit(unit: String) where T : Number, T : Comparable<T> {
+	(entries as Collection<NumericSetting<T>>).forEach { it.unit = unit }
 }

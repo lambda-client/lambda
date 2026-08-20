@@ -18,17 +18,19 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.editSetting
 import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
@@ -58,6 +60,7 @@ import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.option.Perspective
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
@@ -226,6 +229,10 @@ object Freecam : Module(
 		listen<RenderEvent.UpdateTarget>({ 1 }) { event -> // Higher priority then RotationManager to run before RotationManager modifies mc.crosshairTarget
 			mc.crosshairTarget = rotation.rayCast(reach, lerpPos).orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
 			mc.crosshairTarget?.let { if (it.type != HitResult.Type.MISS) event.cancel() }
+		}
+
+		listenUnsafe<PacketEvent.Receive.Pre> { event ->
+			if (event.packet is PlayerRespawnS2CPacket) disable()
 		}
 	}
 

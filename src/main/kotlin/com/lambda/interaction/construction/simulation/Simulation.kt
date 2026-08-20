@@ -21,7 +21,6 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.interaction.construction.blueprint.Blueprint
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.threading.runSafeAutomated
@@ -55,7 +54,7 @@ data class Simulation(
                 val isWalkable = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos, Direction.UP)
                 if (!isWalkable) return@getOrPut emptySet()
                 if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
-                blueprint.structure.simulate(pov)
+                blueprint.structure.sim(pov)
             } ?: emptySet()
         }
 

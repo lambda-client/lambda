@@ -32,7 +32,6 @@ import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.simulation.BuildGoal
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
@@ -45,6 +44,7 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.BaritoneHandler
 import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
@@ -137,7 +137,7 @@ class BuildTask private constructor(
                             results.filter { it.pos !in reSimPositions } +
                                     blueprint.structure.filter {
                                         it.key in reSimPositions
-                                    }.simulate()
+                                    }.sim()
                         reSimPositions.clear()
                         setViableResults()
                         processResults()
@@ -223,7 +223,7 @@ class BuildTask private constructor(
 
     private fun AutomatedSafeContext.simulate() {
         results = blueprint.structure
-            .simulate()
+            .sim()
     }
 
     private fun SafeContext.setViableResults() {
