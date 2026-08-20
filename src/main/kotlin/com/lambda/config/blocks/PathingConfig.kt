@@ -84,6 +84,28 @@ interface PathingConfig {
     val valueFieldSearch: Boolean get() = true
 
     /**
+     * Plan a horizon at a time instead of certifying a whole tape to the goal.
+     *
+     * The committed tape grows from the front as the body walks and always ends in a
+     * certified stop, so the search never proves further ahead than it must and always
+     * continues from the state the body will actually be in.
+     */
+    val recedingHorizon: Boolean get() = true
+
+    /**
+     * Committed motion kept ahead of the body before another commitment is made.
+     *
+     * The search runs continuously and only commits when the runway gets this short, so
+     * this is really "how late may a decision be left". Later is better -- every tick not
+     * yet committed is a tick the search is still improving -- but too late and a slow
+     * search lets the body reach the brake it is holding and stop.
+     */
+    val horizonRunwayFrames: Int get() = 20
+
+    /** Motion each horizon step commits; the granularity at which the future is decided. */
+    val horizonCommitFrames: Int get() = 20
+
+    /**
      * On a refusal, write the whole captured plan — collision shapes, endpoints, entry
      * state, physics profile — to `neolambda/pathing-dumps`. The terrain behind a field
      * refusal otherwise exists only in the reporter's world; this turns it into a JVM

@@ -74,6 +74,22 @@ object PathingRenderer : Loadable {
             polyline(attempt.points.map { it.add(0.0, TRAJECTORY_Y, 0.0) }, color.setAlpha(alpha), width)
         }
 
+        // The options still on the table. The bright one is what would be committed if the
+        // body needed motion this instant; the others are what it is being weighed against.
+        // Several lines means the search is genuinely choosing; one means the field has
+        // already decided and there is nothing to choose between.
+        if (config.renderCandidates) {
+            PlanningDebugChannel.candidateLines.forEach { candidate ->
+                if (candidate.points.size < 2) return@forEach
+                polyline(
+                    candidate.points.map { it.add(0.0, TRAJECTORY_Y + 0.08, 0.0) },
+                    if (candidate.best) config.bestCandidateColor
+                    else config.candidateColor.setAlpha(0.35),
+                    screenWidth(if (candidate.best) maxOf(config.trajectoryWidth / 2, 1) else 8),
+                )
+            }
+        }
+
         // Where the improver is currently cutting into the tape. Newest brightest, so a
         // glance says both where it is looking now and where it has been looking.
         if (config.renderSplices) {
@@ -151,6 +167,19 @@ object PathingRenderer : Loadable {
                     screenWidth((config.trajectoryWidth * (0.5 + heat)).toInt().coerceAtLeast(1)),
                 )
             }
+        }
+
+        // The reserve: the brake the horizon holds so the committed motion always has a
+        // way to stop. It is not meant to be walked -- if it is, the search failed to
+        // extend in time -- so it is drawn as what it is, a held fallback rather than a
+        // plan, and seeing the body enter it is seeing the search lose a race.
+        val committedEnd = PathingManager.published?.spliceFrames?.lastOrNull()
+        if (config.renderSplices && committedEnd != null && committedEnd < points.size - 1) {
+            polyline(
+                points.subList(committedEnd, points.size),
+                config.stopColor.setAlpha(0.45),
+                screenWidth(maxOf(config.trajectoryWidth / 2, 1)),
+            )
         }
 
         // Where one controller hands the tape to the next. These are the only frames a

@@ -43,6 +43,13 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     ) { enabled }
 
     @Group(TOGGLES_GROUP)
+    override val renderCandidates by c.setting(
+        "Candidates", true,
+        "The continuations the horizon is choosing between right now: the current best, " +
+            "and the other lines still alive.",
+    ) { enabled }
+
+    @Group(TOGGLES_GROUP)
     override val renderTrail by c.setting("Live Trail", true, "Where the body actually went.") { enabled }
 
     @Group(TOGGLES_GROUP)
@@ -95,6 +102,12 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(COLOR_GROUP)
     override val costColor by c.setting("Cost Heat", Color(255, 70, 40, 235)) { enabled && renderSegmentCost }
+
+    @Group(COLOR_GROUP)
+    override val bestCandidateColor by c.setting("Best Candidate", Color(255, 255, 140, 240)) { enabled && renderCandidates }
+
+    @Group(COLOR_GROUP)
+    override val candidateColor by c.setting("Other Candidates", Color(150, 130, 255, 200)) { enabled && renderCandidates }
 
     @Group(COLOR_GROUP)
     override val stopColor by c.setting("Certified Stop", Color(120, 255, 120, 242)) { enabled && renderTrajectory }

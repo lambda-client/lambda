@@ -639,15 +639,21 @@ object LambdaTest : FabricClientGameTest {
                 if (frame.state.horizontalCollision && !previousCollision) bumps++
                 previousCollision = frame.state.horizontalCollision
             }
-            // Measured on the first complete plan, not the last: that is what the planner
-            // deterministically produces, and it is the only thing a regression gate can
-            // hold. What the improvement loop achieved on top is reported as finalFrames.
-            val planned = PathingManager.firstFullPath?.plan?.frames ?: frames
-            var plannedPrevious = false
+            // Certified motion across the whole journey, not the last tape.
+            //
+            // A horizon publishes many superseding tapes per leg, so summing them all
+            // would count the same motion over and over; but taking only the last one
+            // measures the final *leg*, and a walk that stopped and replanned once
+            // recorded 14 frames for a journey of 32. Grouping by the state each leg was
+            // planned from and taking the longest tape in each group is the journey.
+            val legs = walked.groupBy { it.plan.initialState.position }
+                .values.map { group -> group.maxBy { it.plan.frames.size }.plan.frames }
+            val planned = legs.flatten()
+            var legPrevious = false
             var plannedBumps = 0
             planned.forEach { frame ->
-                if (frame.state.horizontalCollision && !plannedPrevious) plannedBumps++
-                plannedPrevious = frame.state.horizontalCollision
+                if (frame.state.horizontalCollision && !legPrevious) plannedBumps++
+                legPrevious = frame.state.horizontalCollision
             }
             val metrics = PathingMetricSink.Run(
                     scenario = scenario,
@@ -658,7 +664,11 @@ object LambdaTest : FabricClientGameTest {
                     collisionFrames = planned.count { it.state.horizontalCollision },
                     bumps = plannedBumps,
                     launchMarginFrames = path.launchMarginFrames,
-                    planLatencyMs = path.planMillis,
+                    // Time to the *first* published tape: how long the body stood still.
+                    // The last tape's own age is not latency at all under a receding
+                    // horizon -- the arriving publication is made at the end of the walk,
+                    // so reading it measured the journey rather than the wait before it.
+                    planLatencyMs = walked.first().planMillis,
                     reroutes = path.reroutes,
                     maxReplayDeviation = PathingManager.maxDeviation,
                 )

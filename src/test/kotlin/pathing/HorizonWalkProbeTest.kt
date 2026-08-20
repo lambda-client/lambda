@@ -1,0 +1,149 @@
+/*
+ * Copyright 2026 Lambda
+ */
+package pathing
+
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.PathingManager
+import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.TrajectoryPlanner.withinBudget
+import com.lambda.pathing.coarse.*
+import com.lambda.pathing.debug.BedrockFieldLayout
+import com.lambda.pathing.trajectory.*
+import com.lambda.util.player.prediction.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
+import org.junit.jupiter.api.Tag
+import kotlin.math.atan2
+import kotlin.test.Test
+import kotlin.time.Duration
+
+/**
+ * The receding horizon, walked end to end against a wall clock, with no client.
+ *
+ * Two things have to hold. The body must arrive -- a horizon that keeps its options open
+ * is worthless if it never closes them -- and **every tape it is ever handed must end in a
+ * certified stop**, because the executor replays inputs open loop and running out of them
+ * mid-stride has no defined behaviour. The second is the property that makes the whole
+ * design legal, so it is checked on every publication rather than at the end.
+ */
+@Tag("bedrock-corpus")
+class HorizonWalkProbeTest {
+    @Test
+    fun `a horizon walk arrives, and never publishes a tape that cannot stop`() = walk(200, 20)
+
+    /**
+     * The same walk with steps made deliberately expensive.
+     *
+     * A step that takes longer to find than the motion it commits lets the body walk off
+     * the end of its own tape and stop -- which is what every route past a couple of
+     * hundred ticks did in game. The commitment has to size itself from what the step
+     * actually cost, so this fixture makes steps slow on purpose and still demands arrival.
+     */
+    @Test
+    fun `a horizon walk with slow steps still keeps ahead of the body`() = walk(250, 5)
+
+    private fun walk(lookahead: Int, commitFrames: Int) {
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            bounds = SimulationSnapshotBounds(
+                -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
+                BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
+            ),
+            blocks = BedrockFieldLayout.solidCells().associate {
+                BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
+            },
+        )
+        val moves = SimpleMoveLibrary.build(
+            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+            options = SimpleMoveOptions(maxJumpDrop = 2),
+        )
+        val config = WalkingSeedSearchConfig()
+        val surface = BedrockFieldLayout.standableSurface(BedrockFieldLayout.solidCells())
+        val head = checkNotNull(surface.filter { it.x <= 2 }.minByOrNull { it.z * it.z })
+        val tail = checkNotNull(
+            surface.filter { it.x >= BedrockFieldLayout.LENGTH - 3 }.minByOrNull { it.z * it.z }
+        )
+        val start = Stance(head.x, head.y, head.z)
+        val goal = Stance(tail.x, tail.y, tail.z)
+
+        val planner = CoarsePlanner(environment.withinBudget(start, goal), moves, start, goal)
+        check(planner.repair(Duration.INFINITE).converged) { "no coarse route across the field" }
+        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        val dx = (goal.x - start.x).toDouble()
+        val dz = (goal.z - start.z).toDouble()
+        val initial = MovementSimulationState.synthetic(
+            profile = PROFILE,
+            position = Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5),
+            rotation = Rotation(Math.toDegrees(atan2(-dx, dz)), 0.0),
+            velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
+        )
+        val route = checkNotNull(planner.routePlan(0L))
+
+        val startedAt = System.nanoTime()
+        val publications = ArrayList<Pair<Long, PathingManager.PublishedPath>>()
+        val result = TrajectoryPlanner.walkHorizonForTest(
+            route, planner, initial, PROFILE, environment, config,
+            cursorFrame = {
+                val elapsed = (System.nanoTime() - startedAt) / 50_000_000L
+                elapsed.toInt()
+            },
+            publish = { path, _ -> publications += (System.nanoTime() - startedAt) / 1_000_000L to path },
+            started = System.currentTimeMillis(),
+            lookahead = lookahead,
+            commitFrames = commitFrames,
+        )
+
+        publications.forEach { (millis, path) ->
+            val last = path.plan.frames.last().state
+            check(last.onGround && last.velocity.horizontalLength() <= config.stoppedSpeed) {
+                "tape published at $millis ms does not end stopped: " +
+                    "ground=${last.onGround} speed=${last.velocity.horizontalLength()}"
+            }
+        }
+        val census = ValueFieldAnchorSearch.candidateCensus.toList()
+        if (census.isNotEmpty()) {
+            println("[horizon] candidates per commitment: %s".format(
+                census.joinToString { "${it[0]}(${it[1]} lines)" }))
+            println("[horizon] median distinct lines %d, median candidates %d".format(
+                census.map { it[1] }.sorted()[census.size / 2],
+                census.map { it[0] }.sorted()[census.size / 2]))
+        }
+        ValueFieldAnchorSearch.candidateCensus.clear()
+        val commits = publications.map { it.second.plan.tape.frameCount }
+        println("[horizon] %d publications, result %s, commit sizes %s".format(
+            publications.size, result::class.simpleName,
+            commits.zipWithNext { a, b -> b - a }.joinToString(),
+        ))
+        publications.take(4).forEach { (millis, path) ->
+            println("[horizon]   %5d ms: %d frames%s".format(
+                millis, path.plan.tape.frameCount, if (path.partial) " (partial)" else " FINAL"))
+        }
+        publications.lastOrNull()?.let { (millis, path) ->
+            println("[horizon]   last %5d ms: %d frames%s".format(
+                millis, path.plan.tape.frameCount, if (path.partial) " (partial)" else " FINAL"))
+        }
+        // Arriving is not implied by ending stopped: a horizon that halts safely halfway
+        // has satisfied its safety property and failed at its job. The arriving tape comes
+        // back as the *result* -- the callback only ever carries the partials handed over
+        // while walking -- so both have to be considered.
+        check(publications.isNotEmpty()) { "nothing was ever published" }
+        val last = (result as? com.lambda.pathing.PathPlanResult.Planned)?.path
+            ?: publications.last().second
+        check(!last.partial) { "walk ended on a partial tape, never reached $goal" }
+        val end = last.plan.frames.last().state
+        val error = kotlin.math.hypot(
+            end.position.x - (goal.x + 0.5), end.position.z - (goal.z + 0.5),
+        )
+        check(error <= config.goalRadius && kotlin.math.abs(end.position.y - goal.y) <= 0.5) {
+            "walk stopped %.2f blocks from %s at %s".format(error, goal, end.position)
+        }
+    }
+
+    private companion object {
+        val PROFILE = PlayerPhysicsProfile(
+            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
+            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
+            width = 0.6, height = 1.8, eyeHeight = 1.62,
+        )
+    }
+}
