@@ -59,7 +59,7 @@ class HorizonWalkProbeTest {
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
             options = SimpleMoveOptions(maxJumpDrop = 2),
         )
-        val config = WalkingSeedSearchConfig()
+        val config = MotionConstraints()
         var total = 0
         var arrived = 0
         var largest = 0
@@ -80,17 +80,18 @@ class HorizonWalkProbeTest {
                 velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
             )
 
-            val startedAt = System.nanoTime()
+            val clock = VirtualSearchClock()
             val sizes = ArrayList<Int>()
             var previous = 0
             val outcome = TrajectoryPlanner.walkHorizonForTest(
                 route, planner, initial, PROFILE, environment, config,
-                cursorFrame = { ((System.nanoTime() - startedAt) / 50_000_000L).toInt() },
+                cursorFrame = { clock.cursorFrame() },
                 publish = { path, _ ->
                     sizes += path.plan.tape.frameCount - previous
                     previous = path.plan.tape.frameCount
                 },
                 started = System.currentTimeMillis(),
+                clock = clock,
             )
             val planned = (outcome as? com.lambda.pathing.PathPlanResult.Planned)?.path
             if (planned != null && !planned.partial) {
@@ -98,8 +99,9 @@ class HorizonWalkProbeTest {
                 total += planned.plan.tape.frameCount
             }
             largest = maxOf(largest, sizes.maxOrNull() ?: 0)
-            println("[corpus] case %d: %s %d frames".format(
-                index, if (planned?.partial == false) "arrived" else "STOPPED SHORT",
+            println("[corpus] case %d %s->%s: %s %d frames".format(
+                index, "${start.x},${start.y},${start.z}", "${goal.x},${goal.y},${goal.z}",
+                if (planned?.partial == false) "arrived" else "STOPPED SHORT",
                 planned?.plan?.tape?.frameCount ?: 0))
         }
         println("[corpus] arrived %d, total %d frames, largest commitment %d".format(arrived, total, largest))
@@ -130,7 +132,7 @@ class HorizonWalkProbeTest {
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
             options = SimpleMoveOptions(maxJumpDrop = 2),
         )
-        val config = WalkingSeedSearchConfig()
+        val config = MotionConstraints()
         val surface = BedrockFieldLayout.standableSurface(BedrockFieldLayout.solidCells())
         val head = checkNotNull(surface.filter { it.x <= 2 }.minByOrNull { it.z * it.z })
         val tail = checkNotNull(

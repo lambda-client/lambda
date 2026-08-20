@@ -504,23 +504,11 @@ object LambdaTest : FabricClientGameTest {
             val player = Lambda.mc.player ?: error("Missing client player")
             check(player.isOnGround) { "$scenario: player did not settle" }
             PathingManager.clear()
-            // `-Pneural=true` (see build.gradle) drives the corpus with the trained
-            // neural policy instead of the seed search, so the game tests exercise the
-            // NN's real in-game trajectory, not just the search.
-            val useNeural = System.getProperty("lambda.pathing.neural") == "true"
-            val neuralModel = System.getProperty("lambda.pathing.neuralModel")
-            // `-PvalueField=true` steers discovery by the coarse value field with no
-            // corridor veto, so the live corpus measures the free search on real terrain
-            // and against real vanilla physics — the only honest gate for it.
-            val useValueField = System.getProperty("lambda.pathing.valueField") == "true"
             val base = AutomationConfig.DEFAULT.pathingConfig
-            val automated = if (plannerMaxFrames != null || useNeural || useValueField) {
+            val automated = if (plannerMaxFrames != null) {
                 object : Automated by AutomationConfig.DEFAULT {
                     override val pathingConfig = object : PathingConfig by base {
                         override val maxFrames = plannerMaxFrames ?: base.maxFrames
-                        override val neuralDiscovery = useNeural
-                        override val neuralModelPath = neuralModel ?: base.neuralModelPath
-                        override val valueFieldSearch = useValueField
                     }
                 }
             } else {
@@ -564,7 +552,6 @@ object LambdaTest : FabricClientGameTest {
                         collisionFrames = 0, bumps = 0,
                         launchMarginFrames = published?.launchMarginFrames ?: 0,
                         planLatencyMs = published?.planMillis ?: 0L,
-                        reroutes = published?.reroutes ?: 0,
                         maxReplayDeviation = PathingManager.maxDeviation,
                     ),
                 )
@@ -588,7 +575,6 @@ object LambdaTest : FabricClientGameTest {
             println(
                 "[pathing-diag] $scenario: sprint=${path.parameters.sprint} " +
                     "frames=${path.plan.tape.frameCount} attempts=${path.attempts} " +
-                    "launches=${path.parameters.gapLaunchFrames} " +
                     "edges=${path.route.edges.groupingBy { it.kind }.eachCount()}",
             )
 
@@ -607,10 +593,9 @@ object LambdaTest : FabricClientGameTest {
                     "$scenario: certified tape never pressed jump"
                 }
             }
-            val gapLaunches = walked.maxOf { it.parameters.gapLaunchFrames.size }
+            val gapLaunches = walked.maxOf { leg -> leg.plan.tape.asList().count { it.jump } }
             check(gapLaunches >= minGapLaunches) {
-                "$scenario: expected at least $minGapLaunches discovered gap launches, " +
-                    "got ${walked.map { it.parameters.gapLaunchFrames }}"
+                "$scenario: expected at least $minGapLaunches jump launches, got $gapLaunches"
             }
             check(walked.maxOf { it.controlSegments } >= minContinuousSegments) {
                 "$scenario: expected at least $minContinuousSegments continuous control segments, " +
@@ -669,7 +654,6 @@ object LambdaTest : FabricClientGameTest {
                     // horizon -- the arriving publication is made at the end of the walk,
                     // so reading it measured the journey rather than the wait before it.
                     planLatencyMs = walked.first().planMillis,
-                    reroutes = path.reroutes,
                     maxReplayDeviation = PathingManager.maxDeviation,
                 )
             PathingMetricSink.record(metrics)

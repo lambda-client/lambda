@@ -24,7 +24,6 @@ object PathingMetricSink {
         val bumps: Int,
         val launchMarginFrames: Int,
         val planLatencyMs: Long,
-        val reroutes: Int,
         val maxReplayDeviation: Double,
         /** Frames of the final published tape; informational, never gated. */
         val finalFrames: Int = 0,
@@ -117,9 +116,6 @@ object PathingMetricSink {
         check(run.launchMarginFrames >= expected.launchMarginFrames) {
             "${run.scenario}: launch margin regressed ${expected.launchMarginFrames} -> ${run.launchMarginFrames}"
         }
-        check(run.reroutes <= expected.reroutes) {
-            "${run.scenario}: reroutes regressed ${expected.reroutes} -> ${run.reroutes}"
-        }
         check(run.planLatencyMs <= maxOf(MAX_PLAN_LATENCY_MS, expected.planLatencyMs * 3)) {
             "${run.scenario}: plan latency regressed ${expected.planLatencyMs} -> ${run.planLatencyMs} ms"
         }
@@ -144,7 +140,6 @@ object PathingMetricSink {
         append("\"bumps\":").append(bumps).append(',')
         append("\"launchMarginFrames\":").append(launchMarginFrames).append(',')
         append("\"planLatencyMs\":").append(planLatencyMs).append(',')
-        append("\"reroutes\":").append(reroutes).append(',')
         append("\"maxReplayDeviation\":").append(maxReplayDeviation)
         append('}')
     }
@@ -166,7 +161,6 @@ object PathingMetricSink {
             bumps = number("bumps").toInt(),
             launchMarginFrames = number("launchMarginFrames").toInt(),
             planLatencyMs = number("planLatencyMs").toLong(),
-            reroutes = number("reroutes").toInt(),
             maxReplayDeviation = number("maxReplayDeviation").toDouble(),
         )
     }

@@ -12,7 +12,7 @@ package com.lambda.pathing.debug
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.trajectory.WalkingSeedSearchConfig
+import com.lambda.pathing.trajectory.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -41,7 +41,7 @@ import java.nio.file.Path
  * physics is written once, so a parkour course is a few kilobytes even over a wide capture.
  */
 object PlanDump {
-    const val VERSION = 2
+    const val VERSION = 3
 
     data class Loaded(
         val bounds: SimulationSnapshotBounds,
@@ -53,7 +53,7 @@ object PlanDump {
         /** The move library the plan was actually built with; defaults differ from the settings'. */
         val moveOptions: SimpleMoveOptions,
         /** The trajectory search config the plan actually ran with, including the live turn speed. */
-        val searchConfig: WalkingSeedSearchConfig,
+        val searchConfig: MotionConstraints,
         val note: String,
     ) {
         fun environment(): SnapshotSimulationEnvironment =
@@ -68,7 +68,7 @@ object PlanDump {
         initialState: MovementSimulationState,
         profile: PlayerPhysicsProfile,
         moveOptions: SimpleMoveOptions,
-        searchConfig: WalkingSeedSearchConfig,
+        searchConfig: MotionConstraints,
         note: String,
     ): Path {
         Files.createDirectories(directory)
@@ -110,7 +110,7 @@ object PlanDump {
         var goal: Stance? = null
         var profile: PlayerPhysicsProfile? = null
         var moveOptions = SimpleMoveOptions()
-        var searchConfig = WalkingSeedSearchConfig()
+        var searchConfig = MotionConstraints()
         var state: MovementSimulationState? = null
         var note = ""
         val palette = ArrayList<SnapshotBlockPhysics>()
@@ -121,7 +121,7 @@ object PlanDump {
             when (parts[0]) {
                 // Version 1 predates the recorded move/search config; it still loads, but
                 // it replays against library defaults, which are not the settings' defaults.
-                "version" -> require(parts[1].toInt() in 1..VERSION) {
+                "version" -> require(parts[1].toInt() == VERSION) {
                     "Unsupported plan dump version ${parts[1]}"
                 }
                 "note" -> note = line.removePrefix("note ")
@@ -188,18 +188,16 @@ object PlanDump {
         maxDiagonalJumpSpan = parts[7].toInt(),
     )
 
-    private fun WalkingSeedSearchConfig.dump(): String = listOf(
-        "search", maxFrames, maxYawDegreesPerFrame, goalRadius, maxCorridorDeviation,
-        sprintModes.joinToString(",").ifEmpty { "-" }, corridorAdherentFirst,
+    private fun MotionConstraints.dump(): String = listOf(
+        "search", maxFrames, maxYawDegreesPerFrame, goalRadius,
+        sprintModes.joinToString(",").ifEmpty { "-" },
     ).joinToString(" ")
 
-    private fun readSearchConfig(parts: List<String>) = WalkingSeedSearchConfig(
+    private fun readSearchConfig(parts: List<String>) = MotionConstraints(
         maxFrames = parts[1].toInt(),
         maxYawDegreesPerFrame = parts[2].toDouble(),
         goalRadius = parts[3].toDouble(),
-        maxCorridorDeviation = parts[4].toDouble(),
-        sprintModes = if (parts[5] == "-") emptyList() else parts[5].split(',').map { it.toBoolean() },
-        corridorAdherentFirst = parts[6].toBoolean(),
+        sprintModes = if (parts[4] == "-") emptyList() else parts[4].split(',').map { it.toBoolean() },
     )
 
     private fun MovementSimulationState.dump(): String = listOf(

@@ -172,7 +172,6 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
     // Bridge-free neural inference inside the JVM: loads the ONNX-exported policy.
-    includeLib("com.microsoft.onnxruntime:onnxruntime:1.19.2")
     includeLib("com.github.emyfops:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
@@ -244,16 +243,11 @@ tasks {
             includeTags("bedrock-corpus")
         }
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        if (project.findProperty("rebaseline") == "true") {
+            systemProperty("lambda.pathing.rebaseline", "true")
+        }
+        testLogging { showStandardStreams = true }
         outputs.upToDateWhen { false }
-    }
-
-    register<JavaExec>("runRlBridge") {
-        description = "Runs the loopback JVM movement-simulator bridge for Sample Factory."
-        group = "application"
-        dependsOn(testClasses)
-        classpath = sourceSets["test"].runtimeClasspath
-        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
-        standardInput = System.`in`
     }
 
     register<JavaExec>("runRlBlockFieldBridge") {
@@ -340,15 +334,6 @@ tasks {
     // gating them, for refreshing the checked-in baseline after a deliberate change.
     withType<JavaExec>().matching { it.name == "runClientGameTest" }.configureEach {
         if (project.findProperty("rebaseline") == "true") jvmArgs("-Dlambda.pathing.rebaseline=true")
-        // `./gradlew runClientGameTest -Pneural=true -PneuralModel=/abs/policy.onnx`
-        // runs the pathing corpus with the trained neural policy driving discovery.
-        if (project.findProperty("neural") == "true") {
-            jvmArgs("-Dlambda.pathing.neural=true")
-            (project.findProperty("neuralModel") as String?)?.let { jvmArgs("-Dlambda.pathing.neuralModel=$it") }
-        }
-        // `./gradlew runClientGameTest -PvalueField=true` runs the corpus steered by the
-        // coarse value field with no corridor veto, instead of the extracted route.
-        if (project.findProperty("valueField") == "true") jvmArgs("-Dlambda.pathing.valueField=true")
         // `-Ppathing.filter=staircase,bedrock` runs only the matching pathing scenarios
         // and skips the unrelated fall checks. The world commands still all run, so a
         // filtered scenario stands on exactly the terrain a full run would have built.

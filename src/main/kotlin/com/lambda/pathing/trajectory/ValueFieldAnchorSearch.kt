@@ -133,17 +133,6 @@ data class ValueFieldSearchConfig(
      */
     val safePrefixDelayMillis: Long = 250,
     /**
-     * Stop the moment a safe prefix exists instead of searching on to the goal.
-     *
-     * What makes a receding horizon possible. Certifying a whole tape to the goal spends
-     * the budget proving a future that will be re-decided long before the body reaches it,
-     * and commits to it so hard that improving it later means beating the entire
-     * remainder. Stopping at the prefix hands back committed motion plus a certified brake
-     * -- enough to keep walking safely -- and leaves the rest to be searched from the
-     * state the body actually reaches.
-     */
-    val stopAtSafePrefix: Boolean = false,
-    /**
      * Motion each commitment adds once the body is walking, and how little runway is left
      * before one is made.
      *
@@ -286,7 +275,7 @@ object ValueFieldAnchorSearch {
         initialState: MovementSimulationState,
         profile: PlayerPhysicsProfile,
         environment: SnapshotSimulationEnvironment,
-        config: WalkingSeedSearchConfig = WalkingSeedSearchConfig(),
+        config: MotionConstraints = MotionConstraints(),
         searchConfig: ValueFieldSearchConfig = ValueFieldSearchConfig(),
         /**
          * Called the moment a *safe* partial tape exists — committed motion ending in a
@@ -294,7 +283,7 @@ object ValueFieldAnchorSearch {
          * walking on this while the search keeps going; measured at 4 to 160 rollouts
          * against 473 to 2,526 for the complete plan.
          */
-        onSafePrefix: ((WalkingSeedSearchResult.Success) -> Unit)? = null,
+        onSafePrefix: ((MotionPlanResult.Success) -> Unit)? = null,
         /**
          * Frame the executor is about to press, or null when nothing is running.
          *
@@ -304,14 +293,15 @@ object ValueFieldAnchorSearch {
          * construction.
          */
         cursorFrame: (() -> Int?)? = null,
-    ): WalkingSeedSearchResult {
+        clock: SearchClock = SystemSearchClock(),
+    ): MotionPlanResult {
         val unsupported = route.edges.mapTo(HashSet()) { it.kind }
             .filterTo(HashSet()) { it !in SUPPORTED_KINDS }
-        if (unsupported.isNotEmpty()) return WalkingSeedSearchResult.UnsupportedRoute(unsupported)
+        if (unsupported.isNotEmpty()) return MotionPlanResult.UnsupportedRoute(unsupported)
 
         return Search(
             route, field, initialState, profile, environment, config, searchConfig,
-            onSafePrefix, cursorFrame,
+            onSafePrefix, cursorFrame, clock,
         ).run()
     }
 
@@ -326,9 +316,6 @@ object ValueFieldAnchorSearch {
      * apart; counting candidates alone would not.
      */
     val candidateCensus = java.util.concurrent.ConcurrentLinkedQueue<IntArray>()
-
-    /** Bench-only breakdown of why re-run decisions refuse. */
-    val rerunDiagnostics = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
     /** How often the live population is handed to the renderer, in expansions. */
     private const val CANDIDATE_PUBLISH_INTERVAL = 32
@@ -351,297 +338,6 @@ object ValueFieldAnchorSearch {
         CoarseMoveKind.WALK_OFF,
         CoarseMoveKind.JUMP_CANDIDATE,
     )
-
-    /**
-     * A certified stop from [state], or null if the body cannot safely halt from there.
-     *
-     * The reserve a receding horizon holds. The committed tape may end anywhere, provided
-     * this exists from its end: it is never executed unless the search fails to extend,
-     * and it is what keeps "stop searching further ahead" from meaning "run out of inputs
-     * mid-stride".
-     */
-    fun brakeTo(
-        state: MovementSimulationState,
-        field: CoarseValueField,
-        profile: PlayerPhysicsProfile,
-        environment: SnapshotSimulationEnvironment,
-        goal: Stance,
-        config: WalkingSeedSearchConfig = WalkingSeedSearchConfig(),
-    ): List<MovementSimulationInput>? {
-        val stance = stanceOf(state)
-        val evaluator = RolloutEvaluator(
-            state, listOf(stance.center()), goal.center(),
-            config.copy(maxCorridorDeviation = Double.MAX_VALUE),
-        )
-        var previous = state
-        var failed = false
-        val rollout = TrajectoryRolloutEngine.rollout(
-            initialState = state,
-            profile = profile,
-            environment = environment,
-            program = BrakeToStopProgram(state.rotation.yaw),
-            frameCount = BRAKE_TAIL_FRAMES,
-        ) { frame ->
-            val verdict = evaluator.observe(frame.index, frame.state, previous)
-            previous = frame.state
-            if (verdict is RolloutVerdict.Failed) { failed = true; true } else false
-        }
-        if (failed) return null
-        val stopped = rollout.frames.indexOfFirst {
-            it.state.onGround && it.state.velocity.horizontalLength() <= config.stoppedSpeed
-        }
-        if (stopped < 0) return null
-        val frames = rollout.frames.take(stopped + 1)
-        // Same rule the search's own brake follows: a body that comes to rest somewhere
-        // the coarse layer cannot price has moved and can no longer be routed.
-        val resting = stanceOf(frames.last().state)
-        if (!field.isStance(resting) || !field.isMapped(resting)) return null
-        return frames.map { it.input }
-    }
-
-    /**
-     * Re-derives a plan's inputs from a state it was never simulated from.
-     *
-     * This is what a splice needs and what a raw input tape cannot give. Each decision is
-     * handed back to the controller that produced it, and the controller reads the actual
-     * body: it steers at the same world targets and presses jump on the same *grounded
-     * tick* rather than the same frame number, so a body arriving wide steers back and one
-     * arriving late still launches from the ground. Measured on flat ground, a quarter of
-     * a block of entry error destroys a raw replay (0 of 7 tails survived) and this
-     * absorbs it (7 of 7), arriving slightly sooner than the originals because each
-     * controller re-aims from where the body really is.
-     *
-     * It certifies nothing by itself — the caller still replays the whole spliced tape
-     * from frame zero, which is the only thing that ever makes a plan publishable.
-     */
-    fun rerun(
-        plan: TrajectoryPlanDecisions,
-        from: MovementSimulationState,
-        route: CoarseRoutePlan,
-        field: CoarseValueField,
-        profile: PlayerPhysicsProfile,
-        environment: SnapshotSimulationEnvironment,
-        config: WalkingSeedSearchConfig = WalkingSeedSearchConfig(),
-        searchConfig: ValueFieldSearchConfig = ValueFieldSearchConfig(),
-    ): List<MovementSimulationInput>? = rerunSegments(
-        plan, from, route, field, profile, environment, config, searchConfig,
-    )?.flatten()
-
-    /**
-     * As [rerun], but keeping the frames each decision produced separate.
-     *
-     * A caller that means to *edit* a plan needs this: splicing a re-run tail back on has
-     * to know where each decision now ends, or the result carries boundaries describing
-     * the tape it replaced rather than the one it is.
-     */
-    fun rerunSegments(
-        plan: TrajectoryPlanDecisions,
-        from: MovementSimulationState,
-        route: CoarseRoutePlan,
-        field: CoarseValueField,
-        profile: PlayerPhysicsProfile,
-        environment: SnapshotSimulationEnvironment,
-        config: WalkingSeedSearchConfig = WalkingSeedSearchConfig(),
-        searchConfig: ValueFieldSearchConfig = ValueFieldSearchConfig(),
-        /**
-         * Whether a decision that cannot run from the state it is handed is skipped rather
-         * than abandoning the whole re-run.
-         *
-         * A plan being *edited* needs this. Every decision after an edit is handed a state
-         * its author never saw, and one that no longer applies -- a launch whose pad the
-         * body is already past -- is not a reason to throw away the other thirty-nine.
-         * The controllers steer at world targets, so the ones that follow pick the body up
-         * from wherever skipping left it, and the end-to-end replay still has to certify.
-         * Off by default, so a plain re-run still means strict reproduction.
-         */
-        skipFailures: Boolean = false,
-    ): List<List<MovementSimulationInput>>? {
-        val segments = ArrayList<List<MovementSimulationInput>>()
-        var state = from
-        var skipped = 0
-
-        for ((index, decision) in plan.decisions.withIndex()) {
-            val intended = plan.intended.getOrNull(index)
-            // Steering a decision is self-correcting; a *launch* is not. The controller
-            // re-aims a walk that starts a little wide, but a jump taken a tenth of a
-            // block further along lands a tenth of a block further along, and a one-block
-            // pad does not forgive that — measured, re-running launches verbatim was no
-            // better than replaying raw keys on rugged ground. So the launch *timing* is
-            // re-chosen around the recorded one: a handful of rollouts, against the
-            // hundreds that re-searching the tail would cost.
-            // Take the repair that makes the most progress, not merely the first that
-            // does not fail: a launch that survives but lands short leaves the rest of the
-            // plan worse off than the one it replaced, which is how "any valid repair"
-            // measured *worse* than no repair at all on small errors.
-            val frames = repairedDecisions(decision)
-                .mapNotNull { runDecision(it, state, route, field, profile, environment, config, searchConfig) }
-                .minByOrNull { candidate -> intendedError(candidate.last().state, intended) }
-            if (frames == null) {
-                if (!skipFailures || ++skipped > MAX_SKIPPED_DECISIONS) return null
-                segments.add(emptyList())
-                continue
-            }
-            segments += frames.map { it.input }
-            state = frames.last().state
-        }
-
-        val terminal = plan.terminal ?: return segments
-        val suffix = route.suffix(nearestNodeTo(route, state))
-        val evaluator = RolloutEvaluator(
-            state, suffix.nodes.map { it.center() }, route.goal.center(),
-            config.copy(maxCorridorDeviation = Double.MAX_VALUE),
-        )
-        var previous = state
-        var stopFrame: Int? = null
-        val rollout = TrajectoryRolloutEngine.rollout(
-            initialState = state,
-            profile = profile,
-            environment = environment,
-            program = CorridorFollowerProgram(suffix.nodes, terminal, config),
-            frameCount = config.maxFrames,
-        ) { frame ->
-            val verdict = evaluator.observe(frame.index, frame.state, previous)
-            previous = frame.state
-            when (verdict) {
-                is RolloutVerdict.Stopped -> { stopFrame = verdict.frame; true }
-                is RolloutVerdict.Failed -> true
-                is RolloutVerdict.Continue -> false
-            }
-        }
-        val stop = stopFrame ?: return null
-        return segments + listOf(rollout.frames.take(stop + 1).map { it.input })
-    }
-
-    /** How far a re-run ended from where the plan meant it to; ties break on the recorded order. */
-    private fun intendedError(reached: MovementSimulationState, intended: MovementSimulationState?): Double {
-        if (intended == null) return 0.0
-        val dx = reached.position.x - intended.position.x
-        val dy = reached.position.y - intended.position.y
-        val dz = reached.position.z - intended.position.z
-        val speed = reached.velocity.horizontalLength() - intended.velocity.horizontalLength()
-        return hypot(hypot(dx, dz), dy) + abs(speed) * SPEED_MATCH_WEIGHT
-    }
-
-    /** A block per tick of speed mismatch is worth about a block of position mismatch. */
-    private const val SPEED_MATCH_WEIGHT = 3.0
-
-    /** The decision as recorded, then the same launch a tick or two either side of it. */
-    private fun repairedDecisions(decision: TrajectoryDecision): List<TrajectoryDecision> = when (decision) {
-        is TrajectoryDecision.Launch -> buildList {
-            add(decision)
-            for (shift in LAUNCH_REPAIR_SHIFTS) {
-                val delay = decision.delayFrames + shift
-                if (delay >= 0) add(decision.copy(delayFrames = delay))
-            }
-        }
-
-        is TrajectoryDecision.Heading -> decision.delayFrames?.let { recorded ->
-            buildList {
-                add(decision)
-                for (shift in LAUNCH_REPAIR_SHIFTS) {
-                    val delay = recorded + shift
-                    if (delay >= 0) add(decision.copy(delayFrames = delay))
-                }
-            }
-        } ?: listOf(decision)
-
-        is TrajectoryDecision.Walk -> listOf(decision)
-    }
-
-    /** One decision, re-simulated from [state] to its own event. */
-    private fun runDecision(
-        decision: TrajectoryDecision,
-        state: MovementSimulationState,
-        route: CoarseRoutePlan,
-        field: CoarseValueField,
-        profile: PlayerPhysicsProfile,
-        environment: SnapshotSimulationEnvironment,
-        config: WalkingSeedSearchConfig,
-        searchConfig: ValueFieldSearchConfig,
-    ): List<SimulatedTrajectoryFrame>? {
-        val stance = stanceOf(state)
-        val heading = if (state.velocity.horizontalLength() <= 1e-6) null else {
-            state.velocity.x to state.velocity.z
-        }
-        val chain = field.chain(stance, decision.step, searchConfig.chainLength, heading)
-        val points = chain.map { it.center() }
-        if (points.isEmpty()) { note("empty-chain"); return null }
-        // Must carry the shed as well as the timing: a decision re-run without its
-        // brake ticks is a different decision, and the tape it produces cannot be the one
-        // that was certified.
-        val launch = when (decision) {
-            is TrajectoryDecision.Launch -> LaunchTrigger(decision.delayFrames, decision.brakeTicks)
-            is TrajectoryDecision.Heading ->
-                decision.delayFrames?.let { LaunchTrigger(it, decision.brakeTicks) }
-            is TrajectoryDecision.Walk -> null
-        }
-        val program = if (decision is TrajectoryDecision.Heading) {
-            HeadingFollowerProgram(
-                targetYaw = decision.yaw,
-                sprint = decision.sprint && decision.keys.sustainsSprint,
-                maxYawChange = config.maxYawDegreesPerFrame,
-                launch = launch,
-                keys = decision.keys,
-                airborneKeys = decision.airborneKeys,
-            )
-        } else {
-            SegmentFollowerProgram(
-                nodes = points,
-                startProgress = 0,
-                sprint = decision.sprint,
-                lookAheadNodes = (decision as? TrajectoryDecision.Walk)?.lookAheadNodes ?: LOOK_AHEAD_NODES,
-                launch = launch,
-                maxYawChange = config.maxYawDegreesPerFrame,
-                easeTurns = (decision as? TrajectoryDecision.Walk)?.easeTurns == true,
-            )
-        }
-
-        val evaluator = RolloutEvaluator(
-            state, points, route.goal.center(),
-            config.copy(maxCorridorDeviation = Double.MAX_VALUE),
-        )
-        var previous = state
-        var airborne = false
-        var failed = false
-        var eventFrame: Int? = null
-        val committed = decision is TrajectoryDecision.Heading && decision.delayFrames == null
-
-        val rollout = TrajectoryRolloutEngine.rollout(
-            initialState = state,
-            profile = profile,
-            environment = environment,
-            program = program,
-            frameCount = searchConfig.maxTransitionFrames,
-        ) { frame ->
-            val verdict = evaluator.observe(frame.index, frame.state, previous)
-            previous = frame.state
-            when (verdict) {
-                is RolloutVerdict.Failed -> { failed = true; true }
-                is RolloutVerdict.Stopped -> { eventFrame = frame.index; true }
-                is RolloutVerdict.Continue -> {
-                    if (!frame.state.onGround) { airborne = true; false } else {
-                        val now = stanceOf(frame.state)
-                        val done = when {
-                            launch != null -> launch.hasFired && airborne
-                            committed -> frame.index + 1 >=
-                                ((decision as? TrajectoryDecision.Heading)?.commitFrames
-                                    ?: searchConfig.headingCommitFrames)
-                            else -> now != stance
-                        }
-                        val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed
-                        if (done && moving && now != stance) { eventFrame = frame.index; true } else false
-                    }
-                }
-            }
-        }
-        if (failed) { note("gate-failed"); return null }
-        val frame = eventFrame ?: run { note("no-event"); return null }
-        return rollout.frames.take(frame + 1)
-    }
-
-    private fun note(reason: String) {
-        rerunDiagnostics.merge(reason, 1, Int::plus)
-    }
 
     private fun nearestNodeTo(route: CoarseRoutePlan, state: MovementSimulationState): Int {
         var best = 0
@@ -770,13 +466,13 @@ object ValueFieldAnchorSearch {
         val boundaries: List<Int>,
         val segments: Int,
         val launchMargin: Int,
-        val parameters: WalkingSeedParameters,
+        val parameters: TerminalApproach,
         val frames: Int,
         val collisionEvents: Int,
         /** What the search decided, so the plan can be re-derived from a nearby state. */
         val decisions: List<TrajectoryDecision> = emptyList(),
         /** Terminal approach parameters, when the tape ended in the braking sweep. */
-        val terminal: WalkingSeedParameters? = null,
+        val terminal: TerminalApproach? = null,
         /** Frame each decision ends on; what makes a tail of the plan addressable. */
         val decisionEnds: List<Int> = emptyList(),
         /** The anchor this grew from; how the endgame knows which line to commit along. */
@@ -840,10 +536,11 @@ object ValueFieldAnchorSearch {
         private val initialState: MovementSimulationState,
         private val profile: PlayerPhysicsProfile,
         private val environment: SnapshotSimulationEnvironment,
-        private val config: WalkingSeedSearchConfig,
+        private val config: MotionConstraints,
         private val searchConfig: ValueFieldSearchConfig,
-        private val onSafePrefix: ((WalkingSeedSearchResult.Success) -> Unit)?,
+        private val onSafePrefix: ((MotionPlanResult.Success) -> Unit)?,
         private val cursorFrame: (() -> Int?)?,
+        private val clock: SearchClock,
     ) {
         /**
          * The safety gates with the corridor test disabled. Deviation from a chain that
@@ -852,11 +549,11 @@ object ValueFieldAnchorSearch {
          * *world* — falls, grounded collisions, head bonks, unsupported physics — is
          * untouched.
          */
-        private val gateConfig = config.copy(maxCorridorDeviation = Double.MAX_VALUE)
+        private val gateConfig = config
 
         private val goalStance = route.goal
         private val goalPoint = goalStance.center()
-        private val attempts = ArrayList<WalkingSeedAttempt>()
+        private val attempts = ArrayList<PlanAttempt>()
         private val dominance = HashMap<AnchorKey, MutableList<ValueAnchor>>()
 
         private val open = PriorityQueue<OpenEntry>(compareBy { it.order })
@@ -888,8 +585,6 @@ object ValueFieldAnchorSearch {
          */
         private var reachableRoot: ValueAnchor? = null
 
-        /** Set when [ValueFieldSearchConfig.stopAtSafePrefix] ends the search early. */
-        private var haltedPrefix: WalkingSeedSearchResult.Success? = null
 
         /** Expansions spent when the last commitment was made; the quality floor's datum. */
         private var expansionsAtCommit = 0
@@ -933,7 +628,6 @@ object ValueFieldAnchorSearch {
          */
         private var committed = false
 
-        private val startedNanos = System.nanoTime()
         private var rolloutsSpent = 0
 
         /**
@@ -946,12 +640,12 @@ object ValueFieldAnchorSearch {
          * Once one set is known to work, it is tried alone, and the grid is only re-opened
          * when it fails.
          */
-        private var provenFinish: WalkingSeedParameters? = null
+        private var provenFinish: TerminalApproach? = null
 
 
         private class OpenEntry(val order: Double, val bound: Double, val anchor: ValueAnchor)
 
-        fun run(): WalkingSeedSearchResult {
+        fun run(): MotionPlanResult {
             admit(
                 ValueAnchor(
                     state = initialState,
@@ -1017,7 +711,6 @@ object ValueFieldAnchorSearch {
                     if (!commitFromCandidates(urgent = true, along = toward)) break
                 }
                 if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) publishCandidates()
-                haltedPrefix?.let { return it }
                 val entry = open.poll()
 
                 // Past the local horizon: park it as a candidate rather than expanding it.
@@ -1075,6 +768,7 @@ object ValueFieldAnchorSearch {
                 // branching is worth paying for.
                 val action = actions[anchor.cursor++]
                 expansions++
+                clock.onExpansion()
                 rolloutsSpent = expansions
                 expansionsSinceImprovement++
 
@@ -1091,7 +785,7 @@ object ValueFieldAnchorSearch {
                             boundaries = anchor.boundaries() + anchor.elapsed,
                             segments = anchor.depth() + 1,
                             launchMargin = anchor.launchMargin,
-                            parameters = WalkingSeedParameters(
+                            parameters = TerminalApproach(
                                 action.sprint, LOOK_AHEAD_NODES,
                                 config.brakeDistances.first(), null,
                             ),
@@ -1148,7 +842,6 @@ object ValueFieldAnchorSearch {
                 }
             }
 
-            haltedPrefix?.let { return it }
             best?.let { solution ->
                 // Reaching the goal is not a reason to hand the body everything between
                 // here and it. The loop's own finish checks are guarded, but this exit is
@@ -1164,14 +857,12 @@ object ValueFieldAnchorSearch {
                 return finish(solution)
             }
 
-            return WalkingSeedSearchResult.NoSafeStop(
+            return MotionPlanResult.NoSafeStop(
                 attempts = attempts.toList(),
                 blockedProgress = deepestProgress,
                 deadEdge = null,
                 remainingStart = route.nodes.getOrNull(deepestProgress),
                 remainingGoal = goalStance,
-                remainingMoveSummary = "value-field search; %d anchors, best value %.1f ticks"
-                    .format(dominance.values.sumOf { it.size }, bestValue),
             )
         }
 
@@ -1579,7 +1270,7 @@ object ValueFieldAnchorSearch {
                 listOf(null)
             }
 
-            var bestFinish: Triple<TrajectoryRank, List<SimulatedTrajectoryFrame>, WalkingSeedParameters>? = null
+            var bestFinish: Triple<TrajectoryRank, List<SimulatedTrajectoryFrame>, TerminalApproach>? = null
             // Cheapest first: the brake that already worked, then the full grid only if it
             // did not. On an easy arrival this is one rollout instead of dozens.
             val grid = buildList {
@@ -1587,7 +1278,7 @@ object ValueFieldAnchorSearch {
                 for (sprint in config.sprintModes) {
                     for (brake in config.brakeDistances) {
                         for (lead in leads) {
-                            add(WalkingSeedParameters(sprint, LOOK_AHEAD_NODES, brake, lead))
+                            add(TerminalApproach(sprint, LOOK_AHEAD_NODES, brake, lead))
                         }
                     }
                 }
@@ -1624,7 +1315,7 @@ object ValueFieldAnchorSearch {
                         }
                         val evaluation = evaluate(rollout, points, goalPoint, gateConfig)
                         PlanningDebugChannel.publishAttempt(rollout, stopFrame != null, evaluation.diagnostic)
-                        attempts += WalkingSeedAttempt(
+                        attempts += PlanAttempt(
                             parameters = parameters,
                             simulatedFrames = rollout.frames.size,
                             finalGoalError = hypot(
@@ -1720,7 +1411,7 @@ object ValueFieldAnchorSearch {
             val running = safeAnchor
             if (running == null) {
                 if (anchor.elapsed < searchConfig.safePrefixFrames) return
-                if ((System.nanoTime() - startedNanos) / 1_000_000 < searchConfig.safePrefixDelayMillis) return
+                if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
             } else {
                 // Committing straight off an admitted anchor, without weighing it against
                 // anything. A genuine last resort: it fires only when nothing has been
@@ -1737,7 +1428,7 @@ object ValueFieldAnchorSearch {
                 if (running.elapsed - executing > searchConfig.horizonRunwayFrames) return
             }
             val braked = brakeFrom(anchor) ?: return
-            val certified = certify(braked) as? WalkingSeedSearchResult.Success ?: return
+            val certified = certify(braked) as? MotionPlanResult.Success ?: return
             if (firstSafe == null) {
                 firstSafe = braked
                 firstSafeRollouts = expansions
@@ -1745,7 +1436,6 @@ object ValueFieldAnchorSearch {
             safeAnchor = anchor
             expansionsAtCommit = expansions
             reRootOnto(anchor)
-            if (searchConfig.stopAtSafePrefix) haltedPrefix = certified
             publish(certified)
         }
 
@@ -1845,7 +1535,7 @@ object ValueFieldAnchorSearch {
             val line = lineFrom(root, best.anchor).filter { it.elapsed > committedElapsed }
             for (candidate in line.sortedBy { it.elapsed }) {
                 val braked = brakeFrom(candidate) ?: continue
-                val certified = certify(braked) as? WalkingSeedSearchResult.Success ?: continue
+                val certified = certify(braked) as? MotionPlanResult.Success ?: continue
                 if (firstSafe == null) {
                     firstSafe = braked
                     firstSafeRollouts = expansions
@@ -2029,7 +1719,7 @@ object ValueFieldAnchorSearch {
                 boundaries = anchor.boundaries() + anchor.elapsed,
                 segments = anchor.depth() + 1,
                 launchMargin = anchor.launchMargin,
-                parameters = WalkingSeedParameters(false, LOOK_AHEAD_NODES, config.brakeDistances.first(), null),
+                parameters = TerminalApproach(false, LOOK_AHEAD_NODES, config.brakeDistances.first(), null),
                 frames = anchor.elapsed + frames.size,
                 collisionEvents = anchor.collisionEvents + collisionEvents(anchor.state, frames),
                 decisions = anchor.decisions(),
@@ -2039,7 +1729,7 @@ object ValueFieldAnchorSearch {
             )
         }
 
-        private fun certify(solution: Solution): WalkingSeedSearchResult {
+        private fun certify(solution: Solution): MotionPlanResult {
             val tape = InputTape(solution.inputs)
             val tracked = environment.trackingView()
             val certified = TrajectoryRolloutEngine.rollout(
@@ -2050,17 +1740,15 @@ object ValueFieldAnchorSearch {
                 frameCount = tape.frameCount,
             )
             if (!certified.completed || certified.frames.size != tape.frameCount) {
-                return WalkingSeedSearchResult.UnstableReplay(
+                return MotionPlanResult.UnstableReplay(
                     "value-field tape did not reproduce: ${certified.termination}"
                 )
             }
-            return WalkingSeedSearchResult.Success(
+            return MotionPlanResult.Success(
                 sourceRoute = route,
                 tape = tape,
                 rollout = certified,
-                parameters = solution.parameters.copy(
-                    gapLaunchFrames = certified.frames.filter { it.input.jump }.map { it.index },
-                ),
+                parameters = solution.parameters,
                 dependencies = route.dependencies + tracked.dependencies(),
                 attempts = attempts.toList(),
                 controlSegments = solution.segments,
@@ -2072,9 +1760,6 @@ object ValueFieldAnchorSearch {
                     boundaries = solution.decisionEnds,
                     terminal = solution.terminal,
                 ),
-                safePrefix = firstSafe?.let {
-                    WalkingSeedSearchResult.SafePrefix(it.frames, firstSafeRollouts, rolloutsSpent)
-                },
             )
         }
 
@@ -2100,7 +1785,7 @@ object ValueFieldAnchorSearch {
             return solution.frames - committedElapsed <= searchConfig.maxFinalCommitFrames
         }
 
-        private fun finish(solution: Solution): WalkingSeedSearchResult = certify(solution)
+        private fun finish(solution: Solution): MotionPlanResult = certify(solution)
 
         /**
          * What to return when the walk ended before the search did.
@@ -2109,14 +1794,12 @@ object ValueFieldAnchorSearch {
          * every one of those tapes ended in a certified stop. There is simply nothing left
          * for this search to say.
          */
-        private fun abandoned(): WalkingSeedSearchResult = WalkingSeedSearchResult.NoSafeStop(
+        private fun abandoned(): MotionPlanResult = MotionPlanResult.NoSafeStop(
             attempts = attempts.toList(),
             blockedProgress = deepestProgress,
             deadEdge = null,
             remainingStart = route.nodes.getOrNull(deepestProgress),
             remainingGoal = goalStance,
-            remainingMoveSummary = "walk ended; %d anchors, %d parked candidates"
-                .format(dominance.values.sumOf { it.size }, parked.size),
         )
 
         private fun admit(anchor: ValueAnchor) {
@@ -2214,15 +1897,12 @@ object ValueFieldAnchorSearch {
             stopped: Boolean,
         ) {
             PlanningDebugChannel.publishAttempt(rollout, stopped, failure)
-            attempts += WalkingSeedAttempt(
-                parameters = WalkingSeedParameters(
+            attempts += PlanAttempt(
+                parameters = TerminalApproach(
                     sprint = action.sprint,
                     lookAheadNodes = (action as? TrajectoryDecision.Walk)?.lookAheadNodes ?: LOOK_AHEAD_NODES,
                     brakeDistance = config.brakeDistances.first(),
                     stepUpJumpLeadDistance = null,
-                    gapLaunchFrames = if (action is TrajectoryDecision.Walk) emptyList() else {
-                        rollout.frames.filter { frame -> frame.input.jump }.map { frame -> frame.index }
-                    },
                 ),
                 simulatedFrames = rollout.frames.size,
                 finalGoalError = hypot(
