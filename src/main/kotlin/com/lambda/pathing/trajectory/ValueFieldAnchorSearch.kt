@@ -963,7 +963,15 @@ object ValueFieldAnchorSearch {
                         walking = true
                         val runway = root.elapsed - executing
                         if (runway <= searchConfig.horizonRunwayFrames) {
-                            commitFromCandidates(urgent = runway <= searchConfig.horizonCommitFrames)
+                            commitFromCandidates(
+                                urgent = runway <= searchConfig.horizonCommitFrames,
+                                // Walk the winning line down in small steps rather than
+                                // saving it all for one publication at the end. The endgame
+                                // used to arrive as a single ~80-frame commitment -- the
+                                // whole local window -- because nothing committed toward
+                                // the solution until the search had already given up.
+                                along = best?.takeIf { !readyToFinish(it) }?.anchor,
+                            )
                         }
                     } else if (walking) {
                         // The walk is over -- the goal, a stop, or a cancellation. Nothing
@@ -983,7 +991,9 @@ object ValueFieldAnchorSearch {
                 if (open.isEmpty()) {
                     // Nothing left to grow without more room. Committing is the only thing
                     // that makes room, so it happens whether or not the floor is met.
-                    if (parked.isEmpty() || !commitFromCandidates(urgent = true)) break
+                    val toward = best?.takeIf { !readyToFinish(it) }?.anchor
+                    if (parked.isEmpty() && toward == null) break
+                    if (!commitFromCandidates(urgent = true, along = toward)) break
                 }
                 if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) publishCandidates()
                 haltedPrefix?.let { return it }
@@ -1765,14 +1775,19 @@ object ValueFieldAnchorSearch {
             // anything else once committed, and re-rooting prunes the rest. So no descent
             // check is needed on that path, which matters -- this runs while the body
             // walks, and the check is linear in the population times its depth.
-            // An explicit line only counts if it actually continues what is committed.
-            // `lineFrom` walks to the search root when handed an anchor that is not a
-            // descendant, so committing off one moves the tape *backwards* -- observed as a
-            // published tape shrinking by 339 frames, which is not a commitment at all.
+            // A preferred line, not a demand. Once a complete solution exists the sensible
+            // thing is to commit along *it*, in the ordinary small steps, so that by the
+            // time the search runs out there is almost nothing left to publish. But if that
+            // line is not committable the population is still there, and refusing outright
+            // just defers the whole remainder to one final jump.
+            //
+            // It only counts if it actually continues what is committed: `lineFrom` walks
+            // to the *search* root when handed an anchor that is not a descendant, so
+            // committing off one moves the tape backwards -- observed as a published tape
+            // shrinking by 339 frames, which is not a commitment at all.
             val leaf = along?.takeIf {
                 it.elapsed > committedElapsed && (root == null || it.descendsFrom(root))
             }
-            if (leaf == null && along != null) return false
             val pool = if (parked.isNotEmpty()) parked else open.filter {
                 it.anchor.elapsed > committedElapsed && (root == null || it.anchor.descendsFrom(root))
             }
