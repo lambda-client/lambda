@@ -52,7 +52,7 @@ object TargetStrafe : Module(
     private val antiStuck by setting("AntiStuck", true)
 
     private val renderCircle by setting("RenderCircle", true)
-    private val renderCircleColor by setting("RenderCircleColor", Color(255, 255, 255, 100), visibility = { renderCircle })
+    private val renderCircleColor by setting("RenderCircleColor", Color(255, 255, 255, 100)) { renderCircle }
     private val renderThickness by configBlock(WorldLineSettings(this))
          .withEdits {
              hideAllExcept(
@@ -67,7 +67,7 @@ object TargetStrafe : Module(
 
     private var direction = 1
 
-    private var currentDistance = 0.toDouble()
+    private var currentDistance = 0.0
     private var currentTargetVec: Vec3d? = null
 
     private var strafing = false

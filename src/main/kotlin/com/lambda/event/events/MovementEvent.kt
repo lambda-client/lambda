@@ -25,7 +25,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.MovementType
 import net.minecraft.util.math.Vec3d
 
-abstract class MovementEvent {
+sealed class MovementEvent {
     /**
      * Represents player movement update events.
      * This event will even be triggered if the player is not moving.
