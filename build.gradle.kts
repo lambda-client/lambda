@@ -349,6 +349,14 @@ tasks {
         // `./gradlew runClientGameTest -PvalueField=true` runs the corpus steered by the
         // coarse value field with no corridor veto, instead of the extracted route.
         if (project.findProperty("valueField") == "true") jvmArgs("-Dlambda.pathing.valueField=true")
+        // `-Ppathing.filter=staircase,bedrock` runs only the matching pathing scenarios
+        // and skips the unrelated fall checks. The world commands still all run, so a
+        // filtered scenario stands on exactly the terrain a full run would have built.
+        // `-PnoRefine=true` publishes the first certified tape and never improves it --
+        // the way to tell a planner change from improvement-loop variance.
+        if (project.findProperty("noRefine") == "true") jvmArgs("-Dlambda.pathing.noRefine=true")
+        (project.findProperty("pathing.filter") as String?)
+            ?.let { jvmArgs("-Dlambda.pathing.testFilter=$it") }
         if (project.findProperty("noRefine") == "true") jvmArgs("-Dlambda.pathing.noRefine=true")
     }
 

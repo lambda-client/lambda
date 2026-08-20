@@ -30,6 +30,7 @@ import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
+import com.lambda.pathing.trajectory.SegmentCost
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.WalkingSeedParameters
 import com.lambda.threading.runSafeAutomated
@@ -81,6 +82,11 @@ object PathingManager : Manager<PathingRequest>(0) {
          * meant to be superseded by the full plan while it is still running.
          */
         val partial: Boolean = false,
+        /**
+         * Where this tape spent its time, against what the coarse layer says each stretch
+         * was worth. The thing to look at when a path is legal but bad.
+         */
+        val segmentCosts: List<SegmentCost> = emptyList(),
     )
 
     sealed interface Status {
@@ -116,6 +122,18 @@ object PathingManager : Manager<PathingRequest>(0) {
     /** Improvements swapped in while walking; the visible sign that anytime is working. */
     @Volatile
     var adopted: Int = 0
+        private set
+
+    /**
+     * The first complete plan of the journey, before any improvement.
+     *
+     * What the planner deterministically produces. Refinement is a stochastic bonus racing
+     * a live walk, so measuring the *final* tape measures how many attempts happened to fit
+     * -- a regression gate built on that is flaky by construction, and was: a collision
+     * count of 7 came from one lucky run where the search reliably produces 8.
+     */
+    @Volatile
+    var firstFullPath: PublishedPath? = null
         private set
 
     private val executedPaths = ArrayList<PublishedPath>()
@@ -203,6 +221,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         pendingImprovement = null
         adopted = 0
         rejectedImprovements = 0
+        firstFullPath = null
         synchronized(executedPaths) { executedPaths.clear() }
         synchronized(trail) { trail.clear() }
         PlanningDebugChannel.reset()
@@ -217,6 +236,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         pendingImprovement = null
         adopted = 0
         rejectedImprovements = 0
+        firstFullPath = null
         synchronized(executedPaths) { executedPaths.clear() }
         synchronized(trail) { trail.clear() }
 
@@ -405,6 +425,7 @@ object PathingManager : Manager<PathingRequest>(0) {
     }
 
     private fun recordExecuted(path: PublishedPath) {
+        if (!path.partial && firstFullPath == null) firstFullPath = path
         synchronized(executedPaths) { executedPaths += path }
     }
 

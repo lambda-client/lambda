@@ -135,6 +135,24 @@ object PathingRenderer : Loadable {
             }
         }
 
+        // The tape drawn as a heat line: bright where the stretch spent frames without
+        // buying progress the coarse layer can see. This is the answer to "the path is
+        // legal but bad and I cannot say why" -- the bad part is the part that glows.
+        if (config.renderSegmentCost) {
+            PathingManager.published?.segmentCosts?.forEach { cost ->
+                if (cost.terminal || cost.excessTicks < MIN_DRAWN_EXCESS) return@forEach
+                val from = cost.fromFrame
+                val to = minOf(cost.toFrame, points.size - 1)
+                if (to - from < 1) return@forEach
+                val heat = (cost.excessRate / FULL_HEAT_EXCESS_RATE).coerceIn(0.0, 1.0)
+                polyline(
+                    points.subList(from, to + 1),
+                    config.costColor.setAlpha(0.25 + 0.7 * heat),
+                    screenWidth((config.trajectoryWidth * (0.5 + heat)).toInt().coerceAtLeast(1)),
+                )
+            }
+        }
+
         // Where one controller hands the tape to the next. These are the only frames a
         // refinement or a splice may cut at, so they are the shape of what can still
         // change -- a stretch with no splice markers is a stretch nothing can improve.
@@ -195,6 +213,7 @@ object PathingRenderer : Loadable {
             "coarse lower bound %.1f ticks  |  search %d attempts in %d ms".format(
                 path.route.lowerBoundTicks, path.attempts, path.planMillis,
             ),
+            costLabel(path),
             statusLabel(),
         )
 
@@ -210,6 +229,24 @@ object PathingRenderer : Loadable {
                 ),
             )
         }
+    }
+
+    /**
+     * How much of the tape is time it did not have to spend, and where the worst of it is.
+     *
+     * The whole-tape number alone never said which part was bad, which is exactly the
+     * question a path that is legal but slow raises.
+     */
+    private fun costLabel(path: PathingManager.PublishedPath): String {
+        val costs = path.segmentCosts.filterNot { it.terminal }
+        if (costs.isEmpty()) return "no cost attribution"
+        val excess = costs.sumOf { it.excessTicks }
+        val worst = costs.maxByOrNull { it.excessTicks } ?: return "no cost attribution"
+        return "excess %.1f ticks (%.0f%%)  worst frames %d-%d: spent %d, worth %.1f".format(
+            excess,
+            100.0 * excess / path.plan.tape.frameCount,
+            worst.fromFrame, worst.toFrame, worst.actualTicks, worst.boundTicks,
+        )
     }
 
     private fun statusLabel(): String = when (val status = PathingManager.status) {
@@ -258,6 +295,12 @@ object PathingRenderer : Loadable {
     private fun screenWidth(pixels: Int): Float = -pixels * 0.00005f
 
     private fun Stance.center(yOffset: Double) = Vec3d(x + 0.5, y + yOffset, z + 0.5)
+
+    /** Below this a stretch is ordinary turning cost, not a fault worth drawing. */
+    private const val MIN_DRAWN_EXCESS = 1.5
+
+    /** Excess-per-frame at which a stretch is drawn at full heat. */
+    private const val FULL_HEAT_EXCESS_RATE = 0.6
 
     private const val COARSE_Y = 0.06
     private const val TRAJECTORY_Y = 0.10

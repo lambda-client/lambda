@@ -61,14 +61,23 @@ object LambdaTest : FabricClientGameTest {
 
         world.waitForChunksDownload()
 
-        server.runCommand("/tp Steve ~ ~30 ~")
-        context.unit("assert deadly fall") { isFallDeadly() }
+        // The fall checks are unrelated to pathing and cost a world round trip each, so a
+        // filtered run -- which is what working on the planner actually needs -- skips
+        // straight to the scenarios.
+        if (scenarioFilter.isEmpty()) {
+            server.runCommand("/tp Steve ~ ~30 ~")
+            context.unit("assert deadly fall") { isFallDeadly() }
 
-        server.runCommand("/tp Steve ~ -50 ~")
-        context.unit("assert safe fall") { !isFallDeadly() }
+            server.runCommand("/tp Steve ~ -50 ~")
+            context.unit("assert safe fall") { !isFallDeadly() }
+        }
         server.runCommand("/tp Steve ~ -60 ~")
 
         testOrdinaryMovementReplay(context, server)
+
+        check(pathingFailures.isEmpty()) {
+            "${pathingFailures.size} pathing scenario(s) failed:\n" + pathingFailures.joinToString("\n")
+        }
 
         // All the tests passed
         singleplayerContext.close()
@@ -439,6 +448,55 @@ object LambdaTest : FabricClientGameTest {
         start: String = "0.5 100 0.5 0 0",
         maxPathingTicks: Int = MAX_PATHING_TICKS,
     ) {
+        // Filtered out scenarios are skipped, but the world commands around them are not:
+        // they build the terrain later scenarios stand on, so running a subset has to
+        // leave the world exactly as running all of it would.
+        if (!scenarioSelected(scenario)) return
+        // One failing scenario used to abort the whole suite, so "one scenario is red"
+        // never meant more than "at least one" -- every later result stayed unknown until
+        // the first was fixed. Failures are collected and reported together instead.
+        try {
+            runPathingWalk(
+                context, server, scenario, goal, minLegs, maxLegs, maxDeviation, expectedJumpDy,
+                requireJumpInput, minGapLaunches, minContinuousSegments, requireMovingSplices,
+                cameraYawDuringPlanning, plannerMaxFrames, driftBeforeSubmit, start, maxPathingTicks,
+            )
+        } catch (failure: IllegalStateException) {
+            pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
+            println("[pathing-fail] ${failure.message}")
+        }
+    }
+
+    /** Scenario substrings from `-Ppathing.filter`; empty means run them all. */
+    private val scenarioFilter: List<String> by lazy {
+        System.getProperty("lambda.pathing.testFilter").orEmpty()
+            .split(',').map(String::trim).filter(String::isNotEmpty)
+    }
+
+    private fun scenarioSelected(scenario: String): Boolean =
+        scenarioFilter.isEmpty() || scenarioFilter.any { scenario.contains(it) }
+
+    private val pathingFailures = ArrayList<String>()
+
+    private fun runPathingWalk(
+        context: ClientGameTestContext,
+        server: net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext,
+        scenario: String,
+        goal: Stance,
+        minLegs: Int,
+        maxLegs: Int?,
+        maxDeviation: Double,
+        expectedJumpDy: Int?,
+        requireJumpInput: Boolean,
+        minGapLaunches: Int,
+        minContinuousSegments: Int,
+        requireMovingSplices: Boolean,
+        cameraYawDuringPlanning: Float?,
+        plannerMaxFrames: Int?,
+        driftBeforeSubmit: Vec3d?,
+        start: String,
+        maxPathingTicks: Int,
+    ) {
         server.runCommand("/tp Steve $start")
         repeat(5) { context.waitTick() }
 
@@ -581,13 +639,24 @@ object LambdaTest : FabricClientGameTest {
                 if (frame.state.horizontalCollision && !previousCollision) bumps++
                 previousCollision = frame.state.horizontalCollision
             }
+            // Measured on the first complete plan, not the last: that is what the planner
+            // deterministically produces, and it is the only thing a regression gate can
+            // hold. What the improvement loop achieved on top is reported as finalFrames.
+            val planned = PathingManager.firstFullPath?.plan?.frames ?: frames
+            var plannedPrevious = false
+            var plannedBumps = 0
+            planned.forEach { frame ->
+                if (frame.state.horizontalCollision && !plannedPrevious) plannedBumps++
+                plannedPrevious = frame.state.horizontalCollision
+            }
             val metrics = PathingMetricSink.Run(
                     scenario = scenario,
                     success = true,
                     completionTicks = ticks,
-                    trajectoryFrames = frames.size,
-                    collisionFrames = frames.count { it.state.horizontalCollision },
-                    bumps = bumps,
+                    trajectoryFrames = planned.size,
+                    finalFrames = frames.size,
+                    collisionFrames = planned.count { it.state.horizontalCollision },
+                    bumps = plannedBumps,
                     launchMarginFrames = path.launchMarginFrames,
                     planLatencyMs = path.planMillis,
                     reroutes = path.reroutes,

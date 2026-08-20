@@ -37,6 +37,12 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     ) { enabled }
 
     @Group(TOGGLES_GROUP)
+    override val renderSegmentCost by c.setting(
+        "Cost Heat", true,
+        "Highlight stretches that spent frames without buying progress toward the goal.",
+    ) { enabled }
+
+    @Group(TOGGLES_GROUP)
     override val renderTrail by c.setting("Live Trail", true, "Where the body actually went.") { enabled }
 
     @Group(TOGGLES_GROUP)
@@ -86,6 +92,9 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(COLOR_GROUP)
     override val cutColor by c.setting("Refinement Cut", Color(255, 140, 255, 235)) { enabled && renderSplices }
+
+    @Group(COLOR_GROUP)
+    override val costColor by c.setting("Cost Heat", Color(255, 70, 40, 235)) { enabled && renderSegmentCost }
 
     @Group(COLOR_GROUP)
     override val stopColor by c.setting("Certified Stop", Color(120, 255, 120, 242)) { enabled && renderTrajectory }

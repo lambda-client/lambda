@@ -47,6 +47,14 @@ sealed interface TrajectoryDecision {
         override val sprint: Boolean,
         override val step: Stance?,
         val delayFrames: Int,
+        /**
+         * Grounded ticks of released forward immediately before the jump.
+         *
+         * Speed at takeoff, which together with [delayFrames] is what actually decides
+         * where an arc lands. Without it gait is a boolean, and a pad that a sprint
+         * overshoots and a walk cannot reach has no answer in the vocabulary at all.
+         */
+        val brakeTicks: Int = 0,
     ) : TrajectoryDecision
 
     /**
@@ -61,6 +69,18 @@ sealed interface TrajectoryDecision {
         val delayFrames: Int?,
         val keys: MovementKeys = MovementKeys.FORWARD,
         val airborneKeys: MovementKeys = keys,
+        /** As [Launch.brakeTicks]; only meaningful when this heading jumps. */
+        val brakeTicks: Int = 0,
+        /**
+         * How long the bearing is held before the decision ends; null uses the default.
+         *
+         * A committed run is the only way the body builds speed instead of re-deciding
+         * every block, but a *fixed* commitment spends the same ticks whether or not they
+         * are still buying anything. The attribution finds these: on a 433-frame walk,
+         * five of the eight worst stretches were headings that ran exactly the default
+         * length, each wasting three or four ticks past the point they stopped helping.
+         */
+        val commitFrames: Int? = null,
     ) : TrajectoryDecision
 }
 
