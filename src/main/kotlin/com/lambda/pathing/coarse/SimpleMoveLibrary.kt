@@ -16,7 +16,6 @@ import com.lambda.pathing.world.VoxelPos
 import kotlin.math.abs
 import kotlin.math.hypot
 
-/** Immutable template set and every derived search property. */
 class SimpleMoveLibrary private constructor(
     val templates: List<MotionTemplate>,
     private val readOffsets: Set<VoxelPos>,
@@ -29,9 +28,6 @@ class SimpleMoveLibrary private constructor(
     )
 
     fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
-        // Not a mask condition but a certifiability one: standing here is only useful
-        // if the trajectory layer can simulate leaving here, and the tallest departure
-        // (a sprint jump) reads further up than any cell this mask checks.
         if (stance.y !in view.simulableStanceY) return false
         val support = view.voxel(stance.x, stance.y - 1, stance.z)
         return support.standableFullTop && !support.intrudesAbove &&
@@ -58,7 +54,6 @@ class SimpleMoveLibrary private constructor(
     fun predecessorCosts(view: CoarseVoxelView, target: Stance): Map<Stance, Double> =
         edgesTo(view, target).minimumCostsBy { it.from }
 
-    /** Max of independent axis lower bounds; summing would double-count diagonal/vertical moves. */
     fun heuristic(from: Stance, to: Stance): Double {
         val horizontalDistance = hypot((to.x - from.x).toDouble(), (to.z - from.z).toDouble())
         val horizontal = horizontalDistance * heuristicCaps.horizontalTicksPerBlock.finiteOrZero()
@@ -71,7 +66,6 @@ class SimpleMoveLibrary private constructor(
         return maxOf(horizontal, vertical)
     }
 
-    /** Exact inverse of the derived template read offsets. */
     fun affectedOrigins(changed: VoxelPos): Set<Stance> = buildSet(readOffsets.size) {
         for (offset in readOffsets) {
             add(Stance(changed.x - offset.x, changed.y - offset.y, changed.z - offset.z))
@@ -138,10 +132,6 @@ class SimpleMoveLibrary private constructor(
                             )
                         )
                         if (options.allowJumpCandidates) {
-                            // Diagonal parkour. Without it, a diagonal line of platforms is
-                            // unreachable, so the coarse layer approximates it with a cardinal
-                            // zigzag -- the "slalom" the body then walks. The same swept-arc
-                            // probe masks it; the trajectory layer certifies the actual launch.
                             for (span in 2..options.maxDiagonalJumpSpan) {
                                 for (verticalOffset in -options.maxJumpDrop..1) {
                                     add(
@@ -167,14 +157,6 @@ class SimpleMoveLibrary private constructor(
             CellCondition(dx, dy + 1, dz, Condition.CENTER_HEAD),
         )
 
-        /**
-         * A candidate jump of [span] stances. The boolean conditions only establish the
-         * landing stance; whether the *arc* is clear is the [JumpArcProbe]'s job, swept
-         * with the real player box against the real captured shapes (C1). This replaces
-         * the analytic parabola checked against boolean traits, which was tuned
-         * pessimistic to stop through-block jumps and deleted legal topology with the
-         * same stroke -- the up-and-down threading on rough terrain was the price.
-         */
         private fun jumpSpec(dx: Int, dz: Int, span: Int, verticalOffset: Int, cost: Double): Spec =
             Spec(
                 span * dx, verticalOffset, span * dz, CoarseMoveKind.JUMP_CANDIDATE, cost,

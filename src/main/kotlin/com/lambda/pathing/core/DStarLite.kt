@@ -22,24 +22,11 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * Lazy D* Lite planner over a [LazyGraph].
- *
- * The heuristic must be finite, non-negative, admissible, and consistent for
- * the enabled edge library. Edge costs must be non-negative. The graph must
- * provide true predecessors for directed edges.
- */
 class DStarLite<N>(
     private val graph: LazyGraph<N>,
     start: N,
     val goal: N,
     private val heuristic: (N, N) -> Double,
-    /**
-     * Optional deterministic tie-breaker between equal-cost successors during
-     * [path] extraction. Without this, ties resolve via HashMap iteration order
-     * which can flip across calls and produce visually different but
-     * equivalent-cost paths. That instability cascades into refinement.
-     */
     private val nodeTieBreaker: Comparator<N>? = null,
 ) {
     var start: N = start
@@ -72,12 +59,6 @@ class DStarLite<N>(
         queue.insert(goal, Key(checkedHeuristic(start, goal), 0.0))
     }
 
-    /**
-     * Repairs the shortest-path tree until [start] is locally consistent or the
-     * time budget is exhausted.
-     *
-     * @return metrics describing how much work was completed.
-     */
     fun computeShortestPath(
         timeBudget: Duration = 500.milliseconds,
         maxExpansions: Int = Int.MAX_VALUE,
@@ -96,9 +77,7 @@ class DStarLite<N>(
                 expansionLimitReached = true
                 break
             }
-            // nanoTime is observable in profiles on large searches. A D* step
-            // is small, so checking every few steps retains a tight budget
-            // without paying for a clock read on every expanded node.
+
             if ((processed and DEADLINE_CHECK_MASK) == 0 && System.nanoTime() - startedAt >= budgetNanos) {
                 timedOut = true
                 break
@@ -116,18 +95,6 @@ class DStarLite<N>(
         )
     }
 
-    /**
-     * Keeps expanding past start-consistency until every node within [extraTicks] of the
-     * start's own cost carries a label.
-     *
-     * [computeShortestPath] stops the instant the start is consistent, which labels little
-     * more than the optimal corridor. That is all a *route* needs. A trajectory search that
-     * steers by the value field needs the ground beside the corridor labelled too —
-     * otherwise the terrain it might legitimately cut across has no value, and anything
-     * that has to guess a value for unlabelled ground will guess it optimistically (a
-     * straight-line heuristic cannot see the walls the labels already price in) and walk
-     * the search off in the wrong direction.
-     */
     fun expandField(
         extraTicks: Double,
         timeBudget: Duration = 50.milliseconds,
@@ -144,8 +111,7 @@ class DStarLite<N>(
 
         val startCost = g(start)
         if (!startCost.isFinite()) return ComputeResult(0, timedOut = false, expansionLimitReached = false, converged = true)
-        // Keys carry the same `h(start, node) + km` offset the start's own key does, so
-        // the budget is expressed against `calculateKey(start).first`.
+
         val threshold = startCost + km + extraTicks
 
         while (!queue.isEmpty() && queue.topKey(Key.INFINITY).first <= threshold) {
@@ -170,7 +136,6 @@ class DStarLite<N>(
         )
     }
 
-    /** One D* Lite queue step: the shared body of [computeShortestPath] and [expandField]. */
     private fun step() {
         run {
             val oldKey = queue.topKey(Key.INFINITY)
@@ -201,8 +166,7 @@ class DStarLite<N>(
                         }
                         updateVertex(predecessor)
                     }
-                    // D* Lite also updates the popped node. Avoid allocating
-                    // `predecessors.keys + node`, while preserving self-loop behavior.
+
                     if (node !in predecessors) {
                         if (node != goal && sameCost(rhs(node), graph.cost(node, node) + oldG)) {
                             setRhs(node, minSuccessorCost(node))
@@ -222,13 +186,6 @@ class DStarLite<N>(
         routeVersion++
     }
 
-    /**
-     * Synchronizes already-known graph nodes against current successor generation.
-     *
-     * This is the core hook for keeping the lazy graph in sync with world-change
-     * transactions without mirroring the entire world. Unknown nodes are ignored;
-     * they will be generated from current world state if planning reaches them.
-     */
     fun synchronizeAffected(affectedNodes: Iterable<N>): SynchronizationResult {
         var nodesChecked = 0
         var edgesAdded = 0
@@ -240,7 +197,6 @@ class DStarLite<N>(
             val knownView = graph.knownSuccessors(node)
             if (node !in graph && knownView.isEmpty()) continue
 
-            // Snapshot before any updateEdge mutates the underlying view.
             val oldSuccessors = if (knownView.isEmpty()) emptyMap() else HashMap(knownView)
             val newSuccessors = graph.generateSuccessors(node)
             graph.markSuccessorsInitialized(node)
@@ -275,11 +231,7 @@ class DStarLite<N>(
         require(!newCost.isNaN() && newCost >= 0.0) {
             "D* Lite edge costs must be non-negative or +infinity: $newCost"
         }
-        // Read the old cost WITHOUT lazily initializing `from`: an external
-        // provider (maneuver discovery) may have registered this edge in its
-        // own maps already, and triggering successor generation here would
-        // make oldCost == newCost — the rhs update below would then never
-        // fire and the edge would stay invisible to the search forever.
+
         val oldCost = graph.knownSuccessors(from)[to] ?: INF
         if (sameCost(oldCost, newCost)) return
         graph.setCost(from, to, newCost)
@@ -339,7 +291,6 @@ class DStarLite<N>(
         return null
     }
 
-    /** Exact only for the converged active start or the mathematical goal. */
     fun tailCost(node: N = start): TailCost {
         if (node == goal) return TailCost.Exact(0.0, routeVersion)
         val lower = checkedHeuristic(node, goal)
@@ -355,10 +306,8 @@ class DStarLite<N>(
 
     fun isStartCostExact(): Boolean = start == goal || !shouldCompute() && sameCost(g(start), rhs(start))
 
-    /** Internal search label; arbitrary nodes are not certified. Prefer [tailCost]. */
     fun g(node: N): Double = gValues[node] ?: INF
 
-    /** Internal one-step lookahead label; not a public cost-to-go certificate. */
     fun rhs(node: N): Double = rhsValues[node] ?: INF
 
     fun key(node: N): Key = calculateKey(node)

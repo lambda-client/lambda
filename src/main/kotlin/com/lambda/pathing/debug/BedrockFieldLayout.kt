@@ -12,28 +12,15 @@ package com.lambda.pathing.debug
 import com.lambda.pathing.world.VoxelPos
 import kotlin.random.Random
 
-/**
- * Fixed-seed reconstruction of vanilla's 80/60/40/20% exposed-bedrock layer profile --
- * irregular pillars, pockets, overhangs and narrow landings. This is the terrain class
- * the planner redesign is measured against; no hand-built fixture reproduces its
- * jump/route quality pressure. One deterministic generator feeds both the live
- * gametest (real bedrock blocks) and the offline JVM refinement bench (snapshot
- * cubes), so the two always measure the same field.
- *
- * Flat launch and arrival islands at both ends keep the measurement about the chaotic
- * middle rather than endpoint placement luck. Base layer y=62; islands stand at y=63.
- */
 object BedrockFieldLayout {
     const val SEED = 0x5EED_BED
     const val LENGTH = 120
     const val HALF_WIDTH = 8
 
-    /** Y of the flat island surface the walk starts and ends on. */
     const val SURFACE_Y = 63
 
     data class SurfacePoint(val x: Int, val y: Int, val z: Int)
 
-    /** Every solid cell of the field, endpoint islands already carved. */
     fun solidCells(
         length: Int = LENGTH,
         halfWidth: Int = HALF_WIDTH,
@@ -59,13 +46,6 @@ object BedrockFieldLayout {
         return cells
     }
 
-    /**
-     * Every stance with a solid support and two blocks of body clearance.
-     *
-     * Corpus endpoints are selected from this set instead of assuming a fixed Y; that
-     * matters on real exposed bedrock where random starts and goals sit on different
-     * layers.
-     */
     fun standableSurface(
         cells: Set<VoxelPos>,
         length: Int = LENGTH,
@@ -85,7 +65,6 @@ object BedrockFieldLayout {
         }
     }
 
-    /** Fixed-seed, widely separated endpoint candidates for repeatable A→B corpora. */
     fun randomEndpointPairs(
         count: Int,
         length: Int = LENGTH,

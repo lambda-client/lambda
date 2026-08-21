@@ -9,13 +9,6 @@
 
 package com.lambda.pathing.trajectory
 
-/**
- * The §7.4 checkpoint order. Lower [compareTo] values are preferred.
- *
- * Collision events and launch runway are deliberately separate keys rather than a
- * scalar toll/reward: no magic conversion from a scrape or a margin into "ticks" can
- * overturn a genuinely faster certified continuation.
- */
 data class TrajectoryRank(
     val certifiedAndSafe: Boolean,
     val certifiedHorizon: Int,

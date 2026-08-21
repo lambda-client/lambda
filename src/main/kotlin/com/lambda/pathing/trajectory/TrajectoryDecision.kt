@@ -11,30 +11,11 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.Stance
 
-/**
- * One committed choice in a trajectory: what the search decided to *do*, as opposed to
- * the keys that decision happened to produce.
- *
- * A certified plan carries both. The inputs are what the executor replays, tick by tick,
- * and they are the thing the live body is verified against. The decisions are what makes
- * a plan *editable*: they can be re-run from a different state.
- *
- * That distinction is load-bearing. Splicing a faster middle into a tape cannot reproduce
- * the old join state exactly — no input sequence hits a specific continuous state — and a
- * raw input tail replayed from even a quarter-block error fails outright (measured: 0 of 7
- * surviving). Re-running the *decisions* from the same perturbed state survived 7 of 7,
- * because these controllers steer at world targets and fire launches on grounded ticks
- * rather than fixed frame indices: a body arriving slightly wide steers back, and one
- * arriving a tick late still jumps on landing instead of in mid-air.
- */
 sealed interface TrajectoryDecision {
-    /** Whether the sprint key is held; vanilla only sustains it while forward is held. */
     val sprint: Boolean
 
-    /** The coarse step this decision was aimed at, for re-deriving the steering line. */
     val step: Stance?
 
-    /** Pure pursuit toward a stance centre. */
     data class Walk(
         override val sprint: Boolean,
         override val step: Stance?,
@@ -42,44 +23,18 @@ sealed interface TrajectoryDecision {
         val easeTurns: Boolean,
     ) : TrajectoryDecision
 
-    /** A launch on the [delayFrames]-th grounded tick, aimed along the coarse step. */
     data class Launch(
         override val sprint: Boolean,
         override val step: Stance?,
         val delayFrames: Int,
-        /**
-         * Grounded ticks of released forward immediately before the jump.
-         *
-         * Speed at takeoff, which together with [delayFrames] is what actually decides
-         * where an arc lands. Without it gait is a boolean, and a pad that a sprint
-         * overshoots and a walk cannot reach has no answer in the vocabulary at all.
-         */
-        val brakeTicks: Int = 0,
     ) : TrajectoryDecision
 
-    /**
-     * Hold a world heading, optionally jumping partway through. Off-lattice: where the
-     * body ends up is decided by this heading and its own momentum, not by a block centre.
-     */
     data class Heading(
         override val sprint: Boolean,
         override val step: Stance?,
         val yaw: Double,
-        val offsetDegrees: Double,
         val delayFrames: Int?,
         val keys: MovementKeys = MovementKeys.FORWARD,
         val airborneKeys: MovementKeys = keys,
-        /** As [Launch.brakeTicks]; only meaningful when this heading jumps. */
-        val brakeTicks: Int = 0,
-        /**
-         * How long the bearing is held before the decision ends; null uses the default.
-         *
-         * A committed run is the only way the body builds speed instead of re-deciding
-         * every block, but a *fixed* commitment spends the same ticks whether or not they
-         * are still buying anything. The attribution finds these: on a 433-frame walk,
-         * five of the eight worst stretches were headings that ran exactly the default
-         * length, each wasting three or four ticks past the point they stopped helping.
-         */
-        val commitFrames: Int? = null,
     ) : TrajectoryDecision
 }

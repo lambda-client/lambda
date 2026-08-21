@@ -17,14 +17,10 @@
 
 package com.lambda.pathing.core
 
-/**
- * Lexicographic priority key used by D* Lite.
- */
 data class Key(
     val first: Double,
     val second: Double,
 ) : Comparable<Key> {
-    /** This comparison sits in every heap sift; avoid compareValuesBy/property-reference overhead. */
     override fun compareTo(other: Key): Int {
         val firstComparison = first.compareTo(other.first)
         return if (firstComparison != 0) firstComparison else second.compareTo(other.second)

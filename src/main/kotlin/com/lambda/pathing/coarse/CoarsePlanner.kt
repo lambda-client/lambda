@@ -18,7 +18,6 @@ import com.lambda.pathing.world.VoxelPos
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-/** Thin typed boundary around the reusable D* Lite engine. */
 class CoarsePlanner(
     private val view: CoarseVoxelView,
     val moves: SimpleMoveLibrary,
@@ -45,11 +44,6 @@ class CoarsePlanner(
 
     fun updateStart(start: Stance) = search.updateStart(start)
 
-    /**
-     * Labels the ground *beside* the optimal corridor, so a value-steered trajectory has
-     * somewhere mapped to manoeuvre. See [DStarLite.expandField]; bounded in both time and
-     * expansions because this runs inside the plan.
-     */
     fun expandField(
         extraTicks: Double,
         timeBudget: Duration = 50.milliseconds,
@@ -58,10 +52,6 @@ class CoarsePlanner(
 
     fun route(maxLength: Int = 10_000): CoarseRouteCandidate<Stance>? = search.routeCandidate(maxLength)
 
-    /**
-     * Freezes the current route and its exact template dependencies. D* maps,
-     * queues, and the live view never cross the worker/publication boundary.
-     */
     fun routePlan(snapshotRevision: Long, maxLength: Int = 10_000): CoarseRoutePlan? {
         val candidate = route(maxLength) ?: return null
         val edges = candidate.nodes.zipWithNext { from, to ->
@@ -86,16 +76,6 @@ class CoarsePlanner(
 
     fun tailCost(node: Stance = search.start): TailCost = search.tailCost(node)
 
-    /**
-     * The cost-to-go labels D* already computed, as a field the trajectory layer can
-     * query anywhere instead of only along the extracted route.
-     *
-     * `min(g, rhs)` rather than `g`: a stance that has been *reached* by the backward
-     * search but not yet expanded carries its value in `rhs` alone, and that frontier
-     * layer is exactly the ground just off the route that a free trajectory search wants
-     * to price. Neither is treated as exact — [CoarseValueField.lowerBound] is what
-     * correctness rests on, and it never reads a label.
-     */
     fun valueField(): CoarseValueField = CoarseValueField(
         view = view,
         moves = moves,
@@ -103,7 +83,6 @@ class CoarsePlanner(
         goal = search.goal,
     )
 
-    /** Re-evaluates only known stance origins whose exact template reads overlap a changed voxel. */
     fun worldChanged(changed: Iterable<VoxelPos>): DStarLite.SynchronizationResult {
         val affected = HashSet<Stance>()
         changed.forEach { affected += moves.affectedOrigins(it) }

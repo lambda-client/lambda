@@ -12,11 +12,6 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.VoxelPos
 
-/**
- * A forward motion primitive expressed entirely as data. Predecessors stamp
- * the same template at `target - displacement`; they never assume the move is
- * reversible. This is essential for walk-off drops and later one-way moves.
- */
 class MotionTemplate internal constructor(
     val id: MotionTemplateId,
     val dx: Int,
@@ -34,7 +29,6 @@ class MotionTemplate internal constructor(
         val condition: Condition,
     )
 
-    /** A swept-arc mask requirement: the probe must clear it against real shapes. */
     internal data class ArcSpec(
         val stepX: Int,
         val stepZ: Int,
@@ -95,10 +89,9 @@ class MotionTemplate internal constructor(
                 yield(VoxelPos(condition.dx, condition.dy - 1, condition.dz))
             }
         }
-        // Static superset of every cell an arc sweep may consult (the probe's exact
-        // reads are runtime data); over-approximating only over-invalidates, safely.
+
         arc?.let { spec ->
-            // The clearance margin reads one cell beyond the swept core on every side.
+
             for (step in 0..spec.span) {
                 for (y in minOf(spec.rise, 0) - 2..ARC_READ_CEILING) {
                     for (ox in -1..1) {
@@ -133,7 +126,6 @@ class MotionTemplate internal constructor(
             VoxelPos(0, 1, 0),
         )
 
-        /** Apex feet (~1.26) + body height + clearance margin, in whole cells above takeoff. */
         const val ARC_READ_CEILING = 4
     }
 }

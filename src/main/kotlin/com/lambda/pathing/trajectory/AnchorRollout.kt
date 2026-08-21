@@ -22,12 +22,6 @@ internal sealed interface Outcome {
     data class Rejected(val diagnostic: TrajectoryDiagnostic) : Outcome
 }
 
-/**
- * Runs one decision against the simulator and says what became of the body.
- *
- * The only thing in the search that touches physics. Every anchor in the tree is the
- * certified end of one of these; nothing else may create one.
- */
 internal class AnchorRollout(
     private val field: CoarseValueField,
     private val config: MotionConstraints,
@@ -36,26 +30,18 @@ internal class AnchorRollout(
     private val profile: PlayerPhysicsProfile,
     private val initialState: MovementSimulationState,
     private val goalPoint: HorizontalPoint,
-    private val gateConfig: MotionConstraints,
     private val attempts: MutableList<PlanAttempt>,
     private val progressOf: (com.lambda.pathing.coarse.Stance) -> Int,
 ) {
-    /**
-     * One local transition, simulated once and stopped at its next event.
-     *
-     * The event is "the body is grounded and moving on a *different* stance than it
-     * started on" — a physical fact about where the body is, not a projection onto a
-     * planned node. A launch additionally has to actually leave the ground first.
-     */
     fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
         val chain = field.chain(
             anchor.stance, action.step, searchConfig.chainLength, anchor.heading(),
         )
         val points = chain.map { it.center() }
         val launch = when (action) {
-            is TrajectoryDecision.Launch -> LaunchTrigger(action.delayFrames, action.brakeTicks)
+            is TrajectoryDecision.Launch -> LaunchTrigger(action.delayFrames)
             is TrajectoryDecision.Heading ->
-                action.delayFrames?.let { LaunchTrigger(it, action.brakeTicks) }
+                action.delayFrames?.let { LaunchTrigger(it) }
             is TrajectoryDecision.Walk -> null
         }
         val program = if (action is TrajectoryDecision.Heading) {
@@ -70,7 +56,6 @@ internal class AnchorRollout(
         } else {
             SegmentFollowerProgram(
                 nodes = points,
-                startProgress = 0,
                 sprint = action.sprint,
                 lookAheadNodes = (action as? TrajectoryDecision.Walk)?.lookAheadNodes ?: ValueFieldAnchorSearch.LOOK_AHEAD_NODES,
                 launch = launch,
@@ -78,7 +63,7 @@ internal class AnchorRollout(
                 easeTurns = (action as? TrajectoryDecision.Walk)?.easeTurns == true,
             )
         }
-        val evaluator = RolloutEvaluator(anchor.state, points, goalPoint, gateConfig)
+        val evaluator = RolloutEvaluator(anchor.state, points, goalPoint, config)
         var previous = anchor.state
         var airborne = false
         var failure: TrajectoryDiagnostic? = null
@@ -114,15 +99,9 @@ internal class AnchorRollout(
                         val stance = ValueFieldAnchorSearch.stanceOf(frame.state)
                         val done = when {
                             launch != null -> launch.hasFired && airborne
-                            // Ending on the value field instead of this counter was
-                            // tried and measured worse: marginally better across the
-                            // short corpus, six frames worse on a 444-frame route, and
-                            // it cut the improver's attempts from 404 to 156 because
-                            // each transition simulates further. A commitment is worth
-                            // more than a well-timed exit.
-                            action is TrajectoryDecision.Heading -> action.commitFrames
-                                ?.let { frame.index + 1 >= it }
-                                ?: (frame.index + 1 >= searchConfig.headingCommitFrames)
+
+                            action is TrajectoryDecision.Heading ->
+                                frame.index + 1 >= searchConfig.headingCommitFrames
                             else -> stance != anchor.stance
                         }
                         val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed
@@ -143,16 +122,12 @@ internal class AnchorRollout(
         stopFrame?.let { return Outcome.Arrived(rollout.frames, it) }
         failure?.let { return Outcome.Rejected(it) }
         val frame = eventFrame ?: return Outcome.Rejected(
-            evaluate(rollout, points, goalPoint, gateConfig).diagnostic
+            evaluate(rollout, points, goalPoint, config).diagnostic
                 ?: TrajectoryDiagnostic.NoStop(rollout.frames.size, 0.0, anchor.speed),
         )
 
         val frames = rollout.frames.take(frame + 1)
-        // A landing on ground the coarse layer does not model as standable — or that
-        // the value field cannot price — has no value and no usable successors.
-        // Anchoring there strands the search on a state it can neither rank nor
-        // continue, and ranking it by a straight-line guess is what sends the search
-        // off in the wrong direction.
+
         if (!field.isStance(eventStance) || !field.isMapped(eventStance)) {
             return Outcome.Rejected(
                 TrajectoryDiagnostic.FellBelowRoute(frame, 0.0)
@@ -170,17 +145,6 @@ internal class AnchorRollout(
                 parent = anchor,
                 inputs = frames.map { it.input },
                 boundary = anchor.elapsed + frames.size,
-                // A heading that ended on the field rather than on a counter records
-                // the length it settled on, so the decision describes itself and a
-                // re-run reproduces this transition exactly instead of re-deriving a
-                // stall it cannot see from a different entry state.
-                via = if (action is TrajectoryDecision.Heading && action.commitFrames == null &&
-                    action.delayFrames == null
-                ) {
-                    action.copy(commitFrames = frames.size)
-                } else {
-                    action
-                },
             ),
         )
     }
