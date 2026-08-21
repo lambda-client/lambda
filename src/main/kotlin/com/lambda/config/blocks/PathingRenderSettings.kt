@@ -38,7 +38,7 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(TOGGLES_GROUP)
     override val renderCandidates by c.setting(
-        "Candidates", true,
+        "Candidates", false,
         "The continuations the horizon is choosing between right now: the current best, " +
             "and the other lines still alive.",
     ) { enabled }
@@ -51,7 +51,7 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(TOGGLES_GROUP)
     override val renderPlanning by c.setting(
-        "Live Planning", true,
+        "Live Planning", false,
         "Draw the coarse route the moment D* converges and every candidate rollout as the search tries it.",
     ) { enabled }
 

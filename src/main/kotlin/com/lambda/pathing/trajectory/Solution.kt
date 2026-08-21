@@ -19,7 +19,7 @@ internal class Solution(
     val parameters: TerminalApproach,
     val frames: Int,
     val collisionEvents: Int,
-    val anchor: ValueAnchor? = null,
+    val anchor: ValueAnchor,
 ) {
     val score: Int get() = frames + ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * collisionEvents
 }

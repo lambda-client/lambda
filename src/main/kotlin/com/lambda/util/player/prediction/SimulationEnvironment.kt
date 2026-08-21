@@ -21,6 +21,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.FenceGateBlock
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.entity.EntityPose
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.registry.tag.BlockTags
@@ -29,6 +30,8 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import kotlin.jvm.optionals.getOrNull
+import kotlin.math.abs
+import kotlin.math.max
 
 /**
  * World-dependent operations used by [MovementSimulator].
@@ -132,8 +135,31 @@ data class PlayerPhysicsProfile(
      */
     val sprintWindowTicks: Int = DEFAULT_SPRINT_WINDOW_TICKS,
 ) {
+    /**
+     * Runtime attributes can pass through float sprint modifiers before being
+     * exposed as doubles. Treat that round-trip noise as the same profile while
+     * still rejecting material attribute, effect, option, or dimension changes.
+     */
+    fun isCompatibleWith(other: PlayerPhysicsProfile): Boolean =
+        movementSpeed.closeTo(other.movementSpeed) &&
+            sneakSpeedModifier.closeTo(other.sneakSpeedModifier) &&
+            gravity.closeTo(other.gravity) &&
+            jumpStrength.closeTo(other.jumpStrength) &&
+            stepHeight.closeTo(other.stepHeight) &&
+            jumpBoostVelocityModifier.closeTo(other.jumpBoostVelocityModifier) &&
+            slowFalling == other.slowFalling &&
+            width.closeTo(other.width) &&
+            height.closeTo(other.height) &&
+            eyeHeight.closeTo(other.eyeHeight) &&
+            sprintWindowTicks == other.sprintWindowTicks
+
+    private fun Double.closeTo(other: Double): Boolean =
+        abs(this - other) <= PROFILE_EPSILON * max(1.0, max(abs(this), abs(other)))
+
     companion object {
         const val SPRINT_SPEED_MULTIPLIER = 1.3
+
+        private const val PROFILE_EPSILON = 1e-7
 
         /** @see net.minecraft.client.option.GameOptions.getSprintWindow */
         const val DEFAULT_SPRINT_WINDOW_TICKS = 7
@@ -141,6 +167,9 @@ data class PlayerPhysicsProfile(
         /** Client thread only. */
         fun capture(player: ClientPlayerEntity): PlayerPhysicsProfile {
             val liveSpeed = player.movementSpeed.toDouble()
+            // Pose is transient execution state, not part of the player's physics
+            // configuration. Keep the profile stable while a tape toggles sneak.
+            val standingDimensions = player.getDimensions(EntityPose.STANDING)
             return PlayerPhysicsProfile(
                 movementSpeed = if (player.isSprinting) liveSpeed / SPRINT_SPEED_MULTIPLIER else liveSpeed,
                 sneakSpeedModifier = player.getAttributeValue(EntityAttributes.SNEAKING_SPEED),
@@ -149,9 +178,9 @@ data class PlayerPhysicsProfile(
                 stepHeight = player.stepHeight.toDouble(),
                 jumpBoostVelocityModifier = player.jumpBoostVelocityModifier.toDouble(),
                 slowFalling = player.hasStatusEffect(StatusEffects.SLOW_FALLING),
-                width = player.boundingBox.lengthX,
-                height = player.boundingBox.lengthY,
-                eyeHeight = player.standingEyeHeight.toDouble(),
+                width = standingDimensions.width.toDouble(),
+                height = standingDimensions.height.toDouble(),
+                eyeHeight = player.getEyeHeight(EntityPose.STANDING).toDouble(),
                 sprintWindowTicks = MinecraftClient.getInstance().options.sprintWindow.value,
             )
         }

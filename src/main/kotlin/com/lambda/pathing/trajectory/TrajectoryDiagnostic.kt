@@ -30,6 +30,8 @@ sealed interface TrajectoryDiagnostic {
         val depth: Double,
     ) : TrajectoryDiagnostic
 
+    data class RepeatedCoarseStance(override val frame: Int) : TrajectoryDiagnostic
+
     data class HarmfulFall(
         override val frame: Int,
         val fallDistance: Double,

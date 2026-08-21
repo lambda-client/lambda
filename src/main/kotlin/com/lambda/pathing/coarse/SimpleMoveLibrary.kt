@@ -12,17 +12,25 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.coarse.MotionTemplate.CellCondition
 import com.lambda.pathing.coarse.MotionTemplate.Condition
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.VoxelPos
 import kotlin.math.abs
-import kotlin.math.hypot
 
 class SimpleMoveLibrary private constructor(
     val templates: List<MotionTemplate>,
     private val readOffsets: Set<VoxelPos>,
     val heuristicCaps: HeuristicCaps,
 ) {
+    private val minReadX = readOffsets.minOf(VoxelPos::x)
+    private val maxReadX = readOffsets.maxOf(VoxelPos::x)
+    private val minReadZ = readOffsets.minOf(VoxelPos::z)
+    private val maxReadZ = readOffsets.maxOf(VoxelPos::z)
+
     data class HeuristicCaps(
-        val horizontalTicksPerBlock: Double,
+        /** Cheapest lower-bound cost for one unmatched X or Z block. */
+        val axisTicksPerBlock: Double,
+        /** Cheapest lower-bound cost for changing X and Z by one together. */
+        val diagonalTicksPerPair: Double,
         val ascentTicksPerBlock: Double,
         val descentTicksPerBlock: Double,
     )
@@ -44,7 +52,7 @@ class SimpleMoveLibrary private constructor(
         if (!isStance(view, target)) return emptyList()
         return templates.mapNotNull { template ->
             val origin = target.offset(-template.dx, -template.dy, -template.dz)
-            if (isStance(view, origin) && template.target(origin) == target) template.edge(view, origin) else null
+            if (isStance(view, origin)) template.edge(view, origin) else null
         }
     }
 
@@ -55,8 +63,12 @@ class SimpleMoveLibrary private constructor(
         edgesTo(view, target).minimumCostsBy { it.from }
 
     fun heuristic(from: Stance, to: Stance): Double {
-        val horizontalDistance = hypot((to.x - from.x).toDouble(), (to.z - from.z).toDouble())
-        val horizontal = horizontalDistance * heuristicCaps.horizontalTicksPerBlock.finiteOrZero()
+        val dx = abs(to.x - from.x)
+        val dz = abs(to.z - from.z)
+        val paired = minOf(dx, dz)
+        val straight = maxOf(dx, dz) - paired
+        val horizontal = paired * heuristicCaps.diagonalTicksPerPair.finiteOrZero() +
+            straight * heuristicCaps.axisTicksPerBlock.finiteOrZero()
         val dy = to.y - from.y
         val vertical = when {
             dy > 0 -> dy * heuristicCaps.ascentTicksPerBlock.finiteOrZero()
@@ -70,6 +82,17 @@ class SimpleMoveLibrary private constructor(
         for ((x, y, z) in readOffsets) {
             add(Stance(changed.x - x, changed.y - y, changed.z - z))
         }
+    }
+
+    /** Known origins whose possible edge reads overlap a refreshed chunk. */
+    fun affectedOrigins(chunk: PathingChunk, candidates: Iterable<Stance>): Set<Stance> {
+        val chunkMinX = chunk.x shl 4
+        val chunkMaxX = chunkMinX + 15
+        val chunkMinZ = chunk.z shl 4
+        val chunkMaxZ = chunkMinZ + 15
+        val originX = (chunkMinX - maxReadX)..(chunkMaxX - minReadX)
+        val originZ = (chunkMinZ - maxReadZ)..(chunkMaxZ - minReadZ)
+        return candidates.filterTo(HashSet()) { it.x in originX && it.z in originZ }
     }
 
     private fun List<CoarseEdge>.minimumCostsBy(node: (CoarseEdge) -> Stance): Map<Stance, Double> {
@@ -165,16 +188,27 @@ class SimpleMoveLibrary private constructor(
             )
 
         private fun deriveCaps(templates: List<MotionTemplate>): HeuristicCaps {
-            var horizontal = Double.POSITIVE_INFINITY
+            var axis = Double.POSITIVE_INFINITY
+            var diagonal = Double.POSITIVE_INFINITY
             var ascent = Double.POSITIVE_INFINITY
             var descent = Double.POSITIVE_INFINITY
             for (template in templates) {
-                val horizontalDistance = hypot(template.dx.toDouble(), template.dz.toDouble())
-                if (horizontalDistance > 0.0) horizontal = minOf(horizontal, template.lowerBoundTicks / horizontalDistance)
+                val dx = abs(template.dx)
+                val dz = abs(template.dz)
+                when {
+                    dx > 0 && dz == 0 -> axis = minOf(axis, template.lowerBoundTicks / dx)
+                    dz > 0 && dx == 0 -> axis = minOf(axis, template.lowerBoundTicks / dz)
+                    dx == dz && dx > 0 -> diagonal = minOf(diagonal, template.lowerBoundTicks / dx)
+                }
                 if (template.dy > 0) ascent = minOf(ascent, template.lowerBoundTicks / template.dy)
                 if (template.dy < 0) descent = minOf(descent, template.lowerBoundTicks / abs(template.dy))
             }
-            return HeuristicCaps(horizontal, ascent, descent)
+            // Alternating opposing diagonals can make pure axial progress, while two
+            // axial moves can make diagonal progress. Closing the caps under both
+            // combinations keeps this octile lower bound consistent for every edge.
+            axis = minOf(axis, diagonal)
+            diagonal = minOf(diagonal, 2.0 * axis)
+            return HeuristicCaps(axis, diagonal, ascent, descent)
         }
 
         private data class Spec(
@@ -192,5 +226,7 @@ class SimpleMoveLibrary private constructor(
 
         private val CARDINALS = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
         private val DIAGONALS = listOf(-1 to -1, -1 to 1, 1 to -1, 1 to 1)
+
+
     }
 }

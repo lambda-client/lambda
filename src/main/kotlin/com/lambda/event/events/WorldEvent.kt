@@ -24,6 +24,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
+import net.minecraft.world.World
 import net.minecraft.world.chunk.WorldChunk
 import java.util.*
 
@@ -104,6 +105,7 @@ sealed class WorldEvent {
          * @property newState The block state after the change.
          */
         data class Client(
+            val world: World,
             val pos: BlockPos,
             val oldState: BlockState,
             val newState: BlockState,

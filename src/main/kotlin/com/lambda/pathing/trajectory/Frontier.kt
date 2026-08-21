@@ -12,12 +12,19 @@ package com.lambda.pathing.trajectory
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.coarse.Stance
 import java.util.PriorityQueue
+import kotlin.math.atan2
 import kotlin.math.floor
 
 private data class AnchorKey(
     val stance: Stance,
     val yawBucket: Int,
     val speedBucket: Int,
+    val localXBucket: Int,
+    val localZBucket: Int,
+    val velocityHeadingBucket: Int,
+    val airborne: Boolean,
+    val sprinting: Boolean,
+    val hazardKnown: Boolean,
 )
 
 internal class Frontier(
@@ -28,11 +35,20 @@ internal class Frontier(
     private val reachable: (ValueAnchor) -> Boolean,
     private val incumbentFrames: () -> Int?,
 ) {
-    class OpenEntry(val order: Double, val bound: Double, val anchor: ValueAnchor)
+    class OpenEntry(
+        val order: Double,
+        val bound: Double,
+        val anchor: ValueAnchor,
+        internal var sequence: Long = Long.MAX_VALUE,
+    )
 
-    private val open = PriorityQueue<OpenEntry>(compareBy { it.order })
+    private val open = PriorityQueue<OpenEntry>(
+        compareBy<OpenEntry>({ it.order }, { it.bound }, { it.anchor.elapsed }, { it.sequence })
+    )
     private val parked = ArrayList<OpenEntry>()
-    private val dominance = HashMap<AnchorKey, MutableList<ValueAnchor>>()
+    /** Explicit bounded beam buckets, not a correctness-preserving dominance proof. */
+    private val beamBuckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
+    private var insertionSequence = 0L
 
     val isExhausted: Boolean get() = open.isEmpty() && parked.isEmpty()
     val hasOpen: Boolean get() = open.isNotEmpty()
@@ -52,17 +68,18 @@ internal class Frontier(
     fun reopen(anchor: ValueAnchor) {
         if (open.any { it.anchor === anchor }) return
         val guide = field.guide(anchor.stance).takeIf { it.isFinite() } ?: return
-        open += entryFor(anchor, guide)
+        enqueue(entryFor(anchor, guide))
     }
 
     fun offer(entry: OpenEntry) {
-        open += entry
+        enqueue(entry)
     }
 
     fun retainDescendants(root: ValueAnchor) {
         val retained = open.filterTo(ArrayList()) { it.anchor.descendsFrom(root) }
         open.clear()
         open.addAll(retained)
+        beamBuckets.clear()
     }
 
     fun repartition(root: ValueAnchor, horizonEnd: Int) {
@@ -71,6 +88,7 @@ internal class Frontier(
         surviving.forEach { entry ->
             if (entry.anchor.elapsed < horizonEnd) open += entry else parked += entry
         }
+        rebuildBeamBuckets()
     }
 
     fun admit(anchor: ValueAnchor) {
@@ -79,12 +97,12 @@ internal class Frontier(
             ?: if (anchor.parent == null) field.lowerBound(anchor.stance) else return
         deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
 
-        val key = AnchorKey(anchor.stance, yawBucket(anchor), speedBucket(anchor))
+        val key = keyOf(anchor)
         if (!reachable(anchor)) return
 
-        val bucket = dominance.getOrPut(key) { ArrayList() }
-        if (bucket.any { it.dominates(anchor) }) return
-        bucket.removeAll { anchor.dominates(it) }
+        val bucket = beamBuckets.getOrPut(key) { ArrayList() }
+        if (bucket.any { it.preferredForBeamOver(anchor) }) return
+        bucket.removeAll { anchor.preferredForBeamOver(it) }
         if (bucket.size >= searchConfig.frontierPerKey) {
             val worst = bucket.maxByOrNull { it.elapsed } ?: return
             if (worst.elapsed <= anchor.elapsed) return
@@ -94,7 +112,7 @@ internal class Frontier(
 
         incumbentFrames()?.let { if (anchor.elapsed + guide >= it) return }
 
-        open += entryFor(anchor, guide)
+        enqueue(entryFor(anchor, guide))
     }
 
     fun progressOf(stance: Stance): Int = routeIndex[stance] ?: deepestProgress
@@ -106,7 +124,7 @@ internal class Frontier(
         anchor = anchor,
     )
 
-    private fun ValueAnchor.dominates(other: ValueAnchor): Boolean =
+    private fun ValueAnchor.preferredForBeamOver(other: ValueAnchor): Boolean =
         elapsed <= other.elapsed &&
             speed >= other.speed - SPEED_DOMINANCE_SLACK &&
             collisionEvents <= other.collisionEvents &&
@@ -132,7 +150,40 @@ internal class Frontier(
     private fun speedBucket(anchor: ValueAnchor): Int =
         floor(anchor.speed / searchConfig.speedBucketBlocks).toInt()
 
+    private fun keyOf(anchor: ValueAnchor): AnchorKey {
+        val localX = anchor.state.position.x - floor(anchor.state.position.x)
+        val localZ = anchor.state.position.z - floor(anchor.state.position.z)
+        val velocityYaw = Math.toDegrees(atan2(anchor.state.velocity.z, anchor.state.velocity.x))
+        return AnchorKey(
+            stance = anchor.stance,
+            yawBucket = yawBucket(anchor),
+            speedBucket = speedBucket(anchor),
+            localXBucket = floor(localX / POSITION_BUCKET_BLOCKS).toInt(),
+            localZBucket = floor(localZ / POSITION_BUCKET_BLOCKS).toInt(),
+            velocityHeadingBucket = floor(
+                ((velocityYaw % 360.0) + 360.0) % 360.0 / VELOCITY_HEADING_BUCKET_DEGREES
+            ).toInt(),
+            airborne = !anchor.state.onGround,
+            sprinting = anchor.state.isSprinting,
+            hazardKnown = anchor.hazardFrame != null,
+        )
+    }
+
+    private fun enqueue(entry: OpenEntry) {
+        if (entry.sequence == Long.MAX_VALUE) entry.sequence = insertionSequence++
+        open += entry
+    }
+
+    private fun rebuildBeamBuckets() {
+        beamBuckets.clear()
+        (open.asSequence() + parked.asSequence()).forEach { entry ->
+            beamBuckets.getOrPut(keyOf(entry.anchor)) { ArrayList() } += entry.anchor
+        }
+    }
+
     private companion object {
         const val SPEED_DOMINANCE_SLACK = 0.01
+        const val POSITION_BUCKET_BLOCKS = 0.125
+        const val VELOCITY_HEADING_BUCKET_DEGREES = 15.0
     }
 }

@@ -34,5 +34,15 @@ interface CoarseVoxelView {
 
     fun collisionShape(x: Int, y: Int, z: Int): VoxelShape? = null
 
+    /**
+     * False where the client has not streamed this cell yet.
+     *
+     * Unstreamed terrain is not modelled as terrain -- [voxel] fails closed there, so
+     * it carries no stances and no edges. What crosses it is a single optimistic edge
+     * from the reachable frontier to the goal, which the graph retires as the real
+     * chunks arrive.
+     */
+    fun isKnown(x: Int, y: Int, z: Int): Boolean = true
+
     val simulableStanceY: IntRange get() = Int.MIN_VALUE..Int.MAX_VALUE
 }

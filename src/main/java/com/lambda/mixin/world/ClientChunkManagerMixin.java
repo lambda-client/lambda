@@ -20,6 +20,9 @@ package com.lambda.mixin.world;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.render.LightLevels;
+import com.lambda.util.world.ChunkPacketLoadContext;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.network.PacketByteBuf;
@@ -40,11 +43,25 @@ import java.util.function.Consumer;
 
 @Mixin(ClientChunkManager.class)
 public class ClientChunkManagerMixin {
+    @WrapMethod(method = "loadChunkFromPacket")
+    private WorldChunk trackChunkPacketLoad(
+            int x, int z, PacketByteBuf buf, Map<Heightmap.Type, long[]> heightmaps,
+            Consumer<ChunkData.BlockEntityVisitor> consumer, Operation<WorldChunk> original
+    ) {
+        ChunkPacketLoadContext.enter();
+        try {
+            return original.call(x, z, buf, heightmaps, consumer);
+        } finally {
+            ChunkPacketLoadContext.exit();
+        }
+    }
+
     @Inject(method = "loadChunkFromPacket", at = @At("TAIL"))
     private void onChunkLoad(
             int x, int z, PacketByteBuf buf, Map<Heightmap.Type, long[]> heightmaps, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfoReturnable<WorldChunk> cir
     ) {
-        EventFlow.post(new WorldEvent.ChunkEvent.Load(cir.getReturnValue()));
+        WorldChunk chunk = cir.getReturnValue();
+        if (chunk != null) EventFlow.post(new WorldEvent.ChunkEvent.Load(chunk));
     }
 
     @Inject(method = "loadChunkFromPacket", at = @At(value = "NEW", target = "net/minecraft/world/chunk/WorldChunk", shift = At.Shift.BEFORE))

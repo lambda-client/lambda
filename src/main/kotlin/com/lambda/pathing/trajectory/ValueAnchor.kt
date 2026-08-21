@@ -26,7 +26,10 @@ internal class ValueAnchor(
 ) {
     var actions: List<TrajectoryDecision>? = null
 
-    var cursor: Int = 0
+    var actionsHazardFrame: Int? = null
+
+    /** Stable semantic identity; regenerated action ordering can never retry or skip a decision. */
+    val attempted: MutableSet<TrajectoryDecision> = HashSet()
 
     var hazardFrame: Int? = null
 
@@ -72,6 +75,15 @@ internal class ValueAnchor(
         var node: ValueAnchor? = this
         while (node != null) {
             if (node === other) return true
+            node = node.parent
+        }
+        return false
+    }
+
+    fun hasVisited(visited: Stance): Boolean {
+        var node: ValueAnchor? = this
+        while (node != null) {
+            if (node.stance == visited) return true
             node = node.parent
         }
         return false

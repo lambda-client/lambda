@@ -33,7 +33,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class WorldMixin {
     @Inject(method = "onBlockStateChanged", at = @At("TAIL"))
     void onBlockChanged(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        EventFlow.post(new WorldEvent.BlockUpdate.Client(pos, oldBlock, newBlock));
+        EventFlow.post(new WorldEvent.BlockUpdate.Client((World) (Object) this, pos, oldBlock, newBlock));
     }
 
     @Inject(method = "getThunderGradient(F)F", at = @At("HEAD"), cancellable = true)
