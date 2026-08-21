@@ -63,9 +63,10 @@ class ChunkedRenderer(
 	private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
 
 	init {
-		owner.listenUnsafe<WorldEvent.BlockUpdate.Client> { event ->
-			val pos = event.pos
-			val world = mc.world ?: return@listenUnsafe
+			owner.listenUnsafe<WorldEvent.BlockUpdate.Client> { event ->
+				if (!event.world.isClient) return@listenUnsafe
+				val pos = event.pos
+				val world = mc.world ?: return@listenUnsafe
 			world.getWorldChunk(pos)?.chunkData?.markDirty()
 
 			val xInChunk = pos.x and 15

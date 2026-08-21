@@ -6,7 +6,6 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.TrajectoryPlanner.withinBudget
 import com.lambda.pathing.coarse.*
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.trajectory.*
@@ -67,7 +66,7 @@ class HorizonWalkProbeTest {
         for ((index, endpoints) in BedrockFieldLayout.randomEndpointPairs(count = 6).withIndex()) {
             val start = Stance(endpoints.first.x, endpoints.first.y, endpoints.first.z)
             val goal = Stance(endpoints.second.x, endpoints.second.y, endpoints.second.z)
-            val planner = CoarsePlanner(environment.withinBudget(start, goal), moves, start, goal)
+            val planner = CoarsePlanner(environment, moves, start, goal)
             if (!planner.repair(Duration.INFINITE).converged) continue
             planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
             val route = planner.routePlan(index.toLong()) ?: continue
@@ -141,7 +140,7 @@ class HorizonWalkProbeTest {
         val start = Stance(head.x, head.y, head.z)
         val goal = Stance(tail.x, tail.y, tail.z)
 
-        val planner = CoarsePlanner(environment.withinBudget(start, goal), moves, start, goal)
+        val planner = CoarsePlanner(environment, moves, start, goal)
         check(planner.repair(Duration.INFINITE).converged) { "no coarse route across the field" }
         planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
         val dx = (goal.x - start.x).toDouble()

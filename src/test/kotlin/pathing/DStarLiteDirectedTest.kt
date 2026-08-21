@@ -200,6 +200,40 @@ class DStarLiteDirectedTest {
         assertTrue(graph.successors(0).isEmpty())
     }
 
+    @Test
+    fun `lazy provider failure leaves node retryable and unpublished`() {
+        var attempts = 0
+        val graph = LazyGraph<Int>({ node ->
+            if (node == 0 && attempts++ == 0) error("section not ready")
+            if (node == 0) mapOf(1 to 2.0) else emptyMap()
+        })
+
+        assertFailsWith<IllegalStateException> { graph.successors(0) }
+        assertFalse(0 in graph)
+        assertEquals(mapOf(1 to 2.0), graph.successors(0))
+        assertTrue(0 in graph)
+    }
+
+    @Test
+    fun `moving start materializes a lazy vertex after the old queue emptied`() {
+        val graph = LazyGraph<Int>(
+            successorProvider = { node -> if (node == 3) mapOf(2 to 1.0) else emptyMap() },
+            // Node 3 models a stance reached by continuous execution which was not
+            // part of the predecessor field when the old start was solved.
+            predecessorProvider = { emptyMap() },
+        )
+        val planner = DStarLite(graph, start = 2, goal = 2, heuristic = { _, _ -> 0.0 })
+        assertTrue(planner.computeShortestPath(Duration.INFINITE).converged)
+        assertTrue(planner.queue.isEmpty())
+
+        planner.updateStart(3)
+        val repaired = planner.computeShortestPath(Duration.INFINITE)
+
+        assertTrue(repaired.converged)
+        assertEquals(listOf(3, 2), planner.path())
+        assertExactCost(1.0, planner.tailCost())
+    }
+
     private fun planner(edges: DirectedEdges, start: Int, goal: Int) =
         DStarLite(lazyGraph(edges), start, goal, heuristic = { _, _ -> 0.0 }, nodeTieBreaker = naturalOrder())
 

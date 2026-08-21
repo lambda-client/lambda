@@ -30,7 +30,7 @@ internal class AnchorRollout(
     private val profile: PlayerPhysicsProfile,
     private val initialState: MovementSimulationState,
     private val goalPoint: HorizontalPoint,
-    private val attempts: MutableList<PlanAttempt>,
+    private val attempts: AttemptAccumulator,
     private val progressOf: (com.lambda.pathing.coarse.Stance) -> Int,
 ) {
     fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
@@ -133,6 +133,11 @@ internal class AnchorRollout(
                 TrajectoryDiagnostic.FellBelowRoute(frame, 0.0)
             )
         }
+        if (anchor.hasVisited(eventStance)) {
+            return Outcome.Rejected(
+                TrajectoryDiagnostic.RepeatedCoarseStance(frame)
+            )
+        }
 
         return Outcome.Anchored(
             ValueAnchor(
@@ -148,6 +153,7 @@ internal class AnchorRollout(
             ),
         )
     }
+
     private fun record(
         anchor: ValueAnchor,
         action: TrajectoryDecision,
@@ -156,7 +162,7 @@ internal class AnchorRollout(
         stopped: Boolean,
     ) {
         PlanningDebugChannel.publishAttempt(rollout, stopped, failure)
-        attempts += PlanAttempt(
+        attempts.record(PlanAttempt(
             parameters = TerminalApproach(
                 sprint = action.sprint,
                 lookAheadNodes = (action as? TrajectoryDecision.Walk)?.lookAheadNodes ?: ValueFieldAnchorSearch.LOOK_AHEAD_NODES,
@@ -171,6 +177,6 @@ internal class AnchorRollout(
             finalHorizontalSpeed = rollout.finalState.velocity.horizontalLength(),
             diagnostic = failure,
             blockedProgress = progressOf(anchor.stance),
-        )
+        ))
     }
 }

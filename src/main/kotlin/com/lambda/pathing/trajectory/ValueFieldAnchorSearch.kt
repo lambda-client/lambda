@@ -85,14 +85,16 @@ object ValueFieldAnchorSearch {
         onSafePrefix: ((MotionPlanResult.Success) -> Unit)? = null,
         cursorFrame: (() -> Int?)? = null,
         clock: SearchClock = SystemSearchClock(),
+        cancelled: () -> Boolean = { false },
     ): MotionPlanResult {
+        if (cancelled()) return MotionPlanResult.Cancelled
         val unsupported = route.edges.mapTo(HashSet()) { it.kind }
             .filterTo(HashSet()) { it !in SUPPORTED_KINDS }
         if (unsupported.isNotEmpty()) return MotionPlanResult.UnsupportedRoute(unsupported)
 
         return Search(
             route, field, initialState, profile, environment, config, searchConfig,
-            onSafePrefix, cursorFrame, clock,
+            onSafePrefix, cursorFrame, clock, cancelled,
         ).run()
     }
 
@@ -130,12 +132,13 @@ object ValueFieldAnchorSearch {
         private val onSafePrefix: ((MotionPlanResult.Success) -> Unit)?,
         private val cursorFrame: (() -> Int?)?,
         private val clock: SearchClock,
+        private val cancelled: () -> Boolean,
     ) {
         private val vocabulary = ActionSet(field, config, searchConfig)
 
         private val goalStance = route.goal
         private val goalPoint = goalStance.center()
-        private val attempts = ArrayList<PlanAttempt>()
+        private val attempts = AttemptAccumulator()
 
         private val routeIndex = route.nodes.withIndex().associate { (index, node) -> node to index }
 
@@ -167,6 +170,7 @@ object ValueFieldAnchorSearch {
         private var provenFinish: TerminalApproach? = null
 
         fun run(): MotionPlanResult {
+            if (cancelled()) return MotionPlanResult.Cancelled
             frontier.admit(
                 ValueAnchor(
                     state = initialState,
@@ -183,6 +187,7 @@ object ValueFieldAnchorSearch {
 
             horizon.begin()
             while (!frontier.isExhausted && expansions < searchConfig.maxExpansions) {
+                if (cancelled()) return MotionPlanResult.Cancelled
                 val root = horizon.safeAnchor
                 if (root != null) {
                     val executing = cursorFrame?.invoke()
@@ -237,11 +242,7 @@ object ValueFieldAnchorSearch {
                     finishFrom(anchor)?.let { retain(it) }
                 }
 
-                val actions = anchor.actions
-                    ?: vocabulary.actions(anchor, anchor.hazardFrame).also { anchor.actions = it }
-                if (anchor.cursor >= actions.size) continue
-
-                val action = actions[anchor.cursor++]
+                val action = nextAction(anchor) ?: continue
                 expansions++
                 clock.onExpansion()
                 expansionsSinceImprovement++
@@ -260,7 +261,10 @@ object ValueFieldAnchorSearch {
                                 action.sprint, LOOK_AHEAD_NODES,
                                 config.brakeDistances.first(), null,
                             ),
-                            anchor.collisionEvents,
+                            anchor.collisionEvents + collisionEvents(
+                                anchor.state,
+                                outcome.frames.take(outcome.stopFrame + 1),
+                            ),
                         )
                     )
 
@@ -269,13 +273,10 @@ object ValueFieldAnchorSearch {
                             ?.let { frame -> anchor.hazardFrame?.coerceAtMost(frame) ?: frame }
                             ?: anchor.hazardFrame
 
-                        if (anchor.hazardFrame != null && anchor.cursor >= actions.size) {
-                            anchor.actions = vocabulary.actions(anchor, anchor.hazardFrame)
-                        }
                     }
                 }
 
-                if (anchor.cursor < (anchor.actions?.size ?: 0)) {
+                if (hasUnattemptedAction(anchor)) {
                     val penalty = if (outcome is Outcome.Rejected) RETRY_PENALTY_TICKS
                     else searchConfig.siblingPenaltyTicks
                     frontier.offer(
@@ -298,13 +299,30 @@ object ValueFieldAnchorSearch {
             }
 
             return MotionPlanResult.NoSafeStop(
-                attempts = attempts.toList(),
+                attemptCount = attempts.count,
+                nearest = attempts.nearest,
                 blockedProgress = frontier.deepestProgress,
                 deadEdge = null,
                 remainingStart = route.nodes.getOrNull(frontier.deepestProgress),
                 remainingGoal = goalStance,
             )
         }
+
+        private fun actions(anchor: ValueAnchor): List<TrajectoryDecision> {
+            val hazard = anchor.hazardFrame
+            val cached = anchor.actions
+            if (cached != null && anchor.actionsHazardFrame == hazard) return cached
+            return vocabulary.actions(anchor, hazard).also {
+                anchor.actions = it
+                anchor.actionsHazardFrame = hazard
+            }
+        }
+
+        private fun nextAction(anchor: ValueAnchor): TrajectoryDecision? =
+            actions(anchor).firstOrNull { anchor.attempted.add(it) }
+
+        private fun hasUnattemptedAction(anchor: ValueAnchor): Boolean =
+            actions(anchor).any { it !in anchor.attempted }
 
         private fun finishFrom(anchor: ValueAnchor): Solution? {
             val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
@@ -371,7 +389,7 @@ object ValueFieldAnchorSearch {
             )
             val evaluation = evaluate(gated.rollout, points, goalPoint, config)
             PlanningDebugChannel.publishAttempt(gated.rollout, gated.stopFrame != null, evaluation.diagnostic)
-            attempts += PlanAttempt(
+            attempts.record(PlanAttempt(
                 parameters = parameters,
                 simulatedFrames = gated.rollout.frames.size,
                 finalGoalError = hypot(
@@ -381,7 +399,7 @@ object ValueFieldAnchorSearch {
                 finalHorizontalSpeed = gated.rollout.finalState.velocity.horizontalLength(),
                 diagnostic = evaluation.diagnostic,
                 blockedProgress = frontier.progressOf(anchor.stance),
-            )
+            ))
             val stop = gated.stopFrame ?: return null
             if (gated.failed) return null
             return gated.rollout.frames.take(stop + 1)
@@ -395,11 +413,19 @@ object ValueFieldAnchorSearch {
             )
             if (gated.failed) return null
             val rollout = gated.rollout
-            val stopped = rollout.frames.indexOfFirst {
-                it.state.onGround && it.state.velocity.horizontalLength() <= config.stoppedSpeed
+            var stable = 0
+            var stableEnd = -1
+            for (frame in rollout.frames) {
+                stable = if (frame.state.onGround &&
+                    frame.state.velocity.horizontalLength() <= config.stoppedSpeed
+                ) stable + 1 else 0
+                if (stable >= config.stableStopFrames) {
+                    stableEnd = frame.index
+                    break
+                }
             }
-            if (stopped < 0) return null
-            val frames = rollout.frames.take(stopped + 1)
+            if (stableEnd < 0) return null
+            val frames = rollout.frames.take(stableEnd + 1)
 
             val resting = stanceOf(frames.last().state)
             if (!field.isStance(resting) || !field.isMapped(resting)) return null
@@ -455,27 +481,44 @@ object ValueFieldAnchorSearch {
         }
 
         private fun certify(solution: Solution): MotionPlanResult {
+            if (cancelled()) return MotionPlanResult.Cancelled
             val tape = InputTape(solution.inputs)
             val tracked = environment.trackingView()
+            val frameDependencies = ArrayList<Set<com.lambda.pathing.world.VoxelPos>>(tape.frameCount)
             val certified = TrajectoryRolloutEngine.rollout(
                 initialState = initialState,
                 profile = profile,
                 environment = tracked,
                 program = tape,
                 frameCount = tape.frameCount,
+                observer = { _ ->
+                    frameDependencies += tracked.takeFrameDependencies()
+                    false
+                },
             )
             if (!certified.completed || certified.frames.size != tape.frameCount) {
                 return MotionPlanResult.UnstableReplay(
                     "value-field tape did not reproduce: ${certified.termination}"
                 )
             }
+            check(frameDependencies.size == tape.frameCount) {
+                "Every certified input must publish its world-read dependencies"
+            }
+            if (cancelled()) return MotionPlanResult.Cancelled
             return MotionPlanResult.Success(
                 sourceRoute = route,
                 tape = tape,
                 rollout = certified,
                 parameters = solution.parameters,
-                dependencies = route.dependencies + tracked.dependencies(),
-                attempts = attempts.toList(),
+                safeAnchorStance = solution.anchor.stance,
+                safeAnchorFrame = solution.anchor.elapsed,
+                remainingGuideTicks = field.guide(solution.anchor.stance),
+                frameDependencies = frameDependencies,
+                // The immutable input tape is safety-certified by replay reads. Coarse
+                // route reads guide future controls but cannot change already-fixed
+                // input physics and are repaired independently by the persistent D*.
+                dependencies = tracked.dependencies(),
+                attemptCount = attempts.count,
                 controlSegments = solution.segments,
                 spliceFrames = solution.boundaries.filter { it in 1 until tape.frameCount },
                 launchMarginFrames = solution.launchMargin,
@@ -499,7 +542,8 @@ object ValueFieldAnchorSearch {
         private fun finish(solution: Solution): MotionPlanResult = certify(solution)
 
         private fun abandoned(): MotionPlanResult = MotionPlanResult.NoSafeStop(
-            attempts = attempts.toList(),
+            attemptCount = attempts.count,
+            nearest = attempts.nearest,
             blockedProgress = frontier.deepestProgress,
             deadEdge = null,
             remainingStart = route.nodes.getOrNull(frontier.deepestProgress),

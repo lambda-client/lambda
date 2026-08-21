@@ -7,7 +7,6 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.TrajectoryPlanner.withinBudget
 import com.lambda.pathing.coarse.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -114,7 +113,7 @@ class HorizonBaselineTest {
         val start = scenario.start
         val goal = scenario.goal
         val planner = CoarsePlanner(
-            scenario.environment.withinBudget(start, goal), moves, start, goal,
+            scenario.environment, moves, start, goal,
         )
         if (!planner.repair(Duration.INFINITE).converged) return noRoute(scenario.name)
         planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)

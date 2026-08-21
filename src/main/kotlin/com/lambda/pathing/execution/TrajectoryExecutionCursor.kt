@@ -11,6 +11,7 @@ package com.lambda.pathing.execution
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.trajectory.TrajectoryPlan
+import com.lambda.pathing.world.WorldMutation
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -32,7 +33,7 @@ data class ExecutionStateTolerance(
 }
 
 sealed interface ExecutionDeviation {
-    data class WorldRevision(val expected: Long, val actual: Long) : ExecutionDeviation
+    data class WorldChanged(val snapshotRevision: Long, val mutation: WorldMutation) : ExecutionDeviation
     data class Position(val axis: String, val expected: Double, val actual: Double) : ExecutionDeviation
     data class Velocity(val axis: String, val expected: Double, val actual: Double) : ExecutionDeviation
     data class Rotation(val component: String, val expected: Double, val actual: Double) : ExecutionDeviation
@@ -40,7 +41,10 @@ sealed interface ExecutionDeviation {
     data class IntegerValue(val name: String, val expected: Int, val actual: Int) : ExecutionDeviation
     data class BlockPosition(val name: String, val expected: BlockPos, val actual: BlockPos) : ExecutionDeviation
     data class SupportingBlock(val expected: BlockPos?, val actual: BlockPos?) : ExecutionDeviation
-    data object PhysicsProfile : ExecutionDeviation
+    data class PhysicsProfile(
+        val expected: PlayerPhysicsProfile,
+        val actual: PlayerPhysicsProfile,
+    ) : ExecutionDeviation
     data class Protocol(val message: String) : ExecutionDeviation
 }
 
@@ -65,8 +69,11 @@ class TrajectoryExecutionCursor(
         private set
 
     private var awaitingObservation = false
-    private var rejection: ExecutionDeviation? =
-        ExecutionDeviation.PhysicsProfile.takeIf { activePhysicsProfile != plan.physicsProfile }
+    private var rejection: ExecutionDeviation? = if (!activePhysicsProfile.isCompatibleWith(plan.physicsProfile)) {
+        ExecutionDeviation.PhysicsProfile(plan.physicsProfile, activePhysicsProfile)
+    } else {
+        null
+    }
 
     fun resumeAt(frame: Int) {
         require(frame in 0..plan.tape.frameCount) { "Cannot resume outside the tape" }
@@ -74,10 +81,9 @@ class TrajectoryExecutionCursor(
         nextFrame = frame
     }
 
-    fun nextInput(observed: MovementSimulationState, worldRevision: Long): ExecutionInputResult {
+    fun nextInput(observed: MovementSimulationState): ExecutionInputResult {
         rejection?.let { return ExecutionInputResult.Rejected(nextFrame, it) }
         if (awaitingObservation) return rejectInput(ExecutionDeviation.Protocol("Previous input has not been observed"))
-        revisionDeviation(worldRevision)?.let { return rejectInput(it) }
 
         val expectedBefore = if (nextFrame == 0) plan.initialState else plan.frames[nextFrame - 1].state
         stateDeviation(expectedBefore, observed, compareSprinting = false)?.let { return rejectInput(it) }
@@ -93,10 +99,9 @@ class TrajectoryExecutionCursor(
         return ExecutionInputResult.Apply(nextFrame, input)
     }
 
-    fun observeAfterTick(observed: MovementSimulationState, worldRevision: Long): ExecutionObservationResult {
+    fun observeAfterTick(observed: MovementSimulationState): ExecutionObservationResult {
         rejection?.let { return ExecutionObservationResult.Rejected(nextFrame, it) }
         if (!awaitingObservation) return rejectObservation(ExecutionDeviation.Protocol("No input is awaiting observation"))
-        revisionDeviation(worldRevision)?.let { return rejectObservation(it) }
 
         val observedFrame = nextFrame
 
@@ -107,9 +112,6 @@ class TrajectoryExecutionCursor(
         return if (nextFrame == plan.tape.frameCount) ExecutionObservationResult.Complete
         else ExecutionObservationResult.Accepted(observedFrame)
     }
-
-    private fun revisionDeviation(actual: Long): ExecutionDeviation? =
-        if (actual == plan.snapshotRevision) null else ExecutionDeviation.WorldRevision(plan.snapshotRevision, actual)
 
     private fun stateDeviation(
         expected: MovementSimulationState,

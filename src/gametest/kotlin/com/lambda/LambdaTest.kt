@@ -198,6 +198,7 @@ object LambdaTest : FabricClientGameTest {
         // null-cast the absent failure. It must certify a local stopped tape.
         assertPathingWalk(context, server, "pathing-already-there", Stance(0, 100, 0))
         assertPathingWalk(context, server, "pathing-straight", Stance(0, 100, 5))
+        assertPathingInvalidatesOnWorldMutation(context, server)
         assertPathingWalk(context, server, "pathing-diagonal", Stance(5, 100, 5))
 
         // Submit while the body is still drifting, as a rapid retry does. Capturing that
@@ -377,9 +378,9 @@ object LambdaTest : FabricClientGameTest {
         server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
         server.runCommand("/fill -2 99 9 2 99 14 minecraft:air")
 
-        // Longer than one local controller horizon (~44 blocks). Worker search must
-        // expand through predicted moving states and flatten the pieces into one
-        // tape; the live player must never stop at those internal boundaries.
+        // Longer than the local controller horizon. The coarse search must retain the
+        // true final goal while sparse snapshot sections are acquired on demand, and
+        // the anytime controller must extend one continuous execution to that goal.
         server.runCommand("/fill -2 99 -8 2 99 70 minecraft:stone")
         server.runCommand("/fill -2 100 -8 2 105 70 minecraft:air")
         // Drift accumulates with tape length: ~3e-8 per frame of double-precision
@@ -389,11 +390,46 @@ object LambdaTest : FabricClientGameTest {
         // states that contract rather than a tighter one that only short tapes meet.
         assertPathingWalk(
             context, server, "pathing-long-haul", Stance(0, 100, 64),
-            maxLegs = 1, minContinuousSegments = 2, requireMovingSplices = true,
+            minLegs = 1, maxLegs = 1, minContinuousSegments = 2, requireMovingSplices = true,
             maxDeviation = EXECUTION_TOLERANCE,
             cameraYawDuringPlanning = 90.0f,
         )
         server.runCommand("/fill -2 99 9 2 99 70 minecraft:air")
+
+        // The final stance starts beyond the client's view distance. D* keeps that real
+        // goal and reaches it through one optimistic edge from the streamed frontier,
+        // so the published route ends at the frontier and the walk continues from there
+        // as the chunks behind it arrive -- one leg per hop of the streamed world,
+        // never a false no-route.
+        server.runOnServer<IllegalStateException> { minecraftServer ->
+            val world = minecraftServer.overworld
+            for (z in -8..134) for (x in -2..2) {
+                world.setBlockState(
+                    net.minecraft.util.math.BlockPos(x, 99, z),
+                    net.minecraft.block.Blocks.STONE.defaultState,
+                    net.minecraft.block.Block.NOTIFY_ALL,
+                )
+                for (y in 100..105) world.setBlockState(
+                    net.minecraft.util.math.BlockPos(x, y, z),
+                    net.minecraft.block.Blocks.AIR.defaultState,
+                    net.minecraft.block.Block.NOTIFY_ALL,
+                )
+            }
+        }
+        repeat(3) { context.waitTick() }
+        assertPathingWalk(
+            context, server, "pathing-unloaded-final-goal", Stance(0, 100, 128),
+            minLegs = 1, maxLegs = 3, minContinuousSegments = 2,
+            requireMovingSplices = true, maxDeviation = EXECUTION_TOLERANCE,
+        )
+        server.runOnServer<IllegalStateException> { minecraftServer ->
+            val world = minecraftServer.overworld
+            for (z in 9..134) for (x in -2..2) world.setBlockState(
+                net.minecraft.util.math.BlockPos(x, 99, z),
+                net.minecraft.block.Blocks.AIR.defaultState,
+                net.minecraft.block.Block.NOTIFY_ALL,
+            )
+        }
 
         // The exposed-bedrock field from the retired bench corpus: a fixed-seed
         // reconstruction of vanilla's 80/60/40/20% bedrock layer profile -- irregular
@@ -459,11 +495,67 @@ object LambdaTest : FabricClientGameTest {
             runPathingWalk(
                 context, server, scenario, goal, minLegs, maxLegs, maxDeviation, expectedJumpDy,
                 requireJumpInput, minGapLaunches, minContinuousSegments, requireMovingSplices,
-                cameraYawDuringPlanning, plannerMaxFrames, driftBeforeSubmit, start, maxPathingTicks,
+                cameraYawDuringPlanning, plannerMaxFrames,
+                driftBeforeSubmit, start, maxPathingTicks,
             )
         } catch (failure: IllegalStateException) {
             pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
             println("[pathing-fail] ${failure.message}")
+        }
+    }
+
+    /** A changed dependency must stop the old tape, then continue in a fresh generation. */
+    private fun assertPathingInvalidatesOnWorldMutation(
+        context: ClientGameTestContext,
+        server: net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext,
+    ) {
+        val scenario = "pathing-world-invalidation"
+        if (!scenarioSelected(scenario)) return
+        try {
+            server.runCommand("/tp Steve 0.5 100 0.5 0 0")
+            repeat(5) { context.waitTick() }
+            context.runOnClient<IllegalStateException> {
+                PathingManager.clear()
+                PathingRequest(AutomationConfig.DEFAULT, Stance(0, 100, 7)).submit()
+            }
+
+            var ticks = 0
+            while (ticks++ < MAX_PATHING_TICKS && PathingManager.status !is PathingManager.Status.Executing) {
+                context.waitTick()
+            }
+            check(PathingManager.status is PathingManager.Status.Executing) {
+                "$scenario: never started execution (${PathingManager.status})"
+            }
+
+            // This support block is in the certified route's dependency section.
+            // The client update must invalidate the snapshot before replay continues.
+            server.runCommand("/setblock 0 99 4 minecraft:air")
+            ticks = 0
+            while (ticks++ < 40 && PathingManager.recoveries == 0) {
+                context.waitTick()
+            }
+            check(PathingManager.recoveries == 1) {
+                "$scenario: certified generation was not invalidated (${PathingManager.status})"
+            }
+            // Restore a walkable route. The second client update may restart an in-flight
+            // multi-tick capture, but it must not resurrect the invalidated worker.
+            server.runCommand("/setblock 0 99 4 minecraft:stone")
+            ticks = 0
+            while (ticks++ < MAX_PATHING_TICKS &&
+                PathingManager.status !is PathingManager.Status.Complete &&
+                PathingManager.status !is PathingManager.Status.Failed
+            ) {
+                context.waitTick()
+            }
+            check(PathingManager.status is PathingManager.Status.Complete) {
+                "$scenario: did not recover after invalidation (${PathingManager.status})"
+            }
+        } catch (failure: IllegalStateException) {
+            pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
+            println("[pathing-fail] ${failure.message}")
+        } finally {
+            server.runCommand("/setblock 0 99 4 minecraft:stone")
+            context.runOnClient<IllegalStateException> { PathingManager.clear() }
         }
     }
 
@@ -498,7 +590,22 @@ object LambdaTest : FabricClientGameTest {
         maxPathingTicks: Int,
     ) {
         server.runCommand("/tp Steve $start")
-        repeat(5) { context.waitTick() }
+        // A previous long-haul scenario may have moved the client watch center far
+        // enough that this scenario's start chunk must stream back in after teleport.
+        // Do not mistake that ordinary loading delay for a pathing failure.
+        var settledTicks = 0
+        for (tick in 0 until TELEPORT_SETTLE_TICKS) {
+            context.waitTick()
+            context.runOnClient<IllegalStateException> {
+                val player = Lambda.mc.player
+                if (player?.isOnGround == true && player.velocity.lengthSquared() <= SETTLED_SPEED_SQUARED) {
+                    settledTicks++
+                } else {
+                    settledTicks = 0
+                }
+            }
+            if (settledTicks >= REQUIRED_SETTLED_TICKS) break
+        }
 
         context.runOnClient<IllegalStateException> {
             val player = Lambda.mc.player ?: error("Missing client player")
@@ -508,7 +615,7 @@ object LambdaTest : FabricClientGameTest {
             val automated = if (plannerMaxFrames != null) {
                 object : Automated by AutomationConfig.DEFAULT {
                     override val pathingConfig = object : PathingConfig by base {
-                        override val maxFrames = plannerMaxFrames ?: base.maxFrames
+                        override val maxFrames = checkNotNull(plannerMaxFrames)
                     }
                 }
             } else {
@@ -575,7 +682,10 @@ object LambdaTest : FabricClientGameTest {
             println(
                 "[pathing-diag] $scenario: sprint=${path.parameters.sprint} " +
                     "frames=${path.plan.tape.frameCount} attempts=${path.attempts} " +
-                    "edges=${path.route.edges.groupingBy { it.kind }.eachCount()}",
+                    "edges=${path.route.edges.groupingBy { it.kind }.eachCount()} " +
+                    "collisions=${path.plan.frames.filter { it.state.horizontalCollision }.map { frame ->
+                        "${frame.index}@${frame.state.position}"
+                    }}",
             )
 
             expectedJumpDy?.let { dy ->
@@ -798,6 +908,10 @@ object LambdaTest : FabricClientGameTest {
 
     /** Plan latency plus tape length; a walk that needs longer has already failed. */
     private const val MAX_PATHING_TICKS = 1200
+
+    private const val TELEPORT_SETTLE_TICKS = 40
+    private const val REQUIRED_SETTLED_TICKS = 3
+    private const val SETTLED_SPEED_SQUARED = 1.0E-12
 
     private const val BEDROCK_FIELD_LENGTH = 40
     private const val BEDROCK_FIELD_HALF_WIDTH = BedrockFieldLayout.HALF_WIDTH

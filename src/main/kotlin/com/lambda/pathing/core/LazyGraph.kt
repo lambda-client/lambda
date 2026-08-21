@@ -57,6 +57,11 @@ class LazyGraph<N>(
         knownNodes += node
     }
 
+    fun markPredecessorsInitialized(node: N) {
+        initializedPredecessors += node
+        knownNodes += node
+    }
+
     fun cost(from: N, to: N): Double {
         ensureSuccessors(from)
         return successorEdges[from]?.get(to) ?: Double.POSITIVE_INFINITY
@@ -79,15 +84,22 @@ class LazyGraph<N>(
     operator fun contains(node: N) = node in knownNodes
 
     private fun ensureSuccessors(node: N) {
-        if (!initializedSuccessors.add(node)) return
+        if (node in initializedSuccessors) return
+        // Providers may suspend on, or fail while acquiring, a lazy world section. Do
+        // not publish a half-initialized node: the exact same expansion must be safe to
+        // retry once the section becomes available.
+        val generated = generateSuccessors(node)
+        generated.forEach { (successor, cost) -> putEdge(node, successor, cost) }
+        initializedSuccessors += node
         knownNodes += node
-        generateSuccessors(node).forEach { (successor, cost) -> putEdge(node, successor, cost) }
     }
 
     private fun ensurePredecessors(node: N) {
-        if (!initializedPredecessors.add(node)) return
+        if (node in initializedPredecessors) return
+        val generated = generatePredecessors(node)
+        generated.forEach { (predecessor, cost) -> putEdge(predecessor, node, cost) }
+        initializedPredecessors += node
         knownNodes += node
-        generatePredecessors(node).forEach { (predecessor, cost) -> putEdge(predecessor, node, cost) }
     }
 
     private fun putEdge(from: N, to: N, cost: Double) {

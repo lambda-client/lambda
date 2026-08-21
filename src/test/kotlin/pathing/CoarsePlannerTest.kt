@@ -20,6 +20,7 @@ import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.core.TailCost
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.VoxelPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
@@ -252,6 +253,31 @@ class CoarsePlannerTest {
     }
 
     @Test
+    fun `chunk refresh repairs overlapping known origins without rebuilding D star`() {
+        val world = SyntheticView().apply { fillGround(-8..8, -8..8, y = 0) }
+        val start = Stance(0, 1, 0)
+        val goal = Stance(4, 1, 0)
+        val planner = CoarsePlanner(
+            world,
+            library(SimpleMoveOptions(allowDiagonal = false, allowStepUp = false, maxWalkOffDepth = 0, allowJumpCandidates = false)),
+            start,
+            goal,
+        )
+        planner.repair(timeBudget = Duration.INFINITE)
+        val graphSize = planner.graphSize
+
+        world[VoxelPos(1, 1, 0)] = CoarseVoxel.FULL_BLOCK
+        val sync = planner.chunksChanged(listOf(PathingChunk(0, 0)))
+        val repaired = planner.repair(timeBudget = Duration.INFINITE)
+        val route = assertNotNull(planner.route())
+
+        assertTrue(sync.nodesChecked > 0)
+        assertTrue(repaired.converged)
+        assertFalse(Stance(1, 1, 0) in route.nodes)
+        assertTrue(planner.graphSize >= graphSize, "the retained graph must not be cleared")
+    }
+
+    @Test
     fun `derived invalidation includes the origin of every edge read`() {
         val world = SyntheticView().apply { fillGround(-5..5, -5..5, y = 0) }
         val moves = library()
@@ -260,6 +286,10 @@ class CoarsePlannerTest {
         for (edge in moves.edgesFrom(world, origin)) {
             for (read in edge.readSet) {
                 assertTrue(origin in moves.affectedOrigins(read), "${edge.kind} did not invert read $read")
+                assertTrue(
+                    origin in moves.affectedOrigins(PathingChunk.containing(read), listOf(origin)),
+                    "${edge.kind} did not overlap the refreshed chunk containing $read",
+                )
             }
         }
     }
@@ -281,6 +311,7 @@ class CoarsePlannerTest {
             )
         }
     }
+
 
     private fun library(options: SimpleMoveOptions = SimpleMoveOptions()) = SimpleMoveLibrary.build(
         costs = CoarseMoveCosts(

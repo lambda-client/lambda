@@ -59,6 +59,14 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
+    override val snapshotCaptureBudgetMillis by c.setting(
+        "Snapshot Tick Budget", 3.0, 0.25..10.0, 0.25,
+        "Maximum client-thread time used to copy world physics per tick. Larger values " +
+            "finish planning sooner but can make rendering less smooth.",
+        unit = " ms",
+    )
+
+    @Group(SEARCH_GROUP)
     override val goalRadius by c.setting(
         "Goal Radius", 0.20, 0.05..1.0, 0.01,
         "How close to the goal centre the walk must stop.", unit = " blocks",

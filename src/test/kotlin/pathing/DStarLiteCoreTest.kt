@@ -67,6 +67,19 @@ class DStarLiteCoreTest {
     }
 
     @Test
+    fun `computeShortestPath cooperatively stops before expanding when cancelled`() {
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(100, 0, 0)
+        val planner = DStarLite(graph(connectivity = N6), start, goal, ::manhattan)
+
+        val result = planner.computeShortestPath(cancelled = { true })
+
+        assertTrue(result.cancelled)
+        assertEquals(0, result.processedNodes)
+        assertFalse(result.converged)
+    }
+
+    @Test
     fun `computeShortestPath finds diagonal path on twenty six connected grid`() {
         val start = fastVectorOf(0, 0, 0)
         val goal = fastVectorOf(2, 2, 2)

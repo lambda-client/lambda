@@ -62,8 +62,8 @@ object PlanDump {
 
         val palette = LinkedHashMap<SnapshotBlockPhysics, Int>()
         val cells = ArrayList<Pair<BlockPos, Int>>()
-        for ((packed, physics) in environment.snapshotBlocks()) {
-            if (physics == SnapshotBlockPhysics.AIR) continue
+        environment.forEachSnapshotBlock { packed, physics ->
+            if (physics == SnapshotBlockPhysics.AIR) return@forEachSnapshotBlock
             val index = palette.getOrPut(physics) { palette.size }
             cells += BlockPos.fromLong(packed) to index
         }

@@ -10,9 +10,12 @@
 package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.math.abs
@@ -23,6 +26,70 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SnapshotSimulationEnvironmentTest {
+    @Test
+    fun `an unstreamed section carries no terrain and no exact reads`() {
+        val key = ChunkSectionPos.asLong(0, 0, 0)
+        val unavailable = ImmutableSnapshotSection.Builder().apply {
+            fill(SnapshotBlockPhysics.UNAVAILABLE)
+        }.build(expectedWrites = 4096)
+        val exact = ImmutableSnapshotSection.Builder().apply {
+            fill(SnapshotBlockPhysics.AIR)
+        }.build(expectedWrites = 4096)
+        var exactRequests = 0
+        val environment = SnapshotSimulationEnvironment(
+            bounds = SimulationSnapshotBounds(0, 0, 0, 15, 15, 15),
+            sections = mapOf(key to unavailable),
+            defaultBlock = null,
+            missingSection = { _, _, _, exactRead ->
+                assertTrue(exactRead)
+                exactRequests++
+                exact
+            },
+            unavailableSectionKeys = setOf(key),
+        )
+
+        // The coarse layer must not invent terrain here: an unstreamed cell is unknown,
+        // which carries no stance and therefore no edge. What crosses it is the
+        // planner's single optimistic edge, not a surface.
+        assertEquals(CoarseVoxel.UNKNOWN, environment.voxel(4, 4, 4))
+        assertFalse(environment.isKnown(4, 4, 4))
+        assertTrue(environment.collisionShape(4, 4, 4).isEmpty)
+        assertEquals(SnapshotBlockPhysics.DEFAULT_SLIPPERINESS, environment.slipperiness(BlockPos(4, 4, 4)))
+        assertEquals(1, exactRequests)
+    }
+
+    @Test
+    fun `an exact read of the streaming frontier rejects the step instead of parking it`() {
+        val key = ChunkSectionPos.asLong(0, 0, 0)
+        val unavailable = ImmutableSnapshotSection.Builder().apply {
+            fill(SnapshotBlockPhysics.UNAVAILABLE)
+        }.build(expectedWrites = 4096)
+        val environment = SnapshotSimulationEnvironment(
+            bounds = SimulationSnapshotBounds(0, 0, 0, 15, 15, 15),
+            sections = mapOf(key to unavailable),
+            defaultBlock = null,
+            missingSection = { sectionX, sectionY, sectionZ, exactRead ->
+                assertTrue(exactRead)
+                throw SnapshotSectionUnavailableException(sectionX, sectionY, sectionZ)
+            },
+            unavailableSectionKeys = setOf(key),
+        )
+        val initial = MovementSimulationState.synthetic(
+            profile = PROFILE,
+            position = Vec3d(4.5, 5.0, 4.5),
+            rotation = Rotation(0.0, 0.0),
+            onGround = true,
+        )
+        val simulator = MovementSimulator(PROFILE, environment, initial)
+
+        val result = simulator.tryTickMovement(MovementSimulationInput(forward = 1.0))
+
+        assertTrue(result is MovementSimulationStepResult.Rejected)
+        assertTrue(result.failure is SnapshotSectionUnavailableException)
+        assertEquals(initial, simulator.state)
+        assertEquals(CoarseVoxel.UNKNOWN, environment.voxel(4, 3, 4))
+    }
+
     @Test
     fun `tracked snapshot view records immutable exact scalar dependencies`() {
         val environment = environment(emptyMap())
@@ -91,6 +158,33 @@ class SnapshotSimulationEnvironmentTest {
         assertClose(0.4, environment.velocityMultiplier(BlockPos.ORIGIN))
         assertClose(0.5, environment.jumpVelocityMultiplier(BlockPos.ORIGIN))
         assertClose(0.6, environment.slipperiness(BlockPos(1, 0, 0)))
+    }
+
+    @Test
+    fun `section lookup preserves distinct values across negative boundaries`() {
+        val values = mapOf(
+            BlockPos(-17, -17, -17) to specialPhysics(0.11),
+            BlockPos(-16, -16, -16) to specialPhysics(0.22),
+            BlockPos(-1, -1, -1) to specialPhysics(0.33),
+            BlockPos(0, 0, 0) to specialPhysics(0.44),
+        )
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-17, -17, -17, 0, 0, 0),
+            values,
+        )
+
+        values.forEach { (pos, physics) -> assertClose(physics.slipperiness, environment.slipperiness(pos)) }
+        assertEquals(3, environment.storageStats().sections)
+    }
+
+    @Test
+    fun `synthetic snapshots reject cells outside their declared bounds`() {
+        assertFailsWith<IllegalArgumentException> {
+            SnapshotSimulationEnvironment.synthetic(
+                SimulationSnapshotBounds(0, 0, 0, 1, 1, 1),
+                mapOf(BlockPos(2, 0, 0) to SnapshotBlockPhysics.FULL_CUBE),
+            )
+        }
     }
 
     @Test
@@ -210,6 +304,11 @@ class SnapshotSimulationEnvironmentTest {
     private fun assertClose(expected: Double, actual: Double) {
         assertTrue(abs(expected - actual) <= 1.0E-9, "expected <$expected>, actual <$actual>")
     }
+
+    private fun specialPhysics(slipperiness: Double) = SnapshotBlockPhysics(
+        collisionShape = VoxelShapes.empty(),
+        slipperiness = slipperiness,
+    )
 
     private companion object {
         val BOUNDS = SimulationSnapshotBounds(-3, -3, -3, 3, 4, 4)

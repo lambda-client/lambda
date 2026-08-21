@@ -53,6 +53,9 @@ interface PathingConfig {
     /** Longest tape the seed search may certify. */
     val maxFrames: Int
 
+    /** Maximum client-thread time spent extending an immutable snapshot in one tick. */
+    val snapshotCaptureBudgetMillis: Double get() = 3.0
+
     /** How close to the goal centre the walk must come to a stable stop. */
     val goalRadius: Double
 
