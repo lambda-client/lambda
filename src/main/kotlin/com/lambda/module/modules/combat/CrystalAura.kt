@@ -45,18 +45,15 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
-import com.lambda.util.CommunicationUtils.log
 import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.item.ItemStackUtils.slotId
 import com.lambda.util.math.*
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.player.RotationUtils.getVisibleSurfaces
-import com.lambda.util.player.SlotUtils.hotbarSlots
 import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
@@ -92,7 +89,7 @@ object CrystalAura : Module(
     private const val RENDERING_TAB = "Rendering"
 
     @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
-    @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Async)
+    @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Ticked)
     @Tab(GENERAL_TAB) private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
     @Tab(GENERAL_TAB) private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
     @Tab(GENERAL_TAB) private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
@@ -114,8 +111,10 @@ object CrystalAura : Module(
     @Tab(EXPLODING_TAB) private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
 
     @Tab(PREDICTION_TAB) private val prediction by setting("Prediction", PredictionMode.None)
-    @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }
-    @Tab(PREDICTION_TAB) private val placePostPause by setting("Place Post Pause", true) { prediction.onPacket }
+    @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1, "Flags grim") { prediction.onPacket }
+    @Tab(PREDICTION_TAB) private val explodeOnPacket by setting("Explode On Packet", false, "Explodes the received crystal on packet") { prediction != PredictionMode.None }
+    @Tab(PREDICTION_TAB) private val placePostPause by setting("Place Post Pause", false, "Resets the place delay timer after receiving a entity spawn packet (adds a delay)") { prediction != PredictionMode.None }
+    @Tab(PREDICTION_TAB) private val postPacketPlace by setting("Post Packet Place", true, "Places the crystal on the next tick from the entity spawn packet") { prediction == PredictionMode.Tick && !placePostPause }
     @Tab(PREDICTION_TAB) private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
     @Tab(PREDICTION_TAB) private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
 
@@ -154,6 +153,8 @@ object CrystalAura : Module(
 
     private val predictionTimer = Timer()
     private var lastEntityId = 0
+    private var waitingForCrystal = false
+    private var safeToPlaceInstantly = false
 
     private val decay = LimitedDecayQueue<Int>(10000, 3000L)
 
@@ -241,16 +242,20 @@ object CrystalAura : Module(
             // Run packet prediction
             if (!prediction.isActive || activeOpportunity != opportunity) return@listen
 
-            explodeInternal(lastEntityId)
+            if (explodeOnPacket) {
+                explodeInternal(lastEntityId)
+            }
 
-            if (!prediction.onPacket) return@listen
-
-            repeat(packetPredictions) {
-                placeInternal(opportunity, swapHand)
-                explodeInternal(++lastEntityId)
+            if (!prediction.onPacket) {
+                // this only works in vanilla
+                repeat(packetPredictions) {
+                    placeInternal(opportunity, swapHand)
+                    explodeInternal(++lastEntityId)
+                }
             }
 
             if (placePostPause) placeTimer.reset()
+            if (postPacketPlace) safeToPlaceInstantly = true
         }
 
         listen<EntityEvent.Removal> { event ->
@@ -303,9 +308,8 @@ object CrystalAura : Module(
     }
 
     private fun tickInteraction(best: Opportunity) {
-        if (!best.blocked) {
+        if (!best.blocked && best.crystal != null) {
             best.explode()
-            best.place()
             return
         }
 
@@ -338,6 +342,7 @@ object CrystalAura : Module(
         });
 
         player.swingHand(hand)
+        waitingForCrystal = true
     }
 
     private fun SafeContext.explodeInternal(id: Int) {
@@ -531,72 +536,50 @@ object CrystalAura : Module(
 				(swapHand == Hand.OFF_HAND && player.offHandStack.item != Items.END_CRYSTAL)
 			) runSafeAutomated {
 				if (!swap) return@runSafe
-                var hotbarStack: ItemStack? = null
+                val itemToUse: ItemStack? = if (player.mainHandStack.item == Items.END_CRYSTAL) {
+                    crystalHand = Hand.MAIN_HAND
+                    player.mainHandStack
+                } else if (player.offHandStack.item == Items.END_CRYSTAL) {
+                    crystalHand = Hand.OFF_HAND
+                    player.offHandStack
+                } else null
 
-                fun findInHotbar(): Pair<Boolean, Int> {
-                    hotbarStack = selection.bestItemMatch(player.hotbarStacks)?: return (false to -1)
-                    val hotbarSlot = hotbarStack.slotId
-                    return (hotbarSlot >= 0) to hotbarSlot
+                val swapTo = when (swapHand) {
+                    Hand.MAIN_HAND -> HotbarContainer
+                    Hand.OFF_HAND -> OffHandContainer
                 }
 
-                fun findInOffhand(): Pair<Boolean, Int> {
-                    return (player.offHandStack.item == selection.item) to player.offHandStack.slotId
-                }
-
-                val crystalSearch = when (swapHand) {
-                    Hand.MAIN_HAND -> listOf(
-                        Hand.MAIN_HAND to ::findInHotbar,
-                        Hand.OFF_HAND to ::findInOffhand
-                    )
-                    Hand.OFF_HAND -> listOf(
-                        Hand.OFF_HAND to ::findInOffhand,
-                        Hand.MAIN_HAND to ::findInHotbar
-                    )
-                }
-
-                val searchResult = crystalSearch
-                    .asSequence()
-                    .map { (hand, finder) ->
-                        val (found, slot) = finder()
-                        Triple(found, slot, hand)
+                if (itemToUse == null || swapHand == Hand.MAIN_HAND) {
+                    if (swapHand == Hand.MAIN_HAND) {
+                        val itemStack = selection.bestItemMatch(player.hotbarStacks)
+                        if (itemStack == null) { // retrieve to hotbar
+                            if (!selection.transfer(swapTo)) return@runSafe
+                        }
+                        val s = player.hotbarStacks.indexOf(itemStack)
+                        if ((!HotbarRequest(s, this@CrystalAura, nowOrNothing = false).submit().done) && itemToUse == null) return@runSafe
+                    } else { // retrieve to offhand
+                        if (!selection.transfer(swapTo)) return@runSafe
                     }
-                    .firstOrNull { (found) -> found }
-
-                crystalHand = searchResult?.third
-
-				if (crystalHand == null) { // no crystal stack found in main or offhand
-					val swapTo = when (swapHand) {
-                        //TODO: add support for server side hotbar switching
-						Hand.MAIN_HAND -> HotbarContainer
-						Hand.OFF_HAND -> OffHandContainer
-					}
-
-                    // retrieve from inventory, return if the task is not ready
-					if (!selection.transfer(swapTo)) return@runSafe
-				}
-                if (crystalHand == Hand.MAIN_HAND && swapHand == Hand.MAIN_HAND) {
-                    val s = player.hotbarStacks.indexOf(hotbarStack?: return@runSafe)
-                    Lambda.LOG.info("$s, $swapHand, $crystalHand, ${player.hotbarStacks.size}")
-                    if (!HotbarRequest(s, this@CrystalAura, nowOrNothing = false).submit().done) return@runSafe
-                } else if (crystalHand == null) {
-                    return@runSafe
                 }
 			}
 
-            placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
-                placeInternal(this@Opportunity, crystalHand?: swapHand) // we should not be here without a crystal in hand but ig better to check than not to
+            if (placeTimer.timePassed(placeDelay.milliseconds) || (postPacketPlace && safeToPlaceInstantly && !placePostPause)) {
+                runSafe {
+                    placeInternal(this@Opportunity, crystalHand?: swapHand) // we should not be here without a crystal in hand but ig better to check than not to
+                    safeToPlaceInstantly = false
+                    if (prediction.onPlace)
+                        predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
+                            val last = lastEntityId
 
-                if (prediction.onPlace)
-                    predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
-                        val last = lastEntityId
+                            repeat(placePredictions) {
+                                explodeInternal(++lastEntityId)
+                            }
 
-                        repeat(placePredictions) {
-                            explodeInternal(++lastEntityId)
+                            lastEntityId = last + 1
+                            crystal = null
                         }
-
-                        lastEntityId = last + 1
-                        crystal = null
-                    }
+                    placeTimer.reset()
+                }
             }
         }
 
@@ -606,6 +589,13 @@ object CrystalAura : Module(
          */
         fun explode() {
             if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done) return
+
+            if (waitingForCrystal && crystal == null && prediction == PredictionMode.Tick) {
+                runSafe {
+                    explodeInternal(lastEntityId++)
+                    waitingForCrystal = false
+                }
+            }
 
             explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
                 crystal?.let { crystal ->
@@ -653,6 +643,8 @@ object CrystalAura : Module(
 
         // Predict on place
         Deferred(false, true),
+
+        Tick(false, false),
 
         // Predict on both timings
         Mixed(true, true);
