@@ -28,18 +28,6 @@ import net.minecraft.util.shape.VoxelShapes
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * A whole failed plan, written to disk and replayable in the JVM.
- *
- * A field refusal is the most valuable input the planner gets and the hardest to act on:
- * the terrain that caused it exists only in someone's world, so it cannot become a test.
- * This writes exactly what the worker saw — the captured collision shapes, the endpoints,
- * the body's exact entry state and physics profile — so a live failure becomes a fixture
- * that runs in a second and can be bisected.
- *
- * Sparse and palette-compacted: only cells that are not air are written, and identical
- * physics is written once, so a parkour course is a few kilobytes even over a wide capture.
- */
 object PlanDump {
     const val VERSION = 3
 
@@ -50,9 +38,7 @@ object PlanDump {
         val goal: Stance,
         val initialState: MovementSimulationState,
         val profile: PlayerPhysicsProfile,
-        /** The move library the plan was actually built with; defaults differ from the settings'. */
         val moveOptions: SimpleMoveOptions,
-        /** The trajectory search config the plan actually ran with, including the live turn speed. */
         val searchConfig: MotionConstraints,
         val note: String,
     ) {
@@ -119,8 +105,6 @@ object PlanDump {
         for (line in lines) {
             val parts = line.split(' ')
             when (parts[0]) {
-                // Version 1 predates the recorded move/search config; it still loads, but
-                // it replays against library defaults, which are not the settings' defaults.
                 "version" -> require(parts[1].toInt() == VERSION) {
                     "Unsupported plan dump version ${parts[1]}"
                 }

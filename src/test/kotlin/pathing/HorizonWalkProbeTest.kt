@@ -83,7 +83,7 @@ class HorizonWalkProbeTest {
             val clock = VirtualSearchClock()
             val sizes = ArrayList<Int>()
             var previous = 0
-            val outcome = TrajectoryPlanner.walkHorizonForTest(
+            val outcome = TrajectoryPlanner.walkHorizon(
                 route, planner, initial, PROFILE, environment, config,
                 cursorFrame = { clock.cursorFrame() },
                 publish = { path, _ ->
@@ -156,7 +156,7 @@ class HorizonWalkProbeTest {
 
         val startedAt = System.nanoTime()
         val publications = ArrayList<Pair<Long, PathingManager.PublishedPath>>()
-        val result = TrajectoryPlanner.walkHorizonForTest(
+        val result = TrajectoryPlanner.walkHorizon(
             route, planner, initial, PROFILE, environment, config,
             cursorFrame = {
                 val elapsed = (System.nanoTime() - startedAt) / 50_000_000L
@@ -192,15 +192,6 @@ class HorizonWalkProbeTest {
                     "ground=${last.onGround} speed=${last.velocity.horizontalLength()}"
             }
         }
-        val census = ValueFieldAnchorSearch.candidateCensus.toList()
-        if (census.isNotEmpty()) {
-            println("[horizon] candidates per commitment: %s".format(
-                census.joinToString { "${it[0]}(${it[1]} lines)" }))
-            println("[horizon] median distinct lines %d, median candidates %d".format(
-                census.map { it[1] }.sorted()[census.size / 2],
-                census.map { it[0] }.sorted()[census.size / 2]))
-        }
-        ValueFieldAnchorSearch.candidateCensus.clear()
         val commits = publications.map { it.second.plan.tape.frameCount }
         val steps = commits.zipWithNext { a, b -> b - a }
         println("[horizon] final tape %d frames".format(

@@ -215,23 +215,9 @@ dependencies {
 tasks {
     test {
         useJUnitPlatform {
-            excludeTags("bedrock-corpus", "plan-dumps")
+            excludeTags("bedrock-corpus")
         }
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
-    }
-
-    register<Test>("planDumps") {
-        description = "Replays plans dumped from a live refusal on both trajectory engines."
-        group = "verification"
-        testClassesDirs = sourceSets["test"].output.classesDirs
-        classpath = sourceSets["test"].runtimeClasspath
-        useJUnitPlatform {
-            includeTags("plan-dumps")
-        }
-        (project.findProperty("dumpDir") as String?)?.let { jvmArgs("-Dlambda.pathing.dumpDir=$it") }
-        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
-        testLogging { showStandardStreams = true }
-        outputs.upToDateWhen { false }
     }
 
     register<Test>("bedrockCorpus") {
@@ -248,86 +234,6 @@ tasks {
         }
         testLogging { showStandardStreams = true }
         outputs.upToDateWhen { false }
-    }
-
-    register<JavaExec>("runRlBlockFieldBridge") {
-        description = "Runs the procedural 3-D block-field bridge for Sample Factory."
-        group = "application"
-        dependsOn(testClasses)
-        classpath = sourceSets["test"].runtimeClasspath
-        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
-        args("--environment", "block-field")
-        standardInput = System.`in`
-    }
-
-    register<Test>("neuralRepro") {
-        description = "Reproduce full-route neural discovery."
-        group = "verification"
-        testClassesDirs = sourceSets["test"].output.classesDirs
-        classpath = sourceSets["test"].runtimeClasspath
-        useJUnitPlatform { includeTags("neural-repro") }
-        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
-        outputs.upToDateWhen { false }
-    }
-
-    register<Test>("neuralDiscovery") {
-        description = "Validates the production NeuralTrajectoryDiscovery path against bench numbers."
-        group = "verification"
-        testClassesDirs = sourceSets["test"].output.classesDirs
-        classpath = sourceSets["test"].runtimeClasspath
-        useJUnitPlatform { includeTags("neural-discovery") }
-        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
-        outputs.upToDateWhen { false }
-    }
-
-    register<Test>("neuralSmoke") {
-        description = "Runs the ONNX-exported policy bridge-free in the JVM driving the simulator."
-        group = "verification"
-        testClassesDirs = sourceSets["test"].output.classesDirs
-        classpath = sourceSets["test"].runtimeClasspath
-        useJUnitPlatform { includeTags("neural-smoke") }
-        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
-        outputs.upToDateWhen { false }
-    }
-
-    register<Test>("dstarProbe") {
-        description = "Times per-episode D* planning on episode-sized patches."
-        group = "verification"
-        testClassesDirs = sourceSets["test"].output.classesDirs
-        classpath = sourceSets["test"].runtimeClasspath
-        useJUnitPlatform { includeTags("dstar-probe") }
-        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
-        outputs.upToDateWhen { false }
-    }
-
-    register<Test>("bedrockQuality") {
-        description = "Search side of the learned-vs-search trajectory quality head-to-head."
-        group = "verification"
-        testClassesDirs = sourceSets["test"].output.classesDirs
-        classpath = sourceSets["test"].runtimeClasspath
-        useJUnitPlatform { includeTags("bedrock-quality") }
-        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
-        outputs.upToDateWhen { false }
-    }
-
-    register<JavaExec>("runRlBedrockFieldBridge") {
-        description = "Runs the bedrock-corpus transfer bridge for evaluating a policy."
-        group = "application"
-        dependsOn(testClasses)
-        classpath = sourceSets["test"].runtimeClasspath
-        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
-        args("--environment", "bedrock-field")
-        standardInput = System.`in`
-    }
-
-    register<JavaExec>("runRlDStarBridge") {
-        description = "Runs the value-guided D*-terrain training bridge for Sample Factory."
-        group = "application"
-        dependsOn(testClasses)
-        classpath = sourceSets["test"].runtimeClasspath
-        mainClass = "com.lambda.pathing.rl.RlBridgeServer"
-        args("--environment", "dstar-terrain")
-        standardInput = System.`in`
     }
 
     // `./gradlew runClientGameTest -Prebaseline=true` records pathing metrics without

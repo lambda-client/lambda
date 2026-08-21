@@ -17,50 +17,19 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sqrt
 
-/**
- * Trajectory-layer knowledge a certified probe hands down as a *prior*, never as a
- * promise: which gait to try, where along the approach to press jump, and how much
- * air the arc had. The launch beam tries hinted frames first; certification still
- * decides (C1 -- the probe is a mask + prior, not a discovery mechanism).
- */
 data class JumpHint(
     val sprint: Boolean,
     val entrySpeed: Double,
-    /** Blocks past the takeoff stance centre where the launch should happen. */
     val launchOffsetBlocks: Double,
-    /** Smallest distance between the swept body and any obstacle, capped. */
     val clearance: Double,
 )
 
-/**
- * Geometric mask for jump candidates: the player's box swept along the measured
- * ballistic arc, tested against the *real* captured collision shapes instead of
- * boolean voxel traits. This is the actual fix for "the coarse path maps jumps
- * through blocks" -- a slab, fence, or stair the trait mask rounded away is exactly
- * the shape this sweep collides with.
- *
- * Deliberately permissive (v2 §5.1): the swept box is the body's *core* (shrunk
- * laterally, full height), the horizontal profile is a chord approximation, and the
- * reach test allows a landing-pad tolerance. A false positive costs one M6 reroute;
- * a false negative deletes topology forever. No collision resolution, no friction,
- * no inputs -- certification stays with the simulator.
- *
- * Reach comes from the measured jump Jacobian (2026-07-13 calibration, see
- * [[jump-physics-constants]]): landing distance is exactly linear, `D(s, v) =
- * D0(gait, rise) + s + k(rise) * v`, so reachability per entry family is arithmetic,
- * and only the swept collision test needs geometry.
- */
 object JumpArcProbe {
     class Reachable(
         val hint: JumpHint,
-        /** Every cell whose shape the sweep consulted; exact edge dependencies. */
         val reads: Set<VoxelPos>,
     )
 
-    /**
-     * Probes one jump candidate of [span] stances along (stepX, stepZ) landing
-     * [rise] blocks up or down. Returns null when no entry-speed family clears.
-     */
     fun probe(
         view: CoarseVoxelView,
         from: Stance,
@@ -76,8 +45,7 @@ object JumpArcProbe {
 
         for (family in FAMILIES) {
             val reach = family.reach(rise)
-            // The launch may happen up to MAX_LAUNCH_DEPTH past the stance centre, and
-            // a landing short of the pad centre still lands on the pad.
+
             if (reach + MAX_LAUNCH_DEPTH < spanDistance - LANDING_TOLERANCE) continue
 
             val launchOffset = (spanDistance - reach).coerceIn(0.0, MAX_LAUNCH_DEPTH)
@@ -97,10 +65,6 @@ object JumpArcProbe {
         return best?.let { Reachable(it, reads) }
     }
 
-    /**
-     * Sweeps the body core tick by tick from launch to landing. Null when the sweep
-     * intersects any shape; otherwise the smallest gap observed (capped).
-     */
     private fun sweepClearance(
         view: CoarseVoxelView,
         from: Stance,
@@ -141,8 +105,7 @@ object JumpArcProbe {
                         for (bounds in shape.boundingBoxes) {
                             val obstacle = bounds.offset(x.toDouble(), y.toDouble(), z.toDouble())
                             if (obstacle.intersects(swept)) return null
-                            // Ground the arc launches from, lands on, or passes over is
-                            // not an obstacle; clearance measures the air the arc *threads*.
+
                             if (obstacle.maxY <= swept.minY + FLOOR_CONTACT_EPSILON) continue
                             clearance = minOf(clearance, gap(swept, obstacle))
                         }
@@ -153,17 +116,11 @@ object JumpArcProbe {
         return clearance
     }
 
-    /**
-     * Body core at a feet position: full height (an apex head bonk must block the
-     * arc), laterally shrunk from the real 0.3 half-width (the chord approximation's
-     * permissiveness knob -- a borderline pass costs one certification attempt).
-     */
     private fun coreBox(x: Double, y: Double, z: Double) = Box(
         x - CORE_HALF_WIDTH, y, z - CORE_HALF_WIDTH,
         x + CORE_HALF_WIDTH, y + BODY_HEIGHT, z + CORE_HALF_WIDTH,
     )
 
-    /** Euclidean gap between two non-intersecting boxes. */
     private fun gap(a: Box, b: Box): Double {
         val dx = max(max(b.minX - a.maxX, a.minX - b.maxX), 0.0)
         val dy = max(max(b.minY - a.maxY, a.minY - b.maxY), 0.0)
@@ -171,11 +128,6 @@ object JumpArcProbe {
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
 
-    /**
-     * Feet heights above the takeoff, one entry per airborne tick, ending exactly at
-     * [rise]. Vanilla's vertical recursion (`v' = (v - 0.08) * 0.98` after moving) --
-     * identical for every gait, so it is computed once per rise.
-     */
     internal fun arcHeights(rise: Int): DoubleArray {
         val heights = ArrayList<Double>(MAX_ARC_TICKS)
         var y = 0.0
@@ -192,12 +144,6 @@ object JumpArcProbe {
         return heights.toDoubleArray()
     }
 
-    /**
-     * One measured entry-speed family. [baseReach]/[speedGain] indexed by rise
-     * (+1 down to -3); reach = base + gain * entrySpeed, from the stance centre.
-     * Rises outside the measured band clamp to the nearest row, which under-states
-     * the reach of deeper drops -- the safe direction.
-     */
     private class Family(
         val sprint: Boolean,
         val entrySpeed: Double,
@@ -206,7 +152,6 @@ object JumpArcProbe {
     ) {
         fun reach(rise: Int): Double = reachAt(entrySpeed, rise)
 
-        /** The same model evaluated at an arbitrary entry speed rather than this gait's. */
         fun reachAt(speed: Double, rise: Int): Double {
             val index = (RISE_MAX - rise).coerceIn(0, baseReach.lastIndex)
             return baseReach[index] + speedGain[index] * speed
@@ -215,7 +160,6 @@ object JumpArcProbe {
 
     private const val RISE_MAX = 1
 
-    /** Measured strides (b/t): the entry speed each gait sustains into the launch. */
     private val FAMILIES = listOf(
         Family(
             sprint = true,
@@ -231,17 +175,6 @@ object JumpArcProbe {
         ),
     )
 
-    /**
-     * Furthest a jump launched at [entrySpeed] reaches, from the takeoff stance centre.
-     *
-     * The same measured linear model the mask uses, exposed for an arbitrary entry speed
-     * so the trajectory search can ask "can this body, moving at *this* speed, reach that
-     * pad at all" before it pays for a rollout. A sprint family and a walk family bracket
-     * the range, and reach is linear in speed within a rise, so interpolating between the
-     * two rows is exact rather than an approximation. Optimistic on purpose: it is a
-     * filter that must never discard a jump the simulator would have certified, so it
-     * takes whichever family reaches further.
-     */
     fun maxReach(entrySpeed: Double, rise: Int): Double =
         FAMILIES.maxOf { family -> family.reachAt(entrySpeed, rise) }
 
@@ -249,13 +182,10 @@ object JumpArcProbe {
     private const val GRAVITY = 0.08
     private const val VERTICAL_DRAG = 0.98
 
-    /** Deepest usable drop plus headroom; a longer recursion is a broken candidate. */
     private const val MAX_ARC_TICKS = 24
 
-    /** How far past the stance centre a launch may still be pressed. */
     private const val MAX_LAUNCH_DEPTH = 0.4
 
-    /** Landing this far short of the pad centre still lands on the pad. */
     private const val LANDING_TOLERANCE = 0.35
 
     private const val CORE_HALF_WIDTH = 0.2

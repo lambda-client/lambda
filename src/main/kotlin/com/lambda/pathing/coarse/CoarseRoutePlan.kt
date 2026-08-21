@@ -12,7 +12,6 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.core.TailCost
 import com.lambda.pathing.world.VoxelPos
 
-/** Immutable worker-to-trajectory boundary; it contains no live D* state. */
 data class CoarseRoutePlan(
     val snapshotRevision: Long,
     val routeVersion: Long,
@@ -21,13 +20,7 @@ data class CoarseRoutePlan(
     val lowerBoundTicks: Double,
     val exactFromStart: Boolean,
     val dependencies: Set<VoxelPos>,
-    /**
-     * Correctness-bearing cost-to-go answers for [nodes], frozen when this route is
-     * published. An intermediate D* label is never smuggled across this boundary as an
-     * exact value: non-active nodes carry [TailCost.Bounds].
-     */
     val tailCosts: List<TailCost>,
-    /** Caps used to extend the stance heuristic to continuous simulated checkpoints. */
     val heuristicCaps: SimpleMoveLibrary.HeuristicCaps,
 ) {
     init {

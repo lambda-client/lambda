@@ -22,15 +22,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-/**
- * Read-only view of [PathingManager]. It holds no state and drives nothing.
- *
- * It renders what the planner *believed* (the coarse polyline and the simulated
- * trajectory) against what the body *did* (the live trail). The gap between the
- * green and the pink line is simulator error, and it should stay at float noise.
- */
 object PathingRenderer : Loadable {
-    /** Live config of whoever requested the current path -- read, never cached. */
     private val config get() = PathingManager.renderConfig
 
     init {
@@ -45,23 +37,13 @@ object PathingRenderer : Loadable {
         }
     }
 
-    /**
-     * The plan as it is being built: the coarse route the instant D* converges (and
-     * after every reroute), and the newest candidate rollouts the seed search tried.
-     * Candidates that certified a stop are drawn in the trajectory colour, cut ones in
-     * the reject colour -- watching where the red ends is watching the search think.
-     */
     private fun RenderBuilder.renderPlanningDebug() {
         val published = PathingManager.published
         PlanningDebugChannel.coarseRoute?.let { route ->
-            // Once a plan publishes, its own coarse render takes over.
+
             if (published == null || route !== published.route) renderCoarseRoute(route)
         }
 
-        // Candidates are drawn while refining too, not only before the first plan. That
-        // phase is most of a long walk, and hiding it is why an improver making hundreds
-        // of attempts looked like it was doing nothing at all. They are dimmed once a tape
-        // is running, so the line the body is actually following stays the bright one.
         val refining = published != null
         val width = screenWidth(maxOf(config.trajectoryWidth / 2, 1))
         PlanningDebugChannel.attempts.forEach { attempt ->
@@ -74,10 +56,6 @@ object PathingRenderer : Loadable {
             polyline(attempt.points.map { it.add(0.0, TRAJECTORY_Y, 0.0) }, color.setAlpha(alpha), width)
         }
 
-        // The options still on the table. The bright one is what would be committed if the
-        // body needed motion this instant; the others are what it is being weighed against.
-        // Several lines means the search is genuinely choosing; one means the field has
-        // already decided and there is nothing to choose between.
         if (config.renderCandidates) {
             PlanningDebugChannel.candidateLines.forEach { candidate ->
                 if (candidate.points.size < 2) return@forEach
@@ -105,20 +83,12 @@ object PathingRenderer : Loadable {
         route.nodes.forEach { node -> marker(node.center(COARSE_Y), 0.14, config.nodeColor) }
     }
 
-    /**
-     * The certified tape. Where it departs from the coarse line is the lattice
-     * error the trajectory layer exists to remove.
-     */
     private fun RenderBuilder.renderTrajectory(plan: TrajectoryPlan) {
         val points = buildList {
             add(plan.initialState.position.add(0.0, TRAJECTORY_Y, 0.0))
             plan.frames.forEach { add(it.state.position.add(0.0, TRAJECTORY_Y, 0.0)) }
         }
 
-        // Split the line where the body actually is. Everything behind the cursor is
-        // history and can no longer be improved; everything ahead is what refinement is
-        // still allowed to replace. Seeing which is which is the whole point of watching
-        // an anytime planner work.
         val walked = (PathingManager.status as? PathingManager.Status.Executing)?.frame
         if (walked != null && walked in 1 until points.size) {
             polyline(points.take(walked + 1), config.trailColor, screenWidth(config.trajectoryWidth))
@@ -127,8 +97,6 @@ object PathingRenderer : Loadable {
             polyline(points, config.trajectoryColor, screenWidth(config.trajectoryWidth))
         }
 
-        // Every grounded launch the search chose. A STEP_UP with no marker here was
-        // walked, not jumped -- which for a one-block rise means something is wrong.
         if (config.renderJumpMarkers) {
             plan.frames.forEachIndexed { index, frame ->
                 if (plan.tape[index].jump) {
@@ -137,10 +105,6 @@ object PathingRenderer : Loadable {
             }
         }
 
-        // The reserve: the brake the horizon holds so the committed motion always has a
-        // way to stop. It is not meant to be walked -- if it is, the search failed to
-        // extend in time -- so it is drawn as what it is, a held fallback rather than a
-        // plan, and seeing the body enter it is seeing the search lose a race.
         val committedEnd = PathingManager.published?.spliceFrames?.lastOrNull()
         if (config.renderSplices && committedEnd != null && committedEnd < points.size - 1) {
             polyline(
@@ -150,9 +114,6 @@ object PathingRenderer : Loadable {
             )
         }
 
-        // Where one controller hands the tape to the next. These are the only frames a
-        // refinement or a splice may cut at, so they are the shape of what can still
-        // change -- a stretch with no splice markers is a stretch nothing can improve.
         if (config.renderSplices) {
             PathingManager.published?.spliceFrames?.forEach { frame ->
                 plan.frames.getOrNull(frame - 1)?.let { at ->
@@ -165,9 +126,6 @@ object PathingRenderer : Loadable {
             marker(last.state.position.add(0.0, TRAJECTORY_Y, 0.0), 0.28, config.stopColor)
         }
 
-        // Where a safe partial plan brakes to its certified stop. A tape is always safe
-        // run to its end, and this is that end: if refinement never arrives, the body
-        // stops here rather than running out of inputs mid-stride.
         val path = PathingManager.published
         if (path != null && path.partial) {
             plan.frames.lastOrNull()?.let { last ->
@@ -176,7 +134,6 @@ object PathingRenderer : Loadable {
         }
     }
 
-    /** Where the body actually went. Overlaps the prediction when the sim is honest. */
     private fun RenderBuilder.renderLiveTrail() {
         val trail = PathingManager.liveTrail
         if (trail.size < 2) return
@@ -260,11 +217,6 @@ object PathingRenderer : Loadable {
         }
     }
 
-    /**
-     * Line width is **negative for screen-space** (roughly pixels at 1:20000); a
-     * positive value is world-space thickness in *blocks*, which renders a
-     * multi-block tube and swallows the whole path.
-     */
     private fun screenWidth(pixels: Int): Float = -pixels * 0.00005f
 
     private fun Stance.center(yOffset: Double) = Vec3d(x + 0.5, y + yOffset, z + 0.5)

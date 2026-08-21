@@ -19,16 +19,6 @@ package com.lambda.pathing.core
 
 import java.util.Collections
 
-/**
- * Sparse directed graph that generates adjacency on demand.
- *
- * [successorProvider] returns outgoing edges from a node.
- * [predecessorProvider] returns incoming edges to a node, with the same costs
- * reported by [successorProvider]. If omitted, the graph assumes reversible
- * connectivity and reuses [successorProvider]. Directed movement graphs must
- * always supply the true inverse provider; D* Lite propagates from the goal
- * through predecessors and cannot infer asymmetric incoming edges.
- */
 class LazyGraph<N>(
     private val successorProvider: (N) -> Map<N, Double>,
     private val predecessorProvider: (N) -> Map<N, Double> = successorProvider,
@@ -129,7 +119,6 @@ class LazyGraph<N>(
     }
 }
 
-/** Keep the provider's map allocation when it is already valid (the common path). */
 private fun <N> Map<N, Double>.filterUsableCosts(): Map<N, Double> {
     var filtered: HashMap<N, Double>? = null
     for ((node, cost) in this) {

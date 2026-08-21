@@ -23,24 +23,17 @@ internal class ValueAnchor(
     val parent: ValueAnchor?,
     val inputs: List<MovementSimulationInput>,
     val boundary: Int,
-    /** The decision this anchor was reached by; null for the root. */
-    val via: TrajectoryDecision? = null,
 ) {
-    /** Generated once, on the first pop; actions are deterministic for a given anchor. */
     var actions: List<TrajectoryDecision>? = null
 
-    /** How many of [actions] have been simulated. The rest are tried only if needed. */
     var cursor: Int = 0
 
-    /** Frame a walk from here met a hazard; gates the air-control family. */
     var hazardFrame: Int? = null
 
-    /** Whether the terminal sweep has already been paid for from this anchor. */
     var sweptToGoal: Boolean = false
 
     val speed: Double get() = state.velocity.horizontalLength()
 
-    /** The direction the body is actually travelling; null when it carries no momentum. */
     fun heading(): Pair<Double, Double>? =
         if (speed <= 1e-6) null else state.velocity.x to state.velocity.z
 

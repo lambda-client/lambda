@@ -17,12 +17,6 @@
 
 package com.lambda.pathing.core
 
-/**
- * Indexed binary min-heap supporting O(log n) updates and removals.
- *
- * Each value is stored alongside its current heap index. The index is kept
- * in sync as the heap sifts up or down.
- */
 class UpdatablePriorityQueue<V, K : Comparable<K>> {
     private val values = ArrayList<V>()
     private val keys = ArrayList<K>()
@@ -100,8 +94,7 @@ class UpdatablePriorityQueue<V, K : Comparable<K>> {
         values[index] = movedValue
         keys[index] = movedKey
         indices[movedValue] = index
-        // A replacement can violate only one side of the heap invariant. The
-        // old implementation always walked both directions after every remove.
+
         val parent = (index - 1) ushr 1
         if (index > 0 && movedKey < keys[parent]) siftUp(index) else siftDown(index)
     }

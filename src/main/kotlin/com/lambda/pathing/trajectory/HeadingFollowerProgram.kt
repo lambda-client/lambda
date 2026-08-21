@@ -13,51 +13,25 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 
-/**
- * Drives a fixed world heading instead of chasing a node.
- *
- * Every other controller here is pure pursuit: it re-aims at a stance centre each tick, so
- * whatever it does is a walk between block centres and the trajectory can only ever be the
- * grid path the coarse layer already knew. That is the ceiling the value-field search kept
- * hitting — freedom of *choice* between grid chains, but no freedom of *shape*.
- *
- * A held heading has no such reference. The body commits to a direction and lets its own
- * momentum carry it, so the search can express a line that cuts inside a corner, leaves a
- * pad off-centre to set up the next jump, or crosses a gap at an angle no pair of stance
- * centres describes. The value field prices wherever it ends up and the simulator certifies
- * it, which is the whole point of steering by a field rather than a path.
- */
 internal class HeadingFollowerProgram(
     private val targetYaw: Double,
     private val sprint: Boolean,
     private val maxYawChange: Double,
     private val launch: LaunchTrigger? = null,
-    /** Release forward until the body is pointing where it is going; a turn, not a brake. */
-    private val easeUntilAligned: Boolean = false,
-    /** Held key combination. Travel direction is this, rotated into the facing frame. */
     private val keys: MovementKeys = MovementKeys.FORWARD,
-    /** Keys to hold once airborne, when the search wants to spend the air control. */
     private val airborneKeys: MovementKeys = keys,
 ) : ControlProgram {
     override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
         val yawError = Rotation.wrap(targetYaw - observed.rotation.yaw)
         val yawDelta = yawError.coerceIn(-maxYawChange, maxYawChange)
         val held = if (observed.onGround) keys else airborneKeys
-        val easing = easeUntilAligned && kotlin.math.abs(yawError) > EASE_TURN_DEGREES
-        // Shedding releases the movement keys the same way easing does, but for a
-        // different reason: this one is aiming the arc, not turning the body.
-        val coasting = easing || launch?.shedding(observed) == true
         return MovementSimulationInput(
-            forward = if (coasting) 0.0 else held.forward,
-            strafe = if (coasting) 0.0 else held.strafe,
+            forward = held.forward,
+            strafe = held.strafe,
             sprint = sprint,
             jump = launch?.press(observed) == true,
             rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
         )
     }
 
-    private companion object {
-        /** Matches the pursuit follower's easing threshold, so the two agree on what a turn is. */
-        const val EASE_TURN_DEGREES = 50.0
-    }
 }

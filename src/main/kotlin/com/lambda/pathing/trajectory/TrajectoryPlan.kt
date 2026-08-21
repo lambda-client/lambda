@@ -21,7 +21,6 @@ enum class CertifiedTerminal {
     STABLE_GROUNDED_STOP,
 }
 
-/** Immutable object consumed by execution; it contains no search/controller state. */
 class TrajectoryPlan private constructor(
     val id: TrajectoryPlanId,
     val snapshotRevision: Long,

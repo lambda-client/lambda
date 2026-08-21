@@ -32,7 +32,6 @@ sealed interface TrajectoryRolloutTermination {
     ) : TrajectoryRolloutTermination
 }
 
-/** Immutable result of running one control program against one environment. */
 data class TrajectoryRollout(
     val initialState: MovementSimulationState,
     val frames: List<SimulatedTrajectoryFrame>,
@@ -43,20 +42,10 @@ data class TrajectoryRollout(
     val completed: Boolean get() = termination === TrajectoryRolloutTermination.Completed
 }
 
-/**
- * Watches a rollout frame by frame and may end it early.
- *
- * The frame budget answers "how long may this run"; the observer answers "is there
- * anything left to learn". A transition between two motion anchors is decided within a
- * handful of ticks, and simulating past that decision is the super-linear work the
- * anchor search exists to remove.
- */
 fun interface RolloutObserver {
-    /** True stops the rollout with [frame] as its last recorded frame. */
     fun onFrame(frame: SimulatedTrajectoryFrame): Boolean
 }
 
-/** Stateless rollout entry point; safe on workers when [environment] is. */
 object TrajectoryRolloutEngine {
     fun rollout(
         initialState: MovementSimulationState,

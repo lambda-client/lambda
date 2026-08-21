@@ -26,6 +26,7 @@ import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
@@ -46,18 +47,7 @@ import java.util.Collections
 import kotlin.math.abs
 import kotlin.math.max
 
-/**
- * Single owner of walking execution. Callers submit a [PathingRequest]; the manager
- * plans off-thread, then replays the certified tape through
- * [TrajectoryExecutionCursor].
- *
- * The manager holds no steering logic of its own. It emits the tape's stored input
- * and compares the observed state against the tape's expected state -- if they
- * disagree it stops, it never corrects. All rotation goes through
- * [RotationManager] under the requester's own automation config.
- */
 object PathingManager : Manager<PathingRequest>(0) {
-    /** Frozen result of a successful plan, safe to read from the render thread. */
     data class PublishedPath(
         val route: CoarseRoutePlan,
         val plan: TrajectoryPlan,
@@ -65,31 +55,16 @@ object PathingManager : Manager<PathingRequest>(0) {
         val parameters: TerminalApproach,
         val attempts: Int,
         val planMillis: Long,
-        /** Where the continuously expanded tape must end. */
         val finalGoal: Stance,
-        /** Worker-local control pieces expanded into the single published tape. */
         val controlSegments: Int = 1,
-        /** Predicted moving-state boundaries already flattened into [plan]. */
         val spliceFrames: List<Int> = emptyList(),
-        /** Failure-directed launch runway accumulated across the certified tape. */
         val launchMarginFrames: Int = 0,
-        /**
-         * A safe *partial* plan: committed motion ending in a certified stop somewhere
-         * short of the goal. Safe to execute on its own — that is the whole point — and
-         * meant to be superseded by the full plan while it is still running.
-         */
         val partial: Boolean = false,
     )
 
     sealed interface Status {
         data object Idle : Status
 
-        /**
-         * Bringing the body to true rest before the initial state is captured. A plan
-         * begins from the exact state it was simulated at; capturing a still-drifting
-         * body freezes a moving frame zero that no longer exists once the async plan
-         * returns, and the cursor then rejects it. Only entered when actually moving.
-         */
         data class Settling(val goal: String) : Status
         data class Planning(val goal: String) : Status
         data class Aligning(val leg: Int, val yawError: Double) : Status
@@ -111,93 +86,64 @@ object PathingManager : Manager<PathingRequest>(0) {
     var maxDeviation: Double = 0.0
         private set
 
-    /** Improvements swapped in while walking; the visible sign that anytime is working. */
     @Volatile
     var adopted: Int = 0
         private set
 
-    /**
-     * The first complete plan of the journey, before any improvement.
-     *
-     * What the planner deterministically produces. Refinement is a stochastic bonus racing
-     * a live walk, so measuring the *final* tape measures how many attempts happened to fit
-     * -- a regression gate built on that is flaky by construction, and was: a collision
-     * count of 7 came from one lucky run where the search reliably produces 8.
-     */
     @Volatile
     var firstFullPath: PublishedPath? = null
         private set
 
     private val executedPaths = ArrayList<PublishedPath>()
 
-    /**
-     * Every plan the body actually walked, in the order it walked them.
-     *
-     * [published] is only the newest, which is the wrong thing to judge a whole journey
-     * by: a walk that stops and replans ends on a short final leg, so asking that leg
-     * whether the journey pressed jump, or which route edges it used, answers about the
-     * last few blocks rather than about the trip.
-     */
     val executed: List<PublishedPath> get() = synchronized(executedPaths) { ArrayList(executedPaths) }
 
-    /** Improvements that arrived too late to splice, so the running tape was kept. */
     @Volatile
     var rejectedImprovements: Int = 0
         private set
 
-    /**
-     * The render config of whoever asked for the current path. Live, not a copy: the
-     * renderer should pick up setting changes without a replan.
-     */
     @Volatile
     var renderConfig: PathingRenderConfig = AutomationConfig.DEFAULT.pathingRenderConfig
         private set
 
     private val trail = ArrayList<Vec3d>()
 
-    /** Immutable view for the renderer. */
     val liveTrail: List<Vec3d> get() = synchronized(trail) { ArrayList(trail) }
 
     private var activeRequest: PathingRequest? = null
 
-    /** Zero before publication, one while/after replay of the single full trajectory. */
     private var leg = 0
-    /** Yaw captured with the planning snapshot; held until the worker result arrives. */
+
     private var planningYaw: Double? = null
-    /** A certified plan waiting for movement yaw to match its immutable initial state. */
+
     private var pendingPath: PublishedPath? = null
     private var alignmentTicks = 0
     private var settleTicks = 0
     private var cursor: TrajectoryExecutionCursor? = null
-    /**
-     * The input the tape says to press this tick. Written in [TickEvent.Pre] and read
-     * by both the input hook and the sprint hook, so it must outlive the input write.
-     */
+
     private var tickInput: MovementSimulationInput? = null
     private var awaitingObservation = false
 
-    /**
-     * An improvement that arrived mid-tick and must wait for a safe moment to be swapped
-     * in. Replacing the cursor between writing an input and observing its result strands
-     * the handshake — the new cursor has nothing awaiting observation and rightly refuses
-     * the tick that follows.
-     */
     private var pendingImprovement: PublishedPath? = null
 
     fun isFinished(request: PathingRequest): Boolean =
         activeRequest !== request || status is Status.Complete || status is Status.Failed
 
-    /** Abandons the walk. The player simply stops; nothing is left holding the input. */
-    fun cancel() {
+    private fun releaseWalk() {
         activeRequest = null
         cursor = null
         tickInput = null
         awaitingObservation = false
-        leg = 0
         planningYaw = null
         pendingPath = null
+        pendingImprovement = null
         alignmentTicks = 0
         settleTicks = 0
+        leg = 0
+    }
+
+    fun cancel() {
+        releaseWalk()
         if (status is Status.Settling || status is Status.Planning ||
             status is Status.Aligning || status is Status.Executing
         ) {
@@ -206,11 +152,10 @@ object PathingManager : Manager<PathingRequest>(0) {
     }
 
     fun clear() {
-        cancel()
-        published = null
+        releaseWalk()
         status = Status.Idle
+        published = null
         maxDeviation = 0.0
-        pendingImprovement = null
         adopted = 0
         rejectedImprovements = 0
         firstFullPath = null
@@ -222,32 +167,15 @@ object PathingManager : Manager<PathingRequest>(0) {
     override fun AutomatedSafeContext.handleRequest(request: PathingRequest) {
         if (!request.fresh) return
 
-        cancel()
-        published = null
-        maxDeviation = 0.0
-        pendingImprovement = null
-        adopted = 0
-        rejectedImprovements = 0
-        firstFullPath = null
-        synchronized(executedPaths) { executedPaths.clear() }
-        synchronized(trail) { trail.clear() }
+        clear()
 
         activeRequest = request
         renderConfig = request.pathingRenderConfig
-        leg = 0
 
         unsteerable(request)?.let { return fail(it, request.goal) }
         planTrajectory(request)
     }
 
-    /**
-     * Plans one full trajectory. Local search horizons may be concatenated from
-     * predicted moving states on the worker, but no partial route is executable.
-     *
-     * If the body still carries drift from a previous action, it is settled to true
-     * rest first: the plan's frame zero is the exact state it was simulated at, and a
-     * moving capture is stale before the async worker even returns.
-     */
     private fun planTrajectory(request: PathingRequest) {
         val player = mc.player ?: return fail("no player")
         if (player.velocity.horizontalLength() > SETTLED_SPEED) {
@@ -259,11 +187,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         capturePlan(request, player)
     }
 
-    /**
-     * Presses zero movement input until the body reaches the rest vanilla clamps to,
-     * then captures and plans. Bounded: a body that will not settle in time is planned
-     * from where it is, with the drift guard in [begin] as the backstop.
-     */
     private fun settle(request: PathingRequest) {
         val player = mc.player ?: return fail("no player")
         tickInput = ALIGNMENT_INPUT
@@ -271,8 +194,6 @@ object PathingManager : Manager<PathingRequest>(0) {
             return capturePlan(request, player)
         }
         if (++settleTicks > MAX_SETTLE_TICKS) {
-            // Something keeps the body moving with no input of ours -- a slope, ice, a
-            // current. Better a clear refusal than a capture the cursor will reject.
             fail("could not settle to a stable start (%.3f b/t after %d ticks)".format(
                 player.velocity.horizontalLength(), settleTicks,
             ))
@@ -282,10 +203,6 @@ object PathingManager : Manager<PathingRequest>(0) {
     private fun capturePlan(request: PathingRequest, player: ClientPlayerEntity) {
         tickInput = null
 
-        // Movement yaw is part of the simulator's immutable initial state. A prior
-        // leg's request can decay back toward the camera while this worker runs, so
-        // keep the captured yaw alive until adoption instead of rejecting a valid
-        // continuation merely because planning crossed a tick boundary.
         planningYaw = player.moveYaw.toDouble()
         status = Status.Planning("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
         PlanningDebugChannel.begin(
@@ -296,7 +213,6 @@ object PathingManager : Manager<PathingRequest>(0) {
             TrajectoryPlanner.planAsync(
                 player, request.goal, request.pathingConfig,
                 turnSpeed = request.rotationConfig.turnSpeed,
-                // Where the body is, so refinement only ever replaces tape ahead of it.
                 cursorFrame = { cursor?.nextFrame },
                 onImprovement = { improvement ->
                     mc.execute {
@@ -304,8 +220,7 @@ object PathingManager : Manager<PathingRequest>(0) {
                     }
                 },
                 onSafePrefix = { prefix ->
-                    // Worker thread: hand it to the client thread, and drop it if the
-                    // request has moved on or a tape is already running.
+
                     mc.execute {
                         if (activeRequest === request && cursor == null && pendingPath == null) {
                             begin(prefix)
@@ -319,7 +234,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
 
         planning.whenCompleteAsync({ result, failure ->
-            // Late results from a superseded request must not install themselves.
+
             if (activeRequest !== request) return@whenCompleteAsync
             if (failure != null) {
                 LOG.error("Pathing worker failed while expanding the trajectory", failure)
@@ -340,16 +255,11 @@ object PathingManager : Manager<PathingRequest>(0) {
             return fail("planner attempted to publish a partial route ending at ${path.route.goal.short()}")
         }
 
-        // The tape is only valid from the state it was simulated at; the cursor
-        // would reject on frame 0 anyway, but this says why in one line.
         val drift = player.pos.distanceTo(path.plan.initialState.position)
         if (drift > START_DRIFT_TOLERANCE) {
             return fail("moved %.2f blocks while planning".format(drift))
         }
 
-        // Frame 0 is immutable, but yaw can safely be repaired while the body is
-        // stopped: rotate in place to the captured heading before giving the cursor
-        // any input. Position drift cannot be repaired this way and still refuses.
         val yawDrift = abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
         if (yawDrift > START_YAW_TOLERANCE) {
             published = path
@@ -367,35 +277,18 @@ object PathingManager : Manager<PathingRequest>(0) {
         install(path)
     }
 
-    /**
-     * Swaps a better plan in underneath a tape that is already running.
-     *
-     * Only sound while the improvement agrees with what the body has *already done*: the
-     * executed frames are history, and a plan that would have driven them differently
-     * cannot be resumed from here. Both tapes come from the same search and the same
-     * immutable initial state, so the shared prefix is bit-identical when it exists at
-     * all. When it does not — the improvement diverges behind the cursor — nothing is
-     * lost: the running tape still ends in its certified stop, and planning resumes from
-     * that rest, which is exactly the old behaviour.
-     */
     private fun adopt(path: PublishedPath) {
         val running = published
         val active = cursor
         if (running == null || active == null) return begin(path)
         if (awaitingObservation) {
-            // Mid-tick: the input for this frame is already pressed and its result has
-            // not been read yet. Swap at the top of the next tick instead.
             pendingImprovement = path
             return
         }
 
         val frame = active.nextFrame
         if (frame > path.plan.tape.frameCount) return keepRunning(path, "improvement is shorter than the walk so far")
-        // Trust nothing about ordering: a worker publishes its passes as it finds them and
-        // the client thread may see them in any order relative to the base plan. Replacing
-        // a full tape with a *longer* full tape is a regression however it arrived. A
-        // partial tape is the exception — it stops short of the goal, so any complete plan
-        // supersedes it regardless of length.
+
         if (!running.partial && !path.partial && path.plan.tape.frameCount >= running.plan.tape.frameCount) {
             return keepRunning(path, "improvement is not shorter than the running tape")
         }
@@ -420,7 +313,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         synchronized(executedPaths) { executedPaths += path }
     }
 
-    /** Lets the running tape finish; it is safe by construction and ends stopped. */
     private fun keepRunning(rejected: PublishedPath, reason: String) {
         rejectedImprovements++
         LOG.info("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
@@ -446,14 +338,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         )
     }
 
-    /**
-     * Refuse configs that cannot steer a tape, rather than walking off in a
-     * plausible-looking wrong direction. Unsupported physics is a typed result.
-     *
-     * Turn speed is deliberately not gated here: the simulation caps its per-frame yaw
-     * steps at the requester's own turn speed, so any positive value plans honestly --
-     * a slow config simply certifies gentler (or refuses harder) routes.
-     */
     private fun unsteerable(request: PathingRequest): String? {
         val config = request.rotationConfig
         if (config.rotationMode == RotationMode.Silent) {
@@ -466,16 +350,11 @@ object PathingManager : Manager<PathingRequest>(0) {
     private fun fail(reason: String, goal: Stance? = activeRequest?.goal ?: published?.finalGoal) {
         val position = mc.player?.blockPos?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "unknown position"
         val destination = goal?.let { " toward ${it.short()}" } ?: ""
+        val walked = leg
+        releaseWalk()
         status = Status.Failed(reason)
-        activeRequest = null
-        cursor = null
-        tickInput = null
-        awaitingObservation = false
-        planningYaw = null
-        pendingPath = null
-        alignmentTicks = 0
         warn(
-            "Stopped ${if (leg == 0) "before" else "during"} continuous replay at " +
+            "Stopped ${if (walked == 0) "before" else "during"} continuous replay at " +
                 "$position$destination: $reason",
             PATHING_SOURCE,
         )
@@ -493,16 +372,10 @@ object PathingManager : Manager<PathingRequest>(0) {
             val active = cursor ?: return@listen
             val path = published ?: return@listen
 
-            // snapshotRevision is a capture timestamp, not a content revision, so
-            // the live world clock would reject every frame. Dependency-revision
-            // indexing (M7) is what makes this check real; until then the tape
-            // assumes the world has not changed under it.
             val revision = path.plan.snapshotRevision
             val frame = active.nextFrame
 
             if (awaitingObservation) {
-                // After the tick, the jump the client holds is the one frame [frame]
-                // wrote -- which observe() reads from tape[f - 1], hence frame + 1.
                 val observed = observe(path.plan, frame + 1)
                 val result = active.observeAfterTick(observed, revision)
                 if (result is ExecutionObservationResult.Rejected) {
@@ -521,8 +394,6 @@ object PathingManager : Manager<PathingRequest>(0) {
                 }
             }
 
-            // The handshake is complete, so an improvement held over from mid-tick can
-            // be installed now, before this tick's input is chosen.
             pendingImprovement?.let { improvement ->
                 pendingImprovement = null
                 adopt(improvement)
@@ -537,12 +408,6 @@ object PathingManager : Manager<PathingRequest>(0) {
                     awaitingObservation = true
                     status = Status.Executing(next.frame, current.plan.tape.frameCount, leg)
 
-                    // Yaw only, and only as a request. `EntityMixin.velocityYaw` already
-                    // routes Entity.updateVelocity through RotationManager.movementYaw,
-                    // so a non-silent request IS how the body turns -- writing player.yaw
-                    // would only yank the camera out of the user's hands for no effect.
-                    // Pitch is never requested: it does not enter walking physics, and
-                    // requesting it would lock the head.
                     next.input.rotation?.let { rotation ->
                         request.runSafeAutomated { rotationRequest { yaw(rotation.yaw) }.submit() }
                     }
@@ -556,9 +421,6 @@ object PathingManager : Manager<PathingRequest>(0) {
             }
         }
 
-        // Fires inside tickMovement, after the keyboard input has ticked and after
-        // the rotation manager's strafe redirect -- the last point before the
-        // physics step reads the input, so nothing downstream can stomp the tape.
         listen<MovementEvent.InputUpdate> { event ->
             val input = tickInput ?: return@listen
             event.input.update(
@@ -569,23 +431,13 @@ object PathingManager : Manager<PathingRequest>(0) {
                 sprint = input.sprint,
             )
         }
-
-        // Sprint is deliberately NOT forced through MovementEvent.Sprint. Vanilla
-        // already takes it from the input we wrote above
-        // (`if (input.playerInput.sprint()) setSprinting(true)`), and that event
-        // wraps *every* isSprinting() read in tickMovement -- including the guard on
-        // `if (isSprinting()) { if (shouldStopSprinting()) setSprinting(false) }`.
-        // Forcing it to the tape's value therefore stops the brake from ever
-        // clearing the sprint flag.
     }
 
-    /** Prevents a captured movement yaw from decaying back to the camera while planning. */
     private fun holdPlanningYaw(request: PathingRequest) {
         val yaw = planningYaw ?: return
         request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
     }
 
-    /** Rotates in place to the certified initial yaw, then installs the cursor next tick. */
     private fun align(request: PathingRequest) {
         val player = mc.player ?: return fail("no player")
         val path = pendingPath ?: return fail("lost the certified plan while aligning")
@@ -598,8 +450,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
         val yawDrift = abs(Rotation.wrap(player.moveYaw - targetYaw))
         if (yawDrift <= START_YAW_TOLERANCE) {
-            // Keep the zero input for this tick. The alignment request is fresh and
-            // cannot be overridden until the next tick; replay starts only then.
             install(path)
             return
         }
@@ -610,14 +460,11 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
     }
 
-    /** The one published tape ended at its final certified stop. */
     private fun finishTrajectory(path: PublishedPath) {
         cursor = null
         tickInput = null
         awaitingObservation = false
-        // A partial tape ran to its certified stop without the full plan arriving in
-        // time. The body is at rest somewhere useful, so this is a pause, not an
-        // arrival: plan again from here.
+
         if (path.partial) {
             val request = activeRequest
             if (request != null) {
@@ -635,13 +482,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         info(
             "Reached ${path.finalGoal.short()} in one continuous ${path.plan.tape.frameCount}-frame trajectory; " +
                 "max replay deviation %.2e".format(maxDeviation) +
-                // "No improvements" has several very different causes, and only these
-                // counts separate "refinement never ran" from "it ran and the tape was
-                // already the best it could find".
+
                 ", adopted $adopted improvement(s)" +
                 (if (rejectedImprovements > 0) ", rejected $rejectedImprovements" else "") +
-                ", refinement tried ${TrajectoryPlanner.attempts} and landed " +
-                "${TrajectoryPlanner.improvements}",
+                ", ${TrajectoryPlanner.publications} commitment(s) published",
             PATHING_SOURCE,
         )
     }
@@ -651,61 +495,8 @@ object PathingManager : Manager<PathingRequest>(0) {
         deviation: ExecutionDeviation,
         observed: MovementSimulationState,
         afterInput: Boolean,
-    ) {
-        val path = published
-        val splice = path?.spliceFrames?.let { boundaries ->
-            when {
-                frame in boundaries -> " at predicted splice"
-                frame + 1 in boundaries -> " immediately before predicted splice"
-                else -> ""
-            }
-        }.orEmpty()
-        val input = path?.plan?.tape?.asList()?.getOrNull(frame)
-        val expected = path?.plan?.let { plan ->
-            if (afterInput) plan.frames.getOrNull(frame)?.state
-            else if (frame == 0) plan.initialState else plan.frames.getOrNull(frame - 1)?.state
-        }
-        val phase = if (afterInput) "after input" else "before input"
-        val inputDetail = input?.let {
-            "; input f=%.1f s=%.1f jump=%s sprintKey=%s yaw=%s".format(
-                it.forward, it.strafe, it.jump, it.sprint,
-                it.rotation?.yaw?.let { yaw -> "%.2f".format(yaw) } ?: "hold",
-            )
-        }.orEmpty()
-        val stateDetail = expected?.let {
-            ("; expected/live yaw %.3f/%.3f, sprint %s/%s, ground %s/%s, " +
-                "hCollision %s/%s, soft %s/%s, vCollision %s/%s, jumpCooldown %d/%d, " +
-                "position %s/%s, velocity %s/%s").format(
-                it.rotation.yaw, observed.rotation.yaw,
-                it.isSprinting, observed.isSprinting,
-                it.onGround, observed.onGround,
-                it.horizontalCollision, observed.horizontalCollision,
-                it.collidedSoftly, observed.collidedSoftly,
-                it.verticalCollision, observed.verticalCollision,
-                it.jumpingCooldown, observed.jumpingCooldown,
-                it.position.short(), observed.position.short(),
-                it.velocity.short(), observed.velocity.short(),
-            )
-        }.orEmpty()
-        val previousInputDetail = path?.plan?.tape?.asList()?.getOrNull(frame - 1)?.let {
-            "; previous input f=%.1f jump=%s sprintKey=%s".format(it.forward, it.jump, it.sprint)
-        }.orEmpty()
-        val liveInputDetail = mc.player?.input?.let {
-            "; live input f=%.1f jump=%s sprintKey=%s".format(
-                it.movementVector.y, it.playerInput.jump(), it.playerInput.sprint(),
-            )
-        }.orEmpty()
-        fail(
-            "frame $frame $phase$splice: $deviation$inputDetail$previousInputDetail" +
-                "$liveInputDetail$stateDetail",
-        )
-    }
+    ) = fail(executionRejectionReport(published, frame, deviation, observed, afterInput))
 
-    /**
-     * `LivingEntity.jumping` is not exposed, but it only ever mirrors the jump input
-     * written on the previous tick, so it is reconstructed from the tape. Every
-     * physics-bearing field is read from the live player.
-     */
     private fun observe(plan: TrajectoryPlan, frame: Int): MovementSimulationState {
         val player = mc.player ?: error("No player")
         return MovementSimulationState.from(
@@ -719,19 +510,8 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private const val MAX_ALIGNMENT_TICKS = 20
 
-    /**
-     * Horizontal speed below which the body counts as at rest for capture.
-     *
-     * It must mean *actually stopped*, not almost: vanilla clamps horizontal velocity to
-     * exactly zero under 0.003, and only after that clamp fires does the body stop moving.
-     * Capturing at, say, 0.0029 would still bleed up to that much drift across the async
-     * plan, and frame zero is checked to 2e-6. So this waits for the post-clamp zero --
-     * one or two ticks longer, and the difference between a valid capture and a rejected
-     * one.
-     */
     private const val SETTLED_SPEED = 1e-6
 
-    /** From any settleable speed the clamp fires within ~10 ticks; this is ample headroom. */
     private const val MAX_SETTLE_TICKS = 40
 
     private const val PATHING_SOURCE = "Pathing"

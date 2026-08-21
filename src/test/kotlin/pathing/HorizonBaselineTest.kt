@@ -134,7 +134,7 @@ class HorizonBaselineTest {
         var publications = 0
         var previousFrames = 0
         var largestCommit = 0
-        val outcome = TrajectoryPlanner.walkHorizonForTest(
+        val outcome = TrajectoryPlanner.walkHorizon(
             route, planner, initial, PROFILE, scenario.environment, CONFIG,
             cursorFrame = { clock.cursorFrame() },
             publish = { path, _ ->
