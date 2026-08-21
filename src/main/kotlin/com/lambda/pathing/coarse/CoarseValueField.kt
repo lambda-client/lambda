@@ -36,10 +36,6 @@ class CoarseValueField(
     private val guides = HashMap<Stance, Double>()
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
-    /** Stances whose value had to be guessed; a large share means the field is too thin. */
-    var unlabelledQueries = 0
-        private set
-
     /** Admissible ticks-to-go. Never uses a D* label, so it bounds every completion. */
     fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
@@ -68,7 +64,6 @@ class CoarseValueField(
             val neighbour = label(edge.to)
             if (neighbour.isFinite()) best = minOf(best, edge.lowerBoundTicks + neighbour)
         }
-        if (!best.isFinite()) unlabelledQueries++
         best
     }
 

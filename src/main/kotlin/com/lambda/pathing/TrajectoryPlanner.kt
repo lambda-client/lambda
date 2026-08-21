@@ -22,7 +22,6 @@ import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.trajectory.SearchClock
 import com.lambda.pathing.trajectory.SystemSearchClock
-import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
@@ -44,55 +43,6 @@ import kotlin.time.Duration.Companion.milliseconds
 sealed interface PathPlanResult {
     data class Planned(val path: PathingManager.PublishedPath) : PathPlanResult
     data class NoRoute(val reason: String) : PathPlanResult
-
-    /** A refusal, not a failure: no parameter set reached a certified stop. */
-    data class NoSafeStop(val result: MotionPlanResult.NoSafeStop) : PathPlanResult {
-        /**
-         * Names *why*, not just that it refused. The dominant diagnostic is the one
-         * failure-directed branching should attack first.
-         */
-        val summary: String
-            get() {
-                val attempts = result.attempts
-                val byKind = attempts
-                    .mapNotNull { it.diagnostic }
-                    .groupingBy { it::class.simpleName ?: "?" }
-                    .eachCount()
-                    .entries
-                    .sortedByDescending { it.value }
-                    .joinToString { "${it.value} ${it.key}" }
-                val closest = result.nearest?.let {
-                    "; closest ended %.2f blocks from the remaining goal at %.3f b/t: %s".format(
-                        it.finalGoalError, it.finalHorizontalSpeed, it.diagnostic.describe(),
-                    )
-                } ?: ""
-                return "no certified continuous trajectory from ${attempts.size} attempts: " +
-                    "$byKind$closest"
-            }
-
-        private fun TrajectoryDiagnostic?.describe(): String = when (this) {
-            null -> "no diagnostic"
-            is TrajectoryDiagnostic.HorizontalCollision ->
-                "ground collision at frame $frame near ${position.short()}"
-            is TrajectoryDiagnostic.HeadBonk ->
-                "head bonk at frame $frame near ${position.short()}"
-            is TrajectoryDiagnostic.FellBelowRoute ->
-                "fell %.2f blocks below the route at frame %d".format(depth, frame)
-            is TrajectoryDiagnostic.HarmfulFall ->
-                "unsafe %.2f-block fall at frame %d".format(fallDistance, frame)
-            is TrajectoryDiagnostic.NoStop ->
-                "no stable stop (%.2f blocks away, %.3f b/t) after %d frames"
-                    .format(goalError, speed, frame)
-            is TrajectoryDiagnostic.UnsupportedPhysics ->
-                "unsupported physics at frame $frame: $reason"
-            is TrajectoryDiagnostic.OutsideSnapshot ->
-                "read outside the captured snapshot at frame $frame near " +
-                    "(${position.x}, ${position.y}, ${position.z}) -- the capture is too small, not the world"
-        }
-
-        private fun net.minecraft.util.math.Vec3d.short(): String =
-            "(%.2f, %.2f, %.2f)".format(x, y, z)
-    }
 }
 
 /**

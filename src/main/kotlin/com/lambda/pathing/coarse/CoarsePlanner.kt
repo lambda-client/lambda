@@ -46,20 +46,6 @@ class CoarsePlanner(
     fun updateStart(start: Stance) = search.updateStart(start)
 
     /**
-     * Retires a coarse edge the trajectory layer proved it cannot certify, then repairs
-     * the tree incrementally so the next [routePlan] reroutes around it.
-     *
-     * This is the M6 negative-feedback channel: a permissive `JUMP_CANDIDATE` the mask
-     * admitted but no launch makes is removed here instead of failing the whole plan. It
-     * only deletes topology, so the anisotropic heuristic stays admissible; D* Lite reuses
-     * everything unaffected, so the reroute is cheap enough to run inside the plan loop.
-     */
-    fun blacklistEdge(from: Stance, to: Stance): DStarLite.ComputeResult {
-        search.updateEdge(from, to, Double.POSITIVE_INFINITY)
-        return repair(Duration.INFINITE)
-    }
-
-    /**
      * Labels the ground *beside* the optimal corridor, so a value-steered trajectory has
      * somewhere mapped to manoeuvre. See [DStarLite.expandField]; bounded in both time and
      * expansions because this runs inside the plan.
