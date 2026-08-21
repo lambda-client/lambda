@@ -62,8 +62,6 @@ class LazyGraph<N>(
     fun generateSuccessors(node: N): Map<N, Double> = successorProvider(node).filterUsableCosts()
     fun generatePredecessors(node: N): Map<N, Double> = predecessorProvider(node).filterUsableCosts()
 
-    fun areSuccessorsInitialized(node: N): Boolean = node in initializedSuccessors
-
     fun markSuccessorsInitialized(node: N) {
         initializedSuccessors += node
         knownNodes += node
@@ -78,26 +76,6 @@ class LazyGraph<N>(
         require(!cost.isNaN() && cost >= 0.0) { "D* Lite edge costs must be non-negative or +infinity: $cost" }
         if (cost.isFinite()) putEdge(from, to, cost)
         else removeEdge(from, to)
-    }
-
-    fun removeNode(node: N) {
-        successorEdges.remove(node)?.keys?.forEach { successor ->
-            predecessorEdges[successor]?.let { edges ->
-                edges.remove(node)
-                if (edges.isEmpty()) predecessorEdges.remove(successor)
-            }
-            refreshKnownNode(successor)
-        }
-        predecessorEdges.remove(node)?.keys?.forEach { predecessor ->
-            successorEdges[predecessor]?.let { edges ->
-                edges.remove(node)
-                if (edges.isEmpty()) successorEdges.remove(predecessor)
-            }
-            refreshKnownNode(predecessor)
-        }
-        initializedSuccessors.remove(node)
-        initializedPredecessors.remove(node)
-        knownNodes.remove(node)
     }
 
     fun clear() {

@@ -42,22 +42,4 @@ data class CoarseRoutePlan(
     }
 
     val goal: Stance get() = nodes.last()
-
-    /**
-     * The route beginning at [fromNodeIndex], used when a simulated moving prefix
-     * becomes the immutable initial state of a continuous suffix expansion.
-     */
-    fun suffix(fromNodeIndex: Int): CoarseRoutePlan {
-        require(fromNodeIndex in nodes.indices) { "Suffix start must be a route node" }
-        if (fromNodeIndex == 0) return this
-
-        val suffixEdges = edges.drop(fromNodeIndex)
-        return copy(
-            nodes = nodes.drop(fromNodeIndex),
-            edges = suffixEdges,
-            lowerBoundTicks = suffixEdges.sumOf { it.lowerBoundTicks },
-            dependencies = suffixEdges.flatMapTo(HashSet()) { it.readSet },
-            tailCosts = tailCosts.drop(fromNodeIndex),
-        )
-    }
 }

@@ -330,7 +330,6 @@ object PathingManager : Manager<PathingRequest>(0) {
                 is PathPlanResult.Planned ->
                     if (cursor != null) adopt(completed.path) else begin(completed.path)
                 is PathPlanResult.NoRoute -> fail(completed.reason)
-                is PathPlanResult.NoSafeStop -> fail(completed.summary)
             }
         }, mc)
     }

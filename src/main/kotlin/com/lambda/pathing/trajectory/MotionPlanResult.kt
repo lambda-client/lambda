@@ -79,14 +79,6 @@ sealed interface MotionPlanResult {
         val spliceFrames: List<Int> = emptyList(),
         /** Accumulated launch runway in frames across the certified tape. */
         val launchMarginFrames: Int = 0,
-        /**
-         * What the search decided, beside what it pressed.
-         *
-         * The tape is what the executor replays and what the live body is checked
-         * against; these are what let the plan be re-derived from a state it was not
-         * originally simulated from, which is what any splice or shortcut needs.
-         */
-        val planDecisions: TrajectoryPlanDecisions? = null,
     ) : MotionPlanResult
 
     data class UnsupportedRoute(val edgeKinds: Set<CoarseMoveKind>) : MotionPlanResult

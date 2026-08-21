@@ -363,8 +363,6 @@ class DStarLite<N>(
 
     fun key(node: N): Key = calculateKey(node)
 
-    fun isQueued(node: N): Boolean = node in queue
-
     fun updateVertex(node: N) {
         val inQueue = node in queue
         val nodeG = g(node)
