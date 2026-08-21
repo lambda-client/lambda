@@ -550,14 +550,14 @@ class MovementSimulator(
 
         player.pos = position
         player.boundingBox = boundingBox
-        player.setOnGround(onGround)
+	    player.isOnGround = onGround
 
         return try {
             block()
         } finally {
             player.pos = prevPos
             player.boundingBox = prevBox
-            player.setOnGround(prevOnGround)
+	        player.isOnGround = prevOnGround
         }
     }
 
@@ -773,9 +773,6 @@ data class MovementSimulationTick(
     val isJumping: Boolean,
     val simulator: MovementSimulator,
 ) {
-    @Deprecated("Use simulator instead", ReplaceWith("simulator"))
-    val predictionEntity get() = simulator
-
     fun next() = skipTicks(1)
 
     fun next(input: MovementSimulationInput) = simulator.tickMovement(input)

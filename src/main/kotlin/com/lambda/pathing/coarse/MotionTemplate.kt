@@ -83,10 +83,10 @@ class MotionTemplate internal constructor(
 
     internal fun readOffsets(): Sequence<VoxelPos> = sequence {
         yieldAll(ORIGIN_STANCE_READS)
-        for (condition in conditions) {
-            yield(VoxelPos(condition.dx, condition.dy, condition.dz))
-            if (condition.condition == Condition.CENTER_SLICE || condition.condition == Condition.FULL_SLICE) {
-                yield(VoxelPos(condition.dx, condition.dy - 1, condition.dz))
+        for ((dx1, dy1, dz1, condition1) in conditions) {
+            yield(VoxelPos(dx1, dy1, dz1))
+            if (condition1 == Condition.CENTER_SLICE || condition1 == Condition.FULL_SLICE) {
+                yield(VoxelPos(dx1, dy1 - 1, dz1))
             }
         }
 

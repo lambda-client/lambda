@@ -29,9 +29,9 @@ class CoarseValueField(
         if (direct.isFinite()) return@getOrPut direct
 
         var best = Double.POSITIVE_INFINITY
-        for (edge in edgesFrom(stance)) {
-            val neighbour = label(edge.to)
-            if (neighbour.isFinite()) best = minOf(best, edge.lowerBoundTicks + neighbour)
+        for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
+            val neighbour = label(to)
+            if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
         }
         best
     }

@@ -67,8 +67,8 @@ class SimpleMoveLibrary private constructor(
     }
 
     fun affectedOrigins(changed: VoxelPos): Set<Stance> = buildSet(readOffsets.size) {
-        for (offset in readOffsets) {
-            add(Stance(changed.x - offset.x, changed.y - offset.y, changed.z - offset.z))
+        for ((x, y, z) in readOffsets) {
+            add(Stance(changed.x - x, changed.y - y, changed.z - z))
         }
     }
 
