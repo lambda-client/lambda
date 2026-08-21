@@ -33,7 +33,7 @@ import com.lambda.context.SafeContext
  * - movement in webs
  * - item-specific movement slowdown
  */
-fun SafeContext.buildPlayerPrediction(): PredictionTick =
+fun SafeContext.buildPlayerPrediction(): MovementSimulationTick =
     buildMovementSimulator().lastTick
 
 fun SafeContext.buildMovementSimulator(

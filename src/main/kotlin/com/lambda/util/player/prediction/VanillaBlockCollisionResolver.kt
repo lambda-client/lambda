@@ -52,7 +52,7 @@ internal object VanillaBlockCollisionResolver {
         val stepBase = if (landedDuringMove) boundingBox.offset(0.0, normal.y, 0.0) else boundingBox
         var stepQuery = stepBase.stretch(movement.x, stepHeight, movement.z)
         if (!landedDuringMove) {
-            stepQuery = stepQuery.stretch(0.0, -1.0E-5F.toDouble(), 0.0)
+            stepQuery = stepQuery.stretch(0.0, (-1.0E-5F).toDouble(), 0.0)
         }
 
         val stepShapes = collisionShapes(stepQuery)

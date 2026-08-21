@@ -34,7 +34,7 @@ class CoarsePlanner(
         start = start,
         goal = goal,
         heuristic = moves::heuristic,
-        nodeTieBreaker = compareBy<Stance>({ it.y }, { it.x }, { it.z }),
+        nodeTieBreaker = compareBy({ it.y }, { it.x }, { it.z }),
     )
 
     fun repair(
@@ -58,7 +58,7 @@ class CoarsePlanner(
             moves.edgesFrom(view, from)
                 .asSequence()
                 .filter { it.to == to }
-                .minWithOrNull(compareBy<CoarseEdge>({ it.lowerBoundTicks }, { it.id.template.value }))
+                .minWithOrNull(compareBy({ it.lowerBoundTicks }, { it.id.template.value }))
                 ?: return null
         }
         return CoarseRoutePlan(
