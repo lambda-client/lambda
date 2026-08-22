@@ -26,8 +26,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
-import com.lambda.task.tasks.EatTask
+import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
+import com.lambda.task.thenAction
 import com.lambda.threading.runSafeAutomated
 
 @Suppress("unused")
@@ -36,7 +37,7 @@ object AutoEat : Module(
     description = "Eats food when you are hungry",
     tag = ModuleTag.PLAYER,
 ) {
-    private var eatTask: EatTask? = null
+    private var eatTask: Task<*>? = null
 
     init {
 		setDefaultAutomationConfig()
@@ -48,10 +49,7 @@ object AutoEat : Module(
             val reason = runSafeAutomated { reasonEating() }
             if (eatTask != null || !reason.shouldEat()) return@listen
 
-            val task = eat()
-            task.finally { eatTask = null }
-            task.run()
-            eatTask = task
+            eatTask = eat().thenAction { eatTask = null }.run()
         }
 
         onDisable {

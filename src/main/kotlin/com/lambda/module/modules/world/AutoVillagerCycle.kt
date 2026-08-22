@@ -36,6 +36,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.thenAction
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
@@ -216,7 +217,7 @@ object AutoVillagerCycle : Module(
 			buildTask = lecternPos.toStructure(TargetState.Block(Blocks.LECTERN))
 				.toBlueprint()
 				.build(finishOnDone = true)
-				.finally {
+				.thenAction {
 					switchState(CycleState.OpenVillager)
 				}
 				.run()
@@ -279,7 +280,7 @@ object AutoVillagerCycle : Module(
 			buildTask = runSafeAutomated {
 				lecternPos.toStructure(TargetState.Empty)
 					.build(finishOnDone = true)
-					.finally {
+					.thenAction {
 						switchState(CycleState.PlaceLectern)
 					}
 					.run()

@@ -23,7 +23,8 @@ import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.Task
-import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskSupplier
+import com.lambda.task.thenAction
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
@@ -58,9 +59,9 @@ data class ChestContainer(
         }
 
     context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>): Task<*> =
-        OpenContainerTask(blockPos, automatedSafeContext).then {
-            taskGenerator.invoke(automatedSafeContext, Unit).finally {
+    override fun accessThen(exitAfter: Boolean, taskSupplier: TaskSupplier<Unit, Unit>): Task<*> =
+        OpenContainerTask(blockPos, automatedSafeContext).thenAction {
+            taskSupplier.invoke(automatedSafeContext, Unit).thenAction {
                 if (exitAfter) automatedSafeContext.player.closeHandledScreen()
             }
         }

@@ -47,6 +47,7 @@ import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.thenOrNull
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
@@ -103,9 +104,7 @@ object AutoPortal : Module(
 					if (light) LightTask(currAnchorPos.up(), walkIn)
 					else null
 				}
-				.finally {
-					buildTask = null
-				}
+				.onSuccess { buildTask = null }
 				.run()
 		}
 	private val corners by setting("Corners", false)

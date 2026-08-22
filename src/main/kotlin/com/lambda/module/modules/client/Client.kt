@@ -45,7 +45,6 @@ object Client : Module(
 	@Tab(GENERAL_TAB) @Group(RENDERING_GROUP) val chunkRebuildsPerTick by setting("Chunk Rebuilds", 64, 1..256, 1, unit = " chunks/tick")
 	@Tab(GENERAL_TAB) val highlightColor by setting("Text Highlight Color", Color(214, 55, 87), "Base text highlight color")
 
-	@Tab(DEBUG_TAB) val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree")
 	@Tab(DEBUG_TAB) val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager")
 	@Tab(DEBUG_TAB) val verboseDebug by setting("Verbose Debug", false, "Prints more, and more detailed, debug logs")
 

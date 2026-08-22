@@ -28,6 +28,7 @@ import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.InventoryContainer
 import com.lambda.task.Task
+import com.lambda.task.thenAction
 import com.lambda.threading.runSafeAutomated
 
 class ContainerTransferTask(
@@ -53,7 +54,7 @@ class ContainerTransferTask(
 				val toSlots = toContainer.slots
 				fromExternal.takeIf { slots.isEmpty() }?.let { fromExternal ->
 					if (toContainer is ExternalContainer && toSlots.isEmpty()) {
-						fromContainer.transferByTask(stackSelection, InventoryContainer).finally {
+						fromContainer.transferByTask(stackSelection, InventoryContainer).thenAction {
 							fromContainer = InventoryContainer
 						}.execute(this@ContainerTransferTask)
 						return@listen

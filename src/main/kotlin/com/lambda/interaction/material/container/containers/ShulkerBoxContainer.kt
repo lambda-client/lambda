@@ -22,7 +22,9 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskSupplier
+import com.lambda.task.thenAction
+import com.lambda.task.thenOrNull
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.PlaceContainerTask
@@ -63,11 +65,11 @@ data class ShulkerBoxContainer(
     private var placePos = BlockPos.ORIGIN
 
     context(automatedSafeContext: AutomatedSafeContext)
-    override fun accessThen(exitAfter: Boolean, taskGenerator: TaskGenerator<Unit>) =
-        PlaceContainerTask(shulkerSlot, automatedSafeContext).then { pos ->
+    override fun accessThen(exitAfter: Boolean, taskSupplier: TaskSupplier<Unit, Unit>) =
+        PlaceContainerTask(shulkerSlot, automatedSafeContext).thenAction { pos ->
             placePos = pos
-            OpenContainerTask(pos, automatedSafeContext).then {
-                taskGenerator.invoke(automatedSafeContext, Unit).thenOrNull {
+            OpenContainerTask(pos, automatedSafeContext).thenAction {
+                taskSupplier.invoke(automatedSafeContext, Unit).thenOrNull {
                     if (exitAfter) automatedSafeContext.breakAndCollectBlock(placePos)
                     else null
                 }

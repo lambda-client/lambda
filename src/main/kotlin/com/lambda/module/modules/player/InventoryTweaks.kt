@@ -27,6 +27,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.thenAction
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.PlaceContainerTask
@@ -60,9 +61,9 @@ object InventoryTweaks : Module(
             if (!(instantShulker && slot.stack.item in shulkerBoxes) && !(instantEChest && slot.stack.item == Items.ENDER_CHEST)) return@listen
             it.cancel()
             lastOpenScreen = null
-            placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
+            placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).thenAction { placePos ->
                 placedPos = placePos
-                OpenContainerTask(placePos, this@InventoryTweaks).finally { screenHandler ->
+                OpenContainerTask(placePos, this@InventoryTweaks).thenAction { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
             }.run()

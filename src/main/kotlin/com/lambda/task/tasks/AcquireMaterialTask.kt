@@ -24,6 +24,7 @@ import com.lambda.interaction.handlers.ContainerHandler.findContainerWithMateria
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.task.Task
+import com.lambda.task.thenAction
 import com.lambda.threading.runSafeAutomated
 
 class AcquireMaterialTask @Ta5kBuilder constructor(
@@ -37,7 +38,7 @@ class AcquireMaterialTask @Ta5kBuilder constructor(
         runSafeAutomated {
             selection.findContainerWithMaterial()
                 ?.transferByTask(selection, HotbarContainer)
-                ?.finally {
+                ?.thenAction {
                     success(selection)
                 }?.execute(this@AcquireMaterialTask)
                 ?: failure(ContainerHandler.NoContainerFound(selection)) // ToDo: Create crafting path
