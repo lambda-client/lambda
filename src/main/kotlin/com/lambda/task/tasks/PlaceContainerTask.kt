@@ -27,8 +27,8 @@ import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.ManagerUtils
 import com.lambda.task.Task
-import com.lambda.task.thenAction
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.item.ItemUtils.shulkerBoxes

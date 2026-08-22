@@ -15,13 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.task.wrappers
 
-import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.SafeContext
 import com.lambda.task.Task
-import com.lambda.task.wrappers.TaskSupplier
+import com.lambda.task.Task.Ta5kBuilder
 
-interface ExternalContainer {
-	context(_: AutomatedSafeContext)
-	fun accessThen(exitAfter: Boolean = true, taskSupplier: TaskSupplier<Unit, Unit>): Task<*>?
+@Ta5kBuilder
+infix fun <R> Task<R>.thenAction(action: SafeContext.(R) -> Unit): Task<R> =
+	SequencedActionTask(this, action)
+
+class SequencedActionTask<R>(
+	private val inner: Task<R>,
+	private val action: SafeContext.(R) -> Unit,
+) : Task<R>() {
+	override val name get() = inner.name
+
+	override fun SafeContext.onStart() {
+		inner
+			.onSuccess { result ->
+				action(this, result)
+				success(result)
+			}
+			.execute(this@SequencedActionTask)
+	}
 }

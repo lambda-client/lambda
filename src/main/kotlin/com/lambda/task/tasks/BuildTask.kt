@@ -52,8 +52,8 @@ import com.lambda.interaction.managers.interacting.InteractRequest.Companion.int
 import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
-import com.lambda.task.thenAction
 import com.lambda.task.tasks.EatTask.Companion.eat
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
@@ -204,27 +204,28 @@ class BuildTask private constructor(
         when {
             lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
                 eatTask = eat()
-                eatTask?.thenAction {
-                    eatTask = null
-                }?.execute(this@BuildTask)
+                    .also {
+                        thenAction { eatTask = null }
+                        execute(this@BuildTask)
+                    }
                 return true
             }
             eatTask != null -> return true
         }
 
         if (blueprint is TickingBlueprint) {
-            blueprint.tick() ?: run {
-                failure("Failed to tick the ticking blueprint")
-                return true
-            }
+            blueprint.tick()
+                ?: run {
+                    failure("Failed to tick the ticking blueprint")
+                    return true
+                }
         }
 
         return collectDrops()
     }
 
     private fun AutomatedSafeContext.simulate() {
-        results = blueprint.structure
-            .sim()
+        results = blueprint.structure.sim()
     }
 
     private fun SafeContext.setViableResults() {

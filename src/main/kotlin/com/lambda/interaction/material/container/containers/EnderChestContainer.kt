@@ -24,12 +24,12 @@ import com.lambda.interaction.handlers.ContainerHandler.findSlotsWithMaterial
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.task.TaskSupplier
-import com.lambda.task.thenAction
-import com.lambda.task.thenOrNull
+import com.lambda.task.wrappers.TaskSupplier
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.PlaceContainerTask
+import com.lambda.task.wrappers.thenAction
+import com.lambda.task.wrappers.thenOrNull
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal

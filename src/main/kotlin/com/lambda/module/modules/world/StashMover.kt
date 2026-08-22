@@ -50,9 +50,9 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.thenAction
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState

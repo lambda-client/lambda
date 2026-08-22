@@ -24,7 +24,7 @@ import com.lambda.interaction.handlers.ContainerHandler.findContainerWithMateria
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.task.Task
-import com.lambda.task.thenAction
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 
 class AcquireMaterialTask @Ta5kBuilder constructor(

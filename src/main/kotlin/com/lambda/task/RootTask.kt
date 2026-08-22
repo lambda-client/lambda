@@ -17,6 +17,7 @@
 
 package com.lambda.task
 
+import com.lambda.task.wrappers.TaskSupplier
 import com.lambda.threading.runSafe
 
 object RootTask : Task<Unit>() {
