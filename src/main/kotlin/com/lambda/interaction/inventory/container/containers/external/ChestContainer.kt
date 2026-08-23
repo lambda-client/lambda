@@ -23,10 +23,10 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBl
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.PlacedContainer
-import com.lambda.task.Task.Companion.taskOrSkipOrNull
-import com.lambda.task.TaskOrNullGenerator
 import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
+import com.lambda.task.wrappers.TaskOrNullSupplier
+import com.lambda.task.wrappers.thenOrNull
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -72,8 +72,8 @@ data class ChestContainer(
 	context(automatedSafeContext: AutomatedSafeContext)
 	override fun <R> accessThen(
 		closeAfter: Boolean,
-		afterOpen: TaskOrNullGenerator<Unit, R?>,
-		afterClose: TaskOrNullGenerator<R?, *>
+		afterOpen: TaskOrNullSupplier<Unit, R?>,
+		afterClose: TaskOrNullSupplier<R?, *>
 	) =
 		with(automatedSafeContext) {
 			taskOrSkipOrNull(

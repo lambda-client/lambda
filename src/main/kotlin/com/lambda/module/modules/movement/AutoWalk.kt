@@ -22,8 +22,8 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.breaking.BreakManager
-import com.lambda.interaction.managers.interacting.InteractManager
+import com.lambda.interaction.manager.managers.breaking.BreakManager
+import com.lambda.interaction.manager.managers.interacting.InteractManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.toDouble
