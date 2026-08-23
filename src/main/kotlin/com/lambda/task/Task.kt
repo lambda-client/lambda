@@ -23,8 +23,8 @@ import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
+import com.lambda.task.wrappers.onFail
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Nameable
@@ -32,10 +32,6 @@ import com.lambda.util.StringUtils.capitalize
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
-
-typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
-typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
-typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
 
 @Suppress("unused")
 abstract class Task<Result> : Nameable, Muteable {
@@ -49,13 +45,14 @@ abstract class Task<Result> : Nameable, Muteable {
     val isCompleted get() = state == State.Completed
     val size: Int get() = subTasks.sumOf { it.size } + 1
 
-    private var nextTask: TaskGenerator<Result>? = null
-    private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
-    private var onFinish: TaskGeneratorUnit<Result>? = null
+    private val successCallbacks = mutableListOf<SafeContext.(Result) -> Unit>()
+    private val completionCallbacks = mutableListOf<SafeContext.() -> Unit>()
+    private val failureCallbacks = mutableListOf<SafeContext.(Throwable) -> Unit>()
 
-    private var onFail: TaskGenerator<Unit>? = null
-    private var onFailOrNull: TaskGeneratorOrNull<Unit>? = null
-    private var softFail = false
+    val duration: String get() =
+        (age * 50).toDuration(DurationUnit.MILLISECONDS).toComponents { days, hours, minutes, seconds, nanoseconds ->
+            "${"%03d".format(days)}:${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"${nanoseconds / 1_000_000}".take(2)}"
+        }
 
     enum class State {
         Init,
@@ -69,7 +66,7 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     init {
-        listen<TickEvent.Pre> { age++ }
+        listen<TickEvent.Pre>({ Int.MAX_VALUE }) { age++ }
     }
 
     /**
@@ -92,7 +89,7 @@ abstract class Task<Result> : Nameable, Muteable {
      * or preparing preconditions for task execution.
      */
     @Ta5kBuilder
-    open fun SafeContext.onStart() {}
+    protected open fun SafeContext.onStart() {}
 
     /**
      * This function is called when the task is canceled.
@@ -101,7 +98,7 @@ abstract class Task<Result> : Nameable, Muteable {
      * or stopping any ongoing operations that were started by the task.
      */
     @Ta5kBuilder
-    open fun SafeContext.onCancel() {}
+    protected open fun SafeContext.onCancel() {}
 
     /**
      * Executes the current task as a subtask of the specified owner task.
@@ -110,14 +107,14 @@ abstract class Task<Result> : Nameable, Muteable {
      * logs the execution details, and invokes the necessary lifecycle hooks. Additionally,
      * it manages the state of the parent task and starts any required listeners for execution.
      *
-     * @param owner The parent task that will execute this task as a child. Must not be the same as this task.
+     * @param owner The parent task that will execute this task as a sub task. Must not be the same as this task.
      * @param pauseParent Defines whether the parent task should be paused during the execution of this task. Defaults to `true`.
      * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
      * @throws IllegalArgumentException if the owner task is the same as the task being executed.
      */
     @Ta5kBuilder
     fun execute(owner: Task<*>, pauseParent: Boolean = true): Task<Result> {
-        require(owner != this) { "Cannot execute a task as a child of itself" }
+        require(owner != this) { "Cannot execute a task as a sub task of itself" }
         owner.subTasks.add(this)
         parent = owner
         if (verboseDebug) LOG.info("${owner.name} started $name")
@@ -132,17 +129,58 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun success(result: Result) {
+    protected fun success(result: Result) {
         unsubscribe()
         state = State.Completed
-        if (!Client.showAllEntries) parent?.subTasks?.remove(this)
-        runSafe { executeNextTask(result) }
+        parent?.subTasks?.remove(this)
+
+        parent?.onSubTaskSuccess(this)
+        parent?.onSubTaskCompletion(this)
+
+        runSafe {
+            successCallbacks.forEach { it.invoke(this, result) }
+            completionCallbacks.forEach { it.invoke(this) }
+        }
     }
 
     @Ta5kBuilder
-    fun Task<Unit>.success() {
+    protected fun Task<Unit>.success() {
         success(Unit)
     }
+
+    @Ta5kBuilder
+    protected fun failure(
+        e: Throwable,
+        stacktrace: MutableList<Task<*>> = mutableListOf(),
+    ) {
+        state = State.Failed
+        unsubscribe()
+        cancelSubTasks()
+        stacktrace.add(this)
+
+        parent?.onSubTaskFailure(this, e)
+            ?: run {
+                if (!verboseDebug) return@run
+                val message =
+                    buildString {
+                        val first = stacktrace.firstOrNull() ?: return@buildString
+                        append("${first.name} failed: ${e.message}\n")
+                        stacktrace.drop(1).forEach {
+                            append("  -> ${it.name}\n")
+                        }
+                    }
+                logError(message)
+            }
+        parent?.onSubTaskCompletion(this)
+
+        runSafe {
+            failureCallbacks.forEach { it.invoke(this, e) }
+            completionCallbacks.forEach { it.invoke(this) }
+        }
+    }
+
+    @Ta5kBuilder
+    protected fun failure(message: String) = failure(IllegalStateException(message))
 
     @Ta5kBuilder
     fun activate() {
@@ -156,26 +194,11 @@ abstract class Task<Result> : Nameable, Muteable {
         state = State.Paused
     }
 
-    private fun SafeContext.executeNextTask(result: Result) {
-        nextTask?.let { taskGen ->
-            val task = taskGen(this, result)
-            nextTask = null
-            parent?.let { owner -> task.execute(owner) }
-        } ?: nextTaskOrNull?.let { taskGen ->
-            val task = taskGen(this, result)
-            nextTaskOrNull = null
-            parent?.let { owner -> task?.execute(owner) }
-        } ?: run {
-            onFinish?.invoke(this, result)
-            parent?.activate()
-            onFinish = null
-        }
-    }
-
     @Ta5kBuilder
     fun cancel() = internalCancel(true)
 
     private fun internalCancel(removeFromParent: Boolean = true) {
+        unsubscribe()
         runSafe { onCancel() }
         cancelSubTasks()
         if (removeFromParent) parent?.subTasks?.remove(this)
@@ -183,7 +206,6 @@ abstract class Task<Result> : Nameable, Muteable {
         if (this is RootTask) return
         if (state == State.Completed || state == State.Cancelled) return
         state = State.Cancelled
-        unsubscribe()
     }
 
     @Ta5kBuilder
@@ -193,170 +215,50 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun failure(message: String) = failure(IllegalStateException(message))
+    protected open fun onSubTaskSuccess(subTask: Task<*>) {
+        activate()
+    }
 
     @Ta5kBuilder
-    fun failure(
-        e: Throwable,
-        stacktrace: MutableList<Task<*>> = mutableListOf(),
-    ) {
-        if (softFail) {
-            cancelSubTasks()
-            parent?.subTasks?.remove(this)
-        }
-        state = State.Failed
-        unsubscribe()
-        stacktrace.add(this)
-        runSafe {
-            onFail?.let { taskGen ->
-                val task = taskGen(this, Unit)
-                onFail = null
-                parent?.let { owner -> task.execute(owner) }
-            } ?: onFailOrNull?.let { taskGen ->
-                val task = taskGen(this, Unit)
-                onFailOrNull = null
-                parent?.let { owner -> task?.execute(owner) }
-            }
-        } ?: if (softFail) {
-            if (parentPausing) parent?.activate()
-            return
-        } else parent?.failure(e, stacktrace) ?: run {
-            if (verboseDebug) {
-                val message = buildString {
-                    stacktrace.firstOrNull()?.let { first ->
-                        append("${first.name} failed: ${e.message}\n")
-                        stacktrace.drop(1).forEach {
-                            append("  -> ${it.name}\n")
-                        }
-                    }
-                }
-                LOG.error(message, e)
-                logError(message)
-            }
-        }
+    protected open fun onSubTaskCompletion(subTask: Task<*>) {
+        activate()
+    }
+
+    @Ta5kBuilder
+    protected open fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
+        failure(cause)
     }
 
     /**
-     * Specifies the next task to execute after the current task completes successfully.
-     *
-     * This method links the current task to the specified `task`, creating a sequential
-     * execution flow where the `task` will be executed immediately after the current task.
-     *
-     * @param task The task that should be executed following the successful completion
-     *             of the current task.
-     * @return The current task instance (`Task<R>`) to allow method chaining.
+     * Registers a callback for if the task succeeds.
      */
     @Ta5kBuilder
-    infix fun then(task: Task<*>): Task<Result> {
-        require(task != this) { "Cannot link a task to itself" }
-        nextTask = { task }
+    fun onSuccess(callback: SafeContext.(Result) -> Unit): Task<Result> {
+        successCallbacks.add(callback)
         return this
     }
 
     /**
-     * Chains multiple tasks to be executed sequentially after the current task.
+     * Registers a callback for if the task fails.
      *
-     * This method establishes an ordered execution flow between tasks, where each task
-     * in the provided list will trigger the execution of the next task upon completion.
-     * It effectively links the current task to the first task in the given array
-     * and ensures that the sequence is executed in order.
-     *
-     * @param task A vararg list of tasks to be linked sequentially after the current task.
-     *             These tasks are executed in the order they are provided.
-     * @return The current task instance (`Task<R>`) to allow method chaining.
+     * This could be mistaken for [onFail] which is used to wrap the given task with another task that runs a recovery task if this one fails.
      */
     @Ta5kBuilder
-    fun then(vararg task: Task<*>): Task<Result> {
-        (listOf(this) + task).zipWithNext { current, next ->
-            current then next
-        }
+    fun onFailure(callback: SafeContext.(Throwable) -> Unit): Task<Result> {
+        failureCallbacks.add(callback)
         return this
     }
 
     /**
-     * Adds a subsequent task to the current task's execution sequence.
+     * Registers a callback for when the task completes.
      *
-     * This method specifies the next task to be executed after the current task
-     * completes successfully. The task is generated dynamically using the provided
-     * `TaskGenerator`. This allows chaining tasks together in a flexible manner.
-     *
-     * @param taskGenerator A function that generates the next task based on the result
-     *                      of the current task. It takes a `SafeContext` and the result
-     *                      of type `R` as input and returns a new `Task`.
-     * @return The current task instance (`Task<R>`) to allow method chaining.
+     * This is called regardless of whether the task succeeds or fails.
      */
     @Ta5kBuilder
-    fun then(taskGenerator: TaskGenerator<Result>): Task<Result> {
-        require(nextTask == null) { "Cannot link multiple tasks to a single task" }
-        nextTask = taskGenerator
+    fun onCompletion(callback: SafeContext.() -> Unit): Task<Result> {
+        completionCallbacks.add(callback)
         return this
     }
-
-    /**
-     * Adds a subsequent task to the current task's execution sequence conditionally.
-     *
-     * This method specifies the next task to be executed after the current task
-     * completes successfully. The next task is generated dynamically using the provided
-     * [TaskGeneratorOrNull]. This allows chaining tasks together flexibly,
-     * where the next task is conditionally determined or null.
-     *
-     * @param taskGenerator A function that generates the next task based on the
-     *                      result of the current task. It takes a `SafeContext`
-     *                      and the result of type `R` as input and returns a new
-     *                      `Task` or null if no next task is required.
-     * @return The current task instance (`Task<R>`) to allow method chaining.
-     */
-    @Ta5kBuilder
-    fun thenOrNull(taskGenerator: TaskGeneratorOrNull<Result>): Task<Result> {
-        require(nextTask == null) { "Cannot link multiple tasks to a single task" }
-        nextTaskOrNull = taskGenerator
-        return this
-    }
-
-    @Ta5kBuilder
-    fun onFail(taskGenerator: TaskGenerator<Unit>): Task<Result> {
-        require(onFail == null) { "Cannot have multiple onFail callbacks on a single task" }
-        onFail = taskGenerator
-        softFail()
-        return this
-    }
-
-    @Ta5kBuilder
-    fun onFailOrNull(taskGenerator: TaskGeneratorOrNull<Unit>): Task<Result> {
-        require(onFailOrNull == null) { "Cannot have multiple onFailOrNull callbacks on a single task" }
-        onFailOrNull = taskGenerator
-        softFail()
-        return this
-    }
-
-    @Ta5kBuilder
-    fun softFail(): Task<Result> {
-        softFail = true
-        return this
-    }
-
-    /**
-     * Registers a finalization action to be executed after the current task completes.
-     *
-     * This method allows specifying a finalization function that runs upon completion
-     * of the task, regardless of its outcome (success or failure). It is typically used
-     * for cleanup operations or logging after a task finishes execution.
-     *
-     * @param onFinish The finalization action to be executed. This function receives
-     *                 the task's result of type `R` within a `SafeContext`.
-     * @return The current task instance (`Task<R>`) to allow method chaining.
-     */
-    @Ta5kBuilder
-    fun finally(onFinish: TaskGeneratorUnit<Result>): Task<Result> {
-        require(this.onFinish == null) { "Cannot link multiple finally blocks to a single task" }
-        this.onFinish = onFinish
-        return this
-    }
-
-    val duration: String get() =
-        (age * 50).toDuration(DurationUnit.MILLISECONDS).toComponents { days, hours, minutes, seconds, nanoseconds ->
-            "${"%03d".format(days)}:${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"${nanoseconds / 1_000_000}".take(2)}"
-        }
 
     override fun toString() =
         buildString { appendTaskTree(this@Task) }

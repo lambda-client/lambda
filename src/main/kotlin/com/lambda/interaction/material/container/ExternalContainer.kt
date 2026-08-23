@@ -19,9 +19,9 @@ package com.lambda.interaction.material.container
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.task.Task
-import com.lambda.task.TaskGenerator
+import com.lambda.task.wrappers.TaskSupplier
 
 interface ExternalContainer {
 	context(_: AutomatedSafeContext)
-	fun accessThen(exitAfter: Boolean = true, taskGenerator: TaskGenerator<Unit>): Task<*>?
+	fun accessThen(exitAfter: Boolean = true, taskSupplier: TaskSupplier<Unit, Unit>): Task<*>?
 }
