@@ -34,7 +34,7 @@ class RecoveryTask<R, R2>(
 	private val inner: Task<R>,
 	private val recoveryTaskSupplier: SafeContext.(Throwable) -> Task<R2>,
 ) : Task<R2?>() {
-	override val name get() = inner.name
+	override val name get() = "Recovery task in case of failure for ${inner.name}"
 
 	override fun SafeContext.onStart() {
 		inner
@@ -57,7 +57,7 @@ class OptionalRecoveryTask<R, R2>(
 	private val inner: Task<R>,
 	private val recoveryTaskSupplier: SafeContext.(Throwable) -> Task<R2>?,
 ) : Task<R2?>() {
-	override val name get() = inner.name
+	override val name get() = "Optional recovery task in case of failure for ${inner.name}"
 
 	override fun SafeContext.onStart() {
 		inner

@@ -31,7 +31,7 @@ fun <R> Task<R>.softFail(): Task<R?> =
 class SoftFailTask<R>(
     private val inner: Task<R>,
 ) : Task<R?>() {
-    override val name get() = inner.name
+    override val name get() = "Soft fail protection for ${inner.name}"
 
     override fun SafeContext.onStart() {
         inner

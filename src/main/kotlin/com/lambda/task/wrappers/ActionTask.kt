@@ -29,7 +29,7 @@ class SequencedActionTask<R>(
 	private val inner: Task<R>,
 	private val action: SafeContext.(R) -> Unit,
 ) : Task<R>() {
-	override val name get() = inner.name
+	override val name get() = "Performing action after ${inner.name}"
 
 	override fun SafeContext.onStart() {
 		inner
