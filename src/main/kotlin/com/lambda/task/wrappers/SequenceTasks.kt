@@ -41,17 +41,24 @@ fun <R> Task<R>.then(vararg tasks: Task<*>) =
 infix fun <R, R2> Task<R>.thenOrNull(supplier: SafeContext.(R) -> Task<R2>?) =
 	OptionalSequencedTask(this, supplier)
 
+/**
+ * A task that sequences the [firstTask] with the next task, supplied by [nextTaskSupplier].
+ *
+ * Useful for when two tasks must be run sequentially. The result of the first task is fed into the supplier for the second.
+ *
+ * @see then
+ */
 class SequencedTask<R, R2>(
-	private val first: Task<R>,
-	private val nextGenerator: TaskSupplier<R, R2>,
+	private val firstTask: Task<R>,
+	private val nextTaskSupplier: TaskSupplier<R, R2>,
 ) : Task<R2>() {
-	override val name get() = "Chaining ${first.name}"
+	override val name get() = "Chaining ${firstTask.name}"
 	var second: Task<R2>? = null
 
 	override fun SafeContext.onStart() {
-		first
+		firstTask
 			.onSuccess { result ->
-				second = nextGenerator(this, result)
+				second = nextTaskSupplier(this, result)
 					.onSuccess { success(it) }
 					.execute(this@SequencedTask)
 			}
@@ -59,16 +66,23 @@ class SequencedTask<R, R2>(
 	}
 }
 
+/**
+ * A task that sequences the [firstTask] with the next optional task, supplied by [nextTaskSupplier].
+ *
+ * Useful for when you want to sequence a second task after the first based on a predicate. The result of the first task could help shape that outcome.
+ *
+ * @see thenOrNull
+ */
 class OptionalSequencedTask<R, R2>(
-	private val first: Task<R>,
-	private val nextGenerator: TaskOrNullSupplier<R, R2>
+	private val firstTask: Task<R>,
+	private val nextTaskSupplier: TaskOrNullSupplier<R, R2>
 ) : Task<R2?>() {
-	override val name get() = "Chaining ${first.name}"
+	override val name get() = "Chaining ${firstTask.name}"
 
 	override fun SafeContext.onStart() {
-		first
+		firstTask
 			.onSuccess { result ->
-				nextGenerator(this, result)
+				nextTaskSupplier(this, result)
 					?.onSuccess { success(it) }
 					?.execute(this@OptionalSequencedTask)
 					?: success(null)

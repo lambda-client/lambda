@@ -24,6 +24,7 @@ import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.client.Client.verboseDebug
+import com.lambda.task.wrappers.onFail
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Nameable
@@ -228,18 +229,31 @@ abstract class Task<Result> : Nameable, Muteable {
         failure(cause)
     }
 
+    /**
+     * Registers a callback for if the task succeeds.
+     */
     @Ta5kBuilder
     fun onSuccess(callback: SafeContext.(Result) -> Unit): Task<Result> {
         successCallbacks.add(callback)
         return this
     }
 
+    /**
+     * Registers a callback for if the task fails.
+     *
+     * This could be mistaken for [onFail] which is used to wrap the given task with another task that runs a recovery task if this one fails.
+     */
     @Ta5kBuilder
     fun onFailure(callback: SafeContext.(Throwable) -> Unit): Task<Result> {
         failureCallbacks.add(callback)
         return this
     }
 
+    /**
+     * Registers a callback for when the task completes.
+     *
+     * This is called regardless of whether the task succeeds or fails.
+     */
     @Ta5kBuilder
     fun onCompletion(callback: SafeContext.() -> Unit): Task<Result> {
         completionCallbacks.add(callback)

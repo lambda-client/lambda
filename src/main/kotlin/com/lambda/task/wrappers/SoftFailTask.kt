@@ -28,19 +28,26 @@ typealias TaskOrNullSupplier<R, R2> = SafeContext.(R) -> Task<R2>?
 fun <R> Task<R>.softFail(): Task<R?> =
     SoftFailTask(this)
 
+/**
+ * A task that wraps another task ([innerTask]) and prevents failures from the [innerTask] from propagating.
+ *
+ * Useful for if you want to keep the task branch going even in the event one task fails.
+ *
+ * @see softFail
+ */
 class SoftFailTask<R>(
-    private val inner: Task<R>,
+    private val innerTask: Task<R>,
 ) : Task<R?>() {
-    override val name get() = "Soft fail protection for ${inner.name}"
+    override val name get() = "Soft fail protection for ${innerTask.name}"
 
     override fun SafeContext.onStart() {
-        inner
+        innerTask
             .onSuccess { success(it) }
             .execute(this@SoftFailTask)
     }
 
     override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
-        if (subTask == inner) success(null)
+        if (subTask == innerTask) success(null)
         else super.onSubTaskFailure(subTask, cause)
     }
 }

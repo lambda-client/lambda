@@ -30,20 +30,27 @@ infix fun <R, R2> Task<R>.onFail(handler: SafeContext.(Throwable) -> Task<R2>) =
 infix fun <R, R2> Task<R>.onFailOrNull(handler: SafeContext.(Throwable) -> Task<R2>?) =
 	OptionalRecoveryTask(this, handler)
 
+/**
+ * A task that performs a given task ([innerTask]) with a fallback to the task supplied by [recoveryTaskSupplier] in-case of failure.
+ *
+ * Useful for if you want to keep the task branch going even in the event an individual task fails.
+ *
+ * @see onFail
+ */
 class RecoveryTask<R, R2>(
-	private val inner: Task<R>,
+	private val innerTask: Task<R>,
 	private val recoveryTaskSupplier: SafeContext.(Throwable) -> Task<R2>,
 ) : Task<R2?>() {
-	override val name get() = "Recovery task in case of failure for ${inner.name}"
+	override val name get() = "Recovery task in case of failure for ${innerTask.name}"
 
 	override fun SafeContext.onStart() {
-		inner
+		innerTask
 			.onSuccess { success(null) }
 			.execute(this@RecoveryTask)
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
-		if (subTask == inner) {
+		if (subTask == innerTask) {
 			runSafe {
 				recoveryTaskSupplier(this, cause)
 					.onSuccess { success(it) }
@@ -53,20 +60,27 @@ class RecoveryTask<R, R2>(
 	}
 }
 
+/**
+ * A task that performs a given task ([innerTask]) with a fallback to the nullable task supplied by [recoveryTaskSupplier] in-case of failure.
+ *
+ * Useful for if you want to keep the task branch going even in the event an individual task fails, but want to supply the recovery task based on a predicate.
+ *
+ * @see onFailOrNull
+ */
 class OptionalRecoveryTask<R, R2>(
-	private val inner: Task<R>,
+	private val innerTask: Task<R>,
 	private val recoveryTaskSupplier: SafeContext.(Throwable) -> Task<R2>?,
 ) : Task<R2?>() {
-	override val name get() = "Optional recovery task in case of failure for ${inner.name}"
+	override val name get() = "Optional recovery task in case of failure for ${innerTask.name}"
 
 	override fun SafeContext.onStart() {
-		inner
+		innerTask
 			.onSuccess { success(null) }
 			.execute(this@OptionalRecoveryTask)
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
-		if (subTask == inner) {
+		if (subTask == innerTask) {
 			runSafe {
 				recoveryTaskSupplier(this, cause)
 					?.onSuccess { success(it) }

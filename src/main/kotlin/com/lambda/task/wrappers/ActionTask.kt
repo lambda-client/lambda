@@ -25,14 +25,21 @@ import com.lambda.task.Task.Ta5kBuilder
 infix fun <R> Task<R>.thenAction(action: SafeContext.(R) -> Unit): Task<R> =
 	SequencedActionTask(this, action)
 
+/**
+ * A task that performs a given task ([innerTask]) and then a given [action].
+ *
+ * Useful when an action doesn't require an entire task created for it but still needs to be performed within the task branch.
+ *
+ * @see thenAction
+ */
 class SequencedActionTask<R>(
-	private val inner: Task<R>,
+	private val innerTask: Task<R>,
 	private val action: SafeContext.(R) -> Unit,
 ) : Task<R>() {
-	override val name get() = "Performing action after ${inner.name}"
+	override val name get() = "Performing action after ${innerTask.name}"
 
 	override fun SafeContext.onStart() {
-		inner
+		innerTask
 			.onSuccess { result ->
 				action(this, result)
 				success(result)
