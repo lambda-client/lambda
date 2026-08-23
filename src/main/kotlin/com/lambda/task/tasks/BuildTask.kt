@@ -97,7 +97,7 @@ class BuildTask private constructor(
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
-    var eatTask: EatTask? = null
+    var eatTask: Task<*>? = null
 
     private val onItemDrop: ((item: ItemEntity) -> Unit)?
         get() = if (collectDrops) { item ->
@@ -204,10 +204,9 @@ class BuildTask private constructor(
         when {
             lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
                 eatTask = eat()
-                    .also {
-                        thenAction { eatTask = null }
-                        execute(this@BuildTask)
-                    }
+                    .thenAction { eatTask = null }
+                    .execute(this@BuildTask)
+
                 return true
             }
             eatTask != null -> return true

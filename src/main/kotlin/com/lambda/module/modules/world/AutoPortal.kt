@@ -104,7 +104,7 @@ object AutoPortal : Module(
 					if (light) LightTask(currAnchorPos.up(), walkIn)
 					else null
 				}
-				.onSuccess { buildTask = null }
+				.onCompletion { buildTask = null }
 				.run()
 		}
 	private val corners by setting("Corners", false)
