@@ -20,12 +20,12 @@ package com.lambda.interaction.manager.managers.breaking
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.Request
 import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder.Companion.breakRequest
@@ -147,7 +147,7 @@ class BreakRequestBuilder private constructor(
 			builder: (BreakRequestBuilder.() -> Unit)? = null
 		) = positions
 			.associateWith { TargetState.Empty }
-			.simulate()
+			.sim()
 			.breakRequest(pendingInteractions, nowOrNothing, builder)
 
 		@JvmName("breakRequest2")

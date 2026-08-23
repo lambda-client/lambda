@@ -36,7 +36,6 @@ public class KeyBindingMixin {
 
         if (Sprint.INSTANCE.isEnabled()) return true;
         if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GrimStrafe) return true;
-        if (TargetStrafe.INSTANCE.isEnabled() && TargetStrafe.isActive()) return true;
         return original;
     }
 }

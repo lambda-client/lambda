@@ -18,8 +18,8 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.config.Config
-import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.ConfigEntryDsl
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
@@ -174,32 +174,29 @@ open class CollectionSetting<R : Any>(
 			}
 		}
 	}
+}
 
-	@Suppress("unused")
-	companion object {
-		@ConfigEntryDsl
-		fun <T : CollectionSetting<R>, R : Any> T.onSelect(block: SafeContext.(R) -> Unit) =
-			apply { selectListeners.add(block) }
+@ConfigEntryDsl
+fun <T : CollectionSetting<R>, R : Any> T.onSelect(block: SafeContext.(R) -> Unit) =
+	apply { selectListeners.add(block) }
 
-		@ConfigEntryDsl
-		fun <T : CollectionSetting<R>, R : Any> T.onSelectUnsafe(block: (R) -> Unit) =
-			apply { unsafeSelectListeners.add(block) }
+@ConfigEntryDsl
+fun <T : CollectionSetting<R>, R : Any> T.onSelectUnsafe(block: (R) -> Unit) =
+	apply { unsafeSelectListeners.add(block) }
 
-		@ConfigEntryDsl
-		fun <T : CollectionSetting<R>, R : Any> T.onDeselect(block: SafeContext.(R) -> Unit) =
-			apply { deselectListeners.add(block) }
+@ConfigEntryDsl
+fun <T : CollectionSetting<R>, R : Any> T.onDeselect(block: SafeContext.(R) -> Unit) =
+	apply { deselectListeners.add(block) }
 
-		@ConfigEntryDsl
-		fun <T : CollectionSetting<R>, R : Any> T.onDeselectUnsafe(block: (R) -> Unit) =
-			apply { unsafeDeselectListeners.add(block) }
+@ConfigEntryDsl
+fun <T : CollectionSetting<R>, R : Any> T.onDeselectUnsafe(block: (R) -> Unit) =
+	apply { unsafeDeselectListeners.add(block) }
 
-		@Suppress("unchecked_cast")
-		@ConfigEditorD5l
-		fun <T : Any> ConfigEditor.SettingEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
-			(entries as Collection<CollectionSetting<T>>).forEach {
-				it.value.retainAll(collection.toSet())
-				it.immutableCollection = collection
-			}
-		}
+@Suppress("unchecked_cast")
+@ConfigEditorD5l
+fun <T : Any> SettingEditBuilder<Collection<T>>.immutableCollection(collection: Collection<T>) {
+	(entries as Collection<CollectionSetting<T>>).forEach {
+		it.value.retainAll(collection.toSet())
+		it.immutableCollection = collection
 	}
 }

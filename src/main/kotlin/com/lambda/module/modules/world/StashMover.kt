@@ -19,12 +19,12 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
-import com.lambda.config.ConfigEditor.editTypedSettings
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.hide
+import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.withEdits
@@ -55,6 +55,8 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.tasks.OpenContainerTask
+import com.lambda.task.wrappers.thenAction
 import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
@@ -337,7 +339,7 @@ object StashMover : Module(
 		StashMover.info("Starting ${if (role == Role.MoverBot) "MoverBot" else "PearlBot"}!")
 		task = role
 			.createTask()
-			.onFailOrNull {
+			.onFailure { _ ->
 				if (disconnectOnFail) connection.connection.disconnect(
 					buildText {
 						bold {
@@ -347,9 +349,8 @@ object StashMover : Module(
 					}
 				)
 				task = null
-				null
 			}
-			.finally { message ->
+			.thenAction { message ->
 				StashMover.info("Finished! $message")
 				if (disconnectOnFinish) connection.connection.disconnect(
 					buildText {
@@ -442,7 +443,7 @@ object StashMover : Module(
 					MoverState.OpeningPutEnderChest ->
 						openClosestContainer(
 							putEnderChests,
-							{ failWithLog("No pull ender chests indexed!") }
+							{ failWithLog("No pull ender chests indexed!", ::failure) }
 						) { moverState = MoverState.PuttingInEnderChest }
 					MoverState.PuttingInEnderChest -> handlePuttingInEnderChest(screenHandler)
 					MoverState.BreakingEmptyPullContainers -> handleBreakingEmptyPullContainers()
@@ -475,7 +476,7 @@ object StashMover : Module(
 					MoverState.OpeningPullEnderChest ->
 						openClosestContainer(
 							pullEnderChests,
-							{ failWithLog("No put ender chests indexed!") }
+							{ failWithLog("No put ender chests indexed!", ::failure) }
 						) { moverState = MoverState.PullingFromEnderChest }
 					MoverState.PullingFromEnderChest -> handlePullingFromEnderChest(screenHandler)
 					MoverState.Killing -> handleKilling()
@@ -553,11 +554,10 @@ object StashMover : Module(
 			pulledContainers
 				.associateWith { TargetState.Empty }
 				.build()
-				.onFailOrNull {
-					failWithLog("Failed to break empty pull containers!")
-					null
+				.onFailure { _ ->
+					failWithLog("Failed to break empty pull containers!", ::failure)
 				}
-				.finally {
+				.thenAction {
 					pulledContainers.clear()
 					moverState = MoverState.MessagingForPearl
 				}
@@ -571,13 +571,13 @@ object StashMover : Module(
 		}
 
 		private fun SafeContext.handleDroppingItems() {
-			val throwPos = itemThrowPos ?: run { failWithLog("No item throw pos set!"); return }
+			val throwPos = itemThrowPos ?: run { failWithLog("No item throw pos set!", ::failure); return }
 			if (player.blockPos != throwPos) {
 				BaritoneHandler.setGoalAndPath(GoalBlock(throwPos))
 				return
 			}
 			if (BaritoneHandler.isActive) return
-			val rotation = itemThrowRotation ?: run { failWithLog("No item throw rotation set!"); return }
+			val rotation = itemThrowRotation ?: run { failWithLog("No item throw rotation set!", ::failure); return }
 			val rotationRequest = rotationRequest {
 				rotation(rotation)
 			}.submit()
@@ -624,14 +624,14 @@ object StashMover : Module(
 		}
 
 		private fun SafeContext.handleDispensingPearl() {
-			val dispensePos = pearlDispensePos ?: run { failWithLog("No pearl button set!"); return }
+			val dispensePos = pearlDispensePos ?: run { failWithLog("No pearl button set!", ::failure); return }
 			if (player.blockPos != dispensePos) {
 				BaritoneHandler.setGoalAndPath(GoalBlock(dispensePos))
 				return
 			}
 			if (BaritoneHandler.isActive) return
 			if (HotbarContainer.stacks.none { it.isEmpty }) {
-				val firstSlot = HotbarContainer.slots.getOrNull(0) ?: run { failWithLog("No first slot? This shouldn't occur."); return }
+				val firstSlot = HotbarContainer.slots.getOrNull(0) ?: run { failWithLog("No first slot? This shouldn't occur.", ::failure); return }
 				if (InventoryContainer.stacks.any { it.isEmpty }) {
 					inventoryRequest { quickMove(firstSlot.id) }.submit()
 					return
@@ -639,11 +639,11 @@ object StashMover : Module(
 					inventoryRequest { swapWithHotbar(firstSlot.id, 40) }.submit()
 					return
 				}
-				failWithLog("No free slots for an ender pearl!")
+				failWithLog("No free slots for an ender pearl!", ::failure)
 				return
 			}
-			getButtonPressTask(dispensePos)
-				?.finally {
+			getButtonPressTask(dispensePos, ::failure)
+				?.thenAction {
 					tickTimer.reset()
 					moverState = MoverState.AwaitingPearl
 				}
@@ -651,7 +651,7 @@ object StashMover : Module(
 		}
 
 		private fun SafeContext.handleThrowingPearl() {
-			val throwPos = pearlThrowPos ?: run { failWithLog("No pearl throw pos set!"); return }
+			val throwPos = pearlThrowPos ?: run { failWithLog("No pearl throw pos set!", ::failure); return }
 			if (player.blockPos != throwPos) {
 				BaritoneHandler.setGoalAndPath(GoalBlock(throwPos))
 				return
@@ -662,17 +662,17 @@ object StashMover : Module(
 			if (pearlThrown) {
 				if (!player.offHandStack.isEmpty) {
 					if (HotbarAndInventoryContainer.stacks.none { it.isEmpty }) {
-						failWithLog("No free slots to return the offhand stack to!")
+						failWithLog("No free slots to return the offhand stack to!", ::failure)
 						return
 					}
-					val offhandSlot = OffHandContainer.slots.firstOrNull() ?: run { failWithLog("No offhand slot? This shouldn't occur."); return }
+					val offhandSlot = OffHandContainer.slots.firstOrNull() ?: run { failWithLog("No offhand slot? This shouldn't occur.", ::failure); return }
 					inventoryRequest { quickMove(offhandSlot.id) }.submit()
 				}
 				putOrThrowItems()
 				return
 			}
 
-			val rotation = pearlRotation ?: run { failWithLog("No pearl rotation set!"); return }
+			val rotation = pearlRotation ?: run { failWithLog("No pearl rotation set!", ::failure); return }
 			val rotationRequest = rotationRequest {
 				rotation(rotation)
 			}.submit()
@@ -685,7 +685,7 @@ object StashMover : Module(
 				} else {
 					val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
 					if (inventorySlot == null) {
-						failWithLog("No pearl in inventory!")
+						failWithLog("No pearl in inventory!", ::failure)
 						return
 					}
 					inventoryRequest { swapWithHotbar(inventorySlot.id, 0) }.submit()
@@ -739,7 +739,7 @@ object StashMover : Module(
 		private fun SafeContext.openClosestContainer(
 			positions: Collection<BlockPos>,
 			onNoneAvailable: () -> Unit,
-			finally: SafeContext.(pos: BlockPos) -> Unit
+			onOpened: SafeContext.(pos: BlockPos) -> Unit
 		) {
 			val pos = positions.minByOrNull { it distSq player.blockPos }
 				?: run {
@@ -747,8 +747,8 @@ object StashMover : Module(
 					return
 				}
 
-			openContainer(pos).finally {
-				finally(pos)
+			openContainer(pos).thenAction {
+				onOpened(pos)
 			}.execute(this@MoverBot)
 		}
 
@@ -817,9 +817,9 @@ object StashMover : Module(
 			listen<TickEvent.Pre> {
 				when (pearlState) {
 					PearlState.Pressing -> {
-						val buttonPos = pearlBotButton ?: run { failWithLog("No pearl bot button set!"); return@listen }
-						getButtonPressTask(buttonPos)
-							?.finally {
+						val buttonPos = pearlBotButton ?: run { failWithLog("No pearl bot button set!", ::failure); return@listen }
+						getButtonPressTask(buttonPos, ::failure)
+							?.thenAction {
 								pearlState = PearlState.Waiting
 							}
 							?.execute(this@PearlBot)
@@ -841,7 +841,7 @@ object StashMover : Module(
 	}
 
 	context(safeContext: SafeContext)
-	private fun Task<*>.getButtonPressTask(pos: BlockPos): Task<*>? =
+	private fun getButtonPressTask(pos: BlockPos, failure: (String) -> Unit): Task<*>? =
 		with (safeContext) {
 			val buttonState = blockState(pos)
 			if (buttonState.block !is ButtonBlock) {
@@ -855,7 +855,7 @@ object StashMover : Module(
 			} else null
 		}
 
-	private fun Task<*>.failWithLog(message: String) {
+	private fun failWithLog(message: String, failure: (String) -> Unit) {
 		failure(message)
 		StashMover.logError(message)
 	}

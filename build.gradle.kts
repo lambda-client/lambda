@@ -42,7 +42,7 @@ val libs = file("libs")
 val targets = listOf("fabric.mod.json")
 val replacements = file("gradle.properties").inputStream().use { stream ->
     Properties().apply { load(stream) }
-}.map { (k, v) -> k.toString() to v.toString() }.toMap()
+}.map { (k, v) -> k.toString() to v.toString() }.toMap().toMutableMap()
 
 plugins {
     kotlin("jvm") version "2.3.0"
@@ -53,7 +53,16 @@ plugins {
 }
 
 group = mavenGroup
-version = modVersion
+
+val isDevBuild = project.hasProperty("mavenType") && project.property("mavenType") == "dev"
+val buildNum = if (project.hasProperty("buildNumber")) project.property("buildNumber") as String else null
+
+version = if (isDevBuild && buildNum != null) {
+    "$modVersion+$minecraftVersion-dev.$buildNum"
+} else {
+    modVersion
+}
+replacements["modVersion"] = version.toString()
 
 base.archivesName = modId
 
@@ -218,6 +227,7 @@ tasks {
     }
 
     processResources {
+        inputs.properties(replacements)
         filesMatching(targets) { expand(replacements) }
 
         // Forces the task to always run
@@ -241,18 +251,21 @@ java {
 }
 
 publishing {
-    val publishType = project.findProperty("mavenType").toString()
-    val isSnapshots = publishType == "snapshots"
-    val mavenUrl = if (isSnapshots) "https://maven.lambda-client.org/snapshots" else "https://maven.lambda-client.org/releases"
-    val mavenVersion =
-        if (isSnapshots) "$modVersion+$minecraftVersion-SNAPSHOT"
-        else "$modVersion+$minecraftVersion"
+    val mavenType = project.findProperty("mavenType").toString()
+    val mavenUrl = "https://maven.lambda-client.org/${mavenType}"
+    val versionBase = "$modVersion+$minecraftVersion"
 
-	publications {
+    val finalVersion =
+        if (mavenType == "dev") {
+            val buildNumber = project.findProperty("buildNumber").toString()
+            "$versionBase-dev.$buildNumber"
+        } else versionBase
+
+    publications {
         create<MavenPublication>("maven") {
             groupId = mavenGroup
             artifactId = modId
-            version = mavenVersion
+            version = finalVersion
 
             from(components["java"])
         }
@@ -260,13 +273,12 @@ publishing {
 
     repositories {
         maven(mavenUrl) {
-            name = "lambda-reposilite"
+            name = "lambda-maven"
 
             credentials {
                 username = project.findProperty("mavenUsername").toString()
                 password = project.findProperty("mavenPassword").toString()
             }
-
 
             authentication {
                 create<BasicAuthentication>("basic")

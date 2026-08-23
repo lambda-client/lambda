@@ -24,6 +24,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.screen.slot.Slot
 
@@ -38,7 +39,7 @@ class AcquireStackTask @Ta5kBuilder constructor(
         runSafeAutomated {
             selection.findContainer()
                 ?.transferByTask(selection, HotbarContainer)
-                ?.finally { slot -> success(slot) }
+                ?.thenAction { slot -> success(slot) }
                 ?.execute(this@AcquireStackTask)
                 ?: failure(ContainerHandler.NoContainerFound(selection)) // ToDo: Create crafting path
         }

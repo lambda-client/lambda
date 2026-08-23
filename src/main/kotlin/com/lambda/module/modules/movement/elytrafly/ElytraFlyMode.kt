@@ -133,4 +133,6 @@ abstract class ElytraFlyMode(
 		connection.sendPacket(ClientCommandC2SPacket(player, ClientCommandC2SPacket.Mode.START_FALL_FLYING))
 
 	open fun isGliding() = runSafe { player.getFlag(Entity.GLIDING_FLAG_INDEX) || (fakeFly && fakeGliding) } == true
+
+	open fun pausingMovement() = false
 }

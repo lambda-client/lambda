@@ -17,25 +17,25 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.editTypedSettings
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.blocks.BreakConfig.SwingMode
+import com.lambda.config.editSetting
+import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.Setting.Companion.disabled
 import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.hide
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder.Companion.breakRequest
 import com.lambda.module.Module
@@ -225,7 +225,7 @@ object PacketMine : Module(
 			requestPositions
 				.filterNotNull()
 				.associateWith { TargetState.Empty }
-				.simulate()
+				.sim()
 				.filterIsInstance<BreakResult.Break>()
 				.let {
 					if (queueOrder == QueueOrder.Efficient) it.sorted()

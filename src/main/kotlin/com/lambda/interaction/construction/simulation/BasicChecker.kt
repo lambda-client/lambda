@@ -15,14 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.simulation.checks
+package com.lambda.interaction.construction.simulation
 
-import com.lambda.config.blocks.BreakConfig.WhitelistMode
+import com.lambda.config.blocks.BreakConfig
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.simulation.BreakSimInfo
-import com.lambda.interaction.construction.simulation.Results
-import com.lambda.interaction.construction.simulation.SimDsl
-import com.lambda.interaction.construction.simulation.SimInfo
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
 import com.lambda.util.player.PlayerUtils.gamemode
@@ -51,8 +47,8 @@ object BasicChecker : Results<PreSimResult> {
         // block should be ignored
         if (this@hasBasicRequirements is BreakSimInfo) {
             val mode = breakConfig.whitelistMode
-            if ((mode == WhitelistMode.Whitelist && state.block !in breakConfig.whitelist) ||
-                (mode == WhitelistMode.Blacklist && state.block in breakConfig.blacklist)
+            if ((mode == BreakConfig.WhitelistMode.Whitelist && state.block !in breakConfig.whitelist) ||
+                (mode == BreakConfig.WhitelistMode.Blacklist && state.block in breakConfig.blacklist)
                 ) {
                 result(GenericResult.Ignored(pos))
                 return false

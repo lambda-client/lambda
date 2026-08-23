@@ -29,7 +29,9 @@ import com.lambda.gui.LambdaScreen
 import com.lambda.gui.Layout
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
+import com.lambda.imgui.flag.ImGuiHoveredFlags
 import com.lambda.imgui.flag.ImGuiInputTextFlags
+import com.lambda.imgui.flag.ImGuiMouseButton
 import com.lambda.imgui.flag.ImGuiStyleVar
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.imgui.type.ImString
@@ -50,12 +52,13 @@ object QuickSearch {
     var isOpen = false
         private set
     private var shouldFocus = false
-
+    private var pendingClose = false
     private var lastShiftPressTime = 0L
     private var lastShiftKeyCode = -1
 
     private const val DOUBLE_SHIFT_WINDOW_MS = 500L
     private const val MAX_RESULTS = 50
+    private const val POPUP_ID = "QuickSearch"
     const val WINDOW_FLAGS =
         ImGuiWindowFlags.AlwaysAutoResize or
                 ImGuiWindowFlags.NoTitleBar or
@@ -119,12 +122,14 @@ object QuickSearch {
     fun open() {
         isOpen = true
         shouldFocus = true
+        pendingClose = false
         searchInput.clear()
     }
 
     fun close() {
         isOpen = false
         shouldFocus = false
+        pendingClose = true
     }
 
     fun toggle() {
@@ -132,8 +137,8 @@ object QuickSearch {
     }
 
     fun ImGuiBuilder.renderQuickSearch() {
-        if (!isOpen) return
-        ImGui.openPopup("QuickSearch")
+        if (!isOpen && !pendingClose) return
+        if (isOpen) openPopup(POPUP_ID)
 
         ImGui.setNextFrameWantCaptureKeyboard(true)
 
@@ -146,7 +151,18 @@ object QuickSearch {
         ImGui.setNextWindowSize(maxW, 0f)
         ImGui.setNextWindowSizeConstraints(0f, 0f, maxW, maxH)
 
-        popupModal("QuickSearch", WINDOW_FLAGS) {
+        popupModal(POPUP_ID, WINDOW_FLAGS) {
+            if (pendingClose) {
+                pendingClose = false
+                closeCurrentPopup()
+                return@popupModal
+            }
+
+            if (isMouseClicked(ImGuiMouseButton.Left) && !isWindowHovered(ImGuiHoveredFlags.RootAndChildWindows)) {
+                close()
+                return@popupModal
+            }
+
             if (shouldFocus) {
                 ImGui.setKeyboardFocusHere()
                 shouldFocus = false
@@ -315,7 +331,7 @@ object QuickSearch {
         if (lastShiftKeyCode == event.keyCode &&
             currentTime - lastShiftPressTime <= DOUBLE_SHIFT_WINDOW_MS
         ) {
-            open()
+            toggle()
             lastShiftPressTime = 0L
             lastShiftKeyCode = -1
         } else {

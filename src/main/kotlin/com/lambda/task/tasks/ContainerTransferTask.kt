@@ -26,6 +26,7 @@ import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.task.Task
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.screen.slot.Slot
 

@@ -100,8 +100,8 @@ object MovementUtils {
         playerInput = PlayerInput(
             forward > 0.0,
             forward < 0.0,
-            strafe < 0.0,
             strafe > 0.0,
+            strafe < 0.0,
             jump,
             sneak,
             sprint,

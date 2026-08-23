@@ -36,6 +36,7 @@ import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectSt
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
 import com.lambda.task.tasks.ContainerTransferTask.Companion.transfer
+import com.lambda.task.wrappers.softFail
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos

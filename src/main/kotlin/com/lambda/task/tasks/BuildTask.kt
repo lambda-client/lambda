@@ -32,7 +32,6 @@ import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.simulation.BuildGoal
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
@@ -45,6 +44,7 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.result.results.PreSimResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
@@ -54,6 +54,7 @@ import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Compa
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.tasks.EatTask.Companion.eat
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
@@ -96,7 +97,7 @@ class BuildTask @Ta5kBuilder private constructor(
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
-    var eatTask: EatTask? = null
+    var eatTask: Task<*>? = null
 
     private val onItemDrop: ((item: ItemEntity) -> Unit)?
         get() = if (collectDrops) { item ->
@@ -137,7 +138,7 @@ class BuildTask @Ta5kBuilder private constructor(
                             results.filter { it.pos !in reSimPositions } +
                                     blueprint.structure.filter {
                                         it.key in reSimPositions
-                                    }.simulate()
+                                    }.sim()
                         reSimPositions.clear()
                         setViableResults()
                         processResults()
@@ -203,27 +204,27 @@ class BuildTask @Ta5kBuilder private constructor(
         when {
             lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
                 eatTask = eat()
-                eatTask?.finally {
-                    eatTask = null
-                }?.execute(this@BuildTask)
+                    .thenAction { eatTask = null }
+                    .execute(this@BuildTask)
+
                 return true
             }
             eatTask != null -> return true
         }
 
         if (blueprint is TickingBlueprint) {
-            blueprint.tick() ?: run {
-                failure("Failed to tick the ticking blueprint")
-                return true
-            }
+            blueprint.tick()
+                ?: run {
+                    failure("Failed to tick the ticking blueprint")
+                    return true
+                }
         }
 
         return collectDrops()
     }
 
     private fun AutomatedSafeContext.simulate() {
-        results = blueprint.structure
-            .simulate()
+        results = blueprint.structure.sim()
     }
 
     private fun SafeContext.setViableResults() {

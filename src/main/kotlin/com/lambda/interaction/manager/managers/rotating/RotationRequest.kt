@@ -74,8 +74,10 @@ interface IRotationRequest : Automated {
 		override val done
 			get() =
 				runSafe {
-					val delta = (if (BaritoneHandler.isActive) player.rotation else RotationManager.activeRotation)
-						.yaw - (yaw.value ?: return@runSafe false)
+					val rot =
+						if (BaritoneHandler.isActive) player.rotation
+						else RotationManager.activeRotation
+					val delta = rot.yaw - (yaw.value ?: return@runSafe false)
 					val wrappedDelta = ((delta + 180) % 360 + 360) % 360 - 180
 					abs(wrappedDelta) <= 0.001
 				} == true
@@ -99,8 +101,10 @@ interface IRotationRequest : Automated {
 		override val done
 			get() =
 				runSafe {
-					abs((if (BaritoneHandler.isActive) player.rotation else RotationManager.activeRotation)
-						.pitch - (pitch.value ?: return@runSafe false)) <= 0.001
+					val rot =
+						if (BaritoneHandler.isActive) player.rotation
+						else RotationManager.activeRotation
+					abs(rot.pitch - (pitch.value ?: return@runSafe false)) <= 0.001
 				} == true
 
 		override fun dist(rotation: Rotation): Double {
@@ -124,8 +128,10 @@ interface IRotationRequest : Automated {
 		override val done
 			get() =
 				runSafe {
-					(if (BaritoneHandler.isActive) player.rotation else RotationManager.activeRotation)
-						.dist(rotation.value ?: return@runSafe false) <= 0.001
+					val rot =
+						if (BaritoneHandler.isActive) player.rotation
+						else RotationManager.activeRotation
+					rot.dist(rotation.value ?: return@runSafe false) <= 0.001
 				} == true
 
 		override fun dist(rotation: Rotation) =

@@ -21,13 +21,14 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.item.ItemUtils.shulkerBoxes
@@ -59,7 +60,7 @@ class PlaceContainerTask @Ta5kBuilder constructor(
                 .filter { !ManagerUtils.isPosBlocked(it) }
                 .flatMap {
                     it.toStructure(TargetState.Stack(slot.stack))
-                        .simulate()
+                        .sim()
                 }
         }
 
@@ -79,7 +80,7 @@ class PlaceContainerTask @Ta5kBuilder constructor(
             .toStructure(TargetState.Stack(slot.stack))
             .toBlueprint()
             .build(finishOnDone = true, collectDrops = false)
-            .finally { success(containerPosition) }
+            .thenAction { success(containerPosition) }
             .execute(this@PlaceContainerTask)
     }
 

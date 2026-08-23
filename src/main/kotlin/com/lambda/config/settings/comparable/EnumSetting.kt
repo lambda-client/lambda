@@ -76,8 +76,6 @@ class EnumSetting<T : Enum<T>>(
         }
     }
 
-    companion object {
-        val <T : Enum<T>> T.enumValues: Array<T> get() =
-            declaringJavaClass.enumConstants
-    }
+    private val <T : Enum<T>> T.enumValues: Array<T>
+        get() = declaringJavaClass.enumConstants
 }

@@ -90,9 +90,12 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
 
     @WrapOperation(method = "move", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;move(Lnet/minecraft/entity/MovementType;Lnet/minecraft/util/math/Vec3d;)V"))
     private void wrapMove(ClientPlayerEntity instance, MovementType movementType, Vec3d vec3d, Operation<Void> original) {
-        EventFlow.post(new MovementEvent.Player.Pre(movementType, vec3d));
+        MovementEvent.Player.Pre preEvent = new MovementEvent.Player.Pre(movementType, vec3d);
+        EventFlow.post(preEvent);
+        vec3d = preEvent.getMovement();
         original.call(instance, movementType, vec3d);
-        EventFlow.post(new MovementEvent.Player.Post(movementType, vec3d));
+        MovementEvent.Player.Post postEvent = new MovementEvent.Player.Post(movementType, vec3d);
+        EventFlow.post(postEvent);
     }
 
     @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))

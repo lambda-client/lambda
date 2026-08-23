@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -30,6 +30,8 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
 import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainerTask
+import com.lambda.task.wrappers.then
+import com.lambda.task.wrappers.thenAction
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
@@ -62,7 +64,7 @@ object InventoryTweaks : Module(
             lastOpenScreen = null
             placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
                 placedPos = placePos
-                openContainer(placePos).finally { screenHandler ->
+                openContainer(placePos).thenAction { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
             }.run()

@@ -19,7 +19,7 @@ package com.lambda.config.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
-import com.lambda.config.ConfigEditor.hide
+import com.lambda.config.hide
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
