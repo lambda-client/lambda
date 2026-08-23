@@ -37,18 +37,18 @@ sealed class MovementEvent {
         /**
          * Event triggered before player movement.
          *
-         * @property movementType The type of movement.
+         * @property movement Type The type of movement.
          * @property movement The movement vector.
          */
         data class Pre(
             override val movementType: MovementType,
-            override val movement: Vec3d,
+            override var movement: Vec3d,
         ) : Player(), ICancellable by Cancellable()
 
         /**
          * Event triggered after player movement.
          *
-         * @property movementType The type of movement.
+         * @property movement Type The type of movement.
          * @property movement The movement vector.
          */
         data class Post(
