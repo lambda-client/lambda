@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-package com.lambda.pathing.trajectory
+package com.lambda.pathing.movement
 
 data class MovementKeys(val forward: Double, val strafe: Double) {
     val sustainsSprint: Boolean get() = forward > 0.0

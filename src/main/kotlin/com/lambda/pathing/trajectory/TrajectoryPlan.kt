@@ -9,9 +9,10 @@
 
 package com.lambda.pathing.trajectory
 
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.movement.InputTape
 import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.PathingSection
+import com.lambda.pathing.world.VoxelPos
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import java.util.Collections

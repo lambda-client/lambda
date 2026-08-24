@@ -31,6 +31,22 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(MOVES_GROUP)
+    override val maxDropSpan by c.setting(
+        "Max Drop Span", 2, 1..4, 1,
+        "How far a controlled drop may carry the body sideways while descending. " +
+            "A span of 1 is straight down onto the neighbouring block; 2 crosses a gap on the way down.",
+        unit = " blocks",
+    )
+
+    @Group(MOVES_GROUP)
+    override val allowClimbing by c.setting(
+        "Ladders", false,
+        "Route up and down ladders and vines. Off by default because climb edges are cheap " +
+            "per block, which weakens the search's distance estimate everywhere -- including " +
+            "routes with no ladder anywhere near them.",
+    )
+
+    @Group(MOVES_GROUP)
     override val allowJumpCandidates by c.setting(
         "Gap Jumps", true,
         "Let the coarse layer propose gap jumps. Each still needs a simulated launch before it is walked.",

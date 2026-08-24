@@ -9,6 +9,9 @@
 
 package com.lambda.pathing.trajectory
 
+import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.movement.Movement
+import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.SimulationSnapshotOutOfBoundsException
 import kotlin.math.abs
@@ -29,6 +32,8 @@ internal class RolloutEvaluator(
     private val nodes: List<HorizontalPoint>,
     private val goal: HorizontalPoint,
     private val config: MotionConstraints,
+    /** Set for a movement whose motion comes from pressing into terrain -- see [Movement.pressesIntoTerrain]. */
+    private val allowHorizontalContact: Boolean = false,
 ) {
     private val floor = nodes.minOf { it.y } - FALL_TOLERANCE
 
@@ -53,7 +58,15 @@ internal class RolloutEvaluator(
             pendingBlocker = TrajectoryDiagnostic.HeadBonk(index, state.position)
         }
 
-        if (state.horizontalCollision && state.onGround) {
+        // A sneaking body's horizontal collision is usually its own ledge clip rather than
+        // a wall: vanilla zeroes the movement to keep it from stepping off an edge, and the
+        // zeroed movement reads as a collision. That is the technique working, not the body
+        // running into something, and failing it rejected every controlled descent on the
+        // frame its brake first bit. A sneak into an actual wall is harmless anyway -- there
+        // is no speed behind it to be a hazard.
+        if (state.horizontalCollision && state.onGround && !allowHorizontalContact &&
+            !state.isSneaking
+        ) {
             return RolloutVerdict.Failed(TrajectoryDiagnostic.HorizontalCollision(index, state.position))
         }
         if (state.position.y < floor) {

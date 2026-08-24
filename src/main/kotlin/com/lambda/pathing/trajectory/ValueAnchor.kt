@@ -10,12 +10,14 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.BodyState
+import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 
 internal class ValueAnchor(
-    val state: MovementSimulationState,
-    val stance: Stance,
+    override val state: MovementSimulationState,
+    override val stance: Stance,
     val elapsed: Int,
     val collisionEvents: Int,
     val launchMargin: Int,
@@ -23,7 +25,7 @@ internal class ValueAnchor(
     val parent: ValueAnchor?,
     val inputs: List<MovementSimulationInput>,
     val boundary: Int,
-) {
+) : BodyState {
     var actions: List<TrajectoryDecision>? = null
 
     var actionsHazardFrame: Int? = null
@@ -31,14 +33,10 @@ internal class ValueAnchor(
     /** Stable semantic identity; regenerated action ordering can never retry or skip a decision. */
     val attempted: MutableSet<TrajectoryDecision> = HashSet()
 
-    var hazardFrame: Int? = null
+    override var hazardFrame: Int? = null
 
     var sweptToGoal: Boolean = false
 
-    val speed: Double get() = state.velocity.horizontalLength()
-
-    fun heading(): Pair<Double, Double>? =
-        if (speed <= 1e-6) null else state.velocity.x to state.velocity.z
 
     fun prefix(): List<MovementSimulationInput> {
         val chain = ArrayList<List<MovementSimulationInput>>()

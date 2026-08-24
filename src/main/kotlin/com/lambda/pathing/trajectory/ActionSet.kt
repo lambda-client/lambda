@@ -11,18 +11,21 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.CoarseEdge
-import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.coarse.JumpArcProbe
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.DecisionContext
+import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.movement.MovementCatalog
+import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.movement.MovementKeys
+import com.lambda.pathing.movement.TrajectoryDecision
+import com.lambda.pathing.movement.bearingBetween
+import com.lambda.pathing.movement.center
 import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.hypot
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 internal class ActionSet(
+    private val catalog: MovementCatalog,
     private val field: CoarseValueField,
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
@@ -37,17 +40,21 @@ internal class ActionSet(
         val actions = ArrayList<TrajectoryDecision>()
         val walks = ArrayList<TrajectoryDecision>()
         val launches = ArrayList<TrajectoryDecision>()
-        for (sprint in config.sprintModes) {
-            for (step in steps) {
-                for ((lookAhead, ease) in WALK_STYLES) {
-                    walks += TrajectoryDecision.Walk(sprint, step.to, lookAhead, ease)
-                }
-            }
+        val walking = catalog[MovementId.WALK]
+        for (step in steps) {
+            walking?.let { walks += it.decisions(DecisionContext(anchor, step, config, field.view)) }
         }
 
         val bearing = descentBearing(anchor, steps.first().to)
-        val target = steps.first().to
-        val jumpFirst = steps.first().kind == CoarseMoveKind.JUMP_CANDIDATE
+        val first = steps.first()
+        val target = first.to
+
+        // Only a genuinely ballistic first step is worth leading with. Comparing against
+        // the walk id alone made a one-block step down "not walking", so the search tried
+        // to *leap* off every staircase before it tried to walk down it.
+        val jumpFirst = catalog[first.movement]?.id != MovementId.WALK
+
+
         for (sprint in config.sprintModes) {
             actionsForOffsets(anchor, sprint, target, bearing, walks)
 
@@ -62,6 +69,10 @@ internal class ActionSet(
 
         if (field.guide(anchor.stance) <= searchConfig.finishValueTicks) return actions
 
+        // Blind airborne guesses, and they stay first among the launches. They hold a
+        // straight bearing where the solved decisions steer along the stance chain, and
+        // demoting them behind the solved ones cost 2700 degrees of turning across the
+        // corpus for thirteen collisions -- a bad trade.
         for (sprint in config.sprintModes) {
             for (delay in OFF_AXIS_LAUNCH_DELAYS) {
                 launches += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = delay)
@@ -89,16 +100,20 @@ internal class ActionSet(
             }
         }
 
-        for (sprint in config.sprintModes) {
-            for (step in steps.take(LAUNCH_STEPS)) {
-                if (!canReach(anchor, step.to, sprint)) continue
-                for (delay in launchDelays(anchor, step)) {
-                    launches += TrajectoryDecision.Launch(sprint, step.to, delay)
-                }
-            }
+        // Solved descents are the one thing that must beat the blind hops. A narrow tread
+        // has no room to overshoot onto, so a walk that carries speed off it fails and the
+        // search falls straight through to a hop -- which leaves the ground and clears two
+        // treads instead of one. A drop knows the speed that lands, so it goes first.
+        // Everything else keeps its place: promoting *all* solved decisions ahead of the
+        // hops cost 2700 degrees of turning across the corpus, because the hops are what
+        // hold a straight bearing where the solved ones steer along the stance chain.
+        val descents = ArrayList<TrajectoryDecision>()
+        for (step in steps.take(LAUNCH_STEPS)) {
+            val decisions = movementDecisions(anchor, step)
+            if (step.to.y < anchor.stance.y) descents += decisions else launches += decisions
         }
 
-        actions += if (jumpFirst) launches + walks else walks + launches
+        actions += if (jumpFirst) descents + launches + walks else walks + descents + launches
         return actions
     }
 
@@ -119,16 +134,13 @@ internal class ActionSet(
         )
     }
 
-    private fun canReach(anchor: ValueAnchor, target: Stance, sprint: Boolean): Boolean {
-        val entrySpeed = maxOf(anchor.speed, if (sprint) SPRINT_TOP_SPEED else WALK_TOP_SPEED)
-        val distance = hypot(
-            target.x + 0.5 - anchor.state.position.x,
-            target.z + 0.5 - anchor.state.position.z,
-        )
-        val rise = target.y - anchor.stance.y
-        return distance <= JumpArcProbe.maxReach(entrySpeed, rise) + REACH_SLACK_BLOCKS
-    }
-
+    /**
+     * The straight-ahead heading, plus a fan around it when the body is in trouble.
+     *
+     * Steering along the stance chain is enough on open ground. It stops being enough at a
+     * corner, or once a walk has been seen to fail, and the fan is how the search finds a
+     * line the grid could not describe.
+     */
     private fun actionsForOffsets(
         anchor: ValueAnchor,
         sprint: Boolean,
@@ -144,28 +156,32 @@ internal class ActionSet(
         }
     }
 
-    private fun launchDelays(anchor: ValueAnchor, edge: CoarseEdge): List<Int> {
-        val hint = edge.jumpHint ?: return searchConfig.launchDelays.sortedDescending()
-        val from = edge.from.center()
-        val to = edge.to.center()
-        val along = alongEdge(from, to, anchor.state.position.x, anchor.state.position.z)
-        val perTick = alongEdge(
-            from, to,
-            from.x + anchor.state.velocity.x,
-            from.z + anchor.state.velocity.z,
-        )
-
-        return searchConfig.launchDelays.sortedBy { delay ->
-            abs(along + delay * perTick - hint.launchOffsetBlocks)
+    /**
+     * Controls for one candidate step, from the movement that owns it.
+     *
+     * This is the dispatch that makes the vocabulary open. The search no longer knows what
+     * a jump or a drop is -- it knows that an edge came from a movement, and that the
+     * movement can say what is worth simulating from here.
+     */
+    private fun movementDecisions(anchor: ValueAnchor, edge: CoarseEdge): List<TrajectoryDecision> {
+        val owner = catalog[edge.movement]
+        val context = DecisionContext(anchor, edge, config, field.view)
+        return buildList {
+            // The walking family's vocabulary is generated once per anchor above, not per
+            // edge, so only a non-walking owner contributes here.
+            if (owner != null && owner.id != MovementId.WALK) addAll(owner.decisions(context))
+            catalog.movements.forEach { movement ->
+                if (movement !== owner && movement.offersFor(edge)) addAll(movement.decisions(context))
+            }
         }
     }
 
     private companion object {
-        private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
 
-        private const val WALK_TOP_SPEED = 0.2159
 
-        private const val REACH_SLACK_BLOCKS = 0.75
+
+
+
 
         private val OFF_AXIS_LAUNCH_DELAYS = listOf(0, 2, 4)
 

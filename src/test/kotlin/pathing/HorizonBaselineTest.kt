@@ -13,22 +13,22 @@ import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
+import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.trajectory.VirtualSearchClock
-import com.lambda.pathing.trajectory.MotionConstraints
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotBlockPhysics
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
-import org.junit.jupiter.api.Tag
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.test.Test
 import kotlin.time.Duration
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
+import org.junit.jupiter.api.Tag
 
 @Tag("bedrock-corpus")
 class HorizonBaselineTest {

@@ -9,14 +9,16 @@
 
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.coarse.MotionTemplate.CellCondition
-import com.lambda.pathing.coarse.MotionTemplate.Condition
+import com.lambda.pathing.movement.MovementCatalog
+import com.lambda.pathing.movement.Movement
+import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.VoxelPos
 import kotlin.math.abs
 
 class SimpleMoveLibrary private constructor(
+    val catalog: MovementCatalog,
     val templates: List<MotionTemplate>,
     private val readOffsets: Set<VoxelPos>,
     val heuristicCaps: HeuristicCaps,
@@ -35,12 +37,20 @@ class SimpleMoveLibrary private constructor(
         val descentTicksPerBlock: Double,
     )
 
+    /**
+     * Whether the graph will enumerate edges out of [stance].
+     *
+     * Standing on a floor is one way to be somewhere, not the only one, so any registered
+     * movement may also claim a cell. Keeping the walking test first means the common case
+     * costs three reads and no dispatch.
+     */
     fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
         if (stance.y !in view.simulableStanceY) return false
         val support = view.voxel(stance.x, stance.y - 1, stance.z)
-        return support.standableFullTop && !support.intrudesAbove &&
+        val stands = support.standableFullTop && !support.intrudesAbove &&
             view.voxel(stance.x, stance.y, stance.z).centerPassable &&
             view.voxel(stance.x, stance.y + 1, stance.z).centerPassable
+        return stands || catalog.movements.any { it.occupies(view, stance) }
     }
 
     fun edgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> {
@@ -104,88 +114,28 @@ class SimpleMoveLibrary private constructor(
     private fun Double.finiteOrZero() = if (isFinite()) this else 0.0
 
     companion object {
-        fun build(costs: CoarseMoveCosts, options: SimpleMoveOptions = SimpleMoveOptions()): SimpleMoveLibrary {
-            val specs = buildList {
-                for ((dx, dz) in CARDINALS) {
-                    add(Spec(dx, 0, dz, CoarseMoveKind.WALK, costs.cardinalWalk, stanceConditions(dx, 0, dz)))
-                    if (options.allowStepUp) {
-                        add(
-                            Spec(
-                                dx, 1, dz, CoarseMoveKind.STEP_UP, costs.stepUp,
-                                stanceConditions(dx, 1, dz) + CellCondition(0, 2, 0, Condition.CENTER_SLICE),
-                            )
-                        )
-                    }
-                    for (depth in 1..options.maxWalkOffDepth) {
-                        val corridor = (1 downTo 1 - depth).map { y -> CellCondition(dx, y, dz, Condition.CENTER_SLICE) }
-                        add(
-                            Spec(
-                                dx, -depth, dz, CoarseMoveKind.WALK_OFF, costs.walkOffCost(depth),
-                                stanceConditions(dx, -depth, dz) + corridor,
-                            )
-                        )
-                    }
-                    if (options.allowJumpCandidates) {
-                        for (span in 2..options.maxJumpSpan) {
-                            for (verticalOffset in -options.maxJumpDrop..1) {
-                                add(
-                                    jumpSpec(
-                                        dx,
-                                        dz,
-                                        span,
-                                        verticalOffset,
-                                        costs.jumpCandidateCost(span, verticalOffset),
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-                if (options.allowDiagonal) {
-                    for ((dx, dz) in DIAGONALS) {
-                        add(
-                            Spec(
-                                dx, 0, dz, CoarseMoveKind.WALK, costs.diagonalWalk,
-                                stanceConditions(dx, 0, dz) + listOf(
-                                    CellCondition(dx, 0, 0, Condition.FULL_SLICE),
-                                    CellCondition(dx, 1, 0, Condition.FULL_HEAD),
-                                    CellCondition(0, 0, dz, Condition.FULL_SLICE),
-                                    CellCondition(0, 1, dz, Condition.FULL_HEAD),
-                                ),
-                            )
-                        )
-                        if (options.allowJumpCandidates) {
-                            for (span in 2..options.maxDiagonalJumpSpan) {
-                                for (verticalOffset in -options.maxJumpDrop..1) {
-                                    add(
-                                        jumpSpec(
-                                            dx, dz, span, verticalOffset,
-                                            costs.diagonalJumpCandidateCost(span, verticalOffset),
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            val templates = specs.mapIndexed { index, spec -> spec.toTemplate(MotionTemplateId(index)) }
+        /**
+         * Builds the move set from the registered movements.
+         *
+         * This used to be one long hardcoded list of every stride, rise, step-down and jump
+         * the planner knew, which meant a new kind of motion was a change here rather than
+         * a new file. The catalogue owns that now; what remains in this class is the graph
+         * machinery -- matching templates against terrain, enumerating backward, and
+         * working out which stances a block change invalidates -- none of which cares what
+         * the movements are.
+         */
+        fun build(
+            costs: CoarseMoveCosts,
+            options: SimpleMoveOptions = SimpleMoveOptions(),
+            ballistics: BallisticProfile = BallisticProfile.VANILLA,
+            movements: List<Movement> = MovementCatalog.REGISTERED,
+        ): SimpleMoveLibrary = of(MovementCatalog.build(costs, options, ballistics, movements))
+
+        fun of(catalog: MovementCatalog): SimpleMoveLibrary {
+            val templates = catalog.templates
             val offsets = templates.flatMapTo(HashSet()) { it.readOffsets().toList() }
-            return SimpleMoveLibrary(templates, offsets, deriveCaps(templates))
+            return SimpleMoveLibrary(catalog, templates, offsets, deriveCaps(templates))
         }
-
-        private fun stanceConditions(dx: Int, dy: Int, dz: Int) = listOf(
-            CellCondition(dx, dy - 1, dz, Condition.SUPPORT),
-            CellCondition(dx, dy, dz, Condition.CENTER_SLICE),
-            CellCondition(dx, dy + 1, dz, Condition.CENTER_HEAD),
-        )
-
-        private fun jumpSpec(dx: Int, dz: Int, span: Int, verticalOffset: Int, cost: Double): Spec =
-            Spec(
-                span * dx, verticalOffset, span * dz, CoarseMoveKind.JUMP_CANDIDATE, cost,
-                stanceConditions(span * dx, verticalOffset, span * dz),
-                arc = MotionTemplate.ArcSpec(dx, dz, span, verticalOffset),
-            )
 
         private fun deriveCaps(templates: List<MotionTemplate>): HeuristicCaps {
             var axis = Double.POSITIVE_INFINITY
@@ -210,23 +160,5 @@ class SimpleMoveLibrary private constructor(
             diagonal = minOf(diagonal, 2.0 * axis)
             return HeuristicCaps(axis, diagonal, ascent, descent)
         }
-
-        private data class Spec(
-            val dx: Int,
-            val dy: Int,
-            val dz: Int,
-            val kind: CoarseMoveKind,
-            val cost: Double,
-            val conditions: List<CellCondition>,
-            val arc: MotionTemplate.ArcSpec? = null,
-        ) {
-            fun toTemplate(id: MotionTemplateId) =
-                MotionTemplate(id, dx, dy, dz, kind, cost, conditions, arc)
-        }
-
-        private val CARDINALS = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
-        private val DIAGONALS = listOf(-1 to -1, -1 to 1, 1 to -1, 1 to 1)
-
-
     }
 }

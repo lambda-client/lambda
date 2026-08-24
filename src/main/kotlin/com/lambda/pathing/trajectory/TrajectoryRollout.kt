@@ -9,6 +9,7 @@
 
 package com.lambda.pathing.trajectory
 
+import com.lambda.pathing.movement.ControlProgram
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.MovementSimulationStepResult

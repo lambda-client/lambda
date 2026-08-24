@@ -12,8 +12,9 @@ package com.lambda.pathing.debug
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.trajectory.MotionConstraints
+import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel
+import com.lambda.pathing.world.Medium
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
@@ -21,12 +22,12 @@ import com.lambda.util.player.prediction.SnapshotBlockPhysics
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
 import com.lambda.util.player.prediction.UnsupportedPhysics
 import com.lambda.util.player.prediction.UnsupportedPhysicsKind
+import java.nio.file.Files
+import java.nio.file.Path
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
-import java.nio.file.Files
-import java.nio.file.Path
 
 object PlanDump {
     const val VERSION = 3
@@ -226,6 +227,7 @@ object PlanDump {
                 .append(coarseVoxel.centerPassable).append(' ')
                 .append(coarseVoxel.standableFullTop).append(' ')
                 .append(coarseVoxel.intrudesAbove).append(' ')
+                .append(coarseVoxel.medium.name).append(' ')
                 .append(unsupportedPhysics?.kind?.name ?: "-").append(' ')
                 .append(unsupportedPhysics?.blockId?.replace(' ', '_') ?: "-").append(' ')
                 .append(boxes.size)
@@ -237,10 +239,10 @@ object PlanDump {
     }
 
     private fun readPhysics(parts: List<String>): SnapshotBlockPhysics {
-        val boxCount = parts[11].toInt()
+        val boxCount = parts[12].toInt()
         var shape = VoxelShapes.empty()
         for (box in 0 until boxCount) {
-            val base = 12 + box * 6
+            val base = 13 + box * 6
             shape = VoxelShapes.union(
                 shape,
                 VoxelShapes.cuboid(
@@ -251,20 +253,22 @@ object PlanDump {
                 ),
             )
         }
-        val unsupportedKind = parts[9].takeIf { it != "-" }?.let { UnsupportedPhysicsKind.valueOf(it) }
+        val medium = Medium.valueOf(parts[9])
+        val unsupportedKind = parts[10].takeIf { it != "-" }?.let { UnsupportedPhysicsKind.valueOf(it) }
         return SnapshotBlockPhysics(
             collisionShape = shape,
             slipperiness = parts[1].toDouble(),
             velocityMultiplier = parts[2].toDouble(),
             jumpVelocityMultiplier = parts[3].toDouble(),
             unsupportedPhysics = unsupportedKind?.let {
-                UnsupportedPhysics(it, parts[10].takeIf { id -> id != "-" })
+                UnsupportedPhysics(it, parts[11].takeIf { id -> id != "-" })
             },
             coarseVoxel = CoarseVoxel(
                 fullyPassable = parts[5].toBoolean(),
                 centerPassable = parts[6].toBoolean(),
                 standableFullTop = parts[7].toBoolean(),
                 intrudesAbove = parts[8].toBoolean(),
+                medium = medium,
             ),
             fenceLike = parts[4].toBoolean(),
         )

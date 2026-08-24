@@ -4,6 +4,7 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.movement.*
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.*

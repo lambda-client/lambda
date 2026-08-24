@@ -35,6 +35,20 @@ interface PathingConfig {
      */
     val maxWalkOffDepth: Int
 
+    /** Furthest a controlled drop may carry the body sideways while descending. */
+    val maxDropSpan: Int get() = 2
+
+    /**
+     * Let the graph route up and down ladders and vines.
+     *
+     * Off by default, and the reason is not caution about the physics. Climb templates are
+     * cheap per block, so registering them lowers the admissible ascent bound for *every*
+     * search, including ones with no ladder within a hundred blocks. A weaker bound is a
+     * slower search, and on a long route a slower search is one that runs out of expansions
+     * before it arrives.
+     */
+    val allowClimbing: Boolean get() = false
+
     /**
      * Let the coarse layer propose gap jumps.
      *

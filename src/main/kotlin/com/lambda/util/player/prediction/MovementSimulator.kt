@@ -19,7 +19,6 @@ package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.mixin.entity.ClientPlayerEntityAccessor
-import com.lambda.module.modules.movement.SafeWalk.isNearLedge
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
@@ -93,6 +92,7 @@ class MovementSimulator(
     private var position = initialState.position
     private var velocity = initialState.velocity
     private var boundingBox = initialState.boundingBox
+    private var poseHeight = initialState.boundingBox.lengthY
     private var rotation = initialState.rotation
 
     private var onGround = initialState.onGround
@@ -139,7 +139,7 @@ class MovementSimulator(
         rotation = rotation,
         velocity = velocity,
         boundingBox = boundingBox,
-        eyePos = position + Vec3d(0.0, profile.eyeHeight, 0.0),
+        eyePos = position + Vec3d(0.0, poseEyeHeight(), 0.0),
         onGround = onGround,
         isJumping = isJumping,
         simulator = this,
@@ -149,6 +149,7 @@ class MovementSimulator(
         position = state.position
         velocity = state.velocity
         boundingBox = state.boundingBox
+        poseHeight = state.boundingBox.lengthY
         rotation = state.rotation
         onGround = state.onGround
         isJumping = state.isJumping
@@ -195,7 +196,10 @@ class MovementSimulator(
         // writes the tape, so both describe the frame before this one.
         if (doubleTapSprintTicks > 0) doubleTapSprintTicks--
         val hadForward = hadForwardMovement
-        val wasSneaking = isSneaking
+        // Vanilla's `inSneakingPose`, which it latches from `isSneaking()` before taking
+        // this tick's input -- so it is last tick's sneak.
+        val inSneakingPose = isSneaking
+        val wasSneaking = inSneakingPose
 
         rotation = input.rotation ?: rotation
         isSneaking = input.sneak
@@ -216,7 +220,9 @@ class MovementSimulator(
         val hasForwardMovement = movementInput.y > FORWARD_MOVEMENT_EPSILON
         if (wasSneaking || input.forward < 0.0) doubleTapSprintTicks = 0
 
-        if (!isSprinting && hasForwardMovement && !isSneaking) {
+        // `canStartSprinting` is gated on `shouldSlowDown()`, which reads the *pose* rather
+        // than the key, so it lags with everything else the pose drives.
+        if (!isSprinting && hasForwardMovement && !inSneakingPose) {
             // Double-tap-to-sprint. Releasing forward for a tick and pressing it again is
             // a double tap whether a human or a tape does it, and vanilla starts sprinting
             // from it with no sprint key held at all. The simulator not modelling this is
@@ -243,7 +249,18 @@ class MovementSimulator(
                 movementInput = movementInput.multiply(0.2F)
             }
 
-            if (isSneaking) {
+            // The slowdown comes from the sneaking *pose*, not the sneak key, and vanilla
+            // computes the pose before `Input.tick()` overwrites the input -- so the factor
+            // applied this tick is the one the body was in last tick.
+            //
+            // Applying it on the tick the key goes down made the simulation a tenth of a
+            // block per tick slower than the client on the first tick of every brake, which
+            // is a position deviation an order of magnitude past the replay tolerance.
+            // Nothing noticed while no tape ever sneaked.
+            //
+            // Only the slowdown lags. `clipAtLedge` reads `isSneaking()` live, and that is
+            // resolved during `move` below, after the input has been taken.
+            if (inSneakingPose) {
                 movementInput = movementInput.multiply(profile.sneakSpeedModifier.toFloat())
             }
 
@@ -285,7 +302,61 @@ class MovementSimulator(
             forwardSpeed = movementInput.y.toDouble(),
             strafeSpeed = movementInput.x.toDouble(),
         )
+
+        // Last, exactly as in vanilla: PlayerEntity.tick() calls updatePose() after
+        // super.tick() has already run the movement. So a tick that presses sneak moves
+        // with the standing box and ends holding the crouching one.
+        updatePose()
     }
+
+    /**
+     * Swaps the body between the standing and crouching boxes.
+     *
+     * Two things about the timing, and both were needed to match the client. It runs at the
+     * *end* of the tick, after the move, so the box a tick moves with is the pose it started
+     * in. And it reads the sneak key live rather than the lagged `inSneakingPose` -- vanilla
+     * derives the pose from `isSneaking()`, so the box shrinks on the very tick the key goes
+     * down even though the speed multiplier does not arrive until the next one.
+     *
+     * That combination is why a tape that sneaks diverged on `box.maxY` alone: every other
+     * number matched to the last digit because the movement really was identical, and only
+     * the height the body ended the tick at was wrong.
+     *
+     * Standing up is refused when the taller box would not fit, which is what keeps a body
+     * crouched under a slab instead of clipping its head through one.
+     *
+     * @see net.minecraft.entity.player.PlayerEntity.updatePose
+     */
+    private fun updatePose() {
+        val expected = if (isSneaking) profile.crouchHeight else profile.height
+        if (expected == poseHeight) return
+        // Shrinking always fits; only standing up has to ask the world. An environment that
+        // does not answer space queries is taken to allow it -- being unable to check is not
+        // a reason to trap the body in a crouch.
+        if (expected > poseHeight && environment.isSpaceEmpty(poseBox(expected)) == false) return
+
+        poseHeight = expected
+        boundingBox = Box(
+            boundingBox.minX, boundingBox.minY, boundingBox.minZ,
+            boundingBox.maxX, boundingBox.minY + expected, boundingBox.maxZ,
+        )
+    }
+
+    /** @see net.minecraft.entity.player.PlayerEntity.canChangeIntoPose */
+    private fun poseBox(height: Double): Box {
+        val halfWidth = boundingBox.lengthX * 0.5
+        return Box(
+            position.x - halfWidth + POSE_FIT_EPSILON,
+            position.y + POSE_FIT_EPSILON,
+            position.z - halfWidth + POSE_FIT_EPSILON,
+            position.x + halfWidth - POSE_FIT_EPSILON,
+            position.y + height - POSE_FIT_EPSILON,
+            position.z + halfWidth - POSE_FIT_EPSILON,
+        )
+    }
+
+    private fun poseEyeHeight(): Double =
+        if (poseHeight < profile.height) profile.crouchEyeHeight else profile.eyeHeight
 
     private fun applyDirectionalMovementSpeedFactors(input: Vec2f): Vec2f {
         val length = input.length()
@@ -322,10 +393,49 @@ class MovementSimulator(
         }
 
         applyMovementInput(travelVec, slipperiness)
+
+        // The clamp reads the hold the body starts the tick in; vanilla applies it before
+        // moving, so a body that is on a ladder now has its motion capped now.
+        if (isClimbing()) velocity = applyClimbingSpeed(velocity)
+
         move(travelVec)
+
+        // Vanilla re-asserts a fixed rise the tick *after* moving, so the displacement a
+        // climb actually makes is what gravity and drag leave of it: ~0.1176 per tick, not
+        // the 0.2 written here.
+        //
+        // And it re-tests the hold at the position the move *ended* at, not the one it
+        // started from. Reusing the pre-move answer kept the rise going for one tick after
+        // the body had already left the column, which is a tenth of a block per tick of
+        // pure invention -- enough that a certified tape and the live client disagree about
+        // vertical velocity the moment a climb is stepped off, and replay aborts.
+        if (isClimbing() && (horizontalCollision || isJumping)) {
+            velocity = Vec3d(velocity.x, CLIMB_RISE_SPEED, velocity.z)
+        }
 
         velocity += DOWN * gravity
         velocity *= Vec3d(friction, 0.98F.toDouble(), friction)
+    }
+
+    /** @see net.minecraft.entity.LivingEntity.isClimbing */
+    private fun isClimbing(): Boolean = environment.isClimbable(position.flooredBlockPos)
+
+    /**
+     * Clamps a climbing body's motion.
+     *
+     * A climb is not a gait -- there is no acceleration to it. Horizontal motion is capped,
+     * the fall is floored into a controlled slide, and sneaking stops the slide entirely,
+     * which is how a player parks on a ladder.
+     *
+     * @see net.minecraft.entity.LivingEntity.applyClimbingSpeed
+     */
+    private fun applyClimbingSpeed(motion: Vec3d): Vec3d {
+        val holding = isSneaking && motion.y < 0.0
+        return Vec3d(
+            motion.x.coerceIn(-CLIMB_HORIZONTAL_CAP, CLIMB_HORIZONTAL_CAP),
+            if (holding) 0.0 else maxOf(motion.y, -CLIMB_FALL_CAP),
+            motion.z.coerceIn(-CLIMB_HORIZONTAL_CAP, CLIMB_HORIZONTAL_CAP),
+        )
     }
 
     /** @see net.minecraft.entity.LivingEntity.applyMovementInput */
@@ -351,20 +461,25 @@ class MovementSimulator(
 
     /** @see net.minecraft.entity.Entity.move */
     private fun move(movementInput: Vec3d) {
-        var movement = velocity
-        movement = adjustMovementForCollisions(movement)
-
-        if (isSneaking && isNearSimulatedLedge()) {
-            movement = movement.multiply(0.0, 1.0, 0.0)
-        }
+        // Vanilla clips a sneaking body at a ledge *before* resolving collisions, and the
+        // order matters: the clip decides how far the body is allowed to try to go, and the
+        // collision pass then resolves whatever is left against the world.
+        //
+        // What matters just as much is that vanilla *reassigns* its movement local with the
+        // clipped value -- `movement = this.adjustMovementForSneaking(movement, type)` --
+        // so every collision comparison below is against the clipped request rather than
+        // the raw velocity. A ledge clip is therefore not a collision. It shortens the step
+        // and leaves the body's speed entirely alone.
+        val requested = adjustMovementForSneaking(velocity)
+        val movement = adjustMovementForCollisions(requested)
 
         if (movement.lengthSquared() > 1.0E-7) {
             position += movement
         }
 
-        val xCollide = !MathHelper.approximatelyEquals(movement.x, velocity.x)
-        val yCollide = !MathHelper.approximatelyEquals(movement.y, velocity.y)
-        val zCollide = !MathHelper.approximatelyEquals(movement.z, velocity.z)
+        val xCollide = !MathHelper.approximatelyEquals(movement.x, requested.x)
+        val yCollide = !MathHelper.approximatelyEquals(movement.y, requested.y)
+        val zCollide = !MathHelper.approximatelyEquals(movement.z, requested.z)
 
         horizontalCollision = xCollide || zCollide
         collidedSoftly = horizontalCollision && hasCollidedSoftly(movementInput, movement)
@@ -372,8 +487,9 @@ class MovementSimulator(
 
         // Vanilla tests the INTENDED vertical motion, not the collision-
         // adjusted one: standing still presses ~-0.078 into the floor and is
-        // adjusted to 0.0, which must still count as grounded.
-        onGround = yCollide && velocity.y < 0.0
+        // adjusted to 0.0, which must still count as grounded. The sneak clip
+        // never touches y, so the clipped request is the intended motion here.
+        onGround = yCollide && requested.y < 0.0
 
         if (horizontalCollision) {
             velocity = Vec3d(
@@ -466,6 +582,23 @@ class MovementSimulator(
     }
 
     private companion object {
+        /** @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking */
+        const val LEDGE_CLIP_STEP = 0.05
+
+        /** @see net.minecraft.entity.player.PlayerEntity.isSpaceAroundPlayerEmpty */
+        const val LEDGE_CLIP_EPSILON = 1.0E-7
+
+        /** @see net.minecraft.entity.player.PlayerEntity.canChangeIntoPose */
+        const val POSE_FIT_EPSILON = 1.0E-7
+
+        /** @see net.minecraft.entity.LivingEntity.applyClimbingSpeed */
+        const val CLIMB_HORIZONTAL_CAP = 0.15
+
+        const val CLIMB_FALL_CAP = 0.15
+
+        /** Re-asserted each tick a climbing body is pressed into its hold. */
+        const val CLIMB_RISE_SPEED = 0.2
+
         /** @see net.minecraft.entity.Entity.getVelocityAffectingPos */
         const val VELOCITY_AFFECTING_Y_OFFSET = 0.500001
 
@@ -534,14 +667,67 @@ class MovementSimulator(
         }
     }
 
-    private fun isNearSimulatedLedge(): Boolean {
-        // Live-entity probe; planner-side sims never sneak, so a missing
-        // live player simply skips the sneak edge clamp.
-        val player = livePlayer ?: return false
-        return withSimulatedPlayerState(player) {
-            player.isNearLedge(0.01, 0.0)
+    /**
+     * Vanilla's sneak ledge clip: shrink the movement until it has somewhere to land.
+     *
+     * One axis at a time, in five-hundredth steps, testing whether the box the body would
+     * occupy -- dropped by a step height -- has anything under it. This is what stops a
+     * sneaking player walking off a block, and it is a *movement* clamp rather than a speed
+     * one: the body still carries its velocity, it simply is not allowed to leave the edge.
+     *
+     * Previously this needed a live entity to probe, so worker simulations answered "no
+     * ledge" everywhere and could not model sneaking at all. Asking the environment instead
+     * makes the behaviour available to the planner, which is what lets a control program use
+     * sneak as an instrument rather than only as a speed multiplier.
+     *
+     * @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking
+     */
+    private fun adjustMovementForSneaking(movement: Vec3d): Vec3d {
+        // Vanilla's guard is `clipAtLedge() && isStandingOnSurface(stepHeight)`, where the
+        // first is simply "is sneaking". The second is `isOnGround()` plus a fall-distance
+        // grace for a body that has only just left the floor -- the simulator carries no
+        // fall distance, so being grounded stands in for it.
+        if (!isSneaking || !onGround || movement.y > 0.0) return movement
+
+        val step = profile.stepHeight
+        var dx = movement.x
+        var dz = movement.z
+
+        while (dx != 0.0 && isSpaceUnderFeetEmpty(dx, 0.0, step)) dx = shrinkTowardsZero(dx)
+        while (dz != 0.0 && isSpaceUnderFeetEmpty(0.0, dz, step)) dz = shrinkTowardsZero(dz)
+        while (dx != 0.0 && dz != 0.0 && isSpaceUnderFeetEmpty(dx, dz, step)) {
+            dx = shrinkTowardsZero(dx)
+            dz = shrinkTowardsZero(dz)
         }
+
+        return if (dx == movement.x && dz == movement.z) movement else Vec3d(dx, movement.y, dz)
     }
+
+    /**
+     * Whether the floor is missing under where the feet would land.
+     *
+     * A thin slab beneath the body rather than the body's own box dropped by a step, and
+     * the difference is not cosmetic: the full box would catch on anything beside the body
+     * at head height and report solid ground where there is none. Only what is under the
+     * feet decides whether there is somewhere to stand.
+     *
+     * @see net.minecraft.entity.player.PlayerEntity.isSpaceAroundPlayerEmpty
+     */
+    private fun isSpaceUnderFeetEmpty(offsetX: Double, offsetZ: Double, stepHeight: Double): Boolean =
+        environment.isSpaceEmpty(
+            Box(
+                boundingBox.minX + LEDGE_CLIP_EPSILON + offsetX,
+                boundingBox.minY - stepHeight - LEDGE_CLIP_EPSILON,
+                boundingBox.minZ + LEDGE_CLIP_EPSILON + offsetZ,
+                boundingBox.maxX - LEDGE_CLIP_EPSILON + offsetX,
+                boundingBox.minY,
+                boundingBox.maxZ - LEDGE_CLIP_EPSILON + offsetZ,
+            )
+        ) == true
+
+    private fun shrinkTowardsZero(delta: Double): Double =
+        if (abs(delta) <= LEDGE_CLIP_STEP) 0.0
+        else delta - Math.signum(delta) * LEDGE_CLIP_STEP
 
     private fun <T> withSimulatedPlayerState(player: ClientPlayerEntity, block: () -> T): T {
         val prevPos = player.pos
@@ -721,6 +907,7 @@ data class MovementSimulationState(
             velocity: Vec3d = Vec3d.ZERO,
             onGround: Boolean = true,
             isSprinting: Boolean = false,
+            isSneaking: Boolean = false,
             jumpingCooldown: Int = 0,
         ): MovementSimulationState {
             val halfWidth = profile.width * 0.5
@@ -735,7 +922,7 @@ data class MovementSimulationState(
                 onGround = onGround,
                 isJumping = false,
                 isSprinting = isSprinting,
-                isSneaking = false,
+                isSneaking = isSneaking,
                 jumpingCooldown = jumpingCooldown,
                 velocityAffectingPos = (position + DOWN * 0.500001F.toDouble()).flooredBlockPos,
                 horizontalCollision = false,

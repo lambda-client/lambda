@@ -55,6 +55,56 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
         "Draw the coarse route the moment D* converges and every candidate rollout as the search tries it.",
     ) { enabled }
 
+    @Group(TOGGLES_GROUP)
+    override val renderGraph by c.setting(
+        "Search Graph", false,
+        "Every cell the coarse search touched, shaded by how far it still is from the goal. " +
+            "Shown even when no route is found, which is when it says the most.",
+    ) { enabled }
+
+    @Group(TOGGLES_GROUP)
+    override val renderGraphFrontier by c.setting(
+        "Graph Frontier", true,
+        "Pick out the cells still queued -- the boundary the search would grow next.",
+    ) { enabled && renderGraph }
+
+    @Group(TOGGLES_GROUP)
+    override val renderGraphEdges by c.setting(
+        "Graph Edges", true,
+        "Draw the move out of each cell the search would actually take. Chained together " +
+            "these are the route D* believes in, which is what makes the field readable.",
+    ) { enabled && renderGraph }
+
+    @Group(TOGGLES_GROUP)
+    override val renderGraphAllEdges by c.setting(
+        "All Graph Edges", false,
+        "Also draw every other move the expansion costed. Dense, but it is what shows a " +
+            "cell that is connected to nothing.",
+    ) { enabled && renderGraph && renderGraphEdges }
+
+    @Group(WIDTH_GROUP)
+    override val graphNodeSize by c.setting("Graph Cell Size", 0.24, 0.05..0.8, 0.01) { enabled && renderGraph }
+
+    @Group(WIDTH_GROUP)
+    override val graphEdgeWidth by c.setting("Graph Edge Width", 8, 1..80, 1, unit = " px") {
+        enabled && renderGraph && renderGraphEdges
+    }
+
+    @Group(BUDGET_GROUP)
+    override val graphRadius by c.setting(
+        "Graph View Radius", 48.0, 8.0..256.0, 1.0, unit = " blocks",
+    ) { enabled && renderGraph }
+
+    @Group(BUDGET_GROUP)
+    override val graphCellBudget by c.setting("Graph Cell Budget", 3072, 64..65536, 64) {
+        enabled && renderGraph
+    }
+
+    @Group(BUDGET_GROUP)
+    override val graphEdgeBudget by c.setting("Graph Edge Budget", 12288, 64..262144, 256) {
+        enabled && renderGraph && renderGraphEdges
+    }
+
     @Group(WIDTH_GROUP)
     override val coarseWidth by c.setting("Coarse Width", 26, 1..150, 1, unit = " px") { enabled && renderCoarseRoute }
 
@@ -75,6 +125,10 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(COLOR_GROUP)
     override val walkOffColor by c.setting("Walk Off Edge", Color(190, 120, 255, 230)) { enabled && renderCoarseRoute }
+
+    override val dropColor by c.setting("Drop Edge", Color(120, 210, 190, 230)) { enabled && renderCoarseRoute }
+
+    override val unknownMovementColor by c.setting("Other Edge", Color(200, 200, 200, 200)) { enabled && renderCoarseRoute }
 
     @Group(COLOR_GROUP)
     override val jumpCandidateColor by c.setting("Jump Candidate Edge", Color(255, 80, 80, 230)) { enabled && renderCoarseRoute }
@@ -109,9 +163,32 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     @Group(COLOR_GROUP)
     override val textColor by c.setting("Label Text", Color(230, 230, 230, 255)) { enabled && renderLabels }
 
+    @Group(COLOR_GROUP)
+    override val graphNearColor by c.setting("Graph Near Goal", Color(70, 240, 160, 190)) { enabled && renderGraph }
+
+    @Group(COLOR_GROUP)
+    override val graphFarColor by c.setting("Graph Far From Goal", Color(60, 90, 200, 170)) { enabled && renderGraph }
+
+    @Group(COLOR_GROUP)
+    override val graphUnreachableColor by c.setting("Graph Unreachable", Color(120, 120, 120, 120)) { enabled && renderGraph }
+
+    @Group(COLOR_GROUP)
+    override val graphFrontierColor by c.setting("Graph Frontier", Color(255, 170, 40, 235)) { enabled && renderGraphFrontier }
+
+    @Group(COLOR_GROUP)
+    override val graphEdgeColor by c.setting("Graph Other Edge", Color(150, 160, 190, 90)) {
+        enabled && renderGraph && renderGraphAllEdges
+    }
+
+    @Group(COLOR_GROUP)
+    override val graphAnchorColor by c.setting("Graph Optimistic Anchor", Color(255, 110, 220, 220)) {
+        enabled && renderGraph
+    }
+
     private companion object {
         const val TOGGLES_GROUP = "Toggles"
         const val WIDTH_GROUP = "Widths"
+        const val BUDGET_GROUP = "Graph Budgets"
         const val COLOR_GROUP = "Colors"
     }
 }

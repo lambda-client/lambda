@@ -11,6 +11,8 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.movement.center
 import java.util.PriorityQueue
 import kotlin.math.atan2
 import kotlin.math.floor

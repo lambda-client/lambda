@@ -19,6 +19,7 @@ package com.lambda.util.player.prediction
 
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.VoxelPos
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
@@ -29,6 +30,7 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.Registries
 import net.minecraft.registry.tag.BlockTags
+import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -438,6 +440,26 @@ class SnapshotSimulationEnvironment internal constructor(
 
     override fun isFenceLike(pos: BlockPos): Boolean = isFenceLike(pos, null)
 
+    override fun isSpaceEmpty(box: Box): Boolean = isSpaceEmpty(box, null)
+
+    /**
+     * Whether [box] overlaps any block collision shape in the snapshot.
+     *
+     * The planner-side half of vanilla's sneak ledge clipping. Without it a worker
+     * simulation could not model sneaking at all -- the probe it used needed a live entity,
+     * so a planning thread silently answered "no ledge anywhere" and a tape that sneaked
+     * near a drop would have walked off terrain the real client stops dead on.
+     */
+    private fun isSpaceEmpty(box: Box, observer: SnapshotReadObserver?): Boolean {
+        val query = VoxelShapes.cuboid(box)
+        return collectBlockShapes(box, observer).none { shape ->
+            VoxelShapes.matchesAnywhere(shape, query, BooleanBiFunction.AND)
+        }
+    }
+
+    override fun isClimbable(pos: BlockPos): Boolean =
+        blockInside(pos.x, pos.y, pos.z)?.coarseVoxel?.medium == Medium.CLIMBABLE
+
     private fun isFenceLike(pos: BlockPos, observer: SnapshotReadObserver?): Boolean =
         checkedBlockAt(pos, observer).fenceLike
 
@@ -597,7 +619,12 @@ class SnapshotSimulationEnvironment internal constructor(
         ): SnapshotBlockPhysics {
             val shape = getCollisionShape(world, pos, shapeContext)
             val unsupported = unsupportedPhysics(this)
-            val coarseVoxel = if (unsupported != null) {
+            val medium = mediumOf(this)
+            val coarseVoxel = if (medium == Medium.CLIMBABLE) {
+                // Known terrain a walking body cannot use, but the climb movement can.
+                // Distinct from UNKNOWN, which is terrain nobody knows anything about.
+                CoarseVoxel.of(Medium.CLIMBABLE)
+            } else if (unsupported != null) {
                 CoarseVoxel.UNKNOWN
             } else {
                 CoarseVoxel(
@@ -619,9 +646,25 @@ class SnapshotSimulationEnvironment internal constructor(
             )
         }
 
+        /**
+         * Which medium a block is, independent of whether anything can move through it.
+         *
+         * Separate from [unsupportedPhysics] on purpose: "what is this" and "can the
+         * simulator handle it" used to be the same question, which is why every fluid,
+         * ladder and cobweb collapsed into a single unknown that no movement could ever
+         * claim. A medium named here is a medium a movement can be written for.
+         */
+        internal fun mediumOf(state: BlockState): Medium = when {
+            !state.fluidState.isEmpty ->
+                if (state.fluidState.isIn(FluidTags.LAVA)) Medium.LAVA else Medium.WATER
+            state.isIn(BlockTags.CLIMBABLE) -> Medium.CLIMBABLE
+            state.isOf(Blocks.COBWEB) -> Medium.COBWEB
+            state.isOf(Blocks.POWDER_SNOW) -> Medium.POWDER_SNOW
+            else -> Medium.SOLID
+        }
+
         private fun unsupportedPhysics(state: BlockState): UnsupportedPhysics? = when {
             !state.fluidState.isEmpty -> UnsupportedPhysicsKind.FLUID
-            state.isIn(BlockTags.CLIMBABLE) -> UnsupportedPhysicsKind.CLIMBABLE
             state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
             state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
             state.isOf(Blocks.SLIME_BLOCK) -> UnsupportedPhysicsKind.SLIME_BOUNCE
@@ -684,6 +727,13 @@ class SnapshotSimulationEnvironment internal constructor(
             snapshot.findSupportingBlockPos(box, entityPos, observer)
 
         override fun isFenceLike(pos: BlockPos): Boolean = snapshot.isFenceLike(pos, observer)
+
+        override fun isSpaceEmpty(box: Box): Boolean = snapshot.isSpaceEmpty(box, observer)
+
+        override fun isClimbable(pos: BlockPos): Boolean {
+            observer.onRead(pos)
+            return snapshot.isClimbable(pos)
+        }
     }
 }
 

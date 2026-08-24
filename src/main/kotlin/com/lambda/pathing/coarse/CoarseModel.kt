@@ -9,6 +9,11 @@
 
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.launch.BallisticProfile
+import com.lambda.pathing.launch.LaunchMode
+import com.lambda.pathing.launch.LaunchSolution
+import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.movement.horizontalDistance
 import com.lambda.pathing.world.VoxelPos
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -23,6 +28,13 @@ object CoarseMoveRates {
     const val JUMP_AIR_TICKS = 12.0
 
     const val JUMP_RISE_TICKS = 2.0
+
+    /**
+     * Vanilla clamps a climbing body to 0.117 blocks per tick upward.
+     *
+     * @see net.minecraft.entity.LivingEntity.applyClimbingSpeed
+     */
+    const val CLIMB_TICKS_PER_BLOCK = 1.0 / 0.117
 
     private const val MAX_FALL_TABLE_DEPTH = 12
 
@@ -47,13 +59,8 @@ object CoarseMoveRates {
 
 data class Stance(val x: Int, val y: Int, val z: Int) {
     fun offset(dx: Int, dy: Int, dz: Int) = Stance(x + dx, y + dy, z + dz)
-}
 
-enum class CoarseMoveKind {
-    WALK,
-    STEP_UP,
-    WALK_OFF,
-    JUMP_CANDIDATE,
+    override fun toString() = "($x, $y, $z)"
 }
 
 @JvmInline
@@ -65,10 +72,11 @@ data class CoarseEdge(
     val id: CoarseEdgeId,
     val from: Stance,
     val to: Stance,
-    val kind: CoarseMoveKind,
+    val movement: MovementId,
     val lowerBoundTicks: Double,
     val readSet: Set<VoxelPos>,
-    val jumpHint: JumpHint? = null,
+    /** The solved take-off for a ballistic edge; null for edges that keep their feet down. */
+    val launch: LaunchSolution? = null,
 )
 
 class CoarseMoveCosts(
@@ -78,6 +86,8 @@ class CoarseMoveCosts(
     val walkOff: (depth: Int) -> Double,
     val jumpCandidate: (span: Int, verticalOffset: Int) -> Double,
     val diagonalJumpCandidate: (span: Int, verticalOffset: Int) -> Double = jumpCandidate,
+    val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
+    val climb: (blocks: Int) -> Double = { blocks -> blocks * CoarseMoveRates.CLIMB_TICKS_PER_BLOCK },
 ) {
     init {
         validate("cardinalWalk", cardinalWalk)
@@ -104,21 +114,65 @@ class CoarseMoveCosts(
         return walkOff(depth).also { validate("walkOff($depth)", it) }
     }
 
+    fun climbCost(blocks: Int): Double {
+        require(blocks > 0) { "a climb must cover at least one block" }
+        return climb(blocks).also { validate("climb($blocks)", it) }
+    }
+
+    fun dropCost(span: Int, depth: Int): Double {
+        require(span >= 1) { "a drop must cross at least the adjacent stance" }
+        require(depth > 0) { "drop depth must be positive" }
+        return drop(span, depth).also { validate("drop($span, $depth)", it) }
+    }
+
     private fun validate(name: String, value: Double) {
         require(value.isFinite() && value > 0.0) { "$name must be finite and positive: $value" }
     }
 
     companion object {
-        fun measured(transitionOverheadTicks: Double = 0.0): CoarseMoveCosts {
+        /**
+         * Price for a (span, rise) pair no launch mode can fly.
+         *
+         * Templates are priced when the library is built, long before any terrain is in
+         * hand, so an impossible combination still needs a finite number. It never reaches
+         * the graph: the arc probe refuses to match the template against any origin.
+         */
+        private const val UNREACHABLE_BALLISTIC_TICKS = 1000.0
+
+        /** Braking to the solved leave speed and recovering on landing. */
+        private const val DROP_SETTLE_TICKS = 2.0
+
+        /**
+         * Costs taken from the arc equations rather than from tables beside them.
+         *
+         * Every ballistic price here is the tick count [BallisticProfile] actually
+         * produces for that move, so the cost model and the reachability model can no
+         * longer disagree -- which they did: the old flat 12-tick floor charged a rising
+         * jump 14 ticks for a move that takes 9, and the planner routed around jumps it
+         * should have taken.
+         */
+        fun measured(
+            transitionOverheadTicks: Double = 0.0,
+            profile: BallisticProfile = BallisticProfile.VANILLA,
+        ): CoarseMoveCosts {
             require(transitionOverheadTicks >= 0.0 && transitionOverheadTicks.isFinite()) {
                 "transitionOverheadTicks must be non-negative and finite: $transitionOverheadTicks"
             }
             val walk = 1.0 / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
             val step = 1.0 / CoarseMoveRates.STEP_UP_BLOCKS_PER_TICK
 
+            // Air ticks plus the take-off tick itself. Vertical motion ignores horizontal
+            // speed, so this depends only on the rise -- span never enters it.
+            fun ballistic(jumping: Boolean, rise: Int): Double? = LaunchMode.entries
+                .filter { it.jumps == jumping && it.supports(rise) }
+                .mapNotNull { mode -> profile.fly(mode, profile.cruiseSpeed(mode.sprint), rise)?.airTicks }
+                .minOrNull()?.let { (it + 1).toDouble() }
+
             fun jump(horizontalDistance: Double, verticalOffset: Int): Double =
-                max(CoarseMoveRates.JUMP_AIR_TICKS, horizontalDistance / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK) +
-                    max(0, verticalOffset) * CoarseMoveRates.JUMP_RISE_TICKS
+                max(
+                    ballistic(jumping = true, rise = verticalOffset) ?: UNREACHABLE_BALLISTIC_TICKS,
+                    horizontalDistance / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK,
+                )
 
             return CoarseMoveCosts(
                 cardinalWalk = walk + transitionOverheadTicks,
@@ -127,6 +181,15 @@ class CoarseMoveCosts(
                 walkOff = { depth -> max(walk, CoarseMoveRates.fallTicks(depth)) + 1.0 + transitionOverheadTicks },
                 jumpCandidate = { span, vo -> jump(span.toDouble(), vo) + transitionOverheadTicks },
                 diagonalJumpCandidate = { span, vo -> jump(span * sqrt(2.0), vo) + transitionOverheadTicks },
+                drop = { span, depth ->
+                    // The fall and the traverse happen at once, so the move costs whichever
+                    // takes longer -- plus the settle, which is the part a walk-off pretends
+                    // is free and then pays for by overshooting the pad.
+                    max(
+                        ballistic(jumping = false, rise = -depth) ?: UNREACHABLE_BALLISTIC_TICKS,
+                        span / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK,
+                    ) + DROP_SETTLE_TICKS + transitionOverheadTicks
+                },
             )
         }
     }
@@ -136,6 +199,24 @@ data class SimpleMoveOptions(
     val allowDiagonal: Boolean = true,
     val allowStepUp: Boolean = true,
     val maxWalkOffDepth: Int = 3,
+    /**
+     * Furthest a controlled drop may carry the body horizontally while descending.
+     *
+     * A span of 1 is the stance directly across; 2 crosses a one-block gap on the way
+     * down. Vanilla drop reach is short -- about 1.3 blocks off a one-block ledge -- so
+     * there is little point going far past 2.
+     */
+    val maxDropSpan: Int = 2,
+    /**
+     * Let the graph route up and down ladders and vines.
+     *
+     * Off by default, and the reason is worth recording: climb templates are cheap per
+     * block, so registering them lowers the admissible ascent bound for *every* search,
+     * including ones with no ladder anywhere near them. A weaker bound is a slower search,
+     * and on a long route a slower search is one that runs out of expansions before it
+     * arrives. Movements are not free just because their terrain is absent.
+     */
+    val allowClimbing: Boolean = false,
     val allowJumpCandidates: Boolean = true,
     val maxJumpSpan: Int = 4,
     val maxJumpDrop: Int = 1,
@@ -143,6 +224,7 @@ data class SimpleMoveOptions(
 ) {
     init {
         require(maxWalkOffDepth >= 0) { "maxWalkOffDepth must be non-negative" }
+        require(maxDropSpan >= 1) { "maxDropSpan must reach at least the adjacent stance" }
         require(maxJumpSpan >= 2) { "maxJumpSpan must reach past the adjacent stance" }
         require(maxJumpDrop >= 0) { "maxJumpDrop must be non-negative" }
         require(maxDiagonalJumpSpan >= 2) { "maxDiagonalJumpSpan must reach past the adjacent stance" }

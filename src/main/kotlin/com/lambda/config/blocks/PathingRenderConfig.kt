@@ -32,15 +32,41 @@ interface PathingRenderConfig {
     /** Live planning view: the coarse route as it lands, candidates as they are tried. */
     val renderPlanning: Boolean
 
+    /** The search graph itself: every cell D* touched, coloured by cost to the goal. */
+    val renderGraph: Boolean
+    val renderGraphFrontier: Boolean
+
+    /** The moves between cells, not just the cells: the flow the search would follow. */
+    val renderGraphEdges: Boolean
+
+    /** Every expanded move, not only the one the search picked out of each cell. */
+    val renderGraphAllEdges: Boolean
+
     /** Screen-space widths, in pixels. */
     val coarseWidth: Int
     val trajectoryWidth: Int
     val trailWidth: Int
     val labelSize: Double
+    val graphNodeSize: Double
+    val graphEdgeWidth: Int
+
+    /**
+     * How much of the search graph the view is allowed to take, per publish.
+     *
+     * Budgets rather than a preference: the graph runs to tens of thousands of cells on
+     * a long path and the render is per-frame, so something has to bound it. What is
+     * drawn against the total is reported in the label, so raising these to look further
+     * is a decision the view makes visible rather than one it hides.
+     */
+    val graphRadius: Double
+    val graphCellBudget: Int
+    val graphEdgeBudget: Int
 
     val walkColor: Color
     val stepUpColor: Color
     val walkOffColor: Color
+    val dropColor: Color
+    val unknownMovementColor: Color
     val jumpCandidateColor: Color
     val nodeColor: Color
     val trajectoryColor: Color
@@ -52,4 +78,16 @@ interface PathingRenderConfig {
     val trailColor: Color
     val rejectColor: Color
     val textColor: Color
+
+    /** Graph cells are shaded between these by cost to the goal; near means cheap. */
+    val graphNearColor: Color
+    val graphFarColor: Color
+    val graphUnreachableColor: Color
+    val graphFrontierColor: Color
+
+    /** Expanded moves the search did not pick; the picked ones take the cell's shade. */
+    val graphEdgeColor: Color
+
+    /** Cells holding the optimistic step into terrain the client has not streamed. */
+    val graphAnchorColor: Color
 }
