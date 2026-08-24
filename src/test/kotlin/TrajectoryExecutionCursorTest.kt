@@ -15,11 +15,11 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
-import com.lambda.pathing.trajectory.MotionConstraints
-import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.world.PathingChunk
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.MovementSimulator
@@ -27,13 +27,13 @@ import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotBlockPhysics
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 
 class TrajectoryExecutionCursorTest {
     @Test
@@ -152,7 +152,10 @@ class TrajectoryExecutionCursorTest {
         )
         val moves = SimpleMoveLibrary.build(
             costs = CoarseKinematicEnvelope(0.6, 0.5, 4.0).moveCosts(),
-            options = SimpleMoveOptions(false, false, 0, false),
+            options = SimpleMoveOptions(
+                allowDiagonal = false, allowStepUp = false,
+                maxWalkOffDepth = 0, allowJumpCandidates = false,
+            ),
         )
         val planner = CoarsePlanner(environment, moves, Stance(startX, 0, 0), Stance(goalX, 0, 0))
         assertTrue(planner.repair(Duration.INFINITE).converged)
@@ -160,7 +163,7 @@ class TrajectoryExecutionCursorTest {
         val route = requireNotNull(planner.routePlan(REVISION))
         val seed = assertIs<MotionPlanResult.Success>(
             ValueFieldAnchorSearch.search(
-                route, planner.valueField(), initial, PROFILE, environment,
+                route, moves.catalog, planner.valueField(), initial, PROFILE, environment,
                 MotionConstraints(sprintModes = sprintModes),
             ),
         )

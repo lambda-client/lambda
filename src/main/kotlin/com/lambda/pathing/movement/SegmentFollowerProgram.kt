@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-package com.lambda.pathing.trajectory
+package com.lambda.pathing.movement
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.util.player.prediction.MovementSimulationInput
@@ -15,7 +15,7 @@ import com.lambda.util.player.prediction.MovementSimulationState
 import kotlin.math.abs
 import kotlin.math.hypot
 
-internal class LaunchTrigger(private val delayFrames: Int) {
+class LaunchTrigger(private val delayFrames: Int) {
     private var groundedTicks = 0
     private var fired = false
 
@@ -30,19 +30,6 @@ internal class LaunchTrigger(private val delayFrames: Int) {
 }
 
 private const val EASE_TURN_DEGREES = 50.0
-
-internal fun alongEdge(
-    from: HorizontalPoint,
-    to: HorizontalPoint,
-    x: Double,
-    z: Double,
-): Double {
-    val dx = to.x - from.x
-    val dz = to.z - from.z
-    val length = hypot(dx, dz)
-    if (length <= 1e-9) return 0.0
-    return ((x - from.x) * dx + (z - from.z) * dz) / length
-}
 
 internal class SegmentFollowerProgram(
     nodes: List<HorizontalPoint>,

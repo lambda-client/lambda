@@ -15,18 +15,6 @@ import com.lambda.util.player.prediction.MovementSimulationState
 import kotlin.math.hypot
 import kotlin.math.sqrt
 
-internal data class HorizontalPoint(val x: Double, val y: Double, val z: Double)
-
-internal fun Stance.center() = HorizontalPoint(x + 0.5, y.toDouble(), z + 0.5)
-
-internal fun horizontalDistance(from: HorizontalPoint, to: HorizontalPoint): Double =
-    hypot(to.x - from.x, to.z - from.z)
-
-internal fun bearingBetween(from: HorizontalPoint, to: HorizontalPoint): Double =
-    Math.toDegrees(kotlin.math.atan2(to.z - from.z, to.x - from.x)) - 90.0
-
-internal const val MAX_PROGRESS_ADVANCE = 2
-
 internal fun collisionEvents(
     entry: MovementSimulationState,
     frames: List<SimulatedTrajectoryFrame>,

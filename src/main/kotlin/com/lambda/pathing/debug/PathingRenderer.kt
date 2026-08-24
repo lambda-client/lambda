@@ -13,14 +13,16 @@ import com.lambda.core.Loadable
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.pathing.PathingManager
-import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.movement.center
 import com.lambda.pathing.trajectory.TrajectoryPlan
+import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
+import java.awt.Color
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
-import java.awt.Color
 
 object PathingRenderer : Loadable {
     private val config get() = PathingManager.renderConfig
@@ -28,12 +30,106 @@ object PathingRenderer : Loadable {
     init {
         immediateRenderer("Pathing Debug", depthTest = { PathingManager.renderConfig.depthTest }) {
             if (!config.enabled) return@immediateRenderer
+            if (config.renderGraph) renderSearchGraph()
             if (config.renderPlanning) renderPlanningDebug()
             val path = PathingManager.published ?: return@immediateRenderer
             if (config.renderCoarseRoute) renderCoarseRoute(path.route)
             if (config.renderTrajectory) renderTrajectory(path.plan)
             if (config.renderTrail) renderLiveTrail()
             if (config.renderLabels) renderLabels(path)
+        }
+    }
+
+    /**
+     * The search graph itself: what D* looked at, and what it thought of it.
+     *
+     * The other views all draw an *answer* -- the route chosen, the trajectory certified,
+     * the rollouts tried. None of them can show why an answer failed to exist. This one
+     * draws the question: every cell the expansion reached, shaded by its `g` value, so
+     * the field reads as a gradient running downhill to the goal.
+     *
+     * Two things then become visible at a glance. Cells the search touched but could not
+     * cost sit flat and grey, which is what a wall of unstreamed or unusable terrain looks
+     * like. And the frontier -- the cells still queued -- traces the exact boundary the
+     * expansion stopped at, which is the answer to "why is there no coarse route".
+     */
+    private fun RenderBuilder.renderSearchGraph() {
+        val sample = PlanningDebugChannel.graph ?: return
+        if (sample.nodes.isEmpty()) return
+
+        // Guarded because a graph whose cells all cost the same -- one node, or a goal
+        // reached in a single step -- would otherwise divide by zero and shade nothing.
+        val span = sample.dearest - sample.cheapest
+        val size = config.graphNodeSize
+
+        fun shade(cost: Double): Color = when {
+            !cost.isFinite() -> config.graphUnreachableColor
+            span <= 0.0 -> config.graphNearColor
+            else -> lerp((cost - sample.cheapest) / span, config.graphNearColor, config.graphFarColor)
+        }
+
+        // Edges first, so the plates sit on top of them where they meet rather than the
+        // lines cutting across every cell they pass over.
+        if (config.renderGraphEdges) {
+            val width = screenWidth(maxOf(config.graphEdgeWidth, 1))
+            val faint = screenWidth(maxOf(config.graphEdgeWidth / 2, 1))
+            sample.edges.forEach { edge ->
+                if (!edge.policy) {
+                    if (!config.renderGraphAllEdges) return@forEach
+                    line(
+                        edge.from.add(0.0, EDGE_Y, 0.0),
+                        edge.to.add(0.0, EDGE_Y, 0.0),
+                        config.graphEdgeColor,
+                        faint,
+                    )
+                    return@forEach
+                }
+
+                // Faded at the tail and solid at the head: the asymmetry is the arrowhead.
+                // Without it a flow field is just an undirected mesh, and which way the
+                // search runs downhill is the whole thing worth reading off it.
+                lineGradient(
+                    edge.from.add(0.0, EDGE_Y, 0.0), shade(edge.fromCost).setAlpha(EDGE_TAIL_ALPHA),
+                    edge.to.add(0.0, EDGE_Y, 0.0), shade(edge.toCost),
+                    width,
+                )
+            }
+        }
+
+        sample.nodes.forEach { node ->
+            val frontier = node.frontier && config.renderGraphFrontier
+            val color = when {
+                frontier -> config.graphFrontierColor
+                node.anchor -> config.graphAnchorColor
+                else -> shade(node.cost)
+            }
+            cell(
+                node.pos.add(0.0, GRAPH_Y, 0.0),
+                if (frontier) size * FRONTIER_SCALE else size,
+                color,
+                outlined = frontier || node.anchor,
+            )
+        }
+
+        if (config.renderLabels) {
+            val frontier = sample.nodes.count { it.frontier }
+            val unreachable = sample.nodes.count { !it.cost.isFinite() }
+            val edges = if (config.renderGraphEdges) {
+                "  edges %d/%d".format(sample.edges.size, sample.totalEdges)
+            } else ""
+            worldText(
+                "graph %d cells  %d drawn%s  frontier %d  unreachable %d  cost %.0f..%.0f ticks".format(
+                    sample.total, sample.nodes.size, edges,
+                    frontier, unreachable, sample.cheapest, sample.dearest,
+                ),
+                sample.nodes.first().pos.add(0.0, 1.6, 0.0),
+                size = config.labelSize.toFloat(),
+                style = RenderBuilder.SDFStyle(
+                    color = config.textColor,
+                    outline = RenderBuilder.SDFOutline(Color(0, 0, 0, 220), 0.12f),
+                    shadow = RenderBuilder.SDFShadow(Color(0, 0, 0, 160)),
+                ),
+            )
         }
     }
 
@@ -69,14 +165,25 @@ object PathingRenderer : Loadable {
         }
     }
 
+    /**
+     * Colour for one route edge.
+     *
+     * A map with a fallback rather than an exhaustive `when`: movements are registered
+     * rather than enumerated, so an unfamiliar one has to render as *something* instead of
+     * failing to compile.
+     */
+    private fun edgeColor(movement: MovementId) = when (movement) {
+        MovementId.WALK -> config.walkColor
+        MovementId.STEP_UP -> config.stepUpColor
+        MovementId.WALK_OFF -> config.walkOffColor
+        MovementId.DROP -> config.dropColor
+        MovementId.JUMP -> config.jumpCandidateColor
+        else -> config.unknownMovementColor
+    }
+
     private fun RenderBuilder.renderCoarseRoute(route: CoarseRoutePlan) {
         route.edges.forEach { edge ->
-            val color = when (edge.kind) {
-                CoarseMoveKind.WALK -> config.walkColor
-                CoarseMoveKind.STEP_UP -> config.stepUpColor
-                CoarseMoveKind.WALK_OFF -> config.walkOffColor
-                CoarseMoveKind.JUMP_CANDIDATE -> config.jumpCandidateColor
-            }
+            val color = edgeColor(edge.movement)
             line(edge.from.center(COARSE_Y), edge.to.center(COARSE_Y), color, screenWidth(config.coarseWidth))
         }
 
@@ -210,6 +317,44 @@ object PathingRenderer : Loadable {
         else -> config.textColor
     }
 
+    /**
+     * A graph cell: a single flat quad lying on the stance surface.
+     *
+     * A quad rather than a box on purpose. There are thousands of these at once, and a
+     * wireframe box spends twelve edges per cell drawing its own outline -- at that
+     * density the outlines are all you see, and the field reads as a heap of crates
+     * instead of as the cost gradient it is. One horizontal face per cell leaves the
+     * shading to carry the meaning and the route drawn through it still legible.
+     *
+     * The outline is kept for the few cells that are meant to stand out of the field
+     * rather than blend into it: the frontier, and the optimistic anchors.
+     */
+    private fun RenderBuilder.cell(pos: Vec3d, size: Double, color: Color, outlined: Boolean) {
+        val half = size * 0.5
+        val x = pos.x
+        val y = pos.y
+        val z = pos.z
+        filledQuad(
+            Vec3d(x - half, y, z - half),
+            Vec3d(x - half, y, z + half),
+            Vec3d(x + half, y, z + half),
+            Vec3d(x + half, y, z - half),
+            color.setAlpha(CELL_FILL_ALPHA),
+        )
+        if (!outlined) return
+        polyline(
+            listOf(
+                Vec3d(x - half, y, z - half),
+                Vec3d(x - half, y, z + half),
+                Vec3d(x + half, y, z + half),
+                Vec3d(x + half, y, z - half),
+                Vec3d(x - half, y, z - half),
+            ),
+            color,
+            screenWidth(6),
+        )
+    }
+
     private fun RenderBuilder.marker(pos: Vec3d, size: Double, color: Color) {
         box(Box.of(pos, size, size * 0.35, size)) {
             colors(color.setAlpha(0.25), color)
@@ -220,6 +365,19 @@ object PathingRenderer : Loadable {
     private fun screenWidth(pixels: Int): Float = -pixels * 0.00005f
 
     private fun Stance.center(yOffset: Double) = Vec3d(x + 0.5, y + yOffset, z + 0.5)
+
+    /** Drawn under everything else: the graph is context, not the answer. */
+    private const val GRAPH_Y = 0.02
+
+    /** Plates are translucent so overlapping cells still read as a gradient, not a wall. */
+    private const val CELL_FILL_ALPHA = 0.42
+
+    private const val FRONTIER_SCALE = 1.6
+
+    /** Just above the plates: an edge that shares their plane z-fights with them. */
+    private const val EDGE_Y = 0.04
+
+    private const val EDGE_TAIL_ALPHA = 0.10
 
     private const val COARSE_Y = 0.06
     private const val TRAJECTORY_Y = 0.10

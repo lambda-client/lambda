@@ -12,8 +12,8 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.trajectory.MotionConstraints
 import com.lambda.pathing.debug.PlanDump
+import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -22,13 +22,13 @@ import com.lambda.util.player.prediction.SnapshotBlockPhysics
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
 import com.lambda.util.player.prediction.UnsupportedPhysics
 import com.lambda.util.player.prediction.UnsupportedPhysicsKind
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.shape.VoxelShapes
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShapes
 
 /**
  * A dump that quietly loses shape detail is worse than no dump: it would reproduce a

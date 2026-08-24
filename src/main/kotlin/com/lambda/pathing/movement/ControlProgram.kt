@@ -7,7 +7,7 @@
  * (at your option) any later version.
  */
 
-package com.lambda.pathing.trajectory
+package com.lambda.pathing.movement
 
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState

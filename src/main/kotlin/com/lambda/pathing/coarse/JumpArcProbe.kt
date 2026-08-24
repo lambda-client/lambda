@@ -9,6 +9,10 @@
 
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.launch.BallisticProfile
+import com.lambda.pathing.launch.LaunchMode
+import com.lambda.pathing.launch.LaunchSolution
+import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.VoxelPos
 import net.minecraft.util.math.Box
@@ -17,16 +21,22 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sqrt
 
-data class JumpHint(
-    val sprint: Boolean,
-    val entrySpeed: Double,
-    val launchOffsetBlocks: Double,
-    val clearance: Double,
-)
-
+/**
+ * Masks ballistic coarse edges against real collision shapes.
+ *
+ * The reachability arithmetic lives in [LaunchSolver]; this is the part that needs the
+ * world. It asks the solver for the launches that could make the move, ranked by margin,
+ * and sweeps each one's body box along the arc it actually flies until one is clear.
+ *
+ * The contract with the trajectory layer is unchanged and deliberate: this is permissive.
+ * A launch published here is a *candidate*, and the trajectory search still has to fly it
+ * through the real simulator and certify it. What is new is that the candidate arrives
+ * with the take-off that makes it work attached, so the search refines an answer instead
+ * of enumerating its way to one.
+ */
 object JumpArcProbe {
     class Reachable(
-        val hint: JumpHint,
+        val solution: LaunchSolution,
         val reads: Set<VoxelPos>,
     )
 
@@ -37,60 +47,55 @@ object JumpArcProbe {
         stepZ: Int,
         span: Int,
         rise: Int,
+        profile: BallisticProfile = BallisticProfile.VANILLA,
+        modes: List<LaunchMode> = LaunchMode.entries,
     ): Reachable? {
-        val spanDistance = hypot((span * stepX).toDouble(), (span * stepZ).toDouble())
-        val heights = arcHeights(rise)
+        val to = from.offset(span * stepX, rise, span * stepZ)
         val reads = HashSet<VoxelPos>()
-        var best: JumpHint? = null
 
-        for (family in FAMILIES) {
-            val reach = family.reach(rise)
-
-            if (reach + MAX_LAUNCH_DEPTH < spanDistance - LANDING_TOLERANCE) continue
-
-            val launchOffset = (spanDistance - reach).coerceIn(0.0, MAX_LAUNCH_DEPTH)
-            val clearance = sweepClearance(
-                view, from, stepX, stepZ, spanDistance, launchOffset, heights, reads,
-            ) ?: continue
-
-            val hint = JumpHint(family.sprint, family.entrySpeed, launchOffset, clearance)
-            val incumbent = best
-            if (incumbent == null || hint.clearance > incumbent.clearance ||
-                (hint.clearance == incumbent.clearance && hint.sprint && !incumbent.sprint)
-            ) {
-                best = hint
-            }
+        for (solution in LaunchSolver.solve(from, to, profile, modes)) {
+            val clearance = sweepClearance(view, from, stepX, stepZ, solution, reads) ?: continue
+            return Reachable(solution.withClearance(clearance), reads)
         }
-
-        return best?.let { Reachable(it, reads) }
+        return null
     }
 
+    /**
+     * Sweeps the body box along [solution]'s arc, returning the tightest gap it passes.
+     *
+     * Null means the arc is blocked, or crosses a cell the client has not captured -- an
+     * unknown cell fails closed rather than being guessed at.
+     *
+     * The sweep walks the arc's own per-tick positions rather than interpolating between
+     * endpoints. Horizontal motion under drag is not linear in time, and the difference
+     * lands squarely on the apex, which is exactly where a head-bonk is decided.
+     */
     private fun sweepClearance(
         view: CoarseVoxelView,
         from: Stance,
         stepX: Int,
         stepZ: Int,
-        spanDistance: Double,
-        launchOffset: Double,
-        heights: DoubleArray,
+        solution: LaunchSolution,
         reads: MutableSet<VoxelPos>,
     ): Double? {
-        val unitX = stepX / hypot(stepX.toDouble(), stepZ.toDouble())
-        val unitZ = stepZ / hypot(stepX.toDouble(), stepZ.toDouble())
-        val launchX = from.x + 0.5 + unitX * launchOffset
-        val launchZ = from.z + 0.5 + unitZ * launchOffset
-        val landingX = from.x + 0.5 + unitX * spanDistance
-        val landingZ = from.z + 0.5 + unitZ * spanDistance
-        val ticks = heights.size
+        val length = hypot(stepX.toDouble(), stepZ.toDouble())
+        if (length <= 0.0) return null
+        val unitX = stepX / length
+        val unitZ = stepZ / length
+        val launchX = from.x + 0.5 + unitX * solution.launchOffset
+        val launchZ = from.z + 0.5 + unitZ * solution.launchOffset
+
+        val heights = solution.arc.heights
+        val distances = solution.arc.distances
 
         var clearance = CLEARANCE_CAP
         var previous = coreBox(launchX, from.y.toDouble(), launchZ)
-        for (tick in 1..ticks) {
-            val fraction = tick.toDouble() / ticks
+        for (index in heights.indices) {
+            val along = distances[index]
             val box = coreBox(
-                launchX + (landingX - launchX) * fraction,
-                from.y + heights[tick - 1],
-                launchZ + (landingZ - launchZ) * fraction,
+                launchX + unitX * along,
+                from.y + heights[index],
+                launchZ + unitZ * along,
             )
             val swept = previous.union(box)
             previous = box
@@ -127,66 +132,6 @@ object JumpArcProbe {
         val dz = max(max(b.minZ - a.maxZ, a.minZ - b.maxZ), 0.0)
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
-
-    internal fun arcHeights(rise: Int): DoubleArray {
-        val heights = ArrayList<Double>(MAX_ARC_TICKS)
-        var y = 0.0
-        var vy = JUMP_SPEED
-        while (heights.size < MAX_ARC_TICKS) {
-            y += vy
-            vy = (vy - GRAVITY) * VERTICAL_DRAG
-            if (vy < 0.0 && y <= rise) {
-                heights += rise.toDouble()
-                break
-            }
-            heights += y
-        }
-        return heights.toDoubleArray()
-    }
-
-    private class Family(
-        val sprint: Boolean,
-        val entrySpeed: Double,
-        private val baseReach: DoubleArray,
-        private val speedGain: DoubleArray,
-    ) {
-        fun reach(rise: Int): Double = reachAt(entrySpeed, rise)
-
-        fun reachAt(speed: Double, rise: Int): Double {
-            val index = (RISE_MAX - rise).coerceIn(0, baseReach.lastIndex)
-            return baseReach[index] + speedGain[index] * speed
-        }
-    }
-
-    private const val RISE_MAX = 1
-
-    private val FAMILIES = listOf(
-        Family(
-            sprint = true,
-            entrySpeed = 0.2806,
-            baseReach = doubleArrayOf(2.4635, 3.0345, 3.4795, 3.8695, 4.204),
-            speedGain = doubleArrayOf(4.71, 5.17, 5.47, 5.67, 5.84),
-        ),
-        Family(
-            sprint = false,
-            entrySpeed = 0.2159,
-            baseReach = doubleArrayOf(1.107, 1.5005, 1.804, 2.0725, 2.307),
-            speedGain = doubleArrayOf(4.62, 5.13, 5.44, 5.65, 5.82),
-        ),
-    )
-
-    fun maxReach(entrySpeed: Double, rise: Int): Double =
-        FAMILIES.maxOf { family -> family.reachAt(entrySpeed, rise) }
-
-    private const val JUMP_SPEED = 0.42
-    private const val GRAVITY = 0.08
-    private const val VERTICAL_DRAG = 0.98
-
-    private const val MAX_ARC_TICKS = 24
-
-    private const val MAX_LAUNCH_DEPTH = 0.4
-
-    private const val LANDING_TOLERANCE = 0.35
 
     private const val CORE_HALF_WIDTH = 0.2
     private const val BODY_HEIGHT = 1.8

@@ -10,41 +10,12 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseEdge
-import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.InputTape
+import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.world.VoxelPos
-
-data class MotionConstraints(
-    val maxFrames: Int = 160,
-    val maxYawDegreesPerFrame: Double = 30.0,
-    val goalRadius: Double = 0.20,
-    val stoppedSpeed: Double = 0.012,
-    val stableStopFrames: Int = 3,
-    val maxSafeFallDistance: Double = 3.0,
-    val brakeDistances: List<Double> = listOf(0.25, 0.35, 0.45, 0.55, 0.70, 0.90, 1.15),
-    val stepUpJumpLeadDistances: List<Double> = listOf(0.30, 0.55, 0.80, 1.05),
-    val sprintModes: List<Boolean> = listOf(true, false),
-) {
-    init {
-        require(maxFrames > 0)
-        require(maxYawDegreesPerFrame > 0.0 && maxYawDegreesPerFrame.isFinite())
-        require(goalRadius > 0.0 && goalRadius.isFinite())
-        require(stoppedSpeed >= 0.0 && stoppedSpeed.isFinite())
-        require(stableStopFrames > 0)
-        require(maxSafeFallDistance >= 0.0 && maxSafeFallDistance.isFinite())
-        require(brakeDistances.isNotEmpty() && brakeDistances.all { it > 0.0 && it.isFinite() })
-        require(stepUpJumpLeadDistances.isNotEmpty() && stepUpJumpLeadDistances.all { it > 0.0 && it.isFinite() })
-        require(sprintModes.isNotEmpty())
-    }
-}
-
-data class TerminalApproach(
-    val sprint: Boolean,
-    val lookAheadNodes: Int,
-    val brakeDistance: Double,
-    val stepUpJumpLeadDistance: Double?,
-)
 
 data class PlanAttempt(
     val parameters: TerminalApproach,
@@ -90,7 +61,7 @@ sealed interface MotionPlanResult {
         val launchMarginFrames: Int = 0,
     ) : MotionPlanResult
 
-    data class UnsupportedRoute(val edgeKinds: Set<CoarseMoveKind>) : MotionPlanResult
+    data class UnsupportedRoute(val movements: Set<MovementId>) : MotionPlanResult
 
     data class NoSafeStop(
         val attemptCount: Int,

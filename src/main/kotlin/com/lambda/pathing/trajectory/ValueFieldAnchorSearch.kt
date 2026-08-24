@@ -9,21 +9,23 @@
 
 package com.lambda.pathing.trajectory
 
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.coarse.CoarseEdge
-import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.coarse.JumpArcProbe
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
-import net.minecraft.util.math.Vec3d
-import com.lambda.util.player.prediction.MovementSimulationInput
+import com.lambda.pathing.movement.BrakeToStopProgram
+import com.lambda.pathing.movement.ControlProgram
+import com.lambda.pathing.movement.CorridorFollowerProgram
+import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.movement.InputTape
+import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.movement.MovementCatalog
+import com.lambda.pathing.movement.TerminalApproach
+import com.lambda.pathing.movement.TrajectoryDecision
+import com.lambda.pathing.movement.center
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
-import java.util.PriorityQueue
-import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.hypot
 
@@ -76,6 +78,7 @@ data class ValueFieldSearchConfig(
 object ValueFieldAnchorSearch {
     fun search(
         route: CoarseRoutePlan,
+        catalog: MovementCatalog,
         field: CoarseValueField,
         initialState: MovementSimulationState,
         profile: PlayerPhysicsProfile,
@@ -88,12 +91,12 @@ object ValueFieldAnchorSearch {
         cancelled: () -> Boolean = { false },
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
-        val unsupported = route.edges.mapTo(HashSet()) { it.kind }
-            .filterTo(HashSet()) { it !in SUPPORTED_KINDS }
+        val unsupported = route.edges.mapTo(HashSet()) { it.movement }
+            .filterTo(HashSet()) { !catalog.supports(it) }
         if (unsupported.isNotEmpty()) return MotionPlanResult.UnsupportedRoute(unsupported)
 
         return Search(
-            route, field, initialState, profile, environment, config, searchConfig,
+            route, catalog, field, initialState, profile, environment, config, searchConfig,
             onSafePrefix, cursorFrame, clock, cancelled,
         ).run()
     }
@@ -101,13 +104,6 @@ object ValueFieldAnchorSearch {
     private const val CANDIDATE_PUBLISH_INTERVAL = 32
 
     internal const val MAX_SHOWN_CANDIDATES = 12
-
-    private val SUPPORTED_KINDS = setOf(
-        CoarseMoveKind.WALK,
-        CoarseMoveKind.STEP_UP,
-        CoarseMoveKind.WALK_OFF,
-        CoarseMoveKind.JUMP_CANDIDATE,
-    )
 
     internal fun stanceOf(state: MovementSimulationState): Stance = Stance(
         floor(state.position.x).toInt(),
@@ -123,6 +119,7 @@ object ValueFieldAnchorSearch {
 
     private class Search(
         private val route: CoarseRoutePlan,
+        private val catalog: MovementCatalog,
         private val field: CoarseValueField,
         private val initialState: MovementSimulationState,
         private val profile: PlayerPhysicsProfile,
@@ -134,7 +131,7 @@ object ValueFieldAnchorSearch {
         private val clock: SearchClock,
         private val cancelled: () -> Boolean,
     ) {
-        private val vocabulary = ActionSet(field, config, searchConfig)
+        private val vocabulary = ActionSet(catalog, field, config, searchConfig)
 
         private val goalStance = route.goal
         private val goalPoint = goalStance.center()
@@ -161,7 +158,7 @@ object ValueFieldAnchorSearch {
         private var expansions = 0
 
         private val rollouts = AnchorRollout(
-            field, config, searchConfig, environment, profile, initialState, goalPoint,
+            catalog, field, config, searchConfig, environment, profile, initialState, goalPoint,
             attempts, frontier::progressOf,
         )
 

@@ -49,6 +49,20 @@ class CoarsePlanner(
 
     val graphSize: Int get() = graph.size
 
+    /** Every stance the search has touched, for the debug view of the explored envelope. */
+    val graphNodes: Set<Stance> get() = graph.nodes
+
+    /**
+     * The successors already expanded out of [node], with the edge cost the search holds.
+     *
+     * Deliberately the *known* successors rather than a fresh generation: the debug view
+     * runs on the render thread against a planner a worker owns, and asking the lazy graph
+     * to expand would both mutate it and pay for terrain nobody asked about. What the
+     * search has paid for is exactly what the search reasoned over, which is what the view
+     * is for.
+     */
+    fun knownSuccessorsOf(node: Stance): Map<Stance, Double> = graph.knownSuccessors(node)
+
     fun repair(
         timeBudget: Duration = 5.milliseconds,
         maxExpansions: Int = Int.MAX_VALUE,

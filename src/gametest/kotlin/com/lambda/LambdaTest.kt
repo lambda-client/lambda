@@ -24,9 +24,9 @@ import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.PathingRequest
-import com.lambda.pathing.coarse.CoarseMoveKind
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
+import com.lambda.pathing.movement.MovementId
 import com.lambda.threading.runSafe
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.player.MovementUtils.buildMovementInput
@@ -278,6 +278,27 @@ object LambdaTest : FabricClientGameTest {
         assertPathingWalk(context, server, "pathing-walk-off", Stance(0, 97, 6))
         server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
         server.runCommand("/fill -8 96 -8 8 96 8 minecraft:air")
+
+        // Four consecutive three-block drops, one block across each: the staircase that
+        // only descends if the body brakes on every lip. Walking off a tread carries
+        // enough speed to clear the next one and land on the one after -- or on nothing --
+        // so this is the shape that forces the drop control to sneak-pin each edge and
+        // step off slowly, one tread at a time.
+        //
+        // The live counterpart of DropPrimitiveTest's staircase, and worth having as a
+        // separate scenario because everything that has gone wrong on this geometry went
+        // wrong only against the real client. The unit tests were green through a
+        // simulator that read a sneak ledge clip as a wall collision, and green again
+        // through one that never shrank the body's box when it crouched; both aborted a
+        // real descent within four frames.
+        server.runCommand("/fill -8 99 3 8 99 12 minecraft:air")
+        server.runCommand("/fill -2 96 3 2 96 3 minecraft:stone")
+        server.runCommand("/fill -2 93 4 2 93 4 minecraft:stone")
+        server.runCommand("/fill -2 90 5 2 90 5 minecraft:stone")
+        server.runCommand("/fill -2 87 6 2 87 12 minecraft:stone")
+        assertPathingWalk(context, server, "pathing-descending-drops", Stance(0, 88, 10))
+        server.runCommand("/fill -2 87 3 2 96 12 minecraft:air")
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
 
         // A two-wide hole. The nominal walk falls in; only a launch discovered by
         // backtracking over that failure gets across. Nothing here is scheduled --
@@ -682,7 +703,7 @@ object LambdaTest : FabricClientGameTest {
             println(
                 "[pathing-diag] $scenario: sprint=${path.parameters.sprint} " +
                     "frames=${path.plan.tape.frameCount} attempts=${path.attempts} " +
-                    "edges=${path.route.edges.groupingBy { it.kind }.eachCount()} " +
+                    "edges=${path.route.edges.groupingBy { it.movement }.eachCount()} " +
                     "collisions=${path.plan.frames.filter { it.state.horizontalCollision }.map { frame ->
                         "${frame.index}@${frame.state.position}"
                     }}",
@@ -691,7 +712,7 @@ object LambdaTest : FabricClientGameTest {
             expectedJumpDy?.let { dy ->
                 check(walked.any { leg ->
                     leg.route.edges.any { edge ->
-                        edge.kind == CoarseMoveKind.JUMP_CANDIDATE &&
+                        edge.movement == MovementId.JUMP &&
                             edge.to.y - edge.from.y == dy
                     }
                 }) {

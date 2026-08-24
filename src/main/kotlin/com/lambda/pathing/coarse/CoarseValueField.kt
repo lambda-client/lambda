@@ -14,7 +14,7 @@ import kotlin.math.floor
 import kotlin.math.hypot
 
 class CoarseValueField(
-    private val view: CoarseVoxelView,
+    val view: CoarseVoxelView,
     private val moves: SimpleMoveLibrary,
     private val label: (Stance) -> Double,
     val goal: Stance,

@@ -11,6 +11,15 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.movement.CompletionContext
+import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.movement.LaunchTrigger
+import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.movement.MovementCatalog
+import com.lambda.pathing.movement.ProgramContext
+import com.lambda.pathing.movement.TerminalApproach
+import com.lambda.pathing.movement.TrajectoryDecision
+import com.lambda.pathing.movement.center
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
@@ -23,6 +32,7 @@ internal sealed interface Outcome {
 }
 
 internal class AnchorRollout(
+    private val movements: MovementCatalog,
     private val field: CoarseValueField,
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
@@ -38,32 +48,29 @@ internal class AnchorRollout(
             anchor.stance, action.step, searchConfig.chainLength, anchor.heading(),
         )
         val points = chain.map { it.center() }
+        val movement = movements[action.movement]
+            ?: return Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed))
+
+        // The trigger belongs to the decision, not to the search: a jump has one, a drop
+        // has nothing to pull, and a heading may or may not.
         val launch = when (action) {
             is TrajectoryDecision.Launch -> LaunchTrigger(action.delayFrames)
-            is TrajectoryDecision.Heading ->
-                action.delayFrames?.let { LaunchTrigger(it) }
-            is TrajectoryDecision.Walk -> null
+            is TrajectoryDecision.Heading -> action.delayFrames?.let { LaunchTrigger(it) }
+            else -> null
         }
-        val program = if (action is TrajectoryDecision.Heading) {
-            HeadingFollowerProgram(
-                targetYaw = action.yaw,
-                sprint = action.sprint && action.keys.sustainsSprint,
-                maxYawChange = config.maxYawDegreesPerFrame,
-                launch = launch,
-                keys = action.keys,
-                airborneKeys = action.airborneKeys,
-            )
-        } else {
-            SegmentFollowerProgram(
+        val program = movement.program(
+            ProgramContext(
+                decision = action,
+                body = anchor,
                 nodes = points,
-                sprint = action.sprint,
-                lookAheadNodes = (action as? TrajectoryDecision.Walk)?.lookAheadNodes ?: ValueFieldAnchorSearch.LOOK_AHEAD_NODES,
+                constraints = config,
                 launch = launch,
-                maxYawChange = config.maxYawDegreesPerFrame,
-                easeTurns = (action as? TrajectoryDecision.Walk)?.easeTurns == true,
             )
-        }
-        val evaluator = RolloutEvaluator(anchor.state, points, goalPoint, config)
+        )
+        val evaluator = RolloutEvaluator(
+            anchor.state, points, goalPoint, config,
+            allowHorizontalContact = movement.pressesIntoTerrain,
+        )
         var previous = anchor.state
         var airborne = false
         var failure: TrajectoryDiagnostic? = null
@@ -92,19 +99,34 @@ internal class AnchorRollout(
                 }
 
                 is RolloutVerdict.Continue -> {
-                    if (!frame.state.onGround) {
-                        airborne = true
+                    if (!frame.state.onGround) airborne = true
+                    // Off the ground, only a movement that finishes in the air is asked.
+                    // For everything that walks, touching down *is* the end of the
+                    // transition, and asking mid-flight would anchor the body over a
+                    // stance it has not reached yet.
+                    if (!frame.state.onGround && !movement.completesAirborne) {
                         false
                     } else {
                         val stance = ValueFieldAnchorSearch.stanceOf(frame.state)
-                        val done = when {
-                            launch != null -> launch.hasFired && airborne
-
-                            action is TrajectoryDecision.Heading ->
-                                frame.index + 1 >= searchConfig.headingCommitFrames
-                            else -> stance != anchor.stance
-                        }
-                        val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed
+                        val done = movement.completed(
+                            CompletionContext(
+                                decision = action,
+                                body = anchor,
+                                frameIndex = frame.index,
+                                observed = frame.state,
+                                stance = stance,
+                                airborne = airborne,
+                                launch = launch,
+                                headingCommitFrames = searchConfig.headingCommitFrames,
+                            )
+                        )
+                        // A landing is an anchor even at a standstill; every other
+                        // transition has to still be going somewhere to be worth one. A
+                        // climb is the standstill case taken to its limit -- it makes no
+                        // horizontal progress at all, so the speed test would reject every
+                        // rung of a ladder.
+                        val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed ||
+                            action is TrajectoryDecision.Drop || movement.completesAirborne
                         if (done && moving && stance != anchor.stance) {
                             eventFrame = frame.index
                             eventStance = stance

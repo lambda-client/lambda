@@ -9,22 +9,19 @@
 
 package pathing
 
-import com.lambda.pathing.coarse.CoarseMoveCosts
-import com.lambda.pathing.coarse.CoarseMoveKind
-import com.lambda.pathing.coarse.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
+import com.lambda.pathing.coarse.CoarseMoveCosts
+import com.lambda.pathing.coarse.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.core.TailCost
+import com.lambda.pathing.movement.MovementId
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.VoxelPos
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.shape.VoxelShape
-import net.minecraft.util.shape.VoxelShapes
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,6 +30,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShape
+import net.minecraft.util.shape.VoxelShapes
 
 class CoarsePlannerTest {
     @Test
@@ -82,7 +82,24 @@ class CoarsePlannerTest {
     }
 
     @Test
-    fun `walk off is enumerated backward without inventing a reverse move`() {
+    fun `a single step down is a walk off, enumerated backward`() {
+        val world = SyntheticView().apply {
+            this[VoxelPos(0, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(1, -1, 0)] = CoarseVoxel.FULL_BLOCK
+        }
+        val moves = library()
+        val origin = Stance(0, 1, 0)
+        val target = Stance(1, 0, 0)
+
+        assertTrue(
+            moves.edgesTo(world, target)
+                .any { it.from == origin && it.to == target && it.movement == MovementId.WALK_OFF },
+            "a one-block step down needs no control and stays a plain walk-off",
+        )
+    }
+
+    @Test
+    fun `a descent is enumerated backward without inventing a reverse move`() {
         val world = SyntheticView().apply {
             this[VoxelPos(0, 0, 0)] = CoarseVoxel.FULL_BLOCK
             this[VoxelPos(1, -2, 0)] = CoarseVoxel.FULL_BLOCK
@@ -91,10 +108,42 @@ class CoarsePlannerTest {
         val origin = Stance(0, 1, 0)
         val target = Stance(1, -1, 0)
 
-        val incoming = moves.edgesTo(world, target)
+        assertTrue(moves.edgesTo(world, target).any { it.from == origin && it.to == target })
+        assertFalse(
+            moves.edgesFrom(world, target).any { it.to == origin },
+            "nothing climbs two blocks, so the descent must not enumerate a reverse",
+        )
+    }
 
-        assertTrue(incoming.any { it.from == origin && it.to == target && it.kind == CoarseMoveKind.WALK_OFF })
-        assertFalse(moves.edgesFrom(world, target).any { it.to == origin })
+    /**
+     * A descent deeper than one block is a drop, and a drop is not free.
+     *
+     * The distinction is the whole point of the primitive: a walk-off carries whatever
+     * speed the approach left it with, which off a two-block ledge lands a block and a
+     * half out. A drop arrives at the lip at a solved speed, so the edge is only offered
+     * when a speed exists that lands on the target.
+     */
+    @Test
+    fun `a descent past one block is a solved drop rather than a walk off`() {
+        val world = SyntheticView().apply {
+            this[VoxelPos(0, 0, 0)] = CoarseVoxel.FULL_BLOCK
+            this[VoxelPos(1, -2, 0)] = CoarseVoxel.FULL_BLOCK
+        }
+        val moves = library()
+        val origin = Stance(0, 1, 0)
+        val target = Stance(1, -1, 0)
+
+        val edge = assertNotNull(
+            moves.edgesFrom(world, origin).firstOrNull { it.to == target },
+            "a two-block descent onto a clear pad must be offered",
+        )
+        assertEquals(MovementId.DROP, edge.movement)
+        val launch = assertNotNull(edge.launch, "a drop must publish the take-off that makes it work")
+        assertTrue(launch.mode.drops, "a drop must not be solved as a jump")
+        assertFalse(
+            moves.edgesFrom(world, origin).any { it.to == target && it.movement == MovementId.WALK_OFF },
+            "walk-off must not also claim a descent it cannot control",
+        )
     }
 
     @Test
@@ -130,10 +179,10 @@ class CoarsePlannerTest {
         planner.repair(timeBudget = Duration.INFINITE)
         val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
         assertTrue(
-            route.edges.any { it.kind == CoarseMoveKind.JUMP_CANDIDATE },
-            "the bump should be jumped, not climbed: ${route.edges.map { it.kind }}",
+            route.edges.any { it.movement == MovementId.JUMP },
+            "the bump should be jumped, not climbed: ${route.edges.map { it.movement }}",
         )
-        assertFalse(route.edges.any { it.kind == CoarseMoveKind.STEP_UP })
+        assertFalse(route.edges.any { it.movement == MovementId.STEP_UP })
     }
 
     @Test
@@ -157,7 +206,7 @@ class CoarsePlannerTest {
             listOf(Stance(0, 1, 0), Stance(3, 1, 0)), route.nodes,
             "one span-3 jump must beat a span-2 hop plus a walk: ${route.nodes}",
         )
-        assertEquals(CoarseMoveKind.JUMP_CANDIDATE, route.edges.single().kind)
+        assertEquals(MovementId.JUMP, route.edges.single().movement)
     }
 
     @Test
@@ -198,7 +247,7 @@ class CoarsePlannerTest {
         val moves = library()
 
         val jumps = moves.edgesFrom(world, Stance(0, 1, 0))
-            .filter { it.kind == CoarseMoveKind.JUMP_CANDIDATE }
+            .filter { it.movement == MovementId.JUMP }
         assertFalse(
             jumps.any { it.to == Stance(4, 1, 0) },
             "a jump whose apex head hits the block at (2,4,0) must be rejected: ${jumps.map { it.to }}",
@@ -220,8 +269,8 @@ class CoarsePlannerTest {
         assertEquals(listOf(Stance(0, 1, 0), Stance(2, 1, 2), Stance(4, 1, 4), Stance(6, 1, 6)), route.nodes)
         val plan = assertNotNull(planner.routePlan(snapshotRevision = 1L))
         assertTrue(
-            plan.edges.all { it.kind == CoarseMoveKind.JUMP_CANDIDATE && it.from.x != it.to.x && it.from.z != it.to.z },
-            "every leg must be a diagonal jump: ${plan.edges.map { it.kind }}",
+            plan.edges.all { it.movement == MovementId.JUMP && it.from.x != it.to.x && it.from.z != it.to.z },
+            "every leg must be a diagonal jump: ${plan.edges.map { it.movement }}",
         )
     }
 
@@ -285,10 +334,10 @@ class CoarsePlannerTest {
 
         for (edge in moves.edgesFrom(world, origin)) {
             for (read in edge.readSet) {
-                assertTrue(origin in moves.affectedOrigins(read), "${edge.kind} did not invert read $read")
+                assertTrue(origin in moves.affectedOrigins(read), "${edge.movement} did not invert read $read")
                 assertTrue(
                     origin in moves.affectedOrigins(PathingChunk.containing(read), listOf(origin)),
-                    "${edge.kind} did not overlap the refreshed chunk containing $read",
+                    "${edge.movement} did not overlap the refreshed chunk containing $read",
                 )
             }
         }

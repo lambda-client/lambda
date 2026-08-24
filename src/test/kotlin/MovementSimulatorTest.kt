@@ -194,9 +194,12 @@ class MovementSimulatorTest {
 
     @Test
     fun `sneak speed attribute is the complete multiplier`() {
+        // Started already in the sneaking pose. Vanilla latches the pose before it takes
+        // the tick's input, so the tick a body first presses sneak still moves at walking
+        // speed -- measuring that tick would be measuring the lag, not the multiplier.
         val walking = simulator(groundedState())
             .tickMovement(MovementSimulationInput(forward = 1.0))
-        val sneaking = simulator(groundedState())
+        val sneaking = simulator(groundedState(sneaking = true))
             .tickMovement(MovementSimulationInput(forward = 1.0, sneak = true))
 
         assertClose(
@@ -206,18 +209,77 @@ class MovementSimulatorTest {
         )
     }
 
+    /**
+     * The crouch box, and the two bits of timing that make it match the client.
+     *
+     * This is the divergence a live descent failed on with every other number identical to
+     * the last digit -- `Position(axis=box.maxY, expected=30.8, actual=30.5)`. The body was
+     * moving correctly and simply was not the right height, because the simulator had no
+     * pose at all.
+     */
+    @Test
+    fun `the body takes the crouch box at the end of the tick it presses sneak`() {
+        val sim = simulator(groundedState())
+        assertClose(PROFILE.height, sim.state.boundingBox.lengthY, "a standing body starts standing")
+
+        // Vanilla reads updatePose() off the live sneak key, not off the lagged pose, so
+        // the box shrinks on the very tick the key goes down -- one tick before the speed
+        // multiplier arrives.
+        sim.tickMovement(MovementSimulationInput(forward = 1.0, sneak = true))
+        assertClose(PROFILE.crouchHeight, sim.state.boundingBox.lengthY, "sneak tick ends crouched")
+
+        sim.tickMovement(MovementSimulationInput(forward = 1.0, sneak = true))
+        assertClose(PROFILE.crouchHeight, sim.state.boundingBox.lengthY, "still crouched while held")
+
+        sim.tickMovement(MovementSimulationInput(forward = 1.0, sneak = false))
+        assertClose(PROFILE.height, sim.state.boundingBox.lengthY, "releasing sneak stands back up")
+    }
+
+    /** The feet stay put: only the top of the box moves, or the body would sink. */
+    @Test
+    fun `crouching lowers the head and never the feet`() {
+        val sim = simulator(groundedState())
+        val standingFeet = sim.state.boundingBox.minY
+
+        sim.tickMovement(MovementSimulationInput(sneak = true))
+        val crouched = sim.state.boundingBox
+
+        assertClose(standingFeet, crouched.minY, "the feet must not move")
+        assertClose(standingFeet + PROFILE.crouchHeight, crouched.maxY, "the head comes down to the crouch height")
+        assertClose(PROFILE.width, crouched.lengthX, "crouching does not change the width")
+    }
+
+    /**
+     * A body cannot stand up into a ceiling -- and an environment that cannot answer the
+     * question must not be the reason it stays down.
+     *
+     * [FlatGroundEnvironment] does not implement the space query, so it answers `null`.
+     * Under a single boolean default that reads as "blocked", and a body that ever sneaked
+     * would be stuck in a crouch for the rest of the tape.
+     */
+    @Test
+    fun `an environment that cannot answer space queries still lets the body stand up`() {
+        val sim = simulator(groundedState())
+        sim.tickMovement(MovementSimulationInput(sneak = true))
+        assertClose(PROFILE.crouchHeight, sim.state.boundingBox.lengthY, "crouched")
+
+        sim.tickMovement(MovementSimulationInput(sneak = false))
+        assertClose(PROFILE.height, sim.state.boundingBox.lengthY, "must not be trapped crouching")
+    }
+
     private fun simulator(initial: MovementSimulationState) = MovementSimulator(
         profile = PROFILE,
         environment = FlatGroundEnvironment,
         initialState = initial,
     )
 
-    private fun groundedState() = MovementSimulationState.synthetic(
+    private fun groundedState(sneaking: Boolean = false) = MovementSimulationState.synthetic(
         profile = PROFILE,
         position = Vec3d.ZERO,
         rotation = Rotation(0.0, 0.0),
         velocity = Vec3d(0.0, -0.0784, 0.0),
         onGround = true,
+        isSneaking = sneaking,
     )
 
     private fun glancingWallEnvironment(): SnapshotSimulationEnvironment {

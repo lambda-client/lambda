@@ -21,32 +21,31 @@ import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.SearchClock
 import com.lambda.pathing.trajectory.SystemSearchClock
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.ValueFieldSearchConfig
-import com.lambda.pathing.trajectory.MotionConstraints
-import com.lambda.pathing.trajectory.MotionPlanResult
-import com.lambda.pathing.world.VoxelPos
-import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.PathingChunk
+import com.lambda.pathing.world.VoxelPos
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
-import net.minecraft.client.MinecraftClient
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.shape.VoxelShapes
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CancellationException
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.math.roundToInt
+import net.minecraft.client.MinecraftClient
+import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.util.math.BlockPos
 
 sealed interface PathPlanResult {
     data class Planned(val path: PathingManager.PublishedPath) : PathPlanResult
@@ -76,21 +75,18 @@ internal data class TrajectoryPlanningPreparation(
 
 /** Persistent coarse state for one final goal; only the planner executor mutates it. */
 internal class CoarsePlanningState(
-    val snapshot: SnapshotSimulationEnvironment,
-    val moveOptions: SimpleMoveOptions,
-    start: Stance,
-    goal: Stance,
+	val snapshot: SnapshotSimulationEnvironment,
+	moveOptions: SimpleMoveOptions,
+	start: Stance,
+	private val goal: Stance,
 ) {
     private val moves = SimpleMoveLibrary.build(costs = TrajectoryPlanner.moveCosts, options = moveOptions)
-    private val goal = goal
-    val planner = CoarsePlanner(TrajectoryPlanner.coarseView(snapshot), moves, start, goal)
+	val planner = CoarsePlanner(TrajectoryPlanner.coarseView(snapshot), moves, start, goal)
 
     fun repairFrom(start: Stance, changed: Set<VoxelPos>, changedChunks: Set<PathingChunk>) {
         planner.updateStart(start)
         if (changed.isNotEmpty()) planner.worldChanged(changed)
         if (changedChunks.isNotEmpty()) planner.chunksChanged(changedChunks)
-        // Streaming moved the edge of the world, so the one optimistic step that
-        // crosses what is left of it moves with it.
         planner.advanceFrontier(FrontierAnchors.probe(snapshot, moves, start, goal))
     }
 }
@@ -129,6 +125,8 @@ object TrajectoryPlanner {
             allowDiagonal = config.allowDiagonal,
             allowStepUp = config.allowStepUp,
             maxWalkOffDepth = config.maxWalkOffDepth,
+            maxDropSpan = config.maxDropSpan,
+            allowClimbing = config.allowClimbing,
             allowJumpCandidates = config.allowJumpCandidates,
             maxJumpSpan = config.maxJumpSpan,
             maxJumpDrop = config.maxJumpDrop,
@@ -160,10 +158,6 @@ object TrajectoryPlanner {
             )
         }
 
-        // The search is lazy, so its immutable snapshot must be lazy too. Bounds are
-        // the dimension's real build range rather than an artificial box between the
-        // player and a surrogate waypoint; individual 16^3 sections are acquired only
-        // when graph expansion or exact simulation reads them.
         val world = player.entityWorld
         val bounds = SimulationSnapshotBounds(
             minX = Int.MIN_VALUE,
@@ -265,6 +259,11 @@ object TrajectoryPlanner {
                 )
                 if (cancellation.isCancelled) return@supplyAsync PathPlanResult.Cancelled
 
+                // Published before the route is asked for, so the view survives the case
+                // it is most wanted in: no route at all. The graph then shows exactly how
+                // far the expansion reached and where its frontier stalled.
+                PlanningDebugChannel.publishGraph(planner, initial.position)
+
                 val route = planner.routePlan(
                     snapshotRevision,
                     cancelled = { cancellation.isCancelled },
@@ -335,13 +334,14 @@ object TrajectoryPlanner {
         var last: PathingManager.PublishedPath? = null
 
         val result = ValueFieldAnchorSearch.search(
-            route, field, initial, profile, snapshot, seedConfig,
+            route, planner.moves.catalog, field, initial, profile, snapshot, seedConfig,
             ValueFieldSearchConfig(
                 safePrefixFrames = commitFrames,
                 safePrefixDelayMillis = HORIZON_BOOTSTRAP_DELAY_MS,
                 horizonCommitFrames = commitFrames,
                 horizonRunwayFrames = lookahead,
-                localHorizonFrames = lookahead + commitFrames * HORIZON_WINDOW_CHUNKS,
+                localHorizonFrames = lookahead + commitFrames * HORIZON_WINDOW_CHUNKS +
+                    climbHorizonFrames(route),
                 maxExpansions = HORIZON_EXPANSIONS,
                 minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
                 maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
@@ -430,6 +430,27 @@ object TrajectoryPlanner {
     private const val HORIZON_EXPANSIONS = 2_000_000
 
     private const val COARSE_ROUTE_EXPANSIONS = 1_000_000
+
+    /**
+     * Extra horizon the route's climbing needs, in frames.
+     *
+     * A leg can only be committed where it can be brought to a stable grounded stop, and a
+     * ladder has no ground anywhere along it. So the whole climb has to fit inside one
+     * horizon window or nothing commits at all -- and at 0.117 blocks a tick against a
+     * sprint's 0.216, the shipping 80-frame window buys about ten rungs. Past that the only
+     * terminal the search can certify is back at the bottom, so the body parks at the foot
+     * of the ladder and the heading fan walks it off sideways.
+     *
+     * Widening the window for the ladder that is actually on the route is close to free.
+     * The window is bounded to keep the cost of searching a leg down, and that cost is
+     * branching: a walk offers some thirty decisions per anchor where a climb offers one.
+     * Routes with no climbing get exactly the window they had.
+     */
+    private fun climbHorizonFrames(route: CoarseRoutePlan): Int =
+        route.edges.count { it.movement == MovementId.CLIMB } * CLIMB_HORIZON_FRAMES_PER_EDGE
+
+    /** A rung is ~8.5 ticks at the vanilla climb rate; rounded up for the approach. */
+    private const val CLIMB_HORIZON_FRAMES_PER_EDGE = 10
 
     private const val FIELD_EXPANSION_TICKS = 36.0
     private val FIELD_EXPANSION_BUDGET = 60.milliseconds

@@ -37,7 +37,7 @@ class JumpArcProbeTest {
             JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 4, rise = 0),
             "an open span-4 flat jump must be proposed",
         )
-        assertTrue(result.hint.sprint, "span 4 is beyond any walking reach; the hint must say sprint")
+        assertTrue(result.solution.sprint, "span 4 is beyond any walking reach; the hint must say sprint")
         assertTrue(result.reads.isNotEmpty(), "the sweep must publish its shape reads")
     }
 
@@ -105,7 +105,7 @@ class JumpArcProbeTest {
         world.fullCube(2, 0, 0)
 
         val result = assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 2, rise = 0))
-        assertTrue(result.hint.clearance > 0.0)
+        assertTrue(result.solution.clearance > 0.0)
     }
 
     @Test

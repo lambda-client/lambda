@@ -9,6 +9,7 @@
 
 package com.lambda.pathing.trajectory
 
+import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.util.player.prediction.MovementSimulationInput
 
 internal class Solution(

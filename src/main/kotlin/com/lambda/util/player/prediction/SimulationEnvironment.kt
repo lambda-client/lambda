@@ -73,6 +73,38 @@ interface SimulationEnvironment {
 
     /** Fences, walls and fence gates anchor the velocity-affecting pos to themselves. */
     fun isFenceLike(pos: BlockPos): Boolean
+
+    /**
+     * Whether a body standing at [pos] is holding a ladder, vine or other climbable.
+     *
+     * Defaulted so environments written before climbing existed keep compiling and keep
+     * behaving exactly as they did.
+     *
+     * @see net.minecraft.entity.LivingEntity.isClimbing
+     */
+    fun isClimbable(pos: BlockPos): Boolean = false
+
+    /**
+     * Whether [box] is free of block collisions.
+     *
+     * Needed by vanilla's sneak ledge clipping, which shrinks a sneaking body's movement
+     * one axis at a time until the box it would occupy, dropped by a step height, finds
+     * something to stand on. That is the mechanism that lets a player walk to the very lip
+     * of a drop and stop dead on it.
+     *
+     * Also needed by the crouch pose, which vanilla refuses to leave when standing up would
+     * put the body's head in a block.
+     *
+     * Three-valued on purpose. `null` is "this environment does not answer space queries",
+     * and the two callers want opposite answers to that: the ledge clip must not fire on an
+     * environment it cannot reason about, while a body must still be allowed to stand up in
+     * one. Collapsing that into a single boolean default gives one of them the wrong
+     * behaviour silently, which is exactly how a body ends up permanently crouched.
+     *
+     * @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking
+     * @see net.minecraft.entity.player.PlayerEntity.updatePose
+     */
+    fun isSpaceEmpty(box: Box): Boolean? = null
 }
 
 /** Client-thread environment backed by the live Minecraft world. */
@@ -105,7 +137,12 @@ class LiveSimulationEnvironment(
     override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
         world.findSupportingBlockPos(player, box).getOrNull()
 
+    override fun isSpaceEmpty(box: Box): Boolean = world.isSpaceEmpty(player, box)
+
     override fun isFenceLike(pos: BlockPos): Boolean = world.getBlockState(pos).isFenceLike()
+
+    override fun isClimbable(pos: BlockPos): Boolean =
+        world.getBlockState(pos).isIn(BlockTags.CLIMBABLE)
 }
 
 /** @see net.minecraft.entity.Entity.getPosWithYOffset */
@@ -125,6 +162,17 @@ data class PlayerPhysicsProfile(
     val width: Double,
     val height: Double,
     val eyeHeight: Double,
+    /**
+     * The crouching box, which vanilla swaps to at the end of any tick the sneak key is
+     * down and back at the end of the first tick it is not.
+     *
+     * Part of the profile rather than transient state because it is a constant of the
+     * entity type: which pose the body is *in* is execution state, how tall each pose is
+     * is not. Defaulted to vanilla's player so every existing construction still describes
+     * a real body.
+     */
+    val crouchHeight: Double = VANILLA_CROUCH_HEIGHT,
+    val crouchEyeHeight: Double = VANILLA_CROUCH_EYE_HEIGHT,
     /**
      * Ticks after releasing forward during which pressing it again starts a sprint.
      *
@@ -151,6 +199,8 @@ data class PlayerPhysicsProfile(
             width.closeTo(other.width) &&
             height.closeTo(other.height) &&
             eyeHeight.closeTo(other.eyeHeight) &&
+            crouchHeight.closeTo(other.crouchHeight) &&
+            crouchEyeHeight.closeTo(other.crouchEyeHeight) &&
             sprintWindowTicks == other.sprintWindowTicks
 
     private fun Double.closeTo(other: Double): Boolean =
@@ -163,6 +213,10 @@ data class PlayerPhysicsProfile(
 
         /** @see net.minecraft.client.option.GameOptions.getSprintWindow */
         const val DEFAULT_SPRINT_WINDOW_TICKS = 7
+
+        /** @see net.minecraft.entity.EntityPose.CROUCHING */
+        const val VANILLA_CROUCH_HEIGHT = 1.5
+        const val VANILLA_CROUCH_EYE_HEIGHT = 1.27
 
         /** Client thread only. */
         fun capture(player: ClientPlayerEntity): PlayerPhysicsProfile {
@@ -181,6 +235,8 @@ data class PlayerPhysicsProfile(
                 width = standingDimensions.width.toDouble(),
                 height = standingDimensions.height.toDouble(),
                 eyeHeight = player.getEyeHeight(EntityPose.STANDING).toDouble(),
+                crouchHeight = player.getDimensions(EntityPose.CROUCHING).height.toDouble(),
+                crouchEyeHeight = player.getEyeHeight(EntityPose.CROUCHING).toDouble(),
                 sprintWindowTicks = MinecraftClient.getInstance().options.sprintWindow.value,
             )
         }

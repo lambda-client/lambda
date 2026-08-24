@@ -9,40 +9,43 @@
 
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.launch.LaunchMode
+import com.lambda.pathing.movement.CellCondition
+import com.lambda.pathing.movement.MovementId
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.VoxelPos
 
+/**
+ * One relative move a body can make, and the cell tests that admit it.
+ *
+ * A template knows nothing about which movement produced it beyond [movement], which is
+ * how the graph stayed indifferent to the vocabulary growing: conditions are opaque
+ * [CellCondition]s rather than cases of a shared enum, so a movement can test for water or
+ * a ladder without every other movement learning about it.
+ */
 class MotionTemplate internal constructor(
     val id: MotionTemplateId,
     val dx: Int,
     val dy: Int,
     val dz: Int,
-    val kind: CoarseMoveKind,
+    val movement: MovementId,
     val lowerBoundTicks: Double,
     private val conditions: List<CellCondition>,
     private val arc: ArcSpec? = null,
 ) {
-    internal data class CellCondition(
-        val dx: Int,
-        val dy: Int,
-        val dz: Int,
-        val condition: Condition,
-    )
-
-    internal data class ArcSpec(
+    /**
+     * A template whose edge is flown rather than walked.
+     *
+     * [modes] is what makes a drop a drop: restricting the solver to the non-jumping modes
+     * is the difference between stepping off a ledge and leaping off it.
+     */
+    data class ArcSpec(
         val stepX: Int,
         val stepZ: Int,
         val span: Int,
         val rise: Int,
+        val modes: List<LaunchMode> = LaunchMode.entries,
     )
-
-    internal enum class Condition {
-        SUPPORT,
-        CENTER_SLICE,
-        FULL_SLICE,
-        CENTER_HEAD,
-        FULL_HEAD,
-    }
 
     init {
         require(dx != 0 || dy != 0 || dz != 0) { "Motion template cannot be stationary" }
@@ -54,44 +57,40 @@ class MotionTemplate internal constructor(
     fun target(origin: Stance): Stance = origin.offset(dx, dy, dz)
 
     internal fun matches(view: CoarseVoxelView, origin: Stance): Boolean =
-        conditions.all { it.matches(view, origin) }
+        conditions.all { it.matches(view, origin.x, origin.y, origin.z) }
 
     internal fun edge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
         if (!matches(view, origin)) return null
         val probed = arc?.let { spec ->
-            JumpArcProbe.probe(view, origin, spec.stepX, spec.stepZ, spec.span, spec.rise) ?: return null
+            JumpArcProbe.probe(
+                view, origin, spec.stepX, spec.stepZ, spec.span, spec.rise, modes = spec.modes,
+            ) ?: return null
         }
         return CoarseEdge(
             id = CoarseEdgeId(id, origin),
             from = origin,
             to = target(origin),
-            kind = kind,
+            movement = movement,
             lowerBoundTicks = lowerBoundTicks,
             readSet = buildSet {
-                addAll(ORIGIN_STANCE_READS.map { it.absolute(origin) })
-                conditions.forEach { condition ->
-                    add(VoxelPos(origin.x + condition.dx, origin.y + condition.dy, origin.z + condition.dz))
-                    if (condition.condition == Condition.CENTER_SLICE || condition.condition == Condition.FULL_SLICE) {
-                        add(VoxelPos(origin.x + condition.dx, origin.y + condition.dy - 1, origin.z + condition.dz))
-                    }
-                }
+                readOffsets().forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
                 probed?.let { addAll(it.reads) }
             },
-            jumpHint = probed?.hint,
+            launch = probed?.solution,
         )
     }
 
+    /**
+     * Every cell this template can read, relative to its origin.
+     *
+     * Incremental repair inverts this to find which stances a block change invalidates, so
+     * anything read and not declared here becomes an edge nothing ever refreshes.
+     */
     internal fun readOffsets(): Sequence<VoxelPos> = sequence {
         yieldAll(ORIGIN_STANCE_READS)
-        for ((dx1, dy1, dz1, condition1) in conditions) {
-            yield(VoxelPos(dx1, dy1, dz1))
-            if (condition1 == Condition.CENTER_SLICE || condition1 == Condition.FULL_SLICE) {
-                yield(VoxelPos(dx1, dy1 - 1, dz1))
-            }
-        }
+        conditions.forEach { yieldAll(it.reads()) }
 
         arc?.let { spec ->
-
             for (step in 0..spec.span) {
                 for (y in minOf(spec.rise, 0) - 2..ARC_READ_CEILING) {
                     for (ox in -1..1) {
@@ -103,21 +102,6 @@ class MotionTemplate internal constructor(
             }
         }
     }
-
-    private fun CellCondition.matches(view: CoarseVoxelView, origin: Stance): Boolean {
-        val voxel = view.voxel(origin.x + dx, origin.y + dy, origin.z + dz)
-        return when (condition) {
-            Condition.SUPPORT -> voxel.standableFullTop && !voxel.intrudesAbove
-            Condition.CENTER_SLICE -> voxel.centerPassable &&
-                !view.voxel(origin.x + dx, origin.y + dy - 1, origin.z + dz).intrudesAbove
-            Condition.FULL_SLICE -> voxel.fullyPassable &&
-                !view.voxel(origin.x + dx, origin.y + dy - 1, origin.z + dz).intrudesAbove
-            Condition.CENTER_HEAD -> voxel.centerPassable
-            Condition.FULL_HEAD -> voxel.fullyPassable
-        }
-    }
-
-    private fun VoxelPos.absolute(origin: Stance) = VoxelPos(origin.x + x, origin.y + y, origin.z + z)
 
     private companion object {
         val ORIGIN_STANCE_READS = listOf(
