@@ -47,7 +47,7 @@ internal class AnchorRollout(
         val chain = field.chain(
             anchor.stance, action.step, searchConfig.chainLength, anchor.heading(),
         )
-        val points = chain.map { it.center() }
+        val points = chain.map { it.center(environment) }
         val movement = movements[action.movement]
             ?: return Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed))
 

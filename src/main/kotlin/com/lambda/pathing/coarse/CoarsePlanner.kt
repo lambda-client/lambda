@@ -20,7 +20,8 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 class CoarsePlanner(
-    private val view: CoarseVoxelView,
+    /** Exposed for the debug view, which needs cell heights to draw the field on them. */
+    val view: CoarseVoxelView,
     val moves: SimpleMoveLibrary,
     start: Stance,
     goal: Stance,

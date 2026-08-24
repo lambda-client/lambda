@@ -136,7 +136,7 @@ class SnapshotSimulationEnvironmentTest {
         // clear a lava pool unroutable.
         assertEquals(CoarseVoxel.HAZARD, environment.voxel(1, 0, 0))
         assertFalse(environment.voxel(1, 0, 0).centerPassable)
-        assertFalse(environment.voxel(1, 0, 0).standableFullTop)
+        assertFalse(environment.voxel(1, 0, 0).standable)
         assertFalse(environment.voxel(1, 0, 0).intrudesAbove)
 
         // Genuinely unknown: outside the snapshot. Pessimistic on every axis.

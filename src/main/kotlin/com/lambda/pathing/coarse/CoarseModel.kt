@@ -15,6 +15,8 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.movement.MovementId
 import com.lambda.pathing.movement.horizontalDistance
 import com.lambda.pathing.world.VoxelPos
+import net.minecraft.util.math.Vec3d
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -24,6 +26,25 @@ object CoarseMoveRates {
     const val SPRINT_JUMP_BLOCKS_PER_TICK = 0.3640
 
     const val STEP_UP_BLOCKS_PER_TICK = 0.1000
+
+    /**
+     * The rise a walking body clears without doing anything about it.
+     *
+     * Vanilla's step height: below this the feet are lifted by collision resolution, not by
+     * a deliberate move, so a half-block riser costs a stride and not a step-up. On terrain
+     * made of whole blocks nothing is ever under it and the distinction never arose.
+     *
+     * @see net.minecraft.entity.attribute.EntityAttributes.STEP_HEIGHT
+     */
+    const val FREE_STEP_RISE = 0.6
+
+    /**
+     * The shortest hop worth calling a jump, in blocks.
+     *
+     * Anything nearer is an adjacent stance, which walking or a step-up already reaches --
+     * and reaches more cheaply than leaving the ground for it.
+     */
+    const val MIN_JUMP_DISTANCE = 2.0
 
     const val JUMP_AIR_TICKS = 12.0
 
@@ -61,6 +82,32 @@ data class Stance(val x: Int, val y: Int, val z: Int) {
     fun offset(dx: Int, dy: Int, dz: Int) = Stance(x + dx, y + dy, z + dz)
 
     override fun toString() = "($x, $y, $z)"
+
+    companion object {
+        /**
+         * Which stance a body at [position] occupies.
+         *
+         * A grounded body is standing on a *surface*, and a stance names the cell above
+         * whatever provides it -- so the question is which cell holds the body up, not which
+         * cell its feet are in. An airborne body is simply inside a cell, and that cell is
+         * the answer.
+         *
+         * On whole blocks a grounded body's feet sit exactly on a cell boundary and the two
+         * readings agree, which is why plain flooring served for as long as the graph only
+         * knew about cubes. On a carpet the feet are at y.0625 and they do not: flooring
+         * names the carpet's own cell, one below the stance the graph built the route from,
+         * so the body was never standing where the plan said it started.
+         */
+        fun of(position: Vec3d, onGround: Boolean): Stance = Stance(
+            floor(position.x).toInt(),
+            if (onGround) floor(position.y - SURFACE_EPSILON).toInt() + 1
+            else floor(position.y + SURFACE_EPSILON).toInt(),
+            floor(position.z).toInt(),
+        )
+
+        /** Slack for a body resting exactly on a cell boundary, which is the common case. */
+        private const val SURFACE_EPSILON = 1e-6
+    }
 }
 
 @JvmInline
@@ -84,8 +131,14 @@ class CoarseMoveCosts(
     val diagonalWalk: Double,
     val stepUp: Double,
     val walkOff: (depth: Int) -> Double,
-    val jumpCandidate: (span: Int, verticalOffset: Int) -> Double,
-    val diagonalJumpCandidate: (span: Int, verticalOffset: Int) -> Double = jumpCandidate,
+    /**
+     * Priced by how far the jump actually goes, not by how many cells it steps.
+     *
+     * A span and a separate diagonal variant could only describe the eight compass rays.
+     * Distance describes those and every off-axis landing too, and gives the same answer
+     * for the cases that used to have their own entry.
+     */
+    val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
     val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
     val climb: (blocks: Int) -> Double = { blocks -> blocks * CoarseMoveRates.CLIMB_TICKS_PER_BLOCK },
 ) {
@@ -95,17 +148,12 @@ class CoarseMoveCosts(
         validate("stepUp", stepUp)
     }
 
-    fun jumpCandidateCost(span: Int, verticalOffset: Int): Double {
-        require(span >= 2) { "a jump candidate must reach past the adjacent stance" }
-        return jumpCandidate(span, verticalOffset).also {
-            validate("jumpCandidate($span, $verticalOffset)", it)
+    fun jumpCandidateCost(distance: Double, verticalOffset: Int): Double {
+        require(distance >= CoarseMoveRates.MIN_JUMP_DISTANCE) {
+            "a jump candidate must reach past the adjacent stance: $distance"
         }
-    }
-
-    fun diagonalJumpCandidateCost(span: Int, verticalOffset: Int): Double {
-        require(span >= 2) { "a jump candidate must reach past the adjacent stance" }
-        return diagonalJumpCandidate(span, verticalOffset).also {
-            validate("diagonalJumpCandidate($span, $verticalOffset)", it)
+        return jumpCandidate(distance, verticalOffset).also {
+            validate("jumpCandidate($distance, $verticalOffset)", it)
         }
     }
 
@@ -164,8 +212,8 @@ class CoarseMoveCosts(
             // Air ticks plus the take-off tick itself. Vertical motion ignores horizontal
             // speed, so this depends only on the rise -- span never enters it.
             fun ballistic(jumping: Boolean, rise: Int): Double? = LaunchMode.entries
-                .filter { it.jumps == jumping && it.supports(rise) }
-                .mapNotNull { mode -> profile.fly(mode, profile.cruiseSpeed(mode.sprint), rise)?.airTicks }
+                .filter { it.jumps == jumping && it.supports(rise.toDouble()) }
+                .mapNotNull { mode -> profile.fly(mode, profile.cruiseSpeed(mode.sprint), rise.toDouble())?.airTicks }
                 .minOrNull()?.let { (it + 1).toDouble() }
 
             fun jump(horizontalDistance: Double, verticalOffset: Int): Double =
@@ -179,8 +227,7 @@ class CoarseMoveCosts(
                 diagonalWalk = sqrt(2.0) * walk + transitionOverheadTicks,
                 stepUp = step + transitionOverheadTicks,
                 walkOff = { depth -> max(walk, CoarseMoveRates.fallTicks(depth)) + 1.0 + transitionOverheadTicks },
-                jumpCandidate = { span, vo -> jump(span.toDouble(), vo) + transitionOverheadTicks },
-                diagonalJumpCandidate = { span, vo -> jump(span * sqrt(2.0), vo) + transitionOverheadTicks },
+                jumpCandidate = { distance, vo -> jump(distance, vo) + transitionOverheadTicks },
                 drop = { span, depth ->
                     // The fall and the traverse happen at once, so the move costs whichever
                     // takes longer -- plus the settle, which is the part a walk-off pretends
@@ -220,13 +267,20 @@ data class SimpleMoveOptions(
     val allowJumpCandidates: Boolean = true,
     val maxJumpSpan: Int = 4,
     val maxJumpDrop: Int = 1,
-    val maxDiagonalJumpSpan: Int = 2,
+    /**
+     * Whether landings off the eight compass rays are offered.
+     *
+     * On terrain built by hand they are most of the interesting gaps -- three across and one
+     * to the side has no cardinal or diagonal template. They roughly double the graph's
+     * fan-out on open ground, which is the only reason this is a switch rather than simply
+     * how the graph works.
+     */
+    val allowOffAxisJumps: Boolean = true,
 ) {
     init {
         require(maxWalkOffDepth >= 0) { "maxWalkOffDepth must be non-negative" }
         require(maxDropSpan >= 1) { "maxDropSpan must reach at least the adjacent stance" }
         require(maxJumpSpan >= 2) { "maxJumpSpan must reach past the adjacent stance" }
         require(maxJumpDrop >= 0) { "maxJumpDrop must be non-negative" }
-        require(maxDiagonalJumpSpan >= 2) { "maxDiagonalJumpSpan must reach past the adjacent stance" }
     }
 }

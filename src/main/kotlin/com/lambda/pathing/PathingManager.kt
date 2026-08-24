@@ -10,6 +10,7 @@
 package com.lambda.pathing
 
 import com.lambda.Lambda.LOG
+import com.lambda.Lambda.mc
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.context.AutomatedSafeContext
@@ -142,13 +143,53 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private var pendingImprovement: PublishedPath? = null
 
+    /**
+     * The player's own flight permission, held while a tape is suppressing it.
+     *
+     * Null when nothing is suppressed, so the restore is idempotent and a cancel from any
+     * path puts back exactly what the player had.
+     */
+    private var heldFlightPermission: Boolean? = null
+
     fun isFinished(request: PathingRequest): Boolean = when {
         queuedRequest === request -> false
         activeRequest === request -> status is Status.Complete || status is Status.Failed
         else -> true
     }
 
+    /**
+     * Takes creative flight away for the duration of a tape.
+     *
+     * Vanilla turns a second jump press within seven ticks into a flight toggle, and gates
+     * the whole thing on `allowFlying`. A tape that presses jump twice in that window --
+     * ordinary for consecutive hops -- therefore takes off in creative, which is not
+     * something the simulator models or should have to: it is a creative-only interaction
+     * with a key the planner uses for its own purposes.
+     *
+     * Suppressing the permission rather than pacing the jumps is deliberate. Fast repeated
+     * jumps are genuinely the right move sometimes, and in survival -- where the tool
+     * actually gets used -- `allowFlying` is already false and this does nothing at all.
+     *
+     * A body that is *already* flying is left alone: taking the permission away mid-flight
+     * would strand it, and a plan does not run from the air anyway.
+     *
+     * @see net.minecraft.client.network.ClientPlayerEntity.tickMovement
+     */
+    private fun holdFlightPermission() {
+        val abilities = mc.player?.abilities ?: return
+        if (abilities.flying || !abilities.allowFlying) return
+        heldFlightPermission = true
+        abilities.allowFlying = false
+    }
+
+    private fun releaseFlightPermission() {
+        val held = heldFlightPermission ?: return
+        heldFlightPermission = null
+        mc.player?.abilities?.allowFlying = held
+    }
+
     private fun releaseWalk() {
+        releaseFlightPermission()
         val planning = planningSession
         planningSession = null
         planning?.cancel()
@@ -694,7 +735,8 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
 
         listen<MovementEvent.InputUpdate>({ Int.MAX_VALUE }) { event ->
-            val input = tickInput ?: return@listen
+            val input = tickInput ?: return@listen releaseFlightPermission()
+            holdFlightPermission()
 
             if (awaitingObservation) {
                 val path = published ?: return@listen fail("lost the certified plan before input application")
@@ -771,6 +813,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         journey = null
         status = Status.Complete(path.plan.tape.frameCount, leg)
         activeRequest = null
+        releaseFlightPermission()
         info(
             "Reached ${path.finalGoal} after $leg certified trajectory leg(s); " +
                 "max replay deviation %.2e".format(maxDeviation) +

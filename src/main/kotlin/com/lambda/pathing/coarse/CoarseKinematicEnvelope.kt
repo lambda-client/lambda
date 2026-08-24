@@ -30,8 +30,11 @@ data class CoarseKinematicEnvelope(
             velocity.y <= maxAscentBlocksPerTick + EPSILON &&
             velocity.y >= -maxDescentBlocksPerTick - EPSILON
 
-    fun lowerBoundTicks(dx: Int, dy: Int, dz: Int): Double {
-        val horizontal = hypot(dx.toDouble(), dz.toDouble()) / maxHorizontalBlocksPerTick
+    fun lowerBoundTicks(dx: Int, dy: Int, dz: Int): Double =
+        lowerBoundTicks(hypot(dx.toDouble(), dz.toDouble()), dy)
+
+    fun lowerBoundTicks(horizontalDistance: Double, dy: Int): Double {
+        val horizontal = horizontalDistance / maxHorizontalBlocksPerTick
         val vertical = when {
             dy > 0 -> dy / maxAscentBlocksPerTick
             dy < 0 -> -dy / maxDescentBlocksPerTick
@@ -45,8 +48,7 @@ data class CoarseKinematicEnvelope(
         diagonalWalk = lowerBoundTicks(1, 0, 1),
         stepUp = lowerBoundTicks(1, 1, 0),
         walkOff = { depth -> lowerBoundTicks(1, -depth, 0) },
-        jumpCandidate = { span, verticalOffset -> lowerBoundTicks(span, verticalOffset, 0) },
-        diagonalJumpCandidate = { span, verticalOffset -> lowerBoundTicks(span, verticalOffset, span) },
+        jumpCandidate = { distance, verticalOffset -> lowerBoundTicks(distance, verticalOffset) },
         drop = { span, depth -> lowerBoundTicks(span, -depth, 0) },
     )
 

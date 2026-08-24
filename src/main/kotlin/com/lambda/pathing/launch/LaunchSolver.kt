@@ -157,6 +157,16 @@ object LaunchSolver {
         modes: List<LaunchMode> = LaunchMode.entries,
         maxEntrySpeed: (LaunchMode) -> Double = { profile.momentumSpeed(it.sprint) },
         preferredEntrySpeed: (LaunchMode) -> Double = { profile.cruiseSpeed(it.sprint) },
+        /**
+         * The real height between the two standing surfaces.
+         *
+         * Defaults to the stance difference, which is the same number whenever both ends
+         * are whole blocks. A caller that can see the cells -- and so knows one end is a
+         * slab or a snow layer -- passes the height the body will actually fly, because a
+         * half-block step down is a different arc from a full one, and solving the wrong
+         * one lands the body short or long by the difference.
+         */
+        rise: Double = (to.y - from.y).toDouble(),
     ): List<LaunchSolution> {
         val dx = (to.x - from.x).toDouble()
         val dz = (to.z - from.z).toDouble()
@@ -164,7 +174,6 @@ object LaunchSolver {
         if (length <= 1e-9) return emptyList()
         val unitX = dx / length
         val unitZ = dz / length
-        val rise = to.y - from.y
 
         // The target's footprint seen along the flight line. Both are properties of the
         // geometry alone, so they are computed once for every mode and offset.
@@ -187,15 +196,16 @@ object LaunchSolver {
         modes: List<LaunchMode> = LaunchMode.entries,
         maxEntrySpeed: (LaunchMode) -> Double = { profile.momentumSpeed(it.sprint) },
         preferredEntrySpeed: (LaunchMode) -> Double = { profile.cruiseSpeed(it.sprint) },
+        rise: Double = (to.y - from.y).toDouble(),
     ): LaunchSolution? =
-        solve(from, to, profile, modes, maxEntrySpeed, preferredEntrySpeed).firstOrNull()
+        solve(from, to, profile, modes, maxEntrySpeed, preferredEntrySpeed, rise).firstOrNull()
 
     private fun solveMode(
         from: Stance,
         to: Stance,
         unitX: Double,
         unitZ: Double,
-        rise: Int,
+        rise: Double,
         lateral: Double,
         mode: LaunchMode,
         profile: BallisticProfile,
@@ -395,6 +405,6 @@ object LaunchSolver {
 fun BallisticProfile.momentumSpeed(sprint: Boolean): Double {
     val cruise = cruiseSpeed(sprint)
     val mode = if (sprint) LaunchMode.SPRINT_JUMP else LaunchMode.WALK_JUMP
-    val landing = fly(mode, cruise, 0) ?: return cruise
+    val landing = fly(mode, cruise, 0.0) ?: return cruise
     return max(cruise, landing.exitSpeed)
 }

@@ -34,7 +34,7 @@ class JumpArcProbeTest {
         world.fullCube(4, 0, 0)
 
         val result = assertNotNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 4, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, rise = 0),
             "an open span-4 flat jump must be proposed",
         )
         assertTrue(result.solution.sprint, "span 4 is beyond any walking reach; the hint must say sprint")
@@ -49,7 +49,7 @@ class JumpArcProbeTest {
         world.fullCube(2, 4, 0) // apex feet ~1.25 above stance y=1 -> head reaches past y=4
 
         assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 4, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, rise = 0),
             "a jump whose apex head passes through a block must not be proposed",
         )
     }
@@ -64,7 +64,7 @@ class JumpArcProbeTest {
         world.shape(2, 4, 0, VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.5, 1.0))
 
         assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 4, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, rise = 0),
             "a slab the apex head clips must block the arc",
         )
     }
@@ -79,7 +79,7 @@ class JumpArcProbeTest {
         world.shape(1, 3, 0, VoxelShapes.cuboid(0.0, 0.5, 0.0, 1.0, 1.0, 1.0))
 
         assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 2, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, rise = 0),
             "a top slab the crossing head clips must block the arc",
         )
     }
@@ -93,7 +93,7 @@ class JumpArcProbeTest {
         world.shape(1, 1, 0, VoxelShapes.cuboid(0.375, 0.0, 0.375, 0.625, 1.5, 0.625))
 
         assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 2, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, rise = 0),
             "a fence is taller than any jump arc; the crossing must be blocked",
         )
     }
@@ -104,7 +104,7 @@ class JumpArcProbeTest {
         world.fullCube(0, 0, 0)
         world.fullCube(2, 0, 0)
 
-        val result = assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 2, rise = 0))
+        val result = assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, rise = 0))
         assertTrue(result.solution.clearance > 0.0)
     }
 
@@ -115,7 +115,7 @@ class JumpArcProbeTest {
         world.fullCube(2, 1, 0)
 
         assertNotNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 2, rise = 1),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, rise = 1),
             "the measured reach admits a span-2 rise-1 jump; deleting it starved the field topology",
         )
     }
@@ -129,7 +129,7 @@ class JumpArcProbeTest {
         // Sprint rise-1 reach is ~3.79 + 0.4 launch depth against a 4.0-block landing
         // with pad tolerance: inside the permissive band. A false positive costs one
         // M6 reroute; deleting it would starve topology forever (C1).
-        assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 4, rise = 1))
+        assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, rise = 1))
     }
 
     @Test
@@ -139,7 +139,7 @@ class JumpArcProbeTest {
         world.fullCube(6, 0, 0)
 
         assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 6, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 6, 0, rise = 0),
             "sprint flat reach is ~4.5 + 0.4 depth; six blocks is not reachable by any family",
         )
     }
@@ -155,7 +155,7 @@ class JumpArcProbeTest {
         for (y in 1..3) world.fullCube(1, y, 2)
 
         assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 1, span = 2, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 2, rise = 0),
             "walls flanking the diagonal chord must block the arc",
         )
     }
@@ -167,7 +167,7 @@ class JumpArcProbeTest {
         world.fullCube(2, 0, 0)
 
         assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 1, 0, span = 2, rise = 0),
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, rise = 0),
             "a view without shapes must propose no jumps rather than guess",
         )
     }

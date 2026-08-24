@@ -10,6 +10,8 @@
 package com.lambda.pathing.movement.providers
 
 import com.lambda.pathing.coarse.CoarseEdge
+import com.lambda.pathing.coarse.CoarseMoveRates
+import com.lambda.pathing.coarse.SimpleMoveOptions
 import com.lambda.pathing.coarse.MotionTemplate
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
@@ -17,6 +19,7 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.movement.*
 import com.lambda.util.player.prediction.MovementSimulationState
+import kotlin.math.abs
 
 /**
  * Crossing a gap ballistically.
@@ -29,34 +32,81 @@ import com.lambda.util.player.prediction.MovementSimulationState
 object JumpMovement : Movement {
     override val id = MovementId.JUMP
 
+    /**
+     * Every landing the solver can reach from a cruise approach, rather than eight rays.
+     *
+     * Two things were wrong with the old enumeration and they shared a cause: it described
+     * reach as an integer *span* along a unit direction. That made the compass rays the only
+     * possible landings -- three across and one to the side had no template at all -- and it
+     * made "how far can this jump go" a count of cells rather than something the ballistics
+     * had a say in.
+     *
+     * The bound is now [LaunchSolver] itself, asked whether it can solve the move for a body
+     * arriving at ordinary cruising speed. Nothing is compared against a hand-derived
+     * distance, which is what went wrong the first time this was tightened: a flight distance
+     * and a centre-to-centre offset are not the same quantity. The body leaves the ground
+     * past the stance centre and may land anywhere on the target rather than on its middle,
+     * so the reach between cell centres is meaningfully longer than the arc it flies, and
+     * comparing the two refused jumps that are entirely ordinary.
+     *
+     * Asking at cruise rather than at full momentum is the distinction that matters in play.
+     * A four-block jump lands from a normal approach; a five-block one needs the body to
+     * arrive already carrying more speed than walking gives it, which it may or may not have
+     * had room to build. Offering the latter unconditionally is what produced jumps that
+     * certified in the planner and then did not happen.
+     *
+     * Rise falls out of the same question for free, which a span cap could never do: a rising
+     * four-block jump needs a run-up and is refused, while a descending five-block one is
+     * offered, because that is what the arcs actually do.
+     *
+     * Generosity is still cheap in the way that matters -- a template is a proposal, and
+     * [JumpArcProbe] discards whatever the terrain blocks before the search ever sees it.
+     */
     override fun templates(context: MovementContext): List<TemplateSpec> = buildList {
         val options = context.options
         if (!options.allowJumpCandidates) return@buildList
 
-        for ((dx, dz) in WalkMovement.CARDINALS) {
-            for (span in 2..options.maxJumpSpan) {
-                for (rise in -options.maxJumpDrop..LaunchMode.MAX_JUMP_RISE) {
-                    add(spec(dx, dz, span, rise, context.costs.jumpCandidateCost(span, rise)))
-                }
-            }
-        }
-        if (options.allowDiagonal) {
-            for ((dx, dz) in WalkMovement.DIAGONALS) {
-                for (span in 2..options.maxDiagonalJumpSpan) {
-                    for (rise in -options.maxJumpDrop..LaunchMode.MAX_JUMP_RISE) {
-                        add(spec(dx, dz, span, rise, context.costs.diagonalJumpCandidateCost(span, rise)))
-                    }
+        val reach = options.maxJumpSpan
+        for (rise in -options.maxJumpDrop..LaunchMode.MAX_JUMP_RISE) {
+            for (dx in -reach..reach) {
+                for (dz in -reach..reach) {
+                    if (!offered(dx, dz, options)) continue
+                    add(spec(dx, dz, rise, context.costs.jumpCandidateCost(hypot(dx, dz), rise)))
                 }
             }
         }
     }
 
-    private fun spec(dx: Int, dz: Int, span: Int, rise: Int, cost: Double) = TemplateSpec(
-        dx = span * dx, dy = rise, dz = span * dz,
+    private fun offered(dx: Int, dz: Int, options: SimpleMoveOptions): Boolean {
+        val distance = hypot(dx, dz)
+        if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE) return false
+        if (dx != 0 && dz != 0 && !options.allowDiagonal) return false
+        if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
+
+        // `maxJumpSpan` is a span, and a landing may sit a step to the side of it: a gap of
+        // n blocks crossed with one cell of lateral offset is the same jump, and refusing it
+        // was what made an off-axis landing need the span raised before it appeared.
+        //
+        // A bound and not merely the physics, because reach costs more than the templates it
+        // creates. Every extra block of it lowers the cheapest ticks-per-block any move
+        // achieves, and that number is the heuristic -- a graph that can cross five blocks in
+        // one leap cannot admissibly claim that crossing five blocks is expensive. The search
+        // then expands more of the field for every route, and incremental repair after a
+        // chunk arrival costs more. Reach past what is asked for is paid for on every path,
+        // including the ones that never jump.
+        return distance <= hypot(options.maxJumpSpan, 1) + REACH_EPSILON
+    }
+
+    private const val REACH_EPSILON = 1e-9
+
+    private fun hypot(dx: Int, dz: Int): Double = kotlin.math.hypot(dx.toDouble(), dz.toDouble())
+
+    private fun spec(dx: Int, dz: Int, rise: Int, cost: Double) = TemplateSpec(
+        dx = dx, dy = rise, dz = dz,
         movement = id,
         cost = cost,
-        conditions = WalkMovement.stanceConditions(span * dx, rise, span * dz),
-        arc = MotionTemplate.ArcSpec(dx, dz, span, rise, MODES),
+        conditions = WalkMovement.stanceConditions(dx, rise, dz),
+        arc = MotionTemplate.ArcSpec(dx, dz, rise, MODES),
     )
 
     /**

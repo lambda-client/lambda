@@ -139,7 +139,7 @@ object TrajectoryPlanner {
         )
         val initial = MovementSimulationState.from(player)
         val profile = PlayerPhysicsProfile.capture(player)
-        val start = Stance(player.blockPos.x, player.blockPos.y, player.blockPos.z)
+        val start = Stance.of(initial.position, initial.onGround)
 
         if (cancellation.isCancelled) return PlanningPreparationResult.Cancelled
 

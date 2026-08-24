@@ -10,6 +10,7 @@
 package com.lambda.pathing.movement
 
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.atan2
 import kotlin.math.hypot
 
@@ -17,6 +18,21 @@ import kotlin.math.hypot
 data class HorizontalPoint(val x: Double, val y: Double, val z: Double)
 
 fun Stance.center() = HorizontalPoint(x + 0.5, y.toDouble(), z + 0.5)
+
+/**
+ * The stance's centre at the height the body's feet will actually be.
+ *
+ * A stance names the cell above whatever holds the body up, so its nominal height is that
+ * cell's floor -- right whenever the support is a whole block, and half a block too high
+ * over a slab. Everything that only steers by it can use the nominal [center]; anything
+ * that compares a height against a simulated body has to use this one, or it is asking
+ * whether the body is standing half a block inside the floor.
+ */
+fun Stance.center(view: CoarseVoxelView) = HorizontalPoint(
+    x + 0.5,
+    y + view.surfaceOffset(x, y - 1, z),
+    z + 0.5,
+)
 
 fun horizontalDistance(from: HorizontalPoint, to: HorizontalPoint): Double =
     hypot(to.x - from.x, to.z - from.z)

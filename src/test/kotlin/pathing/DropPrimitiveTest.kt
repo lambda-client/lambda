@@ -69,14 +69,14 @@ class DropPrimitiveTest {
     fun `a sprint walk off overshoots the pad a controlled drop lands on`() {
         val profile = BallisticProfile.VANILLA
         val sprinting = assertNotNull(
-            profile.fly(LaunchMode.SPRINT_DROP, profile.cruiseSpeed(sprint = true), rise = -1),
+            profile.fly(LaunchMode.SPRINT_DROP, profile.cruiseSpeed(sprint = true), rise = -1.0),
         )
         assertTrue(
             sprinting.distance > 1.0,
             "a sprint walk-off must clear more than one block (${sprinting.distance})",
         )
 
-        val crawling = assertNotNull(profile.fly(LaunchMode.WALK_DROP, 0.0, rise = -1, holdForward = false))
+        val crawling = assertNotNull(profile.fly(LaunchMode.WALK_DROP, 0.0, rise = -1.0, holdForward = false))
         assertTrue(
             crawling.distance < 1.0,
             "a controlled leave must stay inside the adjacent pad (${crawling.distance})",

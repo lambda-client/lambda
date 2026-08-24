@@ -47,6 +47,7 @@ object WalkMovement : Movement {
                         dx, 1, dz, costs.stepUp,
                         stanceConditions(dx, 1, dz) + CellCondition(0, 2, 0, CellPredicate.CENTER_SLICE),
                         MovementId.STEP_UP,
+                        strideCost = costs.cardinalWalk,
                     )
                 )
             }
@@ -89,7 +90,8 @@ object WalkMovement : Movement {
         cost: Double,
         conditions: List<CellCondition>,
         movement: MovementId = id,
-    ) = TemplateSpec(dx, dy, dz, movement, cost, conditions)
+        strideCost: Double? = null,
+    ) = TemplateSpec(dx, dy, dz, movement, cost, conditions, strideCost = strideCost)
 
     /**
      * Gait and steering styles for one candidate step.

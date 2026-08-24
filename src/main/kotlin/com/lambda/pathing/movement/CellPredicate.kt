@@ -32,10 +32,20 @@ fun interface CellPredicate {
     val extraReads: List<VoxelPos> get() = emptyList()
 
     companion object {
-        /** Flat top the body can stand on, with nothing poking up out of it. */
-        val SUPPORT = CellPredicate { view, x, y, z ->
-            val voxel = view.voxel(x, y, z)
-            voxel.standableFullTop && !voxel.intrudesAbove
+        /**
+         * Something the body can stand on, with nothing poking up out of it.
+         *
+         * Deliberately does not care *how high* the surface is -- that is the caller's
+         * business, and asking here would make every template's conditions depend on a
+         * height they cannot see. A cell holds a body up or it does not.
+         *
+         * Reads the cell below as well, because a surface is not always in the cell that
+         * owns it: a fence is taller than its own cell, so the standing it provides happens
+         * in the neighbour above. Asking one cell found air there and no fence line was ever
+         * walkable.
+         */
+        val SUPPORT = below { view, x, y, z ->
+            view.standingSurface(x, y, z) != null && !view.voxel(x, y, z).intrudesAbove
         }
 
         /** The body's centre column is clear, and the cell below does not intrude into it. */

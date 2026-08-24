@@ -42,14 +42,14 @@ class PlanDumpRoundTripTest {
             slipperiness = 0.98,
             velocityMultiplier = 0.4,
             jumpVelocityMultiplier = 0.5,
-            coarseVoxel = CoarseVoxel(false, true, true, false),
+            coarseVoxel = CoarseVoxel(false, true, 0.5, 0.0),
         )
         val fence = SnapshotBlockPhysics(
             collisionShape = VoxelShapes.union(
                 VoxelShapes.cuboid(0.375, 0.0, 0.375, 0.625, 1.5, 0.625),
                 VoxelShapes.cuboid(0.0, 0.75, 0.375, 1.0, 0.9375, 0.625),
             ),
-            coarseVoxel = CoarseVoxel(false, false, false, true),
+            coarseVoxel = CoarseVoxel(false, false, null, 0.5),
             fenceLike = true,
         )
         val lava = SnapshotBlockPhysics(
@@ -80,7 +80,7 @@ class PlanDumpRoundTripTest {
 
         val moveOptions = SimpleMoveOptions(
             allowDiagonal = false, allowStepUp = true, maxWalkOffDepth = 5,
-            allowJumpCandidates = true, maxJumpSpan = 5, maxJumpDrop = 2, maxDiagonalJumpSpan = 3,
+            allowJumpCandidates = true, maxJumpSpan = 5, maxJumpDrop = 2, allowOffAxisJumps = false,
         )
         val searchConfig = MotionConstraints(
             maxFrames = 240, maxYawDegreesPerFrame = 42.5, goalRadius = 0.33, sprintModes = listOf(false),

@@ -30,7 +30,15 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 
 object PlanDump {
-    const val VERSION = 3
+    const val VERSION = 4
+
+    /**
+     * Written where a cell holds nothing up.
+     *
+     * A sentinel rather than an empty field because the format is space separated, and a
+     * negative height is not a height any real shape can have.
+     */
+    private const val NO_SURFACE = -1.0
 
     data class Loaded(
         val bounds: SimulationSnapshotBounds,
@@ -160,7 +168,7 @@ object PlanDump {
 
     private fun SimpleMoveOptions.dump(): String = listOf(
         "options", allowDiagonal, allowStepUp, maxWalkOffDepth, allowJumpCandidates,
-        maxJumpSpan, maxJumpDrop, maxDiagonalJumpSpan,
+        maxJumpSpan, maxJumpDrop, allowOffAxisJumps,
     ).joinToString(" ")
 
     private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -170,7 +178,7 @@ object PlanDump {
         allowJumpCandidates = parts[4].toBoolean(),
         maxJumpSpan = parts[5].toInt(),
         maxJumpDrop = parts[6].toInt(),
-        maxDiagonalJumpSpan = parts[7].toInt(),
+        allowOffAxisJumps = parts[7].toBoolean(),
     )
 
     private fun MotionConstraints.dump(): String = listOf(
@@ -225,8 +233,8 @@ object PlanDump {
                 .append(fenceLike).append(' ')
                 .append(coarseVoxel.fullyPassable).append(' ')
                 .append(coarseVoxel.centerPassable).append(' ')
-                .append(coarseVoxel.standableFullTop).append(' ')
-                .append(coarseVoxel.intrudesAbove).append(' ')
+                .append(coarseVoxel.standingSurface ?: NO_SURFACE).append(' ')
+                .append(coarseVoxel.intrusionHeight).append(' ')
                 .append(coarseVoxel.medium.name).append(' ')
                 .append(unsupportedPhysics?.kind?.name ?: "-").append(' ')
                 .append(unsupportedPhysics?.blockId?.replace(' ', '_') ?: "-").append(' ')
@@ -266,8 +274,8 @@ object PlanDump {
             coarseVoxel = CoarseVoxel(
                 fullyPassable = parts[5].toBoolean(),
                 centerPassable = parts[6].toBoolean(),
-                standableFullTop = parts[7].toBoolean(),
-                intrudesAbove = parts[8].toBoolean(),
+                standingSurface = parts[7].toDouble().takeIf { it >= 0.0 },
+                intrusionHeight = parts[8].toDouble(),
                 medium = medium,
             ),
             fenceLike = parts[4].toBoolean(),
