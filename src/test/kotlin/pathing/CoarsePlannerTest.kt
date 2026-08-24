@@ -47,8 +47,8 @@ class CoarsePlannerTest {
         assertEquals(2.0, costs.cardinalWalk, 1e-9)
         assertEquals(kotlin.math.sqrt(2.0) / 0.5, costs.diagonalWalk, 1e-9)
         assertEquals(2.5, costs.stepUp, 1e-9)
-        assertEquals(4.0, costs.jumpCandidateCost(2, 0), 1e-9)
-        assertEquals(6.0, costs.jumpCandidateCost(3, 0), 1e-9)
+        assertEquals(4.0, costs.jumpCandidateCost(2.0, 0), 1e-9)
+        assertEquals(6.0, costs.jumpCandidateCost(3.0, 0), 1e-9)
         assertEquals(2.0, costs.walkOffCost(4), 1e-9)
         assertTrue(envelope.contains(Vec3d(0.3, 0.2, 0.4)))
         assertFalse(envelope.contains(Vec3d(0.4, 0.0, 0.4)))
@@ -158,8 +158,8 @@ class CoarsePlannerTest {
 
         // A jump is priced by airborne time, which barely grows with span: clearing more
         // ground in one arc costs the same, so a long jump beats a short one plus a walk.
-        assertEquals(m.jumpCandidateCost(2, 0), m.jumpCandidateCost(4, 0), 1e-9)
-        assertTrue(m.jumpCandidateCost(4, 0) < m.jumpCandidateCost(2, 0) + m.cardinalWalk)
+        assertEquals(m.jumpCandidateCost(2.0, 0), m.jumpCandidateCost(4.0, 0), 1e-9)
+        assertTrue(m.jumpCandidateCost(4.0, 0) < m.jumpCandidateCost(2.0, 0) + m.cardinalWalk)
     }
 
     @Test
@@ -368,7 +368,7 @@ class CoarsePlannerTest {
             diagonalWalk = 5.7,
             stepUp = 8.0,
             walkOff = { depth -> 4.0 + depth },
-            jumpCandidate = { span, rise -> 9.0 + span + rise },
+            jumpCandidate = { distance, rise -> 9.0 + distance + rise },
         ),
         options = options,
     )

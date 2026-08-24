@@ -53,7 +53,7 @@ class LaunchSolverTest {
         assertEquals(0.2159, profile.cruiseDisplacement(sprint = false), 1e-4)
 
         // The canonical vanilla jump height.
-        val jump = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, profile.cruiseSpeed(true), rise = 0))
+        val jump = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, profile.cruiseSpeed(true), rise = 0.0))
         assertEquals(1.2522, jump.apex, 1e-4)
     }
 
@@ -67,12 +67,12 @@ class LaunchSolverTest {
     fun `flight distance is affine in take-off speed, so the inversion is exact`() {
         val profile = BallisticProfile.VANILLA
         for (rise in -3..1) {
-            val base = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, 0.0, rise))
-            val unit = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, 1.0, rise))
+            val base = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, 0.0, rise.toDouble()))
+            val unit = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, 1.0, rise.toDouble()))
             val slope = unit.distance - base.distance
 
             for (speed in listOf(0.05, 0.12, 0.2, 0.28)) {
-                val sample = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, speed, rise))
+                val sample = assertNotNull(profile.fly(LaunchMode.SPRINT_JUMP, speed, rise.toDouble()))
                 assertEquals(base.distance + slope * speed, sample.distance, 1e-9,
                     "distance must be affine in entry speed at rise $rise")
                 assertEquals(base.airTicks, sample.airTicks,
@@ -148,7 +148,7 @@ class LaunchSolverTest {
     @Test
     fun `a one-block drop onto the adjacent pad needs a slower leave than a sprint`() {
         val profile = BallisticProfile.VANILLA
-        val sprintReach = assertNotNull(profile.fly(LaunchMode.SPRINT_DROP, profile.cruiseSpeed(true), -1)).distance
+        val sprintReach = assertNotNull(profile.fly(LaunchMode.SPRINT_DROP, profile.cruiseSpeed(true), -1.0)).distance
         assertTrue(sprintReach > 1.0, "a sprint walk-off must overshoot the adjacent pad ($sprintReach)")
 
         val solution = assertNotNull(

@@ -34,7 +34,7 @@ enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
      * drop -- it is a walk, and offering it as a launch produces a one-tick "arc" that
      * means nothing. Filtering here keeps both nonsenses out of the solver's ranking.
      */
-    fun supports(rise: Int): Boolean = if (jumps) rise <= MAX_JUMP_RISE else rise < 0
+    fun supports(rise: Double): Boolean = if (jumps) rise <= MAX_JUMP_RISE else rise < 0.0
 
     companion object {
         /** Vanilla apex is ~1.2522 blocks, so one block up is the ceiling. */
@@ -152,7 +152,7 @@ data class BallisticProfile(
     fun fly(
         mode: LaunchMode,
         entrySpeed: Double,
-        rise: Int,
+        rise: Double,
         holdForward: Boolean = true,
         maxTicks: Int = MAX_ARC_TICKS,
     ): ArcSample? {
@@ -196,7 +196,7 @@ data class BallisticProfile(
                 // while the tick's horizontal movement still happens in full, because
                 // collision resolution is per axis.
                 if (height + verticalVelocity <= rise) {
-                    heights += rise.toDouble()
+                    heights += rise
                     distances += distance
                     return ArcSample(
                         airTicks = tick,

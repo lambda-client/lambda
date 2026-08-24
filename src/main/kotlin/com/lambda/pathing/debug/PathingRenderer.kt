@@ -9,6 +9,7 @@
 
 package com.lambda.pathing.debug
 
+import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
@@ -21,6 +22,8 @@ import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import java.awt.Color
+import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 
@@ -364,7 +367,26 @@ object PathingRenderer : Loadable {
 
     private fun screenWidth(pixels: Int): Float = -pixels * 0.00005f
 
-    private fun Stance.center(yOffset: Double) = Vec3d(x + 0.5, y + yOffset, z + 0.5)
+    /**
+     * A route node drawn where the body's feet will be, not where its cell begins.
+     *
+     * A stance names the cell above whatever holds the body up, so its nominal height is
+     * that cell's floor. On a whole block that is exactly the standing surface; on a carpet
+     * it is most of a block above it, and the marker floated with nothing under it.
+     *
+     * Read from the live world rather than from the plan because this is a debug overlay
+     * drawn per frame: the current terrain is what the viewer is looking at, and a node over
+     * ground that has since changed is worth seeing at its real height. A cell that cannot
+     * be read falls back to the nominal height, which is the old behaviour.
+     */
+    private fun Stance.center(yOffset: Double): Vec3d {
+        val world = mc.world
+        val support = world?.let {
+            val pos = BlockPos(x, y - 1, z)
+            SnapshotSimulationEnvironment.coarseVoxelOf(it.getBlockState(pos).getCollisionShape(it, pos))
+        }
+        return Vec3d(x + 0.5, y + (support?.surfaceOffset ?: 0.0) + yOffset, z + 0.5)
+    }
 
     /** Drawn under everything else: the graph is context, not the answer. */
     private const val GRAPH_Y = 0.02

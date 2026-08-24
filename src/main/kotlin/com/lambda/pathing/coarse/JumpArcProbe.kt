@@ -43,18 +43,28 @@ object JumpArcProbe {
     fun probe(
         view: CoarseVoxelView,
         from: Stance,
-        stepX: Int,
-        stepZ: Int,
-        span: Int,
+        dx: Int,
+        dz: Int,
         rise: Int,
         profile: BallisticProfile = BallisticProfile.VANILLA,
         modes: List<LaunchMode> = LaunchMode.entries,
+        /**
+         * The height the body really flies, and the height its feet really leave from.
+         *
+         * Both default to the whole-block reading, so terrain made of cubes behaves as it
+         * always did. On a slab or a snow layer they do not agree with the stance, and the
+         * arc has to be swept where the body actually goes -- an arc launched half a block
+         * too high clears obstacles the real one hits.
+         */
+        riseHeight: Double = (rise).toDouble(),
+        launchHeight: Double = from.y.toDouble(),
     ): Reachable? {
-        val to = from.offset(span * stepX, rise, span * stepZ)
+        val to = from.offset(dx, rise, dz)
         val reads = HashSet<VoxelPos>()
 
-        for (solution in LaunchSolver.solve(from, to, profile, modes)) {
-            val clearance = sweepClearance(view, from, stepX, stepZ, solution, reads) ?: continue
+        for (solution in LaunchSolver.solve(from, to, profile, modes, rise = riseHeight)) {
+            val clearance = sweepClearance(view, from, dx, dz, solution, launchHeight, reads)
+                ?: continue
             return Reachable(solution.withClearance(clearance), reads)
         }
         return null
@@ -73,15 +83,16 @@ object JumpArcProbe {
     private fun sweepClearance(
         view: CoarseVoxelView,
         from: Stance,
-        stepX: Int,
-        stepZ: Int,
+        dx: Int,
+        dz: Int,
         solution: LaunchSolution,
+        launchHeight: Double,
         reads: MutableSet<VoxelPos>,
     ): Double? {
-        val length = hypot(stepX.toDouble(), stepZ.toDouble())
+        val length = hypot(dx.toDouble(), dz.toDouble())
         if (length <= 0.0) return null
-        val unitX = stepX / length
-        val unitZ = stepZ / length
+        val unitX = dx / length
+        val unitZ = dz / length
         val launchX = from.x + 0.5 + unitX * solution.launchOffset
         val launchZ = from.z + 0.5 + unitZ * solution.launchOffset
 
@@ -89,12 +100,12 @@ object JumpArcProbe {
         val distances = solution.arc.distances
 
         var clearance = CLEARANCE_CAP
-        var previous = coreBox(launchX, from.y.toDouble(), launchZ)
+        var previous = coreBox(launchX, launchHeight, launchZ)
         for (index in heights.indices) {
             val along = distances[index]
             val box = coreBox(
                 launchX + unitX * along,
-                from.y + heights[index],
+                launchHeight + heights[index],
                 launchZ + unitZ * along,
             )
             val swept = previous.union(box)

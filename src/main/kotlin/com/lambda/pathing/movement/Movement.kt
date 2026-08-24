@@ -60,9 +60,18 @@ data class TemplateSpec(
     val cost: Double,
     val conditions: List<CellCondition>,
     val arc: MotionTemplate.ArcSpec? = null,
+    /**
+     * What this move costs when the real rise turns out to be inside a single stride.
+     *
+     * A one-cell step up onto a slab is half a block, which vanilla lifts the body over
+     * during ordinary collision resolution -- it is a stride, not a step-up, and pricing it
+     * as one made the search jump *over* slab terrain rather than walk up it. Null for
+     * moves where the distinction cannot arise.
+     */
+    val strideCost: Double? = null,
 ) {
     internal fun toTemplate(id: MotionTemplateId) =
-        MotionTemplate(id, dx, dy, dz, movement, cost, conditions, arc)
+        MotionTemplate(id, dx, dy, dz, movement, cost, conditions, arc, strideCost)
 }
 
 /** What the graph is being built with, when a movement is asked for its templates. */

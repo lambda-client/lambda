@@ -55,7 +55,7 @@ object DropMovement : Movement {
         conditions = WalkMovement.stanceConditions(span * dx, -depth, span * dz),
         // Restricting the arc to the non-jumping modes is the whole point: the same
         // geometry offered to a jump would be answered with a leap.
-        arc = MotionTemplate.ArcSpec(dx, dz, span, -depth, MODES),
+        arc = MotionTemplate.ArcSpec(span * dx, span * dz, -depth, MODES),
     )
 
     /**

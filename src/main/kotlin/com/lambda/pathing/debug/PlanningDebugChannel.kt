@@ -12,6 +12,7 @@ package com.lambda.pathing.debug
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryRollout
 import net.minecraft.util.math.Vec3d
@@ -130,6 +131,7 @@ object PlanningDebugChannel {
         val total = nodes.size
         val anchors = planner.optimisticAnchors
         val goal = planner.search.goal
+        val view = planner.view
         val limits = graphLimits
         val radiusSquared = limits.radius * limits.radius
 
@@ -144,7 +146,7 @@ object PlanningDebugChannel {
         val drawn = stances.toHashSet()
         val sampled = stances.map { stance ->
             GraphNode(
-                pos = center(stance),
+                pos = center(view, stance),
                 cost = planner.search.g(stance),
                 frontier = stance in planner.search.queue,
                 anchor = stance in anchors,
@@ -173,8 +175,8 @@ object PlanningDebugChannel {
             real.forEach { (to, cost) ->
                 if (edges.size < limits.edges) {
                     edges += GraphEdge(
-                        from = center(from),
-                        to = center(to),
+                        from = center(view, from),
+                        to = center(view, to),
                         cost = cost,
                         policy = to == best,
                         fromCost = fromCost,
@@ -195,7 +197,18 @@ object PlanningDebugChannel {
         )
     }
 
-    private fun center(stance: Stance) = Vec3d(stance.x + 0.5, stance.y.toDouble(), stance.z + 0.5)
+    /**
+     * A graph cell drawn at the height a body standing in it would rest.
+     *
+     * The nominal height is the cell's floor, which is the standing surface only when the
+     * support is a whole block. Over a carpet or a fence the plate floated with nothing
+     * under it, which reads as the search having gone somewhere it did not.
+     */
+    private fun center(view: CoarseVoxelView, stance: Stance) = Vec3d(
+        stance.x + 0.5,
+        stance.y + view.surfaceOffset(stance.x, stance.y - 1, stance.z),
+        stance.z + 0.5,
+    )
 
     private fun distanceSquared(stance: Stance, around: Vec3d): Double {
         val dx = stance.x + 0.5 - around.x

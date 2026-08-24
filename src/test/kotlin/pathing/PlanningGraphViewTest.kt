@@ -88,11 +88,13 @@ class PlanningGraphViewTest {
             "every edge must join two drawn cells",
         )
 
-        // A move is a step to a neighbouring stance. Anything long is the optimistic step
-        // into unstreamed terrain, which is a fiction the search uses and not a move the
-        // body could walk -- drawn, it fires a line at the goal from every frontier cell.
+        // A move reaches a nearby stance; the longest is a descending jump at about five
+        // blocks. Anything beyond that is the optimistic step into unstreamed terrain, which
+        // is a fiction the search uses rather than a move the body could make -- drawn, it
+        // fires a line at the goal from every frontier cell. The bound only has to separate
+        // those two populations, and they are tens of blocks apart.
         assertTrue(
-            sample.edges.all { it.from.distanceTo(it.to) <= 4.0 },
+            sample.edges.all { it.from.distanceTo(it.to) <= MAX_REAL_MOVE_BLOCKS },
             "no drawn edge may be an optimistic jump to the goal",
         )
     }
@@ -170,6 +172,9 @@ class PlanningGraphViewTest {
         PlanningDebugChannel.publishGraph(planner, Vec3d(0.5, 64.0, 0.5))
         assertEquals(null, PlanningDebugChannel.graph)
     }
+
+    /** Comfortably past the longest real move, and far short of a goal-spanning edge. */
+    private val MAX_REAL_MOVE_BLOCKS = 8.0
 
     private fun plannerOverFlatGround(): CoarsePlanner {
         val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()

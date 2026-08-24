@@ -105,11 +105,15 @@ object ValueFieldAnchorSearch {
 
     internal const val MAX_SHOWN_CANDIDATES = 12
 
-    internal fun stanceOf(state: MovementSimulationState): Stance = Stance(
-        floor(state.position.x).toInt(),
-        floor(state.position.y + STANCE_LEVEL_EPSILON).toInt(),
-        floor(state.position.z).toInt(),
-    )
+    /**
+     * Which coarse stance a simulated body is standing in.
+     *
+     * Shares [Stance.of] with the planner's entry point deliberately: the two used to derive
+     * this separately, and a body on a carpet was attributed to one cell by the search and a
+     * different one by the route it was meant to be walking.
+     */
+    internal fun stanceOf(state: MovementSimulationState): Stance =
+        Stance.of(state.position, state.onGround)
 
     private class GatedRollout(
         val rollout: TrajectoryRollout,
@@ -134,7 +138,7 @@ object ValueFieldAnchorSearch {
         private val vocabulary = ActionSet(catalog, field, config, searchConfig)
 
         private val goalStance = route.goal
-        private val goalPoint = goalStance.center()
+        private val goalPoint = goalStance.center(environment)
         private val attempts = AttemptAccumulator()
 
         private val routeIndex = route.nodes.withIndex().associate { (index, node) -> node to index }
@@ -324,7 +328,7 @@ object ValueFieldAnchorSearch {
         private fun finishFrom(anchor: ValueAnchor): Solution? {
             val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
             if (!field.reachesGoal(chain)) return null
-            val points = chain.map { it.center() }
+            val points = chain.map { it.center(environment) }
             val leads: List<Double?> = if (chain.zipWithNext().any { (from, to) -> to.y > from.y }) {
                 config.stepUpJumpLeadDistances
             } else {
@@ -404,7 +408,7 @@ object ValueFieldAnchorSearch {
 
         private fun brakeFrom(anchor: ValueAnchor): Solution? {
             val gated = gatedRollout(
-                anchor.state, listOf(anchor.stance.center()),
+                anchor.state, listOf(anchor.stance.center(environment)),
                 BrakeToStopProgram(anchor.state.rotation.yaw),
                 BRAKE_TAIL_FRAMES,
             )

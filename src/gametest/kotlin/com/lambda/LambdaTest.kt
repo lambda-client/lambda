@@ -300,6 +300,38 @@ object LambdaTest : FabricClientGameTest {
         server.runCommand("/fill -2 87 3 2 96 12 minecraft:air")
         server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
 
+        // Terrain that is not made of whole cubes: a slab shelf, a run of stairs, and a
+        // slab on top of a block. Every one of these used to be a *wall* to the coarse
+        // graph -- its only question was whether a cell's top face was a full solid square,
+        // which a slab, a stair and a snow layer all answer no to, leaving a cell that is
+        // neither standable nor passable. The simulator would have walked all of it without
+        // noticing, so the two layers disagreed about what terrain even existed.
+        //
+        // Live rather than only in JVM tests because the heights are what is at stake: the
+        // body walks this at y.5, and every height the planner compares against it -- the
+        // goal, the route floor, the stance a frame is attributed to -- had to learn that a
+        // stance sits above whatever holds it up rather than at a whole block.
+        server.runCommand("/fill -2 100 3 2 100 4 minecraft:stone_slab[type=bottom]")
+        server.runCommand("/fill -2 100 5 2 100 6 minecraft:stone_stairs[facing=north,half=bottom]")
+        server.runCommand("/fill -2 100 7 2 100 8 minecraft:stone")
+        server.runCommand("/fill -2 101 7 2 101 8 minecraft:stone_slab[type=bottom]")
+        assertPathingWalk(context, server, "pathing-half-block-ramp", Stance(0, 102, 8))
+        server.runCommand("/fill -2 100 3 2 101 8 minecraft:air")
+
+        // A gap that lands off the compass. The jump templates were a unit direction times
+        // a span, so only cardinals and exact diagonals had one -- three across and one to
+        // the side, which is an unremarkable gap in anything built by hand, could not be
+        // proposed at all and the search walked around it or gave up.
+        server.runCommand("/fill -8 99 3 8 99 6 minecraft:air")
+        server.runCommand("/fill 0 99 2 0 99 2 minecraft:stone")
+        server.runCommand("/fill 1 99 5 1 99 5 minecraft:stone")
+        server.runCommand("/fill -2 99 6 2 99 10 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-off-axis-gap-jump", Stance(0, 100, 8),
+            requireJumpInput = true,
+        )
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
+
         // A two-wide hole. The nominal walk falls in; only a launch discovered by
         // backtracking over that failure gets across. Nothing here is scheduled --
         // the coarse layer proposes a candidate, simulation certifies the jump.

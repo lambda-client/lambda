@@ -108,6 +108,28 @@ data class SnapshotBlockPhysics(
 
         val AIR = SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.AIR)
         val FULL_CUBE = SnapshotBlockPhysics(VoxelShapes.fullCube(), coarseVoxel = CoarseVoxel.FULL_BLOCK)
+
+        /**
+         * A block of arbitrary shape, with its coarse traits derived rather than declared.
+         *
+         * Shares [SnapshotSimulationEnvironment.coarseVoxelOf] with the live capture on
+         * purpose: a synthetic slab that the planner reads differently from a real one
+         * would make every test over non-cube terrain a test of the fixture.
+         */
+        fun of(
+            shape: VoxelShape,
+            slipperiness: Double = DEFAULT_SLIPPERINESS,
+            velocityMultiplier: Double = 1.0,
+            jumpVelocityMultiplier: Double = 1.0,
+            fenceLike: Boolean = false,
+        ) = SnapshotBlockPhysics(
+            collisionShape = shape,
+            slipperiness = slipperiness,
+            velocityMultiplier = velocityMultiplier,
+            jumpVelocityMultiplier = jumpVelocityMultiplier,
+            coarseVoxel = SnapshotSimulationEnvironment.coarseVoxelOf(shape),
+            fenceLike = fenceLike,
+        )
         /** Exact simulation never consumes this placeholder. */
         val UNAVAILABLE = SnapshotBlockPhysics(VoxelShapes.fullCube(), coarseVoxel = CoarseVoxel.UNKNOWN)
     }
@@ -612,6 +634,33 @@ class SnapshotSimulationEnvironment internal constructor(
             )
         }
 
+        /**
+         * The coarse traits of a cell, read off its real collision shape.
+         *
+         * [CoarseVoxel.standingSurface] is the top of the shape *within the body's centred
+         * column*, which is the same 0.6-wide column [CoarseVoxel.centerPassable] tests. A
+         * body is 0.6 wide in a 1.0 cell, so what is under its middle is what holds it up:
+         * a stairs block's raised half is, its tread is not the answer.
+         *
+         * Nothing standing proud of the cell counts. A fence post reaches 1.5, and a body
+         * on top of one is standing in the cell above, not this one -- reporting a surface
+         * here would put its feet half a block inside the floor.
+         */
+        internal fun coarseVoxelOf(shape: VoxelShape): CoarseVoxel {
+            if (shape.isEmpty) return CoarseVoxel.AIR
+            val underBody = VoxelShapes.combineAndSimplify(shape, CENTERED_SUPPORT_COLUMN, BooleanBiFunction.AND)
+            val top = if (underBody.isEmpty) 0.0 else underBody.getMax(Direction.Axis.Y)
+            // A shape that stands proud of its cell provides no surface *here*: the body it
+            // holds up rests part way into the cell above, which is where that surface goes.
+            val standsProud = top > 1.0 + COLLISION_EPSILON
+            return CoarseVoxel(
+                fullyPassable = false,
+                centerPassable = !VoxelShapes.matchesAnywhere(shape, CENTERED_PLAYER_COLUMN, BooleanBiFunction.AND),
+                standingSurface = top.takeIf { !standsProud && it > 0.0 }?.coerceAtMost(1.0),
+                intrusionHeight = (top - 1.0).coerceAtLeast(0.0),
+            )
+        }
+
         internal fun BlockState.capturePhysics(
             world: World,
             pos: BlockPos,
@@ -627,13 +676,7 @@ class SnapshotSimulationEnvironment internal constructor(
             } else if (unsupported != null) {
                 CoarseVoxel.UNKNOWN
             } else {
-                CoarseVoxel(
-                    fullyPassable = shape.isEmpty,
-                    centerPassable = shape.isEmpty ||
-                        !VoxelShapes.matchesAnywhere(shape, CENTERED_PLAYER_COLUMN, BooleanBiFunction.AND),
-                    standableFullTop = isSideSolidFullSquare(world, pos, Direction.UP),
-                    intrudesAbove = !shape.isEmpty && shape.getMax(Direction.Axis.Y) > 1.0 + COLLISION_EPSILON,
-                )
+                coarseVoxelOf(shape)
             }
             return SnapshotBlockPhysics(
                 collisionShape = shape,
@@ -686,6 +729,40 @@ class SnapshotSimulationEnvironment internal constructor(
             1.0 - COLLISION_EPSILON,
             0.8 - COLLISION_EPSILON,
         )
+
+        /**
+         * The same column, but reaching the cell's floor and ceiling exactly.
+         *
+         * [CENTERED_PLAYER_COLUMN] is inset on every axis so that a shape merely *touching*
+         * the column does not read as blocking it, which is what the passability question
+         * wants. The surface question is the opposite: it asks how high the shape reaches,
+         * and an inset ceiling answers a full cube with 1.0 - 1e-7.
+         *
+         * That difference is not cosmetic. A surface a ten-millionth below the block top
+         * puts the body's feet a ten-millionth *inside* the block it is standing on, and
+         * the arc probe sweeps the body's box from there -- so it began every jump already
+         * intersecting its own take-off block and refused the lot. Partial blocks were
+         * unaffected, because their tops are nowhere near the inset ceiling, which is how
+         * this showed up as "jumps work from a skull but not from stone".
+         */
+        private val CENTERED_SUPPORT_COLUMN = VoxelShapes.cuboid(
+            0.2 + COLLISION_EPSILON,
+            0.0,
+            0.2 + COLLISION_EPSILON,
+            0.8 - COLLISION_EPSILON,
+            SUPPORT_COLUMN_CEILING,
+            0.8 - COLLISION_EPSILON,
+        )
+
+        /**
+         * How far above the cell the support probe looks, in blocks.
+         *
+         * Tall enough to see the whole of anything that stands proud of its own cell -- a
+         * fence and a wall both reach 1.5. Clipping at the cell top instead made a fence
+         * measure exactly 1.0 and read as a cell filled to the brim, so it claimed a surface
+         * at its own top that no body can ever rest on.
+         */
+        const val SUPPORT_COLUMN_CEILING = 2.0
     }
 
     class TrackedSnapshotSimulationEnvironment internal constructor(
