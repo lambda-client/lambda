@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseEdge
@@ -26,7 +17,6 @@ data class PlanAttempt(
     val blockedProgress: Int = 0,
 )
 
-/** Bounded production summary; full attempt geometry already lives in the optional debug ring. */
 internal class AttemptAccumulator {
     var count: Int = 0
         private set
@@ -47,13 +37,13 @@ sealed interface MotionPlanResult {
         val tape: InputTape,
         val rollout: TrajectoryRollout,
         val parameters: TerminalApproach,
-        /** Last searched anchor before the certified neutral braking tail. */
+
         val safeAnchorStance: Stance,
         val safeAnchorFrame: Int,
         val remainingGuideTicks: Double,
-        /** Exact world reads made by the final replay, grouped by input frame. */
+
         val frameDependencies: List<Set<VoxelPos>>,
-        /** Union of [frameDependencies]; coarse-guide reads are intentionally excluded. */
+
         val dependencies: Set<VoxelPos>,
         val attemptCount: Int,
         val controlSegments: Int = 1,

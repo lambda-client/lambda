@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.movement.MovementCatalog
@@ -23,15 +14,7 @@ class SimpleMoveLibrary private constructor(
     val templates: List<MotionTemplate>,
     private val readOffsets: Set<VoxelPos>,
     val heuristicCaps: HeuristicCaps,
-    /**
-     * What one block of ordinary ground travel costs.
-     *
-     * Distinct from anything in [HeuristicCaps], which are admissible *lower* bounds: the
-     * cheapest per-block rate any move achieves, jumps included. That is the right number
-     * for a heuristic and the wrong one for pricing terrain nobody has seen, because it
-     * makes crossing the unknown look cheaper than walking the known -- so a route is
-     * rewarded for stopping early and letting the fiction do the work.
-     */
+
     val sustainedTicksPerBlock: Double,
 ) {
     private val minReadX = readOffsets.minOf(VoxelPos::x)
@@ -40,34 +23,16 @@ class SimpleMoveLibrary private constructor(
     private val maxReadZ = readOffsets.maxOf(VoxelPos::z)
 
     data class HeuristicCaps(
-        /** Cheapest lower-bound cost for one unmatched X or Z block. */
+
         val axisTicksPerBlock: Double,
-        /** Cheapest lower-bound cost for changing X and Z by one together. */
+
         val diagonalTicksPerPair: Double,
         val ascentTicksPerBlock: Double,
         val descentTicksPerBlock: Double,
-        /**
-         * Cheapest ticks per block of straight-line horizontal progress, over every move.
-         *
-         * The octile pair carries an assumption from eight-connected grids: that progress is
-         * made in whole steps and diagonal ones cost their own rate. Once the graph offers
-         * arbitrary offsets that decomposition is no longer the tightest bound available --
-         * and worse, admitting cheap off-axis moves forces the diagonal cap down to stay
-         * consistent, weakening the heuristic everywhere including on straight runs.
-         *
-         * A straight-line rate has no such coupling: every template satisfies it by
-         * construction, and it is exact for the moves the octile form has to discount.
-         */
+
         val straightTicksPerBlock: Double,
     )
 
-    /**
-     * Whether the graph will enumerate edges out of [stance].
-     *
-     * Standing on a floor is one way to be somewhere, not the only one, so any registered
-     * movement may also claim a cell. Keeping the walking test first means the common case
-     * costs three reads and no dispatch.
-     */
     fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
         if (stance.y !in view.simulableStanceY) return false
         val support = view.voxel(stance.x, stance.y - 1, stance.z)
@@ -83,14 +48,6 @@ class SimpleMoveLibrary private constructor(
         return templates.mapNotNull { it.edge(view, origin) }
     }
 
-    /**
-     * Only the edges that keep their feet down.
-     *
-     * A reachability sweep wants connectivity, not the full vocabulary: strides, steps
-     * and walk-offs answer "can the body get there at all" over almost any terrain, and
-     * cost no arc probes to generate. A frontier reachable *only* by jumping is invisible
-     * to this -- an accepted trade for a sweep that has to visit thousands of stances.
-     */
     fun groundEdgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> {
         if (!isStance(view, origin)) return emptyList()
         return templates.mapNotNull { if (it.flightless) it.edge(view, origin) else null }
@@ -115,10 +72,7 @@ class SimpleMoveLibrary private constructor(
         val dz = abs(to.z - from.z)
         val paired = minOf(dx, dz)
         val straight = maxOf(dx, dz) - paired
-        // The larger of two admissible bounds is admissible, and consistent if both are,
-        // so nothing is lost by asking each and keeping the better answer. They lead in
-        // different places: octile is tighter where movement really is step-shaped, the
-        // straight-line rate where the graph can cut a corner an octile walk cannot.
+
         val octile = paired * heuristicCaps.diagonalTicksPerPair.finiteOrZero() +
             straight * heuristicCaps.axisTicksPerBlock.finiteOrZero()
         val straightLine = hypot(dx.toDouble(), dz.toDouble()) *
@@ -139,7 +93,6 @@ class SimpleMoveLibrary private constructor(
         }
     }
 
-    /** Known origins whose possible edge reads overlap a refreshed chunk. */
     fun affectedOrigins(chunk: PathingChunk, candidates: Iterable<Stance>): Set<Stance> {
         val chunkMinX = chunk.x shl 4
         val chunkMaxX = chunkMinX + 15
@@ -159,16 +112,7 @@ class SimpleMoveLibrary private constructor(
     private fun Double.finiteOrZero() = if (isFinite()) this else 0.0
 
     companion object {
-        /**
-         * Builds the move set from the registered movements.
-         *
-         * This used to be one long hardcoded list of every stride, rise, step-down and jump
-         * the planner knew, which meant a new kind of motion was a change here rather than
-         * a new file. The catalogue owns that now; what remains in this class is the graph
-         * machinery -- matching templates against terrain, enumerating backward, and
-         * working out which stances a block change invalidates -- none of which cares what
-         * the movements are.
-         */
+
         fun build(
             costs: CoarseMoveCosts,
             options: SimpleMoveOptions = SimpleMoveOptions(),
@@ -182,7 +126,6 @@ class SimpleMoveLibrary private constructor(
             return SimpleMoveLibrary(catalog, templates, offsets, deriveCaps(templates), sustainedRate(templates))
         }
 
-        /** The cost of a plain one-cell stride, which is what ordinary travel costs. */
         private fun sustainedRate(templates: List<MotionTemplate>): Double = templates
             .filter { it.dy == 0 && abs(it.dx) + abs(it.dz) == 1 }
             .minOfOrNull { it.lowerBoundTicks }
@@ -209,26 +152,10 @@ class SimpleMoveLibrary private constructor(
                 if (template.dy > 0) ascent = minOf(ascent, template.minimumTicks / template.dy)
                 if (template.dy < 0) descent = minOf(descent, template.minimumTicks / abs(template.dy))
             }
-            // Alternating opposing diagonals can make pure axial progress, while two
-            // axial moves can make diagonal progress. Closing the caps under both
-            // combinations keeps this octile lower bound consistent for every edge.
+
             axis = minOf(axis, diagonal)
             diagonal = minOf(diagonal, 2.0 * axis)
 
-            // An off-axis template belongs to neither bucket above, but it still closes
-            // octile distance -- three across and one to the side is one diagonal pair plus
-            // two straights. Leaving those out let the heuristic claim more progress than
-            // such a move costs, which is inconsistency: D* answers that by expanding a node
-            // it has already settled, and the route it returns is no longer the shortest.
-            //
-            // The diagonal cap gives way first, and only far enough. Both caps could simply
-            // be scaled together, but the axis one carries the whole heuristic over a long
-            // straight run -- which is most of any real path -- so spending it to satisfy a
-            // constraint the diagonal term is responsible for makes the search markedly
-            // slower for nothing. Both give way only when the diagonal alone cannot, since
-            // an axis move must never be priced above a diagonal one.
-            //
-            // Shrinking only, so a constraint satisfied earlier in the pass stays satisfied.
             for (template in templates) {
                 val a = abs(template.dx)
                 val b = abs(template.dz)

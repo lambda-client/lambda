@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.world.CoarseVoxelView
@@ -22,15 +13,6 @@ class CoarseValueField(
     private val guides = HashMap<Stance, Double>()
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
-    /**
-     * Drops memoized values invalidated by a world change.
-     *
-     * The guide memo freezes the first read of the live D* labels, so without this a
-     * repair is invisible to everything steering by the field -- the search keeps
-     * walking a world that no longer exists. Guides clear wholesale (recomputation is
-     * one live g/rhs read per stance); edges are terrain-derived and evicted only
-     * within one section of a change, since move templates reach a few blocks at most.
-     */
     fun invalidate(sections: Set<com.lambda.pathing.world.PathingSection>) {
         if (sections.isEmpty()) return
         val halo = HashSet<com.lambda.pathing.world.PathingSection>(sections.size * 27)
@@ -41,9 +23,7 @@ class CoarseValueField(
                 )
             }
         }
-        // Halo-scoped for guides too: a wholesale clear made every stray late packet
-        // re-derive the entire field mid-search -- the search thrashed instead of
-        // searching, and the publication clock did not care.
+
         guides.keys.removeAll { stance ->
             com.lambda.pathing.world.PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
         }

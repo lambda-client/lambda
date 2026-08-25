@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.debug
 
 import com.lambda.Lambda.mc
@@ -43,25 +34,10 @@ object PathingRenderer : Loadable {
         }
     }
 
-    /**
-     * The search graph itself: what D* looked at, and what it thought of it.
-     *
-     * The other views all draw an *answer* -- the route chosen, the trajectory certified,
-     * the rollouts tried. None of them can show why an answer failed to exist. This one
-     * draws the question: every cell the expansion reached, shaded by its `g` value, so
-     * the field reads as a gradient running downhill to the goal.
-     *
-     * Two things then become visible at a glance. Cells the search touched but could not
-     * cost sit flat and grey, which is what a wall of unstreamed or unusable terrain looks
-     * like. And the frontier -- the cells still queued -- traces the exact boundary the
-     * expansion stopped at, which is the answer to "why is there no coarse route".
-     */
     private fun RenderBuilder.renderSearchGraph() {
         val sample = PlanningDebugChannel.graph ?: return
         if (sample.nodes.isEmpty()) return
 
-        // Guarded because a graph whose cells all cost the same -- one node, or a goal
-        // reached in a single step -- would otherwise divide by zero and shade nothing.
         val span = sample.dearest - sample.cheapest
         val size = config.graphNodeSize
 
@@ -71,8 +47,6 @@ object PathingRenderer : Loadable {
             else -> lerp((cost - sample.cheapest) / span, config.graphNearColor, config.graphFarColor)
         }
 
-        // Edges first, so the plates sit on top of them where they meet rather than the
-        // lines cutting across every cell they pass over.
         if (config.renderGraphEdges) {
             val width = screenWidth(maxOf(config.graphEdgeWidth, 1))
             val faint = screenWidth(maxOf(config.graphEdgeWidth / 2, 1))
@@ -88,9 +62,6 @@ object PathingRenderer : Loadable {
                     return@forEach
                 }
 
-                // Faded at the tail and solid at the head: the asymmetry is the arrowhead.
-                // Without it a flow field is just an undirected mesh, and which way the
-                // search runs downhill is the whole thing worth reading off it.
                 lineGradient(
                     edge.from.add(0.0, EDGE_Y, 0.0), shade(edge.fromCost).setAlpha(EDGE_TAIL_ALPHA),
                     edge.to.add(0.0, EDGE_Y, 0.0), shade(edge.toCost),
@@ -168,13 +139,6 @@ object PathingRenderer : Loadable {
         }
     }
 
-    /**
-     * Colour for one route edge.
-     *
-     * A map with a fallback rather than an exhaustive `when`: movements are registered
-     * rather than enumerated, so an unfamiliar one has to render as *something* instead of
-     * failing to compile.
-     */
     private fun edgeColor(movement: MovementId) = when (movement) {
         MovementId.WALK -> config.walkColor
         MovementId.STEP_UP -> config.stepUpColor
@@ -320,18 +284,6 @@ object PathingRenderer : Loadable {
         else -> config.textColor
     }
 
-    /**
-     * A graph cell: a single flat quad lying on the stance surface.
-     *
-     * A quad rather than a box on purpose. There are thousands of these at once, and a
-     * wireframe box spends twelve edges per cell drawing its own outline -- at that
-     * density the outlines are all you see, and the field reads as a heap of crates
-     * instead of as the cost gradient it is. One horizontal face per cell leaves the
-     * shading to carry the meaning and the route drawn through it still legible.
-     *
-     * The outline is kept for the few cells that are meant to stand out of the field
-     * rather than blend into it: the frontier, and the optimistic anchors.
-     */
     private fun RenderBuilder.cell(pos: Vec3d, size: Double, color: Color, outlined: Boolean) {
         val half = size * 0.5
         val x = pos.x
@@ -367,18 +319,6 @@ object PathingRenderer : Loadable {
 
     private fun screenWidth(pixels: Int): Float = -pixels * 0.00005f
 
-    /**
-     * A route node drawn where the body's feet will be, not where its cell begins.
-     *
-     * A stance names the cell above whatever holds the body up, so its nominal height is
-     * that cell's floor. On a whole block that is exactly the standing surface; on a carpet
-     * it is most of a block above it, and the marker floated with nothing under it.
-     *
-     * Read from the live world rather than from the plan because this is a debug overlay
-     * drawn per frame: the current terrain is what the viewer is looking at, and a node over
-     * ground that has since changed is worth seeing at its real height. A cell that cannot
-     * be read falls back to the nominal height, which is the old behaviour.
-     */
     private fun Stance.center(yOffset: Double): Vec3d {
         val world = mc.world
         val support = world?.let {
@@ -388,15 +328,12 @@ object PathingRenderer : Loadable {
         return Vec3d(x + 0.5, y + (support?.surfaceOffset ?: 0.0) + yOffset, z + 0.5)
     }
 
-    /** Drawn under everything else: the graph is context, not the answer. */
     private const val GRAPH_Y = 0.02
 
-    /** Plates are translucent so overlapping cells still read as a gradient, not a wall. */
     private const val CELL_FILL_ALPHA = 0.42
 
     private const val FRONTIER_SCALE = 1.6
 
-    /** Just above the plates: an edge that shares their plane z-fights with them. */
     private const val EDGE_Y = 0.04
 
     private const val EDGE_TAIL_ALPHA = 0.10

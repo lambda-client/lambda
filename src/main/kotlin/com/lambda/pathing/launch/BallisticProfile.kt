@@ -1,23 +1,7 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.launch
 
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 
-/**
- * Which impulse and gait a ballistic arc leaves the ground with.
- *
- * A drop is not a jump with the impulse set to zero by accident: it is the primitive
- * for descending a ledge, and the whole point of naming it is that the arc solver, the
- * coarse cost model and the control program all agree that no jump key is pressed.
- */
 enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
     SPRINT_JUMP(sprint = true, jumps = true),
     WALK_JUMP(sprint = false, jumps = true),
@@ -27,61 +11,30 @@ enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 
     val drops: Boolean get() = !jumps
 
-    /**
-     * Whether this mode can be asked about a landing [rise] blocks away vertically.
-     *
-     * A jump cannot reach higher than its apex, and a drop that does not descend is not a
-     * drop -- it is a walk, and offering it as a launch produces a one-tick "arc" that
-     * means nothing. Filtering here keeps both nonsenses out of the solver's ranking.
-     */
     fun supports(rise: Double): Boolean = if (jumps) rise <= MAX_JUMP_RISE else rise < 0.0
 
     companion object {
-        /** Vanilla apex is ~1.2522 blocks, so one block up is the ceiling. */
+
         const val MAX_JUMP_RISE = 1
     }
 }
 
-/**
- * One unobstructed arc, walked with the simulator's own recurrences.
- *
- * [heights] is the feet height above the take-off surface at the end of each tick, which
- * is what a swept-box obstacle check needs; [distance] is how far the body travels
- * horizontally before the tick on which it touches down.
- */
 class ArcSample(
     val airTicks: Int,
     val distance: Double,
     val heights: DoubleArray,
-    /** Cumulative horizontal distance at the end of each tick, parallel to [heights]. */
+
     val distances: DoubleArray,
-    /** Stored horizontal velocity once the landing tick's drag has been applied. */
+
     val exitSpeed: Double,
 ) {
     val apex: Double get() = heights.maxOrNull() ?: 0.0
 }
 
-/**
- * The scalar form of [com.lambda.util.player.prediction.MovementSimulator]'s airborne
- * motion, along the direction the body is facing.
- *
- * This exists so a launch can be *solved* rather than guessed. Two properties of the
- * vanilla equations make that possible, and both are worth stating because the whole
- * solver rests on them:
- *
- * - Vertical motion does not depend on horizontal speed at all, so the number of air
- *   ticks for a given rise is a constant, not something to search over.
- * - Holding forward on-heading, horizontal velocity evolves by `v' = f * (v + a)`, which
- *   is affine. A sum of affine terms is affine, so the distance covered is an exactly
- *   invertible function of the take-off speed: `d(v) = d(0) + slope * v`.
- *
- * Together those replace the hand-fitted reach table this used to carry with arithmetic
- * that generalises to any rise, any drop, and any physics profile.
- */
 data class BallisticProfile(
     val gravity: Double,
     val jumpVelocity: Double,
-    /** Ground acceleration actually added per tick, input damping included. */
+
     val walkGroundAcceleration: Double,
     val sprintGroundAcceleration: Double,
     val slipperiness: Double,
@@ -91,27 +44,11 @@ data class BallisticProfile(
     fun groundAcceleration(sprint: Boolean): Double =
         if (sprint) sprintGroundAcceleration else walkGroundAcceleration
 
-    /**
-     * Stored horizontal velocity a sustained gait converges to on this surface.
-     *
-     * Note this is the *velocity*, not the per-tick displacement: the displacement is
-     * `cruiseSpeed + acceleration`, which is where the familiar 0.2806 sprint figure
-     * comes from. Mixing the two silently mis-solves every arc, so the solver works in
-     * stored velocity throughout and only the caller sees blocks-per-tick.
-     */
     fun cruiseSpeed(sprint: Boolean): Double {
         val acceleration = groundAcceleration(sprint)
         return groundFriction * acceleration / (1.0 - groundFriction)
     }
 
-    /**
-     * Ticks of running before the body has covered [distance] blocks along the ground.
-     *
-     * The take-off point is a *place*, and reading the current velocity to guess when the
-     * body reaches it answers zero for a body standing still -- which is how a standing
-     * parkour jump ends up fired on the tick before the run-up that makes it work. Walking
-     * the ground recurrence instead accounts for the acceleration in between.
-     */
     fun groundRunUpTicks(
         entrySpeed: Double,
         distance: Double,
@@ -131,24 +68,6 @@ data class BallisticProfile(
         return maxTicks
     }
 
-    /**
-     * Walks one arc from a stance surface to a landing [rise] blocks away vertically.
-     *
-     * The take-off tick is simulated as vanilla runs it: the jump impulse and the sprint
-     * boost are applied first, the tick still accelerates and drags with *ground*
-     * values because `travel` reads `onGround` from the previous tick, and only then is
-     * the body airborne. Getting that one tick wrong is worth several tenths of a block
-     * over a long jump.
-     *
-     * [holdForward] is the control policy the arc assumes, and for a drop it is a real
-     * choice rather than a detail. Holding forward is the longest the body can fly; letting
-     * go is the shortest. A two-block step down onto the adjacent pad is only reachable by
-     * coasting -- held forward, the body flies past the pad it was aimed at -- so modelling
-     * only the held case makes the planner refuse descents it can plainly make.
-     *
-     * Returns null when the body never comes back down to [rise] within [maxTicks],
-     * which for a rising target means the arc simply does not get that high.
-     */
     fun fly(
         mode: LaunchMode,
         entrySpeed: Double,
@@ -168,8 +87,6 @@ data class BallisticProfile(
             if (mode.sprint) velocity += SPRINT_JUMP_BOOST
         }
 
-        // Take-off tick: ground acceleration, ground friction, and -- for a jump -- the
-        // whole impulse spent as vertical displacement before gravity touches it.
         if (holdForward) velocity += groundAcceleration(mode.sprint)
         distance += velocity
         height += verticalVelocity
@@ -188,13 +105,9 @@ data class BallisticProfile(
             distance += velocity
 
             if (verticalVelocity < 0.0) {
-                // Descending from below the landing surface: the arc never got high
-                // enough, and no amount of horizontal speed fixes that.
+
                 if (height < rise) return null
 
-                // Touchdown is a vertical collision: the fall is clamped to the surface
-                // while the tick's horizontal movement still happens in full, because
-                // collision resolution is per axis.
                 if (height + verticalVelocity <= rise) {
                     heights += rise
                     distances += distance
@@ -217,35 +130,6 @@ data class BallisticProfile(
         return null
     }
 
-    /**
-     * A fall onto a bouncy surface, and the flight back out of it.
-     *
-     * Two phases sharing one integration, because they share a body: the horizontal velocity
-     * that goes into the slime is the horizontal velocity that comes out. That is the whole
-     * reason the move is worth having -- the body gets its air time back without giving up
-     * ground speed, so it reaches places no jump does.
-     *
-     * [drop] is how far below the take-off surface the slime's top sits and [rise] where the
-     * body finally lands, both relative to the take-off surface. A negative [rise] is the
-     * ordinary case: bouncing out of a pit onto a ledge part way up it.
-     *
-     * Three details of the contact tick had to be read off the simulator rather than guessed,
-     * and each one moves the landing by a noticeable amount:
-     *
-     * - The reflection takes the velocity *before* that tick's gravity, and gravity is then
-     *   applied to the result. Reflecting afterwards overstates the rebound.
-     * - The contact tick still drags horizontally as an air tick, because the body was
-     *   airborne when its motion for that tick was computed.
-     * - The tick *after* contact is a ground tick in full -- the surface's acceleration as
-     *   well as its friction -- because by then the body is marked grounded. Both halves
-     *   matter and they pull in opposite directions.
-     *
-     * The reflection is exact but the flight is not lossless -- drag acts on the way up as
-     * well as the way down -- so a four-block fall returns about two and a half.
-     *
-     * Returns null when the body never comes back to [rise], or the flight outlasts
-     * [maxTicks].
-     */
     fun bounce(
         entrySpeed: Double,
         drop: Int,
@@ -266,7 +150,6 @@ data class BallisticProfile(
         var bounced = false
         var groundedLastTick = false
 
-        // Leaving the ledge is a ground tick, exactly as an ordinary drop's take-off is.
         if (holdForward) velocity += groundAcceleration(sprint)
         distance += velocity
         verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
@@ -281,11 +164,7 @@ data class BallisticProfile(
         }
 
         for (tick in 1..maxTicks) {
-            // The tick after contact is a ground tick in full: vanilla's `travel` reads the
-            // grounded flag the landing set, so the body gets the surface's acceleration as
-            // well as its friction. That is a large boost -- ground acceleration is several
-            // times the air figure -- and leaving it out lost a tenth of a block on the
-            // bounce tick alone.
+
             val grounded = groundedLastTick
             groundedLastTick = false
             velocity += if (grounded && holdForward) groundAcceleration(sprint) else airAcceleration
@@ -293,9 +172,7 @@ data class BallisticProfile(
 
             if (!bounced) {
                 if (height + verticalVelocity <= -drop) {
-                    // Contact: the fall is clamped to the slime's top while the tick's
-                    // horizontal movement happens in full, and the block reflects what was
-                    // left of the downward velocity rather than absorbing it.
+
                     height = -drop.toDouble()
                     verticalVelocity = -verticalVelocity * bounceFactor
                     bounced = true
@@ -330,13 +207,11 @@ data class BallisticProfile(
     }
 
     companion object {
-        /** A bounce is a fall and a flight, so it outlasts an ordinary arc. */
+
         const val MAX_BOUNCE_TICKS = 48
 
-        /** @see com.lambda.util.player.prediction.MovementSimulator.jump */
         const val SPRINT_JUMP_BOOST = 0.2
 
-        /** Vanilla damps a full movement input to 0.98 before it becomes velocity. */
         const val INPUT_DAMPING = 0.98
 
         const val VERTICAL_DRAG = 0.98
@@ -350,14 +225,6 @@ data class BallisticProfile(
         private const val DEFAULT_MOVEMENT_SPEED = 0.1
         private const val DEFAULT_SLIPPERINESS = 0.6
 
-        /**
-         * An unmodified player on ordinary blocks.
-         *
-         * The coarse layer builds its templates before any player is in hand, so it masks
-         * with these. That is not a regression from what it did before -- the constants it
-         * replaced were vanilla defaults inlined with no way to vary them -- and the
-         * trajectory layer, which does have a profile, re-solves with [of].
-         */
         val VANILLA = of(
             movementSpeed = DEFAULT_MOVEMENT_SPEED,
             gravity = 0.08,
@@ -384,8 +251,7 @@ data class BallisticProfile(
             jumpBoostVelocityModifier: Double,
             slipperiness: Double,
         ): BallisticProfile {
-            // LivingEntity.applyMovementInput scales the attribute by 0.216/slipperiness^3,
-            // which is exactly 1 on ordinary ground and is what makes ice fast.
+
             val slipperinessCubed = slipperiness * slipperiness * slipperiness
             val walk = movementSpeed * (0.21600002 / slipperinessCubed)
             val sprint = walk * PlayerPhysicsProfile.SPRINT_SPEED_MULTIPLIER

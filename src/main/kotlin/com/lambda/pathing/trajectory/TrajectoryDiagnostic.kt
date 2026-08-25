@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import net.minecraft.util.math.BlockPos
@@ -32,7 +23,6 @@ sealed interface TrajectoryDiagnostic {
 
     data class RepeatedCoarseStance(override val frame: Int) : TrajectoryDiagnostic
 
-    /** The rollout reached terrain the world model does not hold yet: a wait, not a fault. */
     data class UnknownTerrain(
         override val frame: Int,
         val sectionX: Int,

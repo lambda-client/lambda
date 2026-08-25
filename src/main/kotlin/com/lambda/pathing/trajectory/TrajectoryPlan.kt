@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.movement.InputTape
@@ -81,13 +72,11 @@ class TrajectoryPlan private constructor(
         }
     }
 
-    /** Dependencies which can still affect inputs at or after [nextFrame]. */
     fun dependencySectionsFrom(nextFrame: Int): Set<PathingSection> {
         require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
         return lastSectionReadFrame.filterValues { it >= nextFrame }.keys
     }
 
-    /** Dependencies which can still affect inputs at or after [nextFrame]. */
     fun dependencyChunksFrom(nextFrame: Int): Set<PathingChunk> {
         require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
         return lastChunkReadFrame.filterValues { it >= nextFrame }.keys

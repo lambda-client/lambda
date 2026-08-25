@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
@@ -49,15 +40,10 @@ internal class Frontier(
     )
     private val parked = ArrayList<OpenEntry>()
 
-    /**
-     * Attempts waiting on world knowledge, not on search progress. Kept apart from
-     * [parked], whose lifecycle is horizon commitment: these wake on events, carry no
-     * penalty, and must never starve the commit machinery's parked pool.
-     */
     private class BlockedAttempt(val anchor: ValueAnchor, val action: com.lambda.pathing.movement.TrajectoryDecision)
 
     private val blocked = ArrayList<BlockedAttempt>()
-    /** Explicit bounded beam buckets, not a correctness-preserving dominance proof. */
+
     private val beamBuckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
     private var insertionSequence = 0L
 
@@ -95,16 +81,10 @@ internal class Frontier(
         beamBuckets.clear()
     }
 
-    /** Parks one attempt until knowledge arrives; the anchor's other actions stay live. */
     fun parkBlocked(anchor: ValueAnchor, action: com.lambda.pathing.movement.TrajectoryDecision) {
         blocked += BlockedAttempt(anchor, action)
     }
 
-    /**
-     * Adopts an extended or replaced route: indices are rebuilt, progress is
-     * recomputed over the live anchors (it is NOT comparable across routes), and the
-     * open queue is re-scored against the refreshed guide field.
-     */
     fun updateRoute(newIndex: Map<Stance, Int>) {
         routeIndex = newIndex
         deepestProgress = 0
@@ -113,22 +93,13 @@ internal class Frontier(
         rescore()
     }
 
-    /**
-     * Re-scores every open entry against the live guide field. Queued scores freeze at
-     * insertion, which is fine between knowledge batches -- ordering staleness, never
-     * soundness -- and wrong across one: a refreshed field can invalidate or improve
-     * whole regions. Wholesale, because the queue is beam-bounded and batches are rare.
-     */
     fun rescore() {
         val entries = open.toList()
         open.clear()
         entries.forEach { entry ->
             val guide = field.guide(entry.anchor.stance)
             if (guide.isFinite()) {
-                // The original insertion sequence is preserved deliberately: a rescore
-                // whose values did not change must reproduce the identical queue, or
-                // every world event scrambles tie-breaking and the search goes
-                // nondeterministic against its own baseline.
+
                 val fresh = entryFor(entry.anchor, guide)
                 fresh.sequence = entry.sequence
                 open += fresh
@@ -137,7 +108,6 @@ internal class Frontier(
         rebuildBeamBuckets()
     }
 
-    /** Returns every blocked attempt to contention after world events arrived. */
     fun wakeBlocked() {
         if (blocked.isEmpty()) return
         val woken = java.util.IdentityHashMap<ValueAnchor, Unit>()
@@ -184,11 +154,6 @@ internal class Frontier(
 
     fun progressOf(stance: Stance): Int = routeIndex[stance] ?: deepestProgress
 
-    // Deliberately unweighted. Inflating the guide term (weighted-A* style, 1.1-1.3) was
-    // measured on the corpus: it collapses the plateau of near-equal anchors, but the
-    // horizon controller commits prefixes irreversibly, and a greedier ordering commits
-    // onto lines it cannot back out of -- bedrock-traverse stopped arriving at any weight
-    // tried. Expansion breadth is the price of safe commitment here.
     private fun entryFor(anchor: ValueAnchor, guide: Double) = OpenEntry(
         order = anchor.elapsed + momentumAdjusted(anchor, guide),
         bound = anchor.elapsed +

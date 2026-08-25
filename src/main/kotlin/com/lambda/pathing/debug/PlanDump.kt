@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.debug
 
 import com.lambda.interaction.managers.rotating.Rotation
@@ -32,21 +23,8 @@ import net.minecraft.util.shape.VoxelShapes
 object PlanDump {
     const val VERSION = 5
 
-    /**
-     * Written where a cell holds nothing up.
-     *
-     * A sentinel rather than an empty field because the format is space separated, and a
-     * negative height is not a height any real shape can have.
-     */
     private const val NO_SURFACE = -1.0
 
-    /**
-     * Where the box count sits in a physics line, with the boxes following it.
-     *
-     * Named because the fields before it are now numerous enough that inserting one and
-     * forgetting to shift the reader is an easy mistake -- and one that surfaces as a number
-     * parse failure on an unrelated field rather than as anything that points at the cause.
-     */
     private const val BOX_COUNT_FIELD = 15
 
     data class Loaded(

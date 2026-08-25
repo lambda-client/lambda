@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.movement.HorizontalPoint
@@ -32,9 +23,9 @@ internal class RolloutEvaluator(
     private val nodes: List<HorizontalPoint>,
     private val goal: HorizontalPoint,
     private val config: MotionConstraints,
-    /** Set for a movement whose motion comes from pressing into terrain -- see [Movement.pressesIntoTerrain]. */
+
     private val allowHorizontalContact: Boolean = false,
-    /** Extra depth this movement is entitled to -- see [Movement.descentAllowance]. */
+
     private val descentAllowance: Double = 0.0,
 ) {
     private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
@@ -47,18 +38,13 @@ internal class RolloutEvaluator(
 
     fun observe(index: Int, state: MovementSimulationState, before: MovementSimulationState): RolloutVerdict {
         if (state.onGround) {
-            // A landing that throws the body back up is a landing that did not hurt it.
-            // Vanilla gates the reflection and the fall-damage waiver on the same condition
-            // -- `bypassesLandingEffects`, which is sneaking -- so slime either does both or
-            // neither, and the rebound is the observable half. Reading it from the state
-            // rather than asking what block it was keeps this true for anything else that
-            // bounces, and needs no terrain access the evaluator does not have.
+
             val rebounded = state.velocity.y > 0.0
             val fallDistance = apex - state.position.y
             if (!rebounded && fallDistance > config.maxSafeFallDistance) {
                 return RolloutVerdict.Failed(TrajectoryDiagnostic.HarmfulFall(index, fallDistance))
             }
-            // Either way the fall is over: a rebound starts a new rise from here.
+
             apex = state.position.y
         } else {
             apex = maxOf(apex, state.position.y)
@@ -68,12 +54,6 @@ internal class RolloutEvaluator(
             pendingBlocker = TrajectoryDiagnostic.HeadBonk(index, state.position)
         }
 
-        // A sneaking body's horizontal collision is usually its own ledge clip rather than
-        // a wall: vanilla zeroes the movement to keep it from stepping off an edge, and the
-        // zeroed movement reads as a collision. That is the technique working, not the body
-        // running into something, and failing it rejected every controlled descent on the
-        // frame its brake first bit. A sneak into an actual wall is harmless anyway -- there
-        // is no speed behind it to be a hazard.
         if (state.horizontalCollision && state.onGround && !allowHorizontalContact &&
             !state.isSneaking
         ) {
