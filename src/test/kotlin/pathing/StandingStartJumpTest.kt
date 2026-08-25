@@ -42,10 +42,48 @@ class StandingStartJumpTest {
     }
 
     @Test
+    fun `a lip start clears a span-4 rise-1 gap directly, no run-up needed`() {
+        val plan = certifies(runUpWorld(), goal = Stance(4, 2, 0))
+        val minX = plan.rollout.frames.minOf { it.state.position.x }
+        assertTrue(minX > 0.0, "a span-4 rise-1 gap is in direct reach of a lip stand: minX=$minX")
+    }
+
+    @Test
+    fun `a lip start at a four-wide gap backs up for a run-up`() {
+        val plan = certifies(fourWideWorld(), goal = Stance(5, 1, 0))
+        val minX = plan.rollout.frames.minOf { it.state.position.x }
+        assertTrue(minX < 0.0, "a four-wide gap needs momentum a lip stand lacks: minX=$minX")
+    }
+
+    private fun fourWideWorld(): SnapshotSimulationEnvironment {
+        val blocks = buildMap {
+            for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
+            // four air blocks: the vanilla maximum, only makeable with built momentum
+            put(BlockPos(5, 0, 0), SnapshotBlockPhysics.FULL_CUBE)
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-7, -1, -4, 8, 6, 3),
+            blocks,
+        )
+    }
+
+    private fun runUpWorld(): SnapshotSimulationEnvironment {
+        val blocks = buildMap {
+            for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
+            // span-4 rise-1 over void: refused from a stand, makeable with a run-up
+            put(BlockPos(4, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-7, -1, -4, 8, 6, 3),
+            blocks,
+        )
+    }
+
+    @Test
     fun `a refused route edge is demoted and the walk detours`() {
         val environment = detourWorld()
         val start = Stance(0, 1, 0)
-        val goal = Stance(4, 2, 0)
+        val goal = Stance(5, 1, 0)
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
             options = SimpleMoveOptions(),
@@ -54,7 +92,7 @@ class StandingStartJumpTest {
         assertTrue(planner.repair(Duration.INFINITE).converged)
         planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
         val route = requireNotNull(planner.routePlan(1L))
-        assertTrue(route.nodes.size == 2, "the direct span-4 jump must win the coarse route: ${route.nodes}")
+        assertTrue(route.nodes.size == 2, "the direct span-5 jump must win the coarse route: ${route.nodes}")
 
         val initial = MovementSimulationState.synthetic(
             profile = PROFILE,
@@ -91,8 +129,11 @@ class StandingStartJumpTest {
     private fun detourWorld(): SnapshotSimulationEnvironment {
         val blocks = buildMap {
             for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
-            // direct line: span-4 rise-1 over void — coarse-visible, hopeless from a stand
-            put(BlockPos(4, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
+            // direct line: a four-wide gap — coarse-visible with momentum entry, hopeless
+            // from a stand, and a wall on the retreat line so a run-up cannot rescue it
+            put(BlockPos(5, 0, 0), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(-1, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(-1, 2, 0), SnapshotBlockPhysics.FULL_CUBE)
             // detour pads: two short hops and a short rise
             put(BlockPos(2, 0, -2), SnapshotBlockPhysics.FULL_CUBE)
             put(BlockPos(4, 0, -2), SnapshotBlockPhysics.FULL_CUBE)
@@ -103,7 +144,7 @@ class StandingStartJumpTest {
         )
     }
 
-    private fun certifies(environment: SnapshotSimulationEnvironment, goal: Stance) {
+    private fun certifies(environment: SnapshotSimulationEnvironment, goal: Stance): MotionPlanResult.Success {
         val start = Stance(0, 1, 0)
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
@@ -131,9 +172,9 @@ class StandingStartJumpTest {
             route, moves.catalog, planner.valueField(), initial, PROFILE, environment,
             MotionConstraints(),
         )
-        assertIs<MotionPlanResult.Success>(
+        return assertIs<MotionPlanResult.Success>(
             result,
-            "a standing start with run-up room behind must certify the gap",
+            "a standing start at the lip must certify the gap",
         )
     }
 

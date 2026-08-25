@@ -259,9 +259,12 @@ class BlockShapeStanceTest {
         assertTrue(jumpsTo(4, 1), "and the same gap with a step to the side")
         assertTrue(jumpsTo(3, 1), "as must the shorter off-axis hop")
 
-        // Four blocks of air. Reachable only for a body that arrived with a run-up, so the
-        // graph does not promise it.
-        assertTrue(!jumpsTo(5, 0), "a four-block gap needs a run-up and must not be offered")
+        // Four blocks of air: the vanilla maximum. The trajectory layer synthesizes the
+        // run-up when the body arrives without one, so the graph promises it.
+        assertTrue(jumpsTo(5, 0), "a four-block gap is offered; the search builds the run-up")
+
+        // Five blocks of air is beyond the body at any entry speed.
+        assertTrue(!jumpsTo(6, 0), "a five-block gap is out of reach and must not be offered")
 
         // A rising gap of the same length is offered too. Whether it is actually flyable
         // depends on the run-up the body has, which a template cannot see -- the arc probe

@@ -188,11 +188,11 @@ object LaunchSolver {
         )) {
             if (abs(unit) < AXIS_EPSILON) {
 
-                if (origin < minimum || origin > minimum + 1.0) return null
+                if (origin < minimum - BODY_HALF_WIDTH || origin > minimum + 1.0 + BODY_HALF_WIDTH) return null
                 continue
             }
-            val first = (minimum - origin) / unit
-            val second = (minimum + 1.0 - origin) / unit
+            val first = (minimum - BODY_HALF_WIDTH - origin) / unit
+            val second = (minimum + 1.0 + BODY_HALF_WIDTH - origin) / unit
             near = max(near, min(first, second))
             far = min(far, max(first, second))
         }
@@ -209,7 +209,7 @@ object LaunchSolver {
     private fun launchOffsets(mode: LaunchMode): List<Double> =
         if (mode.drops) DROP_OFFSETS else JUMP_OFFSETS
 
-    private val JUMP_OFFSETS = listOf(0.0, 0.1, 0.2, 0.3, 0.4, 0.5)
+    private val JUMP_OFFSETS = listOf(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.5 + BODY_HALF_WIDTH)
 
     private val DROP_OFFSETS = listOf(0.5 + BODY_HALF_WIDTH)
 

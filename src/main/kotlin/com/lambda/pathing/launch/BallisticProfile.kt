@@ -55,6 +55,18 @@ data class BallisticProfile(
         return velocity
     }
 
+    fun runUpDistanceFor(targetSpeed: Double, sprint: Boolean, maxTicks: Int = 24): Double? {
+        var velocity = 0.0
+        var covered = 0.0
+        repeat(maxTicks) {
+            val step = velocity + groundAcceleration(sprint)
+            covered += step
+            velocity = step * groundFriction
+            if (velocity >= targetSpeed) return covered
+        }
+        return null
+    }
+
     fun groundRunUpTicks(
         entrySpeed: Double,
         distance: Double,

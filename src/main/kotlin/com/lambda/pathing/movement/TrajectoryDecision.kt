@@ -67,6 +67,17 @@ sealed interface TrajectoryDecision {
         override val movement: MovementId = MovementId.WALK,
     ) : TrajectoryDecision
 
+    data class RunUpLaunch(
+        override val sprint: Boolean,
+        override val step: Stance?,
+        val solution: LaunchSolution,
+        val retreatAlong: Double,
+        val hopAlong: Double?,
+        override val movement: MovementId = MovementId.JUMP,
+    ) : TrajectoryDecision {
+        override val margin: Double get() = solution.margin
+    }
+
     data class Bounce(
         override val sprint: Boolean,
         override val step: Stance?,
