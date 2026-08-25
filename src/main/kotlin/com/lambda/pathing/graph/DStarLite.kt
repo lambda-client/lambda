@@ -1,5 +1,6 @@
 package com.lambda.pathing.graph
 
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.time.Duration
@@ -15,8 +16,8 @@ class DStarLite<N>(
     var start: N = start
         private set
 
-    private val gValues = HashMap<N, Double>()
-    private val rhsValues = HashMap<N, Double>()
+    private val gValues = Object2DoubleOpenHashMap<N>().apply { defaultReturnValue(INF) }
+    private val rhsValues = Object2DoubleOpenHashMap<N>().apply { defaultReturnValue(INF) }
 
     val queue = UpdatablePriorityQueue<N, Key>()
 
@@ -483,9 +484,9 @@ class DStarLite<N>(
 
     fun isStartCostExact(): Boolean = start == goal || !shouldCompute() && sameCost(g(start), rhs(start))
 
-    fun g(node: N): Double = gValues[node] ?: INF
+    fun g(node: N): Double = gValues.getDouble(node)
 
-    fun rhs(node: N): Double = rhsValues[node] ?: INF
+    fun rhs(node: N): Double = rhsValues.getDouble(node)
 
     fun key(node: N): Key = calculateKey(node)
 
@@ -523,11 +524,11 @@ class DStarLite<N>(
     }
 
     private fun setG(node: N, value: Double) {
-        if (value == INF) gValues.remove(node) else gValues[node] = value
+        if (value == INF) gValues.removeDouble(node) else gValues.put(node, value)
     }
 
     private fun setRhs(node: N, value: Double) {
-        if (value == INF) rhsValues.remove(node) else rhsValues[node] = value
+        if (value == INF) rhsValues.removeDouble(node) else rhsValues.put(node, value)
     }
 
     private fun checkedHeuristic(from: N, to: N): Double {

@@ -10,9 +10,7 @@ import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.ProgramContext
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.core.center
 import com.lambda.pathing.world.center
-import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
 import kotlin.math.hypot

@@ -4,10 +4,13 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.core.VoxelPos
+import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.MathHelper
+import net.minecraft.util.shape.VoxelShape
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.hypot
 import kotlin.math.max
@@ -59,6 +62,23 @@ object JumpArcProbe {
         ) { LaunchSolver.solve(from, to, profile, modes, rise = riseHeight) }
     }
 
+    internal class SweepCellCache {
+        val classes: Long2ByteOpenHashMap = Long2ByteOpenHashMap().apply { defaultReturnValue(UNVISITED) }
+        var shapes: Long2ObjectOpenHashMap<VoxelShape>? = null
+
+        companion object {
+            const val UNVISITED: Byte = -1
+        }
+    }
+
+    private class SweepPlan(
+        val cells: LongArray,
+        val minGaps: DoubleArray,
+        val intersectsFull: BooleanArray,
+    )
+
+    private val planCache = ConcurrentHashMap<ArcSample, SweepPlan>()
+
     fun probe(
         view: CoarseVoxelView,
         from: Stance,
@@ -73,14 +93,121 @@ object JumpArcProbe {
     ): Reachable? {
         val to = from.offset(dx, rise, dz)
         val reads = LongOpenHashSet()
+        val cache = SweepCellCache()
+        val planar = launchHeight == from.y.toDouble()
 
         for (solution in solutions(from, to, dx, dz, profile, modes, riseHeight)) {
-            val clearance = sweepClearance(
-                view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads,
-            ) ?: continue
+            val clearance = if (planar) {
+                sweepByPlan(view, from, dx, dz, solution, reads, cache)
+            } else {
+                sweepClearance(
+                    view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads, cache,
+                )
+            } ?: continue
             return Reachable(solution.withClearance(clearance), reads)
         }
         return null
+    }
+
+    private fun sweepByPlan(
+        view: CoarseVoxelView,
+        from: Stance,
+        dx: Int,
+        dz: Int,
+        solution: LaunchSolution,
+        reads: LongOpenHashSet,
+        cache: SweepCellCache,
+    ): Double? {
+        if (planCache.size > PLAN_CACHE_LIMIT) planCache.clear()
+        val plan = planCache.computeIfAbsent(solution.arc) {
+            buildPlan(dx, dz, solution.arc, solution.launchOffset)
+        }
+
+        var clearance = CLEARANCE_CAP
+        for (index in plan.cells.indices) {
+            val offset = plan.cells[index]
+            val x = from.x + BlockPos.unpackLongX(offset)
+            val y = from.y + BlockPos.unpackLongY(offset)
+            val z = from.z + BlockPos.unpackLongZ(offset)
+            reads.add(BlockPos.asLong(x, y, z))
+
+            when (view.collisionClass(x, y, z)) {
+                CollisionClass.EMPTY -> {}
+
+                CollisionClass.UNKNOWN -> return null
+
+                CollisionClass.FULL -> {
+                    if (plan.intersectsFull[index]) return null
+                    clearance = minOf(clearance, plan.minGaps[index])
+                }
+
+                CollisionClass.PARTIAL ->
+                    return sweepClearance(
+                        view, from, dx, dz, solution.arc, solution.launchOffset,
+                        from.y.toDouble(), reads, cache,
+                    )
+            }
+        }
+        return clearance
+    }
+
+    private fun buildPlan(dx: Int, dz: Int, arc: ArcSample, launchOffset: Double): SweepPlan {
+        val length = hypot(dx.toDouble(), dz.toDouble())
+        val unitX = dx / length
+        val unitZ = dz / length
+        val launchX = 0.5 + unitX * launchOffset
+        val launchZ = 0.5 + unitZ * launchOffset
+
+        val heights = arc.heights
+        val distances = arc.distances
+
+        val order = it.unimi.dsi.fastutil.longs.LongArrayList()
+        val seen = LongOpenHashSet()
+        val gaps = it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap()
+        gaps.defaultReturnValue(CLEARANCE_CAP)
+        val intersecting = LongOpenHashSet()
+
+        var previous = coreBox(launchX, 0.0, launchZ)
+        for (index in heights.indices) {
+            val along = distances[index]
+            val box = coreBox(
+                launchX + unitX * along,
+                heights[index],
+                launchZ + unitZ * along,
+            )
+            val swept = previous.union(box)
+            previous = box
+
+            val margin = swept.expand(CLEARANCE_CAP)
+            for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
+                for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
+                    for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) {
+                        val key = BlockPos.asLong(x, y, z)
+                        if (seen.add(key)) order.add(key)
+
+                        if (swept.intersects(
+                                x.toDouble(), y.toDouble(), z.toDouble(),
+                                x + 1.0, y + 1.0, z + 1.0,
+                            )
+                        ) {
+                            intersecting.add(key)
+                        } else if (y + 1.0 > swept.minY + FLOOR_CONTACT_EPSILON) {
+                            val gap = gapToCell(swept, x, y, z)
+                            if (gap < gaps.get(key)) gaps.put(key, gap)
+                        }
+                    }
+                }
+            }
+        }
+
+        val cells = order.toLongArray()
+        val minGaps = DoubleArray(cells.size)
+        val intersectsFull = BooleanArray(cells.size)
+        for (index in cells.indices) {
+            minGaps[index] = gaps.get(cells[index])
+            intersectsFull[index] = cells[index] in intersecting
+        }
+        return SweepPlan(cells, minGaps, intersectsFull)
     }
 
     internal fun sweepClearance(
@@ -92,6 +219,7 @@ object JumpArcProbe {
         launchOffset: Double,
         launchHeight: Double,
         reads: LongOpenHashSet,
+        cache: SweepCellCache,
     ): Double? {
         val length = hypot(dx.toDouble(), dz.toDouble())
         if (length <= 0.0) return null
@@ -119,9 +247,16 @@ object JumpArcProbe {
             for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
                 for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
                     for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) {
-                        reads.add(BlockPos.asLong(x, y, z))
+                        val key = BlockPos.asLong(x, y, z)
+                        reads.add(key)
 
-                        when (view.collisionClass(x, y, z)) {
+                        val known = cache.classes.get(key)
+                        val cellClass = if (known == SweepCellCache.UNVISITED) {
+                            view.collisionClass(x, y, z).also { cache.classes.put(key, it.ordinal.toByte()) }
+                        } else {
+                            COLLISION_CLASSES[known.toInt()]
+                        }
+                        when (cellClass) {
                             CollisionClass.EMPTY -> {}
 
                             CollisionClass.UNKNOWN -> return null
@@ -138,7 +273,11 @@ object JumpArcProbe {
                             }
 
                             CollisionClass.PARTIAL -> {
-                                val shape = view.collisionShape(x, y, z) ?: return null
+                                val shapes = cache.shapes
+                                    ?: Long2ObjectOpenHashMap<VoxelShape>().also { cache.shapes = it }
+                                val shape = shapes.get(key)
+                                    ?: view.collisionShape(x, y, z)?.also { shapes.put(key, it) }
+                                    ?: return null
                                 for (bounds in shape.boundingBoxes) {
                                     val obstacle = bounds.offset(x.toDouble(), y.toDouble(), z.toDouble())
                                     if (obstacle.intersects(swept)) return null
@@ -180,4 +319,7 @@ object JumpArcProbe {
     private const val FLOOR_CONTACT_EPSILON = 1.0E-7
 
     private const val SOLUTION_CACHE_LIMIT = 100_000
+    private const val PLAN_CACHE_LIMIT = 100_000
+
+    private val COLLISION_CLASSES = CollisionClass.entries.toTypedArray()
 }

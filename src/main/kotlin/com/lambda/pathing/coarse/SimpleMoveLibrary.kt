@@ -53,11 +53,6 @@ class SimpleMoveLibrary private constructor(
         return templates.mapNotNull { it.edge(view, origin) }
     }
 
-    fun groundEdgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> {
-        if (!isStance(view, origin)) return emptyList()
-        return templates.mapNotNull { if (it.flightless) it.edge(view, origin) else null }
-    }
-
     fun edgesTo(view: CoarseVoxelView, target: Stance): List<CoarseEdge> {
         if (!isStance(view, target)) return emptyList()
         return templates.mapNotNull { template ->
