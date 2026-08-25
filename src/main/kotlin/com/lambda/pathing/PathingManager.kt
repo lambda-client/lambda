@@ -1,7 +1,6 @@
 package com.lambda.pathing
 
 import com.lambda.Lambda.LOG
-import com.lambda.Lambda.mc
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.context.AutomatedSafeContext
@@ -24,10 +23,8 @@ import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionStateTolerance
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
-import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.pathing.trajectory.TrajectoryPlan
-import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
@@ -87,39 +84,18 @@ object PathingManager : Manager<PathingRequest>(0) {
     private var lastRenderConfig: PathingRenderConfig = AutomationConfig.DEFAULT.pathingRenderConfig
 
     val renderConfig: PathingRenderConfig
-        get() = activeRequest?.pathingRenderConfig ?: lastRenderConfig
+        get() = activeWalk?.request?.pathingRenderConfig ?: lastRenderConfig
 
     private val trail = ArrayDeque<Vec3d>()
 
     val liveTrail: List<Vec3d> get() = synchronized(trail) { ArrayList(trail) }
 
-    private var activeRequest: PathingRequest? = null
+    private var activeWalk: Walk? = null
 
     private var planningGeneration = 0L
-    private var planningSession: PlanningSession? = null
     private var journey: PlanningJourney? = null
 
-    private var leg = 0
-
-    private var planningYaw: Double? = null
-
-    private var pendingPath: PublishedPath? = null
-    private var alignmentTicks = 0
-    private var settleTicks = 0
-    private var cursor: TrajectoryExecutionCursor? = null
-
-    private var tickInput: MovementSimulationInput? = null
-    private var awaitingObservation = false
-
-    private var pendingImprovement: PublishedPath? = null
-
-    private var pendingNextLeg: PublishedPath? = null
-
-    private var handoffBaseFrames = 0
-
-    private var pipelinedTape: Long? = null
-
-    private var heldFlightPermission: Boolean? = null
+    private val flight = FlightPermissionHold()
 
     fun diagnostics(): String = buildString {
         append("status=").append(status)
@@ -138,45 +114,18 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     fun isFinished(request: PathingRequest): Boolean = when {
         queuedRequest === request -> false
-        activeRequest === request -> status is Status.Complete || status is Status.Failed
+        activeWalk?.request === request -> status is Status.Complete || status is Status.Failed
         else -> true
     }
 
-    private fun holdFlightPermission() {
-        val abilities = mc.player?.abilities ?: return
-        if (abilities.flying || !abilities.allowFlying) return
-        heldFlightPermission = true
-        abilities.allowFlying = false
-    }
-
-    private fun releaseFlightPermission() {
-        val held = heldFlightPermission ?: return
-        heldFlightPermission = null
-        mc.player?.abilities?.allowFlying = held
-    }
-
     private fun releaseWalk(keepJourney: Boolean = false) {
-        releaseFlightPermission()
-        val planning = planningSession
-        planningSession = null
-        planning?.cancel()
+        flight.release()
+        activeWalk?.cancelPlanning()
+        activeWalk = null
         if (!keepJourney) {
             journey?.cancel()
             journey = null
         }
-        activeRequest = null
-        cursor = null
-        tickInput = null
-        awaitingObservation = false
-        planningYaw = null
-        pendingPath = null
-        pendingImprovement = null
-        pendingNextLeg = null
-        handoffBaseFrames = 0
-        pipelinedTape = null
-        alignmentTicks = 0
-        settleTicks = 0
-        leg = 0
     }
 
     fun cancel() {
@@ -216,49 +165,48 @@ object PathingManager : Manager<PathingRequest>(0) {
         synchronized(trail) { trail.clear() }
         PlanningDebugChannel.reset()
 
-        activeRequest = request
+        val walk = Walk(request)
+        activeWalk = walk
         lastRenderConfig = request.pathingRenderConfig
 
         unsteerable(request)?.let { return fail(it, request.goal) }
-        planTrajectory(request)
+        planTrajectory(walk)
     }
 
-    private fun SafeContext.planTrajectory(request: PathingRequest) {
+    private fun SafeContext.planTrajectory(walk: Walk) {
         if (player.velocity.horizontalLength() > SETTLED_SPEED) {
-            settleTicks = 0
-            tickInput = ALIGNMENT_INPUT
-            status = Status.Settling("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
+            walk.settleTicks = 0
+            walk.tickInput = ALIGNMENT_INPUT
+            status = Status.Settling(walk.request.goal.let { "(${it.x}, ${it.y}, ${it.z})" })
             return
         }
-        capturePlan(request)
+        capturePlan(walk)
     }
 
-    private fun SafeContext.settle(request: PathingRequest) {
-        tickInput = ALIGNMENT_INPUT
+    private fun SafeContext.settle(walk: Walk) {
+        walk.tickInput = ALIGNMENT_INPUT
         if (player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround) {
-            return capturePlan(request)
+            return capturePlan(walk)
         }
-        if (++settleTicks > MAX_SETTLE_TICKS) {
+        if (++walk.settleTicks > MAX_SETTLE_TICKS) {
             fail("could not settle to a stable start (%.3f b/t after %d ticks)".format(
-                player.velocity.horizontalLength(), settleTicks,
+                player.velocity.horizontalLength(), walk.settleTicks,
             ))
         }
     }
 
-    private fun SafeContext.capturePlan(request: PathingRequest) {
-        tickInput = ALIGNMENT_INPUT
+    private fun SafeContext.capturePlan(walk: Walk) {
+        walk.tickInput = ALIGNMENT_INPUT
 
-        val previousSession = planningSession
-        planningSession = null
-        previousSession?.cancel()
-
-        pendingNextLeg = null
-        handoffBaseFrames = 0
-        pipelinedTape = null
+        walk.cancelPlanning()
+        walk.pendingNextLeg = null
+        walk.handoffBaseFrames = 0
+        walk.pipelinedTape = null
+        val request = walk.request
         val session = PlanningSession(++planningGeneration, request)
-        planningSession = session
+        walk.planningSession = session
 
-        planningYaw = player.moveYaw.toDouble()
+        walk.planningYaw = player.moveYaw.toDouble()
         status = Status.Planning("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
         PlanningDebugChannel.begin(
             request.pathingRenderConfig.enabled &&
@@ -281,84 +229,37 @@ object PathingManager : Manager<PathingRequest>(0) {
             is PlanningPreparationResult.Failed -> return fail(prepared.failure.message)
             PlanningPreparationResult.Cancelled -> return fail("planning was cancelled")
         }
-        val currentJourney = journey?.takeIf {
-            it.goal == preparation.finalGoal && it.moveOptions == preparation.moveOptions &&
-                it.profile.isCompatibleWith(preparation.profile) &&
-                it.coarseState.horizonChunks == preparation.planningHorizonChunks
-        } ?: run {
+        val currentJourney = journey?.takeIf { it.compatibleWith(preparation) } ?: run {
             journey?.cancel()
-            val journeyCancellation = PlanningCancellation()
             val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
-            primeJourneyInterest(pathingWorld, preparation)
+            InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal)
             PlanningJourney(
                 goal = preparation.finalGoal,
                 moveOptions = preparation.moveOptions,
                 profile = preparation.profile,
-                cancellation = journeyCancellation,
+                cancellation = PlanningCancellation(),
                 world = pathingWorld,
                 coarseState = TrajectoryPlanner.coarseState(preparation, pathingWorld.snapshot),
             ).also { journey = it }
         }
-        launchPlanning(request, session, preparation, currentJourney)
-        advanceSnapshotCapture(request)
+        launchPlanning(walk, session, preparation, currentJourney)
+        advanceSnapshotCapture(walk)
     }
 
-    private fun SafeContext.advanceSnapshotCapture(request: PathingRequest) {
-        if (status is Status.Planning) holdPlanningYaw(request)
-        if (activeRequest !== request) return
+    private fun SafeContext.advanceSnapshotCapture(walk: Walk) {
+        if (status is Status.Planning) holdPlanningYaw(walk)
+        if (activeWalk !== walk) return
         val activeJourney = journey ?: return
 
-        val pos = player.blockPos
-        activeJourney.world.interestBlocks(
-            pos.x - BODY_INTEREST_BLOCKS, pos.y - BODY_INTEREST_Y_BLOCKS, pos.z - BODY_INTEREST_BLOCKS,
-            pos.x + BODY_INTEREST_BLOCKS, pos.y + BODY_INTEREST_Y_BLOCKS, pos.z + BODY_INTEREST_BLOCKS,
-            InterestTier.BODY,
-        )
-        val configured = request.pathingConfig.snapshotCaptureBudgetMillis
+        InterestPrimer.primeBody(activeJourney.world, player.blockPos)
+        val configured = walk.request.pathingConfig.snapshotCaptureBudgetMillis
 
-        val budget = if (cursor == null) maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS) else configured
+        val budget = if (walk.cursor == null) maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS) else configured
         activeJourney.world.advance(budget)
     }
 
-    private fun primeRouteInterest(path: PublishedPath) {
-        val world = journey?.world ?: return
-        path.route.nodes.forEach { node ->
-            world.interestBlocks(
-                node.x - ROUTE_INTEREST_BLOCKS, node.y - ROUTE_INTEREST_Y_BLOCKS, node.z - ROUTE_INTEREST_BLOCKS,
-                node.x + ROUTE_INTEREST_BLOCKS, node.y + ROUTE_INTEREST_Y_BLOCKS, node.z + ROUTE_INTEREST_BLOCKS,
-                InterestTier.CORRIDOR,
-            )
-        }
-    }
-
-    private fun primeJourneyInterest(world: PathingWorld, preparation: TrajectoryPlanningPreparation) {
-        val goal = preparation.finalGoal
-        world.interestBlocks(
-            goal.x - GOAL_INTEREST_BLOCKS, goal.y - GOAL_INTEREST_BLOCKS, goal.z - GOAL_INTEREST_BLOCKS,
-            goal.x + GOAL_INTEREST_BLOCKS, goal.y + GOAL_INTEREST_BLOCKS, goal.z + GOAL_INTEREST_BLOCKS,
-            InterestTier.CORRIDOR,
-        )
-        val start = preparation.start
-        val dx = goal.x - start.x
-        val dy = goal.y - start.y
-        val dz = goal.z - start.z
-        val length = maxOf(kotlin.math.abs(dx), kotlin.math.abs(dz), 1)
-        var step = CORRIDOR_SAMPLE_BLOCKS
-        while (step < length) {
-            val x = start.x + dx * step / length
-            val y = start.y + dy * step / length
-            val z = start.z + dz * step / length
-            world.interestBlocks(
-                x - CORRIDOR_INTEREST_BLOCKS, y - CORRIDOR_INTEREST_Y_BLOCKS, z - CORRIDOR_INTEREST_BLOCKS,
-                x + CORRIDOR_INTEREST_BLOCKS, y + CORRIDOR_INTEREST_Y_BLOCKS, z + CORRIDOR_INTEREST_BLOCKS,
-                InterestTier.CORRIDOR,
-            )
-            step += CORRIDOR_SAMPLE_BLOCKS
-        }
-    }
-
     private fun SafeContext.launchPlanning(
-        request: PathingRequest,
+        walk: Walk,
         session: PlanningSession,
         preparation: TrajectoryPlanningPreparation,
         journey: PlanningJourney,
@@ -370,18 +271,18 @@ object PathingManager : Manager<PathingRequest>(0) {
                 cursorFrame = session::executionFrame,
                 onImprovement = { improvement ->
                     mc.execute {
-                        if (planningSession === session && activeRequest === request) {
-                            if (session.parked) parkNextLeg(improvement)
-                            else if (cursor != null) adopt(improvement)
+                        if (activeWalk === walk && walk.planningSession === session) {
+                            if (session.parked) parkNextLeg(walk, improvement)
+                            else if (walk.cursor != null) adopt(walk, improvement)
                         }
                     }
                 },
                 onSafePrefix = { prefix ->
 
                     mc.execute {
-                        if (planningSession === session && activeRequest === request) {
-                            if (session.parked) parkNextLeg(prefix)
-                            else if (cursor == null && pendingPath == null) begin(prefix)
+                        if (activeWalk === walk && walk.planningSession === session) {
+                            if (session.parked) parkNextLeg(walk, prefix)
+                            else if (walk.cursor == null && walk.pendingPath == null) begin(walk, prefix)
                         }
                     }
                 },
@@ -398,7 +299,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
         planning.whenCompleteAsync({ result, failure ->
 
-            if (planningSession !== session || activeRequest !== request) return@whenCompleteAsync
+            if (activeWalk !== walk || walk.planningSession !== session) return@whenCompleteAsync
             if (failure != null) {
                 LOG.error("Pathing worker failed while expanding the trajectory", failure)
                 fail("trajectory expansion crashed: ${failure.rootMessage()}")
@@ -407,48 +308,34 @@ object PathingManager : Manager<PathingRequest>(0) {
             val completed = checkNotNull(result)
             when (completed) {
                 is PathPlanResult.Planned ->
-                    if (session.parked) parkNextLeg(completed.path)
-                    else if (cursor != null) adopt(completed.path) else begin(completed.path)
+                    if (session.parked) parkNextLeg(walk, completed.path)
+                    else if (walk.cursor != null) adopt(walk, completed.path) else begin(walk, completed.path)
                 is PathPlanResult.Failed ->
 
                     if (session.parked) LOG.info(
                         "Pipelined next leg found nothing ({}); the tape end will replan", completed.failure.message,
                     )
-                    else if (session.pipelined && activeRequest === request && cursor == null) {
+                    else if (session.pipelined && activeWalk === walk && walk.cursor == null) {
 
                         LOG.info(
                             "Pipelined leg failed after hand-off ({}); replanning from the body",
                             completed.failure.message,
                         )
-                        planningSession = null
-                        planTrajectory(request)
+                        walk.planningSession = null
+                        planTrajectory(walk)
                     }
                     else fail(completed.failure.message)
                 PathPlanResult.Cancelled -> if (!session.parked) fail("planning was cancelled")
             }
-            if (planningSession === session) {
-                planningSession = null
+            if (walk.planningSession === session) {
+                walk.planningSession = null
             }
 
         }, mc)
     }
 
-    private class PlanningJourney(
-        val goal: Stance,
-        val moveOptions: SimpleMoveOptions,
-        val profile: PlayerPhysicsProfile,
-        val cancellation: PlanningCancellation,
-        val world: PathingWorld,
-        val coarseState: CoarsePlanningState,
-    ) {
-        fun cancel() {
-            cancellation.cancel()
-            world.close()
-        }
-    }
-
-    private fun SafeContext.begin(path: PublishedPath) {
-        planningSession?.let { session ->
+    private fun SafeContext.begin(walk: Walk, path: PublishedPath) {
+        walk.planningSession?.let { session ->
             if (path.planningGeneration != session.generation) {
                 return keepRunning(path, "publication belongs to stale planning generation ${path.planningGeneration}")
             }
@@ -462,7 +349,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
         val drift = player.pos.distanceTo(path.plan.initialState.position)
         if (drift > START_DRIFT_TOLERANCE) {
-            if (planningSession?.generation != path.planningGeneration) {
+            if (walk.planningSession?.generation != path.planningGeneration) {
                 return keepRunning(path, "publication was certified from a stance the walk has left")
             }
             return fail("moved %.2f blocks while planning".format(drift))
@@ -471,10 +358,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         val yawDrift = abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
         if (yawDrift > START_YAW_TOLERANCE) {
             published = path
-            pendingPath = path
-            alignmentTicks = 0
-            tickInput = ALIGNMENT_INPUT
-            status = Status.Aligning(leg + 1, yawDrift)
+            walk.pendingPath = path
+            walk.alignmentTicks = 0
+            walk.tickInput = ALIGNMENT_INPUT
+            status = Status.Aligning(walk.leg + 1, yawDrift)
             info(
                 "Certified trajectory; aligning movement yaw by %.1f° before replay.".format(yawDrift),
                 PATHING_SOURCE,
@@ -482,54 +369,41 @@ object PathingManager : Manager<PathingRequest>(0) {
             return
         }
 
-        install(path)
+        install(walk, path)
     }
 
-    private fun SafeContext.adopt(path: PublishedPath) {
-        val running = published
-        val active = cursor
-        if (running == null || active == null) return begin(path)
-        if (path.planningGeneration != running.planningGeneration) {
-            return keepRunning(path, "publication belongs to a different planning generation")
-        }
-        if (path.publicationSequence <= running.publicationSequence) {
-            return keepRunning(path, "publication is older than the running tape")
-        }
-        if (awaitingObservation) {
-            pendingImprovement = path
-            return
-        }
+    private fun SafeContext.adopt(walk: Walk, path: PublishedPath) {
+        when (val verdict = ImprovementArbiter.judge(
+            running = published,
+            cursorFrame = walk.cursor?.nextFrame,
+            awaitingObservation = walk.awaitingObservation,
+            offered = path,
+        )) {
+            ImprovementArbiter.Verdict.BeginFresh -> begin(walk, path)
 
-        val frame = active.nextFrame
-        if (frame > path.plan.tape.frameCount) return keepRunning(path, "improvement is shorter than the walk so far")
+            is ImprovementArbiter.Verdict.Keep -> keepRunning(path, verdict.reason)
 
-        if (!running.partial && !path.partial && path.plan.tape.frameCount >= running.plan.tape.frameCount) {
-            return keepRunning(path, "improvement is not shorter than the running tape")
-        }
-        if (running.partial && path.partial && path.safeAnchorFrame <= running.safeAnchorFrame) {
-            return keepRunning(path, "partial publication commits no new anchor")
-        }
-        if (path.partial && path.safeAnchorFrame <= frame) {
-            return keepRunning(path, "partial publication has no unexecuted progress anchor")
-        }
-        val diverges = (0 until frame).any { running.plan.tape[it] != path.plan.tape[it] }
-        if (diverges) return keepRunning(path, "improvement diverges behind the cursor")
+            ImprovementArbiter.Verdict.DeferForObservation -> walk.pendingImprovement = path
 
-        executionEnvironmentDeviation(path, nextFrame = frame)?.let { deviation ->
-            return keepRunning(path, "publication environment changed: $deviation")
+            is ImprovementArbiter.Verdict.Adopt -> {
+                val frame = verdict.frame
+                executionEnvironmentDeviation(path, nextFrame = frame)?.let { deviation ->
+                    return keepRunning(path, "publication environment changed: $deviation")
+                }
+                published = path
+                recordExecuted(path)
+                journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
+                walk.cursor = TrajectoryExecutionCursor(
+                    path.plan, PlayerPhysicsProfile.capture(player),
+                    tolerance = ExecutionStateTolerance().let {
+                        it.copy(position = it.position + it.positionPerFrame * walk.handoffBaseFrames)
+                    },
+                ).apply { resumeAt(frame) }
+                walk.planningSession?.updateExecutionFrame(frame)
+                status = Status.Executing(frame, path.plan.tape.frameCount, walk.leg)
+                adopted++
+            }
         }
-        published = path
-        recordExecuted(path)
-        primeRouteInterest(path)
-        cursor = TrajectoryExecutionCursor(
-            path.plan, PlayerPhysicsProfile.capture(player),
-            tolerance = ExecutionStateTolerance().let {
-                it.copy(position = it.position + it.positionPerFrame * handoffBaseFrames)
-            },
-        ).apply { resumeAt(frame) }
-        planningSession?.updateExecutionFrame(frame)
-        status = Status.Executing(frame, path.plan.tape.frameCount, leg)
-        adopted++
     }
 
     private fun recordExecuted(path: PublishedPath) {
@@ -539,29 +413,30 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
     }
 
-    private fun parkNextLeg(path: PublishedPath) {
-        val parked = pendingNextLeg
+    private fun parkNextLeg(walk: Walk, path: PublishedPath) {
+        val parked = walk.pendingNextLeg
         if (parked == null || path.planningGeneration > parked.planningGeneration ||
             (path.planningGeneration == parked.planningGeneration &&
                 path.publicationSequence > parked.publicationSequence)
         ) {
-            pendingNextLeg = path
+            walk.pendingNextLeg = path
         }
     }
 
-    private fun SafeContext.pipelineNextLeg(request: PathingRequest) {
+    private fun SafeContext.pipelineNextLeg(walk: Walk) {
         val running = published ?: return
         if (!running.partial) return
         val currentJourney = journey ?: return
-        pipelinedTape = running.plan.id.value
+        walk.pipelinedTape = running.plan.id.value
 
         val terminal = running.plan.frames.last().state
 
+        val request = walk.request
         val session = PlanningSession(
             ++planningGeneration, request, pipelined = true,
         )
         session.parked = true
-        planningSession = session
+        walk.planningSession = session
         val preparation = when (val prepared = TrajectoryPlanner.prepare(
             player = player,
             goal = request.goal,
@@ -573,22 +448,18 @@ object PathingManager : Manager<PathingRequest>(0) {
         )) {
             is PlanningPreparationResult.Ready -> prepared.preparation
             else -> {
-                planningSession = null
+                walk.planningSession = null
                 return
             }
         }
-        val compatible = currentJourney.goal == preparation.finalGoal &&
-            currentJourney.moveOptions == preparation.moveOptions &&
-            currentJourney.profile.isCompatibleWith(preparation.profile) &&
-            currentJourney.coarseState.horizonChunks == preparation.planningHorizonChunks
-        if (!compatible) {
-            planningSession = null
+        if (!currentJourney.compatibleWith(preparation)) {
+            walk.planningSession = null
             return
         }
         LOG.info(
             "Searching the next leg from the running tape's terminal stance {}", preparation.start,
         )
-        launchPlanning(request, session, preparation, currentJourney)
+        launchPlanning(walk, session, preparation, currentJourney)
     }
 
     private fun keepRunning(rejected: PublishedPath, reason: String) {
@@ -596,26 +467,26 @@ object PathingManager : Manager<PathingRequest>(0) {
         LOG.info("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
     }
 
-    private fun SafeContext.install(path: PublishedPath) {
+    private fun SafeContext.install(walk: Walk, path: PublishedPath) {
         executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
             return fail("certified plan became stale before execution: $deviation")
         }
-        primeRouteInterest(path)
-        planningYaw = null
-        pendingPath = null
-        alignmentTicks = 0
+        journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
+        walk.planningYaw = null
+        walk.pendingPath = null
+        walk.alignmentTicks = 0
         published = path
         recordExecuted(path)
-        cursor = TrajectoryExecutionCursor(
+        walk.cursor = TrajectoryExecutionCursor(
             path.plan, PlayerPhysicsProfile.capture(player),
             tolerance = ExecutionStateTolerance().let {
-                it.copy(position = it.position + it.positionPerFrame * handoffBaseFrames)
+                it.copy(position = it.position + it.positionPerFrame * walk.handoffBaseFrames)
             },
         )
-        planningSession?.updateExecutionFrame(0)
-        awaitingObservation = false
-        leg++
-        status = Status.Executing(0, path.plan.tape.frameCount, leg)
+        walk.planningSession?.updateExecutionFrame(0)
+        walk.awaitingObservation = false
+        walk.leg++
+        status = Status.Executing(0, path.plan.tape.frameCount, walk.leg)
         info(
             "Certified continuous trajectory: ${path.route.nodes.first()} -> ${path.route.goal}, " +
                 "${path.plan.tape.frameCount} frames, ${path.attempts} attempts, " +
@@ -635,37 +506,25 @@ object PathingManager : Manager<PathingRequest>(0) {
         return null
     }
 
-    private fun SafeContext.fail(reason: String, goal: Stance? = activeRequest?.goal ?: published?.finalGoal) {
+    private fun SafeContext.fail(reason: String, goal: Stance? = activeWalk?.request?.goal ?: published?.finalGoal) {
         val position = player.blockPos?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "unknown position"
         val destination = goal?.let { " toward $it" } ?: ""
-        val walked = leg
+        val walked = activeWalk?.leg ?: 0
         releaseWalk(keepJourney = true)
         status = Status.Failed(reason)
         warn("Stopped ${if (walked == 0) "before" else "during"} continuous replay at $position$destination: $reason", PATHING_SOURCE)
     }
 
     private fun SafeContext.recover(reason: String, reuseCoarseState: Boolean = true) {
-        val request = activeRequest ?: return fail(reason)
-        val planning = planningSession
-        planningSession = null
-        planning?.cancel()
+        val walk = activeWalk ?: return fail(reason)
         if (!reuseCoarseState) {
             journey?.cancel()
             journey = null
         }
-        cursor = null
-        awaitingObservation = false
-        pendingPath = null
-        pendingImprovement = null
-        pendingNextLeg = null
-        handoffBaseFrames = 0
-        pipelinedTape = null
-        planningYaw = null
-        alignmentTicks = 0
-        settleTicks = 0
-        tickInput = ALIGNMENT_INPUT
+        walk.resetForReplan()
+        walk.tickInput = ALIGNMENT_INPUT
         recoveries++
-        status = Status.Settling("(${request.goal.x}, ${request.goal.y}, ${request.goal.z})")
+        status = Status.Settling(walk.request.goal.let { "(${it.x}, ${it.y}, ${it.z})" })
         warn("Replanning after the certified environment changed: $reason", PATHING_SOURCE)
     }
 
@@ -682,90 +541,24 @@ object PathingManager : Manager<PathingRequest>(0) {
             journey?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
         }
         listen<TickEvent.Pre> {
-            val request = activeRequest ?: return@listen
-            advanceSnapshotCapture(request)
-            if (activeRequest !== request) return@listen
-            if (status is Status.Settling) return@listen settle(request)
+            val walk = activeWalk ?: return@listen
+            advanceSnapshotCapture(walk)
+            if (activeWalk !== walk) return@listen
+            if (status is Status.Settling) return@listen settle(walk)
             if (status is Status.Planning) return@listen
-            if (status is Status.Aligning) return@listen align(request)
+            if (status is Status.Aligning) return@listen align(walk)
 
-            val active = cursor ?: return@listen
-            val path = published ?: return@listen
-
-            planningSession?.updateExecutionFrame(active.nextFrame)
-
-            val frame = active.nextFrame
-
-            if (awaitingObservation) {
-                val observed = observe(path.plan, frame + 1)
-                executionEnvironmentDeviation(path, nextFrame = frame)?.let { deviation ->
-                    return@listen reject(frame, deviation, observed, afterInput = true)
-                }
-                val result = active.observeAfterTick(observed)
-                if (result is ExecutionObservationResult.Rejected) {
-                    return@listen reject(result.frame, result.deviation, observed, afterInput = true)
-                }
-                awaitingObservation = false
-
-                if (frame < path.plan.frames.size) {
-                    val predicted = path.plan.frames[frame].state.position
-                    synchronized(trail) {
-                        if (trail.size == MAX_RETAINED_TRAIL_POINTS) trail.removeFirst()
-                        trail.addLast(player.pos)
-                    }
-                    maxDeviation = max(maxDeviation, player.pos.distanceTo(predicted))
-                }
-
-                if (result === ExecutionObservationResult.Complete) {
-                    return@listen finishTrajectory(path)
-                }
-            }
-
-            pendingImprovement?.let { improvement ->
-                pendingImprovement = null
-                adopt(improvement)
-            }
-
-            if (planningSession == null && pendingNextLeg == null && pendingImprovement == null &&
-                !awaitingObservation && cursor != null && published?.partial == true &&
-                published?.plan?.id?.value != pipelinedTape
-            ) {
-                pipelineNextLeg(request)
-            }
-
-            val current = published ?: return@listen
-            val running = cursor ?: return@listen
-
-            val observed = observe(current.plan, running.nextFrame)
-            executionEnvironmentDeviation(current, nextFrame = running.nextFrame)?.let { deviation ->
-                return@listen reject(running.nextFrame, deviation, observed, afterInput = false)
-            }
-            when (val next = running.nextInput(observed)) {
-                is ExecutionInputResult.Apply -> {
-                    tickInput = next.input
-                    awaitingObservation = true
-                    status = Status.Executing(next.frame, current.plan.tape.frameCount, leg)
-
-                    next.input.rotation?.let { rotation ->
-                        request.runSafeAutomated { rotationRequest { yaw(rotation.yaw) }.submit() }
-                    }
-                }
-
-                ExecutionInputResult.Complete -> finishTrajectory(current)
-
-                is ExecutionInputResult.Rejected -> reject(
-                    next.frame, next.deviation, observed, afterInput = false,
-                )
-            }
+            tickExecution(walk)
         }
 
         listen<MovementEvent.InputUpdate>({ Int.MAX_VALUE }) { event ->
-            val input = tickInput ?: return@listen releaseFlightPermission()
-            holdFlightPermission()
+            val walk = activeWalk
+            val input = walk?.tickInput ?: return@listen flight.release()
+            flight.hold()
 
-            if (awaitingObservation) {
+            if (walk.awaitingObservation) {
                 val path = published ?: return@listen fail("lost the certified plan before input application")
-                val active = cursor ?: return@listen fail("lost the execution cursor before input application")
+                val active = walk.cursor ?: return@listen fail("lost the execution cursor before input application")
                 executionEnvironmentDeviation(path, nextFrame = active.nextFrame)?.let { deviation ->
                     val observed = observe(path.plan, active.nextFrame)
                     return@listen reject(active.nextFrame, deviation, observed, afterInput = false)
@@ -781,95 +574,170 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
     }
 
-    private fun holdPlanningYaw(request: PathingRequest) {
-        val yaw = planningYaw ?: return
-        request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
+    private fun SafeContext.tickExecution(walk: Walk) {
+        val active = walk.cursor ?: return
+        val path = published ?: return
+
+        walk.planningSession?.updateExecutionFrame(active.nextFrame)
+
+        val frame = active.nextFrame
+
+        if (walk.awaitingObservation && !finishObservedTick(walk, active, path, frame)) return
+
+        walk.pendingImprovement?.let { improvement ->
+            walk.pendingImprovement = null
+            adopt(walk, improvement)
+        }
+
+        if (walk.planningSession == null && walk.pendingNextLeg == null && walk.pendingImprovement == null &&
+            !walk.awaitingObservation && walk.cursor != null && published?.partial == true &&
+            published?.plan?.id?.value != walk.pipelinedTape
+        ) {
+            pipelineNextLeg(walk)
+        }
+
+        val current = published ?: return
+        val running = walk.cursor ?: return
+
+        val observed = observe(current.plan, running.nextFrame)
+        executionEnvironmentDeviation(current, nextFrame = running.nextFrame)?.let { deviation ->
+            return reject(running.nextFrame, deviation, observed, afterInput = false)
+        }
+        when (val next = running.nextInput(observed)) {
+            is ExecutionInputResult.Apply -> {
+                walk.tickInput = next.input
+                walk.awaitingObservation = true
+                status = Status.Executing(next.frame, current.plan.tape.frameCount, walk.leg)
+
+                next.input.rotation?.let { rotation ->
+                    walk.request.runSafeAutomated { rotationRequest { yaw(rotation.yaw) }.submit() }
+                }
+            }
+
+            ExecutionInputResult.Complete -> finishTrajectory(walk, current)
+
+            is ExecutionInputResult.Rejected -> reject(
+                next.frame, next.deviation, observed, afterInput = false,
+            )
+        }
     }
 
-    private fun SafeContext.align(request: PathingRequest) {
-        val path = pendingPath ?: return fail("lost the certified plan while aligning")
+    private fun SafeContext.finishObservedTick(
+        walk: Walk,
+        active: TrajectoryExecutionCursor,
+        path: PublishedPath,
+        frame: Int,
+    ): Boolean {
+        val observed = observe(path.plan, frame + 1)
+        executionEnvironmentDeviation(path, nextFrame = frame)?.let { deviation ->
+            reject(frame, deviation, observed, afterInput = true)
+            return false
+        }
+        val result = active.observeAfterTick(observed)
+        if (result is ExecutionObservationResult.Rejected) {
+            reject(result.frame, result.deviation, observed, afterInput = true)
+            return false
+        }
+        walk.awaitingObservation = false
+
+        if (frame < path.plan.frames.size) {
+            val predicted = path.plan.frames[frame].state.position
+            synchronized(trail) {
+                if (trail.size == MAX_RETAINED_TRAIL_POINTS) trail.removeFirst()
+                trail.addLast(player.pos)
+            }
+            maxDeviation = max(maxDeviation, player.pos.distanceTo(predicted))
+        }
+
+        if (result === ExecutionObservationResult.Complete) {
+            finishTrajectory(walk, path)
+            return false
+        }
+        return true
+    }
+
+    private fun holdPlanningYaw(walk: Walk) {
+        val yaw = walk.planningYaw ?: return
+        walk.request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
+    }
+
+    private fun SafeContext.align(walk: Walk) {
+        val path = walk.pendingPath ?: return fail("lost the certified plan while aligning")
         val positionDrift = player.pos.distanceTo(path.plan.initialState.position)
         if (positionDrift > START_DRIFT_TOLERANCE) {
             return fail("moved %.2f blocks while aligning to the plan".format(positionDrift))
         }
 
         val targetYaw = path.plan.initialState.rotation.yaw
-        request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
+        walk.request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
         val yawDrift = abs(Rotation.wrap(player.moveYaw - targetYaw))
 
         val settled = player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround
         if (yawDrift <= START_YAW_TOLERANCE && settled) {
-            install(path)
+            install(walk, path)
             return
         }
 
-        status = Status.Aligning(leg + 1, yawDrift)
-        if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
+        status = Status.Aligning(walk.leg + 1, yawDrift)
+        if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
             fail("could not align movement yaw to the plan (%.1f degrees remain)".format(yawDrift))
         }
     }
 
-    private fun SafeContext.finishTrajectory(path: PublishedPath) {
-        cursor = null
-        planningSession?.updateExecutionFrame(null)
-        tickInput = null
-        awaitingObservation = false
+    private fun SafeContext.finishTrajectory(walk: Walk, path: PublishedPath) {
+        walk.cursor = null
+        walk.planningSession?.updateExecutionFrame(null)
+        walk.tickInput = null
+        walk.awaitingObservation = false
 
         if (path.partial) {
-            val request = activeRequest
-            if (request != null) {
-                pendingImprovement = null
-                info(
-                    "Safe partial tape complete (${path.plan.tape.frameCount} frames); " +
-                        "continuing toward ${path.finalGoal}.",
-                    PATHING_SOURCE,
-                )
-                val next = pendingNextLeg
-                pendingNextLeg = null
-                val terminal = path.plan.frames.last().state.position
-                if (next != null &&
-                    next.plan.initialState.position.distanceTo(terminal) <= START_DRIFT_TOLERANCE
-                ) {
+            walk.pendingImprovement = null
+            info(
+                "Safe partial tape complete (${path.plan.tape.frameCount} frames); " +
+                    "continuing toward ${path.finalGoal}.",
+                PATHING_SOURCE,
+            )
+            val next = walk.pendingNextLeg
+            walk.pendingNextLeg = null
+            val terminal = path.plan.frames.last().state.position
+            if (next != null &&
+                next.plan.initialState.position.distanceTo(terminal) <= START_DRIFT_TOLERANCE
+            ) {
 
-                    planningSession?.parked = false
-                    published = next
-                    pendingPath = next
-                    handoffBaseFrames += path.plan.tape.frameCount
-                    alignmentTicks = 0
-                    tickInput = ALIGNMENT_INPUT
-                    status = Status.Aligning(leg + 1, 0.0)
-                    return
-                }
-                if (next != null) {
-
-                    LOG.info(
-                        "Discarding a pipelined leg rooted {} blocks from the tape terminal",
-                        "%.2f".format(next.plan.initialState.position.distanceTo(terminal)),
-                    )
-                }
-                val successor = planningSession
-                if (successor != null && successor.parked) {
-
-                    successor.parked = false
-                    status = Status.Planning("(${path.finalGoal.x}, ${path.finalGoal.y}, ${path.finalGoal.z})")
-                    return
-                }
-                val finished = planningSession
-                planningSession = null
-                finished?.cancel()
-                planTrajectory(request)
+                walk.planningSession?.parked = false
+                published = next
+                walk.pendingPath = next
+                walk.handoffBaseFrames += path.plan.tape.frameCount
+                walk.alignmentTicks = 0
+                walk.tickInput = ALIGNMENT_INPUT
+                status = Status.Aligning(walk.leg + 1, 0.0)
                 return
             }
-        }
-        val planning = planningSession
-        planningSession = null
-        planning?.cancel()
+            if (next != null) {
 
-        status = Status.Complete(path.plan.tape.frameCount, leg)
-        activeRequest = null
-        releaseFlightPermission()
+                LOG.info(
+                    "Discarding a pipelined leg rooted {} blocks from the tape terminal",
+                    "%.2f".format(next.plan.initialState.position.distanceTo(terminal)),
+                )
+            }
+            val successor = walk.planningSession
+            if (successor != null && successor.parked) {
+
+                successor.parked = false
+                status = Status.Planning("(${path.finalGoal.x}, ${path.finalGoal.y}, ${path.finalGoal.z})")
+                return
+            }
+            walk.cancelPlanning()
+            planTrajectory(walk)
+            return
+        }
+        walk.cancelPlanning()
+
+        status = Status.Complete(path.plan.tape.frameCount, walk.leg)
+        activeWalk = null
+        flight.release()
         info(
-            "Reached ${path.finalGoal} after $leg certified trajectory leg(s); " +
+            "Reached ${path.finalGoal} after ${walk.leg} certified trajectory leg(s); " +
                 "max replay deviation %.2e".format(maxDeviation) +
                 ", adopted $adopted improvement(s)" +
                 (if (recoveries > 0) ", recovered $recoveries time(s)" else "") +
@@ -925,18 +793,6 @@ object PathingManager : Manager<PathingRequest>(0) {
     private const val MAX_SETTLE_TICKS = 40
 
     private const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
-
-    private const val BODY_INTEREST_BLOCKS = 24
-    private const val BODY_INTEREST_Y_BLOCKS = 16
-
-    private const val GOAL_INTEREST_BLOCKS = 16
-
-    private const val CORRIDOR_SAMPLE_BLOCKS = 24
-    private const val CORRIDOR_INTEREST_BLOCKS = 8
-    private const val CORRIDOR_INTEREST_Y_BLOCKS = 12
-
-    private const val ROUTE_INTEREST_BLOCKS = 8
-    private const val ROUTE_INTEREST_Y_BLOCKS = 8
 
     private const val MAX_STATE_RECOVERIES = 8
 
