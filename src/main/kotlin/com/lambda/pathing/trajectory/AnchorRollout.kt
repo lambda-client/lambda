@@ -1,7 +1,6 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.movement.CompletionContext
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
@@ -36,7 +35,8 @@ internal class AnchorRollout(
 
     private val goalPoint: () -> HorizontalPoint,
     private val attempts: AttemptAccumulator,
-    private val progressOf: (com.lambda.pathing.core.Stance) -> Int,
+    private val progressOf: (Stance) -> Int,
+    private val probe: SearchProbe,
 ) {
     fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
         val chain = field.chain(
@@ -182,7 +182,7 @@ internal class AnchorRollout(
         failure: TrajectoryDiagnostic?,
         stopped: Boolean,
     ) {
-        PlanningDebugChannel.publishAttempt(rollout, stopped, failure)
+        probe.attempt(rollout, stopped, failure)
         val goal = goalPoint()
         attempts.record(PlanAttempt(
             parameters = TerminalApproach(

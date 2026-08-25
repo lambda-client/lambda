@@ -11,7 +11,8 @@ import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
+import com.lambda.pathing.movement.TrajectoryDecision
+import com.lambda.pathing.trajectory.SearchProbe
 import com.lambda.pathing.trajectory.VirtualSearchClock
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -41,7 +42,7 @@ class AttemptCompositionProbeTest {
             options = SimpleMoveOptions(maxJumpDrop = 2),
         )
         val config = MotionConstraints()
-        ValueFieldAnchorSearch.Tally.enabled = true
+        val tally = TallyProbe()
         for ((index, endpoints) in BedrockFieldLayout.randomEndpointPairs(count = 6).withIndex()) {
             val start = Stance(endpoints.first.x, endpoints.first.y, endpoints.first.z)
             val goal = Stance(endpoints.second.x, endpoints.second.y, endpoints.second.z)
@@ -64,9 +65,10 @@ class AttemptCompositionProbeTest {
                 publish = { _, _ -> },
                 started = System.currentTimeMillis(),
                 clock = clock,
+                probe = tally,
             )
         }
-        val rows = ValueFieldAnchorSearch.Tally.counts.entries.sortedByDescending { it.value[0] }
+        val rows = tally.counts.entries.sortedByDescending { it.value[0] }
         var tried = 0; var rejected = 0
         for ((k, v) in rows) { tried += v[0]; rejected += v[1] }
         println("[tally] total tried=$tried rejected=$rejected (${"%.1f".format(100.0*rejected/tried)}%)")
@@ -75,6 +77,24 @@ class AttemptCompositionProbeTest {
                 k, v[0], v[1], 100.0 * v[1] / v[0],
                 if (v[1] > 0) v[2].toDouble() / v[1] else 0.0,
             ))
+        }
+    }
+
+    private class TallyProbe : SearchProbe {
+        val counts = java.util.concurrent.ConcurrentHashMap<String, IntArray>()
+
+        override fun decision(action: TrajectoryDecision, rejected: Boolean, frame: Int) {
+            val key = when (action) {
+                is TrajectoryDecision.Heading -> "Heading(delay=" + action.delayFrames + ")"
+                is TrajectoryDecision.Launch -> "Launch(" + action.movement + ",delay=" + action.delayFrames + ")"
+                else -> action::class.simpleName + "(" + action.movement + ")"
+            }
+            val row = counts.computeIfAbsent(key) { IntArray(3) }
+            row[0]++
+            if (rejected) {
+                row[1]++
+                row[2] += frame
+            }
         }
     }
 

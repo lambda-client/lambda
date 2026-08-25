@@ -18,6 +18,8 @@ object PlanningDebugChannel {
     @Volatile
     private var active = false
 
+    val isActive: Boolean get() = active
+
     @Volatile
     var coarseRoute: CoarseRoutePlan? = null
         private set
