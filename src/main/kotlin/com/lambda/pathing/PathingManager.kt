@@ -242,6 +242,10 @@ object PathingManager : Manager<PathingRequest>(0) {
                 coarseState = TrajectoryPlanner.coarseState(preparation, pathingWorld.snapshot),
             ).also { journey = it }
         }
+        if (!walk.clearedDemotions) {
+            walk.clearedDemotions = true
+            currentJourney.coarseState.planner.clearDemotions()
+        }
         launchPlanning(walk, session, preparation, currentJourney)
         advanceSnapshotCapture(walk)
     }

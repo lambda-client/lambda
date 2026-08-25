@@ -43,6 +43,13 @@ class CoarsePlanner(
         }
     }
 
+    fun clearDemotions() {
+        if (demotedArrivals.isEmpty()) return
+        val affected = demotedArrivals.flatMapTo(HashSet()) { listOf(it.first, it.second) }
+        demotedArrivals.clear()
+        search.synchronizeAffected(affected)
+    }
+
     fun edgeDemoted(from: Stance, to: Stance): Boolean = (from to to) in demotedArrivals
 
     private fun withoutDemotedFrom(from: Stance, costs: Map<Stance, Double>): Map<Stance, Double> =
