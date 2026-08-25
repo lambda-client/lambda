@@ -42,6 +42,25 @@ class StandingStartJumpTest {
     }
 
     @Test
+    fun `a lip start with room behind backs up for a run-up`() {
+        val plan = certifies(runUpWorld(), goal = Stance(4, 2, 0))
+        val minX = plan.rollout.frames.minOf { it.state.position.x }
+        assertTrue(minX < -1.0, "the plan must retreat for a run-up before launching: minX=$minX")
+    }
+
+    private fun runUpWorld(): SnapshotSimulationEnvironment {
+        val blocks = buildMap {
+            for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
+            // span-4 rise-1 over void: refused from a stand, makeable with a run-up
+            put(BlockPos(4, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
+        }
+        return SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-7, -1, -4, 8, 6, 3),
+            blocks,
+        )
+    }
+
+    @Test
     fun `a refused route edge is demoted and the walk detours`() {
         val environment = detourWorld()
         val start = Stance(0, 1, 0)
@@ -91,8 +110,11 @@ class StandingStartJumpTest {
     private fun detourWorld(): SnapshotSimulationEnvironment {
         val blocks = buildMap {
             for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
-            // direct line: span-4 rise-1 over void — coarse-visible, hopeless from a stand
+            // direct line: span-4 rise-1 over void — coarse-visible, hopeless from a stand,
+            // and a wall on the retreat line so a run-up cannot rescue it either
             put(BlockPos(4, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(-1, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(-1, 2, 0), SnapshotBlockPhysics.FULL_CUBE)
             // detour pads: two short hops and a short rise
             put(BlockPos(2, 0, -2), SnapshotBlockPhysics.FULL_CUBE)
             put(BlockPos(4, 0, -2), SnapshotBlockPhysics.FULL_CUBE)
@@ -103,7 +125,7 @@ class StandingStartJumpTest {
         )
     }
 
-    private fun certifies(environment: SnapshotSimulationEnvironment, goal: Stance) {
+    private fun certifies(environment: SnapshotSimulationEnvironment, goal: Stance): MotionPlanResult.Success {
         val start = Stance(0, 1, 0)
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
@@ -131,9 +153,9 @@ class StandingStartJumpTest {
             route, moves.catalog, planner.valueField(), initial, PROFILE, environment,
             MotionConstraints(),
         )
-        assertIs<MotionPlanResult.Success>(
+        return assertIs<MotionPlanResult.Success>(
             result,
-            "a standing start with run-up room behind must certify the gap",
+            "a standing start at the lip must certify the gap",
         )
     }
 
