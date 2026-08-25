@@ -103,6 +103,8 @@ class CoarseMoveCosts(
 
         private const val DROP_SETTLE_TICKS = 2.0
 
+        private const val JUMP_SETTLE_TICKS = 0.5
+
         fun measured(
             transitionOverheadTicks: Double = 0.0,
             profile: BallisticProfile = BallisticProfile.VANILLA,
@@ -129,7 +131,7 @@ class CoarseMoveCosts(
                 diagonalWalk = sqrt(2.0) * walk + transitionOverheadTicks,
                 stepUp = step + transitionOverheadTicks,
                 walkOff = { depth -> max(walk, CoarseMoveRates.fallTicks(depth)) + 1.0 + transitionOverheadTicks },
-                jumpCandidate = { distance, vo -> jump(distance, vo) + transitionOverheadTicks },
+                jumpCandidate = { distance, vo -> jump(distance, vo) + JUMP_SETTLE_TICKS + transitionOverheadTicks },
                 drop = { span, depth ->
 
                     max(
