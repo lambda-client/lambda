@@ -102,6 +102,15 @@ object TrajectoryPlanner {
     )
 
 
+    internal fun resolveStartStance(initial: MovementSimulationState): Stance {
+        val base = Stance.of(initial.position, initial.onGround)
+        if (!initial.onGround) return base
+        val support = initial.supportingBlockPos ?: return base
+        return if (support.x != base.x || support.z != base.z) {
+            Stance(support.x, support.y + 1, support.z)
+        } else base
+    }
+
     internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance {
         val world = player.entityWorld
         if (!world.isChunkLoaded(goal.x shr 4, goal.z shr 4)) return goal
@@ -150,7 +159,7 @@ object TrajectoryPlanner {
         )
         val initial = initialOverride ?: MovementSimulationState.from(player)
         val profile = PlayerPhysicsProfile.capture(player)
-        val start = Stance.of(initial.position, initial.onGround)
+        val start = resolveStartStance(initial)
 
         if (cancellation.isCancelled) return PlanningPreparationResult.Cancelled
 

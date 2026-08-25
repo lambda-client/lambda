@@ -247,7 +247,7 @@ object PathingManager : Manager<PathingRequest>(0) {
     }
 
     private fun SafeContext.advanceSnapshotCapture(walk: Walk) {
-        if (status is Status.Planning) holdPlanningYaw(walk) else holdLaunchYaw(walk)
+        if (status is Status.Planning) holdPlanningYaw(walk)
         if (activeWalk !== walk) return
         val activeJourney = journey ?: return
 
@@ -602,6 +602,19 @@ object PathingManager : Manager<PathingRequest>(0) {
         val current = published ?: return
         val running = walk.cursor ?: return
 
+        if (running.nextFrame == 0) {
+            val targetYaw = current.plan.initialState.rotation.yaw
+            val yawError = abs(Rotation.wrap(player.moveYaw - targetYaw))
+            if (yawError > START_YAW_TOLERANCE) {
+                walk.request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
+                walk.tickInput = ALIGNMENT_INPUT
+                if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
+                    fail("could not hold the launch yaw before the first frame (%.1f degrees off)".format(yawError))
+                }
+                return
+            }
+        }
+
         val observed = observe(current.plan, running.nextFrame)
         executionEnvironmentDeviation(current, nextFrame = running.nextFrame)?.let { deviation ->
             return reject(running.nextFrame, deviation, observed, afterInput = false)
@@ -664,15 +677,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         walk.request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
     }
 
-    private fun holdLaunchYaw(walk: Walk) {
-        if (walk.awaitingObservation) return
-        val cursor = walk.cursor ?: return
-        if (cursor.nextFrame != 0) return
-        val path = published ?: return
-        walk.request.runSafeAutomated {
-            rotationRequest { yaw(path.plan.initialState.rotation.yaw) }.submit()
-        }
-    }
 
     private fun SafeContext.align(walk: Walk) {
         val path = walk.pendingPath ?: return fail("lost the certified plan while aligning")
