@@ -328,6 +328,11 @@ object TrajectoryPlanner {
                     },
                     cancelled = { cancellation.isCancelled },
                 )
+                val inSessionReroute: (CoarseRoutePlan, Int) -> CoarseRoutePlan? = stalled@{ current, deepest ->
+                    val stalledFrom = current.nodes.getOrNull(deepest) ?: return@stalled null
+                    val stalledTo = current.nodes.getOrNull(deepest + 1) ?: return@stalled null
+                    rerouter.demoteAndReroute(stalledFrom, stalledTo)
+                }
                 val outcome = rerouter.walk(route) { attempted ->
                     activeRoute = attempted
                     walkHorizon(
@@ -346,6 +351,7 @@ object TrajectoryPlanner {
                         sectionCapturable = { sx, sz -> world.chunkCapturable(sx, sz) },
                         field = field,
                         probe = probe,
+                        routeStalled = inSessionReroute,
                     )
                 }
 
@@ -402,6 +408,7 @@ object TrajectoryPlanner {
         finalGoal: Stance = route.goal,
         field: CoarseValueField = planner.valueField(),
         probe: SearchProbe = SearchProbe.NONE,
+        routeStalled: ((CoarseRoutePlan, Int) -> CoarseRoutePlan?)? = null,
     ): PathPlanResult {
         var published = 0
         var last: PublishedPath? = null
@@ -423,7 +430,7 @@ object TrajectoryPlanner {
                 if (!cancelled()) {
                     val sequence = published + 1
                     val path = publishedPath(
-                        step, route, profile, planIds.incrementAndGet(),
+                        step, step.sourceRoute, profile, planIds.incrementAndGet(),
                         System.currentTimeMillis() - started, partial = true,
                         finalGoal = finalGoal,
                         planningGeneration = planningGeneration,
@@ -441,13 +448,14 @@ object TrajectoryPlanner {
             worldSync = worldSync,
             sectionCapturable = sectionCapturable,
             probe = probe,
+            routeStalled = routeStalled,
         )
 
         return when (result) {
             MotionPlanResult.Cancelled -> PathPlanResult.Cancelled
             is MotionPlanResult.Success -> PathPlanResult.Planned(
                 publishedPath(
-                    result, route, profile, planIds.incrementAndGet(),
+                    result, result.sourceRoute, profile, planIds.incrementAndGet(),
                     System.currentTimeMillis() - started, partial = false,
                     finalGoal = finalGoal,
                     planningGeneration = planningGeneration,
