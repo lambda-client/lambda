@@ -1,20 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.lambda.pathing.core
 
 import kotlin.math.abs
@@ -163,8 +146,7 @@ class DStarLite<N>(
                 oldKey < newKey -> queue.update(node, newKey)
 
                 g(node) > rhs(node) -> {
-                    // Lazy world acquisition may block or abort. Resolve the complete
-                    // adjacency before changing g/rhs/queue so the step is retryable.
+
                     val predecessors = graph.predecessors(node)
                     val settledG = rhs(node)
                     setG(node, settledG)
@@ -176,9 +158,7 @@ class DStarLite<N>(
                 }
 
                 else -> {
-                    // The inconsistent-overconsistent branch can need every affected
-                    // predecessor's successor set. Prefetch all of it before mutation;
-                    // an interrupted section wait then leaves D* exactly as it was.
+
                     val predecessors = graph.predecessors(node)
                     predecessors.keys.forEach(graph::successors)
                     graph.successors(node)
@@ -216,11 +196,7 @@ class DStarLite<N>(
         val previousStart = start
         start = newStart
         km += checkedHeuristic(previousStart, newStart)
-        // Canonical D* Lite assumes every graph vertex already exists. Our graph is
-        // lazy, so a physically reached stance can be absent from the previous search
-        // even when it has an edge into the solved value field. Materialize and seed
-        // its one-step rhs here; otherwise g=rhs=∞ plus an empty queue is incorrectly
-        // reported as convergence and route extraction returns no path.
+
         if (newStart != goal) setRhs(newStart, minSuccessorCost(newStart))
         updateVertex(newStart)
         routeVersion++
@@ -263,12 +239,6 @@ class DStarLite<N>(
                 }
             }
 
-            // The graph is lazy in both directions, and a vertex that gained *incoming*
-            // edges cannot discover them by regenerating its own successors: the new
-            // origins are not vertices yet, so nothing will ever expand them. This is
-            // how a goal became permanently unreachable the moment its own chunk
-            // arrived -- its predecessor set had been resolved while that chunk was
-            // still missing, and stayed empty for good.
             val oldPredecessors = HashMap(graph.knownPredecessors(node))
             val newPredecessors = graph.generatePredecessors(node)
             graph.markPredecessorsInitialized(node)
@@ -318,21 +288,6 @@ class DStarLite<N>(
 
     fun path(maxLength: Int = 10_000): List<N> = routeCandidate(maxLength)?.nodes ?: emptyList()
 
-    /**
-     * Descends to the goal, settling whatever the descent runs into on the way.
-     *
-     * [computeShortestPath] stops as soon as the *start's* cost is final, which is all
-     * the cost query needs and less than the path query needs: a vertex just off the
-     * cheapest route keeps whatever value the last repair left on it, including a
-     * stale-low one from terrain that has since arrived. A descent that trusts those
-     * walks off the route and dead-ends on a vertex nothing ever settled, which is
-     * indistinguishable from having no route at all.
-     *
-     * So the descent reports what blocked it instead of failing, and the search
-     * continues until that vertex is settled too. Each round settles at least one
-     * vertex the previous round tripped over, so the loop ends -- on a route whose
-     * every vertex is consistent, or on a search that has nothing left to expand.
-     */
     fun computeRouteCandidate(
         maxLength: Int = 10_000,
         timeBudget: Duration = Duration.INFINITE,
@@ -362,7 +317,6 @@ class DStarLite<N>(
         data object Unreachable : Descent<Nothing>
     }
 
-    /** Expands until [node] is settled and nothing cheaper is left to expand. */
     private fun settle(
         node: N,
         timeBudget: Duration,
@@ -373,10 +327,7 @@ class DStarLite<N>(
         val budgetNanos = timeBudget.inWholeNanoseconds
         var processed = 0
         while (!queue.isEmpty() && processed < maxExpansions) {
-            // Settling one vertex invalidates others on the way, so the start's own
-            // answer has to be final again before this is a search state anyone may
-            // read. Stopping mid-repair reports the temporary infinity that D* uses
-            // while it re-derives a value as if it were an unreachable goal.
+
             if (!shouldCompute() && isSettled(node)) break
             if ((processed and DEADLINE_CHECK_MASK) == 0) {
                 if (cancelled()) break
@@ -388,7 +339,6 @@ class DStarLite<N>(
         return processed
     }
 
-    /** True once [node] holds a final value and nothing cheaper is left to expand. */
     private fun isSettled(node: N): Boolean =
         sameCost(g(node), rhs(node)) && queue.topKey(Key.INFINITY) > calculateKey(node)
 
@@ -412,7 +362,7 @@ class DStarLite<N>(
             if (current == goal) {
                 return Descent.Reached(CoarseRouteCandidate(path, actualCost, isStartCostExact(), routeVersion))
             }
-            // A vertex whose own value is still in flux cannot say which way is down.
+
             if (!sameCost(g(current), rhs(current))) return Descent.Blocked(current)
 
             val successors = graph.successors(current)
@@ -432,7 +382,7 @@ class DStarLite<N>(
             val chosen = next ?: return Descent.Unreachable
             val edgeCost = successors[chosen] ?: return Descent.Unreachable
             if (!edgeCost.isFinite() || !bestCost.isFinite()) return Descent.Blocked(current)
-            // Revisiting means the values that led here disagree with the values here.
+
             if (!seen.add(chosen)) return Descent.Blocked(chosen)
             actualCost += edgeCost
             path += chosen
@@ -486,7 +436,6 @@ class DStarLite<N>(
         return null
     }
 
-    /** Where the greedy value descent used by [routeCandidate] gives out. */
     fun routeDescentReport(maxLength: Int = 10_000): String {
         if (start == goal) return "at-goal"
         if (rhs(start) == INF && g(start) == INF) return "unreachable-start"
@@ -609,7 +558,6 @@ class DStarLite<N>(
         private const val EPSILON = 1e-9
         private const val DEADLINE_CHECK_MASK = 0x0F
 
-        /** Each round settles a vertex the previous one tripped over. */
         private const val MAX_DESCENT_ROUNDS = 256
 
         private fun sameCost(a: Double, b: Double, tolerance: Double = EPSILON): Boolean = when {

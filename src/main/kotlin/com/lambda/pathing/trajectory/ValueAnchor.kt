@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.Stance
@@ -30,28 +21,13 @@ internal class ValueAnchor(
 
     var actionsHazardFrame: Int? = null
 
-    /** Stable semantic identity; regenerated action ordering can never retry or skip a decision. */
     val attempted: MutableSet<TrajectoryDecision> = HashSet()
 
-    /**
-     * Earliest failure frame per family that fell *before* the failing member diverged.
-     *
-     * A family is every variant of one control differing only in when its launch fires,
-     * so their inputs are identical until that tick. A failure at frame f therefore
-     * condemns -- exactly, not heuristically -- every sibling whose own launch comes
-     * after f: it would replay the same frames into the same failure.
-     */
     val familyPrefixFailures: MutableMap<Any, Int> = HashMap()
 
     override var hazardFrame: Int? = null
 
-    /**
-     * The knowledge epoch this anchor's finish sweep last ran under. A plain latch
-     * stalled a persistent search forever: a sweep that failed on then-unknown terrain
-     * never retried after the terrain arrived.
-     */
     var sweptEpoch: Int = -1
-
 
     fun prefix(): List<MovementSimulationInput> {
         val chain = ArrayList<List<MovementSimulationInput>>()

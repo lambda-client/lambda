@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.launch.BallisticProfile
@@ -28,34 +19,14 @@ object CoarseMoveRates {
 
     const val STEP_UP_BLOCKS_PER_TICK = 0.1000
 
-    /**
-     * The rise a walking body clears without doing anything about it.
-     *
-     * Vanilla's step height: below this the feet are lifted by collision resolution, not by
-     * a deliberate move, so a half-block riser costs a stride and not a step-up. On terrain
-     * made of whole blocks nothing is ever under it and the distinction never arose.
-     *
-     * @see net.minecraft.entity.attribute.EntityAttributes.STEP_HEIGHT
-     */
     const val FREE_STEP_RISE = 0.6
 
-    /**
-     * The shortest hop worth calling a jump, in blocks.
-     *
-     * Anything nearer is an adjacent stance, which walking or a step-up already reaches --
-     * and reaches more cheaply than leaving the ground for it.
-     */
     const val MIN_JUMP_DISTANCE = 2.0
 
     const val JUMP_AIR_TICKS = 12.0
 
     const val JUMP_RISE_TICKS = 2.0
 
-    /**
-     * Vanilla clamps a climbing body to 0.117 blocks per tick upward.
-     *
-     * @see net.minecraft.entity.LivingEntity.applyClimbingSpeed
-     */
     const val CLIMB_TICKS_PER_BLOCK = 1.0 / 0.117
 
     private const val MAX_FALL_TABLE_DEPTH = 12
@@ -85,20 +56,7 @@ data class Stance(val x: Int, val y: Int, val z: Int) {
     override fun toString() = "($x, $y, $z)"
 
     companion object {
-        /**
-         * Which stance a body at [position] occupies.
-         *
-         * A grounded body is standing on a *surface*, and a stance names the cell above
-         * whatever provides it -- so the question is which cell holds the body up, not which
-         * cell its feet are in. An airborne body is simply inside a cell, and that cell is
-         * the answer.
-         *
-         * On whole blocks a grounded body's feet sit exactly on a cell boundary and the two
-         * readings agree, which is why plain flooring served for as long as the graph only
-         * knew about cubes. On a carpet the feet are at y.0625 and they do not: flooring
-         * names the carpet's own cell, one below the stance the graph built the route from,
-         * so the body was never standing where the plan said it started.
-         */
+
         fun of(position: Vec3d, onGround: Boolean): Stance = Stance(
             floor(position.x).toInt(),
             if (onGround) floor(position.y - SURFACE_EPSILON).toInt() + 1
@@ -106,7 +64,6 @@ data class Stance(val x: Int, val y: Int, val z: Int) {
             floor(position.z).toInt(),
         )
 
-        /** Slack for a body resting exactly on a cell boundary, which is the common case. */
         private const val SURFACE_EPSILON = 1e-6
     }
 }
@@ -116,15 +73,6 @@ value class MotionTemplateId(val value: Int)
 
 data class CoarseEdgeId(val template: MotionTemplateId, val from: Stance)
 
-/**
- * A read set that computes itself on first use.
- *
- * Edge generation used to materialize every edge's read set eagerly, and it was the
- * single largest allocation in the whole graph layer: thousands of edges are generated
- * per search and only the route-length few that get published are ever asked what they
- * read. The declared offsets and the probe's packed reads both survive in the closure,
- * so the answer is identical -- it just waits for the question.
- */
 class LazyReadSet(supplier: () -> Set<VoxelPos>) : AbstractSet<VoxelPos>() {
     private val backing: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION, supplier)
 
@@ -142,9 +90,9 @@ data class CoarseEdge(
     val movement: MovementId,
     val lowerBoundTicks: Double,
     val readSet: Set<VoxelPos>,
-    /** The solved take-off for a ballistic edge; null for edges that keep their feet down. */
+
     val launch: LaunchSolution? = null,
-    /** The solved fall-and-rebound for a bounce edge; null for everything else. */
+
     val bounce: BounceSolution? = null,
 )
 
@@ -153,24 +101,11 @@ class CoarseMoveCosts(
     val diagonalWalk: Double,
     val stepUp: Double,
     val walkOff: (depth: Int) -> Double,
-    /**
-     * Priced by how far the jump actually goes, not by how many cells it steps.
-     *
-     * A span and a separate diagonal variant could only describe the eight compass rays.
-     * Distance describes those and every off-axis landing too, and gives the same answer
-     * for the cases that used to have their own entry.
-     */
+
     val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
     val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
     val climb: (blocks: Int) -> Double = { blocks -> blocks * CoarseMoveRates.CLIMB_TICKS_PER_BLOCK },
-    /**
-     * What a bounce costs, which is dominated by how long the body is in the air.
-     *
-     * Priced off the fall rather than the distance: the flight length is set by the depth and
-     * the rebound, and horizontal speed changes where the body lands without changing how long
-     * it takes to get there. Cheap per block covered and expensive in absolute terms, which is
-     * the honest shape -- a bounce is a fast way across a gap and a slow way to go nowhere.
-     */
+
     val bounce: (span: Int, drop: Int, rise: Int) -> Double = { _, drop, rise ->
         CoarseMoveRates.fallTicks(drop) + CoarseMoveRates.fallTicks(drop + rise) + 2.0
     },
@@ -216,27 +151,11 @@ class CoarseMoveCosts(
     }
 
     companion object {
-        /**
-         * Price for a (span, rise) pair no launch mode can fly.
-         *
-         * Templates are priced when the library is built, long before any terrain is in
-         * hand, so an impossible combination still needs a finite number. It never reaches
-         * the graph: the arc probe refuses to match the template against any origin.
-         */
+
         private const val UNREACHABLE_BALLISTIC_TICKS = 1000.0
 
-        /** Braking to the solved leave speed and recovering on landing. */
         private const val DROP_SETTLE_TICKS = 2.0
 
-        /**
-         * Costs taken from the arc equations rather than from tables beside them.
-         *
-         * Every ballistic price here is the tick count [BallisticProfile] actually
-         * produces for that move, so the cost model and the reachability model can no
-         * longer disagree -- which they did: the old flat 12-tick floor charged a rising
-         * jump 14 ticks for a move that takes 9, and the planner routed around jumps it
-         * should have taken.
-         */
         fun measured(
             transitionOverheadTicks: Double = 0.0,
             profile: BallisticProfile = BallisticProfile.VANILLA,
@@ -247,8 +166,6 @@ class CoarseMoveCosts(
             val walk = 1.0 / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
             val step = 1.0 / CoarseMoveRates.STEP_UP_BLOCKS_PER_TICK
 
-            // Air ticks plus the take-off tick itself. Vertical motion ignores horizontal
-            // speed, so this depends only on the rise -- span never enters it.
             fun ballistic(jumping: Boolean, rise: Int): Double? = LaunchMode.entries
                 .filter { it.jumps == jumping && it.supports(rise.toDouble()) }
                 .mapNotNull { mode -> profile.fly(mode, profile.cruiseSpeed(mode.sprint), rise.toDouble())?.airTicks }
@@ -267,9 +184,7 @@ class CoarseMoveCosts(
                 walkOff = { depth -> max(walk, CoarseMoveRates.fallTicks(depth)) + 1.0 + transitionOverheadTicks },
                 jumpCandidate = { distance, vo -> jump(distance, vo) + transitionOverheadTicks },
                 drop = { span, depth ->
-                    // The fall and the traverse happen at once, so the move costs whichever
-                    // takes longer -- plus the settle, which is the part a walk-off pretends
-                    // is free and then pays for by overshooting the pad.
+
                     max(
                         ballistic(jumping = false, rise = -depth) ?: UNREACHABLE_BALLISTIC_TICKS,
                         span / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK,
@@ -284,43 +199,16 @@ data class SimpleMoveOptions(
     val allowDiagonal: Boolean = true,
     val allowStepUp: Boolean = true,
     val maxWalkOffDepth: Int = 3,
-    /**
-     * Furthest a controlled drop may carry the body horizontally while descending.
-     *
-     * A span of 1 is the stance directly across; 2 crosses a one-block gap on the way
-     * down. Vanilla drop reach is short -- about 1.3 blocks off a one-block ledge -- so
-     * there is little point going far past 2.
-     */
+
     val maxDropSpan: Int = 2,
-    /**
-     * Let the graph route up and down ladders and vines.
-     *
-     * Off by default, and the reason is worth recording: climb templates are cheap per
-     * block, so registering them lowers the admissible ascent bound for *every* search,
-     * including ones with no ladder anywhere near them. A weaker bound is a slower search,
-     * and on a long route a slower search is one that runs out of expansions before it
-     * arrives. Movements are not free just because their terrain is absent.
-     */
+
     val allowClimbing: Boolean = false,
     val allowJumpCandidates: Boolean = true,
     val maxJumpSpan: Int = 4,
     val maxJumpDrop: Int = 1,
-    /**
-     * Whether landings off the eight compass rays are offered.
-     *
-     * On terrain built by hand they are most of the interesting gaps -- three across and one
-     * to the side has no cardinal or diagonal template. They roughly double the graph's
-     * fan-out on open ground, which is the only reason this is a switch rather than simply
-     * how the graph works.
-     */
+
     val allowOffAxisJumps: Boolean = true,
-    /**
-     * Whether falls onto slime are offered as a way across.
-     *
-     * Off by default. The arcs are thirty-odd ticks long, so every one the search tries is
-     * expensive to simulate, and the terrain that rewards them is rare -- a slime pad in
-     * exactly the right place. Worth having where it exists, not worth paying for everywhere.
-     */
+
     val allowSlimeBounces: Boolean = false,
     val maxBounceDrop: Int = 8,
 ) {

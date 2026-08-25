@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.debug
 
 import com.lambda.Lambda.mc
@@ -48,9 +39,7 @@ internal fun executionRejectionReport(
             "position %s/%s, velocity %s/%s").format(
             it.rotation.yaw, observed.rotation.yaw,
             it.isSprinting, observed.isSprinting,
-            // The sneak flag drives two vanilla behaviours that lag differently -- the
-            // ledge clip immediately, the speed multiplier a tick later -- so a divergence
-            // here is unreadable without seeing what each side thought it was doing.
+
             it.isSneaking, observed.isSneaking,
             it.onGround, observed.onGround,
             it.horizontalCollision, observed.horizontalCollision,
@@ -83,23 +72,6 @@ internal fun executionRejectionReport(
         "$liveInputDetail$stateDetail$ledgeDetail"
 }
 
-/**
- * What vanilla's own sneak ledge clip says about the live world, at the frame that failed.
- *
- * Printed only when the tape collided horizontally and the live client did not, which is
- * the signature of a ledge clip firing on one side only. The tape's side is the simulator
- * reading the planning snapshot; this is the identical predicate read from the live world,
- * so the two together separate the only things that can produce that signature.
- *
- * A [worldEmpty] of true means the live world does have the ledge the tape clipped on, and
- * the live client declined to clip anyway -- so the sneak key never reached `clipAtLedge`,
- * and the bug is in the input path. False means the world has ground where the snapshot had
- * air, and the bug is in the terrain the plan was built on. [blocksEmpty] splits off the
- * third case: vanilla's probe also fails on entities and the world border, neither of which
- * the snapshot models, so a disagreement only between these two is not terrain at all.
- *
- * @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking
- */
 private fun liveLedgeProbe(box: Box, movement: Vec3d): String {
     val player = mc.player ?: return ""
     val world = mc.world ?: return ""

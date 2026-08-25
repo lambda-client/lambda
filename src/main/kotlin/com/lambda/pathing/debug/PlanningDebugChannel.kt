@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.debug
 
 import com.lambda.pathing.coarse.CoarsePlanner
@@ -35,65 +26,34 @@ object PlanningDebugChannel {
     var attempts: List<Attempt> = emptyList()
         private set
 
-    /**
-     * One cell of the search graph, reduced to what can be drawn.
-     *
-     * [cost] is the D* Lite `g` value: ticks from this cell to the goal along the best
-     * route the search currently knows. [frontier] marks a cell still in the open queue --
-     * the boundary the search would grow next, and the thing worth looking at when a route
-     * fails to appear, because it is exactly where the expansion stopped.
-     */
     class GraphNode(
         val pos: Vec3d,
         val cost: Double,
         val frontier: Boolean,
-        /** An optimistic step into unstreamed terrain rather than a move over known ground. */
+
         val anchor: Boolean,
     )
 
-    /**
-     * One expanded edge of the search graph: a move the search costed between two cells.
-     *
-     * [policy] marks the successor the search would actually take out of [from] -- the
-     * argmin of edge cost plus the successor's cost to the goal. Those edges chained
-     * together are the route D* believes in, so drawing them is drawing the flow field
-     * rather than a hairball of everything the expansion happened to touch.
-     */
     class GraphEdge(
         val from: Vec3d,
         val to: Vec3d,
         val cost: Double,
         val policy: Boolean,
-        /** Cost to the goal at each end, so the draw can shade the edge downhill. */
+
         val fromCost: Double,
         val toCost: Double,
     )
 
-    /**
-     * A bounded window onto the graph, with the range needed to colour it.
-     *
-     * Bounded because the graph runs to tens of thousands of cells on a long path and the
-     * render is per-frame. [total] against [nodes]`.size` is what says so honestly rather
-     * than quietly drawing a fraction of the truth.
-     */
     class GraphSample(
         val nodes: List<GraphNode>,
         val edges: List<GraphEdge>,
         val cheapest: Double,
         val dearest: Double,
         val total: Int,
-        /** Edges the search holds between drawn cells, before the draw cap bit. */
+
         val totalEdges: Int,
     )
 
-    /**
-     * What the graph view is allowed to spend, per publish.
-     *
-     * Held on the channel rather than read from config at the point of use because the
-     * sampling runs on a planning worker while the settings live on the client: taking a
-     * copy when the session begins keeps the worker off the config and keeps one publish
-     * internally consistent.
-     */
     data class GraphViewLimits(
         val radius: Double = 48.0,
         val cells: Int = 3072,
@@ -118,13 +78,6 @@ object PlanningDebugChannel {
     var graphLimits: GraphViewLimits = GraphViewLimits()
         private set
 
-    /**
-     * Samples the search graph around [around], nearest first, capped.
-     *
-     * Reachable cells are kept ahead of unreachable ones when the cap bites: a cell with
-     * no finite cost to the goal is drawn the same everywhere, so spending the budget on
-     * it would hide the gradient that is the whole point of the view.
-     */
     fun publishGraph(planner: CoarsePlanner, around: Vec3d) {
         if (!active) return
         val nodes = planner.graphNodes
@@ -153,15 +106,11 @@ object PlanningDebugChannel {
             )
         }
 
-        // Both endpoints have to be drawn cells, or an edge would run off to a cell that
-        // is not on screen and read as a stray line rather than as connectivity.
         var knownEdges = 0
         val edges = ArrayList<GraphEdge>()
         stances.forEach { from ->
             val successors = planner.knownSuccessorsOf(from)
-            // The optimistic step is a fiction the search uses to keep reaching toward
-            // terrain it has not streamed. It is not a move over ground, and drawn it
-            // would fire a long line at the goal from every frontier cell.
+
             val real = successors.filterKeys { to -> to in drawn && !(to == goal && from in anchors) }
             if (real.isEmpty()) return@forEach
 
@@ -197,13 +146,6 @@ object PlanningDebugChannel {
         )
     }
 
-    /**
-     * A graph cell drawn at the height a body standing in it would rest.
-     *
-     * The nominal height is the cell's floor, which is the standing surface only when the
-     * support is a whole block. Over a carpet or a fence the plate floated with nothing
-     * under it, which reads as the search having gone somewhere it did not.
-     */
     private fun center(view: CoarseVoxelView, stance: Stance) = Vec3d(
         stance.x + 0.5,
         stance.y + view.surfaceOffset(stance.x, stance.y - 1, stance.z),
@@ -224,10 +166,7 @@ object PlanningDebugChannel {
         synchronized(ring) { ring.clear() }
         attempts = emptyList()
         candidateLines = emptyList()
-        // The graph and route views survive into the next session on purpose: the
-        // underlying coarse graph is retained across legs, and clearing the render
-        // here made every replan look like the graph was lost and rebuilt. The next
-        // publishGraph/publishRoute replaces them in place.
+
         active = enabled
     }
 

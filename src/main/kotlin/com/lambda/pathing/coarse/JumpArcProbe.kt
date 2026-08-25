@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.launch.ArcSample
@@ -26,29 +17,12 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sqrt
 
-/**
- * Masks ballistic coarse edges against real collision shapes.
- *
- * The reachability arithmetic lives in [LaunchSolver]; this is the part that needs the
- * world. It asks the solver for the launches that could make the move, ranked by margin,
- * and sweeps each one's body box along the arc it actually flies until one is clear.
- *
- * The contract with the trajectory layer is unchanged and deliberate: this is permissive.
- * A launch published here is a *candidate*, and the trajectory search still has to fly it
- * through the real simulator and certify it. What is new is that the candidate arrives
- * with the take-off that makes it work attached, so the search refines an answer instead
- * of enumerating its way to one.
- */
 object JumpArcProbe {
     class Reachable(
         val solution: LaunchSolution,
         packedReads: LongOpenHashSet,
     ) {
-        /**
-         * Materialized only when someone asks. The sweep records cells as packed longs so
-         * a refused probe -- which is most probes -- never allocates a position object,
-         * and an accepted one pays for its read set the first time repair wants it.
-         */
+
         val reads: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
             unpackReads(packedReads)
         }
@@ -64,12 +38,6 @@ object JumpArcProbe {
         return result
     }
 
-    /**
-     * Launches for a relative move, cached: the solver reads nothing but the offset
-     * geometry, so every origin of the same template solves to the same list. Keyed on the
-     * exact rise the body flies, which quantizes to the handful of surface heights blocks
-     * actually have.
-     */
     private data class SolveKey(
         val dx: Int,
         val dz: Int,
@@ -103,14 +71,7 @@ object JumpArcProbe {
         rise: Int,
         profile: BallisticProfile = BallisticProfile.VANILLA,
         modes: List<LaunchMode> = LaunchMode.entries,
-        /**
-         * The height the body really flies, and the height its feet really leave from.
-         *
-         * Both default to the whole-block reading, so terrain made of cubes behaves as it
-         * always did. On a slab or a snow layer they do not agree with the stance, and the
-         * arc has to be swept where the body actually goes -- an arc launched half a block
-         * too high clears obstacles the real one hits.
-         */
+
         riseHeight: Double = (rise).toDouble(),
         launchHeight: Double = from.y.toDouble(),
     ): Reachable? {
@@ -126,16 +87,6 @@ object JumpArcProbe {
         return null
     }
 
-    /**
-     * Sweeps the body box along [solution]'s arc, returning the tightest gap it passes.
-     *
-     * Null means the arc is blocked, or crosses a cell the client has not captured -- an
-     * unknown cell fails closed rather than being guessed at.
-     *
-     * The sweep walks the arc's own per-tick positions rather than interpolating between
-     * endpoints. Horizontal motion under drag is not linear in time, and the difference
-     * lands squarely on the apex, which is exactly where a head-bonk is decided.
-     */
     internal fun sweepClearance(
         view: CoarseVoxelView,
         from: Stance,
@@ -173,9 +124,7 @@ object JumpArcProbe {
                 for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
                     for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) {
                         reads.add(BlockPos.asLong(x, y, z))
-                        // Classified rather than fetched: almost every cell an arc crosses
-                        // is air or a plain cube, and both are decidable without touching a
-                        // VoxelShape -- whose box list is rebuilt on every read.
+
                         when (view.collisionClass(x, y, z)) {
                             CollisionClass.EMPTY -> {}
 
@@ -222,7 +171,6 @@ object JumpArcProbe {
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
 
-    /** [gap] against the unit cube at (x, y, z), with no box constructed for it. */
     private fun gapToCell(a: Box, x: Int, y: Int, z: Int): Double {
         val dx = max(max(x - a.maxX, a.minX - (x + 1.0)), 0.0)
         val dy = max(max(y - a.maxY, a.minY - (y + 1.0)), 0.0)
@@ -235,6 +183,5 @@ object JumpArcProbe {
     private const val CLEARANCE_CAP = 0.5
     private const val FLOOR_CONTACT_EPSILON = 1.0E-7
 
-    /** Rise heights quantize to block surface steps, so growth past this is a leak. */
     private const val SOLUTION_CACHE_LIMIT = 100_000
 }

@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
@@ -55,10 +46,7 @@ internal class HorizonController(
         if (running == null) {
             if (anchor.elapsed < searchConfig.safePrefixFrames) return
             if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
-            // The first commit shapes the whole tape and gets the same minimum-work
-            // floor as every later one. Wall time alone made the tape a function of
-            // machine load: a busy JVM reached the delay with a double-digit attempt
-            // count and committed whatever existed.
+
             if (expansions() < searchConfig.minCommitExpansions) return
         } else {
             if (frontier.hasParked) return
@@ -96,14 +84,6 @@ internal class HorizonController(
             ?: pool.minByOrNull { it.order }
             ?: return false
 
-        // A pressured commit must still go somewhere. At the capture frontier every
-        // forward rollout dies on terrain the client does not have yet, the surviving
-        // candidates are lateral wander, and committing them is what walked the body
-        // around in circles at the streamed edge. If the best line's LEAF makes no
-        // guide progress over what is already committed, let the tape end in its
-        // certified stop instead -- standing still until the capture catches up reads
-        // as a pause; wandering reads as broken. The leaf is judged, not the committed
-        // midpoint, so a reposition-then-jump line keeps its backup step.
         if (root != null) {
             val progress = field.guide(root.stance) - field.guide(best.anchor.stance)
             if (progress < MIN_COMMIT_PROGRESS_TICKS) return false
@@ -111,13 +91,7 @@ internal class HorizonController(
 
         val line = lineFrom(root, best.anchor).filter { it.elapsed > committedElapsed }
         for (candidate in line.sortedBy { it.elapsed }) {
-            // The FIRST commitment must not land inside finishing range: it forces every
-            // complete solution to descend from a near-goal stop or be rejected as
-            // divergent -- live this stranded a 7-block walk 2.8 blocks short, then
-            // failed the replan. Short routes skip the premature prefix and publish
-            // their one complete tape instead. Later commitments are exempt: the
-            // endgame of a long walk legitimately commits near the goal, and blocking
-            // that stopped corpus routes short of arrival.
+
             if (root == null && field.guide(candidate.stance) <= searchConfig.finishValueTicks) continue
             val braked = brakeFrom.invoke(candidate) ?: continue
             val certified = certify.invoke(braked) as? MotionPlanResult.Success ?: continue
@@ -148,7 +122,7 @@ internal class HorizonController(
     }
 
     private companion object {
-        /** Minimum guide improvement a pressured commit's leaf must deliver, in ticks. */
+
         const val MIN_COMMIT_PROGRESS_TICKS = 1.0
     }
 

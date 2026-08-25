@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.movement.ControlProgram
@@ -28,11 +19,6 @@ data class SimulatedTrajectoryFrame(
 sealed interface TrajectoryRolloutTermination {
     data object Completed : TrajectoryRolloutTermination
 
-    /**
-     * The rollout read terrain the world model does not hold yet. Waiting on
-     * knowledge, not failing physics -- the two must never alias, because a failure
-     * unlocks the exploration vocabulary and a wait must not.
-     */
     data class Blocked(
         val frame: Int,
         val sectionX: Int,

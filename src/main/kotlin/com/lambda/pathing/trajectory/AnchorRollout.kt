@@ -1,12 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
@@ -30,7 +21,6 @@ internal sealed interface Outcome {
     data class Arrived(val frames: List<SimulatedTrajectoryFrame>, val stopFrame: Int) : Outcome
     data class Rejected(val diagnostic: TrajectoryDiagnostic) : Outcome
 
-    /** The rollout hit terrain the world does not hold yet. */
     data class Blocked(val frame: Int, val sectionX: Int, val sectionY: Int, val sectionZ: Int) : Outcome
 }
 
@@ -41,7 +31,7 @@ internal class AnchorRollout(
     private val searchConfig: ValueFieldSearchConfig,
     private val environment: SnapshotSimulationEnvironment,
     private val profile: PlayerPhysicsProfile,
-    /** A provider: the route terminal moves when the route extends mid-journey. */
+
     private val goalPoint: () -> HorizontalPoint,
     private val attempts: AttemptAccumulator,
     private val progressOf: (com.lambda.pathing.coarse.Stance) -> Int,
@@ -54,8 +44,6 @@ internal class AnchorRollout(
         val movement = movements[action.movement]
             ?: return Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed))
 
-        // The trigger belongs to the decision, not to the search: a jump has one, a drop
-        // has nothing to pull, and a heading may or may not.
         val launch = when (action) {
             is TrajectoryDecision.Launch -> LaunchTrigger(action.delayFrames)
             is TrajectoryDecision.Heading -> action.delayFrames?.let { LaunchTrigger(it) }
@@ -105,10 +93,7 @@ internal class AnchorRollout(
 
                 is RolloutVerdict.Continue -> {
                     if (!frame.state.onGround) airborne = true
-                    // Off the ground, only a movement that finishes in the air is asked.
-                    // For everything that walks, touching down *is* the end of the
-                    // transition, and asking mid-flight would anchor the body over a
-                    // stance it has not reached yet.
+
                     if (!frame.state.onGround && !movement.completesAirborne) {
                         false
                     } else {
@@ -125,11 +110,7 @@ internal class AnchorRollout(
                                 headingCommitFrames = searchConfig.headingCommitFrames,
                             )
                         )
-                        // A landing is an anchor even at a standstill; every other
-                        // transition has to still be going somewhere to be worth one. A
-                        // climb is the standstill case taken to its limit -- it makes no
-                        // horizontal progress at all, so the speed test would reject every
-                        // rung of a ladder.
+
                         val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed ||
                             action is TrajectoryDecision.Drop || movement.completesAirborne
                         if (done && moving && stance != anchor.stance) {
@@ -164,10 +145,7 @@ internal class AnchorRollout(
             )
         }
         if (!field.isMapped(eventStance)) {
-            // Off the guide field. If the terrain there is UNKNOWN, the field simply
-            // has not extended yet -- wait for knowledge. If it is known and still
-            // unmapped, the field has judged it: falling off the route must stay a
-            // rejection the search learns from, or it stops steering on small arenas.
+
             return if (!field.view.isKnown(eventStance.x, eventStance.y - 1, eventStance.z)) {
                 Outcome.Blocked(frame, eventStance.x shr 4, (eventStance.y - 1) shr 4, eventStance.z shr 4)
             } else {

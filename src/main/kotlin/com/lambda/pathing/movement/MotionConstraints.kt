@@ -1,21 +1,5 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 package com.lambda.pathing.movement
 
-/**
- * Limits every control program plans within.
- *
- * Lives beside the programs rather than beside the search results because it is part of
- * the movement contract: a provider writing a new program needs these and nothing else
- * from the search.
- */
 data class MotionConstraints(
     val maxFrames: Int = 160,
     val maxYawDegreesPerFrame: Double = 30.0,
