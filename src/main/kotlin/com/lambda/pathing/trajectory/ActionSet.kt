@@ -9,11 +9,14 @@ import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.ProposalContext
 import com.lambda.pathing.movement.TrajectoryDecision
 
+internal data class CorridorLevel(val steps: Int, val marginTicks: Double)
+
 internal class ActionSet(
     private val catalog: MovementCatalog,
     private val field: CoarseValueField,
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
+    private val corridor: () -> CorridorLevel,
 ) {
     fun actions(anchor: ValueAnchor): List<TrajectoryDecision> {
 
@@ -21,8 +24,9 @@ internal class ActionSet(
             return emptyList()
         }
 
+        val level = corridor()
         val steps = field.steps(
-            anchor.stance, searchConfig.branchingSteps, searchConfig.branchMarginTicks,
+            anchor.stance, level.steps, level.marginTicks,
             anchor.heading(),
         )
         if (steps.isEmpty()) return emptyList()
@@ -46,8 +50,10 @@ internal class ActionSet(
         val first = steps.first()
         val jumpFirst = catalog[first.movement]?.id != MovementId.WALK
 
+        val launchSteps =
+            if (level.marginTicks > searchConfig.branchMarginTicks) level.steps else LAUNCH_STEPS
         val descents = ArrayList<TrajectoryDecision>()
-        for (step in steps.take(LAUNCH_STEPS)) {
+        for (step in steps.take(launchSteps)) {
             val decisions = movementDecisions(anchor, step)
             if (step.to.y < anchor.stance.y) descents += decisions else launches += decisions
         }

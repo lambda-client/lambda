@@ -27,8 +27,6 @@ internal class Walk(val request: PathingRequest) {
 
     var pipelinedTape: Long? = null
 
-    var clearedDemotions = false
-
     fun cancelPlanning() {
         val planning = planningSession
         planningSession = null

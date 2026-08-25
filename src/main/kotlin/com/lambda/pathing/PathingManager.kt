@@ -242,10 +242,6 @@ object PathingManager : Manager<PathingRequest>(0) {
                 coarseState = TrajectoryPlanner.coarseState(preparation, pathingWorld.snapshot),
             ).also { journey = it }
         }
-        if (!walk.clearedDemotions) {
-            walk.clearedDemotions = true
-            currentJourney.coarseState.planner.clearDemotions()
-        }
         launchPlanning(walk, session, preparation, currentJourney)
         advanceSnapshotCapture(walk)
     }
@@ -594,6 +590,20 @@ object PathingManager : Manager<PathingRequest>(0) {
         walk.pendingImprovement?.let { improvement ->
             walk.pendingImprovement = null
             adopt(walk, improvement)
+        }
+
+        // The remaining tape is a stationary terminal tail: the body is already at the
+        // terminal position and every remaining input is passive. Executing it burns
+        // real ticks for nothing -- complete now.
+        walk.cursor?.let { cursor ->
+            val running = published
+            if (running != null && !walk.awaitingObservation &&
+                cursor.nextFrame >= running.plan.stationaryFrom &&
+                cursor.nextFrame < running.plan.tape.frameCount
+            ) {
+                finishTrajectory(walk, running)
+                return
+            }
         }
 
         if (walk.planningSession == null && walk.pendingNextLeg == null && walk.pendingImprovement == null &&

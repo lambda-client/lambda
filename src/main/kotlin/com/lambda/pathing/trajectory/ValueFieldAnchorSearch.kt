@@ -90,6 +90,8 @@ object ValueFieldAnchorSearch {
 
         sectionCapturable: ((Int, Int) -> Boolean)? = null,
 
+        expandGuide: ((Double) -> Unit)? = null,
+
         probe: SearchProbe = SearchProbe.NONE,
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
@@ -100,7 +102,7 @@ object ValueFieldAnchorSearch {
         return Search(
             route, catalog, field, initialState, profile, environment, config, searchConfig,
             onSafePrefix, cursorFrame, clock, cancelled, worldWait, worldSync, sectionCapturable,
-            probe,
+            expandGuide, probe,
         ).run()
     }
 
@@ -132,9 +134,10 @@ object ValueFieldAnchorSearch {
         private val worldWait: ((Long) -> Boolean)?,
         private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
         private val sectionCapturable: ((Int, Int) -> Boolean)?,
+        private val expandGuide: ((Double) -> Unit)?,
         private val probe: SearchProbe,
     ) : CommitSupport {
-        private val vocabulary = ActionSet(catalog, field, config, searchConfig)
+        private val vocabulary = ActionSet(catalog, field, config, searchConfig) { corridor() }
 
         private var goalStance = route.goal
         private var goalPoint = goalStance.center(environment)
@@ -159,6 +162,23 @@ object ValueFieldAnchorSearch {
 
         private var finishSweeps = 0
         private var sweepEpoch = 0
+
+        // The corridor widens under evidence: when the frontier makes no guide progress
+        // for a while, successors with worse coarse bounds become proposable so the
+        // search can flow around a trajectory-infeasible edge. The coarse graph itself
+        // is never touched -- it stays a pure lower bound.
+        private var corridorLevel = 0
+        private var actionsEpoch = 0
+        private var progressBaseline = Double.POSITIVE_INFINITY
+        private var bestGuideSeen = Double.POSITIVE_INFINITY
+        private var expansionsSinceGuideProgress = 0
+
+        // Anchors whose corridor-level vocabulary is exhausted; revived when it widens.
+        private val spentAnchors = ArrayList<ValueAnchor>()
+
+        // A launch landing braked to rest inside the goal: certified only when nothing
+        // better finishes -- a last resort, never a competitor to the finisher.
+        private var brakedFallback: Solution? = null
         private var blockedWaitMillis = 0L
         private var fruitlessWakes = 0
         private var best: Solution? = null
@@ -185,6 +205,44 @@ object ValueFieldAnchorSearch {
         )
 
         private var walking = false
+
+        private fun corridor(): CorridorLevel = CORRIDOR_LEVELS[corridorLevel]
+
+        private fun revivable(): Boolean =
+            spentAnchors.isNotEmpty() && corridorLevel < CORRIDOR_LEVELS.lastIndex
+
+        private fun noteGuide(stance: Stance) {
+            val guide = field.guide(stance)
+            if (guide < bestGuideSeen) bestGuideSeen = guide
+            if (bestGuideSeen <= progressBaseline - GUIDE_PROGRESS_HYSTERESIS_TICKS) {
+                progressBaseline = bestGuideSeen
+                expansionsSinceGuideProgress = 0
+                if (corridorLevel != 0) {
+                    corridorLevel = 0
+                    actionsEpoch++
+                }
+            }
+        }
+
+        private fun escalateCorridor(force: Boolean): Boolean {
+            spentAnchors.retainAll { horizon.canReach(it) }
+            // Exhaustion alone is not stall evidence: a healthy streaming walk exhausts
+            // its committed subtree all the time. Widen only when the guide has not
+            // moved either.
+            if (force && expansionsSinceGuideProgress < FORCE_ESCALATION_MIN_EXPANSIONS) return false
+            if (!force && expansionsSinceGuideProgress < ESCALATION_EXPANSIONS) return false
+            if (corridorLevel >= CORRIDOR_LEVELS.lastIndex) return false
+            if (!force && frontier.hasBlocked) return false
+            corridorLevel++
+            actionsEpoch++
+            expansionsSinceGuideProgress = 0
+            expandGuide?.invoke(CORRIDOR_LEVELS[corridorLevel].marginTicks)
+            field.clearGuideCache()
+            frontier.rescore()
+            spentAnchors.forEach { frontier.reopen(it) }
+            spentAnchors.clear()
+            return true
+        }
 
         private fun syncWorld() {
             when (val result = worldSync?.invoke(route) ?: return) {
@@ -232,8 +290,11 @@ object ValueFieldAnchorSearch {
                 )
             )
 
+            noteGuide(stanceOf(initialState))
             horizon.begin()
-            while ((!frontier.isExhausted || frontier.hasBlocked) && expansions < searchConfig.maxExpansions) {
+            while ((!frontier.isExhausted || frontier.hasBlocked || revivable()) &&
+                expansions < searchConfig.maxExpansions
+            ) {
                 if (cancelled()) return MotionPlanResult.Cancelled
                 val root = horizon.safeAnchor
                 if (root != null) {
@@ -269,6 +330,9 @@ object ValueFieldAnchorSearch {
                         }
                         continue
                     }
+                    // Total exhaustion at this corridor level is stall evidence in
+                    // itself: widen the corridor and revive the spent anchors.
+                    if (spentAnchors.isNotEmpty() && escalateCorridor(force = true)) continue
                     val toward = best?.takeIf { !readyToFinish(it) }?.anchor
                     if (!frontier.hasParked && toward == null) break
                     if (!horizon.commitFromCandidates(urgent = true, along = toward)) break
@@ -297,6 +361,7 @@ object ValueFieldAnchorSearch {
                 if (anchor.sweptEpoch != sweepEpoch &&
                     remaining <= searchConfig.finishValueTicks &&
                     finishSweeps < searchConfig.maxFinishSweeps &&
+                    horizon.canReach(anchor) &&
                     best.let { it == null || anchor.elapsed + remaining < it.frames }
                 ) {
                     anchor.sweptEpoch = sweepEpoch
@@ -304,10 +369,16 @@ object ValueFieldAnchorSearch {
                     finisher.finishFrom(anchor)?.let { retain(it) }
                 }
 
-                val action = nextAction(anchor) ?: continue
+                val action = nextAction(anchor)
+                if (action == null) {
+                    if (corridorLevel < CORRIDOR_LEVELS.lastIndex) spentAnchors += anchor
+                    continue
+                }
                 expansions++
                 clock.onExpansion()
                 expansionsSinceImprovement++
+                expansionsSinceGuideProgress++
+                escalateCorridor(force = false)
 
                 val raw = rollouts.transition(anchor, action, anchor.hazardFrame)
 
@@ -327,6 +398,16 @@ object ValueFieldAnchorSearch {
                 probe.decision(action, outcome is Outcome.Rejected, (outcome as? Outcome.Rejected)?.diagnostic?.frame ?: 0)
                 when (outcome) {
                     is Outcome.Anchored -> {
+                        noteGuide(outcome.anchor.stance)
+                        // A launch that lands on the goal still moving cannot be finished
+                        // by the corridor follower (it cannot re-cross the gap edge that
+                        // got here) -- braking the landing to rest is the finish. Walk
+                        // arrivals are left to the finisher, which stops tighter.
+                        if (outcome.anchor.stance == goalStance &&
+                            action.movement != MovementId.WALK && best == null
+                        ) {
+                            finishByBraking(outcome.anchor)
+                        }
                         frontier.admit(outcome.anchor)
                         horizon.publishPrefix(outcome.anchor, expansions)
                     }
@@ -375,6 +456,8 @@ object ValueFieldAnchorSearch {
                             anchor = anchor,
                         )
                     )
+                } else if (corridorLevel < CORRIDOR_LEVELS.lastIndex) {
+                    spentAnchors += anchor
                 }
             }
 
@@ -386,6 +469,8 @@ object ValueFieldAnchorSearch {
                 }
                 return finish(solution)
             }
+
+            brakedFallback?.let { return finish(it) }
 
             return MotionPlanResult.NoSafeStop(
                 attemptCount = attempts.count,
@@ -399,10 +484,13 @@ object ValueFieldAnchorSearch {
         private fun actions(anchor: ValueAnchor): List<TrajectoryDecision> {
             val hazard = anchor.hazardFrame
             val cached = anchor.actions
-            if (cached != null && anchor.actionsHazardFrame == hazard) return cached
+            if (cached != null && anchor.actionsHazardFrame == hazard &&
+                anchor.actionsEpoch == actionsEpoch
+            ) return cached
             return vocabulary.actions(anchor).also {
                 anchor.actions = it
                 anchor.actionsHazardFrame = hazard
+                anchor.actionsEpoch = actionsEpoch
             }
         }
 
@@ -426,7 +514,10 @@ object ValueFieldAnchorSearch {
         private fun hasUnattemptedAction(anchor: ValueAnchor): Boolean =
             actions(anchor).any { it !in anchor.attempted }
 
-        override fun brakeToStop(anchor: ValueAnchor): Solution? {
+        override fun brakeToStop(anchor: ValueAnchor): Solution? =
+            brakeWithResting(anchor)?.first
+
+        private fun brakeWithResting(anchor: ValueAnchor): Pair<Solution, MovementSimulationState>? {
             val gated = gate.run(
                 anchor.state, listOf(anchor.stance.center(environment)),
                 BrakeToStopProgram(anchor.state.rotation.yaw),
@@ -463,13 +554,29 @@ object ValueFieldAnchorSearch {
             if (stableEnd < 0) return null
             val frames = rollout.frames.take(stableEnd + 1)
 
-            val resting = stanceOf(frames.last().state)
+            val restingState = frames.last().state
+            val resting = stanceOf(restingState)
             if (!field.isStance(resting) || !field.isMapped(resting)) return null
             return Solution.of(
                 anchor, frames,
                 TerminalApproach(false, LOOK_AHEAD_NODES, config.brakeDistances.first(), null),
                 anchor.collisionEvents + collisionEvents(anchor.state, frames),
+            ) to restingState
+        }
+
+        // A transition that lands on the goal stance still carries momentum -- the
+        // movement program truncates at the landing, and the corridor-following
+        // finisher cannot cross the gap edge that got here. Braking the landing to
+        // rest IS the finish when the stop stays inside the goal.
+        private fun finishByBraking(anchor: ValueAnchor) {
+            val (solution, resting) = brakeWithResting(anchor) ?: return
+            val goal = goalPoint
+            val distance = kotlin.math.hypot(
+                resting.position.x - goal.x, resting.position.z - goal.z,
             )
+            if (distance > config.goalRadius) return
+            if (kotlin.math.abs(resting.position.y - goal.y) > GOAL_BRAKE_VERTICAL_TOLERANCE) return
+            retain(solution)
         }
 
         override fun certify(solution: Solution): MotionPlanResult = certifier.certify(
@@ -480,6 +587,9 @@ object ValueFieldAnchorSearch {
         )
 
         private fun retain(solution: Solution) {
+            // A solution whose anchor fell behind the committed root can never be
+            // adopted -- its tape diverges under frames the body already pressed.
+            if (!horizon.canReach(solution.anchor)) return
             val incumbent = best
             if (incumbent == null || solution.score < incumbent.score) {
                 best = solution
@@ -534,6 +644,21 @@ object ValueFieldAnchorSearch {
     internal const val COLLISION_FRAME_PENALTY = 4
 
     private const val BRAKE_TAIL_FRAMES = 64
+
+    private val CORRIDOR_LEVELS = listOf(
+        CorridorLevel(steps = 3, marginTicks = 4.0),
+        CorridorLevel(steps = 5, marginTicks = 8.0),
+        CorridorLevel(steps = 8, marginTicks = 16.0),
+        CorridorLevel(steps = 12, marginTicks = 32.0),
+    )
+
+    private const val ESCALATION_EXPANSIONS = 1500
+
+    private const val FORCE_ESCALATION_MIN_EXPANSIONS = 32
+
+    private const val GUIDE_PROGRESS_HYSTERESIS_TICKS = 2.0
+
+    private const val GOAL_BRAKE_VERTICAL_TOLERANCE = 0.05
 
     private const val RETRY_PENALTY_TICKS = 0.05
 

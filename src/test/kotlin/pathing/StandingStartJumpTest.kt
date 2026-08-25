@@ -2,7 +2,6 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.RefusalRerouter
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -80,7 +79,7 @@ class StandingStartJumpTest {
     }
 
     @Test
-    fun `a refused route edge is demoted and the walk detours`() {
+    fun `a hopeless route edge is flowed around without touching the coarse graph`() {
         val environment = detourWorld()
         val start = Stance(0, 1, 0)
         val goal = Stance(5, 1, 0)
@@ -101,28 +100,26 @@ class StandingStartJumpTest {
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
         )
-        val field = planner.valueField()
-        val rerouter = RefusalRerouter(
-            planner = planner,
-            field = field,
-            reroute = { planner.routePlan(1L) },
-            cancelled = { false },
+        val result = TrajectoryPlanner.walkHorizon(
+            route, planner, initial, PROFILE, environment, MotionConstraints(),
+            cursorFrame = { null },
+            publish = { _, _ -> },
+            started = 0L,
         )
-        val result = rerouter.walk(route) { attempted ->
-            TrajectoryPlanner.walkHorizon(
-                attempted, planner, initial, PROFILE, environment, MotionConstraints(),
-                cursorFrame = { null },
-                publish = { _, _ -> },
-                started = 0L,
-            )
-        }
-        assertIs<PathPlanResult.Planned>(
+        val planned = assertIs<PathPlanResult.Planned>(
             result,
-            "demoting the refused direct jump must reroute across the detour pads",
+            "the walk must certify a detour trajectory over the pads",
         )
+        assertTrue(!planned.path.partial, "the detour must reach the goal, not park short")
         assertTrue(
-            result.path.route.nodes.size > 2,
-            "the certified route must be the detour: ${result.path.route.nodes}",
+            planned.path.route.nodes.size == 2,
+            "the coarse route stays the direct jump — it is a lower bound, not a promise: " +
+                "${planned.path.route.nodes}",
+        )
+        val minZ = planned.path.plan.frames.minOf { it.state.position.z }
+        assertTrue(
+            minZ < -1.0,
+            "the certified trajectory must detour over the pads at z=-2: minZ=$minZ",
         )
     }
 

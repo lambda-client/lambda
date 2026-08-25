@@ -68,6 +68,7 @@ internal class Frontier(
     }
 
     fun reopen(anchor: ValueAnchor) {
+        if (!reachability.canReach(anchor)) return
         if (open.any { it.anchor === anchor }) return
         val guide = field.guide(anchor.stance).takeIf { it.isFinite() } ?: return
         enqueue(entryFor(anchor, guide))
