@@ -95,15 +95,14 @@ object JumpMovement : Movement {
                 sprint = solution.sprint, maxTicks = MAX_LAUNCH_FRAME,
             )
             context.ballistics.runUpSpeed(closing, ticks, solution.sprint) >=
-                solution.speed - solution.speedSlack
+                solution.speed - solution.speedSlack * 0.5
         }
         if (anyReachable) return emptyList()
 
         val ballistics = context.ballistics
         val decisions = ArrayList<TrajectoryDecision>()
         for (solution in solutions) {
-            val required = solution.speed - solution.speedSlack * 0.5
-            val groundNeeded = ballistics.runUpDistanceFor(required, solution.sprint)
+            val groundNeeded = ballistics.runUpDistanceFor(solution.speed, solution.sprint)
             if (groundNeeded != null) {
                 val retreatAlong = solution.launchOffset - (groundNeeded + RUN_UP_MARGIN_BLOCKS)
                 if (clearBehind(context, -retreatAlong)) {
@@ -118,7 +117,7 @@ object JumpMovement : Movement {
             val mode = if (solution.sprint) LaunchMode.SPRINT_JUMP else LaunchMode.WALK_JUMP
             val cruise = ballistics.cruiseSpeed(solution.sprint)
             val hop = ballistics.fly(mode, cruise, 0.0) ?: continue
-            if (hop.exitSpeed < required - HOP_EXIT_TOLERANCE) continue
+            if (hop.exitSpeed < solution.speed - solution.speedSlack * 0.5 - HOP_EXIT_TOLERANCE) continue
             val groundToCruise = ballistics.runUpDistanceFor(cruise * CRUISE_FRACTION, solution.sprint)
                 ?: continue
             for (gap in HOP_LANDING_GAPS) {

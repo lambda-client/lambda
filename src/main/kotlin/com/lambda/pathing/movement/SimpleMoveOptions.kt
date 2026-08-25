@@ -9,7 +9,7 @@ data class SimpleMoveOptions(
 
     val allowClimbing: Boolean = false,
     val allowJumpCandidates: Boolean = true,
-    val maxJumpSpan: Int = 4,
+    val maxJumpSpan: Int = 5,
     val maxJumpDrop: Int = 1,
 
     val allowOffAxisJumps: Boolean = true,

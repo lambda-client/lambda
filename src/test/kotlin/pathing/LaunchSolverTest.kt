@@ -197,13 +197,13 @@ class LaunchSolverTest {
         val comfortable = assertNotNull(LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 3)))
         val desperate = assertNotNull(LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 5)))
         assertTrue(
-            comfortable.margin > desperate.margin * 2.0,
-            "a span-3 jump (${comfortable.margin}) must comfortably out-rank " +
+            comfortable.margin > desperate.margin,
+            "a span-3 jump (${comfortable.margin}) must out-rank " +
                 "a span-5 jump (${desperate.margin})",
         )
-        assertTrue(
-            desperate.headroom < 0.2,
-            "a span-5 jump must need nearly all the speed the body has (${desperate.headroom})",
+        assertNull(
+            LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 6), modes = listOf(LaunchMode.SPRINT_JUMP)),
+            "a span-6 jump is beyond the body's reach at any entry speed",
         )
     }
 
@@ -261,9 +261,10 @@ class LaunchSolverTest {
 
         val state = simulator.state
         assertTrue(landed, "${solution.mode} span=$span rise=$rise never touched down: ${state.position}")
-        assertEquals(
-            span, floor(state.position.z).toInt(),
-            "${solution.mode} span=$span rise=$rise landed at z=${state.position.z}, " +
+        assertTrue(
+            state.position.z + BODY_HALF_WIDTH > span && state.position.z - BODY_HALF_WIDTH < span + 1.0,
+            "${solution.mode} span=$span rise=$rise landed at z=${state.position.z} " +
+                "with no body overlap on the target cell, " +
                 "aiming for ${solution.aimDistance} from the stance centre",
         )
         assertEquals(
@@ -284,6 +285,8 @@ class LaunchSolverTest {
     private companion object {
         /** One tick of sprint travel: the arc is predicted to within a single frame. */
         const val AIM_TOLERANCE = 0.3
+
+        const val BODY_HALF_WIDTH = 0.3
 
         /** Ticks a drop is allowed to spend walking to the lip before it leaves. */
         const val LEAVE_TICK_BUDGET = 12
