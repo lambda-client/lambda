@@ -4,23 +4,16 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.BrakeToStopProgram
-import com.lambda.pathing.movement.ControlProgram
-import com.lambda.pathing.movement.CorridorFollowerProgram
-import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.MovementKeys
-import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.movement.InputTape
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.world.center
-import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
-import kotlin.math.hypot
 
 data class ValueFieldSearchConfig(
     val maxExpansions: Int = 8000,
@@ -123,12 +116,6 @@ object ValueFieldAnchorSearch {
     internal fun stanceOf(state: MovementSimulationState): Stance =
         Stance.of(state.position, state.onGround)
 
-    private class GatedRollout(
-        val rollout: TrajectoryRollout,
-        val stopFrame: Int?,
-        val failed: Boolean,
-    )
-
     private class Search(
         private var route: CoarseRoutePlan,
         private val catalog: MovementCatalog,
@@ -146,7 +133,7 @@ object ValueFieldAnchorSearch {
         private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
         private val sectionCapturable: ((Int, Int) -> Boolean)?,
         private val probe: SearchProbe,
-    ) {
+    ) : CommitSupport {
         private val vocabulary = ActionSet(catalog, field, config, searchConfig)
 
         private var goalStance = route.goal
@@ -157,17 +144,19 @@ object ValueFieldAnchorSearch {
 
         private val frontier: Frontier = Frontier(
             field, config, searchConfig, routeIndex,
-            reachable = { horizon.canReach(it) },
             incumbentFrames = { best?.frames },
         )
 
         private val horizon: HorizonController = HorizonController(
             searchConfig, field, frontier, clock, cursorFrame, onSafePrefix,
-            expansions = { expansions },
-            brakeFrom = ::brakeFrom,
-            certify = ::certify,
+            support = this,
             probe = probe,
         )
+
+        init {
+            frontier.reachability = ReachabilityPolicy(horizon::canReach)
+        }
+
         private var finishSweeps = 0
         private var sweepEpoch = 0
         private var blockedWaitMillis = 0L
@@ -177,14 +166,25 @@ object ValueFieldAnchorSearch {
 
         private var expansions = 0
 
+        override val expansionCount: Int get() = expansions
+
         private val rollouts = AnchorRollout(
             catalog, field, config, searchConfig, environment, profile, { goalPoint },
             attempts, frontier::progressOf, probe,
         )
 
-        private var walking = false
+        private val gate = RolloutGate(profile, environment, config) { goalPoint }
 
-        private var provenFinish: TerminalApproach? = null
+        private val certifier = Certifier(initialState, profile, environment, cancelled)
+
+        private val finisher = FinishPlanner(
+            field, environment, config, gate, attempts, probe,
+            goalPoint = { goalPoint },
+            routeLastIndex = { route.nodes.lastIndex },
+            progressOf = frontier::progressOf,
+        )
+
+        private var walking = false
 
         private fun syncWorld() {
             when (val result = worldSync?.invoke(route) ?: return) {
@@ -301,7 +301,7 @@ object ValueFieldAnchorSearch {
                 ) {
                     anchor.sweptEpoch = sweepEpoch
                     finishSweeps++
-                    finishFrom(anchor)?.let { retain(it) }
+                    finisher.finishFrom(anchor)?.let { retain(it) }
                 }
 
                 val action = nextAction(anchor) ?: continue
@@ -331,7 +331,7 @@ object ValueFieldAnchorSearch {
                         horizon.publishPrefix(outcome.anchor, expansions)
                     }
                     is Outcome.Arrived -> retain(
-                        solutionFrom(
+                        Solution.of(
                             anchor,
                             outcome.frames.take(outcome.stopFrame + 1),
                             TerminalApproach(
@@ -426,89 +426,8 @@ object ValueFieldAnchorSearch {
         private fun hasUnattemptedAction(anchor: ValueAnchor): Boolean =
             actions(anchor).any { it !in anchor.attempted }
 
-        private fun finishFrom(anchor: ValueAnchor): Solution? {
-            val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
-            if (!field.reachesGoal(chain)) return null
-            val points = chain.map { it.center(environment) }
-            val leads: List<Double?> = if (chain.zipWithNext().any { (from, to) -> to.y > from.y }) {
-                config.stepUpJumpLeadDistances
-            } else {
-                listOf(null)
-            }
-
-            val grid = buildList {
-                provenFinish?.let { add(it) }
-                for (sprint in config.sprintModes) {
-                    for (brake in config.brakeDistances) {
-                        for (lead in leads) {
-                            add(TerminalApproach(sprint, LOOK_AHEAD_NODES, brake, lead))
-                        }
-                    }
-                }
-            }
-
-            var bestRank: TrajectoryRank? = null
-            var bestFrames: List<SimulatedTrajectoryFrame>? = null
-            var bestParameters: TerminalApproach? = null
-            for (parameters in grid) {
-                val frames = terminalRun(anchor, chain, points, parameters) ?: continue
-                val rank = TrajectoryRank(
-                    certifiedAndSafe = true,
-                    certifiedHorizon = route.nodes.lastIndex,
-                    elapsedPlusTail = (anchor.elapsed + frames.size).toDouble(),
-                    collisionEvents = anchor.collisionEvents + collisionEvents(anchor.state, frames),
-                    launchMargin = anchor.launchMargin,
-                    inputSwitches = anchor.inputSwitches +
-                        inputSwitches(anchor.inputs.lastOrNull(), frames),
-                )
-                if (parameters == provenFinish) {
-                    return solutionFrom(anchor, frames, parameters, rank.collisionEvents)
-                }
-                val incumbent = bestRank
-                if (incumbent == null || rank < incumbent) {
-                    bestRank = rank
-                    bestFrames = frames
-                    bestParameters = parameters
-                }
-            }
-
-            val rank = bestRank ?: return null
-            val parameters = bestParameters!!
-            provenFinish = parameters
-            return solutionFrom(anchor, bestFrames!!, parameters, rank.collisionEvents)
-        }
-
-        private fun terminalRun(
-            anchor: ValueAnchor,
-            chain: List<Stance>,
-            points: List<HorizontalPoint>,
-            parameters: TerminalApproach,
-        ): List<SimulatedTrajectoryFrame>? {
-            val gated = gatedRollout(
-                anchor.state, points,
-                CorridorFollowerProgram(chain, parameters, config),
-                config.maxFrames,
-            )
-            val evaluation = evaluate(gated.rollout, points, goalPoint, config)
-            probe.attempt(gated.rollout, gated.stopFrame != null, evaluation.diagnostic)
-            attempts.record(PlanAttempt(
-                parameters = parameters,
-                simulatedFrames = gated.rollout.frames.size,
-                finalGoalError = hypot(
-                    gated.rollout.finalState.position.x - goalPoint.x,
-                    gated.rollout.finalState.position.z - goalPoint.z,
-                ),
-                finalHorizontalSpeed = gated.rollout.finalState.velocity.horizontalLength(),
-                diagnostic = evaluation.diagnostic,
-                blockedProgress = frontier.progressOf(anchor.stance),
-            ))
-            val stop = gated.stopFrame ?: return null
-            if (gated.failed) return null
-            return gated.rollout.frames.take(stop + 1)
-        }
-
-        private fun brakeFrom(anchor: ValueAnchor): Solution? {
-            val gated = gatedRollout(
+        override fun brakeToStop(anchor: ValueAnchor): Solution? {
+            val gated = gate.run(
                 anchor.state, listOf(anchor.stance.center(environment)),
                 BrakeToStopProgram(anchor.state.rotation.yaw),
                 BRAKE_TAIL_FRAMES,
@@ -531,125 +450,19 @@ object ValueFieldAnchorSearch {
 
             val resting = stanceOf(frames.last().state)
             if (!field.isStance(resting) || !field.isMapped(resting)) return null
-            return solutionFrom(
+            return Solution.of(
                 anchor, frames,
                 TerminalApproach(false, LOOK_AHEAD_NODES, config.brakeDistances.first(), null),
                 anchor.collisionEvents + collisionEvents(anchor.state, frames),
             )
         }
 
-        private fun solutionFrom(
-            anchor: ValueAnchor,
-            tail: List<SimulatedTrajectoryFrame>,
-            parameters: TerminalApproach,
-            collisions: Int,
-        ): Solution {
-            return Solution(
-                inputs = anchor.prefix() + tail.map { it.input },
-                boundaries = anchor.boundaries() + anchor.elapsed,
-                segments = anchor.depth() + 1,
-                launchMargin = anchor.launchMargin,
-                parameters = parameters,
-                frames = anchor.elapsed + tail.size,
-                collisionEvents = collisions,
-                anchor = anchor,
-            )
-        }
-
-        private fun gatedRollout(
-            from: MovementSimulationState,
-            points: List<HorizontalPoint>,
-            program: ControlProgram,
-            frameCount: Int,
-        ): GatedRollout {
-            val evaluator = RolloutEvaluator(from, points, goalPoint, config)
-            var previous = from
-            var stopFrame: Int? = null
-            var failed = false
-            val rollout = TrajectoryRolloutEngine.rollout(
-                initialState = from,
-                profile = profile,
-                environment = environment,
-                program = program,
-                frameCount = frameCount,
-            ) { frame ->
-                val verdict = evaluator.observe(frame.index, frame.state, previous)
-                previous = frame.state
-                when (verdict) {
-                    is RolloutVerdict.Stopped -> { stopFrame = verdict.frame; true }
-                    is RolloutVerdict.Failed -> { failed = true; true }
-                    is RolloutVerdict.Continue -> false
-                }
-            }
-            return GatedRollout(rollout, stopFrame, failed)
-        }
-
-        private var certifiedInputs: List<MovementSimulationInput> = emptyList()
-        private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
-        private var certifiedDependencies: List<Set<VoxelPos>> = emptyList()
-
-        private fun certify(solution: Solution): MotionPlanResult {
-            if (cancelled()) return MotionPlanResult.Cancelled
-            val inputs = solution.inputs
-            val tape = InputTape(inputs)
-
-            var shared = 0
-            val maxShared = minOf(inputs.size, certifiedInputs.size, certifiedFrames.size)
-            while (shared < maxShared && inputs[shared] == certifiedInputs[shared]) shared++
-
-            val frames = ArrayList<SimulatedTrajectoryFrame>(inputs.size)
-            frames += certifiedFrames.subList(0, shared)
-            val frameDependencies = ArrayList<Set<VoxelPos>>(inputs.size)
-            frameDependencies += certifiedDependencies.subList(0, shared)
-
-            val resumeState = if (shared == 0) initialState else certifiedFrames[shared - 1].state
-            val suffix = inputs.subList(shared, inputs.size)
-            val tracked = environment.trackingView()
-            val certified = TrajectoryRolloutEngine.rollout(
-                initialState = resumeState,
-                profile = profile,
-                environment = tracked,
-                program = InputTape(suffix),
-                frameCount = suffix.size,
-                observer = { _ ->
-                    frameDependencies += tracked.takeFrameDependencies()
-                    false
-                },
-            )
-            if (!certified.completed || certified.frames.size != suffix.size) {
-                return MotionPlanResult.UnstableReplay(
-                    "value-field tape did not reproduce: ${certified.termination}"
-                )
-            }
-            certified.frames.forEach { frame -> frames += frame.copy(index = shared + frame.index) }
-            check(frameDependencies.size == inputs.size) {
-                "Every certified input must publish its world-read dependencies"
-            }
-            val dependencies = HashSet<VoxelPos>()
-            frameDependencies.forEach(dependencies::addAll)
-
-            certifiedInputs = inputs
-            certifiedFrames = frames
-            certifiedDependencies = frameDependencies
-
-            if (cancelled()) return MotionPlanResult.Cancelled
-            return MotionPlanResult.Success(
-                sourceRoute = route,
-                tape = tape,
-                rollout = TrajectoryRollout(initialState, frames, TrajectoryRolloutTermination.Completed),
-                parameters = solution.parameters,
-                safeAnchorStance = solution.anchor.stance,
-                safeAnchorFrame = solution.anchor.elapsed,
-                remainingGuideTicks = field.guide(solution.anchor.stance),
-                frameDependencies = frameDependencies,
-
-                dependencies = dependencies,
-                attemptCount = attempts.count,
-                controlSegments = solution.segments,
-                spliceFrames = solution.boundaries.filter { it in 1 until tape.frameCount },
-                launchMarginFrames = solution.launchMargin,
-            )
-        }
+        override fun certify(solution: Solution): MotionPlanResult = certifier.certify(
+            solution,
+            route = route,
+            remainingGuideTicks = field.guide(solution.anchor.stance),
+            attemptCount = attempts.count,
+        )
 
         private fun retain(solution: Solution) {
             val incumbent = best
@@ -708,7 +521,5 @@ object ValueFieldAnchorSearch {
     private const val BRAKE_TAIL_FRAMES = 24
 
     private const val RETRY_PENALTY_TICKS = 0.05
-
-    private const val FINISH_CHAIN_LENGTH = 24
 
 }

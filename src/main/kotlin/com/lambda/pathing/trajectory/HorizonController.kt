@@ -3,6 +3,14 @@ package com.lambda.pathing.trajectory
 import com.lambda.pathing.coarse.CoarseValueField
 import net.minecraft.util.math.Vec3d
 
+internal interface CommitSupport {
+    val expansionCount: Int
+
+    fun brakeToStop(anchor: ValueAnchor): Solution?
+
+    fun certify(solution: Solution): MotionPlanResult
+}
+
 internal class HorizonController(
     private val searchConfig: ValueFieldSearchConfig,
     private val field: CoarseValueField,
@@ -10,9 +18,7 @@ internal class HorizonController(
     private val clock: SearchClock,
     private val cursorFrame: (() -> Int?)?,
     private val onSafePrefix: ((MotionPlanResult.Success) -> Unit)?,
-    private val expansions: () -> Int,
-    private val brakeFrom: (ValueAnchor) -> Solution?,
-    private val certify: (Solution) -> MotionPlanResult,
+    private val support: CommitSupport,
     private val probe: SearchProbe,
 ) {
     var safeAnchor: ValueAnchor? = null
@@ -47,19 +53,19 @@ internal class HorizonController(
             if (anchor.elapsed < searchConfig.safePrefixFrames) return
             if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
 
-            if (expansions() < searchConfig.minCommitExpansions) return
+            if (support.expansionCount < searchConfig.minCommitExpansions) return
         } else {
             if (frontier.hasParked) return
             if (!anchor.descendsFrom(running)) return
             if (anchor.elapsed < running.elapsed + searchConfig.horizonCommitFrames) return
-            if (expansions() - expansionsAtCommit < searchConfig.minCommitExpansions) return
+            if (support.expansionCount - expansionsAtCommit < searchConfig.minCommitExpansions) return
             val executing = cursorFrame?.invoke() ?: return
             if (running.elapsed - executing > searchConfig.horizonRunwayFrames) return
         }
-        val braked = brakeFrom.invoke(anchor) ?: return
-        val certified = certify.invoke(braked) as? MotionPlanResult.Success ?: return
+        val braked = support.brakeToStop(anchor) ?: return
+        val certified = support.certify(braked) as? MotionPlanResult.Success ?: return
         safeAnchor = anchor
-        expansionsAtCommit = expansions()
+        expansionsAtCommit = support.expansionCount
         reRootOnto(anchor)
         publish(certified)
     }
@@ -68,7 +74,7 @@ internal class HorizonController(
         val publish = onSafePrefix ?: return false
         val root = safeAnchor
 
-        if (!urgent && expansions() - expansionsAtCommit < searchConfig.minCommitExpansions) {
+        if (!urgent && support.expansionCount - expansionsAtCommit < searchConfig.minCommitExpansions) {
             return false
         }
 
@@ -93,10 +99,10 @@ internal class HorizonController(
         for (candidate in line.sortedBy { it.elapsed }) {
 
             if (root == null && field.guide(candidate.stance) <= searchConfig.finishValueTicks) continue
-            val braked = brakeFrom.invoke(candidate) ?: continue
-            val certified = certify.invoke(braked) as? MotionPlanResult.Success ?: continue
+            val braked = support.brakeToStop(candidate) ?: continue
+            val certified = support.certify(braked) as? MotionPlanResult.Success ?: continue
             safeAnchor = candidate
-            expansionsAtCommit = expansions()
+            expansionsAtCommit = support.expansionCount
             reRootOnto(candidate)
             publish(certified)
             return true
