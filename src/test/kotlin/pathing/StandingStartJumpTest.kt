@@ -42,57 +42,6 @@ class StandingStartJumpTest {
     }
 
     @Test
-    fun `a stalled session reroutes in place without finalizing a stop`() {
-        val environment = detourWorld()
-        val start = Stance(0, 1, 0)
-        val goal = Stance(4, 2, 0)
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(),
-        )
-        val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
-        val route = requireNotNull(planner.routePlan(1L))
-        assertTrue(route.nodes.size == 2, "the direct span-4 jump must win the coarse route: ${route.nodes}")
-
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(0.93, 1.0, 0.5),
-            rotation = Rotation(-90.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
-        val field = planner.valueField()
-        val rerouter = RefusalRerouter(
-            planner = planner,
-            field = field,
-            reroute = { planner.routePlan(1L) },
-            cancelled = { false },
-        )
-        val result = TrajectoryPlanner.walkHorizon(
-            route, planner, initial, PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
-            publish = { _, _ -> },
-            started = 0L,
-            field = field,
-            routeStalled = { current, deepest ->
-                val from = current.nodes.getOrNull(deepest)
-                val to = current.nodes.getOrNull(deepest + 1)
-                if (from == null || to == null) null else rerouter.demoteAndReroute(from, to)
-            },
-        )
-        assertIs<PathPlanResult.Planned>(
-            result,
-            "an in-session reroute must certify the detour within one search",
-        )
-        assertTrue(
-            result.path.route.nodes.size > 2,
-            "the certified route must be the detour: ${result.path.route.nodes}",
-        )
-    }
-
-    @Test
     fun `a refused route edge is demoted and the walk detours`() {
         val environment = detourWorld()
         val start = Stance(0, 1, 0)
@@ -122,13 +71,12 @@ class StandingStartJumpTest {
             cancelled = { false },
         )
         val result = rerouter.walk(route) { attempted ->
-            println("[detour] attempting ${attempted.nodes}")
             TrajectoryPlanner.walkHorizon(
                 attempted, planner, initial, PROFILE, environment, MotionConstraints(),
                 cursorFrame = { null },
                 publish = { _, _ -> },
                 started = 0L,
-            ).also { println("[detour] outcome ${it.toString().take(240)}") }
+            )
         }
         assertIs<PathPlanResult.Planned>(
             result,

@@ -21,8 +21,6 @@ internal class ValueAnchor(
 
     var actionsHazardFrame: Int? = null
 
-    var actionsEpoch: Int = -1
-
     val attempted: MutableSet<TrajectoryDecision> = HashSet()
 
     val familyPrefixFailures: MutableMap<Any, Int> = HashMap()

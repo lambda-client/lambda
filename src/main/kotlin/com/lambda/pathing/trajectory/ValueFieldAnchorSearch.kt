@@ -91,8 +91,6 @@ object ValueFieldAnchorSearch {
         sectionCapturable: ((Int, Int) -> Boolean)? = null,
 
         probe: SearchProbe = SearchProbe.NONE,
-
-        routeStalled: ((CoarseRoutePlan, Int) -> CoarseRoutePlan?)? = null,
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
         val unsupported = route.edges.mapTo(HashSet()) { it.movement }
@@ -102,7 +100,7 @@ object ValueFieldAnchorSearch {
         return Search(
             route, catalog, field, initialState, profile, environment, config, searchConfig,
             onSafePrefix, cursorFrame, clock, cancelled, worldWait, worldSync, sectionCapturable,
-            probe, routeStalled,
+            probe,
         ).run()
     }
 
@@ -114,8 +112,6 @@ object ValueFieldAnchorSearch {
     private const val WORLD_SYNC_INTERVAL = 64
 
     private const val MAX_FRUITLESS_WAKES = 2
-
-    private const val MAX_IN_SESSION_REROUTES = 3
 
     internal fun stanceOf(state: MovementSimulationState): Stance =
         Stance.of(state.position, state.onGround)
@@ -137,7 +133,6 @@ object ValueFieldAnchorSearch {
         private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
         private val sectionCapturable: ((Int, Int) -> Boolean)?,
         private val probe: SearchProbe,
-        private val routeStalled: ((CoarseRoutePlan, Int) -> CoarseRoutePlan?)?,
     ) : CommitSupport {
         private val vocabulary = ActionSet(catalog, field, config, searchConfig)
 
@@ -191,35 +186,6 @@ object ValueFieldAnchorSearch {
 
         private var walking = false
 
-        private var rootAnchor: ValueAnchor? = null
-
-        private var vocabularyEpoch = 0
-
-        private var rerouteRounds = 0
-
-        private fun bestIsFarFromGoal(): Boolean =
-            best?.let { field.guide(it.anchor.stance) > searchConfig.finishValueTicks } ?: true
-
-        private fun tryRerouteOnStall(): Boolean {
-            val stalled = routeStalled ?: return false
-            if (rerouteRounds >= MAX_IN_SESSION_REROUTES || cancelled()) return false
-            val next = stalled(route, frontier.deepestProgress) ?: return false
-            if (next.nodes == route.nodes && next.goal == route.goal) return false
-            rerouteRounds++
-            sweepEpoch++
-            finishSweeps = 0
-            vocabularyEpoch++
-            route = next
-            goalStance = next.goal
-            goalPoint = goalStance.center(environment)
-            routeIndex = next.nodes.withIndex().associate { (index, node) -> node to index }
-            frontier.updateRoute(routeIndex)
-            frontier.wakeBlocked()
-            (horizon.reachableRoot ?: rootAnchor)?.let { frontier.reopen(it) }
-            expansionsSinceImprovement = 0
-            return true
-        }
-
         private fun syncWorld() {
             when (val result = worldSync?.invoke(route) ?: return) {
                 WorldSyncResult.Quiet -> return
@@ -252,28 +218,22 @@ object ValueFieldAnchorSearch {
 
         fun run(): MotionPlanResult {
             if (cancelled()) return MotionPlanResult.Cancelled
-            val initialAnchor = ValueAnchor(
-                state = initialState,
-                stance = stanceOf(initialState),
-                elapsed = 0,
-                collisionEvents = 0,
-                launchMargin = 0,
-                inputSwitches = 0,
-                parent = null,
-                inputs = emptyList(),
-                boundary = 0,
+            frontier.admit(
+                ValueAnchor(
+                    state = initialState,
+                    stance = stanceOf(initialState),
+                    elapsed = 0,
+                    collisionEvents = 0,
+                    launchMargin = 0,
+                    inputSwitches = 0,
+                    parent = null,
+                    inputs = emptyList(),
+                    boundary = 0,
+                )
             )
-            rootAnchor = initialAnchor
-            frontier.admit(initialAnchor)
 
             horizon.begin()
-            while (true) {
-                if ((frontier.isExhausted && !frontier.hasBlocked) || expansions >= searchConfig.maxExpansions) {
-                    if (expansions < searchConfig.maxExpansions &&
-                        bestIsFarFromGoal() && tryRerouteOnStall()
-                    ) continue
-                    break
-                }
+            while ((!frontier.isExhausted || frontier.hasBlocked) && expansions < searchConfig.maxExpansions) {
                 if (cancelled()) return MotionPlanResult.Cancelled
                 val root = horizon.safeAnchor
                 if (root != null) {
@@ -310,14 +270,8 @@ object ValueFieldAnchorSearch {
                         continue
                     }
                     val toward = best?.takeIf { !readyToFinish(it) }?.anchor
-                    if (!frontier.hasParked && toward == null) {
-                        if (bestIsFarFromGoal() && tryRerouteOnStall()) continue
-                        break
-                    }
-                    if (!horizon.commitFromCandidates(urgent = true, along = toward)) {
-                        if (bestIsFarFromGoal() && tryRerouteOnStall()) continue
-                        break
-                    }
+                    if (!frontier.hasParked && toward == null) break
+                    if (!horizon.commitFromCandidates(urgent = true, along = toward)) break
                 }
                 if (expansions % WORLD_SYNC_INTERVAL == 0) syncWorld()
                 if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) horizon.publishCandidates()
@@ -334,10 +288,6 @@ object ValueFieldAnchorSearch {
                 if (best != null && readyToFinish(best!!) &&
                     expansionsSinceImprovement >= searchConfig.stallExpansions
                 ) {
-                    if (bestIsFarFromGoal() && tryRerouteOnStall()) {
-                        frontier.offer(entry)
-                        continue
-                    }
                     return finish(best!!)
                 }
 
@@ -449,13 +399,10 @@ object ValueFieldAnchorSearch {
         private fun actions(anchor: ValueAnchor): List<TrajectoryDecision> {
             val hazard = anchor.hazardFrame
             val cached = anchor.actions
-            if (cached != null && anchor.actionsHazardFrame == hazard &&
-                anchor.actionsEpoch == vocabularyEpoch
-            ) return cached
+            if (cached != null && anchor.actionsHazardFrame == hazard) return cached
             return vocabulary.actions(anchor).also {
                 anchor.actions = it
                 anchor.actionsHazardFrame = hazard
-                anchor.actionsEpoch = vocabularyEpoch
             }
         }
 

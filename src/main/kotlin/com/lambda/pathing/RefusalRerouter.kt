@@ -29,32 +29,25 @@ internal class RefusalRerouter(
                 return outcome
             }
 
-            val next = demoteAndReroute(stalledFrom, stalledTo) ?: return outcome
+            LOG.info(
+                "Demoting coarse arrivals at {} from around {} after a trajectory refusal; rerouting",
+                stalledTo, stalledFrom,
+            )
+            for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
+                planner.demoteEdge(stalledFrom.offset(dx, dy, dz), stalledTo)
+            }
+            field.invalidate(
+                setOf(
+                    PathingSection.containing(VoxelPos(stalledFrom.x, stalledFrom.y, stalledFrom.z)),
+                    PathingSection.containing(VoxelPos(stalledTo.x, stalledTo.y, stalledTo.z)),
+                ),
+            )
+            planner.repair(timeBudget = Duration.INFINITE, cancelled = cancelled)
+            val next = reroute() ?: return outcome
             if (next.nodes == route.nodes) return outcome
             route = next
             rounds++
         }
-    }
-
-    fun demoteAndReroute(
-        stalledFrom: com.lambda.pathing.core.Stance,
-        stalledTo: com.lambda.pathing.core.Stance,
-    ): CoarseRoutePlan? {
-        LOG.info(
-            "Demoting coarse arrivals at {} from around {} after a trajectory refusal; rerouting",
-            stalledTo, stalledFrom,
-        )
-        for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
-            planner.demoteEdge(stalledFrom.offset(dx, dy, dz), stalledTo)
-        }
-        field.invalidate(
-            setOf(
-                PathingSection.containing(VoxelPos(stalledFrom.x, stalledFrom.y, stalledFrom.z)),
-                PathingSection.containing(VoxelPos(stalledTo.x, stalledTo.y, stalledTo.z)),
-            ),
-        )
-        planner.repair(timeBudget = Duration.INFINITE, cancelled = cancelled)
-        return reroute()
     }
 
     private companion object {
