@@ -25,12 +25,14 @@ class CoarsePlanner(
     val moves: SimpleMoveLibrary,
     start: Stance,
     goal: Stance,
+    /** Node budget of [discoverReachableFrontier]'s recovery sweep. */
+    private val sweepBudget: Int = 40_000,
 ) {
     /**
      * Stances that reach the goal optimistically, with the admissible cost of the
      * unstreamed remainder. Everything else in the graph is terrain the client has.
      */
-    private var anchors: Map<Stance, Double> = emptyMap()
+    private val anchors = HashMap<Stance, Double>()
 
     private val graph = LazyGraph(
         successorProvider = { node: Stance -> moves.successorCosts(view, node) + optimisticEdgeFrom(node) },
@@ -72,26 +74,95 @@ class CoarsePlanner(
 
     fun updateStart(start: Stance) = search.updateStart(start)
 
-    val optimisticAnchors: Map<Stance, Double> get() = anchors
+    /** A copy: the backing map mutates as the frontier advances, and callers snapshot it. */
+    val optimisticAnchors: Map<Stance, Double> get() = HashMap(anchors)
 
     /** Cost the graph currently holds for the optimistic step from [from] to the goal. */
     fun optimisticEdgeCost(from: Stance): Double =
         graph.knownSuccessors(from)[search.goal] ?: Double.POSITIVE_INFINITY
 
     /**
-     * Moves the optimistic edge to where the streamed world now ends.
+     * Moves the optimistic edges to where the streamed world now ends.
      *
      * Retiring an anchor and seeding its replacement are two ordinary edge updates, so
      * the graph the walk has already paid for survives: chunk arrivals extend it
      * outward instead of replacing a fictional surface everywhere at once.
+     *
+     * Merging rather than replacing, and retiring on what the *terrain* says: an anchor
+     * dies when its neighbourhood streams in (its fiction has been replaced by fact) --
+     * never merely because a re-aimed probe fan no longer happens to land on it, and
+     * never because the goal's own terrain is streamed. That last one mattered in
+     * production: a retained journey has usually granted the goal's chunks already, and
+     * a body re-pathing to it from outside streamed range still needs the optimistic
+     * bridge over the unstreamed middle. Whether the goal is real says nothing about
+     * whether the terrain on the way to it is.
      */
     fun advanceFrontier(probed: Map<Stance, Double>): Boolean {
-        if (probed == anchors) return false
-        val retired = anchors.keys - probed.keys
-        anchors = probed
-        retired.forEach { search.updateEdge(it, search.goal, Double.POSITIVE_INFINITY) }
-        probed.forEach { (anchor, cost) -> search.updateEdge(anchor, search.goal, cost) }
+        var changed = false
+
+        val refused = FrontierAnchors.refusesOptimism(view, moves, search.goal)
+        val retired = anchors.keys.filterTo(ArrayList()) {
+            refused || !FrontierAnchors.bordersUnknown(view, it)
+        }
+        retired.forEach {
+            anchors.remove(it)
+            search.updateEdge(it, search.goal, Double.POSITIVE_INFINITY)
+            changed = true
+        }
+
+        probed.forEach { (anchor, cost) ->
+            if (anchor != search.goal && anchors[anchor] != cost) {
+                anchors[anchor] = cost
+                search.updateEdge(anchor, search.goal, cost)
+                changed = true
+            }
+        }
+        return changed
+    }
+
+    /**
+     * Retires every optimistic anchor, so the field prices only real terrain.
+     *
+     * Fiction exists to bridge terrain the search cannot route through; once a real
+     * route to the goal stands, keeping it poisons everything downstream. An anchor's
+     * fictional cost propagates through the whole value field the trajectory search
+     * steers by, and anchors themselves can be capture artifacts: a section inside
+     * fully streamed terrain that the snapshot happens not to hold reads as unknown,
+     * and an anchor placed there routes the walk toward a frontier that does not exist.
+     */
+    fun retireAllAnchors(): Boolean {
+        if (anchors.isEmpty()) return false
+        anchors.keys.toList().forEach { anchor ->
+            anchors.remove(anchor)
+            search.updateEdge(anchor, search.goal, Double.POSITIVE_INFINITY)
+        }
         return true
+    }
+
+    /**
+     * Last-resort frontier recovery for a start the fan probe has stranded.
+     *
+     * The fan places anchors along rays and ignores obstacles, so terrain that severs
+     * every ray's landing from the body's component leaves the goal unreachable even
+     * though walking the frontier sideways would reveal a crossing. When route
+     * extraction has failed, this searches forward over the edges the body can actually
+     * take, anchors every reachable stance that borders unstreamed terrain, and repairs.
+     * True means the graph changed and a route is worth asking for again.
+     */
+    fun discoverReachableFrontier(cancelled: () -> Boolean = { false }): Boolean {
+        val swept = FrontierAnchors.sweep(
+            view, moves, search.start, search.goal, maxNodes = sweepBudget, cancelled = cancelled,
+        )
+        var changed = false
+        swept.forEach { (anchor, cost) ->
+            if (anchors[anchor] != cost) {
+                anchors[anchor] = cost
+                search.updateEdge(anchor, search.goal, cost)
+                changed = true
+            }
+        }
+        if (changed) repair(timeBudget = Duration.INFINITE, cancelled = cancelled)
+        return changed
     }
 
     private fun optimisticEdgeFrom(node: Stance): Map<Stance, Double> {

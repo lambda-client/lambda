@@ -23,6 +23,16 @@ class SimpleMoveLibrary private constructor(
     val templates: List<MotionTemplate>,
     private val readOffsets: Set<VoxelPos>,
     val heuristicCaps: HeuristicCaps,
+    /**
+     * What one block of ordinary ground travel costs.
+     *
+     * Distinct from anything in [HeuristicCaps], which are admissible *lower* bounds: the
+     * cheapest per-block rate any move achieves, jumps included. That is the right number
+     * for a heuristic and the wrong one for pricing terrain nobody has seen, because it
+     * makes crossing the unknown look cheaper than walking the known -- so a route is
+     * rewarded for stopping early and letting the fiction do the work.
+     */
+    val sustainedTicksPerBlock: Double,
 ) {
     private val minReadX = readOffsets.minOf(VoxelPos::x)
     private val maxReadX = readOffsets.maxOf(VoxelPos::x)
@@ -71,6 +81,19 @@ class SimpleMoveLibrary private constructor(
     fun edgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> {
         if (!isStance(view, origin)) return emptyList()
         return templates.mapNotNull { it.edge(view, origin) }
+    }
+
+    /**
+     * Only the edges that keep their feet down.
+     *
+     * A reachability sweep wants connectivity, not the full vocabulary: strides, steps
+     * and walk-offs answer "can the body get there at all" over almost any terrain, and
+     * cost no arc probes to generate. A frontier reachable *only* by jumping is invisible
+     * to this -- an accepted trade for a sweep that has to visit thousands of stances.
+     */
+    fun groundEdgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> {
+        if (!isStance(view, origin)) return emptyList()
+        return templates.mapNotNull { if (it.flightless) it.edge(view, origin) else null }
     }
 
     fun edgesTo(view: CoarseVoxelView, target: Stance): List<CoarseEdge> {
@@ -155,9 +178,15 @@ class SimpleMoveLibrary private constructor(
 
         fun of(catalog: MovementCatalog): SimpleMoveLibrary {
             val templates = catalog.templates
-            val offsets = templates.flatMapTo(HashSet()) { it.readOffsets().toList() }
-            return SimpleMoveLibrary(catalog, templates, offsets, deriveCaps(templates))
+            val offsets = templates.flatMapTo(HashSet()) { it.readOffsets }
+            return SimpleMoveLibrary(catalog, templates, offsets, deriveCaps(templates), sustainedRate(templates))
         }
+
+        /** The cost of a plain one-cell stride, which is what ordinary travel costs. */
+        private fun sustainedRate(templates: List<MotionTemplate>): Double = templates
+            .filter { it.dy == 0 && abs(it.dx) + abs(it.dz) == 1 }
+            .minOfOrNull { it.lowerBoundTicks }
+            ?: 1.0
 
         private fun deriveCaps(templates: List<MotionTemplate>): HeuristicCaps {
             var axis = Double.POSITIVE_INFINITY

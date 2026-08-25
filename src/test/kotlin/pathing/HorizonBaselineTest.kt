@@ -146,6 +146,7 @@ class HorizonBaselineTest {
         )
 
         val path = (outcome as? PathPlanResult.Planned)?.path
+        println("[baseline] ${scenario.name} attempts=${path?.attempts ?: 0}")
         val frames = path?.plan?.frames.orEmpty()
         return Record(
             name = scenario.name,

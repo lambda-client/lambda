@@ -9,14 +9,19 @@
 
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.launch.ArcSample
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.VoxelPos
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.MathHelper
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -37,8 +42,58 @@ import kotlin.math.sqrt
 object JumpArcProbe {
     class Reachable(
         val solution: LaunchSolution,
-        val reads: Set<VoxelPos>,
+        packedReads: LongOpenHashSet,
+    ) {
+        /**
+         * Materialized only when someone asks. The sweep records cells as packed longs so
+         * a refused probe -- which is most probes -- never allocates a position object,
+         * and an accepted one pays for its read set the first time repair wants it.
+         */
+        val reads: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+            unpackReads(packedReads)
+        }
+    }
+
+    internal fun unpackReads(packed: LongOpenHashSet): Set<VoxelPos> {
+        val result = HashSet<VoxelPos>(packed.size * 2)
+        val iterator = packed.iterator()
+        while (iterator.hasNext()) {
+            val key = iterator.nextLong()
+            result += VoxelPos(BlockPos.unpackLongX(key), BlockPos.unpackLongY(key), BlockPos.unpackLongZ(key))
+        }
+        return result
+    }
+
+    /**
+     * Launches for a relative move, cached: the solver reads nothing but the offset
+     * geometry, so every origin of the same template solves to the same list. Keyed on the
+     * exact rise the body flies, which quantizes to the handful of surface heights blocks
+     * actually have.
+     */
+    private data class SolveKey(
+        val dx: Int,
+        val dz: Int,
+        val riseBits: Long,
+        val modes: List<LaunchMode>,
+        val profile: BallisticProfile,
     )
+
+    private val solutionCache = ConcurrentHashMap<SolveKey, List<LaunchSolution>>()
+
+    private fun solutions(
+        from: Stance,
+        to: Stance,
+        dx: Int,
+        dz: Int,
+        profile: BallisticProfile,
+        modes: List<LaunchMode>,
+        riseHeight: Double,
+    ): List<LaunchSolution> {
+        if (solutionCache.size > SOLUTION_CACHE_LIMIT) solutionCache.clear()
+        return solutionCache.computeIfAbsent(
+            SolveKey(dx, dz, riseHeight.toRawBits(), modes, profile)
+        ) { LaunchSolver.solve(from, to, profile, modes, rise = riseHeight) }
+    }
 
     fun probe(
         view: CoarseVoxelView,
@@ -60,11 +115,12 @@ object JumpArcProbe {
         launchHeight: Double = from.y.toDouble(),
     ): Reachable? {
         val to = from.offset(dx, rise, dz)
-        val reads = HashSet<VoxelPos>()
+        val reads = LongOpenHashSet()
 
-        for (solution in LaunchSolver.solve(from, to, profile, modes, rise = riseHeight)) {
-            val clearance = sweepClearance(view, from, dx, dz, solution, launchHeight, reads)
-                ?: continue
+        for (solution in solutions(from, to, dx, dz, profile, modes, riseHeight)) {
+            val clearance = sweepClearance(
+                view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads,
+            ) ?: continue
             return Reachable(solution.withClearance(clearance), reads)
         }
         return null
@@ -80,24 +136,25 @@ object JumpArcProbe {
      * endpoints. Horizontal motion under drag is not linear in time, and the difference
      * lands squarely on the apex, which is exactly where a head-bonk is decided.
      */
-    private fun sweepClearance(
+    internal fun sweepClearance(
         view: CoarseVoxelView,
         from: Stance,
         dx: Int,
         dz: Int,
-        solution: LaunchSolution,
+        arc: ArcSample,
+        launchOffset: Double,
         launchHeight: Double,
-        reads: MutableSet<VoxelPos>,
+        reads: LongOpenHashSet,
     ): Double? {
         val length = hypot(dx.toDouble(), dz.toDouble())
         if (length <= 0.0) return null
         val unitX = dx / length
         val unitZ = dz / length
-        val launchX = from.x + 0.5 + unitX * solution.launchOffset
-        val launchZ = from.z + 0.5 + unitZ * solution.launchOffset
+        val launchX = from.x + 0.5 + unitX * launchOffset
+        val launchZ = from.z + 0.5 + unitZ * launchOffset
 
-        val heights = solution.arc.heights
-        val distances = solution.arc.distances
+        val heights = arc.heights
+        val distances = arc.distances
 
         var clearance = CLEARANCE_CAP
         var previous = coreBox(launchX, launchHeight, launchZ)
@@ -115,15 +172,36 @@ object JumpArcProbe {
             for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
                 for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
                     for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) {
-                        reads += VoxelPos(x, y, z)
-                        val shape = view.collisionShape(x, y, z) ?: return null
-                        if (shape.isEmpty) continue
-                        for (bounds in shape.boundingBoxes) {
-                            val obstacle = bounds.offset(x.toDouble(), y.toDouble(), z.toDouble())
-                            if (obstacle.intersects(swept)) return null
+                        reads.add(BlockPos.asLong(x, y, z))
+                        // Classified rather than fetched: almost every cell an arc crosses
+                        // is air or a plain cube, and both are decidable without touching a
+                        // VoxelShape -- whose box list is rebuilt on every read.
+                        when (view.collisionClass(x, y, z)) {
+                            CollisionClass.EMPTY -> {}
 
-                            if (obstacle.maxY <= swept.minY + FLOOR_CONTACT_EPSILON) continue
-                            clearance = minOf(clearance, gap(swept, obstacle))
+                            CollisionClass.UNKNOWN -> return null
+
+                            CollisionClass.FULL -> {
+                                if (swept.intersects(
+                                        x.toDouble(), y.toDouble(), z.toDouble(),
+                                        x + 1.0, y + 1.0, z + 1.0,
+                                    )
+                                ) return null
+                                if (y + 1.0 > swept.minY + FLOOR_CONTACT_EPSILON) {
+                                    clearance = minOf(clearance, gapToCell(swept, x, y, z))
+                                }
+                            }
+
+                            CollisionClass.PARTIAL -> {
+                                val shape = view.collisionShape(x, y, z) ?: return null
+                                for (bounds in shape.boundingBoxes) {
+                                    val obstacle = bounds.offset(x.toDouble(), y.toDouble(), z.toDouble())
+                                    if (obstacle.intersects(swept)) return null
+
+                                    if (obstacle.maxY <= swept.minY + FLOOR_CONTACT_EPSILON) continue
+                                    clearance = minOf(clearance, gap(swept, obstacle))
+                                }
+                            }
                         }
                     }
                 }
@@ -132,20 +210,31 @@ object JumpArcProbe {
         return clearance
     }
 
-    private fun coreBox(x: Double, y: Double, z: Double) = Box(
+    internal fun coreBox(x: Double, y: Double, z: Double) = Box(
         x - CORE_HALF_WIDTH, y, z - CORE_HALF_WIDTH,
         x + CORE_HALF_WIDTH, y + BODY_HEIGHT, z + CORE_HALF_WIDTH,
     )
 
-    private fun gap(a: Box, b: Box): Double {
+    internal fun gap(a: Box, b: Box): Double {
         val dx = max(max(b.minX - a.maxX, a.minX - b.maxX), 0.0)
         val dy = max(max(b.minY - a.maxY, a.minY - b.maxY), 0.0)
         val dz = max(max(b.minZ - a.maxZ, a.minZ - b.maxZ), 0.0)
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
 
-    private const val CORE_HALF_WIDTH = 0.2
+    /** [gap] against the unit cube at (x, y, z), with no box constructed for it. */
+    private fun gapToCell(a: Box, x: Int, y: Int, z: Int): Double {
+        val dx = max(max(x - a.maxX, a.minX - (x + 1.0)), 0.0)
+        val dy = max(max(y - a.maxY, a.minY - (y + 1.0)), 0.0)
+        val dz = max(max(z - a.maxZ, a.minZ - (z + 1.0)), 0.0)
+        return sqrt(dx * dx + dy * dy + dz * dz)
+    }
+
+    internal const val CORE_HALF_WIDTH = 0.2
     private const val BODY_HEIGHT = 1.8
     private const val CLEARANCE_CAP = 0.5
     private const val FLOOR_CONTACT_EPSILON = 1.0E-7
+
+    /** Rise heights quantize to block surface steps, so growth past this is a leak. */
+    private const val SOLUTION_CACHE_LIMIT = 100_000
 }

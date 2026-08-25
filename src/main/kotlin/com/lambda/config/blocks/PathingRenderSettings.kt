@@ -126,8 +126,10 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     @Group(COLOR_GROUP)
     override val walkOffColor by c.setting("Walk Off Edge", Color(190, 120, 255, 230)) { enabled && renderCoarseRoute }
 
+    @Group(COLOR_GROUP)
     override val dropColor by c.setting("Drop Edge", Color(120, 210, 190, 230)) { enabled && renderCoarseRoute }
 
+    @Group(COLOR_GROUP)
     override val unknownMovementColor by c.setting("Other Edge", Color(200, 200, 200, 200)) { enabled && renderCoarseRoute }
 
     @Group(COLOR_GROUP)

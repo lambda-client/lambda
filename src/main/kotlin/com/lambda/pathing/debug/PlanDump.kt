@@ -30,7 +30,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 
 object PlanDump {
-    const val VERSION = 4
+    const val VERSION = 5
 
     /**
      * Written where a cell holds nothing up.
@@ -39,6 +39,15 @@ object PlanDump {
      * negative height is not a height any real shape can have.
      */
     private const val NO_SURFACE = -1.0
+
+    /**
+     * Where the box count sits in a physics line, with the boxes following it.
+     *
+     * Named because the fields before it are now numerous enough that inserting one and
+     * forgetting to shift the reader is an easy mistake -- and one that surfaces as a number
+     * parse failure on an unrelated field rather than as anything that points at the cause.
+     */
+    private const val BOX_COUNT_FIELD = 15
 
     data class Loaded(
         val bounds: SimulationSnapshotBounds,
@@ -235,9 +244,12 @@ object PlanDump {
                 .append(coarseVoxel.centerPassable).append(' ')
                 .append(coarseVoxel.standingSurface ?: NO_SURFACE).append(' ')
                 .append(coarseVoxel.intrusionHeight).append(' ')
+                .append(coarseVoxel.bouncy).append(' ')
                 .append(coarseVoxel.medium.name).append(' ')
                 .append(unsupportedPhysics?.kind?.name ?: "-").append(' ')
                 .append(unsupportedPhysics?.blockId?.replace(' ', '_') ?: "-").append(' ')
+                .append(bounceFactor).append(' ')
+                .append(dampensSteppingSpeed).append(' ')
                 .append(boxes.size)
             boxes.forEach { box ->
                 append(' ').append(box.minX).append(' ').append(box.minY).append(' ').append(box.minZ)
@@ -247,10 +259,10 @@ object PlanDump {
     }
 
     private fun readPhysics(parts: List<String>): SnapshotBlockPhysics {
-        val boxCount = parts[12].toInt()
+        val boxCount = parts[BOX_COUNT_FIELD].toInt()
         var shape = VoxelShapes.empty()
         for (box in 0 until boxCount) {
-            val base = 13 + box * 6
+            val base = BOX_COUNT_FIELD + 1 + box * 6
             shape = VoxelShapes.union(
                 shape,
                 VoxelShapes.cuboid(
@@ -261,24 +273,27 @@ object PlanDump {
                 ),
             )
         }
-        val medium = Medium.valueOf(parts[9])
-        val unsupportedKind = parts[10].takeIf { it != "-" }?.let { UnsupportedPhysicsKind.valueOf(it) }
+        val medium = Medium.valueOf(parts[10])
+        val unsupportedKind = parts[11].takeIf { it != "-" }?.let { UnsupportedPhysicsKind.valueOf(it) }
         return SnapshotBlockPhysics(
             collisionShape = shape,
             slipperiness = parts[1].toDouble(),
             velocityMultiplier = parts[2].toDouble(),
             jumpVelocityMultiplier = parts[3].toDouble(),
             unsupportedPhysics = unsupportedKind?.let {
-                UnsupportedPhysics(it, parts[11].takeIf { id -> id != "-" })
+                UnsupportedPhysics(it, parts[12].takeIf { id -> id != "-" })
             },
             coarseVoxel = CoarseVoxel(
                 fullyPassable = parts[5].toBoolean(),
                 centerPassable = parts[6].toBoolean(),
                 standingSurface = parts[7].toDouble().takeIf { it >= 0.0 },
                 intrusionHeight = parts[8].toDouble(),
+                bouncy = parts[9].toBoolean(),
                 medium = medium,
             ),
             fenceLike = parts[4].toBoolean(),
+            bounceFactor = parts[13].toDouble(),
+            dampensSteppingSpeed = parts[14].toBoolean(),
         )
     }
 }

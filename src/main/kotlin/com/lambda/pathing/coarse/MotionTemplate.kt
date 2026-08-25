@@ -55,6 +55,14 @@ class MotionTemplate internal constructor(
         val dz: Int,
         val rise: Int,
         val modes: List<LaunchMode> = LaunchMode.entries,
+        /**
+         * How far the body falls onto a bouncy surface on the way, when it does.
+         *
+         * Set only by a bounce, and it changes which probe answers: an arc with a bounce in
+         * it is not a ballistic flight the launch solver can describe, because its impulse
+         * comes from the fall rather than from a key.
+         */
+        val bounceDrop: Int? = null,
     )
 
     init {
@@ -65,6 +73,9 @@ class MotionTemplate internal constructor(
     }
 
     fun target(origin: Stance): Stance = origin.offset(dx, dy, dz)
+
+    /** Whether this move keeps its feet down -- its edge needs no arc probe to issue. */
+    internal val flightless: Boolean get() = arc == null
 
     /**
      * The cheapest edge this template can ever issue.
@@ -78,6 +89,42 @@ class MotionTemplate internal constructor(
      * have walked up.
      */
     internal val minimumTicks: Double = minOf(lowerBoundTicks, strideCost ?: lowerBoundTicks)
+
+    /**
+     * A bounce edge, which carries a [com.lambda.pathing.launch.BounceSolution] rather than a
+     * launch.
+     *
+     * Separate from the ballistic path because the two solved objects are different shapes:
+     * a launch names a take-off the body has to reach, while a bounce names the fall that
+     * supplies its impulse and the point the slime has to be at.
+     */
+    private fun bounceEdge(
+        view: CoarseVoxelView,
+        origin: Stance,
+        spec: ArcSpec,
+        drop: Int,
+        launchOffset: Double,
+    ): CoarseEdge? {
+        val probed = BounceArcProbe.probe(
+            view, origin, spec.dx, spec.dz, drop, spec.rise,
+            launchHeight = origin.y + launchOffset,
+        ) ?: return null
+
+        return CoarseEdge(
+            id = CoarseEdgeId(id, origin),
+            from = origin,
+            to = target(origin),
+            movement = movement,
+            lowerBoundTicks = lowerBoundTicks,
+            readSet = LazyReadSet {
+                buildSet {
+                    readOffsets.forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
+                    addAll(probed.reads)
+                }
+            },
+            bounce = probed.solution,
+        )
+    }
 
     /** How far below its nominal height a stance's feet sit, from the cell holding it up. */
     private fun surfaceOffset(view: CoarseVoxelView, stance: Stance): Double =
@@ -99,6 +146,9 @@ class MotionTemplate internal constructor(
             // rather than the one its stance implies.
             val launchOffset = surfaceOffset(view, origin)
             val landingOffset = surfaceOffset(view, target(origin))
+            spec.bounceDrop?.let { drop ->
+                return bounceEdge(view, origin, spec, drop, launchOffset)
+            }
             JumpArcProbe.probe(
                 view, origin, spec.dx, spec.dz, spec.rise, modes = spec.modes,
                 riseHeight = spec.rise + landingOffset - launchOffset,
@@ -119,9 +169,11 @@ class MotionTemplate internal constructor(
             to = target(origin),
             movement = movement,
             lowerBoundTicks = ticks,
-            readSet = buildSet {
-                readOffsets().forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
-                probed?.let { addAll(it.reads) }
+            readSet = LazyReadSet {
+                buildSet {
+                    readOffsets.forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
+                    probed?.let { addAll(it.reads) }
+                }
             },
             launch = probed?.solution,
         )
@@ -132,24 +184,30 @@ class MotionTemplate internal constructor(
      *
      * Incremental repair inverts this to find which stances a block change invalidates, so
      * anything read and not declared here becomes an edge nothing ever refreshes.
+     *
+     * Materialized once per template: the offsets are constant, and this list is walked on
+     * every edge the template issues.
      */
-    internal fun readOffsets(): Sequence<VoxelPos> = sequence {
-        yieldAll(ORIGIN_STANCE_READS)
-        conditions.forEach { yieldAll(it.reads()) }
+    internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        buildList {
+            addAll(ORIGIN_STANCE_READS)
+            conditions.forEach { addAll(it.reads()) }
 
-        arc?.let { spec ->
-            // Sampled along the arc's own line rather than along a unit step, because an
-            // off-axis jump has no unit step. One sample per block of the longer axis keeps
-            // the declared cells a superset of the ones the sweep touches, which is what
-            // stops an edge going stale when a block under the flight path changes.
-            val steps = maxOf(abs(spec.dx), abs(spec.dz))
-            for (step in 0..steps) {
-                val alongX = if (steps == 0) 0 else Math.round(spec.dx.toDouble() * step / steps).toInt()
-                val alongZ = if (steps == 0) 0 else Math.round(spec.dz.toDouble() * step / steps).toInt()
-                for (y in minOf(spec.rise, 0) - 2..ARC_READ_CEILING) {
-                    for (ox in -1..1) {
-                        for (oz in -1..1) {
-                            yield(VoxelPos(alongX + ox, y, alongZ + oz))
+            arc?.let { spec ->
+                // Sampled along the arc's own line rather than along a unit step, because an
+                // off-axis jump has no unit step. One sample per block of the longer axis keeps
+                // the declared cells a superset of the ones the sweep touches, which is what
+                // stops an edge going stale when a block under the flight path changes.
+                val steps = maxOf(abs(spec.dx), abs(spec.dz))
+                for (step in 0..steps) {
+                    val alongX = if (steps == 0) 0 else Math.round(spec.dx.toDouble() * step / steps).toInt()
+                    val alongZ = if (steps == 0) 0 else Math.round(spec.dz.toDouble() * step / steps).toInt()
+                    val floorReach = minOf(spec.rise, -(spec.bounceDrop ?: 0), 0) - 2
+                    for (y in floorReach..ARC_READ_CEILING) {
+                        for (ox in -1..1) {
+                            for (oz in -1..1) {
+                                add(VoxelPos(alongX + ox, y, alongZ + oz))
+                            }
                         }
                     }
                 }

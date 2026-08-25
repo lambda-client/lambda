@@ -17,6 +17,7 @@ import com.lambda.util.player.prediction.MovementSimulator
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationEnvironment
 import com.lambda.util.player.prediction.SimulationEnvironmentException
+import com.lambda.util.player.prediction.SnapshotSectionUnavailableException
 
 data class SimulatedTrajectoryFrame(
     val index: Int,
@@ -26,6 +27,18 @@ data class SimulatedTrajectoryFrame(
 
 sealed interface TrajectoryRolloutTermination {
     data object Completed : TrajectoryRolloutTermination
+
+    /**
+     * The rollout read terrain the world model does not hold yet. Waiting on
+     * knowledge, not failing physics -- the two must never alias, because a failure
+     * unlocks the exploration vocabulary and a wait must not.
+     */
+    data class Blocked(
+        val frame: Int,
+        val sectionX: Int,
+        val sectionY: Int,
+        val sectionZ: Int,
+    ) : TrajectoryRolloutTermination
 
     data class Rejected(
         val frame: Int,
@@ -85,7 +98,12 @@ object TrajectoryRolloutEngine {
                 is MovementSimulationStepResult.Rejected -> return TrajectoryRollout(
                     initialState = initialState,
                     frames = frames.toList(),
-                    termination = TrajectoryRolloutTermination.Rejected(frame, result.failure),
+                    termination = when (val failure = result.failure) {
+                        is SnapshotSectionUnavailableException -> TrajectoryRolloutTermination.Blocked(
+                            frame, failure.sectionX, failure.sectionY, failure.sectionZ,
+                        )
+                        else -> TrajectoryRolloutTermination.Rejected(frame, failure)
+                    },
                 )
             }
         }

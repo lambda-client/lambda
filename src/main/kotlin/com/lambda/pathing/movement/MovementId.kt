@@ -36,5 +36,8 @@ value class MovementId(val key: String) {
         val JUMP = MovementId("jump")
 
         val CLIMB = MovementId("climb")
+
+        /** A fall onto slime and the flight its rebound buys. */
+        val BOUNCE = MovementId("bounce")
     }
 }

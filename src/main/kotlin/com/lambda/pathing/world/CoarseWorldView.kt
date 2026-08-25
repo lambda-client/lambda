@@ -10,8 +10,57 @@
 package com.lambda.pathing.world
 
 import net.minecraft.util.shape.VoxelShape
+import net.minecraft.util.shape.VoxelShapes
 
 data class VoxelPos(val x: Int, val y: Int, val z: Int)
+
+/**
+ * What a cell's collision amounts to, for callers that mostly do not need the shape.
+ *
+ * The arc sweep asks tens of thousands of cells per expanded node and almost every answer
+ * is "nothing here" or "a plain cube" -- both decidable without a [VoxelShape] in hand,
+ * and `VoxelShape.getBoundingBoxes` allocates a fresh list on every call. Classifying once
+ * lets the sweep do inline arithmetic against the unit cube and fetch real shapes only for
+ * the [PARTIAL] minority: slabs, fences, stairs.
+ */
+enum class CollisionClass {
+    /** No collision anywhere in the cell. */
+    EMPTY,
+
+    /** Exactly the unit cube; obstacle math needs no shape object. */
+    FULL,
+
+    /** Some other shape; the exact [VoxelShape] must be consulted. */
+    PARTIAL,
+
+    /** Uncaptured terrain; a sweep through it must fail closed. */
+    UNKNOWN,
+    ;
+
+    companion object {
+        /**
+         * Classifies a shape, conservatively: a full cube that goes unrecognized is merely
+         * [PARTIAL] and takes the exact path, never the other way around.
+         */
+        fun of(shape: VoxelShape): CollisionClass = when {
+            shape.isEmpty -> EMPTY
+            shape === VoxelShapes.fullCube() -> FULL
+            isFullCube(shape) -> FULL
+            else -> PARTIAL
+        }
+
+        /** Bounds test instead of `Block.isShapeFullCube`, whose class init needs registries. */
+        private fun isFullCube(shape: VoxelShape): Boolean {
+            val boxes = shape.boundingBoxes
+            if (boxes.size != 1) return false
+            val box = boxes[0]
+            return box.minX <= EPSILON && box.minY <= EPSILON && box.minZ <= EPSILON &&
+                box.maxX >= 1.0 - EPSILON && box.maxY >= 1.0 - EPSILON && box.maxZ >= 1.0 - EPSILON
+        }
+
+        private const val EPSILON = 1.0E-7
+    }
+}
 
 /**
  * What a cell *is*, as opposed to what shape it has.
@@ -71,6 +120,15 @@ data class CoarseVoxel(
      * support under it.
      */
     val intrusionHeight: Double = 0.0,
+    /**
+     * Whether landing here reflects the fall instead of stopping it.
+     *
+     * A geometric trait rather than a [Medium], because slime is solid ground in every way
+     * that matters to a walking body -- it is standable, it blocks, it is not a hazard. What
+     * makes it interesting is what it does to a *landing*, which is a property of the surface
+     * and not of what the cell is made of.
+     */
+    val bouncy: Boolean = false,
     val medium: Medium = if (fullyPassable) Medium.AIR else Medium.SOLID,
 ) {
     /** How far below the cell's own top the feet sit; 0.0 for a full block. */
@@ -84,10 +142,10 @@ data class CoarseVoxel(
         /** Unstreamed terrain is assumed to fill the cell above it, as it always was. */
         const val UNKNOWN_INTRUSION = 1.0
 
-        val AIR = CoarseVoxel(true, true, null, 0.0, Medium.AIR)
-        val FULL_BLOCK = CoarseVoxel(false, false, 1.0, 0.0, Medium.SOLID)
-        val UNKNOWN = CoarseVoxel(false, false, null, UNKNOWN_INTRUSION, Medium.UNKNOWN)
-        val HAZARD = CoarseVoxel(false, false, null, 0.0, Medium.UNKNOWN)
+        val AIR = CoarseVoxel(true, true, null, 0.0, false, Medium.AIR)
+        val FULL_BLOCK = CoarseVoxel(false, false, 1.0, 0.0, false, Medium.SOLID)
+        val UNKNOWN = CoarseVoxel(false, false, null, UNKNOWN_INTRUSION, false, Medium.UNKNOWN)
+        val HAZARD = CoarseVoxel(false, false, null, 0.0, false, Medium.UNKNOWN)
 
         /**
          * A cell a walking body cannot use, but another movement might.
@@ -109,6 +167,17 @@ interface CoarseVoxelView {
     fun voxel(x: Int, y: Int, z: Int): CoarseVoxel
 
     fun collisionShape(x: Int, y: Int, z: Int): VoxelShape? = null
+
+    /**
+     * The cheap classification of [collisionShape]; overridden where the answer is known
+     * without building a shape. Must agree with [collisionShape]: a null shape is
+     * [CollisionClass.UNKNOWN], and a class of [CollisionClass.PARTIAL] promises the shape
+     * is available.
+     */
+    fun collisionClass(x: Int, y: Int, z: Int): CollisionClass {
+        val shape = collisionShape(x, y, z) ?: return CollisionClass.UNKNOWN
+        return CollisionClass.of(shape)
+    }
 
     fun medium(x: Int, y: Int, z: Int): Medium = voxel(x, y, z).medium
 

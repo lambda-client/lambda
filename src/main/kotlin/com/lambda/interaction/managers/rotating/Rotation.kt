@@ -120,11 +120,24 @@ data class Rotation(val yaw: Double, val pitch: Double) {
 
         fun Rotation.slerpYaw(targetYaw: Double, speed: Double): Double {
             val yawDiff = wrap(targetYaw - yaw)
+            // Arrival lands on the request itself, not on an angle equivalent to it.
+            // Turning stays continuous, but continuity used to persist into the final
+            // value: after enough accumulated turning the body held 705.2° for a plan
+            // that simulated -14.8°, and vanilla feeds the raw number into the movement
+            // trig, where the two sines differ in the last bits -- enough for a
+            // certified tape to miss its own first frame by 1e-5 and be rejected. The
+            // snap happens only when the remaining difference fits in this tick's turn,
+            // and any whole-revolution jump it makes is invisible: rendering and the
+            // protocol both treat yaw mod 360.
+            if (abs(yawDiff) <= speed) return targetYaw
             return yaw + yawDiff.coerceIn(-speed, speed)
         }
 
         fun Rotation.slerpPitch(targetPitch: Double, speed: Double): Double {
             val pitchDiff = targetPitch - pitch
+            // Same exact-arrival contract as yaw: pitch + (target - pitch) can miss the
+            // target by an ulp, and replay certification compares raw numbers.
+            if (abs(pitchDiff) <= speed) return targetPitch.coerceIn(-90.0, 90.0)
             return (pitch + pitchDiff.coerceIn(-speed, speed)).coerceIn(-90.0, 90.0)
         }
 

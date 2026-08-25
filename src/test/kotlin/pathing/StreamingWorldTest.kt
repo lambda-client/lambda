@@ -212,8 +212,13 @@ class StreamingWorldTest {
 
         val route = walk.cycle()
 
-        assertTrue(walk.planner.optimisticAnchors.isEmpty(), "streamed terrain answers for itself")
+        // Anchors may exist past the goal (the frontier is real terrain the fan can
+        // reach), but the route through streamed terrain must win on cost and end at
+        // the actual goal, never at fiction.
         assertEquals(goal, route.nodes.last())
+        route.nodes.forEach { node ->
+            assertTrue(node !in walk.planner.optimisticAnchors || node == goal, "route rides fiction at $node")
+        }
     }
 
     @Test
@@ -234,6 +239,65 @@ class StreamingWorldTest {
             walk.planner.routePlan(1L)?.nodes?.last() != goal,
             "a goal nothing can stand on must not be published as reached",
         )
+    }
+
+    /**
+     * A frontier the probe fan cannot reach: an unjumpable wall crosses the entire
+     * streamed ring between the body and the goal, ending only far east of anything
+     * streamed at the start. Every ray the fan casts lands its anchor beyond the wall,
+     * in a component the body cannot enter, so route extraction fails outright -- the
+     * exact shape of "walks to the chunk border and then will not move on". The
+     * reachability sweep must anchor the frontier the body can actually reach, and the
+     * walk must round the wall's end as the world streams in behind it.
+     */
+    @Test
+    fun `a frontier severed from the body is recovered by the reachability sweep`() {
+        val wallZ = 30
+        val wallEndX = 100
+        val world = StreamingWorld()
+        val view = object : CoarseVoxelView {
+            override val simulableStanceY = 0..32
+
+            override fun isKnown(x: Int, y: Int, z: Int): Boolean = world.loaded(x, z)
+
+            override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = when {
+                !world.loaded(x, z) -> CoarseVoxel.UNKNOWN
+                y <= 4 -> CoarseVoxel.FULL_BLOCK
+                z == wallZ && x in -wallEndX..wallEndX && y <= 9 -> CoarseVoxel.FULL_BLOCK
+                else -> CoarseVoxel.AIR
+            }
+        }
+        val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+        val start = Stance(0, 5, 0)
+        val goal = Stance(0, 5, 200)
+        val planner = CoarsePlanner(view, moves, start, goal)
+
+        var position = start
+        var revision = 0L
+        var sweeps = 0
+        var arrived = false
+        for (cycle in 0 until MAX_CYCLES) {
+            val delivered = world.stream(position)
+            planner.updateStart(position)
+            if (delivered.isNotEmpty()) planner.chunksChanged(delivered)
+            planner.advanceFrontier(FrontierAnchors.probe(view, moves, position, goal))
+            planner.repair(Duration.INFINITE, maxExpansions = 500_000)
+
+            var route = planner.routePlan(++revision) ?: planner.resynchronizedRoutePlan(revision)
+            if (route == null && planner.discoverReachableFrontier()) {
+                sweeps++
+                route = planner.routePlan(revision)
+            }
+            val plan = assertNotNull(route, "stranded with no route at $position on cycle $cycle")
+            if (plan.nodes.last() == goal) {
+                arrived = true
+                break
+            }
+            position = plan.nodes[minOf(STEPS_PER_CYCLE, plan.nodes.lastIndex)]
+        }
+
+        assertTrue(sweeps > 0, "the wall never stranded the fan, so the scenario proves nothing")
+        assertTrue(arrived, "never reached $goal, stalled at $position")
     }
 
     private companion object {

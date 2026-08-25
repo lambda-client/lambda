@@ -217,7 +217,122 @@ data class BallisticProfile(
         return null
     }
 
+    /**
+     * A fall onto a bouncy surface, and the flight back out of it.
+     *
+     * Two phases sharing one integration, because they share a body: the horizontal velocity
+     * that goes into the slime is the horizontal velocity that comes out. That is the whole
+     * reason the move is worth having -- the body gets its air time back without giving up
+     * ground speed, so it reaches places no jump does.
+     *
+     * [drop] is how far below the take-off surface the slime's top sits and [rise] where the
+     * body finally lands, both relative to the take-off surface. A negative [rise] is the
+     * ordinary case: bouncing out of a pit onto a ledge part way up it.
+     *
+     * Three details of the contact tick had to be read off the simulator rather than guessed,
+     * and each one moves the landing by a noticeable amount:
+     *
+     * - The reflection takes the velocity *before* that tick's gravity, and gravity is then
+     *   applied to the result. Reflecting afterwards overstates the rebound.
+     * - The contact tick still drags horizontally as an air tick, because the body was
+     *   airborne when its motion for that tick was computed.
+     * - The tick *after* contact is a ground tick in full -- the surface's acceleration as
+     *   well as its friction -- because by then the body is marked grounded. Both halves
+     *   matter and they pull in opposite directions.
+     *
+     * The reflection is exact but the flight is not lossless -- drag acts on the way up as
+     * well as the way down -- so a four-block fall returns about two and a half.
+     *
+     * Returns null when the body never comes back to [rise], or the flight outlasts
+     * [maxTicks].
+     */
+    fun bounce(
+        entrySpeed: Double,
+        drop: Int,
+        rise: Int,
+        holdForward: Boolean = false,
+        sprint: Boolean = false,
+        bounceFactor: Double = 1.0,
+        maxTicks: Int = MAX_BOUNCE_TICKS,
+    ): ArcSample? {
+        require(drop > 0) { "a bounce must fall onto something: drop=$drop" }
+
+        var velocity = entrySpeed
+        var verticalVelocity = 0.0
+        var height = 0.0
+        var distance = 0.0
+        val heights = ArrayList<Double>(maxTicks)
+        val distances = ArrayList<Double>(maxTicks)
+        var bounced = false
+        var groundedLastTick = false
+
+        // Leaving the ledge is a ground tick, exactly as an ordinary drop's take-off is.
+        if (holdForward) velocity += groundAcceleration(sprint)
+        distance += velocity
+        verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
+        velocity *= groundFriction
+        heights += height
+        distances += distance
+
+        val airAcceleration = when {
+            !holdForward -> 0.0
+            sprint -> SPRINT_AIR_ACCELERATION
+            else -> WALK_AIR_ACCELERATION
+        }
+
+        for (tick in 1..maxTicks) {
+            // The tick after contact is a ground tick in full: vanilla's `travel` reads the
+            // grounded flag the landing set, so the body gets the surface's acceleration as
+            // well as its friction. That is a large boost -- ground acceleration is several
+            // times the air figure -- and leaving it out lost a tenth of a block on the
+            // bounce tick alone.
+            val grounded = groundedLastTick
+            groundedLastTick = false
+            velocity += if (grounded && holdForward) groundAcceleration(sprint) else airAcceleration
+            distance += velocity
+
+            if (!bounced) {
+                if (height + verticalVelocity <= -drop) {
+                    // Contact: the fall is clamped to the slime's top while the tick's
+                    // horizontal movement happens in full, and the block reflects what was
+                    // left of the downward velocity rather than absorbing it.
+                    height = -drop.toDouble()
+                    verticalVelocity = -verticalVelocity * bounceFactor
+                    bounced = true
+                    groundedLastTick = true
+                } else {
+                    height += verticalVelocity
+                }
+            } else if (verticalVelocity < 0.0) {
+                if (height < rise) return null
+                if (height + verticalVelocity <= rise) {
+                    heights += rise.toDouble()
+                    distances += distance
+                    return ArcSample(
+                        airTicks = tick,
+                        distance = distance,
+                        heights = heights.toDoubleArray(),
+                        distances = distances.toDoubleArray(),
+                        exitSpeed = velocity * HORIZONTAL_DRAG,
+                    )
+                }
+                height += verticalVelocity
+            } else {
+                height += verticalVelocity
+            }
+
+            verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
+            velocity *= if (grounded) groundFriction else HORIZONTAL_DRAG
+            heights += height
+            distances += distance
+        }
+        return null
+    }
+
     companion object {
+        /** A bounce is a fall and a flight, so it outlasts an ordinary arc. */
+        const val MAX_BOUNCE_TICKS = 48
+
         /** @see com.lambda.util.player.prediction.MovementSimulator.jump */
         const val SPRINT_JUMP_BOOST = 0.2
 

@@ -38,9 +38,20 @@ internal class PlanningCancellation {
 internal class PlanningSession(
     val generation: Long,
     val request: PathingRequest,
-    val snapshotRevision: Long,
+    /** Created for the leg after a running tape, rooted at its settled terminal. */
+    val pipelined: Boolean = false,
 ) {
     val cancellation = PlanningCancellation()
+
+    /**
+     * True while this session searches the leg *after* the running tape, rooted at that
+     * tape's certified terminal stance. A parked session's publications are held for the
+     * hand-off instead of spliced into a tape they do not extend, and it reports no
+     * execution cursor -- the frames the manager feeds it belong to the running tape,
+     * not to the leg this session is searching.
+     */
+    @Volatile
+    var parked: Boolean = false
 
     private val executionFrame = AtomicInteger(NOT_EXECUTING)
 
@@ -56,7 +67,8 @@ internal class PlanningSession(
         executionFrame.set(frame ?: NOT_EXECUTING)
     }
 
-    fun executionFrame(): Int? = executionFrame.get().takeUnless { it == NOT_EXECUTING }
+    fun executionFrame(): Int? =
+        if (parked) null else executionFrame.get().takeUnless { it == NOT_EXECUTING }
 
     fun cancel() {
         cancellation.cancel()

@@ -29,6 +29,9 @@ internal sealed interface Outcome {
     data class Anchored(val anchor: ValueAnchor) : Outcome
     data class Arrived(val frames: List<SimulatedTrajectoryFrame>, val stopFrame: Int) : Outcome
     data class Rejected(val diagnostic: TrajectoryDiagnostic) : Outcome
+
+    /** The rollout hit terrain the world does not hold yet. */
+    data class Blocked(val frame: Int, val sectionX: Int, val sectionY: Int, val sectionZ: Int) : Outcome
 }
 
 internal class AnchorRollout(
@@ -38,8 +41,8 @@ internal class AnchorRollout(
     private val searchConfig: ValueFieldSearchConfig,
     private val environment: SnapshotSimulationEnvironment,
     private val profile: PlayerPhysicsProfile,
-    private val initialState: MovementSimulationState,
-    private val goalPoint: HorizontalPoint,
+    /** A provider: the route terminal moves when the route extends mid-journey. */
+    private val goalPoint: () -> HorizontalPoint,
     private val attempts: AttemptAccumulator,
     private val progressOf: (com.lambda.pathing.coarse.Stance) -> Int,
 ) {
@@ -67,9 +70,11 @@ internal class AnchorRollout(
                 launch = launch,
             )
         )
+        val descentAllowance = movement.descentAllowance(action)
         val evaluator = RolloutEvaluator(
-            anchor.state, points, goalPoint, config,
+            anchor.state, points, goalPoint(), config,
             allowHorizontalContact = movement.pressesIntoTerrain,
+            descentAllowance = descentAllowance,
         )
         var previous = anchor.state
         var airborne = false
@@ -83,7 +88,7 @@ internal class AnchorRollout(
             profile = profile,
             environment = environment,
             program = program,
-            frameCount = searchConfig.maxTransitionFrames,
+            frameCount = maxOf(searchConfig.maxTransitionFrames, movement.transitionFrames(action)),
         ) { frame ->
             val verdict = evaluator.observe(frame.index, frame.state, previous)
             previous = frame.state
@@ -143,17 +148,31 @@ internal class AnchorRollout(
 
         stopFrame?.let { return Outcome.Arrived(rollout.frames, it) }
         failure?.let { return Outcome.Rejected(it) }
+        (rollout.termination as? TrajectoryRolloutTermination.Blocked)?.let {
+            return Outcome.Blocked(it.frame, it.sectionX, it.sectionY, it.sectionZ)
+        }
         val frame = eventFrame ?: return Outcome.Rejected(
-            evaluate(rollout, points, goalPoint, config).diagnostic
+            evaluate(rollout, points, goalPoint(), config, descentAllowance).diagnostic
                 ?: TrajectoryDiagnostic.NoStop(rollout.frames.size, 0.0, anchor.speed),
         )
 
         val frames = rollout.frames.take(frame + 1)
 
-        if (!field.isStance(eventStance) || !field.isMapped(eventStance)) {
+        if (!field.isStance(eventStance)) {
             return Outcome.Rejected(
                 TrajectoryDiagnostic.FellBelowRoute(frame, 0.0)
             )
+        }
+        if (!field.isMapped(eventStance)) {
+            // Off the guide field. If the terrain there is UNKNOWN, the field simply
+            // has not extended yet -- wait for knowledge. If it is known and still
+            // unmapped, the field has judged it: falling off the route must stay a
+            // rejection the search learns from, or it stops steering on small arenas.
+            return if (!field.view.isKnown(eventStance.x, eventStance.y - 1, eventStance.z)) {
+                Outcome.Blocked(frame, eventStance.x shr 4, (eventStance.y - 1) shr 4, eventStance.z shr 4)
+            } else {
+                Outcome.Rejected(TrajectoryDiagnostic.FellBelowRoute(frame, 0.0))
+            }
         }
         if (anchor.hasVisited(eventStance)) {
             return Outcome.Rejected(
@@ -184,6 +203,7 @@ internal class AnchorRollout(
         stopped: Boolean,
     ) {
         PlanningDebugChannel.publishAttempt(rollout, stopped, failure)
+        val goal = goalPoint()
         attempts.record(PlanAttempt(
             parameters = TerminalApproach(
                 sprint = action.sprint,
@@ -193,8 +213,8 @@ internal class AnchorRollout(
             ),
             simulatedFrames = rollout.frames.size,
             finalGoalError = hypot(
-                rollout.finalState.position.x - goalPoint.x,
-                rollout.finalState.position.z - goalPoint.z,
+                rollout.finalState.position.x - goal.x,
+                rollout.finalState.position.z - goal.z,
             ),
             finalHorizontalSpeed = rollout.finalState.velocity.horizontalLength(),
             diagnostic = failure,

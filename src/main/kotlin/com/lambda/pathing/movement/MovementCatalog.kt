@@ -17,6 +17,7 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.movement.providers.ClimbMovement
 import com.lambda.pathing.movement.providers.DropMovement
 import com.lambda.pathing.movement.providers.JumpMovement
+import com.lambda.pathing.movement.providers.SlimeBounceMovement
 import com.lambda.pathing.movement.providers.WalkMovement
 
 /**
@@ -60,6 +61,7 @@ class MovementCatalog private constructor(
             JumpMovement,
             DropMovement,
             ClimbMovement,
+            SlimeBounceMovement,
         )
 
         fun build(

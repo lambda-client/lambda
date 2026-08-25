@@ -33,9 +33,24 @@ internal class ValueAnchor(
     /** Stable semantic identity; regenerated action ordering can never retry or skip a decision. */
     val attempted: MutableSet<TrajectoryDecision> = HashSet()
 
+    /**
+     * Earliest failure frame per family that fell *before* the failing member diverged.
+     *
+     * A family is every variant of one control differing only in when its launch fires,
+     * so their inputs are identical until that tick. A failure at frame f therefore
+     * condemns -- exactly, not heuristically -- every sibling whose own launch comes
+     * after f: it would replay the same frames into the same failure.
+     */
+    val familyPrefixFailures: MutableMap<Any, Int> = HashMap()
+
     override var hazardFrame: Int? = null
 
-    var sweptToGoal: Boolean = false
+    /**
+     * The knowledge epoch this anchor's finish sweep last ran under. A plain latch
+     * stalled a persistent search forever: a sweep that failed on then-unknown terrain
+     * never retried after the terrain arrived.
+     */
+    var sweptEpoch: Int = -1
 
 
     fun prefix(): List<MovementSimulationInput> {

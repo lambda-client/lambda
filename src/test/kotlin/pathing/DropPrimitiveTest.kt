@@ -188,7 +188,13 @@ class DropPrimitiveTest {
         // launches ActionSet keeps first are jumps, and they earn their place across the
         // corpus. What must never happen is leaving the ground *on a tread*, where the
         // landing is one block wide and a leap clears two of them.
-        val descent = frames.dropWhile { it.state.position.y >= start.y.toDouble() }
+        // ...and scoped at the bottom too: the hazard being guarded against is a leap
+        // clearing two one-block treads, which needs two treads still ahead. From the
+        // final two treads the only thing to land on is the wide bottom landing, and a
+        // hop onto it is ordinary vocabulary, not the failure this test exists for.
+        val descent = frames
+            .dropWhile { it.state.position.y >= start.y.toDouble() }
+            .takeWhile { it.state.position.y >= goal.y + 2.0 }
         val jumps = descent.filter { it.input.jump }
         assertTrue(
             jumps.isEmpty(),
