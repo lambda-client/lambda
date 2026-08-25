@@ -944,8 +944,6 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private const val MAX_SETTLE_TICKS = 40
 
-    private const val SNAPSHOT_CAPTURE_CELLS_PER_TICK = 131_072
-
     private const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
 
     private const val BODY_INTEREST_BLOCKS = 24

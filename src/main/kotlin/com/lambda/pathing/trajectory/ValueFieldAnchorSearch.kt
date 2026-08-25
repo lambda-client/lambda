@@ -25,7 +25,6 @@ data class ValueFieldSearchConfig(
     val maxExpansions: Int = 8000,
     val stallExpansions: Int = 3000,
     val maxTransitionFrames: Int = 40,
-    val launchDelays: List<Int> = listOf(0, 1, 2, 3, 4, 5, 6),
     val branchingSteps: Int = 3,
     val branchMarginTicks: Double = 4.0,
     val headingFanDegrees: List<Double> = listOf(0.0, -12.0, 12.0),
@@ -49,7 +48,6 @@ data class ValueFieldSearchConfig(
         require(maxExpansions > 0)
         require(stallExpansions > 0)
         require(maxTransitionFrames > 0)
-        require(launchDelays.isNotEmpty() && launchDelays.all { it >= 0 })
         require(branchingSteps > 0)
         require(chainLength > 0)
         require(siblingPenaltyTicks >= 0.0)
@@ -412,7 +410,6 @@ object ValueFieldAnchorSearch {
                 attemptCount = attempts.count,
                 nearest = attempts.nearest,
                 blockedProgress = frontier.deepestProgress,
-                deadEdge = null,
                 remainingStart = route.nodes.getOrNull(frontier.deepestProgress),
                 remainingGoal = goalStance,
             )
@@ -693,7 +690,6 @@ object ValueFieldAnchorSearch {
             attemptCount = attempts.count,
             nearest = attempts.nearest,
             blockedProgress = frontier.deepestProgress,
-            deadEdge = null,
             remainingStart = route.nodes.getOrNull(frontier.deepestProgress),
             remainingGoal = goalStance,
         )
@@ -731,8 +727,6 @@ object ValueFieldAnchorSearch {
     private const val BRAKE_TAIL_FRAMES = 24
 
     private const val RETRY_PENALTY_TICKS = 0.05
-
-    private const val MAX_RETRY_PENALTY_TICKS = 8.0
 
     private const val FINISH_CHAIN_LENGTH = 24
 

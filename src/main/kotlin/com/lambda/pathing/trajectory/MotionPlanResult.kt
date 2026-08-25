@@ -1,6 +1,5 @@
 package com.lambda.pathing.trajectory
 
-import com.lambda.pathing.coarse.CoarseEdge
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.Stance
 import com.lambda.pathing.movement.InputTape
@@ -59,7 +58,6 @@ sealed interface MotionPlanResult {
         val remainingStart: Stance? = null,
         val remainingGoal: Stance? = null,
         val blockedProgress: Int? = null,
-        val deadEdge: CoarseEdge? = null,
     ) : MotionPlanResult
 
     data class UnstableReplay(val reason: String) : MotionPlanResult
