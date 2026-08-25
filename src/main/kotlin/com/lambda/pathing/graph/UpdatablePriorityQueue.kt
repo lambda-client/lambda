@@ -1,4 +1,4 @@
-package com.lambda.pathing.core
+package com.lambda.pathing.graph
 
 class UpdatablePriorityQueue<V, K : Comparable<K>> {
     private val values = ArrayList<V>()

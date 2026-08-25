@@ -1,18 +1,18 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.coarse.CoarseEdge
+import com.lambda.pathing.movement.CoarseEdge
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.DecisionContext
-import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.MovementCatalog
-import com.lambda.pathing.movement.MovementId
-import com.lambda.pathing.movement.MovementKeys
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.MovementKeys
 import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.movement.bearingBetween
-import com.lambda.pathing.movement.center
+import com.lambda.pathing.core.bearingBetween
+import com.lambda.pathing.core.center
 import kotlin.math.abs
 
 internal class ActionSet(

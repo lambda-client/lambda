@@ -9,7 +9,7 @@
 
 package pathing
 
-import com.lambda.pathing.core.UpdatablePriorityQueue
+import com.lambda.pathing.graph.UpdatablePriorityQueue
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals

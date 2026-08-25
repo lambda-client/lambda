@@ -1,11 +1,8 @@
 package com.lambda.pathing.movement
 
-import com.lambda.pathing.coarse.CoarseEdge
-import com.lambda.pathing.coarse.CoarseMoveCosts
-import com.lambda.pathing.coarse.MotionTemplate
-import com.lambda.pathing.coarse.MotionTemplateId
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.util.player.prediction.MovementSimulationState

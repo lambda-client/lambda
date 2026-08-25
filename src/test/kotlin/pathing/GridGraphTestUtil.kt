@@ -17,7 +17,7 @@
 
 package pathing
 
-import com.lambda.pathing.core.LazyGraph
+import com.lambda.pathing.graph.LazyGraph
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.x

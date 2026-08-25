@@ -1,4 +1,4 @@
-package com.lambda.pathing.core
+package com.lambda.pathing.graph
 
 sealed interface TailCost {
     val lowerBound: Double

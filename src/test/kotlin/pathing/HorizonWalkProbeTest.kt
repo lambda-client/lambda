@@ -8,8 +8,12 @@ import com.lambda.pathing.movement.*
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.*
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
+import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.*
+import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.util.player.prediction.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -155,7 +159,7 @@ class HorizonWalkProbeTest {
         val route = checkNotNull(planner.routePlan(0L))
 
         val startedAt = System.nanoTime()
-        val publications = ArrayList<Pair<Long, PathingManager.PublishedPath>>()
+        val publications = ArrayList<Pair<Long, PublishedPath>>()
         val result = TrajectoryPlanner.walkHorizon(
             route, planner, initial, PROFILE, environment, config,
             cursorFrame = {

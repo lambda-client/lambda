@@ -1,6 +1,8 @@
 package com.lambda.pathing.movement
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.MAX_PROGRESS_ADVANCE
 import com.lambda.util.player.prediction.MovementSimulationState
 import kotlin.math.atan2
 

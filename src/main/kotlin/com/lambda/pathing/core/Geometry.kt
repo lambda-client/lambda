@@ -1,19 +1,11 @@
-package com.lambda.pathing.movement
+package com.lambda.pathing.core
 
-import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.atan2
 import kotlin.math.hypot
 
 data class HorizontalPoint(val x: Double, val y: Double, val z: Double)
 
 fun Stance.center() = HorizontalPoint(x + 0.5, y.toDouble(), z + 0.5)
-
-fun Stance.center(view: CoarseVoxelView) = HorizontalPoint(
-    x + 0.5,
-    y + view.surfaceOffset(x, y - 1, z),
-    z + 0.5,
-)
 
 fun horizontalDistance(from: HorizontalPoint, to: HorizontalPoint): Double =
     hypot(to.x - from.x, to.z - from.z)

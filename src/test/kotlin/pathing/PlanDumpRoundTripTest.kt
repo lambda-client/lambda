@@ -10,8 +10,8 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel

@@ -18,7 +18,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.PathingRequest
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 

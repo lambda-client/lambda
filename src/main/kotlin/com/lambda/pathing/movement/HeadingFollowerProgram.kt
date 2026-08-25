@@ -1,6 +1,7 @@
 package com.lambda.pathing.movement
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.core.MovementKeys
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 

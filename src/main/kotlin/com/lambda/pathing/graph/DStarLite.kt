@@ -1,4 +1,4 @@
-package com.lambda.pathing.core
+package com.lambda.pathing.graph
 
 import kotlin.math.abs
 import kotlin.math.min

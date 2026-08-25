@@ -1,4 +1,4 @@
-package com.lambda.pathing.movement
+package com.lambda.pathing.core
 
 @JvmInline
 value class MovementId(val key: String) {

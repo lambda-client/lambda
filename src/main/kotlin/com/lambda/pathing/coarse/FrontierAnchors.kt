@@ -1,5 +1,6 @@
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.cos
 import kotlin.math.hypot

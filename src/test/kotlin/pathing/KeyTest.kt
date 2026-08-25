@@ -9,7 +9,7 @@
 
 package pathing
 
-import com.lambda.pathing.core.Key
+import com.lambda.pathing.graph.Key
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

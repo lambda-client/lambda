@@ -2,30 +2,30 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.BrakeToStopProgram
 import com.lambda.pathing.movement.ControlProgram
 import com.lambda.pathing.movement.CorridorFollowerProgram
-import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.MovementKeys
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.movement.InputTape
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.movement.center
+import com.lambda.pathing.world.center
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
-import kotlin.math.floor
 import kotlin.math.hypot
 
 data class ValueFieldSearchConfig(
     val maxExpansions: Int = 8000,
     val stallExpansions: Int = 3000,
     val maxTransitionFrames: Int = 40,
-    val launchDelays: List<Int> = listOf(0, 1, 2, 3, 4, 5, 6),
     val branchingSteps: Int = 3,
     val branchMarginTicks: Double = 4.0,
     val headingFanDegrees: List<Double> = listOf(0.0, -12.0, 12.0),
@@ -49,7 +49,6 @@ data class ValueFieldSearchConfig(
         require(maxExpansions > 0)
         require(stallExpansions > 0)
         require(maxTransitionFrames > 0)
-        require(launchDelays.isNotEmpty() && launchDelays.all { it >= 0 })
         require(branchingSteps > 0)
         require(chainLength > 0)
         require(siblingPenaltyTicks >= 0.0)
@@ -78,26 +77,6 @@ sealed interface WorldSyncResult {
 
 object ValueFieldAnchorSearch {
 
-    internal object Tally {
-        var enabled = false
-        val counts = java.util.concurrent.ConcurrentHashMap<String, IntArray>()
-
-        fun record(action: com.lambda.pathing.movement.TrajectoryDecision, rejected: Boolean, frame: Int) {
-            if (!enabled) return
-            val key = when (action) {
-                is com.lambda.pathing.movement.TrajectoryDecision.Heading -> "Heading(delay=" + action.delayFrames + ")"
-                is com.lambda.pathing.movement.TrajectoryDecision.Launch -> "Launch(" + action.movement + ",delay=" + action.delayFrames + ")"
-                else -> action::class.simpleName + "(" + action.movement + ")"
-            }
-            val row = counts.computeIfAbsent(key) { IntArray(3) }
-            row[0]++
-            if (rejected) {
-                row[1]++
-                row[2] += frame
-            }
-        }
-    }
-
     fun search(
         route: CoarseRoutePlan,
         catalog: MovementCatalog,
@@ -117,6 +96,8 @@ object ValueFieldAnchorSearch {
         worldSync: ((CoarseRoutePlan) -> WorldSyncResult)? = null,
 
         sectionCapturable: ((Int, Int) -> Boolean)? = null,
+
+        probe: SearchProbe = SearchProbe.NONE,
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
         val unsupported = route.edges.mapTo(HashSet()) { it.movement }
@@ -126,6 +107,7 @@ object ValueFieldAnchorSearch {
         return Search(
             route, catalog, field, initialState, profile, environment, config, searchConfig,
             onSafePrefix, cursorFrame, clock, cancelled, worldWait, worldSync, sectionCapturable,
+            probe,
         ).run()
     }
 
@@ -137,8 +119,6 @@ object ValueFieldAnchorSearch {
     private const val WORLD_SYNC_INTERVAL = 64
 
     private const val MAX_FRUITLESS_WAKES = 2
-
-    internal const val MAX_SHOWN_CANDIDATES = 12
 
     internal fun stanceOf(state: MovementSimulationState): Stance =
         Stance.of(state.position, state.onGround)
@@ -165,6 +145,7 @@ object ValueFieldAnchorSearch {
         private val worldWait: ((Long) -> Boolean)?,
         private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
         private val sectionCapturable: ((Int, Int) -> Boolean)?,
+        private val probe: SearchProbe,
     ) {
         private val vocabulary = ActionSet(catalog, field, config, searchConfig)
 
@@ -185,6 +166,7 @@ object ValueFieldAnchorSearch {
             expansions = { expansions },
             brakeFrom = ::brakeFrom,
             certify = ::certify,
+            probe = probe,
         )
         private var finishSweeps = 0
         private var sweepEpoch = 0
@@ -197,7 +179,7 @@ object ValueFieldAnchorSearch {
 
         private val rollouts = AnchorRollout(
             catalog, field, config, searchConfig, environment, profile, { goalPoint },
-            attempts, frontier::progressOf,
+            attempts, frontier::progressOf, probe,
         )
 
         private var walking = false
@@ -332,20 +314,17 @@ object ValueFieldAnchorSearch {
                 val outcome = if (raw is Outcome.Blocked) {
                     frontier.parkBlocked(anchor, action)
                     val capturable = sectionCapturable?.invoke(raw.sectionX, raw.sectionZ) ?: true
-                    if (java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")) {
-                        com.lambda.Lambda.LOG.info(
-                            "[blocked] section ({}, {}, {}) capturable={} frame={} anchor={} action={}",
-                            raw.sectionX, raw.sectionY, raw.sectionZ, capturable, raw.frame,
-                            anchor.stance, action.movement,
-                        )
-                    }
+                    probe.blocked(
+                        raw.frame, raw.sectionX, raw.sectionY, raw.sectionZ,
+                        capturable, anchor.stance, action.movement,
+                    )
                     if (capturable) {
                         Outcome.Rejected(
                             TrajectoryDiagnostic.UnknownTerrain(raw.frame, raw.sectionX, raw.sectionY, raw.sectionZ),
                         )
                     } else raw
                 } else raw
-                Tally.record(action, outcome is Outcome.Rejected, (outcome as? Outcome.Rejected)?.diagnostic?.frame ?: 0)
+                probe.decision(action, outcome is Outcome.Rejected, (outcome as? Outcome.Rejected)?.diagnostic?.frame ?: 0)
                 when (outcome) {
                     is Outcome.Anchored -> {
                         frontier.admit(outcome.anchor)
@@ -412,7 +391,6 @@ object ValueFieldAnchorSearch {
                 attemptCount = attempts.count,
                 nearest = attempts.nearest,
                 blockedProgress = frontier.deepestProgress,
-                deadEdge = null,
                 remainingStart = route.nodes.getOrNull(frontier.deepestProgress),
                 remainingGoal = goalStance,
             )
@@ -512,7 +490,7 @@ object ValueFieldAnchorSearch {
                 config.maxFrames,
             )
             val evaluation = evaluate(gated.rollout, points, goalPoint, config)
-            PlanningDebugChannel.publishAttempt(gated.rollout, gated.stopFrame != null, evaluation.diagnostic)
+            probe.attempt(gated.rollout, gated.stopFrame != null, evaluation.diagnostic)
             attempts.record(PlanAttempt(
                 parameters = parameters,
                 simulatedFrames = gated.rollout.frames.size,
@@ -608,7 +586,7 @@ object ValueFieldAnchorSearch {
 
         private var certifiedInputs: List<MovementSimulationInput> = emptyList()
         private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
-        private var certifiedDependencies: List<Set<com.lambda.pathing.world.VoxelPos>> = emptyList()
+        private var certifiedDependencies: List<Set<VoxelPos>> = emptyList()
 
         private fun certify(solution: Solution): MotionPlanResult {
             if (cancelled()) return MotionPlanResult.Cancelled
@@ -621,7 +599,7 @@ object ValueFieldAnchorSearch {
 
             val frames = ArrayList<SimulatedTrajectoryFrame>(inputs.size)
             frames += certifiedFrames.subList(0, shared)
-            val frameDependencies = ArrayList<Set<com.lambda.pathing.world.VoxelPos>>(inputs.size)
+            val frameDependencies = ArrayList<Set<VoxelPos>>(inputs.size)
             frameDependencies += certifiedDependencies.subList(0, shared)
 
             val resumeState = if (shared == 0) initialState else certifiedFrames[shared - 1].state
@@ -647,7 +625,7 @@ object ValueFieldAnchorSearch {
             check(frameDependencies.size == inputs.size) {
                 "Every certified input must publish its world-read dependencies"
             }
-            val dependencies = HashSet<com.lambda.pathing.world.VoxelPos>()
+            val dependencies = HashSet<VoxelPos>()
             frameDependencies.forEach(dependencies::addAll)
 
             certifiedInputs = inputs
@@ -693,19 +671,18 @@ object ValueFieldAnchorSearch {
             attemptCount = attempts.count,
             nearest = attempts.nearest,
             blockedProgress = frontier.deepestProgress,
-            deadEdge = null,
             remainingStart = route.nodes.getOrNull(frontier.deepestProgress),
             remainingGoal = goalStance,
         )
     }
 
     private data class DecisionFamily(
-        val movement: com.lambda.pathing.movement.MovementId,
+        val movement: MovementId,
         val sprint: Boolean,
-        val step: com.lambda.pathing.coarse.Stance?,
+        val step: Stance?,
         val yaw: Double?,
-        val keys: com.lambda.pathing.movement.MovementKeys?,
-        val airborneKeys: com.lambda.pathing.movement.MovementKeys?,
+        val keys: MovementKeys?,
+        val airborneKeys: MovementKeys?,
     )
 
     private fun familyOf(action: TrajectoryDecision): Any? = when (action) {
@@ -731,8 +708,6 @@ object ValueFieldAnchorSearch {
     private const val BRAKE_TAIL_FRAMES = 24
 
     private const val RETRY_PENALTY_TICKS = 0.05
-
-    private const val MAX_RETRY_PENALTY_TICKS = 8.0
 
     private const val FINISH_CHAIN_LENGTH = 24
 

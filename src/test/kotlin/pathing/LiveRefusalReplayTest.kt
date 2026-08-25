@@ -4,7 +4,7 @@ package pathing
 // build/run/clientGameTest/neolambda/pathing-dumps).
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.coarse.CoarseMoveCosts
+import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.debug.PlanDump

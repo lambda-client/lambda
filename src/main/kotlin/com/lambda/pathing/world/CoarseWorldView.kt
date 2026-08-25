@@ -1,9 +1,9 @@
 package com.lambda.pathing.world
 
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.Stance
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
-
-data class VoxelPos(val x: Int, val y: Int, val z: Int)
 
 enum class CollisionClass {
 
@@ -110,3 +110,9 @@ interface CoarseVoxelView {
 
     fun surfaceOffset(x: Int, y: Int, z: Int): Double = (standingSurface(x, y, z) ?: 1.0) - 1.0
 }
+
+fun Stance.center(view: CoarseVoxelView) = HorizontalPoint(
+    x + 0.5,
+    y + view.surfaceOffset(x, y - 1, z),
+    z + 0.5,
+)

@@ -2,7 +2,7 @@ package com.lambda.pathing.debug
 
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryRollout
@@ -17,6 +17,8 @@ object PlanningDebugChannel {
 
     @Volatile
     private var active = false
+
+    val isActive: Boolean get() = active
 
     @Volatile
     var coarseRoute: CoarseRoutePlan? = null

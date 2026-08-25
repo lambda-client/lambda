@@ -23,9 +23,10 @@ import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.PathingRequest
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.threading.runSafe
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.prediction.MovementSimulationInput
@@ -426,7 +427,7 @@ internal object PathingTestHarness {
         }
     }
 
-    private fun PathingManager.PublishedPath.dependencies() = plan.dependencies
+    private fun PublishedPath.dependencies() = plan.dependencies
 
     fun assertMovementReplay(
         context: ClientGameTestContext,

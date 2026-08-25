@@ -4,7 +4,7 @@ data class MotionConstraints(
     val maxFrames: Int = 160,
     val maxYawDegreesPerFrame: Double = 30.0,
     val goalRadius: Double = 0.20,
-    val stoppedSpeed: Double = 0.012,
+    val stoppedSpeed: Double = DEFAULT_STOPPED_SPEED,
     val stableStopFrames: Int = 3,
     val maxSafeFallDistance: Double = 3.0,
     val brakeDistances: List<Double> = listOf(0.25, 0.35, 0.45, 0.55, 0.70, 0.90, 1.15),
@@ -21,6 +21,10 @@ data class MotionConstraints(
         require(brakeDistances.isNotEmpty() && brakeDistances.all { it > 0.0 && it.isFinite() })
         require(stepUpJumpLeadDistances.isNotEmpty() && stepUpJumpLeadDistances.all { it > 0.0 && it.isFinite() })
         require(sprintModes.isNotEmpty())
+    }
+
+    companion object {
+        const val DEFAULT_STOPPED_SPEED = 0.012
     }
 }
 

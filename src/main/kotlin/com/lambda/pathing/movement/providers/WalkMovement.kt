@@ -9,11 +9,11 @@ import com.lambda.pathing.movement.DecisionContext
 import com.lambda.pathing.movement.HeadingFollowerProgram
 import com.lambda.pathing.movement.Movement
 import com.lambda.pathing.movement.MovementContext
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.movement.ProgramContext
 import com.lambda.pathing.movement.SegmentFollowerProgram
 import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.movement.center
+import com.lambda.pathing.core.center
 
 object WalkMovement : Movement {
     override val id = MovementId.WALK

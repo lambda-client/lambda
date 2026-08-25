@@ -1,12 +1,14 @@
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.core.CoarseRouteCandidate
-import com.lambda.pathing.core.DStarLite
-import com.lambda.pathing.core.LazyGraph
-import com.lambda.pathing.core.TailCost
+import com.lambda.pathing.graph.CoarseRouteCandidate
+import com.lambda.pathing.graph.DStarLite
+import com.lambda.pathing.graph.LazyGraph
+import com.lambda.pathing.graph.TailCost
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.PathingChunk
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.movement.CoarseEdge
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 

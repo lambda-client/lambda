@@ -9,10 +9,10 @@
 
 package pathing
 
-import com.lambda.pathing.core.CoarseRouteCandidate
-import com.lambda.pathing.core.DStarLite
-import com.lambda.pathing.core.LazyGraph
-import com.lambda.pathing.core.TailCost
+import com.lambda.pathing.graph.CoarseRouteCandidate
+import com.lambda.pathing.graph.DStarLite
+import com.lambda.pathing.graph.LazyGraph
+import com.lambda.pathing.graph.TailCost
 import java.util.PriorityQueue
 import kotlin.random.Random
 import kotlin.test.Test

@@ -1,6 +1,8 @@
 package com.lambda.pathing.movement
 
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.MovementKeys
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.BounceSolution
 import com.lambda.pathing.launch.LaunchSolution
 

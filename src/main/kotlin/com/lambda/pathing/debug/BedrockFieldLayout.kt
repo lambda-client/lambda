@@ -1,6 +1,6 @@
 package com.lambda.pathing.debug
 
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
 import kotlin.random.Random
 
 object BedrockFieldLayout {

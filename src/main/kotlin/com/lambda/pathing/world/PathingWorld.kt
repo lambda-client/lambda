@@ -1,5 +1,7 @@
 package com.lambda.pathing.world
 
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.PathingSection
 import com.lambda.util.player.prediction.ImmutableSnapshotSection
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment

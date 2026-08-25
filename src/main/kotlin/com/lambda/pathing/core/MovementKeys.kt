@@ -1,4 +1,4 @@
-package com.lambda.pathing.movement
+package com.lambda.pathing.core
 
 data class MovementKeys(val forward: Double, val strafe: Double) {
     val sustainsSprint: Boolean get() = forward > 0.0

@@ -3,29 +3,35 @@ package com.lambda.pathing
 import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
-import com.lambda.pathing.coarse.CoarseMoveCosts
-import com.lambda.pathing.coarse.CoarseMoveRates
+import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.movement.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.debug.DebugChannelProbe
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.SearchClock
+import com.lambda.pathing.trajectory.SearchProbe
 import com.lambda.pathing.trajectory.SystemSearchClock
+import com.lambda.pathing.trajectory.WorldSyncResult
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.ValueFieldSearchConfig
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.PathingChunk
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
@@ -41,7 +47,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 
 sealed interface PathPlanResult {
-    data class Planned(val path: PathingManager.PublishedPath) : PathPlanResult
+    data class Planned(val path: PublishedPath) : PathPlanResult
     data class Failed(val failure: PlanningFailure) : PathPlanResult
     data object Cancelled : PathPlanResult
 }
@@ -375,9 +381,9 @@ object TrajectoryPlanner {
     internal fun planAsync(
         preparation: TrajectoryPlanningPreparation,
         world: PathingWorld,
-        onSafePrefix: (PathingManager.PublishedPath) -> Unit,
+        onSafePrefix: (PublishedPath) -> Unit,
         cursorFrame: () -> Int?,
-        onImprovement: (PathingManager.PublishedPath) -> Unit,
+        onImprovement: (PublishedPath) -> Unit,
         cancellation: PlanningCancellation,
         planningGeneration: Long,
         snapshotRevision: Long,
@@ -452,32 +458,30 @@ object TrajectoryPlanner {
                 PlanningDebugChannel.publishRoute(route)
 
                 val field = planner.valueField()
-                val worldSync: (CoarseRoutePlan) -> com.lambda.pathing.trajectory.WorldSyncResult = sync@{ current ->
+                val probe = DebugChannelProbe()
+                val worldSync: (CoarseRoutePlan) -> WorldSyncResult = sync@{ current ->
                     val batch = world.drainEvents()
-                    if (batch.isEmpty) return@sync com.lambda.pathing.trajectory.WorldSyncResult.Quiet
+                    if (batch.isEmpty) return@sync WorldSyncResult.Quiet
 
                     coarseState.applyEvents(batch.changedChunkSet())
                     val extending = current.goal != preparation.finalGoal
                     val mutated = batch.mutations.isNotEmpty() || batch.chunks.isNotEmpty()
 
                     if (!routeNeighborhoodTouched(current, batch) || (!extending && !mutated)) {
-                        return@sync com.lambda.pathing.trajectory.WorldSyncResult.Woken
+                        return@sync WorldSyncResult.Woken
                     }
                     field.invalidate(batch.sections)
 
                     val routeSections = current.dependencies.mapTo(HashSet()) {
-                        com.lambda.pathing.world.PathingSection.containing(it)
+                        PathingSection.containing(it)
                     }
                     val routeAffected = extending ||
                         batch.mutations.any { it in routeSections } ||
                         batch.sections.any { it in routeSections }
-                    if (java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")) {
-                        LOG.info(
-                            "[sync] sections={} mutations={} chunks={} routeAffected={} extending={}",
-                            batch.sections.size, batch.mutations.size, batch.chunks.size,
-                            routeAffected, extending,
-                        )
-                    }
+                    probe.sync(
+                        batch.sections.size, batch.mutations.size, batch.chunks.size,
+                        routeAffected, extending,
+                    )
                     val next = if (routeAffected) {
                         coarseState.resolveRoute(
                             start, snapshotRevision, preparation.coarseExpansionBudget,
@@ -490,7 +494,7 @@ object TrajectoryPlanner {
                             com.lambda.pathing.world.InterestTier.CORRIDOR,
                         )
                     }
-                    com.lambda.pathing.trajectory.WorldSyncResult.Changed(next)
+                    WorldSyncResult.Changed(next)
                 }
                 val outcome = walkHorizon(
                     route, planner, initial, profile, snapshot, seedConfig, cursorFrame,
@@ -507,6 +511,7 @@ object TrajectoryPlanner {
                     worldSync = worldSync,
                     sectionCapturable = { sx, sz -> world.chunkCapturable(sx, sz) },
                     field = field,
+                    probe = probe,
                 )
 
                 if (outcome is PathPlanResult.Failed) {
@@ -547,23 +552,24 @@ object TrajectoryPlanner {
         snapshot: SnapshotSimulationEnvironment,
         seedConfig: MotionConstraints,
         cursorFrame: () -> Int?,
-        publish: (PathingManager.PublishedPath, Boolean) -> Unit,
+        publish: (PublishedPath, Boolean) -> Unit,
         started: Long,
         lookahead: Int = HORIZON_FRAMES,
         commitFrames: Int = HORIZON_CHUNK_FRAMES,
         maxExpansions: Int = HORIZON_EXPANSIONS,
         bootstrapDelayMillis: Long = HORIZON_BOOTSTRAP_DELAY_MS,
         worldWait: ((Long) -> Boolean)? = null,
-        worldSync: ((CoarseRoutePlan) -> com.lambda.pathing.trajectory.WorldSyncResult)? = null,
+        worldSync: ((CoarseRoutePlan) -> WorldSyncResult)? = null,
         sectionCapturable: ((Int, Int) -> Boolean)? = null,
         clock: SearchClock = SystemSearchClock(),
         cancelled: () -> Boolean = { false },
         planningGeneration: Long = 0L,
         finalGoal: Stance = route.goal,
-        field: com.lambda.pathing.coarse.CoarseValueField = planner.valueField(),
+        field: CoarseValueField = planner.valueField(),
+        probe: SearchProbe = SearchProbe.NONE,
     ): PathPlanResult {
         var published = 0
-        var last: PathingManager.PublishedPath? = null
+        var last: PublishedPath? = null
 
         val result = ValueFieldAnchorSearch.search(
             route, planner.moves.catalog, field, initial, profile, snapshot, seedConfig,
@@ -599,6 +605,7 @@ object TrajectoryPlanner {
             worldWait = worldWait,
             worldSync = worldSync,
             sectionCapturable = sectionCapturable,
+            probe = probe,
         )
 
         return when (result) {
@@ -650,7 +657,7 @@ object TrajectoryPlanner {
         finalGoal: Stance,
         planningGeneration: Long,
         publicationSequence: Int,
-    ) = PathingManager.PublishedPath(
+    ) = PublishedPath(
         route = route,
         plan = TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(id), seed, profile),
         profile = profile,

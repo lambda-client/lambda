@@ -1,4 +1,4 @@
-package com.lambda.pathing.core
+package com.lambda.pathing.graph
 
 data class Key(
     val first: Double,

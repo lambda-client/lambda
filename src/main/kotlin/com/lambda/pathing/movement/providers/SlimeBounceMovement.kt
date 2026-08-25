@@ -1,7 +1,9 @@
 package com.lambda.pathing.movement.providers
 
-import com.lambda.pathing.coarse.CoarseEdge
-import com.lambda.pathing.coarse.MotionTemplate
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.center
+import com.lambda.pathing.movement.CoarseEdge
+import com.lambda.pathing.movement.MotionTemplate
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.launch.momentumSpeed

@@ -1,7 +1,6 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.debug.PlanningDebugChannel
 import net.minecraft.util.math.Vec3d
 
 internal class HorizonController(
@@ -14,6 +13,7 @@ internal class HorizonController(
     private val expansions: () -> Int,
     private val brakeFrom: (ValueAnchor) -> Solution?,
     private val certify: (Solution) -> MotionPlanResult,
+    private val probe: SearchProbe,
 ) {
     var safeAnchor: ValueAnchor? = null
         private set
@@ -105,18 +105,18 @@ internal class HorizonController(
     }
 
     fun publishCandidates() {
-        if (onSafePrefix == null) return
+        if (onSafePrefix == null || !probe.candidatesEnabled) return
         val pool = if (frontier.hasParked) frontier.parkedEntries else frontier.openEntries
         if (pool.isEmpty()) return
         val root = safeAnchor
         val best = pool.minByOrNull { it.order }
-        val shown = pool.sortedBy { it.order }.take(ValueFieldAnchorSearch.MAX_SHOWN_CANDIDATES)
-        PlanningDebugChannel.publishCandidates(
+        val shown = pool.sortedBy { it.order }.take(MAX_SHOWN_CANDIDATES)
+        probe.candidates(
             shown.map { entry ->
                 val points = ArrayList<Vec3d>()
                 root?.let { points += it.state.position }
                 lineFrom(root, entry.anchor).forEach { points += it.state.position }
-                PlanningDebugChannel.CandidateLine(points, entry === best)
+                CandidatePath(points, entry === best)
             }
         )
     }
@@ -124,6 +124,8 @@ internal class HorizonController(
     private companion object {
 
         const val MIN_COMMIT_PROGRESS_TICKS = 1.0
+
+        const val MAX_SHOWN_CANDIDATES = 12
     }
 
     private fun lineFrom(root: ValueAnchor?, leaf: ValueAnchor): List<ValueAnchor> {

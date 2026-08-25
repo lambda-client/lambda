@@ -1,5 +1,9 @@
 package com.lambda.pathing.movement.providers
 
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.bearingBetween
+import com.lambda.pathing.core.center
 import com.lambda.pathing.movement.*
 import com.lambda.pathing.world.Medium
 
@@ -75,7 +79,7 @@ object ClimbMovement : Movement {
         }
     }
 
-    override fun occupies(view: com.lambda.pathing.world.CoarseVoxelView, stance: com.lambda.pathing.coarse.Stance): Boolean =
+    override fun occupies(view: com.lambda.pathing.world.CoarseVoxelView, stance: com.lambda.pathing.core.Stance): Boolean =
         view.medium(stance.x, stance.y, stance.z) == Medium.CLIMBABLE
 
     override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
@@ -115,8 +119,8 @@ object ClimbMovement : Movement {
 
     private fun supportBearing(
         view: com.lambda.pathing.world.CoarseVoxelView,
-        from: com.lambda.pathing.coarse.Stance,
-        to: com.lambda.pathing.coarse.Stance,
+        from: com.lambda.pathing.core.Stance,
+        to: com.lambda.pathing.core.Stance,
     ): Double? {
         val support = WalkMovement.CARDINALS.firstOrNull { (dx, dz) ->
             view.medium(from.x + dx, from.y, from.z + dz) == Medium.SOLID &&
