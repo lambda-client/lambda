@@ -18,6 +18,7 @@
 package com.lambda.util.player.prediction
 
 import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
 import net.minecraft.block.FenceGateBlock
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
@@ -105,6 +106,29 @@ interface SimulationEnvironment {
      * @see net.minecraft.entity.player.PlayerEntity.updatePose
      */
     fun isSpaceEmpty(box: Box): Boolean? = null
+
+    /**
+     * What a landing on this block does to the body's downward velocity.
+     *
+     * Vanilla dispatches every touchdown through `Block.onEntityLand`, whose default is to
+     * zero the vertical velocity -- so "landing stops you" is not a rule of the engine, it
+     * is one block behaviour among several. Slime overrides it to reflect instead. Returning
+     * 0.0 is the default and reproduces the old unconditional zeroing exactly.
+     *
+     * @see net.minecraft.block.SlimeBlock.onEntityLand
+     */
+    fun bounceFactor(pos: BlockPos): Double = 0.0
+
+    /**
+     * Whether standing on this block drags a slow-moving body to a crawl.
+     *
+     * Slime's `onSteppedOn`, which is a separate behaviour from the bounce and fires on the
+     * same block: walking across slime is roughly half speed. Without it a tape that crosses
+     * slime diverges from the client on the first tick it touches one.
+     *
+     * @see net.minecraft.block.SlimeBlock.onSteppedOn
+     */
+    fun dampensSteppingSpeed(pos: BlockPos): Boolean = false
 }
 
 /** Client-thread environment backed by the live Minecraft world. */
@@ -134,8 +158,54 @@ class LiveSimulationEnvironment(
         collisionShapes = { box -> world.getBlockCollisions(player, box).toList() },
     )
 
-    override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
-        world.findSupportingBlockPos(player, box).getOrNull()
+    /**
+     * Nearest colliding block under [box], measured from [entityPos].
+     *
+     * Not delegated to `world.findSupportingBlockPos(player, box)`: vanilla measures
+     * "nearest" from its entity argument, which is the live player standing wherever it
+     * happens to stand -- while the body being simulated is somewhere else entirely.
+     * Near a block boundary that mis-measured distance attributes the wrong block, and
+     * the supporting block decides friction, the velocity multipliers, and whether a
+     * landing bounces: a simulated stride onto slime read the stone *behind* the live
+     * player and never reflected. Same nearest-plus-BlockPos-tie-break as vanilla and
+     * the snapshot environment, with the distance taken from the simulated body.
+     */
+    override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? {
+        val minX = net.minecraft.util.math.MathHelper.floor(box.minX - 1.0E-7) - 1
+        val maxX = net.minecraft.util.math.MathHelper.floor(box.maxX + 1.0E-7) + 1
+        val minY = net.minecraft.util.math.MathHelper.floor(box.minY - 1.0E-7) - 1
+        val maxY = net.minecraft.util.math.MathHelper.floor(box.maxY + 1.0E-7) + 1
+        val minZ = net.minecraft.util.math.MathHelper.floor(box.minZ - 1.0E-7) - 1
+        val maxZ = net.minecraft.util.math.MathHelper.floor(box.maxZ + 1.0E-7) + 1
+
+        var best: BlockPos? = null
+        var bestDistance = Double.MAX_VALUE
+        val mutable = BlockPos.Mutable()
+        for (y in minY..maxY) {
+            for (z in minZ..maxZ) {
+                for (x in minX..maxX) {
+                    val pos = mutable.set(x, y, z)
+                    val shape = world.getBlockState(pos).getCollisionShape(world, pos)
+                    if (shape.isEmpty) continue
+                    val collides = shape
+                        .offset(x.toDouble(), y.toDouble(), z.toDouble())
+                        .boundingBoxes
+                        .any { it.intersects(box) }
+                    if (!collides) continue
+
+                    val candidate = pos.toImmutable()
+                    val distance = candidate.getSquaredDistance(entityPos)
+                    if (distance < bestDistance ||
+                        (distance == bestDistance && (best == null || best < candidate))
+                    ) {
+                        best = candidate
+                        bestDistance = distance
+                    }
+                }
+            }
+        }
+        return best
+    }
 
     override fun isSpaceEmpty(box: Box): Boolean = world.isSpaceEmpty(player, box)
 
@@ -143,7 +213,29 @@ class LiveSimulationEnvironment(
 
     override fun isClimbable(pos: BlockPos): Boolean =
         world.getBlockState(pos).isIn(BlockTags.CLIMBABLE)
+
+    override fun bounceFactor(pos: BlockPos): Double = bounceFactorOf(world.getBlockState(pos))
+
+    override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
+        dampensSteppingSpeedOf(world.getBlockState(pos))
 }
+
+/**
+ * Vanilla's reflection factor for a landing on [state], or zero for an ordinary stop.
+ *
+ * One is a full reflection, which is what a living entity gets from slime -- the body leaves
+ * with exactly the speed it arrived with. Beds bounce too, at two thirds, but nothing in the
+ * planner has a reason to land on one yet.
+ *
+ * @see net.minecraft.block.SlimeBlock.bounce
+ */
+internal fun bounceFactorOf(state: BlockState): Double =
+    if (state.isOf(Blocks.SLIME_BLOCK)) SLIME_BOUNCE_FACTOR else 0.0
+
+internal fun dampensSteppingSpeedOf(state: BlockState): Boolean = state.isOf(Blocks.SLIME_BLOCK)
+
+/** @see net.minecraft.block.SlimeBlock.bounce */
+const val SLIME_BOUNCE_FACTOR = 1.0
 
 /** @see net.minecraft.entity.Entity.getPosWithYOffset */
 internal fun BlockState.isFenceLike(): Boolean =

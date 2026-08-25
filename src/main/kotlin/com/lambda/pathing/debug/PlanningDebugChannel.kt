@@ -222,10 +222,12 @@ object PlanningDebugChannel {
     fun begin(enabled: Boolean, limits: GraphViewLimits = GraphViewLimits()) {
         graphLimits = limits
         synchronized(ring) { ring.clear() }
-        coarseRoute = null
         attempts = emptyList()
         candidateLines = emptyList()
-        graph = null
+        // The graph and route views survive into the next session on purpose: the
+        // underlying coarse graph is retained across legs, and clearing the render
+        // here made every replan look like the graph was lost and rebuilt. The next
+        // publishGraph/publishRoute replaces them in place.
         active = enabled
     }
 

@@ -69,7 +69,15 @@ class TrajectoryPlan private constructor(
         require(terminalFrames.size == REQUIRED_STABLE_STOP_FRAMES && terminalFrames.all { frame ->
             frame.state.onGround && frame.state.velocity.horizontalLength() <= TERMINAL_STOP_SPEED
         }) {
-            "Published trajectory does not end in a stable grounded stop"
+            "Published trajectory does not end in a stable grounded stop: " +
+                terminalFrames.joinToString(" | ") { frame ->
+                    "f=${frame.index} ground=${frame.state.onGround} " +
+                        "speed=%.4f vy=%.4f pos=%s".format(
+                            frame.state.velocity.horizontalLength(),
+                            frame.state.velocity.y,
+                            frame.state.position,
+                        )
+                }
         }
     }
 

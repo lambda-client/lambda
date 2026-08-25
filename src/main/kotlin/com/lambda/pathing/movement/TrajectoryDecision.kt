@@ -10,6 +10,7 @@
 package com.lambda.pathing.movement
 
 import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.launch.BounceSolution
 import com.lambda.pathing.launch.LaunchSolution
 
 sealed interface TrajectoryDecision {
@@ -118,4 +119,23 @@ sealed interface TrajectoryDecision {
         val airborneKeys: MovementKeys = keys,
         override val movement: MovementId = MovementId.WALK,
     ) : TrajectoryDecision
+
+    /**
+     * Fall onto slime and ride the rebound.
+     *
+     * The impulse comes from the fall rather than from a key, which is why this is its own
+     * decision rather than a [Launch] with a different mode: there is nothing to press and
+     * nothing to time. What the control has to get right is the speed the body arrives at the
+     * lip with, and then to stay out of its own way for the thirty-odd ticks that follow.
+     */
+    data class Bounce(
+        override val sprint: Boolean,
+        override val step: Stance?,
+        val solution: BounceSolution,
+        override val movement: MovementId = MovementId.BOUNCE,
+    ) : TrajectoryDecision {
+        // Reach past what any jump can manage is the whole point, so a bounce that barely
+        // solves is still worth more than one that is merely comfortable.
+        override val margin: Double get() = solution.speedSlack
+    }
 }

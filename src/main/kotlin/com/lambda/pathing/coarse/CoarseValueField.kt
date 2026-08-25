@@ -22,6 +22,36 @@ class CoarseValueField(
     private val guides = HashMap<Stance, Double>()
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
+    /**
+     * Drops memoized values invalidated by a world change.
+     *
+     * The guide memo freezes the first read of the live D* labels, so without this a
+     * repair is invisible to everything steering by the field -- the search keeps
+     * walking a world that no longer exists. Guides clear wholesale (recomputation is
+     * one live g/rhs read per stance); edges are terrain-derived and evicted only
+     * within one section of a change, since move templates reach a few blocks at most.
+     */
+    fun invalidate(sections: Set<com.lambda.pathing.world.PathingSection>) {
+        if (sections.isEmpty()) return
+        val halo = HashSet<com.lambda.pathing.world.PathingSection>(sections.size * 27)
+        for (section in sections) {
+            for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
+                halo += com.lambda.pathing.world.PathingSection(
+                    section.x + dx, section.y + dy, section.z + dz,
+                )
+            }
+        }
+        // Halo-scoped for guides too: a wholesale clear made every stray late packet
+        // re-derive the entire field mid-search -- the search thrashed instead of
+        // searching, and the publication clock did not care.
+        guides.keys.removeAll { stance ->
+            com.lambda.pathing.world.PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
+        }
+        edges.keys.removeAll { stance ->
+            com.lambda.pathing.world.PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
+        }
+    }
+
     fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
     fun guide(stance: Stance): Double = guides.getOrPut(stance) {

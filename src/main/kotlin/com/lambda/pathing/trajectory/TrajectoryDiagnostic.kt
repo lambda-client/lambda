@@ -32,6 +32,14 @@ sealed interface TrajectoryDiagnostic {
 
     data class RepeatedCoarseStance(override val frame: Int) : TrajectoryDiagnostic
 
+    /** The rollout reached terrain the world model does not hold yet: a wait, not a fault. */
+    data class UnknownTerrain(
+        override val frame: Int,
+        val sectionX: Int,
+        val sectionY: Int,
+        val sectionZ: Int,
+    ) : TrajectoryDiagnostic
+
     data class HarmfulFall(
         override val frame: Int,
         val fallDistance: Double,

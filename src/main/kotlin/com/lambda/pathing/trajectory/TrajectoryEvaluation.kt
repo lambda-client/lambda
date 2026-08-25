@@ -34,8 +34,10 @@ internal class RolloutEvaluator(
     private val config: MotionConstraints,
     /** Set for a movement whose motion comes from pressing into terrain -- see [Movement.pressesIntoTerrain]. */
     private val allowHorizontalContact: Boolean = false,
+    /** Extra depth this movement is entitled to -- see [Movement.descentAllowance]. */
+    private val descentAllowance: Double = 0.0,
 ) {
-    private val floor = nodes.minOf { it.y } - FALL_TOLERANCE
+    private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
 
     private var apex = initialState.position.y
     private var stable = 0
@@ -45,10 +47,18 @@ internal class RolloutEvaluator(
 
     fun observe(index: Int, state: MovementSimulationState, before: MovementSimulationState): RolloutVerdict {
         if (state.onGround) {
+            // A landing that throws the body back up is a landing that did not hurt it.
+            // Vanilla gates the reflection and the fall-damage waiver on the same condition
+            // -- `bypassesLandingEffects`, which is sneaking -- so slime either does both or
+            // neither, and the rebound is the observable half. Reading it from the state
+            // rather than asking what block it was keeps this true for anything else that
+            // bounces, and needs no terrain access the evaluator does not have.
+            val rebounded = state.velocity.y > 0.0
             val fallDistance = apex - state.position.y
-            if (fallDistance > config.maxSafeFallDistance) {
+            if (!rebounded && fallDistance > config.maxSafeFallDistance) {
                 return RolloutVerdict.Failed(TrajectoryDiagnostic.HarmfulFall(index, fallDistance))
             }
+            // Either way the fall is over: a rebound starts a new rise from here.
             apex = state.position.y
         } else {
             apex = maxOf(apex, state.position.y)
@@ -88,8 +98,11 @@ internal fun evaluate(
     nodes: List<HorizontalPoint>,
     goal: HorizontalPoint,
     config: MotionConstraints,
+    descentAllowance: Double = 0.0,
 ): Evaluation {
-    val evaluator = RolloutEvaluator(rollout.initialState, nodes, goal, config)
+    val evaluator = RolloutEvaluator(
+        rollout.initialState, nodes, goal, config, descentAllowance = descentAllowance,
+    )
 
     rollout.frames.forEach { frame ->
         val before = if (frame.index == 0) rollout.initialState else rollout.frames[frame.index - 1].state
@@ -100,6 +113,12 @@ internal fun evaluate(
         }
     }
 
+    (rollout.termination as? TrajectoryRolloutTermination.Blocked)?.let { blocked ->
+        return Evaluation(
+            null,
+            TrajectoryDiagnostic.UnknownTerrain(blocked.frame, blocked.sectionX, blocked.sectionY, blocked.sectionZ),
+        )
+    }
     (rollout.termination as? TrajectoryRolloutTermination.Rejected)?.let { rejected ->
         return Evaluation(
             null,

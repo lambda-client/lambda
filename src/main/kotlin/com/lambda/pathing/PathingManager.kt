@@ -31,19 +31,18 @@ import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
+import com.lambda.pathing.execution.ExecutionStateTolerance
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.trajectory.TrajectoryPlan
-import com.lambda.pathing.world.PathingChunk
-import com.lambda.pathing.world.VoxelPos
-import com.lambda.pathing.world.WorldMutationTracker
+import com.lambda.pathing.world.InterestTier
+import com.lambda.pathing.world.PathingWorld
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.update
-import com.lambda.util.player.prediction.DemandDrivenSnapshotCapture
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -114,8 +113,17 @@ object PathingManager : Manager<PathingRequest>(0) {
         private set
 
     @Volatile
-    var renderConfig: PathingRenderConfig = AutomationConfig.DEFAULT.pathingRenderConfig
-        private set
+    private var lastRenderConfig: PathingRenderConfig = AutomationConfig.DEFAULT.pathingRenderConfig
+
+    /**
+     * The render config of the walk's automation context, read live.
+     *
+     * Resolved through the active request so a setting changed mid-walk takes effect
+     * immediately, exactly like every other automation config; the last context is kept
+     * so trails and debug views drawn after completion keep their colors.
+     */
+    val renderConfig: PathingRenderConfig
+        get() = activeRequest?.pathingRenderConfig ?: lastRenderConfig
 
     private val trail = ArrayDeque<Vec3d>()
 
@@ -125,9 +133,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private var planningGeneration = 0L
     private var planningSession: PlanningSession? = null
-    private var pendingCapture: PendingCapture? = null
     private var journey: PlanningJourney? = null
-    private val worldMutations = WorldMutationTracker()
 
     private var leg = 0
 
@@ -143,6 +149,26 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private var pendingImprovement: PublishedPath? = null
 
+    /** Successor leg published by a parked session while the current tape still replays. */
+    private var pendingNextLeg: PublishedPath? = null
+
+    /**
+     * Frames the previous leg replayed before a pipelined hand-off.
+     *
+     * Replay deviation accrues per frame and does not reset at a leg boundary the body
+     * never re-observes from ground truth: the successor's root is a prediction carrying
+     * the previous tape's accumulated drift, so its cursor starts with the tolerance the
+     * previous cursor ended with instead of a fresh one it can never meet.
+     */
+    private var handoffBaseFrames = 0
+
+    /**
+     * The tape a pipeline was already attempted for. One attempt per tape: a pipelined
+     * search that failed would otherwise be relaunched every tick against the same root
+     * and fail the same way, in a hot loop, until the tape ran out.
+     */
+    private var pipelinedTape: Long? = null
+
     /**
      * The player's own flight permission, held while a tape is suppressing it.
      *
@@ -150,6 +176,22 @@ object PathingManager : Manager<PathingRequest>(0) {
      * path puts back exactly what the player had.
      */
     private var heldFlightPermission: Boolean? = null
+
+    /** Live planner state for stuck-walk diagnosis; safe to read from any thread. */
+    fun diagnostics(): String = buildString {
+        append("status=").append(status)
+        published?.let { p ->
+            append(" tape=").append(p.plan.tape.frameCount)
+            append(" routeGoal=").append(p.route.goal)
+            append(" finalGoal=").append(p.finalGoal)
+            append(" partial=").append(p.partial)
+            append(" seq=").append(p.publicationSequence)
+        }
+        journey?.world?.let { w ->
+            append(" revision=").append(w.revision)
+            append(" pendingInterest=").append(w.pendingInterest)
+        }
+    }
 
     fun isFinished(request: PathingRequest): Boolean = when {
         queuedRequest === request -> false
@@ -188,15 +230,25 @@ object PathingManager : Manager<PathingRequest>(0) {
         mc.player?.abilities?.allowFlying = held
     }
 
-    private fun releaseWalk() {
+    /**
+     * Stops the walk, optionally keeping the journey.
+     *
+     * The journey -- captured world, coarse D* field, optimistic frontier -- is scoped to
+     * a *goal*, not to a request. Tearing it down on every stop made the next walk toward
+     * the same goal re-expand tens of thousands of nodes for terrain nothing invalidated;
+     * a kept journey is re-validated (goal, move options, physics profile) before reuse
+     * and rebuilt only when it genuinely no longer applies. The capture is owned by the
+     * journey, so it is cancelled with it and only with it.
+     */
+    private fun releaseWalk(keepJourney: Boolean = false) {
         releaseFlightPermission()
         val planning = planningSession
         planningSession = null
         planning?.cancel()
-        pendingCapture?.capture?.cancel()
-        pendingCapture = null
-        journey?.cancel()
-        journey = null
+        if (!keepJourney) {
+            journey?.cancel()
+            journey = null
+        }
         activeRequest = null
         cursor = null
         tickInput = null
@@ -204,13 +256,16 @@ object PathingManager : Manager<PathingRequest>(0) {
         planningYaw = null
         pendingPath = null
         pendingImprovement = null
+        pendingNextLeg = null
+        handoffBaseFrames = 0
+        pipelinedTape = null
         alignmentTicks = 0
         settleTicks = 0
         leg = 0
     }
 
     fun cancel() {
-        releaseWalk()
+        releaseWalk(keepJourney = true)
         if (status is Status.Settling || status is Status.Planning ||
             status is Status.Aligning || status is Status.Executing
         ) {
@@ -220,7 +275,6 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     fun clear() {
         releaseWalk()
-        worldMutations.reset()
         status = Status.Idle
         published = null
         maxDeviation = 0.0
@@ -235,10 +289,24 @@ object PathingManager : Manager<PathingRequest>(0) {
     override fun AutomatedSafeContext.handleRequest(request: PathingRequest) {
         if (!request.fresh) return
 
-        clear()
+        // A fresh walk toward the goal the journey already serves keeps the coarse
+        // state; `capturePlan` still re-validates options and physics before trusting
+        // it. World-mutation revisions stay monotonic while anything derived from them
+        // survives.
+        val sameGoal = journey?.goal == TrajectoryPlanner.resolveGoalStance(player, request.goal)
+        releaseWalk(keepJourney = sameGoal)
+        status = Status.Idle
+        published = null
+        maxDeviation = 0.0
+        adopted = 0
+        recoveries = 0
+        rejectedImprovements = 0
+        synchronized(executedPaths) { executedPaths.clear() }
+        synchronized(trail) { trail.clear() }
+        PlanningDebugChannel.reset()
 
         activeRequest = request
-        renderConfig = request.pathingRenderConfig
+        lastRenderConfig = request.pathingRenderConfig
 
         unsteerable(request)?.let { return fail(it, request.goal) }
         planTrajectory(request)
@@ -272,8 +340,13 @@ object PathingManager : Manager<PathingRequest>(0) {
         val previousSession = planningSession
         planningSession = null
         previousSession?.cancel()
-        val snapshotRevision = worldMutations.currentRevision()
-        val session = PlanningSession(++planningGeneration, request, snapshotRevision)
+        // Any fresh planning re-roots at the live body; a leg parked for the old tape's
+        // terminal stance no longer describes anything the walk will reach, and the
+        // deviation budget restarts from observed ground truth.
+        pendingNextLeg = null
+        handoffBaseFrames = 0
+        pipelinedTape = null
+        val session = PlanningSession(++planningGeneration, request)
         planningSession = session
 
         planningYaw = player.moveYaw.toDouble()
@@ -300,32 +373,23 @@ object PathingManager : Manager<PathingRequest>(0) {
             PlanningPreparationResult.Cancelled -> return fail("planning was cancelled")
         }
         val currentJourney = journey?.takeIf {
-            it.goal == request.goal && it.moveOptions == preparation.moveOptions &&
-                it.profile.isCompatibleWith(preparation.profile)
+            it.goal == preparation.finalGoal && it.moveOptions == preparation.moveOptions &&
+                it.profile.isCompatibleWith(preparation.profile) &&
+                it.coarseState.horizonChunks == preparation.planningHorizonChunks
         } ?: run {
             journey?.cancel()
             val journeyCancellation = PlanningCancellation()
-            val capture = SnapshotSimulationEnvironment.beginDemandDrivenCapture(
-                world = player.entityWorld,
-                player = player,
-                bounds = preparation.bounds,
-                cancelled = { journeyCancellation.isCancelled },
-                replaying = { cursor != null },
-            )
+            val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
+            primeJourneyInterest(pathingWorld, preparation)
             PlanningJourney(
-                goal = request.goal,
+                goal = preparation.finalGoal,
                 moveOptions = preparation.moveOptions,
                 profile = preparation.profile,
                 cancellation = journeyCancellation,
-                capture = capture,
-                coarseState = TrajectoryPlanner.coarseState(preparation, capture.snapshot),
+                world = pathingWorld,
+                coarseState = TrajectoryPlanner.coarseState(preparation, pathingWorld.snapshot),
             ).also { journey = it }
         }
-        pendingCapture = PendingCapture(
-            session = session,
-            preparation = preparation,
-            capture = currentJourney.capture,
-        )
         launchPlanning(request, session, preparation, currentJourney)
         advanceSnapshotCapture(request)
     }
@@ -334,32 +398,56 @@ object PathingManager : Manager<PathingRequest>(0) {
         if (status is Status.Planning) holdPlanningYaw(request)
         if (activeRequest !== request) return
         val activeJourney = journey ?: return
-        activeJourney.capture.refreshFrontier()
-        activeJourney.capture.drainAuthoritativeTransitions().forEach(activeJourney::markChanged)
+        // The body's neighbourhood is standing interest: knowledge follows the walk.
+        val pos = player.blockPos
+        activeJourney.world.interestBlocks(
+            pos.x - BODY_INTEREST_BLOCKS, pos.y - BODY_INTEREST_Y_BLOCKS, pos.z - BODY_INTEREST_BLOCKS,
+            pos.x + BODY_INTEREST_BLOCKS, pos.y + BODY_INTEREST_Y_BLOCKS, pos.z + BODY_INTEREST_BLOCKS,
+            InterestTier.BODY,
+        )
+        val configured = request.pathingConfig.snapshotCaptureBudgetMillis
+        // The configured budget protects frame time while a tape is replaying; while
+        // the body stands waiting for its plan, start latency is the constraint.
+        val budget = if (cursor == null) maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS) else configured
+        activeJourney.world.advance(budget)
+    }
 
-        if (!activeJourney.capture.hasPendingDemand) return
-
-        val capture = pendingCapture?.takeIf { planningSession === it.session }
-        if (capture != null && cursor == null) {
-            if (!PlayerPhysicsProfile.capture(player).isCompatibleWith(capture.preparation.profile)) {
-                fail("player physics changed while capturing the world snapshot")
-                return
-            }
-            val drift = player.pos.distanceTo(capture.preparation.initial.position)
-            if (drift > START_DRIFT_TOLERANCE) {
-                fail("moved %.2f blocks while capturing the world snapshot".format(drift))
-                return
-            }
+    /** Capture keeps ahead of the walk: corridor interest along the running route. */
+    private fun primeRouteInterest(path: PublishedPath) {
+        val world = journey?.world ?: return
+        path.route.nodes.forEach { node ->
+            world.interestBlocks(
+                node.x - ROUTE_INTEREST_BLOCKS, node.y - ROUTE_INTEREST_Y_BLOCKS, node.z - ROUTE_INTEREST_BLOCKS,
+                node.x + ROUTE_INTEREST_BLOCKS, node.y + ROUTE_INTEREST_Y_BLOCKS, node.z + ROUTE_INTEREST_BLOCKS,
+                InterestTier.CORRIDOR,
+            )
         }
+    }
 
-        val budgetNanos = (request.pathingConfig.snapshotCaptureBudgetMillis * 1_000_000.0).toLong()
-        val deadline = System.nanoTime() + budgetNanos
-        try {
-            activeJourney.capture.advance(SNAPSHOT_CAPTURE_CELLS_PER_TICK, deadline)
-            activeJourney.capture.drainAuthoritativeTransitions().forEach(activeJourney::markChanged)
-        } catch (failure: Exception) {
-            fail("could not capture a world snapshot: ${failure.message}")
-            return
+    /** Knowledge the first route needs: the goal area and a corridor toward it. */
+    private fun primeJourneyInterest(world: PathingWorld, preparation: TrajectoryPlanningPreparation) {
+        val goal = preparation.finalGoal
+        world.interestBlocks(
+            goal.x - GOAL_INTEREST_BLOCKS, goal.y - GOAL_INTEREST_BLOCKS, goal.z - GOAL_INTEREST_BLOCKS,
+            goal.x + GOAL_INTEREST_BLOCKS, goal.y + GOAL_INTEREST_BLOCKS, goal.z + GOAL_INTEREST_BLOCKS,
+            InterestTier.CORRIDOR,
+        )
+        val start = preparation.start
+        val dx = goal.x - start.x
+        val dy = goal.y - start.y
+        val dz = goal.z - start.z
+        val length = maxOf(kotlin.math.abs(dx), kotlin.math.abs(dz), 1)
+        var step = CORRIDOR_SAMPLE_BLOCKS
+        while (step < length) {
+            val x = start.x + dx * step / length
+            val y = start.y + dy * step / length
+            val z = start.z + dz * step / length
+            world.interestBlocks(
+                x - CORRIDOR_INTEREST_BLOCKS, y - CORRIDOR_INTEREST_Y_BLOCKS, z - CORRIDOR_INTEREST_BLOCKS,
+                x + CORRIDOR_INTEREST_BLOCKS, y + CORRIDOR_INTEREST_Y_BLOCKS, z + CORRIDOR_INTEREST_BLOCKS,
+                InterestTier.CORRIDOR,
+            )
+            step += CORRIDOR_SAMPLE_BLOCKS
         }
     }
 
@@ -369,37 +457,32 @@ object PathingManager : Manager<PathingRequest>(0) {
         preparation: TrajectoryPlanningPreparation,
         journey: PlanningJourney,
     ) {
-        val changed = journey.snapshotChanges()
         val planning = try {
             TrajectoryPlanner.planAsync(
                 preparation = preparation,
-                snapshot = journey.capture.snapshot,
+                world = journey.world,
                 cursorFrame = session::executionFrame,
                 onImprovement = { improvement ->
                     mc.execute {
-                        if (planningSession === session && activeRequest === request && cursor != null) {
-                            adopt(improvement)
+                        if (planningSession === session && activeRequest === request) {
+                            if (session.parked) parkNextLeg(improvement)
+                            else if (cursor != null) adopt(improvement)
                         }
                     }
                 },
                 onSafePrefix = { prefix ->
 
                     mc.execute {
-                        if (planningSession === session && activeRequest === request &&
-                            cursor == null && pendingPath == null
-                        ) {
-                            begin(prefix)
+                        if (planningSession === session && activeRequest === request) {
+                            if (session.parked) parkNextLeg(prefix)
+                            else if (cursor == null && pendingPath == null) begin(prefix)
                         }
                     }
                 },
                 cancellation = session.cancellation,
                 planningGeneration = session.generation,
-                snapshotRevision = session.snapshotRevision,
+                snapshotRevision = journey.world.revision,
                 coarseState = journey.coarseState,
-                changedVoxels = changed.positions,
-                changedChunks = changed.chunks,
-                onCoarseChangesApplied = { journey.acknowledge(changed) },
-                retireOptimisticTerrain = { chunks -> journey.capture.retireOptimisticSections(chunks) },
             )
         } catch (failure: Exception) {
             fail("could not start trajectory planning: ${failure.message}")
@@ -415,69 +498,53 @@ object PathingManager : Manager<PathingRequest>(0) {
                 fail("trajectory expansion crashed: ${failure.rootMessage()}")
                 return@whenCompleteAsync
             }
-            when (val completed = checkNotNull(result)) {
+            val completed = checkNotNull(result)
+            when (completed) {
                 is PathPlanResult.Planned ->
-                    if (cursor != null) adopt(completed.path) else begin(completed.path)
-                is PathPlanResult.Failed -> fail(completed.failure.message)
-                PathPlanResult.Cancelled -> fail("planning was cancelled")
+                    if (session.parked) parkNextLeg(completed.path)
+                    else if (cursor != null) adopt(completed.path) else begin(completed.path)
+                is PathPlanResult.Failed ->
+                    // A parked failure is not the walk's failure: the running tape is
+                    // still valid, and the tape end falls back to an ordinary replan.
+                    if (session.parked) LOG.info(
+                        "Pipelined next leg found nothing ({}); the tape end will replan", completed.failure.message,
+                    )
+                    else if (session.pipelined && activeRequest === request && cursor == null) {
+                        // The hand-off was already waiting on this session; a root
+                        // guessed from the tape terminal owes the walk a real attempt
+                        // from the live body before anything is declared unwalkable.
+                        LOG.info(
+                            "Pipelined leg failed after hand-off ({}); replanning from the body",
+                            completed.failure.message,
+                        )
+                        planningSession = null
+                        planTrajectory(request)
+                    }
+                    else fail(completed.failure.message)
+                PathPlanResult.Cancelled -> if (!session.parked) fail("planning was cancelled")
             }
             if (planningSession === session) {
                 planningSession = null
-                pendingCapture = null
             }
+            // The successor leg is NOT pipelined from here: a final improvement may
+            // still sit in pendingImprovement, and a root taken now would go stale the
+            // tick it is adopted. The tick handler starts the pipeline once the
+            // improvement stream has fully drained and the tape can no longer grow.
         }, mc)
     }
 
-    private data class PendingCapture(
-        val session: PlanningSession,
-        val preparation: TrajectoryPlanningPreparation,
-        val capture: DemandDrivenSnapshotCapture,
-    )
 
     private class PlanningJourney(
         val goal: Stance,
         val moveOptions: com.lambda.pathing.coarse.SimpleMoveOptions,
         val profile: PlayerPhysicsProfile,
         val cancellation: PlanningCancellation,
-        val capture: DemandDrivenSnapshotCapture,
+        val world: PathingWorld,
         val coarseState: CoarsePlanningState,
     ) {
-        data class ChangeBatch(
-            val revisions: Map<VoxelPos, Long>,
-            val chunkRevisions: Map<PathingChunk, Long>,
-        ) {
-            val positions: Set<VoxelPos> get() = revisions.keys
-            val chunks: Set<PathingChunk> get() = chunkRevisions.keys
-        }
-
-        private val changed = HashMap<VoxelPos, Long>()
-        private val changedChunks = HashMap<PathingChunk, Long>()
-        private var changeSequence = 0L
-
-        fun markChanged(pos: VoxelPos) = synchronized(changed) {
-            changed[pos] = ++changeSequence
-        }
-
-        fun markChanged(chunk: PathingChunk) = synchronized(changed) {
-            changedChunks[chunk] = ++changeSequence
-        }
-
-        fun snapshotChanges(): ChangeBatch = synchronized(changed) {
-            ChangeBatch(HashMap(changed), HashMap(changedChunks))
-        }
-
-        fun acknowledge(batch: ChangeBatch) = synchronized(changed) {
-            batch.revisions.forEach { (pos, revision) ->
-                if (changed[pos] == revision) changed.remove(pos)
-            }
-            batch.chunkRevisions.forEach { (chunk, revision) ->
-                if (changedChunks[chunk] == revision) changedChunks.remove(chunk)
-            }
-        }
-
         fun cancel() {
             cancellation.cancel()
-            capture.cancel()
+            world.close()
         }
     }
 
@@ -554,7 +621,13 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
         published = path
         recordExecuted(path)
-        cursor = TrajectoryExecutionCursor(path.plan, PlayerPhysicsProfile.capture(player)).apply { resumeAt(frame) }
+        primeRouteInterest(path)
+        cursor = TrajectoryExecutionCursor(
+            path.plan, PlayerPhysicsProfile.capture(player),
+            tolerance = ExecutionStateTolerance().let {
+                it.copy(position = it.position + it.positionPerFrame * handoffBaseFrames)
+            },
+        ).apply { resumeAt(frame) }
         planningSession?.updateExecutionFrame(frame)
         status = Status.Executing(frame, path.plan.tape.frameCount, leg)
         adopted++
@@ -567,6 +640,73 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
     }
 
+    /** Keeps the newest successor-leg publication for the hand-off at the tape end. */
+    private fun parkNextLeg(path: PublishedPath) {
+        val parked = pendingNextLeg
+        if (parked == null || path.planningGeneration > parked.planningGeneration ||
+            (path.planningGeneration == parked.planningGeneration &&
+                path.publicationSequence > parked.publicationSequence)
+        ) {
+            pendingNextLeg = path
+        }
+    }
+
+    /**
+     * Starts searching the leg after the running tape while the body is still replaying.
+     *
+     * A partial tape ends in a certified stable stop whose state is known exactly, so
+     * the successor search is rooted there instead of waiting for the body to arrive,
+     * settle, and recapture. Its publications are parked -- they extend a tape that is
+     * not running yet -- and the moment the running tape completes they install in its
+     * place, turning the between-legs pause from settle+capture+plan into one install.
+     */
+    private fun SafeContext.pipelineNextLeg(request: PathingRequest) {
+        val running = published ?: return
+        if (!running.partial) return
+        val currentJourney = journey ?: return
+        pipelinedTape = running.plan.id.value
+        // A certified stop still carries up to 0.012 b/t of residual speed, and the live
+        // body both sheds it (vanilla clamps sub-0.003 velocities to zero) and slides a
+        // few milliblocks doing so. The worker settles this root to that fixed point
+        // before searching (settleInitial below); the install then waits for the body
+        // to match it. Settling must not happen here: a snapshot miss blocks on the
+        // capture, and the capture advances on this very thread.
+        val terminal = running.plan.frames.last().state
+
+        val session = PlanningSession(
+            ++planningGeneration, request, pipelined = true,
+        )
+        session.parked = true
+        planningSession = session
+        val preparation = when (val prepared = TrajectoryPlanner.prepare(
+            player = player,
+            goal = request.goal,
+            config = request.pathingConfig,
+            turnSpeed = request.rotationConfig.turnSpeed,
+            cancellation = session.cancellation,
+            initialOverride = terminal,
+            settleInitial = true,
+        )) {
+            is PlanningPreparationResult.Ready -> prepared.preparation
+            else -> {
+                planningSession = null
+                return
+            }
+        }
+        val compatible = currentJourney.goal == preparation.finalGoal &&
+            currentJourney.moveOptions == preparation.moveOptions &&
+            currentJourney.profile.isCompatibleWith(preparation.profile) &&
+            currentJourney.coarseState.horizonChunks == preparation.planningHorizonChunks
+        if (!compatible) {
+            planningSession = null
+            return
+        }
+        LOG.info(
+            "Searching the next leg from the running tape's terminal stance {}", preparation.start,
+        )
+        launchPlanning(request, session, preparation, currentJourney)
+    }
+
     private fun keepRunning(rejected: PublishedPath, reason: String) {
         rejectedImprovements++
         LOG.info("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
@@ -576,12 +716,18 @@ object PathingManager : Manager<PathingRequest>(0) {
         executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
             return fail("certified plan became stale before execution: $deviation")
         }
+        primeRouteInterest(path)
         planningYaw = null
         pendingPath = null
         alignmentTicks = 0
         published = path
         recordExecuted(path)
-        cursor = TrajectoryExecutionCursor(path.plan, PlayerPhysicsProfile.capture(player))
+        cursor = TrajectoryExecutionCursor(
+            path.plan, PlayerPhysicsProfile.capture(player),
+            tolerance = ExecutionStateTolerance().let {
+                it.copy(position = it.position + it.positionPerFrame * handoffBaseFrames)
+            },
+        )
         planningSession?.updateExecutionFrame(0)
         awaitingObservation = false
         leg++
@@ -609,7 +755,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         val position = player.blockPos?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "unknown position"
         val destination = goal?.let { " toward $it" } ?: ""
         val walked = leg
-        releaseWalk()
+        releaseWalk(keepJourney = true)
         status = Status.Failed(reason)
         warn("Stopped ${if (walked == 0) "before" else "during"} continuous replay at $position$destination: $reason", PATHING_SOURCE)
     }
@@ -624,7 +770,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         val planning = planningSession
         planningSession = null
         planning?.cancel()
-        pendingCapture = null
         if (!reuseCoarseState) {
             journey?.cancel()
             journey = null
@@ -633,6 +778,9 @@ object PathingManager : Manager<PathingRequest>(0) {
         awaitingObservation = false
         pendingPath = null
         pendingImprovement = null
+        pendingNextLeg = null
+        handoffBaseFrames = 0
+        pipelinedTape = null
         planningYaw = null
         alignmentTicks = 0
         settleTicks = 0
@@ -648,21 +796,11 @@ object PathingManager : Manager<PathingRequest>(0) {
             if (event.world.isClient && event.oldState != event.newState &&
                 !ChunkPacketLoadContext.isActive()
             ) {
-                worldMutations.markBlock(event.pos)
-                journey?.let { activeJourney ->
-                    activeJourney.capture.invalidate(event.pos)
-                    activeJourney.markChanged(VoxelPos(event.pos.x, event.pos.y, event.pos.z))
-                }
+                journey?.world?.onBlockChanged(event.pos)
             }
         }
         listenUnsafe<WorldEvent.ChunkEvent.Load> { event ->
-            journey?.takeIf {
-                it.capture.hasAuthoritativeChunk(event.chunk.pos.x, event.chunk.pos.z)
-            }?.let {
-                worldMutations.markChunk(event.chunk.pos.x, event.chunk.pos.z)
-                it.capture.invalidateChunk(event.chunk.pos.x, event.chunk.pos.z)
-                it.markChanged(PathingChunk(event.chunk.pos.x, event.chunk.pos.z))
-            }
+            journey?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
         }
         listen<TickEvent.Pre> {
             val request = activeRequest ?: return@listen
@@ -708,6 +846,17 @@ object PathingManager : Manager<PathingRequest>(0) {
                 pendingImprovement = null
                 adopt(improvement)
             }
+
+            // With the session finished and every improvement drained, the running tape
+            // can no longer grow -- its terminal is final, and the successor leg can be
+            // searched from it while the body is still replaying.
+            if (planningSession == null && pendingNextLeg == null && pendingImprovement == null &&
+                !awaitingObservation && cursor != null && published?.partial == true &&
+                published?.plan?.id?.value != pipelinedTape
+            ) {
+                pipelineNextLeg(request)
+            }
+
             val current = published ?: return@listen
             val running = cursor ?: return@listen
 
@@ -771,7 +920,11 @@ object PathingManager : Manager<PathingRequest>(0) {
         val targetYaw = path.plan.initialState.rotation.yaw
         request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
         val yawDrift = abs(Rotation.wrap(player.moveYaw - targetYaw))
-        if (yawDrift <= START_YAW_TOLERANCE) {
+        // The body must also have shed its residual stop velocity: frame zero is
+        // compared per-axis at replay tolerance, and a pipelined leg is rooted at the
+        // settled terminal, not at the certified stop's last few milliblocks of drift.
+        val settled = player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround
+        if (yawDrift <= START_YAW_TOLERANCE && settled) {
             install(path)
             return
         }
@@ -791,16 +944,52 @@ object PathingManager : Manager<PathingRequest>(0) {
         if (path.partial) {
             val request = activeRequest
             if (request != null) {
-                val finished = planningSession
-                planningSession = null
-                pendingCapture = null
-                finished?.cancel()
                 pendingImprovement = null
                 info(
                     "Safe partial tape complete (${path.plan.tape.frameCount} frames); " +
                         "continuing toward ${path.finalGoal}.",
                     PATHING_SOURCE,
                 )
+                val next = pendingNextLeg
+                pendingNextLeg = null
+                val terminal = path.plan.frames.last().state.position
+                if (next != null &&
+                    next.plan.initialState.position.distanceTo(terminal) <= START_DRIFT_TOLERANCE
+                ) {
+                    // The successor session, if still refining, resumes ordinary
+                    // publication against the tape installed here. Installation goes
+                    // through the align path unconditionally: the parked root has its
+                    // residual velocity zeroed, so the body must settle (and face the
+                    // plan) before frame zero is compared against it.
+                    planningSession?.parked = false
+                    published = next
+                    pendingPath = next
+                    handoffBaseFrames += path.plan.tape.frameCount
+                    alignmentTicks = 0
+                    tickInput = ALIGNMENT_INPUT
+                    status = Status.Aligning(leg + 1, 0.0)
+                    return
+                }
+                if (next != null) {
+                    // The tape outgrew the pipelined root (a late improvement moved the
+                    // terminal); the parked leg and its session describe a stance the
+                    // body is not at. Fall through to an ordinary replan.
+                    LOG.info(
+                        "Discarding a pipelined leg rooted {} blocks from the tape terminal",
+                        "%.2f".format(next.plan.initialState.position.distanceTo(terminal)),
+                    )
+                }
+                val successor = planningSession
+                if (successor != null && successor.parked) {
+                    // The pipelined search is still running; its next publication
+                    // begins the leg the ordinary way now that the cursor is gone.
+                    successor.parked = false
+                    status = Status.Planning("(${path.finalGoal.x}, ${path.finalGoal.y}, ${path.finalGoal.z})")
+                    return
+                }
+                val finished = planningSession
+                planningSession = null
+                finished?.cancel()
                 planTrajectory(request)
                 return
             }
@@ -808,9 +997,9 @@ object PathingManager : Manager<PathingRequest>(0) {
         val planning = planningSession
         planningSession = null
         planning?.cancel()
-        pendingCapture = null
-        journey?.cancel()
-        journey = null
+        // The journey outlives the arrival on purpose: walking back, or on toward the
+        // same goal, is common, and the graph it would rebuild is exactly the terrain
+        // just walked. A request for a different goal retires it.
         status = Status.Complete(path.plan.tape.frameCount, leg)
         activeRequest = null
         releaseFlightPermission()
@@ -835,7 +1024,14 @@ object PathingManager : Manager<PathingRequest>(0) {
         when (deviation) {
             is ExecutionDeviation.WorldChanged -> recover(report, reuseCoarseState = true)
             is ExecutionDeviation.PhysicsProfile -> recover(report, reuseCoarseState = false)
-            else -> fail(report)
+            // Replay-state divergence (a sprint flag, a stray milliblock) means the
+            // simulator was wrong about this frame, not that the walk is impossible.
+            // Reality wins: replan from where the body actually is, and only give up
+            // when divergence keeps happening -- a hard fail on first divergence turned
+            // one simulator fidelity edge into a dead walk.
+            else ->
+                if (recoveries < MAX_STATE_RECOVERIES) recover(report, reuseCoarseState = true)
+                else fail(report)
         }
     }
 
@@ -847,10 +1043,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         if (!liveProfile.isCompatibleWith(path.profile)) {
             return ExecutionDeviation.PhysicsProfile(path.profile, liveProfile)
         }
-        val mutation = worldMutations.changeSince(
+        val mutation = journey?.world?.changedSince(
             snapshotRevision = path.plan.snapshotRevision,
-            sections = path.plan.dependencySectionsFrom(nextFrame),
-            chunks = path.plan.dependencyChunksFrom(nextFrame),
+            dependedSections = path.plan.dependencySectionsFrom(nextFrame),
+            dependedChunks = path.plan.dependencyChunksFrom(nextFrame),
         ) ?: return null
         return ExecutionDeviation.WorldChanged(path.plan.snapshotRevision, mutation)
     }
@@ -861,13 +1057,42 @@ object PathingManager : Manager<PathingRequest>(0) {
     private const val START_DRIFT_TOLERANCE = 0.35
     private const val START_YAW_TOLERANCE = 1.0
 
-    private const val MAX_ALIGNMENT_TICKS = 20
+    /**
+     * Covers both the yaw turn and the residual-velocity settle a pipelined hand-off
+     * waits for; on slime the stop's last 3e-4 b/t decays at only ~0.73 per tick, which
+     * alone costs ~18 ticks to reach [SETTLED_SPEED].
+     */
+    private const val MAX_ALIGNMENT_TICKS = 40
 
     private const val SETTLED_SPEED = 1e-6
 
     private const val MAX_SETTLE_TICKS = 40
 
-    private const val SNAPSHOT_CAPTURE_CELLS_PER_TICK = 16_384
+    /**
+     * Enough for a whole 3x3x3 prefetch burst in one tick; the configured time budget
+     * in [PathingConfig.snapshotCaptureBudgetMillis] is what actually bounds the work.
+     */
+    private const val SNAPSHOT_CAPTURE_CELLS_PER_TICK = 131_072
+
+    /** Capture budget while nothing is replaying: the body is standing anyway. */
+    private const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
+
+    /** Standing interest half-extent around the body, in blocks. */
+    private const val BODY_INTEREST_BLOCKS = 24
+    private const val BODY_INTEREST_Y_BLOCKS = 16
+
+    /** Half-extent of the goal-neighbourhood interest declared at journey start. */
+    private const val GOAL_INTEREST_BLOCKS = 16
+
+    private const val CORRIDOR_SAMPLE_BLOCKS = 24
+    private const val CORRIDOR_INTEREST_BLOCKS = 8
+    private const val CORRIDOR_INTEREST_Y_BLOCKS = 12
+
+    private const val ROUTE_INTEREST_BLOCKS = 8
+    private const val ROUTE_INTEREST_Y_BLOCKS = 8
+
+    /** Replans allowed on replay-state divergence before the walk is declared dead. */
+    private const val MAX_STATE_RECOVERIES = 8
 
     private const val MAX_RETAINED_PUBLICATIONS = 256
     private const val MAX_RETAINED_TRAIL_POINTS = 4_096

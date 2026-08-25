@@ -195,6 +195,34 @@ interface Movement {
      */
     val pressesIntoTerrain: Boolean get() = false
 
+    /**
+     * How far below its own route nodes this movement legitimately descends, in blocks.
+     *
+     * The evaluator kills a rollout that sinks below the lowest node it was given, and for
+     * every movement so far that has been exactly right: a walk, a jump or a drop that ends
+     * up under its own path has fallen off something. A bounce inverts it. Diving below both
+     * endpoints is not a failure of the move, it *is* the move -- the fall is what supplies
+     * the impulse -- so under the blanket rule every bounce was rejected on the frame it
+     * started working, which is the same shape of mistake [pressesIntoTerrain] exists to fix
+     * for a climb.
+     *
+     * Asked of the decision rather than the movement because the depth is solved per edge:
+     * a six-block pit and a three-block one are the same movement.
+     */
+    fun descentAllowance(decision: TrajectoryDecision): Double = 0.0
+
+    /**
+     * Frames this movement's transition needs, when the search's own budget is too short.
+     *
+     * The budget exists to stop a rollout wandering, and for a walk or a jump it is generous
+     * -- a jump is a dozen ticks. A bounce is a fall, a reflection and a long flight, thirty
+     * to forty ticks before the body is anywhere, so the default cuts it off mid-air and the
+     * transition is discarded for never having finished rather than for having failed.
+     *
+     * Returning zero keeps the search's budget, which is what every other movement wants.
+     */
+    fun transitionFrames(decision: TrajectoryDecision): Int = 0
+
     fun program(context: ProgramContext): ControlProgram
 
     fun completed(context: CompletionContext): Boolean

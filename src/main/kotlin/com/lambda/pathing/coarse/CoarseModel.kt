@@ -11,6 +11,7 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
+import com.lambda.pathing.launch.BounceSolution
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.movement.MovementId
 import com.lambda.pathing.movement.horizontalDistance
@@ -115,6 +116,25 @@ value class MotionTemplateId(val value: Int)
 
 data class CoarseEdgeId(val template: MotionTemplateId, val from: Stance)
 
+/**
+ * A read set that computes itself on first use.
+ *
+ * Edge generation used to materialize every edge's read set eagerly, and it was the
+ * single largest allocation in the whole graph layer: thousands of edges are generated
+ * per search and only the route-length few that get published are ever asked what they
+ * read. The declared offsets and the probe's packed reads both survive in the closure,
+ * so the answer is identical -- it just waits for the question.
+ */
+class LazyReadSet(supplier: () -> Set<VoxelPos>) : AbstractSet<VoxelPos>() {
+    private val backing: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION, supplier)
+
+    override val size: Int get() = backing.size
+
+    override fun iterator(): Iterator<VoxelPos> = backing.iterator()
+
+    override fun contains(element: VoxelPos): Boolean = element in backing
+}
+
 data class CoarseEdge(
     val id: CoarseEdgeId,
     val from: Stance,
@@ -124,6 +144,8 @@ data class CoarseEdge(
     val readSet: Set<VoxelPos>,
     /** The solved take-off for a ballistic edge; null for edges that keep their feet down. */
     val launch: LaunchSolution? = null,
+    /** The solved fall-and-rebound for a bounce edge; null for everything else. */
+    val bounce: BounceSolution? = null,
 )
 
 class CoarseMoveCosts(
@@ -141,6 +163,17 @@ class CoarseMoveCosts(
     val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
     val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
     val climb: (blocks: Int) -> Double = { blocks -> blocks * CoarseMoveRates.CLIMB_TICKS_PER_BLOCK },
+    /**
+     * What a bounce costs, which is dominated by how long the body is in the air.
+     *
+     * Priced off the fall rather than the distance: the flight length is set by the depth and
+     * the rebound, and horizontal speed changes where the body lands without changing how long
+     * it takes to get there. Cheap per block covered and expensive in absolute terms, which is
+     * the honest shape -- a bounce is a fast way across a gap and a slow way to go nowhere.
+     */
+    val bounce: (span: Int, drop: Int, rise: Int) -> Double = { _, drop, rise ->
+        CoarseMoveRates.fallTicks(drop) + CoarseMoveRates.fallTicks(drop + rise) + 2.0
+    },
 ) {
     init {
         validate("cardinalWalk", cardinalWalk)
@@ -160,6 +193,11 @@ class CoarseMoveCosts(
     fun walkOffCost(depth: Int): Double {
         require(depth > 0) { "walk-off depth must be positive" }
         return walkOff(depth).also { validate("walkOff($depth)", it) }
+    }
+
+    fun bounceCost(span: Int, drop: Int, rise: Int): Double {
+        require(drop > 0) { "a bounce must fall onto something: $drop" }
+        return bounce(span, drop, rise).also { validate("bounce($span, $drop, $rise)", it) }
     }
 
     fun climbCost(blocks: Int): Double {
@@ -276,11 +314,21 @@ data class SimpleMoveOptions(
      * how the graph works.
      */
     val allowOffAxisJumps: Boolean = true,
+    /**
+     * Whether falls onto slime are offered as a way across.
+     *
+     * Off by default. The arcs are thirty-odd ticks long, so every one the search tries is
+     * expensive to simulate, and the terrain that rewards them is rare -- a slime pad in
+     * exactly the right place. Worth having where it exists, not worth paying for everywhere.
+     */
+    val allowSlimeBounces: Boolean = false,
+    val maxBounceDrop: Int = 8,
 ) {
     init {
         require(maxWalkOffDepth >= 0) { "maxWalkOffDepth must be non-negative" }
         require(maxDropSpan >= 1) { "maxDropSpan must reach at least the adjacent stance" }
         require(maxJumpSpan >= 2) { "maxJumpSpan must reach past the adjacent stance" }
+        require(maxBounceDrop >= 3) { "a bounce needs a fall deep enough to rebound from" }
         require(maxJumpDrop >= 0) { "maxJumpDrop must be non-negative" }
     }
 }

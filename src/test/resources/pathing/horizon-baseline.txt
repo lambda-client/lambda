@@ -5,22 +5,22 @@
 # These numbers are a record of current behaviour, not a statement that it is good.
 # Re-record with -Prebaseline=true when a change is meant to move them.
 #
-bedrock-00             arrived  frames=181  collisions=1   jumps=12  pubs=10  maxCommit=72  turn=601
-bedrock-01             arrived  frames=205  collisions=8   jumps=13  pubs=8   maxCommit=39  turn=766
-bedrock-02             arrived  frames=260  collisions=2   jumps=19  pubs=13  maxCommit=43  turn=508
-bedrock-03             arrived  frames=220  collisions=0   jumps=14  pubs=14  maxCommit=42  turn=430
-bedrock-04             arrived  frames=196  collisions=0   jumps=14  pubs=9   maxCommit=38  turn=271
-bedrock-05             arrived  frames=140  collisions=2   jumps=10  pubs=7   maxCommit=36  turn=383
+bedrock-00             arrived  frames=185  collisions=0   jumps=12  pubs=10  maxCommit=36  turn=435
+bedrock-01             arrived  frames=178  collisions=0   jumps=13  pubs=8   maxCommit=74  turn=355
+bedrock-02             arrived  frames=239  collisions=0   jumps=18  pubs=9   maxCommit=39  turn=302
+bedrock-03             arrived  frames=217  collisions=0   jumps=14  pubs=12  maxCommit=68  turn=196
+bedrock-04             arrived  frames=203  collisions=0   jumps=15  pubs=10  maxCommit=85  turn=650
+bedrock-05             arrived  frames=143  collisions=2   jumps=11  pubs=5   maxCommit=64  turn=236
 bedrock-06             no-route frames=0    collisions=0   jumps=0   pubs=0   maxCommit=0   turn=0
-bedrock-07             arrived  frames=232  collisions=10  jumps=15  pubs=13  maxCommit=48  turn=960
-bedrock-08             arrived  frames=372  collisions=2   jumps=26  pubs=25  maxCommit=48  turn=925
+bedrock-07             arrived  frames=192  collisions=3   jumps=14  pubs=9   maxCommit=37  turn=375
+bedrock-08             arrived  frames=363  collisions=1   jumps=26  pubs=21  maxCommit=50  turn=577
 bedrock-09             no-route frames=0    collisions=0   jumps=0   pubs=0   maxCommit=0   turn=0
-bedrock-10             arrived  frames=255  collisions=3   jumps=17  pubs=17  maxCommit=39  turn=655
+bedrock-10             arrived  frames=261  collisions=3   jumps=18  pubs=13  maxCommit=39  turn=630
 bedrock-11             no-route frames=0    collisions=0   jumps=0   pubs=0   maxCommit=0   turn=0
-bedrock-traverse       arrived  frames=417  collisions=9   jumps=29  pubs=26  maxCommit=53  turn=993
-flat-straight          arrived  frames=54   collisions=0   jumps=2   pubs=1   maxCommit=44  turn=0
-flat-diagonal          arrived  frames=57   collisions=0   jumps=0   pubs=1   maxCommit=49  turn=0
-flat-shallow           arrived  frames=60   collisions=0   jumps=2   pubs=1   maxCommit=49  turn=48
+bedrock-traverse       arrived  frames=403  collisions=4   jumps=30  pubs=21  maxCommit=62  turn=874
+flat-straight          arrived  frames=53   collisions=0   jumps=2   pubs=1   maxCommit=43  turn=0
+flat-diagonal          arrived  frames=53   collisions=0   jumps=3   pubs=1   maxCommit=44  turn=70
+flat-shallow           arrived  frames=54   collisions=0   jumps=3   pubs=1   maxCommit=44  turn=121
 parkour-chain          arrived  frames=35   collisions=0   jumps=2   pubs=0   maxCommit=0   turn=204
 parkour-chain-offaxis  arrived  frames=35   collisions=0   jumps=2   pubs=0   maxCommit=0   turn=226
-staircase-over-both    arrived  frames=88   collisions=1   jumps=4   pubs=2   maxCommit=54  turn=0
+staircase-over-both    arrived  frames=99   collisions=2   jumps=6   pubs=3   maxCommit=39  turn=210

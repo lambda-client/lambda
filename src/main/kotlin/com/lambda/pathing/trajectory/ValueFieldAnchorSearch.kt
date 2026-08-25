@@ -23,6 +23,7 @@ import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.movement.center
+import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
@@ -75,7 +76,51 @@ data class ValueFieldSearchConfig(
     }
 }
 
+/** What a world-event sync meant to the running search. */
+sealed interface WorldSyncResult {
+    /** No events at all. */
+    data object Quiet : WorldSyncResult
+
+    /**
+     * Knowledge arrived, but nothing this search steers by changed. Blocked attempts
+     * still wake -- a parked rollout's terrain may be exactly what arrived, and its
+     * verdict (often a hazard lesson) must reach the search either way.
+     */
+    data object Woken : WorldSyncResult
+
+    /** The guide field changed; [route] carries a refreshed route when one extracted. */
+    data class Changed(val route: CoarseRoutePlan?) : WorldSyncResult
+}
+
 object ValueFieldAnchorSearch {
+    /**
+     * Attempt-composition tally for offline search tuning; off unless a probe enables it.
+     *
+     * The search's cost is rollouts, and which decision family burns them is invisible
+     * from the outside -- this is how the blind-hop pool was found to be 59% of all
+     * attempts. Kept cheap: one map insert per rollout when enabled, a single flag
+     * check when not.
+     */
+    internal object Tally {
+        var enabled = false
+        val counts = java.util.concurrent.ConcurrentHashMap<String, IntArray>()
+
+        fun record(action: com.lambda.pathing.movement.TrajectoryDecision, rejected: Boolean, frame: Int) {
+            if (!enabled) return
+            val key = when (action) {
+                is com.lambda.pathing.movement.TrajectoryDecision.Heading -> "Heading(delay=" + action.delayFrames + ")"
+                is com.lambda.pathing.movement.TrajectoryDecision.Launch -> "Launch(" + action.movement + ",delay=" + action.delayFrames + ")"
+                else -> action::class.simpleName + "(" + action.movement + ")"
+            }
+            val row = counts.computeIfAbsent(key) { IntArray(3) }
+            row[0]++
+            if (rejected) {
+                row[1]++
+                row[2] += frame
+            }
+        }
+    }
+
     fun search(
         route: CoarseRoutePlan,
         catalog: MovementCatalog,
@@ -89,6 +134,19 @@ object ValueFieldAnchorSearch {
         cursorFrame: (() -> Int?)? = null,
         clock: SearchClock = SystemSearchClock(),
         cancelled: () -> Boolean = { false },
+        /** Blocks briefly for world knowledge; true when events arrived. Null = never wait. */
+        worldWait: ((Long) -> Boolean)? = null,
+        /**
+         * Folds pending world events into the coarse layer. Called between expansions
+         * on the search's own thread; this is what makes the search continuous instead
+         * of session-frozen. The result distinguishes "nothing this search can see
+         * changed" from "the field changed" -- churning the search on irrelevant
+         * events (the body ring capturing terrain far off-route) measurably degrades
+         * tapes on small scenarios.
+         */
+        worldSync: ((CoarseRoutePlan) -> WorldSyncResult)? = null,
+        /** Whether a section's chunk is loaded and trusted -- capturable right now. */
+        sectionCapturable: ((Int, Int) -> Boolean)? = null,
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
         val unsupported = route.edges.mapTo(HashSet()) { it.movement }
@@ -97,11 +155,23 @@ object ValueFieldAnchorSearch {
 
         return Search(
             route, catalog, field, initialState, profile, environment, config, searchConfig,
-            onSafePrefix, cursorFrame, clock, cancelled,
+            onSafePrefix, cursorFrame, clock, cancelled, worldWait, worldSync, sectionCapturable,
         ).run()
     }
 
     private const val CANDIDATE_PUBLISH_INTERVAL = 32
+
+    /** Per-slice and total budget for waiting on world knowledge inside one search. */
+    private const val BLOCKED_WAIT_SLICE_MILLIS = 200L
+    private const val MAX_BLOCKED_WAIT_MILLIS = 4_000L
+
+    /** Expansions between world-event syncs; knowledge lag is bounded by this. */
+    private const val WORLD_SYNC_INTERVAL = 64
+
+    /** Consecutive wakes that reopened nothing before the knowledge wait gives up. */
+    private const val MAX_FRUITLESS_WAKES = 2
+
+
 
     internal const val MAX_SHOWN_CANDIDATES = 12
 
@@ -122,7 +192,7 @@ object ValueFieldAnchorSearch {
     )
 
     private class Search(
-        private val route: CoarseRoutePlan,
+        private var route: CoarseRoutePlan,
         private val catalog: MovementCatalog,
         private val field: CoarseValueField,
         private val initialState: MovementSimulationState,
@@ -134,14 +204,17 @@ object ValueFieldAnchorSearch {
         private val cursorFrame: (() -> Int?)?,
         private val clock: SearchClock,
         private val cancelled: () -> Boolean,
+        private val worldWait: ((Long) -> Boolean)?,
+        private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
+        private val sectionCapturable: ((Int, Int) -> Boolean)?,
     ) {
         private val vocabulary = ActionSet(catalog, field, config, searchConfig)
 
-        private val goalStance = route.goal
-        private val goalPoint = goalStance.center(environment)
+        private var goalStance = route.goal
+        private var goalPoint = goalStance.center(environment)
         private val attempts = AttemptAccumulator()
 
-        private val routeIndex = route.nodes.withIndex().associate { (index, node) -> node to index }
+        private var routeIndex = route.nodes.withIndex().associate { (index, node) -> node to index }
 
         private val frontier: Frontier = Frontier(
             field, config, searchConfig, routeIndex,
@@ -156,19 +229,60 @@ object ValueFieldAnchorSearch {
             certify = ::certify,
         )
         private var finishSweeps = 0
+        private var sweepEpoch = 0
+        private var blockedWaitMillis = 0L
+        private var fruitlessWakes = 0
         private var best: Solution? = null
         private var expansionsSinceImprovement = 0
 
         private var expansions = 0
 
         private val rollouts = AnchorRollout(
-            catalog, field, config, searchConfig, environment, profile, initialState, goalPoint,
+            catalog, field, config, searchConfig, environment, profile, { goalPoint },
             attempts, frontier::progressOf,
         )
 
         private var walking = false
 
         private var provenFinish: TerminalApproach? = null
+
+        /**
+         * Folds arrived world knowledge into the running search.
+         *
+         * The frontier re-scores and blocked attempts wake on every batch; a changed
+         * route re-targets the finish machinery in place. The anchor tree always
+         * survives: its physics ran only over authoritative terrain, so knowledge
+         * arrivals can extend what it may do next but never falsify what it did.
+         */
+        private fun syncWorld() {
+            when (val result = worldSync?.invoke(route) ?: return) {
+                WorldSyncResult.Quiet -> return
+
+                WorldSyncResult.Woken -> {
+                    if (frontier.hasBlocked) {
+                        sweepEpoch++
+                        finishSweeps = 0
+                        frontier.wakeBlocked()
+                    }
+                }
+
+                is WorldSyncResult.Changed -> {
+                    sweepEpoch++
+                    finishSweeps = 0
+                    val next = result.route
+                    if (next != null && (next.nodes != route.nodes || next.goal != route.goal)) {
+                        route = next
+                        goalStance = next.goal
+                        goalPoint = goalStance.center(environment)
+                        routeIndex = next.nodes.withIndex().associate { (index, node) -> node to index }
+                        frontier.updateRoute(routeIndex)
+                    } else {
+                        frontier.rescore()
+                    }
+                    frontier.wakeBlocked()
+                }
+            }
+        }
 
         fun run(): MotionPlanResult {
             if (cancelled()) return MotionPlanResult.Cancelled
@@ -187,7 +301,7 @@ object ValueFieldAnchorSearch {
             )
 
             horizon.begin()
-            while (!frontier.isExhausted && expansions < searchConfig.maxExpansions) {
+            while ((!frontier.isExhausted || frontier.hasBlocked) && expansions < searchConfig.maxExpansions) {
                 if (cancelled()) return MotionPlanResult.Cancelled
                 val root = horizon.safeAnchor
                 if (root != null) {
@@ -209,10 +323,31 @@ object ValueFieldAnchorSearch {
                 if (horizon.safeAnchor == null && frontier.hasParked) horizon.commitFromCandidates(urgent = false)
 
                 if (!frontier.hasOpen) {
+                    // Everything runnable is waiting on knowledge: wait for events --
+                    // bounded -- and retry the blocked attempts. Standing still until
+                    // the world arrives is the correct behavior at a knowledge
+                    // frontier; fanning sideways was the old, wrong one.
+                    if (!frontier.hasParked && frontier.hasBlocked && worldWait != null &&
+                        blockedWaitMillis < MAX_BLOCKED_WAIT_MILLIS &&
+                        fruitlessWakes < MAX_FRUITLESS_WAKES
+                    ) {
+                        blockedWaitMillis += BLOCKED_WAIT_SLICE_MILLIS
+                        if (worldWait.invoke(BLOCKED_WAIT_SLICE_MILLIS)) {
+                            syncWorld()
+                            frontier.wakeBlocked()
+                            // A wake that reopened nothing means the blocked terrain is
+                            // not capturable right now (unstreamed): stop burning the
+                            // budget and end the session with its best -- the walk
+                            // itself is what will stream it.
+                            if (frontier.hasOpen) fruitlessWakes = 0 else fruitlessWakes++
+                        }
+                        continue
+                    }
                     val toward = best?.takeIf { !readyToFinish(it) }?.anchor
                     if (!frontier.hasParked && toward == null) break
                     if (!horizon.commitFromCandidates(urgent = true, along = toward)) break
                 }
+                if (expansions % WORLD_SYNC_INTERVAL == 0) syncWorld()
                 if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) horizon.publishCandidates()
                 val entry = frontier.poll()
 
@@ -233,12 +368,12 @@ object ValueFieldAnchorSearch {
                 val anchor = entry.anchor
                 val remaining = field.guide(anchor.stance)
 
-                if (!anchor.sweptToGoal &&
+                if (anchor.sweptEpoch != sweepEpoch &&
                     remaining <= searchConfig.finishValueTicks &&
                     finishSweeps < searchConfig.maxFinishSweeps &&
                     best.let { it == null || anchor.elapsed + remaining < it.frames }
                 ) {
-                    anchor.sweptToGoal = true
+                    anchor.sweptEpoch = sweepEpoch
                     finishSweeps++
                     finishFrom(anchor)?.let { retain(it) }
                 }
@@ -248,7 +383,32 @@ object ValueFieldAnchorSearch {
                 clock.onExpansion()
                 expansionsSinceImprovement++
 
-                val outcome = rollouts.transition(anchor, action, anchor.hazardFrame)
+                val raw = rollouts.transition(anchor, action, anchor.hazardFrame)
+                // Two kinds of unknown terrain, and conflating them was the wander bug
+                // in both directions. CAPTURABLE unknown (loaded chunk, copy in flight)
+                // is a brief wall: learn it like a rejection -- the lesson is corrected
+                // on wake within ticks, and without it small-arena tapes degrade.
+                // UNSTREAMED unknown is the walking frontier: it is NOT a hazard, and
+                // hazard-learning there unlocks the heading fans whose lateral commits
+                // are exactly the "walking around at the edge" seen live. Pure park;
+                // the walk itself is what streams it.
+                val outcome = if (raw is Outcome.Blocked) {
+                    frontier.parkBlocked(anchor, action)
+                    val capturable = sectionCapturable?.invoke(raw.sectionX, raw.sectionZ) ?: true
+                    if (java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")) {
+                        com.lambda.Lambda.LOG.info(
+                            "[blocked] section ({}, {}, {}) capturable={} frame={} anchor={} action={}",
+                            raw.sectionX, raw.sectionY, raw.sectionZ, capturable, raw.frame,
+                            anchor.stance, action.movement,
+                        )
+                    }
+                    if (capturable) {
+                        Outcome.Rejected(
+                            TrajectoryDiagnostic.UnknownTerrain(raw.frame, raw.sectionX, raw.sectionY, raw.sectionZ),
+                        )
+                    } else raw
+                } else raw
+                Tally.record(action, outcome is Outcome.Rejected, (outcome as? Outcome.Rejected)?.diagnostic?.frame ?: 0)
                 when (outcome) {
                     is Outcome.Anchored -> {
                         frontier.admit(outcome.anchor)
@@ -269,17 +429,30 @@ object ValueFieldAnchorSearch {
                         )
                     )
 
-                    is Outcome.Rejected -> if (action is TrajectoryDecision.Walk) {
-                        anchor.hazardFrame = launchSeedFrame(outcome.diagnostic)
-                            ?.let { frame -> anchor.hazardFrame?.coerceAtMost(frame) ?: frame }
-                            ?: anchor.hazardFrame
+                    is Outcome.Blocked -> Unit // parked above; no hazard, no penalty
 
+                    is Outcome.Rejected -> {
+                        familyOf(action)?.let { family ->
+                            // A failure before this member's launch tick lies in the
+                            // frames every later-launching sibling replays verbatim.
+                            if (outcome.diagnostic.frame < divergenceFrame(action)) {
+                                anchor.familyPrefixFailures.merge(family, outcome.diagnostic.frame, ::minOf)
+                            }
+                        }
+                        if (action is TrajectoryDecision.Walk) {
+                            anchor.hazardFrame = launchSeedFrame(outcome.diagnostic)
+                                ?.let { frame -> anchor.hazardFrame?.coerceAtMost(frame) ?: frame }
+                                ?: anchor.hazardFrame
+                        }
                     }
                 }
 
                 if (hasUnattemptedAction(anchor)) {
-                    val penalty = if (outcome is Outcome.Rejected) RETRY_PENALTY_TICKS
-                    else searchConfig.siblingPenaltyTicks
+                    val penalty = when (outcome) {
+                        is Outcome.Rejected -> RETRY_PENALTY_TICKS
+                        is Outcome.Blocked -> 0.0
+                        else -> searchConfig.siblingPenaltyTicks
+                    }
                     frontier.offer(
                         Frontier.OpenEntry(
                             order = entry.order + penalty,
@@ -319,8 +492,37 @@ object ValueFieldAnchorSearch {
             }
         }
 
-        private fun nextAction(anchor: ValueAnchor): TrajectoryDecision? =
-            actions(anchor).firstOrNull { anchor.attempted.add(it) }
+        /**
+         * The next decision worth simulating, minus the ones already proven to fail.
+         *
+         * A sibling whose launch would fire after a recorded shared-prefix failure is
+         * skipped outright: its inputs are identical to the failed member's through the
+         * frame that failed, so simulating it replays the exact same frames into the exact
+         * same refusal. This is a proof, not a heuristic -- ordering and outcomes are
+         * untouched, only the redundant rollouts disappear.
+         *
+         * Softer uses of the evidence -- deferring refused families, escalating the retry
+         * penalty with each refusal -- were measured on the corpus and cut attempts by only
+         * ~3% while drifting tape quality, so they were backed out. The plateau of
+         * near-equal anchors, not per-anchor stubbornness, is where the attempts go; see
+         * the corpus notes.
+         */
+        private fun nextAction(anchor: ValueAnchor): TrajectoryDecision? {
+            for (action in actions(anchor)) {
+                if (action in anchor.attempted) continue
+                val family = familyOf(action)
+                if (family != null) {
+                    val prefixFail = anchor.familyPrefixFailures[family]
+                    if (prefixFail != null && divergenceFrame(action) > prefixFail) {
+                        anchor.attempted += action
+                        continue
+                    }
+                }
+                anchor.attempted += action
+                return action
+            }
+            return null
+        }
 
         private fun hasUnattemptedAction(anchor: ValueAnchor): Boolean =
             actions(anchor).any { it !in anchor.attempted }
@@ -442,16 +644,18 @@ object ValueFieldAnchorSearch {
             tail: List<SimulatedTrajectoryFrame>,
             parameters: TerminalApproach,
             collisions: Int,
-        ) = Solution(
-            inputs = anchor.prefix() + tail.map { it.input },
-            boundaries = anchor.boundaries() + anchor.elapsed,
-            segments = anchor.depth() + 1,
-            launchMargin = anchor.launchMargin,
-            parameters = parameters,
-            frames = anchor.elapsed + tail.size,
-            collisionEvents = collisions,
-            anchor = anchor,
-        )
+        ): Solution {
+            return Solution(
+                inputs = anchor.prefix() + tail.map { it.input },
+                boundaries = anchor.boundaries() + anchor.elapsed,
+                segments = anchor.depth() + 1,
+                launchMargin = anchor.launchMargin,
+                parameters = parameters,
+                frames = anchor.elapsed + tail.size,
+                collisionEvents = collisions,
+                anchor = anchor,
+            )
+        }
 
         private fun gatedRollout(
             from: MovementSimulationState,
@@ -481,35 +685,70 @@ object ValueFieldAnchorSearch {
             return GatedRollout(rollout, stopFrame, failed)
         }
 
+        /** Inputs, frames and per-frame reads of the longest tape certified so far. */
+        private var certifiedInputs: List<MovementSimulationInput> = emptyList()
+        private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
+        private var certifiedDependencies: List<Set<com.lambda.pathing.world.VoxelPos>> = emptyList()
+
+        /**
+         * Certifies by replaying only what the last certification has not already proven.
+         *
+         * The environment is an immutable snapshot and the simulator is a pure function of
+         * its [MovementSimulationState] -- the search already leans on that every time it
+         * resumes a rollout from an anchor -- so a tape sharing a prefix with the last
+         * certified tape will reproduce that prefix identically. Re-simulating it anyway
+         * made each publication cost the whole walk so far: certification was O(n^2) over
+         * a route's frames, and the safe-prefix publisher certifies on every commit.
+         */
         private fun certify(solution: Solution): MotionPlanResult {
             if (cancelled()) return MotionPlanResult.Cancelled
-            val tape = InputTape(solution.inputs)
+            val inputs = solution.inputs
+            val tape = InputTape(inputs)
+
+            var shared = 0
+            val maxShared = minOf(inputs.size, certifiedInputs.size, certifiedFrames.size)
+            while (shared < maxShared && inputs[shared] == certifiedInputs[shared]) shared++
+
+            val frames = ArrayList<SimulatedTrajectoryFrame>(inputs.size)
+            frames += certifiedFrames.subList(0, shared)
+            val frameDependencies = ArrayList<Set<com.lambda.pathing.world.VoxelPos>>(inputs.size)
+            frameDependencies += certifiedDependencies.subList(0, shared)
+
+            val resumeState = if (shared == 0) initialState else certifiedFrames[shared - 1].state
+            val suffix = inputs.subList(shared, inputs.size)
             val tracked = environment.trackingView()
-            val frameDependencies = ArrayList<Set<com.lambda.pathing.world.VoxelPos>>(tape.frameCount)
             val certified = TrajectoryRolloutEngine.rollout(
-                initialState = initialState,
+                initialState = resumeState,
                 profile = profile,
                 environment = tracked,
-                program = tape,
-                frameCount = tape.frameCount,
+                program = InputTape(suffix),
+                frameCount = suffix.size,
                 observer = { _ ->
                     frameDependencies += tracked.takeFrameDependencies()
                     false
                 },
             )
-            if (!certified.completed || certified.frames.size != tape.frameCount) {
+            if (!certified.completed || certified.frames.size != suffix.size) {
                 return MotionPlanResult.UnstableReplay(
                     "value-field tape did not reproduce: ${certified.termination}"
                 )
             }
-            check(frameDependencies.size == tape.frameCount) {
+            certified.frames.forEach { frame -> frames += frame.copy(index = shared + frame.index) }
+            check(frameDependencies.size == inputs.size) {
                 "Every certified input must publish its world-read dependencies"
             }
+            val dependencies = HashSet<com.lambda.pathing.world.VoxelPos>()
+            frameDependencies.forEach(dependencies::addAll)
+
+            certifiedInputs = inputs
+            certifiedFrames = frames
+            certifiedDependencies = frameDependencies
+
             if (cancelled()) return MotionPlanResult.Cancelled
             return MotionPlanResult.Success(
                 sourceRoute = route,
                 tape = tape,
-                rollout = certified,
+                rollout = TrajectoryRollout(initialState, frames, TrajectoryRolloutTermination.Completed),
                 parameters = solution.parameters,
                 safeAnchorStance = solution.anchor.stance,
                 safeAnchorFrame = solution.anchor.elapsed,
@@ -518,7 +757,7 @@ object ValueFieldAnchorSearch {
                 // The immutable input tape is safety-certified by replay reads. Coarse
                 // route reads guide future controls but cannot change already-fixed
                 // input physics and are repaired independently by the persistent D*.
-                dependencies = tracked.dependencies(),
+                dependencies = dependencies,
                 attemptCount = attempts.count,
                 controlSegments = solution.segments,
                 spliceFrames = solution.boundaries.filter { it in 1 until tape.frameCount },
@@ -552,6 +791,39 @@ object ValueFieldAnchorSearch {
         )
     }
 
+    /**
+     * The launch-delay variants of one control, from one anchor.
+     *
+     * Everything but the delay: within a family the emitted inputs are identical until
+     * the launch fires, which is what makes the shared-prefix pruning in `nextAction`
+     * exact. Decisions with no delay dimension have no family and no such structure.
+     */
+    private data class DecisionFamily(
+        val movement: com.lambda.pathing.movement.MovementId,
+        val sprint: Boolean,
+        val step: com.lambda.pathing.coarse.Stance?,
+        val yaw: Double?,
+        val keys: com.lambda.pathing.movement.MovementKeys?,
+        val airborneKeys: com.lambda.pathing.movement.MovementKeys?,
+    )
+
+    private fun familyOf(action: TrajectoryDecision): Any? = when (action) {
+        is TrajectoryDecision.Heading -> DecisionFamily(
+            action.movement, action.sprint, action.step, action.yaw, action.keys, action.airborneKeys,
+        )
+        is TrajectoryDecision.Launch -> DecisionFamily(
+            action.movement, action.sprint, action.step, null, null, null,
+        )
+        else -> null
+    }
+
+    /** The first frame on which this decision's inputs can differ from its family's. */
+    private fun divergenceFrame(action: TrajectoryDecision): Int = when (action) {
+        is TrajectoryDecision.Heading -> action.delayFrames ?: Int.MAX_VALUE
+        is TrajectoryDecision.Launch -> action.delayFrames
+        else -> Int.MAX_VALUE
+    }
+
     internal const val LOOK_AHEAD_NODES = 1
 
     internal const val COLLISION_FRAME_PENALTY = 4
@@ -560,7 +832,9 @@ object ValueFieldAnchorSearch {
 
     private const val RETRY_PENALTY_TICKS = 0.05
 
+    /** Where escalation stops: past this a re-offer is background noise, not a retry. */
+    private const val MAX_RETRY_PENALTY_TICKS = 8.0
+
     private const val FINISH_CHAIN_LENGTH = 24
 
-    private const val STANCE_LEVEL_EPSILON = 1e-6
 }

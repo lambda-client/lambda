@@ -303,6 +303,8 @@ class MovementSimulator(
             strafeSpeed = movementInput.x.toDouble(),
         )
 
+        tickBlockCollision()
+
         // Last, exactly as in vanilla: PlayerEntity.tick() calls updatePose() after
         // super.tick() has already run the movement. So a tick that presses sneak moves
         // with the standing box and ends holding the crouching one.
@@ -333,6 +335,14 @@ class MovementSimulator(
         // Shrinking always fits; only standing up has to ask the world. An environment that
         // does not answer space queries is taken to allow it -- being unable to check is not
         // a reason to trap the body in a crouch.
+        //
+        // The live client's stand-up tick is not exactly reproducible: measured over one
+        // descending walk, it stood on the release tick at one ledge and one tick later at
+        // the next, with bit-identical positions, velocities and inputs at both. Whatever
+        // vanilla conditions that on is invisible in the state this simulator carries, so
+        // the model stays the source-faithful same-tick swap and the replay comparator
+        // deliberately does not gate on the box height -- a pose that diverges in a way
+        // that matters shows up in position within a frame and is caught there.
         if (expected > poseHeight && environment.isSpaceEmpty(poseBox(expected)) == false) return
 
         poseHeight = expected
@@ -499,14 +509,12 @@ class MovementSimulator(
             )
         }
 
-        // Vanilla zeroes vertical velocity on any vertical collision
-        // (Block.onEntityLand on touchdown, the head-bonk branch upward).
-        // Without this, downward velocity survives a landing and cancels a
-        // same-tick or next-tick jump — invisible to single-hop validations
-        // that stop at the landing, fatal to anything simulated through it.
-        if (verticalCollision) {
-            velocity = Vec3d(velocity.x, 0.0, velocity.z)
-        }
+        // Vanilla settles the supporting block before it asks what the body landed on, and
+        // the landing probe reads through it, so the order is not cosmetic.
+        boundingBox = normalizedBoundingBox().offset(position)
+        updateSupportingBlockPos(onGround, movement)
+
+        if (verticalCollision) onEntityLand()
 
         val velocityMultiplier = run {
             val f = environment.velocityMultiplier(position.flooredBlockPos)
@@ -516,9 +524,57 @@ class MovementSimulator(
 
         velocity *= Vec3d(velocityMultiplier, 1.0, velocityMultiplier)
 
-        boundingBox = normalizedBoundingBox().offset(position)
-        updateSupportingBlockPos(onGround, movement)
         velocityAffectingPos = posWithYOffset(VELOCITY_AFFECTING_Y_OFFSET)
+    }
+
+    /**
+     * What the block underfoot does to the body's vertical velocity on touchdown.
+     *
+     * "Landing stops you" is not a rule of the engine -- it is one block behaviour among
+     * several, and it happens to be the default. Slime overrides it to reflect, which is the
+     * whole of the bounce: the body leaves with exactly the speed it arrived with, and its
+     * horizontal velocity is never touched, so a bounce carries momentum straight through.
+     *
+     * The block asked is the one 0.2 blocks below the feet, not the one being stood on. That
+     * is what makes a carpet laid over a slime block still bounce -- the carpet is only
+     * 0.0625 thick, so the probe passes through it and finds the slime. Anything modelled
+     * off the supporting block instead would silently get that case wrong.
+     *
+     * Sneaking suppresses it. That interacts with the drop control, which presses sneak to
+     * pin itself at a ledge: a descent that sneaks onto slime does not bounce.
+     *
+     * @see net.minecraft.entity.Entity.move
+     * @see net.minecraft.block.SlimeBlock.onEntityLand
+     */
+    private fun onEntityLand() {
+        val bounce = if (isSneaking) 0.0 else environment.bounceFactor(posWithYOffset(LANDING_Y_OFFSET))
+        velocity = if (bounce > 0.0 && velocity.y < 0.0) {
+            Vec3d(velocity.x, -velocity.y * bounce, velocity.z)
+        } else {
+            Vec3d(velocity.x, 0.0, velocity.z)
+        }
+    }
+
+    /**
+     * Slime's drag on a body that is walking rather than bouncing.
+     *
+     * Separate from the bounce and read off the same block. The velocity threshold is what
+     * keeps the two apart: a body still carrying vertical speed is mid-bounce and is left
+     * alone, while one that has settled is dragged to roughly half speed.
+     *
+     * Runs after the move, where vanilla runs it -- `LivingEntity.tickMovement` calls
+     * `travel` and then `tickBlockCollision`.
+     *
+     * @see net.minecraft.block.SlimeBlock.onSteppedOn
+     */
+    private fun tickBlockCollision() {
+        if (!onGround) return
+        val vertical = abs(velocity.y)
+        if (vertical >= STEPPING_DRAG_MAX_VERTICAL) return
+        if (!environment.dampensSteppingSpeed(posWithYOffset(LANDING_Y_OFFSET))) return
+
+        val drag = STEPPING_DRAG_BASE + vertical * STEPPING_DRAG_VERTICAL_SCALE
+        velocity = Vec3d(velocity.x * drag, velocity.y, velocity.z * drag)
     }
 
     /** @see net.minecraft.client.network.ClientPlayerEntity.hasCollidedSoftly */
@@ -590,6 +646,14 @@ class MovementSimulator(
 
         /** @see net.minecraft.entity.player.PlayerEntity.canChangeIntoPose */
         const val POSE_FIT_EPSILON = 1.0E-7
+
+        /** @see net.minecraft.entity.Entity.getLandingPos */
+        const val LANDING_Y_OFFSET = 0.2
+
+        /** @see net.minecraft.block.SlimeBlock.onSteppedOn */
+        const val STEPPING_DRAG_MAX_VERTICAL = 0.1
+        const val STEPPING_DRAG_BASE = 0.4
+        const val STEPPING_DRAG_VERTICAL_SCALE = 0.2
 
         /** @see net.minecraft.entity.LivingEntity.applyClimbingSpeed */
         const val CLIMB_HORIZONTAL_CAP = 0.15

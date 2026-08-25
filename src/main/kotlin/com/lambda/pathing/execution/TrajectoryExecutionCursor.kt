@@ -129,7 +129,13 @@ class TrajectoryExecutionCursor(
         componentDeviation("box.minY", expected.boundingBox.minY, actual.boundingBox.minY, positionTolerance)?.let { return it }
         componentDeviation("box.minZ", expected.boundingBox.minZ, actual.boundingBox.minZ, positionTolerance)?.let { return it }
         componentDeviation("box.maxX", expected.boundingBox.maxX, actual.boundingBox.maxX, positionTolerance)?.let { return it }
-        componentDeviation("box.maxY", expected.boundingBox.maxY, actual.boundingBox.maxY, positionTolerance)?.let { return it }
+        // box.maxY is deliberately not compared. It is the pose height, and the live
+        // client's stand-up tick after a sneak release is not exactly reproducible:
+        // measured over one descending walk it stood on the release tick at one ledge and
+        // a tick later at the next, with bit-identical positions, velocities and inputs at
+        // both. The height only feeds back into physics through collisions, and a pose
+        // divergence that collides moves the position -- which the checks above catch on
+        // the very next frame.
         componentDeviation("box.maxZ", expected.boundingBox.maxZ, actual.boundingBox.maxZ, positionTolerance)?.let { return it }
 
         if (abs(Rotation.wrap(expected.rotation.yaw - actual.rotation.yaw)) > tolerance.rotationDegrees) {

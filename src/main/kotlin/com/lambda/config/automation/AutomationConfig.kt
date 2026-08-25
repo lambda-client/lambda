@@ -19,6 +19,7 @@ package com.lambda.config.automation
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigCategory
+import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.blocks.BreakSettings
 import com.lambda.config.blocks.BuildSettings
@@ -48,7 +49,7 @@ open class AutomationConfig(
 	@Tab(HOTBAR_TAB) override val hotbarConfig by configBlock(HotbarSettings(this))
 	@Tab(EAT_TAB) override val eatConfig by configBlock(EatSettings(this))
 	@Tab(PATHING_TAB) override val pathingConfig by configBlock(PathingSettings(this))
-	@Tab(PATHING_RENDER_TAB) override val pathingRenderConfig by configBlock(PathingRenderSettings(this))
+	@Tab(PATHING_TAB) @Group(PATHING_RENDER_GROUP) override val pathingRenderConfig by configBlock(PathingRenderSettings(this))
 
 	companion object {
 		private const val BUILD_TAB = "Build"
@@ -59,7 +60,7 @@ open class AutomationConfig(
 		private const val HOTBAR_TAB = "Hotbar"
 		private const val EAT_TAB = "Eat"
 		private const val PATHING_TAB = "Pathing"
-		private const val PATHING_RENDER_TAB = "Pathing Render"
+		private const val PATHING_RENDER_GROUP = "Render"
 
 		@DslMarker
 		private annotation class AutomationConfigMarker

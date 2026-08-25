@@ -19,6 +19,7 @@ package com.lambda.util.player.prediction
 
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.PathingChunk
 import com.lambda.pathing.world.VoxelPos
@@ -102,7 +103,23 @@ data class SnapshotBlockPhysics(
     val coarseVoxel: CoarseVoxel = CoarseVoxel.UNKNOWN,
     /** Fences/walls/gates anchor the velocity-affecting pos to themselves. */
     val fenceLike: Boolean = false,
+    /** Reflection applied to downward velocity on landing; zero for an ordinary stop. */
+    val bounceFactor: Double = 0.0,
+    /** Whether standing here drags a slow-moving body to a crawl, as slime does. */
+    val dampensSteppingSpeed: Boolean = false,
 ) {
+    /**
+     * Classified once per distinct block, here, because these instances are palette
+     * entries: a section holds a handful of them however many cells it has, so the sweep's
+     * per-cell question collapses to an index fetch and a field read.
+     *
+     * Unsupported physics classifies [CollisionClass.FULL] to match [SnapshotSimulationEnvironment.collisionShape],
+     * which reports a full cube there so no arc certifies through terrain the simulator
+     * would refuse to fly.
+     */
+    val collisionClass: CollisionClass =
+        if (unsupportedPhysics != null) CollisionClass.FULL else CollisionClass.of(collisionShape)
+
     companion object {
         const val DEFAULT_SLIPPERINESS = 0.6
 
@@ -122,13 +139,17 @@ data class SnapshotBlockPhysics(
             velocityMultiplier: Double = 1.0,
             jumpVelocityMultiplier: Double = 1.0,
             fenceLike: Boolean = false,
+            bounceFactor: Double = 0.0,
+            dampensSteppingSpeed: Boolean = false,
         ) = SnapshotBlockPhysics(
             collisionShape = shape,
             slipperiness = slipperiness,
             velocityMultiplier = velocityMultiplier,
             jumpVelocityMultiplier = jumpVelocityMultiplier,
-            coarseVoxel = SnapshotSimulationEnvironment.coarseVoxelOf(shape),
+            coarseVoxel = SnapshotSimulationEnvironment.coarseVoxelOf(shape, bouncy = bounceFactor > 0.0),
             fenceLike = fenceLike,
+            bounceFactor = bounceFactor,
+            dampensSteppingSpeed = dampensSteppingSpeed,
         )
         /** Exact simulation never consumes this placeholder. */
         val UNAVAILABLE = SnapshotBlockPhysics(VoxelShapes.fullCube(), coarseVoxel = CoarseVoxel.UNKNOWN)
@@ -140,7 +161,6 @@ enum class UnsupportedPhysicsKind {
     CLIMBABLE,
     COBWEB,
     POWDER_SNOW,
-    SLIME_BOUNCE,
     HONEY_SIDE_EFFECTS,
 }
 
@@ -327,6 +347,10 @@ class SnapshotSimulationEnvironment internal constructor(
     private val missingSection: ((Int, Int, Int, Boolean) -> ImmutableSnapshotSection)? = null,
     private val sparseSectionCoordinates: Map<Long, Triple<Int, Int, Int>>? = null,
     private val unavailableSectionKeys: Set<Long>? = null,
+    /** Live predicate for "this section is unknown" -- lets absence itself be the state. */
+    private val sectionUnavailable: ((Long) -> Boolean)? = null,
+    /** Invoked when an exact read hits unknown terrain, before the typed throw. */
+    private val onExactMiss: ((Long) -> Unit)? = null,
 ) : SimulationEnvironment, CoarseVoxelView {
     private val sections: Map<Long, ImmutableSnapshotSection> = if (shareSections) sections else
         Long2ObjectOpenHashMap<ImmutableSnapshotSection>().apply { putAll(sections) }
@@ -371,7 +395,10 @@ class SnapshotSimulationEnvironment internal constructor(
     }
 
     internal fun isUnavailable(x: Int, y: Int, z: Int): Boolean =
-        unavailableSectionKeys?.contains(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)) == true
+        sectionIsUnavailable(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4))
+
+    private fun sectionIsUnavailable(key: Long): Boolean =
+        sectionUnavailable?.invoke(key) ?: (unavailableSectionKeys?.contains(key) == true)
 
     override fun slipperiness(pos: BlockPos): Double = checkedBlockAt(pos, null).slipperiness
 
@@ -402,9 +429,20 @@ class SnapshotSimulationEnvironment internal constructor(
             return VoxelShapes.fullCube()
         }
         val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-        if (unavailableSectionKeys?.contains(key) == true) return VoxelShapes.empty()
+        if (sectionIsUnavailable(key)) return VoxelShapes.empty()
         val block = blockInside(x, y, z, exact = false) ?: return VoxelShapes.fullCube()
         return if (block.unsupportedPhysics == null) block.collisionShape else VoxelShapes.fullCube()
+    }
+
+    /** The classification [collisionShape] would yield, without constructing any shape. */
+    override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass {
+        if (x !in bounds.minX..bounds.maxX || y !in bounds.minY..bounds.maxY || z !in bounds.minZ..bounds.maxZ) {
+            return CollisionClass.FULL
+        }
+        val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
+        if (sectionIsUnavailable(key)) return CollisionClass.EMPTY
+        val block = blockInside(x, y, z, exact = false) ?: return CollisionClass.FULL
+        return block.collisionClass
     }
 
     override fun adjustMovementForCollisions(
@@ -482,6 +520,11 @@ class SnapshotSimulationEnvironment internal constructor(
     override fun isClimbable(pos: BlockPos): Boolean =
         blockInside(pos.x, pos.y, pos.z)?.coarseVoxel?.medium == Medium.CLIMBABLE
 
+    override fun bounceFactor(pos: BlockPos): Double = checkedBlockAt(pos, null).bounceFactor
+
+    override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
+        checkedBlockAt(pos, null).dampensSteppingSpeed
+
     private fun isFenceLike(pos: BlockPos, observer: SnapshotReadObserver?): Boolean =
         checkedBlockAt(pos, observer).fenceLike
 
@@ -539,8 +582,19 @@ class SnapshotSimulationEnvironment internal constructor(
 
     private fun blockAt(pos: BlockPos): SnapshotBlockPhysics {
         if (pos !in bounds) throw SimulationSnapshotOutOfBoundsException(pos.toImmutable())
-        return blockInside(pos.x, pos.y, pos.z, exact = true)
-            ?: throw IllegalStateException("Incomplete production snapshot at $pos")
+        return blockInside(pos.x, pos.y, pos.z, exact = true) ?: run {
+            val sectionX = pos.x shr 4
+            val sectionY = pos.y shr 4
+            val sectionZ = pos.z shr 4
+            val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
+            if (sectionIsUnavailable(key)) {
+                // Unknown terrain is a typed, recoverable condition: the rollout that
+                // hit it is waiting on knowledge, not failing physics.
+                onExactMiss?.invoke(key)
+                throw SnapshotSectionUnavailableException(sectionX, sectionY, sectionZ)
+            }
+            throw IllegalStateException("Incomplete production snapshot at $pos")
+        }
     }
 
     private fun blockInside(x: Int, y: Int, z: Int, exact: Boolean = false): SnapshotBlockPhysics? {
@@ -583,21 +637,6 @@ class SnapshotSimulationEnvironment internal constructor(
             player: ClientPlayerEntity,
             bounds: SimulationSnapshotBounds,
         ): SnapshotCaptureJob = SnapshotCaptureJob(world, player, bounds)
-
-        /**
-         * Starts an initially-empty snapshot whose immutable sections are requested by
-         * actual coarse/trajectory reads. The worker waits without touching Minecraft;
-         * [DemandDrivenSnapshotCapture.advance] performs every world read on the client
-         * thread under the normal per-tick budget.
-         */
-        internal fun beginDemandDrivenCapture(
-            world: World,
-            player: ClientPlayerEntity,
-            bounds: SimulationSnapshotBounds,
-            cancelled: () -> Boolean,
-            replaying: () -> Boolean = { false },
-        ): DemandDrivenSnapshotCapture =
-            DemandDrivenSnapshotCapture(world, player, bounds, cancelled, replaying)
 
         /** Client-thread capture retained for fixtures and one-shot tooling. */
         fun capture(
@@ -646,7 +685,7 @@ class SnapshotSimulationEnvironment internal constructor(
          * on top of one is standing in the cell above, not this one -- reporting a surface
          * here would put its feet half a block inside the floor.
          */
-        internal fun coarseVoxelOf(shape: VoxelShape): CoarseVoxel {
+        internal fun coarseVoxelOf(shape: VoxelShape, bouncy: Boolean = false): CoarseVoxel {
             if (shape.isEmpty) return CoarseVoxel.AIR
             val underBody = VoxelShapes.combineAndSimplify(shape, CENTERED_SUPPORT_COLUMN, BooleanBiFunction.AND)
             val top = if (underBody.isEmpty) 0.0 else underBody.getMax(Direction.Axis.Y)
@@ -658,6 +697,7 @@ class SnapshotSimulationEnvironment internal constructor(
                 centerPassable = !VoxelShapes.matchesAnywhere(shape, CENTERED_PLAYER_COLUMN, BooleanBiFunction.AND),
                 standingSurface = top.takeIf { !standsProud && it > 0.0 }?.coerceAtMost(1.0),
                 intrusionHeight = (top - 1.0).coerceAtLeast(0.0),
+                bouncy = bouncy,
             )
         }
 
@@ -669,6 +709,7 @@ class SnapshotSimulationEnvironment internal constructor(
             val shape = getCollisionShape(world, pos, shapeContext)
             val unsupported = unsupportedPhysics(this)
             val medium = mediumOf(this)
+            val slime = isOf(Blocks.SLIME_BLOCK)
             val coarseVoxel = if (medium == Medium.CLIMBABLE) {
                 // Known terrain a walking body cannot use, but the climb movement can.
                 // Distinct from UNKNOWN, which is terrain nobody knows anything about.
@@ -676,7 +717,7 @@ class SnapshotSimulationEnvironment internal constructor(
             } else if (unsupported != null) {
                 CoarseVoxel.UNKNOWN
             } else {
-                coarseVoxelOf(shape)
+                coarseVoxelOf(shape, bouncy = slime)
             }
             return SnapshotBlockPhysics(
                 collisionShape = shape,
@@ -686,6 +727,8 @@ class SnapshotSimulationEnvironment internal constructor(
                 unsupportedPhysics = unsupported,
                 coarseVoxel = coarseVoxel,
                 fenceLike = isFenceLike(),
+                bounceFactor = if (slime) 1.0 else 0.0,
+                dampensSteppingSpeed = slime,
             )
         }
 
@@ -710,7 +753,6 @@ class SnapshotSimulationEnvironment internal constructor(
             !state.fluidState.isEmpty -> UnsupportedPhysicsKind.FLUID
             state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
             state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
-            state.isOf(Blocks.SLIME_BLOCK) -> UnsupportedPhysicsKind.SLIME_BOUNCE
             state.isOf(Blocks.HONEY_BLOCK) -> UnsupportedPhysicsKind.HONEY_SIDE_EFFECTS
             else -> null
         }?.let { kind ->
@@ -811,6 +853,17 @@ class SnapshotSimulationEnvironment internal constructor(
             observer.onRead(pos)
             return snapshot.isClimbable(pos)
         }
+
+        // Every physics read must come through here, or certification simulates a
+        // different world than the search did. These two were missing, so the tracked
+        // replay fell through to the interface defaults -- no bounce, no stepping drag --
+        // and every tape whose search rollout touched slime diverged the moment it was
+        // certified: the search's body reflected a landing the replay's body died on.
+        override fun bounceFactor(pos: BlockPos): Double =
+            snapshot.checkedBlockAt(pos, observer).bounceFactor
+
+        override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
+            snapshot.checkedBlockAt(pos, observer).dampensSteppingSpeed
     }
 }
 
@@ -821,351 +874,3 @@ class SnapshotSimulationEnvironment internal constructor(
  * worker observes either no section (and waits) or one complete immutable version;
  * it can never observe a partially copied chunk section.
  */
-internal class DemandDrivenSnapshotCapture(
-    private val world: World,
-    private val player: ClientPlayerEntity,
-    val bounds: SimulationSnapshotBounds,
-    private val cancelled: () -> Boolean,
-    /** True while a certified tape is replaying, i.e. while the frontier still moves. */
-    private val replaying: () -> Boolean = { false },
-) {
-    private data class Section(val x: Int, val y: Int, val z: Int) {
-        val key: Long get() = ChunkSectionPos.asLong(x, y, z)
-    }
-
-    private val sections = ConcurrentHashMap<Long, ImmutableSnapshotSection>()
-    private val sectionCoordinates = ConcurrentHashMap<Long, Triple<Int, Int, Int>>()
-    private val requests = ConcurrentHashMap<Long, CompletableFuture<ImmutableSnapshotSection>>()
-    private val exactRequired = ConcurrentHashMap.newKeySet<Long>()
-    private val unavailableSections = ConcurrentHashMap.newKeySet<Long>()
-    /** Placeholder sections whose chunk is outside the trusted loaded ring right now. */
-    private val frontierSections = ConcurrentHashMap.newKeySet<Long>()
-    /** Client-thread view of [replaying], readable by the parked planner thread. */
-    private val replayHold = AtomicBoolean()
-    /** Placeholder sections whose chunk arrived, awaiting planner-thread retirement. */
-    private val retirableSections = ConcurrentHashMap.newKeySet<Long>()
-    /** Placeholder sections currently being replaced by authoritative terrain. */
-    private val optimisticReplacements = ConcurrentHashMap.newKeySet<Long>()
-    /** Chunks whose coarse graph edges may still describe a removed placeholder. */
-    private val authoritativeTransitions = ConcurrentHashMap.newKeySet<PathingChunk>()
-    private val authoritativeChunks = ConcurrentHashMap.newKeySet<PathingChunk>()
-    private val queued = ConcurrentHashMap.newKeySet<Long>()
-    private val queue = ConcurrentLinkedQueue<Section>()
-    private val shapeContext = ShapeContext.of(player)
-    private val mutable = BlockPos.Mutable()
-
-    private var active: Section? = null
-    private var builder = ImmutableSnapshotSection.Builder()
-    private var x = 0
-    private var y = 0
-    private var z = 0
-
-    val snapshot = SnapshotSimulationEnvironment(
-        bounds = bounds,
-        sections = sections,
-        defaultBlock = null,
-        shareSections = true,
-        missingSection = ::awaitSection,
-        sparseSectionCoordinates = sectionCoordinates,
-        unavailableSectionKeys = unavailableSections,
-    )
-
-    val hasPendingDemand: Boolean
-        get() = active != null || queue.isNotEmpty()
-
-    fun hasAuthoritativeChunk(chunkX: Int, chunkZ: Int): Boolean =
-        PathingChunk(chunkX, chunkZ) in authoritativeChunks
-
-    /**
-     * Returns optimistic-to-exact knowledge transitions since the previous drain.
-     *
-     * Coarse D* may have cached edges derived from an unavailable placeholder. Exact
-     * rollout later replaces that placeholder as the player approaches it, which is a
-     * graph-cost change even though the live world itself did not mutate. The retained
-     * journey consumes these chunks before its next repair.
-     */
-    fun drainAuthoritativeTransitions(): Set<PathingChunk> = buildSet {
-        for (chunk in authoritativeTransitions) {
-            if (authoritativeTransitions.remove(chunk)) add(chunk)
-        }
-    }
-
-    /**
-     * Notes optimistic placeholders whose chunk has entered the trusted loaded ring.
-     *
-     * A placeholder is knowledge, not terrain: once the real chunk is streamed the
-     * coarse graph must stop routing over the assumed surface. The placeholder itself
-     * is not dropped here -- a section that changes identity underneath a running
-     * search would make its own cached edges unreproducible, which reads as a
-     * converged search with no extractable route. The drop happens on the planner
-     * thread in [retireOptimisticSections], between searches.
-     */
-    fun refreshFrontier() {
-        check(MinecraftClient.getInstance().isOnThread) {
-            "Snapshot frontier state may only be refreshed on the client thread"
-        }
-        replayHold.set(replaying())
-        if (frontierSections.isEmpty()) return
-        val iterator = frontierSections.iterator()
-        while (iterator.hasNext()) {
-            val key = iterator.next()
-            val sectionX = ChunkSectionPos.unpackX(key)
-            val sectionZ = ChunkSectionPos.unpackZ(key)
-            if (!isTrustedLoadedChunk(sectionX, sectionZ)) continue
-            iterator.remove()
-            if (key in unavailableSections) {
-                retirableSections += key
-                authoritativeTransitions += PathingChunk(sectionX, sectionZ)
-            }
-        }
-    }
-
-    /**
-     * Drops the placeholders [refreshFrontier] marked, so the next read of those
-     * sections captures the terrain the client now has. Runs on the planner thread
-     * before a repair, never while a search is reading the graph it built, and only
-     * for the chunks that same repair is about to resynchronize -- a section that
-     * changed identity without its cached edges being regenerated leaves a route D*
-     * still believes in but nothing can rebuild.
-     */
-    fun retireOptimisticSections(chunks: Set<PathingChunk>) {
-        if (retirableSections.isEmpty() || chunks.isEmpty()) return
-        for (key in retirableSections) {
-            val chunk = PathingChunk(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key))
-            if (chunk !in chunks) continue
-            if (!retirableSections.remove(key)) continue
-            if (!unavailableSections.remove(key)) continue
-            sections.remove(key)
-            sectionCoordinates.remove(key)
-        }
-    }
-
-    /**
-     * Drops the immutable version containing [pos]. A later planner read requests a
-     * fresh atomic copy; an in-flight copy is restarted from cell zero.
-     */
-    fun invalidate(pos: BlockPos) {
-        check(MinecraftClient.getInstance().isOnThread) {
-            "Snapshot sections may only be invalidated on the client thread"
-        }
-        val section = Section(pos.x shr 4, pos.y shr 4, pos.z shr 4)
-        sections.remove(section.key)
-        sectionCoordinates.remove(section.key)
-        unavailableSections.remove(section.key)
-        frontierSections.remove(section.key)
-        retirableSections.remove(section.key)
-        optimisticReplacements.remove(section.key)
-        if (active?.key == section.key) {
-            active = null
-            builder = ImmutableSnapshotSection.Builder()
-        }
-        requests[section.key]?.takeUnless { it.isDone }?.let {
-            if (queued.add(section.key)) queue += section
-        }
-    }
-
-    /** Drops every installed exact section in a refreshed chunk. */
-    fun invalidateChunk(chunkX: Int, chunkZ: Int) {
-        check(MinecraftClient.getInstance().isOnThread) {
-            "Snapshot sections may only be invalidated on the client thread"
-        }
-        val installed = sectionCoordinates.entries
-            .filter { (_, coordinate) -> coordinate.first == chunkX && coordinate.third == chunkZ }
-            .map { (key, coordinate) -> key to Section(coordinate.first, coordinate.second, coordinate.third) }
-        installed.forEach { (key, section) ->
-            sections.remove(key)
-            sectionCoordinates.remove(key)
-            unavailableSections.remove(key)
-            frontierSections.remove(key)
-            retirableSections.remove(key)
-            optimisticReplacements.remove(key)
-            requests[key]?.takeUnless { it.isDone }?.let {
-                if (queued.add(key)) queue += section
-            }
-        }
-        active?.takeIf { it.x == chunkX && it.z == chunkZ }?.let { section ->
-            active = null
-            builder = ImmutableSnapshotSection.Builder()
-            if (requests[section.key]?.isDone == false && queued.add(section.key)) queue += section
-        }
-    }
-
-    fun advance(maxCells: Int, deadlineNanos: Long) {
-        check(MinecraftClient.getInstance().isOnThread) {
-            "Simulation snapshots must be captured on the client thread"
-        }
-        require(maxCells > 0) { "Snapshot capture cell quota must be positive" }
-
-        replayHold.set(replaying())
-        var written = 0
-        while (written < maxCells && (written == 0 || System.nanoTime() < deadlineNanos)) {
-            val section = active ?: nextSection() ?: break
-            if (!isTrustedLoadedChunk(section.x, section.z)) {
-                if (section.key in exactRequired && replaying()) {
-                    // Exact rollout has reached the currently loaded frontier while a
-                    // certified tape is still carrying the body forward. Hold its
-                    // request: the walk itself is what brings this chunk into view, and
-                    // the wait ends the moment replay does.
-                    active = null
-                    if (queued.add(section.key)) queue += section
-                    return
-                }
-                // Install a marker rather than failing the whole coarse search. The
-                // coarse-only wrapper turns it into optimistic guidance; an exact reader
-                // is rejected below instead of certifying against the placeholder, which
-                // is what keeps a standing player from parking the planner on a chunk
-                // only its own motion could load.
-                builder.fill(SnapshotBlockPhysics.UNAVAILABLE)
-                unavailableSections += section.key
-                frontierSections += section.key
-                completeSection(section)
-                continue
-            }
-            frontierSections.remove(section.key)
-
-            val pos = mutable.set(x, y, z)
-            val physics = with(SnapshotSimulationEnvironment) {
-                world.getBlockState(pos).capturePhysics(world, pos, shapeContext)
-            }
-            builder.set(x, y, z, physics)
-            written++
-
-            if (advanceCell(section)) completeSection(section)
-        }
-    }
-
-    fun cancel() {
-        val failure = CancellationException("snapshot capture was cancelled")
-        requests.values.forEach { it.completeExceptionally(failure) }
-        requests.clear()
-        exactRequired.clear()
-        frontierSections.clear()
-        retirableSections.clear()
-        replayHold.set(false)
-        optimisticReplacements.clear()
-        authoritativeTransitions.clear()
-        queue.clear()
-        active = null
-    }
-
-    private fun awaitSection(
-        sectionX: Int,
-        sectionY: Int,
-        sectionZ: Int,
-        exact: Boolean,
-    ): ImmutableSnapshotSection {
-        val section = Section(sectionX, sectionY, sectionZ)
-        sections[section.key]?.takeIf { !exact || section.key !in unavailableSections }?.let { return it }
-        if (exact) {
-            // The client tick clears this the moment the chunk enters the trusted ring;
-            // until then a request would only be refused again a tick later. While a
-            // tape is replaying the request is made anyway, so that the capture can
-            // hold it for the frontier the walk is still moving.
-            if (section.key in frontierSections && !replayHold.get()) {
-                throw SnapshotSectionUnavailableException(sectionX, sectionY, sectionZ)
-            }
-            exactRequired += section.key
-            if (unavailableSections.remove(section.key)) {
-                optimisticReplacements += section.key
-                sections.remove(section.key)
-                sectionCoordinates.remove(section.key)
-            }
-        }
-        val created = CompletableFuture<ImmutableSnapshotSection>()
-        val existing = requests.putIfAbsent(section.key, created)
-        val future = existing ?: created.also {
-            queued += section.key
-            queue += section
-        }
-        while (true) {
-            if (cancelled()) throw CancellationException("snapshot capture was cancelled")
-            try {
-                return future.get(WAIT_POLL_MILLIS, TimeUnit.MILLISECONDS)
-            } catch (_: TimeoutException) {
-                // Poll cancellation; the client thread owns all actual world reads.
-            } catch (failure: ExecutionException) {
-                val cause = failure.cause ?: failure
-                if (cause is RuntimeException) throw cause
-                throw IllegalStateException(cause.message, cause)
-            } catch (failure: InterruptedException) {
-                Thread.currentThread().interrupt()
-                throw CancellationException("snapshot wait was interrupted")
-            }
-        }
-    }
-
-    private fun nextSection(): Section? {
-        while (true) {
-            val candidate = queue.poll() ?: return null
-            queued.remove(candidate.key)
-            if (sections.containsKey(candidate.key) || requests[candidate.key]?.isDone != false) continue
-            active = candidate
-            builder = ImmutableSnapshotSection.Builder()
-            x = candidate.x shl 4
-            y = candidate.y shl 4
-            z = candidate.z shl 4
-            return candidate
-        }
-    }
-
-    /**
-     * [World.isChunkLoaded] is not enough on the client. Vanilla deliberately keeps
-     * a three-chunk cache margin around the server's watched area, and those cache
-     * entries can be newly allocated chunks which still contain only void air. Treat
-     * only chunks inside the server watch filter as authoritative snapshot input.
-     *
-     * This mirrors `ChunkFilter.isWithinDistance(..., includeEdge = true)`. Using the
-     * current player chunk as the center is conservative around a center-update race:
-     * the final chunk-manager check still requires a packet-created chunk, and an exact
-     * request is retried on following client ticks if it is not trusted yet.
-     */
-    private fun isTrustedLoadedChunk(chunkX: Int, chunkZ: Int): Boolean {
-        if (!world.chunkManager.isChunkLoaded(chunkX, chunkZ)) return false
-        val center = player.chunkPos
-        val viewDistance = MinecraftClient.getInstance().options.clampedViewDistance
-        val dx = max(0, abs(chunkX - center.x) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-        val dz = max(0, abs(chunkZ - center.z) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-        return dx * dx + dz * dz < viewDistance.toLong() * viewDistance
-    }
-
-    /** True after the section's last cell. */
-    private fun advanceCell(section: Section): Boolean {
-        val maxX = (section.x shl 4) + 15
-        val maxY = (section.y shl 4) + 15
-        val maxZ = (section.z shl 4) + 15
-        if (x < maxX) { x++; return false }
-        x = section.x shl 4
-        if (z < maxZ) { z++; return false }
-        z = section.z shl 4
-        if (y < maxY) { y++; return false }
-        return true
-    }
-
-    private fun completeSection(section: Section) {
-        val frozen = builder.build(expectedWrites = SECTION_CELLS)
-        val placeholder = section.key in unavailableSections
-        if (!placeholder) {
-            exactRequired.remove(section.key)
-            val chunk = PathingChunk(section.x, section.z)
-            authoritativeChunks += chunk
-            if (optimisticReplacements.remove(section.key)) authoritativeTransitions += chunk
-        }
-        sectionCoordinates[section.key] = Triple(section.x, section.y, section.z)
-        sections[section.key] = frozen
-        val request = requests.remove(section.key)
-        if (placeholder && exactRequired.remove(section.key)) {
-            request?.completeExceptionally(
-                SnapshotSectionUnavailableException(section.x, section.y, section.z)
-            )
-        } else {
-            request?.complete(frozen)
-        }
-        active = null
-    }
-
-    private companion object {
-        const val SECTION_CELLS = 16 * 16 * 16
-        const val WAIT_POLL_MILLIS = 50L
-        const val CHUNK_FILTER_EDGE_MARGIN = 2
-    }
-}
