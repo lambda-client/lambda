@@ -11,7 +11,8 @@ package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxel
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -102,15 +103,15 @@ class SnapshotSimulationEnvironmentTest {
 
         assertEquals(
             setOf(
-                com.lambda.pathing.world.VoxelPos(0, 0, 0),
-                com.lambda.pathing.world.VoxelPos(1, 0, 0),
+                com.lambda.pathing.core.VoxelPos(0, 0, 0),
+                com.lambda.pathing.core.VoxelPos(1, 0, 0),
             ),
             published,
         )
         assertEquals(3, tracked.dependencies().size)
         assertFailsWith<UnsupportedOperationException> {
             @Suppress("UNCHECKED_CAST")
-            (published as MutableSet<com.lambda.pathing.world.VoxelPos>) += com.lambda.pathing.world.VoxelPos(2, 0, 0)
+            (published as MutableSet<com.lambda.pathing.core.VoxelPos>) += com.lambda.pathing.core.VoxelPos(2, 0, 0)
         }
     }
 

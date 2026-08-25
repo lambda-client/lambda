@@ -1,6 +1,6 @@
 package com.lambda.pathing.launch
 
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max

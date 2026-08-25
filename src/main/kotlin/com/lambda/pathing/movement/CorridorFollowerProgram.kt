@@ -1,7 +1,9 @@
 package com.lambda.pathing.movement
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.center
+import com.lambda.pathing.core.horizontalDistance
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import kotlin.math.abs

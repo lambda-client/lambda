@@ -2,18 +2,22 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.movement.BrakeToStopProgram
 import com.lambda.pathing.movement.ControlProgram
 import com.lambda.pathing.movement.CorridorFollowerProgram
-import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.MovementKeys
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.movement.InputTape
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.movement.center
+import com.lambda.pathing.core.center
+import com.lambda.pathing.world.center
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -605,7 +609,7 @@ object ValueFieldAnchorSearch {
 
         private var certifiedInputs: List<MovementSimulationInput> = emptyList()
         private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
-        private var certifiedDependencies: List<Set<com.lambda.pathing.world.VoxelPos>> = emptyList()
+        private var certifiedDependencies: List<Set<com.lambda.pathing.core.VoxelPos>> = emptyList()
 
         private fun certify(solution: Solution): MotionPlanResult {
             if (cancelled()) return MotionPlanResult.Cancelled
@@ -618,7 +622,7 @@ object ValueFieldAnchorSearch {
 
             val frames = ArrayList<SimulatedTrajectoryFrame>(inputs.size)
             frames += certifiedFrames.subList(0, shared)
-            val frameDependencies = ArrayList<Set<com.lambda.pathing.world.VoxelPos>>(inputs.size)
+            val frameDependencies = ArrayList<Set<com.lambda.pathing.core.VoxelPos>>(inputs.size)
             frameDependencies += certifiedDependencies.subList(0, shared)
 
             val resumeState = if (shared == 0) initialState else certifiedFrames[shared - 1].state
@@ -644,7 +648,7 @@ object ValueFieldAnchorSearch {
             check(frameDependencies.size == inputs.size) {
                 "Every certified input must publish its world-read dependencies"
             }
-            val dependencies = HashSet<com.lambda.pathing.world.VoxelPos>()
+            val dependencies = HashSet<com.lambda.pathing.core.VoxelPos>()
             frameDependencies.forEach(dependencies::addAll)
 
             certifiedInputs = inputs
@@ -696,12 +700,12 @@ object ValueFieldAnchorSearch {
     }
 
     private data class DecisionFamily(
-        val movement: com.lambda.pathing.movement.MovementId,
+        val movement: com.lambda.pathing.core.MovementId,
         val sprint: Boolean,
-        val step: com.lambda.pathing.coarse.Stance?,
+        val step: com.lambda.pathing.core.Stance?,
         val yaw: Double?,
-        val keys: com.lambda.pathing.movement.MovementKeys?,
-        val airborneKeys: com.lambda.pathing.movement.MovementKeys?,
+        val keys: com.lambda.pathing.core.MovementKeys?,
+        val airborneKeys: com.lambda.pathing.core.MovementKeys?,
     )
 
     private fun familyOf(action: TrajectoryDecision): Any? = when (action) {

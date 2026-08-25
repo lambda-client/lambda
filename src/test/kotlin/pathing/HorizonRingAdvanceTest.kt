@@ -4,8 +4,8 @@ package pathing
 // walks to the edge of its first horizon ring, the ring then advances over the goal,
 // and the repaired backward field must still reach the new start.
 import com.lambda.pathing.CoarsePlanningState
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotBlockPhysics

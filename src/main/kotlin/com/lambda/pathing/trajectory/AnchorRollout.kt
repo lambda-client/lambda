@@ -3,14 +3,16 @@ package com.lambda.pathing.trajectory
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.movement.CompletionContext
-import com.lambda.pathing.movement.HorizontalPoint
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.LaunchTrigger
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.ProgramContext
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.movement.center
+import com.lambda.pathing.core.center
+import com.lambda.pathing.world.center
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
@@ -34,7 +36,7 @@ internal class AnchorRollout(
 
     private val goalPoint: () -> HorizontalPoint,
     private val attempts: AttemptAccumulator,
-    private val progressOf: (com.lambda.pathing.coarse.Stance) -> Int,
+    private val progressOf: (com.lambda.pathing.core.Stance) -> Int,
 ) {
     fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
         val chain = field.chain(

@@ -3,18 +3,18 @@ package com.lambda.pathing
 import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
-import com.lambda.pathing.coarse.CoarseMoveCosts
-import com.lambda.pathing.coarse.CoarseMoveRates
+import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.movement.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.SearchClock
 import com.lambda.pathing.trajectory.SystemSearchClock
@@ -23,9 +23,10 @@ import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.ValueFieldSearchConfig
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.PathingChunk
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
@@ -466,7 +467,7 @@ object TrajectoryPlanner {
                     field.invalidate(batch.sections)
 
                     val routeSections = current.dependencies.mapTo(HashSet()) {
-                        com.lambda.pathing.world.PathingSection.containing(it)
+                        com.lambda.pathing.core.PathingSection.containing(it)
                     }
                     val routeAffected = extending ||
                         batch.mutations.any { it in routeSections } ||

@@ -1,11 +1,11 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.InputTape
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.movement.TerminalApproach
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
 
 data class PlanAttempt(
     val parameters: TerminalApproach,

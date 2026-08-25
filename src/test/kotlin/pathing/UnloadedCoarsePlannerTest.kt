@@ -10,14 +10,14 @@
 package pathing
 
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.coarse.CoarseMoveCosts
+import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.FrontierAnchors
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.PathingChunk
+import com.lambda.pathing.core.PathingChunk
 import com.lambda.util.player.prediction.ImmutableSnapshotSection
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotBlockPhysics

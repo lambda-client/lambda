@@ -1,5 +1,8 @@
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.movement.CoarseEdge
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
 import kotlin.math.hypot
@@ -13,22 +16,22 @@ class CoarseValueField(
     private val guides = HashMap<Stance, Double>()
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
-    fun invalidate(sections: Set<com.lambda.pathing.world.PathingSection>) {
+    fun invalidate(sections: Set<com.lambda.pathing.core.PathingSection>) {
         if (sections.isEmpty()) return
-        val halo = HashSet<com.lambda.pathing.world.PathingSection>(sections.size * 27)
+        val halo = HashSet<com.lambda.pathing.core.PathingSection>(sections.size * 27)
         for (section in sections) {
             for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
-                halo += com.lambda.pathing.world.PathingSection(
+                halo += com.lambda.pathing.core.PathingSection(
                     section.x + dx, section.y + dy, section.z + dz,
                 )
             }
         }
 
         guides.keys.removeAll { stance ->
-            com.lambda.pathing.world.PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
+            com.lambda.pathing.core.PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
         }
         edges.keys.removeAll { stance ->
-            com.lambda.pathing.world.PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
+            com.lambda.pathing.core.PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
         }
     }
 

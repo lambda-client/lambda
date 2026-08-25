@@ -2,7 +2,7 @@ package com.lambda.pathing
 
 import com.lambda.context.Automated
 import com.lambda.interaction.managers.Request
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 
 class PathingRequest(
     automated: Automated,

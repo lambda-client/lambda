@@ -6,9 +6,9 @@ import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.movement.MovementId
-import com.lambda.pathing.movement.center
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.center
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha

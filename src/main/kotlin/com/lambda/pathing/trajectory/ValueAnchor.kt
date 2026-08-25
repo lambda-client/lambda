@@ -1,6 +1,6 @@
 package com.lambda.pathing.trajectory
 
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.BodyState
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.util.player.prediction.MovementSimulationInput

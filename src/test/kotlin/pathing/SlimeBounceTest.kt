@@ -4,11 +4,11 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.coarse.CoarseMoveCosts
+import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.launch.LaunchSolver

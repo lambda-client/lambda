@@ -1,10 +1,12 @@
-package com.lambda.pathing.coarse
+package com.lambda.pathing.movement
 
 import com.lambda.pathing.launch.LaunchMode
-import com.lambda.pathing.movement.CellCondition
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.launch.BounceArcProbe
+import com.lambda.pathing.launch.JumpArcProbe
 import kotlin.math.abs
 
 class MotionTemplate internal constructor(

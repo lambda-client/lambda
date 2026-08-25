@@ -1,19 +1,7 @@
 package com.lambda.pathing.world
 
-import net.minecraft.util.math.BlockPos
-
-data class PathingSection(val x: Int, val y: Int, val z: Int) {
-    companion object {
-        fun containing(pos: VoxelPos) = PathingSection(pos.x shr 4, pos.y shr 4, pos.z shr 4)
-        fun containing(pos: BlockPos) = PathingSection(pos.x shr 4, pos.y shr 4, pos.z shr 4)
-    }
-}
-
-data class PathingChunk(val x: Int, val z: Int) {
-    companion object {
-        fun containing(pos: VoxelPos) = PathingChunk(pos.x shr 4, pos.z shr 4)
-    }
-}
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.PathingSection
 
 sealed interface WorldMutation {
     val revision: Long

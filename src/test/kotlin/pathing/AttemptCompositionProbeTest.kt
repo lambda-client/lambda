@@ -4,11 +4,11 @@ package pathing
 // Not a gate -- run it when tuning the action vocabulary and compare compositions.
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.coarse.CoarseMoveCosts
+import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch

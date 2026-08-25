@@ -10,18 +10,18 @@
 package pathing
 
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
-import com.lambda.pathing.coarse.CoarseMoveCosts
-import com.lambda.pathing.coarse.CoarseMoveRates
+import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.movement.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
-import com.lambda.pathing.core.TailCost
-import com.lambda.pathing.movement.MovementId
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.graph.TailCost
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.PathingChunk
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.VoxelPos
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals

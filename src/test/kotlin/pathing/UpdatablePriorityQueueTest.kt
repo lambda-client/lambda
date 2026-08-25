@@ -9,8 +9,8 @@
 
 package pathing
 
-import com.lambda.pathing.core.Key
-import com.lambda.pathing.core.UpdatablePriorityQueue
+import com.lambda.pathing.graph.Key
+import com.lambda.pathing.graph.UpdatablePriorityQueue
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals

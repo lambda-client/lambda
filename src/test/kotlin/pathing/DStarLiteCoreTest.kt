@@ -9,9 +9,9 @@
 
 package pathing
 
-import com.lambda.pathing.core.DStarLite
-import com.lambda.pathing.core.Key
-import com.lambda.pathing.core.LazyGraph
+import com.lambda.pathing.graph.DStarLite
+import com.lambda.pathing.graph.Key
+import com.lambda.pathing.graph.LazyGraph
 import com.lambda.util.world.fastVectorOf
 import pathing.GridGraphTestUtil.Connectivity.N26
 import pathing.GridGraphTestUtil.Connectivity.N6

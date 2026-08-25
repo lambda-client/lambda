@@ -1,14 +1,7 @@
-package com.lambda.pathing.coarse
+package com.lambda.pathing.movement
 
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
-import com.lambda.pathing.launch.BounceSolution
-import com.lambda.pathing.launch.LaunchSolution
-import com.lambda.pathing.movement.MovementId
-import com.lambda.pathing.movement.horizontalDistance
-import com.lambda.pathing.world.VoxelPos
-import net.minecraft.util.math.Vec3d
-import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -49,52 +42,6 @@ object CoarseMoveRates {
 
     fun fallTicks(depth: Int): Double = FALL_TICKS[depth.coerceIn(1, MAX_FALL_TABLE_DEPTH)]
 }
-
-data class Stance(val x: Int, val y: Int, val z: Int) {
-    fun offset(dx: Int, dy: Int, dz: Int) = Stance(x + dx, y + dy, z + dz)
-
-    override fun toString() = "($x, $y, $z)"
-
-    companion object {
-
-        fun of(position: Vec3d, onGround: Boolean): Stance = Stance(
-            floor(position.x).toInt(),
-            if (onGround) floor(position.y - SURFACE_EPSILON).toInt() + 1
-            else floor(position.y + SURFACE_EPSILON).toInt(),
-            floor(position.z).toInt(),
-        )
-
-        private const val SURFACE_EPSILON = 1e-6
-    }
-}
-
-@JvmInline
-value class MotionTemplateId(val value: Int)
-
-data class CoarseEdgeId(val template: MotionTemplateId, val from: Stance)
-
-class LazyReadSet(supplier: () -> Set<VoxelPos>) : AbstractSet<VoxelPos>() {
-    private val backing: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION, supplier)
-
-    override val size: Int get() = backing.size
-
-    override fun iterator(): Iterator<VoxelPos> = backing.iterator()
-
-    override fun contains(element: VoxelPos): Boolean = element in backing
-}
-
-data class CoarseEdge(
-    val id: CoarseEdgeId,
-    val from: Stance,
-    val to: Stance,
-    val movement: MovementId,
-    val lowerBoundTicks: Double,
-    val readSet: Set<VoxelPos>,
-
-    val launch: LaunchSolution? = null,
-
-    val bounce: BounceSolution? = null,
-)
 
 class CoarseMoveCosts(
     val cardinalWalk: Double,
@@ -192,31 +139,5 @@ class CoarseMoveCosts(
                 },
             )
         }
-    }
-}
-
-data class SimpleMoveOptions(
-    val allowDiagonal: Boolean = true,
-    val allowStepUp: Boolean = true,
-    val maxWalkOffDepth: Int = 3,
-
-    val maxDropSpan: Int = 2,
-
-    val allowClimbing: Boolean = false,
-    val allowJumpCandidates: Boolean = true,
-    val maxJumpSpan: Int = 4,
-    val maxJumpDrop: Int = 1,
-
-    val allowOffAxisJumps: Boolean = true,
-
-    val allowSlimeBounces: Boolean = false,
-    val maxBounceDrop: Int = 8,
-) {
-    init {
-        require(maxWalkOffDepth >= 0) { "maxWalkOffDepth must be non-negative" }
-        require(maxDropSpan >= 1) { "maxDropSpan must reach at least the adjacent stance" }
-        require(maxJumpSpan >= 2) { "maxJumpSpan must reach past the adjacent stance" }
-        require(maxBounceDrop >= 3) { "a bounce needs a fall deep enough to rebound from" }
-        require(maxJumpDrop >= 0) { "maxJumpDrop must be non-negative" }
     }
 }

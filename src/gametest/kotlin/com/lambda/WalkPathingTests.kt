@@ -23,7 +23,7 @@ import com.lambda.PathingTestHarness.BEDROCK_FIELD_SEED
 import com.lambda.PathingTestHarness.EXECUTION_TOLERANCE
 import com.lambda.PathingTestHarness.assertPathingWalk
 import com.lambda.PathingTestHarness.restoreArena
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
@@ -304,7 +304,7 @@ internal object WalkPathingTests {
             server.runCommand("/tp Steve 0.5 100 0.5 0 0")
             repeat(10) { context.waitTick() }
 
-            val goal = com.lambda.pathing.coarse.Stance(0, 100, 5)
+            val goal = com.lambda.pathing.core.Stance(0, 100, 5)
             context.runOnClient<IllegalStateException> {
                 com.lambda.pathing.PathingManager.clear()
                 com.lambda.pathing.PathingRequest(

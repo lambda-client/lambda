@@ -1,8 +1,8 @@
 package com.lambda.pathing.debug
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium

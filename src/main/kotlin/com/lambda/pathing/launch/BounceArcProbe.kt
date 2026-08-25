@@ -1,10 +1,8 @@
-package com.lambda.pathing.coarse
+package com.lambda.pathing.launch
 
-import com.lambda.pathing.launch.BallisticProfile
-import com.lambda.pathing.launch.BounceSolution
-import com.lambda.pathing.launch.BounceSolver
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import kotlin.math.floor

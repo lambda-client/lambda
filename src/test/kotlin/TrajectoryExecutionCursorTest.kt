@@ -13,14 +13,14 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
-import com.lambda.pathing.world.PathingChunk
+import com.lambda.pathing.core.PathingChunk
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.MovementSimulator
 import com.lambda.util.player.prediction.PlayerPhysicsProfile

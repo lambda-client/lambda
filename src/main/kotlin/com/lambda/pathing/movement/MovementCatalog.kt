@@ -1,9 +1,6 @@
 package com.lambda.pathing.movement
 
-import com.lambda.pathing.coarse.CoarseMoveCosts
-import com.lambda.pathing.coarse.MotionTemplate
-import com.lambda.pathing.coarse.MotionTemplateId
-import com.lambda.pathing.coarse.SimpleMoveOptions
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.movement.providers.ClimbMovement
 import com.lambda.pathing.movement.providers.DropMovement

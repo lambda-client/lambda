@@ -8,7 +8,10 @@ import com.lambda.pathing.movement.*
 import com.lambda.pathing.PathingManager
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.*
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
+import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.*
 import com.lambda.util.player.prediction.*
 import net.minecraft.util.math.BlockPos

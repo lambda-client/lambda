@@ -4,8 +4,13 @@ import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.Movement
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.PathingChunk
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.movement.CoarseEdge
+import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.movement.MotionTemplate
+import com.lambda.pathing.movement.SimpleMoveOptions
 import kotlin.math.abs
 import kotlin.math.hypot
 

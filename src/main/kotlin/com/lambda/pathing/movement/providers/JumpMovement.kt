@@ -1,9 +1,12 @@
 package com.lambda.pathing.movement.providers
 
-import com.lambda.pathing.coarse.CoarseEdge
-import com.lambda.pathing.coarse.CoarseMoveRates
-import com.lambda.pathing.coarse.SimpleMoveOptions
-import com.lambda.pathing.coarse.MotionTemplate
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.alongEdge
+import com.lambda.pathing.core.center
+import com.lambda.pathing.movement.CoarseEdge
+import com.lambda.pathing.movement.CoarseMoveRates
+import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.movement.MotionTemplate
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution

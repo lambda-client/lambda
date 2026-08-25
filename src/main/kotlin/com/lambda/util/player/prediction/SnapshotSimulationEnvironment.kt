@@ -21,8 +21,9 @@ import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Medium
-import com.lambda.pathing.world.PathingChunk
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks

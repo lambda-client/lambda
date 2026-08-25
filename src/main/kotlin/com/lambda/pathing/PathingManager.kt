@@ -17,7 +17,7 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
@@ -25,6 +25,7 @@ import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionStateTolerance
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
+import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.world.InterestTier
@@ -455,7 +456,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private class PlanningJourney(
         val goal: Stance,
-        val moveOptions: com.lambda.pathing.coarse.SimpleMoveOptions,
+        val moveOptions: com.lambda.pathing.movement.SimpleMoveOptions,
         val profile: PlayerPhysicsProfile,
         val cancellation: PlanningCancellation,
         val world: PathingWorld,

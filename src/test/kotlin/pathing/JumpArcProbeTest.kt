@@ -9,11 +9,11 @@
 
 package pathing
 
-import com.lambda.pathing.coarse.JumpArcProbe
-import com.lambda.pathing.coarse.Stance
+import com.lambda.pathing.launch.JumpArcProbe
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test

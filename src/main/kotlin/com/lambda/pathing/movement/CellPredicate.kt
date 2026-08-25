@@ -2,7 +2,7 @@ package com.lambda.pathing.movement
 
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
-import com.lambda.pathing.world.VoxelPos
+import com.lambda.pathing.core.VoxelPos
 
 fun interface CellPredicate {
     fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean
