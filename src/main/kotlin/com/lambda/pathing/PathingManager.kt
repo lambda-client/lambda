@@ -16,7 +16,6 @@ import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.debug.executionRejectionReport
@@ -26,7 +25,7 @@ import com.lambda.pathing.execution.ExecutionStateTolerance
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.movement.TerminalApproach
+import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
@@ -38,32 +37,12 @@ import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
 import com.lambda.util.world.ChunkPacketLoadContext
 import kotlin.math.abs
 import kotlin.math.max
 import net.minecraft.util.math.Vec3d
 
 object PathingManager : Manager<PathingRequest>(0) {
-    data class PublishedPath(
-        val route: CoarseRoutePlan,
-        val plan: TrajectoryPlan,
-        val profile: PlayerPhysicsProfile,
-        val parameters: TerminalApproach,
-        val safeAnchorStance: Stance,
-        val safeAnchorFrame: Int,
-        val remainingGuideTicks: Double,
-        val attempts: Int,
-        val planMillis: Long,
-        val finalGoal: Stance,
-        val controlSegments: Int = 1,
-        val spliceFrames: List<Int> = emptyList(),
-        val launchMarginFrames: Int = 0,
-        val partial: Boolean = false,
-        val planningGeneration: Long = 0L,
-        val publicationSequence: Int = 0,
-    )
-
     sealed interface Status {
         data object Idle : Status
 
@@ -456,7 +435,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private class PlanningJourney(
         val goal: Stance,
-        val moveOptions: com.lambda.pathing.movement.SimpleMoveOptions,
+        val moveOptions: SimpleMoveOptions,
         val profile: PlayerPhysicsProfile,
         val cancellation: PlanningCancellation,
         val world: PathingWorld,

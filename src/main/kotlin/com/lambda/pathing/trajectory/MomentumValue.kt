@@ -1,5 +1,6 @@
 package com.lambda.pathing.trajectory
 
+import com.lambda.pathing.movement.CoarseMoveRates
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -25,7 +26,7 @@ fun headingAlignment(velocityX: Double, velocityZ: Double, towardX: Double, towa
 
 const val MOMENTUM_CREDIT_TICKS_PER_BLOCK_PER_TICK = 10.7
 
-const val SPRINT_TOP_SPEED = 0.2806
+const val SPRINT_TOP_SPEED = CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
 
 const val MOMENTUM_CREDIT_MAX_TICKS = SPRINT_TOP_SPEED * MOMENTUM_CREDIT_TICKS_PER_BLOCK_PER_TICK
 

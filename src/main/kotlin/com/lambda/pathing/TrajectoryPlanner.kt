@@ -27,6 +27,7 @@ import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
@@ -42,7 +43,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 
 sealed interface PathPlanResult {
-    data class Planned(val path: PathingManager.PublishedPath) : PathPlanResult
+    data class Planned(val path: PublishedPath) : PathPlanResult
     data class Failed(val failure: PlanningFailure) : PathPlanResult
     data object Cancelled : PathPlanResult
 }
@@ -376,9 +377,9 @@ object TrajectoryPlanner {
     internal fun planAsync(
         preparation: TrajectoryPlanningPreparation,
         world: PathingWorld,
-        onSafePrefix: (PathingManager.PublishedPath) -> Unit,
+        onSafePrefix: (PublishedPath) -> Unit,
         cursorFrame: () -> Int?,
-        onImprovement: (PathingManager.PublishedPath) -> Unit,
+        onImprovement: (PublishedPath) -> Unit,
         cancellation: PlanningCancellation,
         planningGeneration: Long,
         snapshotRevision: Long,
@@ -548,7 +549,7 @@ object TrajectoryPlanner {
         snapshot: SnapshotSimulationEnvironment,
         seedConfig: MotionConstraints,
         cursorFrame: () -> Int?,
-        publish: (PathingManager.PublishedPath, Boolean) -> Unit,
+        publish: (PublishedPath, Boolean) -> Unit,
         started: Long,
         lookahead: Int = HORIZON_FRAMES,
         commitFrames: Int = HORIZON_CHUNK_FRAMES,
@@ -564,7 +565,7 @@ object TrajectoryPlanner {
         field: com.lambda.pathing.coarse.CoarseValueField = planner.valueField(),
     ): PathPlanResult {
         var published = 0
-        var last: PathingManager.PublishedPath? = null
+        var last: PublishedPath? = null
 
         val result = ValueFieldAnchorSearch.search(
             route, planner.moves.catalog, field, initial, profile, snapshot, seedConfig,
@@ -651,7 +652,7 @@ object TrajectoryPlanner {
         finalGoal: Stance,
         planningGeneration: Long,
         publicationSequence: Int,
-    ) = PathingManager.PublishedPath(
+    ) = PublishedPath(
         route = route,
         plan = TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(id), seed, profile),
         profile = profile,

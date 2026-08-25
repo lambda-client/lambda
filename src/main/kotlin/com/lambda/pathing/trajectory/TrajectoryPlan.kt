@@ -1,6 +1,7 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.movement.InputTape
+import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.VoxelPos
@@ -84,7 +85,7 @@ class TrajectoryPlan private constructor(
 
     companion object {
         private const val REQUIRED_STABLE_STOP_FRAMES = 3
-        private const val TERMINAL_STOP_SPEED = 0.012 + 1.0E-9
+        private const val TERMINAL_STOP_SPEED = MotionConstraints.DEFAULT_STOPPED_SPEED + 1.0E-9
 
         fun fromWalkingSeed(
             id: TrajectoryPlanId,

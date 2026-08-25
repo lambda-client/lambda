@@ -14,6 +14,7 @@ import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.pathing.trajectory.VirtualSearchClock
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -160,7 +161,7 @@ class HorizonBaselineTest {
         )
     }
 
-    private fun turning(path: PathingManager.PublishedPath?): Double {
+    private fun turning(path: PublishedPath?): Double {
         val frames = path?.plan?.frames ?: return 0.0
         var total = 0.0
         frames.zipWithNext { a, b -> total += abs(Rotation.wrap(b.state.rotation.yaw - a.state.rotation.yaw)) }

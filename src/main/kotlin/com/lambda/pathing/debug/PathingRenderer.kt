@@ -9,6 +9,7 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.center
+import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
@@ -214,7 +215,7 @@ object PathingRenderer : Loadable {
         polyline(trail.map { it.add(0.0, LIVE_Y, 0.0) }, config.trailColor, screenWidth(config.trailWidth))
     }
 
-    private fun RenderBuilder.renderLabels(path: PathingManager.PublishedPath) {
+    private fun RenderBuilder.renderLabels(path: PublishedPath) {
         val plan = path.plan
         val anchor = plan.initialState.position.add(0.0, 1.2, 0.0)
         val parameters = path.parameters
