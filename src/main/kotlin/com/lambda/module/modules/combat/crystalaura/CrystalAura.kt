@@ -15,33 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.combat
+package com.lambda.module.modules.combat.crystalaura
 
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
-import com.lambda.config.hide
-import com.lambda.config.hideAllExcept
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
+import com.lambda.config.hide
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
-import com.lambda.interaction.handlers.ContainerHandler.transfer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.containers.HotbarContainer
-import com.lambda.interaction.material.container.containers.OffHandContainer
 import com.lambda.module.Module
+import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
+import com.lambda.module.modules.combat.crystalaura.CrystalAuraPlacing.placeInternal
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
@@ -50,22 +43,20 @@ import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.math.*
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
-import com.lambda.util.player.RotationUtils.getVisibleSurfaces
-import com.lambda.util.player.SlotUtils.hotbarStacks
+import com.lambda.util.math.distSq
+import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.getHitVec
+import com.lambda.util.math.minus
+import com.lambda.util.math.plus
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
-import net.minecraft.item.ItemStack
-import net.minecraft.item.Items
-import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
-import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -88,7 +79,8 @@ object CrystalAura : Module(
     private const val TARGETING_TAB = "Targeting"
     private const val RENDERING_TAB = "Rendering"
 
-    @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
+    @Tab(GENERAL_TAB)
+    val rotate by setting("Rotate", true)
     @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Ticked)
     @Tab(GENERAL_TAB) private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
     @Tab(GENERAL_TAB) private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
@@ -96,10 +88,14 @@ object CrystalAura : Module(
     @Tab(GENERAL_TAB) private val debug by setting("Debug", false)
 
     @Tab(PLACEMENT_TAB) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
-    @Tab(PLACEMENT_TAB) private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
-    @Tab(PLACEMENT_TAB) private val swap by setting("Swap", true, "Swaps to crystals")
-    @Tab(PLACEMENT_TAB) private val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
-    @Tab(PLACEMENT_TAB) private val priorityMode by setting("Crystal Priority", Priority.Damage)
+    @Tab(PLACEMENT_TAB)
+    val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
+    @Tab(PLACEMENT_TAB)
+    val swap by setting("Swap", true, "Swaps to crystals")
+    @Tab(PLACEMENT_TAB)
+    val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
+    @Tab(PLACEMENT_TAB)
+    val priorityMode by setting("Crystal Priority", Priority.Damage)
     @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
     @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
     @Tab(PLACEMENT_TAB) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
@@ -108,15 +104,21 @@ object CrystalAura : Module(
     @Tab(PLACEMENT_TAB) private val oldPlace by setting("1.12 Placement", false)
 
     @Tab(EXPLODING_TAB) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
-    @Tab(EXPLODING_TAB) private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
+    @Tab(EXPLODING_TAB)
+    val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
 
-    @Tab(PREDICTION_TAB) private val prediction by setting("Prediction", PredictionMode.None)
+    @Tab(PREDICTION_TAB)
+    val prediction by setting("Prediction", PredictionMode.None)
     @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1, "Flags grim") { prediction.onPacket }
     @Tab(PREDICTION_TAB) private val explodeOnPacket by setting("Explode On Packet", false, "Explodes the received crystal on packet") { prediction != PredictionMode.None }
-    @Tab(PREDICTION_TAB) private val placePostPause by setting("Place Post Pause", false, "Resets the place delay timer after receiving a entity spawn packet (adds a delay)") { prediction != PredictionMode.None }
-    @Tab(PREDICTION_TAB) private val postPacketPlace by setting("Post Packet Place", true, "Places the crystal on the next tick from the entity spawn packet") { prediction == PredictionMode.Tick && !placePostPause }
-    @Tab(PREDICTION_TAB) private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
-    @Tab(PREDICTION_TAB) private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
+    @Tab(PREDICTION_TAB)
+    val placePostPause by setting("Place Post Pause", false, "Resets the place delay timer after receiving a entity spawn packet (adds a delay)") { prediction != PredictionMode.None }
+    @Tab(PREDICTION_TAB)
+    val postPacketPlace by setting("Post Packet Place", true, "Places the crystal on the next tick from the entity spawn packet") { prediction == PredictionMode.Tick && !placePostPause }
+    @Tab(PREDICTION_TAB)
+    val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
+    @Tab(PREDICTION_TAB)
+    val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
 
     @Tab(PREDICTION_TAB) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this, 10.0))
 
@@ -125,12 +127,10 @@ object CrystalAura : Module(
 
     @Tab(RENDERING_TAB) private val renderLineSettings by configBlock(WorldLineSettings(this))
         .withEdits {
-            hideAllExcept (
-                ::worldWidthSetting
-            )
-            forEachSetting {
-                visibility { old -> { old() && render }}
-            }
+            hideAllExcept(::worldWidthSetting)
+	        forEachSetting {
+		        visibility { old -> { old() && render } }
+	        }
         }
     @Tab(RENDERING_TAB) val primaryColorLine by setting("Primary Color (outline)", Color(130, 200, 255, 200), visibility = { render })
     @Tab(RENDERING_TAB) val secondaryColorLine by setting("Secondary Color (outline)", Color(130, 130, 255, 200), visibility = { render })
@@ -138,6 +138,7 @@ object CrystalAura : Module(
     @Tab(RENDERING_TAB) val secondaryColor by setting("Secondary Color", Color(170, 60, 170, 100), visibility = { render })
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
+    private var lastOpportunity: Opportunity? = null
     private var activeOpportunity: Opportunity? = null
     private var currentTarget: LivingEntity? = null
 
@@ -148,17 +149,17 @@ object CrystalAura : Module(
     private val updateTimer = Timer()
     private var updatesThisFrame = 0
 
-    private val placeTimer = Timer()
-    private val explodeTimer = Timer()
+    val placeTimer = Timer()
+    val explodeTimer = Timer()
 
-    private val predictionTimer = Timer()
-    private var lastEntityId = 0
-    private var waitingForCrystal = false
-    private var safeToPlaceInstantly = false
+    val predictionTimer = Timer()
+    var lastEntityId = 0
+    var waitingForCrystal = false
+    var safeToPlaceInstantly = false
 
     private val decay = LimitedDecayQueue<Int>(10000, 3000L)
 
-    private var lastPlace: Pair<BlockPos, Long>? = null
+    var lastPlace: Pair<BlockPos, Long>? = null
     private val collidingOffsets = mutableListOf<BlockPos>().apply {
         for (x in -1..1) {
             for (z in -1..1) {
@@ -174,46 +175,46 @@ object CrystalAura : Module(
             .withEdits {
                 hideAllExcept(::buildConfig, ::rotationConfig, ::hotbarConfig, ::inventoryConfig)
                 buildConfig.apply {
-                    hide(
-                        ::pathing, ::collectDrops, ::spleefEntities,
-                        ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
-                    )
+	                hide(
+		                ::pathing, ::collectDrops, ::spleefEntities,
+		                ::maxPendingActions, ::actionTimeout, ::maxBuildDependencies, ::breakBlocks, ::interactBlocks, ::placeBlocks
+	                )
                 }
             }
 
         // Async ticking
-        fixedRateTimer(
-            name = "Crystal Aura Thread",
-            daemon = true,
-            initialDelay = 0L,
-            period = 1L
-        ) {
-            if (isDisabled || updateMode != UpdateMode.Async) return@fixedRateTimer
+		fixedRateTimer(
+			name = "Crystal Aura Thread",
+			daemon = true,
+			initialDelay = 0L,
+			period = 1L
+		) {
+			if (isDisabled || updateMode != UpdateMode.Async) return@fixedRateTimer
 
-            runSafe {
-                // timer may spam faster than main thread computes (game freezes completely at the beginning of the frame)
-                if (updatesThisFrame > maxUpdatesPerFrame) return@runSafe
-                updatesThisFrame++
+			runSafe {
+				// timer may spam faster than main thread computes (game freezes completely at the beginning of the frame)
+				if (updatesThisFrame > maxUpdatesPerFrame) return@runSafe
+				updatesThisFrame++
 
-                // run this safely again to ensure that the context will stay safe at the next frame
-                runSafeGameScheduled {
-                    tick()
-                }
-            }
-        }
+				// run this safely again to ensure that the context will stay safe at the next frame
+				runSafeGameScheduled {
+					tick()
+				}
+			}
+		}
 
-        fixedRateTimer(
-            name = "CA Counter",
-            daemon = true,
-            initialDelay = 0L,
-            period = 1000L
-        ) {
-            if (isDisabled || !debug) return@fixedRateTimer
+		fixedRateTimer(
+			name = "CA Counter",
+			daemon = true,
+			initialDelay = 0L,
+			period = 1000L
+		) {
+			if (isDisabled || !debug) return@fixedRateTimer
 
-            runSafeGameScheduled {
-                info((decay.size.toDouble() * 0.3333).roundToStep(0.1).toString())
-            }
-        }
+			runSafeGameScheduled {
+				info((decay.size.toDouble() * 0.3333).roundToStep(0.1).toString())
+			}
+		}
 
         // Ticking with alignment
         listen<TickEvent.Pre> {
@@ -240,10 +241,12 @@ object CrystalAura : Module(
             opportunity.crystal = crystal
 
             // Run packet prediction
-            if (!prediction.isActive || activeOpportunity != opportunity) return@listen
+            if (!prediction.isActive || opportunity.priority < minDamageAdvantage) {
+                return@listen
+            }
 
             if (explodeOnPacket) {
-                explodeInternal(lastEntityId)
+                explodeInternal(++lastEntityId)
             }
 
             if (!prediction.onPacket) {
@@ -269,21 +272,20 @@ object CrystalAura : Module(
         }
 
         immediateRenderer("CrystalAura Immediate Renderer") {
-            runSafe {
-                if (lastPlace != null) {
-                    if (lastPlace!!.second + 100 < System.currentTimeMillis()) {
-                        return@runSafe
-                    }
+	        runSafe {
+		        val place = lastPlace ?: return@runSafe
+		        if (place.second + 100 < System.currentTimeMillis()) {
+			        return@runSafe
+		        }
 
-                    box(
-                        lastPlace!!.first,
-                        renderLineSettings
-                    ) {
-                        outlineGradientY(secondaryColorLine, primaryColorLine)
-                        fillGradientY(secondaryColor, primaryColor)
-                    }
-                }
-            }
+		        box(
+			        place.first,
+			        renderLineSettings
+		        ) {
+			        outlineGradientY(secondaryColorLine, primaryColorLine)
+			        fillGradientY(secondaryColor, primaryColor)
+		        }
+	        }
         }
 
         onEnable {
@@ -329,41 +331,15 @@ object CrystalAura : Module(
 		best.place()
 	}
 
-	private fun SafeContext.placeInternal(opportunity: Opportunity, hand: Hand) {
-        runSafe {
-            lastPlace = Pair(opportunity.blockPos, System.currentTimeMillis())
-        }
-		interaction.syncSelectedSlot() // TODO: when server only hotbar swap gets implemented, this will be removed
-        mc.interactionManager!!.sendSequencedPacket(world, { sequence ->
-
-            PlayerInteractBlockC2SPacket(
-                hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), sequence
-            )
-        });
-
-        player.swingHand(hand)
-        waitingForCrystal = true
-    }
-
-    private fun SafeContext.explodeInternal(id: Int) {
-        connection.sendPacket {
-            PlayerInteractEntityC2SPacket(
-                id, player.isSneaking, PlayerInteractEntityC2SPacket.ATTACK
-            )
-        }
-
-        player.swingHand(Hand.MAIN_HAND)
-    }
-
     private fun SafeContext.updateBlueprint(target: LivingEntity) =
         updateTimer.runIfPassed(updateDelay.milliseconds) {
             resetBlueprint()
 
             fun info(
-                pos: BlockPos,
-                target: LivingEntity,
-                blocked: Boolean,
-                crystal: EndCrystalEntity? = null
+	            pos: BlockPos,
+	            target: LivingEntity,
+	            blocked: Boolean,
+	            crystal: EndCrystalEntity? = null
             ): Opportunity? {
                 val crystalPos = pos.crystalPosition
 
@@ -383,6 +359,7 @@ object CrystalAura : Module(
                 ) return null
 
                 return Opportunity(
+                    this@CrystalAura,
                     pos.toImmutable(),
                     targetDamage,
                     selfDamage,
@@ -393,8 +370,8 @@ object CrystalAura : Module(
 
             // Extra checks for placement, because you may explode but not place in special cases(crystal in the air)
             fun placeInfo(
-                pos: BlockPos,
-                target: LivingEntity
+	            pos: BlockPos,
+	            target: LivingEntity
             ): Opportunity? {
                 // Check if crystals could be placed on the base block
                 val state = blockState(pos)
@@ -479,153 +456,26 @@ object CrystalAura : Module(
         activeOpportunity = null
     }
 
-    /**
-     * Represents the damage information resulting from placing an end crystal on a given [blockPos]
-     * and causing an explosion that targets current target entity.
-     *
-     * @property blockPos The position of the base block where the crystal is placed.
-     * @property target The amount of damage inflicted on the target.
-     * @property self The amount of damage inflicted on the player.
-     * @property blocked Whether the placement on [blockPos] is blocked by other crystals.
-     * @property crystal A crystal that is placed on [blockPos].
-     */
-    private class Opportunity(
-        val blockPos: BlockPos,
-        val target: Double,
-        val self: Double,
-        var blocked: Boolean,
-        var crystal: EndCrystalEntity? // ToDo: packet-based update wisely
-    ) {
-        var actionType = ActionType.Normal
-        val priority = priorityMode.factor(target, self)
-        val hasCrystal get() = crystal != null
-
-        val crystalPosition by lazy {
-            blockPos.crystalPosition
-        }
-
-        val side by lazy {
-            runSafe {
-                val visibleSides = Box(blockPos).getVisibleSurfaces(player.eyePos)
-                if (visibleSides.contains(Direction.UP)) Direction.UP else visibleSides.minByOrNull {
-                    blockPos.getHitVec(it) distSq player.eyePos
-                }
-            } ?: Direction.UP
-        }
-
-        val placeRotation by lazy {
-            runSafe {
-                var vec = blockPos.getHitVec(side)
-
-                // look at the top part of the side
-                if (side.axis != Direction.Axis.Y) vec += Vec3d(0.0, 0.45, 0.0)
-
-                player.eyePos.rotationTo(vec)
-            } ?: RotationManager.activeRotation
-        }
-
-        /**
-         * Places the crystal on [blockPos]
-         */
-        fun place() = runSafe {
-            if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done)
-                return@runSafe
-            var crystalHand: Hand? = null
-			val selection = selectStack { isItem(Items.END_CRYSTAL) }
-			if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != Items.END_CRYSTAL) ||
-				(swapHand == Hand.OFF_HAND && player.offHandStack.item != Items.END_CRYSTAL)
-			) runSafeAutomated {
-				if (!swap) return@runSafe
-                val itemToUse: ItemStack? = if (player.mainHandStack.item == Items.END_CRYSTAL) {
-                    crystalHand = Hand.MAIN_HAND
-                    player.mainHandStack
-                } else if (player.offHandStack.item == Items.END_CRYSTAL) {
-                    crystalHand = Hand.OFF_HAND
-                    player.offHandStack
-                } else null
-
-                val swapTo = when (swapHand) {
-                    Hand.MAIN_HAND -> HotbarContainer
-                    Hand.OFF_HAND -> OffHandContainer
-                }
-
-                if (itemToUse == null || swapHand == Hand.MAIN_HAND) {
-                    if (swapHand == Hand.MAIN_HAND) {
-                        val itemStack = selection.bestItemMatch(player.hotbarStacks)
-                        if (itemStack == null) { // retrieve to hotbar
-                            if (!selection.transfer(swapTo)) return@runSafe
-                        }
-                        val s = player.hotbarStacks.indexOf(itemStack)
-                        if ((!HotbarRequest(s, this@CrystalAura, nowOrNothing = false).submit().done) && itemToUse == null) return@runSafe
-                    } else { // retrieve to offhand
-                        if (!selection.transfer(swapTo)) return@runSafe
-                    }
-                }
-			}
-
-            if (placeTimer.timePassed(placeDelay.milliseconds) || (postPacketPlace && safeToPlaceInstantly && !placePostPause)) {
-                runSafe {
-                    placeInternal(this@Opportunity, crystalHand?: swapHand) // we should not be here without a crystal in hand but ig better to check than not to
-                    safeToPlaceInstantly = false
-                    if (prediction.onPlace)
-                        predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
-                            val last = lastEntityId
-
-                            repeat(placePredictions) {
-                                explodeInternal(++lastEntityId)
-                            }
-
-                            lastEntityId = last + 1
-                            crystal = null
-                        }
-                    placeTimer.reset()
-                }
-            }
-        }
-
-        /**
-         * Explodes a crystal that is on [blockPos]
-         * @return Whether the delay passed, null if the interaction failed or no crystal found
-         */
-        fun explode() {
-            if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done) return
-
-            if (waitingForCrystal && crystal == null && prediction == PredictionMode.Tick) {
-                runSafe {
-                    explodeInternal(lastEntityId++)
-                    waitingForCrystal = false
-                }
-            }
-
-            explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
-                crystal?.let { crystal ->
-                    explodeInternal(crystal.id)
-                    explodeTimer.reset()
-                }
-            }
-        }
-    }
-
     private val EndCrystalEntity.baseBlockPos get() =
         (pos - Vec3d(0.0, 0.5, 0.0)).flooredBlockPos
 
-    private val BlockPos.crystalPosition get() =
+    val BlockPos.crystalPosition get() =
         this.getHitVec(Direction.UP)
 
     private val BlockPos.crystalPlaceHitBox get() =
         crystalPosition.let { base ->
-            Box(
-                base - Vec3d(1.0, 0.0, 1.0),
-                base + Vec3d(1.0, 2.0, 1.0),
-            )
+	        Box(
+		        base - Vec3d(1.0, 0.0, 1.0),
+		        base + Vec3d(1.0, 2.0, 1.0),
+	        )
         }
 
     private val BlockPos.crystalBox get() =
         crystalPosition.let { base ->
-            Box(
-                base - Vec3d(0.5, 0.0, 0.5),
-                base + Vec3d(0.5, 2.0, 0.5),
-            )
+	        Box(
+		        base - Vec3d(0.5, 0.0, 0.5),
+		        base + Vec3d(0.5, 2.0, 0.5),
+	        )
         }
 
     private enum class UpdateMode {
@@ -634,7 +484,7 @@ object CrystalAura : Module(
     }
 
     @Suppress("Unused")
-    private enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean) {
+    enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean) {
         // Prediction disable
         None(false, false),
 
@@ -652,7 +502,7 @@ object CrystalAura : Module(
         val isActive = onPacket || onPlace
     }
 
-    private enum class Priority(val factor: (targetDamage: Double, selfDamage: Double) -> Double) {
+    enum class Priority(val factor: (targetDamage: Double, selfDamage: Double) -> Double) {
         Damage({ target, _ ->
             target
         }),
@@ -663,7 +513,7 @@ object CrystalAura : Module(
 
     // ToDo: implement actions
     @Suppress("Unused")
-    private enum class ActionType(val priority: Int) {
+    enum class ActionType(val priority: Int) {
         Normal(0),
         ForcePlace(1),
         SlowBreak(2)
