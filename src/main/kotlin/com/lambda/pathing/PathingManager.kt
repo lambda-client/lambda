@@ -471,6 +471,9 @@ object PathingManager : Manager<PathingRequest>(0) {
         executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
             return fail("certified plan became stale before execution: $deviation")
         }
+        walk.request.runSafeAutomated {
+            rotationRequest { yaw(path.plan.initialState.rotation.yaw) }.submit()
+        }
         journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
         walk.planningYaw = null
         walk.pendingPath = null
