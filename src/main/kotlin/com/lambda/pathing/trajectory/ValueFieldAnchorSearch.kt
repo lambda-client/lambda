@@ -400,7 +400,7 @@ object ValueFieldAnchorSearch {
             val hazard = anchor.hazardFrame
             val cached = anchor.actions
             if (cached != null && anchor.actionsHazardFrame == hazard) return cached
-            return vocabulary.actions(anchor, hazard).also {
+            return vocabulary.actions(anchor).also {
                 anchor.actions = it
                 anchor.actionsHazardFrame = hazard
             }
