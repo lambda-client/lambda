@@ -3,6 +3,7 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.CoarseEdge
+import com.lambda.pathing.movement.SteeringField
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
 import kotlin.math.hypot
@@ -12,7 +13,7 @@ class CoarseValueField(
     private val moves: SimpleMoveLibrary,
     private val label: (Stance) -> Double,
     val goal: Stance,
-) {
+) : SteeringField {
     private val guides = HashMap<Stance, Double>()
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
@@ -81,11 +82,11 @@ class CoarseValueField(
         return ranked.takeWhile { it.lowerBoundTicks + guide(it.to) <= best + marginTicks }.take(count)
     }
 
-    fun chain(
+    override fun chain(
         stance: Stance,
-        firstStep: Stance? = null,
+        firstStep: Stance?,
         length: Int,
-        heading: Pair<Double, Double>? = null,
+        heading: Pair<Double, Double>?,
     ): List<Stance> {
         require(length > 0) { "A steering chain needs at least one node" }
         val chain = ArrayList<Stance>(length + 1)

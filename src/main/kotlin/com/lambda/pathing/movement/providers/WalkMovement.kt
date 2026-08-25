@@ -1,5 +1,7 @@
 package com.lambda.pathing.movement.providers
 
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.movement.TemplateSpec
 import com.lambda.pathing.movement.CellCondition
 import com.lambda.pathing.movement.CellPredicate
@@ -10,10 +12,16 @@ import com.lambda.pathing.movement.HeadingFollowerProgram
 import com.lambda.pathing.movement.Movement
 import com.lambda.pathing.movement.MovementContext
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.MovementKeys
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.bearingBetween
 import com.lambda.pathing.movement.ProgramContext
 import com.lambda.pathing.movement.SegmentFollowerProgram
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.core.center
+import com.lambda.pathing.movement.ProposalContext
+import com.lambda.pathing.movement.Proposals
+import kotlin.math.abs
 
 object WalkMovement : Movement {
     override val id = MovementId.WALK
@@ -83,6 +91,102 @@ object WalkMovement : Movement {
         }
     }
 
+    override fun proposals(context: ProposalContext): Proposals {
+        val steps = context.steps
+        val body = context.body
+        val walks = ArrayList<TrajectoryDecision>()
+        val launches = ArrayList<TrajectoryDecision>()
+
+        for (step in steps) {
+            walks += decisions(DecisionContext(body, step, context.constraints, context.view))
+        }
+
+        val target = steps.first().to
+        val bearing = routeBearing(context, target)
+
+        for (sprint in context.constraints.sprintModes) {
+            headingsForOffsets(context, sprint, target, bearing, walks)
+
+            if (turnsAhead(context, target)) {
+                for ((keys, facingOffset) in DECOUPLED_FACINGS) {
+                    walks += TrajectoryDecision.Heading(
+                        sprint, target, bearing + facingOffset, delayFrames = null, keys = keys,
+                    )
+                }
+            }
+        }
+
+        for (sprint in context.constraints.sprintModes) {
+            for (delay in OFF_AXIS_LAUNCH_DELAYS) {
+                if (delay != 0 && body.hazardFrame == null) continue
+                launches += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = delay)
+            }
+            if (body.hazardFrame != null || turnsAhead(context, target)) {
+                for (offset in context.headingFanDegrees) {
+                    if (offset == 0.0) continue
+                    for (delay in OFF_AXIS_LAUNCH_DELAYS) {
+                        launches += TrajectoryDecision.Heading(
+                            sprint, target, bearing + offset, delayFrames = delay,
+                        )
+                    }
+                }
+            }
+
+            if (body.hazardFrame != null) {
+                for (delay in OFF_AXIS_LAUNCH_DELAYS) {
+                    for (air in AIRBORNE_KEYS.drop(1)) {
+                        launches += TrajectoryDecision.Heading(
+                            sprint, target, bearing, delayFrames = delay,
+                            keys = MovementKeys.FORWARD, airborneKeys = air,
+                        )
+                    }
+                }
+            }
+        }
+
+        return Proposals(walks, launches)
+    }
+
+    private fun headingsForOffsets(
+        context: ProposalContext,
+        sprint: Boolean,
+        target: Stance,
+        bearing: Double,
+        into: MutableList<TrajectoryDecision>,
+    ) {
+        into += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = null)
+        if (context.body.hazardFrame == null && !turnsAhead(context, target)) return
+        for (offset in context.headingFanDegrees) {
+            if (offset == 0.0) continue
+            into += TrajectoryDecision.Heading(sprint, target, bearing + offset, delayFrames = null)
+        }
+    }
+
+    private fun turnsAhead(context: ProposalContext, firstStep: Stance): Boolean {
+        val chain = context.steering.chain(
+            context.body.stance, firstStep, BEARING_LOOKAHEAD + 1, context.body.heading(),
+        )
+        if (chain.size < 3) return false
+        val first = bearingBetween(chain[0].center(), chain[1].center())
+        val second = bearingBetween(chain[1].center(), chain[chain.lastIndex].center())
+        return abs(Rotation.wrap(second - first)) >= DECOUPLE_TURN_DEGREES
+    }
+
+    private fun routeBearing(context: ProposalContext, firstStep: Stance): Double {
+        val chain = context.steering.chain(
+            context.body.stance, firstStep, BEARING_LOOKAHEAD, context.body.heading(),
+        )
+        val aim = chain[minOf(chain.lastIndex, BEARING_LOOKAHEAD)].center()
+        return bearingBetween(
+            HorizontalPoint(
+                context.body.state.position.x,
+                context.body.state.position.y,
+                context.body.state.position.z,
+            ),
+            aim,
+        )
+    }
+
     override fun program(context: ProgramContext): ControlProgram {
         val decision = context.decision
         if (decision is TrajectoryDecision.Heading) {
@@ -127,4 +231,19 @@ object WalkMovement : Movement {
     private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
 
     private const val DEFAULT_LOOK_AHEAD = 1
+
+    private val OFF_AXIS_LAUNCH_DELAYS = listOf(0, 2, 4)
+
+    private val DECOUPLED_FACINGS = listOf(
+        MovementKeys.FORWARD_RIGHT to -45.0,
+        MovementKeys.FORWARD_LEFT to 45.0,
+    )
+
+    private const val DECOUPLE_TURN_DEGREES = 35.0
+
+    private val AIRBORNE_KEYS = listOf(
+        MovementKeys.FORWARD, MovementKeys.FORWARD_LEFT, MovementKeys.FORWARD_RIGHT,
+    )
+
+    private const val BEARING_LOOKAHEAD = 2
 }

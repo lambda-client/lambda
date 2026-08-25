@@ -20,14 +20,18 @@ private data class AnchorKey(
     val hazardKnown: Boolean,
 )
 
+internal fun interface ReachabilityPolicy {
+    fun canReach(anchor: ValueAnchor): Boolean
+}
+
 internal class Frontier(
     private val field: CoarseValueField,
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
     private var routeIndex: Map<Stance, Int>,
-    private val reachable: (ValueAnchor) -> Boolean,
     private val incumbentFrames: () -> Int?,
 ) {
+    var reachability: ReachabilityPolicy = ReachabilityPolicy { true }
     class OpenEntry(
         val order: Double,
         val bound: Double,
@@ -135,7 +139,7 @@ internal class Frontier(
         deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
 
         val key = keyOf(anchor)
-        if (!reachable(anchor)) return
+        if (!reachability.canReach(anchor)) return
 
         val bucket = beamBuckets.getOrPut(key) { ArrayList() }
         if (bucket.any { it.preferredForBeamOver(anchor) }) return

@@ -53,6 +53,33 @@ class DecisionContext(
     val ballistics: BallisticProfile = BallisticProfile.VANILLA,
 )
 
+interface SteeringField {
+    fun chain(
+        stance: Stance,
+        firstStep: Stance? = null,
+        length: Int,
+        heading: Pair<Double, Double>? = null,
+    ): List<Stance>
+}
+
+class ProposalContext(
+    val body: BodyState,
+    val steps: List<CoarseEdge>,
+    val constraints: MotionConstraints,
+    val view: CoarseVoxelView,
+    val steering: SteeringField,
+    val headingFanDegrees: List<Double>,
+)
+
+class Proposals(
+    val walks: List<TrajectoryDecision> = emptyList(),
+    val launches: List<TrajectoryDecision> = emptyList(),
+) {
+    companion object {
+        val EMPTY = Proposals()
+    }
+}
+
 class ProgramContext(
     val decision: TrajectoryDecision,
     val body: BodyState,
@@ -81,6 +108,8 @@ interface Movement {
     fun templates(context: MovementContext): List<TemplateSpec>
 
     fun decisions(context: DecisionContext): List<TrajectoryDecision>
+
+    fun proposals(context: ProposalContext): Proposals = Proposals.EMPTY
 
     fun offersFor(edge: CoarseEdge): Boolean = false
 

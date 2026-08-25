@@ -65,7 +65,7 @@ class UnloadedCoarsePlannerTest {
         val start = Stance(1, 5, 1)
         val goal = Stance(200, 5, 1)
         val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
-        val planner = CoarsePlanner(TrajectoryPlanner.coarseView(snapshot), moves, start, goal)
+        val planner = CoarsePlanner(snapshot, moves, start, goal)
 
         planner.advanceFrontier(FrontierAnchors.probe(snapshot, moves, start, goal))
         val result = planner.repair(Duration.INFINITE, maxExpansions = 100_000)
