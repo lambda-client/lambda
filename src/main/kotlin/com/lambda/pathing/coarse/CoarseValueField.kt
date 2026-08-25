@@ -14,7 +14,8 @@ class CoarseValueField(
     private val label: (Stance) -> Double,
     val goal: Stance,
 ) : SteeringField {
-    private val guides = HashMap<Stance, Double>()
+    private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
+        .apply { defaultReturnValue(Double.NaN) }
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
     fun invalidate(sections: Set<com.lambda.pathing.core.PathingSection>) {
@@ -38,16 +39,21 @@ class CoarseValueField(
 
     fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
-    fun guide(stance: Stance): Double = guides.getOrPut(stance) {
-        val direct = label(stance)
-        if (direct.isFinite()) return@getOrPut direct
+    fun guide(stance: Stance): Double {
+        val cached = guides.getDouble(stance)
+        if (!cached.isNaN()) return cached
 
-        var best = Double.POSITIVE_INFINITY
-        for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
-            val neighbour = label(to)
-            if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
+        val direct = label(stance)
+        val computed = if (direct.isFinite()) direct else {
+            var best = Double.POSITIVE_INFINITY
+            for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
+                val neighbour = label(to)
+                if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
+            }
+            best
         }
-        best
+        guides.put(stance, computed)
+        return computed
     }
 
     fun isMapped(stance: Stance): Boolean = guide(stance).isFinite()

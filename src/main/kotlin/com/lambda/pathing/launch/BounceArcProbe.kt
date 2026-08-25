@@ -33,6 +33,7 @@ object BounceArcProbe {
         if (length <= 0.0) return null
 
         val reads = LongOpenHashSet()
+        val cache = JumpArcProbe.SweepCellCache()
         for (sprint in SPRINT_ORDER) {
             for (holdForward in HOLD_ORDER) {
                 val solution = BounceSolver.solve(
@@ -50,6 +51,7 @@ object BounceArcProbe {
                     launchOffset = solution.launchOffset,
                     launchHeight = launchHeight,
                     reads = reads,
+                    cache = cache,
                 ) ?: continue
                 if (clearance < 0.0) continue
 
