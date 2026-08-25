@@ -62,15 +62,39 @@ object JumpMovement : Movement {
             .distinctBy { it.mode to it.launchOffset }
             .sortedByDescending { it.margin }
 
+        val closing = closingSpeed(context)
         return solutions.flatMap { solution ->
             val nominal = launchFrame(context, solution)
             LAUNCH_BRACKET
                 .map { (nominal + it).coerceAtLeast(0) }
                 .distinct()
+                .filter { delay -> !hopelesslySlow(context.ballistics, closing, delay, solution) }
                 .map { delay ->
                     TrajectoryDecision.Launch(solution.sprint, context.edge.to, delay, solution)
                 }
         }
+    }
+
+    private fun closingSpeed(context: DecisionContext): Double {
+        val edge = context.edge
+        val from = edge.from.center()
+        val to = edge.to.center()
+        val body = context.body.state
+        return alongEdge(
+            from, to,
+            from.x + body.velocity.x,
+            from.z + body.velocity.z,
+        ).coerceAtLeast(0.0)
+    }
+
+    private fun hopelesslySlow(
+        ballistics: BallisticProfile,
+        closing: Double,
+        delay: Int,
+        solution: LaunchSolution,
+    ): Boolean {
+        val achievable = ballistics.runUpSpeed(closing, delay, solution.sprint)
+        return solution.speed - solution.speedSlack - achievable > HOPELESS_SPEED_DEFICIT
     }
 
     private fun solutionsFor(context: DecisionContext): List<LaunchSolution> {
@@ -140,6 +164,8 @@ object JumpMovement : Movement {
     private val LAUNCH_BRACKET = listOf(0, -1, 1)
 
     private const val MAX_LAUNCH_FRAME = 8
+
+    private const val HOPELESS_SPEED_DEFICIT = 0.10
 
     private const val LOOK_AHEAD_NODES = 1
 }

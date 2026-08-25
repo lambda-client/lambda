@@ -49,6 +49,12 @@ data class BallisticProfile(
         return groundFriction * acceleration / (1.0 - groundFriction)
     }
 
+    fun runUpSpeed(entrySpeed: Double, ticks: Int, sprint: Boolean): Double {
+        var velocity = entrySpeed
+        repeat(ticks) { velocity = (velocity + groundAcceleration(sprint)) * groundFriction }
+        return velocity
+    }
+
     fun groundRunUpTicks(
         entrySpeed: Double,
         distance: Double,
