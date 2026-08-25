@@ -57,10 +57,24 @@ class TrajectoryPlan private constructor(
                 "Published trajectory contains a non-finite velocity at frame ${frame.index}"
             }
         }
+        // A terminal is either a plain grounded stop (solid ground) or a closed period-2
+        // rest cycle ending grounded (bouncy blocks: a standing micro-bounce alternates
+        // grounded and airborne frames with frozen position).
+        val stopFrames = frames.takeLast(REQUIRED_STABLE_STOP_FRAMES)
+        val slow = stopFrames.size == REQUIRED_STABLE_STOP_FRAMES && stopFrames.all { frame ->
+            frame.state.velocity.horizontalLength() <= TERMINAL_STOP_SPEED
+        }
+        val grounded = stopFrames.all { it.state.onGround }
+        val cycleFrames = frames.takeLast(REQUIRED_STABLE_STOP_FRAMES + 1)
+        val cycleClosed = cycleFrames.size == REQUIRED_STABLE_STOP_FRAMES + 1 &&
+            frames.last().state.onGround &&
+            (0 until cycleFrames.size - 2).all { i ->
+                val a = cycleFrames[i].state
+                val b = cycleFrames[i + 2].state
+                a.position == b.position && a.velocity == b.velocity && a.onGround == b.onGround
+            }
         val terminalFrames = frames.takeLast(REQUIRED_STABLE_STOP_FRAMES)
-        require(terminalFrames.size == REQUIRED_STABLE_STOP_FRAMES && terminalFrames.all { frame ->
-            frame.state.onGround && frame.state.velocity.horizontalLength() <= TERMINAL_STOP_SPEED
-        }) {
+        require(slow && (grounded || cycleClosed)) {
             "Published trajectory does not end in a stable grounded stop: " +
                 terminalFrames.joinToString(" | ") { frame ->
                     "f=${frame.index} ground=${frame.state.onGround} " +

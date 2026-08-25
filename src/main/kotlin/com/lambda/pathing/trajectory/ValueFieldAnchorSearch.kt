@@ -434,13 +434,28 @@ object ValueFieldAnchorSearch {
             )
             if (gated.failed) return null
             val rollout = gated.rollout
+            // A brake terminal must be a closed physics cycle, not merely slow: a body
+            // holding at it repeats the same states forever, so a tape resumed from the
+            // terminal replays within tolerance. Rest is period 1 on solid ground and
+            // period 2 on bouncy blocks (a standing micro-bounce alternates grounded and
+            // airborne frames with frozen position). Goal terminals stay on the looser
+            // stable-stop rule — a completed walk is never resumed from.
             var stable = 0
             var stableEnd = -1
+            var previous = anchor.state
+            var twoBack: MovementSimulationState? = null
             for (frame in rollout.frames) {
-                stable = if (frame.state.onGround &&
-                    frame.state.velocity.horizontalLength() <= config.stoppedSpeed
+                val state = frame.state
+                val cycleClosed = twoBack.let {
+                    it != null && state.position == it.position &&
+                        state.velocity == it.velocity && state.onGround == it.onGround
+                }
+                stable = if (cycleClosed &&
+                    state.velocity.horizontalLength() <= config.stoppedSpeed
                 ) stable + 1 else 0
-                if (stable >= config.stableStopFrames) {
+                twoBack = previous
+                previous = state
+                if (stable >= config.stableStopFrames && state.onGround) {
                     stableEnd = frame.index
                     break
                 }
@@ -518,7 +533,7 @@ object ValueFieldAnchorSearch {
 
     internal const val COLLISION_FRAME_PENALTY = 4
 
-    private const val BRAKE_TAIL_FRAMES = 24
+    private const val BRAKE_TAIL_FRAMES = 64
 
     private const val RETRY_PENALTY_TICKS = 0.05
 
