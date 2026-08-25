@@ -1,5 +1,6 @@
 package com.lambda.pathing
 
+import com.lambda.pathing.core.Stance
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -11,7 +12,12 @@ sealed interface PlanningFailure {
     data class ResourceLimit(override val message: String) : PlanningFailure
     data class WorldUnavailable(override val message: String) : PlanningFailure
     data class NoRoute(override val message: String) : PlanningFailure
-    data class NoCertifiedMotion(override val message: String) : PlanningFailure
+
+    data class NoCertifiedMotion(
+        override val message: String,
+        val stalledFrom: Stance? = null,
+        val stalledTo: Stance? = null,
+    ) : PlanningFailure
 }
 
 internal class PlanningCancellation {

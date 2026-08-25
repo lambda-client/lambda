@@ -24,13 +24,32 @@ class CoarsePlanner(
 
     private val anchors = HashMap<Stance, Double>()
 
+    private val demotedArrivals = HashSet<Pair<Stance, Stance>>()
+
     private val graph = LazyGraph(
-        successorProvider = { node: Stance -> moves.successorCosts(view, node) + optimisticEdgeFrom(node) },
+        successorProvider = { node: Stance ->
+            withoutDemotedFrom(node, moves.successorCosts(view, node) + optimisticEdgeFrom(node))
+        },
         predecessorProvider = { node: Stance ->
-            if (node == goal) moves.predecessorCosts(view, node) + anchors
+            val costs = if (node == goal) moves.predecessorCosts(view, node) + anchors
             else moves.predecessorCosts(view, node)
+            withoutDemotedInto(node, costs)
         },
     )
+
+    fun demoteEdge(from: Stance, to: Stance) {
+        if (demotedArrivals.add(from to to)) {
+            search.updateEdge(from, to, Double.POSITIVE_INFINITY)
+        }
+    }
+
+    fun edgeDemoted(from: Stance, to: Stance): Boolean = (from to to) in demotedArrivals
+
+    private fun withoutDemotedFrom(from: Stance, costs: Map<Stance, Double>): Map<Stance, Double> =
+        if (demotedArrivals.isEmpty()) costs else costs.filterKeys { to -> !edgeDemoted(from, to) }
+
+    private fun withoutDemotedInto(to: Stance, costs: Map<Stance, Double>): Map<Stance, Double> =
+        if (demotedArrivals.isEmpty()) costs else costs.filterKeys { from -> !edgeDemoted(from, to) }
 
     val search = DStarLite(
         graph = graph,
@@ -208,6 +227,7 @@ class CoarsePlanner(
         moves = moves,
         label = { stance -> minOf(search.g(stance), search.rhs(stance)) },
         goal = search.goal,
+        edgeAllowed = { edge -> !edgeDemoted(edge.from, edge.to) },
     )
 
     fun worldChanged(changed: Iterable<VoxelPos>): DStarLite.SynchronizationResult {
