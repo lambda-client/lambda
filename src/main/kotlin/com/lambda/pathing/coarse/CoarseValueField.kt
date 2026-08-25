@@ -13,6 +13,7 @@ class CoarseValueField(
     private val moves: SimpleMoveLibrary,
     private val label: (Stance) -> Double,
     val goal: Stance,
+    private val edgeAllowed: (CoarseEdge) -> Boolean = { true },
 ) : SteeringField {
     private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
         .apply { defaultReturnValue(Double.NaN) }
@@ -58,7 +59,8 @@ class CoarseValueField(
 
     fun isMapped(stance: Stance): Boolean = guide(stance).isFinite()
 
-    fun edgesFrom(stance: Stance): List<CoarseEdge> = edges.getOrPut(stance) { moves.edgesFrom(view, stance) }
+    fun edgesFrom(stance: Stance): List<CoarseEdge> =
+        edges.getOrPut(stance) { moves.edgesFrom(view, stance).filter(edgeAllowed) }
 
     fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
 

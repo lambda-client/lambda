@@ -242,6 +242,10 @@ object PathingManager : Manager<PathingRequest>(0) {
                 coarseState = TrajectoryPlanner.coarseState(preparation, pathingWorld.snapshot),
             ).also { journey = it }
         }
+        if (!walk.clearedDemotions) {
+            walk.clearedDemotions = true
+            currentJourney.coarseState.planner.clearDemotions()
+        }
         launchPlanning(walk, session, preparation, currentJourney)
         advanceSnapshotCapture(walk)
     }
@@ -471,6 +475,9 @@ object PathingManager : Manager<PathingRequest>(0) {
         executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
             return fail("certified plan became stale before execution: $deviation")
         }
+        walk.request.runSafeAutomated {
+            rotationRequest { yaw(path.plan.initialState.rotation.yaw) }.submit()
+        }
         journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
         walk.planningYaw = null
         walk.pendingPath = null
@@ -599,6 +606,19 @@ object PathingManager : Manager<PathingRequest>(0) {
         val current = published ?: return
         val running = walk.cursor ?: return
 
+        if (running.nextFrame == 0) {
+            val targetYaw = current.plan.initialState.rotation.yaw
+            val yawError = abs(Rotation.wrap(player.moveYaw - targetYaw))
+            if (yawError > START_YAW_TOLERANCE) {
+                walk.request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
+                walk.tickInput = ALIGNMENT_INPUT
+                if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
+                    fail("could not hold the launch yaw before the first frame (%.1f degrees off)".format(yawError))
+                }
+                return
+            }
+        }
+
         val observed = observe(current.plan, running.nextFrame)
         executionEnvironmentDeviation(current, nextFrame = running.nextFrame)?.let { deviation ->
             return reject(running.nextFrame, deviation, observed, afterInput = false)
@@ -660,6 +680,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         val yaw = walk.planningYaw ?: return
         walk.request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
     }
+
 
     private fun SafeContext.align(walk: Walk) {
         val path = walk.pendingPath ?: return fail("lost the certified plan while aligning")
