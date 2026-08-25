@@ -2,13 +2,12 @@ package com.lambda.pathing
 
 import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
+import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.DebugChannelProbe
@@ -26,11 +25,7 @@ import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.ValueFieldSearchConfig
-import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.core.PathingChunk
-import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -82,162 +77,6 @@ internal data class TrajectoryPlanningPreparation(
     val startedMillis: Long,
 )
 
-internal class PlanningHorizonView(
-    private val backing: CoarseVoxelView,
-    private val granted: Set<PathingChunk>,
-) : CoarseVoxelView {
-    private fun grantedAt(x: Int, z: Int): Boolean = PathingChunk(x shr 4, z shr 4) in granted
-
-    override val simulableStanceY: IntRange get() = backing.simulableStanceY
-
-    override fun isKnown(x: Int, y: Int, z: Int): Boolean = grantedAt(x, z) && backing.isKnown(x, y, z)
-
-    override fun voxel(x: Int, y: Int, z: Int): com.lambda.pathing.world.CoarseVoxel =
-        if (grantedAt(x, z)) backing.voxel(x, y, z) else com.lambda.pathing.world.CoarseVoxel.UNKNOWN
-
-    override fun collisionShape(x: Int, y: Int, z: Int): net.minecraft.util.shape.VoxelShape? =
-        if (grantedAt(x, z)) backing.collisionShape(x, y, z) else net.minecraft.util.shape.VoxelShapes.fullCube()
-
-    override fun collisionClass(x: Int, y: Int, z: Int): com.lambda.pathing.world.CollisionClass =
-        if (grantedAt(x, z)) backing.collisionClass(x, y, z) else com.lambda.pathing.world.CollisionClass.FULL
-}
-
-internal class CoarsePlanningState(
-    val snapshot: SnapshotSimulationEnvironment,
-    moveOptions: SimpleMoveOptions,
-    start: Stance,
-    private val goal: Stance,
-    val horizonChunks: Int = 0,
-    private val frontierProbeRange: Int = 512,
-    frontierSweepBudget: Int = 40_000,
-) {
-    private val moves = SimpleMoveLibrary.build(costs = TrajectoryPlanner.moveCosts, options = moveOptions)
-
-    private val grantedChunks = HashSet<PathingChunk>()
-
-    private val view: CoarseVoxelView =
-        if (horizonChunks <= 0) TrajectoryPlanner.coarseView(snapshot)
-        else PlanningHorizonView(TrajectoryPlanner.coarseView(snapshot), grantedChunks)
-
-    init {
-        grantChunksAround(start)
-    }
-
-    val planner = CoarsePlanner(view, moves, start, goal, sweepBudget = frontierSweepBudget)
-
-    fun repairFrom(start: Stance, changed: Set<VoxelPos>, changedChunks: Set<PathingChunk>) {
-        planner.updateStart(start)
-
-        val revealed = grantChunksAround(start)
-        if (changed.isNotEmpty()) planner.worldChanged(changed)
-        val arrivals = changedChunks + revealed
-        if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals)
-    }
-
-    fun applyEvents(changedChunks: Set<PathingChunk>) {
-        if (changedChunks.isNotEmpty()) planner.chunksChanged(changedChunks)
-    }
-
-    private fun advanceFrontierFrom(start: Stance): Boolean = planner.advanceFrontier(
-        FrontierAnchors.probe(planner.view, moves, start, goal, maxSteps = frontierProbeRange),
-    )
-
-    fun resolveRoute(
-        start: Stance,
-        snapshotRevision: Long,
-        maxExpansions: Int,
-        world: PathingWorld? = null,
-        cancelled: () -> Boolean = { false },
-    ): CoarseRoutePlan? {
-
-        var route = extractRoute(snapshotRevision, cancelled)
-        if (route == null && advanceFrontierFrom(start)) {
-            planner.repair(
-                timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-            )
-            route = extractRoute(snapshotRevision, cancelled)
-        }
-        if (route == null) return null
-        var rounds = 0
-        while (route!!.goal != goal && rounds++ < TERMINAL_GRANT_ROUNDS) {
-            if (cancelled()) return route
-            val terminal = route.goal
-
-            world?.let { w ->
-                w.interestBlocks(
-                    terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS,
-                    terminal.z - TERMINAL_INTEREST_BLOCKS,
-                    terminal.x + TERMINAL_INTEREST_BLOCKS, terminal.y + TERMINAL_INTEREST_Y_BLOCKS,
-                    terminal.z + TERMINAL_INTEREST_BLOCKS,
-                    com.lambda.pathing.world.InterestTier.DEMAND,
-                )
-                var waited = 0L
-                while (waited < TERMINAL_KNOWLEDGE_WAIT_MILLIS && !cancelled() && w.pendingDemand > 0) {
-                    if (!w.awaitEvents(w.revision, 50)) break
-                    waited += 50
-                }
-                val batch = w.drainEvents()
-                if (!batch.isEmpty) {
-                    planner.chunksChanged(batch.chunks + batch.sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) })
-                }
-            }
-            val revealed = grantChunksAround(terminal)
-            if (revealed.isEmpty() && world == null) break
-            if (revealed.isNotEmpty()) planner.chunksChanged(revealed)
-            advanceFrontierFrom(start)
-            planner.repair(
-                timeBudget = Duration.INFINITE,
-                maxExpansions = maxExpansions,
-                cancelled = cancelled,
-            )
-            route = extractRoute(snapshotRevision, cancelled) ?: return null
-            if (route.goal == terminal) break
-        }
-        if (route.goal == goal && planner.retireAllAnchors()) {
-            planner.repair(
-                timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-            )
-
-            route = extractRoute(snapshotRevision, cancelled) ?: route
-        }
-        return route
-    }
-
-    private fun extractRoute(snapshotRevision: Long, cancelled: () -> Boolean): CoarseRoutePlan? =
-        planner.routePlan(snapshotRevision, cancelled = cancelled)
-            ?: planner.resynchronizedRoutePlan(snapshotRevision, cancelled = cancelled)
-
-            ?: run {
-                if (planner.discoverReachableFrontier(cancelled)) {
-                    planner.routePlan(snapshotRevision, cancelled = cancelled)
-                } else null
-            }
-
-    private companion object {
-
-        const val TERMINAL_GRANT_ROUNDS = 4
-
-        const val TERMINAL_INTEREST_BLOCKS = 32
-        const val TERMINAL_INTEREST_Y_BLOCKS = 16
-
-        const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
-    }
-
-    private fun grantChunksAround(start: Stance): Set<PathingChunk> {
-        if (horizonChunks <= 0) return emptySet()
-        val revealed = HashSet<PathingChunk>()
-        val centerX = start.x shr 4
-        val centerZ = start.z shr 4
-        for (dx in -horizonChunks..horizonChunks) {
-            for (dz in -horizonChunks..horizonChunks) {
-                val chunk = PathingChunk(centerX + dx, centerZ + dz)
-                if (grantedChunks.add(chunk)) revealed += chunk
-            }
-        }
-        return revealed
-    }
-}
-
 object TrajectoryPlanner {
     private val planIds = AtomicLong()
 
@@ -251,7 +90,6 @@ object TrajectoryPlanner {
         maxDescentBlocksPerTick = 4.0,
     )
 
-    internal val moveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
 
     internal fun coarseState(
         preparation: TrajectoryPlanningPreparation,
@@ -263,7 +101,6 @@ object TrajectoryPlanner {
         frontierSweepBudget = preparation.frontierSweepBudget,
     )
 
-    internal fun coarseView(snapshot: SnapshotSimulationEnvironment): CoarseVoxelView = snapshot
 
     internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance {
         val world = player.entityWorld
@@ -459,43 +296,17 @@ object TrajectoryPlanner {
 
                 val field = planner.valueField()
                 val probe = DebugChannelProbe()
-                val worldSync: (CoarseRoutePlan) -> WorldSyncResult = sync@{ current ->
-                    val batch = world.drainEvents()
-                    if (batch.isEmpty) return@sync WorldSyncResult.Quiet
-
-                    coarseState.applyEvents(batch.changedChunkSet())
-                    val extending = current.goal != preparation.finalGoal
-                    val mutated = batch.mutations.isNotEmpty() || batch.chunks.isNotEmpty()
-
-                    if (!routeNeighborhoodTouched(current, batch) || (!extending && !mutated)) {
-                        return@sync WorldSyncResult.Woken
-                    }
-                    field.invalidate(batch.sections)
-
-                    val routeSections = current.dependencies.mapTo(HashSet()) {
-                        PathingSection.containing(it)
-                    }
-                    val routeAffected = extending ||
-                        batch.mutations.any { it in routeSections } ||
-                        batch.sections.any { it in routeSections }
-                    probe.sync(
-                        batch.sections.size, batch.mutations.size, batch.chunks.size,
-                        routeAffected, extending,
-                    )
-                    val next = if (routeAffected) {
-                        coarseState.resolveRoute(
-                            start, snapshotRevision, preparation.coarseExpansionBudget,
-                        ) { cancellation.isCancelled }
-                    } else null
-                    next?.goal?.let { terminal ->
-                        world.interestBlocks(
-                            terminal.x - 32, terminal.y - 16, terminal.z - 32,
-                            terminal.x + 32, terminal.y + 16, terminal.z + 32,
-                            com.lambda.pathing.world.InterestTier.CORRIDOR,
-                        )
-                    }
-                    WorldSyncResult.Changed(next)
-                }
+                val worldSync = ContinuousSyncPolicy(
+                    world = world,
+                    coarseState = coarseState,
+                    field = field,
+                    start = start,
+                    finalGoal = preparation.finalGoal,
+                    snapshotRevision = snapshotRevision,
+                    coarseExpansionBudget = preparation.coarseExpansionBudget,
+                    cancelled = { cancellation.isCancelled },
+                    probe = probe,
+                )
                 val outcome = walkHorizon(
                     route, planner, initial, profile, snapshot, seedConfig, cursorFrame,
                     publish = { path, running -> if (running) onImprovement(path) else onSafePrefix(path) },
@@ -689,32 +500,6 @@ object TrajectoryPlanner {
     private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400
 
     private const val HORIZON_EXPANSIONS = 2_000_000
-
-    private fun routeNeighborhoodTouched(
-        route: CoarseRoutePlan,
-        batch: com.lambda.pathing.world.WorldEventBatch,
-    ): Boolean {
-        if (batch.sections.isEmpty() && batch.chunks.isEmpty()) return false
-        var minX = Int.MAX_VALUE; var maxX = Int.MIN_VALUE
-        var minY = Int.MAX_VALUE; var maxY = Int.MIN_VALUE
-        var minZ = Int.MAX_VALUE; var maxZ = Int.MIN_VALUE
-        route.nodes.forEach { node ->
-            minX = minOf(minX, node.x shr 4); maxX = maxOf(maxX, node.x shr 4)
-            minY = minOf(minY, node.y shr 4); maxY = maxOf(maxY, node.y shr 4)
-            minZ = minOf(minZ, node.z shr 4); maxZ = maxOf(maxZ, node.z shr 4)
-        }
-        val m = ROUTE_NEIGHBORHOOD_SECTIONS
-        val sectionHit = batch.sections.any {
-            it.x in (minX - m)..(maxX + m) && it.y in (minY - m)..(maxY + m) && it.z in (minZ - m)..(maxZ + m)
-        }
-        if (sectionHit) return true
-        return batch.chunks.any { it.x in (minX - m)..(maxX + m) && it.z in (minZ - m)..(maxZ + m) }
-    }
-
-    private const val ROUTE_NEIGHBORHOOD_SECTIONS = 2
-
-    private fun com.lambda.pathing.world.WorldEventBatch.changedChunkSet(): Set<PathingChunk> =
-        chunks + sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
 
     private fun awaitStartKnowledge(
         world: PathingWorld,

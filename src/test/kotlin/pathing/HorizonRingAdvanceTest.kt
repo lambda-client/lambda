@@ -3,7 +3,7 @@ package pathing
 // Repro for the gated-run failure: a retained journey on the 120-length bedrock field
 // walks to the edge of its first horizon ring, the ring then advances over the goal,
 // and the repaired backward field must still reach the new start.
-import com.lambda.pathing.CoarsePlanningState
+import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout

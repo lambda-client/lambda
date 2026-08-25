@@ -1,6 +1,6 @@
 package pathing
 
-import com.lambda.pathing.CoarsePlanningState
+import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.util.player.prediction.ImmutableSnapshotSection

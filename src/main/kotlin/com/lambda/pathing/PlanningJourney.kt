@@ -1,5 +1,6 @@
 package com.lambda.pathing
 
+import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.world.PathingWorld
