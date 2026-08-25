@@ -30,6 +30,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
+import net.minecraft.util.Identifier
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
 import kotlin.math.max
@@ -310,14 +311,23 @@ data class PlayerPhysicsProfile(
         const val VANILLA_CROUCH_HEIGHT = 1.5
         const val VANILLA_CROUCH_EYE_HEIGHT = 1.27
 
+        private val SPRINTING_SPEED_MODIFIER_ID = Identifier.ofVanilla("sprinting")
+
         /** Client thread only. */
         fun capture(player: ClientPlayerEntity): PlayerPhysicsProfile {
             val liveSpeed = player.movementSpeed.toDouble()
+            // The sprint flag and the sprint attribute modifier can disagree for a tick
+            // (setSprinting toggles them at a different stage than the flag readers);
+            // dividing on the flag alone captured base/1.3 in that window and rejected
+            // running tapes with a phantom PhysicsProfile deviation. Key off the
+            // modifier that actually shaped the value we read.
+            val sprintBoosted = player.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED)
+                ?.hasModifier(SPRINTING_SPEED_MODIFIER_ID) == true
             // Pose is transient execution state, not part of the player's physics
             // configuration. Keep the profile stable while a tape toggles sneak.
             val standingDimensions = player.getDimensions(EntityPose.STANDING)
             return PlayerPhysicsProfile(
-                movementSpeed = if (player.isSprinting) liveSpeed / SPRINT_SPEED_MULTIPLIER else liveSpeed,
+                movementSpeed = if (sprintBoosted) liveSpeed / SPRINT_SPEED_MULTIPLIER else liveSpeed,
                 sneakSpeedModifier = player.getAttributeValue(EntityAttributes.SNEAKING_SPEED),
                 gravity = player.getAttributeValue(EntityAttributes.GRAVITY),
                 jumpStrength = player.getAttributeValue(EntityAttributes.JUMP_STRENGTH),

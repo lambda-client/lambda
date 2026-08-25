@@ -247,7 +247,7 @@ object PathingManager : Manager<PathingRequest>(0) {
     }
 
     private fun SafeContext.advanceSnapshotCapture(walk: Walk) {
-        if (status is Status.Planning) holdPlanningYaw(walk)
+        if (status is Status.Planning) holdPlanningYaw(walk) else holdLaunchYaw(walk)
         if (activeWalk !== walk) return
         val activeJourney = journey ?: return
 
@@ -662,6 +662,16 @@ object PathingManager : Manager<PathingRequest>(0) {
     private fun holdPlanningYaw(walk: Walk) {
         val yaw = walk.planningYaw ?: return
         walk.request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
+    }
+
+    private fun holdLaunchYaw(walk: Walk) {
+        if (walk.awaitingObservation) return
+        val cursor = walk.cursor ?: return
+        if (cursor.nextFrame != 0) return
+        val path = published ?: return
+        walk.request.runSafeAutomated {
+            rotationRequest { yaw(path.plan.initialState.rotation.yaw) }.submit()
+        }
     }
 
     private fun SafeContext.align(walk: Walk) {
