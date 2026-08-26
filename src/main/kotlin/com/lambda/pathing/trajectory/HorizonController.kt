@@ -351,7 +351,7 @@ internal class HorizonController(
 
         const val FIRST_PUBLISH_MIN_REMAINING_TICKS = 30.0
 
-        const val ACK_ROLLBACK_MILLIS = 500L
+        const val ACK_ROLLBACK_MILLIS = 150L
 
         const val PUBLISH_DIVERGENCE_MARGIN_FRAMES = 3
 

@@ -408,10 +408,13 @@ object ValueFieldAnchorSearch {
                     val toward = best?.takeIf { !readyToFinish(it) }?.anchor
                     if (!frontier.hasParked && toward == null) break
                     if (!horizon.commitFromCandidates(urgent = true, along = toward)) break
+                    // Publishing no longer re-roots, so a successful commit does not
+                    // refill the open list; re-evaluate instead of polling empty.
+                    continue
                 }
                 if (expansions % WORLD_SYNC_INTERVAL == 0) syncWorld()
                 if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) horizon.publishCandidates()
-                val entry = frontier.poll()
+                val entry = frontier.poll() ?: continue
 
                 if (entry.anchor.elapsed >= horizon.horizonEnd &&
                     field.guide(entry.anchor.stance) > searchConfig.finishValueTicks

@@ -319,6 +319,16 @@ object PathingManager : Manager<PathingRequest>(0) {
                             "Planning session dead-ended mid-walk ({}); the tape end will restart it",
                             completed.failure.message,
                         )
+                    } else if (walk.sessionRestarts < MAX_SESSION_RESTARTS) {
+                        // Dead-ended before anything was published or installed --
+                        // retry from rest instead of abandoning the walk outright.
+                        walk.sessionRestarts++
+                        walk.planningSession = null
+                        LOG.info(
+                            "Planning dead-ended before motion ({}); retrying ({}/{})",
+                            completed.failure.message, walk.sessionRestarts, MAX_SESSION_RESTARTS,
+                        )
+                        planTrajectory(walk)
                     } else fail(completed.failure.message)
                 PathPlanResult.Cancelled -> fail("planning was cancelled")
             }

@@ -61,7 +61,7 @@ internal class Frontier(
     var deepestProgress = 0
         private set
 
-    fun poll(): OpenEntry = open.poll()
+    fun poll(): OpenEntry? = open.poll()
 
     fun park(entry: OpenEntry) {
         parked += entry
