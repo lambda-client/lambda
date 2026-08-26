@@ -28,13 +28,17 @@ internal class PlanningCancellation {
 internal class PlanningSession(
     val generation: Long,
     val request: PathingRequest,
-
-    val pipelined: Boolean = false,
 ) {
     val cancellation = PlanningCancellation()
 
+    /**
+     * Newest publication sequence the executor has installed or adopted. The worker
+     * may not publish past an unacknowledged tape: the acknowledgement guarantees the
+     * running tape and the worker's published tip agree before the search speculates
+     * beyond the published brake.
+     */
     @Volatile
-    var parked: Boolean = false
+    var adoptedSequence: Long = 0L
 
     private val executionFrame = AtomicInteger(NOT_EXECUTING)
 
@@ -50,8 +54,7 @@ internal class PlanningSession(
         executionFrame.set(frame ?: NOT_EXECUTING)
     }
 
-    fun executionFrame(): Int? =
-        if (parked) null else executionFrame.get().takeUnless { it == NOT_EXECUTING }
+    fun executionFrame(): Int? = executionFrame.get().takeUnless { it == NOT_EXECUTING }
 
     fun cancel() {
         cancellation.cancel()

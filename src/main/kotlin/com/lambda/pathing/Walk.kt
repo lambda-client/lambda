@@ -21,11 +21,11 @@ internal class Walk(val request: PathingRequest) {
 
     var pendingImprovement: PublishedPath? = null
 
-    var pendingNextLeg: PublishedPath? = null
+    var holding = false
+    var holds = 0
 
-    var handoffBaseFrames = 0
-
-    var pipelinedTape: Long? = null
+    var sessionRestarts = 0
+    var sessionFailure: String? = null
 
     fun cancelPlanning() {
         val planning = planningSession
@@ -39,9 +39,8 @@ internal class Walk(val request: PathingRequest) {
         awaitingObservation = false
         pendingPath = null
         pendingImprovement = null
-        pendingNextLeg = null
-        handoffBaseFrames = 0
-        pipelinedTape = null
+        holding = false
+        sessionFailure = null
         planningYaw = null
         alignmentTicks = 0
         settleTicks = 0

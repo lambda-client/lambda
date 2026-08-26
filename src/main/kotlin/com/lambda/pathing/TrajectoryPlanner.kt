@@ -229,6 +229,7 @@ object TrajectoryPlanner {
         world: PathingWorld,
         onSafePrefix: (PublishedPath) -> Unit,
         cursorFrame: () -> Int?,
+        adoptedSequenceProvider: () -> Long,
         onImprovement: (PublishedPath) -> Unit,
         cancellation: PlanningCancellation,
         planningGeneration: Long,
@@ -331,6 +332,7 @@ object TrajectoryPlanner {
                     worldSync = worldSync,
                     sectionCapturable = { sx, sz -> world.chunkCapturable(sx, sz) },
                     field = field,
+                    adoptedSequence = adoptedSequenceProvider,
                     probe = probe,
                 )
 
@@ -386,6 +388,7 @@ object TrajectoryPlanner {
         planningGeneration: Long = 0L,
         finalGoal: Stance = route.goal,
         field: CoarseValueField = planner.valueField(),
+        adoptedSequence: () -> Long = { Long.MAX_VALUE },
         probe: SearchProbe = SearchProbe.NONE,
     ): PathPlanResult {
         var published = 0
@@ -400,7 +403,7 @@ object TrajectoryPlanner {
                 horizonRunwayFrames = lookahead,
                 localHorizonFrames = lookahead + commitFrames * HORIZON_WINDOW_CHUNKS +
                     climbHorizonFrames(route),
-                maxExpansions = maxExpansions,
+                maxExpansions = minOf(maxExpansions, PER_WINDOW_EXPANSIONS),
                 minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
                 maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
             ),
@@ -432,6 +435,8 @@ object TrajectoryPlanner {
                     maxExpansions = FIELD_EXPANSION_NODES,
                 )
             },
+            adoptedSequence = adoptedSequence,
+            finalGoal = finalGoal,
             probe = probe,
         )
 
@@ -447,12 +452,11 @@ object TrajectoryPlanner {
                 )
             )
 
-            else -> last?.let { PathPlanResult.Planned(it) }
-                ?: PathPlanResult.Failed(
-                    PlanningFailure.NoCertifiedMotion(
-                        "no certified motion from the start state (${describeRefusal(result)})",
-                    )
+            else -> PathPlanResult.Failed(
+                PlanningFailure.NoCertifiedMotion(
+                    "the search dead-ended (${describeRefusal(result)})",
                 )
+            )
         }
     }
 
@@ -512,6 +516,11 @@ object TrajectoryPlanner {
     private const val HORIZON_FINAL_COMMIT_CHUNKS = 2
 
     private const val HORIZON_BOOTSTRAP_DELAY_MS = 200L
+
+    // The expansion budget applies per publication window now (it resets on every
+    // publish and on tape restarts): a stuck window should restart the search from
+    // the tape's settled continuation, not grind for minutes.
+    private const val PER_WINDOW_EXPANSIONS = 120_000
 
     private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400
 

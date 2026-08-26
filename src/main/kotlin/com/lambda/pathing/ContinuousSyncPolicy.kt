@@ -26,9 +26,27 @@ internal class ContinuousSyncPolicy(
     private val cancelled: () -> Boolean,
     private val probe: SearchProbe,
 ) : (CoarseRoutePlan) -> WorldSyncResult {
+    private var lastQuietExtension = 0L
+
     override fun invoke(current: CoarseRoutePlan): WorldSyncResult {
         val batch = world.drainEvents()
-        if (batch.isEmpty) return WorldSyncResult.Quiet
+        if (batch.isEmpty) {
+            // A horizon-truncated route never extends by itself when its terminal area
+            // is already loaded -- no world event will ever arrive. Re-resolve
+            // periodically until the route reaches the final goal.
+            val extending = current.goal != finalGoal
+            if (!extending) return WorldSyncResult.Quiet
+            val now = System.currentTimeMillis()
+            if (now - lastQuietExtension < QUIET_EXTENSION_INTERVAL_MILLIS) {
+                return WorldSyncResult.Quiet
+            }
+            lastQuietExtension = now
+            val next = coarseState.resolveRoute(
+                start, snapshotRevision, coarseExpansionBudget,
+            ) { cancelled() }
+            if (next == null || next.nodes == current.nodes) return WorldSyncResult.Quiet
+            return WorldSyncResult.Changed(next)
+        }
 
         coarseState.applyEvents(batch.changedChunkSet())
         val extending = current.goal != finalGoal
@@ -86,6 +104,7 @@ internal class ContinuousSyncPolicy(
     }
 
     private companion object {
+        const val QUIET_EXTENSION_INTERVAL_MILLIS = 250L
         const val ROUTE_NEIGHBORHOOD_SECTIONS = 2
     }
 }

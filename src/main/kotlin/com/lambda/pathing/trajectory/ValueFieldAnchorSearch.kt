@@ -92,6 +92,10 @@ object ValueFieldAnchorSearch {
 
         expandGuide: ((Double) -> Unit)? = null,
 
+        adoptedSequence: (() -> Long)? = null,
+
+        finalGoal: Stance? = null,
+
         probe: SearchProbe = SearchProbe.NONE,
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
@@ -102,7 +106,7 @@ object ValueFieldAnchorSearch {
         return Search(
             route, catalog, field, initialState, profile, environment, config, searchConfig,
             onSafePrefix, cursorFrame, clock, cancelled, worldWait, worldSync, sectionCapturable,
-            expandGuide, probe,
+            expandGuide, adoptedSequence, finalGoal, probe,
         ).run()
     }
 
@@ -135,6 +139,8 @@ object ValueFieldAnchorSearch {
         private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
         private val sectionCapturable: ((Int, Int) -> Boolean)?,
         private val expandGuide: ((Double) -> Unit)?,
+        private val adoptedSequence: (() -> Long)?,
+        private val finalGoal: Stance?,
         private val probe: SearchProbe,
     ) : CommitSupport {
         private val vocabulary = ActionSet(catalog, field, config, searchConfig) { corridor() }
@@ -151,7 +157,7 @@ object ValueFieldAnchorSearch {
         )
 
         private val horizon: HorizonController = HorizonController(
-            searchConfig, field, frontier, clock, cursorFrame, onSafePrefix,
+            searchConfig, field, frontier, clock, cursorFrame, adoptedSequence, onSafePrefix,
             support = this,
             probe = probe,
         )
@@ -175,6 +181,8 @@ object ValueFieldAnchorSearch {
 
         // Anchors whose corridor-level vocabulary is exhausted; revived when it widens.
         private val spentAnchors = ArrayList<ValueAnchor>()
+
+        private var tapeRestarts = 0
 
         // A launch landing braked to rest inside the goal: certified only when nothing
         // better finishes -- a last resort, never a competitor to the finisher.
@@ -204,12 +212,35 @@ object ValueFieldAnchorSearch {
             progressOf = frontier::progressOf,
         )
 
-        private var walking = false
+        private var lastPublishedTip: ValueAnchor? = null
+        private var expansionsWindowStart = 0
 
         private fun corridor(): CorridorLevel = CORRIDOR_LEVELS[corridorLevel]
 
         private fun revivable(): Boolean =
             spentAnchors.isNotEmpty() && corridorLevel < CORRIDOR_LEVELS.lastIndex
+
+        private fun restartable(): Boolean =
+            best == null && tapeRestarts < MAX_TAPE_RESTARTS &&
+                horizon.latestBrakeContinuation() != null
+
+        private fun restartFromTape(): Boolean {
+            if (best != null || tapeRestarts >= MAX_TAPE_RESTARTS) return false
+            val seed = horizon.latestBrakeContinuation() ?: return false
+            tapeRestarts++
+            corridorLevel = 0
+            finishSweeps = 0
+            sweepEpoch++
+            actionsEpoch++
+            progressBaseline = Double.POSITIVE_INFINITY
+            bestGuideSeen = Double.POSITIVE_INFINITY
+            expansionsSinceGuideProgress = 0
+            expansionsWindowStart = expansions
+            spentAnchors.clear()
+            noteGuide(seed.stance)
+            horizon.reRootForRestart(seed)
+            return true
+        }
 
         private fun noteGuide(stance: Stance) {
             val guide = field.guide(stance)
@@ -292,25 +323,49 @@ object ValueFieldAnchorSearch {
 
             noteGuide(stanceOf(initialState))
             horizon.begin()
-            while ((!frontier.isExhausted || frontier.hasBlocked || revivable()) &&
-                expansions < searchConfig.maxExpansions
+            while ((!frontier.isExhausted || frontier.hasBlocked || revivable() || restartable()) &&
+                expansions - expansionsWindowStart < searchConfig.maxExpansions
             ) {
                 if (cancelled()) return MotionPlanResult.Cancelled
-                val root = horizon.safeAnchor
-                if (root != null) {
-                    val executing = cursorFrame?.invoke()
-                    if (executing != null) {
-                        walking = true
-                        val runway = root.elapsed - executing
+                val executing = cursorFrame?.invoke()
+                if (executing != null) {
+                    // Execution is the only irrevocable commitment: re-root onto what
+                    // the body has actually pressed. On catch-up (the cursor entered
+                    // the published brake tail) the search continues from the settled
+                    // brake anchor -- same session, same frontier.
+                    horizon.advanceExecutedRoot()
+                    best?.let {
+                        if (!horizon.canReach(it.anchor) || !executionCompatible(it.anchor)) {
+                            best = null
+                        }
+                    }
+                    // A surviving full solution to the final goal finalizes after a
+                    // short improvement window -- before execution races invalidate it.
+                    best?.let {
+                        if (mayFinalize() && readyToFinish(it) &&
+                            expansionsSinceImprovement >= FINAL_IMPROVEMENT_WINDOW
+                        ) {
+                            return finish(it)
+                        }
+                    }
+                    val tip = horizon.safeAnchor
+                    if (tip != null) {
+                        val runway = tip.elapsed - executing
                         if (runway <= searchConfig.horizonRunwayFrames) {
                             horizon.commitFromCandidates(
                                 urgent = runway <= searchConfig.horizonCommitFrames,
                                 along = best?.takeIf { !readyToFinish(it) }?.anchor,
                             )
                         }
-                    } else if (walking) {
-                        return finish(best ?: return abandoned())
                     }
+                }
+
+                // Publication is progress: refresh the per-window budgets.
+                if (horizon.safeAnchor !== lastPublishedTip) {
+                    lastPublishedTip = horizon.safeAnchor
+                    blockedWaitMillis = 0
+                    fruitlessWakes = 0
+                    expansionsWindowStart = expansions
                 }
 
                 if (horizon.safeAnchor == null && frontier.hasParked) horizon.commitFromCandidates(urgent = false)
@@ -333,6 +388,23 @@ object ValueFieldAnchorSearch {
                     // Total exhaustion at this corridor level is stall evidence in
                     // itself: widen the corridor and revive the spent anchors.
                     if (spentAnchors.isNotEmpty() && escalateCorridor(force = true)) continue
+
+                    // The frontier genuinely drained. Restart the search from the
+                    // newest published tape's settled continuation -- same session,
+                    // same tape, fresh search state -- before giving up.
+                    if (!frontier.hasParked && !frontier.hasBlocked && restartFromTape()) continue
+
+                    // A truncated route cannot finalize; wait for it to extend toward
+                    // the final goal instead of refusing.
+                    if (!mayFinalize() && worldWait != null &&
+                        blockedWaitMillis < MAX_BLOCKED_WAIT_MILLIS
+                    ) {
+                        blockedWaitMillis += BLOCKED_WAIT_SLICE_MILLIS
+                        worldWait.invoke(BLOCKED_WAIT_SLICE_MILLIS)
+                        syncWorld()
+                        frontier.wakeBlocked()
+                        continue
+                    }
                     val toward = best?.takeIf { !readyToFinish(it) }?.anchor
                     if (!frontier.hasParked && toward == null) break
                     if (!horizon.commitFromCandidates(urgent = true, along = toward)) break
@@ -348,8 +420,12 @@ object ValueFieldAnchorSearch {
                     continue
                 }
 
-                best?.let { if (entry.bound >= it.frames && readyToFinish(it)) return finish(it) }
-                if (best != null && readyToFinish(best!!) &&
+                best?.let {
+                    if (mayFinalize() && entry.bound >= it.frames && readyToFinish(it)) {
+                        return finish(it)
+                    }
+                }
+                if (best != null && mayFinalize() && readyToFinish(best!!) &&
                     expansionsSinceImprovement >= searchConfig.stallExpansions
                 ) {
                     return finish(best!!)
@@ -399,13 +475,11 @@ object ValueFieldAnchorSearch {
                 when (outcome) {
                     is Outcome.Anchored -> {
                         noteGuide(outcome.anchor.stance)
-                        // A launch that lands on the goal still moving cannot be finished
-                        // by the corridor follower (it cannot re-cross the gap edge that
-                        // got here) -- braking the landing to rest is the finish. Walk
-                        // arrivals are left to the finisher, which stops tighter.
-                        if (outcome.anchor.stance == goalStance &&
-                            action.movement != MovementId.WALK && best == null
-                        ) {
+                        // An arrival on the goal stance still moving may be impossible to
+                        // finish any other way (a launch cannot re-cross the gap that got
+                        // here; bouncy ground never satisfies the loose stop) -- braking
+                        // it to rest is the finish of last resort.
+                        if (outcome.anchor.stance == goalStance && best == null) {
                             finishByBraking(outcome.anchor)
                         }
                         frontier.admit(outcome.anchor)
@@ -569,6 +643,8 @@ object ValueFieldAnchorSearch {
         // finisher cannot cross the gap edge that got here. Braking the landing to
         // rest IS the finish when the stop stays inside the goal.
         private fun finishByBraking(anchor: ValueAnchor) {
+            val incumbent = brakedFallback
+            if (incumbent != null && incumbent.frames <= anchor.elapsed) return
             val (solution, resting) = brakeWithResting(anchor) ?: return
             val goal = goalPoint
             val distance = kotlin.math.hypot(
@@ -576,7 +652,7 @@ object ValueFieldAnchorSearch {
             )
             if (distance > config.goalRadius) return
             if (kotlin.math.abs(resting.position.y - goal.y) > GOAL_BRAKE_VERTICAL_TOLERANCE) return
-            retain(solution)
+            if (incumbent == null || solution.score < incumbent.score) brakedFallback = solution
         }
 
         override fun certify(solution: Solution): MotionPlanResult = certifier.certify(
@@ -587,14 +663,22 @@ object ValueFieldAnchorSearch {
         )
 
         private fun retain(solution: Solution) {
-            // A solution whose anchor fell behind the committed root can never be
-            // adopted -- its tape diverges under frames the body already pressed.
+            // A solution whose tape diverges under frames the body already pressed can
+            // never be adopted.
             if (!horizon.canReach(solution.anchor)) return
+            if (!executionCompatible(solution.anchor)) return
             val incumbent = best
             if (incumbent == null || solution.score < incumbent.score) {
                 best = solution
                 expansionsSinceImprovement = 0
             }
+        }
+
+        private fun mayFinalize(): Boolean = finalGoal == null || goalStance == finalGoal
+
+        private fun executionCompatible(anchor: ValueAnchor): Boolean {
+            val executing = cursorFrame?.invoke() ?: return true
+            return horizon.executionDivergence(anchor) >= executing
         }
 
         private fun readyToFinish(solution: Solution): Boolean {
@@ -655,6 +739,10 @@ object ValueFieldAnchorSearch {
     private const val ESCALATION_EXPANSIONS = 1500
 
     private const val FORCE_ESCALATION_MIN_EXPANSIONS = 32
+
+    private const val FINAL_IMPROVEMENT_WINDOW = 256
+
+    private const val MAX_TAPE_RESTARTS = 3
 
     private const val GUIDE_PROGRESS_HYSTERESIS_TICKS = 2.0
 
