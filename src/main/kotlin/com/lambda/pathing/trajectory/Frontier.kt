@@ -61,13 +61,14 @@ internal class Frontier(
     var deepestProgress = 0
         private set
 
-    fun poll(): OpenEntry = open.poll()
+    fun poll(): OpenEntry? = open.poll()
 
     fun park(entry: OpenEntry) {
         parked += entry
     }
 
     fun reopen(anchor: ValueAnchor) {
+        if (!reachability.canReach(anchor)) return
         if (open.any { it.anchor === anchor }) return
         val guide = field.guide(anchor.stance).takeIf { it.isFinite() } ?: return
         enqueue(entryFor(anchor, guide))

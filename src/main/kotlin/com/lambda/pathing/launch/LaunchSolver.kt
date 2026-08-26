@@ -138,7 +138,12 @@ object LaunchSolver {
 
                 fun speedFor(distance: Double) = (distance - offset - base.distance) / slope
 
-                val feasibleLow = max(speedFor(window.start), 0.0)
+                // A rising jump that lands at the window's near edge arrives at the
+                // target height EXACTLY at the lip -- zero clearance, and any
+                // model-vs-simulation epsilon becomes a face hit. Inset the near edge
+                // so marginal entries are priced as infeasible instead of ground out.
+                val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
+                val feasibleLow = max(speedFor(nearEdge), 0.0)
                 val feasibleHigh = min(speedFor(window.endInclusive), maxEntrySpeed)
                 if (feasibleHigh < feasibleLow) continue
 
@@ -216,6 +221,8 @@ object LaunchSolver {
     private const val BODY_HALF_WIDTH = 0.3
 
     private const val LANDING_SAFETY_BLOCKS = 0.2
+
+    private const val RISING_NEAR_EDGE_INSET = 0.15
 
     private const val LANDING_AIM_INSET = LANDING_SAFETY_BLOCKS + BODY_HALF_WIDTH
 

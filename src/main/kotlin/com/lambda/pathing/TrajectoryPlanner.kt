@@ -229,6 +229,7 @@ object TrajectoryPlanner {
         world: PathingWorld,
         onSafePrefix: (PublishedPath) -> Unit,
         cursorFrame: () -> Int?,
+        adoptedSequenceProvider: () -> Long,
         onImprovement: (PublishedPath) -> Unit,
         cancellation: PlanningCancellation,
         planningGeneration: Long,
@@ -316,38 +317,24 @@ object TrajectoryPlanner {
                     cancelled = { cancellation.isCancelled },
                     probe = probe,
                 )
-                var activeRoute = route
-                val rerouter = RefusalRerouter(
-                    planner = planner,
-                    field = field,
-                    reroute = {
-                        coarseState.resolveRoute(
-                            start, snapshotRevision, preparation.coarseExpansionBudget, world,
-                        ) { cancellation.isCancelled }
-                            ?.also { PlanningDebugChannel.publishRoute(it) }
-                    },
+                val outcome = walkHorizon(
+                    route, planner, initial, profile, snapshot, seedConfig, cursorFrame,
+                    publish = { path, running -> if (running) onImprovement(path) else onSafePrefix(path) },
+                    started = started,
+                    lookahead = preparation.horizonRunwayFrames,
+                    commitFrames = preparation.horizonCommitFrames,
+                    maxExpansions = preparation.trajectoryExpansionBudget,
+                    bootstrapDelayMillis = preparation.bootstrapDelayMillis,
                     cancelled = { cancellation.isCancelled },
+                    planningGeneration = planningGeneration,
+                    finalGoal = preparation.finalGoal,
+                    worldWait = { timeout -> world.awaitEvents(world.revision, timeout) },
+                    worldSync = worldSync,
+                    sectionCapturable = { sx, sz -> world.chunkCapturable(sx, sz) },
+                    field = field,
+                    adoptedSequence = adoptedSequenceProvider,
+                    probe = probe,
                 )
-                val outcome = rerouter.walk(route) { attempted ->
-                    activeRoute = attempted
-                    walkHorizon(
-                        attempted, planner, initial, profile, snapshot, seedConfig, cursorFrame,
-                        publish = { path, running -> if (running) onImprovement(path) else onSafePrefix(path) },
-                        started = started,
-                        lookahead = preparation.horizonRunwayFrames,
-                        commitFrames = preparation.horizonCommitFrames,
-                        maxExpansions = preparation.trajectoryExpansionBudget,
-                        bootstrapDelayMillis = preparation.bootstrapDelayMillis,
-                        cancelled = { cancellation.isCancelled },
-                        planningGeneration = planningGeneration,
-                        finalGoal = preparation.finalGoal,
-                        worldWait = { timeout -> world.awaitEvents(world.revision, timeout) },
-                        worldSync = worldSync,
-                        sectionCapturable = { sx, sz -> world.chunkCapturable(sx, sz) },
-                        field = field,
-                        probe = probe,
-                    )
-                }
 
                 if (outcome is PathPlanResult.Failed) {
                     dumpDirectory?.let { directory ->
@@ -355,7 +342,7 @@ object TrajectoryPlanner {
 
                             val journeyNote = buildString {
                                 append(outcome.failure.message)
-                                append("; route ").append(activeRoute.nodes.joinToString(" "))
+                                append("; route ").append(route.nodes.joinToString(" "))
                                 val anchors = planner.optimisticAnchors
                                 if (anchors.isNotEmpty()) {
                                     append("; anchors ").append(
@@ -401,6 +388,7 @@ object TrajectoryPlanner {
         planningGeneration: Long = 0L,
         finalGoal: Stance = route.goal,
         field: CoarseValueField = planner.valueField(),
+        adoptedSequence: () -> Long = { Long.MAX_VALUE },
         probe: SearchProbe = SearchProbe.NONE,
     ): PathPlanResult {
         var published = 0
@@ -415,7 +403,7 @@ object TrajectoryPlanner {
                 horizonRunwayFrames = lookahead,
                 localHorizonFrames = lookahead + commitFrames * HORIZON_WINDOW_CHUNKS +
                     climbHorizonFrames(route),
-                maxExpansions = maxExpansions,
+                maxExpansions = minOf(maxExpansions, PER_WINDOW_EXPANSIONS),
                 minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
                 maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
             ),
@@ -440,6 +428,15 @@ object TrajectoryPlanner {
             worldWait = worldWait,
             worldSync = worldSync,
             sectionCapturable = sectionCapturable,
+            expandGuide = { marginTicks ->
+                planner.expandField(
+                    extraTicks = FIELD_EXPANSION_TICKS + marginTicks,
+                    timeBudget = FIELD_EXPANSION_BUDGET,
+                    maxExpansions = FIELD_EXPANSION_NODES,
+                )
+            },
+            adoptedSequence = adoptedSequence,
+            finalGoal = finalGoal,
             probe = probe,
         )
 
@@ -455,17 +452,11 @@ object TrajectoryPlanner {
                 )
             )
 
-            else -> last?.let { PathPlanResult.Planned(it) }
-                ?: PathPlanResult.Failed(
-                    run {
-                        val stallIndex = (result as? MotionPlanResult.NoSafeStop)?.blockedProgress
-                        PlanningFailure.NoCertifiedMotion(
-                            "no certified motion from the start state (${describeRefusal(result)})",
-                            stalledFrom = stallIndex?.let { route.nodes.getOrNull(it) },
-                            stalledTo = stallIndex?.let { route.nodes.getOrNull(it + 1) },
-                        )
-                    }
+            else -> PathPlanResult.Failed(
+                PlanningFailure.NoCertifiedMotion(
+                    "the search dead-ended (${describeRefusal(result)})",
                 )
+            )
         }
     }
 
@@ -525,6 +516,11 @@ object TrajectoryPlanner {
     private const val HORIZON_FINAL_COMMIT_CHUNKS = 2
 
     private const val HORIZON_BOOTSTRAP_DELAY_MS = 200L
+
+    // The expansion budget applies per publication window now (it resets on every
+    // publish and on tape restarts): a stuck window should restart the search from
+    // the tape's settled continuation, not grind for minutes.
+    private const val PER_WINDOW_EXPANSIONS = 120_000
 
     private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400
 

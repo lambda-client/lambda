@@ -87,6 +87,21 @@ class TrajectoryPlan private constructor(
         }
     }
 
+    // First frame of the stationary terminal suffix: from here on every input is
+    // passive and the body no longer moves. Executing these frames is physically
+    // inert, so execution may complete once the cursor reaches this index.
+    val stationaryFrom: Int by lazy {
+        val terminal = frames.last().state.position
+        var first = frames.size
+        while (first > 1) {
+            val input = tape[first - 1]
+            val passive = input.forward == 0.0 && input.strafe == 0.0 && !input.jump && !input.sneak
+            if (!passive || frames[first - 1].state.position != terminal) break
+            first--
+        }
+        first
+    }
+
     fun dependencySectionsFrom(nextFrame: Int): Set<PathingSection> {
         require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
         return lastSectionReadFrame.filterValues { it >= nextFrame }.keys
