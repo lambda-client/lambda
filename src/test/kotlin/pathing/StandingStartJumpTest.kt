@@ -66,6 +66,23 @@ class StandingStartJumpTest {
         )
     }
 
+    @Test
+    fun `a settled centre start clears a rise-1 gap onto a one-wide pad`() {
+        // The live parkour trap: settled mid-cell (not at the lip) after a hold,
+        // facing a span-3 rise-1 edge onto a lone pad. Marginal low-entry arcs
+        // arrive at pad height exactly at its near edge and clip the face; the
+        // solver must price them infeasible so a run-up gets synthesized instead.
+        val blocks = buildMap {
+            for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(3, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
+        }
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-7, -1, -4, 8, 6, 3),
+            blocks,
+        )
+        certifies(environment, goal = Stance(3, 2, 0), initialX = 0.5)
+    }
+
     private fun runUpWorld(): SnapshotSimulationEnvironment {
         val blocks = buildMap {
             for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
@@ -141,7 +158,11 @@ class StandingStartJumpTest {
         )
     }
 
-    private fun certifies(environment: SnapshotSimulationEnvironment, goal: Stance): MotionPlanResult.Success {
+    private fun certifies(
+        environment: SnapshotSimulationEnvironment,
+        goal: Stance,
+        initialX: Double = 0.93,
+    ): MotionPlanResult.Success {
         val start = Stance(0, 1, 0)
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
@@ -160,7 +181,7 @@ class StandingStartJumpTest {
         // body after walking in: past every launch offset, with no run-up left.
         val initial = MovementSimulationState.synthetic(
             profile = PROFILE,
-            position = Vec3d(0.93, 1.0, 0.5),
+            position = Vec3d(initialX, 1.0, 0.5),
             rotation = Rotation(-90.0, 0.0),
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
