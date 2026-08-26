@@ -54,6 +54,8 @@ internal class HorizonController(
 
     private var publishedSequence = 0L
 
+    private var pendingAckSinceMillis: Long? = null
+
     private val publications = ArrayDeque<Publication>()
 
     fun begin() {
@@ -71,6 +73,7 @@ internal class HorizonController(
      */
     fun advanceExecutedRoot(): ValueAnchor? {
         val raw = cursorFrame?.invoke() ?: return null
+        maybeRollback()
         val acked = adoptedSequence?.invoke() ?: Long.MAX_VALUE
 
         // Drop publications the executor superseded by acknowledging a newer one.
@@ -180,11 +183,21 @@ internal class HorizonController(
      * the goal than the tip -- otherwise siblings thrash the tape back and forth.
      */
     private fun publishableOver(tip: ValueAnchor, candidate: ValueAnchor, executing: Int): Boolean {
+        // The cursor keeps advancing while a publication is in flight: without a
+        // margin, a tape that diverges just ahead of the cursor arrives diverging
+        // just behind it and is refused.
+        if (executing >= 0 &&
+            executionDivergence(candidate) < executing + PUBLISH_DIVERGENCE_MARGIN_FRAMES
+        ) {
+            return false
+        }
         if (candidate.descendsFrom(tip)) return candidate.elapsed > tip.elapsed
-        val divergence = divergenceElapsed(tip, candidate)
-        if (divergence <= executing) return false
-        return field.guide(candidate.stance) <=
-            field.guide(tip.stance) - BACKTRACK_GAIN_TICKS
+        // A publication on another branch must improve the ESTIMATED ARRIVAL, not
+        // just the coarse guide: comparing guides alone let the tape swap onto a
+        // branch with less progress -- a physical loop the body then walks.
+        val candidateArrival = candidate.elapsed + field.guide(candidate.stance)
+        val tipArrival = tip.elapsed + field.guide(tip.stance)
+        return candidateArrival + REFINEMENT_GAIN_TICKS <= tipArrival
     }
 
     private fun publishSolution(anchor: ValueAnchor): Boolean {
@@ -224,6 +237,33 @@ internal class HorizonController(
             inputs = tail.map { it.input },
             boundary = frames.size,
         )
+    }
+
+    /**
+     * A publication the executor has not acknowledged within the timeout was rejected
+     * or lost -- most often the cursor advanced past its divergence point while it was
+     * in flight. Drop the unacked tail and fall back to the acknowledged tape, so the
+     * search publishes extensions of what the body is actually replaying instead of
+     * jamming forever behind a tape that will never be installed.
+     */
+    private fun maybeRollback() {
+        if (ackedUpToDate()) {
+            pendingAckSinceMillis = null
+            return
+        }
+        val now = clock.elapsedMillis()
+        val since = pendingAckSinceMillis
+        if (since == null) {
+            pendingAckSinceMillis = now
+            return
+        }
+        if (now - since < ACK_ROLLBACK_MILLIS) return
+        pendingAckSinceMillis = null
+        val acked = adoptedSequence?.invoke() ?: return
+        while (publications.isNotEmpty() && publications.last().sequence > acked) {
+            publications.removeLast()
+        }
+        publishedTip = publications.lastOrNull()?.anchor
     }
 
     private fun ackedUpToDate(): Boolean {
@@ -307,9 +347,13 @@ internal class HorizonController(
 
         const val MIN_COMMIT_PROGRESS_TICKS = 1.0
 
-        const val BACKTRACK_GAIN_TICKS = 6.0
+        const val REFINEMENT_GAIN_TICKS = 3.0
 
         const val FIRST_PUBLISH_MIN_REMAINING_TICKS = 30.0
+
+        const val ACK_ROLLBACK_MILLIS = 500L
+
+        const val PUBLISH_DIVERGENCE_MARGIN_FRAMES = 3
 
         const val MAX_SHOWN_CANDIDATES = 12
 
