@@ -36,6 +36,20 @@ internal class AnchorRollout(
     private val progressOf: (Stance) -> Int,
     private val probe: SearchProbe,
 ) {
+    /**
+     * A landing with mapped stances beside it is open terrain; one without is an
+     * isolated pad. Two neighbours is the threshold rather than one so a cell at the
+     * edge of a platform still counts as open -- it has the platform behind it.
+     */
+    private fun openLanding(target: Stance): Boolean {
+        var mapped = 0
+        if (field.isMapped(Stance(target.x + 1, target.y, target.z))) mapped++
+        if (field.isMapped(Stance(target.x - 1, target.y, target.z))) mapped++
+        if (field.isMapped(Stance(target.x, target.y, target.z + 1))) mapped++
+        if (field.isMapped(Stance(target.x, target.y, target.z - 1))) mapped++
+        return mapped >= 2
+    }
+
     fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
         val chain = field.chain(
             anchor.stance, action.step, searchConfig.chainLength, anchor.heading(),
@@ -56,6 +70,7 @@ internal class AnchorRollout(
                 nodes = points,
                 constraints = config,
                 launch = launch,
+                openLanding = action.step?.let { openLanding(it) } ?: false,
             )
         )
         val descentAllowance = movement.descentAllowance(action)
@@ -169,7 +184,7 @@ internal class AnchorRollout(
                 parent = anchor,
                 inputs = frames.map { it.input },
                 boundary = anchor.elapsed + frames.size,
-            ),
+            ).also { it.via = action.movement },
         )
     }
 

@@ -19,6 +19,7 @@ import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.SearchClock
 import com.lambda.pathing.trajectory.SearchProbe
+import com.lambda.pathing.trajectory.SearchExhaustion
 import com.lambda.pathing.trajectory.SystemSearchClock
 import com.lambda.pathing.trajectory.WorldSyncResult
 import com.lambda.pathing.trajectory.TrajectoryPlan
@@ -27,7 +28,10 @@ import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.ValueFieldSearchConfig
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.trajectory.PublishedPath
+import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.util.player.prediction.MovementSimulationStepResult
+import com.lambda.util.player.prediction.MovementSimulator
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
 import com.lambda.util.player.prediction.SimulationSnapshotBounds
 import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
@@ -71,8 +75,6 @@ internal data class TrajectoryPlanningPreparation(
     val frontierProbeRange: Int,
     val frontierSweepBudget: Int,
     val bootstrapDelayMillis: Long,
-    val captureRetries: Int,
-    val captureRetryMillis: Long,
     val dumpDirectory: java.nio.file.Path?,
     val startedMillis: Long,
 )
@@ -216,8 +218,6 @@ object TrajectoryPlanner {
                 frontierProbeRange = config.frontierProbeRange,
                 frontierSweepBudget = config.frontierSweepBudget,
                 bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
-                captureRetries = config.captureRetries,
-                captureRetryMillis = config.captureRetryMillis.toLong(),
                 dumpDirectory = dumpDirectory,
                 startedMillis = started,
             )
@@ -334,6 +334,11 @@ object TrajectoryPlanner {
                     field = field,
                     adoptedSequence = adoptedSequenceProvider,
                     probe = probe,
+                    // Logged on both outcomes on purpose. A session that dead-ends
+                    // mid-walk and the fresh session that then clears the same goal in a
+                    // fraction of the attempts print the same fields, so the difference
+                    // between them can be read off directly instead of inferred.
+                    onExhaustion = { LOG.info("Trajectory search {} -> {}: {}", start, goal, it) },
                 )
 
                 if (outcome is PathPlanResult.Failed) {
@@ -390,6 +395,7 @@ object TrajectoryPlanner {
         field: CoarseValueField = planner.valueField(),
         adoptedSequence: () -> Long = { Long.MAX_VALUE },
         probe: SearchProbe = SearchProbe.NONE,
+        onExhaustion: ((SearchExhaustion) -> Unit)? = null,
     ): PathPlanResult {
         var published = 0
         var last: PublishedPath? = null
@@ -438,6 +444,7 @@ object TrajectoryPlanner {
             adoptedSequence = adoptedSequence,
             finalGoal = finalGoal,
             probe = probe,
+            onExhaustion = onExhaustion,
         )
 
         return when (result) {
@@ -470,8 +477,9 @@ object TrajectoryPlanner {
                     ", nearest miss %.2f blocks after %d frames"
                         .format(nearest.finalGoalError, nearest.simulatedFrames),
                 )
-                nearest.diagnostic?.let { append(" (").append(it).append(")") }
+                    nearest.diagnostic?.let { append(" (").append(it).append(")") }
             }
+            result.exhaustion?.let { append("; ").append(it) }
         }
         is MotionPlanResult.UnstableReplay -> "unstable replay: ${result.reason}"
         is MotionPlanResult.UnsupportedRoute -> "unsupported movements ${result.movements}"
@@ -505,6 +513,7 @@ object TrajectoryPlanner {
         partial = partial || route.goal != finalGoal,
         planningGeneration = planningGeneration,
         publicationSequence = publicationSequence,
+        segments = seed.segments,
     )
 
     private const val HORIZON_FRAMES = 20
@@ -570,17 +579,15 @@ object TrajectoryPlanner {
         snapshot: SnapshotSimulationEnvironment,
     ): MovementSimulationState {
         var settled = initial
-        val simulator = com.lambda.util.player.prediction.MovementSimulator(
+        val simulator = MovementSimulator(
             profile = profile,
             environment = snapshot,
             initialState = initial,
             skipEntityCollisions = true,
         )
         repeat(SETTLE_ROLLOUT_TICKS) {
-            val step = simulator.tryTickMovement(
-                com.lambda.util.player.prediction.MovementSimulationInput(),
-            )
-            if (step !is com.lambda.util.player.prediction.MovementSimulationStepResult.Advanced) {
+            val step = simulator.tryTickMovement(MovementSimulationInput())
+            if (step !is MovementSimulationStepResult.Advanced) {
                 return initial
             }
             val next = simulator.state

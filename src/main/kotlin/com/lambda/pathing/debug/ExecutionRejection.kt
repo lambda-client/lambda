@@ -1,7 +1,6 @@
 package com.lambda.pathing.debug
 
 import com.lambda.Lambda.mc
-import com.lambda.pathing.PathingManager
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.util.player.prediction.MovementSimulationState

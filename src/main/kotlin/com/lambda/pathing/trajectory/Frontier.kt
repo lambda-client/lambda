@@ -8,13 +8,32 @@ import java.util.PriorityQueue
 import kotlin.math.atan2
 import kotlin.math.floor
 
+/**
+ * When two bodies are the same body, for the purpose of deciding what happens next.
+ *
+ * This is the search's state abstraction, and getting it wrong is expensive in both
+ * directions at once. The previous key was `stance x yaw/20 x horizontalSpeed/0.05 x
+ * localX/0.125 x localZ/0.125 x velocityHeading/15 x 3 flags` -- 1.77 million cells per
+ * stance, so no two anchors ever shared one and the beam merged nothing: a corpus run
+ * created 24,698 anchors to build tapes that used about ninety of them. At the same time
+ * it described no vertical state whatsoever. There was no `localY`, and `speedBucket` read
+ * `velocity.horizontalLength()`, so a body rising through a cell at +0.4 and one falling
+ * through it at -0.4 were the same key -- physically opposite futures the beam was free
+ * to merge.
+ *
+ * So: every axis of position and velocity is represented, and each is bucketed coarsely
+ * enough that anchors actually land together. Facing collapses into one direction field
+ * rather than two correlated ones -- a moving body faces where it is going, and a stopped
+ * one has no heading to speak of, so exactly one of the two carries information.
+ */
 private data class AnchorKey(
     val stance: Stance,
-    val yawBucket: Int,
-    val speedBucket: Int,
-    val localXBucket: Int,
-    val localZBucket: Int,
-    val velocityHeadingBucket: Int,
+    val localX: Int,
+    val localY: Int,
+    val localZ: Int,
+    val speed: Int,
+    val verticalSpeed: Int,
+    val direction: Int,
     val airborne: Boolean,
     val sprinting: Boolean,
     val hazardKnown: Boolean,
@@ -48,7 +67,7 @@ internal class Frontier(
 
     private val blocked = ArrayList<BlockedAttempt>()
 
-    private val beamBuckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
+    private val buckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
     private var insertionSequence = 0L
 
     val isExhausted: Boolean get() = open.isEmpty() && parked.isEmpty()
@@ -56,6 +75,40 @@ internal class Frontier(
     val hasOpen: Boolean get() = open.isNotEmpty()
     val hasParked: Boolean get() = parked.isNotEmpty()
     val parkedEntries: List<OpenEntry> get() = parked
+    val openSize: Int get() = open.size
+    val blockedSize: Int get() = blocked.size
+
+    /**
+     * Anchors refused admission because the body has already diverged from them.
+     *
+     * A continuing session prunes against its executed root; a session started fresh
+     * from the same body has no root and prunes nothing. If the two differ sharply here,
+     * the committed prefix is what is starving the search rather than the terrain.
+     */
+    var unreachableAdmissions = 0
+        private set
+
+    /**
+     * What the beam actually does when an anchor is offered.
+     *
+     * Kept because the beam has twice been assumed to be working and twice been found
+     * inert: a key too fine to collide means `frontierPerKey` never binds and merging
+     * never happens, and nothing in the search says so out loud.
+     */
+    var anchorsAdmitted = 0
+        private set
+    var beamDominated = 0
+        private set
+    var beamEvicted = 0
+        private set
+    var beamCapped = 0
+        private set
+
+    val beamBuckets: Int get() = buckets.size
+    val beamLargestBucket: Int get() = buckets.values.maxOfOrNull { it.size } ?: 0
+    val parkedSize: Int get() = parked.size
+    val deepestElapsed: Int get() =
+        maxOf(open.maxOfOrNull { it.anchor.elapsed } ?: 0, parked.maxOfOrNull { it.anchor.elapsed } ?: 0)
     val openEntries: List<OpenEntry> get() = open.toList()
 
     var deepestProgress = 0
@@ -78,12 +131,26 @@ internal class Frontier(
         enqueue(entry)
     }
 
+    /**
+     * Return an anchor to the queue after an attempt, re-scored from what it has left.
+     *
+     * This replaces a pair of fixed penalties -- a rejected attempt used to cost the
+     * anchor 0.05 ticks and a successful one 3.0, so failure bought priority and an
+     * anchor that kept failing stayed pinned at the head of the queue grinding its whole
+     * vocabulary. The anchor's standing now follows the price of its cheapest remaining
+     * movement, so it falls behind exactly as far as continuing there deserves.
+     */
+    fun reoffer(anchor: ValueAnchor) {
+        val guide = field.guide(anchor.stance).takeIf { it.isFinite() } ?: return
+        enqueue(entryFor(anchor, guide))
+    }
+
     fun retainDescendants(root: ValueAnchor) {
         val retained = open.filterTo(ArrayList()) { it.anchor.descendsFrom(root) }
         open.clear()
         open.addAll(retained)
         blocked.retainAll { it.anchor.descendsFrom(root) }
-        beamBuckets.clear()
+        buckets.clear()
     }
 
     fun parkBlocked(anchor: ValueAnchor, action: com.lambda.pathing.movement.TrajectoryDecision) {
@@ -140,15 +207,28 @@ internal class Frontier(
         deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
 
         val key = keyOf(anchor)
-        if (!reachability.canReach(anchor)) return
+        if (!reachability.canReach(anchor)) {
+            unreachableAdmissions++
+            return
+        }
 
-        val bucket = beamBuckets.getOrPut(key) { ArrayList() }
-        if (bucket.any { it.preferredForBeamOver(anchor) }) return
+        anchorsAdmitted++
+        val bucket = buckets.getOrPut(key) { ArrayList() }
+        if (bucket.any { it.preferredForBeamOver(anchor) }) {
+            beamDominated++
+            return
+        }
+        val before = bucket.size
         bucket.removeAll { anchor.preferredForBeamOver(it) }
+        beamEvicted += before - bucket.size
         if (bucket.size >= searchConfig.frontierPerKey) {
             val worst = bucket.maxByOrNull { it.elapsed } ?: return
-            if (worst.elapsed <= anchor.elapsed) return
+            if (worst.elapsed <= anchor.elapsed) {
+                beamCapped++
+                return
+            }
             bucket.remove(worst)
+            beamEvicted++
         }
         bucket += anchor
 
@@ -159,8 +239,11 @@ internal class Frontier(
 
     fun progressOf(stance: Stance): Int = routeIndex[stance] ?: deepestProgress
 
+    // The surcharge rides on `order` only. `bound` has to stay a true lower bound on the
+    // arrival frame -- it is what licenses finalizing an incumbent -- and what a movement
+    // costs the *search* is not time the body spends.
     private fun entryFor(anchor: ValueAnchor, guide: Double) = OpenEntry(
-        order = anchor.elapsed + momentumAdjusted(anchor, guide),
+        order = anchor.elapsed + momentumAdjusted(anchor, guide) + anchor.pendingSurcharge,
         bound = anchor.elapsed +
             (field.lowerBound(anchor.stance) - MOMENTUM_CREDIT_MAX_TICKS).coerceAtLeast(0.0),
         anchor = anchor,
@@ -185,28 +268,31 @@ internal class Frontier(
             momentumTurnCost(anchor.speed, headingError, config.maxYawDegreesPerFrame)
     }
 
-    private fun yawBucket(anchor: ValueAnchor): Int = floor(
-        ((anchor.state.rotation.yaw % 360.0) + 360.0) % 360.0 / searchConfig.yawBucketDegrees
-    ).toInt()
+    private fun sector(degrees: Double, width: Double): Int =
+        floor(((degrees % 360.0) + 360.0) % 360.0 / width).toInt()
 
-    private fun speedBucket(anchor: ValueAnchor): Int =
-        floor(anchor.speed / searchConfig.speedBucketBlocks).toInt()
+    private fun localBucket(coordinate: Double): Int =
+        floor((coordinate - floor(coordinate)) / POSITION_BUCKET_BLOCKS).toInt()
 
     private fun keyOf(anchor: ValueAnchor): AnchorKey {
-        val localX = anchor.state.position.x - floor(anchor.state.position.x)
-        val localZ = anchor.state.position.z - floor(anchor.state.position.z)
-        val velocityYaw = Math.toDegrees(atan2(anchor.state.velocity.z, anchor.state.velocity.x))
+        val state = anchor.state
+        // A body with real momentum is characterised by where it is going; a stalled one
+        // by where it is pointed, since that is what its next input will accelerate along.
+        val direction = if (anchor.speed > DIRECTION_FROM_HEADING_SPEED) {
+            sector(Math.toDegrees(atan2(state.velocity.z, state.velocity.x)), DIRECTION_SECTOR_DEGREES)
+        } else {
+            sector(state.rotation.yaw, DIRECTION_SECTOR_DEGREES)
+        }
         return AnchorKey(
             stance = anchor.stance,
-            yawBucket = yawBucket(anchor),
-            speedBucket = speedBucket(anchor),
-            localXBucket = floor(localX / POSITION_BUCKET_BLOCKS).toInt(),
-            localZBucket = floor(localZ / POSITION_BUCKET_BLOCKS).toInt(),
-            velocityHeadingBucket = floor(
-                ((velocityYaw % 360.0) + 360.0) % 360.0 / VELOCITY_HEADING_BUCKET_DEGREES
-            ).toInt(),
-            airborne = !anchor.state.onGround,
-            sprinting = anchor.state.isSprinting,
+            localX = localBucket(state.position.x),
+            localY = localBucket(state.position.y),
+            localZ = localBucket(state.position.z),
+            speed = floor(anchor.speed / searchConfig.speedBucketBlocks).toInt(),
+            verticalSpeed = floor(state.velocity.y / VERTICAL_SPEED_BUCKET).toInt(),
+            direction = direction,
+            airborne = !state.onGround,
+            sprinting = state.isSprinting,
             hazardKnown = anchor.hazardFrame != null,
         )
     }
@@ -217,16 +303,49 @@ internal class Frontier(
     }
 
     private fun rebuildBeamBuckets() {
-        beamBuckets.clear()
+        buckets.clear()
         (open.asSequence() + parked.asSequence()).forEach { entry ->
-            beamBuckets.getOrPut(keyOf(entry.anchor)) { ArrayList() } += entry.anchor
+            buckets.getOrPut(keyOf(entry.anchor)) { ArrayList() } += entry.anchor
         }
     }
 
     private companion object {
 
         const val SPEED_DOMINANCE_SLACK = 0.01
-        const val POSITION_BUCKET_BLOCKS = 0.125
-        const val VELOCITY_HEADING_BUCKET_DEGREES = 15.0
+
+        /**
+         * How finely two bodies on the same stance must differ to count as different.
+         *
+         * Too fine to prune walking and, at the same time, too coarse to describe a climb.
+         * At an eighth of a block the key space runs to six figures per stance, so
+         * `frontierPerKey` caps nothing on open ground -- a production parkour run carried
+         * ~2,400 live anchors on a nineteen-node route, nearly all of them the same body a
+         * hair apart. Widening these to half a block and forty-five degrees duly cut
+         * search work by 9% and then hung `LadderExecutionTest`: a body on a vine rises
+         * about 0.117 blocks a tick with no horizontal speed and a fixed yaw, and this key
+         * has no vertical sub-block component at all, so a whole within-block climb
+         * already collapses toward a single bucket.
+         *
+         * Pruning the frontier properly means keying on what actually separates states --
+         * vertical position included -- rather than on wider versions of these. Left at
+         * the values that work until then.
+         */
+        /** Quarter of a block on every axis: fine enough to matter at a jump lip. */
+        const val POSITION_BUCKET_BLOCKS = 0.25
+
+        /** One sector per 30 degrees. Twelve directions describe a body's intent. */
+        const val DIRECTION_SECTOR_DEGREES = 30.0
+
+        /**
+         * Below this the velocity heading is numerical noise and the body's facing is
+         * what decides where it goes next.
+         */
+        const val DIRECTION_FROM_HEADING_SPEED = 0.02
+
+        /**
+         * Vertical velocity resolution. Jump launch is 0.42 and a settled fall is well
+         * past -1, so this separates rising, hanging and falling without splitting hairs.
+         */
+        const val VERTICAL_SPEED_BUCKET = 0.15
     }
 }

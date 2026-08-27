@@ -55,6 +55,12 @@ object DropMovement : Movement {
             .map { TrajectoryDecision.Drop(it.sprint, context.edge.to, it) }
     }
 
+    /** A drop is priced by how close its landing comes to taking fall damage. */
+    override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
+        val drop = decision as? TrajectoryDecision.Drop ?: return DecisionPrice.FREE
+        return DecisionPrice(difficulty = context.landingRisk(drop.solution))
+    }
+
     override fun program(context: ProgramContext): ControlProgram {
         val decision = context.decision as TrajectoryDecision.Drop
         val from = context.body.stance.center()

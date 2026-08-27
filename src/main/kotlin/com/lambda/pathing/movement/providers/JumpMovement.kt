@@ -1,19 +1,22 @@
 package com.lambda.pathing.movement.providers
 
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
 import com.lambda.pathing.movement.CoarseEdge
 import com.lambda.pathing.movement.CoarseMoveRates
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.movement.MotionTemplate
+import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
+import com.lambda.pathing.launch.HorizontalDynamics
 import com.lambda.pathing.movement.*
-import com.lambda.util.player.prediction.MovementSimulationState
 import kotlin.math.abs
+import kotlin.math.hypot
 
 object JumpMovement : Movement {
     override val id = MovementId.JUMP
@@ -64,16 +67,39 @@ object JumpMovement : Movement {
 
         val closing = closingSpeed(context)
         val standard = solutions.flatMap { solution ->
-            val nominal = launchFrame(context, solution)
-            LAUNCH_BRACKET
-                .map { (nominal + it).coerceAtLeast(0) }
-                .distinct()
-                .filter { delay -> !hopelesslySlow(context.ballistics, closing, delay, solution) }
-                .map { delay ->
-                    TrajectoryDecision.Launch(solution.sprint, context.edge.to, delay, solution)
-                }
+            launchDelays(context, solution).map { delay ->
+                TrajectoryDecision.Launch(solution.sprint, context.edge.to, delay, solution)
+            }
         }
         return standard + runUpDecisions(context, solutions, closing)
+    }
+
+    /**
+     * A launch is priced by how much of the feasible entry-speed band it has to hit.
+     *
+     * [LaunchSolution.speedSlack] is the half-width of that band in blocks per tick: a
+     * jump onto the middle of a wide ledge has plenty, one that has to clear a lip and
+     * stop before the far edge has almost none, and the second is where the rollouts get
+     * spent. A run-up pays on top of that -- it is real frames of retreating and
+     * rebuilding speed, and it commits the body to a stretch of ground before the jump
+     * even starts.
+     */
+    override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
+        val solution = when (decision) {
+            is TrajectoryDecision.Launch -> decision.solution
+            is TrajectoryDecision.RunUpLaunch -> decision.solution
+            else -> null
+        } ?: return DecisionPrice.FREE
+
+        val tightness = 1.0 - (solution.speedSlack / COMFORTABLE_SPEED_SLACK).coerceIn(0.0, 1.0)
+        val base = DecisionPrice(
+            difficulty = maxOf(tightness, context.landingRisk(solution)),
+        )
+        if (decision !is TrajectoryDecision.RunUpLaunch) return base
+        return base + DecisionPrice(
+            ticks = transitionFrames(decision).toDouble(),
+            difficulty = RUN_UP_DIFFICULTY,
+        )
     }
 
     private fun runUpDecisions(
@@ -172,26 +198,92 @@ object JumpMovement : Movement {
         ).coerceAtLeast(0.0)
     }
 
-    private fun hopelesslySlow(
-        ballistics: BallisticProfile,
-        closing: Double,
+    /**
+     * Whether the body simply cannot be going the right speed by the time it launches.
+     *
+     * Horizontal movement is `v' = friction * (v + acceleration * u)`, which makes the
+     * velocities reachable in a given number of ticks a disc with a closed-form centre and
+     * radius. Projecting it onto the gap gives the speeds the body could be travelling at
+     * when it launches, and the arc's own entry band says which of those will do -- one
+     * interval overlap, exactly, replacing a scalar approximation that forgave a fixed
+     * tenth of a block per tick because it ignored which way the body was already moving.
+     *
+     * Deliberately the projection and not the whole velocity: sideways drift at launch is
+     * real but the arc carries its own lateral tolerance for it, and refusing launches on
+     * that basis measured as a corpus route falling from thirty certified nodes to three.
+     */
+    private fun unreachableEntry(
+        context: DecisionContext,
         delay: Int,
         solution: LaunchSolution,
     ): Boolean {
-        val achievable = ballistics.runUpSpeed(closing, delay, solution.sprint)
-        return solution.speed - solution.speedSlack - achievable > HOPELESS_SPEED_DEFICIT
+        val edge = context.edge
+        val from = edge.from.center()
+        val to = edge.to.center()
+        val length = kotlin.math.hypot(to.x - from.x, to.z - from.z)
+        if (length <= 1e-9) return false
+        val unitX = (to.x - from.x) / length
+        val unitZ = (to.z - from.z) / length
+        val velocity = context.body.state.velocity
+        val along = HorizontalDynamics.ground(context.ballistics, solution.sprint)
+            .reachable(velocity.x, velocity.z, delay)
+            .projectOnto(unitX, unitZ)
+        val needed = (solution.speed - solution.speedSlack)..(solution.speed + solution.speedSlack)
+        return along.endInclusive < needed.start || along.start > needed.endInclusive
     }
 
     private fun solutionsFor(context: DecisionContext): List<LaunchSolution> {
-        val ideal = context.edge.launch ?: hopOver(context)
+        val onward = onwardEntryWindow(context)
+        // `edge.launch` is solved once when the graph is built and knows nothing about
+        // what follows, so where an onward gap is known it is re-solved rather than reused.
+        val ideal = onward?.let { window ->
+            LaunchSolver.best(
+                context.edge.from, context.edge.to,
+                profile = context.ballistics, modes = MODES, exitSpeedWindow = window,
+            )
+        } ?: context.edge.launch ?: hopOver(context)
         val asIs = LaunchSolver.best(
             context.edge.from, context.edge.to,
             profile = context.ballistics,
             modes = MODES,
             maxEntrySpeed = { context.body.speed },
             preferredEntrySpeed = { context.body.speed },
+            exitSpeedWindow = onward,
         )
         return listOfNotNull(ideal, asIs)
+    }
+
+    /**
+     * Entry speeds the gap after this one can accept, when there is one.
+     *
+     * Only gaps are asked about. A walk onward imposes nothing -- the body brakes on the
+     * ground between them -- so informing the solver there would narrow its choices for no
+     * reason. A jump onward is the case that matters: this launch's exit speed becomes
+     * that one's entry speed with a single block in between, and choosing an arc that
+     * lands too fast to leave again is how a chain of pads dead-ends at the second one.
+     */
+    private fun onwardEntryWindow(context: DecisionContext): ClosedFloatingPointRange<Double>? {
+        val steering = context.steering ?: return null
+        val onward = steering
+            .chain(context.edge.to, null, ONWARD_LOOKAHEAD, null)
+            .getOrNull(1)
+            ?: return null
+        if (onward == context.edge.to) return null
+        if (hypot(onward.x - context.edge.to.x, onward.z - context.edge.to.z) <
+            CoarseMoveRates.MIN_JUMP_DISTANCE
+        ) return null
+        val solutions = LaunchSolver.solve(
+            context.edge.to, onward, profile = context.ballistics, modes = MODES,
+        )
+        if (solutions.isEmpty()) return null
+        val entry = solutions.minOf { it.speed - it.speedSlack }..
+            solutions.maxOf { it.speed + it.speedSlack }
+        // Pulled back through the pad. This launch's exit speed does not have to *be* an
+        // entry the next gap accepts -- it has to be one the body can turn into such an
+        // entry with the ticks it gets standing there. Comparing the two directly rejected
+        // launches that work: on `parkour-course-1` the first gap exits at 0.2431 into a
+        // window of 0.0917-0.1702, and a single coasting tick lands it at 0.1327.
+        return context.ballistics.groundReachable(entry, PAD_GROUND_TICKS, sprint = true)
     }
 
     private fun hopOver(context: DecisionContext): LaunchSolution? {
@@ -204,6 +296,75 @@ object JumpMovement : Movement {
             modes = MODES,
             maxEntrySpeed = { reachable },
         )
+    }
+
+    /**
+     * Ticks of run-up after which the body is actually able to make this launch.
+     *
+     * A jump has to satisfy two conditions on the same tick: the body must be *at* the
+     * launch offset along the gap, and it must be *travelling* at the entry speed the arc
+     * was solved for. These were handled separately and approximately -- a distance-based
+     * estimate of when the offset is reached, then a bracket of one tick either side of it
+     * in the hope that the speed came out right. Both are computable exactly.
+     *
+     * Horizontal movement is `v' = friction * (v + acceleration * u)`, and the game moves
+     * the body by the pre-friction velocity, so rolling the run-up forward analytically
+     * gives position and speed at every tick for the cost of a few multiplications. The
+     * ticks where the speed lands inside the arc's entry band are the candidates, ranked
+     * by how close the body is to the launch offset when they arrive.
+     *
+     * Falls back to the old estimate when no tick satisfies the speed. The run-up modelled
+     * here drives straight down the gap while the follower steers toward the nodes, so the
+     * two disagree slightly on a curve, and losing the launch entirely is the worse error.
+     */
+    private fun launchDelays(context: DecisionContext, solution: LaunchSolution): List<Int> {
+        val edge = context.edge
+        val from = edge.from.center()
+        val to = edge.to.center()
+        val length = kotlin.math.hypot(to.x - from.x, to.z - from.z)
+        if (length <= 1e-9) return emptyList()
+        val unitX = (to.x - from.x) / length
+        val unitZ = (to.z - from.z) / length
+
+        val dynamics = HorizontalDynamics.ground(context.ballistics, solution.sprint)
+        val body = context.body.state
+        var velocityX = body.velocity.x
+        var velocityZ = body.velocity.z
+        var along = alongEdge(from, to, body.position.x, body.position.z)
+
+        // (delay, run-up cost in ticks, how far off the launch offset it lands)
+        val fitting = ArrayList<Triple<Int, Double, Double>>()
+        for (delay in 0..MAX_LAUNCH_FRAME) {
+            val speed = velocityX * unitX + velocityZ * unitZ
+            if (kotlin.math.abs(speed - solution.speed) <= solution.speedSlack) {
+                // Cost in ticks, so the two terms are commensurable: the run-up itself,
+                // plus what the offset error would take to walk off at cruise. Ranking on
+                // the error alone buys perfect placement with arbitrarily long run-ups --
+                // measured as a corpus route going from four percent over its bound to
+                // forty-two.
+                val misplacement = kotlin.math.abs(along - solution.launchOffset)
+                fitting += Triple(delay, delay + misplacement / dynamics.cruise, misplacement)
+            }
+            // One tick of running straight down the gap. The body is displaced by the
+            // pre-friction velocity, which is what the stored velocity divides back out to.
+            velocityX = (velocityX + dynamics.acceleration * unitX) * dynamics.friction
+            velocityZ = (velocityZ + dynamics.acceleration * unitZ) * dynamics.friction
+            along += (velocityX * unitX + velocityZ * unitZ) / dynamics.friction
+        }
+        if (fitting.isEmpty()) {
+            val nominal = launchFrame(context, solution)
+            return LAUNCH_BRACKET.map { (nominal + it).coerceAtLeast(0) }
+                .distinct()
+                .filter { !unreachableEntry(context, it, solution) }
+        }
+        // Two objectives that genuinely disagree, so offer the best of each rather than
+        // weighing them against one another. Cheapest run-up is what open ground wants --
+        // ranking on placement alone took a corpus route from four percent over its bound
+        // to forty-two. Best placement is what a one-block pad wants, and ranking on cost
+        // alone lost a whole parkour course. The frontier is priced; it can decide.
+        val cheapest = fitting.sortedBy { it.second }.map { it.first }
+        val truest = fitting.sortedBy { it.third }.map { it.first }
+        return (cheapest.take(2) + truest.take(2)).distinct().take(MAX_LAUNCH_CANDIDATES)
     }
 
     private fun launchFrame(context: DecisionContext, solution: LaunchSolution): Int {
@@ -242,12 +403,48 @@ object JumpMovement : Movement {
                 maxYawChange = context.constraints.maxYawDegreesPerFrame,
             )
         }
+        val solution = (decision as? TrajectoryDecision.Launch)?.solution
         return SegmentFollowerProgram(
             nodes = context.nodes,
             sprint = context.decision.sprint,
             lookAheadNodes = LOOK_AHEAD_NODES,
             launch = context.launch,
             maxYawChange = context.constraints.maxYawDegreesPerFrame,
+            holdForwardInFlight = solution?.holdForward ?: true,
+            holdTicks = solution?.holdTicks ?: Int.MAX_VALUE,
+            airPlan = if (context.openLanding) null
+                else airPlanFor(context.body.stance, (decision as? TrajectoryDecision.Launch)?.step, solution),
+        )
+    }
+
+    /**
+     * The solved launch as a closed-loop flight target: the solver's aim point in world
+     * coordinates and the schedule it certified against. Null (no solved launch, or a
+     * degenerate edge) flies the historical open schedule.
+     */
+    private fun airPlanFor(from: Stance, to: Stance?, solution: LaunchSolution?): AirSteering.AirPlan? {
+        if (solution == null || to == null || to == from) return null
+        val dx = (to.x - from.x).toDouble()
+        val dz = (to.z - from.z).toDouble()
+        val length = hypot(dx, dz)
+        if (length <= 1e-9) return null
+        val unitX = dx / length
+        val unitZ = dz / length
+        return AirSteering.AirPlan(
+            // The centre of the landing cell, not the solver's own aim: every onward
+            // solution and delay roll is solved from a cell-centre origin, so landing
+            // there makes the next edge's model true -- and it is the point of maximum
+            // margin against both lips. The solver's aim optimises this landing alone;
+            // the centre serves the chain.
+            aimX = to.x + 0.5,
+            aimZ = to.z + 0.5,
+            unitX = unitX,
+            unitZ = unitZ,
+            airTicks = solution.airTicks,
+            holdTicks = if (solution.holdForward) solution.holdTicks else 0,
+            sprintAcceleration = if (solution.sprint) BallisticProfile.SPRINT_AIR_ACCELERATION
+                else BallisticProfile.WALK_AIR_ACCELERATION,
+            walkAcceleration = BallisticProfile.WALK_AIR_ACCELERATION,
         )
     }
 
@@ -277,9 +474,10 @@ object JumpMovement : Movement {
 
     private val LAUNCH_BRACKET = listOf(0, -1, 1)
 
-    private const val MAX_LAUNCH_FRAME = 8
+    /** Launch ticks offered per solution: the cheapest two run-ups and the truest two. */
+    private const val MAX_LAUNCH_CANDIDATES = 4
 
-    private const val HOPELESS_SPEED_DEFICIT = 0.10
+    private const val MAX_LAUNCH_FRAME = 8
 
     private const val RUN_UP_MARGIN_BLOCKS = 0.75
 
@@ -298,4 +496,30 @@ object JumpMovement : Movement {
     private const val MAX_RUN_UP_VARIANTS = 4
 
     private const val LOOK_AHEAD_NODES = 1
+
+    /** Steering nodes fetched to find the gap after this one. */
+    private const val ONWARD_LOOKAHEAD = 2
+
+    /**
+     * Ticks the body is assumed to get on the pad between two gaps.
+     *
+     * A landing pad on a parkour course is one block, which is a tick or three of contact
+     * depending on how fast the body crosses it. Three is the generous end on purpose:
+     * this widens what the solver will consider, and the rollout still has to certify it.
+     */
+    private const val PAD_GROUND_TICKS = 3
+
+    /**
+     * Entry-speed slack, in blocks per tick, at which a launch stops being fussy.
+     *
+     * Measured against the corpus rather than guessed: solved jump edges there run
+     * p10 = 0.076, p50 = 0.095, p90 = 0.119 blocks per tick of slack. Setting the bar at
+     * the low decile prices the ordinary jump at nothing and reserves the difficulty for
+     * the genuinely tight minority -- the first attempt at this used a third of the value
+     * and priced the whole population as fussy, which starved the search of jumps.
+     */
+    private const val COMFORTABLE_SPEED_SLACK = 0.08
+
+    /** A run-up is never a casual option: it commits ground behind the body as well as ahead. */
+    private const val RUN_UP_DIFFICULTY = 0.75
 }
