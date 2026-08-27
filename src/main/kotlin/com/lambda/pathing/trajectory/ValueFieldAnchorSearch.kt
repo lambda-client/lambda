@@ -102,6 +102,16 @@ object ValueFieldAnchorSearch {
          * mod's logger cannot static-initialise outside a Minecraft runtime.
          */
         onExhaustion: ((SearchExhaustion) -> Unit)? = null,
+
+        /**
+         * Rollouts per expansion batch. At 1 the search is the exact serial search; above
+         * it, up to this many frontier decisions are selected in rank order, simulated
+         * concurrently on [executor], and their outcomes applied in the same order --
+         * deterministic for a fixed setting, though a different search than serial
+         * (batch members cannot see each other's failures until the batch lands).
+         */
+        parallelism: Int = 1,
+        executor: java.util.concurrent.ExecutorService? = null,
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
         val unsupported = route.edges.mapTo(HashSet()) { it.movement }
@@ -112,6 +122,8 @@ object ValueFieldAnchorSearch {
             route, catalog, field, initialState, profile, environment, config, searchConfig,
             onSafePrefix, cursorFrame, clock, cancelled, worldWait, worldSync, sectionCapturable,
             expandGuide, adoptedSequence, finalGoal, probe, onExhaustion,
+            parallelism = if (executor != null) parallelism.coerceAtLeast(1) else 1,
+            executor = executor,
         ).run()
     }
 
@@ -165,6 +177,8 @@ object ValueFieldAnchorSearch {
         private val finalGoal: Stance?,
         private val probe: SearchProbe,
         private val onExhaustion: ((SearchExhaustion) -> Unit)?,
+        private val parallelism: Int = 1,
+        private val executor: java.util.concurrent.ExecutorService? = null,
     ) : CommitSupport {
         private val vocabulary = ActionSet(catalog, field, config, searchConfig) { corridor() }
 
@@ -254,6 +268,8 @@ object ValueFieldAnchorSearch {
 
         private var lastPublishedTip: ValueAnchor? = null
         private var expansionsWindowStart = 0
+        private var syncBucket = -1
+        private var publishBucket = -1
 
         private fun corridor(): CorridorLevel = CORRIDOR_LEVELS[corridorLevel]
 
@@ -623,73 +639,103 @@ object ValueFieldAnchorSearch {
                     // refill the open list; re-evaluate instead of polling empty.
                     continue
                 }
-                if (expansions % WORLD_SYNC_INTERVAL == 0) syncWorld()
-                if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) horizon.publishCandidates()
-                val entry = frontier.poll() ?: continue
-
-                // Execution kills branches continuously: a branch whose divergence
-                // point the cursor has passed can never be published again, and
-                // keeping it live let a better-but-dead line dominate the frontier
-                // while the tape starved.
-                if (!horizon.adoptable(entry.anchor)) continue
-
-                if (entry.anchor.elapsed >= horizon.horizonEnd &&
-                    field.guide(entry.anchor.stance) > searchConfig.finishValueTicks
-                ) {
-                    frontier.park(entry)
-                    continue
+                if (expansions / WORLD_SYNC_INTERVAL != syncBucket) {
+                    syncBucket = expansions / WORLD_SYNC_INTERVAL
+                    syncWorld()
+                }
+                if (expansions / CANDIDATE_PUBLISH_INTERVAL != publishBucket) {
+                    publishBucket = expansions / CANDIDATE_PUBLISH_INTERVAL
+                    horizon.publishCandidates()
                 }
 
-                val incumbent = best
-                val entryScoreBound = entry.bound + COLLISION_FRAME_PENALTY * entry.anchor.collisionEvents
-                if (incumbent != null && mayFinalize() && entryScoreBound >= incumbent.score) {
-                    if (readyToFinish(incumbent) && bodyNearEnd(incumbent)) return finish(incumbent)
-                    // The session must stay alive for refinement, but this anchor is
-                    // provably no improvement -- the same test admission prunes by.
-                    continue
+                // Select up to [parallelism] decisions in rank order, simulate them
+                // (concurrently when a pool is present), and apply their outcomes in the
+                // same order. At parallelism 1 this is exactly the serial search.
+                val batch = ArrayList<AnchorRollout.PreparedRollout>(parallelism)
+                var finishInstead: MotionPlanResult? = null
+                while (batch.size < parallelism && finishInstead == null) {
+                    val entry = frontier.poll() ?: break
+
+                    // Execution kills branches continuously: a branch whose divergence
+                    // point the cursor has passed can never be published again, and
+                    // keeping it live let a better-but-dead line dominate the frontier
+                    // while the tape starved.
+                    if (!horizon.adoptable(entry.anchor)) continue
+
+                    if (entry.anchor.elapsed >= horizon.horizonEnd &&
+                        field.guide(entry.anchor.stance) > searchConfig.finishValueTicks
+                    ) {
+                        frontier.park(entry)
+                        continue
+                    }
+
+                    val incumbent = best
+                    val entryScoreBound = entry.bound + COLLISION_FRAME_PENALTY * entry.anchor.collisionEvents
+                    if (incumbent != null && mayFinalize() && entryScoreBound >= incumbent.score) {
+                        if (readyToFinish(incumbent) && bodyNearEnd(incumbent)) {
+                            finishInstead = finish(incumbent)
+                            break
+                        }
+                        // The session must stay alive for refinement, but this anchor is
+                        // provably no improvement -- the same test admission prunes by.
+                        continue
+                    }
+                    if (best != null && mayFinalize() && readyToFinish(best!!) && bodyNearEnd(best!!) &&
+                        expansionsSinceImprovement >= searchConfig.stallExpansions
+                    ) {
+                        finishInstead = finish(best!!)
+                        break
+                    }
+
+                    val anchor = entry.anchor
+                    val remaining = field.guide(anchor.stance)
+
+                    if (anchor.sweptEpoch != sweepEpoch &&
+                        remaining <= searchConfig.finishValueTicks &&
+                        finishSweeps < searchConfig.maxFinishSweeps &&
+                        horizon.canReach(anchor) &&
+                        best.let { it == null || anchor.elapsed + remaining < it.frames }
+                    ) {
+                        anchor.sweptEpoch = sweepEpoch
+                        finishSweeps++
+                        finisher.finishFrom(anchor)?.let { retain(it) }
+                    }
+
+                    val priced = nextAction(anchor)
+                    if (priced == null) {
+                        if (canEscalate()) spentAnchors += anchor
+                        continue
+                    }
+                    val action = priced.decision
+                    expansions++
+                    clock.onExpansion()
+                    expansionsSinceImprovement++
+                    expansionsSinceGuideProgress++
+                    expansionsSinceHeat++
+                    escalate(force = false)
+                    refine()
+
+                    val prepared = rollouts.prepare(anchor, action)
+                    if (prepared == null) {
+                        applyRollout(anchor, action, Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed)))
+                        reofferOrSpend(anchor)
+                        continue
+                    }
+                    batch += prepared
                 }
-                if (best != null && mayFinalize() && readyToFinish(best!!) && bodyNearEnd(best!!) &&
-                    expansionsSinceImprovement >= searchConfig.stallExpansions
-                ) {
-                    return finish(best!!)
+
+                finishInstead?.let { return it }
+
+                if (batch.size > 1 && executor != null) {
+                    batch.map { prepared -> executor.submit { rollouts.execute(prepared) } }
+                        .forEach { it.get() }
+                } else {
+                    batch.forEach { rollouts.execute(it) }
                 }
-
-                val anchor = entry.anchor
-                val remaining = field.guide(anchor.stance)
-
-                if (anchor.sweptEpoch != sweepEpoch &&
-                    remaining <= searchConfig.finishValueTicks &&
-                    finishSweeps < searchConfig.maxFinishSweeps &&
-                    horizon.canReach(anchor) &&
-                    best.let { it == null || anchor.elapsed + remaining < it.frames }
-                ) {
-                    anchor.sweptEpoch = sweepEpoch
-                    finishSweeps++
-                    finisher.finishFrom(anchor)?.let { retain(it) }
-                }
-
-                val priced = nextAction(anchor)
-                if (priced == null) {
-                    if (canEscalate()) spentAnchors += anchor
-                    continue
-                }
-                val action = priced.decision
-                expansions++
-                clock.onExpansion()
-                expansionsSinceImprovement++
-                expansionsSinceGuideProgress++
-                expansionsSinceHeat++
-                escalate(force = false)
-                refine()
-
-                rolloutDecision(anchor, action)
-
-                val surcharge = remainingSurcharge(anchor)
-                if (surcharge != null) {
-                    anchor.pendingSurcharge = surcharge
-                    frontier.reoffer(anchor)
-                } else if (canEscalate()) {
-                    spentAnchors += anchor
+                for (prepared in batch) {
+                    val outcome = rollouts.complete(prepared, prepared.anchor.hazardFrame)
+                    applyRollout(prepared.anchor, prepared.action, outcome)
+                    reofferOrSpend(prepared.anchor)
                 }
             }
 
@@ -720,9 +766,20 @@ object ValueFieldAnchorSearch {
          * family-prefix and hazard bookkeeping -- a failure teaches the search the same
          * lesson no matter which loop paid for it.
          */
-        private fun rolloutDecision(anchor: ValueAnchor, action: TrajectoryDecision): Outcome {
-            val raw = rollouts.transition(anchor, action, anchor.hazardFrame)
+        private fun rolloutDecision(anchor: ValueAnchor, action: TrajectoryDecision): Outcome =
+            applyRollout(anchor, action, rollouts.transition(anchor, action, anchor.hazardFrame))
 
+        private fun reofferOrSpend(anchor: ValueAnchor) {
+            val surcharge = remainingSurcharge(anchor)
+            if (surcharge != null) {
+                anchor.pendingSurcharge = surcharge
+                frontier.reoffer(anchor)
+            } else if (canEscalate()) {
+                spentAnchors += anchor
+            }
+        }
+
+        private fun applyRollout(anchor: ValueAnchor, action: TrajectoryDecision, raw: Outcome): Outcome {
             val outcome = if (raw is Outcome.Blocked) {
                 frontier.parkBlocked(anchor, action)
                 val capturable = sectionCapturable?.invoke(raw.sectionX, raw.sectionZ) ?: true

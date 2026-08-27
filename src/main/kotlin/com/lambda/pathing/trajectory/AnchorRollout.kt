@@ -50,13 +50,38 @@ internal class AnchorRollout(
         return mapped >= 2
     }
 
-    fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
+    /**
+     * A rollout split into phases so a batch can run its simulations concurrently:
+     * [prepare] on the coordinator (it reads the guide field, whose memoisation is not
+     * thread-safe), [execute] on any worker (pure simulation over the snapshot plus
+     * state confined to this object), [complete] back on the coordinator (probes,
+     * field post-checks, anchor construction). [transition] is their composition and
+     * the serial path is byte-identical to what it always did.
+     */
+    internal class PreparedRollout(
+        val anchor: ValueAnchor,
+        val action: TrajectoryDecision,
+        internal val movement: com.lambda.pathing.movement.Movement,
+        internal val points: List<HorizontalPoint>,
+        internal val program: com.lambda.pathing.movement.ControlProgram,
+        internal val evaluator: RolloutEvaluator,
+        internal val descentAllowance: Double,
+        internal val frameCount: Int,
+        internal val launch: LaunchTrigger?,
+    ) {
+        internal var raw: TrajectoryRollout? = null
+        internal var failure: TrajectoryDiagnostic? = null
+        internal var stopFrame: Int? = null
+        internal var eventFrame: Int? = null
+        internal var eventStance: Stance = anchor.stance
+    }
+
+    fun prepare(anchor: ValueAnchor, action: TrajectoryDecision): PreparedRollout? {
         val chain = field.chain(
             anchor.stance, action.step, searchConfig.chainLength, anchor.heading(),
         )
         val points = chain.map { it.center(environment) }
-        val movement = movements[action.movement]
-            ?: return Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed))
+        val movement = movements[action.movement] ?: return null
 
         val launch = when (action) {
             is TrajectoryDecision.Launch -> LaunchTrigger(action.delayFrames)
@@ -74,35 +99,47 @@ internal class AnchorRollout(
             )
         )
         val descentAllowance = movement.descentAllowance(action)
-        val evaluator = RolloutEvaluator(
-            anchor.state, points, goalPoint(), config,
-            allowHorizontalContact = movement.pressesIntoTerrain,
+        return PreparedRollout(
+            anchor = anchor,
+            action = action,
+            movement = movement,
+            points = points,
+            program = program,
+            evaluator = RolloutEvaluator(
+                anchor.state, points, goalPoint(), config,
+                allowHorizontalContact = movement.pressesIntoTerrain,
+                descentAllowance = descentAllowance,
+            ),
             descentAllowance = descentAllowance,
+            frameCount = maxOf(searchConfig.maxTransitionFrames, movement.transitionFrames(action)),
+            launch = launch,
         )
+    }
+
+    fun execute(prepared: PreparedRollout) {
+        val anchor = prepared.anchor
+        val action = prepared.action
+        val movement = prepared.movement
         var previous = anchor.state
         var airborne = false
-        var failure: TrajectoryDiagnostic? = null
-        var stopFrame: Int? = null
-        var eventFrame: Int? = null
-        var eventStance = anchor.stance
 
-        val rollout = TrajectoryRolloutEngine.rollout(
+        prepared.raw = TrajectoryRolloutEngine.rollout(
             initialState = anchor.state,
             profile = profile,
             environment = environment,
-            program = program,
-            frameCount = maxOf(searchConfig.maxTransitionFrames, movement.transitionFrames(action)),
+            program = prepared.program,
+            frameCount = prepared.frameCount,
         ) { frame ->
-            val verdict = evaluator.observe(frame.index, frame.state, previous)
+            val verdict = prepared.evaluator.observe(frame.index, frame.state, previous)
             previous = frame.state
             when (verdict) {
                 is RolloutVerdict.Failed -> {
-                    failure = verdict.diagnostic
+                    prepared.failure = verdict.diagnostic
                     true
                 }
 
                 is RolloutVerdict.Stopped -> {
-                    stopFrame = verdict.frame
+                    prepared.stopFrame = verdict.frame
                     true
                 }
 
@@ -121,7 +158,7 @@ internal class AnchorRollout(
                                 observed = frame.state,
                                 stance = stance,
                                 airborne = airborne,
-                                launch = launch,
+                                launch = prepared.launch,
                                 headingCommitFrames = searchConfig.headingCommitFrames,
                             )
                         )
@@ -129,8 +166,8 @@ internal class AnchorRollout(
                         val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed ||
                             action is TrajectoryDecision.Drop || movement.completesAirborne
                         if (done && moving && stance != anchor.stance) {
-                            eventFrame = frame.index
-                            eventStance = stance
+                            prepared.eventFrame = frame.index
+                            prepared.eventStance = stance
                             true
                         } else {
                             false
@@ -139,6 +176,25 @@ internal class AnchorRollout(
                 }
             }
         }
+    }
+
+    fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
+        val prepared = prepare(anchor, action)
+            ?: return Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed))
+        execute(prepared)
+        return complete(prepared, hazardFrame)
+    }
+
+    fun complete(prepared: PreparedRollout, hazardFrame: Int?): Outcome {
+        val anchor = prepared.anchor
+        val action = prepared.action
+        val points = prepared.points
+        val descentAllowance = prepared.descentAllowance
+        val rollout = checkNotNull(prepared.raw) { "complete() before execute()" }
+        val failure = prepared.failure
+        val stopFrame = prepared.stopFrame
+        val eventFrame = prepared.eventFrame
+        var eventStance = prepared.eventStance
 
         record(anchor, action, rollout, failure, stopFrame != null)
 

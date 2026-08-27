@@ -75,6 +75,7 @@ internal data class TrajectoryPlanningPreparation(
     val frontierProbeRange: Int,
     val frontierSweepBudget: Int,
     val bootstrapDelayMillis: Long,
+    val plannerThreads: Int,
     val dumpDirectory: java.nio.file.Path?,
     val startedMillis: Long,
 )
@@ -218,6 +219,7 @@ object TrajectoryPlanner {
                 frontierProbeRange = config.frontierProbeRange,
                 frontierSweepBudget = config.frontierSweepBudget,
                 bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
+                plannerThreads = config.plannerThreads,
                 dumpDirectory = dumpDirectory,
                 startedMillis = started,
             )
@@ -339,6 +341,7 @@ object TrajectoryPlanner {
                     // fraction of the attempts print the same fields, so the difference
                     // between them can be read off directly instead of inferred.
                     onExhaustion = { LOG.info("Trajectory search {} -> {}: {}", start, goal, it) },
+                    parallelism = preparation.plannerThreads,
                 )
 
                 if (outcome is PathPlanResult.Failed) {
@@ -396,9 +399,19 @@ object TrajectoryPlanner {
         adoptedSequence: () -> Long = { Long.MAX_VALUE },
         probe: SearchProbe = SearchProbe.NONE,
         onExhaustion: ((SearchExhaustion) -> Unit)? = null,
+        parallelism: Int = 1,
     ): PathPlanResult {
         var published = 0
         var last: PublishedPath? = null
+
+        // Rollout workers for batch-parallel expansion. Daemon threads, owned by this
+        // walk: the coordinator selects and applies, the workers only simulate.
+        val pool = if (parallelism > 1) {
+            java.util.concurrent.Executors.newFixedThreadPool(parallelism) { runnable ->
+                Thread(runnable, "PathPlanner-rollout").apply { isDaemon = true }
+            }
+        } else null
+        try {
 
         val result = ValueFieldAnchorSearch.search(
             route, planner.moves.catalog, field, initial, profile, snapshot, seedConfig,
@@ -445,6 +458,8 @@ object TrajectoryPlanner {
             finalGoal = finalGoal,
             probe = probe,
             onExhaustion = onExhaustion,
+            parallelism = parallelism,
+            executor = pool,
         )
 
         return when (result) {
@@ -464,6 +479,10 @@ object TrajectoryPlanner {
                     "the search dead-ended (${describeRefusal(result)})",
                 )
             )
+        }
+
+        } finally {
+            pool?.shutdownNow()
         }
     }
 
