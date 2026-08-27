@@ -91,7 +91,17 @@ object PathingMetricSink {
     private const val VARIANT_FRAME_SLACK_RATIO = 0.40
     private const val VARIANT_COLLISION_SLACK = 8
     private const val VARIANT_BUMP_SLACK = 4
-    private const val TRAJECTORY_FRAME_SLACK_RATIO = 0.03
+
+    /**
+     * Under the just-in-time posture (2026-08-27: capped publications, finalization
+     * waiting for the body, no idle rule) every walk's tape is assembled from
+     * refinements adopted under wall-clock pressure, so run-to-run spread on real
+     * hardware grew from frame-exact to ~10% on jump-heavy scenarios (long-haul
+     * 202..218, bedrock-field 152..168 across consecutive green-intent runs). The
+     * gate bounds that variance; a real regression in this codebase's history moved
+     * 28%..150%.
+     */
+    private const val TRAJECTORY_FRAME_SLACK_RATIO = 0.12
 
     /** Small deterministic regression gate; Phase 6 grows this into comparative statistics. */
     fun assertWithinBaseline(run: Run) {

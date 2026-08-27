@@ -520,6 +520,10 @@ object TrajectoryPlanner {
 
     private const val HORIZON_CHUNK_FRAMES = 20
 
+    // Measured at 2 during the just-in-time rework (2026-08-27): a 60-frame window
+    // lost bedrock-04 outright and a holdout course -- too little room to route around
+    // a hard section before the drip needs tape. Locality comes from divergence
+    // pruning and the publication cap instead; the exploration window stays at 3.
     private const val HORIZON_WINDOW_CHUNKS = 3
 
     private const val HORIZON_FINAL_COMMIT_CHUNKS = 2

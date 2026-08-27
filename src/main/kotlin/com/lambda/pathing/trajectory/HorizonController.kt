@@ -6,6 +6,13 @@ import net.minecraft.util.math.Vec3d
 internal interface CommitSupport {
     val expansionCount: Int
 
+    /**
+     * The anchor of the best full solution to the current goal, when one stands. While
+     * it does, publications follow its lineage: the tape is a prefix of the best known
+     * plan, never whatever anchored first under runway pressure.
+     */
+    val incumbentAnchor: ValueAnchor?
+
     fun brakeToStop(anchor: ValueAnchor): Solution?
 
     fun certify(solution: Solution): MotionPlanResult
@@ -124,7 +131,23 @@ internal class HorizonController(
         val remaining = field.guide(anchor.stance)
         if (!remaining.isFinite() || remaining <= searchConfig.finishValueTicks) return
 
+        val cursor = cursorFrame?.invoke()
         val running = publishedTip
+        // Refusals only matter in the frames before a potential stall; report them there.
+        val pressured = running != null && cursor != null &&
+            running.elapsed - cursor <= searchConfig.horizonRunwayFrames
+        fun refused(reason: String) {
+            if (pressured) probe.publishRefused(reason, anchor.elapsed, running?.elapsed ?: -1, cursor ?: -1)
+        }
+
+        if (anchor.elapsed > publicationCap(cursor ?: -1)) return refused("cap")
+        // With a full solution standing, only its own prefix is publishable here.
+        // Publishing whatever anchored first let refinement churn onto the tape the
+        // moment the runway ran low; branch changes go through commitFromCandidates,
+        // which weighs them, instead.
+        support.incumbentAnchor?.let { incumbent ->
+            if (!incumbent.descendsFrom(anchor)) return refused("off-incumbent")
+        }
         if (running == null) {
             if (anchor.elapsed < searchConfig.safePrefixFrames) return
             if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
@@ -135,15 +158,28 @@ internal class HorizonController(
             // hold at its brake. Let the session finalize instead.
             if (remaining <= FIRST_PUBLISH_MIN_REMAINING_TICKS) return
         } else {
-            if (!ackedUpToDate()) return
-            if (anchor.elapsed < running.elapsed + searchConfig.horizonCommitFrames) return
-            if (support.expansionCount - expansionsAtPublish < searchConfig.minCommitExpansions) return
-            val executing = cursorFrame?.invoke() ?: return
+            if (!ackedUpToDate()) return refused("unacked")
+            if (anchor.elapsed < running.elapsed + searchConfig.horizonCommitFrames) return refused("short-extension")
+            if (support.expansionCount - expansionsAtPublish < searchConfig.minCommitExpansions) return refused("work-floor")
+            val executing = cursor ?: return
             if (running.elapsed - executing > searchConfig.horizonRunwayFrames) return
-            if (!publishableOver(running, anchor, executing)) return
+            if (!publishableOver(running, anchor, executing)) return refused("not-publishable-over")
         }
-        publishSolution(anchor)
+        if (!publishSolution(anchor)) refused("certification")
     }
+
+    /**
+     * The deepest frame a publication may reach: a few chunks past the body, never the
+     * deepest certifiable anchor. Handing the executor half the course at once froze
+     * its quality -- an improvement can only replace tape that diverges ahead of the
+     * cursor, so everything inside a long published prefix was already decided. Keeping
+     * the published runway short leaves the near future open for the just-in-time
+     * refinement the search spends its idle capacity on, while staying long enough to
+     * absorb a planner hiccup (a streaming hole, a capture wait) without the body
+     * running into the brake tail.
+     */
+    private fun publicationCap(executing: Int): Int =
+        maxOf(executing, 0) + searchConfig.horizonCommitFrames * PUBLISH_RUNWAY_CHUNKS
 
     fun commitFromCandidates(urgent: Boolean, along: ValueAnchor? = null): Boolean {
         if (onSafePrefix == null) return false
@@ -171,15 +207,50 @@ internal class HorizonController(
 
         if (root != null) {
             val progress = field.guide(root.stance) - field.guide(best.anchor.stance)
-            if (progress < MIN_COMMIT_PROGRESS_TICKS) return false
+            if (progress < MIN_COMMIT_PROGRESS_TICKS) {
+                if (urgent) probe.publishRefused("commit-progress", best.anchor.elapsed, root.elapsed, executing)
+                return false
+            }
         }
 
+        val cap = publicationCap(executing)
         val line = lineFrom(reachableRoot, best.anchor).filter { it.elapsed > floor }
-        for (candidate in line.sortedByDescending { it.elapsed }) {
-
-            if (root == null && field.guide(candidate.stance) <= searchConfig.finishValueTicks) continue
-            if (root != null && !publishableOver(root, candidate, executing)) continue
+        var overRefused = 0
+        var certifyRefused = 0
+        var finishSkipped = 0
+        fun tryPublish(candidate: ValueAnchor): Boolean {
+            if (root == null && field.guide(candidate.stance) <= searchConfig.finishValueTicks) {
+                finishSkipped++
+                return false
+            }
+            if (root != null && !publishableOver(root, candidate, executing)) {
+                overRefused++
+                if (urgent) probe.publishRefused("cand-$lastRefusalClause", candidate.elapsed, root.elapsed, executing)
+                return false
+            }
             if (publishSolution(candidate)) return true
+            certifyRefused++
+            return false
+        }
+        // Deepest-first inside the cap: the smallest publication is the deepest one
+        // that still fits the runway budget.
+        for (candidate in line.filter { it.elapsed <= cap }.sortedByDescending { it.elapsed }) {
+            if (tryPublish(candidate)) return true
+        }
+        // A publication must end at an anchor a passive brake can settle from, and on a
+        // jump chain those are sparse -- every capped candidate can be mid-flight or
+        // skidding off a lip, with the nearest brakable point beyond the cap. Overshoot
+        // by as little as possible rather than refuse: the refusals were measured
+        // (commit-line-refused in the hundreds at each stall) as the body braking at
+        // the tape end with certified work sitting unpublishable.
+        for (candidate in line.filter { it.elapsed > cap }.sortedBy { it.elapsed }) {
+            if (tryPublish(candidate)) return true
+        }
+        if (urgent) {
+            probe.publishRefused(
+                "commit-line-refused(line=${line.size},over=$overRefused,certify=$certifyRefused,finish=$finishSkipped)",
+                best.anchor.elapsed, root?.elapsed ?: -1, executing,
+            )
         }
         return false
     }
@@ -219,16 +290,35 @@ internal class HorizonController(
         if (executing >= 0 &&
             executionDivergence(candidate) < executing + PUBLISH_DIVERGENCE_MARGIN_FRAMES
         ) {
+            lastRefusalClause = "divergence"
             return false
         }
-        if (candidate.descendsFrom(tip)) return candidate.elapsed > tip.elapsed
+        if (candidate.descendsFrom(tip)) {
+            if (candidate.elapsed <= tip.elapsed) {
+                lastRefusalClause = "descendant-not-deeper"
+                return false
+            }
+            return true
+        }
         // A publication on another branch must improve the ESTIMATED ARRIVAL, not
         // just the coarse guide: comparing guides alone let the tape swap onto a
-        // branch with less progress -- a physical loop the body then walks.
-        val candidateArrival = candidate.elapsed + field.guide(candidate.stance)
-        val tipArrival = tip.elapsed + field.guide(tip.stance)
-        return candidateArrival + REFINEMENT_GAIN_TICKS <= tipArrival
+        // branch with less progress -- a physical loop the body then walks. Collisions
+        // are priced the way Solution.score prices them, or a swap could buy its three
+        // ticks by scraping walls -- measured as a refinement pass taking a scenario
+        // from one collision frame to seven.
+        val candidateArrival = candidate.elapsed + field.guide(candidate.stance) +
+            ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * candidate.collisionEvents
+        val tipArrival = tip.elapsed + field.guide(tip.stance) +
+            ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * tip.collisionEvents
+        if (candidateArrival + REFINEMENT_GAIN_TICKS > tipArrival) {
+            lastRefusalClause = "backtrack-gain"
+            return false
+        }
+        return true
     }
+
+    /** Diagnostic only: the clause the last publishableOver refusal took. */
+    private var lastRefusalClause: String = "-"
 
     private fun publishSolution(anchor: ValueAnchor): Boolean {
         val publish = onSafePrefix ?: return false
@@ -303,16 +393,27 @@ internal class HorizonController(
     }
 
     /** Elapsed frame at which [candidate]'s lineage departs from [running]'s. */
-    private fun divergenceElapsed(running: ValueAnchor, candidate: ValueAnchor): Int {
-        val runningLine = HashSet<ValueAnchor>()
-        var node: ValueAnchor? = running
-        while (node != null) {
-            runningLine += node
-            node = node.parent
+    private var runningLineFor: ValueAnchor? = null
+    private val runningLine = HashSet<ValueAnchor>()
+
+    private fun runningLine(running: ValueAnchor): Set<ValueAnchor> {
+        if (runningLineFor !== running) {
+            runningLine.clear()
+            var node: ValueAnchor? = running
+            while (node != null) {
+                runningLine += node
+                node = node.parent
+            }
+            runningLineFor = running
         }
+        return runningLine
+    }
+
+    private fun divergenceElapsed(running: ValueAnchor, candidate: ValueAnchor): Int {
+        val line = runningLine(running)
         var walk: ValueAnchor? = candidate
         while (walk != null) {
-            if (walk in runningLine) return walk.elapsed
+            if (walk in line) return walk.elapsed
             walk = walk.parent
         }
         return 0
@@ -326,8 +427,29 @@ internal class HorizonController(
     fun executionDivergence(anchor: ValueAnchor): Int {
         val acked = adoptedSequence?.invoke() ?: Long.MAX_VALUE
         val running = publications.lastOrNull { it.sequence <= acked } ?: return Int.MAX_VALUE
-        if (anchor.descendsFrom(running.brakeAnchor)) return running.brakeAnchor.elapsed
-        return divergenceElapsed(running.anchor, anchor)
+        if (anchor.divergenceSequence == running.sequence) return anchor.divergenceElapsed
+        val divergence = if (anchor.descendsFrom(running.brakeAnchor)) running.brakeAnchor.elapsed
+        else divergenceElapsed(running.anchor, anchor)
+        anchor.divergenceElapsed = divergence
+        anchor.divergenceSequence = running.sequence
+        return divergence
+    }
+
+    /**
+     * Whether [anchor] can still lead to an adoptable publication. Execution kills
+     * branches continuously: once the cursor passes the frame where a branch departs
+     * the acked tape, nothing that branch leads to can ever be published -- the
+     * divergence clause will refuse it forever. Leaving such branches in the frontier
+     * was measured as the search chasing a better-but-dead line while the tape starved
+     * and the body braked at the tip (every stall's refusals were divergence refusals
+     * with a frozen divergence behind an advancing cursor). Anchors still ON the acked
+     * tape report their own elapsed as divergence; they are the tape and stay live.
+     */
+    fun adoptable(anchor: ValueAnchor): Boolean {
+        val executing = cursorFrame?.invoke() ?: return true
+        val divergence = executionDivergence(anchor)
+        if (divergence >= executing + PUBLISH_DIVERGENCE_MARGIN_FRAMES) return true
+        return divergence >= anchor.elapsed
     }
 
     /**
@@ -409,6 +531,14 @@ internal class HorizonController(
         const val REFINEMENT_GAIN_TICKS = 3.0
 
         const val FIRST_PUBLISH_MIN_REMAINING_TICKS = 30.0
+
+        /**
+         * Published runway in commit chunks: three chunks is two to three seconds of
+         * certified motion ahead of the body -- enough to ride out a streaming hole or
+         * a capture wait, small enough that most of the course stays open to
+         * improvement. See [publicationCap].
+         */
+        const val PUBLISH_RUNWAY_CHUNKS = 3
 
         const val ACK_ROLLBACK_MILLIS = 150L
 

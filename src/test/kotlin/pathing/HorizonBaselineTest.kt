@@ -261,6 +261,23 @@ class HorizonBaselineTest {
                 (diagnostic?.let { " $it" } ?: "")
         }
 
+        override fun braked(
+            tipElapsed: Int,
+            executing: Int,
+            open: Int,
+            parked: Int,
+            deepestElapsed: Int,
+        ) {
+            spineLines += "braked tip=$tipElapsed executing=$executing open=$open parked=$parked deepest=$deepestElapsed refusals=$refusals"
+            refusals.clear()
+        }
+
+        private val refusals = HashMap<String, Int>()
+
+        override fun publishRefused(reason: String, anchorElapsed: Int, tipElapsed: Int, executing: Int) {
+            refusals.merge(reason, 1, Int::plus)
+        }
+
         override fun expansion(
             from: Stance,
             action: TrajectoryDecision,
