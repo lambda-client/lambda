@@ -1,7 +1,7 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.movement.TerminalApproach
-import com.lambda.util.player.prediction.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 
 /** Frames a finished tape spent on one movement kind. */
 data class TapeSegment(val movement: com.lambda.pathing.core.MovementId, val frames: Int)

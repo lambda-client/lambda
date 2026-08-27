@@ -2,7 +2,7 @@ package com.lambda.pathing
 
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.util.player.prediction.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 
 internal class Walk(val request: PathingRequest) {
     var planningSession: PlanningSession? = null

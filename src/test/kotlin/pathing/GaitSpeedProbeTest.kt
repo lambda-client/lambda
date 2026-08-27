@@ -4,7 +4,14 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.util.player.prediction.*
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
+import com.lambda.pathing.prediction.simulation.MovementSimulator
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
@@ -21,14 +28,14 @@ class GaitSpeedProbeTest {
                 val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
                 for (z in -6..60) for (x in -4..4) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
                 val environment = SnapshotSimulationEnvironment.synthetic(
-                    SimulationSnapshotBounds(-8, 58, -8, 8, 90, 70), blocks,
+	                SimulationSnapshotBounds(-8, 58, -8, 8, 90, 70), blocks,
                 )
                 val simulator = MovementSimulator(
-                    profile = PROFILE, environment = environment,
-                    initialState = MovementSimulationState.synthetic(
-                        profile = PROFILE, position = Vec3d(0.5, 64.0, 0.5),
-                        rotation = Rotation(0.0, 0.0), velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
-                    ),
+	                profile = PROFILE, environment = environment,
+	                initialState = MovementSimulationState.synthetic(
+		                profile = PROFILE, position = Vec3d(0.5, 64.0, 0.5),
+		                rotation = Rotation(0.0, 0.0), velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
+	                ),
                 )
                 var ticks = 0
                 var jumps = 0
@@ -44,8 +51,8 @@ class GaitSpeedProbeTest {
                     val jump = hop && !braking && simulator.state.onGround
                     if (jump) jumps++
                     val input = MovementSimulationInput(
-                        forward = if (braking) 0.0 else 1.0,
-                        sprint = !braking, jump = jump, rotation = Rotation(0.0, 0.0),
+	                    forward = if (braking) 0.0 else 1.0,
+	                    sprint = !braking, jump = jump, rotation = Rotation(0.0, 0.0),
                     )
                     if (simulator.tryTickMovement(input) !is MovementSimulationStepResult.Advanced) break
                     ticks++
@@ -65,14 +72,14 @@ class GaitSpeedProbeTest {
             val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
             for (z in -4..140) for (x in -4..4) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
             val environment = SnapshotSimulationEnvironment.synthetic(
-                SimulationSnapshotBounds(-8, 58, -8, 8, 90, 150), blocks,
+	            SimulationSnapshotBounds(-8, 58, -8, 8, 90, 150), blocks,
             )
             val simulator = MovementSimulator(
-                profile = PROFILE, environment = environment,
-                initialState = MovementSimulationState.synthetic(
-                    profile = PROFILE, position = Vec3d(0.5, 64.0, 0.5),
-                    rotation = Rotation(0.0, 0.0), velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
-                ),
+	            profile = PROFILE, environment = environment,
+	            initialState = MovementSimulationState.synthetic(
+		            profile = PROFILE, position = Vec3d(0.5, 64.0, 0.5),
+		            rotation = Rotation(0.0, 0.0), velocity = Vec3d(0.0, -0.0784, 0.0), onGround = true,
+	            ),
             )
             var ticks = 0
             var jumps = 0
@@ -83,8 +90,8 @@ class GaitSpeedProbeTest {
                 }
                 if (jump) jumps++
                 val input = MovementSimulationInput(
-                    forward = 1.0, sprint = gait != "walk", jump = jump,
-                    rotation = Rotation(0.0, 0.0),
+	                forward = 1.0, sprint = gait != "walk", jump = jump,
+	                rotation = Rotation(0.0, 0.0),
                 )
                 if (simulator.tryTickMovement(input) !is MovementSimulationStepResult.Advanced) break
                 ticks++
@@ -102,9 +109,9 @@ class GaitSpeedProbeTest {
         const val BRAKE_LOOKAHEAD = 8.0
 
         val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
+	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
+	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
+	        width = 0.6, height = 1.8, eyeHeight = 1.62,
         )
     }
 }

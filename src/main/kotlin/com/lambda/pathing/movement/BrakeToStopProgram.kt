@@ -1,8 +1,8 @@
 package com.lambda.pathing.movement
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
 
 internal class BrakeToStopProgram(private val heldYaw: Double) : ControlProgram {
     override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput =

@@ -14,11 +14,11 @@ import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.trajectory.SearchProbe
 import com.lambda.pathing.trajectory.VirtualSearchClock
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SimulationSnapshotBounds
-import com.lambda.util.player.prediction.SnapshotBlockPhysics
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.atan2

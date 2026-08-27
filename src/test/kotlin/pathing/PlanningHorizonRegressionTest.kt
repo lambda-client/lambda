@@ -3,10 +3,10 @@ package pathing
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
-import com.lambda.util.player.prediction.ImmutableSnapshotSection
-import com.lambda.util.player.prediction.SimulationSnapshotBounds
-import com.lambda.util.player.prediction.SnapshotBlockPhysics
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.ChunkSectionPos
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test

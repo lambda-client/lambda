@@ -91,6 +91,7 @@ import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.tag.BlockTags
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.state.property.Property
 import net.minecraft.util.math.BlockPos
@@ -364,4 +365,7 @@ object BlockUtils {
     context(safeContext: SafeContext)
     val BlockPos.isLoaded get() = safeContext.isLoaded(this)
 
+    /** @see net.minecraft.entity.Entity.getPosWithYOffset */
+    fun BlockState.isFenceLike(): Boolean =
+        isIn(BlockTags.FENCES) || isIn(BlockTags.WALLS) || block is FenceGateBlock
 }

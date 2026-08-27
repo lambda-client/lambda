@@ -1,7 +1,7 @@
 package com.lambda.pathing.trajectory
 
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
 
 internal fun collisionEvents(
     entry: MovementSimulationState,

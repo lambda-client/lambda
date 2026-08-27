@@ -10,7 +10,7 @@ import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import kotlin.time.Duration
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes

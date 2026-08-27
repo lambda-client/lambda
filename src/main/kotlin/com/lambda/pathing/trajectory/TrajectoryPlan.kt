@@ -5,8 +5,8 @@ import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import java.util.Collections
 
 @JvmInline

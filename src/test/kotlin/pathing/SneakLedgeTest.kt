@@ -4,7 +4,13 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.util.player.prediction.*
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulator
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.test.Test
@@ -50,22 +56,22 @@ class SneakLedgeTest {
         val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
         for (x in -4..3) for (z in -2..2) blocks[BlockPos(x, 62, z)] = SnapshotBlockPhysics.FULL_CUBE
         val environment = SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-10, 50, -8, 12, 80, 8), blocks,
+	        SimulationSnapshotBounds(-10, 50, -8, 12, 80, 8), blocks,
         )
         val simulator = MovementSimulator(
-            profile = PROFILE,
-            environment = environment,
-            initialState = MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(0.5, DECK_Y, 0.5),
-                rotation = FACING_EAST,
-                onGround = true,
-            ),
+	        profile = PROFILE,
+	        environment = environment,
+	        initialState = MovementSimulationState.synthetic(
+		        profile = PROFILE,
+		        position = Vec3d(0.5, DECK_Y, 0.5),
+		        rotation = FACING_EAST,
+		        onGround = true,
+	        ),
         )
 
         repeat(TICKS) {
             simulator.tryTickMovement(
-                MovementSimulationInput(forward = 1.0, sneak = sneak, rotation = FACING_EAST),
+	            MovementSimulationInput(forward = 1.0, sneak = sneak, rotation = FACING_EAST),
             )
         }
         return simulator.state.position
@@ -84,9 +90,9 @@ class SneakLedgeTest {
         val FACING_EAST = Rotation(-90.0, 0.0)
 
         val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
+	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
+	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
+	        width = 0.6, height = 1.8, eyeHeight = 1.62,
         )
     }
 }

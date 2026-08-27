@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.prediction
 
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -23,11 +23,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
-/**
- * Context-free mirror of vanilla's block collision clipping and auto-step
- * selection. Keeping it independent of a World lets immutable snapshot
- * environments use the same equations as the live client.
- */
 internal object VanillaBlockCollisionResolver {
     fun adjust(
         movement: Vec3d,
@@ -103,7 +98,7 @@ internal object VanillaBlockCollisionResolver {
         val heights = HashSet<Float>(4)
         for (shape in collisions) {
             val points = shape.getPointPositions(Direction.Axis.Y)
-            for (index in 0 until points.size) {
+            for (index in points.indices) {
                 val point = points.getDouble(index)
                 val height = (point - collisionBox.minY).toFloat()
                 if (height < 0.0F || height == baseVerticalOffset) continue

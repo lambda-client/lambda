@@ -15,9 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.prediction
 
 import com.lambda.context.SafeContext
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationTick
+import com.lambda.pathing.prediction.simulation.MovementSimulator
 
 /**
  * Builds the player movement prediction engine based on minecraft physics logic.

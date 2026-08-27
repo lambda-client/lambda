@@ -21,7 +21,11 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.core.MovementId
-import com.lambda.util.player.prediction.*
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
@@ -153,7 +157,7 @@ class DropPrimitiveTest {
         for (x in 8..11) for (z in -1..1) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
 
         val environment = SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-8, 55, -6, 16, 85, 6), blocks,
+	        SimulationSnapshotBounds(-8, 55, -6, 16, 85, 6), blocks,
         )
         val moves = library()
         val start = Stance(-1, 71, 0)
@@ -227,7 +231,7 @@ class DropPrimitiveTest {
         for (x in 5..8) for (z in -1..1) blocks[BlockPos(x, 62, z)] = SnapshotBlockPhysics.FULL_CUBE
 
         val environment = SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-8, 54, -6, 13, 85, 6), blocks,
+	        SimulationSnapshotBounds(-8, 54, -6, 13, 85, 6), blocks,
         )
         val start = Stance(-1, 71, 0)
         val goal = Stance(6, 63, 0)
@@ -299,7 +303,7 @@ class DropPrimitiveTest {
         for (x in -4 downTo -7) for (z in -1..1) blocks[BlockPos(x, 10, z)] = SnapshotBlockPhysics.FULL_CUBE
 
         val environment = SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-12, 0, -8, 8, 40, 8), blocks,
+	        SimulationSnapshotBounds(-12, 0, -8, 8, 40, 8), blocks,
         )
         val start = Stance(0, 17, 0)
         val goal = Stance(-5, 11, 0)
@@ -370,7 +374,7 @@ class DropPrimitiveTest {
         for (x in -4 downTo -7) for (z in -1..1) blocks[BlockPos(x, 10, z)] = SnapshotBlockPhysics.FULL_CUBE
 
         val environment = SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-12, 0, -8, 8, 40, 8), blocks,
+	        SimulationSnapshotBounds(-12, 0, -8, 8, 40, 8), blocks,
         )
         val planner = CoarsePlanner(environment, library(), Stance(0, 17, 0), Stance(-5, 11, 0))
         assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
@@ -418,7 +422,7 @@ class DropPrimitiveTest {
     }
 
     private fun ledgeEnvironment() = SnapshotSimulationEnvironment.synthetic(
-        SimulationSnapshotBounds(-12, 55, -6, 12, 80, 6), ledgeBlocks(),
+	    SimulationSnapshotBounds(-12, 55, -6, 12, 80, 6), ledgeBlocks(),
     )
 
     private fun ledge() = ledgeEnvironment()
@@ -457,9 +461,9 @@ class DropPrimitiveTest {
         const val MAX_SINGLE_TREAD_AIR_FRAMES = 12
 
         val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
+	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
+	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
+	        width = 0.6, height = 1.8, eyeHeight = 1.62,
         )
     }
 }

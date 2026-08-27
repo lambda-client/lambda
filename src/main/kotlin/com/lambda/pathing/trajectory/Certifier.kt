@@ -3,10 +3,10 @@ package com.lambda.pathing.trajectory
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.movement.InputTape
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 
 internal class Certifier(
     private val initialState: MovementSimulationState,

@@ -10,9 +10,20 @@
 package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
+import com.lambda.pathing.prediction.simulation.MovementSimulator
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.SimulationSnapshotOutOfBoundsException
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSectionUnavailableException
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.UnsupportedBlockPhysicsException
+import com.lambda.pathing.prediction.UnsupportedPhysics
+import com.lambda.pathing.prediction.UnsupportedPhysicsKind
 import com.lambda.pathing.world.CoarseVoxel
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box

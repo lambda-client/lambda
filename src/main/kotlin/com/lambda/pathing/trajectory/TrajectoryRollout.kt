@@ -1,14 +1,14 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.movement.ControlProgram
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.MovementSimulationStepResult
-import com.lambda.util.player.prediction.MovementSimulator
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SimulationEnvironment
-import com.lambda.util.player.prediction.SimulationEnvironmentException
-import com.lambda.util.player.prediction.SnapshotSectionUnavailableException
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
+import com.lambda.pathing.prediction.simulation.MovementSimulator
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.SimulationEnvironment
+import com.lambda.pathing.prediction.SimulationEnvironmentException
+import com.lambda.pathing.prediction.SnapshotSectionUnavailableException
 
 data class SimulatedTrajectoryFrame(
     val index: Int,

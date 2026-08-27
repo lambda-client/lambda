@@ -5,11 +5,18 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.player.prediction
+package com.lambda.pathing.prediction.snapshot
 
-/** Compact immutable physics values for one 16x16x16 block section. */
 internal class ImmutableSnapshotSection private constructor(
     private val palette: Array<SnapshotBlockPhysics>,
     private val byteIndices: ByteArray?,
@@ -77,14 +84,8 @@ internal class ImmutableSnapshotSection private constructor(
     private companion object {
         const val SECTION_CELLS = 16 * 16 * 16
 
-        /** Y-major layout matching Minecraft section locality; masking handles negative coordinates. */
         fun localIndex(x: Int, y: Int, z: Int): Int =
             ((y and 15) shl 8) or ((z and 15) shl 4) or (x and 15)
     }
 }
 
-internal data class SnapshotStorageStats(
-    val sections: Int,
-    val paletteEntries: Int,
-    val indexBytes: Int,
-)

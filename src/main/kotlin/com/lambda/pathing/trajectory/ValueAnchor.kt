@@ -4,8 +4,8 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.BodyState
 import com.lambda.pathing.movement.PricedDecision
 import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
 
 internal class ValueAnchor(
     override val state: MovementSimulationState,

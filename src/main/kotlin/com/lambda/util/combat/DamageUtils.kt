@@ -22,7 +22,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.minus
-import com.lambda.util.player.prediction.buildPlayerPrediction
+import com.lambda.pathing.prediction.buildPlayerPrediction
 import net.minecraft.block.BedBlock
 import net.minecraft.block.CobwebBlock
 import net.minecraft.block.HayBlock

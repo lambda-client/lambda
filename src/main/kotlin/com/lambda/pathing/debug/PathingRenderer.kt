@@ -8,13 +8,12 @@ import com.lambda.pathing.PathingManager
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.core.center
 import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import java.awt.Color
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
