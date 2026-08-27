@@ -18,6 +18,15 @@
 package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.prediction.MovementInputProvider
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulator
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.SimulationEnvironment
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Box
@@ -52,18 +61,18 @@ class MovementSimulatorTest {
     fun `input provider and explicit inputs use the same simulation path`() {
         val initial = groundedState()
         val tape = listOf(
-            MovementSimulationInput(forward = 1.0),
-            MovementSimulationInput(forward = 1.0, strafe = 0.5),
-            MovementSimulationInput(forward = 1.0, sprint = true),
-            MovementSimulationInput(forward = 1.0, sprint = true, jump = true),
-            MovementSimulationInput(forward = 0.5, strafe = -0.5, sprint = true),
+	        MovementSimulationInput(forward = 1.0),
+	        MovementSimulationInput(forward = 1.0, strafe = 0.5),
+	        MovementSimulationInput(forward = 1.0, sprint = true),
+	        MovementSimulationInput(forward = 1.0, sprint = true, jump = true),
+	        MovementSimulationInput(forward = 0.5, strafe = -0.5, sprint = true),
         )
         var cursor = 0
         val provided = MovementSimulator(
-            profile = PROFILE,
-            environment = FlatGroundEnvironment,
-            initialState = initial,
-            inputProvider = MovementInputProvider { tape[cursor++] },
+	        profile = PROFILE,
+	        environment = FlatGroundEnvironment,
+	        initialState = initial,
+	        inputProvider = MovementInputProvider { tape[cursor++] },
         )
         val explicit = simulator(initial)
 
@@ -166,9 +175,9 @@ class MovementSimulatorTest {
         )
         val simulator = MovementSimulator(PROFILE, glancingWallEnvironment(), initial)
         val input = MovementSimulationInput(
-            forward = 1.0,
-            sprint = true,
-            rotation = Rotation(0.7, 0.0),
+	        forward = 1.0,
+	        sprint = true,
+	        rotation = Rotation(0.7, 0.0),
         )
 
         val collision = simulator.tickMovement(input).simulator.state
@@ -268,9 +277,9 @@ class MovementSimulatorTest {
     }
 
     private fun simulator(initial: MovementSimulationState) = MovementSimulator(
-        profile = PROFILE,
-        environment = FlatGroundEnvironment,
-        initialState = initial,
+	    profile = PROFILE,
+	    environment = FlatGroundEnvironment,
+	    initialState = initial,
     )
 
     private fun groundedState(sneaking: Boolean = false) = MovementSimulationState.synthetic(
@@ -290,15 +299,15 @@ class MovementSimulatorTest {
             for (z in -2..5) put(BlockPos(-1, 0, z), SnapshotBlockPhysics.FULL_CUBE)
         }
         return SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-3, -3, -3, 3, 4, 6),
+	        SimulationSnapshotBounds(-3, -3, -3, 3, 4, 6),
             blocks,
         )
     }
 
     private fun assertStateEquals(
-        expected: MovementSimulationState,
-        actual: MovementSimulationState,
-        message: String,
+	    expected: MovementSimulationState,
+	    actual: MovementSimulationState,
+	    message: String,
     ) {
         assertVecEquals(expected.position, actual.position, "$message position")
         assertVecEquals(expected.velocity, actual.velocity, "$message velocity")
@@ -365,16 +374,16 @@ class MovementSimulatorTest {
         const val FLOOR_Y = 0.0
 
         val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1,
-            sneakSpeedModifier = 0.3,
-            gravity = 0.08,
-            jumpStrength = 0.42,
-            stepHeight = 0.6,
-            jumpBoostVelocityModifier = 0.0,
-            slowFalling = false,
-            width = 0.6,
-            height = 1.8,
-            eyeHeight = 1.62,
+	        movementSpeed = 0.1,
+	        sneakSpeedModifier = 0.3,
+	        gravity = 0.08,
+	        jumpStrength = 0.42,
+	        stepHeight = 0.6,
+	        jumpBoostVelocityModifier = 0.0,
+	        slowFalling = false,
+	        width = 0.6,
+	        height = 1.8,
+	        eyeHeight = 1.62,
         )
     }
 }

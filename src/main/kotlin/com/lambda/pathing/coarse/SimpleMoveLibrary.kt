@@ -19,7 +19,6 @@ class SimpleMoveLibrary private constructor(
     val templates: List<MotionTemplate>,
     private val readOffsets: Set<VoxelPos>,
     val heuristicCaps: HeuristicCaps,
-
     val sustainedTicksPerBlock: Double,
 ) {
     private val minReadX = readOffsets.minOf(VoxelPos::x)
@@ -28,13 +27,10 @@ class SimpleMoveLibrary private constructor(
     private val maxReadZ = readOffsets.maxOf(VoxelPos::z)
 
     data class HeuristicCaps(
-
         val axisTicksPerBlock: Double,
-
         val diagonalTicksPerPair: Double,
         val ascentTicksPerBlock: Double,
         val descentTicksPerBlock: Double,
-
         val straightTicksPerBlock: Double,
     )
 

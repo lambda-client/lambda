@@ -9,9 +9,9 @@ import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
-import com.lambda.util.player.prediction.SnapshotBlockPhysics
-import com.lambda.util.player.prediction.SimulationSnapshotBounds
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import org.junit.jupiter.api.Tag

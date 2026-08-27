@@ -3,7 +3,7 @@ package com.lambda.pathing.trajectory
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.TerminalApproach
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 
 data class PublishedPath(
     val route: CoarseRoutePlan,

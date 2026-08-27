@@ -12,9 +12,9 @@ import com.lambda.pathing.movement.PricedDecision
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.world.center
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 
 data class ValueFieldSearchConfig(
     val maxExpansions: Int = 8000,

@@ -17,11 +17,11 @@ import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.trajectory.SearchProbe
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.VirtualSearchClock
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SimulationSnapshotBounds
-import com.lambda.util.player.prediction.SnapshotBlockPhysics
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import kotlin.math.atan2
 import kotlin.test.Test
 import kotlin.time.Duration

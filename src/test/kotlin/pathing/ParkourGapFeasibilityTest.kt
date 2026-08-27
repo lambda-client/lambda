@@ -20,11 +20,11 @@ import com.lambda.pathing.movement.SegmentFollowerProgram
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.TrajectoryRolloutEngine
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SimulationSnapshotBounds
-import com.lambda.util.player.prediction.SnapshotBlockPhysics
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.test.Test

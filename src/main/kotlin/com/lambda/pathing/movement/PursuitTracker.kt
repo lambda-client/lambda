@@ -3,7 +3,7 @@ package com.lambda.pathing.movement
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MAX_PROGRESS_ADVANCE
-import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import kotlin.math.atan2
 
 internal class PursuitTracker(val nodes: List<HorizontalPoint>) {

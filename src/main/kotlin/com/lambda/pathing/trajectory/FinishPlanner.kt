@@ -7,7 +7,7 @@ import com.lambda.pathing.movement.CorridorFollowerProgram
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.world.center
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import kotlin.math.hypot
 
 internal class FinishPlanner(

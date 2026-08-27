@@ -13,9 +13,13 @@ import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
-import com.lambda.util.player.prediction.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -158,7 +162,7 @@ class LadderExecutionTest {
         for (x in -4..-1) for (z in -1..1) blocks[BlockPos(x, 69, z)] = SnapshotBlockPhysics.FULL_CUBE
 
         val environment = SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-10, 55, -8, 8, 90, 8), blocks,
+	        SimulationSnapshotBounds(-10, 55, -8, 8, 90, 8), blocks,
         )
         val start = Stance(-2, 63, 0)
         val goal = Stance(-2, 70, 0)
@@ -322,7 +326,7 @@ class LadderExecutionTest {
             for (y in DECK_STANCE..DECK_STANCE + 1) blocks.remove(BlockPos(x, y, 0))
         }
         return SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-10, 40, -8, 8, DECK_STANCE + 20, 8), blocks,
+	        SimulationSnapshotBounds(-10, 40, -8, 8, DECK_STANCE + 20, 8), blocks,
         )
     }
 
@@ -356,7 +360,7 @@ class LadderExecutionTest {
         }
 
         return SnapshotSimulationEnvironment.synthetic(
-            SimulationSnapshotBounds(-10, 40, -8, 8, top + 20, 8), blocks,
+	        SimulationSnapshotBounds(-10, 40, -8, 8, top + 20, 8), blocks,
         )
     }
 
@@ -370,14 +374,14 @@ class LadderExecutionTest {
         const val DECK_STANCE = 73
 
         val LADDER = SnapshotBlockPhysics(
-            collisionShape = VoxelShapes.empty(),
-            coarseVoxel = CoarseVoxel.of(Medium.CLIMBABLE),
+	        collisionShape = VoxelShapes.empty(),
+	        coarseVoxel = CoarseVoxel.of(Medium.CLIMBABLE),
         )
 
         val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
+	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
+	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
+	        width = 0.6, height = 1.8, eyeHeight = 1.62,
         )
     }
 }

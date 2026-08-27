@@ -1,6 +1,6 @@
 package com.lambda.pathing.launch
 
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 
 enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
     SPRINT_JUMP(sprint = true, jumps = true),

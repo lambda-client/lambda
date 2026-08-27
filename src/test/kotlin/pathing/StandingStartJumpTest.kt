@@ -11,17 +11,19 @@ import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SimulationSnapshotBounds
-import com.lambda.util.player.prediction.SnapshotBlockPhysics
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.CoarseVoxel
 import kotlin.test.Test
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShapes
 
 /**
  * The live parkour flake: a leg boundary settles the body to rest at the lip of a
@@ -167,8 +169,8 @@ class StandingStartJumpTest {
             put(
                 BlockPos(3, 1, 0),
                 SnapshotBlockPhysics(
-                    net.minecraft.util.shape.VoxelShapes.empty(),
-                    coarseVoxel = com.lambda.pathing.world.CoarseVoxel.FULL_BLOCK,
+                    VoxelShapes.empty(),
+                    coarseVoxel = CoarseVoxel.FULL_BLOCK,
                 ),
             )
             put(BlockPos(5, 0, 0), SnapshotBlockPhysics.FULL_CUBE)

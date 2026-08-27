@@ -3,9 +3,9 @@ package com.lambda.pathing.execution
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.world.WorldMutation
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 

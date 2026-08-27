@@ -5,16 +5,20 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.movement.*
-import com.lambda.pathing.PathingManager
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.*
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import com.lambda.pathing.trajectory.*
 import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.util.player.prediction.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
@@ -114,8 +118,8 @@ class HorizonWalkProbeTest {
 
     private fun bedrockEnvironment() = SnapshotSimulationEnvironment.synthetic(
         bounds = SimulationSnapshotBounds(
-            -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
-            BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
+	        -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
+	        BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
         ),
         blocks = BedrockFieldLayout.solidCells().associate {
             BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
@@ -125,8 +129,8 @@ class HorizonWalkProbeTest {
     private fun walk(lookahead: Int, commitFrames: Int) {
         val environment = SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(
-                -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
-                BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
+	            -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
+	            BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
             ),
             blocks = BedrockFieldLayout.solidCells().associate {
                 BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
@@ -178,7 +182,7 @@ class HorizonWalkProbeTest {
         // this check the probe accepted every publication and happily green-lit two changes
         // that halted the live walk four and seven times.
         var walkedTo = 0
-        var previousTape: List<com.lambda.util.player.prediction.MovementSimulationInput>? = null
+        var previousTape: List<MovementSimulationInput>? = null
         publications.forEach { (millis, path) ->
             val tape = path.plan.tape.asList()
             previousTape?.let { earlier ->
@@ -233,9 +237,9 @@ class HorizonWalkProbeTest {
 
     private companion object {
         val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
+	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
+	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
+	        width = 0.6, height = 1.8, eyeHeight = 1.62,
         )
     }
 }

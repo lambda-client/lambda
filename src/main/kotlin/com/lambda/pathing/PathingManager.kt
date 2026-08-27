@@ -31,9 +31,9 @@ import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.update
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.util.world.ChunkPacketLoadContext
 import kotlin.math.abs
 import kotlin.math.max

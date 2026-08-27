@@ -6,7 +6,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
 
 interface BodyState {
     val state: MovementSimulationState

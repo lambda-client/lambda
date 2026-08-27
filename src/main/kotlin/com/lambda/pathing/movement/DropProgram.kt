@@ -5,8 +5,8 @@ import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.horizontalDistance
 import com.lambda.pathing.launch.LaunchSolution
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import kotlin.math.abs
 import kotlin.math.hypot
 

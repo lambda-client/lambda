@@ -4,8 +4,8 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.horizontalDistance
-import com.lambda.util.player.prediction.MovementSimulationInput
-import com.lambda.util.player.prediction.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
