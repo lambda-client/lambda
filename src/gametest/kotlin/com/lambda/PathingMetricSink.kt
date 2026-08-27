@@ -146,7 +146,15 @@ object PathingMetricSink {
         check(run.bumps <= expected.bumps + bumpSlack) {
             "${run.scenario}: bumps regressed ${expected.bumps} -> ${run.bumps}"
         }
-        check(run.launchMarginFrames >= expected.launchMarginFrames) {
+        // Launch margin accumulates over every jump in the tape, so on the
+        // timing-variant scenarios it moves with the wall-clock-dependent route the
+        // walk happened to assemble (measured 8..20 on the long bedrock field across
+        // green-intent runs). Variant scenarios get a halving allowance; deterministic
+        // ones stay strict.
+        val marginFloor =
+            if (run.scenario in TIMING_VARIANT_SCENARIOS) expected.launchMarginFrames / 2
+            else expected.launchMarginFrames
+        check(run.launchMarginFrames >= marginFloor) {
             "${run.scenario}: launch margin regressed ${expected.launchMarginFrames} -> ${run.launchMarginFrames}"
         }
         check(run.planLatencyMs <= maxOf(MAX_PLAN_LATENCY_MS, expected.planLatencyMs * 3)) {
