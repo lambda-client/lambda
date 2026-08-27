@@ -154,10 +154,25 @@ internal class AnchorRollout(
 
         val frames = rollout.frames.take(frame + 1)
 
+        var cornerCatch = 0
         if (!field.isStance(eventStance)) {
-            return Outcome.Rejected(
-                TrajectoryDiagnostic.FellBelowRoute(frame, 0.0)
-            )
+            // A corner catch: the body stands on a pad's edge with its centre floored
+            // into the air cell beside it. The support block names the real stance.
+            // Priced like the scrape it is, at two collision events: a clean centred
+            // landing typically pays a few brake frames the corner catch skips, so one
+            // event (four frames) measured as a dead heat on the drop staircase and the
+            // wobbling tape kept winning. Two makes clean strictly better wherever it
+            // exists, while a course whose only way onward is the corner (the diagonal
+            // zig-zag) still gets it.
+            val supported = ValueFieldAnchorSearch.supportedStanceOf(frames.last().state)
+                ?.takeIf { field.isStance(it) }
+            if (supported == null) {
+                return Outcome.Rejected(
+                    TrajectoryDiagnostic.FellBelowRoute(frame, 0.0)
+                )
+            }
+            eventStance = supported
+            cornerCatch = 2
         }
         if (!field.isMapped(eventStance)) {
 
@@ -178,7 +193,7 @@ internal class AnchorRollout(
                 state = frames.last().state,
                 stance = eventStance,
                 elapsed = anchor.elapsed + frames.size,
-                collisionEvents = anchor.collisionEvents + collisionEvents(anchor.state, frames),
+                collisionEvents = anchor.collisionEvents + collisionEvents(anchor.state, frames) + cornerCatch,
                 launchMargin = anchor.launchMargin + launchMargin(frames, hazardFrame),
                 inputSwitches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), frames),
                 parent = anchor,
