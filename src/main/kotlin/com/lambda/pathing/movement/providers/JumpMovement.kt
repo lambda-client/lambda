@@ -1,5 +1,6 @@
 package com.lambda.pathing.movement.providers
 
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.alongEdge
@@ -364,9 +365,27 @@ object JumpMovement : Movement {
         var velocityZ = body.velocity.z
         var along = alongEdge(from, to, body.position.x, body.position.z)
 
-        // (delay, run-up cost in ticks, how far off the launch offset it lands)
-        val fitting = ArrayList<Triple<Int, Double, Double>>()
+        // The follower accelerates along its YAW, and the yaw turns toward the gap at a
+        // bounded rate -- on a ninety-degree zig-zag the first three run-up ticks push
+        // sideways, not down the gap. Rolling with gap-aligned acceleration from tick
+        // zero overestimated every delay's entry speed, so each proposed arc undershot
+        // and clipped the landing face; modelling the turn makes the roll match what
+        // the body will actually do.
+        val bearing = Math.toDegrees(kotlin.math.atan2(-(to.x - from.x), to.z - from.z))
+        var yaw = body.rotation.yaw
+
+        class Fit(val delay: Int, val cost: Double, val misplacement: Double, val speedError: Double)
+
+        // The body must still be standing when the trigger fires: a delay long enough
+        // that the run has carried it past the lip proposes a jump that never happens
+        // (the trigger only presses on ground) -- the body just runs off and falls. The
+        // standable extent along the gap is the cell's half-extent in that direction
+        // plus the body's half width hanging over the lip.
+        val standableAlong = 0.5 * (kotlin.math.abs(unitX) + kotlin.math.abs(unitZ)) + 0.3
+
+        val fitting = ArrayList<Fit>()
         for (delay in 0..MAX_LAUNCH_FRAME) {
+            if (along > standableAlong) break
             val speed = velocityX * unitX + velocityZ * unitZ
             if (kotlin.math.abs(speed - solution.speed) <= solution.speedSlack) {
                 // Cost in ticks, so the two terms are commensurable: the run-up itself,
@@ -375,12 +394,23 @@ object JumpMovement : Movement {
                 // measured as a corpus route going from four percent over its bound to
                 // forty-two.
                 val misplacement = kotlin.math.abs(along - solution.launchOffset)
-                fitting += Triple(delay, delay + misplacement / dynamics.cruise, misplacement)
+                fitting += Fit(
+                    delay,
+                    delay + misplacement / dynamics.cruise,
+                    misplacement,
+                    kotlin.math.abs(speed - solution.speed),
+                )
             }
-            // One tick of running straight down the gap. The body is displaced by the
+            // One tick of running: the yaw turns toward the gap bearing at the bounded
+            // rate and acceleration follows the yaw. The body is displaced by the
             // pre-friction velocity, which is what the stored velocity divides back out to.
-            velocityX = (velocityX + dynamics.acceleration * unitX) * dynamics.friction
-            velocityZ = (velocityZ + dynamics.acceleration * unitZ) * dynamics.friction
+            val yawError = Rotation.wrap(bearing - yaw)
+            yaw += yawError.coerceIn(-context.constraints.maxYawDegreesPerFrame, context.constraints.maxYawDegreesPerFrame)
+            val radians = Math.toRadians(yaw)
+            val forwardX = -kotlin.math.sin(radians)
+            val forwardZ = kotlin.math.cos(radians)
+            velocityX = (velocityX + dynamics.acceleration * forwardX) * dynamics.friction
+            velocityZ = (velocityZ + dynamics.acceleration * forwardZ) * dynamics.friction
             along += (velocityX * unitX + velocityZ * unitZ) / dynamics.friction
         }
         if (fitting.isEmpty()) {
@@ -389,14 +419,22 @@ object JumpMovement : Movement {
                 .distinct()
                 .filter { !unreachableEntry(context, it, solution) }
         }
-        // Two objectives that genuinely disagree, so offer the best of each rather than
+        // Three objectives that genuinely disagree, so offer the best of each rather than
         // weighing them against one another. Cheapest run-up is what open ground wants --
         // ranking on placement alone took a corpus route from four percent over its bound
         // to forty-two. Best placement is what a one-block pad wants, and ranking on cost
-        // alone lost a whole parkour course. The frontier is priced; it can decide.
-        val cheapest = fitting.sortedBy { it.second }.map { it.first }
-        val truest = fitting.sortedBy { it.third }.map { it.first }
-        return (cheapest.take(2) + truest.take(2)).distinct().take(MAX_LAUNCH_CANDIDATES)
+        // alone lost a whole parkour course. Best ENTRY SPEED is what a diagonal lone-pad
+        // hop wants: the band admits slow early delays whose arcs land at the window's
+        // near edge, and on the zig-zag fixture the cheap and true picks were exactly the
+        // three undershooting delays -- an arc short on entry speed is beyond the air
+        // controller's help, because holding forward is already the whole along-track
+        // authority. The frontier is priced; it can decide.
+        val cheapest = fitting.sortedBy { it.cost }.map { it.delay }
+        val truest = fitting.sortedBy { it.misplacement }.map { it.delay }
+        val fastest = fitting.sortedBy { it.speedError }.map { it.delay }
+        return (cheapest.take(2) + truest.take(2) + fastest.take(2))
+            .distinct()
+            .take(MAX_LAUNCH_DELAY_CANDIDATES)
     }
 
     private fun launchFrame(context: DecisionContext, solution: LaunchSolution): Int {
@@ -508,6 +546,13 @@ object JumpMovement : Movement {
 
     /** Launch ticks offered per solution: the cheapest two run-ups and the truest two. */
     private const val MAX_LAUNCH_CANDIDATES = 4
+
+    /**
+     * Delay candidates per solution: two picks from each of the three ranking
+     * objectives, before dedup. A tighter cap silently drops one objective's picks and
+     * re-creates the failure that objective exists to prevent.
+     */
+    private const val MAX_LAUNCH_DELAY_CANDIDATES = 6
 
     private const val MAX_LAUNCH_FRAME = 8
 

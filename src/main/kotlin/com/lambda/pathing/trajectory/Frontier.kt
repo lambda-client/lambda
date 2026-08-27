@@ -48,7 +48,7 @@ internal class Frontier(
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
     private var routeIndex: Map<Stance, Int>,
-    private val incumbentFrames: () -> Int?,
+    private val incumbentScore: () -> Int?,
 ) {
     var reachability: ReachabilityPolicy = ReachabilityPolicy { true }
     class OpenEntry(
@@ -232,7 +232,15 @@ internal class Frontier(
         }
         bucket += anchor
 
-        incumbentFrames()?.let { if (anchor.elapsed + guide >= it) return }
+        // Pruned against the incumbent's SCORE with the anchor's own collision penalty:
+        // collisions only accumulate, so this stays an admissible bound, and it is what
+        // lets a clean landing survive an equal-length corner-catch incumbent -- with
+        // bare frames the four-frame collision penalty could never buy anything back.
+        incumbentScore()?.let {
+            val bound = anchor.elapsed + guide +
+                ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * anchor.collisionEvents
+            if (bound >= it) return
+        }
 
         enqueue(entryFor(anchor, guide))
     }

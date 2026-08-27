@@ -127,6 +127,23 @@ object ValueFieldAnchorSearch {
     internal fun stanceOf(state: MovementSimulationState): Stance =
         Stance.of(state.position, state.onGround)
 
+    /**
+     * Where a grounded state is actually standing, when flooring its centre names a
+     * cell that is not a stance at all: the body caught a lone pad with its edge and
+     * hangs its centre over the air beside it. On the diagonal zig-zag fixture every
+     * corner catch of the far pad was rejected as FellBelowRoute this way. A FALLBACK
+     * only -- a landing whose floored cell is a real stance keeps its name, so clean
+     * centred landings and sloppy corner catches stay distinguishable and the drop
+     * staircase's hold-the-line quality gate keeps meaning something.
+     */
+    internal fun supportedStanceOf(state: MovementSimulationState): Stance? {
+        if (!state.onGround) return null
+        val support = state.supportingBlockPos ?: return null
+        val base = Stance.of(state.position, true)
+        if (support.x == base.x && support.z == base.z) return null
+        return Stance(support.x, support.y + 1, support.z)
+    }
+
     private class Search(
         private var route: CoarseRoutePlan,
         private val catalog: MovementCatalog,
@@ -159,7 +176,7 @@ object ValueFieldAnchorSearch {
 
         private val frontier: Frontier = Frontier(
             field, config, searchConfig, routeIndex,
-            incumbentFrames = { best?.frames },
+            incumbentScore = { best?.score },
         )
 
         private val horizon: HorizonController = HorizonController(
@@ -324,7 +341,14 @@ object ValueFieldAnchorSearch {
             // evidence. Sharing a counter with heat meant every heat step reset the stall
             // the corridor was accruing, and a route that genuinely had to flow around an
             // infeasible edge had to re-earn the whole quota four times over.
-            if (force && expansionsSinceGuideProgress < FORCE_ESCALATION_MIN_EXPANSIONS) return false
+            //
+            // The quota is waived when the frontier is dry: the counter resets on each
+            // widening, and a world small enough that the next level's whole vocabulary
+            // exhausts in under the quota can then never widen again -- a lone-pad
+            // zig-zag drained at corridor 1 with levels 2 and 3 forever unspent. With
+            // nothing open and nothing parked there are no expansions left to demand.
+            val dry = !frontier.hasOpen && !frontier.hasParked
+            if (force && !dry && expansionsSinceGuideProgress < FORCE_ESCALATION_MIN_EXPANSIONS) return false
             if (!force && expansionsSinceGuideProgress < ESCALATION_EXPANSIONS) return false
             if (corridorLevel >= CORRIDOR_LEVELS.lastIndex) return false
             corridorLevel++
@@ -617,7 +641,8 @@ object ValueFieldAnchorSearch {
                 }
 
                 val incumbent = best
-                if (incumbent != null && mayFinalize() && entry.bound >= incumbent.frames) {
+                val entryScoreBound = entry.bound + COLLISION_FRAME_PENALTY * entry.anchor.collisionEvents
+                if (incumbent != null && mayFinalize() && entryScoreBound >= incumbent.score) {
                     if (readyToFinish(incumbent) && bodyNearEnd(incumbent)) return finish(incumbent)
                     // The session must stay alive for refinement, but this anchor is
                     // provably no improvement -- the same test admission prunes by.
