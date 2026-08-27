@@ -29,23 +29,55 @@ object JumpMovement : Movement {
         for (rise in -options.maxJumpDrop..LaunchMode.MAX_JUMP_RISE) {
             for (dx in -reach..reach) {
                 for (dz in -reach..reach) {
-                    if (!offered(dx, dz, options)) continue
+                    if (!offered(dx, dz, rise, options)) continue
                     add(spec(dx, dz, rise, context.costs.jumpCandidateCost(hypot(dx, dz), rise)))
                 }
             }
         }
     }
 
-    private fun offered(dx: Int, dz: Int, options: SimpleMoveOptions): Boolean {
+    /**
+     * A jump candidate must be provably reachable from a standing start on its own
+     * block, because the coarse graph cannot promise a run-up exists at the launch --
+     * a route through a jump that needs carried momentum is a route the trajectory
+     * layer may be unable to honour, and the coarse graph is supposed to be a lower
+     * bound the search solves every time.
+     *
+     * The distance that matters is the AIR GAP, corner to corner: the body launches
+     * from the lip nearest the target and catches the landing at its nearest corner,
+     * so a (4,2) cell jump is not 4.47 blocks of flight but the diagonal of the 3x1
+     * air rectangle between the blocks, 3.16. The old gate compared cell-centre
+     * distance against `hypot(maxJumpSpan, 1)`, which granted exactly one block of
+     * lateral offset at full span and silently dropped real jumps like (4,2) while
+     * admitting momentum-only ones like straight span-5.
+     *
+     * The ceilings are rollout-measured, not derived (OffAxisJumpProbeTest, standing
+     * start at pad centre, every solution x delay): flat and dropping jumps certify
+     * solidly up to a 3.16 air gap and only 1-in-9 at 4.0; rising jumps stop at 2.83.
+     * [SimpleMoveOptions.maxJumpSpan] remains the user-facing cap, now per axis.
+     */
+    private fun offered(dx: Int, dz: Int, rise: Int, options: SimpleMoveOptions): Boolean {
         val distance = hypot(dx, dz)
         if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE) return false
         if (dx != 0 && dz != 0 && !options.allowDiagonal) return false
         if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
+        if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return false
 
-        return distance <= hypot(options.maxJumpSpan, 1) + REACH_EPSILON
+        val airGap = kotlin.math.hypot(
+            (abs(dx) - 1).coerceAtLeast(0).toDouble(),
+            (abs(dz) - 1).coerceAtLeast(0).toDouble(),
+        )
+        val ceiling = if (rise > 0) RISING_STANDING_AIR_GAP_BLOCKS else STANDING_AIR_GAP_BLOCKS
+        return airGap <= ceiling + REACH_EPSILON
     }
 
     private const val REACH_EPSILON = 1e-9
+
+    /** Air gap a standing start clears on flat and dropping jumps: hypot(3, 1). */
+    private val STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 1.0)
+
+    /** Rising jumps trade reach for the block of height: hypot(2, 2). */
+    private val RISING_STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(2.0, 2.0)
 
     private fun hypot(dx: Int, dz: Int): Double = kotlin.math.hypot(dx.toDouble(), dz.toDouble())
 

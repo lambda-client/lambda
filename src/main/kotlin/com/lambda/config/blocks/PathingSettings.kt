@@ -55,7 +55,8 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
     override val maxJumpSpan by c.setting(
         "Max Jump Span", 4, 2..5, 1,
-        "Furthest a candidate jump may reach. Each still needs a simulated launch.",
+        "Per-axis cap on candidate jumps. Reach itself is bounded by what a standing " +
+            "start provably clears; each candidate still needs a simulated launch.",
         unit = " blocks",
     ) { allowJumpCandidates }
 

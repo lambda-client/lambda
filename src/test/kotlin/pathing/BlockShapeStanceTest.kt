@@ -253,23 +253,28 @@ class BlockShapeStanceTest {
                 .any { it.to == Stance(dx, 64 + rise, dz) && it.launch != null }
         }
 
-        // Three blocks of air, straight across and with a step to the side. Both are
-        // everyday jumps and both must be offered from flat ground.
+        // Three blocks of air, straight across and with steps to the side. All are
+        // standing-start jumps (rollout-measured in OffAxisJumpProbeTest) and all must
+        // be offered from flat ground -- including the two-block offset the old
+        // centre-distance gate silently dropped.
         assertTrue(jumpsTo(4, 0), "a three-block gap must be jumpable from solid blocks")
         assertTrue(jumpsTo(4, 1), "and the same gap with a step to the side")
+        assertTrue(jumpsTo(4, 2), "and with two steps to the side: the air gap is only hypot(3,1)")
         assertTrue(jumpsTo(3, 1), "as must the shorter off-axis hop")
 
-        // Four blocks of air: the vanilla maximum. The trajectory layer synthesizes the
-        // run-up when the body arrives without one, so the graph promises it.
-        assertTrue(jumpsTo(5, 0), "a four-block gap is offered; the search builds the run-up")
+        // Four blocks of air needs momentum a standing start cannot build, and the
+        // coarse graph cannot promise a run-up exists at the launch. A route through a
+        // jump the body may arrive unable to make is a route the walk cannot honour --
+        // the graph stays a lower bound the search solves every time.
+        assertTrue(!jumpsTo(5, 0), "a four-block gap is momentum-only and must not be promised")
 
         // Five blocks of air is beyond the body at any entry speed.
         assertTrue(!jumpsTo(6, 0), "a five-block gap is out of reach and must not be offered")
 
-        // A rising gap of the same length is offered too. Whether it is actually flyable
-        // depends on the run-up the body has, which a template cannot see -- the arc probe
-        // and then the trajectory search are what settle it.
-        assertTrue(jumpsTo(4, 0, rise = 1), "a rising gap is proposed and judged later")
+        // Rising jumps trade reach for the block of height: three air blocks straight
+        // up-and-over certifies once in nine standing rollouts -- not a promise.
+        assertTrue(!jumpsTo(4, 0, rise = 1), "a rising three-air gap is beyond a standing start")
+        assertTrue(jumpsTo(3, 0, rise = 1), "a rising two-air gap is an everyday jump")
     }
 
     /**

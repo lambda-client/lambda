@@ -41,17 +41,30 @@ class StandingStartJumpTest {
     }
 
     @Test
-    fun `a lip start clears a span-4 rise-1 gap directly, no run-up needed`() {
-        val plan = certifies(runUpWorld(), goal = Stance(4, 2, 0))
-        val minX = plan.rollout.frames.minOf { it.state.position.x }
-        assertTrue(minX > 0.0, "a span-4 rise-1 gap is in direct reach of a lip stand: minX=$minX")
+    fun `a span-4 rise-1 gap is beyond a standing start and no longer promised`() {
+        // The graph used to offer this and rely on the search synthesizing a run-up.
+        // Policy reversed 2026-08-27: the coarse graph cannot promise a run-up exists,
+        // so it only offers jumps provably reachable from a standing start -- and a
+        // rising three-air gap certifies once in nine standing rollouts. Momentum
+        // jumps return later as terrain-conditioned templates (runway provably behind
+        // the lip) or trajectory-layer shortcuts.
+        assertNoRoute(runUpWorld(), goal = Stance(4, 2, 0))
     }
 
     @Test
-    fun `a lip start at a four-wide gap backs up for a run-up`() {
-        val plan = certifies(fourWideWorld(), goal = Stance(5, 1, 0))
-        val minX = plan.rollout.frames.minOf { it.state.position.x }
-        assertTrue(minX < 0.0, "a four-wide gap needs momentum a lip stand lacks: minX=$minX")
+    fun `a four-wide gap is not promised by the coarse graph`() {
+        assertNoRoute(fourWideWorld(), goal = Stance(5, 1, 0))
+    }
+
+    private fun assertNoRoute(environment: SnapshotSimulationEnvironment, goal: Stance) {
+        val moves = SimpleMoveLibrary.build(
+            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+            options = SimpleMoveOptions(),
+        )
+        val planner = CoarsePlanner(environment, moves, Stance(0, 1, 0), goal)
+        val converged = planner.repair(Duration.INFINITE).converged
+        val route = if (converged) planner.routePlan(0L) else null
+        assertTrue(route == null, "a momentum-only jump must not be promised: ${route?.nodes}")
     }
 
     private fun fourWideWorld(): SnapshotSimulationEnvironment {
@@ -108,11 +121,14 @@ class StandingStartJumpTest {
         assertTrue(planner.repair(Duration.INFINITE).converged)
         planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
         val route = requireNotNull(planner.routePlan(1L))
-        assertTrue(route.nodes.size == 2, "the direct span-5 jump must win the coarse route: ${route.nodes}")
+        assertTrue(
+            route.nodes.size == 3 && route.nodes[1] == Stance(3, 2, 0),
+            "the direct line through the post must win the coarse route: ${route.nodes}",
+        )
 
         val initial = MovementSimulationState.synthetic(
             profile = PROFILE,
-            position = Vec3d(0.93, 1.0, 0.5),
+            position = Vec3d(0.5, 1.0, 0.5),
             rotation = Rotation(-90.0, 0.0),
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
@@ -129,7 +145,7 @@ class StandingStartJumpTest {
         )
         assertTrue(!planned.path.partial, "the detour must reach the goal, not park short")
         assertTrue(
-            planned.path.route.nodes.size == 2,
+            planned.path.route.nodes.size == 3,
             "the coarse route stays the direct jump — it is a lower bound, not a promise: " +
                 "${planned.path.route.nodes}",
         )
@@ -143,12 +159,22 @@ class StandingStartJumpTest {
     private fun detourWorld(): SnapshotSimulationEnvironment {
         val blocks = buildMap {
             for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
-            // direct line: a four-wide gap — coarse-visible with momentum entry, hopeless
-            // from a stand, and a wall on the retreat line so a run-up cannot rescue it
+            // direct line: a span-3 rise-1 hop onto a phantom pad -- the coarse layer
+            // reads a standable cell, the collision shape is empty, so every direct
+            // arc falls straight through. The mis-capture class live walks meet on
+            // streamed terrain, and deterministically hopeless: the trajectory must
+            // flow around it while the coarse route keeps believing in it.
+            put(
+                BlockPos(3, 1, 0),
+                SnapshotBlockPhysics(
+                    net.minecraft.util.shape.VoxelShapes.empty(),
+                    coarseVoxel = com.lambda.pathing.world.CoarseVoxel.FULL_BLOCK,
+                ),
+            )
             put(BlockPos(5, 0, 0), SnapshotBlockPhysics.FULL_CUBE)
             put(BlockPos(-1, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
             put(BlockPos(-1, 2, 0), SnapshotBlockPhysics.FULL_CUBE)
-            // detour pads: two short hops and a short rise
+            // detour pads: two short hops at z=-2 route around the post entirely
             put(BlockPos(2, 0, -2), SnapshotBlockPhysics.FULL_CUBE)
             put(BlockPos(4, 0, -2), SnapshotBlockPhysics.FULL_CUBE)
         }
