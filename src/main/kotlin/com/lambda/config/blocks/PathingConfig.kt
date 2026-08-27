@@ -146,6 +146,12 @@ interface PathingConfig {
     /** Minimum wall time before the first partial tape may be published. */
     val bootstrapDelayMillis: Int get() = 200
 
+    /**
+     * Rollout worker threads for the trajectory search. 1 is the serial search; above
+     * it, each expansion batch simulates that many candidate movements concurrently.
+     */
+    val plannerThreads: Int get() = 1
+
     /** Retries while the exact world capture catches up to a body at the streamed frontier. */
     val captureRetries: Int get() = 4
 

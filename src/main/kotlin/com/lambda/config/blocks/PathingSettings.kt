@@ -187,6 +187,15 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
+    override val plannerThreads by c.setting(
+        "Planner Threads", 4, 1..12, 1,
+        "Rollout workers for the trajectory search. The rollout kernel scales near-" +
+            "linearly to the physical core count; extra throughput buys deeper " +
+            "refinement of the tape ahead of the body. 1 runs the exact serial search.",
+        unit = " threads",
+    )
+
+    @Group(SEARCH_GROUP)
     override val captureRetries by c.setting(
         "Capture Retries", 4, 0..16, 1,
         "Retries while the exact world capture catches up to a body standing at the " +
