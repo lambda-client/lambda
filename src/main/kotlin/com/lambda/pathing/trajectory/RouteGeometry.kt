@@ -1,10 +1,7 @@
 package com.lambda.pathing.trajectory
 
-import com.lambda.pathing.core.Stance
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
-import kotlin.math.hypot
-import kotlin.math.sqrt
 
 internal fun collisionEvents(
     entry: MovementSimulationState,

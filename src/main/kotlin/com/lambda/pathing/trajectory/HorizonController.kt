@@ -89,6 +89,10 @@ internal class HorizonController(
         if (executing > running.anchor.elapsed) {
             // The body is inside the brake tail: the stop is irrevocable.
             if (reachableRoot !== running.brakeAnchor) {
+                probe.braked(
+                    running.anchor.elapsed, executing,
+                    frontier.openSize, frontier.parkedSize, frontier.deepestElapsed,
+                )
                 reRootOnto(running.brakeAnchor)
                 frontier.reopen(running.brakeAnchor)
                 return running.brakeAnchor
@@ -153,6 +157,10 @@ internal class HorizonController(
         val executing = cursorFrame?.invoke() ?: -1
         val floor = maxOf(reachableRoot?.elapsed ?: 0, executing)
 
+        // Only the best-ranked candidate, deliberately. Working down the list was tried
+        // twice and regressed twice: publishing re-roots the frontier onto whatever it
+        // commits, so handing the body the branch the search ranked worst is not a rescue
+        // from a refused commit, it is a mistake the body then has to walk.
         val leaf = along?.takeIf { it.elapsed > floor }
         val pool = if (frontier.hasParked) frontier.parkedEntries else frontier.openEntries.filter {
             it.anchor.elapsed > floor
@@ -174,6 +182,28 @@ internal class HorizonController(
             if (publishSolution(candidate)) return true
         }
         return false
+    }
+
+    /**
+     * Push the local horizon out so anchors parked beyond it can be expanded again.
+     *
+     * The horizon is a budget the search sets itself -- how far past the committed root it
+     * will look before insisting on a decision -- and hitting it with an empty open list
+     * and anchors waiting behind it is not a dead end, it is the budget being wrong. A
+     * production session ended at route node fourteen of sixteen this way, reporting a
+     * refused commit while holding twelve parked anchors it had declined to expand.
+     *
+     * Returns false when nothing moves, so a caller can distinguish "there was more to do"
+     * from "there genuinely was not" and stop rather than spin.
+     */
+    fun extendHorizon(): Boolean {
+        if (searchConfig.localHorizonFrames <= 0) return false
+        if (!frontier.hasParked) return false
+        val root = reachableRoot ?: return false
+        val before = frontier.openSize
+        horizonEnd += searchConfig.localHorizonFrames
+        frontier.repartition(root, horizonEnd)
+        return frontier.openSize > before
     }
 
     /**
@@ -321,6 +351,35 @@ internal class HorizonController(
         )
     }
 
+    /**
+     * The running tape's tip as a fresh continuation, still moving.
+     *
+     * The counterpart to [latestBrakeContinuation], and the one to try first. Re-rooting
+     * onto the resting brake makes stopping mandatory: `canReach` then requires every
+     * later anchor to descend from the brake, so the certified tape necessarily contains
+     * the deceleration and the body physically halts. Four production runs each recorded
+     * exactly one restart and exactly one eight-frame stop.
+     *
+     * A drained frontier is a statement about that frontier -- its anchors have spent
+     * their vocabulary -- not about the tip being unextendable. This hands the search the
+     * same tape prefix with a clean slate: same parent, same inputs, so any solution
+     * through it replays identically, but with no attempts recorded and no brake implied.
+     */
+    fun movingTipContinuation(): ValueAnchor? {
+        val tip = publishedTip ?: return null
+        return ValueAnchor(
+            state = tip.state,
+            stance = tip.stance,
+            elapsed = tip.elapsed,
+            collisionEvents = tip.collisionEvents,
+            launchMargin = tip.launchMargin,
+            inputSwitches = tip.inputSwitches,
+            parent = tip.parent,
+            inputs = tip.inputs,
+            boundary = tip.boundary,
+        )
+    }
+
     fun reRootForRestart(anchor: ValueAnchor) {
         reRootOnto(anchor)
         frontier.reopen(anchor)
@@ -358,6 +417,7 @@ internal class HorizonController(
         const val MAX_SHOWN_CANDIDATES = 12
 
         const val MAX_TRACKED_PUBLICATIONS = 8
+
     }
 
     private fun lineFrom(root: ValueAnchor?, leaf: ValueAnchor): List<ValueAnchor> {

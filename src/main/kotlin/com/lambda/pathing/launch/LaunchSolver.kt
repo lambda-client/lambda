@@ -25,6 +25,15 @@ data class LaunchSolution(
 
     val arc: ArcSample,
     val clearance: Double = 0.0,
+
+    /**
+     * Air ticks to keep forward pressed before releasing it.
+     *
+     * The control that separates where the arc lands from how fast it is going when it
+     * gets there. [Int.MAX_VALUE] holds throughout, which is what a jump does when nothing
+     * downstream cares.
+     */
+    val holdTicks: Int = Int.MAX_VALUE,
 ) {
     val sprint: Boolean get() = mode.sprint
 
@@ -36,6 +45,15 @@ data class LaunchSolution(
 
     val flightDistance: Double get() = aimDistance - launchOffset
 
+    /**
+     * Blocks the body drops between the arc's apex and its landing.
+     *
+     * The rollout evaluator measures exactly this and refuses the trajectory when it
+     * exceeds the safe fall distance, so the same number decides -- before any physics
+     * is simulated -- whether the launch is worth offering at all.
+     */
+    fun fallDistance(rise: Double): Double = (apex - rise).coerceAtLeast(0.0)
+
     fun withClearance(clearance: Double) = copy(clearance = clearance)
 
     val margin: Double get() =
@@ -45,7 +63,8 @@ data class LaunchSolution(
     override fun equals(other: Any?): Boolean = this === other ||
         (other is LaunchSolution && mode == other.mode &&
             launchOffset == other.launchOffset && speed == other.speed &&
-            aimDistance == other.aimDistance && airTicks == other.airTicks)
+            aimDistance == other.aimDistance && airTicks == other.airTicks &&
+            holdTicks == other.holdTicks)
 
     override fun hashCode(): Int {
         var result = mode.hashCode()
@@ -53,7 +72,27 @@ data class LaunchSolution(
         result = 31 * result + speed.hashCode()
         result = 31 * result + aimDistance.hashCode()
         result = 31 * result + airTicks
+        result = 31 * result + holdTicks
         return result
+    }
+
+    /**
+     * Whether this solution beats [other] for a caller that knows what comes next.
+     *
+     * Landing where the next gap can be launched from is worth more than landing
+     * comfortably: a wide margin on an arc that arrives too fast to jump again is a
+     * margin on a dead end. Within a verdict, the usual comfort ranking decides.
+     */
+    internal fun outranks(
+        other: LaunchSolution,
+        exitSpeedWindow: ClosedFloatingPointRange<Double>?,
+    ): Boolean {
+        if (exitSpeedWindow != null) {
+            val mine = arc.exitSpeed in exitSpeedWindow
+            val theirs = other.arc.exitSpeed in exitSpeedWindow
+            if (mine != theirs) return mine
+        }
+        return margin > other.margin
     }
 
     companion object {
@@ -77,6 +116,21 @@ object LaunchSolver {
         preferredEntrySpeed: (LaunchMode) -> Double = { profile.cruiseSpeed(it.sprint) },
 
         rise: Double = (to.y - from.y).toDouble(),
+
+        /**
+         * Entry speeds the *following* gap can accept, if the caller knows of one.
+         *
+         * An uninformed solve picks the arc that lands most comfortably and lets the exit
+         * speed fall where it may. That is fine when the body can brake afterwards and
+         * wrong when it cannot: on a chain of one-block pads the exit speed *is* the next
+         * gap's entry speed, and a launch that lands at 0.24 into a gap wanting 0.09 has
+         * failed before it left the ground -- measured on `parkour-course-1`, where every
+         * solution for the second gap overshoots by half a block or more.
+         *
+         * Null keeps the historical behaviour exactly, including which throttle policies
+         * are considered, so an uninformed caller solves precisely what it always did.
+         */
+        exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
     ): List<LaunchSolution> {
         val dx = (to.x - from.x).toDouble()
         val dz = (to.z - from.z).toDouble()
@@ -91,7 +145,7 @@ object LaunchSolver {
         return modes.filter { it.supports(rise) }.mapNotNull { mode ->
             solveMode(
                 from, to, unitX, unitZ, rise, lateral, mode, profile,
-                maxEntrySpeed(mode), preferredEntrySpeed(mode),
+                maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow,
             )
         }.sortedWith(LaunchSolution.BEST_FIRST)
     }
@@ -104,8 +158,10 @@ object LaunchSolver {
         maxEntrySpeed: (LaunchMode) -> Double = { profile.momentumSpeed(it.sprint) },
         preferredEntrySpeed: (LaunchMode) -> Double = { profile.cruiseSpeed(it.sprint) },
         rise: Double = (to.y - from.y).toDouble(),
+        exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
     ): LaunchSolution? =
-        solve(from, to, profile, modes, maxEntrySpeed, preferredEntrySpeed, rise).firstOrNull()
+        solve(from, to, profile, modes, maxEntrySpeed, preferredEntrySpeed, rise, exitSpeedWindow)
+            .firstOrNull()
 
     private fun solveMode(
         from: Stance,
@@ -118,6 +174,7 @@ object LaunchSolver {
         profile: BallisticProfile,
         maxEntrySpeed: Double,
         preferredEntrySpeed: Double,
+        exitSpeedWindow: ClosedFloatingPointRange<Double>?,
     ): LaunchSolution? {
         if (maxEntrySpeed < 0.0) return null
 
@@ -125,7 +182,20 @@ object LaunchSolver {
 
         var best: LaunchSolution? = null
 
-        val policies = if (mode.drops) listOf(true, false) else listOf(true)
+        // Jumps are solved holding forward and nothing else, which fixes every jump's
+        // landing speed at the highest it can be: a sprint jump entered at 0.11 blocks per
+        // tick arrives at 0.24, and that arrival is the next gap's entry speed. On a chain
+        // of one-block pads there is nowhere to shed it, and measured on
+        // `parkour-course-1` the second gap then wants 0.09-0.17 and every option
+        // overshoots. Offering the released variant here is the obvious answer and does
+        // not work on its own: it changes which solution wins on margin, which broke three
+        // LaunchSolverTest contracts without making any course pass. The fix wants the
+        // *search* to weigh landing speed against the next gap, not the solver to guess.
+        // Releasing forward in flight is the only way a jump lands slower than it took
+        // off, and it is worth considering exactly when the landing speed has to satisfy
+        // something. Uninformed, jumps hold forward as they always have.
+        val policies =
+            if (mode.drops || exitSpeedWindow != null) listOf(true, false) else listOf(true)
 
         for (holdForward in policies) {
 
@@ -162,10 +232,79 @@ object LaunchSolver {
                     holdForward = holdForward,
                     arc = arc,
                 )
-                if (best == null || candidate.margin > best.margin) best = candidate
+                if (best == null || candidate.outranks(best, exitSpeedWindow)) best = candidate
             }
         }
-        return best
+        return best?.let {
+            released(it, rise, profile, window, exitSpeedWindow, maxEntrySpeed, preferredEntrySpeed)
+        }
+    }
+
+    /**
+     * Trim the throttle so the arc still lands, but arrives slowly enough to continue.
+     *
+     * Only reached when something downstream has said how fast the body may arrive and the
+     * full-throttle arc is too fast. Exit speed rises monotonically with how long forward
+     * is held, so the longest hold that fits the window is found by bisection -- a dozen
+     * arcs rather than the seventy-odd an enumeration costs, and that difference is not
+     * cosmetic: enumerating every schedule on every edge made jump solving twenty-five
+     * times more expensive and dropped `bedrock-traverse` from thirty route nodes to three.
+     *
+     * The entry speed is re-solved at each trial rather than carried over. Releasing early
+     * shortens the arc, so an entry chosen for full throttle lands in the gap -- keeping it
+     * fixed makes every trim fail its landing check and the whole mechanism inert.
+     */
+    private fun released(
+        solution: LaunchSolution,
+        rise: Double,
+        profile: BallisticProfile,
+        window: ClosedFloatingPointRange<Double>,
+        exitSpeedWindow: ClosedFloatingPointRange<Double>?,
+        maxEntrySpeed: Double,
+        preferredEntrySpeed: Double,
+    ): LaunchSolution {
+        if (exitSpeedWindow == null) return solution
+        if (solution.arc.exitSpeed <= exitSpeedWindow.endInclusive) return solution
+
+        fun solveAt(hold: Int): LaunchSolution? {
+            val mode = solution.mode
+            val held = solution.holdForward
+            val base = profile.fly(mode, 0.0, rise, held, holdTicks = hold) ?: return null
+            val unit = profile.fly(mode, 1.0, rise, held, holdTicks = hold) ?: return null
+            val slope = unit.distance - base.distance
+            if (slope <= 1e-9) return null
+            val offset = solution.launchOffset
+            val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
+            val low = max((nearEdge - offset - base.distance) / slope, 0.0)
+            val high = min((window.endInclusive - offset - base.distance) / slope, maxEntrySpeed)
+            if (high < low) return null
+            val speed = preferredSpeed(preferredEntrySpeed, low, high, slope)
+            val arc = profile.fly(mode, speed, rise, held, holdTicks = hold) ?: return null
+            val slack = min(speed - low, high - speed)
+            return solution.copy(
+                speed = speed,
+                speedSlack = slack,
+                landingSlack = slack * slope,
+                aimDistance = offset + arc.distance,
+                arc = arc,
+                holdTicks = hold,
+            )
+        }
+
+        var low = 0
+        var high = solution.airTicks + 1
+        var best: LaunchSolution? = null
+        while (low <= high) {
+            val mid = (low + high) / 2
+            val candidate = solveAt(mid)
+            if (candidate == null || candidate.arc.exitSpeed > exitSpeedWindow.endInclusive) {
+                high = mid - 1
+            } else {
+                best = candidate
+                low = mid + 1
+            }
+        }
+        return best ?: solution
     }
 
     private fun preferredSpeed(preferred: Double, low: Double, high: Double, slope: Double): Double {

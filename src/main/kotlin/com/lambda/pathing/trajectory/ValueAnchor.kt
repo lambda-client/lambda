@@ -2,6 +2,7 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.BodyState
+import com.lambda.pathing.movement.PricedDecision
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.util.player.prediction.MovementSimulationInput
 import com.lambda.util.player.prediction.MovementSimulationState
@@ -17,11 +18,33 @@ internal class ValueAnchor(
     val inputs: List<MovementSimulationInput>,
     val boundary: Int,
 ) : BodyState {
-    var actions: List<TrajectoryDecision>? = null
+    /**
+     * The decision whose rollout produced this anchor, for attribution only.
+     *
+     * The search's own cost accounting is in frames, which says how expensive a tape is
+     * but not what made it expensive. Carrying the movement lets a finished tape be split
+     * by what the body was doing, and that split compared against the coarse route's
+     * admissible lower bound -- the only denominator in the system that says what the
+     * motion *should* have cost.
+     */
+    var via: com.lambda.pathing.core.MovementId? = null
+
+    var actions: List<PricedDecision>? = null
 
     var actionsHazardFrame: Int? = null
 
     var actionsEpoch: Int = -1
+
+    /**
+     * Queue penalty for the cheapest movement this anchor has left to try.
+     *
+     * Zero until the anchor is first expanded, which keeps its admission optimistic --
+     * the vocabulary is not built until the anchor is actually polled, and guessing high
+     * would bury a good anchor before anything was known about it. From the first
+     * expansion on it is the honest price of continuing here, so an anchor whose cheap
+     * options are used up sinks past a fresh one whose next move is a plain walk.
+     */
+    var pendingSurcharge: Double = 0.0
 
     val attempted: MutableSet<TrajectoryDecision> = HashSet()
 

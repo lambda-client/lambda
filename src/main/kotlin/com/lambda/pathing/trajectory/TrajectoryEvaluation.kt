@@ -1,7 +1,6 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.core.HorizontalPoint
-import com.lambda.pathing.movement.Movement
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.SimulationSnapshotOutOfBoundsException

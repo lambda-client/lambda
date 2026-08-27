@@ -83,6 +83,7 @@ internal class Certifier(
             controlSegments = solution.segments,
             spliceFrames = solution.boundaries.filter { it in 1 until tape.frameCount },
             launchMarginFrames = solution.launchMargin,
+            segments = solution.segments(),
         )
     }
 }

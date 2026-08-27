@@ -13,8 +13,14 @@ import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
+import com.lambda.pathing.debug.ParkourCourseLayout
+import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.trajectory.PublishedPath
+import com.lambda.pathing.trajectory.SearchProbe
+import com.lambda.pathing.trajectory.SimulatedTrajectoryFrame
+import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.VirtualSearchClock
 import com.lambda.util.player.prediction.MovementSimulationState
 import com.lambda.util.player.prediction.PlayerPhysicsProfile
@@ -77,6 +83,26 @@ class HorizonBaselineTest {
         }
     }
 
+    /**
+     * Holdout courses the baseline never gates on. The four recorded seeds are what the
+     * planner is tuned against; a change that helps them and hurts these has overfit.
+     * Purely a printed report -- arrival counts here inform review, not CI.
+     */
+    @Test
+    fun `holdout parkour seeds report without gating`() {
+        val records = (5..12).map { seed ->
+            val course = ParkourCourseLayout.course(jumps = 20, seed = seed)
+            walk(Scenario(
+                "parkour-holdout-%d".format(seed),
+                courseEnvironment(course),
+                SimpleMoveOptions(maxJumpSpan = 3, maxJumpDrop = 2),
+                course.start, course.goal,
+            ))
+        }
+        records.forEach { println("[holdout] ${it.line()}") }
+        println("[holdout] %d/%d arrived".format(records.count { it.arrived }, records.size))
+    }
+
     private data class Record(
         val name: String,
         val status: String,
@@ -84,17 +110,31 @@ class HorizonBaselineTest {
         val collisions: Int,
         val jumps: Int,
         val publications: Int,
+        val adoptions: Int,
+        val refusals: Int,
+        val firstPublishFrame: Int,
         val largestCommit: Int,
         val turningDegrees: Int,
+        val stalledFrames: Int,
+        val excessPercent: Int,
+        val routeReach: String,
     ) {
         val arrived: Boolean get() = status == "arrived"
 
-        fun line(): String = "%-22s %-8s frames=%-4d collisions=%-3d jumps=%-3d pubs=%-3d maxCommit=%-3d turn=%d"
-            .format(name, status, frames, collisions, jumps,
-                publications, largestCommit, turningDegrees)
+        fun line(): String =
+            ("%-22s %-8s reach=%-7s frames=%-4d excess=%-4s collisions=%-3d jumps=%-3d " +
+                "pubs=%-3d adopt=%-3d refuse=%-3d firstPub=%-4d maxCommit=%-3d turn=%-4d stalled=%d")
+                .format(name, status, routeReach, frames, "$excessPercent%", collisions, jumps,
+                    publications, adoptions, refusals, firstPublishFrame,
+                    largestCommit, turningDegrees, stalledFrames)
     }
 
-    private fun noRoute(name: String) = Record(name, "no-route", 0, 0, 0, 0, 0, 0)
+    private fun noRoute(name: String) = Record(
+        name = name, status = "no-route", frames = 0, collisions = 0, jumps = 0,
+        publications = 0, adoptions = 0, refusals = 0, firstPublishFrame = -1,
+        largestCommit = 0, turningDegrees = 0, stalledFrames = 0, excessPercent = 0,
+        routeReach = "-",
+    )
 
     private class Scenario(
         val name: String,
@@ -131,34 +171,169 @@ class HorizonBaselineTest {
         )
 
         val clock = VirtualSearchClock()
+        // The half the harness used to fake: a body that adopts with latency and can
+        // refuse. Without it the corpus modelled instant universal acknowledgement and
+        // scored a 3% stall rate against ~75% in game.
+        val executor = VirtualExecutor(clock)
         var publications = 0
         var previousFrames = 0
         var largestCommit = 0
+        var firstPublishFrame = -1
+        // How far along the coarse route anything was ever certified. A course that dies
+        // at gap one and one that dies at gap fifteen are different failures, and only
+        // this tells them apart while the status stays `short`.
+        var deepestReach = 0
+        val attribution = EdgeAttributionProbe(route.nodes)
         val outcome = TrajectoryPlanner.walkHorizon(
             route, planner, initial, PROFILE, scenario.environment, CONFIG,
-            cursorFrame = { clock.cursorFrame() },
+            cursorFrame = { executor.cursorFrame() },
             publish = { path, _ ->
                 publications++
+                if (firstPublishFrame < 0) firstPublishFrame = clock.cursorFrame()
+                deepestReach = maxOf(deepestReach, path.route.nodes.indexOf(path.safeAnchorStance))
                 largestCommit = maxOf(largestCommit, path.plan.tape.frameCount - previousFrames)
                 previousFrames = path.plan.tape.frameCount
+                executor.offer(path)
             },
             started = System.currentTimeMillis(),
             clock = clock,
+            adoptedSequence = executor::adoptedSequence,
+            probe = attribution,
         )
 
         val path = (outcome as? PathPlanResult.Planned)?.path
+        path?.let { deepestReach = maxOf(deepestReach, it.route.nodes.indexOf(it.safeAnchorStance)) }
         println("[baseline] ${scenario.name} attempts=${path?.attempts ?: 0}")
-        val frames = path?.plan?.frames.orEmpty()
-        return Record(
+        val record = Record(
             name = scenario.name,
             status = if (path != null && !path.partial) "arrived" else "short",
-            frames = frames.size,
-            collisions = frames.count { it.state.horizontalCollision },
-            jumps = frames.count { it.input.jump },
+            frames = path?.plan?.frames.orEmpty().size,
+            collisions = path?.plan?.frames.orEmpty().count { it.state.horizontalCollision },
+            jumps = path?.plan?.frames.orEmpty().count { it.input.jump },
             publications = publications,
+            adoptions = executor.adoptions,
+            refusals = executor.refusals,
+            firstPublishFrame = firstPublishFrame,
             largestCommit = largestCommit,
             turningDegrees = turning(path).toInt(),
+            stalledFrames = stalled(path?.plan?.frames.orEmpty()),
+            excessPercent = excess(path),
+            routeReach = "$deepestReach/${route.nodes.lastIndex}",
         )
+        attribution.spineLines.forEach { println("[spine] ${scenario.name}: $it") }
+        if (scenario.name.startsWith("parkour-course") || scenario.name.startsWith("parkour-holdout") ||
+            !record.arrived
+        ) {
+            attribution.report(scenario.name).forEach(::println)
+        }
+        return record
+    }
+
+    /**
+     * Attributes search work to coarse route edges, keyed by the index of the decision's
+     * target node ("off" for corridor steps outside the route). The number that matters
+     * is the byte-identical repeat count of the worst diagnostic: a healthy search fails
+     * an edge a few different ways while learning it, a grinding one repeats the exact
+     * same rejection thousands of times.
+     */
+    private class EdgeAttributionProbe(route: List<Stance>) : SearchProbe {
+        private val indexByNode: Map<Stance, Int> =
+            route.withIndex().associate { (index, node) -> node to index }
+
+        private class EdgeStats {
+            var attempts = 0
+            var rejections = 0
+            val diagnostics = HashMap<String, Int>()
+        }
+
+        private val edges = HashMap<Int, EdgeStats>()
+
+        val spineLines = ArrayList<String>()
+
+        override fun spine(
+            reachedElapsed: Int,
+            rollouts: Int,
+            stalledAt: Stance?,
+            diagnostic: TrajectoryDiagnostic?,
+        ) {
+            val at = stalledAt?.let { indexByNode[it]?.toString() ?: "(${it.x},${it.y},${it.z})" } ?: "finish"
+            spineLines += "spine reached=${reachedElapsed}f rollouts=$rollouts stalled=$at" +
+                (diagnostic?.let { " $it" } ?: "")
+        }
+
+        override fun expansion(
+            from: Stance,
+            action: TrajectoryDecision,
+            diagnostic: TrajectoryDiagnostic?,
+        ) {
+            val index = action.step?.let { indexByNode[it] } ?: -1
+            val stats = edges.getOrPut(index) { EdgeStats() }
+            stats.attempts++
+            if (diagnostic != null) {
+                stats.rejections++
+                stats.diagnostics.merge(diagnostic.toString(), 1, Int::plus)
+            }
+        }
+
+        fun report(name: String): List<String> = edges.entries
+            .sortedBy { it.key }
+            .map { (index, stats) ->
+                val worst = stats.diagnostics.maxByOrNull { it.value }
+                "[attribution] %-18s edge=%-4s attempts=%-6d rejected=%-6d distinct=%-3d worst x%d: %s".format(
+                    name,
+                    if (index < 0) "off" else index.toString(),
+                    stats.attempts,
+                    stats.rejections,
+                    stats.diagnostics.size,
+                    worst?.value ?: 0,
+                    worst?.key ?: "-",
+                )
+            }
+    }
+
+    /**
+     * How far the tape exceeds what the route could not have avoided, as a percentage.
+     *
+     * `CoarseRoutePlan.lowerBoundTicks` is admissible -- no body crosses that route in
+     * fewer ticks -- which makes it the only denominator in the system. Raw frame counts
+     * only ever said whether a change moved the number, never whether the number was any
+     * good; measured this way the corpus turns out to sit within a few percent of optimal,
+     * so a change that moves frames by five percent is moving 1.02x to 1.07x rather than
+     * fixing anything.
+     */
+    private fun excess(path: PublishedPath?): Int {
+        if (path == null) return 0
+        val ratio = path.excessRatio
+        return if (ratio.isFinite()) ((ratio - 1.0) * 100).toInt() else 0
+    }
+
+    /**
+     * Frames the body spends standing still *inside* the tape, not at its end.
+     *
+     * Every published tape ends in a certified brake so an unextended one is safe to
+     * replay. When the search fails to publish an extension before the body reaches that
+     * brake, the body stops -- and because the search then re-roots onto the brake
+     * anchor, the deceleration and hold are welded into the prefix of every tape that
+     * follows. So a stop in the middle of a finished tape is a recording of a moment the
+     * planner could not keep up, and it is the metric that says whether it did.
+     *
+     * The trailing stop is excluded: arriving at the goal and stopping is the point.
+     */
+    private fun stalled(frames: List<SimulatedTrajectoryFrame>): Int {
+        if (frames.isEmpty()) return 0
+        val stopped = MotionConstraints().stoppedSpeed
+        val still = frames.map { it.state.velocity.horizontalLength() <= stopped }
+        var total = 0
+        var index = 0
+        while (index < still.size) {
+            if (!still[index]) { index++; continue }
+            var end = index
+            while (end < still.size && still[end]) end++
+            // A run that reaches the last frame is the arrival stop, not a stall.
+            if (end - index >= MIN_STALL_FRAMES && end < still.size) total += end - index
+            index = end
+        }
+        return total
     }
 
     private fun turning(path: PublishedPath?): Double {
@@ -208,6 +383,28 @@ class HorizonBaselineTest {
             Stance(0, 100, 0), Stance(3, 102, 3),
         ))
 
+        // Seeded parkour courses of isolated one-block pads.
+        //
+        // The corpus had nothing of this shape: bedrock is open terrain where a jump that
+        // lands slightly off still lands on something, and the two parkour fixtures are
+        // pillar pairs that finish in 36 frames. A body that cannot hit a 1x1 target
+        // scored perfectly well on all of it. These courses are 20 gaps long, deterministic
+        // from their seed, and every gap is drawn from what a sprint jump provably clears,
+        // so a failure here is the planner's and not the terrain's.
+        for (seed in 1..4) {
+            val course = ParkourCourseLayout.course(jumps = 20, seed = seed)
+            add(Scenario(
+                "parkour-course-%d".format(seed),
+                courseEnvironment(course),
+                // Capped at the pad chain's own reach. Left at the default of five the
+                // coarse graph routes diagonally *across* pads -- a 4.5-block shortcut it
+                // can see and no body can jump -- so the fixture would be measuring the
+                // planner against gaps that are not there.
+                SimpleMoveOptions(maxJumpSpan = 3, maxJumpDrop = 2),
+                course.start, course.goal,
+            ))
+        }
+
         add(Scenario(
             "staircase-over-both", staircaseEnvironment(),
             SimpleMoveOptions(allowDiagonal = true, maxWalkOffDepth = 3),
@@ -243,6 +440,21 @@ class HorizonBaselineTest {
         )
     }
 
+    private fun courseEnvironment(
+        course: ParkourCourseLayout.Course,
+        pad: ParkourCourseLayout.PadShape = ParkourCourseLayout.PadShape.BLOCK,
+    ): SnapshotSimulationEnvironment = SnapshotSimulationEnvironment.synthetic(
+        bounds = SimulationSnapshotBounds(
+            course.pads.minOf { it.x } - 4, 90, course.pads.minOf { it.z } - 6,
+            course.pads.maxOf { it.x } + 4, 120, course.pads.maxOf { it.z } + 6,
+        ),
+        blocks = course.pads.associate {
+            BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics(
+                pad.shape(), coarseVoxel = CoarseVoxel.FULL_BLOCK,
+            )
+        },
+    )
+
     private fun staircaseEnvironment(): SnapshotSimulationEnvironment {
         val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
         for (x in -8..8) for (z in -8..8) if (z < 3) blocks[BlockPos(x, 0, z)] = SnapshotBlockPhysics.FULL_CUBE
@@ -260,6 +472,9 @@ class HorizonBaselineTest {
     }
 
     private companion object {
+        /** Shortest run of stationary frames that counts as a stop rather than a slow turn. */
+        const val MIN_STALL_FRAMES = 4
+
         val BASELINE: Path = Path.of("src/test/resources/pathing/horizon-baseline.txt")
 
         val HEADER = """
