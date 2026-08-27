@@ -54,6 +54,15 @@ internal class ValueAnchor(
 
     var sweptEpoch: Int = -1
 
+    /**
+     * Cached frame where this anchor's tape departs the acked running tape, valid
+     * while [divergenceSequence] matches the publication it was computed against.
+     * Divergence is fixed per publication, and the liveness check runs at poll time --
+     * uncached it is a lineage walk per poll.
+     */
+    var divergenceElapsed: Int = -1
+    var divergenceSequence: Long = Long.MIN_VALUE
+
     fun prefix(): List<MovementSimulationInput> {
         val chain = ArrayList<List<MovementSimulationInput>>()
         var node: ValueAnchor? = this

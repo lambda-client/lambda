@@ -217,6 +217,8 @@ object ValueFieldAnchorSearch {
 
         override val expansionCount: Int get() = expansions
 
+        override val incumbentAnchor: ValueAnchor? get() = best?.anchor
+
         private val rollouts = AnchorRollout(
             catalog, field, config, searchConfig, environment, profile, { goalPoint },
             attempts, frontier::progressOf, probe,
@@ -409,12 +411,6 @@ object ValueFieldAnchorSearch {
          * short: being ahead is the whole justification, and a body running out of tape
          * needs every expansion it can get.
          */
-        private fun idling(executing: Int?): Boolean {
-            if (executing == null) return false
-            val tip = horizon.safeAnchor ?: return false
-            return tip.elapsed - executing >= IDLE_RUNWAY_FRAMES
-        }
-
         /** Whether a stall still has something left to buy. */
         private fun canEscalate(): Boolean =
             !temperature.exhausted || corridorLevel < CORRIDOR_LEVELS.lastIndex
@@ -506,9 +502,11 @@ object ValueFieldAnchorSearch {
                         }
                     }
                     // A surviving full solution to the final goal finalizes after a
-                    // short improvement window -- before execution races invalidate it.
+                    // short improvement window -- but only once the body is nearly
+                    // there. Finalizing mid-course froze the tape's quality with the
+                    // body seconds behind it.
                     best?.let {
-                        if (mayFinalize() && readyToFinish(it) &&
+                        if (mayFinalize() && readyToFinish(it) && bodyNearEnd(it) &&
                             expansionsSinceImprovement >= FINAL_IMPROVEMENT_WINDOW
                         ) {
                             return finish(it)
@@ -518,10 +516,22 @@ object ValueFieldAnchorSearch {
                     if (tip != null) {
                         val runway = tip.elapsed - executing
                         if (runway <= searchConfig.horizonRunwayFrames) {
-                            horizon.commitFromCandidates(
-                                urgent = runway <= searchConfig.horizonCommitFrames,
+                            val urgent = runway <= searchConfig.horizonCommitFrames
+                            val extended = horizon.commitFromCandidates(
+                                urgent = urgent,
                                 along = best?.takeIf { !readyToFinish(it) }?.anchor,
                             )
+                            // The body is about to outrun the tape and no extension
+                            // exists -- what remains of the running solution is its
+                            // tail. Finalize now rather than waiting out the usual
+                            // improvement window: waiting was measured as the body
+                            // braking at the tape end while a finished solution sat
+                            // unadopted behind the window.
+                            if (!extended && urgent) {
+                                best?.let {
+                                    if (mayFinalize() && readyToFinish(it)) return finish(it)
+                                }
+                            }
                         }
                     }
                 }
@@ -589,15 +599,15 @@ object ValueFieldAnchorSearch {
                     // refill the open list; re-evaluate instead of polling empty.
                     continue
                 }
-                if (idling(executing)) {
-                    // Idling costs wall time like an expansion does; the clock has to know,
-                    // or a virtual-time harness would simply stop the body instead.
-                    clock.onExpansion()
-                    continue
-                }
                 if (expansions % WORLD_SYNC_INTERVAL == 0) syncWorld()
                 if (expansions % CANDIDATE_PUBLISH_INTERVAL == 0) horizon.publishCandidates()
                 val entry = frontier.poll() ?: continue
+
+                // Execution kills branches continuously: a branch whose divergence
+                // point the cursor has passed can never be published again, and
+                // keeping it live let a better-but-dead line dominate the frontier
+                // while the tape starved.
+                if (!horizon.adoptable(entry.anchor)) continue
 
                 if (entry.anchor.elapsed >= horizon.horizonEnd &&
                     field.guide(entry.anchor.stance) > searchConfig.finishValueTicks
@@ -606,12 +616,14 @@ object ValueFieldAnchorSearch {
                     continue
                 }
 
-                best?.let {
-                    if (mayFinalize() && entry.bound >= it.frames && readyToFinish(it)) {
-                        return finish(it)
-                    }
+                val incumbent = best
+                if (incumbent != null && mayFinalize() && entry.bound >= incumbent.frames) {
+                    if (readyToFinish(incumbent) && bodyNearEnd(incumbent)) return finish(incumbent)
+                    // The session must stay alive for refinement, but this anchor is
+                    // provably no improvement -- the same test admission prunes by.
+                    continue
                 }
-                if (best != null && mayFinalize() && readyToFinish(best!!) &&
+                if (best != null && mayFinalize() && readyToFinish(best!!) && bodyNearEnd(best!!) &&
                     expansionsSinceImprovement >= searchConfig.stallExpansions
                 ) {
                     return finish(best!!)
@@ -969,7 +981,22 @@ object ValueFieldAnchorSearch {
             if (!horizon.canReach(solution.anchor)) return
             if (!executionCompatible(solution.anchor)) return
             val incumbent = best
-            if (incumbent == null || solution.score < incumbent.score) {
+            // Better must mean adoptably better. The publication protocol refuses a
+            // branch swap that gains less than REFINEMENT_GAIN_TICKS, so a solution off
+            // the published tape that wins by a tick is a trap: the search follows it,
+            // nothing can publish it, the tape starves, and the body brakes at the tip
+            // -- measured on bedrock-00 as every stall's line refusing with over==line.
+            // Off-tape solutions must clear the same bar the protocol will hold them to.
+            val tip = horizon.safeAnchor
+            val requiredGain = if (tip != null && !solution.anchor.descendsFrom(tip)) {
+                OFF_TAPE_RETAIN_GAIN_FRAMES
+            } else 0
+            val improves = when {
+                incumbent == null -> true
+                requiredGain > 0 -> solution.score <= incumbent.score - requiredGain
+                else -> solution.score < incumbent.score
+            }
+            if (improves) {
                 best = solution
                 expansionsSinceImprovement = 0
             }
@@ -977,15 +1004,25 @@ object ValueFieldAnchorSearch {
 
         private fun mayFinalize(): Boolean = finalGoal == null || goalStance == finalGoal
 
-        private fun executionCompatible(anchor: ValueAnchor): Boolean {
-            val executing = cursorFrame?.invoke() ?: return true
-            return horizon.executionDivergence(anchor) >= executing
-        }
+        private fun executionCompatible(anchor: ValueAnchor): Boolean = horizon.adoptable(anchor)
 
         private fun readyToFinish(solution: Solution): Boolean {
             if (searchConfig.maxFinalCommitFrames <= 0) return true
             val committedElapsed = horizon.safeAnchor?.elapsed ?: return true
             return solution.frames - committedElapsed <= searchConfig.maxFinalCommitFrames
+        }
+
+        /**
+         * Whether the body is close enough to the solution's end that finalizing is the
+         * right move. Finishing certifies the whole remaining tape and ends the session
+         * -- and with it every chance of improvement -- so while the body is mid-course
+         * the search declines to finalize and keeps refining just in time instead. A
+         * session with no cursor (planning before motion, or a parked successor) keeps
+         * the historical behaviour: short courses finalize whole.
+         */
+        private fun bodyNearEnd(solution: Solution): Boolean {
+            val executing = cursorFrame?.invoke() ?: return true
+            return solution.frames - executing <= searchConfig.maxFinalCommitFrames
         }
 
         private fun finish(solution: Solution): MotionPlanResult {
@@ -1060,14 +1097,11 @@ object ValueFieldAnchorSearch {
      */
     private const val HEAT_EXPANSIONS = 120
 
-    /**
-     * Frames of certified motion ahead of the body that count as comfortably ahead.
-     *
-     * Two seconds of tape. Measured against 30 and 60: at 30 the search saves more still
-     * and pays for it on every quality axis, and at 60 it idles so rarely that it loses
-     * the saving without buying anything back.
-     */
-    private const val IDLE_RUNWAY_FRAMES = 40
+    // The idle rule (stop expanding at 40+ frames of runway) is deleted, deliberately:
+    // it was the right economy when the search had no full solution mid-walk and its
+    // extra expansions bought nothing. With an incumbent standing from the spine,
+    // divergence pruning killing dead branches, and finalization waiting for the body,
+    // spare capacity is refinement of the tape the body has not yet reached.
 
     /** Expansions without improvement, holding motion, before difficulty is bought to shorten it. */
     private const val REFINEMENT_HEAT_EXPANSIONS = 600
@@ -1077,6 +1111,14 @@ object ValueFieldAnchorSearch {
     private const val FINAL_IMPROVEMENT_WINDOW = 256
 
     private const val MAX_TAPE_RESTARTS = 3
+
+    /**
+     * Frames an off-tape solution must win by to displace the incumbent, mirroring the
+     * publication protocol's REFINEMENT_GAIN_TICKS: retaining anything the protocol
+     * will refuse to publish wedges the session between an unadoptable best and a
+     * starving tape.
+     */
+    private const val OFF_TAPE_RETAIN_GAIN_FRAMES = 3
 
     /**
      * Ordered decisions the spine pass rolls per edge before conceding the edge to the

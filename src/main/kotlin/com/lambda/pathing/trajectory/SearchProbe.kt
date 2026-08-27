@@ -49,6 +49,14 @@ interface SearchProbe {
      */
     fun braked(tipElapsed: Int, executing: Int, open: Int, parked: Int, deepestElapsed: Int) {}
 
+    /**
+     * A publication was refused while the body was inside the runway window -- the
+     * frames before a potential stall. [reason] names the specific gate; the ledger's
+     * standing instruction is to attribute refusals to gates before touching any of
+     * them, because three fixes built on an unmeasured model of this all regressed.
+     */
+    fun publishRefused(reason: String, anchorElapsed: Int, tipElapsed: Int, executing: Int) {}
+
     fun candidates(lines: List<CandidatePath>) {}
 
     /**
