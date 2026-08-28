@@ -23,7 +23,7 @@ import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
-import com.lambda.task.tasks.AcquireStackTask.Companion.acquireStack
+import com.lambda.task.tasks.acquireStack
 import net.minecraft.item.Items
 
 @Suppress("unused")

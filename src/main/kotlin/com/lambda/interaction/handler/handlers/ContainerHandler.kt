@@ -126,7 +126,7 @@ object ContainerHandler : Loadable {
         filteredContainers
             .filter { containerSelection.matches(it) }
             .filter { it.stackCount(this) >= count }
-            .sortedWith(automated.inventoryConfig.providerPriority.materialComparator(this))
+            .sortedWith(automated.inventoryConfig.accessPriority.materialComparator(this))
 
     @ContainerMarker
     context(automated: Automated)
@@ -142,7 +142,7 @@ object ContainerHandler : Loadable {
         filteredContainers
             .filter { containerSelection.matches(it) }
             .filter { it.spaceAvailable(this) >= count }
-            .sortedWith(automated.inventoryConfig.providerPriority.spaceComparator(this))
+            .sortedWith(automated.inventoryConfig.accessPriority.spaceComparator(this))
 
     @ContainerMarker
     context(automated: Automated)

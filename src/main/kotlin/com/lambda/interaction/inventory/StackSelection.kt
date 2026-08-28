@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.inventory
 
+import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
@@ -33,6 +34,12 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import java.util.*
+
+@ContainerMarker
+fun Item.select(count: Int = 0) = selectStack(count) { isItem(this@select) }
+
+@ContainerMarker
+fun ItemStack.select(count: Int = 0) = selectStack(count) { isItemStack(this@select) }
 
 @Suppress("unused")
 class StackSelection(
@@ -239,12 +246,6 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 
 	companion object {
 		private val efficientToolCache = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
-
-		@ContainerMarker
-		fun Item.select(count: Int = 0) = selectStack(count) { isItem(this@select) }
-
-		@ContainerMarker
-		fun ItemStack.select(count: Int = 0) = selectStack(count) { isItemStack(this@select) }
 
 		fun selectStack(
 			count: Int = 0,

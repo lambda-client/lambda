@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.forEachSetting
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent

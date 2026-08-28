@@ -48,13 +48,13 @@ import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
-import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder.Companion.breakRequest
-import com.lambda.interaction.manager.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
+import com.lambda.interaction.manager.managers.breaking.breakRequest
+import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
-import com.lambda.task.tasks.EatTask.Companion.eat
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
@@ -79,7 +79,50 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.sqrt
 
-class BuildTask @Ta5kBuilder private constructor(
+@Ta5kBuilder
+fun Automated.build(
+    finishOnDone: Boolean = true,
+    collectDrops: Boolean = buildConfig.collectDrops,
+    lifeMaintenance: Boolean = false,
+    async: Boolean = false,
+    buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
+    blueprint: () -> Blueprint
+) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, async, this, buildResultFilter)
+
+@Ta5kBuilder
+context(automated: Automated)
+fun Structure.build(
+    finishOnDone: Boolean = true,
+    collectDrops: Boolean = automated.buildConfig.collectDrops,
+    lifeMaintenance: Boolean = false,
+    async: Boolean = false,
+    buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
+) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
+
+@Ta5kBuilder
+context(automated: Automated)
+fun Blueprint.build(
+    finishOnDone: Boolean = true,
+    collectDrops: Boolean = automated.buildConfig.collectDrops,
+    lifeMaintenance: Boolean = false,
+    async: Boolean = false,
+    buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
+) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
+
+@Ta5kBuilder
+context(automated: Automated)
+fun breakAndCollect(
+    blockPos: BlockPos,
+    finishOnDone: Boolean = true,
+    lifeMaintenance: Boolean = false,
+    async: Boolean = false,
+    buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
+) = BuildTask(
+    blockPos.toStructure(TargetState.Empty).toBlueprint(),
+    finishOnDone, true, lifeMaintenance, async, automated, buildResultFilter
+)
+
+class BuildTask @Ta5kBuilder internal constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean,
     private val collectDrops: Boolean,
@@ -340,54 +383,9 @@ class BuildTask @Ta5kBuilder private constructor(
                 true
             } ?: false
 
-    fun iteratePropagating() =
+    private fun iteratePropagating() =
         if (blueprint is PropagatingBlueprint) {
             blueprint.next() ?: failure("Failed to propagate the next blueprint")
             true
         } else false
-
-    companion object {
-        @Ta5kBuilder
-        fun Automated.build(
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false,
-            async: Boolean = false,
-            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-            blueprint: () -> Blueprint
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, lifeMaintenance, async, this, buildResultFilter)
-
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun Structure.build(
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false,
-            async: Boolean = false,
-            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
-
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun Blueprint.build(
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = automated.buildConfig.collectDrops,
-            lifeMaintenance: Boolean = false,
-            async: Boolean = false,
-            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-        ) = BuildTask(this, finishOnDone, collectDrops, lifeMaintenance, async, automated, buildResultFilter)
-
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun breakAndCollect(
-            blockPos: BlockPos,
-            finishOnDone: Boolean = true,
-            lifeMaintenance: Boolean = false,
-            async: Boolean = false,
-            buildResultFilter: SafeContext.(BuildResult) -> Boolean = { true },
-        ) = BuildTask(
-            blockPos.toStructure(TargetState.Empty).toBlueprint(),
-            finishOnDone, true, lifeMaintenance, async, automated, buildResultFilter
-        )
-    }
 }

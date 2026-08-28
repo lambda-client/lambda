@@ -17,5 +17,4 @@
 
 package com.lambda.interaction.inventory.container
 
-interface ExternalContainer {
-}
+interface ExternalContainer

@@ -25,6 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.TickTimer
 import com.lambda.util.player.RotationUtils.lookAtBlock
@@ -34,7 +35,15 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class OpenContainerTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun openContainer(
+    blockPos: BlockPos,
+    waitForSlotLoad: Boolean = true,
+    sides: Set<Direction> = Direction.entries.toSet()
+) = OpenContainerTask(blockPos, waitForSlotLoad, sides, automated)
+
+class OpenContainerTask @Ta5kBuilder internal constructor(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
     private val sides: Set<Direction> = Direction.entries.toSet(),
@@ -111,15 +120,5 @@ class OpenContainerTask @Ta5kBuilder constructor(
 
             containerState = State.Opening
         }
-    }
-
-    companion object {
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun openContainer(
-            blockPos: BlockPos,
-            waitForSlotLoad: Boolean = true,
-            sides: Set<Direction> = Direction.entries.toSet()
-        ) = OpenContainerTask(blockPos, waitForSlotLoad, sides, automated)
     }
 }

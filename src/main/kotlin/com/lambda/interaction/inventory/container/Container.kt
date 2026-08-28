@@ -28,7 +28,6 @@ import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.ContainerTransferTask
-import com.lambda.task.wrappers.TaskOrNullSupplier
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
@@ -127,17 +126,9 @@ abstract class Container(
     }
 
     @Ta5kBuilder
-    context(automatedSafeContext: AutomatedSafeContext)
-    open fun <R> accessThen(
-        closeAfter: Boolean = true,
-        afterOpen: TaskOrNullSupplier<Unit, R?> = { null },
-        afterClose: TaskOrNullSupplier<R?, *> = { null }
-    ) = with(automatedSafeContext) {
-        taskOrSkipOrNull({ afterOpen(Unit) }) { result ->
-            if (closeAfter) afterClose(result)
-            else null
-        }
-    }
+    context(automated: Automated)
+    open fun access(): OpenContainerTask<*> =
+        PlayerOpenContainerTask(description, ::isAccessed)
 
     context(automatedSafeContext: AutomatedSafeContext)
     fun transfer(selection: StackSelection, toContainer: Container): Boolean =

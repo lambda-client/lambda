@@ -15,21 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task.tasks
+package com.lambda.interaction.inventory.container
 
-import com.lambda.context.SafeContext
+import com.lambda.context.Automated
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.simpleAction
 
-@Ta5kBuilder
-fun simpleAction(name: String, action: SafeContext.() -> Unit) = SimpleActionTask(name, action)
+interface OpenedContainerContext {
+	@Ta5kBuilder
+	context(automated: Automated)
+	fun close(): Task<*>
+}
 
-class SimpleActionTask @Ta5kBuilder internal constructor(
-	override val name: String,
-	val action: SafeContext.() -> Unit
-) : Task<Unit>() {
-	override fun SafeContext.onStart() {
-		action()
-		success()
-	}
+open class BasicOpenedContainerContext(
+	private val isAccessed: () -> Boolean
+) : OpenedContainerContext {
+	context(_: Automated)
+	final override fun close() =
+		simpleAction("Closing container") {
+			if (!isAccessed()) return@simpleAction
+			player.closeScreen()
+		}
 }

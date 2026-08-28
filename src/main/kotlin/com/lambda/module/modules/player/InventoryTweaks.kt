@@ -27,11 +27,11 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
-import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainerTask
-import com.lambda.task.wrappers.then
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.tasks.breakAndCollect
+import com.lambda.task.tasks.openContainer
+import com.lambda.task.tasks.wrappers.then
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler

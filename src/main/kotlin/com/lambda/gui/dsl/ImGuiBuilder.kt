@@ -20,6 +20,8 @@
 package com.lambda.gui.dsl
 
 import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.dsl.ImGuiBuilder.onItemClick
+import com.lambda.gui.dsl.ImGuiBuilder.onItemHover
 import com.lambda.gui.dsl.ImGuiBuilder.openPopup
 import com.lambda.gui.dsl.ImGuiBuilder.text
 import com.lambda.imgui.ImDrawList
@@ -108,10 +110,8 @@ import com.lambda.imgui.ImGui.isItemEdited
 import com.lambda.imgui.ImGui.isItemFocused
 import com.lambda.imgui.ImGui.isItemHovered
 import com.lambda.imgui.ImGui.isItemToggledOpen
-import com.lambda.imgui.ImGui.isMouseClicked
 import com.lambda.imgui.ImGui.isWindowAppearing
 import com.lambda.imgui.ImGui.isWindowCollapsed
-import com.lambda.imgui.ImGui.isWindowHovered
 import com.lambda.imgui.ImGui.plotHistogram
 import com.lambda.imgui.ImGui.plotLines
 import com.lambda.imgui.ImGui.popFont

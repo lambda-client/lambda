@@ -30,7 +30,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.tasks.build
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.shrinkByEpsilon
 import com.lambda.util.item.ItemUtils.block

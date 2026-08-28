@@ -24,11 +24,22 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.screen.slot.Slot
 
-class AcquireStackTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun acquireStack(selection: StackSelection) =
+    AcquireStackTask(selection, automated)
+
+@Ta5kBuilder
+context(automated: Automated)
+fun acquireStack(selection: () -> StackSelection) =
+    AcquireStackTask(selection(), automated)
+
+class AcquireStackTask @Ta5kBuilder internal constructor(
     val selection: StackSelection,
     automated: Automated
 ) : Task<Slot>(), Automated by automated {
@@ -43,17 +54,5 @@ class AcquireStackTask @Ta5kBuilder constructor(
                 ?.execute(this@AcquireStackTask)
                 ?: failure(ContainerHandler.NoContainerFound(selection)) // ToDo: Create crafting path
         }
-    }
-
-    companion object {
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun acquireStack(selection: StackSelection) =
-            AcquireStackTask(selection, automated)
-
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun acquireStack(selection: () -> StackSelection) =
-            AcquireStackTask(selection(), automated)
     }
 }

@@ -25,10 +25,34 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.manager.Request
+import com.lambda.interaction.manager.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
+
+@JvmName("interactRequest1")
+context(automated: Automated)
+fun Collection<BuildResult>.interactRequest(
+	pendingInteractions: MutableCollection<BuildContext>,
+	nowOrNothing: Boolean = false,
+	builder: (PlaceRequestBuilder.() -> Unit)? = null
+) = asSequence()
+	.interactRequest(pendingInteractions, nowOrNothing, builder)
+
+@JvmName("interactRequest2")
+context(automated: Automated)
+fun Sequence<BuildResult>.interactRequest(
+	pendingInteractions: MutableCollection<BuildContext>,
+	nowOrNothing: Boolean = false,
+	builder: (PlaceRequestBuilder.() -> Unit)? = null
+) = map { if (it is Dependent) it.lastDependency else it }
+	.filterIsInstance<InteractResult.Interact>()
+	.sorted()
+	.map { it.context }
+	.toSet()
+	.takeIf { it.isNotEmpty() }
+	?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
 
 data class InteractRequest(
 	val contexts: Collection<InteractContext>,
@@ -81,29 +105,6 @@ class PlaceRequestBuilder private constructor(
 		)
 
 	companion object {
-		@JvmName("interactRequest1")
-		context(automated: Automated)
-		fun Collection<BuildResult>.interactRequest(
-			pendingInteractions: MutableCollection<BuildContext>,
-			nowOrNothing: Boolean = false,
-			builder: (PlaceRequestBuilder.() -> Unit)? = null
-		) = asSequence()
-			.interactRequest(pendingInteractions, nowOrNothing, builder)
-
-		@JvmName("interactRequest2")
-		context(automated: Automated)
-		fun Sequence<BuildResult>.interactRequest(
-			pendingInteractions: MutableCollection<BuildContext>,
-			nowOrNothing: Boolean = false,
-			builder: (PlaceRequestBuilder.() -> Unit)? = null
-		) = map { if (it is Dependent) it.lastDependency else it }
-			.filterIsInstance<InteractResult.Interact>()
-			.sorted()
-			.map { it.context }
-			.toSet()
-			.takeIf { it.isNotEmpty() }
-			?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
-
 		@JvmName("interactRequest3")
 		fun Automated.interactRequest(
 			contexts: Collection<InteractContext>,

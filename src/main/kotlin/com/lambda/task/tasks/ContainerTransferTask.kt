@@ -26,11 +26,38 @@ import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.task.Task
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.screen.slot.Slot
 
-class ContainerTransferTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun transfer(
+	stackSelection: StackSelection,
+	fromContainer: Container,
+	toContainer: Container,
+	failIfNoStack: Boolean = true
+) = ContainerTransferTask(fromContainer, toContainer, stackSelection, failIfNoStack, automated)
+
+@Ta5kBuilder
+context(automated: Automated)
+@JvmName("transferByStackSelection")
+fun transfer(
+	stackSelection: StackSelection,
+	toContainer: Container,
+	failIfNoStack: Boolean = true
+) = transfer(stackSelection, stackSelection.findContainer() ?: HotbarAndInventoryContainer, toContainer, failIfNoStack)
+
+@Ta5kBuilder
+context(automated: Automated)
+@JvmName("transferExt")
+fun StackSelection.transferTo(
+	toContainer: Container,
+	failIfNoStack: Boolean = true
+) = transfer(this, findContainer() ?: HotbarAndInventoryContainer, toContainer, failIfNoStack)
+
+class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private var fromContainer: Container,
 	private val toContainer: Container,
 	private val stackSelection: StackSelection,
@@ -43,24 +70,24 @@ class ContainerTransferTask @Ta5kBuilder constructor(
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
 				if (fromContainer is ExternalContainer && toContainer is ExternalContainer) {
-					fromContainer.accessThen(
+					fromContainer.accessThen<Slot>(
 						afterOpen = {
 							fromContainer.transferByTask(stackSelection, HotbarAndInventoryContainer, failIfNoStack)
 						}
 					) {
 						HotbarAndInventoryContainer.transferByTask(stackSelection, toContainer, failIfNoStack)
-							.finally { slot -> success(slot) }
+							.thenAction { slot -> success(slot) }
 					}?.execute(this@ContainerTransferTask)
 					return@listen
 				}
 
-				fromContainer.accessThen {
-					toContainer.accessThen {
-						TransferTask().finally { slot ->
+				fromContainer.accessThen<Unit> {
+					toContainer.accessThen<Slot> {
+						TransferTask().thenAction { slot ->
 							success(slot)
 						}
 					}
-				}.execute(this@ContainerTransferTask)
+				}?.execute(this@ContainerTransferTask)
 			}
 		}
 	}
@@ -92,35 +119,5 @@ class ContainerTransferTask @Ta5kBuilder constructor(
 		}
 
 		private inner class NoMaterialAccessException(stackSelection: StackSelection) : IllegalStateException("Unable to access $stackSelection.")
-	}
-
-	companion object {
-		@Ta5kBuilder
-		context(automated: Automated)
-		fun transfer(
-			fromContainer: Container,
-			toContainer: Container,
-			stackSelection: StackSelection,
-			failIfNoStack: Boolean = false
-		) = ContainerTransferTask(fromContainer, toContainer, stackSelection, failIfNoStack, automated)
-
-		@Ta5kBuilder
-		context(automated: Automated)
-		fun transfer(
-			stackSelection: StackSelection,
-			toContainer: Container,
-			failIfNoStack: Boolean = false
-		) = stackSelection.findContainer()?.let {
-			ContainerTransferTask(it, toContainer, stackSelection, failIfNoStack, automated)
-		}
-
-		@Ta5kBuilder
-		context(automated: Automated)
-		fun StackSelection.transfer(
-			toContainer: Container,
-			failIfNoStack: Boolean = false
-		) = findContainer()?.let {
-			ContainerTransferTask(it, toContainer, this, failIfNoStack, automated)
-		}
 	}
 }

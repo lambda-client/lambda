@@ -49,8 +49,8 @@ import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.task.wrappers.thenOrNull
+import com.lambda.task.tasks.build
+import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty

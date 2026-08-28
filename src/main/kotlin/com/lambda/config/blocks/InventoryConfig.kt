@@ -29,26 +29,15 @@ import net.minecraft.item.Item
 interface InventoryConfig {
 	val tickStageMask: Collection<TickEvent>
 	val disposables: Collection<Item>
-	val swapWithDisposables: Boolean
-	val providerPriority: Priority
+	val accessPriority: Priority
 	val storePriority: Priority
 
-	val accessShulkerBoxes: Boolean
-	val accessChests: Boolean
-	val accessEnderChest: Boolean
-	val accessStashes: Boolean
+	val allowedContainers: Collection<Container.Rank>
+
+	val enderChestSearchRadius: Int
 
 	val containerSelection: ContainerSelection
-		get() = selectContainer {
-			val allowedContainers = buildSet {
-				addAll(Container.Rank.entries)
-				if (!accessShulkerBoxes) remove(Container.Rank.ShulkerBox)
-				if (!accessEnderChest) remove(Container.Rank.EnderChest)
-				if (!accessChests) remove(Container.Rank.Chest)
-				if (!accessStashes) remove(Container.Rank.Stash)
-			}
-			ofAnyType(*allowedContainers.toTypedArray())
-		}
+		get() = selectContainer { ofAnyType(*allowedContainers.toTypedArray()) }
 
 	enum class Priority(
 		override val displayName: String,

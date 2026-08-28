@@ -18,15 +18,17 @@
 package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
-import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
+import com.lambda.interaction.inventory.container.BasicOpenedContainerContext
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
+import com.lambda.interaction.inventory.container.OpenContainerTask
 import com.lambda.interaction.inventory.container.PlacedContainer
-import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
-import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
-import com.lambda.task.wrappers.TaskOrNullSupplier
-import com.lambda.task.wrappers.thenOrNull
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.openContainer
+import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -34,6 +36,7 @@ import com.lambda.util.text.literal
 import net.minecraft.block.ChestBlock
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
@@ -69,23 +72,26 @@ data class ChestContainer(
 					mc.player?.currentScreenHandler?.type == ScreenHandlerType.GENERIC_9X3
 		} ?: false
 
-	context(automatedSafeContext: AutomatedSafeContext)
-	override fun <R> accessThen(
-		closeAfter: Boolean,
-		afterOpen: TaskOrNullSupplier<Unit, R?>,
-		afterClose: TaskOrNullSupplier<R?, *>
-	) =
-		with(automatedSafeContext) {
-			taskOrSkipOrNull(
-				optional = {
-					openContainer(blockPos).thenOrNull {
-						afterOpen(Unit)
-					}
+	@Ta5kBuilder
+	context(automated: Automated)
+	override fun access() = AccessChestTask(automated)
+
+	inner class AccessChestTask @Ta5kBuilder internal constructor(
+		automated: Automated
+	) : OpenContainerTask<OpenedChestContext>(description), Automated by automated {
+		override fun SafeContext.onStart() {
+			taskOrNull {
+				if (isAccessed) null
+				else openContainer(blockPos).onSuccess { sh ->
+					success(OpenedChestContext(sh))
 				}
-			) {
-				if (closeAfter) {
-					simpleAction("Close inventory") { player.closeHandledScreen() }
-				} else null
-			}
+			}.execute(this@AccessChestTask)
 		}
+	}
+
+	inner class OpenedChestContext(
+		val screenHandler: ScreenHandler,
+	) : BasicOpenedContainerContext(::isAccessed) {
+		val blockPos = this@ChestContainer.blockPos
+	}
 }

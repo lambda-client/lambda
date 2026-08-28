@@ -15,35 +15,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task.wrappers
+package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.util.world.blockSearch
+import net.minecraft.block.Block
+import net.minecraft.util.math.BlockPos
 
 @Ta5kBuilder
-infix fun <R> Task<R>.thenAction(action: SafeContext.(R) -> Unit): Task<R> =
-	SequencedActionTask(this, action)
+fun findBlock(block: Block, searchRadius: Int) = FindPlacedBlockTask(block, searchRadius)
 
-/**
- * A task that performs a given task ([innerTask]) and then a given [action].
- *
- * Useful when an action doesn't require an entire task created for it but still needs to be performed within the task branch.
- *
- * @see thenAction
- */
-class SequencedActionTask<R>(
-	private val innerTask: Task<R>,
-	private val action: SafeContext.(R) -> Unit,
-) : Task<R>() {
-	override val name get() = "Performing action after ${innerTask.name}"
+class FindPlacedBlockTask(
+	private val block: Block,
+	private val searchRadius: Int
+) : Task<BlockPos>() {
+	override val name = "Finding placed block: $block"
 
 	override fun SafeContext.onStart() {
-		innerTask
-			.onSuccess { result ->
-				action(this, result)
-				success(result)
-			}
-			.execute(this@SequencedActionTask)
+		val pos =
+			blockSearch(searchRadius, player.blockPos) { _, state ->
+				state.isOf(block)
+			}.keys.firstOrNull()
+
+		if (pos != null) success(pos)
+		else failure(IllegalStateException("Could not find block $block"))
 	}
 }

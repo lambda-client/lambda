@@ -27,12 +27,17 @@ import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.InventoryContainer
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 
-class EatTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun eat() = EatTask(automated)
+
+class EatTask @Ta5kBuilder internal constructor(
     automated: Automated
 ) : Task<Unit>(), Automated by automated {
     override val name: String
@@ -93,11 +98,5 @@ class EatTask @Ta5kBuilder constructor(
                 holdingUse = true
             }
         }
-    }
-
-    companion object {
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun eat() = EatTask(automated)
     }
 }

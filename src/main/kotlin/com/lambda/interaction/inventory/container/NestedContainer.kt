@@ -20,5 +20,5 @@ package com.lambda.interaction.inventory.container
 import net.minecraft.screen.slot.Slot
 
 interface NestedContainer {
-	val slotCache: Slot
+	val slotCache: Slot?
 }

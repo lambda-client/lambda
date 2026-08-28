@@ -18,26 +18,32 @@
 package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
-import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.NestedContainer
+import com.lambda.interaction.inventory.container.OpenContainerTask
+import com.lambda.interaction.inventory.container.OpenedContainerContext
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
-import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
-import com.lambda.task.tasks.PlaceContainerTask.Companion.placeContainer
-import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
-import com.lambda.task.wrappers.TaskOrNullSupplier
-import com.lambda.task.wrappers.then
-import com.lambda.task.wrappers.thenOrNull
+import com.lambda.interaction.inventory.container.containers.PlayerContainer
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.breakAndCollect
+import com.lambda.task.tasks.openContainer
+import com.lambda.task.tasks.placeContainer
+import com.lambda.task.tasks.transfer
+import com.lambda.task.tasks.wrappers.actionTask
+import com.lambda.task.tasks.wrappers.taskOrNull
+import com.lambda.task.tasks.wrappers.then
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
@@ -70,46 +76,45 @@ data class ShulkerBoxContainer(
                         mc.player?.currentScreenHandler?.type == ScreenHandlerType.SHULKER_BOX
             } ?: false
 
-    context(automatedSafeContext: AutomatedSafeContext)
-    override fun <R> accessThen(
-        closeAfter: Boolean,
-        afterOpen: TaskOrNullSupplier<Unit, R?>,
-        afterClose: TaskOrNullSupplier<R?, *>
-    ) =
-        with(automatedSafeContext) {
-            taskOrSkipOrNull(
-                optional = {
-                    if (isAccessed) null
-                    else nullableWrappedTask<BlockPos>("Setup Shulker Box") { success ->
-                        containedIn.accessThen(
-                            afterOpen = {
-                                if (player.currentScreenHandler.syncId == 0) null
-                                else {
-                                    val selection = selectStack { isSlot(slotCache) }
-                                    containedIn.transferByTask(selection, HotbarContainer)
-                                }
-                            }
-                        ) { slot ->
-                            slot?.let { s ->
-                                placeContainer(s).then { pos ->
-                                    openContainer(pos).finally {
-                                        success(pos)
-                                    }
-                                }
-                            }
+    @Ta5kBuilder
+    context(automated: Automated)
+    override fun access() = OpenShulkerBoxTask(automated)
+
+    inner class OpenShulkerBoxTask @Ta5kBuilder internal constructor(
+        automated: Automated
+    ) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
+        override fun SafeContext.onStart() {
+                transfer(
+                    selectStack { isSlot(slotCache) },
+                    containedIn,
+                    HotbarContainer
+                ).then { slot -> placeContainer(slot) }
+                    .then { pos ->
+                        openContainer(pos).onSuccess { sh ->
+                            success(OpenedShulkerBoxContext(pos, sh, containedIn))
                         }
                     }
-                }
-            ) { pos ->
-                taskOrSkipOrNull({ afterOpen(Unit) }) { result ->
-                    if (closeAfter && pos != null) {
-                        simpleAction("Close inventory") { player.closeHandledScreen() }.then {
-                            breakAndCollect(pos).thenOrNull {
-                                afterClose(result)
-                            }
-                        }
-                    } else null
-                }
-            }
+                    .execute(this@OpenShulkerBoxTask)
         }
+    }
+
+    inner class OpenedShulkerBoxContext(
+        val blockPos: BlockPos,
+        val screenHandler: ScreenHandler,
+        val fromContainer: Container
+    ) : OpenedContainerContext {
+        context(automated: Automated)
+        override fun close() =
+            taskOrNull {
+                if (!isAccessed) null
+                else actionTask { player.closeScreen() }
+            }.then { breakAndCollect(blockPos) }
+                .then { slot ->
+                    transfer(
+                        selectStack { isSlot(slot) },
+                        PlayerContainer,
+                        fromContainer
+                    )
+                }
+    }
 }

@@ -27,8 +27,8 @@ import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.item.ItemUtils.shulkerBoxes
@@ -41,7 +41,15 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class PlaceContainerTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun placeContainer(slot: Slot?) = PlaceContainerTask(slot, automated)
+
+@Ta5kBuilder
+context(automated: Automated)
+fun placeContainer(slot: () -> Slot?) = PlaceContainerTask(slot(), automated)
+
+class PlaceContainerTask @Ta5kBuilder internal constructor(
     val slot: Slot?,
     automated: Automated
 ) : Task<BlockPos>(), Automated by automated {
@@ -101,16 +109,5 @@ class PlaceContainerTask @Ta5kBuilder constructor(
             world.isSpaceEmpty(box)
         }
         else -> false
-    }
-
-    @Suppress("unused")
-    companion object {
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun placeContainer(slot: Slot?) = PlaceContainerTask(slot, automated)
-
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun placeContainer(slot: () -> Slot?) = PlaceContainerTask(slot(), automated)
     }
 }

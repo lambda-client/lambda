@@ -15,14 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task.wrappers
+package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-
-typealias TaskSupplier<R, R2> = SafeContext.(R) -> Task<R2>
-typealias TaskOrNullSupplier<R, R2> = SafeContext.(R) -> Task<R2>?
 
 @Ta5kBuilder
 fun <R> Task<R>.softFail(): Task<R?> =
@@ -35,7 +32,7 @@ fun <R> Task<R>.softFail(): Task<R?> =
  *
  * @see softFail
  */
-class SoftFailTask<R>(
+class SoftFailTask<R> @Ta5kBuilder internal constructor(
     private val innerTask: Task<R>,
 ) : Task<R?>() {
     override val name get() = "Soft fail protection for ${innerTask.name}"

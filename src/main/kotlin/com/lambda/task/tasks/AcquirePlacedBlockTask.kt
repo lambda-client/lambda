@@ -24,16 +24,23 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.softFail
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.item
 import net.minecraft.block.Block
-import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
 
-class AcquirePlacedBlockTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun acquirePlacedBlock(
+	block: Block,
+	maxSearchRadius: Int = 10
+) = AcquirePlacedBlockTask(block, maxSearchRadius, automated)
+
+class AcquirePlacedBlockTask @Ta5kBuilder internal constructor(
 	val block: Block,
-	val maxSearchRadius: Int = 10,
+	val searchRadius: Int = 10,
 	automated: Automated
 ) : Task<BlockPos>(), Automated by automated {
 	override val name get() = "Acquiring placed ${block.name.string}"
@@ -41,43 +48,25 @@ class AcquirePlacedBlockTask @Ta5kBuilder constructor(
 	init {
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
-				Items.ENDER_CHEST
+				block.item
 					.select(1)
 					.findSlots()
 					.firstOrNull()?.let { slot ->
-						PlaceContainerTask(slot, this).finally {
-							success(it)
-						}.execute(this@AcquirePlacedBlockTask)
+						PlaceContainerTask(slot, this)
+							.onSuccess { success(it) }
+							.execute(this@AcquirePlacedBlockTask)
 						return@listen
 					}
 			}
 
-			failure("No ender chest found in range or hotbar/inventory!")
+			failure("No $block found in range or hotbar/inventory!")
 			return@listen
 		}
 	}
 
 	override fun SafeContext.onStart() {
-		checkInRange()?.let { success(it) }
-	}
-
-	private fun SafeContext.checkInRange() =
-		BlockPos.iterateOutwards(
-			player.blockPos,
-			maxSearchRadius,
-			maxSearchRadius,
-			maxSearchRadius
-		).map { it.blockPos }
-			.firstOrNull { blockPos ->
-				blockState(blockPos).block == block
-			}
-
-	companion object {
-		@Ta5kBuilder
-		context(automated: Automated)
-		fun acquirePlacedBlock(
-			block: Block,
-			maxSearchRadius: Int = 10
-		) = AcquirePlacedBlockTask(block, maxSearchRadius, automated)
+		findBlock(block, searchRadius)
+			.softFail()
+			.execute(this@AcquirePlacedBlockTask)
 	}
 }

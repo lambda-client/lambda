@@ -18,25 +18,33 @@
 package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
-import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
-import com.lambda.task.tasks.AcquireStackTask.Companion.acquireStack
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollect
-import com.lambda.task.tasks.OpenContainerTask.Companion.openContainer
-import com.lambda.task.tasks.PlaceContainerTask.Companion.placeContainer
-import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
-import com.lambda.task.wrappers.TaskOrNullSupplier
-import com.lambda.task.wrappers.then
-import com.lambda.task.wrappers.thenOrNull
+import com.lambda.interaction.inventory.container.OpenContainerTask
+import com.lambda.interaction.inventory.container.OpenedContainerContext
+import com.lambda.interaction.inventory.select
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.acquireStack
+import com.lambda.task.tasks.breakAndCollect
+import com.lambda.task.tasks.findBlock
+import com.lambda.task.tasks.openContainer
+import com.lambda.task.tasks.placeContainer
+import com.lambda.task.tasks.wrappers.actionTask
+import com.lambda.task.tasks.wrappers.successTask
+import com.lambda.task.tasks.wrappers.taskOrNull
+import com.lambda.task.tasks.wrappers.then
+import com.lambda.task.tasks.wrappers.withBranch
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.block.Blocks
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.util.math.BlockPos
 
@@ -56,42 +64,49 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 						mc.player?.currentScreenHandler?.type == ScreenHandlerType.GENERIC_9X3
 			} ?: false
 
-	context(automatedSafeContext: AutomatedSafeContext)
-	override fun <R> accessThen(
-		closeAfter: Boolean,
-		afterOpen: TaskOrNullSupplier<Unit, R?>,
-		afterClose: TaskOrNullSupplier<R?, *>
-	) =
-		with(automatedSafeContext) {
-			taskOrSkipOrNull(
-				optional = {
-					if (isAccessed) null
-					else {
-						wrappedTask<BlockPos>("Setup Ender Chest") { success ->
-							acquireStack(Items.ENDER_CHEST.select(1)).then { slot ->
-								placeContainer(slot).then { pos ->
-									openContainer(pos).finally {
-										success(pos)
-									}
+	@Ta5kBuilder
+	context(automated: Automated)
+	override fun access() = OpenEnderChestContainerTask(automated)
+
+	class OpenEnderChestContainerTask @Ta5kBuilder internal constructor(
+		automated: Automated
+	) : OpenContainerTask<OpenedEnderChestContext>(description), Automated by automated {
+		override fun SafeContext.onStart() {
+			taskOrNull {
+				if (isAccessed) null
+				else findBlock(Blocks.ENDER_CHEST, inventoryConfig.enderChestSearchRadius).withBranch(
+					onSuccess = { pos ->
+						openContainer(pos).onSuccess { sh ->
+							success(OpenedEnderChestContext(sh, pos, false))
+						}
+					},
+					onFailure = {
+						acquireStack(Items.ENDER_CHEST.select(1))
+							.then { placeContainer(it) }
+							.then { pos ->
+								openContainer(pos).onSuccess { sh ->
+									success(OpenedEnderChestContext(sh, pos, true))
 								}
 							}
-						}
 					}
-				}
-			) { pos ->
-				taskOrSkipOrNull({ afterOpen(Unit) }) { afterOpenResult ->
-					if (closeAfter) {
-						simpleAction("Close inventory") { player.closeHandledScreen() }.thenOrNull {
-							taskOrSkipOrNull(
-								optional = {
-									if (pos != null) breakAndCollect(pos)
-									else null
-								}
-							) { afterClose(afterOpenResult) }
-						}
-					} else null
-				}
-			}
+				)
+			}.execute(this@OpenEnderChestContainerTask)
 		}
+	}
 
+	class OpenedEnderChestContext(
+		val screenHandler: ScreenHandler,
+		val blockPos: BlockPos,
+		val placed: Boolean
+	) : OpenedContainerContext {
+		context(_: Automated)
+		override fun close() =
+			taskOrNull {
+				if (isAccessed) actionTask { player.closeScreen() }
+				else null
+			}.then {
+				if (placed) breakAndCollect(blockPos)
+				else successTask()
+			}
+	}
 }

@@ -33,7 +33,7 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.managers.interacting.InteractRequest
-import com.lambda.interaction.manager.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
+import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

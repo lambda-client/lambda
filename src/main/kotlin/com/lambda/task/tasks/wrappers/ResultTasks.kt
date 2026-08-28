@@ -15,21 +15,43 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task.tasks
+package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 
 @Ta5kBuilder
-fun simpleAction(name: String, action: SafeContext.() -> Unit) = SimpleActionTask(name, action)
+fun <R> successTask(result: R) =
+	SuccessTask(result)
 
-class SimpleActionTask @Ta5kBuilder internal constructor(
-	override val name: String,
-	val action: SafeContext.() -> Unit
-) : Task<Unit>() {
+@Ta5kBuilder
+fun successTask() = successTask(Unit)
+
+@Ta5kBuilder
+fun <R : Throwable> failureTask(throwable: R) =
+	FailureTask(throwable)
+
+@Ta5kBuilder
+fun failureTask(cause: String) =
+	FailureTask(IllegalStateException(cause))
+
+class SuccessTask<R> @Ta5kBuilder internal constructor(
+	val result: R
+) : Task<R>() {
+	override val name = "Success task"
+
 	override fun SafeContext.onStart() {
-		action()
-		success()
+		success(result)
+	}
+}
+
+class FailureTask<R : Throwable> @Ta5kBuilder internal constructor(
+	val throwable: R
+) : Task<R>() {
+	override val name = "Failure task"
+
+	override fun SafeContext.onStart() {
+		failure(throwable)
 	}
 }

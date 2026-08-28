@@ -27,8 +27,8 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.EatTask.Companion.eat
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.tasks.eat
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 
 @Suppress("unused")

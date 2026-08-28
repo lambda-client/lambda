@@ -18,14 +18,16 @@
 package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.Lambda.mc
-import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
+import com.lambda.interaction.inventory.container.BasicOpenedContainerContext
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.OpenContainerTask
 import com.lambda.interaction.inventory.container.PlacedContainer
-import com.lambda.task.tasks.OpenContainerTask
-import com.lambda.task.tasks.SimpleActionTask.Companion.simpleAction
-import com.lambda.task.wrappers.TaskOrNullSupplier
-import com.lambda.task.wrappers.thenOrNull
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.openContainer
+import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -65,26 +67,20 @@ class PlacedShulkerBoxContainer(
 					mc.player?.currentScreenHandler?.type == ScreenHandlerType.SHULKER_BOX
 		} ?: false
 
-	context(automatedSafeContext: AutomatedSafeContext)
-	override fun <R> accessThen(
-		closeAfter: Boolean,
-		afterOpen: TaskOrNullSupplier<Unit, R?>,
-		afterClose: TaskOrNullSupplier<R?, *>
-	) =
-		with(automatedSafeContext) {
-			taskOrSkipOrNull(
-				optional = {
-					if (!isAccessed) OpenContainerTask(blockPos, automated = automatedSafeContext)
-					else null
-				}
-			) {
-				taskOrSkipOrNull({ afterOpen(Unit) }) { result ->
-					if (closeAfter) {
-						simpleAction("Close Inventory") {
-							automatedSafeContext.player.closeHandledScreen()
-						}.thenOrNull { afterClose(result) }
-					} else null
-				}
-			}
+	@Ta5kBuilder
+	context(automated: Automated)
+	override fun access() = OpenPlacedShulkerBoxTask(automated)
+
+	inner class OpenPlacedShulkerBoxTask @Ta5kBuilder internal constructor(
+		automated: Automated
+	) : OpenContainerTask<BasicOpenedContainerContext>(description), Automated by automated {
+		override fun SafeContext.onStart() {
+			taskOrNull {
+				if (isAccessed) null
+				else openContainer(blockPos)
+			}.onSuccess {
+				success(BasicOpenedContainerContext(::isAccessed))
+			}.execute(this@OpenPlacedShulkerBoxTask)
 		}
+	}
 }

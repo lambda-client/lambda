@@ -29,7 +29,7 @@ import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.tasks.build
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.Blocks
 import net.minecraft.item.BlockItem

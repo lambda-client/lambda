@@ -37,10 +37,6 @@ import com.lambda.module.modules.render.Freecam
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.math.MathUtils.toFloat
-import com.lambda.util.player.PlayerUtils.hasFirework
-import net.minecraft.component.DataComponentTypes
-import com.lambda.util.player.SlotUtils.hotbarStacks
-import com.lambda.util.player.SlotUtils.inventoryStacks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket

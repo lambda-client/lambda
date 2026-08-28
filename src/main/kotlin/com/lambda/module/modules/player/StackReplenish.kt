@@ -47,7 +47,7 @@ object StackReplenish : Module(
 			.withEdits {
 				hideAllExcept(::inventoryConfig)
 				inventoryConfig.apply {
-					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
+					hide(::disposables, ::accessPriority, ::storePriority)
 				}
 			}
 

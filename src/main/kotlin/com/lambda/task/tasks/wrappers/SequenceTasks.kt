@@ -15,21 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task.wrappers
+package com.lambda.task.tasks.wrappers
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.TaskGenerator
+import com.lambda.task.TaskOrNullGenerator
+import com.lambda.task.TaskOrNullSupplier
 
 @Ta5kBuilder
-infix fun <R, R2> Task<R>.then(supplier: TaskSupplier<R, R2>) =
-	SequencedTask(this, supplier)
+infix fun <R, R2> Task<R>.then(generator: TaskGenerator<R, R2>) =
+	SequencedTask(this, generator)
 
 @Ta5kBuilder
-infix fun <R, R2> Task<R>.then(task: Task<R2>): Task<R2> {
-	require(task != this) { "Cannot link a task to itself" }
-	return SequencedTask(this) { task }
-}
+infix fun <R, R2> Task<R>.then(task: Task<R2>): Task<R2> =
+	SequencedTask(this) { task }
 
 @Ta5kBuilder
 fun <R> Task<R>.then(vararg tasks: Task<*>) =
@@ -38,19 +39,22 @@ fun <R> Task<R>.then(vararg tasks: Task<*>) =
 	}
 
 @Ta5kBuilder
-infix fun <R, R2> Task<R>.thenOrNull(supplier: SafeContext.(R) -> Task<R2>?) =
-	OptionalSequencedTask(this, supplier)
+infix fun <R, R2> Task<R>.thenOrNull(generator: TaskOrNullGenerator<R, R2>) =
+	OptionalSequencedTask(this, generator)
+
+@Ta5kBuilder
+fun <R> taskOrNull(supplier: TaskOrNullSupplier<R>) = TaskOrNullTask(supplier)
 
 /**
- * A task that sequences the [firstTask] with the next task, supplied by [nextTaskSupplier].
+ * A task that sequences the [firstTask] with the next task, supplied by [nextTaskGenerator].
  *
  * Useful for when two tasks must be run sequentially. The result of the first task is fed into the supplier for the second.
  *
  * @see then
  */
-class SequencedTask<R, R2>(
+class SequencedTask<R, R2> @Ta5kBuilder internal constructor(
 	private val firstTask: Task<R>,
-	private val nextTaskSupplier: TaskSupplier<R, R2>,
+	private val nextTaskGenerator: TaskGenerator<R, R2>,
 ) : Task<R2>() {
 	override val name get() = "Chaining ${firstTask.name}"
 	var second: Task<R2>? = null
@@ -58,7 +62,7 @@ class SequencedTask<R, R2>(
 	override fun SafeContext.onStart() {
 		firstTask
 			.onSuccess { result ->
-				second = nextTaskSupplier(this, result)
+				second = nextTaskGenerator(this, result)
 					.onSuccess { success(it) }
 					.execute(this@SequencedTask)
 			}
@@ -67,26 +71,46 @@ class SequencedTask<R, R2>(
 }
 
 /**
- * A task that sequences the [firstTask] with the next optional task, supplied by [nextTaskSupplier].
+ * A task that sequences the [firstTask] with the next optional task, supplied by [nextTaskGenerator].
  *
  * Useful for when you want to sequence a second task after the first based on a predicate. The result of the first task could help shape that outcome.
  *
  * @see thenOrNull
  */
-class OptionalSequencedTask<R, R2>(
+class OptionalSequencedTask<R, R2> @Ta5kBuilder internal constructor(
 	private val firstTask: Task<R>,
-	private val nextTaskSupplier: TaskOrNullSupplier<R, R2>
+	private val nextTaskGenerator: TaskOrNullGenerator<R, R2>
 ) : Task<R2?>() {
 	override val name get() = "Chaining ${firstTask.name}"
 
 	override fun SafeContext.onStart() {
 		firstTask
 			.onSuccess { result ->
-				nextTaskSupplier(this, result)
+				nextTaskGenerator(this, result)
 					?.onSuccess { success(it) }
 					?.execute(this@OptionalSequencedTask)
 					?: success(null)
 			}
 			.execute(this@OptionalSequencedTask)
+	}
+}
+
+/**
+ * A task that runs an optional task, supplied by [taskOrNullSupplier].
+ *
+ * Useful for starting a task branch where the first task could or could not be skipped.
+ *
+ * @see taskOrNull
+ */
+class TaskOrNullTask<R> @Ta5kBuilder internal constructor(
+	private val taskOrNullSupplier: TaskOrNullSupplier<R>
+) : Task<R?>() {
+	override val name get() = "Optional task"
+
+	override fun SafeContext.onStart() {
+		taskOrNullSupplier()
+			?.onSuccess { success(it) }
+			?.execute(this@TaskOrNullTask)
+			?: success(null)
 	}
 }

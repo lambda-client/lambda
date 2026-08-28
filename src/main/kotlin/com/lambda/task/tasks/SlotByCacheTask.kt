@@ -19,10 +19,14 @@ package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.util.player.SlotUtils.matches
 import net.minecraft.screen.slot.Slot
 
-class SlotByCacheTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+fun slotByCache(slotCache: Slot) = SlotByCacheTask(slotCache)
+
+class SlotByCacheTask @Ta5kBuilder internal constructor(
 	val slotCache: Slot
 ) : Task<Slot>() {
 	override val name = "Finding slot by cache: $slotCache"
@@ -32,10 +36,5 @@ class SlotByCacheTask @Ta5kBuilder constructor(
 		val slot = slots.find { it matches slotCache }
 		if (slot != null) success(slot)
 		else failure("Failed to find matching slot by cache: $slotCache")
-	}
-
-	companion object {
-		@Ta5kBuilder
-		fun slotByCache(slotCache: Slot) = SlotByCacheTask(slotCache)
 	}
 }

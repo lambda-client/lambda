@@ -35,8 +35,7 @@ import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
-import com.lambda.task.tasks.ContainerTransferTask.Companion.transfer
-import com.lambda.task.wrappers.softFail
+import com.lambda.task.tasks.wrappers.softFail
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos

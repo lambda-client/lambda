@@ -30,8 +30,7 @@ import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
-import com.lambda.task.wrappers.softFail
-import com.lambda.task.tasks.ContainerTransferTask.Companion.transfer
+import com.lambda.task.tasks.wrappers.softFail
 import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos

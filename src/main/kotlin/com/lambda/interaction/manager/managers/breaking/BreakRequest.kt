@@ -35,6 +35,40 @@ import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
+@JvmName("breakRequest1")
+fun AutomatedSafeContext.breakRequest(
+	positions: Collection<BlockPos>,
+	pendingInteractions: MutableCollection<BuildContext>,
+	nowOrNothing: Boolean = false,
+	builder: (BreakRequestBuilder.() -> Unit)? = null
+) = positions
+	.associateWith { TargetState.Empty }
+	.sim()
+	.breakRequest(pendingInteractions, nowOrNothing, builder)
+
+@JvmName("breakRequest2")
+context(automated: Automated)
+fun Collection<BuildResult>.breakRequest(
+	pendingInteractions: MutableCollection<BuildContext>,
+	nowOrNothing: Boolean = false,
+	builder: (BreakRequestBuilder.() -> Unit)? = null
+) = asSequence()
+	.breakRequest(pendingInteractions, nowOrNothing, builder)
+
+@JvmName("breakRequest3")
+context(automated: Automated)
+fun Sequence<BuildResult>.breakRequest(
+	pendingInteractions: MutableCollection<BuildContext>,
+	nowOrNothing: Boolean = false,
+	builder: (BreakRequestBuilder.() -> Unit)? = null
+) = map { if (it is Dependent) it.lastDependency else it }
+	.filterIsInstance<BreakResult.Break>()
+	.sorted()
+	.map { it.context }
+	.toSet()
+	.takeIf { it.isNotEmpty() }
+	?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
+
 /**
  * Contains the information necessary for initializing and continuing breaks within the [BreakManager].
  *
@@ -139,40 +173,6 @@ class BreakRequestBuilder private constructor(
 		)
 
 	companion object {
-		@JvmName("breakRequest1")
-		fun AutomatedSafeContext.breakRequest(
-			positions: Collection<BlockPos>,
-			pendingInteractions: MutableCollection<BuildContext>,
-			nowOrNothing: Boolean = false,
-			builder: (BreakRequestBuilder.() -> Unit)? = null
-		) = positions
-			.associateWith { TargetState.Empty }
-			.sim()
-			.breakRequest(pendingInteractions, nowOrNothing, builder)
-
-		@JvmName("breakRequest2")
-		context(automated: Automated)
-		fun Collection<BuildResult>.breakRequest(
-			pendingInteractions: MutableCollection<BuildContext>,
-			nowOrNothing: Boolean = false,
-			builder: (BreakRequestBuilder.() -> Unit)? = null
-		) = asSequence()
-			.breakRequest(pendingInteractions, nowOrNothing, builder)
-
-		@JvmName("breakRequest3")
-		context(automated: Automated)
-		fun Sequence<BuildResult>.breakRequest(
-			pendingInteractions: MutableCollection<BuildContext>,
-			nowOrNothing: Boolean = false,
-			builder: (BreakRequestBuilder.() -> Unit)? = null
-		) = map { if (it is Dependent) it.lastDependency else it }
-			.filterIsInstance<BreakResult.Break>()
-			.sorted()
-			.map { it.context }
-			.toSet()
-			.takeIf { it.isNotEmpty() }
-			?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
-
 		@JvmName("breakRequest4")
 		fun Automated.breakRequest(
 			contexts: Collection<BreakContext>,
