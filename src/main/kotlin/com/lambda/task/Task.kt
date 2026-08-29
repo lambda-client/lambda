@@ -36,7 +36,6 @@ import kotlin.time.toDuration
 @Suppress("unused")
 abstract class Task<Result> : Nameable, Muteable {
     var parent: Task<*>? = null
-    var parentPausing = false
     val subTasks = mutableListOf<Task<*>>()
     var state = State.Init
     override val isMuted: Boolean get() = state == State.Paused || state == State.Init
@@ -119,7 +118,6 @@ abstract class Task<Result> : Nameable, Muteable {
         parent = owner
         if (verboseDebug) LOG.info("${owner.name} started $name")
         if (pauseParent) {
-            parentPausing = true
             if (verboseDebug) LOG.info("$name pausing parent ${owner.name}")
             if (owner !is RootTask) owner.pause()
         }
@@ -204,7 +202,7 @@ abstract class Task<Result> : Nameable, Muteable {
         unsubscribe()
         runSafe { onCancel() }
         cancelSubTasks()
-        parent?.subTasks?.remove(this)
+        if (removeFromParent) parent?.subTasks?.remove(this)
         parent?.activate()
         if (this is RootTask) return
         if (state == State.Completed || state == State.Cancelled) return
