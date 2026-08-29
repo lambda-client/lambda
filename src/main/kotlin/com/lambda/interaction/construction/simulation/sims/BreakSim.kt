@@ -33,7 +33,7 @@ import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.sele
 import com.lambda.interaction.inventory.StackAndSlot
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
@@ -138,10 +138,9 @@ class BreakSim internal constructor(simInfo: SimInfo)
 	}
 
 	private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
-		// Stack size 0 to account for attacking with an empty hand. Empty slots have stack size 0
 		val stackSelection = selectStack {
 			if (breakConfig.efficientOnly) isEfficientForBreaking(state)
-			if(breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
+			if (breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
 			if (breakConfig.forceSilkTouch) hasEnchantment(Enchantments.SILK_TOUCH)
 			if (breakConfig.forceFortunePickaxe) hasEnchantment(Enchantments.FORTUNE)
 			sortedWith {
@@ -156,12 +155,13 @@ class BreakSim internal constructor(simInfo: SimInfo)
 		}
 
 		val containerSelection = selectContainer {
-			ofAnyType(Container.Rank.Hotbar)
+			ofAnyType(ContainerRank.Hotbar)
 		}
 
 		val hotbarCandidates = stackSelection
 			.findContainers(containerSelection)
 			.flatMap { stackSelection.filter(it.stacks) }
+			.toList()
 		if (hotbarCandidates.isEmpty()) {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null

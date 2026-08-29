@@ -22,7 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
+import com.lambda.interaction.inventory.select
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.softFail

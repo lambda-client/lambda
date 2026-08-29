@@ -27,7 +27,7 @@ import net.minecraft.util.math.BlockPos
 @Ta5kBuilder
 fun findBlock(block: Block, searchRadius: Int) = FindPlacedBlockTask(block, searchRadius)
 
-class FindPlacedBlockTask(
+class FindPlacedBlockTask @Ta5kBuilder internal constructor(
 	private val block: Block,
 	private val searchRadius: Int
 ) : Task<BlockPos>() {

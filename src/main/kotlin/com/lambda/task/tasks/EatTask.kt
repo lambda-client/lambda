@@ -61,8 +61,8 @@ class EatTask @Ta5kBuilder internal constructor(
                 return@listen
             }
 
-            val foodFinder = reason.selector()
-            val hotbarSlot = foodFinder.filter(HotbarContainer.slots).firstOrNull()
+            val selection = reason.selector()
+            val hotbarSlot = selection.bestMatch(HotbarContainer.slots)
             if (hotbarSlot != null) {
                 val request =
                     hotbarRequest(hotbarSlot.index) {
@@ -70,9 +70,10 @@ class EatTask @Ta5kBuilder internal constructor(
                     }.submit()
                 if (!request.done) return@listen
             } else {
-                val inventorySlot = foodFinder.filter(InventoryContainer.slots).firstOrNull()
-                if (inventorySlot != null) runSafeAutomated {
-                    InventoryContainer.transfer(foodFinder, HotbarContainer)
+                if (InventoryContainer.slots.any { selection.matches(it) }) {
+                    runSafeAutomated {
+                        transfer(selection, InventoryContainer, HotbarContainer)
+                    }
                 }
                 if (holdingUse) {
                     mc.options.useKey.isPressed = false

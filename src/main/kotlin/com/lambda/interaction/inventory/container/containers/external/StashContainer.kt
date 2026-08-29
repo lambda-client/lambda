@@ -19,6 +19,7 @@ package com.lambda.interaction.inventory.container.containers.external
 
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.util.math.roundedBlockPos
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
@@ -30,7 +31,7 @@ import net.minecraft.util.math.Box
 data class StashContainer(
     val chests: Set<ChestContainer>,
     val pos: Box,
-) : Container(Rank.Stash) {
+) : Container(ContainerRank.Stash) {
     override val slots: List<Slot>
         get() = chests.flatMap { it.slots }
     override var stacks: List<ItemStack>
@@ -43,7 +44,5 @@ data class StashContainer(
     }
 
     override fun stackCount(selection: StackSelection): Int =
-        chests.sumOf {
-            it.stackCount(selection)
-        }
+        chests.sumOf { it.stackCount(selection) }
 }

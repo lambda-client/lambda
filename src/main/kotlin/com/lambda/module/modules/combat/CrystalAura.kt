@@ -27,7 +27,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handler.handlers.ContainerHandler.transfer
+import com.lambda.interaction.handler.handlers.ContainerHandler.move
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.interaction.inventory.container.containers.OffHandContainer
@@ -492,7 +492,7 @@ object CrystalAura : Module(
 						Hand.MAIN_HAND -> HotbarContainer
 						Hand.OFF_HAND -> OffHandContainer
 					}
-					if (!selection.transfer(swapTo)) return@runSafe
+					if (!selection.move(swapTo)) return@runSafe
 					crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.matches(it) }
 				}
 				if (!hotbarRequest(crystalSlot).submit().done) return@runSafe

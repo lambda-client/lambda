@@ -23,12 +23,13 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.NestedContainer
 import com.lambda.interaction.inventory.container.OpenContainerTask
 import com.lambda.interaction.inventory.container.OpenedContainerContext
+import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
-import com.lambda.interaction.inventory.container.containers.PlayerContainer
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
@@ -43,7 +44,6 @@ import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
@@ -52,7 +52,7 @@ data class ShulkerBoxContainer(
     override var stacks: List<ItemStack>,
     val containedIn: Container,
     override val slotCache: Slot,
-) : Container(Rank.ShulkerBox), ExternalContainer, NestedContainer {
+) : Container(ContainerRank.ShulkerBox), ExternalContainer, NestedContainer {
     override val slots
         get(): List<Slot> =
             if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
@@ -84,23 +84,22 @@ data class ShulkerBoxContainer(
         automated: Automated
     ) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
         override fun SafeContext.onStart() {
-                transfer(
-                    selectStack { isSlot(slotCache) },
-                    containedIn,
-                    HotbarContainer
-                ).then { slot -> placeContainer(slot) }
-                    .then { pos ->
-                        openContainer(pos).onSuccess { sh ->
-                            success(OpenedShulkerBoxContext(pos, sh, containedIn))
-                        }
+            transfer(
+                selectStack { isSlot(slotCache) },
+                containedIn,
+                HotbarContainer
+            ).then { slot -> placeContainer(slot) }
+                .then { pos ->
+                    openContainer(pos).onSuccess {
+                        success(OpenedShulkerBoxContext(pos, containedIn))
                     }
-                    .execute(this@OpenShulkerBoxTask)
+                }
+                .execute(this@OpenShulkerBoxTask)
         }
     }
 
     inner class OpenedShulkerBoxContext(
         val blockPos: BlockPos,
-        val screenHandler: ScreenHandler,
         val fromContainer: Container
     ) : OpenedContainerContext {
         context(automated: Automated)
@@ -112,7 +111,7 @@ data class ShulkerBoxContainer(
                 .then { slot ->
                     transfer(
                         selectStack { isSlot(slot) },
-                        PlayerContainer,
+                        HotbarAndInventoryContainer,
                         fromContainer
                     )
                 }

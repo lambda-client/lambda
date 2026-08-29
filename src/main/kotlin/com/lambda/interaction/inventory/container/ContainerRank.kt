@@ -15,21 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task.tasks
+package com.lambda.interaction.inventory.container
 
-import com.lambda.context.SafeContext
-import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
-
-@Ta5kBuilder
-fun simpleAction(name: String, action: SafeContext.() -> Unit) = SimpleActionTask(name, action)
-
-class SimpleActionTask @Ta5kBuilder internal constructor(
-	override val name: String,
-	val action: SafeContext.() -> Unit
-) : Task<Unit>() {
-	override fun SafeContext.onStart() {
-		action()
-		success()
-	}
+enum class ContainerRank {
+	MainHand,
+	OffHand,
+	Hotbar,
+	Inventory,
+	HotbarAndInventory,
+	Armor,
+	Player,
+	Creative,
+	ShulkerBox,
+	EnderChest,
+	PlacedShulkerBox,
+	PlacedEnderChest,
+	Chest,
+	Stash
 }

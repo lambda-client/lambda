@@ -19,6 +19,7 @@ package com.lambda.interaction.inventory.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.util.player.SlotUtils.inventorySlots
 import com.lambda.util.player.SlotUtils.inventoryStacks
 import com.lambda.util.text.buildText
@@ -26,7 +27,7 @@ import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object InventoryContainer : Container(Rank.Inventory) {
+object InventoryContainer : Container(ContainerRank.Inventory) {
     override val slots: List<Slot>
         get() = mc.player?.inventorySlots ?: emptyList()
     override var stacks: List<ItemStack>

@@ -34,6 +34,7 @@ import com.lambda.interaction.handler.handlers.ContainerHandler.findContainersWi
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.task.RootTask
 import com.lambda.task.Task
+import com.lambda.task.tasks.transfer
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
@@ -55,7 +56,7 @@ object TransferCommand : LambdaCommand(
                             isItem(stack(ctx).value().item)
                         }
                         AutomationConfig.DEFAULT.runSafeAutomated {
-                            val containers = selection.findContainers()
+                            val containers = selection.findContainers().toList()
                             val indexedContainers = containers.withIndex()
 
                             suggestMatching(
@@ -65,7 +66,7 @@ object TransferCommand : LambdaCommand(
                                     "\"${index + 1}. ${container.name}\""
                                 },
                                 { (_, container) ->
-                                    container.description(selection)
+                                    container.descriptionAndStock(selection)
                                 }
                             )
                         } ?: builder.buildFuture()
@@ -76,7 +77,7 @@ object TransferCommand : LambdaCommand(
                                 isItem(stack(ctx).value().item)
                             }
                             AutomationConfig.DEFAULT.runSafeAutomated {
-                                val containers = selection.findContainersWithSpace()
+                                val containers = selection.findContainersWithSpace().toList()
                                 val indexedContainers = containers.withIndex()
 
                                 suggestMatching(
@@ -86,7 +87,7 @@ object TransferCommand : LambdaCommand(
                                         "\"${index + 1}. ${container.name}\""
                                     },
                                     { (_, container) ->
-                                        container.description(selection)
+                                        container.descriptionAndStock(selection)
                                     }
                                 )
                             } ?: builder.buildFuture()
@@ -104,7 +105,8 @@ object TransferCommand : LambdaCommand(
                                     it.name == to().value().split(".").last().trim()
                                 } ?: return@executeWithResult failure("To container not found")
 
-	                            fromContainer.transferByTask(selection, toContainer).execute(RootTask)
+	                            transfer(selection, fromContainer, toContainer)
+                                    .execute(RootTask)
                             }
                             return@executeWithResult success()
                         }

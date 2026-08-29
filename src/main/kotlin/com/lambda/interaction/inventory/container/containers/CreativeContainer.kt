@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
@@ -31,7 +32,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.slot.Slot
 
-data object CreativeContainer : Container(Rank.Creative) {
+data object CreativeContainer : Container(ContainerRank.Creative) {
 	override val slots = emptyList<Slot>()
 	override var stacks = emptyList<ItemStack>()
 
@@ -40,7 +41,7 @@ data object CreativeContainer : Container(Rank.Creative) {
 	override val description = buildText { literal("Creative") }
 
 	context(safeContext: SafeContext)
-	override fun InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+	override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
 		clickCreativeStack(fromHere.stack, toSlot.id)
 		safeContext.player.currentScreenHandler.slots.getOrNull(toSlot.id)?.stack = fromHere.stack
 	}

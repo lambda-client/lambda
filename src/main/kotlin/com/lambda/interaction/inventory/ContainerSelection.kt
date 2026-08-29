@@ -18,6 +18,7 @@
 package com.lambda.interaction.inventory
 
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 
 /**
  * ContainerSelection is a class that holds a predicate for matching MaterialContainers.
@@ -52,11 +53,11 @@ class ContainerSelectionBuilder private constructor() {
     private var comparator: Comparator<Container> = compareBy { it.rank }
     private var invertNewSelectors = false
 
-    fun ofAnyType(vararg types: Container.Rank) {
+    fun ofAnyType(vararg types: ContainerRank) {
         appendSelector { container -> types.contains(container.rank) }
     }
 
-    fun noneOfType(vararg types: Container.Rank) {
+    fun noneOfType(vararg types: ContainerRank) {
         appendSelector { container -> !types.contains(container.rank) }
     }
 

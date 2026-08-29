@@ -30,6 +30,7 @@ import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
+import com.lambda.task.tasks.transferTo
 import com.lambda.task.tasks.wrappers.softFail
 import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack
@@ -101,9 +102,9 @@ sealed class GenericResult : BuildResult() {
         context(task: Task<*>, _: AutomatedSafeContext)
         override fun resolve() {
             neededSelection
-                .transfer(HotbarContainer)
-                ?.softFail()
-                ?.execute(task)
+                .transferTo(HotbarContainer)
+                .softFail()
+                .execute(task)
         }
 
         override fun RenderBuilder.render() {

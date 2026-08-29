@@ -19,7 +19,7 @@ package com.lambda.module.modules.debug
 
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
+import com.lambda.interaction.inventory.select
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run

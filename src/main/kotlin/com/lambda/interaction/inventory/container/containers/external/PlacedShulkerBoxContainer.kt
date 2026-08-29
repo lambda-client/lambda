@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.container.BasicOpenedContainerContext
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.inventory.container.OpenContainerTask
 import com.lambda.interaction.inventory.container.PlacedContainer
 import com.lambda.task.Task.Ta5kBuilder
@@ -43,7 +44,7 @@ class PlacedShulkerBoxContainer(
 	val block: Block,
 	override val stash: StashContainer?,
 	override var stacks: List<ItemStack>
-) : Container(Rank.PlacedShulkerBox), PlacedContainer {
+) : Container(ContainerRank.PlacedShulkerBox), PlacedContainer {
 	override val slots: List<Slot>
 		get() =
 			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()

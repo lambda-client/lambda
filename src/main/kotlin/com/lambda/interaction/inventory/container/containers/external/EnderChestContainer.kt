@@ -22,6 +22,7 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.OpenContainerTask
 import com.lambda.interaction.inventory.container.OpenedContainerContext
@@ -33,9 +34,9 @@ import com.lambda.task.tasks.findBlock
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
 import com.lambda.task.tasks.wrappers.actionTask
-import com.lambda.task.tasks.wrappers.successTask
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
+import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.task.tasks.wrappers.withBranch
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
@@ -44,11 +45,10 @@ import net.minecraft.block.Blocks
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.util.math.BlockPos
 
-object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
+object EnderChestContainer : Container(ContainerRank.EnderChest), ExternalContainer {
 	override val slots
 		get() =
 			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
@@ -76,16 +76,16 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 				if (isAccessed) null
 				else findBlock(Blocks.ENDER_CHEST, inventoryConfig.enderChestSearchRadius).withBranch(
 					onSuccess = { pos ->
-						openContainer(pos).onSuccess { sh ->
-							success(OpenedEnderChestContext(sh, pos, false))
+						openContainer(pos).onSuccess {
+							success(OpenedEnderChestContext(pos, false))
 						}
 					},
 					onFailure = {
 						acquireStack(Items.ENDER_CHEST.select(1))
 							.then { placeContainer(it) }
 							.then { pos ->
-								openContainer(pos).onSuccess { sh ->
-									success(OpenedEnderChestContext(sh, pos, true))
+								openContainer(pos).onSuccess {
+									success(OpenedEnderChestContext(pos, true))
 								}
 							}
 					}
@@ -95,7 +95,6 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 	}
 
 	class OpenedEnderChestContext(
-		val screenHandler: ScreenHandler,
 		val blockPos: BlockPos,
 		val placed: Boolean
 	) : OpenedContainerContext {
@@ -104,9 +103,9 @@ object EnderChestContainer : Container(Rank.EnderChest), ExternalContainer {
 			taskOrNull {
 				if (isAccessed) actionTask { player.closeScreen() }
 				else null
-			}.then {
+			}.thenOrNull {
 				if (placed) breakAndCollect(blockPos)
-				else successTask()
+				else null
 			}
 	}
 }

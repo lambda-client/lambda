@@ -26,10 +26,10 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.inventory.ContainerMarker
 import com.lambda.interaction.inventory.ContainerSelection
 import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.select
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.containers.external.ChestContainer
 import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
+import com.lambda.interaction.inventory.select
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
@@ -42,8 +42,8 @@ import net.minecraft.screen.ScreenHandlerType
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 @Suppress("unused")
 object ContainerHandler : Loadable {
-    private val containers: List<Container>
-        get() = compileContainers + runtimeContainers
+    private val containers: Sequence<Container>
+        get() = compileContainers.asSequence() + runtimeContainers
 
     private val compileContainers = getInstances<Container>()
     private val runtimeContainers = mutableSetOf<Container>()
@@ -52,14 +52,12 @@ object ContainerHandler : Loadable {
     val filteredContainers
         get() =
             containers
-                .flatMap { setOf(it) + it.shulkerContainers }
                 .filter { automated.inventoryConfig.containerSelection.matches(it) }
                 .sorted()
 
     val allContainers
         get() =
             containers
-                .flatMap { setOf(it) + it.shulkerContainers }
                 .sorted()
 
     var lastInteractedBlockEntity: BlockEntity? = null
@@ -101,10 +99,10 @@ object ContainerHandler : Loadable {
 
     @ContainerMarker
     context(automatedSafeContext: AutomatedSafeContext)
-    fun StackSelection.transfer(destination: Container) =
+    fun StackSelection.move(destination: Container) =
         with(automatedSafeContext) {
             findContainer(inventoryConfig.containerSelection)
-                ?.transfer(this@transfer, destination)
+                ?.move(this@move, destination)
                 ?: false
         }
 

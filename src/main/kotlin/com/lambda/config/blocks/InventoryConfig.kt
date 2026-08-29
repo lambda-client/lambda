@@ -22,6 +22,7 @@ import com.lambda.interaction.inventory.ContainerSelection
 import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
@@ -32,7 +33,7 @@ interface InventoryConfig {
 	val accessPriority: Priority
 	val storePriority: Priority
 
-	val allowedContainers: Collection<Container.Rank>
+	val allowedContainers: Collection<ContainerRank>
 
 	val enderChestSearchRadius: Int
 

@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.container.BasicOpenedContainerContext
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.OpenContainerTask
 import com.lambda.interaction.inventory.container.PlacedContainer
@@ -36,7 +37,6 @@ import com.lambda.util.text.literal
 import net.minecraft.block.ChestBlock
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
@@ -45,7 +45,7 @@ data class ChestContainer(
 	val blockPos: BlockPos,
 	override var stacks: List<ItemStack>,
 	override val stash: StashContainer? = null
-) : Container(Rank.Chest), ExternalContainer, PlacedContainer {
+) : Container(ContainerRank.Chest), ExternalContainer, PlacedContainer {
     override val slots
         get(): List<Slot> =
             lastInteractedBlockEntity?.let { blockEntity ->
@@ -82,16 +82,14 @@ data class ChestContainer(
 		override fun SafeContext.onStart() {
 			taskOrNull {
 				if (isAccessed) null
-				else openContainer(blockPos).onSuccess { sh ->
-					success(OpenedChestContext(sh))
+				else openContainer(blockPos).onSuccess {
+					success(OpenedChestContext())
 				}
 			}.execute(this@AccessChestTask)
 		}
 	}
 
-	inner class OpenedChestContext(
-		val screenHandler: ScreenHandler,
-	) : BasicOpenedContainerContext(::isAccessed) {
+	inner class OpenedChestContext : BasicOpenedContainerContext(::isAccessed) {
 		val blockPos = this@ChestContainer.blockPos
 	}
 }

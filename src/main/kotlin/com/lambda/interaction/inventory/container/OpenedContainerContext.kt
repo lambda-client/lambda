@@ -20,7 +20,7 @@ package com.lambda.interaction.inventory.container
 import com.lambda.context.Automated
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.task.tasks.simpleAction
+import com.lambda.task.tasks.wrappers.actionTask
 
 interface OpenedContainerContext {
 	@Ta5kBuilder
@@ -33,8 +33,8 @@ open class BasicOpenedContainerContext(
 ) : OpenedContainerContext {
 	context(_: Automated)
 	final override fun close() =
-		simpleAction("Closing container") {
-			if (!isAccessed()) return@simpleAction
+		actionTask {
+			if (!isAccessed()) return@actionTask
 			player.closeScreen()
 		}
 }

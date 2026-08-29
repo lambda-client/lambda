@@ -20,6 +20,7 @@ package com.lambda.interaction.inventory.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.util.player.SlotUtils.offHandSlots
 import com.lambda.util.text.buildText
@@ -27,7 +28,7 @@ import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object OffHandContainer : Container(Rank.OffHand) {
+object OffHandContainer : Container(ContainerRank.OffHand) {
     override val slots: List<Slot>
         get() = mc.player?.offHandSlots ?: emptyList()
     override var stacks: List<ItemStack>
@@ -39,7 +40,7 @@ object OffHandContainer : Container(Rank.OffHand) {
     override val description = buildText { literal("OffHand") }
 
     context(_: SafeContext)
-    override fun InvRequestBuilder.transfer(fromHere: Slot, toSlot: Slot) {
+    override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
         swapWithHotbar(toSlot.id, 40)
     }
 }
