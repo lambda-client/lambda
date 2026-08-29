@@ -24,7 +24,7 @@ import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.interaction.manager.managers.inventory.InventoryManager;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.NoRender;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;

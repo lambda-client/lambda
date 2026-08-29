@@ -36,7 +36,6 @@ import kotlin.time.toDuration
 @Suppress("unused")
 abstract class Task<Result> : Nameable, Muteable {
     var parent: Task<*>? = null
-    var parentPausing = false
     val subTasks = mutableListOf<Task<*>>()
     var state = State.Init
     override val isMuted: Boolean get() = state == State.Paused || state == State.Init
@@ -118,7 +117,6 @@ abstract class Task<Result> : Nameable, Muteable {
         parent = owner
         if (verboseDebug) LOG.info("${owner.name} started $name")
         if (pauseParent) {
-            parentPausing = true
             if (verboseDebug) LOG.info("$name pausing parent ${owner.name}")
             if (owner !is RootTask) owner.pause()
         }
@@ -131,7 +129,6 @@ abstract class Task<Result> : Nameable, Muteable {
     protected fun success(result: Result) {
         unsubscribe()
         state = State.Completed
-        parent?.subTasks?.remove(this)
 
         parent?.onSubTaskSuccess(this)
         parent?.onSubTaskCompletion(this)
@@ -140,6 +137,8 @@ abstract class Task<Result> : Nameable, Muteable {
             successCallbacks.forEach { it.invoke(this, result) }
             completionCallbacks.forEach { it.invoke(this) }
         }
+
+        parent?.subTasks?.remove(this)
     }
 
     @Ta5kBuilder
@@ -176,6 +175,8 @@ abstract class Task<Result> : Nameable, Muteable {
             failureCallbacks.forEach { it.invoke(this, e) }
             completionCallbacks.forEach { it.invoke(this) }
         }
+
+        parent?.subTasks?.remove(this)
     }
 
     @Ta5kBuilder
@@ -201,7 +202,7 @@ abstract class Task<Result> : Nameable, Muteable {
         runSafe { onCancel() }
         cancelSubTasks()
         if (removeFromParent) parent?.subTasks?.remove(this)
-        if (parentPausing) parent?.activate()
+        parent?.activate()
         if (this is RootTask) return
         if (state == State.Completed || state == State.Cancelled) return
         state = State.Cancelled

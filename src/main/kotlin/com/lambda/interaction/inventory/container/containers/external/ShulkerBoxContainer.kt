@@ -42,6 +42,7 @@ import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
+import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandlerType
@@ -102,15 +103,23 @@ data class ShulkerBoxContainer(
         val blockPos: BlockPos,
         val fromContainer: Container
     ) : OpenedContainerContext {
+        private val shulkerItem = slotCache.stack.item
+        private val customName = slotCache.stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_NAME)
+        private val originalContents = slotCache.stack.shulkerBoxStacks
+
         context(automated: Automated)
         override fun close() =
             taskOrNull {
                 if (!isAccessed) null
                 else actionTask { player.closeScreen() }
             }.then { breakAndCollect(blockPos) }
-                .then { slot ->
+                .then {
                     transfer(
-                        selectStack { isSlot(slot) },
+                        selectStack {
+                            isItem(shulkerItem)
+                            if (customName != null) hasCustomName(customName)
+                            sortedByBestContentMatch(originalContents)
+                        },
                         HotbarAndInventoryContainer,
                         fromContainer
                     )

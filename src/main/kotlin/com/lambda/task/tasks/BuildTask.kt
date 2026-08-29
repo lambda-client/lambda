@@ -17,7 +17,6 @@
 
 package com.lambda.task.tasks
 
-import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
@@ -47,10 +46,8 @@ import com.lambda.interaction.construction.simulation.result.results.PreSimResul
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -63,7 +60,6 @@ import com.lambda.util.EntityUtils.getClosestPointTo
 import com.lambda.util.EntityUtils.getPositionsWithinBox
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.extension.Structure
-import com.lambda.util.extension.playerSlots
 import com.lambda.util.math.dist
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
@@ -141,6 +137,7 @@ class BuildTask @Ta5kBuilder internal constructor(
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
     var eatTask: Task<*>? = null
+    var collectDropsTask: Task<*>? = null
 
     private val onItemDrop: ((item: ItemEntity) -> Unit)?
         get() = if (collectDrops) { item ->
@@ -354,34 +351,15 @@ class BuildTask @Ta5kBuilder internal constructor(
         }
     }
 
-    private fun SafeContext.collectDrops() =
-        dropsToCollect
-            .firstOrNull()
-            ?.let { itemDrop ->
-                if (pendingInteractions.isNotEmpty()) return@let true
-
-                if (!world.entities.contains(itemDrop)) {
-                    dropsToCollect.remove(itemDrop)
-                    BaritoneHandler.cancel()
-                    return@let true
-                }
-
-                if (HotbarAndInventoryContainer.stacks.none { it.isEmpty }) {
-                    val stackToThrow = player.currentScreenHandler.playerSlots.firstOrNull {
-                        it.stack.item in inventoryConfig.disposables
-                    } ?: run {
-                        failure("No item in inventory to throw but inventory is full and cant pick up item drop")
-                        return@let true
-                    }
-                    inventoryRequest {
-                        throwStack(stackToThrow.id)
-                    }.submit()
-                    return@let true
-                }
-
-                BaritoneHandler.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-                true
-            } ?: false
+    private fun AutomatedSafeContext.collectDrops(): Boolean {
+        if (dropsToCollect.isEmpty()) return false
+        if (pendingInteractions.isNotEmpty()) return true
+        if (collectDropsTask != null) return true
+        collectDropsTask = collectDrops(dropsToCollect)
+            .thenAction { collectDropsTask = null }
+            .execute(this@BuildTask)
+        return true
+    }
 
     private fun iteratePropagating() =
         if (blueprint is PropagatingBlueprint) {

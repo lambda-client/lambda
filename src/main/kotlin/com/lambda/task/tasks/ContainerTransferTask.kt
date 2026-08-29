@@ -18,7 +18,6 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.Automated
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
@@ -64,14 +63,13 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 ) : Task<Slot>(), Automated by automated {
 	override val name = "Transferring $selection from $fromContainer to $toContainer"
 
-	override fun SafeContext.onStart() {
+	init {
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
 				when {
 					fromContainer.isAccessed && toContainer.isAccessed ->
 						TransferTask()
 							.onSuccess { success(it) }
-							.execute(this@ContainerTransferTask)
 
 					fromContainer !is ExternalContainer ->
 						openTransferClose(toContainer, fromContainer, toContainer)
@@ -88,8 +86,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 							}
 							.then { toContainer.access() }
 							.then { toCtx -> transferAndClose(toCtx, HotbarAndInventoryContainer, toContainer) }
-							.execute(this@ContainerTransferTask)
-				}
+				}.execute(this@ContainerTransferTask)
 			}
 		}
 	}
@@ -99,14 +96,10 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	 *
 	 * Used when exactly one of the two containers is external and needs to be accessed.
 	 */
-	private fun openTransferClose(containerToOpen: Container, from: Container, to: Container) {
+	private fun openTransferClose(containerToOpen: Container, from: Container, to: Container) =
 		containerToOpen
 			.access()
-			.then { ctx ->
-				transferAndClose(ctx, from, to)
-			}
-			.execute(this@ContainerTransferTask)
-	}
+			.then { ctx -> transferAndClose(ctx, from, to) }
 
 	/**
 	 * Transfers [selection] from [from] to [to], then closes the container via [ctx].

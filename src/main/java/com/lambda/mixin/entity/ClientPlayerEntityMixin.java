@@ -56,7 +56,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Objects;
 
 import static com.lambda.Lambda.getMc;
-import static com.lambda.interaction.managers.rotating.Rotation.dist;
+import static com.lambda.interaction.manager.managers.rotating.Rotation.dist;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {

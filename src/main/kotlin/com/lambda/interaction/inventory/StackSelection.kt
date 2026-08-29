@@ -33,6 +33,7 @@ import net.minecraft.item.consume.UseAction
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
+import net.minecraft.text.Text
 import java.util.*
 
 @ContainerMarker
@@ -96,7 +97,7 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 	private var item: Item? = null
 	private var stackByRef = false
 	private var itemStack: ItemStack? = null
-	private var comparator: Comparator<StackAndSlot<*>> = compareBy { it.stack.count }
+	private var comparator: Comparator<StackAndSlot<*>>? = null
 	private var inShulkerBoxesOnly: Boolean = false
 	private var invertNewSelectors = false
 
@@ -130,6 +131,16 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 
 	fun isNoneOfItems(items: Collection<Item>) {
 		appendSelector { stack, _ -> !items.contains(stack.item) }
+	}
+
+	fun isShulkerBox() {
+		appendSelector { stack, _ -> stack.item in ItemUtils.shulkerBoxes }
+	}
+
+	fun hasCustomName(name: Text) {
+		appendSelector { stack, _ ->
+			stack.get(DataComponentTypes.CUSTOM_NAME)?.string == name.string
+		}
 	}
 
 	fun isOneOfStacks(stacks: Collection<ItemStack>) {
@@ -217,12 +228,31 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 		invertNewSelectors = false
 	}
 
-	fun sortedWith(comparator: Comparator<StackAndSlot<*>>) {
-		this.comparator = comparator
+	fun sortedWith(newComparator: Comparator<StackAndSlot<*>>) {
+		comparator = comparator?.thenComparing(newComparator) ?: newComparator
 	}
 
 	fun sortedWith(comparatorSupplier: () -> Comparator<StackAndSlot<*>>) {
-		this.comparator = comparatorSupplier()
+		val newComparator = comparatorSupplier()
+		comparator = comparator?.thenComparing(newComparator) ?: newComparator
+	}
+
+	fun sortedByBestContentMatch(expectedContents: List<ItemStack>) {
+		val expectedFrequencies = expectedContents
+			.filter { !it.isEmpty }
+			.groupingBy { it.item }
+			.eachCount()
+		sortedWith(
+			compareByDescending { stackAndSlot ->
+				val currentFrequencies = stackAndSlot.stack.shulkerBoxStacks
+					.filter { !it.isEmpty }
+					.groupingBy { it.item }
+					.eachCount()
+				expectedFrequencies.asSequence().fold(0) { acc, (item, count) ->
+					 acc + minOf(count, currentFrequencies[item] ?: 0)
+				}
+			}
+		)
 	}
 
 	@PublishedApi
@@ -240,7 +270,7 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 			item,
 			itemStack,
 			inShulkerBoxesOnly,
-			comparator,
+			comparator ?: compareBy { it.stack.count },
 			selector
 		)
 

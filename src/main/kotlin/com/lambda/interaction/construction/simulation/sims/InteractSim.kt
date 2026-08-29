@@ -60,6 +60,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
+import net.minecraft.item.Items
 import net.minecraft.screen.slot.Slot
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
@@ -204,7 +205,7 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 			supervisorScope.cancel()
 			return null
 		}
-		val stackSelection = item?.select()
+		val stackSelection = item?.select(if (item == Items.AIR) 0 else 1)
 			?: selectStack { sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } } }
 		val containerSelection = selectContainer { ofAnyType(ContainerRank.Hotbar) }
 		val container = stackSelection.findContainers(containerSelection).firstOrNull() ?: run {
