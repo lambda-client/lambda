@@ -132,7 +132,6 @@ abstract class Task<Result> : Nameable, Muteable {
     protected fun success(result: Result) {
         unsubscribe()
         state = State.Completed
-        parent?.subTasks?.remove(this)
 
         parent?.onSubTaskSuccess(this)
         parent?.onSubTaskCompletion(this)
@@ -141,6 +140,8 @@ abstract class Task<Result> : Nameable, Muteable {
             successCallbacks.forEach { it.invoke(this, result) }
             completionCallbacks.forEach { it.invoke(this) }
         }
+
+        parent?.subTasks?.remove(this)
     }
 
     @Ta5kBuilder
@@ -177,6 +178,8 @@ abstract class Task<Result> : Nameable, Muteable {
             failureCallbacks.forEach { it.invoke(this, e) }
             completionCallbacks.forEach { it.invoke(this) }
         }
+
+        parent?.subTasks?.remove(this)
     }
 
     @Ta5kBuilder
