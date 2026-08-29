@@ -204,8 +204,8 @@ abstract class Task<Result> : Nameable, Muteable {
         unsubscribe()
         runSafe { onCancel() }
         cancelSubTasks()
-        if (removeFromParent) parent?.subTasks?.remove(this)
-        if (parentPausing) parent?.activate()
+        parent?.subTasks?.remove(this)
+        parent?.activate()
         if (this is RootTask) return
         if (state == State.Completed || state == State.Cancelled) return
         state = State.Cancelled
