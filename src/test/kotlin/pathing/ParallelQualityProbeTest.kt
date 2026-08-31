@@ -16,11 +16,11 @@ import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.VirtualSearchClock
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.util.player.prediction.MovementSimulationState
-import com.lambda.util.player.prediction.PlayerPhysicsProfile
-import com.lambda.util.player.prediction.SimulationSnapshotBounds
-import com.lambda.util.player.prediction.SnapshotBlockPhysics
-import com.lambda.util.player.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import kotlin.math.atan2
 import kotlin.test.Test
 import kotlin.time.Duration
@@ -73,7 +73,7 @@ class ParallelQualityProbeTest {
                 )
                 val planner = CoarsePlanner(environment, moves, start, goal)
                 check(planner.repair(Duration.INFINITE).converged)
-                planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+                planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
                 val route = checkNotNull(planner.routePlan(0L))
 
                 val dx = (goal.x - start.x).toDouble()

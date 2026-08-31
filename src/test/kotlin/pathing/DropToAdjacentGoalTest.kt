@@ -40,7 +40,7 @@ class DropToAdjacentGoalTest {
         val goal = Stance(9, 97, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L)) { "no coarse route" }
         println("[drop] route=${route.nodes.map { "${it.x},${it.y},${it.z}" }}")
 

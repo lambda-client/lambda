@@ -13,8 +13,15 @@ class CoarseValueField(
     private val moves: SimpleMoveLibrary,
     private val label: (Stance) -> Double,
     val goal: Stance,
+
+    /** Class-conditioned labels; defaults to the blended [label] where a planner predates momentum. */
+    private val labelAt: (Stance, SpeedClass) -> Double = { stance, _ -> label(stance) },
 ) : SteeringField {
     private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
+        .apply { defaultReturnValue(Double.NaN) }
+    private val movingGuides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
+        .apply { defaultReturnValue(Double.NaN) }
+    private val stoppedGuides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
         .apply { defaultReturnValue(Double.NaN) }
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
@@ -32,6 +39,12 @@ class CoarseValueField(
         guides.keys.removeAll { stance ->
             PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
         }
+        movingGuides.keys.removeAll { stance ->
+            PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
+        }
+        stoppedGuides.keys.removeAll { stance ->
+            PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
+        }
         edges.keys.removeAll { stance ->
             PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
         }
@@ -41,6 +54,8 @@ class CoarseValueField(
 
     fun clearGuideCache() {
         guides.clear()
+        movingGuides.clear()
+        stoppedGuides.clear()
     }
 
     fun guide(stance: Stance): Double {
@@ -57,6 +72,30 @@ class CoarseValueField(
             best
         }
         guides.put(stance, computed)
+        return computed
+    }
+
+    /**
+     * Ticks to goal for a body at [stance] in speed class [speed] -- what makes an
+     * arrival estimate honest per state: a stopped body's remaining time includes its
+     * acceleration, a moving one's includes neither that nor the transition tax its
+     * chain never pays. Falls back through the same neighbour derivation as [guide].
+     */
+    fun guide(stance: Stance, speed: SpeedClass): Double {
+        val cache = if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides
+        val cached = cache.getDouble(stance)
+        if (!cached.isNaN()) return cached
+
+        val direct = labelAt(stance, speed)
+        val computed = if (direct.isFinite()) direct else {
+            var best = Double.POSITIVE_INFINITY
+            for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
+                val neighbour = labelAt(to, speed)
+                if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
+            }
+            best
+        }
+        cache.put(stance, computed)
         return computed
     }
 

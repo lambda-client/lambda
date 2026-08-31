@@ -5,6 +5,8 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
+import com.lambda.pathing.trajectory.SearchStatsView
+import com.lambda.pathing.trajectory.SearchTreeView
 import com.lambda.pathing.trajectory.TrajectoryRollout
 import net.minecraft.util.math.Vec3d
 
@@ -73,6 +75,26 @@ object PlanningDebugChannel {
     }
 
     @Volatile
+    var tree: SearchTreeView? = null
+        private set
+
+    @Volatile
+    var stats: SearchStatsView? = null
+        private set
+
+    /** Set by the renderer: building the anchor tree walks every live anchor, so it opts in. */
+    @Volatile
+    var treeWanted: Boolean = false
+
+    fun publishTree(view: SearchTreeView) {
+        if (active) tree = view
+    }
+
+    fun publishStats(view: SearchStatsView) {
+        if (active) stats = view
+    }
+
+    @Volatile
     var graph: GraphSample? = null
         private set
 
@@ -85,7 +107,7 @@ object PlanningDebugChannel {
         val nodes = planner.graphNodes
         val total = nodes.size
         val anchors = planner.optimisticAnchors
-        val goal = planner.search.goal
+        val goal = planner.goalStance
         val view = planner.view
         val limits = graphLimits
         val radiusSquared = limits.radius * limits.radius
@@ -93,7 +115,7 @@ object PlanningDebugChannel {
         val stances = nodes.asSequence()
             .map { stance -> stance to distanceSquared(stance, around) }
             .filter { (_, distance) -> distance <= radiusSquared }
-            .sortedWith(compareBy({ !planner.search.g(it.first).isFinite() }, { it.second }))
+            .sortedWith(compareBy({ !planner.stanceCost(it.first).isFinite() }, { it.second }))
             .take(limits.cells)
             .map { (stance, _) -> stance }
             .toList()
@@ -102,8 +124,8 @@ object PlanningDebugChannel {
         val sampled = stances.map { stance ->
             GraphNode(
                 pos = center(view, stance),
-                cost = planner.search.g(stance),
-                frontier = stance in planner.search.queue,
+                cost = planner.stanceCost(stance),
+                frontier = planner.inFrontier(stance),
                 anchor = stance in anchors,
             )
         }
@@ -116,13 +138,13 @@ object PlanningDebugChannel {
             val real = successors.filterKeys { to -> to in drawn && !(to == goal && from in anchors) }
             if (real.isEmpty()) return@forEach
 
-            val best = real.entries.minByOrNull { (to, cost) -> cost + planner.search.g(to) }
-                ?.takeIf { (to, cost) -> (cost + planner.search.g(to)).isFinite() }
+            val best = real.entries.minByOrNull { (to, cost) -> cost + planner.stanceCost(to) }
+                ?.takeIf { (to, cost) -> (cost + planner.stanceCost(to)).isFinite() }
                 ?.key
 
             knownEdges += real.size
             if (edges.size >= limits.edges) return@forEach
-            val fromCost = planner.search.g(from)
+            val fromCost = planner.stanceCost(from)
             real.forEach { (to, cost) ->
                 if (edges.size < limits.edges) {
                     edges += GraphEdge(
@@ -131,7 +153,7 @@ object PlanningDebugChannel {
                         cost = cost,
                         policy = to == best,
                         fromCost = fromCost,
-                        toCost = planner.search.g(to),
+                        toCost = planner.stanceCost(to),
                     )
                 }
             }
@@ -168,6 +190,8 @@ object PlanningDebugChannel {
         synchronized(ring) { ring.clear() }
         attempts = emptyList()
         candidateLines = emptyList()
+        tree = null
+        stats = null
 
         active = enabled
     }
@@ -199,6 +223,8 @@ object PlanningDebugChannel {
         coarseRoute = null
         attempts = emptyList()
         candidateLines = emptyList()
+        tree = null
+        stats = null
         graph = null
         synchronized(ring) { ring.clear() }
     }

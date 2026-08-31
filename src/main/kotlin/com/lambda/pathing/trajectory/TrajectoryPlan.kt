@@ -27,6 +27,13 @@ class TrajectoryPlan private constructor(
     val tape: InputTape,
     frames: List<SimulatedTrajectoryFrame>,
     val terminal: CertifiedTerminal,
+    /**
+     * The decisions the [tape] was compiled from, in execution order.
+     *
+     * Empty for plans built before segments existed or from a source that has none; any
+     * consumer must treat that as "cannot recompile" rather than "no segments ran".
+     */
+    val segments: List<PlanSegment> = emptyList(),
 ) {
     val frames: List<SimulatedTrajectoryFrame> = Collections.unmodifiableList(ArrayList(frames))
     private val lastSectionReadFrame: Map<PathingSection, Int> = buildMap {
@@ -131,6 +138,7 @@ class TrajectoryPlan private constructor(
             tape = InputTape(seed.tape.asList()),
             frames = seed.rollout.frames,
             terminal = CertifiedTerminal.STABLE_GROUNDED_STOP,
+            segments = seed.planSegments,
         )
     }
 }

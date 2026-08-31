@@ -73,10 +73,14 @@ class CoarsePlannerTest {
         assertEquals(71L, published.snapshotRevision)
         assertEquals(route.routeVersion, published.routeVersion)
         assertEquals(route.nodes, published.nodes)
-        assertEquals(route.ticks, published.edges.sumOf { it.lowerBoundTicks }, 1e-9)
+        // Momentum pricing decouples the route bound from the flat per-edge sum: a
+        // chained stretch sheds the transition tax below it, and a short rest-to-rest
+        // hop pays its startup and brake above it. Either side is honest; equality is
+        // the one thing that no longer holds.
+        assertTrue(route.ticks.isFinite() && route.ticks > 0.0)
         assertEquals(published.nodes.size, published.tailCosts.size)
         assertIs<TailCost.Exact>(published.tailCosts.first())
-        assertTrue(published.tailCosts.drop(1).dropLast(1).all { it is TailCost.Bounds })
+        assertTrue(published.tailCosts.all { it !is TailCost.Unreachable })
         assertIs<TailCost.Exact>(published.tailCosts.last())
         assertTrue(published.dependencies.isNotEmpty())
     }

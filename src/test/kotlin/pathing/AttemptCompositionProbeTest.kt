@@ -48,7 +48,7 @@ class AttemptCompositionProbeTest {
             val goal = Stance(endpoints.second.x, endpoints.second.y, endpoints.second.z)
             val planner = CoarsePlanner(environment, moves, start, goal)
             if (!planner.repair(Duration.INFINITE).converged) continue
-            planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+            planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
             val route = planner.routePlan(index.toLong()) ?: continue
             val dx = (goal.x - start.x).toDouble()
             val dz = (goal.z - start.z).toDouble()

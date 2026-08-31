@@ -159,7 +159,7 @@ class TrajectoryExecutionCursorTest {
         )
         val planner = CoarsePlanner(environment, moves, Stance(startX, 0, 0), Stance(goalX, 0, 0))
         assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = requireNotNull(planner.routePlan(REVISION))
         val seed = assertIs<MotionPlanResult.Success>(
             ValueFieldAnchorSearch.search(

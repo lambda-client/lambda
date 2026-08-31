@@ -42,7 +42,11 @@ data class SearchExhaustion(
     val expansions: Int,
     val windowExpansions: Int,
     val windowBudget: Int,
-    val corridorLevel: Int,
+    val guideExpansions: Int,
+    val improvementSplices: Int,
+    val improvementRollouts: Int,
+    val improvementSaved: Int,
+    val improvementDiagnosis: String = "",
     val temperature: Double,
     val openAnchors: Int,
     val parkedAnchors: Int,
@@ -63,12 +67,26 @@ data class SearchExhaustion(
     val beamCapped: Int,
     val beamBuckets: Int,
     val beamLargestBucket: Int,
+    val adoptableDrops: Int = 0,
+    val forkStarvedDrops: Int = 0,
+    val commitAttempts: Int = 0,
+    val commitSuppressed: Int = 0,
+    val publishRefusals: Int = 0,
+    val beamShadowRefusals: Int = 0,
+    val beamShadowLineage: Int = 0,
+    val beamShadowLineageRefused: Int = 0,
 ) {
     override fun toString(): String = buildString {
         append("exit=").append(exit)
         append(" expansions=").append(expansions)
         append(" window=").append(windowExpansions).append('/').append(windowBudget)
-        append(" corridor=").append(corridorLevel)
+        append(" guide=").append(guideExpansions)
+        if (improvementRollouts > 0) {
+            append(" spliced=").append(improvementSplices)
+            append("/-").append(improvementSaved).append("f")
+            append("/").append(improvementRollouts).append("r")
+            if (improvementDiagnosis.isNotEmpty()) append(" [").append(improvementDiagnosis).append("]")
+        }
         append(" temp=%.2f".format(temperature))
         append(" open=").append(openAnchors)
         append(" parked=").append(parkedAnchors)
@@ -86,6 +104,17 @@ data class SearchExhaustion(
         append(" merged=").append(beamDominated + beamEvicted + beamCapped)
         append(" buckets=").append(beamBuckets)
         append(" maxBucket=").append(beamLargestBucket)
+        if (commitAttempts + commitSuppressed + publishRefusals > 0) {
+            append(" drops=").append(adoptableDrops)
+            append(" starved=").append(forkStarvedDrops)
+            append(" commits=").append(commitAttempts)
+            append(" suppressed=").append(commitSuppressed)
+            append(" refusals=").append(publishRefusals)
+        }
+        if (beamShadowLineage > 0) {
+            append(" shadowRefused=").append(beamShadowLineageRefused).append('/').append(beamShadowLineage)
+            append(" shadowRefusals=").append(beamShadowRefusals)
+        }
     }
 }
 
@@ -109,6 +138,21 @@ sealed interface MotionPlanResult {
         val controlSegments: Int = 1,
         val spliceFrames: List<Int> = emptyList(),
         val launchMarginFrames: Int = 0,
+
+        /** The decisions this tape was compiled from; see [PlanSegment]. */
+        val planSegments: List<PlanSegment> = emptyList(),
+
+        /**
+         * This tape's estimated arrival and the running tape's, computed in the same
+         * instant against the same guide field, plus the running publication compared
+         * against. Guide values drift as the field expands, so arrival numbers from two
+         * different publish times cannot be compared -- these can, and they are what
+         * lets the adoption arbiter accept a backtrack swap instead of refusing every
+         * tape whose anchor does not advance.
+         */
+        val arrivalTicksEstimate: Double = Double.NaN,
+        val comparedRunningArrivalTicks: Double = Double.NaN,
+        val comparedRunningSequence: Long = -1,
 
         /**
          * Where the tape's frames went, against what the coarse route says they had to.

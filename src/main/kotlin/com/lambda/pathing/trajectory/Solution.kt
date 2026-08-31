@@ -15,7 +15,19 @@ internal class Solution(
     val frames: Int,
     val collisionEvents: Int,
     val anchor: ValueAnchor,
+    val tailFrames: List<SimulatedTrajectoryFrame>,
 ) {
+    /**
+     * The decisions this solution was built from; see [PlanSegment].
+     *
+     * Lazy on purpose. A solution is produced speculatively -- every finish sweep and
+     * every arrival builds one -- while at most one per publication is ever certified
+     * into a plan. Building the chain eagerly walked every anchor on a hot path and cost
+     * enough wall clock to fail `HorizonWalkProbeTest`'s deliberately-starved fixture,
+     * where the body outran a search that no longer fit its step budget.
+     */
+    val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
+
     val score: Int get() = frames + ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * collisionEvents
 
     /**
@@ -38,6 +50,61 @@ internal class Solution(
     }
 
     companion object {
+        /**
+         * The decision chain behind a finished tape, root first, plus its terminal.
+         *
+         * Walked from the leaf because that is the only direction anchors link, then
+         * reversed. An anchor with no decision is a brake tail rather than a movement --
+         * the search publishes those as safe stops -- so it becomes a terminal too.
+         */
+        private fun segmentsOf(
+            anchor: ValueAnchor,
+            tail: List<SimulatedTrajectoryFrame>,
+            parameters: TerminalApproach,
+        ): List<PlanSegment> {
+            val chain = ArrayList<ValueAnchor>()
+            var node: ValueAnchor? = anchor
+            while (node?.parent != null) {
+                chain += node
+                node = node.parent
+            }
+            chain.reverse()
+
+            val segments = ArrayList<PlanSegment>(chain.size + 1)
+            chain.forEach { child ->
+                val parent = child.parent ?: return@forEach
+                val decision = child.decision
+                segments += if (decision != null) {
+                    PlanSegment.Move(
+                        decision = decision,
+                        points = child.points,
+                        entry = parent.state,
+                        exit = child.state,
+                        inputs = child.inputs,
+                        startFrame = parent.elapsed,
+                    )
+                } else {
+                    PlanSegment.Terminal(
+                        approach = parameters,
+                        entry = parent.state,
+                        exit = child.state,
+                        inputs = child.inputs,
+                        startFrame = parent.elapsed,
+                    )
+                }
+            }
+            if (tail.isNotEmpty()) {
+                segments += PlanSegment.Terminal(
+                    approach = parameters,
+                    entry = anchor.state,
+                    exit = tail.last().state,
+                    inputs = tail.map { it.input },
+                    startFrame = anchor.elapsed,
+                )
+            }
+            return segments
+        }
+
         fun of(
             anchor: ValueAnchor,
             tail: List<SimulatedTrajectoryFrame>,
@@ -52,6 +119,7 @@ internal class Solution(
             frames = anchor.elapsed + tail.size,
             collisionEvents = collisionEvents,
             anchor = anchor,
+            tailFrames = tail,
         )
     }
 }

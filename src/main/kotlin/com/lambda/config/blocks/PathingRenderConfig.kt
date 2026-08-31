@@ -32,6 +32,20 @@ interface PathingRenderConfig {
     /** Live planning view: the coarse route as it lands, candidates as they are tried. */
     val renderPlanning: Boolean
 
+    /**
+     * The trajectory search's own anchor tree, and the counters driving it.
+     *
+     * The coarse graph shows where the planner may go; this shows what it is actually
+     * doing with that freedom -- which line the body is committed to, which branches are
+     * still arguing, and how much of the budget each is costing.
+     */
+    val renderPlanGraph: Boolean
+    val renderPlanGraphLabels: Boolean
+
+    val renderSearchTree: Boolean
+    val renderSearchTreeNodes: Boolean
+    val renderSearchStats: Boolean
+
     /** The search graph itself: every cell D* touched, coloured by cost to the goal. */
     val renderGraph: Boolean
     val renderGraphFrontier: Boolean
@@ -49,6 +63,9 @@ interface PathingRenderConfig {
     val labelSize: Double
     val graphNodeSize: Double
     val graphEdgeWidth: Int
+    val searchTreeWidth: Int
+    val searchTreeNodeSize: Double
+    val junctionSize: Double
 
     /**
      * How much of the search graph the view is allowed to take, per publish.
@@ -90,4 +107,21 @@ interface PathingRenderConfig {
 
     /** Cells holding the optimistic step into terrain the client has not streamed. */
     val graphAnchorColor: Color
+
+    /** Junctions a branch may rejoin at, and the ones it may not. */
+    val junctionColor: Color
+    val unsettledJunctionColor: Color
+
+    /** Spine segments shade between these by frames spent per block covered. */
+    val segmentFastColor: Color
+    val segmentSlowColor: Color
+    val alternateColor: Color
+
+    /** Anchor-tree roles: the committed line, the best rival, and the live frontier. */
+    val spineColor: Color
+    val treeBestColor: Color
+    val treeOpenColor: Color
+    val treeParkedColor: Color
+    val treeSpentColor: Color
+    val treeInteriorColor: Color
 }

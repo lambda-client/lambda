@@ -367,14 +367,14 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
 
         val yawDrift = abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
-        if (yawDrift > START_YAW_TOLERANCE) {
+        if (yawDrift > FIRST_FRAME_YAW_EPSILON) {
             published = path
             walk.pendingPath = path
             walk.alignmentTicks = 0
             walk.tickInput = ALIGNMENT_INPUT
             status = Status.Aligning(walk.leg + 1, yawDrift)
             info(
-                "Certified trajectory; aligning movement yaw by %.1f° before replay.".format(yawDrift),
+                "Certified trajectory; aligning movement yaw by %.2f° before replay.".format(yawDrift),
                 PATHING_SOURCE,
             )
             return
@@ -602,11 +602,15 @@ object PathingManager : Manager<PathingRequest>(0) {
         if (running.nextFrame == 0) {
             val targetYaw = current.plan.initialState.rotation.yaw
             val yawError = abs(Rotation.wrap(player.moveYaw - targetYaw))
-            if (yawError > START_YAW_TOLERANCE) {
+            if (yawError > FIRST_FRAME_YAW_EPSILON && walk.alignmentTicks <= MAX_ALIGNMENT_TICKS) {
                 walk.request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
                 walk.tickInput = ALIGNMENT_INPUT
                 if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
-                    fail("could not hold the launch yaw before the first frame (%.1f degrees off)".format(yawError))
+                    warn(
+                        "Replaying with %.2f° of launch yaw error; the rotation could not settle exactly."
+                            .format(yawError),
+                        PATHING_SOURCE,
+                    )
                 }
                 return
             }
@@ -687,14 +691,22 @@ object PathingManager : Manager<PathingRequest>(0) {
         val yawDrift = abs(Rotation.wrap(player.moveYaw - targetYaw))
 
         val settled = player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround
-        if (yawDrift <= START_YAW_TOLERANCE && settled) {
+        if (yawDrift <= FIRST_FRAME_YAW_EPSILON && settled) {
             install(walk, path)
             return
         }
 
         status = Status.Aligning(walk.leg + 1, yawDrift)
         if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
-            fail("could not align movement yaw to the plan (%.1f degrees remain)".format(yawDrift))
+            // Install regardless rather than fail: a rotation mode that cannot settle
+            // exactly gets the old behavior back -- the first frame may reject and
+            // recover -- instead of a dead walk.
+            warn(
+                "Installing with %.2f° of launch yaw error; the rotation could not settle exactly."
+                    .format(yawDrift),
+                PATHING_SOURCE,
+            )
+            install(walk, path)
         }
     }
 
@@ -939,7 +951,19 @@ object PathingManager : Manager<PathingRequest>(0) {
         MovementSimulationState.from(player, isJumping = frame > 0 && frame <= plan.tape.frameCount && plan.tape[frame - 1].jump)
 
     private const val START_DRIFT_TOLERANCE = 0.35
-    private const val START_YAW_TOLERANCE = 1.0
+
+    /**
+     * Launch yaw agreement required before frame 0 may execute, in degrees.
+     *
+     * This is arithmetic, not preference. The replay cursor rejects a frame whose
+     * position errs by 2e-6 blocks, and one movement tick at sprint speed turns a yaw
+     * residual into sin(residual) * 0.36 blocks of lateral error -- so anything above
+     * ~3e-4 degrees at frame 0 GUARANTEES a rejection and a full replan. The old 1.0
+     * tolerance installed tapes with mid-turn residuals that could never replay; the
+     * field paid a recover each time. Rotation modes that cannot settle exactly fall
+     * back to installing after the alignment timeout, which is the old behavior.
+     */
+    private const val FIRST_FRAME_YAW_EPSILON = 2.5e-4
 
     private const val MAX_ALIGNMENT_TICKS = 40
 

@@ -5,6 +5,8 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.trajectory.CandidatePath
 import com.lambda.pathing.trajectory.SearchProbe
+import com.lambda.pathing.trajectory.SearchStatsView
+import com.lambda.pathing.trajectory.SearchTreeView
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.TrajectoryRollout
 
@@ -12,6 +14,17 @@ class DebugChannelProbe(
     private val verbose: Boolean = java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures"),
 ) : SearchProbe {
     override val candidatesEnabled: Boolean get() = PlanningDebugChannel.isActive
+
+    override val treeEnabled: Boolean
+        get() = PlanningDebugChannel.isActive && PlanningDebugChannel.treeWanted
+
+    override fun tree(view: SearchTreeView) {
+        PlanningDebugChannel.publishTree(view)
+    }
+
+    override fun stats(view: SearchStatsView) {
+        PlanningDebugChannel.publishStats(view)
+    }
 
     override fun attempt(rollout: TrajectoryRollout, certified: Boolean, diagnostic: TrajectoryDiagnostic?) {
         PlanningDebugChannel.publishAttempt(rollout, certified, diagnostic)

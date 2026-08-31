@@ -92,6 +92,146 @@ object JumpMovement : Movement {
 
     override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y >= edge.from.y
 
+    /**
+     * Momentum skips: a sprint-jump across cells the route merely walks.
+     *
+     * The coarse graph only carries jump edges where a gap forces one, so a moving body
+     * was never offered "clear the next three walkable cells in one flight" -- the
+     * fastest maneuver in the calibration table (sprint-jump 0.364 b/t against sprint's
+     * 0.281) was invisible exactly where it wins. The targets are derived, not searched:
+     * the steering chain names the cells ahead, and the launch solver answers which of
+     * them this body's speed can reach, furthest first. Landing anywhere short is not a
+     * failure -- the rollout anchors wherever the body comes down.
+     */
+    override fun proposals(context: ProposalContext): Proposals {
+        val gait = if (context.momentumGait) gaitHop(context) else null
+        val skips = skipProposals(context)
+        if (gait == null) return skips
+        return Proposals(launches = listOf(gait) + skips.launches)
+    }
+
+    /**
+     * The chained sprint-jump gait: one natural-distance hop along a straight, level
+     * chain stretch, as a solution-less [TrajectoryDecision.Launch] -- open-loop
+     * flight, forward held throughout, jump pressed on the first grounded tick.
+     * Chaining needs no special machinery: the landing anchor is grounded and fast, so
+     * the next poll proposes the next hop, and the input timing across the anchor cut
+     * is identical to a single program pressing jump on the tick after landing. This is
+     * where the measured 0.364 b/t sprint-jump rate lives, against sprint's 0.281 --
+     * the gait the calibration measured and the vocabulary never offered.
+     */
+    private fun gaitHop(context: ProposalContext): TrajectoryDecision? {
+        val body = context.body
+        if (!body.state.onGround) return null
+        if (body.speed < GAIT_MIN_SPEED) return null
+        val heading = body.heading() ?: return null
+        val first = context.steps.firstOrNull()?.to ?: return null
+        val chain = context.steering.chain(body.stance, first, GAIT_LOOKAHEAD, heading)
+        val headingLength = hypot(heading.first, heading.second)
+        var target: Stance? = null
+        for (index in 1 until chain.size) {
+            val cell = chain[index]
+            // The level bound guards every cell the flight crosses; alignment only the
+            // cell it aims at. Chains on open ground zigzag half a block around the
+            // straight line, and demanding each intermediate wobble lie on the heading
+            // killed the gait almost everywhere it belongs -- thirty-eight proposals in
+            // a thirty-thousand-expansion walk.
+            if (abs(cell.y - body.stance.y) > 1) break
+            val towardX = (cell.x - body.stance.x).toDouble()
+            val towardZ = (cell.z - body.stance.z).toDouble()
+            val distance = hypot(towardX, towardZ)
+            if (distance > GAIT_MAX_HOP_BLOCKS) break
+            if (distance < GAIT_MIN_HOP_BLOCKS) continue
+            // Flown-over cells may rise a block; the landing may not. An uphill landing
+            // spends the arc's tail on the climb and arrives slow -- measured costing a
+            // pad course the eight frames the flat-landing variant had won.
+            if (cell.y > body.stance.y) continue
+            val alignment = (heading.first * towardX + heading.second * towardZ) /
+                (headingLength * distance)
+            if (alignment >= GAIT_MIN_ALIGNMENT) target = cell
+        }
+        val hop = target ?: return null
+        return TrajectoryDecision.Launch(sprint = true, step = hop, delayFrames = 0, solution = null)
+    }
+
+    private fun skipProposals(context: ProposalContext): Proposals {
+        if (!context.momentumSkips) return Proposals.EMPTY
+        val body = context.body
+        if (!body.state.onGround) return Proposals.EMPTY
+        if (body.speed < SKIP_MIN_SPEED) return Proposals.EMPTY
+        val first = context.steps.firstOrNull()?.to ?: return Proposals.EMPTY
+        val chain = context.steering.chain(body.stance, first, SKIP_LOOKAHEAD, body.heading())
+        if (chain.size <= SKIP_MIN_CELLS) return Proposals.EMPTY
+        val reachable = maxOf(body.speed, BallisticProfile.VANILLA.cruiseSpeed(sprint = true))
+        // MOVING guides on both sides: the skipper is moving and lands moving, and the
+        // blended guide mixed classes inconsistently across the comparison.
+        val here = context.movingGuideTicks(body.stance)
+        val heading = body.heading() ?: return Proposals.EMPTY
+        for (index in chain.lastIndex downTo SKIP_MIN_CELLS) {
+            val target = chain[index]
+            if (target.y > body.stance.y) continue
+            if (body.stance.y - target.y > SKIP_MAX_DROP) continue
+            val towardX = (target.x - body.stance.x).toDouble()
+            val towardZ = (target.z - body.stance.z).toDouble()
+            val distance = hypot(towardX, towardZ)
+            if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE) continue
+            // The body flies where its momentum points; a skip against the grain is a
+            // turn first, and turns are the walk proposer's business.
+            val alignment = (heading.first * towardX + heading.second * towardZ) /
+                (hypot(heading.first, heading.second) * distance)
+            if (alignment < SKIP_MIN_ALIGNMENT) continue
+            val solution = LaunchSolver.best(
+                body.stance, target,
+                modes = MODES,
+                maxEntrySpeed = { reachable },
+            ) ?: continue
+            // A skip must be a CUT or a FALL, never flat-straight jump spam. Measured
+            // on the corpus movement profiles: skips flip the gait jump-heavy
+            // everywhere, which wins six frames on a pad course and loses eleven on the
+            // open traverse -- an isolated launch pays prep, landing and
+            // re-acceleration that no per-flight arithmetic here captures, and the fast
+            // 0.364 b/t figure belongs to the chained gait this decision does not
+            // produce. Flight only beats ground where it shortens the path (momentum
+            // through a corner, a diagonal across the chain's zigzag) or where the
+            // ground itself drops away.
+            // What separates a skip worth flying from jump spam is what it skips OVER.
+            // Chain steps that are themselves gaps mean the skip merges two jumps into
+            // one flight -- always worth proposing where the solver says it lands. Over
+            // plain walked ground, flight must either cut the path short (momentum
+            // through a corner) or convert a real drop into horizontal ground; a
+            // one-block descent is a walking matter, and letting every downhill cell
+            // through spammed rolling terrain with launches (bedrock-08 ended short,
+            // bedrock-05 stalled twenty frames' worth).
+            var walked = 0.0
+            var skipsGap = false
+            for (step in 1..index) {
+                val stride = hypot(
+                    (chain[step].x - chain[step - 1].x).toDouble(),
+                    (chain[step].z - chain[step - 1].z).toDouble(),
+                )
+                walked += stride
+                if (stride > SKIP_GAP_STRIDE_BLOCKS) skipsGap = true
+            }
+            val falls = body.stance.y - target.y >= SKIP_MIN_FALL_BLOCKS
+            val cuts = walked - distance >= SKIP_MIN_CUT_BLOCKS
+            if (!skipsGap && !falls && !cuts) continue
+            // And the model must still claim a saving on its own terms.
+            if (here.isFinite()) {
+                val there = context.movingGuideTicks(target)
+                if (there.isFinite()) {
+                    val flightTicks = solution.airTicks + SKIP_LAUNCH_PREP_TICKS
+                    if (here - there < flightTicks + SKIP_MIN_SAVING_TICKS) continue
+                }
+            }
+            return Proposals(
+                launches = listOf(
+                    TrajectoryDecision.Launch(solution.sprint, target, delayFrames = 0, solution),
+                ),
+            )
+        }
+        return Proposals.EMPTY
+    }
+
     override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
         val solutions = solutionsFor(context)
             .filter { context.constraints.sprintModes.contains(it.sprint) }
@@ -122,7 +262,8 @@ object JumpMovement : Movement {
             is TrajectoryDecision.Launch -> decision.solution
             is TrajectoryDecision.RunUpLaunch -> decision.solution
             else -> null
-        } ?: return DecisionPrice.FREE
+        }
+        if (solution == null) return DecisionPrice.FREE
 
         val tightness = 1.0 - (solution.speedSlack / COMFORTABLE_SPEED_SLACK).coerceIn(0.0, 1.0)
         val base = DecisionPrice(
@@ -413,6 +554,12 @@ object JumpMovement : Movement {
             velocityZ = (velocityZ + dynamics.acceleration * forwardZ) * dynamics.friction
             along += (velocityX * unitX + velocityZ * unitZ) / dynamics.friction
         }
+        // NOTE (measured, do not redo naively): offering delay-0 for bodies faster
+        // than the arc's band on open level edges DID tighten chain cadence (two-tick
+        // landing stays became one-tick) and still made tapes WORSE (flat run 313 to
+        // 321) -- the overshooting arcs land where the line selection then does worse.
+        // Cadence is not separable from line value; the fix lives in a velocity-aware
+        // guide, not here.
         if (fitting.isEmpty()) {
             val nominal = launchFrame(context, solution)
             return LAUNCH_BRACKET.map { (nominal + it).coerceAtLeast(0) }
@@ -541,6 +688,47 @@ object JumpMovement : Movement {
         (decision as? TrajectoryDecision.Launch)?.let { LaunchTrigger(it.delayFrames) }
 
     private val MODES = LaunchMode.entries.filter { it.jumps }
+
+    /** Below this the body has no momentum worth spending on a skip. */
+    private const val SKIP_MIN_SPEED = 0.15
+
+    /** Chain cells considered ahead; a skip past five is outside the solver's reach anyway. */
+    private const val SKIP_LOOKAHEAD = 5
+
+    /** A skip must clear at least two chain edges, or it is just the jump the edge already offers. */
+    private const val SKIP_MIN_CELLS = 2
+
+    private const val SKIP_MAX_DROP = 3
+
+    /** Blocks of walked path a level skip must cut away to be worth a flight. */
+    private const val SKIP_MIN_CUT_BLOCKS = 1.0
+
+    private const val SKIP_MIN_FALL_BLOCKS = 2
+
+    /** A chain stride longer than a walkable step: the ground between is a gap. */
+    private const val SKIP_GAP_STRIDE_BLOCKS = 1.5
+
+    /** cos(30 degrees): the flight must go where the momentum already points. */
+    private const val SKIP_MIN_ALIGNMENT = 0.866
+
+    /** Ticks of ground run a level launch typically needs before it is airborne. */
+    private const val SKIP_LAUNCH_PREP_TICKS = 2
+
+    private const val SKIP_MIN_SAVING_TICKS = 2.0
+
+    /** The gait maintains speed; it does not create it. Near-sprint bodies only. */
+    private const val GAIT_MIN_SPEED = 0.2
+
+    private const val GAIT_LOOKAHEAD = 5
+
+    /** Shorter than this is a step, not a hop. */
+    private const val GAIT_MIN_HOP_BLOCKS = 2.5
+
+    /** A level sprint hop's reliable reach; beyond it the arc needs solving, not assuming. */
+    private const val GAIT_MAX_HOP_BLOCKS = 3.8
+
+    /** cos(26 degrees): the hop's aim may wobble with the chain; real corners belong to walks. */
+    private const val GAIT_MIN_ALIGNMENT = 0.9
 
     private val LAUNCH_BRACKET = listOf(0, -1, 1)
 

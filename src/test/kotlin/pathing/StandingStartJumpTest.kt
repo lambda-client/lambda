@@ -121,7 +121,7 @@ class StandingStartJumpTest {
         )
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = requireNotNull(planner.routePlan(1L))
         assertTrue(
             route.nodes.size == 3 && route.nodes[1] == Stance(3, 2, 0),
@@ -198,7 +198,7 @@ class StandingStartJumpTest {
         )
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "coarse search must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = requireNotNull(planner.routePlan(1L)) { "coarse route must exist" }
         assertTrue(
             route.edges.any { it.launch != null },

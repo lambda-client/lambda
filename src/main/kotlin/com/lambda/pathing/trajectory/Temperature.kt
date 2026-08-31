@@ -20,11 +20,14 @@ import com.lambda.pathing.movement.DecisionPrice
  * the queue is a fixed property of the decision, so heating admits new options at the
  * back of the order rather than reshuffling the ones already there.
  */
-internal class Temperature(private var level: Double = INITIAL) {
+internal class Temperature(
+    private var level: Double = INITIAL,
+    private val ceiling: Double = 1.0,
+) {
 
     val current: Double get() = level
 
-    val exhausted: Boolean get() = level >= 1.0
+    val exhausted: Boolean get() = level >= ceiling
 
     /** Whether this decision is offered at the current level. */
     fun affords(price: DecisionPrice): Boolean = price.difficulty <= level
@@ -35,7 +38,7 @@ internal class Temperature(private var level: Double = INITIAL) {
     /** Stalled: buy access to harder movements. Returns false once nothing is left to unlock. */
     fun raise(): Boolean {
         if (exhausted) return false
-        level = (level * GROWTH).coerceAtMost(1.0)
+        level = (level * GROWTH).coerceAtMost(ceiling)
         return true
     }
 

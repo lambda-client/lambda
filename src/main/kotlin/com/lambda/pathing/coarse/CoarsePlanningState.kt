@@ -15,6 +15,16 @@ import kotlin.time.Duration
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
+/**
+ * The one-tick transition overhead is a fossil of the tape-per-edge architecture --
+ * chained decisions stopped paying it, which is why tapes measure 0.78-0.84x of the
+ * "admissible" bound -- but removing it is NOT free: swept 1.0/0.5/0.25/0.0, the
+ * corpus improves monotonically (1254 to 1217) while the baseline walks trade course
+ * wins for open-terrain collisions and stalls at every rung, and 0.25 even ends a
+ * walk short. Cheaper walking re-ranks lines through the same velocity-blind guide
+ * that blocks the momentum proposers; the honest re-price ships together with the
+ * velocity-aware coarse layer, not before it.
+ */
 internal val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
 
 internal class PlanningHorizonView(

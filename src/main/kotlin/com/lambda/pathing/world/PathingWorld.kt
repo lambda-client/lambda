@@ -13,13 +13,11 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.world.World
+import kotlin.math.abs
 
 enum class InterestTier {
-
     DEMAND,
-
     BODY,
-
     CORRIDOR,
 }
 
@@ -27,7 +25,6 @@ class WorldEventBatch(
     val revision: Long,
     val sections: Set<PathingSection>,
     val chunks: Set<PathingChunk>,
-
     val mutations: Set<PathingSection>,
 ) {
     val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
@@ -357,8 +354,8 @@ class PathingWorld(
         if (!world.chunkManager.isChunkLoaded(chunkX, chunkZ)) return false
         val center = player.chunkPos
         val viewDistance = MinecraftClient.getInstance().options.clampedViewDistance
-        val dx = maxOf(0, Math.abs(chunkX - center.x) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-        val dz = maxOf(0, Math.abs(chunkZ - center.z) - CHUNK_FILTER_EDGE_MARGIN).toLong()
+        val dx = maxOf(0, abs(chunkX - center.x) - CHUNK_FILTER_EDGE_MARGIN).toLong()
+        val dz = maxOf(0, abs(chunkZ - center.z) - CHUNK_FILTER_EDGE_MARGIN).toLong()
         return dx * dx + dz * dz < viewDistance.toLong() * viewDistance
     }
 

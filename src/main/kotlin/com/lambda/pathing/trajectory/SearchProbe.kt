@@ -7,8 +7,76 @@ import net.minecraft.util.math.Vec3d
 
 class CandidatePath(val points: List<Vec3d>, val best: Boolean)
 
+/**
+ * What a live anchor is to the search, strongest claim first.
+ *
+ * An anchor is claimed by every role it qualifies for; the lowest ordinal wins, so the
+ * committed line reads as spine even though its anchors are also open, and an ancestor
+ * nothing claims reads as interior scaffolding.
+ */
+enum class SearchNodeRole { SPINE, BEST, OPEN, PARKED, SPENT, INTERIOR }
+
+class SearchTreeNode(
+    val position: Vec3d,
+    val elapsed: Int,
+    val guide: Double,
+    val role: SearchNodeRole,
+)
+
+class SearchTreeEdge(
+    val from: Vec3d,
+    val to: Vec3d,
+    val role: SearchNodeRole,
+    val via: MovementId?,
+)
+
+/**
+ * The live anchor tree: what the trajectory search is actually holding right now.
+ *
+ * The coarse graph has always been drawable and the trajectory search never was, which
+ * left the expensive half of the planner invisible -- a session burning a hundred
+ * thousand expansions looked exactly like one burning four hundred. Roles are what make
+ * it readable: the spine is the tape the body is committed to, and everything else is
+ * the search arguing about what should replace it.
+ */
+class SearchTreeView(
+    val nodes: List<SearchTreeNode>,
+    val edges: List<SearchTreeEdge>,
+    val totalAnchors: Int,
+    val truncated: Boolean,
+)
+
+/** The counters behind [SearchExhaustion], sampled while the search is still running. */
+class SearchStatsView(
+    val expansions: Int,
+    val windowExpansions: Int,
+    val windowBudget: Int,
+    val guideExpansions: Int,
+    val temperature: Double,
+    val open: Int,
+    val parked: Int,
+    val blocked: Int,
+    val spent: Int,
+    val admitted: Int,
+    val merged: Int,
+    val restarts: Int,
+    val rootFrame: Int,
+    val publishedFrame: Int,
+    val horizonEnd: Int,
+    val cursorFrame: Int,
+    val bestScore: Int?,
+    val elapsedMillis: Long,
+)
+
 interface SearchProbe {
     val candidatesEnabled: Boolean get() = false
+
+    /** Whether anyone is drawing the anchor tree. Building it walks every live anchor. */
+    val treeEnabled: Boolean get() = false
+
+    fun tree(view: SearchTreeView) {}
+
+    fun stats(view: SearchStatsView) {}
 
     fun decision(action: TrajectoryDecision, rejected: Boolean, frame: Int) {}
 
@@ -48,6 +116,25 @@ interface SearchProbe {
      * refused.
      */
     fun braked(tipElapsed: Int, executing: Int, open: Int, parked: Int, deepestElapsed: Int) {}
+
+    /** One frontier poll, with the exact ordering values that won it: determinism forensics. */
+    fun polled(stance: Stance, elapsed: Int, orderBits: Long, boundBits: Long, sequence: Long) {}
+
+    /**
+     * One finish-sweep attempt: whether the guide chain reached the goal at all, whether
+     * a terminal run sealed, and how fast the body was when it tried. The finisher fails
+     * silently otherwise, and the endgame stalls are exactly its silent failures.
+     */
+    fun finishAttempt(stance: Stance, elapsed: Int, speed: Double, chainReached: Boolean, sealed: Boolean) {}
+
+    /**
+     * The frontier genuinely drained and the search restarted from the tape's
+     * continuation. [moving] distinguishes the tip restart (clean slate, body keeps
+     * walking) from the brake restart (the body will halt). [drops] and [spent] say what
+     * the drained frontier died of: drops are branches executed past their fork and
+     * discarded at poll, spent are anchors that ground through their whole vocabulary.
+     */
+    fun restarted(moving: Boolean, seedElapsed: Int, executing: Int, expansions: Int, drops: Int, spent: Int) {}
 
     /**
      * A publication was refused while the body was inside the runway window -- the

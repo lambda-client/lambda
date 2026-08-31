@@ -39,6 +39,8 @@ internal class VirtualExecutor(
     var refusals = 0
         private set
 
+    val refusalReasons = HashMap<String, Int>()
+
     /** Frames the body has replayed, or null while it is still standing at the start. */
     val executedFrames: Int get() = cursorFrame() ?: 0
 
@@ -70,7 +72,7 @@ internal class VirtualExecutor(
     private fun deliver(path: PublishedPath, now: Int) {
         val current = running
         val cursor = current?.let { (now - (replayBeganAt ?: now)).coerceIn(0, it.plan.tape.frameCount) }
-        when (ImprovementArbiter.judge(
+        when (val verdict = ImprovementArbiter.judge(
             running = current,
             cursorFrame = cursor,
             awaitingObservation = false,
@@ -92,7 +94,11 @@ internal class VirtualExecutor(
             // A deferral is a refusal for one tick in the real manager, which retries it
             // on the next. Counting it as a refusal here overstates nothing: the search
             // is blocked on the acknowledgement either way.
-            is ImprovementArbiter.Verdict.Keep,
+            is ImprovementArbiter.Verdict.Keep -> {
+                refusals++
+                refusalReasons.merge((verdict as ImprovementArbiter.Verdict.Keep).reason, 1, Int::plus)
+            }
+
             ImprovementArbiter.Verdict.DeferForObservation -> refusals++
         }
     }

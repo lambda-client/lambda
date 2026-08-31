@@ -102,7 +102,7 @@ class DropPrimitiveTest {
         val goal = Stance(4, 63, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "the ledge route must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = assertNotNull(planner.routePlan(0L), "a route down the ledge must publish")
 
         assertTrue(
@@ -164,7 +164,7 @@ class DropPrimitiveTest {
         val goal = Stance(9, 64, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
 
         val outcome = TrajectoryPlanner.walkHorizon(
@@ -237,7 +237,7 @@ class DropPrimitiveTest {
         val goal = Stance(6, 63, 0)
         val planner = CoarsePlanner(environment, library(), start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
         assertTrue(
             route.edges.count { it.movement == MovementId.DROP } >= 4,
@@ -309,7 +309,7 @@ class DropPrimitiveTest {
         val goal = Stance(-5, 11, 0)
         val planner = CoarsePlanner(environment, library(), start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
 
         val outcome = TrajectoryPlanner.walkHorizon(
@@ -378,7 +378,7 @@ class DropPrimitiveTest {
         )
         val planner = CoarsePlanner(environment, library(), Stance(0, 17, 0), Stance(-5, 11, 0))
         assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
 
         val outcome = TrajectoryPlanner.walkHorizon(

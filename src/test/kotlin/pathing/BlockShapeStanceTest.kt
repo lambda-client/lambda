@@ -116,7 +116,7 @@ class BlockShapeStanceTest {
 
         val planner = CoarsePlanner(environment, library(), Stance(0, 65, 0), Stance(5, 65, 0))
         assertTrue(planner.repair(Duration.INFINITE).converged, "a slab floor must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = assertNotNull(planner.routePlan(0L), "a slab floor must publish a route")
 
         val outcome = TrajectoryPlanner.walkHorizon(

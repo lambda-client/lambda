@@ -38,7 +38,8 @@ import kotlin.time.Duration
 @Tag("bedrock-corpus")
 class HorizonWalkProbeTest {
     @Test
-    fun `a horizon walk arrives, and never publishes a tape that cannot stop`() = walk(20, 20)
+    fun `a horizon walk arrives, and never publishes a tape that cannot stop`() =
+        walk(20, 20, microsPerExpansion = 640L)
 
     /**
      * The same walk with steps made deliberately expensive.
@@ -49,7 +50,8 @@ class HorizonWalkProbeTest {
      * actually cost, so this fixture makes steps slow on purpose and still demands arrival.
      */
     @Test
-    fun `a horizon walk with slow steps still keeps ahead of the body`() = walk(60, 5)
+    fun `a horizon walk with slow steps still keeps ahead of the body`() =
+        walk(60, 5, microsPerExpansion = 2000L)
 
     /**
      * The horizon walked over several routes, for judging changes to the search itself.
@@ -77,7 +79,7 @@ class HorizonWalkProbeTest {
             val goal = Stance(endpoints.second.x, endpoints.second.y, endpoints.second.z)
             val planner = CoarsePlanner(environment, moves, start, goal)
             if (!planner.repair(Duration.INFINITE).converged) continue
-            planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+            planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
             val route = planner.routePlan(index.toLong()) ?: continue
             val dx = (goal.x - start.x).toDouble()
             val dz = (goal.z - start.z).toDouble()
@@ -126,7 +128,21 @@ class HorizonWalkProbeTest {
         },
     )
 
-    private fun walk(lookahead: Int, commitFrames: Int) {
+    /**
+     * [microsPerExpansion] is the fixture's whole personality: 640 is the corpus tempo
+     * (~78 expansions per body frame), 2000 a deliberately starved search (~25 per
+     * frame). It used to be a real wall clock, which made the starved fixture a bet on
+     * machine load -- it failed one run in three on an untouched tree whenever another
+     * test saturated the cores, and the trap note said never to read that as a planner
+     * regression. The virtual clock races the same race deterministically.
+     *
+     * Calibrating it surfaced a real edge the wall clock had been sampling at random:
+     * at 1200 and 2500 the starved walk ends partial -- the body outruns the search on
+     * particular interleavings and the walk brakes short. Those tempos are left out of
+     * the gate deliberately; they are the starvation lead's reproduction recipe, not a
+     * regression signal.
+     */
+    private fun walk(lookahead: Int, commitFrames: Int, microsPerExpansion: Long) {
         val environment = SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(
 	            -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
@@ -151,7 +167,7 @@ class HorizonWalkProbeTest {
 
         val planner = CoarsePlanner(environment, moves, start, goal)
         check(planner.repair(Duration.INFINITE).converged) { "no coarse route across the field" }
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val dx = (goal.x - start.x).toDouble()
         val dz = (goal.z - start.z).toDouble()
         val initial = MovementSimulationState.synthetic(
@@ -162,18 +178,17 @@ class HorizonWalkProbeTest {
         )
         val route = checkNotNull(planner.routePlan(0L))
 
-        val startedAt = System.nanoTime()
+        val clock = VirtualSearchClock(microsPerExpansion = microsPerExpansion)
         val publications = ArrayList<Pair<Long, PublishedPath>>()
         val result = TrajectoryPlanner.walkHorizon(
             route, planner, initial, PROFILE, environment, config,
-            cursorFrame = {
-                val elapsed = (System.nanoTime() - startedAt) / 50_000_000L
-                elapsed.toInt()
-            },
-            publish = { path, _ -> publications += (System.nanoTime() - startedAt) / 1_000_000L to path },
+            cursorFrame = { clock.cursorFrame() },
+            publish = { path, _ -> publications += clock.elapsedMillis() to path },
             started = System.currentTimeMillis(),
             lookahead = lookahead,
             commitFrames = commitFrames,
+            clock = clock,
+            fieldExpansionBudget = kotlin.time.Duration.INFINITE,
         )
 
         // Adoption fidelity: the executor refuses a tape that disagrees with frames it has

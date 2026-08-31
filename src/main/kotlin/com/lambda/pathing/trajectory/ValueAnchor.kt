@@ -29,6 +29,15 @@ internal class ValueAnchor(
      */
     var via: com.lambda.pathing.core.MovementId? = null
 
+    /**
+     * The decision this anchor's inputs came from, and the guide chain it was built
+     * against. Together they re-run the segment from any entry state; see [PlanSegment].
+     * Null on the root and on brake tails, which are terminals rather than movements.
+     */
+    var decision: com.lambda.pathing.movement.TrajectoryDecision? = null
+
+    var points: List<com.lambda.pathing.core.HorizontalPoint> = emptyList()
+
     var actions: List<PricedDecision>? = null
 
     var actionsHazardFrame: Int? = null
