@@ -156,6 +156,10 @@ object PlanDump {
     private fun SimpleMoveOptions.dump(): String = listOf(
         "options", allowDiagonal, allowStepUp, maxWalkOffDepth, allowJumpCandidates,
         maxJumpSpan, maxJumpDrop, allowOffAxisJumps,
+        // Appended after the fact; readers tolerate their absence in old dumps. A
+        // dump that silently drops an option replays a DIFFERENT planner: the slime
+        // course's failure dumps re-planned bounce-less and hid the real bug.
+        allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
     ).joinToString(" ")
 
     private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -166,6 +170,10 @@ object PlanDump {
         maxJumpSpan = parts[5].toInt(),
         maxJumpDrop = parts[6].toInt(),
         allowOffAxisJumps = parts[7].toBoolean(),
+        allowClimbing = parts.getOrNull(8)?.toBoolean() ?: false,
+        allowSlimeBounces = parts.getOrNull(9)?.toBoolean() ?: false,
+        maxBounceDrop = parts.getOrNull(10)?.toInt() ?: 8,
+        maxDropSpan = parts.getOrNull(11)?.toInt() ?: 2,
     )
 
     private fun MotionConstraints.dump(): String = listOf(

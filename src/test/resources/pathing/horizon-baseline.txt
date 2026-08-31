@@ -5,26 +5,26 @@
 # These numbers are a record of current behaviour, not a statement that it is good.
 # Re-record with -Prebaseline=true when a change is meant to move them.
 #
-bedrock-00             arrived  reach=17/18   frames=187  excess=-6%  collisions=0   jumps=11  pubs=16  adopt=15  refuse=1   firstPub=5    maxCommit=59  turn=511  stalled=5
-bedrock-01             arrived  reach=15/15   frames=178  excess=-10% collisions=1   jumps=13  pubs=13  adopt=12  refuse=1   firstPub=5    maxCommit=64  turn=285  stalled=0
-bedrock-02             arrived  reach=22/22   frames=242  excess=-8%  collisions=0   jumps=18  pubs=21  adopt=19  refuse=2   firstPub=5    maxCommit=78  turn=385  stalled=0
-bedrock-03             arrived  reach=20/20   frames=214  excess=-11% collisions=0   jumps=15  pubs=19  adopt=19  refuse=0   firstPub=5    maxCommit=61  turn=426  stalled=0
-bedrock-04             arrived  reach=16/17   frames=209  excess=-5%  collisions=0   jumps=15  pubs=12  adopt=11  refuse=1   firstPub=5    maxCommit=63  turn=355  stalled=0
-bedrock-05             arrived  reach=14/14   frames=143  excess=-12% collisions=3   jumps=10  pubs=10  adopt=10  refuse=0   firstPub=5    maxCommit=46  turn=194  stalled=0
+bedrock-00             arrived  reach=17/18   frames=190  excess=-4%  collisions=0   jumps=11  pubs=12  adopt=12  refuse=0   firstPub=5    maxCommit=59  turn=457  stalled=5
+bedrock-01             arrived  reach=15/15   frames=178  excess=-10% collisions=1   jumps=13  pubs=15  adopt=14  refuse=1   firstPub=5    maxCommit=64  turn=285  stalled=0
+bedrock-02             arrived  reach=22/22   frames=248  excess=-6%  collisions=0   jumps=19  pubs=12  adopt=12  refuse=0   firstPub=5    maxCommit=67  turn=352  stalled=0
+bedrock-03             arrived  reach=20/20   frames=221  excess=-8%  collisions=0   jumps=15  pubs=14  adopt=13  refuse=0   firstPub=5    maxCommit=61  turn=549  stalled=0
+bedrock-04             arrived  reach=16/17   frames=203  excess=-7%  collisions=0   jumps=15  pubs=9   adopt=8   refuse=1   firstPub=5    maxCommit=63  turn=468  stalled=0
+bedrock-05             arrived  reach=14/14   frames=143  excess=-12% collisions=3   jumps=10  pubs=9   adopt=9   refuse=0   firstPub=5    maxCommit=46  turn=194  stalled=0
 bedrock-06             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
-bedrock-07             arrived  reach=19/19   frames=196  excess=-12% collisions=0   jumps=14  pubs=5   adopt=4   refuse=1   firstPub=5    maxCommit=64  turn=293  stalled=0
-bedrock-08             arrived  reach=33/33   frames=371  excess=-5%  collisions=0   jumps=26  pubs=35  adopt=34  refuse=1   firstPub=5    maxCommit=66  turn=615  stalled=0
+bedrock-07             arrived  reach=19/19   frames=197  excess=-11% collisions=0   jumps=14  pubs=6   adopt=6   refuse=0   firstPub=5    maxCommit=64  turn=324  stalled=0
+bedrock-08             arrived  reach=33/33   frames=360  excess=-7%  collisions=0   jumps=27  pubs=24  adopt=23  refuse=1   firstPub=5    maxCommit=66  turn=610  stalled=0
 bedrock-09             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
-bedrock-10             arrived  reach=23/24   frames=252  excess=-6%  collisions=1   jumps=19  pubs=20  adopt=20  refuse=0   firstPub=5    maxCommit=63  turn=493  stalled=0
+bedrock-10             arrived  reach=23/24   frames=254  excess=-5%  collisions=1   jumps=18  pubs=13  adopt=12  refuse=1   firstPub=5    maxCommit=63  turn=504  stalled=0
 bedrock-11             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
-bedrock-traverse       arrived  reach=37/37   frames=418  excess=-3%  collisions=0   jumps=29  pubs=40  adopt=39  refuse=1   firstPub=5    maxCommit=66  turn=1172 stalled=0
+bedrock-traverse       arrived  reach=36/37   frames=414  excess=-4%  collisions=0   jumps=30  pubs=30  adopt=29  refuse=1   firstPub=5    maxCommit=66  turn=987  stalled=0
 flat-straight          arrived  reach=0/5     frames=52   excess=-23% collisions=0   jumps=2   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 flat-diagonal          arrived  reach=0/4     frames=50   excess=-23% collisions=0   jumps=3   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 flat-shallow           arrived  reach=0/5     frames=53   excess=-22% collisions=0   jumps=3   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=49   stalled=0
 parkour-chain          arrived  reach=2/2     frames=34   excess=-19% collisions=0   jumps=2   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=253  stalled=0
 parkour-chain-offaxis  arrived  reach=2/2     frames=29   excess=-30% collisions=0   jumps=2   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=117  stalled=0
-parkour-course-1       arrived  reach=22/23   frames=199  excess=-25% collisions=2   jumps=14  pubs=10  adopt=10  refuse=0   firstPub=5    maxCommit=60  turn=347  stalled=0
+parkour-course-1       arrived  reach=22/23   frames=199  excess=-25% collisions=2   jumps=14  pubs=9   adopt=9   refuse=0   firstPub=5    maxCommit=60  turn=347  stalled=0
 parkour-course-2       arrived  reach=22/23   frames=201  excess=-29% collisions=0   jumps=13  pubs=14  adopt=14  refuse=0   firstPub=5    maxCommit=72  turn=291  stalled=0
-parkour-course-3       arrived  reach=21/22   frames=199  excess=-27% collisions=0   jumps=15  pubs=13  adopt=13  refuse=0   firstPub=5    maxCommit=68  turn=292  stalled=0
-parkour-course-4       arrived  reach=22/23   frames=213  excess=-25% collisions=0   jumps=13  pubs=17  adopt=16  refuse=1   firstPub=5    maxCommit=71  turn=254  stalled=0
+parkour-course-3       arrived  reach=21/22   frames=199  excess=-27% collisions=0   jumps=15  pubs=7   adopt=7   refuse=0   firstPub=5    maxCommit=68  turn=292  stalled=0
+parkour-course-4       arrived  reach=22/23   frames=222  excess=-22% collisions=0   jumps=14  pubs=6   adopt=4   refuse=1   firstPub=5    maxCommit=81  turn=263  stalled=0
 staircase-over-both    arrived  reach=0/8     frames=87   excess=-16% collisions=1   jumps=4   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0

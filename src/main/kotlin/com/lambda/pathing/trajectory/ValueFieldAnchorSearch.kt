@@ -971,9 +971,16 @@ object ValueFieldAnchorSearch {
 
             best?.let { solution ->
 
+                // Each commit must deepen the tape or the loop cannot converge: a
+                // publication protocol bug that lets two tapes alternate would spin
+                // here forever otherwise (the vine hang ran exactly this loop).
+                var committed = horizon.safeAnchor?.elapsed ?: -1
                 while (!readyToFinish(solution) &&
                     horizon.commitFromCandidates(urgent = true, along = solution.anchor)
                 ) {
+                    val deepened = horizon.safeAnchor?.elapsed ?: -1
+                    if (deepened <= committed) break
+                    committed = deepened
                 }
                 return finish(solution)
             }

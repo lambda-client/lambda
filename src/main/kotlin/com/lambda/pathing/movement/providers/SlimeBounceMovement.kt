@@ -8,6 +8,7 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.launch.momentumSpeed
 import com.lambda.pathing.movement.*
+import kotlin.math.abs
 import kotlin.math.hypot
 
 object SlimeBounceMovement : Movement {
@@ -20,7 +21,10 @@ object SlimeBounceMovement : Movement {
 
         for (drop in MIN_DROP..options.maxBounceDrop) {
 
-            for (rise in -(drop - MIN_RISE_BELOW_LIP)..-MIN_RISE_BELOW_LIP) {
+            // Physics gates the rise, not the template: the window is null wherever
+            // no launch style can deliver the landing. Jump launches reach a block
+            // below the lip; walking off never lands closer than two below it.
+            for (rise in -(drop - 1)..MAX_RISE) {
                 val window = reachWindow(profile, drop, rise) ?: continue
 
                 for ((dx, dz) in WalkMovement.CARDINALS + WalkMovement.DIAGONALS) {
@@ -40,14 +44,34 @@ object SlimeBounceMovement : Movement {
         drop: Int,
         rise: Int,
     ): Pair<Double, Double>? {
-        val standing = profile.bounce(0.0, drop, rise, holdForward = true, sprint = true) ?: return null
-        val unit = profile.bounce(1.0, drop, rise, holdForward = true, sprint = true) ?: return null
-        val slope = unit.distance - standing.distance
-        if (slope <= 0.0) return null
-
+        val depth = drop.toDouble()
+        val height = rise.toDouble()
         val offset = BounceSolver.LAUNCH_OFFSET
-        return standing.distance + offset to
-            standing.distance + offset + slope * profile.momentumSpeed(sprint = true)
+
+        // The solver tries every launch style, so the offer window must span them
+        // all: each of the jump and walk-off lines contributes its own floor (the
+        // GENTLEST launch -- standing, forward released; the sprint-hold floor once
+        // used here silently dropped every softer bounce, including the classic
+        // parkour rebound) and its own ceiling (standing sprint-hold plus a full
+        // head of momentum). A rise only a jump can deliver simply has no walk-off
+        // line to contribute.
+        var floor = Double.POSITIVE_INFINITY
+        var ceiling = Double.NEGATIVE_INFINITY
+        for (jump in listOf(true, false)) {
+            val standing =
+                profile.bounce(0.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
+            val unit =
+                profile.bounce(1.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
+            val slope = unit.distance - standing.distance
+            if (slope <= 0.0) continue
+            val gentle = profile.bounce(0.0, depth, height, holdForward = false, sprint = false, jump = jump)
+            floor = minOf(floor, (gentle ?: standing).distance + offset)
+            ceiling = maxOf(
+                ceiling,
+                standing.distance + offset + slope * profile.momentumSpeed(sprint = true),
+            )
+        }
+        return if (floor <= ceiling) floor to ceiling else null
     }
 
     private fun spec(
@@ -83,7 +107,7 @@ object SlimeBounceMovement : Movement {
 
     override fun descentAllowance(decision: TrajectoryDecision): Double {
         val bounce = decision as? TrajectoryDecision.Bounce ?: return 0.0
-        return bounce.solution.drop.toDouble()
+        return bounce.solution.contactDepth
     }
 
     override fun transitionFrames(decision: TrajectoryDecision): Int {
@@ -103,10 +127,19 @@ object SlimeBounceMovement : Movement {
         )
     }
 
-    override fun completed(context: CompletionContext): Boolean =
-        context.airborne && context.observed.onGround &&
-            context.observed.velocity.y <= SETTLED_VERTICAL_SPEED &&
-            context.stance == (context.decision.step ?: context.stance)
+    override fun completed(context: CompletionContext): Boolean {
+        if (!context.airborne || !context.observed.onGround) return false
+        if (context.observed.velocity.y > SETTLED_VERTICAL_SPEED) return false
+        val step = context.decision.step ?: return true
+        // The landing window is a full block wide by design and the launch carries a
+        // few tenths of execution spread, so the body may settle the cell past or
+        // beside the templated landing. Any settle at the landing HEIGHT within one
+        // cell is this bounce arriving; an undershoot into the pit settles lower and
+        // still fails.
+        return context.stance.y == step.y &&
+            abs(context.stance.x - step.x) <= 1 &&
+            abs(context.stance.z - step.z) <= 1
+    }
 
     private const val TRANSITION_MARGIN_FRAMES = 20
 
@@ -116,5 +149,6 @@ object SlimeBounceMovement : Movement {
 
     private const val MIN_DROP = 3
 
-    private const val MIN_RISE_BELOW_LIP = 2
+    /** Landing level with the lip needs more rebound than any drop's reflection keeps. */
+    private const val MAX_RISE = 0
 }

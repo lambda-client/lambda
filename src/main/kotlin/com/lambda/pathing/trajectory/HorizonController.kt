@@ -374,6 +374,17 @@ internal class HorizonController(
             }
             return true
         }
+        // The mirror image: a candidate the tip descends from is not a swap, it is a
+        // rollback -- it hands the executor a strict prefix of the tape it already
+        // has. The arrival gate below cannot refuse it on its own, because the walked
+        // prefix always costs more frames than the guide ever claimed for it, so the
+        // ancestor reads as "closer to arrival" than the tip it produced. Measured as
+        // a cursor-less session (the vine fixture) publishing tip and ancestor in
+        // alternation forever.
+        if (tip.descendsFrom(candidate)) {
+            lastRefusalClause = "ancestor-rollback"
+            return false
+        }
         // A swap that leaves the body with less than a commit chunk of certified tape
         // is a death trap regardless of its arrival estimate: the cursor reaches the
         // shortened tip, the divergence margin then refuses every extension -- they all

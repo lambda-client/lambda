@@ -58,7 +58,9 @@ internal object MomentumRules {
     fun departsStoppedOnly(movement: MovementId): Boolean = movement == MovementId.CLIMB
 
     fun arrivesStopped(movement: MovementId): Boolean =
-        movement == MovementId.CLIMB || movement == MovementId.STEP_UP
+        movement == MovementId.CLIMB || movement == MovementId.STEP_UP ||
+            // Grabbing a ladder kills the flight's momentum: the caught body hangs.
+            movement == MovementId.LADDER_CATCH
 
     private fun movingCost(ticks: Double): Double =
         (ticks - CHAIN_TAX_TICKS).coerceAtLeast(ticks * 0.5)
