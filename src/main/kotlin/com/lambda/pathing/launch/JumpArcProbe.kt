@@ -118,6 +118,11 @@ object JumpArcProbe {
         }
     }
 
+    /** Whether a failed sweep was stopped by a PARTIAL shape -- the dodgeable class. */
+    internal class SweepFailure {
+        var partial = false
+    }
+
     private fun solve(
         view: CoarseVoxelView,
         from: Stance,
@@ -135,15 +140,34 @@ object JumpArcProbe {
         val planar = launchHeight == from.y.toDouble()
 
         for (solution in solutions(from, to, dx, dz, profile, modes, riseHeight)) {
+            val failure = SweepFailure()
             val clearance = if (planar) {
-                sweepByPlan(view, from, dx, dz, solution, reads, cache)
+                sweepByPlan(view, from, dx, dz, solution, reads, cache, failure)
             } else {
                 sweepClearance(
                     view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads,
-                    cache.value,
+                    cache.value, failure = failure,
                 )
-            } ?: continue
-            return solution.withClearance(clearance)
+            }
+            if (clearance != null) return solution.withClearance(clearance)
+
+            // The centre line is blocked by a PARTIAL shape -- a pane, a fence post:
+            // the dodgeable class. The solver already knows the lateral band of
+            // parallel lines that still take off and land on the pads
+            // ([LaunchSolution.lateralSlack]); sweep those before giving up. A
+            // full-cube wall never triggers this (half a block of sideways shift does
+            // not clear it), which keeps blocked terrain exactly as cheap as before.
+            if (!failure.partial) continue
+            val slack = solution.lateralSlack
+            if (slack < MIN_DODGE_SLACK) continue
+            for (fraction in DODGE_FRACTIONS) {
+                val offset = fraction * slack
+                val dodged = sweepClearance(
+                    view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads,
+                    cache.value, lateralOffset = offset, halfWidth = DODGE_HALF_WIDTH,
+                ) ?: continue
+                return solution.copy(lateralOffset = offset).withClearance(dodged)
+            }
         }
         return null
     }
@@ -156,6 +180,7 @@ object JumpArcProbe {
         solution: LaunchSolution,
         reads: LongOpenHashSet?,
         cache: Lazy<SweepCellCache>,
+        failure: SweepFailure? = null,
     ): Double? {
         if (planCache.size > PLAN_CACHE_LIMIT) planCache.clear()
         val plan = planCache.computeIfAbsent(solution.arc) {
@@ -183,7 +208,7 @@ object JumpArcProbe {
                 CollisionClass.PARTIAL ->
                     return sweepClearance(
                         view, from, dx, dz, solution.arc, solution.launchOffset,
-                        from.y.toDouble(), reads, cache.value,
+                        from.y.toDouble(), reads, cache.value, failure = failure,
                     )
             }
         }
@@ -259,25 +284,38 @@ object JumpArcProbe {
         launchHeight: Double,
         reads: LongOpenHashSet?,
         cache: SweepCellCache,
+
+        /** Sideways shift of the whole flight line; see [LaunchSolution.lateralOffset]. */
+        lateralOffset: Double = 0.0,
+        failure: SweepFailure? = null,
+
+        /**
+         * Swept body half-width. The centre line uses the forgiving core (the rollout
+         * certifies reality); a DODGE line is chosen because the corridor is known
+         * tight, so it sweeps the full body instead -- a dodge that only clears the
+         * core clips the real shoulders and fails certification every time.
+         */
+        halfWidth: Double = CORE_HALF_WIDTH,
     ): Double? {
         val length = hypot(dx.toDouble(), dz.toDouble())
         if (length <= 0.0) return null
         val unitX = dx / length
         val unitZ = dz / length
-        val launchX = from.x + 0.5 + unitX * launchOffset
-        val launchZ = from.z + 0.5 + unitZ * launchOffset
+        val launchX = from.x + 0.5 + unitX * launchOffset - unitZ * lateralOffset
+        val launchZ = from.z + 0.5 + unitZ * launchOffset + unitX * lateralOffset
 
         val heights = arc.heights
         val distances = arc.distances
 
         var clearance = CLEARANCE_CAP
-        var previous = coreBox(launchX, launchHeight, launchZ)
+        var previous = coreBox(launchX, launchHeight, launchZ, halfWidth)
         for (index in heights.indices) {
             val along = distances[index]
             val box = coreBox(
                 launchX + unitX * along,
                 launchHeight + heights[index],
                 launchZ + unitZ * along,
+                halfWidth,
             )
             val swept = previous.union(box)
             previous = box
@@ -319,7 +357,10 @@ object JumpArcProbe {
                                     ?: return null
                                 for (bounds in shape.boundingBoxes) {
                                     val obstacle = bounds.offset(x.toDouble(), y.toDouble(), z.toDouble())
-                                    if (obstacle.intersects(swept)) return null
+                                    if (obstacle.intersects(swept)) {
+                                        failure?.partial = true
+                                        return null
+                                    }
 
                                     if (obstacle.maxY <= swept.minY + FLOOR_CONTACT_EPSILON) continue
                                     clearance = minOf(clearance, gap(swept, obstacle))
@@ -333,9 +374,9 @@ object JumpArcProbe {
         return clearance
     }
 
-    internal fun coreBox(x: Double, y: Double, z: Double) = Box(
-        x - CORE_HALF_WIDTH, y, z - CORE_HALF_WIDTH,
-        x + CORE_HALF_WIDTH, y + BODY_HEIGHT, z + CORE_HALF_WIDTH,
+    internal fun coreBox(x: Double, y: Double, z: Double, halfWidth: Double = CORE_HALF_WIDTH) = Box(
+        x - halfWidth, y, z - halfWidth,
+        x + halfWidth, y + BODY_HEIGHT, z + halfWidth,
     )
 
     internal fun gap(a: Box, b: Box): Double {
@@ -356,6 +397,15 @@ object JumpArcProbe {
     private const val BODY_HEIGHT = 1.8
     private const val CLEARANCE_CAP = 0.5
     private const val FLOOR_CONTACT_EPSILON = 1.0E-7
+
+    /** Below this much lateral slack there is no room to dodge anything. */
+    private const val MIN_DODGE_SLACK = 0.05
+
+    /** Dodge lines sweep the real body, not the forgiving core; see [sweepClearance]. */
+    private const val DODGE_HALF_WIDTH = 0.3
+
+    /** Fractions of the lateral slack tried when the centre line hits a PARTIAL shape. */
+    private val DODGE_FRACTIONS = doubleArrayOf(0.5, -0.5, 1.0, -1.0)
 
     private const val SOLUTION_CACHE_LIMIT = 100_000
     private const val PLAN_CACHE_LIMIT = 100_000
