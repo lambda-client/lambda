@@ -64,13 +64,17 @@ object JumpMovement : Movement {
         if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
         if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return false
 
-        val airGap = kotlin.math.hypot(
-            (abs(dx) - 1).coerceAtLeast(0).toDouble(),
-            (abs(dz) - 1).coerceAtLeast(0).toDouble(),
-        )
-        val ceiling = if (rise > 0) RISING_STANDING_AIR_GAP_BLOCKS else STANDING_AIR_GAP_BLOCKS
-        return airGap <= ceiling + REACH_EPSILON
+        // Statically the FLAT ceiling even for rising templates: whether a "rise 1"
+        // stance delta is a true block of height or a fifth of one (a bottom
+        // trapdoor's landing) only the surfaces can say, and the honest rising
+        // ceiling is applied dynamically in the edge against the REAL rise.
+        return airGap(dx, dz) <= STANDING_AIR_GAP_BLOCKS + REACH_EPSILON
     }
+
+    private fun airGap(dx: Int, dz: Int): Double = kotlin.math.hypot(
+        (abs(dx) - 1).coerceAtLeast(0).toDouble(),
+        (abs(dz) - 1).coerceAtLeast(0).toDouble(),
+    )
 
     private const val REACH_EPSILON = 1e-9
 
@@ -95,13 +99,31 @@ object JumpMovement : Movement {
         return copy(x = x - unitZ * offset, z = z + unitX * offset)
     }
 
-    private fun spec(dx: Int, dz: Int, rise: Int, cost: Double) = TemplateSpec(
-        dx = dx, dy = rise, dz = dz,
-        movement = id,
-        cost = cost,
-        conditions = WalkMovement.stanceConditions(dx, rise, dz),
-        arc = MotionTemplate.ArcSpec(dx, dz, rise, MODES),
-    )
+    private fun spec(dx: Int, dz: Int, rise: Int, cost: Double): TemplateSpec {
+        val gap = airGap(dx, dz)
+        return TemplateSpec(
+            dx = dx, dy = rise, dz = dz,
+            movement = id,
+            cost = cost,
+            conditions = WalkMovement.stanceConditions(dx, rise, dz),
+            arc = MotionTemplate.ArcSpec(
+                dx, dz, rise, MODES,
+                // A genuinely rising jump keeps its measured shorter reach; a short
+                // real ascent flies at the flat ceiling. Judged against the
+                // surface-corrected rise: field-verified that 0.19 (a bottom
+                // trapdoor) AND 0.5 (slab lip to full block) both certify a
+                // three-gap, while a true block of rise caps at the rising reach --
+                // so the boundary sits between the measured clusters, not at zero.
+                riseAdmission = { realRise ->
+                    realRise <= NEAR_FLAT_RISE ||
+                        gap <= RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON
+                },
+            ),
+        )
+    }
+
+    /** Real ascents at or below this fly like flat jumps; above it, the rising reach applies. */
+    private const val NEAR_FLAT_RISE = 0.75
 
     override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y >= edge.from.y
 

@@ -29,6 +29,17 @@ class MotionTemplate internal constructor(
         val modes: List<LaunchMode> = LaunchMode.entries,
 
         val bounceDrop: Int? = null,
+
+        /**
+         * Dynamic admission on the REAL rise (stance rise corrected by launch and
+         * landing surface offsets), judged where the surfaces are known. The static
+         * template gate cannot see partial blocks: a "rise 1" landing on a bottom
+         * trapdoor is a 0.19 ascent that flies like a flat jump -- measured in the
+         * field as a 3-gap trapdoor step no template would offer -- while the same
+         * stance delta onto a full block is a true block of height with a shorter
+         * measured reach. Null admits everything.
+         */
+        val riseAdmission: ((Double) -> Boolean)? = null,
     )
 
     init {
@@ -90,9 +101,11 @@ class MotionTemplate internal constructor(
             spec.bounceDrop?.let { drop ->
                 return bounceEdge(view, origin, spec, drop, launchOffset)
             }
+            val riseHeight = spec.rise + landingOffset - launchOffset
+            spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
             JumpArcProbe.probe(
                 view, origin, spec.dx, spec.dz, spec.rise, modes = spec.modes,
-                riseHeight = spec.rise + landingOffset - launchOffset,
+                riseHeight = riseHeight,
                 launchHeight = origin.y + launchOffset,
             ) ?: return null
         }

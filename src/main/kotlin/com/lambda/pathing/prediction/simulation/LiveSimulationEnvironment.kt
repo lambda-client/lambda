@@ -102,9 +102,17 @@ class LiveSimulationEnvironment(
 
     /**
      * @see net.minecraft.block.SlimeBlock.bounce
+     * @see net.minecraft.block.BedBlock.bounceEntity
      */
-    override fun bounceFactor(pos: BlockPos): Double =
-        if (world.getBlockState(pos).isOf(Blocks.SLIME_BLOCK)) SLIME_BOUNCE_FACTOR else 0.0
+    override fun bounceFactor(pos: BlockPos): Double {
+        val state = world.getBlockState(pos)
+        return when {
+            state.isOf(Blocks.SLIME_BLOCK) -> SLIME_BOUNCE_FACTOR
+            state.block is net.minecraft.block.BedBlock ->
+                com.lambda.pathing.prediction.SnapshotSimulationEnvironment.BED_BOUNCE_FACTOR
+            else -> 0.0
+        }
+    }
 
     override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
         world.getBlockState(pos).isOf(Blocks.SLIME_BLOCK)
