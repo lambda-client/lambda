@@ -173,6 +173,48 @@ class JumpArcProbeTest {
     }
 
     /** Minimal shape-carrying view: air everywhere except the placed shapes. */
+    /**
+     * A pane arm protruding halfway into the corridor: the centre line is blocked,
+     * but the solver's lateral slack holds a parallel line that sweeps clear -- the
+     * jump must be offered with that line's [LaunchSolution.lateralOffset] recorded,
+     * so the air steering can fly around the pane.
+     */
+    @Test
+    fun `a partial shape half in the corridor is dodged with a lateral offset`() {
+        val world = ShapeWorld()
+        world.fullCube(0, 0, 0)
+        world.fullCube(4, 0, 0)
+        // Reaches z=0.35: blocks the centre-line core (z 0.3..0.7) but leaves the
+        // full-width body (z 0.4..1.0 at the +0.2 dodge) clear with margin.
+        val paneArm = VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 1.0, 0.35)
+        world.shape(2, 2, 0, paneArm)
+        world.shape(2, 3, 0, paneArm)
+
+        val result = assertNotNull(
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, rise = 0),
+            "a pane half in the corridor must be dodgeable within the lateral slack",
+        )
+        assertTrue(
+            result.solution.lateralOffset > 0.0,
+            "the dodge must shift away from the pane, got ${result.solution.lateralOffset}",
+        )
+    }
+
+    @Test
+    fun `a partial shape spanning the whole corridor still blocks the jump`() {
+        val world = ShapeWorld()
+        world.fullCube(0, 0, 0)
+        world.fullCube(4, 0, 0)
+        val fullPane = VoxelShapes.cuboid(0.45, 0.0, 0.0, 0.55, 1.0, 1.0)
+        world.shape(2, 2, 0, fullPane)
+        world.shape(2, 3, 0, fullPane)
+
+        assertNull(
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, rise = 0),
+            "no lateral offset clears a pane crossing the full corridor width",
+        )
+    }
+
     private class ShapeWorld(private val unknownIsNull: Boolean = false) : CoarseVoxelView {
         private val shapes = HashMap<VoxelPos, VoxelShape>()
 

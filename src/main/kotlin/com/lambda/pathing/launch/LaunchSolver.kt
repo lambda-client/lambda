@@ -27,6 +27,16 @@ data class LaunchSolution(
     val clearance: Double = 0.0,
 
     /**
+     * Blocks of sideways shift, perpendicular to the gap axis (perp = (-unitZ, unitX)),
+     * applied to the whole flight line. Zero for every solver-produced solution; set by
+     * the arc probe when the centre line is blocked by a PARTIAL shape (a pane, a fence
+     * post) and a parallel line inside [lateralSlack] sweeps clear. The air steering
+     * flies the shifted aim closed-loop, and the rollout certifies whether the body can
+     * actually curve onto that line.
+     */
+    val lateralOffset: Double = 0.0,
+
+    /**
      * Air ticks to keep forward pressed before releasing it.
      *
      * The control that separates where the arc lands from how fast it is going when it
@@ -64,7 +74,7 @@ data class LaunchSolution(
         (other is LaunchSolution && mode == other.mode &&
             launchOffset == other.launchOffset && speed == other.speed &&
             aimDistance == other.aimDistance && airTicks == other.airTicks &&
-            holdTicks == other.holdTicks)
+            holdTicks == other.holdTicks && lateralOffset == other.lateralOffset)
 
     override fun hashCode(): Int {
         var result = mode.hashCode()
@@ -73,6 +83,7 @@ data class LaunchSolution(
         result = 31 * result + aimDistance.hashCode()
         result = 31 * result + airTicks
         result = 31 * result + holdTicks
+        result = 31 * result + lateralOffset.hashCode()
         return result
     }
 

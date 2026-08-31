@@ -82,6 +82,19 @@ object JumpMovement : Movement {
 
     private fun hypot(dx: Int, dz: Int): Double = kotlin.math.hypot(dx.toDouble(), dz.toDouble())
 
+    /** This point shifted sideways (perp of the [from]->here axis) by [offset] blocks. */
+    private fun com.lambda.pathing.core.HorizontalPoint.laterallyShifted(
+        from: com.lambda.pathing.core.HorizontalPoint,
+        offset: Double,
+    ): com.lambda.pathing.core.HorizontalPoint {
+        if (offset == 0.0) return this
+        val length = kotlin.math.hypot(x - from.x, z - from.z)
+        if (length <= 1e-9) return this
+        val unitX = (x - from.x) / length
+        val unitZ = (z - from.z) / length
+        return copy(x = x - unitZ * offset, z = z + unitX * offset)
+    }
+
     private fun spec(dx: Int, dz: Int, rise: Int, cost: Double) = TemplateSpec(
         dx = dx, dy = rise, dz = dz,
         movement = id,
@@ -424,7 +437,15 @@ object JumpMovement : Movement {
             preferredEntrySpeed = { context.body.speed },
             exitSpeedWindow = onward,
         )
-        return listOfNotNull(ideal, asIs)
+        // A lateral offset on the certified coarse edge is geometry, not entry-speed
+        // policy: the centre line is blocked by a partial shape for EVERY solution of
+        // this edge, so re-solved solutions inherit the dodge the probe found. The
+        // rollout still certifies the shifted flight.
+        val dodge = context.edge.launch?.lateralOffset ?: 0.0
+        return listOfNotNull(ideal, asIs).map { solution ->
+            if (dodge != 0.0 && solution.lateralOffset == 0.0) solution.copy(lateralOffset = dodge)
+            else solution
+        }
     }
 
     /**
@@ -611,6 +632,7 @@ object JumpMovement : Movement {
         if (decision is TrajectoryDecision.RunUpLaunch) {
             val from = context.body.stance.center()
             val to = (decision.step ?: context.body.stance).center()
+                .laterallyShifted(from, decision.solution.lateralOffset)
             return RunUpLaunchProgram(
                 takeoff = from,
                 aim = to,
@@ -621,8 +643,22 @@ object JumpMovement : Movement {
             )
         }
         val solution = (decision as? TrajectoryDecision.Launch)?.solution
+        // A dodged flight line must be RUN, not just aimed at: the air steering's
+        // authority develops late in the arc, so a mid-corridor pane is reached before
+        // an aim-only correction has diverged from the centre line. Shifting the
+        // landing node makes the ground approach and the launch bearing follow the
+        // swept-clear offset line from the start.
+        val step = (decision as? TrajectoryDecision.Launch)?.step
+        val nodes = if (solution != null && solution.lateralOffset != 0.0 && step != null) {
+            val from = context.body.stance.center()
+            context.nodes.map { node ->
+                if (node.x == step.x + 0.5 && node.z == step.z + 0.5) {
+                    node.laterallyShifted(from, solution.lateralOffset)
+                } else node
+            }
+        } else context.nodes
         return SegmentFollowerProgram(
-            nodes = context.nodes,
+            nodes = nodes,
             sprint = context.decision.sprint,
             lookAheadNodes = LOOK_AHEAD_NODES,
             launch = context.launch,
@@ -652,9 +688,11 @@ object JumpMovement : Movement {
             // solution and delay roll is solved from a cell-centre origin, so landing
             // there makes the next edge's model true -- and it is the point of maximum
             // margin against both lips. The solver's aim optimises this landing alone;
-            // the centre serves the chain.
-            aimX = to.x + 0.5,
-            aimZ = to.z + 0.5,
+            // the centre serves the chain. A lateral offset (a dodged pane in the
+            // corridor) shifts the aim off-centre by exactly the swept-clear line's
+            // shift -- the chain-model cost is the price of making the jump at all.
+            aimX = to.x + 0.5 - unitZ * solution.lateralOffset,
+            aimZ = to.z + 0.5 + unitX * solution.lateralOffset,
             unitX = unitX,
             unitZ = unitZ,
             airTicks = solution.airTicks,
