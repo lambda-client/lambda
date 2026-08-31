@@ -54,9 +54,11 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
     @Group(MOVES_GROUP)
     override val maxJumpSpan by c.setting(
-        "Max Jump Span", 4, 2..5, 1,
+        "Max Jump Span", 5, 2..5, 1,
         "Per-axis cap on candidate jumps. Reach itself is bounded by what a standing " +
-            "start provably clears; each candidate still needs a simulated launch.",
+            "start provably clears -- descending jumps reach further, up to a four-cell " +
+            "air gap with half a block of real drop; each candidate still needs a " +
+            "simulated launch.",
         unit = " blocks",
     ) { allowJumpCandidates }
 
@@ -75,6 +77,15 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         "Offer jumps that land off the eight compass directions -- three across and one to " +
             "the side, which has no cardinal or diagonal template. Roughly doubles the " +
             "graph's fan-out on open ground.",
+    ) { allowJumpCandidates }
+
+    @Group(MOVES_GROUP)
+    override val allowDeepDropJumps by c.setting(
+        "Deep Drop Jumps", false,
+        "Offer descending jumps beyond the flat standing reach: a four-cell air gap " +
+            "with half a block of real drop, wide diagonals with a full block " +
+            "(rollout-measured). Off by default: the wider fan costs search speed on " +
+            "ordinary terrain; turn it on for parkour with deep drop-gaps.",
     ) { allowJumpCandidates }
 
     @Group(MOVES_GROUP)

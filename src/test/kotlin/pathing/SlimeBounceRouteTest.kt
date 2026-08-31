@@ -264,6 +264,70 @@ class SlimeBounceRouteTest {
         certifyArrival(environment, goal = Stance(0, 6, 11))
     }
 
+    /**
+     * The field's fence-launched bounce: standing on a FENCE (feet half a block
+     * proud of the stance grid, a quarter-block post to creep on), three air cells
+     * to a slime row whose top is 2.5 below the feet, one more gap, landing two
+     * above the slime. Stance ints read drop 3 / rise -1 / spans 4+2; the real
+     * fall is 2.5 and the real landing 0.5 below the feet. Easy by hand from
+     * standing -- the launch surface offset and the post's tiny creep room must
+     * both flow through the standing-start solve.
+     */
+    @Test
+    fun `a fence launched bounce is certified end to end`() {
+        val fence = SnapshotBlockPhysics.of(
+            VoxelShapes.cuboid(0.375, 0.0, 0.375, 0.625, 1.5, 0.625),
+            fenceLike = true,
+        )
+        val blocks = buildMap {
+            put(BlockPos(0, 8, 0), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(0, 9, 0), fence)
+            // Slime row at z=4: top 8.0, contact stance y=8, three air cells before it.
+            for (x in -1..1) put(BlockPos(x, 7, 4), slime)
+            // Landing at stance y=10 (top 10.0): two above the slime, half below the feet.
+            for (x in -1..1) for (z in 6..10) put(BlockPos(x, 9, z), SnapshotBlockPhysics.FULL_CUBE)
+        }
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks,
+        )
+        certifyArrival(environment, goal = Stance(0, 10, 8), start = Stance(0, 11, 0))
+    }
+
+    /**
+     * The field's exact fence-bounce shape (dump plan-1788192764076, translated):
+     * fence launch (feet half a block proud), a CARPETED slime pad level with the
+     * pit floor, and a two-high wall right behind it. The carpet lifts the contact
+     * stance a block, so the whole jump reads STANCE DROP 2 (real fall 2.44) --
+     * below the old MIN_DROP=3, structurally unofferable no matter what the
+     * physics said. The route must bounce and the walk must certify.
+     */
+    @Test
+    fun `a stance drop two carpeted bounce off a fence is certified end to end`() {
+        val fence = SnapshotBlockPhysics.of(
+            VoxelShapes.cuboid(0.375, 0.0, 0.375, 0.625, 1.5, 0.625),
+            fenceLike = true,
+        )
+        val blocks = buildMap {
+            // Launch: block at y=7 carrying the fence at y=8 -- stance (0,10,0), feet 9.5.
+            put(BlockPos(0, 7, 0), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(0, 8, 0), fence)
+            // Pit floor at y=6 (top 7), the slime replacing one floor cell, carpet on it:
+            // contact stance (0,8,4), feet 7.0625 -- stance drop 2, real fall 2.4375.
+            for (x in -1..1) for (z in 1..5) put(BlockPos(x, 6, z), SnapshotBlockPhysics.FULL_CUBE)
+            put(BlockPos(0, 6, 4), slime)
+            put(BlockPos(0, 7, 4), carpet)
+            // The wall/landing: two high off the pit floor, top 9.0 -- stance y=9, rise -1.
+            for (x in -1..1) for (z in 6..9) {
+                put(BlockPos(x, 7, z), SnapshotBlockPhysics.FULL_CUBE)
+                put(BlockPos(x, 8, z), SnapshotBlockPhysics.FULL_CUBE)
+            }
+        }
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks,
+        )
+        certifyArrival(environment, goal = Stance(0, 9, 8), start = Stance(0, 10, 0))
+    }
+
     /** The six-cell pit (drop 4, span 7): beyond every walk-off window, jump range. */
     @Test
     fun `a six cell pit is crossed by a jump launch and certified end to end`() {

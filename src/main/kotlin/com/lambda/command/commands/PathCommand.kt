@@ -9,7 +9,8 @@
 
 package com.lambda.command.commands
 
-import com.lambda.brigadier.argument.integer
+import com.lambda.Lambda.mc
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
@@ -17,48 +18,103 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.pathing.PathingManager
-import com.lambda.pathing.PathingRequest
 import com.lambda.pathing.core.Stance
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
 
 /**
- * Requests a walk from [PathingManager] and reports what it decided.
+ * The one pathing command.
  *
- * The command owns no planning or execution: it submits a [PathingRequest] and the
+ * - `path go` walks the staged goal; `path go <x> <y> <z> [<x> <y> <z> ...]`
+ *   walks the given waypoints directly, in order (each leg planned, certified,
+ *   and replayed before the next is submitted).
+ * - `path goal <x> <y> <z> [...]` stages a goal without walking; bare
+ *   `path goal` shows it, `path goal clear` forgets it.
+ * - `path cancel` (or `path c`) stops the walk and drops queued waypoints.
+ * - `path clear` additionally wipes the published path and telemetry.
+ *
+ * Coordinates accept `~` and `~n` relative to the player's stance. The command
+ * owns no planning or execution: it hands the route to [PathingManager] and the
  * manager plans, certifies, and replays it. `PathingRenderer` draws the result.
  */
 object PathCommand : LambdaCommand(
     name = "path",
-    usage = "path <x> <y> <z> | path stop | path clear",
-    description = "Walks to a position along a simulated, certified trajectory",
-    examples = listOf("path 10 100 20", "path stop"),
+    usage = "path <go|goal|cancel> -- go [<x> <y> <z> ...] | goal [<x> <y> <z> ...|clear] | cancel",
+    description = "Walks to staged or given waypoints along simulated, certified trajectories",
+    examples = listOf("path go 10 100 20", "path goal 10 64 20 40 70 -30", "path go", "path cancel"),
 ) {
     override fun CommandBuilder.create() {
-        required(integer("x")) { x ->
-            required(integer("y")) { y ->
-                required(integer("z")) { z ->
-                    execute {
-                        val goal = Stance(x().value(), y().value(), z().value())
-                        PathingRequest(AutomationConfig.DEFAULT, goal).submit()
-                        info("Pathing to (${goal.x}, ${goal.y}, ${goal.z})...")
-                    }
+        required(literal("go")) {
+            execute {
+                val pending = PathingWaypoints.pending
+                if (pending.isEmpty()) {
+                    info("No goal staged. `path goal <x> <y> <z> [...]` stages one, or `path go <x> <y> <z> [...]` walks directly.")
+                    return@execute
+                }
+                PathingManager.route(AutomationConfig.DEFAULT, pending)
+                info(PathingWaypoints.describe("Pathing", pending) + "...")
+            }
+            required(greedyString("waypoints")) { waypoints ->
+                execute {
+                    val parsed = parse(waypoints().value()) ?: return@execute
+                    PathingManager.route(AutomationConfig.DEFAULT, parsed)
+                    info(PathingWaypoints.describe("Pathing", parsed) + "...")
                 }
             }
         }
 
-        required(literal("stop")) {
+        required(literal("goal")) {
             execute {
-                PathingManager.cancel()
-                info("Pathing stopped.")
+                val pending = PathingWaypoints.pending
+                if (pending.isEmpty()) {
+                    info("No goal staged. `path goal <x> <y> <z> [...]` stages one; `path go` walks it.")
+                } else {
+                    info(PathingWaypoints.describe("Staged goal:", pending))
+                }
+            }
+            for (word in listOf("clear", "reset", "none")) {
+                required(literal(word)) {
+                    execute {
+                        PathingWaypoints.pending = emptyList()
+                        info("Goal cleared.")
+                    }
+                }
+            }
+            required(greedyString("waypoints")) { waypoints ->
+                execute {
+                    val parsed = parse(waypoints().value()) ?: return@execute
+                    PathingWaypoints.pending = parsed
+                    info(PathingWaypoints.describe("Goal staged:", parsed) + " -- `path go` walks it.")
+                }
+            }
+        }
+
+        for (word in listOf("cancel", "c", "stop")) {
+            required(literal(word)) {
+                execute {
+                    PathingManager.cancel()
+                    info("Pathing cancelled.")
+                }
             }
         }
 
         required(literal("clear")) {
             execute {
+                PathingManager.cancel()
                 PathingManager.clear()
                 info("Cleared the published path.")
             }
         }
+    }
+
+    /** Parses waypoint triples against the player's stance; reports on failure. */
+    private fun parse(raw: String): List<Stance>? {
+        val player = mc.player ?: return null
+        val origin = Stance.of(player.pos, player.isOnGround)
+        val parsed = PathingWaypoints.parse(raw, origin)
+        if (parsed == null) {
+            info("Expected coordinate triples (absolute, ~ or ~n): $usage")
+        }
+        return parsed
     }
 }
