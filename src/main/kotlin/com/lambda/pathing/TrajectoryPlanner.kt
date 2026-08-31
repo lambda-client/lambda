@@ -314,6 +314,18 @@ object TrajectoryPlanner {
                             "No coarse route {} -> {} after {} expansions: {}",
                             start, goal, coarse.processedNodes, planner.routeFailureReport(),
                         )
+                        // A refused ROUTE is as replayable a failure as a refused walk:
+                        // the wave dead-ending mid-course with the world fully captured
+                        // is exactly the class that needs the scene to debug.
+                        dumpDirectory?.let { directory ->
+                            runCatching {
+                                PlanDump.write(
+                                    directory, snapshot, start, goal, initial, profile,
+                                    moveOptions, seedConfig,
+                                    note = "no coarse route; ${planner.routeFailureReport()}",
+                                )
+                            }.onFailure { LOG.error("Could not write the no-route dump", it) }
+                        }
                         return@supplyAsync PathPlanResult.Failed(
                             PlanningFailure.NoRoute("no coarse route to the goal")
                         )

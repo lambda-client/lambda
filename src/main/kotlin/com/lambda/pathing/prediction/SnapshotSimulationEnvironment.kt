@@ -375,11 +375,15 @@ class SnapshotSimulationEnvironment internal constructor(
             val unsupported = unsupportedPhysics(this)
             val medium = mediumOf(this)
             val slime = isOf(Blocks.SLIME_BLOCK)
+            val bed = block is net.minecraft.block.BedBlock
             val coarseVoxel = if (medium == Medium.CLIMBABLE) {
                 CoarseVoxel.of(Medium.CLIMBABLE)
             } else if (unsupported != null) {
                 CoarseVoxel.UNKNOWN
             } else {
+                // Beds bounce in the SIMULATOR but stay coarse-unbouncy: the bounce
+                // vocabulary's solver flies a full reflection, and a 0.66 rebound
+                // needs the factor threaded through before beds can be bounce pads.
                 coarseVoxelOf(shape, bouncy = slime)
             }
             return SnapshotBlockPhysics(
@@ -390,7 +394,8 @@ class SnapshotSimulationEnvironment internal constructor(
                 unsupportedPhysics = unsupported,
                 coarseVoxel = coarseVoxel,
                 fenceLike = isFenceLike(),
-                bounceFactor = if (slime) 1.0 else 0.0,
+                // Vanilla BedBlock.bounceEntity reflects a living body at 0.66.
+                bounceFactor = if (slime) 1.0 else if (bed) BED_BOUNCE_FACTOR else 0.0,
                 dampensSteppingSpeed = slime,
             )
         }
@@ -416,6 +421,9 @@ class SnapshotSimulationEnvironment internal constructor(
                 blockId = Registries.BLOCK.getId(state.block).toString(),
             )
         }
+
+        /** Vanilla's exact 0.66f widened to double, as BedBlock.bounceEntity computes it. */
+        const val BED_BOUNCE_FACTOR = 0.6600000262260437
 
         private const val COLLISION_EPSILON = 1.0E-7
         private val CENTERED_PLAYER_COLUMN = VoxelShapes.cuboid(

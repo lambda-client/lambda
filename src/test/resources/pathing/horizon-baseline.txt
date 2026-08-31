@@ -10,7 +10,7 @@ bedrock-01             arrived  reach=15/15   frames=178  excess=-10% collisions
 bedrock-02             arrived  reach=22/22   frames=248  excess=-6%  collisions=0   jumps=19  pubs=12  adopt=12  refuse=0   firstPub=5    maxCommit=67  turn=352  stalled=0
 bedrock-03             arrived  reach=20/20   frames=221  excess=-8%  collisions=0   jumps=15  pubs=14  adopt=13  refuse=0   firstPub=5    maxCommit=61  turn=549  stalled=0
 bedrock-04             arrived  reach=16/17   frames=203  excess=-7%  collisions=0   jumps=15  pubs=9   adopt=8   refuse=1   firstPub=5    maxCommit=63  turn=468  stalled=0
-bedrock-05             arrived  reach=14/14   frames=143  excess=-12% collisions=3   jumps=10  pubs=9   adopt=9   refuse=0   firstPub=5    maxCommit=46  turn=194  stalled=0
+bedrock-05             arrived  reach=14/14   frames=154  excess=-5%  collisions=0   jumps=10  pubs=5   adopt=5   refuse=0   firstPub=5    maxCommit=72  turn=410  stalled=0
 bedrock-06             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 bedrock-07             arrived  reach=19/19   frames=197  excess=-11% collisions=0   jumps=14  pubs=6   adopt=6   refuse=0   firstPub=5    maxCommit=64  turn=324  stalled=0
 bedrock-08             arrived  reach=33/33   frames=360  excess=-7%  collisions=0   jumps=27  pubs=24  adopt=23  refuse=1   firstPub=5    maxCommit=66  turn=610  stalled=0

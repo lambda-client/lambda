@@ -54,6 +54,28 @@ object BounceArcProbe {
         val length = hypot(dx.toDouble(), dz.toDouble())
         if (length <= 0.0) return null
 
+        val unitX = dx / length
+        val unitZ = dz / length
+        val padY = from.y - drop - 1
+
+        // No slime under the flight ray, no bounce: everything past this line costs
+        // dozens of arc solves per launch style, and on jump-heavy terrain most
+        // geometrically matching templates have nothing bouncy beneath them -- the
+        // unfiltered probe measured around five MILLISECONDS per graph node, which
+        // starved the coarse wave inside the startup knowledge wait on a long course.
+        var anyBouncy = false
+        var along = 1.0
+        while (along < length + 0.5) {
+            if (bouncyCell(view, floor(from.x + 0.5 + unitX * along).toInt(), padY,
+                    floor(from.z + 0.5 + unitZ * along).toInt(), reads)
+            ) {
+                anyBouncy = true
+                break
+            }
+            along += 1.0
+        }
+        if (!anyBouncy) return null
+
         // The solver flies REAL heights relative to the launch feet, not stance
         // deltas: a partial landing surface (and the launch's own) shifts the rise.
         val launchOffset = launchHeight - from.y
@@ -62,9 +84,6 @@ object BounceArcProbe {
         val riseHeight = rise + landingOffset - launchOffset
 
         val cache = JumpArcProbe.SweepCellCache()
-        val unitX = dx / length
-        val unitZ = dz / length
-        val padY = from.y - drop - 1
 
         // Judges a contact reach: infinite off the pad, otherwise the distance from
         // the pad cell's centre -- on a one-block pad the solver aims the trough
