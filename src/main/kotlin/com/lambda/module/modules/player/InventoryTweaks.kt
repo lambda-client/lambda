@@ -23,21 +23,21 @@ import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.handler.handlers.ContainerHandler
+import com.lambda.interaction.inventory.container.OpenedContainerContext
+import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.PlaceContainerTask
-import com.lambda.task.tasks.breakAndCollect
-import com.lambda.task.tasks.openContainer
+import com.lambda.task.start
 import com.lambda.task.tasks.wrappers.then
-import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
-import net.minecraft.util.math.BlockPos
+import java.util.*
 
+@Suppress("unused")
 object InventoryTweaks : Module(
     name = "InventoryTweaks",
     tag = ModuleTag.PLAYER,
@@ -45,10 +45,10 @@ object InventoryTweaks : Module(
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
     private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
 
-    private var placedPos: BlockPos? = null
-    private var placeAndOpen: Task<*>? = null
-    private var lastBreak: Task<*>? = null
-    private var lastOpenScreen: ScreenHandler? = null
+    private var openTask: Task<*>? = null
+    private val openContexts = LinkedList<OpenedContainerContext>()
+    var lastOpenScreen: ScreenHandler? = null
+    private var isClosing = false
 
     init {
         setDefaultAutomationConfig()
@@ -56,32 +56,63 @@ object InventoryTweaks : Module(
                 hideAllExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
             }
 
-        listen<PlayerEvent.SlotClick> {
-            if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen
-            val slot = it.screenHandler.getSlot(it.slot)
-            if (!(instantShulker && slot.stack.item in shulkerBoxes) && !(instantEChest && slot.stack.item == Items.ENDER_CHEST)) return@listen
-            it.cancel()
-            lastOpenScreen = null
-            placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
-                placedPos = placePos
-                openContainer(placePos).thenAction { screenHandler ->
-                    lastOpenScreen = screenHandler
+        listen<PlayerEvent.SlotClick> { event ->
+            if (event.action != SlotActionType.PICKUP || event.button != 1) return@listen
+            val slot = event.screenHandler.getSlot(event.slot) ?: return@listen
+            val stack = slot.stack
+
+            when (stack.item) {
+                in shulkerBoxes if (!instantShulker) -> return@listen
+                Items.ENDER_CHEST if (!instantEChest) -> return@listen
+            }
+
+            val targetContainer =
+                if (stack.item == Items.ENDER_CHEST) EnderChestContainer
+                else {
+                    ContainerHandler.storedContainers.values
+                        .asSequence()
+                        .flatMap { it.values }
+                        .firstOrNull { container -> container.index == slot.index }
+                        ?: return@listen
                 }
-            }.run()
+
+            event.cancel()
+
+            openTask = targetContainer
+                .access()
+                ?.onSuccess { ctx ->
+                    openContexts.push(ctx)
+                    lastOpenScreen = player.currentScreenHandler
+                    openTask = null
+                }
+                ?.start()
         }
 
         listen<InventoryEvent.Close> { event ->
-            if (event.screenHandler != lastOpenScreen) return@listen
-            lastOpenScreen = null
-            placedPos?.let {
-                lastBreak = breakAndCollect(it).run()
-                placedPos = null
+            if (isClosing || openTask != null) return@listen
+            if (event.screenHandler != lastOpenScreen || openContexts.isEmpty()) return@listen
+
+            isClosing = true
+            val contextsToClose = mutableListOf<OpenedContainerContext>()
+            while (openContexts.isNotEmpty()) {
+                contextsToClose.add(openContexts.pop())
             }
+
+            val closeTask =
+                contextsToClose.fold<OpenedContainerContext, Task<*>?>(null) { acc, ctx ->
+                    val task = ctx.close() ?: return@fold acc
+	                acc?.then(task) ?: task
+                }
+
+            closeTask
+                ?.onCompletion { isClosing = false }
+                ?.start()
+                ?: run { isClosing = false }
         }
 
         onDisable {
-            placeAndOpen?.cancel()
-            lastBreak?.cancel()
+            openContexts.clear()
+            isClosing = false
         }
     }
 }

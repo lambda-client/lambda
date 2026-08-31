@@ -30,7 +30,7 @@ import com.lambda.util.BlockUtils.matches
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.collections.LimitedDecayQueue
 
-object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
+internal object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 	override val pendingActions = LimitedDecayQueue<InteractInfo>(
 		AutomationConfig.DEFAULT.buildConfig.maxPendingActions,
 		AutomationConfig.DEFAULT.buildConfig.actionTimeout * 50L

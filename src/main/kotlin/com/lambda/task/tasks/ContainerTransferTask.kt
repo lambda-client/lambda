@@ -18,9 +18,10 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.Automated
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
+import com.lambda.interaction.handler.handlers.findContainer
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ExternalContainer
@@ -28,7 +29,9 @@ import com.lambda.interaction.inventory.container.OpenedContainerContext
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
+import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.screen.slot.Slot
 
@@ -63,32 +66,27 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 ) : Task<Slot>(), Automated by automated {
 	override val name = "Transferring $selection from $fromContainer to $toContainer"
 
-	init {
-		listen<TickEvent.Pre> {
-			runSafeAutomated {
-				when {
-					fromContainer.isAccessed && toContainer.isAccessed ->
-						TransferTask()
-							.onSuccess { success(it) }
+	override fun SafeContext.onStart() {
+		when {
+			fromContainer.isAccessed && toContainer.isAccessed ->
+				TransferTask()
+					.onSuccess { success(it) }
 
-					fromContainer !is ExternalContainer ->
-						openTransferClose(toContainer, fromContainer, toContainer)
+			fromContainer !is ExternalContainer ->
+				openTransferClose(toContainer, fromContainer, toContainer)
 
-					toContainer !is ExternalContainer ->
-						openTransferClose(fromContainer, fromContainer, toContainer)
+			toContainer !is ExternalContainer ->
+				openTransferClose(fromContainer, fromContainer, toContainer)
 
-					else ->
-						fromContainer
-							.access()
-							.then { fromCtx ->
-								transfer(selection, fromContainer, HotbarAndInventoryContainer)
-									.then { fromCtx.close() }
-							}
-							.then { toContainer.access() }
-							.then { toCtx -> transferAndClose(toCtx, HotbarAndInventoryContainer, toContainer) }
-				}.execute(this@ContainerTransferTask)
-			}
-		}
+			else ->
+				taskOrNull { fromContainer.access() }
+					.then { fromCtx ->
+						transfer(selection, fromContainer, HotbarAndInventoryContainer)
+							.thenOrNull { fromCtx?.close() }
+					}
+					.thenOrNull { toContainer.access() }
+					.then { toCtx -> transferAndClose(toCtx, HotbarAndInventoryContainer, toContainer) }
+		}?.start()
 	}
 
 	/**
@@ -96,20 +94,22 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	 *
 	 * Used when exactly one of the two containers is external and needs to be accessed.
 	 */
+	@Ta5kBuilder
 	private fun openTransferClose(containerToOpen: Container, from: Container, to: Container) =
 		containerToOpen
 			.access()
-			.then { ctx -> transferAndClose(ctx, from, to) }
+			?.then { ctx -> transferAndClose(ctx, from, to) }
 
 	/**
 	 * Transfers [selection] from [from] to [to], then closes the container via [ctx].
 	 */
-	private fun transferAndClose(ctx: OpenedContainerContext, from: Container, to: Container) =
+	@Ta5kBuilder
+	private fun transferAndClose(ctx: OpenedContainerContext?, from: Container, to: Container) =
 		transfer(selection, from, to)
-			.then { slot ->
+			.thenOrNull { slot ->
 				ctx
-					.close()
-					.onSuccess { success(slot) }
+					?.close()
+					?.onSuccess { success(slot) }
 			}
 
 	private inner class TransferTask @Ta5kBuilder constructor() : Task<Slot>() {

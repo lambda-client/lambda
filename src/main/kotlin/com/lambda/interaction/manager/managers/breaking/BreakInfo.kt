@@ -21,7 +21,7 @@ import com.lambda.config.blocks.BreakConfig
 import com.lambda.config.blocks.BreakConfig.BreakMode
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.context.BreakContext
-import com.lambda.interaction.handler.handlers.breaking.RebreakHandler
+import com.lambda.interaction.handler.handlers.breaking.RebreakPotential
 import com.lambda.interaction.manager.ActionInfo
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
 import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Rebreak
@@ -51,7 +51,7 @@ data class BreakInfo(
 
 	// Pre Processing
 	var shouldProgress = false
-	var rebreakPotential = RebreakHandler.RebreakPotential.None
+	var rebreakPotential = RebreakPotential.None
 	var swapInfo = SwapInfo.EMPTY
 	var swapStack: ItemStack = ItemStack.EMPTY
 
@@ -162,8 +162,6 @@ data class BreakInfo(
 				)
 			}
 		}
-
-	fun getBreakDelay() = if (!bypassedDelay) 6 else breakConfig.breakDelay
 
 	override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
 }

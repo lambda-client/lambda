@@ -19,7 +19,7 @@ package com.lambda.interaction.handler.handlers.breaking
 
 import com.lambda.interaction.manager.managers.breaking.BreakInfo
 
-sealed class RebreakResult {
+internal sealed class RebreakResult {
 	data object Ignored : RebreakResult()
 
 	data object Rebroke : RebreakResult()

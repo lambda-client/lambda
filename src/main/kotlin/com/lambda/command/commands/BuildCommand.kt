@@ -28,8 +28,8 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.construction.StructureRegistry
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
-import com.lambda.task.RootTask.run
+import com.lambda.interaction.construction.blueprint.toBlueprint
+import com.lambda.task.start
 import com.lambda.task.tasks.BuildTask
 import com.lambda.task.tasks.build
 import com.lambda.threading.runSafe
@@ -62,12 +62,12 @@ object BuildCommand : LambdaCommand(
                                 .loadStructureByRelativePath(Path.of(pathString))
                                 .let { template ->
                                     info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
-                                    lastBuildTask = with(AutomationConfig.Companion.DEFAULT) {
+                                    lastBuildTask = with(AutomationConfig.DEFAULT) {
                                         template.toStructure()
                                             .move(player.blockPos)
                                             .toBlueprint()
                                             .build()
-                                            .run()
+                                            .start()
                                     }
 
                                     return@executeWithResult success()

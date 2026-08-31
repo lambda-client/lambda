@@ -28,20 +28,21 @@ import com.lambda.task.tasks.wrappers.withRecovery
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Nameable
-import com.lambda.util.StringUtils.capitalize
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Suppress("unused")
 abstract class Task<Result> : Nameable, Muteable {
+    var state = State.Init
+    var age = 0
+
     var parent: Task<*>? = null
     val subTasks = mutableListOf<Task<*>>()
-    var state = State.Init
-    override val isMuted: Boolean get() = state == State.Paused || state == State.Init
-    var age = 0
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
     val size: Int get() = subTasks.sumOf { it.size } + 1
+
+    override val isMuted: Boolean get() = state == State.Paused || state == State.Init
 
     private val successCallbacks = mutableListOf<SafeContext.(Result) -> Unit>()
     private val completionCallbacks = mutableListOf<SafeContext.() -> Unit>()
@@ -59,8 +60,6 @@ abstract class Task<Result> : Nameable, Muteable {
         Cancelled,
         Failed,
         Completed;
-
-        val display get() = name.lowercase().capitalize()
     }
 
     init {
@@ -98,6 +97,11 @@ abstract class Task<Result> : Nameable, Muteable {
     @Ta5kBuilder
     protected open fun SafeContext.onCancel() {}
 
+    @Ta5kBuilder
+    context(parentTask: Task<*>)
+    fun start(pauseParent: Boolean = true) =
+        this.execute(parentTask, pauseParent)
+
     /**
      * Executes the current task as a subtask of the specified owner task.
      *
@@ -127,8 +131,10 @@ abstract class Task<Result> : Nameable, Muteable {
 
     @Ta5kBuilder
     protected fun success(result: Result) {
+        if (state != State.Running && state != State.Paused) return
         unsubscribe()
         state = State.Completed
+        cancelSubTasks()
 
         parent?.onSubTaskSuccess(this)
         parent?.onSubTaskCompletion(this)
@@ -151,15 +157,16 @@ abstract class Task<Result> : Nameable, Muteable {
         e: Throwable,
         stacktrace: MutableList<Task<*>> = mutableListOf(),
     ) {
-        state = State.Failed
+        if (state != State.Running && state != State.Failed) return
         unsubscribe()
+        state = State.Failed
         cancelSubTasks()
         stacktrace.add(this)
 
         parent?.onSubTaskFailure(this, e)
             ?: run {
                 if (!verboseDebug) return@run
-                val message =
+                logError(
                     buildString {
                         val first = stacktrace.firstOrNull() ?: return@buildString
                         append("${first.name} failed: ${e.message}\n")
@@ -167,7 +174,7 @@ abstract class Task<Result> : Nameable, Muteable {
                             append("  -> ${it.name}\n")
                         }
                     }
-                logError(message)
+                )
             }
         parent?.onSubTaskCompletion(this)
 
@@ -183,6 +190,28 @@ abstract class Task<Result> : Nameable, Muteable {
     protected fun failure(message: String) = failure(IllegalStateException(message))
 
     @Ta5kBuilder
+    fun cancel() = internalCancel(true)
+
+    @Ta5kBuilder
+    private fun internalCancel(removeFromParent: Boolean = true) {
+        if (state != State.Running && state != State.Paused) return
+        if (this is RootTask) return
+        unsubscribe()
+        state = State.Cancelled
+        cancelSubTasks()
+        runSafe { onCancel() }
+
+        if (removeFromParent) parent?.subTasks?.remove(this)
+        parent?.activate()
+    }
+
+    @Ta5kBuilder
+    private fun cancelSubTasks() {
+        subTasks.forEach { it.internalCancel(removeFromParent = false) }
+        subTasks.clear()
+    }
+
+    @Ta5kBuilder
     fun activate() {
         if (state != State.Paused) return
         state = State.Running
@@ -192,26 +221,6 @@ abstract class Task<Result> : Nameable, Muteable {
     fun pause() {
         if (state != State.Running) return
         state = State.Paused
-    }
-
-    @Ta5kBuilder
-    fun cancel() = internalCancel(true)
-
-    private fun internalCancel(removeFromParent: Boolean = true) {
-        unsubscribe()
-        runSafe { onCancel() }
-        cancelSubTasks()
-        if (removeFromParent) parent?.subTasks?.remove(this)
-        parent?.activate()
-        if (this is RootTask) return
-        if (state == State.Completed || state == State.Cancelled) return
-        state = State.Cancelled
-    }
-
-    @Ta5kBuilder
-    fun cancelSubTasks() {
-        subTasks.forEach { it.internalCancel(removeFromParent = false) }
-        subTasks.clear()
     }
 
     @Ta5kBuilder
@@ -265,7 +274,7 @@ abstract class Task<Result> : Nameable, Muteable {
 
     private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
         if (task.state == State.Cancelled) return
-        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${(task.age * 50).milliseconds}" else "")
+        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.name}] ${(task.age * 50).milliseconds}" else "")
         val left = task.subTasks.size - maxEntries
         if (left > 0) {
             appendLine("${" ".repeat((level + 1) * 4)}...and $left more tasks")

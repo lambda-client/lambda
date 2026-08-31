@@ -22,42 +22,37 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.container.BasicOpenedContainerContext
-import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ContainerRank
-import com.lambda.interaction.inventory.container.ExternalContainer
 import com.lambda.interaction.inventory.container.OpenContainerTask
+import com.lambda.interaction.inventory.container.OpenedContainerContext
 import com.lambda.interaction.inventory.container.PlacedContainer
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.openContainer
-import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.util.extension.containerSlots
+import com.lambda.util.player.SlotUtils.typeSafe
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.block.ChestBlock
-import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
 data class ChestContainer(
-	val blockPos: BlockPos,
+	override val pos: BlockPos,
 	override var stacks: List<ItemStack>,
 	override val stash: StashContainer? = null
-) : Container(ContainerRank.Chest), ExternalContainer, PlacedContainer {
+) : PlacedContainer(ContainerRank.Chest) {
     override val slots
         get(): List<Slot> =
-            lastInteractedBlockEntity?.let { blockEntity ->
-                if (blockEntity is ChestBlockEntity && blockEntity.pos == blockPos) {
-                    mc.player?.currentScreenHandler?.containerSlots
-                } else emptyList()
-            } ?: emptyList()
+            if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
+            else emptyList()
 
     override val description =
 	    buildText {
 		    literal("Chest at ")
-		    highlighted(blockPos.toShortString())
+		    highlighted(pos.toShortString())
 		    stash?.let { stash ->
 			    literal(" (contained in ")
 			    highlighted(stash.name)
@@ -67,29 +62,24 @@ data class ChestContainer(
 
 	override val isAccessed
 		get() = lastInteractedBlockEntity?.let { blockEntity ->
-			blockEntity.pos == blockPos &&
+			blockEntity.pos == pos &&
 					blockEntity.cachedState.block is ChestBlock &&
-					mc.player?.currentScreenHandler?.type == ScreenHandlerType.GENERIC_9X3
+					mc.player?.currentScreenHandler?.typeSafe == ScreenHandlerType.GENERIC_9X3
 		} ?: false
 
 	@Ta5kBuilder
 	context(automated: Automated)
-	override fun access() = AccessChestTask(automated)
+	override fun access() =
+		if (isAccessed) null
+		else AccessChestTask(automated)
 
 	inner class AccessChestTask @Ta5kBuilder internal constructor(
 		automated: Automated
-	) : OpenContainerTask<OpenedChestContext>(description), Automated by automated {
+	) : OpenContainerTask<OpenedContainerContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
-			taskOrNull {
-				if (isAccessed) null
-				else openContainer(blockPos).onSuccess {
-					success(OpenedChestContext())
-				}
-			}.execute(this@AccessChestTask)
+			openContainer(pos)
+				.onSuccess { success(BasicOpenedContainerContext(::isAccessed)) }
+				.start()
 		}
-	}
-
-	inner class OpenedChestContext : BasicOpenedContainerContext(::isAccessed) {
-		val blockPos = this@ChestContainer.blockPos
 	}
 }

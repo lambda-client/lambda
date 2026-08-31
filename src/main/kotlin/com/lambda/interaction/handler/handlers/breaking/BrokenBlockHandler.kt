@@ -51,7 +51,7 @@ import net.minecraft.util.math.ChunkSectionPos
  *
  * @see com.lambda.interaction.managers.breaking.BreakManager
  */
-object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
+internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 	override val pendingActions = LimitedDecayQueue<BreakInfo>(
 		DEFAULT.buildConfig.maxPendingActions, DEFAULT.buildConfig.actionTimeout * 50L
 	) { info ->

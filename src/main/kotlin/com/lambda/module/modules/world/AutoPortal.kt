@@ -47,8 +47,8 @@ import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.portalPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.threading.runSafe
@@ -103,9 +103,9 @@ object AutoPortal : Module(
 				.thenOrNull {
 					if (light) LightTask(currAnchorPos.up(), walkIn)
 					else null
-				}.onCompletion {
-					buildTask = null
-				}.run()
+				}
+				.onCompletion { buildTask = null }
+				.start()
 		}
 	private val corners by setting("Corners", false)
 	private val light by setting("Light", true, "Attempts to automatically light the portal after building")

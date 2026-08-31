@@ -34,8 +34,8 @@ import com.lambda.interaction.construction.simulation.result.results.InteractRes
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.CommunicationUtils.logError
@@ -149,7 +149,8 @@ object Printer : Module(
 				.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
 				.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
 				.filter { air || !it.value.blockState.isAir }
-		}.build(finishOnDone = false, async = async) { filterBuildResults(it) }.run()
+		}.build(finishOnDone = false, async = async) { filterBuildResults(it) }
+			.start()
 	}
 
 	/**

@@ -33,7 +33,6 @@ import net.minecraft.item.consume.UseAction
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
-import net.minecraft.text.Text
 import java.util.*
 
 @ContainerMarker
@@ -137,9 +136,9 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 		appendSelector { stack, _ -> stack.item in ItemUtils.shulkerBoxes }
 	}
 
-	fun hasCustomName(name: Text) {
+	fun hasCustomName(name: String) {
 		appendSelector { stack, _ ->
-			stack.get(DataComponentTypes.CUSTOM_NAME)?.string == name.string
+			stack.name.string == name
 		}
 	}
 
@@ -218,6 +217,10 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 		appendSelector { _, s -> s === slot }
 	}
 
+	fun inIndex(index: Int) {
+		appendSelector { _, s -> s?.index == index }
+	}
+
 	fun custom(predicate: (ItemStack, Slot?) -> Boolean) {
 		appendSelector { stack, slot -> predicate(stack, slot) }
 	}
@@ -233,8 +236,7 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 	}
 
 	fun sortedWith(comparatorSupplier: () -> Comparator<StackAndSlot<*>>) {
-		val newComparator = comparatorSupplier()
-		comparator = comparator?.thenComparing(newComparator) ?: newComparator
+		sortedWith(comparatorSupplier())
 	}
 
 	fun sortedByBestContentMatch(expectedContents: List<ItemStack>) {

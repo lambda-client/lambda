@@ -28,7 +28,7 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
+import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.inventory.StackAndSlot
 import com.lambda.interaction.inventory.StackSelection

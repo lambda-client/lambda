@@ -19,8 +19,7 @@ package com.lambda.task.tasks
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handler.handlers.ContainerHandler
-import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
+import com.lambda.interaction.handler.handlers.findContainer
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
@@ -50,8 +49,10 @@ class AcquireStackTask @Ta5kBuilder internal constructor(
             selection.findContainer()
                 ?.let { transfer(selection, it, HotbarContainer) }
                 ?.onSuccess { slot -> success(slot) }
-                ?.execute(this@AcquireStackTask)
-                ?: failure(ContainerHandler.NoContainerFound(selection)) // ToDo: Create crafting path
+                ?.start()
+                ?: failure(NoContainerFound(selection)) // ToDo: Create crafting path
         }
     }
 }
+
+class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

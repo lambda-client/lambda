@@ -52,11 +52,12 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 	override fun SafeContext.onStart() {
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
-				val target = drops.firstOrNull() ?: run {
-					BaritoneHandler.cancel()
-					success()
-					return@listen
-				}
+				val target =
+					drops.firstOrNull() ?: run {
+						BaritoneHandler.cancel()
+						success()
+						return@listen
+					}
 
 				if (!world.entities.contains(target)) {
 					drops.remove(target)
@@ -65,12 +66,13 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 				}
 
 				if (HotbarAndInventoryContainer.stacks.none { it.isEmpty }) {
-					val stackToThrow = player.currentScreenHandler.playerSlots.firstOrNull {
-						it.stack.item in inventoryConfig.disposables
-					} ?: run {
-						failure("Inventory is full and no disposable items to throw")
-						return@listen
-					}
+					val stackToThrow =
+						player.currentScreenHandler.playerSlots.firstOrNull {
+							it.stack.item in inventoryConfig.disposables
+						} ?: run {
+							failure("Inventory is full and no disposable items to throw")
+							return@listen
+						}
 					inventoryRequest {
 						throwStack(stackToThrow.id)
 					}.submit()

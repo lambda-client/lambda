@@ -25,7 +25,7 @@ import com.lambda.task.tasks.wrappers.actionTask
 interface OpenedContainerContext {
 	@Ta5kBuilder
 	context(automated: Automated)
-	fun close(): Task<*>
+	fun close(): Task<*>?
 }
 
 open class BasicOpenedContainerContext(
@@ -33,8 +33,6 @@ open class BasicOpenedContainerContext(
 ) : OpenedContainerContext {
 	context(_: Automated)
 	final override fun close() =
-		actionTask {
-			if (!isAccessed()) return@actionTask
-			player.closeScreen()
-		}
+		if (!isAccessed()) null
+		else actionTask { player.closeScreen() }
 }

@@ -29,11 +29,11 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.handler.handlers.ContainerHandler
-import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
-import com.lambda.interaction.handler.handlers.ContainerHandler.findContainersWithSpace
+import com.lambda.interaction.handler.handlers.findContainers
+import com.lambda.interaction.handler.handlers.findContainersWithSpace
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
-import com.lambda.task.RootTask
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.transfer
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
@@ -106,7 +106,7 @@ object TransferCommand : LambdaCommand(
                                 } ?: return@executeWithResult failure("To container not found")
 
 	                            transfer(selection, fromContainer, toContainer)
-                                    .execute(RootTask)
+                                    .start()
                             }
                             return@executeWithResult success()
                         }

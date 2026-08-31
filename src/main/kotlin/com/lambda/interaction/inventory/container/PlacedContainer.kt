@@ -18,7 +18,9 @@
 package com.lambda.interaction.inventory.container
 
 import com.lambda.interaction.inventory.container.containers.external.StashContainer
+import net.minecraft.util.math.BlockPos
 
-interface PlacedContainer {
-	val stash: StashContainer?
+abstract class PlacedContainer(rank: ContainerRank) : Container(rank), ExternalContainer {
+	abstract val pos: BlockPos
+	abstract val stash: StashContainer?
 }

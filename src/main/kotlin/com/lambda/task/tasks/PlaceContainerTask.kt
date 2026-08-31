@@ -20,7 +20,7 @@ package com.lambda.task.tasks
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.toBlueprint
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.sim
@@ -28,7 +28,6 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.item.ItemUtils.shulkerBoxes
@@ -88,8 +87,8 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
             .toStructure(TargetState.Stack(slot.stack))
             .toBlueprint()
             .build(finishOnDone = true, collectDrops = false)
-            .thenAction { success(containerPosition) }
-            .execute(this@PlaceContainerTask)
+            .onSuccess { success(containerPosition) }
+            .start()
     }
 
     private fun SafeContext.canBeOpened(

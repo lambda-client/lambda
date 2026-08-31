@@ -47,7 +47,7 @@ abstract class Container(
     val rank: ContainerRank
 ) : Nameable, Comparable<Container> {
     override val name: String
-        get() = buildText { text(description) }.string
+        get() = description.string
 
     abstract val slots: List<Slot>
     abstract var stacks: List<ItemStack>
@@ -101,7 +101,7 @@ abstract class Container(
 
     @Ta5kBuilder
     context(automated: Automated)
-    open fun access(): OpenContainerTask<*> =
+    open fun access(): OpenContainerTask<*>? =
         PlayerOpenContainerTask(description, ::isAccessed)
 
     context(automatedSafeContext: AutomatedSafeContext)

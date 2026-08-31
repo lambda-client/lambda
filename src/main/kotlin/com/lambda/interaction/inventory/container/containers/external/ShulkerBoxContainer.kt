@@ -20,7 +20,6 @@ package com.lambda.interaction.inventory.container.containers.external
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
 import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.inventory.container.Container
 import com.lambda.interaction.inventory.container.ContainerRank
@@ -42,18 +41,19 @@ import com.lambda.util.extension.containerSlots
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
-import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
-import net.minecraft.block.entity.ShulkerBoxBlockEntity
+import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
+import java.util.Objects.hash
 
 data class ShulkerBoxContainer(
+    val itemName: String,
+    val shulkerItem: Item,
     override var stacks: List<ItemStack>,
-    val containedIn: Container,
-    override val slotCache: Slot,
-) : Container(ContainerRank.ShulkerBox), ExternalContainer, NestedContainer {
+    override val containedIn: Container,
+    override val index: Int,
+) : NestedContainer(ContainerRank.ShulkerBox), ExternalContainer {
     override val slots
         get(): List<Slot> =
             if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
@@ -61,21 +61,13 @@ data class ShulkerBoxContainer(
 
     override val description =
         buildText {
-            highlighted(slotCache.stack.name.string)
+            highlighted(itemName)
             literal(" in ")
             highlighted(containedIn.name)
-            literal(" in slot $slotCache")
+            literal(" in slot index $index")
         }
 
-    private var blockPos: BlockPos? = null
-
-    override val isAccessed
-        get() =
-            lastInteractedBlockEntity?.let { blockEntity ->
-                blockEntity is ShulkerBoxBlockEntity &&
-                        blockEntity.pos == blockPos &&
-                        mc.player?.currentScreenHandler?.type == ScreenHandlerType.SHULKER_BOX
-            } ?: false
+    override val isAccessed = false
 
     @Ta5kBuilder
     context(automated: Automated)
@@ -86,7 +78,7 @@ data class ShulkerBoxContainer(
     ) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
         override fun SafeContext.onStart() {
             transfer(
-                selectStack { isSlot(slotCache) },
+                selectStack { inIndex(index); isItem(shulkerItem) },
                 containedIn,
                 HotbarContainer
             ).then { slot -> placeContainer(slot) }
@@ -95,7 +87,7 @@ data class ShulkerBoxContainer(
                         success(OpenedShulkerBoxContext(pos, containedIn))
                     }
                 }
-                .execute(this@OpenShulkerBoxTask)
+                .start()
         }
     }
 
@@ -103,10 +95,6 @@ data class ShulkerBoxContainer(
         val blockPos: BlockPos,
         val fromContainer: Container
     ) : OpenedContainerContext {
-        private val shulkerItem = slotCache.stack.item
-        private val customName = slotCache.stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_NAME)
-        private val originalContents = slotCache.stack.shulkerBoxStacks
-
         context(automated: Automated)
         override fun close() =
             taskOrNull {
@@ -117,12 +105,19 @@ data class ShulkerBoxContainer(
                     transfer(
                         selectStack {
                             isItem(shulkerItem)
-                            if (customName != null) hasCustomName(customName)
-                            sortedByBestContentMatch(originalContents)
+                            hasCustomName(itemName)
+                            sortedByBestContentMatch(stacks)
                         },
                         HotbarAndInventoryContainer,
                         fromContainer
                     )
                 }
     }
+
+    override fun hashCode() = hash(containedIn.hashCode(), index)
+
+    override fun equals(other: Any?) =
+        other is ShulkerBoxContainer &&
+                containedIn == other.containedIn &&
+                index == other.index
 }

@@ -26,7 +26,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
-object PacketLimitHandler {
+internal object PacketLimitHandler {
 	private val packetLimitMap = PacketType.entries.associateWith { LimitHandler() }
 
 	init {

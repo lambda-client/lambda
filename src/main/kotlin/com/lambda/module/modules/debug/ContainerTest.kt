@@ -22,7 +22,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.inventory.select
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
+import com.lambda.task.start
 import com.lambda.task.tasks.acquireStack
 import net.minecraft.item.Items
 
@@ -38,9 +38,8 @@ object ContainerTest : Module(
         }
 
         onEnable {
-            acquireStack {
-                Items.OBSIDIAN.select()
-            }.run()
+            acquireStack { Items.OBSIDIAN.select() }
+                .start()
         }
     }
 }

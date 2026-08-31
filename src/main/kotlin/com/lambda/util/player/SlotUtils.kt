@@ -22,6 +22,8 @@ import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.ScreenHandler
+import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.ArmorSlot
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
@@ -58,6 +60,9 @@ object SlotUtils {
     val ClientPlayerEntity.inventoryStacks: List<ItemStack> get() = inventory.mainStacks.slice(9..35)
     val ClientPlayerEntity.hotbarAndInventoryStacks: List<ItemStack> get() = inventory.mainStacks
 
+    val ScreenHandler.typeSafe: ScreenHandlerType<*>?
+        get() = try { this.type } catch (_: Throwable) { null }
+
     fun SafeContext.clickSlot(slotId: Int, button: Int, actionType: SlotActionType) {
         val syncId = player.currentScreenHandler?.syncId ?: return
         interaction.clickSlot(syncId, slotId, button, actionType, player)
@@ -68,6 +73,5 @@ object SlotUtils {
                 inventory::class == slot.inventory::class &&
                 id == slot.id &&
                 x == slot.x &&
-                y == slot.y &&
-                ItemStack.areEqual(stack, slot.stack)
+                y == slot.y
 }

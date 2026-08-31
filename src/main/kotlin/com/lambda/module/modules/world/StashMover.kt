@@ -52,8 +52,8 @@ import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.wrappers.thenAction
@@ -361,7 +361,7 @@ object StashMover : Module(
 				)
 				task = null
 			}
-			.run()
+			.start()
 	}
 
 	fun pauseUnpause() {

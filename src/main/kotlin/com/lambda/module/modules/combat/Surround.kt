@@ -27,8 +27,8 @@ import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryC
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.Blocks
@@ -65,7 +65,8 @@ object Surround : Module(
 				getTrapPositions(player)
 					.filter { it.y <= player.blockPos.y }
 					.associateWith { TargetState.Block(block) }
-			}.build(finishOnDone = false).run()
+			}.build(finishOnDone = false)
+				.start()
 		}
 		onDisable { task?.cancel(); task = null }
 	}

@@ -40,7 +40,7 @@ import net.minecraft.util.Hand
  * Designed to track the latest primary-broken [BreakInfo] in order to exploit a flaw in Minecraft's code that allows
  * the user to break any block placed in said position using the progress from the previously broken block.
  */
-object RebreakHandler {
+internal object RebreakHandler {
 	var reBreak: BreakInfo? = null
 
     init {
@@ -134,12 +134,12 @@ object RebreakHandler {
 			RebreakResult.StillBreaking(reBreak)
 		}
 	}
+}
 
-	enum class RebreakPotential {
-		Instant,
-		PartialProgress,
-		None;
+enum class RebreakPotential {
+	Instant,
+	PartialProgress,
+	None;
 
-		fun isPossible() = this != None
-	}
+	fun isPossible() = this != None
 }

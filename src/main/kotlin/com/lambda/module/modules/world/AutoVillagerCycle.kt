@@ -28,14 +28,14 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
@@ -220,7 +220,7 @@ object AutoVillagerCycle : Module(
 				.thenAction {
 					switchState(CycleState.OpenVillager)
 				}
-				.run()
+				.start()
 		}
 		switchState(CycleState.WaitLectern)
 	}
@@ -281,7 +281,7 @@ object AutoVillagerCycle : Module(
 				lecternPos.toStructure(TargetState.Empty)
 					.build(finishOnDone = true)
 					.thenAction { switchState(CycleState.PlaceLectern) }
-					.run()
+					.start()
 			}
 			switchState(CycleState.WaitBreak)
 			return

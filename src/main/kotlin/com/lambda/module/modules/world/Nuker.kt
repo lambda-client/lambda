@@ -26,8 +26,8 @@ import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
@@ -98,7 +98,7 @@ object Nuker : Module(
 
 			selection
 		}.build(finishOnDone = false, async = async)
-			.run()
+			.start()
 	}
 
 	private fun SafeContext.isWithinDigDirection(pos: BlockPos): Boolean {

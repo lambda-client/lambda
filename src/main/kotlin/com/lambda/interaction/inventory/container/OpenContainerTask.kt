@@ -23,7 +23,7 @@ import net.minecraft.text.Text
 
 abstract class OpenContainerTask<R : OpenedContainerContext> @Ta5kBuilder internal constructor(
 	description: Text
-) : Task<R>() {
+) : Task<R?>() {
 	override val name = "accessing container: ${description.string}"
 }
 

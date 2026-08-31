@@ -28,8 +28,8 @@ import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
 import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.shrinkByEpsilon
@@ -78,7 +78,8 @@ object PlayerTrap : Module(
 					player.eyePos.flooredBlockPos
 				).firstOrNull { friends || !isFriend(it.gameProfile) } ?: return@tickingBlueprint emptyMap()
 				getTrapPositions(targetPlayer).associateWith { TargetState.Block(block) }
-			}.build(finishOnDone = false).run()
+			}.build(finishOnDone = false)
+				.start()
 		}
 		onDisable { task?.cancel(); task = null }
 	}

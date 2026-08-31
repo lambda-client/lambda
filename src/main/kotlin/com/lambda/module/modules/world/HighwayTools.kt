@@ -26,8 +26,8 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
@@ -131,7 +131,7 @@ object HighwayTools : Module(
 		        emptyStructure()
 	        }
         }.build(collectDrops = buildConfig.collectDrops, lifeMaintenance = true)
-            .run()
+            .start()
     }
 
     private fun generateSlice(): Structure {

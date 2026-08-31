@@ -17,8 +17,7 @@
 
 package com.lambda.interaction.inventory.container
 
-import net.minecraft.screen.slot.Slot
-
-interface NestedContainer {
-	val slotCache: Slot?
+abstract class NestedContainer(rank: ContainerRank) : Container(rank) {
+	abstract val containedIn: Container
+	abstract val index: Int
 }
