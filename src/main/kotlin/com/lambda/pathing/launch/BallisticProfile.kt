@@ -193,16 +193,35 @@ data class BallisticProfile(
         return null
     }
 
+    /**
+     * [drop] and [rise] are heights relative to the launch feet, and they are REAL
+     * heights, not stance deltas: a carpet-covered pad's contact surface sits 0.9375
+     * below its coarse contact stance, and solving the arc against the integer plane
+     * instead bounced almost a block early -- wrong contact distance, wrong impact
+     * speed, wrong rebound -- and no carpeted bounce ever certified.
+     *
+     * [jump] launches off the lip with the jump key instead of walking off it. The
+     * extra 1.25 of apex converts to impact speed at the pad, so the rebound gives
+     * back more height and glides further -- it is what a human almost always does,
+     * and it is the only way to land less than two below the lip.
+     *
+     * [holdTicks] releases forward partway, exactly as [fly] does and for the same
+     * reason: the released and held-throughout lines leave a dead band of middle
+     * distances (a drop-6 bounce coasts to ~3 released and no less than ~6 held),
+     * and partial holds are the family that interpolates across it.
+     */
     fun bounce(
         entrySpeed: Double,
-        drop: Int,
-        rise: Int,
+        drop: Double,
+        rise: Double,
         holdForward: Boolean = false,
         sprint: Boolean = false,
+        jump: Boolean = false,
+        holdTicks: Int = Int.MAX_VALUE,
         bounceFactor: Double = 1.0,
         maxTicks: Int = MAX_BOUNCE_TICKS,
     ): ArcSample? {
-        require(drop > 0) { "a bounce must fall onto something: drop=$drop" }
+        require(drop > 0.0) { "a bounce must fall onto something: drop=$drop" }
 
         var velocity = entrySpeed
         var verticalVelocity = 0.0
@@ -213,8 +232,15 @@ data class BallisticProfile(
         var bounced = false
         var groundedLastTick = false
 
-        if (holdForward) velocity += groundAcceleration(sprint)
+        // The launch tick mirrors [fly]'s: jump velocity and the sprint-jump boost
+        // land on the same tick as the last ground acceleration.
+        if (jump) {
+            verticalVelocity = jumpVelocity
+            if (sprint) velocity += SPRINT_JUMP_BOOST
+        }
+        if (holdForward && holdTicks > 0) velocity += groundAcceleration(sprint)
         distance += velocity
+        height += verticalVelocity
         verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
         velocity *= groundFriction
         heights += height
@@ -230,13 +256,18 @@ data class BallisticProfile(
 
             val grounded = groundedLastTick
             groundedLastTick = false
-            velocity += if (grounded && holdForward) groundAcceleration(sprint) else airAcceleration
+            val holding = holdForward && tick < holdTicks
+            velocity += when {
+                grounded && holding -> groundAcceleration(sprint)
+                holding -> airAcceleration
+                else -> 0.0
+            }
             distance += velocity
 
             if (!bounced) {
                 if (height + verticalVelocity <= -drop) {
 
-                    height = -drop.toDouble()
+                    height = -drop
                     verticalVelocity = -verticalVelocity * bounceFactor
                     bounced = true
                     groundedLastTick = true
@@ -246,7 +277,7 @@ data class BallisticProfile(
             } else if (verticalVelocity < 0.0) {
                 if (height < rise) return null
                 if (height + verticalVelocity <= rise) {
-                    heights += rise.toDouble()
+                    heights += rise
                     distances += distance
                     return ArcSample(
                         airTicks = tick,
@@ -271,7 +302,8 @@ data class BallisticProfile(
 
     companion object {
 
-        const val MAX_BOUNCE_TICKS = 48
+        /** Jump launches add roughly a dozen ticks of apex to the deepest arcs. */
+        const val MAX_BOUNCE_TICKS = 64
 
         const val SPRINT_JUMP_BOOST = 0.2
 

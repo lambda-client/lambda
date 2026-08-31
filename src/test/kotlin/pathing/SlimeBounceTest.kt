@@ -197,7 +197,7 @@ class SlimeBounceTest {
         val entrySpeed = 0.25
         val arc = assertNotNull(
             BallisticProfile.VANILLA.bounce(
-                entrySpeed = entrySpeed, drop = drop, rise = rise,
+                entrySpeed = entrySpeed, drop = drop.toDouble(), rise = rise.toDouble(),
                 holdForward = true, sprint = true,
             ),
             "a four-block fall onto slime must rebound past three below the lip",
@@ -247,6 +247,65 @@ class SlimeBounceTest {
     }
 
     /**
+     * The jump-launch arc against the body it models, tick for tick. The launch tick
+     * carries the jump velocity, the sprint-jump boost, and the last ground
+     * acceleration all at once -- exactly like [BallisticProfile.fly]'s jump tick --
+     * and the deeper impact is what the taller rebound is bought with.
+     */
+    @Test
+    fun `the solved jump-launch bounce arc matches the body it models, tick for tick`() {
+        val drop = 4
+        val entrySpeed = 0.2
+        val arc = assertNotNull(
+            BallisticProfile.VANILLA.bounce(
+                entrySpeed = entrySpeed, drop = drop.toDouble(), rise = -1.0,
+                holdForward = true, sprint = true, jump = true,
+            ),
+            "a jump launch onto slime four down must rebound past one below the lip",
+        )
+
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (x in -4..4) for (z in -4..24) blocks[BlockPos(x, 63, z)] = slime()
+        val sim = MovementSimulator(
+            profile = PROFILE,
+            environment = SnapshotSimulationEnvironment.synthetic(
+                SimulationSnapshotBounds(-16, 55, -16, 16, 90, 32), blocks,
+            ),
+            initialState = MovementSimulationState.synthetic(
+                profile = PROFILE,
+                position = Vec3d(0.5, 68.0, 0.5),
+                rotation = Rotation(0.0, 0.0),
+                velocity = Vec3d(0.0, 0.0, entrySpeed),
+                onGround = true,
+            ),
+        )
+
+        for (tick in 0 until arc.airTicks - 1) {
+            sim.tickMovement(
+                MovementSimulationInput(
+                    forward = 1.0, sprint = true, jump = tick == 0,
+                    rotation = Rotation(0.0, 0.0),
+                )
+            )
+            assertEquals(
+                arc.heights[tick], sim.state.position.y - 68.0, 1e-5,
+                "height diverged at tick ${tick + 1}",
+            )
+            assertEquals(
+                arc.distances[tick], sim.state.position.z - 0.5, 1e-5,
+                "distance diverged at tick ${tick + 1}",
+            )
+        }
+
+        assertEquals(-drop.toDouble(), arc.heights.min(), 1e-9, "the trough is the slime top")
+        // The point of jumping: a walk-off from four up cannot land one below the lip.
+        assertNull(
+            BallisticProfile.VANILLA.bounce(0.0, drop.toDouble(), -1.0, holdForward = true, sprint = true),
+            "the walk-off rebound must NOT reach one below the lip -- only the jump launch does",
+        )
+    }
+
+    /**
      * The thing a bounce does that no fall can: finish above where it landed.
      *
      * A drop is monotone -- height given up is gone. A bounce hands most of it back, which
@@ -255,7 +314,7 @@ class SlimeBounceTest {
     @Test
     fun `a bounce returns most of the height the fall gave up`() {
         val profile = BallisticProfile.VANILLA
-        val arc = assertNotNull(profile.bounce(entrySpeed = 0.25, drop = 6, rise = -3))
+        val arc = assertNotNull(profile.bounce(entrySpeed = 0.25, drop = 6.0, rise = -3.0))
 
         assertEquals(-6.0, arc.heights.min(), 1e-9, "the body must reach the slime and no lower")
         assertTrue(
