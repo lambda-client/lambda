@@ -76,6 +76,16 @@ class ProposalContext(
     val view: CoarseVoxelView,
     val steering: SteeringField,
     val headingFanDegrees: List<Double>,
+
+    /** Remaining guide ticks per stance, NaN where no field is in play: lets a proposer price its own claim. */
+    val guideTicks: (Stance) -> Double = { Double.NaN },
+
+    /** The MOVING-class guide: what the remainder costs a body that keeps its momentum. */
+    val movingGuideTicks: (Stance) -> Double = guideTicks,
+
+    val momentumSkips: Boolean = true,
+
+    val momentumGait: Boolean = true,
 )
 
 class Proposals(

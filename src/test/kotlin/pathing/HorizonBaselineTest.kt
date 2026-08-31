@@ -156,7 +156,7 @@ class HorizonBaselineTest {
             scenario.environment, moves, start, goal,
         )
         if (!planner.repair(Duration.INFINITE).converged) return noRoute(scenario.name)
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = planner.routePlan(0L) ?: return noRoute(scenario.name)
 
         val dx = (goal.x - start.x).toDouble()
@@ -198,6 +198,7 @@ class HorizonBaselineTest {
             clock = clock,
             adoptedSequence = executor::adoptedSequence,
             probe = attribution,
+            fieldExpansionBudget = kotlin.time.Duration.INFINITE,
         )
 
         val path = (outcome as? PathPlanResult.Planned)?.path

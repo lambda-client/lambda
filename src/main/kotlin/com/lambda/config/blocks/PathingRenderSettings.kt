@@ -56,6 +56,40 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     ) { enabled }
 
     @Group(TOGGLES_GROUP)
+    override val renderPlanGraph by c.setting(
+        "Plan Graph", false,
+        "The certified plan as its junction graph: one edge per decision, shaded by how " +
+            "many frames it spends per block covered, with the junctions a shortcut is " +
+            "allowed to rejoin at picked out.",
+    ) { enabled }
+
+    @Group(TOGGLES_GROUP)
+    override val renderPlanGraphLabels by c.setting(
+        "Plan Graph Labels", true,
+        "Number the junctions and name the spans worth shortening.",
+    ) { enabled && renderPlanGraph }
+
+    @Group(TOGGLES_GROUP)
+    override val renderSearchTree by c.setting(
+        "Search Tree", false,
+        "The trajectory search's live anchor tree: the committed spine, the best rival " +
+            "line, and every branch still open, parked or spent.",
+    ) { enabled }
+
+    @Group(TOGGLES_GROUP)
+    override val renderSearchTreeNodes by c.setting(
+        "Search Tree Nodes", true,
+        "Mark the anchors themselves, not just the lines between them.",
+    ) { enabled && renderSearchTree }
+
+    @Group(TOGGLES_GROUP)
+    override val renderSearchStats by c.setting(
+        "Search Stats", false,
+        "Live counters above the body: expansions, budget, difficulty ladders, frontier " +
+            "sizes, beam merge rate, and how far the tape is ahead of the cursor.",
+    ) { enabled }
+
+    @Group(TOGGLES_GROUP)
     override val renderGraph by c.setting(
         "Search Graph", false,
         "Every cell the coarse search touched, shaded by how far it still is from the goal. " +
@@ -113,6 +147,21 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
 
     @Group(WIDTH_GROUP)
     override val trailWidth by c.setting("Trail Width", 20, 1..150, 1, unit = " px") { enabled && renderTrail }
+
+    @Group(WIDTH_GROUP)
+    override val searchTreeWidth by c.setting("Search Tree Width", 16, 1..150, 1, unit = " px") {
+        enabled && renderSearchTree
+    }
+
+    @Group(WIDTH_GROUP)
+    override val searchTreeNodeSize by c.setting("Search Tree Node Size", 0.08, 0.01..0.5, 0.01) {
+        enabled && renderSearchTree && renderSearchTreeNodes
+    }
+
+    @Group(WIDTH_GROUP)
+    override val junctionSize by c.setting("Junction Size", 0.16, 0.02..0.6, 0.01) {
+        enabled && renderPlanGraph
+    }
 
     @Group(WIDTH_GROUP)
     override val labelSize by c.setting("Label Size", 0.22, 0.05..1.0, 0.01) { enabled && renderLabels }
@@ -186,6 +235,41 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     override val graphAnchorColor by c.setting("Graph Optimistic Anchor", Color(255, 110, 220, 220)) {
         enabled && renderGraph
     }
+
+    @Group(COLOR_GROUP)
+    override val junctionColor by c.setting("Junction", Color(120, 230, 255, 240)) { enabled && renderPlanGraph }
+
+    @Group(COLOR_GROUP)
+    override val unsettledJunctionColor by c.setting("Junction (airborne)", Color(255, 120, 90, 200)) {
+        enabled && renderPlanGraph
+    }
+
+    @Group(COLOR_GROUP)
+    override val segmentFastColor by c.setting("Segment Fast", Color(90, 240, 150, 235)) { enabled && renderPlanGraph }
+
+    @Group(COLOR_GROUP)
+    override val segmentSlowColor by c.setting("Segment Slow", Color(255, 90, 90, 235)) { enabled && renderPlanGraph }
+
+    @Group(COLOR_GROUP)
+    override val alternateColor by c.setting("Alternate", Color(255, 220, 120, 240)) { enabled && renderPlanGraph }
+
+    @Group(COLOR_GROUP)
+    override val spineColor by c.setting("Tree Spine", Color(80, 255, 190, 245)) { enabled && renderSearchTree }
+
+    @Group(COLOR_GROUP)
+    override val treeBestColor by c.setting("Tree Best Rival", Color(255, 255, 140, 240)) { enabled && renderSearchTree }
+
+    @Group(COLOR_GROUP)
+    override val treeOpenColor by c.setting("Tree Open", Color(255, 170, 40, 220)) { enabled && renderSearchTree }
+
+    @Group(COLOR_GROUP)
+    override val treeParkedColor by c.setting("Tree Parked", Color(150, 130, 255, 190)) { enabled && renderSearchTree }
+
+    @Group(COLOR_GROUP)
+    override val treeSpentColor by c.setting("Tree Spent", Color(120, 120, 130, 150)) { enabled && renderSearchTree }
+
+    @Group(COLOR_GROUP)
+    override val treeInteriorColor by c.setting("Tree Interior", Color(90, 110, 140, 120)) { enabled && renderSearchTree }
 
     private companion object {
         const val TOGGLES_GROUP = "Toggles"

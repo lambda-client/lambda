@@ -28,7 +28,7 @@ class LiveRefusalReplayTest {
             )
             val planner = CoarsePlanner(environment, moves, loaded.start, loaded.goal)
             planner.repair(Duration.INFINITE)
-            planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+            planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
             val route = planner.routePlan(0L)
             if (route == null) { println("[replay] ${p.fileName}: NO COARSE ROUTE"); return@forEach }
             val outcome = TrajectoryPlanner.walkHorizon(

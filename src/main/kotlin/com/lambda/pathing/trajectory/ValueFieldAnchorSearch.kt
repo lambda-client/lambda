@@ -16,6 +16,23 @@ import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 
+/**
+ * How the beam decides one same-bucket anchor makes another redundant.
+ *
+ * [FULL] is the shipping rule: earlier, at least as fast, no more collisions or input
+ * switches. It is blind to position inside the quarter-block bucket, so an anchor a
+ * fraction closer to a jump lip is killed by a twin that arrived a frame earlier --
+ * against the probe corpus that blindness costs about 1% tape length and 7% of all
+ * expansions at either parallelism, and [POSITION_AWARE] (the dominator must also
+ * stand at least as close to the stance's best next coarse cell) buys both back. It is
+ * still not the default: on the baseline walks the extra frontier diversity feeds the
+ * publication-refusal grind, and two of twelve walks pay for the others' gains with
+ * tape restarts or collisions. Flip it after the grind is fixed, not before. [OFF]
+ * keeps everything up to the per-key cap -- the full quality of a free search on the
+ * corpus, a fifth more expansions, worse variance.
+ */
+enum class FrontierDomination { FULL, POSITION_AWARE, OFF }
+
 data class ValueFieldSearchConfig(
     val maxExpansions: Int = 8000,
     val stallExpansions: Int = 3000,
@@ -30,12 +47,94 @@ data class ValueFieldSearchConfig(
     val localHorizonFrames: Int = 0,
     val minCommitExpansions: Int = 0,
     val maxFinalCommitFrames: Int = 0,
+    /**
+     * How close to the solution's end the body must be before the session finalizes
+     * and stops refining. This used to share [maxFinalCommitFrames] (40), which froze
+     * the last two seconds of every walk at whatever quality the finalize moment had;
+     * the fork window makes staying alive cheap, so the freeze shrinks to the frames
+     * an adoption round-trip genuinely needs.
+     */
+    val finalizeArrivalFrames: Int = 10,
     val chainLength: Int = 6,
     val finishValueTicks: Double = 11.0,
     val maxFinishSweeps: Int = 64,
     val frontierPerKey: Int = 3,
+    /** When > 0, mirror the shipping beam at this per-key cap in shadow and mark what it would refuse. */
+    val beamShadowPerKey: Int = 0,
+    /**
+     * Minimum fork life, in EXPANSIONS of remaining search time, an off-tape branch
+     * needs to be worth deepening. A branch's whole subtree dies with its fork, so
+     * rollouts spent on a nearly-foreclosed branch are wasted unless the line is
+     * committed first -- and the commit gates refuse nearly all of them.
+     *
+     * Denominated in the search's own currency on purpose. Frames were tried first and
+     * were wrong at production speed: 20 frames of fork life is 1,560 expansions at the
+     * harness's 78 per frame -- the sweet spot that took the baseline down 2.3% and
+     * killed the restart tails -- but 12,000 at the field's ~600 per frame, where the
+     * same setting starved live alternatives on parkour and cost 7 frames a run. The
+     * session measures its own expansions-per-body-frame and converts. 0 disables.
+     */
+    val branchExpansionHeadroomExpansions: Int = 1560,
+    /**
+     * Offer solver-derived momentum jumps across cells the route walks in the SEARCH
+     * vocabulary; see JumpMovement.proposals. Off by default after a five-variant gate
+     * sweep: every clause set that admits the parkour wins (courses -7 to -15) also
+     * re-admits open-terrain damage (bedrock-05 +20 with stalls, or -08 short). The
+     * improver gets these proposals regardless -- it validates every candidate through
+     * recertify and score, so there the noise can only spend budget, never misroute
+     * the walk.
+     */
+    val momentumSkips: Boolean = false,
+    /**
+     * Offer the chained sprint-jump gait in the SEARCH vocabulary; see
+     * JumpMovement.gaitHop. The gait itself is real -- the simulator sustains 0.3506
+     * b/t jumping every landing against sprint's 0.2797 -- but where it beats ground
+     * turned out untestable by static chain predicates: flat-or-down targets win pads
+     * and lose the traverse, rise-tolerant targets the reverse, and the field-tempo
+     * probe pays either way. Off until the guide field itself knows about velocity;
+     * the improver gets it regardless, where recertify validates every candidate.
+     */
+    val momentumGait: Boolean = false,
+    /**
+     * Weight on the guide term of the frontier order (weighted A*). 1.0 is the
+     * neutral best-first order, under which two thirds of all expansions were
+     * measured within twenty frames of the published tip -- breadth churn that
+     * starves the depth the endgame needs. Above 1, deeper anchors win the ties.
+     * Ordering only; pruning bounds never read it.
+     */
+    val guideWeight: Double = 1.0,
+    /**
+     * Queue-order credit, in ticks, for anchors descending from the published tip.
+     * Uniform depth-greed (guideWeight) was measured useless because near-duplicates
+     * exist at every depth; this is the selective form -- the tape line's own
+     * continuation is the depth the endgame starves for (67% of expansions were
+     * measured within twenty frames of the tip while finishes arrived too late).
+     * Ordering only. 0 disables.
+     */
+    val tipLineCreditTicks: Double = 0.0,
+    /**
+     * Every this-many expansions, one poll takes the DEEPEST open entry instead of
+     * the best-ordered one: a depth lane scheduled outside the order, because six
+     * measured attempts prove re-ranking the order always trades tails. The lane
+     * serves the late-discovery stall (finishes sealing only when the body has
+     * already consumed the tape) without biasing what gets committed. 0 disables.
+     */
+    val depthLaneInterval: Int = 0,
+    /**
+     * Ticks of queue-side price added to an action each time a same-bucket peer's
+     * rollout of it produced a beam-merged child. Outcome-informed discovery: the
+     * guides cannot know which actions keep re-deriving held states, but the beam
+     * sees every merge -- and unlike the measured hard-skip memo (which lost the
+     * actions near-duplicate states genuinely needed), a surcharge only delays.
+     * 0 disables.
+     */
+    val mergeSurchargeTicks: Double = 0.0,
+    val frontierDomination: FrontierDomination = FrontierDomination.FULL,
     val speedBucketBlocks: Double = 0.075,
     val yawBucketDegrees: Double = 20.0,
+    val maxTemperature: Double = 1.0,
+    /** Rollouts a solved plan may spend having its worst spans shortcut. 0 disables it. */
+    val improvementBudget: Int = 0,
 ) {
     init {
         require(maxExpansions > 0)
@@ -51,8 +150,12 @@ data class ValueFieldSearchConfig(
         require(finishValueTicks >= 0.0)
         require(maxFinishSweeps >= 0)
         require(frontierPerKey > 0)
+        require(beamShadowPerKey >= 0)
+        require(branchExpansionHeadroomExpansions >= 0)
         require(speedBucketBlocks > 0.0)
         require(yawBucketDegrees > 0.0)
+        require(maxTemperature > 0.0 && maxTemperature <= 1.0)
+        require(improvementBudget >= 0)
     }
 }
 
@@ -191,6 +294,7 @@ object ValueFieldAnchorSearch {
         private val frontier: Frontier = Frontier(
             field, config, searchConfig, routeIndex,
             incumbentScore = { best?.score },
+            publishedTip = { horizon.publishedTip },
         )
 
         private val horizon: HorizonController = HorizonController(
@@ -210,13 +314,13 @@ object ValueFieldAnchorSearch {
         // for a while, successors with worse coarse bounds become proposable so the
         // search can flow around a trajectory-infeasible edge. The coarse graph itself
         // is never touched -- it stays a pure lower bound.
-        private var corridorLevel = 0
+        private var guideExpansions = 0
         private var actionsEpoch = 0
 
         // How much movement difficulty the search is currently buying. Stalls heat it,
         // guide progress cools it: easy ground is searched at easy prices, and only the
         // terrain that actually needs a tight landing pays for one.
-        private val temperature = Temperature()
+        private val temperature = Temperature(ceiling = searchConfig.maxTemperature)
         private var progressBaseline = Double.POSITIVE_INFINITY
         private var bestGuideSeen = Double.POSITIVE_INFINITY
         private var expansionsSinceGuideProgress = 0
@@ -270,13 +374,51 @@ object ValueFieldAnchorSearch {
         private var expansionsWindowStart = 0
         private var syncBucket = -1
         private var publishBucket = -1
+        private var lastViewMillis = Long.MIN_VALUE
+        private var adoptableDrops = 0
 
-        private fun corridor(): CorridorLevel = CORRIDOR_LEVELS[corridorLevel]
+        /**
+         * The finished tape the executor is already running, when one has been
+         * published. From that moment the session's contract changes: it no longer
+         * returns at the finalize gate -- it stays alive refining and publishing
+         * improvements until the body arrives or the frontier genuinely runs dry, and
+         * every terminal exit hands back the best finished tape instead of an
+         * exhaustion. Lead 3's session half, harness-safe because the virtual cursor
+         * only advances while the session works.
+         */
+        private var finalSolution: Solution? = null
+
+        private fun finishedResult(): MotionPlanResult? {
+            val published = finalSolution ?: return null
+            val out = best?.takeIf { it.score <= published.score } ?: published
+            return finish(out)
+        }
+
+        /**
+         * The session's own tempo: expansions spent per frame the body executes, as a
+         * slow EMA. What converts a fork's remaining life from body-time into search
+         * budget -- the only honest unit for deciding whether a branch is still worth
+         * deepening, because the same 20 frames is a starving search's whole window and
+         * a saturated one's rounding error.
+         */
+        private var expansionsPerFrame = 0.0
+        private var cursorMark = -1
+        private var expansionsAtCursorMark = 0
+
+        private var forkStarvedDrops = 0
+
+        private var improvementSplices = 0
+        private var improvementRollouts = 0
+        private var improvementSaved = 0
+        private var improveBucket = -1
+        private var improvementDiagnosis = ""
+
+        private fun corridor(): CorridorLevel = CORRIDOR
 
         private fun revivable(): Boolean = spentAnchors.isNotEmpty() && canEscalate()
 
         private fun restartable(): Boolean =
-            best == null && tapeRestarts < MAX_TAPE_RESTARTS &&
+            best == null && finalSolution == null && tapeRestarts < MAX_TAPE_RESTARTS &&
                 horizon.latestBrakeContinuation() != null
 
         private fun restartFromTape(): Boolean {
@@ -285,11 +427,20 @@ object ValueFieldAnchorSearch {
             // to halting -- every later anchor must descend from it, so the tape ends up
             // containing the deceleration whether or not it was ever needed. Take the
             // moving tip first and keep the brake for the case where that drains too.
-            val seed = horizon.movingTipContinuation()?.takeIf { restartedMoving.add(it.elapsed) }
+            val moving = horizon.movingTipContinuation()?.takeIf { restartedMoving.add(it.elapsed) }
+            val seed = moving
                 ?: horizon.latestBrakeContinuation()
                 ?: return false
+            probe.restarted(
+                moving = moving != null,
+                seedElapsed = seed.elapsed,
+                executing = horizon.observedCursor,
+                expansions = expansions,
+                drops = adoptableDrops,
+                spent = spentAnchors.size,
+            )
             tapeRestarts++
-            corridorLevel = 0
+            guideExpansions = 0
             temperature.cool()
             finishSweeps = 0
             sweepEpoch++
@@ -311,10 +462,6 @@ object ValueFieldAnchorSearch {
                 progressBaseline = bestGuideSeen
                 expansionsSinceGuideProgress = 0
                 if (temperature.cool()) actionsEpoch++
-                if (corridorLevel != 0) {
-                    corridorLevel = 0
-                    actionsEpoch++
-                }
             }
         }
 
@@ -353,24 +500,25 @@ object ValueFieldAnchorSearch {
                 }
             }
 
-            // Widening admits a detour the body then walks, so it keeps the full stall
-            // evidence. Sharing a counter with heat meant every heat step reset the stall
-            // the corridor was accruing, and a route that genuinely had to flow around an
-            // infeasible edge had to re-earn the whole quota four times over.
+            // Reach, on the full stall evidence. This used to widen the corridor as
+            // well, and a sweep of the two ladders against the corpus said the width was
+            // paying for nothing: at every temperature, levels 1, 2 and 3 produced tapes
+            // within a frame of level 0 while costing about 6% more expansions, and at
+            // full heat level 0 was outright the shortest tape measured. What the block
+            // was genuinely buying is the guide expansion it happened to carry, so that
+            // is what it does now.
             //
-            // The quota is waived when the frontier is dry: the counter resets on each
-            // widening, and a world small enough that the next level's whole vocabulary
-            // exhausts in under the quota can then never widen again -- a lone-pad
-            // zig-zag drained at corridor 1 with levels 2 and 3 forever unspent. With
-            // nothing open and nothing parked there are no expansions left to demand.
+            // The quota is waived when the frontier is dry: with nothing open and nothing
+            // parked there are no expansions left to demand.
             val dry = !frontier.hasOpen && !frontier.hasParked
             if (force && !dry && expansionsSinceGuideProgress < FORCE_ESCALATION_MIN_EXPANSIONS) return false
             if (!force && expansionsSinceGuideProgress < ESCALATION_EXPANSIONS) return false
-            if (corridorLevel >= CORRIDOR_LEVELS.lastIndex) return false
-            corridorLevel++
+            if (guideExpansions >= MAX_GUIDE_EXPANSIONS) return false
+            guideExpansions++
             actionsEpoch++
             expansionsSinceGuideProgress = 0
-            expandGuide?.invoke(CORRIDOR_LEVELS[corridorLevel].guideExpansionTicks)
+            expandGuide?.invoke(GUIDE_EXPANSION_TICKS * guideExpansions)
+            horizon.invalidateCommitMemo()
             field.clearGuideCache()
             frontier.rescore()
             revive()
@@ -427,10 +575,7 @@ object ValueFieldAnchorSearch {
             expansionsSinceGuideProgress = 0
             expansionsSinceHeat = 0
             if (temperature.cool()) actionsEpoch++
-            if (corridorLevel != 0) {
-                corridorLevel = 0
-                actionsEpoch++
-            }
+            guideExpansions = 0
             noteGuide(root.stance)
         }
 
@@ -453,7 +598,7 @@ object ValueFieldAnchorSearch {
          */
         /** Whether a stall still has something left to buy. */
         private fun canEscalate(): Boolean =
-            !temperature.exhausted || corridorLevel < CORRIDOR_LEVELS.lastIndex
+            !temperature.exhausted || guideExpansions < MAX_GUIDE_EXPANSIONS
 
         /**
          * Return the anchors that ran out of vocabulary to the queue.
@@ -485,6 +630,7 @@ object ValueFieldAnchorSearch {
                 is WorldSyncResult.Changed -> {
                     sweepEpoch++
                     finishSweeps = 0
+                    horizon.invalidateCommitMemo()
                     val next = result.route
                     if (next != null && (next.nodes != route.nodes || next.goal != route.goal)) {
                         route = next
@@ -520,16 +666,28 @@ object ValueFieldAnchorSearch {
             constructSpine(root)
             while (true) {
                 if (frontier.isExhausted && !frontier.hasBlocked && !revivable() && !restartable()) {
+                    finishedResult()?.let { return it }
                     exit = "exhausted"
                     break
                 }
                 if (expansions - expansionsWindowStart >= searchConfig.maxExpansions) {
+                    finishedResult()?.let { return it }
                     exit = "budget"
                     break
                 }
                 if (cancelled()) return MotionPlanResult.Cancelled
                 val executing = cursorFrame?.invoke()
                 if (executing != null) {
+                    if (cursorMark in 0 until executing) {
+                        val perFrame = (expansions - expansionsAtCursorMark).toDouble() / (executing - cursorMark)
+                        expansionsPerFrame =
+                            if (expansionsPerFrame == 0.0) perFrame
+                            else 0.7 * expansionsPerFrame + 0.3 * perFrame
+                    }
+                    if (executing != cursorMark) {
+                        cursorMark = executing
+                        expansionsAtCursorMark = expansions
+                    }
                     // Execution is the only irrevocable commitment: re-root onto what
                     // the body has actually pressed. On catch-up (the cursor entered
                     // the published brake tail) the search continues from the settled
@@ -545,31 +703,74 @@ object ValueFieldAnchorSearch {
                     // short improvement window -- but only once the body is nearly
                     // there. Finalizing mid-course froze the tape's quality with the
                     // body seconds behind it.
+                    finalSolution?.let { published ->
+                        val arrivalTape = best?.takeIf { it.score <= published.score } ?: published
+                        if (executing >= arrivalTape.frames - ARRIVAL_RETURN_FRAMES) {
+                            return finish(arrivalTape)
+                        }
+                    }
                     best?.let {
-                        if (mayFinalize() && readyToFinish(it) && bodyNearEnd(it) &&
-                            expansionsSinceImprovement >= FINAL_IMPROVEMENT_WINDOW
-                        ) {
-                            return finish(it)
+                        val tipElapsed = horizon.safeAnchor?.elapsed
+                        val pressured = tipElapsed != null &&
+                            tipElapsed - executing <= searchConfig.horizonRunwayFrames
+                        if (mayFinalize() && readyToFinish(it)) {
+                            // A sealed finish whose fork is dying while the tape also
+                            // runs out is published NOW, tail and all, while the
+                            // executor can still take it. Publishing on every seal
+                            // locked walks onto early lines (bedrock-03 +4) and firing
+                            // without pressure re-created bedrock-10's collision trade.
+                            if (pressured && horizon.finalWindowClosing(it.anchor)) {
+                                if (horizon.publishFinished(it)) finalSolution = it
+                            }
+                            if ((bodyNearEnd(it) ||
+                                    (pressured && horizon.finalWindowClosing(it.anchor))) &&
+                                expansionsSinceImprovement >= FINAL_IMPROVEMENT_WINDOW
+                            ) {
+                                // The finalize gate becomes a publication: the session
+                                // survives, refines, and returns at arrival. Only when
+                                // the final cannot ride the wire (bootstrap, unacked,
+                                // fork already dead) does the old return remain.
+                                if (horizon.publishFinished(it)) {
+                                    finalSolution = it
+                                } else if (finalSolution == null) {
+                                    return finish(it)
+                                }
+                            }
                         }
                     }
                     val tip = horizon.safeAnchor
                     if (tip != null) {
                         val runway = tip.elapsed - executing
-                        if (runway <= searchConfig.horizonRunwayFrames) {
-                            val urgent = runway <= searchConfig.horizonCommitFrames
-                            val extended = horizon.commitFromCandidates(
-                                urgent = urgent,
-                                along = best?.takeIf { !readyToFinish(it) }?.anchor,
-                            )
-                            // The body is about to outrun the tape and no extension
-                            // exists -- what remains of the running solution is its
-                            // tail. Finalize now rather than waiting out the usual
-                            // improvement window: waiting was measured as the body
-                            // braking at the tape end while a finished solution sat
-                            // unadopted behind the window.
-                            if (!extended && urgent) {
-                                best?.let {
-                                    if (mayFinalize() && readyToFinish(it)) return finish(it)
+                        // Consulted every pass. A branch improvement is only publishable
+                        // while its fork is ahead of the cursor, and the fork of a line
+                        // worth switching to is usually well behind the tip: runway
+                        // gating was measured (bedrock-05) delivering every branch
+                        // candidate to a fork already inside the divergence margin. The
+                        // first attempt at this failed for two reasons that are now
+                        // fixed -- the arbiter refused every swap for want of comparable
+                        // arrival numbers (they are stamped same-instant now), and the
+                        // frontier of that era had no reserve to absorb the re-root.
+                        // The gain hysteresis in publishableOver, the work floor and the
+                        // refused-commit memo pace the idle passes.
+                        val urgent = runway <= searchConfig.horizonCommitFrames
+                        val extended = horizon.commitFromCandidates(
+                            urgent = urgent,
+                            along = best?.takeIf { !readyToFinish(it) }?.anchor,
+                        )
+                        // The body is about to outrun the tape and no extension
+                        // exists -- what remains of the running solution is its
+                        // tail. Finalize now rather than waiting out the usual
+                        // improvement window: waiting was measured as the body
+                        // braking at the tape end while a finished solution sat
+                        // unadopted behind the window.
+                        if (!extended && urgent) {
+                            best?.let {
+                                if (mayFinalize() && readyToFinish(it)) {
+                                    if (horizon.publishFinished(it)) {
+                                        finalSolution = it
+                                    } else if (finalSolution == null) {
+                                        return finish(it)
+                                    }
                                 }
                             }
                         }
@@ -587,6 +788,11 @@ object ValueFieldAnchorSearch {
                 if (horizon.safeAnchor == null && frontier.hasParked) horizon.commitFromCandidates(urgent = false)
 
                 if (!frontier.hasOpen) {
+
+                    // The reserve first: branches starved of expansion are still alive
+                    // for commitment, and an open list drained to nothing is exactly the
+                    // state whose escape hatch they are.
+                    if (frontier.reviveStarved { horizon.adoptable(it) }) continue
 
                     if (!frontier.hasParked && frontier.hasBlocked && worldWait != null &&
                         blockedWaitMillis < MAX_BLOCKED_WAIT_MILLIS &&
@@ -646,6 +852,7 @@ object ValueFieldAnchorSearch {
                 if (expansions / CANDIDATE_PUBLISH_INTERVAL != publishBucket) {
                     publishBucket = expansions / CANDIDATE_PUBLISH_INTERVAL
                     horizon.publishCandidates()
+                    publishSearchView()
                 }
 
                 // Select up to [parallelism] decisions in rank order, simulate them
@@ -654,13 +861,32 @@ object ValueFieldAnchorSearch {
                 val batch = ArrayList<AnchorRollout.PreparedRollout>(parallelism)
                 var finishInstead: MotionPlanResult? = null
                 while (batch.size < parallelism && finishInstead == null) {
-                    val entry = frontier.poll() ?: break
+                    val lane = searchConfig.depthLaneInterval
+                    val entry = (if (lane > 0 && expansions % lane == lane - 1) {
+                        frontier.pollDeepest()
+                    } else null) ?: frontier.poll() ?: break
+                    probe.polled(
+                        entry.anchor.stance, entry.anchor.elapsed,
+                        entry.order.toRawBits(), entry.bound.toRawBits(), entry.sequence,
+                    )
 
                     // Execution kills branches continuously: a branch whose divergence
                     // point the cursor has passed can never be published again, and
                     // keeping it live let a better-but-dead line dominate the frontier
                     // while the tape starved.
-                    if (!horizon.adoptable(entry.anchor)) continue
+                    val forkLife = horizon.forkLife(entry.anchor)
+                    if (forkLife < HorizonController.PUBLISH_DIVERGENCE_MARGIN_FRAMES) {
+                        adoptableDrops++
+                        continue
+                    }
+                    if (!entry.starveExempt && expansionsPerFrame > 0.0 &&
+                        forkLife.toDouble() * expansionsPerFrame <
+                        searchConfig.branchExpansionHeadroomExpansions
+                    ) {
+                        forkStarvedDrops++
+                        frontier.starve(entry)
+                        continue
+                    }
 
                     if (entry.anchor.elapsed >= horizon.horizonEnd &&
                         field.guide(entry.anchor.stance) > searchConfig.finishValueTicks
@@ -714,6 +940,10 @@ object ValueFieldAnchorSearch {
                     expansionsSinceHeat++
                     escalate(force = false)
                     refine()
+                    if (expansions / IMPROVEMENT_INTERVAL != improveBucket) {
+                        improveBucket = expansions / IMPROVEMENT_INTERVAL
+                        improveIncumbent()
+                    }
 
                     val prepared = rollouts.prepare(anchor, action)
                     if (prepared == null) {
@@ -923,7 +1153,14 @@ object ValueFieldAnchorSearch {
             }
         }
 
+        // A bucket-level "this action produced a beam-duplicate, peers skip it" memo was
+        // tried here and measured net-negative at field tempo: the search is time-bound,
+        // not work-starved, so the ~1.6k rollouts per walk it saved were simply respent --
+        // and occasionally the skipped action was the one the peer's slightly-different
+        // state needed (field-6 paid 19 frames). Waste at saturation is not the lever;
+        // aim is.
         private fun nextAction(anchor: ValueAnchor): PricedDecision? {
+            if (searchConfig.mergeSurchargeTicks > 0.0) return nextActionSurcharged(anchor)
             for (priced in actions(anchor)) {
                 val action = priced.decision
                 if (action in anchor.attempted) continue
@@ -939,6 +1176,32 @@ object ValueFieldAnchorSearch {
                 return priced
             }
             return null
+        }
+
+        /** [nextAction] with the beam's merge outcomes priced in: min effective price wins. */
+        private fun nextActionSurcharged(anchor: ValueAnchor): PricedDecision? {
+            var pick: PricedDecision? = null
+            var pickCost = Double.MAX_VALUE
+            for (priced in actions(anchor)) {
+                val action = priced.decision
+                if (action in anchor.attempted) continue
+                val family = familyOf(action)
+                if (family != null) {
+                    val prefixFail = anchor.familyPrefixFailures[family]
+                    if (prefixFail != null && divergenceFrame(action) > prefixFail) {
+                        anchor.attempted += action
+                        continue
+                    }
+                }
+                val cost = temperature.surcharge(priced.price) +
+                    frontier.mergeSurcharge(anchor, action.movement, action.step)
+                if (cost < pickCost) {
+                    pick = priced
+                    pickCost = cost
+                }
+            }
+            pick?.let { anchor.attempted += it.decision }
+            return pick
         }
 
         /**
@@ -1021,13 +1284,117 @@ object ValueFieldAnchorSearch {
             if (incumbent == null || solution.score < incumbent.score) brakedFallback = solution
         }
 
+        /**
+         * Hand the debug channel the live tree and counters, on a wall-clock budget.
+         *
+         * Expansion-gated would tie the sample rate to search throughput, which is the
+         * one thing that varies by four times between machines and thread counts; this
+         * costs the same on any of them. Walking every live anchor is not free, so
+         * nothing is built unless something is drawing it.
+         */
+        private fun publishSearchView() {
+            val now = clock.elapsedMillis()
+            if (now - lastViewMillis < VIEW_INTERVAL_MILLIS) return
+            lastViewMillis = now
+
+            probe.stats(
+                SearchStatsView(
+                    expansions = expansions,
+                    windowExpansions = expansions - expansionsWindowStart,
+                    windowBudget = searchConfig.maxExpansions,
+                    guideExpansions = guideExpansions,
+                    temperature = temperature.current,
+                    open = frontier.openSize,
+                    parked = frontier.parkedSize,
+                    blocked = frontier.blockedSize,
+                    spent = spentAnchors.size,
+                    admitted = frontier.anchorsAdmitted,
+                    merged = frontier.beamDominated + frontier.beamEvicted + frontier.beamCapped,
+                    restarts = tapeRestarts,
+                    rootFrame = horizon.reachableRoot?.elapsed ?: -1,
+                    publishedFrame = horizon.publishedTip?.elapsed ?: -1,
+                    horizonEnd = horizon.horizonEnd,
+                    cursorFrame = horizon.observedCursor,
+                    bestScore = best?.score,
+                    elapsedMillis = now,
+                ),
+            )
+
+            if (!probe.treeEnabled) return
+
+            val roles = HashMap<ValueAnchor, SearchNodeRole>()
+            fun claim(anchor: ValueAnchor, role: SearchNodeRole) {
+                val existing = roles[anchor]
+                if (existing == null || role < existing) roles[anchor] = role
+            }
+            fun claimChain(leaf: ValueAnchor?, role: SearchNodeRole) {
+                var node = leaf
+                while (node != null && roles.size < MAX_TREE_NODES) {
+                    claim(node, role)
+                    node = node.parent
+                }
+            }
+
+            // Leaves first at their own role, then their ancestry as scaffolding, so a
+            // branch reads as one line back to where it left the spine.
+            spentAnchors.forEach { claim(it, SearchNodeRole.SPENT) }
+            frontier.parkedEntries.forEach { claim(it.anchor, SearchNodeRole.PARKED) }
+            frontier.openEntries.forEach { claim(it.anchor, SearchNodeRole.OPEN) }
+            val leaves = roles.keys.toList()
+            leaves.forEach { claimChain(it.parent, SearchNodeRole.INTERIOR) }
+            claimChain(best?.anchor, SearchNodeRole.BEST)
+            claimChain(horizon.publishedTip, SearchNodeRole.SPINE)
+
+            val nodes = ArrayList<SearchTreeNode>(roles.size)
+            val edges = ArrayList<SearchTreeEdge>(roles.size)
+            roles.forEach { (anchor, role) ->
+                nodes += SearchTreeNode(
+                    position = anchor.state.position,
+                    elapsed = anchor.elapsed,
+                    guide = field.guide(anchor.stance),
+                    role = role,
+                )
+                val parent = anchor.parent ?: return@forEach
+                if (parent !in roles) return@forEach
+                edges += SearchTreeEdge(
+                    from = parent.state.position,
+                    to = anchor.state.position,
+                    role = role,
+                    via = anchor.via,
+                )
+            }
+            probe.tree(
+                SearchTreeView(
+                    nodes = nodes,
+                    edges = edges,
+                    totalAnchors = frontier.anchorsAdmitted,
+                    truncated = roles.size >= MAX_TREE_NODES,
+                ),
+            )
+        }
+
         /** Everything worth comparing between a session that dead-ends and one that does not. */
-        fun exhaustion(): SearchExhaustion = SearchExhaustion(
+        fun exhaustion(): SearchExhaustion {
+            var shadowLineage = 0
+            var shadowLineageRefused = 0
+            if (searchConfig.beamShadowPerKey > 0) {
+                var node = best?.anchor
+                while (node != null) {
+                    shadowLineage++
+                    if (frontier.shadowRefusedDirectly(node)) shadowLineageRefused++
+                    node = node.parent
+                }
+            }
+            return SearchExhaustion(
             exit = exit,
             expansions = expansions,
             windowExpansions = expansions - expansionsWindowStart,
             windowBudget = searchConfig.maxExpansions,
-            corridorLevel = corridorLevel,
+            guideExpansions = guideExpansions,
+            improvementSplices = improvementSplices,
+            improvementRollouts = improvementRollouts,
+            improvementSaved = improvementSaved,
+            improvementDiagnosis = improvementDiagnosis,
             temperature = temperature.current,
             openAnchors = frontier.openSize,
             parkedAnchors = frontier.parkedSize,
@@ -1048,7 +1415,16 @@ object ValueFieldAnchorSearch {
             beamCapped = frontier.beamCapped,
             beamBuckets = frontier.beamBuckets,
             beamLargestBucket = frontier.beamLargestBucket,
-        )
+                adoptableDrops = adoptableDrops,
+                forkStarvedDrops = forkStarvedDrops,
+                commitAttempts = horizon.commitAttempts,
+                commitSuppressed = horizon.commitSuppressed,
+                publishRefusals = horizon.publishRefusals,
+                beamShadowRefusals = frontier.shadowRefusals,
+                beamShadowLineage = shadowLineage,
+                beamShadowLineageRefused = shadowLineageRefused,
+            )
+        }
 
         override fun certify(solution: Solution): MotionPlanResult = certifier.certify(
             solution,
@@ -1104,13 +1480,87 @@ object ValueFieldAnchorSearch {
          */
         private fun bodyNearEnd(solution: Solution): Boolean {
             val executing = cursorFrame?.invoke() ?: return true
-            return solution.frames - executing <= searchConfig.maxFinalCommitFrames
+            return solution.frames - executing <= searchConfig.finalizeArrivalFrames
         }
 
+        /**
+         * The solution is good enough to stop searching for. Spend a little making it short.
+         *
+         * Placed here rather than in the search loop on purpose: everything before this
+         * point is paying to *find* a plan, and mixing the two is what let a walk grind a
+         * hundred thousand expansions with nothing to publish. By the time this runs the
+         * answer is already in hand, so the improver can only win or waste its budget --
+         * and it is handed the same reachability test the publisher uses, so it never
+         * offers a splice behind frames the body has already pressed.
+         */
         private fun finish(solution: Solution): MotionPlanResult {
             exit = "solved"
+            val best = improve(solution)
             onExhaustion?.invoke(exhaustion())
-            return certify(solution)
+            return certify(best)
+        }
+
+        /**
+         * One improver for the whole session, so its budget is spent across the walk
+         * rather than all at once at the end.
+         */
+        private val improver by lazy {
+            PlanImprover(
+                rollouts = rollouts,
+                // The improver's vocabulary always carries the momentum skips, whatever
+                // the search default: every candidate here survives recertify and a
+                // score comparison before it can touch the plan, so a bad proposal
+                // spends budget and a good one is the discovery the coarse graph cannot
+                // express. First measured yield: three validated splices on a field
+                // course whose search found none.
+                vocabulary = ActionSet(
+                    catalog, field, config,
+                    searchConfig.copy(momentumSkips = true, momentumGait = true),
+                    corridor = ::corridor,
+                ),
+                finisher = finisher,
+                canReach = horizon::canReach,
+            )
+        }
+
+        /**
+         * Shorten the incumbent while the body is still walking toward it.
+         *
+         * Running this only at [finish] wasted most of it: by then the cursor has passed
+         * half the plan, so `canReach` refuses most cut points -- measured at nine of
+         * fifteen spans on one production route and thirty-five of thirty-nine on a long
+         * traverse. The same budget spent in slices from the moment an incumbent exists
+         * is offered a plan the body has barely started, where nearly every junction is
+         * still ahead of the cursor.
+         */
+        private fun improveIncumbent() {
+            if (searchConfig.improvementBudget <= 0) return
+            val incumbent = best ?: return
+            if (improver.rolloutsSpent >= searchConfig.improvementBudget) return
+            val slice = minOf(
+                searchConfig.improvementBudget,
+                improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS,
+            )
+            val improved = improver.improve(incumbent, slice) ?: return
+            improvementSaved += incumbent.frames - improved.frames
+            retain(improved)
+        }
+
+        private fun improve(solution: Solution): Solution {
+            if (searchConfig.improvementBudget <= 0) return solution
+            val improved = improver.improve(solution, searchConfig.improvementBudget)
+            // Recorded even when nothing was found: a budget that is being spent and
+            // returning nothing is the interesting case, and it is invisible otherwise.
+            improvementRollouts = improver.rolloutsSpent
+            improvementSplices = improver.splices
+            improvementDiagnosis = improver.diagnosis()
+            if (improved == null) return solution
+            // Certification is the arbiter, but a shorter tape that cannot be adopted is
+            // not an improvement -- the publisher would refuse it and the body would keep
+            // the tape it already has.
+            if (!horizon.canReach(improved.anchor)) return solution
+            improvementSaved = solution.frames - improved.frames
+            return improved
         }
 
     }
@@ -1160,12 +1610,21 @@ object ValueFieldAnchorSearch {
     // frontier order, the escape hatch is the price rather than the filter, and the same
     // cap keeps every route. The corpus never escalates past level 1, so it can only show
     // that this costs nothing there -- the case it is for is the one above.
-    private val CORRIDOR_LEVELS = listOf(
-        CorridorLevel(steps = 3, marginTicks = 4.0, guideExpansionTicks = 4.0),
-        CorridorLevel(steps = 5, marginTicks = 6.0, guideExpansionTicks = 8.0),
-        CorridorLevel(steps = 8, marginTicks = 8.0, guideExpansionTicks = 16.0),
-        CorridorLevel(steps = 12, marginTicks = 8.0, guideExpansionTicks = 32.0),
-    )
+    private val CORRIDOR = CorridorLevel(steps = 3, marginTicks = 4.0)
+
+    /** Guide reach bought per stall, and how many such purchases a root may make. */
+    private const val GUIDE_EXPANSION_TICKS = 8.0
+    private const val MAX_GUIDE_EXPANSIONS = 3
+
+    /** Wall-clock spacing between debug-channel samples of the live search. */
+    private const val VIEW_INTERVAL_MILLIS = 100L
+
+    /** Anchors drawn before the tree sample gives up; the search routinely holds far more. */
+    private const val MAX_TREE_NODES = 4096
+
+    /** Expansions between improvement slices, and how many rollouts each may spend. */
+    private const val IMPROVEMENT_INTERVAL = 2000
+    private const val IMPROVEMENT_SLICE_ROLLOUTS = 250
 
     private const val ESCALATION_EXPANSIONS = 1500
 
@@ -1191,6 +1650,9 @@ object ValueFieldAnchorSearch {
     private const val FORCE_ESCALATION_MIN_EXPANSIONS = 32
 
     private const val FINAL_IMPROVEMENT_WINDOW = 256
+
+    /** Frames before the finished tape's end at which the surviving session returns it. */
+    private const val ARRIVAL_RETURN_FRAMES = 2
 
     private const val MAX_TAPE_RESTARTS = 3
 

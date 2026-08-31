@@ -1,6 +1,7 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.CoarseEdge
@@ -25,7 +26,6 @@ import com.lambda.pathing.movement.TrajectoryDecision
 internal data class CorridorLevel(
     val steps: Int,
     val marginTicks: Double,
-    val guideExpansionTicks: Double,
 )
 
 internal class ActionSet(
@@ -68,6 +68,10 @@ internal class ActionSet(
         if (steps.isEmpty()) return emptyList()
 
         val costOf = HashMap<Stance, Double>(steps.size)
+        // Blended, deliberately, after measuring the alternative: pricing each step's
+        // continuation at its edge's arrival class bought the traverse eleven frames,
+        // spent four collision frames for them, and broke the starved-tempo fixture's
+        // arrival outright. The detour ranking wants the safe bound, not the sharp one.
         steps.forEach { costOf[it.to] = it.lowerBoundTicks + field.guide(it.to) }
         val bestCost = costOf.values.min()
         val byDestination = steps.associateBy { it.to }
@@ -102,6 +106,10 @@ internal class ActionSet(
             view = field.view,
             steering = field,
             headingFanDegrees = searchConfig.headingFanDegrees,
+            guideTicks = { field.guide(it) },
+            movingGuideTicks = { field.guide(it, SpeedClass.MOVING) },
+            momentumSkips = searchConfig.momentumSkips,
+            momentumGait = searchConfig.momentumGait,
         )
         for (movement in catalog.movements) {
             val proposals = movement.proposals(proposalContext)
@@ -117,7 +125,17 @@ internal class ActionSet(
 
         if (priced.isEmpty()) return emptyList()
 
-        val ordered = priced.sortedBy { temperature.surcharge(it.price) }
+        // At equal surcharge, a decision that spans several coarse edges sorts ahead
+        // of one that serves a single edge: it prepays the edges it flies over, and
+        // FREE ties otherwise resolve by insertion order -- measured leaving the gait
+        // hop its turn on 43 anchors out of seven thousand. Prices stay non-negative;
+        // this is ordering, not cost.
+        fun spansEdges(decision: TrajectoryDecision): Boolean =
+            decision is TrajectoryDecision.Launch && decision.solution == null &&
+                decision.delayFrames == 0 && decision.step !in costOf
+        val ordered = priced.sortedWith(
+            compareBy({ temperature.surcharge(it.price) }, { if (spansEdges(it.decision)) 0 else 1 }),
+        )
         val affordable = ordered.filter { temperature.affords(it.price) }
         if (affordable.isNotEmpty()) return affordable
 

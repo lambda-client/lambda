@@ -28,23 +28,13 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
 
-/**
- * What extra search throughput buys against the walking body.
- *
- * The virtual clock prices one expansion at the wall time it takes; parallel batches
- * make expansions cheaper by the MEASURED kernel speedup (RolloutParallelScalingTest:
- * 3.74x at 4 threads, 6.87x at 8 on this machine), so the body consumes frames while
- * the search produces proportionally more work. Quality is read off the usual columns.
- * Non-gating report.
- */
+/** Same price per expansion at every parallelism: isolates search quality from throughput. */
 @Tag("bedrock-corpus")
-class ParallelQualityProbeTest {
+class BatchIsolationProbeTest {
     @Test
-    fun `tape quality at measured parallel search speeds`() {
-        // (parallelism, micros per expansion) -- 640 / measured speedup.
-        val settings = listOf(1 to 640L, 4 to 171L, 8 to 93L)
+    fun `batch width at a fixed expansion price`() {
         val scenarios = buildList {
-            for (seed in 1..4) {
+            for (seed in 2..2) {
                 val course = ParkourCourseLayout.course(jumps = 20, seed = seed)
                 add(Triple("course-$seed", courseEnvironment(course), course.start to course.goal))
             }
@@ -55,13 +45,16 @@ class ParallelQualityProbeTest {
             add(Triple("bedrock-traverse", bedrock, Stance(head.x, head.y, head.z) to Stance(tail.x, tail.y, tail.z)))
         }
 
-        for ((parallelism, micros) in settings) {
+        // Serial against the shipping default. The full 1/2/4/8 ladder is what showed
+        // batching to be neutral-to-better per expansion; the endpoints keep that honest
+        // for a fraction of the wall clock this task has to share.
+        for (parallelism in listOf(1, 4)) {
+            val per = StringBuilder()
             var frames = 0
-            var stalled = 0
-            var collisions = 0
             var arrived = 0
             var excessSum = 0.0
             var excessCount = 0
+            val esc = ArrayList<Pair<Int, Double>>()
             for ((name, environment, endpoints) in scenarios) {
                 val (start, goal) = endpoints
                 val options =
@@ -78,7 +71,7 @@ class ParallelQualityProbeTest {
 
                 val dx = (goal.x - start.x).toDouble()
                 val dz = (goal.z - start.z).toDouble()
-                val clock = VirtualSearchClock(microsPerExpansion = micros)
+                val clock = VirtualSearchClock(microsPerExpansion = 640L)
                 val executor = VirtualExecutor(clock)
                 val outcome = TrajectoryPlanner.walkHorizon(
                     route, planner,
@@ -96,40 +89,35 @@ class ParallelQualityProbeTest {
                     clock = clock,
                     adoptedSequence = executor::adoptedSequence,
                     parallelism = parallelism,
+                    onExhaustion = { esc.add(it.guideExpansions to it.temperature) },
                 )
                 val path = (outcome as? PathPlanResult.Planned)?.path
                 if (path != null && !path.partial) {
                     arrived++
-                    val tape = path.plan.frames
-                    frames += tape.size
-                    collisions += tape.count { it.state.horizontalCollision }
-                    stalled += stalledFrames(tape.map { it.state.velocity.horizontalLength() })
+                    frames += path.plan.frames.size
+                    per.append(" ").append(name).append("=").append(path.plan.frames.size)
                     if (path.excessRatio.isFinite()) {
                         excessSum += (path.excessRatio - 1.0) * 100
                         excessCount++
                     }
-                }
+                } else per.append(" ").append(name).append("=FAIL")
             }
             println(
-                "[quality] threads=%-2d arrived=%d/%d frames=%-5d excess=%+.1f%% collisions=%d stalled=%d".format(
+                "[batch] threads=%-2d arrived=%d/%d frames=%-5d excess=%+.1f%% |%s".format(
                     parallelism, arrived, scenarios.size, frames,
-                    if (excessCount > 0) excessSum / excessCount else 0.0, collisions, stalled,
+                    if (excessCount > 0) excessSum / excessCount else 0.0, per,
+                ),
+            )
+            println(
+                "[esc]   threads=%-2d exits=%d maxGuide=%d meanGuide=%.2f maxTemp=%.2f meanTemp=%.2f".format(
+                    parallelism, esc.size,
+                    esc.maxOfOrNull { it.first } ?: -1,
+                    esc.map { it.first }.average(),
+                    esc.maxOfOrNull { it.second } ?: -1.0,
+                    esc.map { it.second }.average(),
                 ),
             )
         }
-    }
-
-    private fun stalledFrames(speeds: List<Double>): Int {
-        val stopped = MotionConstraints().stoppedSpeed
-        var total = 0
-        var run = 0
-        speeds.forEachIndexed { index, speed ->
-            if (speed <= stopped) run++ else {
-                if (run >= 4) total += run
-                run = 0
-            }
-        }
-        return total
     }
 
     private fun courseEnvironment(course: ParkourCourseLayout.Course): SnapshotSimulationEnvironment =

@@ -255,7 +255,11 @@ internal class AnchorRollout(
                 parent = anchor,
                 inputs = frames.map { it.input },
                 boundary = anchor.elapsed + frames.size,
-            ).also { it.via = action.movement },
+            ).also {
+                it.via = action.movement
+                it.decision = action
+                it.points = points
+            },
         )
     }
 

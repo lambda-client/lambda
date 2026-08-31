@@ -6,8 +6,12 @@ class LazyGraph<N>(
     private val successorProvider: (N) -> Map<N, Double>,
     private val predecessorProvider: (N) -> Map<N, Double> = successorProvider,
 ) {
-    private val successorEdges = HashMap<N, HashMap<N, Double>>()
-    private val predecessorEdges = HashMap<N, HashMap<N, Double>>()
+    // The inner maps are what the search iterates; insertion order keeps that
+    // iteration identical across JVMs. A hash-ordered map's treeified bins break
+    // equal-hash ties by identity hash, which made long walks land on different frame
+    // counts run to run.
+    private val successorEdges = HashMap<N, LinkedHashMap<N, Double>>()
+    private val predecessorEdges = HashMap<N, LinkedHashMap<N, Double>>()
     private val initializedSuccessors = HashSet<N>()
     private val initializedPredecessors = HashSet<N>()
     private val knownNodes = HashSet<N>()
@@ -86,8 +90,8 @@ class LazyGraph<N>(
     private fun putEdge(from: N, to: N, cost: Double) {
         knownNodes += from
         knownNodes += to
-        successorEdges.getOrPut(from) { HashMap() }[to] = cost
-        predecessorEdges.getOrPut(to) { HashMap() }[from] = cost
+        successorEdges.getOrPut(from) { LinkedHashMap() }[to] = cost
+        predecessorEdges.getOrPut(to) { LinkedHashMap() }[from] = cost
     }
 
     private fun removeEdge(from: N, to: N) {
@@ -113,13 +117,13 @@ class LazyGraph<N>(
 }
 
 private fun <N> Map<N, Double>.filterUsableCosts(): Map<N, Double> {
-    var filtered: HashMap<N, Double>? = null
+    var filtered: LinkedHashMap<N, Double>? = null
     for ((node, cost) in this) {
         require(!cost.isNaN() && cost >= 0.0) {
             "D* Lite edge costs must be non-negative or +infinity: $cost"
         }
         if (!cost.isFinite()) {
-            val target = filtered ?: HashMap(this).also { filtered = it }
+            val target = filtered ?: LinkedHashMap(this).also { filtered = it }
             target.remove(node)
         }
     }

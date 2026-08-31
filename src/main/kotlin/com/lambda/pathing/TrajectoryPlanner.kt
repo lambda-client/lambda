@@ -76,6 +76,9 @@ internal data class TrajectoryPlanningPreparation(
     val frontierSweepBudget: Int,
     val bootstrapDelayMillis: Long,
     val plannerThreads: Int,
+    val improvementBudget: Int,
+    val momentumGait: Boolean,
+    val momentumSkips: Boolean,
     val dumpDirectory: java.nio.file.Path?,
     val startedMillis: Long,
 )
@@ -220,6 +223,9 @@ object TrajectoryPlanner {
                 frontierSweepBudget = config.frontierSweepBudget,
                 bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
                 plannerThreads = config.plannerThreads,
+                improvementBudget = config.improvementBudget,
+                momentumGait = config.momentumGait,
+                momentumSkips = config.momentumSkips,
                 dumpDirectory = dumpDirectory,
                 startedMillis = started,
             )
@@ -342,6 +348,9 @@ object TrajectoryPlanner {
                     // between them can be read off directly instead of inferred.
                     onExhaustion = { LOG.info("Trajectory search {} -> {}: {}", start, goal, it) },
                     parallelism = preparation.plannerThreads,
+                    improvementBudget = preparation.improvementBudget,
+                    momentumGait = preparation.momentumGait,
+                    momentumSkips = preparation.momentumSkips,
                 )
 
                 if (outcome is PathPlanResult.Failed) {
@@ -400,6 +409,27 @@ object TrajectoryPlanner {
         probe: SearchProbe = SearchProbe.NONE,
         onExhaustion: ((SearchExhaustion) -> Unit)? = null,
         parallelism: Int = 1,
+        maxTemperature: Double = 1.0,
+        improvementBudget: Int = 0,
+        frontierPerKey: Int = 3,
+        beamShadowPerKey: Int = 0,
+        branchExpansionHeadroomExpansions: Int = 1560,
+        momentumSkips: Boolean = false,
+        momentumGait: Boolean = false,
+        guideWeight: Double = 1.0,
+        tipLineCreditTicks: Double = 0.0,
+        depthLaneInterval: Int = 0,
+        mergeSurchargeTicks: Double = 0.0,
+        /**
+         * Wall-time cap on each mid-walk guide expansion. The production default keeps
+         * the planner thread responsive; harnesses driven by a virtual clock MUST pass
+         * [Duration.INFINITE] -- a real-time budget inside an otherwise virtual walk
+         * makes guide coverage machine-dependent, measured as the same fixture landing
+         * on 358, 362 or 371 frames by JIT mood. The expansion-count cap still binds.
+         */
+        fieldExpansionBudget: kotlin.time.Duration = FIELD_EXPANSION_BUDGET,
+        frontierDomination: com.lambda.pathing.trajectory.FrontierDomination =
+            com.lambda.pathing.trajectory.FrontierDomination.FULL,
     ): PathPlanResult {
         var published = 0
         var last: PublishedPath? = null
@@ -425,6 +455,18 @@ object TrajectoryPlanner {
                 maxExpansions = minOf(maxExpansions, PER_WINDOW_EXPANSIONS),
                 minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
                 maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
+                maxTemperature = maxTemperature,
+                improvementBudget = improvementBudget,
+                frontierPerKey = frontierPerKey,
+                beamShadowPerKey = beamShadowPerKey,
+                branchExpansionHeadroomExpansions = branchExpansionHeadroomExpansions,
+                momentumSkips = momentumSkips,
+                momentumGait = momentumGait,
+                guideWeight = guideWeight,
+                tipLineCreditTicks = tipLineCreditTicks,
+                depthLaneInterval = depthLaneInterval,
+                mergeSurchargeTicks = mergeSurchargeTicks,
+                frontierDomination = frontierDomination,
             ),
             onSafePrefix = { step ->
                 if (!cancelled()) {
@@ -450,7 +492,7 @@ object TrajectoryPlanner {
             expandGuide = { marginTicks ->
                 planner.expandField(
                     extraTicks = FIELD_EXPANSION_TICKS + marginTicks,
-                    timeBudget = FIELD_EXPANSION_BUDGET,
+                    timeBudget = fieldExpansionBudget,
                     maxExpansions = FIELD_EXPANSION_NODES,
                 )
             },
@@ -533,6 +575,9 @@ object TrajectoryPlanner {
         planningGeneration = planningGeneration,
         publicationSequence = publicationSequence,
         segments = seed.segments,
+        arrivalTicksEstimate = seed.arrivalTicksEstimate,
+        comparedRunningArrivalTicks = seed.comparedRunningArrivalTicks,
+        comparedRunningSequence = seed.comparedRunningSequence,
     )
 
     private const val HORIZON_FRAMES = 20

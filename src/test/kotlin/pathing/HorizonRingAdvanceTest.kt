@@ -42,7 +42,7 @@ class HorizonRingAdvanceTest {
         // raw extraction used to end at (79, 63, 0), a dead end the reveal exposes.
         kotlin.test.assertTrue(
             state.planner.moves.successorCosts(state.planner.view, first.goal).isNotEmpty() &&
-                state.planner.search.g(first.goal).isFinite(),
+                state.planner.stanceCost(first.goal).isFinite(),
             "the resolved terminal ${first.goal} must be routable onward",
         )
 

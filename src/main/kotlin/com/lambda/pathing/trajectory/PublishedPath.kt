@@ -23,6 +23,11 @@ data class PublishedPath(
     val planningGeneration: Long = 0L,
     val publicationSequence: Int = 0,
 
+    /** Same-instant arrival comparison against [comparedRunningSequence]; see MotionPlanResult.Success. */
+    val arrivalTicksEstimate: Double = Double.NaN,
+    val comparedRunningArrivalTicks: Double = Double.NaN,
+    val comparedRunningSequence: Long = -1,
+
     /** How the tape's frames divide between the movements that produced them. */
     val segments: List<TapeSegment> = emptyList(),
 ) {

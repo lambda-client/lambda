@@ -1,6 +1,7 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.core.center
@@ -49,6 +50,7 @@ internal class Frontier(
     private val searchConfig: ValueFieldSearchConfig,
     private var routeIndex: Map<Stance, Int>,
     private val incumbentScore: () -> Int?,
+    private val publishedTip: () -> ValueAnchor? = { null },
 ) {
     var reachability: ReachabilityPolicy = ReachabilityPolicy { true }
     class OpenEntry(
@@ -56,18 +58,50 @@ internal class Frontier(
         val bound: Double,
         val anchor: ValueAnchor,
         internal var sequence: Long = Long.MAX_VALUE,
-    )
+    ) {
+        /** Revived from the starved reserve: expand it rather than re-starving it forever. */
+        internal var starveExempt = false
+    }
 
     private val open = PriorityQueue<OpenEntry>(
         compareBy<OpenEntry>({ it.order }, { it.bound }, { it.anchor.elapsed }, { it.sequence })
     )
     private val parked = ArrayList<OpenEntry>()
 
+    /**
+     * Branches not worth deepening but still worth committing: their fork is close
+     * enough to the cursor that a subtree grown on them dies with it, so they wait here
+     * where the commit pool can still see them. A drained open list revives them --
+     * they are the walk's escape hatch when the tip line cannot be extended.
+     */
+    private val reserve = ArrayList<OpenEntry>()
+
     private class BlockedAttempt(val anchor: ValueAnchor, val action: com.lambda.pathing.movement.TrajectoryDecision)
 
     private val blocked = ArrayList<BlockedAttempt>()
 
     private val buckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
+
+    /** Accumulated merge outcomes per (origin bucket, movement, step): what keeps producing held states. */
+    private val mergeOutcomes = HashMap<Triple<AnchorKey, com.lambda.pathing.core.MovementId, Stance?>, Double>()
+
+    fun mergeSurcharge(anchor: ValueAnchor, movement: com.lambda.pathing.core.MovementId, step: Stance?): Double {
+        if (searchConfig.mergeSurchargeTicks <= 0.0) return 0.0
+        val accumulated = mergeOutcomes[Triple(keyOf(anchor), movement, step)] ?: return 0.0
+        // The first merge is measurement, not yet a pattern: charging from the first
+        // hit reshuffled the baseline (+16 frames) for the corpus's -8.
+        return (accumulated - searchConfig.mergeSurchargeTicks).coerceAtLeast(0.0)
+    }
+
+    private fun noteMerge(child: ValueAnchor) {
+        if (searchConfig.mergeSurchargeTicks <= 0.0) return
+        val parent = child.parent ?: return
+        val decision = child.decision ?: return
+        mergeOutcomes.merge(
+            Triple(keyOf(parent), decision.movement, decision.step),
+            searchConfig.mergeSurchargeTicks,
+        ) { a, b -> (a + b).coerceAtMost(MERGE_SURCHARGE_CAP_TICKS) }
+    }
     private var insertionSequence = 0L
 
     val isExhausted: Boolean get() = open.isEmpty() && parked.isEmpty()
@@ -75,6 +109,8 @@ internal class Frontier(
     val hasOpen: Boolean get() = open.isNotEmpty()
     val hasParked: Boolean get() = parked.isNotEmpty()
     val parkedEntries: List<OpenEntry> get() = parked
+    val reserveEntries: List<OpenEntry> get() = reserve
+    val reserveSize: Int get() = reserve.size
     val openSize: Int get() = open.size
     val blockedSize: Int get() = blocked.size
 
@@ -104,6 +140,23 @@ internal class Frontier(
     var beamCapped = 0
         private set
 
+    /**
+     * The shipping beam policy run in shadow while the real one is relaxed.
+     *
+     * The question it answers: run with a generous [ValueFieldSearchConfig.frontierPerKey],
+     * mirror the strict policy here, and any winning-lineage anchor marked refused is one the
+     * shipping beam would have thrown away and then paid to rediscover. Only the dominated and
+     * capped refusals are lethal -- a bucket eviction leaves the anchor in the open queue.
+     */
+    var shadowRefusals = 0
+        private set
+
+    private val shadowBuckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
+    private val nextCenters = HashMap<Stance, com.lambda.pathing.core.HorizontalPoint?>()
+    private val shadowDead = java.util.IdentityHashMap<ValueAnchor, Boolean>()
+
+    fun shadowRefusedDirectly(anchor: ValueAnchor): Boolean = shadowDead[anchor] == true
+
     val beamBuckets: Int get() = buckets.size
     val beamLargestBucket: Int get() = buckets.values.maxOfOrNull { it.size } ?: 0
     val parkedSize: Int get() = parked.size
@@ -116,16 +169,58 @@ internal class Frontier(
 
     fun poll(): OpenEntry? = open.poll()
 
+    /** The deepest open entry, removed: the depth lane's pick. O(n), called sparingly. */
+    fun pollDeepest(): OpenEntry? {
+        val deepest = open.maxWithOrNull(
+            compareBy({ it.anchor.elapsed }, { -it.order }, { -it.sequence }),
+        ) ?: return null
+        open.remove(deepest)
+        return deepest
+    }
+
     fun park(entry: OpenEntry) {
         parked += entry
+    }
+
+    fun starve(entry: OpenEntry) {
+        reserve += entry
+    }
+
+    /**
+     * One entry per drain, deliberately. Wholesale revival was measured in production
+     * (600 expansions per body frame -- the search saturates its live subtree, so the
+     * open list drains constantly) grinding every dead branch through its entire
+     * vocabulary: 44k starve events against 27k admissions, and the churn ate the
+     * surplus compute that just-in-time refinement lives on. Reviving only the
+     * best-ordered survivor keeps the escape hatch at a price of one rollout per drain.
+     */
+    fun reviveStarved(alive: (ValueAnchor) -> Boolean): Boolean {
+        while (reserve.isNotEmpty()) {
+            val best = reserve.minByOrNull { it.order } ?: return false
+            reserve.remove(best)
+            if (!alive(best.anchor)) continue
+            best.starveExempt = true
+            open += best
+            return true
+        }
+        return false
     }
 
     fun reopen(anchor: ValueAnchor) {
         if (!reachability.canReach(anchor)) return
         if (open.any { it.anchor === anchor }) return
-        val guide = field.guide(anchor.stance).takeIf { it.isFinite() } ?: return
+        val guide = orderGuide(anchor).takeIf { it.isFinite() } ?: return
         enqueue(entryFor(anchor, guide))
     }
+
+    /**
+     * The guide the QUEUE ranks by: conditioned on the anchor's own speed class, so a
+     * moving body's remaining estimate stops paying the transition tax its chain never
+     * pays and a stopped one's includes its acceleration. Pruning never uses this --
+     * the blended min stays the only safe lower bound.
+     */
+    private fun orderGuide(anchor: ValueAnchor): Double =
+        field.guide(anchor.stance, SpeedClass.of(anchor.speed))
 
     fun offer(entry: OpenEntry) {
         enqueue(entry)
@@ -141,7 +236,7 @@ internal class Frontier(
      * movement, so it falls behind exactly as far as continuing there deserves.
      */
     fun reoffer(anchor: ValueAnchor) {
-        val guide = field.guide(anchor.stance).takeIf { it.isFinite() } ?: return
+        val guide = orderGuide(anchor).takeIf { it.isFinite() } ?: return
         enqueue(entryFor(anchor, guide))
     }
 
@@ -150,7 +245,10 @@ internal class Frontier(
         open.clear()
         open.addAll(retained)
         blocked.retainAll { it.anchor.descendsFrom(root) }
+        reserve.retainAll { it.anchor.descendsFrom(root) }
         buckets.clear()
+        mergeOutcomes.clear()
+        shadowBuckets.clear()
     }
 
     fun parkBlocked(anchor: ValueAnchor, action: com.lambda.pathing.movement.TrajectoryDecision) {
@@ -166,10 +264,11 @@ internal class Frontier(
     }
 
     fun rescore() {
+        nextCenters.clear()
         val entries = open.toList()
         open.clear()
         entries.forEach { entry ->
-            val guide = field.guide(entry.anchor.stance)
+            val guide = orderGuide(entry.anchor)
             if (guide.isFinite()) {
 
                 val fresh = entryFor(entry.anchor, guide)
@@ -201,7 +300,7 @@ internal class Frontier(
     }
 
     fun admit(anchor: ValueAnchor) {
-        val guide = field.guide(anchor.stance)
+        val guide = orderGuide(anchor)
             .takeIf { it.isFinite() }
             ?: if (anchor.parent == null) field.lowerBound(anchor.stance) else return
         deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
@@ -213,14 +312,19 @@ internal class Frontier(
         }
 
         anchorsAdmitted++
+        if (searchConfig.beamShadowPerKey > 0) shadowAdmit(anchor, key)
         val bucket = buckets.getOrPut(key) { ArrayList() }
-        if (bucket.any { it.preferredForBeamOver(anchor) }) {
-            beamDominated++
-            return
+        if (searchConfig.frontierDomination != FrontierDomination.OFF) {
+            val positionAware = searchConfig.frontierDomination == FrontierDomination.POSITION_AWARE
+            if (bucket.any { it.preferredForBeamOver(anchor, positionAware) }) {
+                beamDominated++
+                noteMerge(anchor)
+                return
+            }
+            val before = bucket.size
+            bucket.removeAll { anchor.preferredForBeamOver(it, positionAware) }
+            beamEvicted += before - bucket.size
         }
-        val before = bucket.size
-        bucket.removeAll { anchor.preferredForBeamOver(it) }
-        beamEvicted += before - bucket.size
         if (bucket.size >= searchConfig.frontierPerKey) {
             val worst = bucket.maxByOrNull { it.elapsed } ?: return
             if (worst.elapsed <= anchor.elapsed) {
@@ -251,17 +355,42 @@ internal class Frontier(
     // arrival frame -- it is what licenses finalizing an incumbent -- and what a movement
     // costs the *search* is not time the body spends.
     private fun entryFor(anchor: ValueAnchor, guide: Double) = OpenEntry(
-        order = anchor.elapsed + momentumAdjusted(anchor, guide) + anchor.pendingSurcharge,
+        order = anchor.elapsed + searchConfig.guideWeight * momentumAdjusted(anchor, guide) +
+            anchor.pendingSurcharge - tipLineCredit(anchor),
         bound = anchor.elapsed +
             (field.lowerBound(anchor.stance) - MOMENTUM_CREDIT_MAX_TICKS).coerceAtLeast(0.0),
         anchor = anchor,
     )
 
-    private fun ValueAnchor.preferredForBeamOver(other: ValueAnchor): Boolean =
+    private fun ValueAnchor.preferredForBeamOver(
+        other: ValueAnchor,
+        positionAware: Boolean = false,
+    ): Boolean =
         elapsed <= other.elapsed &&
             speed >= other.speed - SPEED_DOMINANCE_SLACK &&
             collisionEvents <= other.collisionEvents &&
-            inputSwitches <= other.inputSwitches
+            inputSwitches <= other.inputSwitches &&
+            (!positionAware || atLeastAsCloseToNextCell(other))
+
+    private fun ValueAnchor.atLeastAsCloseToNextCell(other: ValueAnchor): Boolean {
+        val next = nextCellCenter(stance) ?: return true
+        return kotlin.math.hypot(state.position.x - next.x, state.position.z - next.z) <=
+            kotlin.math.hypot(other.state.position.x - next.x, other.state.position.z - next.z) +
+            POSITION_DOMINANCE_SLACK
+    }
+
+    private fun nextCellCenter(stance: Stance): com.lambda.pathing.core.HorizontalPoint? {
+        if (!nextCenters.containsKey(stance)) {
+            nextCenters[stance] = field.steps(stance, 1).firstOrNull()?.to?.center()
+        }
+        return nextCenters[stance]
+    }
+
+    private fun tipLineCredit(anchor: ValueAnchor): Double {
+        if (searchConfig.tipLineCreditTicks <= 0.0) return 0.0
+        val tip = publishedTip() ?: return 0.0
+        return if (anchor.descendsFrom(tip)) searchConfig.tipLineCreditTicks else 0.0
+    }
 
     private fun momentumAdjusted(anchor: ValueAnchor, guide: Double): Double {
         val next = field.steps(anchor.stance, 1, heading = anchor.heading())
@@ -271,6 +400,10 @@ internal class Frontier(
             next.x - anchor.state.position.x, next.z - anchor.state.position.z,
         )
         val headingError = Math.toDegrees(kotlin.math.acos(alignment.coerceIn(-1.0, 1.0)))
+        // The class-conditioned guide does NOT subsume this credit -- removing it was
+        // measured at +27 baseline frames, seventeen new stall frames and a failed
+        // field course. The class is one binary bit; the credit is continuous in speed
+        // and alignment, and the queue needs both.
         return guide -
             momentumCredit(anchor.speed, alignment) +
             momentumTurnCost(anchor.speed, headingError, config.maxYawDegreesPerFrame)
@@ -315,11 +448,48 @@ internal class Frontier(
         (open.asSequence() + parked.asSequence()).forEach { entry ->
             buckets.getOrPut(keyOf(entry.anchor)) { ArrayList() } += entry.anchor
         }
+        if (searchConfig.beamShadowPerKey > 0) {
+            shadowBuckets.clear()
+            (open.asSequence() + parked.asSequence())
+                .filter { shadowDead[it.anchor] == null }
+                .forEach { shadowBuckets.getOrPut(keyOf(it.anchor)) { ArrayList() } += it.anchor }
+        }
+    }
+
+    private fun shadowAdmit(anchor: ValueAnchor, key: AnchorKey) {
+        val parent = anchor.parent
+        if (parent != null && shadowDead.containsKey(parent)) {
+            shadowDead[anchor] = false
+            return
+        }
+        val bucket = shadowBuckets.getOrPut(key) { ArrayList() }
+        if (bucket.any { it.preferredForBeamOver(anchor) }) {
+            shadowDead[anchor] = true
+            shadowRefusals++
+            return
+        }
+        bucket.removeAll { anchor.preferredForBeamOver(it) }
+        if (bucket.size >= searchConfig.beamShadowPerKey) {
+            val worst = bucket.maxByOrNull { it.elapsed } ?: return
+            if (worst.elapsed <= anchor.elapsed) {
+                shadowDead[anchor] = true
+                shadowRefusals++
+                return
+            }
+            bucket.remove(worst)
+        }
+        bucket += anchor
     }
 
     private companion object {
 
         const val SPEED_DOMINANCE_SLACK = 0.01
+
+        /** Ceiling on the accumulated merge surcharge: a delay, never a wall. */
+        const val MERGE_SURCHARGE_CAP_TICKS = 6.0
+
+        /** Within-bucket positions differ by a quarter block at most; ties go to the earlier body. */
+        const val POSITION_DOMINANCE_SLACK = 0.02
 
         /**
          * How finely two bodies on the same stance must differ to count as different.

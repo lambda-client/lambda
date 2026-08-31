@@ -54,7 +54,7 @@ class DiagonalZigZagProbeTest {
         )
         val planner = CoarsePlanner(environment, moves, start, goal)
         check(planner.repair(Duration.INFINITE).converged) { "coarse must converge" }
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L)) { "coarse route must exist" }
         println("[zigzag] route: " + route.nodes.joinToString("->") { "(${it.x},${it.y},${it.z})" })
 
@@ -252,7 +252,7 @@ class DiagonalZigZagProbeTest {
         )
         val planner = CoarsePlanner(environment, moves, Stance(0, 17, 0), Stance(-5, 11, 0))
         check(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L))
         println("[droptrace] route: " + route.nodes.joinToString("->") { "(${it.x},${it.y},${it.z})" })
         val outcome = TrajectoryPlanner.walkHorizon(

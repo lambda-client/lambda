@@ -1,6 +1,7 @@
 package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.SpeedClass
 import net.minecraft.util.math.Vec3d
 
 internal interface CommitSupport {
@@ -63,7 +64,50 @@ internal class HorizonController(
 
     private var pendingAckSinceMillis: Long? = null
 
+    /**
+     * The refusal grind, counted. A commit attempt whose inputs cannot have changed
+     * since the last full refusal is suppressed without re-walking the line: every gate
+     * in [publishableOver] is a function of the running publication, the ack state, the
+     * roots and the chosen leaf -- the cursor is deliberately not in the key, because a
+     * divergence refusal is monotone in it (once a fork is behind the cursor it stays
+     * behind) and no other clause reads it. bedrock-05 was measured refusing the same
+     * nine candidates 157 rounds in a row, byte-identical; that is this memo's target.
+     */
+    var commitAttempts = 0
+        private set
+    var commitSuppressed = 0
+        private set
+    var publishRefusals = 0
+        private set
+
+    private class CommitInputs(
+        val tip: ValueAnchor?,
+        val root: ValueAnchor?,
+        val acked: Long,
+        val along: ValueAnchor?,
+        val best: ValueAnchor?,
+    )
+
+    private var refusedCommit: CommitInputs? = null
+
+    /** Guide values changed under the memo's feet: rescore, route change, field growth. */
+    fun invalidateCommitMemo() {
+        refusedCommit = null
+    }
+
     private val publications = ArrayDeque<Publication>()
+
+    /**
+     * The executed frame, remembered.
+     *
+     * Asking for the cursor is not a free read -- the manager delivers pending
+     * publications on the way past -- so anything that only wants to *report* the cursor
+     * reads this instead of asking again.
+     */
+    var observedCursor: Int = -1
+        private set
+
+    private fun cursor(): Int? = cursorFrame?.invoke()?.also { observedCursor = it }
 
     fun begin() {
         if (searchConfig.localHorizonFrames > 0) horizonEnd = searchConfig.localHorizonFrames
@@ -79,7 +123,7 @@ internal class HorizonController(
      * the search from rest.
      */
     fun advanceExecutedRoot(): ValueAnchor? {
-        val raw = cursorFrame?.invoke() ?: return null
+        val raw = cursor() ?: return null
         maybeRollback()
         val acked = adoptedSequence?.invoke() ?: Long.MAX_VALUE
 
@@ -131,12 +175,13 @@ internal class HorizonController(
         val remaining = field.guide(anchor.stance)
         if (!remaining.isFinite() || remaining <= searchConfig.finishValueTicks) return
 
-        val cursor = cursorFrame?.invoke()
+        val cursor = cursor()
         val running = publishedTip
         // Refusals only matter in the frames before a potential stall; report them there.
         val pressured = running != null && cursor != null &&
             running.elapsed - cursor <= searchConfig.horizonRunwayFrames
         fun refused(reason: String) {
+            publishRefusals++
             if (pressured) probe.publishRefused(reason, anchor.elapsed, running?.elapsed ?: -1, cursor ?: -1)
         }
 
@@ -190,7 +235,7 @@ internal class HorizonController(
         }
         if (root != null && !ackedUpToDate()) return false
 
-        val executing = cursorFrame?.invoke() ?: -1
+        val executing = cursor() ?: -1
         val floor = maxOf(reachableRoot?.elapsed ?: 0, executing)
 
         // Only the best-ranked candidate, deliberately. Working down the list was tried
@@ -198,17 +243,40 @@ internal class HorizonController(
         // commits, so handing the body the branch the search ranked worst is not a rescue
         // from a refused commit, it is a mistake the body then has to walk.
         val leaf = along?.takeIf { it.elapsed > floor }
-        val pool = if (frontier.hasParked) frontier.parkedEntries else frontier.openEntries.filter {
-            it.anchor.elapsed > floor
+        val pool = if (frontier.hasParked) {
+            frontier.parkedEntries
+        } else {
+            (frontier.openEntries + frontier.reserveEntries).filter { it.anchor.elapsed > floor }
         }
         val best = leaf?.let { Frontier.OpenEntry(0.0, 0.0, it) }
             ?: pool.minByOrNull { it.order }
             ?: return false
 
+        val inputs = CommitInputs(
+            tip = root,
+            root = reachableRoot,
+            acked = adoptedSequence?.invoke() ?: Long.MAX_VALUE,
+            along = leaf,
+            best = best.anchor,
+        )
+        refusedCommit?.let { seen ->
+            if (seen.tip === inputs.tip && seen.root === inputs.root &&
+                seen.acked == inputs.acked && seen.along === inputs.along &&
+                seen.best === inputs.best
+            ) {
+                commitSuppressed++
+                return false
+            }
+        }
+        commitAttempts++
+
         if (root != null) {
-            val progress = field.guide(root.stance) - field.guide(best.anchor.stance)
+            val progress = field.guide(root.stance, SpeedClass.of(root.speed)) -
+                field.guide(best.anchor.stance, SpeedClass.of(best.anchor.speed))
             if (progress < MIN_COMMIT_PROGRESS_TICKS) {
-                if (urgent) probe.publishRefused("commit-progress", best.anchor.elapsed, root.elapsed, executing)
+                publishRefusals++
+                probe.publishRefused("commit-progress", best.anchor.elapsed, root.elapsed, executing)
+                refusedCommit = inputs
                 return false
             }
         }
@@ -225,7 +293,8 @@ internal class HorizonController(
             }
             if (root != null && !publishableOver(root, candidate, executing)) {
                 overRefused++
-                if (urgent) probe.publishRefused("cand-$lastRefusalClause", candidate.elapsed, root.elapsed, executing)
+                publishRefusals++
+                probe.publishRefused("cand-$lastRefusalClause", candidate.elapsed, root.elapsed, executing)
                 return false
             }
             if (publishSolution(candidate)) return true
@@ -246,12 +315,12 @@ internal class HorizonController(
         for (candidate in line.filter { it.elapsed > cap }.sortedBy { it.elapsed }) {
             if (tryPublish(candidate)) return true
         }
-        if (urgent) {
-            probe.publishRefused(
-                "commit-line-refused(line=${line.size},over=$overRefused,certify=$certifyRefused,finish=$finishSkipped)",
-                best.anchor.elapsed, root?.elapsed ?: -1, executing,
-            )
-        }
+        publishRefusals++
+        probe.publishRefused(
+            "commit-line-refused(line=${line.size},over=$overRefused,certify=$certifyRefused,finish=$finishSkipped)",
+            best.anchor.elapsed, root?.elapsed ?: -1, executing,
+        )
+        refusedCommit = inputs
         return false
     }
 
@@ -287,11 +356,16 @@ internal class HorizonController(
         // The cursor keeps advancing while a publication is in flight: without a
         // margin, a tape that diverges just ahead of the cursor arrives diverging
         // just behind it and is refused.
-        if (executing >= 0 &&
-            executionDivergence(candidate) < executing + PUBLISH_DIVERGENCE_MARGIN_FRAMES
-        ) {
-            lastRefusalClause = "divergence"
-            return false
+        if (executing >= 0) {
+            val divergence = executionDivergence(candidate)
+            if (divergence < executing + PUBLISH_DIVERGENCE_MARGIN_FRAMES) {
+                // Dead forks and just-missed forks are different diseases: a fork the
+                // cursor passed long ago was never going to publish from here, while one
+                // inside the in-flight margin lost a race the search could have won by
+                // committing earlier.
+                lastRefusalClause = if (divergence < executing) "divergence-dead" else "divergence-margin"
+                return false
+            }
         }
         if (candidate.descendsFrom(tip)) {
             if (candidate.elapsed <= tip.elapsed) {
@@ -300,15 +374,34 @@ internal class HorizonController(
             }
             return true
         }
+        // A swap that leaves the body with less than a commit chunk of certified tape
+        // is a death trap regardless of its arrival estimate: the cursor reaches the
+        // shortened tip, the divergence margin then refuses every extension -- they all
+        // fork at the tip, inside the margin -- and the session restarts into the same
+        // wall until it exhausts. Measured killing two baseline walks at frame 13.
+        if (executing >= 0 && candidate.elapsed < executing + searchConfig.horizonCommitFrames) {
+            lastRefusalClause = "swap-short-runway"
+            return false
+        }
         // A publication on another branch must improve the ESTIMATED ARRIVAL, not
         // just the coarse guide: comparing guides alone let the tape swap onto a
         // branch with less progress -- a physical loop the body then walks. Collisions
         // are priced the way Solution.score prices them, or a swap could buy its three
         // ticks by scraping walls -- measured as a refinement pass taking a scenario
         // from one collision frame to seven.
-        val candidateArrival = candidate.elapsed + field.guide(candidate.stance) +
+        val candidateArrival = candidate.elapsed +
+            field.guide(candidate.stance, SpeedClass.of(candidate.speed)) +
             ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * candidate.collisionEvents
-        val tipArrival = tip.elapsed + field.guide(tip.stance) +
+        // The tip's arrival claim is its elapsed plus the guide -- a lower bound its
+        // line may not be able to achieve at all. When thousands of expansions have
+        // passed without the tip extending, that claim is discounted toward what the
+        // tape actually delivers (a brake stop): measured on bedrock-00's endgame, the
+        // gate held a frozen tip's optimistic estimate against candidates that were
+        // nearly at the goal, the body braked five frames and the session restarted --
+        // the fixture's only remaining stall.
+        val stale = ((support.expansionCount - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS)
+            .toDouble() / STALE_TIP_RAMP_EXPANSIONS).coerceIn(0.0, 1.0) * STALE_TIP_MAX_TICKS
+        val tipArrival = tip.elapsed + field.guide(tip.stance, SpeedClass.of(tip.speed)) + stale +
             ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * tip.collisionEvents
         if (candidateArrival + REFINEMENT_GAIN_TICKS > tipArrival) {
             lastRefusalClause = "backtrack-gain"
@@ -320,12 +413,84 @@ internal class HorizonController(
     /** Diagnostic only: the clause the last publishableOver refusal took. */
     private var lastRefusalClause: String = "-"
 
+    /** Class-conditioned: a moving tip's claim and a stopped candidate's are priced as the bodies they are. */
+    private fun arrivalEstimate(anchor: ValueAnchor): Double =
+        anchor.elapsed + field.guide(anchor.stance, SpeedClass.of(anchor.speed)) +
+            ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * anchor.collisionEvents
+
+    private var publishedFinalScore = Int.MAX_VALUE
+
+    /**
+     * Hand the executor a SEALED finish -- terminal tail included -- as an ordinary
+     * running publication, the moment it exists and while its fork is still adoptable.
+     * The finalize return used to be the only carrier for a finished tape, and the
+     * near-end gate held it until the cursor had passed the seal anchor's fork; the
+     * executor then refused it as diverging behind the cursor and the body braked at
+     * the old tape's end (the traverse's four-frame endgame stall, decoded in the
+     * session notes). Publishing it instead makes the finish just another publication:
+     * the session keeps refining, and a later, shorter seal replaces it through the
+     * same gate. Score-gated so equal finishes never spam the ack channel.
+     */
+    fun publishFinished(solution: Solution): Boolean {
+        val publish = onSafePrefix ?: return false
+        // Only ever an UPGRADE of a walk already in motion. Publishing the very first
+        // seal put short courses on their unpolished spine tape -- the bootstrap rules
+        // in publishPrefix exist precisely to let those finalize once, polished
+        // (flat-diagonal went 50 to 65 with six stall frames when this fired freely).
+        if (publications.isEmpty()) return false
+        if (solution.score >= publishedFinalScore) return false
+        if (!adoptable(solution.anchor)) return false
+        if (!ackedUpToDate()) return false
+        val certified = support.certify(solution) as? MotionPlanResult.Success ?: return false
+        val terminal = terminalAnchorOf(solution, certified)
+        publishedTip = terminal
+        expansionsAtPublish = support.expansionCount
+        refusedCommit = null
+        publishedSequence++
+        publications += Publication(publishedSequence, terminal, terminal)
+        while (publications.size > MAX_TRACKED_PUBLICATIONS) publications.removeFirst()
+        publishedFinalScore = solution.score
+        publish(certified)
+        return true
+    }
+
+    /**
+     * The finished tape's end as an anchor: grounded, stopped, its prefix the whole
+     * tape. Doubles as its own brake anchor -- the tape already ends in the certified
+     * stop, so the hold contract is the tape end itself.
+     */
+    private fun terminalAnchorOf(solution: Solution, certified: MotionPlanResult.Success): ValueAnchor {
+        val frames = certified.rollout.frames
+        val terminal = frames.last().state
+        return ValueAnchor(
+            state = terminal,
+            stance = ValueFieldAnchorSearch.stanceOf(terminal),
+            elapsed = frames.size,
+            collisionEvents = solution.collisionEvents,
+            launchMargin = solution.launchMargin,
+            inputSwitches = solution.anchor.inputSwitches,
+            parent = solution.anchor,
+            inputs = frames.drop(solution.anchor.elapsed).map { it.input },
+            boundary = frames.size,
+        )
+    }
+
     private fun publishSolution(anchor: ValueAnchor): Boolean {
         val publish = onSafePrefix ?: return false
         val braked = support.brakeToStop(anchor) ?: return false
-        val certified = support.certify(braked) as? MotionPlanResult.Success ?: return false
+        var certified = support.certify(braked) as? MotionPlanResult.Success ?: return false
+        val tip = publishedTip
+        val running = publications.lastOrNull()
+        if (tip != null && running != null) {
+            certified = certified.copy(
+                arrivalTicksEstimate = arrivalEstimate(anchor),
+                comparedRunningArrivalTicks = arrivalEstimate(tip),
+                comparedRunningSequence = running.sequence,
+            )
+        }
         publishedTip = anchor
         expansionsAtPublish = support.expansionCount
+        refusedCommit = null
         publishedSequence++
         publications += Publication(
             sequence = publishedSequence,
@@ -445,11 +610,37 @@ internal class HorizonController(
      * with a frozen divergence behind an advancing cursor). Anchors still ON the acked
      * tape report their own elapsed as divergence; they are the tape and stay live.
      */
-    fun adoptable(anchor: ValueAnchor): Boolean {
-        val executing = cursorFrame?.invoke() ?: return true
+    fun adoptable(anchor: ValueAnchor): Boolean =
+        forkLife(anchor) >= PUBLISH_DIVERGENCE_MARGIN_FRAMES
+
+    /**
+     * Whether a finished solution rooted at [anchor] must be finalized NOW to remain
+     * adoptable. A finish sealed from a tape ancestor forks the running tape at that
+     * ancestor's frame, and the fork dies when the cursor passes it -- measured on the
+     * traverse as a finish sealed at frame 396 with the body at 385, deferred by the
+     * near-end gate until the body stood at 400, refused by the executor as diverging
+     * behind the cursor, and re-finished from rest after a four-frame stall. Unlike
+     * [forkLife], an on-tape anchor is NOT exempt here: publishing a fork at an
+     * executed ancestor dies exactly the same way.
+     */
+    fun finalWindowClosing(anchor: ValueAnchor): Boolean {
+        val executing = cursor() ?: return false
         val divergence = executionDivergence(anchor)
-        if (divergence >= executing + PUBLISH_DIVERGENCE_MARGIN_FRAMES) return true
-        return divergence >= anchor.elapsed
+        if (divergence == Int.MAX_VALUE) return false
+        return divergence - executing < PUBLISH_DIVERGENCE_MARGIN_FRAMES + FINAL_FORK_HEADROOM_FRAMES
+    }
+
+    /**
+     * Frames until execution forecloses [anchor]'s branch: how far its divergence point
+     * sits ahead of the cursor. Anchors on the acked tape (divergence at their own
+     * elapsed) and sessions without a cursor report unbounded life.
+     */
+    fun forkLife(anchor: ValueAnchor): Int {
+        val executing = cursor() ?: return Int.MAX_VALUE
+        val divergence = executionDivergence(anchor)
+        if (divergence >= anchor.elapsed) return Int.MAX_VALUE
+        if (divergence == Int.MAX_VALUE) return Int.MAX_VALUE
+        return divergence - executing
     }
 
     /**
@@ -470,7 +661,11 @@ internal class HorizonController(
             parent = brake.parent,
             inputs = brake.inputs,
             boundary = brake.boundary,
-        )
+        ).also {
+            it.via = brake.via
+            it.decision = brake.decision
+            it.points = brake.points
+        }
     }
 
     /**
@@ -499,7 +694,11 @@ internal class HorizonController(
             parent = tip.parent,
             inputs = tip.inputs,
             boundary = tip.boundary,
-        )
+        ).also {
+            it.via = tip.via
+            it.decision = tip.decision
+            it.points = tip.points
+        }
     }
 
     fun reRootForRestart(anchor: ValueAnchor) {
@@ -524,11 +723,24 @@ internal class HorizonController(
         )
     }
 
-    private companion object {
+    companion object {
 
-        const val MIN_COMMIT_PROGRESS_TICKS = 1.0
+        const val PUBLISH_DIVERGENCE_MARGIN_FRAMES = 3
+
+        /** Frames of fork life below which a sealed finish is finalized rather than polished. */
+        const val FINAL_FORK_HEADROOM_FRAMES = 12
+
+        private const val MIN_COMMIT_PROGRESS_TICKS = 1.0
 
         const val REFINEMENT_GAIN_TICKS = 3.0
+
+        /** Expansions of a tip failing to extend before its arrival claim starts to erode. */
+        const val STALE_TIP_FLOOR_EXPANSIONS = 2000
+
+        const val STALE_TIP_RAMP_EXPANSIONS = 4000
+
+        /** Full staleness discounts the claim by about a brake tail: what a frozen tape truly delivers. */
+        const val STALE_TIP_MAX_TICKS = 30.0
 
         const val FIRST_PUBLISH_MIN_REMAINING_TICKS = 30.0
 
@@ -542,7 +754,6 @@ internal class HorizonController(
 
         const val ACK_ROLLBACK_MILLIS = 150L
 
-        const val PUBLISH_DIVERGENCE_MARGIN_FRAMES = 3
 
         const val MAX_SHOWN_CANDIDATES = 12
 

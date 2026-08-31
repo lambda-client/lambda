@@ -8,7 +8,9 @@ import com.lambda.pathing.PathingManager
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.trajectory.PlanGraph
 import com.lambda.pathing.trajectory.PublishedPath
+import com.lambda.pathing.trajectory.SearchNodeRole
 import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
@@ -23,12 +25,16 @@ object PathingRenderer : Loadable {
 
     init {
         immediateRenderer("Pathing Debug", depthTest = { PathingManager.renderConfig.depthTest }) {
+            PlanningDebugChannel.treeWanted = config.enabled && config.renderSearchTree
             if (!config.enabled) return@immediateRenderer
             if (config.renderGraph) renderSearchGraph()
+            if (config.renderSearchTree) renderSearchTree()
             if (config.renderPlanning) renderPlanningDebug()
+            if (config.renderSearchStats) renderSearchStats()
             val path = PathingManager.published ?: return@immediateRenderer
             if (config.renderCoarseRoute) renderCoarseRoute(path.route)
             if (config.renderTrajectory) renderTrajectory(path.plan)
+            if (config.renderPlanGraph) renderPlanGraph(path.plan)
             if (config.renderTrail) renderLiveTrail()
             if (config.renderLabels) renderLabels(path)
         }
@@ -100,6 +106,136 @@ object PathingRenderer : Loadable {
                 size = config.labelSize.toFloat(),
                 style = RenderBuilder.SDFStyle(
                     color = config.textColor,
+                    outline = RenderBuilder.SDFOutline(Color(0, 0, 0, 220), 0.12f),
+                    shadow = RenderBuilder.SDFShadow(Color(0, 0, 0, 160)),
+                ),
+            )
+        }
+    }
+
+    private fun roleColor(role: SearchNodeRole): Color = when (role) {
+        SearchNodeRole.SPINE -> config.spineColor
+        SearchNodeRole.BEST -> config.treeBestColor
+        SearchNodeRole.OPEN -> config.treeOpenColor
+        SearchNodeRole.PARKED -> config.treeParkedColor
+        SearchNodeRole.SPENT -> config.treeSpentColor
+        SearchNodeRole.INTERIOR -> config.treeInteriorColor
+    }
+
+    /**
+     * The anchor tree, drawn back-to-front by importance.
+     *
+     * Interior scaffolding first and the committed spine last, so the line the body is
+     * actually going to walk is never buried under the thousands of anchors arguing
+     * about replacing it. Width carries the same ranking as colour because at a few
+     * thousand nodes hue alone stops separating them.
+     */
+    private fun RenderBuilder.renderSearchTree() {
+        val tree = PlanningDebugChannel.tree ?: return
+        if (tree.edges.isEmpty() && tree.nodes.isEmpty()) return
+
+        val base = maxOf(config.searchTreeWidth, 1)
+        fun width(role: SearchNodeRole) = screenWidth(
+            when (role) {
+                SearchNodeRole.SPINE -> base * 2
+                SearchNodeRole.BEST -> (base * 3) / 2
+                SearchNodeRole.OPEN -> base
+                else -> maxOf(base / 2, 1)
+            },
+        )
+
+        DRAW_ORDER.forEach { role ->
+            val color = roleColor(role)
+            tree.edges.forEach { edge ->
+                if (edge.role != role) return@forEach
+                line(
+                    edge.from.add(0.0, TREE_Y, 0.0),
+                    edge.to.add(0.0, TREE_Y, 0.0),
+                    color,
+                    width(role),
+                )
+            }
+        }
+
+        if (config.renderSearchTreeNodes) {
+            val size = config.searchTreeNodeSize
+            tree.nodes.forEach { node ->
+                if (node.role == SearchNodeRole.INTERIOR) return@forEach
+                marker(
+                    node.position.add(0.0, TREE_Y, 0.0),
+                    if (node.role == SearchNodeRole.SPINE) size * 1.8 else size,
+                    roleColor(node.role),
+                )
+            }
+        }
+
+        if (config.renderLabels) {
+            val counts = tree.nodes.groupingBy { it.role }.eachCount()
+            worldText(
+                "tree %d anchors drawn%s of %d admitted  |  %s".format(
+                    tree.nodes.size,
+                    if (tree.truncated) " (capped)" else "",
+                    tree.totalAnchors,
+                    DRAW_ORDER.reversed().mapNotNull { role ->
+                        counts[role]?.let { "${role.name.lowercase()} $it" }
+                    }.joinToString("  "),
+                ),
+                (PlanningDebugChannel.tree?.nodes?.firstOrNull()?.position ?: return)
+                    .add(0.0, 2.0, 0.0),
+                size = config.labelSize.toFloat(),
+                style = RenderBuilder.SDFStyle(
+                    color = config.textColor,
+                    outline = RenderBuilder.SDFOutline(Color(0, 0, 0, 220), 0.12f),
+                    shadow = RenderBuilder.SDFShadow(Color(0, 0, 0, 160)),
+                ),
+            )
+        }
+    }
+
+    /**
+     * The counters, where the body is, updated while the search runs.
+     *
+     * Every number here has been the answer to a production question at least once, and
+     * the two that matter most are placed together on purpose: runway (how many certified
+     * frames are left in front of the cursor) against production, because a walk that
+     * stalls always shows it here first.
+     */
+    private fun RenderBuilder.renderSearchStats() {
+        val stats = PlanningDebugChannel.stats ?: return
+        val origin = mc.player?.pos ?: return
+
+        val runway = if (stats.publishedFrame >= 0 && stats.cursorFrame >= 0) {
+            stats.publishedFrame - stats.cursorFrame
+        } else null
+        val mergeRate = if (stats.admitted > 0) 100.0 * stats.merged / stats.admitted else 0.0
+
+        val lines = listOf(
+            "expansions %,d   window %,d/%,d   %s".format(
+                stats.expansions, stats.windowExpansions, stats.windowBudget,
+                stats.bestScore?.let { "best %d".format(it) } ?: "no incumbent",
+            ),
+            "temp %.2f   guide expansions %d   restarts %d".format(
+                stats.temperature, stats.guideExpansions, stats.restarts,
+            ),
+            "open %d   parked %d   blocked %d   spent %d".format(
+                stats.open, stats.parked, stats.blocked, stats.spent,
+            ),
+            "beam %,d admitted   %,d merged (%.0f%%)".format(stats.admitted, stats.merged, mergeRate),
+            "cursor %d   published %d   root %d   horizon %s%s".format(
+                stats.cursorFrame, stats.publishedFrame, stats.rootFrame,
+                if (stats.horizonEnd == Int.MAX_VALUE) "-" else stats.horizonEnd.toString(),
+                runway?.let { "   runway %d".format(it) }.orEmpty(),
+            ),
+        )
+
+        lines.forEachIndexed { index, text ->
+            worldText(
+                text,
+                origin.add(0.0, STATS_Y + (lines.size - index) * 0.26, 0.0),
+                size = config.labelSize.toFloat(),
+                style = RenderBuilder.SDFStyle(
+                    color = if (runway != null && runway < STARVING_RUNWAY_FRAMES) config.rejectColor
+                    else config.textColor,
                     outline = RenderBuilder.SDFOutline(Color(0, 0, 0, 220), 0.12f),
                     shadow = RenderBuilder.SDFShadow(Color(0, 0, 0, 160)),
                 ),
@@ -205,6 +341,86 @@ object PathingRenderer : Loadable {
             plan.frames.lastOrNull()?.let { last ->
                 marker(last.state.position.add(0.0, TRAJECTORY_Y + 0.35, 0.0), 0.34, config.rejectColor)
             }
+        }
+    }
+
+    /**
+     * The certified plan as its junction graph.
+     *
+     * One coloured run per decision rather than one line for the whole tape, because the
+     * question this view answers is *which* decision is expensive -- a 200-frame tape
+     * says nothing about where the frames went. Shading is frames per block covered
+     * against a sprint, so a stretch that wandered reads red while a clean run reads
+     * green, and the junctions say where a shortcut is allowed to cut in.
+     */
+    private fun RenderBuilder.renderPlanGraph(plan: TrajectoryPlan) {
+        val graph = PlanGraph.of(plan) ?: return
+        val width = screenWidth(maxOf(config.trajectoryWidth, 1))
+
+        graph.spine.forEachIndexed { index, segment ->
+            val points = ArrayList<Vec3d>(segment.frameCount + 1)
+            points += segment.entry.position.add(0.0, GRAPH_LANE_Y, 0.0)
+            for (frame in segment.startFrame until segment.endFrame) {
+                plan.frames.getOrNull(frame)?.let { points += it.state.position.add(0.0, GRAPH_LANE_Y, 0.0) }
+            }
+            if (points.size < 2) return@forEachIndexed
+
+            val blocks = segment.entry.position.distanceTo(segment.exit.position)
+            val perBlock = if (blocks > 0.05) segment.frameCount / blocks else FRAMES_PER_BLOCK_WORST
+            val heat = ((perBlock - FRAMES_PER_BLOCK_IDEAL) /
+                (FRAMES_PER_BLOCK_WORST - FRAMES_PER_BLOCK_IDEAL)).coerceIn(0.0, 1.0)
+            polyline(points, lerp(heat, config.segmentFastColor, config.segmentSlowColor), width)
+        }
+
+        graph.alternates.forEach { alternate ->
+            alternate.segments.forEach { segment ->
+                line(
+                    segment.entry.position.add(0.0, GRAPH_LANE_Y + 0.06, 0.0),
+                    segment.exit.position.add(0.0, GRAPH_LANE_Y + 0.06, 0.0),
+                    config.alternateColor,
+                    width,
+                )
+            }
+        }
+
+        graph.junctions.forEach { junction ->
+            marker(
+                junction.state.position.add(0.0, GRAPH_LANE_Y, 0.0),
+                if (junction.settled) config.junctionSize else config.junctionSize * 0.7,
+                if (junction.settled) config.junctionColor else config.unsettledJunctionColor,
+            )
+        }
+
+        if (!config.renderPlanGraphLabels) return
+
+        val worst = graph.improvementTargets().take(WORST_SPANS_SHOWN)
+        val flagged = worst.map { it.from }.toSet()
+        graph.junctions.forEach { junction ->
+            if (junction.index % JUNCTION_LABEL_STRIDE != 0 && junction.index !in flagged) return@forEach
+            worldText(
+                "J%d".format(junction.index),
+                junction.state.position.add(0.0, GRAPH_LANE_Y + 0.45, 0.0),
+                size = (config.labelSize * 0.8).toFloat(),
+                style = RenderBuilder.SDFStyle(
+                    color = if (junction.settled) config.junctionColor else config.unsettledJunctionColor,
+                    outline = RenderBuilder.SDFOutline(Color(0, 0, 0, 220), 0.12f),
+                ),
+            )
+        }
+        worst.forEach { span ->
+            val at = graph.junctions[span.from].state.position
+            worldText(
+                "J%d..J%d  %d frames  %.1f f/block".format(
+                    span.from, span.to, span.frames, span.framesPerBlock,
+                ),
+                at.add(0.0, GRAPH_LANE_Y + 0.75, 0.0),
+                size = (config.labelSize * 0.9).toFloat(),
+                style = RenderBuilder.SDFStyle(
+                    color = config.segmentSlowColor,
+                    outline = RenderBuilder.SDFOutline(Color(0, 0, 0, 220), 0.12f),
+                    shadow = RenderBuilder.SDFShadow(Color(0, 0, 0, 160)),
+                ),
+            )
         }
     }
 
@@ -327,6 +543,32 @@ object PathingRenderer : Loadable {
         }
         return Vec3d(x + 0.5, y + (support?.surfaceOffset ?: 0.0) + yOffset, z + 0.5)
     }
+
+    /** Weakest claim first: the spine is drawn last so nothing covers it. */
+    private val DRAW_ORDER = listOf(
+        SearchNodeRole.INTERIOR,
+        SearchNodeRole.SPENT,
+        SearchNodeRole.PARKED,
+        SearchNodeRole.OPEN,
+        SearchNodeRole.BEST,
+        SearchNodeRole.SPINE,
+    )
+
+    /** Certified frames left in front of the cursor before a walk is about to stand still. */
+    private const val STARVING_RUNWAY_FRAMES = 20
+
+    /** Frames per block at a clean sprint, and where a stretch reads as wasted. */
+    private const val FRAMES_PER_BLOCK_IDEAL = 3.6
+    private const val FRAMES_PER_BLOCK_WORST = 14.0
+
+    private const val WORST_SPANS_SHOWN = 3
+    private const val JUNCTION_LABEL_STRIDE = 5
+
+    private const val GRAPH_LANE_Y = 0.18
+
+    private const val TREE_Y = 0.08
+
+    private const val STATS_Y = 1.2
 
     private const val GRAPH_Y = 0.02
 

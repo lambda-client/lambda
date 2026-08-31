@@ -56,7 +56,7 @@ class SlimeWalkStopTest {
         val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "coarse search must converge")
-        planner.expandField(extraTicks = 36.0, maxExpansions = 20_000)
+        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L)) {
             "no coarse route over the slime: ${planner.routeFailureReport()}"
         }

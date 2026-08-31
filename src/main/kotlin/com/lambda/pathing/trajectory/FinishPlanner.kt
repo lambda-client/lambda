@@ -25,7 +25,10 @@ internal class FinishPlanner(
 
     fun finishFrom(anchor: ValueAnchor): Solution? {
         val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
-        if (!field.reachesGoal(chain)) return null
+        if (!field.reachesGoal(chain)) {
+            probe.finishAttempt(anchor.stance, anchor.elapsed, anchor.speed, chainReached = false, sealed = false)
+            return null
+        }
         val points = chain.map { it.center(environment) }
         val leads: List<Double?> = if (chain.zipWithNext().any { (from, to) -> to.y > from.y }) {
             config.stepUpJumpLeadDistances
@@ -69,7 +72,12 @@ internal class FinishPlanner(
             }
         }
 
-        val rank = bestRank ?: return null
+        val rank = bestRank
+        probe.finishAttempt(
+            anchor.stance, anchor.elapsed, anchor.speed,
+            chainReached = true, sealed = rank != null,
+        )
+        if (rank == null) return null
         val parameters = bestParameters!!
         provenFinish = parameters
         return Solution.of(anchor, bestFrames!!, parameters, rank.collisionEvents)

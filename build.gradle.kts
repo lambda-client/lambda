@@ -217,6 +217,7 @@ tasks {
         useJUnitPlatform {
             excludeTags("bedrock-corpus")
         }
+        maxHeapSize = "4g"
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     }
 
@@ -228,6 +229,7 @@ tasks {
         useJUnitPlatform {
             includeTags("bedrock-corpus")
         }
+        maxHeapSize = "4g"
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
         if (project.findProperty("rebaseline") == "true") {
             systemProperty("lambda.pathing.rebaseline", "true")
@@ -236,15 +238,8 @@ tasks {
         outputs.upToDateWhen { false }
     }
 
-    // `./gradlew runClientGameTest -Prebaseline=true` records pathing metrics without
-    // gating them, for refreshing the checked-in baseline after a deliberate change.
     withType<JavaExec>().matching { it.name == "runClientGameTest" }.configureEach {
         if (project.findProperty("rebaseline") == "true") jvmArgs("-Dlambda.pathing.rebaseline=true")
-        // `-Ppathing.filter=staircase,bedrock` runs only the matching pathing scenarios
-        // and skips the unrelated fall checks. The world commands still all run, so a
-        // filtered scenario stands on exactly the terrain a full run would have built.
-        // `-PnoRefine=true` publishes the first certified tape and never improves it --
-        // the way to tell a planner change from improvement-loop variance.
         if (project.findProperty("noRefine") == "true") jvmArgs("-Dlambda.pathing.noRefine=true")
         (project.findProperty("pathing.filter") as String?)
             ?.let { jvmArgs("-Dlambda.pathing.testFilter=$it") }
