@@ -110,7 +110,7 @@ class SlimeWalkStopTest {
         val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
         val planner = CoarsePlanner(environment, moves, start, carpetCellGoal)
         planner.advanceFrontier(
-            com.lambda.pathing.coarse.FrontierAnchors.probe(environment, moves, start, carpetCellGoal),
+            com.lambda.pathing.coarse.FrontierAnchors.sweep(environment, moves, start, carpetCellGoal),
         )
         planner.repair(Duration.INFINITE)
 

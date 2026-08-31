@@ -234,6 +234,36 @@ class SlimeBounceRouteTest {
         certifyArrival(environment, goal = Stance(0, 9, 9), start = Stance(0, 11, 0))
     }
 
+    /**
+     * The field's deep ceiling-grazing bounce: launch under a three-block ceiling
+     * (the jump apex would poke 0.05 into it), a single carpeted pad six below,
+     * and a far ledge whose own LOWER ceiling hangs four blocks over the descending
+     * body. The solver must clamp the ascent at the ceiling (vanilla's rising head
+     * collision) rather than refuse the arc -- and must scope that clamp to the
+     * LAUNCH ascent, or the landing's lower ceiling buries the jump entirely. The
+     * landing itself is a corner catch 0.53 past the cell centre: inside the
+     * physical support reach, outside the old +-0.5 window.
+     */
+    @Test
+    fun `a ceiling-grazing bounce is clamped, not refused`() {
+        val blocks = buildMap {
+            put(BlockPos(0, 9, 0), SnapshotBlockPhysics.FULL_CUBE)
+            // Ceiling: bottom at y=13, three blocks over the launch feet, spanning
+            // the whole corridor; a lower shelf at y=12 hangs over the landing.
+            for (x in -1..1) for (z in -1..12) put(BlockPos(x, 13, z), SnapshotBlockPhysics.FULL_CUBE)
+            for (x in -1..1) for (z in 9..12) put(BlockPos(x, 12, z), SnapshotBlockPhysics.FULL_CUBE)
+            // Single carpeted pad, stance drop 5 (real 5.94).
+            put(BlockPos(0, 3, 6), slime)
+            put(BlockPos(0, 4, 6), carpet)
+            // Landing ledge at stance y=6 (rise -4), starting at span 11.
+            for (x in -1..1) for (z in 11..12) put(BlockPos(x, 5, z), SnapshotBlockPhysics.FULL_CUBE)
+        }
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 30, 32), blocks,
+        )
+        certifyArrival(environment, goal = Stance(0, 6, 11))
+    }
+
     /** The six-cell pit (drop 4, span 7): beyond every walk-off window, jump range. */
     @Test
     fun `a six cell pit is crossed by a jump launch and certified end to end`() {

@@ -74,11 +74,11 @@ class CapturableFrontierTest {
         val goal = Stance(200, 5, 1)
 
         assertTrue(
-            FrontierAnchors.probe(snapshot, moves, start, goal).isNotEmpty(),
+            FrontierAnchors.sweep(snapshot, moves, start, goal).isNotEmpty(),
             "a true frontier must still anchor",
         )
         assertTrue(
-            FrontierAnchors.probe(snapshot, moves, start, goal, capturable = allCapturable).isEmpty(),
+            FrontierAnchors.sweep(snapshot, moves, start, goal, capturable = allCapturable).isEmpty(),
             "capture lag must not anchor",
         )
     }
@@ -132,7 +132,7 @@ class CapturableFrontierTest {
         )
 
         // Seeded at a true frontier: the unknown beyond x=15 is beyond render distance.
-        planner.advanceFrontier(FrontierAnchors.probe(view, moves, start, goal))
+        planner.advanceFrontier(FrontierAnchors.sweep(view, moves, start, goal))
         val seeded = planner.optimisticAnchors
         assertTrue(seeded.isNotEmpty(), "a true frontier must seed anchors")
 
@@ -165,13 +165,6 @@ class CapturableFrontierTest {
         val moves = moves()
         val start = Stance(1, 5, 1)
         val goal = Stance(200, 5, 1)
-
-        val probeLag = HashSet<Triple<Int, Int, Int>>()
-        FrontierAnchors.probe(snapshot, moves, start, goal, capturable = allCapturable) { x, y, z ->
-            probeLag += Triple(x, y, z)
-        }
-        assertTrue(probeLag.isNotEmpty(), "the march must name the cell it stopped at")
-        assertTrue(probeLag.all { !snapshot.isKnown(it.first, it.second, it.third) })
 
         val sweepLag = HashSet<Triple<Int, Int, Int>>()
         FrontierAnchors.sweep(

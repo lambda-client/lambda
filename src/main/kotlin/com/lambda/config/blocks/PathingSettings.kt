@@ -162,13 +162,6 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         unit = " nodes",
     )
 
-    @Group(SEARCH_GROUP)
-    override val frontierProbeRange by c.setting(
-        "Frontier Probe Range", 512, 64..2048, 32,
-        "Furthest the frontier probe marches toward an unstreamed goal. Must reach past " +
-            "the render distance for goals in unloaded terrain.",
-        unit = " blocks",
-    )
 
     @Group(SEARCH_GROUP)
     override val frontierSweepBudget by c.setting(

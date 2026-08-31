@@ -31,7 +31,7 @@ class CoarsePlanner(
     /** See [FrontierAnchors.NOTHING_CAPTURABLE]: capturable unknowns never anchor. */
     private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 
-    /** Reported for every capturable unknown that suppressed an anchor; see [FrontierAnchors.probe]. */
+    /** Reported for every capturable unknown that suppressed an anchor; see [FrontierAnchors.sweep]. */
     private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
 
@@ -160,20 +160,28 @@ class CoarsePlanner(
         return true
     }
 
-    fun discoverReachableFrontier(cancelled: () -> Boolean = { false }): Boolean {
-        val swept = FrontierAnchors.sweep(
-            view, moves, search.start.stance, goalStance, maxNodes = sweepBudget, cancelled = cancelled,
+    /**
+     * Mint anchors by FLOODING from [from] through real edges: every anchor is
+     * reachable by construction. The ray-march probe this replaced planted anchors
+     * wherever a straight line toward the goal happened to end -- unreachable
+     * "ghost" anchors whose optimistic edges fed the backward wave into terrain the
+     * body could never come from (the disconnected box-shaped graph patches).
+     * Optimism is a route-TERMINAL device, never a movement: the tape walks only to
+     * the anchor, and only informed edges are ever executed.
+     */
+    fun advanceReachableFrontier(
+        from: Stance = search.start.stance,
+        cancelled: () -> Boolean = { false },
+    ): Boolean = advanceFrontier(
+        FrontierAnchors.sweep(
+            view, moves, from, goalStance, maxNodes = sweepBudget, cancelled = cancelled,
             capturable = capturable, onCaptureLag = onCaptureLag,
             edges = edgeCache::edgesFrom,
-        )
-        var changed = false
-        swept.forEach { (anchor, cost) ->
-            if (anchors[anchor] != cost) {
-                anchors[anchor] = cost
-                updateAnchorEdges(anchor, cost)
-                changed = true
-            }
-        }
+        ),
+    )
+
+    fun discoverReachableFrontier(cancelled: () -> Boolean = { false }): Boolean {
+        val changed = advanceReachableFrontier(cancelled = cancelled)
         if (changed) repair(timeBudget = Duration.INFINITE, cancelled = cancelled)
         return changed
     }

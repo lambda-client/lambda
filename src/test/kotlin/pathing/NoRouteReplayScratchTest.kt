@@ -10,9 +10,9 @@ import kotlin.test.Test
 class NoRouteReplayScratchTest {
     @Test
     fun `replay the no-route dump`() {
-        val loaded = PlanDump.read(
-            Path.of("run/neolambda/pathing-dumps/plan-1788175739939.dump"),
-        )
+        val path = Path.of("run/neolambda/pathing-dumps/plan-1788179631046.dump")
+        if (!java.nio.file.Files.exists(path)) return
+        val loaded = PlanDump.read(path)
         val environment = loaded.environment()
         println("ROUTE start=${loaded.start} goal=${loaded.goal} options=${loaded.moveOptions}")
 
@@ -89,6 +89,88 @@ class NoRouteReplayScratchTest {
                         }
                     }
                     if (shown == 0) println("ROUTE   no forward edge lands in the wave at all")
+
+                    // The bouncy cells near the course, and the high launch stances.
+                    for (x in -36..-20) for (y in 60..76) for (z in -35..5) {
+                        if (planner.view.voxel(x, y, z).bouncy) {
+                            println("ROUTE   SLIME at ($x,$y,$z) coveredBy=${planner.view.voxel(x, y + 1, z).standingSurface}")
+                        }
+                    }
+                    reachable.filter { it.y >= 72 }.sortedBy { it.z }.take(10)
+                        .forEach { println("ROUTE   high forward stance $it") }
+
+                    // The field jump, probed directly: launch (-29,73,-21) over the
+                    // single carpeted pad at (-29,66,-15) to the ledge at z=-10.
+                    val jumpLaunch = Stance(-29, 73, -21)
+                    val launchSupport = planner.view.voxel(-29, 72, -21)
+                    println("ROUTE   launch support surface=${launchSupport.standingSurface} isStance=${planner.moves.isStance(planner.view, jumpLaunch)}")
+                    for (dropTry in 4..7) {
+                        for (span in 10..12) {
+                            val probed = com.lambda.pathing.launch.BounceArcProbe.probe(
+                                planner.view, jumpLaunch, dx = 0, dz = span, drop = dropTry, rise = -4,
+                                launchHeight = jumpLaunch.y +
+                                    planner.view.surfaceOffset(jumpLaunch.x, jumpLaunch.y - 1, jumpLaunch.z),
+                            )
+                            if (probed != null) {
+                                val s = probed.solution
+                                println("ROUTE   PROBE drop=$dropTry span=$span: jump=${s.jump} sprint=${s.sprint} hold=${s.holdTicks} contact=%.3f dist=%.3f".format(s.contactDistance, s.distance))
+                            }
+                        }
+                    }
+                    println("ROUTE   probe sweep done")
+
+                    // The flight corridor: x=-29, launch z=-21 to landing z=-10.
+                    for (y in 78 downTo 65) {
+                        val row = (-22..-8).joinToString("") { z ->
+                            val v = planner.view.voxel(-29, y, z)
+                            when {
+                                !planner.view.isKnown(-29, y, z) -> "?"
+                                v.bouncy -> "B"
+                                v.standingSurface != null && v.standingSurface!! < 0.999 -> "c"
+                                v.standingSurface != null -> "#"
+                                !v.fullyPassable -> "x"
+                                else -> "."
+                            }
+                        }
+                        println("ROUTE   corridor y=$y z=-22..-8: $row")
+                    }
+
+                    for (hr in listOf(Double.POSITIVE_INFINITY, 1.2)) {
+                        val arc = com.lambda.pathing.launch.BallisticProfile.VANILLA.bounce(
+                            0.0, 5.9375, -4.0, holdForward = true, sprint = true, jump = true,
+                            holdTicks = 64, headroom = hr,
+                        )
+                        println("ROUTE   ARC headroom=$hr: dist=${arc?.distance} airTicks=${arc?.airTicks} apex=${arc?.apex}")
+                    }
+
+                    // Stage-by-stage: standing solves at the true depth, then the sweep.
+                    val depth = 5.9375
+                    val cache = com.lambda.pathing.launch.JumpArcProbe.SweepCellCache()
+                    for ((j, sp) in com.lambda.pathing.launch.BounceSolver.STANDING_STYLES) {
+                        val sol = com.lambda.pathing.launch.BounceSolver.solveStanding(
+                            11.0, 5, -4, jump = j, sprint = sp,
+                            contactDepth = depth, riseHeight = -4.0,
+                            headroom = 1.2,
+                        )
+                        if (sol == null) {
+                            println("ROUTE   STAGE jump=$j sprint=$sp: no standing solution")
+                            continue
+                        }
+                        val reach = sol.launchOffset + sol.contactDistance
+                        val clearance = com.lambda.pathing.launch.JumpArcProbe.sweepClearance(
+                            planner.view, jumpLaunch, 0, 11, sol.arc,
+                            launchOffset = sol.launchOffset, launchHeight = 73.0,
+                            reads = null, cache = cache,
+                        )
+                        println(
+                            "ROUTE   STAGE jump=$j sprint=$sp hold=${sol.holdTicks}: contact reach=%.3f (cell z=%d) dist=%.3f clearance=%s"
+                                .format(reach, Math.floor(-20.5 + reach + 20.0).toInt() - 20, sol.distance, clearance?.toString() ?: "REFUSED"),
+                        )
+                    }
+                    // And what the coarse library actually offers from the launch:
+                    planner.moves.edgesFrom(planner.view, jumpLaunch).forEach {
+                        println("ROUTE   launch edge ${it.movement} -> ${it.to}")
+                    }
 
                     // Honest backward flood from the GOAL via edgesTo: where does true
                     // backward reachability die, and how close does it come to the

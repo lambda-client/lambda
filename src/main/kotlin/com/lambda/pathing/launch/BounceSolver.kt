@@ -48,21 +48,24 @@ object BounceSolver {
 
         /** Real landing height above the launch feet. */
         riseHeight: Double = rise.toDouble(),
+
+        /** Ceiling clearance above the launch feet; see [BallisticProfile.bounce]. */
+        headroom: Double = Double.POSITIVE_INFINITY,
     ): BounceSolution? {
         if (maxEntrySpeed < 0.0) return null
 
         val flight = horizontalDistance - LAUNCH_OFFSET
         if (flight <= 0.0) return null
 
-        val base = profile.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks) ?: return null
-        val unit = profile.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks) ?: return null
+        val base = profile.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
+        val unit = profile.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
         val slope = unit.distance - base.distance
         if (slope <= 0.0) return null
 
         val speed = (flight - base.distance) / slope
         if (speed < 0.0 || speed > maxEntrySpeed) return null
 
-        val arc = profile.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks) ?: return null
+        val arc = profile.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
 
         val slack = (LANDING_WINDOW / 2.0) / slope
 
@@ -112,6 +115,9 @@ object BounceSolver {
          * beside the slime and took the fall. Takes the reach from the stance centre.
          */
         contactPenalty: (Double) -> Double = { 0.0 },
+
+        /** Ceiling clearance above the launch feet; see [BallisticProfile.bounce]. */
+        headroom: Double = Double.POSITIVE_INFINITY,
     ): BounceSolution? {
         val target = horizontalDistance - LAUNCH_OFFSET
         if (target <= 0.0) return null
@@ -122,21 +128,22 @@ object BounceSolver {
         fun arcAt(holdTicks: Int): ArcSample? = profile.bounce(
             0.0, contactDepth, riseHeight,
             holdForward = holdTicks > 0, sprint = sprint, jump = jump, holdTicks = holdTicks,
+            headroom = headroom,
         )
 
         var lo = minHold
         var hi = BallisticProfile.MAX_BOUNCE_TICKS
         val shortest = arcAt(lo)?.distance ?: return null
         val longest = arcAt(hi)?.distance ?: return null
-        if (target < shortest - LANDING_WINDOW / 2.0 || target > longest + LANDING_WINDOW / 2.0) return null
+        if (target < shortest - LANDING_SUPPORT_REACH || target > longest + LANDING_SUPPORT_REACH) return null
         while (hi - lo > 1) {
             val mid = (lo + hi) / 2
             val at = arcAt(mid)?.distance
             if (at == null || at < target) lo = mid else hi = mid
         }
 
-        // Every hold whose landing stays inside the window is a candidate; among
-        // them the contact decides. One tick of hold moves the landing about a
+        // Every hold whose landing stays inside the support reach is a candidate;
+        // among them the contact decides. One tick of hold moves the landing about a
         // quarter block, so the window holds a handful, and on a one-cell pad only
         // some of them put the trough on the slime.
         var chosenHold = -1
@@ -147,7 +154,7 @@ object BounceSolver {
             if (hold < minHold || hold > BallisticProfile.MAX_BOUNCE_TICKS) continue
             val arc = arcAt(hold) ?: continue
             val error = kotlin.math.abs(arc.distance - target)
-            if (error > LANDING_WINDOW / 2.0) continue
+            if (error > LANDING_SUPPORT_REACH) continue
             val penalty = contactPenalty(LAUNCH_OFFSET + arc.distances[troughIndex(arc)])
             if (!penalty.isFinite()) continue
             if (penalty < chosenPenalty || (penalty == chosenPenalty && error < chosenError)) {
@@ -177,6 +184,17 @@ object BounceSolver {
 
     /** Holds to scan either side of the landing-exact hold for a pad-centred contact. */
     private const val HOLD_SCAN = 3
+
+    /**
+     * How far from the landing cell's CENTRE a standing arc may put the feet and
+     * still stand: half a cell plus the body's half-width -- a corner catch. The
+     * moving-entry window stays at [LANDING_WINDOW] (its half also prices the
+     * entry-speed slack, which must stay tight); the standing family has no entry
+     * error to guard, so it may use the full physical reach. Field-measured: a
+     * ceiling-clamped bounce landing 0.53 past centre caught the ledge and played
+     * fine, refused only by the old +-0.5 gate.
+     */
+    private const val LANDING_SUPPORT_REACH = 0.8
 
     /** (jump, sprint) standing families, gentlest drift first: the gentler the
      *  pre-contact glide, the closer the contact stays to the lip, and a contact

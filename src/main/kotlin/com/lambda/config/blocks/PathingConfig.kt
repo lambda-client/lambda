@@ -137,10 +137,7 @@ interface PathingConfig {
     /** Hard cap on trajectory-search expansions per leg before the search gives up. */
     val trajectoryExpansionBudget: Int get() = 2_000_000
 
-    /** Furthest the frontier probe marches toward an unstreamed goal, in blocks. */
-    val frontierProbeRange: Int get() = 512
-
-    /** Node budget of the last-resort reachability sweep when the probe fan is stranded. */
+    /** Node budget of the reachable-frontier sweep that mints optimistic route terminals. */
     val frontierSweepBudget: Int get() = 40_000
 
     /** Minimum wall time before the first partial tape may be published. */
