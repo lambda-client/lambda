@@ -2,7 +2,6 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.world.CoarseVoxelView
 
 /**
  * The velocity dimension the coarse graph never had.
@@ -68,8 +67,7 @@ internal object MomentumRules {
         if (departsStoppedOnly(movement)) ticks else ticks + STARTUP_TICKS
 
     fun successors(
-        moves: SimpleMoveLibrary,
-        view: CoarseVoxelView,
+        edges: CoarseEdgeCache,
         node: MomentumStance,
     ): Map<MomentumStance, Double> {
         // Insertion-ordered on purpose: these maps drive the D* successor iteration,
@@ -80,7 +78,7 @@ internal object MomentumRules {
         if (node.speed == SpeedClass.MOVING) {
             out[MomentumStance(node.stance, SpeedClass.STOPPED)] = BRAKE_TICKS
         }
-        for (edge in moves.edgesFrom(view, node.stance)) {
+        for (edge in edges.edgesFrom(node.stance)) {
             if (node.speed == SpeedClass.MOVING && departsStoppedOnly(edge.movement)) continue
             val arrive = if (arrivesStopped(edge.movement)) SpeedClass.STOPPED else SpeedClass.MOVING
             val cost = when (node.speed) {
@@ -93,15 +91,14 @@ internal object MomentumRules {
     }
 
     fun predecessors(
-        moves: SimpleMoveLibrary,
-        view: CoarseVoxelView,
+        edges: CoarseEdgeCache,
         node: MomentumStance,
     ): Map<MomentumStance, Double> {
         val out = LinkedHashMap<MomentumStance, Double>()
         if (node.speed == SpeedClass.STOPPED) {
             out[MomentumStance(node.stance, SpeedClass.MOVING)] = BRAKE_TICKS
         }
-        for (edge in moves.edgesTo(view, node.stance)) {
+        for (edge in edges.edgesTo(node.stance)) {
             val arrive = if (arrivesStopped(edge.movement)) SpeedClass.STOPPED else SpeedClass.MOVING
             if (arrive != node.speed) continue
             if (!departsStoppedOnly(edge.movement)) {

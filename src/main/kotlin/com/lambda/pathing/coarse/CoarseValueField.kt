@@ -16,6 +16,13 @@ class CoarseValueField(
 
     /** Class-conditioned labels; defaults to the blended [label] where a planner predates momentum. */
     private val labelAt: (Stance, SpeedClass) -> Double = { stance, _ -> label(stance) },
+
+    /**
+     * Where edge lists come from. The planner passes its session edge cache so the
+     * steering reads reuse the probes the coarse search already paid for; the default
+     * recomputes from the move library, which is what standalone fields did before.
+     */
+    private val edgeProvider: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
 ) : SteeringField {
     private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
         .apply { defaultReturnValue(Double.NaN) }
@@ -102,7 +109,7 @@ class CoarseValueField(
     fun isMapped(stance: Stance): Boolean = guide(stance).isFinite()
 
     fun edgesFrom(stance: Stance): List<CoarseEdge> =
-        edges.getOrPut(stance) { moves.edgesFrom(view, stance) }
+        edges.getOrPut(stance) { edgeProvider(stance) }
 
     fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
 

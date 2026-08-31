@@ -100,11 +100,13 @@ object TrajectoryPlanner {
     internal fun coarseState(
         preparation: TrajectoryPlanningPreparation,
         snapshot: SnapshotSimulationEnvironment,
+        capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
     ) = CoarsePlanningState(
         snapshot, preparation.moveOptions, preparation.start, preparation.finalGoal,
         horizonChunks = preparation.planningHorizonChunks,
         frontierProbeRange = preparation.frontierProbeRange,
         frontierSweepBudget = preparation.frontierSweepBudget,
+        capturable = capturable,
     )
 
 
@@ -242,7 +244,8 @@ object TrajectoryPlanner {
         cancellation: PlanningCancellation,
         planningGeneration: Long,
         snapshotRevision: Long,
-        coarseState: CoarsePlanningState = coarseState(preparation, world.snapshot),
+        coarseState: CoarsePlanningState =
+            coarseState(preparation, world.snapshot, world::chunkCapturable),
     ): CompletableFuture<PathPlanResult> {
         if (cancellation.isCancelled) return CompletableFuture.completedFuture(PathPlanResult.Cancelled)
         val snapshot = world.snapshot
@@ -258,7 +261,9 @@ object TrajectoryPlanner {
             try {
                 if (cancellation.isCancelled) return@supplyAsync PathPlanResult.Cancelled
 
+                val knowledgeStarted = System.nanoTime()
                 awaitStartKnowledge(world, snapshot, start, goal, cancellation)
+                val knowledgeMillis = (System.nanoTime() - knowledgeStarted) / 1_000_000L
                 val batch = world.drainEvents()
                 val initial =
                     if (preparation.settleInitial) settleToRest(preparation.initial, profile, snapshot)
@@ -287,16 +292,19 @@ object TrajectoryPlanner {
                     )
                 }
 
+                val fieldStarted = System.nanoTime()
                 planner.expandField(
                     extraTicks = FIELD_EXPANSION_TICKS,
                     timeBudget = FIELD_EXPANSION_BUDGET,
                     maxExpansions = FIELD_EXPANSION_NODES,
                     cancelled = { cancellation.isCancelled },
                 )
+                val fieldMillis = (System.nanoTime() - fieldStarted) / 1_000_000L
                 if (cancellation.isCancelled) return@supplyAsync PathPlanResult.Cancelled
 
                 PlanningDebugChannel.publishGraph(planner, initial.position)
 
+                val routeStarted = System.nanoTime()
                 val route = coarseState.resolveRoute(
                     start, snapshotRevision, preparation.coarseExpansionBudget, world,
                 ) { cancellation.isCancelled }
@@ -310,7 +318,19 @@ object TrajectoryPlanner {
                             PlanningFailure.NoRoute("no coarse route to the goal")
                         )
                     }
+                val routeMillis = (System.nanoTime() - routeStarted) / 1_000_000L
                 PlanningDebugChannel.publishRoute(route)
+
+                // The startup ledger: where the seconds between the request and the
+                // first trajectory expansion actually went. knowledge-wait is capture
+                // pacing (cold-start waits tick at the snapshot budget); route covers
+                // resolveRoute's terminal grant rounds and their knowledge waits.
+                LOG.info(
+                    "Planning startup {} -> {}: knowledge-wait={} ms, coarse={} ms, " +
+                        "field={} ms, route={} ms, since-request={} ms; capture so far: {}",
+                    start, goal, knowledgeMillis, coarseMillis, fieldMillis, routeMillis,
+                    System.currentTimeMillis() - started, world.captureLedger(),
+                )
 
                 val field = planner.valueField()
                 val probe = DebugChannelProbe()

@@ -26,6 +26,29 @@ class SimpleMoveLibrary private constructor(
     private val minReadZ = readOffsets.minOf(VoxelPos::z)
     private val maxReadZ = readOffsets.maxOf(VoxelPos::z)
 
+    /**
+     * Read offsets relative to each template's TARGET: the mirror of [readOffsets]
+     * that answers which stances' INCOMING edges a changed voxel can affect. A probe
+     * for the edge into t reads cells t - delta + r, so the affected targets of a
+     * changed cell c are c + (delta - r). The target's own stance reads are included
+     * because edgesTo tests the target as a stance before probing any template.
+     */
+    private val targetReadOffsets: Set<VoxelPos> = buildSet {
+        for (template in templates) {
+            for (read in template.readOffsets) {
+                add(VoxelPos(template.dx - read.x, template.dy - read.y, template.dz - read.z))
+            }
+        }
+        add(VoxelPos(0, -1, 0))
+        add(VoxelPos(0, 0, 0))
+        add(VoxelPos(0, 1, 0))
+    }
+
+    private val minTargetX = targetReadOffsets.minOf(VoxelPos::x)
+    private val maxTargetX = targetReadOffsets.maxOf(VoxelPos::x)
+    private val minTargetZ = targetReadOffsets.minOf(VoxelPos::z)
+    private val maxTargetZ = targetReadOffsets.maxOf(VoxelPos::z)
+
     data class HeuristicCaps(
         val axisTicksPerBlock: Double,
         val diagonalTicksPerPair: Double,
@@ -89,6 +112,12 @@ class SimpleMoveLibrary private constructor(
         }
     }
 
+    fun affectedTargets(changed: VoxelPos): Set<Stance> = buildSet(targetReadOffsets.size) {
+        for ((x, y, z) in targetReadOffsets) {
+            add(Stance(changed.x + x, changed.y + y, changed.z + z))
+        }
+    }
+
     fun affectedOrigins(chunk: PathingChunk, candidates: Iterable<Stance>): Set<Stance> {
         val chunkMinX = chunk.x shl 4
         val chunkMaxX = chunkMinX + 15
@@ -97,6 +126,22 @@ class SimpleMoveLibrary private constructor(
         val originX = (chunkMinX - maxReadX)..(chunkMaxX - minReadX)
         val originZ = (chunkMinZ - maxReadZ)..(chunkMaxZ - minReadZ)
         return candidates.filterTo(HashSet()) { it.x in originX && it.z in originZ }
+    }
+
+    /** Column ranges of stances whose OUTGOING edges can read into [chunk]. */
+    internal fun originColumnRanges(chunk: PathingChunk): Pair<IntRange, IntRange> {
+        val chunkMinX = chunk.x shl 4
+        val chunkMinZ = chunk.z shl 4
+        return ((chunkMinX - maxReadX)..(chunkMinX + 15 - minReadX)) to
+            ((chunkMinZ - maxReadZ)..(chunkMinZ + 15 - minReadZ))
+    }
+
+    /** Column ranges of stances whose INCOMING edges can read into [chunk]. */
+    internal fun targetColumnRanges(chunk: PathingChunk): Pair<IntRange, IntRange> {
+        val chunkMinX = chunk.x shl 4
+        val chunkMinZ = chunk.z shl 4
+        return ((chunkMinX + minTargetX)..(chunkMinX + 15 + maxTargetX)) to
+            ((chunkMinZ + minTargetZ)..(chunkMinZ + 15 + maxTargetZ))
     }
 
     private fun List<CoarseEdge>.minimumCostsBy(node: (CoarseEdge) -> Stance): Map<Stance, Double> {

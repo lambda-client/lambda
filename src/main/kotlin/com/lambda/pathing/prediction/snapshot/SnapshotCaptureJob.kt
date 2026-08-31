@@ -33,6 +33,7 @@ internal class SnapshotCaptureJob(
     private val sections = HashMap<Long, ImmutableSnapshotSection>()
     private val mutable = BlockPos.Mutable()
     private val shapeContext = ShapeContext.of(player)
+    private val physicsInterner = BlockPhysicsInterner(shapeContext)
 
     private val minSectionX = bounds.minX shr 4
     private val maxSectionX = bounds.maxX shr 4
@@ -75,9 +76,7 @@ internal class SnapshotCaptureJob(
             }
 
             val pos = mutable.set(x, y, z)
-            val physics = with(SnapshotSimulationEnvironment.Companion) {
-                world.getBlockState(pos).capturePhysics(world, pos, shapeContext)
-            }
+            val physics = physicsInterner.capture(world, pos, world.getBlockState(pos))
             builder.set(x, y, z, physics)
             sectionWrites++
             capturedCells++

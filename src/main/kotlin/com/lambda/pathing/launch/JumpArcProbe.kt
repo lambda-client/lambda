@@ -17,13 +17,21 @@ import kotlin.math.max
 import kotlin.math.sqrt
 
 object JumpArcProbe {
+    /**
+     * [reads] is derived on demand by re-running the sweep with recording enabled:
+     * the only consumer is route-plan dependency collection, which reads it for the
+     * handful of edges on a resolved route immediately after generating them -- while
+     * the thousands of probes behind graph expansion never ask. Recording eagerly put
+     * a hash-set insert on every swept cell of every one of those probes, which was a
+     * measurable slice of lazy-graph construction.
+     */
     class Reachable(
         val solution: LaunchSolution,
-        packedReads: LongOpenHashSet,
+        readsSupplier: () -> LongOpenHashSet,
     ) {
 
         val reads: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-            unpackReads(packedReads)
+            unpackReads(readsSupplier())
         }
     }
 
@@ -97,9 +105,33 @@ object JumpArcProbe {
         riseHeight: Double = (rise).toDouble(),
         launchHeight: Double = from.y.toDouble(),
     ): Reachable? {
+        val solution =
+            solve(view, from, dx, dz, rise, profile, modes, riseHeight, launchHeight, reads = null)
+                ?: return null
+        return Reachable(solution) {
+            // The recording pass replays the exact sweep sequence -- failed sweeps
+            // included, since a cell that refused one arc is a dependency of the
+            // edge's cost like any other.
+            LongOpenHashSet().also {
+                solve(view, from, dx, dz, rise, profile, modes, riseHeight, launchHeight, reads = it)
+            }
+        }
+    }
+
+    private fun solve(
+        view: CoarseVoxelView,
+        from: Stance,
+        dx: Int,
+        dz: Int,
+        rise: Int,
+        profile: BallisticProfile,
+        modes: List<LaunchMode>,
+        riseHeight: Double,
+        launchHeight: Double,
+        reads: LongOpenHashSet?,
+    ): LaunchSolution? {
         val to = from.offset(dx, rise, dz)
-        val reads = LongOpenHashSet()
-        val cache = SweepCellCache()
+        val cache = lazy(LazyThreadSafetyMode.NONE) { SweepCellCache() }
         val planar = launchHeight == from.y.toDouble()
 
         for (solution in solutions(from, to, dx, dz, profile, modes, riseHeight)) {
@@ -107,10 +139,11 @@ object JumpArcProbe {
                 sweepByPlan(view, from, dx, dz, solution, reads, cache)
             } else {
                 sweepClearance(
-                    view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads, cache,
+                    view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads,
+                    cache.value,
                 )
             } ?: continue
-            return Reachable(solution.withClearance(clearance), reads)
+            return solution.withClearance(clearance)
         }
         return null
     }
@@ -121,8 +154,8 @@ object JumpArcProbe {
         dx: Int,
         dz: Int,
         solution: LaunchSolution,
-        reads: LongOpenHashSet,
-        cache: SweepCellCache,
+        reads: LongOpenHashSet?,
+        cache: Lazy<SweepCellCache>,
     ): Double? {
         if (planCache.size > PLAN_CACHE_LIMIT) planCache.clear()
         val plan = planCache.computeIfAbsent(solution.arc) {
@@ -135,7 +168,7 @@ object JumpArcProbe {
             val x = from.x + BlockPos.unpackLongX(offset)
             val y = from.y + BlockPos.unpackLongY(offset)
             val z = from.z + BlockPos.unpackLongZ(offset)
-            reads.add(BlockPos.asLong(x, y, z))
+            reads?.add(BlockPos.asLong(x, y, z))
 
             when (view.collisionClass(x, y, z)) {
                 CollisionClass.EMPTY -> {}
@@ -150,7 +183,7 @@ object JumpArcProbe {
                 CollisionClass.PARTIAL ->
                     return sweepClearance(
                         view, from, dx, dz, solution.arc, solution.launchOffset,
-                        from.y.toDouble(), reads, cache,
+                        from.y.toDouble(), reads, cache.value,
                     )
             }
         }
@@ -224,7 +257,7 @@ object JumpArcProbe {
         arc: ArcSample,
         launchOffset: Double,
         launchHeight: Double,
-        reads: LongOpenHashSet,
+        reads: LongOpenHashSet?,
         cache: SweepCellCache,
     ): Double? {
         val length = hypot(dx.toDouble(), dz.toDouble())
@@ -254,7 +287,7 @@ object JumpArcProbe {
                 for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
                     for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) {
                         val key = BlockPos.asLong(x, y, z)
-                        reads.add(key)
+                        reads?.add(key)
 
                         val known = cache.classes.get(key)
                         val cellClass = if (known == SweepCellCache.UNVISITED) {

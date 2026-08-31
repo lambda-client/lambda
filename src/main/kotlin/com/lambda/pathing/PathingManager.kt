@@ -239,7 +239,9 @@ object PathingManager : Manager<PathingRequest>(0) {
                 profile = preparation.profile,
                 cancellation = PlanningCancellation(),
                 world = pathingWorld,
-                coarseState = TrajectoryPlanner.coarseState(preparation, pathingWorld.snapshot),
+                coarseState = TrajectoryPlanner.coarseState(
+                    preparation, pathingWorld.snapshot, pathingWorld::chunkCapturable,
+                ),
             ).also { journey = it }
         }
         launchPlanning(walk, session, preparation, currentJourney)

@@ -19,7 +19,6 @@ internal sealed interface Outcome {
     data class Anchored(val anchor: ValueAnchor) : Outcome
     data class Arrived(val frames: List<SimulatedTrajectoryFrame>, val stopFrame: Int) : Outcome
     data class Rejected(val diagnostic: TrajectoryDiagnostic) : Outcome
-
     data class Blocked(val frame: Int, val sectionX: Int, val sectionY: Int, val sectionZ: Int) : Outcome
 }
 
@@ -30,7 +29,6 @@ internal class AnchorRollout(
     private val searchConfig: ValueFieldSearchConfig,
     private val environment: SnapshotSimulationEnvironment,
     private val profile: PlayerPhysicsProfile,
-
     private val goalPoint: () -> HorizontalPoint,
     private val attempts: AttemptAccumulator,
     private val progressOf: (Stance) -> Int,

@@ -27,6 +27,12 @@ class CoarsePlanner(
     goal: Stance,
 
     private val sweepBudget: Int = 40_000,
+
+    /** See [FrontierAnchors.NOTHING_CAPTURABLE]: capturable unknowns never anchor. */
+    private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
+
+    /** Reported for every capturable unknown that suppressed an anchor; see [FrontierAnchors.probe]. */
+    private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
 
     private val anchors = HashMap<Stance, Double>()
@@ -35,13 +41,15 @@ class CoarsePlanner(
 
     private val goalNode = MomentumStance(goal, SpeedClass.STOPPED)
 
+    private val edgeCache = CoarseEdgeCache(view, moves)
+
     private val graph = LazyGraph(
         successorProvider = { node: MomentumStance ->
-            MomentumRules.successors(moves, view, node) + optimisticEdgeFrom(node)
+            MomentumRules.successors(edgeCache, node) + optimisticEdgeFrom(node)
         },
         predecessorProvider = { node: MomentumStance ->
-            if (node == goalNode) MomentumRules.predecessors(moves, view, node) + anchorPredecessors()
-            else MomentumRules.predecessors(moves, view, node)
+            if (node == goalNode) MomentumRules.predecessors(edgeCache, node) + anchorPredecessors()
+            else MomentumRules.predecessors(edgeCache, node)
         },
     )
 
@@ -115,6 +123,14 @@ class CoarsePlanner(
     fun advanceFrontier(probed: Map<Stance, Double>): Boolean {
         var changed = false
 
+        // Creation and retirement are deliberately asymmetric about capture lag. A
+        // NEW anchor must not be minted where the unknown is merely uncaptured (the
+        // cold-start random walk), but an EXISTING anchor must survive that same lag:
+        // as the body approaches, its chunks enter render distance and turn
+        // capturable moments before capture lands -- retiring on capturability
+        // withdrew the optimistic edge before knowledge replaced it, the route
+        // terminal regressed, and the body circled the goal until capture caught up.
+        // Retirement therefore waits for the cells to be actually KNOWN.
         val refused = FrontierAnchors.refusesOptimism(view, moves, goalStance)
         val retired = anchors.keys.filterTo(ArrayList()) {
             refused || !FrontierAnchors.bordersUnknown(view, it)
@@ -147,6 +163,7 @@ class CoarsePlanner(
     fun discoverReachableFrontier(cancelled: () -> Boolean = { false }): Boolean {
         val swept = FrontierAnchors.sweep(
             view, moves, search.start.stance, goalStance, maxNodes = sweepBudget, cancelled = cancelled,
+            capturable = capturable, onCaptureLag = onCaptureLag,
         )
         var changed = false
         swept.forEach { (anchor, cost) ->
@@ -205,7 +222,7 @@ class CoarsePlanner(
     }
 
     private fun liveEdge(from: Stance, to: Stance): CoarseEdge? =
-        moves.edgesFrom(view, from)
+        edgeCache.edgesFrom(from)
             .asSequence()
             .filter { it.to == to }
             .minWithOrNull(compareBy({ it.lowerBoundTicks }, { it.id.template.value }))
@@ -277,6 +294,10 @@ class CoarsePlanner(
     }
 
     private fun synchronizeStances(affected: Iterable<Stance>): DStarLite.SynchronizationResult {
+        // Every synchronization regenerates from the live view, so the memoized edges
+        // for the affected stances must go first -- including for callers like route
+        // resynchronization that arrive without a world-change notification.
+        edgeCache.invalidateStances(affected)
         val lifted = HashSet<MomentumStance>()
         for (stance in affected) {
             lifted += MomentumStance(stance, SpeedClass.MOVING)
@@ -300,6 +321,7 @@ class CoarsePlanner(
         },
         goal = goalStance,
         labelAt = ::nodeLabel,
+        edgeProvider = edgeCache::edgesFrom,
     )
 
     private fun nodeLabel(stance: Stance, speed: SpeedClass): Double {
@@ -308,12 +330,16 @@ class CoarsePlanner(
     }
 
     fun worldChanged(changed: Iterable<VoxelPos>): DStarLite.SynchronizationResult {
+        edgeCache.invalidateVoxels(changed)
         val affected = HashSet<Stance>()
         changed.forEach { affected += moves.affectedOrigins(it) }
         return synchronizeStances(affected)
     }
 
     fun chunksChanged(chunks: Iterable<PathingChunk>): DStarLite.SynchronizationResult {
+        // Range-based cache eviction, not graph-node-filtered: the cache can hold
+        // stances the graph never adopted (steering reads, rim origins).
+        edgeCache.invalidateChunks(chunks)
         val affected = HashSet<Stance>()
         chunks.forEach { affected += moves.affectedOrigins(it, graphNodes) }
         return synchronizeStances(affected)
