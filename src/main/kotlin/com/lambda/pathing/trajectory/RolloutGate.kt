@@ -25,7 +25,11 @@ internal class RolloutGate(
         program: ControlProgram,
         frameCount: Int,
     ): GatedRollout {
-        val evaluator = RolloutEvaluator(from, points, goalPoint(), config)
+        val evaluator = RolloutEvaluator(from, points, goalPoint(), config, climbing = { p ->
+            environment.medium(
+                kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
+            ) == com.lambda.pathing.world.Medium.CLIMBABLE
+        })
         var previous = from
         var stopFrame: Int? = null
         var failed = false

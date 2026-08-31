@@ -160,6 +160,7 @@ object PlanDump {
         // dump that silently drops an option replays a DIFFERENT planner: the slime
         // course's failure dumps re-planned bounce-less and hid the real bug.
         allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
+        allowDeepDropJumps,
     ).joinToString(" ")
 
     private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -174,6 +175,7 @@ object PlanDump {
         allowSlimeBounces = parts.getOrNull(9)?.toBoolean() ?: false,
         maxBounceDrop = parts.getOrNull(10)?.toInt() ?: 8,
         maxDropSpan = parts.getOrNull(11)?.toInt() ?: 2,
+        allowDeepDropJumps = parts.getOrNull(12)?.toBoolean() ?: false,
     )
 
     private fun MotionConstraints.dump(): String = listOf(

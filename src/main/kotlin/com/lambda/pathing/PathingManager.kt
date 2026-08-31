@@ -3,6 +3,7 @@ package com.lambda.pathing
 import com.lambda.Lambda.LOG
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
+import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
@@ -129,7 +130,102 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
     }
 
+    /** Waypoints still to walk after the active goal, oldest first: the compound route. */
+    private val routeQueue = ArrayDeque<Stance>()
+    private var routeAutomated: Automated? = null
+    private var routeLeg: Stance? = null
+
+    /**
+     * The NEXT leg's journey, pre-warmed while the body still replays the current
+     * one: its world streams capture and its coarse state exists before arrival,
+     * so the waypoint handoff pays neither the capture wait nor the coarse cold
+     * start -- only the fine search, from a body that arrived braked. Adopted by
+     * [handleRequest] when the continuation request lands.
+     */
+    private var routeNextJourney: PlanningJourney? = null
+
+    /**
+     * Walks [waypoints] in order: the first leg is requested now and each arrival
+     * submits the next. Any unrelated pathing request, a cancel, or a failed leg
+     * drops the remainder -- continuing a route past a leg that did not arrive
+     * would walk the tail from the wrong place.
+     */
+    fun route(automated: Automated, waypoints: List<Stance>) {
+        dropRoute()
+        val first = waypoints.firstOrNull() ?: return
+        routeAutomated = automated
+        routeLeg = first
+        routeQueue.addAll(waypoints.drop(1))
+        PathingRequest(automated, first).submit()
+    }
+
+    private fun dropRoute() {
+        routeQueue.clear()
+        routeAutomated = null
+        routeLeg = null
+        routeNextJourney?.cancel()
+        routeNextJourney = null
+    }
+
+    private fun SafeContext.primeNextRouteLeg(walk: Walk) {
+        if (routeAutomated == null) return
+        val next = routeQueue.firstOrNull() ?: return
+        // Only while replaying a COMPLETE tape: its terminal is where the body
+        // will actually stand at the handoff, so bounds and interest are primed
+        // from there, not from wherever the body happens to be mid-leg.
+        if (walk.cursor == null) return
+        val running = published ?: return
+        if (running.partial) return
+        val terminal = running.plan.frames.lastOrNull()?.state ?: return
+        val resolved = TrajectoryPlanner.resolveGoalStance(player, next)
+        if (routeNextJourney?.goal == resolved) return
+        routeNextJourney?.cancel()
+        routeNextJourney = null
+
+        val cancellation = PlanningCancellation()
+        val preparation = when (
+            val prepared = TrajectoryPlanner.prepare(
+                player = player,
+                goal = next,
+                config = walk.request.pathingConfig,
+                turnSpeed = walk.request.rotationConfig.turnSpeed,
+                cancellation = cancellation,
+                initialOverride = terminal,
+            )
+        ) {
+            is PlanningPreparationResult.Ready -> prepared.preparation
+            else -> return
+        }
+        val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
+        InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal)
+        routeNextJourney = PlanningJourney(
+            goal = preparation.finalGoal,
+            moveOptions = preparation.moveOptions,
+            profile = preparation.profile,
+            cancellation = cancellation,
+            world = pathingWorld,
+            coarseState = TrajectoryPlanner.coarseState(
+                preparation, pathingWorld.snapshot, pathingWorld::chunkCapturable,
+            ),
+        )
+        LOG.info("Pre-warming the next route leg toward {}", preparation.finalGoal)
+    }
+
+    private fun continueRoute(): Boolean {
+        val automated = routeAutomated ?: return false
+        val next = routeQueue.removeFirstOrNull() ?: run { dropRoute(); return false }
+        routeLeg = next
+        info(
+            "Route: continuing to (${next.x}, ${next.y}, ${next.z})" +
+                (routeQueue.size.takeIf { it > 0 }?.let { ", $it more after it" } ?: "") + ".",
+            PATHING_SOURCE,
+        )
+        PathingRequest(automated, next).submit()
+        return true
+    }
+
     fun cancel() {
+        dropRoute()
         releaseWalk(keepJourney = true)
         if (status is Status.Settling || status is Status.Planning ||
             status is Status.Aligning || status is Status.Executing
@@ -139,6 +235,7 @@ object PathingManager : Manager<PathingRequest>(0) {
     }
 
     fun clear() {
+        dropRoute()
         releaseWalk()
         status = Status.Idle
         published = null
@@ -153,6 +250,20 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     override fun AutomatedSafeContext.handleRequest(request: PathingRequest) {
         if (!request.fresh) return
+
+        // A request that is not this route's own next leg replaces the route.
+        if (request.goal != routeLeg) dropRoute()
+
+        // Adopt the pre-warmed next-leg journey before the reuse check below, so a
+        // route continuation lands on a world already captured and a coarse state
+        // already built instead of paying the cold start at every waypoint.
+        routeNextJourney?.let { warmed ->
+            if (warmed.goal == TrajectoryPlanner.resolveGoalStance(player, request.goal)) {
+                journey?.cancel()
+                journey = warmed
+                routeNextJourney = null
+            }
+        }
 
         val sameGoal = journey?.goal == TrajectoryPlanner.resolveGoalStance(player, request.goal)
         releaseWalk(keepJourney = sameGoal)
@@ -262,6 +373,9 @@ object PathingManager : Manager<PathingRequest>(0) {
             maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS)
         } else configured
         activeJourney.world.advance(budget)
+        // The pre-warmed next leg streams its capture alongside: the whole point of
+        // priming it is that the world is already known when the handoff comes.
+        routeNextJourney?.world?.advance(configured)
     }
 
     private fun SafeContext.launchPlanning(
@@ -497,6 +611,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         val position = player.blockPos?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "unknown position"
         val destination = goal?.let { " toward $it" } ?: ""
         val walked = activeWalk?.leg ?: 0
+        if (routeQueue.isNotEmpty()) {
+            warn("Dropping ${routeQueue.size} queued route waypoint(s): this leg failed.", PATHING_SOURCE)
+        }
+        dropRoute()
         releaseWalk(keepJourney = true)
         status = Status.Failed(reason)
         warn("Stopped ${if (walked == 0) "before" else "during"} continuous replay at $position$destination: $reason", PATHING_SOURCE)
@@ -522,10 +640,12 @@ object PathingManager : Manager<PathingRequest>(0) {
                 !ChunkPacketLoadContext.isActive()
             ) {
                 journey?.world?.onBlockChanged(event.pos)
+                routeNextJourney?.world?.onBlockChanged(event.pos)
             }
         }
         listenUnsafe<WorldEvent.ChunkEvent.Load> { event ->
             journey?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
+            routeNextJourney?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
         }
         listen<TickEvent.Pre> {
             val walk = activeWalk ?: return@listen
@@ -535,6 +655,7 @@ object PathingManager : Manager<PathingRequest>(0) {
             if (status is Status.Planning) return@listen
             if (status is Status.Aligning) return@listen align(walk)
 
+            primeNextRouteLeg(walk)
             tickExecution(walk)
         }
 
@@ -746,6 +867,7 @@ object PathingManager : Manager<PathingRequest>(0) {
             standingRuns(path), walk.publicationCadence(),
         )
         LOG.info("Pathing frames by movement: {}", path.movementProfile())
+        continueRoute()
     }
 
     /**

@@ -64,11 +64,19 @@ object JumpMovement : Movement {
         if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
         if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return false
 
-        // Statically the FLAT ceiling even for rising templates: whether a "rise 1"
-        // stance delta is a true block of height or a fifth of one (a bottom
-        // trapdoor's landing) only the surfaces can say, and the honest rising
-        // ceiling is applied dynamically in the edge against the REAL rise.
-        return airGap(dx, dz) <= STANDING_AIR_GAP_BLOCKS + REACH_EPSILON
+        // Statically the WIDEST ceiling this stance delta could honestly reach:
+        // whether a "rise 1" stance delta is a true block of height or a fifth of
+        // one (a bottom trapdoor's landing), and whether a "drop 1" is a real
+        // block of descent or a slab lip's near-flat step, only the surfaces can
+        // say -- the honest reach for the REAL rise is applied dynamically in the
+        // edge (see the admission in [spec]). The deep-drop ceiling is opt-in
+        // (see [SimpleMoveOptions.allowDeepDropJumps] for the measured trade),
+        // and deliberately not offered for LEVEL deltas even though a level delta
+        // can hide a real half-drop (full block onto a slab): the whole drop ring
+        // on every level pair is fan no course has yet earned.
+        val ceiling = if (rise < 0 && options.allowDeepDropJumps) FULL_DROP_AIR_GAP_BLOCKS
+            else STANDING_AIR_GAP_BLOCKS
+        return airGap(dx, dz) <= ceiling + REACH_EPSILON
     }
 
     private fun airGap(dx: Int, dz: Int): Double = kotlin.math.hypot(
@@ -78,11 +86,33 @@ object JumpMovement : Movement {
 
     private const val REACH_EPSILON = 1e-9
 
-    /** Air gap a standing start clears on flat and dropping jumps: hypot(3, 1). */
+    /** Air gap a standing start clears on flat and near-flat jumps: hypot(3, 1). */
     private val STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 1.0)
 
     /** Rising jumps trade reach for the block of height: hypot(2, 2). */
     private val RISING_STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(2.0, 2.0)
+
+    /**
+     * The drop-extended reaches, rollout-measured like the others (FenceJumpTest's
+     * drop-reach matrix, standing start, delays 0..4 from the cell centre): a real
+     * half-block of descent certifies a 4.0 air gap (span 5 straight; the field case
+     * is a fence launch, feet half a block proud, onto a full block a stance below),
+     * a real block certifies the 4.12-4.24 diagonals, and a 5.0 air gap certifies
+     * at NO measured drop -- the flight crosses the landing plane two-thirds of a
+     * block short even from a running start on the launch block.
+     */
+    private const val HALF_DROP_AIR_GAP_BLOCKS = 4.0
+
+    private val FULL_DROP_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 3.0)
+
+    /**
+     * Real-rise boundaries for the drop-extended ceilings, placed between the
+     * measured clusters (drop 0.0 fails / 0.5 passes at gap 4.0; 0.5 fails / 1.0
+     * passes at the wide diagonals), never at a plausible round number.
+     */
+    private const val HALF_DROP_RISE = -0.25
+
+    private const val FULL_DROP_RISE = -0.75
 
     private fun hypot(dx: Int, dz: Int): Double = kotlin.math.hypot(dx.toDouble(), dz.toDouble())
 
@@ -108,15 +138,23 @@ object JumpMovement : Movement {
             conditions = WalkMovement.stanceConditions(dx, rise, dz),
             arc = MotionTemplate.ArcSpec(
                 dx, dz, rise, MODES,
-                // A genuinely rising jump keeps its measured shorter reach; a short
-                // real ascent flies at the flat ceiling. Judged against the
-                // surface-corrected rise: field-verified that 0.19 (a bottom
-                // trapdoor) AND 0.5 (slab lip to full block) both certify a
-                // three-gap, while a true block of rise caps at the rising reach --
-                // so the boundary sits between the measured clusters, not at zero.
+                // The measured reach ladder, judged against the surface-corrected
+                // rise. A genuinely rising jump keeps its measured shorter reach; a
+                // short real ascent flies at the flat ceiling (field-verified: 0.19,
+                // a bottom trapdoor, and 0.5, a slab lip, both certify a three-gap
+                // while a true block of rise caps at the rising reach). Beyond the
+                // flat ceiling the gap must be BOUGHT with real descent: half a
+                // block unlocks 4.0, a full block the wide diagonals -- every rung
+                // a measured cluster, every boundary between two of them.
                 riseAdmission = { realRise ->
-                    realRise <= NEAR_FLAT_RISE ||
-                        gap <= RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON
+                    when {
+                        gap <= RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
+                        realRise > NEAR_FLAT_RISE -> false
+                        gap <= STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
+                        realRise > HALF_DROP_RISE -> false
+                        gap <= HALF_DROP_AIR_GAP_BLOCKS + REACH_EPSILON -> true
+                        else -> realRise <= FULL_DROP_RISE
+                    }
                 },
             ),
         )

@@ -113,6 +113,12 @@ object BounceArcProbe {
         }
         val headroom = if (ceilingBottom.isFinite()) ceilingBottom - BODY_HEIGHT - launchHeight else Double.POSITIVE_INFINITY
 
+        // How far along the ray the body can stand at launch: the support shape's
+        // own extent plus the body's half-width. A full block reaches 0.8, a fence
+        // post 0.425 -- solving (and creeping) to a full-block lip on a post is a
+        // walk straight off it into the gap.
+        val launchReach = launchReach(view, from, launchHeight, unitX, unitZ, reads)
+
         val cache = JumpArcProbe.SweepCellCache()
 
         // Judges a contact reach: infinite off the pad, otherwise the distance from
@@ -154,6 +160,7 @@ object BounceArcProbe {
                     contactDepth = contactDepth, riseHeight = riseHeight,
                     contactPenalty = ::contactPenalty,
                     headroom = headroom,
+                    launchReach = launchReach,
                 )
             } ?: continue
             if (!admissible(solution)) continue
@@ -168,6 +175,7 @@ object BounceArcProbe {
                     jump = combo.jump, holdTicks = combo.holdTicks,
                     contactDepth = contactDepth, riseHeight = riseHeight,
                     headroom = headroom,
+                    launchReach = launchReach,
                 )
             } ?: continue
             if (!admissible(solution)) continue
@@ -312,6 +320,44 @@ object BounceArcProbe {
     }
 
     /** Cover no taller than the game's 0.2 landing probe still bounces off what's below. */
+    /**
+     * The standable reach along the flight ray from the launch cell's centre.
+     *
+     * The support shape is the cell under the stance, or the cell below THAT when
+     * the surface is an intrusion poking up (a fence's top half). Only boxes that
+     * actually carry the feet count -- a fence's low skirt does not extend the
+     * lip, but a connected arm at full height does. Falls back to the full-block
+     * reach when the view carries no shapes.
+     */
+    private fun launchReach(
+        view: CoarseVoxelView,
+        from: Stance,
+        launchHeight: Double,
+        unitX: Double,
+        unitZ: Double,
+        reads: LongOpenHashSet?,
+    ): Double {
+        val direct = view.voxel(from.x, from.y - 1, from.z).standingSurface != null
+        val supportY = if (direct) from.y - 1 else from.y - 2
+        reads?.add(BlockPos.asLong(from.x, supportY, from.z))
+        val shape = view.collisionShape(from.x, supportY, from.z)
+            ?: return BounceSolver.LAUNCH_OFFSET
+        val surfaceLocal = launchHeight - supportY
+        var extent = Double.NEGATIVE_INFINITY
+        for (box in shape.boundingBoxes) {
+            if (box.maxY < surfaceLocal - SUPPORT_SURFACE_EPSILON) continue
+            val alongX = maxOf((box.minX - 0.5) * unitX, (box.maxX - 0.5) * unitX)
+            val alongZ = maxOf((box.minZ - 0.5) * unitZ, (box.maxZ - 0.5) * unitZ)
+            extent = maxOf(extent, alongX + alongZ)
+        }
+        if (extent == Double.NEGATIVE_INFINITY) return BounceSolver.LAUNCH_OFFSET
+        return (extent + BODY_HALF_WIDTH).coerceIn(BODY_HALF_WIDTH, BounceSolver.LAUNCH_OFFSET)
+    }
+
+    private const val BODY_HALF_WIDTH = 0.3
+
+    private const val SUPPORT_SURFACE_EPSILON = 1.0E-4
+
     private const val THIN_COVER_SURFACE = 0.2
 
     private const val BODY_HEIGHT = 1.8

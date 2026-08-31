@@ -95,7 +95,11 @@ internal class FinishPlanner(
             config.maxFrames,
         )
         val goal = goalPoint()
-        val evaluation = evaluate(gated.rollout, points, goal, config)
+        val evaluation = evaluate(gated.rollout, points, goal, config, climbing = { p ->
+            field.view.medium(
+                kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
+            ) == com.lambda.pathing.world.Medium.CLIMBABLE
+        })
         probe.attempt(gated.rollout, gated.stopFrame != null, evaluation.diagnostic)
         attempts.record(PlanAttempt(
             parameters = parameters,

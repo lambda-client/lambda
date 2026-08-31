@@ -14,6 +14,15 @@ data class SimpleMoveOptions(
 
     val allowOffAxisJumps: Boolean = true,
 
+    /**
+     * Offer descending jump templates beyond the flat standing reach: air gap 4.0
+     * with at least half a block of real drop, 4.24 with a full block (measured,
+     * FenceJumpTest's drop-reach matrix). Off by default: on the corpus the wider
+     * fan trades a ~1% frame gain for stalls on three routes and two wall brushes,
+     * and chains through the wide drops re-certify worse.
+     */
+    val allowDeepDropJumps: Boolean = false,
+
     val allowSlimeBounces: Boolean = false,
     val maxBounceDrop: Int = 8,
 ) {

@@ -74,6 +74,16 @@ interface PathingConfig {
     val allowOffAxisJumps: Boolean
 
     /**
+     * Whether descending jumps are offered beyond the flat standing reach.
+     *
+     * Rollout-measured: half a block of real drop clears a four-cell air gap, a full
+     * block the wide diagonals. Off by default because the wider fan measurably costs
+     * search health on ordinary terrain; parkour courses with deep drop-gaps are what
+     * it is for.
+     */
+    val allowDeepDropJumps: Boolean
+
+    /**
      * Whether falls onto slime are offered as a way across.
      *
      * A bounce reaches ground nothing else does -- the fall supplies an impulse no jump key

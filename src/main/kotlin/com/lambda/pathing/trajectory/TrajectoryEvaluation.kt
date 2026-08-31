@@ -26,6 +26,14 @@ internal class RolloutEvaluator(
     private val allowHorizontalContact: Boolean = false,
 
     private val descentAllowance: Double = 0.0,
+
+    /**
+     * Whether the body at this feet position counts as climbing. Vanilla resets the
+     * fall distance EVERY climbing tick, so a ladder-arrested descent lands with only
+     * the free fall below the ladder's last rung -- charging apex-to-landing burned a
+     * course's enter-from-the-top as HarmfulFall(4.0) when the real damage was zero.
+     */
+    private val climbing: (net.minecraft.util.math.Vec3d) -> Boolean = { false },
 ) {
     private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
 
@@ -36,6 +44,7 @@ internal class RolloutEvaluator(
         private set
 
     fun observe(index: Int, state: MovementSimulationState, before: MovementSimulationState): RolloutVerdict {
+        if (climbing(state.position)) apex = state.position.y
         if (state.onGround) {
 
             val rebounded = state.velocity.y > 0.0
@@ -78,9 +87,11 @@ internal fun evaluate(
     goal: HorizontalPoint,
     config: MotionConstraints,
     descentAllowance: Double = 0.0,
+    climbing: (net.minecraft.util.math.Vec3d) -> Boolean = { false },
 ): Evaluation {
     val evaluator = RolloutEvaluator(
         rollout.initialState, nodes, goal, config, descentAllowance = descentAllowance,
+        climbing = climbing,
     )
 
     rollout.frames.forEach { frame ->

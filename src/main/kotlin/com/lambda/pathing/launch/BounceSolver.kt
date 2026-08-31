@@ -51,10 +51,13 @@ object BounceSolver {
 
         /** Ceiling clearance above the launch feet; see [BallisticProfile.bounce]. */
         headroom: Double = Double.POSITIVE_INFINITY,
+
+        /** How far along the ray the body can stand at launch; see [LAUNCH_OFFSET]. */
+        launchReach: Double = LAUNCH_OFFSET,
     ): BounceSolution? {
         if (maxEntrySpeed < 0.0) return null
 
-        val flight = horizontalDistance - LAUNCH_OFFSET
+        val flight = horizontalDistance - launchReach
         if (flight <= 0.0) return null
 
         val base = profile.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
@@ -78,7 +81,7 @@ object BounceSolver {
             holdTicks = holdTicks,
             speed = speed,
             speedSlack = minOf(slack, speed),
-            launchOffset = LAUNCH_OFFSET,
+            launchOffset = launchReach,
             contactDistance = arc.distances[troughIndex(arc)],
             arc = arc,
             contactDepth = contactDepth,
@@ -118,8 +121,11 @@ object BounceSolver {
 
         /** Ceiling clearance above the launch feet; see [BallisticProfile.bounce]. */
         headroom: Double = Double.POSITIVE_INFINITY,
+
+        /** How far along the ray the body can stand at launch; see [LAUNCH_OFFSET]. */
+        launchReach: Double = LAUNCH_OFFSET,
     ): BounceSolution? {
-        val target = horizontalDistance - LAUNCH_OFFSET
+        val target = horizontalDistance - launchReach
         if (target <= 0.0) return null
 
         // Sprint needs forward held through the launch tick to be real; a walk-off
@@ -155,7 +161,7 @@ object BounceSolver {
             val arc = arcAt(hold) ?: continue
             val error = kotlin.math.abs(arc.distance - target)
             if (error > LANDING_SUPPORT_REACH) continue
-            val penalty = contactPenalty(LAUNCH_OFFSET + arc.distances[troughIndex(arc)])
+            val penalty = contactPenalty(launchReach + arc.distances[troughIndex(arc)])
             if (!penalty.isFinite()) continue
             if (penalty < chosenPenalty || (penalty == chosenPenalty && error < chosenError)) {
                 chosenHold = hold
@@ -175,7 +181,7 @@ object BounceSolver {
             holdTicks = chosenHold,
             speed = 0.0,
             speedSlack = STANDING_REST_SPEED,
-            launchOffset = LAUNCH_OFFSET,
+            launchOffset = launchReach,
             contactDistance = arc.distances[troughIndex(arc)],
             arc = arc,
             contactDepth = contactDepth,
@@ -217,5 +223,12 @@ object BounceSolver {
 
     private const val LANDING_WINDOW = 1.0
 
+    /**
+     * Default standable reach along the ray from the launch cell's centre: half a
+     * FULL BLOCK plus the body's half-width. Partial launch supports reach less --
+     * a fence post 0.425 -- and the probe measures the real reach from the support
+     * shape; creeping to a full-block lip on a post is a walk straight off it
+     * (the field's fence-launched bounce fell into the gap at frame 15, every arc).
+     */
     const val LAUNCH_OFFSET = 0.8
 }

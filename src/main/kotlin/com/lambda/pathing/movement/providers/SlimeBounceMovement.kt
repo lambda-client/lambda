@@ -147,7 +147,15 @@ object SlimeBounceMovement : Movement {
 
     private const val MAX_SPAN = 12
 
-    private const val MIN_DROP = 3
+    /**
+     * The shallowest STANCE drop offered. Two, not three: stance deltas are not
+     * physical heights in the drop dimension either -- the field's fence-launched
+     * bounce falls a REAL 2.44 (launch feet half a block proud of the stance grid,
+     * carpet lifting the contact stance a block) yet reads drop 2, and MIN_DROP=3
+     * made it structurally unofferable. The physics window above and the probe's
+     * refined surfaces judge each template; the floor only bounds the fan.
+     */
+    private const val MIN_DROP = 2
 
     /** Landing level with the lip needs more rebound than any drop's reflection keeps. */
     private const val MAX_RISE = 0

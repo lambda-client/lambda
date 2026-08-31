@@ -153,6 +153,7 @@ object TrajectoryPlanner {
             maxJumpSpan = config.maxJumpSpan,
             maxJumpDrop = config.maxJumpDrop,
             allowOffAxisJumps = config.allowOffAxisJumps,
+            allowDeepDropJumps = config.allowDeepDropJumps,
             allowSlimeBounces = config.allowSlimeBounces,
             maxBounceDrop = config.maxBounceDrop,
         )

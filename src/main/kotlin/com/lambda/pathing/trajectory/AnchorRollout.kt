@@ -34,6 +34,13 @@ internal class AnchorRollout(
     private val progressOf: (Stance) -> Int,
     private val probe: SearchProbe,
 ) {
+    /** Vanilla resets fall distance every climbing tick; the evaluator mirrors it. */
+    private val climbingAt: (net.minecraft.util.math.Vec3d) -> Boolean = { p ->
+        field.view.medium(
+            kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
+        ) == com.lambda.pathing.world.Medium.CLIMBABLE
+    }
+
     /**
      * A landing with mapped stances beside it is open terrain; one without is an
      * isolated pad. Two neighbours is the threshold rather than one so a cell at the
@@ -107,6 +114,7 @@ internal class AnchorRollout(
                 anchor.state, points, goalPoint(), config,
                 allowHorizontalContact = movement.pressesIntoTerrain,
                 descentAllowance = descentAllowance,
+                climbing = climbingAt,
             ),
             descentAllowance = descentAllowance,
             frameCount = maxOf(searchConfig.maxTransitionFrames, movement.transitionFrames(action)),
@@ -202,7 +210,7 @@ internal class AnchorRollout(
             return Outcome.Blocked(it.frame, it.sectionX, it.sectionY, it.sectionZ)
         }
         val frame = eventFrame ?: return Outcome.Rejected(
-            evaluate(rollout, points, goalPoint(), config, descentAllowance).diagnostic
+            evaluate(rollout, points, goalPoint(), config, descentAllowance, climbing = climbingAt).diagnostic
                 ?: TrajectoryDiagnostic.NoStop(rollout.frames.size, 0.0, anchor.speed),
         )
 

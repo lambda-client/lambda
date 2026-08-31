@@ -138,6 +138,8 @@ object ClimbMovement : Movement {
             holdWhileClimbing = decision.holdWhileClimbing,
             climbWithJump = decision.climbWithJump,
             maxYawChange = context.constraints.maxYawDegreesPerFrame,
+            takeoff = context.body.stance.center(),
+            aim = (decision.step ?: context.body.stance).center(),
         )
     }
 
