@@ -446,7 +446,9 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private fun keepRunning(rejected: PublishedPath, reason: String) {
         rejectedImprovements++
-        LOG.info("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
+        // Debug, deliberately: a healthy anytime walk rejects a partial publication
+        // about once a second, and at info that drowned every other pathing line.
+        LOG.debug("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
     }
 
     private fun SafeContext.install(walk: Walk, path: PublishedPath) {

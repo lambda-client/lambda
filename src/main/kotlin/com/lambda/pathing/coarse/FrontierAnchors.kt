@@ -1,6 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.movement.CoarseEdge
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -70,6 +71,14 @@ object FrontierAnchors {
         cancelled: () -> Boolean = { false },
         capturable: (Int, Int) -> Boolean = NOTHING_CAPTURABLE,
         onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
+
+        /**
+         * Edge source; callers with a session edge cache pass it so repeated sweeps
+         * (cold-start resolve retries especially) reuse probes instead of re-running
+         * the full template loop per visited node -- on jump-heavy terrain that was
+         * hundreds of milliseconds per sweep.
+         */
+        edges: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
     ): Map<Stance, Double> {
         if (from == goal || refusesOptimism(view, moves, goal)) return emptyMap()
         if (!moves.isStance(view, from)) return emptyMap()
@@ -94,7 +103,7 @@ object FrontierAnchors {
                 if (frontier) anchors[node] = optimisticCost(moves, node, goal)
             }
 
-            for (edge in moves.edgesFrom(view, node)) {
+            for (edge in edges(node)) {
                 if (visited.add(edge.to)) queue += edge.to
             }
         }

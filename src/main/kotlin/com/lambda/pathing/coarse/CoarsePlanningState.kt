@@ -110,6 +110,11 @@ internal class CoarsePlanningState(
         ),
     )
 
+    /** How the last route resolution spent its knowledge wait, for the startup ledger. */
+    @Volatile
+    var lastResolveReport: String = "no wait"
+        private set
+
     /** Demand exactly the sections whose lag suppressed anchors, then forget them. */
     private fun demandCaptureLag(world: PathingWorld?) {
         if (world == null || captureLagSections.isEmpty()) return
@@ -141,20 +146,40 @@ internal class CoarsePlanningState(
         // count, and sustained silence exits to the honest no-route failure.
         if (route == null && world != null) {
             var stalls = 0
-            while (route == null && !cancelled() && stalls < START_KNOWLEDGE_STALL_ROUNDS) {
+            var rounds = 0
+            var extracts = 0
+            val waitStarted = System.nanoTime()
+            // Stalls count TIMEOUTS only, and useful progress (a capture batch or a
+            // frontier advance) resets them -- a chunk event with no captured content
+            // wakes the wait without either, and such wakes must neither reset the
+            // exit condition nor count toward it. The round cap bounds a pathological
+            // spin on contentless churn.
+            while (route == null && !cancelled() &&
+                stalls < START_KNOWLEDGE_STALL_ROUNDS && rounds++ < START_KNOWLEDGE_MAX_ROUNDS
+            ) {
                 demandCaptureLag(world)
-                if (world.awaitEvents(world.revision, START_KNOWLEDGE_WAIT_MILLIS)) stalls = 0
-                else stalls++
+                if (!world.awaitEvents(world.revision, START_KNOWLEDGE_WAIT_MILLIS)) stalls++
                 val batch = world.drainEvents()
                 if (!batch.isEmpty) {
                     planner.chunksChanged(batch.changedChunkSet())
                 }
-                advanceFrontierFrom(start)
+                val advanced = advanceFrontierFrom(start)
+                // A silent round cannot produce the route the last attempt failed to
+                // find, and the attempt is not free: extractRoute re-checks the route
+                // stances and may run the frontier sweep. Rounds are paced by capture
+                // ticks, so paying that per round dominated the startup ledger's
+                // route bucket on jump-heavy terrain.
+                if (batch.isEmpty && !advanced) continue
+                stalls = 0
+                extracts++
                 planner.repair(
                     timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
                 )
                 route = extractRoute(snapshotRevision, cancelled)
             }
+            lastResolveReport = "wait: %d rounds (%d extracts, %d stalls) in %d ms".format(
+                rounds, extracts, stalls, (System.nanoTime() - waitStarted) / 1_000_000L,
+            )
         }
         if (route == null) return null
         var rounds = 0
@@ -225,11 +250,14 @@ internal class CoarsePlanningState(
 
         const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
 
-        /** Per-round wait for cold-start capture; revision progress resets the stalls. */
+        /** Per-round wait for cold-start capture; useful progress resets the stalls. */
         const val START_KNOWLEDGE_WAIT_MILLIS = 200L
 
         /** Consecutive silent rounds before no-route is accepted as the true answer. */
         const val START_KNOWLEDGE_STALL_ROUNDS = 5
+
+        /** Hard cap on wait rounds: contentless chunk-event wakes must not spin forever. */
+        const val START_KNOWLEDGE_MAX_ROUNDS = 100
     }
 
     private fun grantChunksAround(start: Stance): Set<PathingChunk> {
