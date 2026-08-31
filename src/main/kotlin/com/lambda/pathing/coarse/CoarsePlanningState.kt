@@ -1,5 +1,6 @@
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.changedChunkSet
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
@@ -55,6 +56,9 @@ internal class CoarsePlanningState(
     val horizonChunks: Int = 0,
     private val frontierProbeRange: Int = 512,
     frontierSweepBudget: Int = 40_000,
+
+    /** See [FrontierAnchors.NOTHING_CAPTURABLE]: capturable unknowns never anchor. */
+    private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 ) {
     private val moves = SimpleMoveLibrary.build(costs = DEFAULT_MOVE_COSTS, options = moveOptions)
 
@@ -64,11 +68,26 @@ internal class CoarsePlanningState(
         if (horizonChunks <= 0) snapshot
         else PlanningHorizonView(snapshot, grantedChunks)
 
+    /**
+     * Sections whose capture lag suppressed an anchor: exactly the knowledge the
+     * planner is stuck on. Primed at DEMAND tier by the route-resolution waits, so
+     * refusing to guess always comes with asking to know.
+     */
+    private val captureLagSections = HashSet<Long>()
+
+    private val collectCaptureLag: (Int, Int, Int) -> Unit = { x, y, z ->
+        captureLagSections += net.minecraft.util.math.ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
+    }
+
     init {
         grantChunksAround(start)
     }
 
-    val planner = CoarsePlanner(view, moves, start, goal, sweepBudget = frontierSweepBudget)
+    val planner = CoarsePlanner(
+        view, moves, start, goal,
+        sweepBudget = frontierSweepBudget, capturable = capturable,
+        onCaptureLag = collectCaptureLag,
+    )
 
     fun repairFrom(start: Stance, changed: Set<VoxelPos>, changedChunks: Set<PathingChunk>) {
         planner.updateStart(start)
@@ -84,8 +103,19 @@ internal class CoarsePlanningState(
     }
 
     private fun advanceFrontierFrom(start: Stance): Boolean = planner.advanceFrontier(
-        FrontierAnchors.probe(planner.view, moves, start, goal, maxSteps = frontierProbeRange),
+        FrontierAnchors.probe(
+            planner.view, moves, start, goal,
+            maxSteps = frontierProbeRange, capturable = capturable,
+            onCaptureLag = collectCaptureLag,
+        ),
     )
+
+    /** Demand exactly the sections whose lag suppressed anchors, then forget them. */
+    private fun demandCaptureLag(world: PathingWorld?) {
+        if (world == null || captureLagSections.isEmpty()) return
+        world.interest(ArrayList(captureLagSections), InterestTier.DEMAND)
+        captureLagSections.clear()
+    }
 
     fun resolveRoute(
         start: Stance,
@@ -102,6 +132,30 @@ internal class CoarsePlanningState(
             )
             route = extractRoute(snapshotRevision, cancelled)
         }
+        // No route and no frontier can simply mean the snapshot has not caught up with
+        // the client yet: anchors refuse capturable unknowns, so a cold start whose
+        // surroundings are still being captured has neither. Wait for capture progress
+        // and retry -- the alternative was optimistic micro-routes toward the body's
+        // own uncaptured ring, retired by every capture batch: a random walk. The loop
+        // is knowledge-driven, not wall-clock: any revision progress resets the stall
+        // count, and sustained silence exits to the honest no-route failure.
+        if (route == null && world != null) {
+            var stalls = 0
+            while (route == null && !cancelled() && stalls < START_KNOWLEDGE_STALL_ROUNDS) {
+                demandCaptureLag(world)
+                if (world.awaitEvents(world.revision, START_KNOWLEDGE_WAIT_MILLIS)) stalls = 0
+                else stalls++
+                val batch = world.drainEvents()
+                if (!batch.isEmpty) {
+                    planner.chunksChanged(batch.changedChunkSet())
+                }
+                advanceFrontierFrom(start)
+                planner.repair(
+                    timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
+                )
+                route = extractRoute(snapshotRevision, cancelled)
+            }
+        }
         if (route == null) return null
         var rounds = 0
         while (route!!.goal != goal && rounds++ < TERMINAL_GRANT_ROUNDS) {
@@ -109,6 +163,10 @@ internal class CoarsePlanningState(
             val terminal = route.goal
 
             world?.let { w ->
+                // The lag sections reported by the frontier probes may lie off the
+                // terminal's radius (a lateral column blocking a wide jump corridor);
+                // demand them by name alongside the terminal neighborhood.
+                demandCaptureLag(w)
                 w.interestBlocks(
                     terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS,
                     terminal.z - TERMINAL_INTEREST_BLOCKS,
@@ -166,6 +224,12 @@ internal class CoarsePlanningState(
         const val TERMINAL_INTEREST_Y_BLOCKS = 16
 
         const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
+
+        /** Per-round wait for cold-start capture; revision progress resets the stalls. */
+        const val START_KNOWLEDGE_WAIT_MILLIS = 200L
+
+        /** Consecutive silent rounds before no-route is accepted as the true answer. */
+        const val START_KNOWLEDGE_STALL_ROUNDS = 5
     }
 
     private fun grantChunksAround(start: Stance): Set<PathingChunk> {

@@ -9,13 +9,14 @@ import kotlin.math.floor
 import kotlin.math.hypot
 
 object BounceArcProbe {
+    /** [reads] re-runs the probe with recording on, like [JumpArcProbe.Reachable]. */
     class Reachable(
         val solution: BounceSolution,
-        packedReads: LongOpenHashSet,
+        readsSupplier: () -> LongOpenHashSet,
     ) {
 
         val reads: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-            JumpArcProbe.unpackReads(packedReads)
+            JumpArcProbe.unpackReads(readsSupplier())
         }
     }
 
@@ -29,10 +30,29 @@ object BounceArcProbe {
         profile: BallisticProfile = BallisticProfile.VANILLA,
         launchHeight: Double = from.y.toDouble(),
     ): Reachable? {
+        val solution = solve(view, from, dx, dz, drop, rise, profile, launchHeight, reads = null)
+            ?: return null
+        return Reachable(solution) {
+            LongOpenHashSet().also {
+                solve(view, from, dx, dz, drop, rise, profile, launchHeight, reads = it)
+            }
+        }
+    }
+
+    private fun solve(
+        view: CoarseVoxelView,
+        from: Stance,
+        dx: Int,
+        dz: Int,
+        drop: Int,
+        rise: Int,
+        profile: BallisticProfile,
+        launchHeight: Double,
+        reads: LongOpenHashSet?,
+    ): BounceSolution? {
         val length = hypot(dx.toDouble(), dz.toDouble())
         if (length <= 0.0) return null
 
-        val reads = LongOpenHashSet()
         val cache = JumpArcProbe.SweepCellCache()
         for (sprint in SPRINT_ORDER) {
             for (holdForward in HOLD_ORDER) {
@@ -55,7 +75,7 @@ object BounceArcProbe {
                 ) ?: continue
                 if (clearance < 0.0) continue
 
-                return Reachable(solution, reads)
+                return solution
             }
         }
         return null
@@ -69,7 +89,7 @@ object BounceArcProbe {
         length: Double,
         drop: Int,
         solution: BounceSolution,
-        reads: LongOpenHashSet,
+        reads: LongOpenHashSet?,
     ): Boolean {
         val unitX = dx / length
         val unitZ = dz / length
@@ -83,7 +103,7 @@ object BounceArcProbe {
             for (offsetZ in -CONTACT_SLACK..CONTACT_SLACK) {
                 val x = floor(contactX).toInt() + offsetX
                 val z = floor(contactZ).toInt() + offsetZ
-                reads.add(BlockPos.asLong(x, padY, z))
+                reads?.add(BlockPos.asLong(x, padY, z))
                 if (view.voxel(x, padY, z).bouncy) return true
             }
         }

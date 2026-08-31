@@ -2,6 +2,7 @@ package com.lambda.pathing.world
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.prediction.snapshot.BlockPhysicsInterner
 import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -59,9 +60,19 @@ class PathingWorld(
 
     private val mutablePos = BlockPos.Mutable()
     private val shapeContext = net.minecraft.block.ShapeContext.of(player)
+    private val physicsInterner = BlockPhysicsInterner(shapeContext)
 
     @Volatile private var trustedChunks: Set<Long> = emptySet()
     private var trustedRefreshTick = 0
+
+    // Capture throughput, for the planning-startup ledger: written on the client
+    // thread, read from the planner thread.
+    @Volatile private var capturedSections = 0L
+    @Volatile private var capturedCells = 0L
+    @Volatile private var captureNanos = 0L
+
+    fun captureLedger(): String =
+        "%d sections/%d cells in %d ms".format(capturedSections, capturedCells, captureNanos / 1_000_000L)
 
     private var activeKey: Long? = null
     private var builder = ImmutableSnapshotSection.Builder()
@@ -110,22 +121,30 @@ class PathingWorld(
         check(MinecraftClient.getInstance().isOnThread) {
             "PathingWorld capture must advance on the client thread"
         }
-        val deadline = System.nanoTime() + (budgetMillis * 1_000_000.0).toLong()
+        val started = System.nanoTime()
+        val deadline = started + (budgetMillis * 1_000_000.0).toLong()
         if (trustedRefreshTick++ % TRUSTED_REFRESH_TICKS == 0) refreshTrustedChunks()
         promoteDeferred()
         var written = 0
+        var completed = 0
         while (written == 0 || System.nanoTime() < deadline) {
             val key = activeKey ?: nextCapturable() ?: break
             val baseX = ChunkSectionPos.unpackX(key) shl 4
             val baseY = ChunkSectionPos.unpackY(key) shl 4
             val baseZ = ChunkSectionPos.unpackZ(key) shl 4
             val pos = mutablePos.set(baseX + cursorX, baseY + cursorY, baseZ + cursorZ)
-            val physics = with(SnapshotSimulationEnvironment) {
-                world.getBlockState(pos).capturePhysics(world, pos, shapeContext)
-            }
+            val physics = physicsInterner.capture(world, pos, world.getBlockState(pos))
             builder.set(cursorX, cursorY, cursorZ, physics)
             written++
-            if (advanceCursor()) completeSection(key)
+            if (advanceCursor()) {
+                completeSection(key)
+                completed++
+            }
+        }
+        if (written > 0) {
+            capturedCells += written
+            capturedSections += completed
+            captureNanos += System.nanoTime() - started
         }
     }
 
