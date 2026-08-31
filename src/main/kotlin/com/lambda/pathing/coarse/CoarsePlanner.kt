@@ -164,6 +164,7 @@ class CoarsePlanner(
         val swept = FrontierAnchors.sweep(
             view, moves, search.start.stance, goalStance, maxNodes = sweepBudget, cancelled = cancelled,
             capturable = capturable, onCaptureLag = onCaptureLag,
+            edges = edgeCache::edgesFrom,
         )
         var changed = false
         swept.forEach { (anchor, cost) ->

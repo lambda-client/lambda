@@ -327,8 +327,9 @@ object TrajectoryPlanner {
                 // resolveRoute's terminal grant rounds and their knowledge waits.
                 LOG.info(
                     "Planning startup {} -> {}: knowledge-wait={} ms, coarse={} ms, " +
-                        "field={} ms, route={} ms, since-request={} ms; capture so far: {}",
+                        "field={} ms, route={} ms ({}), since-request={} ms; capture so far: {}",
                     start, goal, knowledgeMillis, coarseMillis, fieldMillis, routeMillis,
+                    coarseState.lastResolveReport,
                     System.currentTimeMillis() - started, world.captureLedger(),
                 )
 
