@@ -220,6 +220,16 @@ data class BallisticProfile(
         holdTicks: Int = Int.MAX_VALUE,
         bounceFactor: Double = 1.0,
         maxTicks: Int = MAX_BOUNCE_TICKS,
+
+        /**
+         * Highest feet height above the launch the corridor's ceiling admits. An
+         * ascent that would cross it stops THERE with its vertical speed zeroed --
+         * exactly vanilla's rising head collision -- instead of flying an arc the
+         * sweep must refuse. A jump under a three-block ceiling grazes it by five
+         * hundredths and works fine in the game; refusing it cost the field a
+         * course jump.
+         */
+        headroom: Double = Double.POSITIVE_INFINITY,
     ): ArcSample? {
         require(drop > 0.0) { "a bounce must fall onto something: drop=$drop" }
 
@@ -232,6 +242,15 @@ data class BallisticProfile(
         var bounced = false
         var groundedLastTick = false
 
+        fun ascend() {
+            if (verticalVelocity > 0.0 && height + verticalVelocity > headroom) {
+                height = headroom
+                verticalVelocity = 0.0
+            } else {
+                height += verticalVelocity
+            }
+        }
+
         // The launch tick mirrors [fly]'s: jump velocity and the sprint-jump boost
         // land on the same tick as the last ground acceleration.
         if (jump) {
@@ -240,7 +259,7 @@ data class BallisticProfile(
         }
         if (holdForward && holdTicks > 0) velocity += groundAcceleration(sprint)
         distance += velocity
-        height += verticalVelocity
+        ascend()
         verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
         velocity *= groundFriction
         heights += height
@@ -272,7 +291,7 @@ data class BallisticProfile(
                     bounced = true
                     groundedLastTick = true
                 } else {
-                    height += verticalVelocity
+                    ascend()
                 }
             } else if (verticalVelocity < 0.0) {
                 if (height < rise) return null
@@ -289,7 +308,7 @@ data class BallisticProfile(
                 }
                 height += verticalVelocity
             } else {
-                height += verticalVelocity
+                ascend()
             }
 
             verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG

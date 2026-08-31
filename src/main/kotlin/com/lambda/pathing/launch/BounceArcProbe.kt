@@ -83,6 +83,36 @@ object BounceArcProbe {
         val landingOffset = view.surfaceOffset(from.x + dx, from.y + rise - 1, from.z + dz)
         val riseHeight = rise + landingOffset - launchOffset
 
+        // The ceiling over the LAUNCH ASCENT: the lowest blocking cell within jump
+        // reach above the ray's first few blocks -- where the arc is actually high.
+        // The solver clamps its ascent there with the vertical speed zeroed --
+        // vanilla's rising head collision -- so a jump that merely GRAZES a
+        // three-block ceiling (by 0.05, on the field course) still solves instead of
+        // flying an arc the sweep must refuse. Deliberately NOT the whole ray: the
+        // same course hangs a lower ceiling over the LANDING, four blocks above the
+        // descending body, and folding it into the clamp buried the launch. A
+        // ceiling the arc genuinely hits further out still fails the sweep honestly.
+        var ceilingBottom = Double.POSITIVE_INFINITY
+        run {
+            val feetCell = floor(launchHeight).toInt()
+            var along = 0.0
+            while (along <= minOf(length, LAUNCH_ASCENT_REACH)) {
+                val x = floor(from.x + 0.5 + unitX * along).toInt()
+                val z = floor(from.z + 0.5 + unitZ * along).toInt()
+                for (y in feetCell + 2..feetCell + 4) {
+                    reads?.add(BlockPos.asLong(x, y, z))
+                    val v = view.voxel(x, y, z)
+                    if (!v.fullyPassable) {
+                        val bottom = y + (view.collisionShape(x, y, z)?.getMin(net.minecraft.util.math.Direction.Axis.Y) ?: 0.0)
+                        if (bottom < ceilingBottom) ceilingBottom = bottom
+                        break
+                    }
+                }
+                along += 1.0
+            }
+        }
+        val headroom = if (ceilingBottom.isFinite()) ceilingBottom - BODY_HEIGHT - launchHeight else Double.POSITIVE_INFINITY
+
         val cache = JumpArcProbe.SweepCellCache()
 
         // Judges a contact reach: infinite off the pad, otherwise the distance from
@@ -123,6 +153,7 @@ object BounceArcProbe {
                     jump = jump, sprint = sprint, profile = profile,
                     contactDepth = contactDepth, riseHeight = riseHeight,
                     contactPenalty = ::contactPenalty,
+                    headroom = headroom,
                 )
             } ?: continue
             if (!admissible(solution)) continue
@@ -136,6 +167,7 @@ object BounceArcProbe {
                     sprint = combo.sprint, holdForward = combo.holdForward,
                     jump = combo.jump, holdTicks = combo.holdTicks,
                     contactDepth = contactDepth, riseHeight = riseHeight,
+                    headroom = headroom,
                 )
             } ?: continue
             if (!admissible(solution)) continue
@@ -281,6 +313,11 @@ object BounceArcProbe {
 
     /** Cover no taller than the game's 0.2 landing probe still bounces off what's below. */
     private const val THIN_COVER_SURFACE = 0.2
+
+    private const val BODY_HEIGHT = 1.8
+
+    /** Blocks of ray the launch ascent spans before the arc is past its apex. */
+    private const val LAUNCH_ASCENT_REACH = 3.5
 
     private const val CONTACT_REFINEMENTS = 3
 

@@ -54,7 +54,6 @@ internal class CoarsePlanningState(
     start: Stance,
     private val goal: Stance,
     val horizonChunks: Int = 0,
-    private val frontierProbeRange: Int = 512,
     frontierSweepBudget: Int = 40_000,
 
     /** See [FrontierAnchors.NOTHING_CAPTURABLE]: capturable unknowns never anchor. */
@@ -102,13 +101,8 @@ internal class CoarsePlanningState(
         if (changedChunks.isNotEmpty()) planner.chunksChanged(changedChunks)
     }
 
-    private fun advanceFrontierFrom(start: Stance): Boolean = planner.advanceFrontier(
-        FrontierAnchors.probe(
-            planner.view, moves, start, goal,
-            maxSteps = frontierProbeRange, capturable = capturable,
-            onCaptureLag = collectCaptureLag,
-        ),
-    )
+    private fun advanceFrontierFrom(start: Stance): Boolean =
+        planner.advanceReachableFrontier(from = start)
 
     /** How the last route resolution spent its knowledge wait, for the startup ledger. */
     @Volatile

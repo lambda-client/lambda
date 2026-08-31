@@ -72,7 +72,6 @@ internal data class TrajectoryPlanningPreparation(
     val trajectoryExpansionBudget: Int,
 
     val settleInitial: Boolean,
-    val frontierProbeRange: Int,
     val frontierSweepBudget: Int,
     val bootstrapDelayMillis: Long,
     val plannerThreads: Int,
@@ -104,7 +103,6 @@ object TrajectoryPlanner {
     ) = CoarsePlanningState(
         snapshot, preparation.moveOptions, preparation.start, preparation.finalGoal,
         horizonChunks = preparation.planningHorizonChunks,
-        frontierProbeRange = preparation.frontierProbeRange,
         frontierSweepBudget = preparation.frontierSweepBudget,
         capturable = capturable,
     )
@@ -221,7 +219,6 @@ object TrajectoryPlanner {
                 coarseExpansionBudget = config.coarseExpansionBudget,
                 trajectoryExpansionBudget = config.trajectoryExpansionBudget,
                 settleInitial = settleInitial,
-                frontierProbeRange = config.frontierProbeRange,
                 frontierSweepBudget = config.frontierSweepBudget,
                 bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
                 plannerThreads = config.plannerThreads,

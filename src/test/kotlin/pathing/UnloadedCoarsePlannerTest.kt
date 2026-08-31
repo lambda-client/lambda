@@ -66,7 +66,7 @@ class UnloadedCoarsePlannerTest {
         val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
         val planner = CoarsePlanner(snapshot, moves, start, goal)
 
-        planner.advanceFrontier(FrontierAnchors.probe(snapshot, moves, start, goal))
+        planner.advanceFrontier(FrontierAnchors.sweep(snapshot, moves, start, goal))
         val result = planner.repair(Duration.INFINITE, maxExpansions = 100_000)
         val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
 
@@ -162,14 +162,14 @@ class UnloadedCoarsePlannerTest {
         val goal = Stance(120, 3, 0)
         val planner = CoarsePlanner(view, moves, start, goal)
 
-        planner.advanceFrontier(FrontierAnchors.probe(view, moves, start, goal))
+        planner.advanceFrontier(FrontierAnchors.sweep(view, moves, start, goal))
         planner.repair(Duration.INFINITE, maxExpansions = 100_000)
         val before = planner.optimisticAnchors
         assertTrue(before.isNotEmpty())
 
         for (z in -1..1) world += PathingChunk(2, z)
         planner.chunksChanged((-1..1).map { PathingChunk(2, it) })
-        planner.advanceFrontier(FrontierAnchors.probe(view, moves, start, goal))
+        planner.advanceFrontier(FrontierAnchors.sweep(view, moves, start, goal))
         planner.repair(Duration.INFINITE, maxExpansions = 100_000)
         val after = planner.optimisticAnchors
 

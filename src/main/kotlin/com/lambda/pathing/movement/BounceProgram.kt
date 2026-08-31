@@ -79,10 +79,16 @@ internal class BounceProgram(
             }
         }
 
+        // A standing start creeps WITHOUT sprint: the creep's throttle math is sized
+        // to walk taps, and a sprint tap moves nearly a quarter block -- measured
+        // walking the body clean off the lip before the launch tick ever fired. The
+        // sprint-jump boost only needs the sprint flag ON THE LAUNCH TICK itself.
+        val sprint = solution.sprint && forward > 0.0 &&
+            (!standingStart || launchedStanding || airborne)
         return MovementSimulationInput(
             forward = forward,
             strafe = if (airborne && !landed) airborneStrafe(observed) else 0.0,
-            sprint = solution.sprint && forward > 0.0,
+            sprint = sprint,
             jump = jump,
             sneak = false,
             rotation = rotation,

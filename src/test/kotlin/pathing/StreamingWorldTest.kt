@@ -85,7 +85,7 @@ class StreamingWorldTest {
             val arrived = world.stream(position)
             planner.updateStart(position)
             if (arrived.isNotEmpty()) planner.chunksChanged(arrived)
-            planner.advanceFrontier(FrontierAnchors.probe(world.view, moves, position, goal))
+            planner.advanceFrontier(FrontierAnchors.sweep(world.view, moves, position, goal))
 
             val repair = planner.repair(Duration.INFINITE, maxExpansions = 200_000)
             expansions += repair.processedNodes
@@ -231,7 +231,7 @@ class StreamingWorldTest {
         val walk = Walk(world, start, goal)
         walk.planner.updateStart(start)
         walk.planner.advanceFrontier(
-            FrontierAnchors.probe(world.view, walk.moves, start, goal),
+            FrontierAnchors.sweep(world.view, walk.moves, start, goal),
         )
         walk.planner.repair(Duration.INFINITE, maxExpansions = 50_000)
 
@@ -242,16 +242,17 @@ class StreamingWorldTest {
     }
 
     /**
-     * A frontier the probe fan cannot reach: an unjumpable wall crosses the entire
-     * streamed ring between the body and the goal, ending only far east of anything
-     * streamed at the start. Every ray the fan casts lands its anchor beyond the wall,
-     * in a component the body cannot enter, so route extraction fails outright -- the
-     * exact shape of "walks to the chunk border and then will not move on". The
-     * reachability sweep must anchor the frontier the body can actually reach, and the
-     * walk must round the wall's end as the world streams in behind it.
+     * An unjumpable wall crosses the entire streamed ring between the body and the
+     * goal, ending only far east of anything streamed at the start. The retired
+     * ray-march fan used to land its anchors beyond the wall, in a component the
+     * body could not enter -- unreachable GHOST anchors, route extraction failing
+     * outright, "walks to the chunk border and then will not move on". Anchors are
+     * now minted exclusively by the reachability sweep, so every anchor is a place
+     * the body can actually go: the walk must round the wall's end as the world
+     * streams in behind it, with no rescue pass ever needed.
      */
     @Test
-    fun `a frontier severed from the body is recovered by the reachability sweep`() {
+    fun `a walled frontier anchors only on the reachable side and rounds the wall`() {
         val wallZ = 30
         val wallEndX = 100
         val world = StreamingWorld()
@@ -274,20 +275,15 @@ class StreamingWorldTest {
 
         var position = start
         var revision = 0L
-        var sweeps = 0
         var arrived = false
         for (cycle in 0 until MAX_CYCLES) {
             val delivered = world.stream(position)
             planner.updateStart(position)
             if (delivered.isNotEmpty()) planner.chunksChanged(delivered)
-            planner.advanceFrontier(FrontierAnchors.probe(view, moves, position, goal))
+            planner.advanceFrontier(FrontierAnchors.sweep(view, moves, position, goal))
             planner.repair(Duration.INFINITE, maxExpansions = 500_000)
 
-            var route = planner.routePlan(++revision) ?: planner.resynchronizedRoutePlan(revision)
-            if (route == null && planner.discoverReachableFrontier()) {
-                sweeps++
-                route = planner.routePlan(revision)
-            }
+            val route = planner.routePlan(++revision) ?: planner.resynchronizedRoutePlan(revision)
             val plan = assertNotNull(route, "stranded with no route at $position on cycle $cycle")
             if (plan.nodes.last() == goal) {
                 arrived = true
@@ -296,7 +292,6 @@ class StreamingWorldTest {
             position = plan.nodes[minOf(STEPS_PER_CYCLE, plan.nodes.lastIndex)]
         }
 
-        assertTrue(sweeps > 0, "the wall never stranded the fan, so the scenario proves nothing")
         assertTrue(arrived, "never reached $goal, stalled at $position")
     }
 
