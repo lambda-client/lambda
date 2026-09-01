@@ -51,6 +51,8 @@ abstract class Container(
 
     abstract val slots: List<Slot>
     abstract var stacks: List<ItemStack>
+    val storedContainers = mutableMapOf<Int, NestedContainer>()
+
     open val swapMethodPriority = 0
     abstract val description: Text
 

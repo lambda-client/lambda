@@ -30,7 +30,6 @@ import com.lambda.interaction.inventory.ContainerMarker
 import com.lambda.interaction.inventory.ContainerSelection
 import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.NestedContainer
 import com.lambda.interaction.inventory.container.PlacedContainer
 import com.lambda.interaction.inventory.container.containers.external.ChestContainer
 import com.lambda.interaction.inventory.container.containers.external.DoubleChestContainer
@@ -62,13 +61,20 @@ import net.minecraft.util.math.ChunkPos
 @Suppress("unused")
 object ContainerHandler : Loadable {
     private val containers: Sequence<Container>
-        get() = compileContainers.asSequence() +
-                placedContainers.values.asSequence().flatMap { it.values } +
-		        storedContainers.values.asSequence().flatMap { it.values }
+        get() {
+            fun Container.allNested(): Sequence<Container> =
+                sequence {
+                    val nested = storedContainers.values
+                    yieldAll(nested)
+                    nested.forEach { yieldAll(it.allNested()) }
+                }
+            val baseContainers = compileContainers.asSequence() +
+                    placedContainers.values.asSequence().flatMap { it.values }
+            return baseContainers + baseContainers.flatMap { it.allNested() }
+        }
 
-	val compileContainers = getInstances<Container>()
+    val compileContainers = getInstances<Container>()
     val placedContainers = mutableMapOf<ChunkPos, MutableMap<BlockPos, PlacedContainer>>()
-    val storedContainers = mutableMapOf<Container, MutableMap<Int, NestedContainer>>()
 
     context(automated: Automated)
     val filteredContainers
@@ -80,20 +86,32 @@ object ContainerHandler : Loadable {
         get() = containers.sorted()
 
     var lastInteractedBlockEntity: BlockEntity? = null
+    var pendingInteractedBlockEntity: BlockEntity? = null
 
     override fun load() = "Loaded ${compileContainers.size} containers"
 
     init {
         listen<PacketEvent.Send.Post> { event ->
             val packet = event.packet as? PlayerInteractBlockC2SPacket ?: return@listen
-            lastInteractedBlockEntity = blockEntity(packet.blockHitResult.blockPos)
+            val entity = blockEntity(packet.blockHitResult.blockPos)
+            pendingInteractedBlockEntity = entity
+            lastInteractedBlockEntity = entity
         }
 
         listen<InventoryEvent.Close> { event ->
             val sh = event.screenHandler
             onContainerUpdate(sh)
-            if (sh.syncId != 0) lastInteractedBlockEntity = null
+            if (sh.syncId != 0 && pendingInteractedBlockEntity == null) {
+                lastInteractedBlockEntity = null
+            }
         }
+
+        listen<InventoryEvent.Open> {
+            if (it.screenHandler.syncId != 0) {
+                pendingInteractedBlockEntity = null
+            }
+        }
+
         listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
         listen<InventoryEvent.SlotUpdate> { onContainerUpdate() }
 
@@ -198,12 +216,11 @@ object ContainerHandler : Loadable {
     }
 
     private fun Container.scanContainerContents() {
-        val storageCache = storedContainers.getOrPut(this) { mutableMapOf() }
         slots.forEach { slot ->
             val stack = slot.stack
             val index = slot.index
             if (stack.item in shulkerBoxes) {
-                storageCache[index] =
+                storedContainers[index] =
                     ShulkerBoxContainer(
                         stack.name.string,
                         stack.item,
@@ -211,14 +228,17 @@ object ContainerHandler : Loadable {
                         this,
                         index
                     ).also { it.scanContainerContents() }
-            } else storageCache.remove(index)
+            } else storedContainers.remove(index)
         }
     }
 
     private fun getPlacedContainer(pos: BlockPos) = placedContainers[ChunkPos(pos)]?.get(pos)
+
     private fun ChunkPos.getPlacedContainer(pos: BlockPos) = placedContainers[this]?.get(pos)
+
     private fun setPlacedContainer(pos: BlockPos, container: PlacedContainer) =
         placedContainers.getOrPut(ChunkPos(pos)) { mutableMapOf() }.put(pos, container)
+
     private fun ChunkPos.setPlacedContainer(pos: BlockPos, container: PlacedContainer) =
         placedContainers.getOrPut(this) { mutableMapOf() }.put(pos, container)
 

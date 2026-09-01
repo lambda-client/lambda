@@ -109,20 +109,20 @@ abstract class Task<Result> : Nameable, Muteable {
      * logs the execution details, and invokes the necessary lifecycle hooks. Additionally,
      * it manages the state of the parent task and starts any required listeners for execution.
      *
-     * @param owner The parent task that will execute this task as a sub task. Must not be the same as this task.
+     * @param parent The parent task that will execute this task as a sub task. Must not be the same as this task.
      * @param pauseParent Defines whether the parent task should be paused during the execution of this task. Defaults to `true`.
      * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
      * @throws IllegalArgumentException if the owner task is the same as the task being executed.
      */
     @Ta5kBuilder
-    fun execute(owner: Task<*>, pauseParent: Boolean = true): Task<Result> {
-        require(owner != this) { "Cannot execute a task as a sub task of itself" }
-        owner.subTasks.add(this)
-        parent = owner
-        if (verboseDebug) LOG.info("${owner.name} started $name")
+    fun execute(parent: Task<*>, pauseParent: Boolean = true): Task<Result> {
+        require(parent != this) { "Cannot execute a task as a sub task of itself" }
+        parent.subTasks.add(this)
+        this@Task.parent = parent
+        if (verboseDebug) LOG.info("${parent.name} started $name")
         if (pauseParent) {
-            if (verboseDebug) LOG.info("$name pausing parent ${owner.name}")
-            if (owner !is RootTask) owner.pause()
+            if (verboseDebug) LOG.info("$name pausing parent ${parent.name}")
+            if (parent !is RootTask) parent.pause()
         }
         state = State.Running
         runSafe { runCatching { onStart() }.onFailure { failure(it) } }

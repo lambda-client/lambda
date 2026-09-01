@@ -24,6 +24,7 @@ import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.ContainerHandler
+import com.lambda.interaction.inventory.container.NestedContainer
 import com.lambda.interaction.inventory.container.OpenedContainerContext
 import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
 import com.lambda.module.Module
@@ -69,9 +70,8 @@ object InventoryTweaks : Module(
             val targetContainer =
                 if (stack.item == Items.ENDER_CHEST) EnderChestContainer
                 else {
-                    ContainerHandler.storedContainers.values
-                        .asSequence()
-                        .flatMap { it.values }
+                    ContainerHandler.allContainers
+                        .filterIsInstance<NestedContainer>()
                         .firstOrNull { container -> container.index == slot.index }
                         ?: return@listen
                 }
@@ -85,7 +85,7 @@ object InventoryTweaks : Module(
                     lastOpenScreen = player.currentScreenHandler
                     openTask = null
                 }
-                ?.start()
+            openTask?.start()
         }
 
         listen<InventoryEvent.Close> { event ->
