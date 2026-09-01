@@ -8,6 +8,9 @@ import com.lambda.pathing.core.center
 import java.util.PriorityQueue
 import kotlin.math.atan2
 import kotlin.math.floor
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.movement.TrajectoryDecision
 
 /**
  * When two bodies are the same body, for the purpose of deciding what happens next.
@@ -76,16 +79,16 @@ internal class Frontier(
      */
     private val reserve = ArrayList<OpenEntry>()
 
-    private class BlockedAttempt(val anchor: ValueAnchor, val action: com.lambda.pathing.movement.TrajectoryDecision)
+    private class BlockedAttempt(val anchor: ValueAnchor, val action: TrajectoryDecision)
 
     private val blocked = ArrayList<BlockedAttempt>()
 
     private val buckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
 
     /** Accumulated merge outcomes per (origin bucket, movement, step): what keeps producing held states. */
-    private val mergeOutcomes = HashMap<Triple<AnchorKey, com.lambda.pathing.core.MovementId, Stance?>, Double>()
+    private val mergeOutcomes = HashMap<Triple<AnchorKey, MovementId, Stance?>, Double>()
 
-    fun mergeSurcharge(anchor: ValueAnchor, movement: com.lambda.pathing.core.MovementId, step: Stance?): Double {
+    fun mergeSurcharge(anchor: ValueAnchor, movement: MovementId, step: Stance?): Double {
         if (searchConfig.mergeSurchargeTicks <= 0.0) return 0.0
         val accumulated = mergeOutcomes[Triple(keyOf(anchor), movement, step)] ?: return 0.0
         // The first merge is measurement, not yet a pattern: charging from the first
@@ -152,7 +155,7 @@ internal class Frontier(
         private set
 
     private val shadowBuckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
-    private val nextCenters = HashMap<Stance, com.lambda.pathing.core.HorizontalPoint?>()
+    private val nextCenters = HashMap<Stance, HorizontalPoint?>()
     private val shadowDead = java.util.IdentityHashMap<ValueAnchor, Boolean>()
 
     fun shadowRefusedDirectly(anchor: ValueAnchor): Boolean = shadowDead[anchor] == true
@@ -251,7 +254,7 @@ internal class Frontier(
         shadowBuckets.clear()
     }
 
-    fun parkBlocked(anchor: ValueAnchor, action: com.lambda.pathing.movement.TrajectoryDecision) {
+    fun parkBlocked(anchor: ValueAnchor, action: TrajectoryDecision) {
         blocked += BlockedAttempt(anchor, action)
     }
 
@@ -342,7 +345,7 @@ internal class Frontier(
         // bare frames the four-frame collision penalty could never buy anything back.
         incumbentScore()?.let {
             val bound = anchor.elapsed + guide +
-                ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * anchor.collisionEvents
+                Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
             if (bound >= it) return
         }
 
@@ -379,7 +382,7 @@ internal class Frontier(
             POSITION_DOMINANCE_SLACK
     }
 
-    private fun nextCellCenter(stance: Stance): com.lambda.pathing.core.HorizontalPoint? {
+    private fun nextCellCenter(stance: Stance): HorizontalPoint? {
         if (!nextCenters.containsKey(stance)) {
             nextCenters[stance] = field.steps(stance, 1).firstOrNull()?.to?.center()
         }
@@ -484,6 +487,7 @@ internal class Frontier(
     private companion object {
 
         const val SPEED_DOMINANCE_SLACK = 0.01
+
 
         /** Ceiling on the accumulated merge surcharge: a delay, never a wall. */
         const val MERGE_SURCHARGE_CAP_TICKS = 6.0

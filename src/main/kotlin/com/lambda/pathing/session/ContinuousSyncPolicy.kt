@@ -1,4 +1,4 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
@@ -7,13 +7,11 @@ import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.trajectory.SearchProbe
+import com.lambda.pathing.world.changedChunkSet
 import com.lambda.pathing.trajectory.WorldSyncResult
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.WorldEventBatch
-
-internal fun WorldEventBatch.changedChunkSet(): Set<PathingChunk> =
-    chunks + sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
 
 internal class ContinuousSyncPolicy(
     private val world: PathingWorld,

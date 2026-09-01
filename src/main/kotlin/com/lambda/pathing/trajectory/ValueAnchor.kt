@@ -6,6 +6,8 @@ import com.lambda.pathing.movement.PricedDecision
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.MovementId
 
 internal class ValueAnchor(
     override val state: MovementSimulationState,
@@ -27,16 +29,16 @@ internal class ValueAnchor(
      * admissible lower bound -- the only denominator in the system that says what the
      * motion *should* have cost.
      */
-    var via: com.lambda.pathing.core.MovementId? = null
+    var via: MovementId? = null
 
     /**
      * The decision this anchor's inputs came from, and the guide chain it was built
      * against. Together they re-run the segment from any entry state; see [PlanSegment].
      * Null on the root and on brake tails, which are terminals rather than movements.
      */
-    var decision: com.lambda.pathing.movement.TrajectoryDecision? = null
+    var decision: TrajectoryDecision? = null
 
-    var points: List<com.lambda.pathing.core.HorizontalPoint> = emptyList()
+    var points: List<HorizontalPoint> = emptyList()
 
     var actions: List<PricedDecision>? = null
 

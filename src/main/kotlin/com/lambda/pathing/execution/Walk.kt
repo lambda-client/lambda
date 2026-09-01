@@ -1,6 +1,7 @@
-package com.lambda.pathing
+package com.lambda.pathing.execution
 
-import com.lambda.pathing.execution.TrajectoryExecutionCursor
+import com.lambda.pathing.PathingRequest
+import com.lambda.pathing.session.PlanningSession
 import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 
@@ -59,6 +60,22 @@ internal class Walk(val request: PathingRequest) {
         lastAdoptionMillis = now
     }
 
+    /**
+     * How fast tape arrived versus how fast the body ate it.
+     *
+     * The body consumes exactly one frame per tick, so an adoption that adds fewer frames
+     * than the ticks it took to produce is one the walk cannot survive on: the shortfall
+     * is paid at the next brake. Printing the two rates together is what makes a stall
+     * legible as a throughput problem rather than a mysterious pause.
+     */
+    fun publicationCadence(): String {
+        if (adoptionGains.isEmpty()) return "no adoptions"
+        val frames = adoptionGains.sum()
+        val millis = adoptionMillis.sum().coerceAtLeast(1L)
+        return "%d adoption(s) added %d frames over %d ms (%.1f frames/s produced vs %d consumed)"
+            .format(adoptionGains.size, frames, millis, frames * 1000.0 / millis, TICKS_PER_SECOND)
+    }
+
     fun cancelPlanning() {
         val planning = planningSession
         planningSession = null
@@ -84,5 +101,9 @@ internal class Walk(val request: PathingRequest) {
         planningYaw = null
         alignmentTicks = 0
         settleTicks = 0
+    }
+
+    private companion object {
+        const val TICKS_PER_SECOND = 20
     }
 }

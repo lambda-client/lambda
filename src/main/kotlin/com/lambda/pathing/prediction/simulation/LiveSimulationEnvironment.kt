@@ -28,6 +28,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
+import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 
 class LiveSimulationEnvironment(
 	private val world: World,
@@ -109,7 +110,7 @@ class LiveSimulationEnvironment(
         return when {
             state.isOf(Blocks.SLIME_BLOCK) -> SLIME_BOUNCE_FACTOR
             state.block is net.minecraft.block.BedBlock ->
-                com.lambda.pathing.prediction.SnapshotSimulationEnvironment.BED_BOUNCE_FACTOR
+                SnapshotSimulationEnvironment.BED_BOUNCE_FACTOR
             else -> 0.0
         }
     }

@@ -14,7 +14,6 @@ import com.lambda.pathing.movement.*
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
@@ -25,6 +24,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import pathing.ProbeScenarios.PROFILE
 
 class TrajectoryRolloutTest {
     @Test
@@ -132,17 +132,5 @@ class TrajectoryRolloutTest {
     private companion object {
         val BOUNDS = SimulationSnapshotBounds(-4, -3, -4, 4, 5, 8)
 
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1,
-            sneakSpeedModifier = 0.3,
-            gravity = 0.08,
-            jumpStrength = 0.42,
-            stepHeight = 0.6,
-            jumpBoostVelocityModifier = 0.0,
-            slowFalling = false,
-            width = 0.6,
-            height = 1.8,
-            eyeHeight = 1.62,
-        )
     }
 }

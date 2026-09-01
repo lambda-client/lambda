@@ -9,7 +9,7 @@
 
 package pathing
 
-import com.lambda.pathing.PlanningCancellation
+import com.lambda.pathing.session.PlanningCancellation
 import kotlin.test.Test
 import kotlin.test.assertTrue
 

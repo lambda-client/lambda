@@ -2,9 +2,10 @@ package com.lambda.pathing.trajectory
 
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.core.MovementId
 
 /** Frames a finished tape spent on one movement kind. */
-data class TapeSegment(val movement: com.lambda.pathing.core.MovementId, val frames: Int)
+data class TapeSegment(val movement: MovementId, val frames: Int)
 
 internal class Solution(
     val inputs: List<MovementSimulationInput>,
@@ -28,7 +29,7 @@ internal class Solution(
      */
     val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
 
-    val score: Int get() = frames + ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * collisionEvents
+    val score: Int get() = frames + COLLISION_FRAME_PENALTY * collisionEvents
 
     /**
      * How the tape's frames divide between the movements that produced them.
@@ -40,16 +41,19 @@ internal class Solution(
         val out = ArrayList<TapeSegment>()
         var node: ValueAnchor? = anchor
         while (node != null && node.parent != null) {
-            out += TapeSegment(node.via ?: com.lambda.pathing.core.MovementId.WALK, node.inputs.size)
+            out += TapeSegment(node.via ?: MovementId.WALK, node.inputs.size)
             node = node.parent
         }
         out.reverse()
         val tail = frames - out.sumOf { it.frames }
-        if (tail > 0) out += TapeSegment(com.lambda.pathing.core.MovementId.WALK, tail)
+        if (tail > 0) out += TapeSegment(MovementId.WALK, tail)
         return out
     }
 
     companion object {
+        /** The score's exchange rate: frames a collision event is worth. */
+        internal const val COLLISION_FRAME_PENALTY = 4
+
         /**
          * The decision chain behind a finished tape, root first, plus its terminal.
          *

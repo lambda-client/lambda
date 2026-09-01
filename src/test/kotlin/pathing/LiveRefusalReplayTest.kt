@@ -4,15 +4,14 @@ package pathing
 // build/run/clientGameTest/neolambda/pathing-dumps).
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.trajectory.MotionPlanResult
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.time.Duration
+import pathing.ProbeScenarios.moveLibrary
 
 class LiveRefusalReplayTest {
     @Test
@@ -22,10 +21,7 @@ class LiveRefusalReplayTest {
         Files.list(dir).filter { it.toString().endsWith(".dump") }.sorted().forEach { p ->
             val loaded = PlanDump.read(p)
             val environment = loaded.environment()
-            val moves = SimpleMoveLibrary.build(
-                costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-                options = loaded.moveOptions,
-            )
+            val moves = moveLibrary(loaded.moveOptions)
             val planner = CoarsePlanner(environment, moves, loaded.start, loaded.goal)
             planner.repair(Duration.INFINITE)
             planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)

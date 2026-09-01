@@ -29,6 +29,7 @@ import com.lambda.pathing.movement.SegmentFollowerProgram
 import com.lambda.pathing.movement.TemplateSpec
 import com.lambda.pathing.movement.TrajectoryDecision
 import kotlin.math.hypot
+import com.lambda.pathing.launch.LaunchSolution
 
 /**
  * A jump or fall whose landing is not a floor but a GRAB: the flight enters a
@@ -93,7 +94,7 @@ object LadderCatchMovement : Movement {
         }
     }
 
-    private fun delays(context: DecisionContext, solution: com.lambda.pathing.launch.LaunchSolution): List<Int> {
+    private fun delays(context: DecisionContext, solution: LaunchSolution): List<Int> {
         val edge = context.edge
         val from = edge.from.center()
         val to = edge.to.center()

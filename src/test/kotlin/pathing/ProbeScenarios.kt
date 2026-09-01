@@ -181,7 +181,13 @@ internal object ProbeScenarios {
             },
         )
 
-    private fun bedrockEnvironment() = SnapshotSimulationEnvironment.synthetic(
+    /** The default-cost move library nearly every fixture builds; options vary per test. */
+    fun moveLibrary(options: SimpleMoveOptions = SimpleMoveOptions()) = SimpleMoveLibrary.build(
+        costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+        options = options,
+    )
+
+    fun bedrockEnvironment() = SnapshotSimulationEnvironment.synthetic(
         bounds = SimulationSnapshotBounds(
             -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
             BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,

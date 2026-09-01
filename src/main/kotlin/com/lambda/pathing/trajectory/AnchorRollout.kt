@@ -8,12 +8,16 @@ import com.lambda.pathing.movement.LaunchTrigger
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.MovementCatalog
 import com.lambda.pathing.movement.ProgramContext
+import com.lambda.pathing.movement.PursuitTracker
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.world.center
 import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import kotlin.math.hypot
+import com.lambda.pathing.movement.ControlProgram
+import com.lambda.pathing.movement.Movement
+import com.lambda.pathing.world.Medium
 
 internal sealed interface Outcome {
     data class Anchored(val anchor: ValueAnchor) : Outcome
@@ -38,7 +42,7 @@ internal class AnchorRollout(
     private val climbingAt: (net.minecraft.util.math.Vec3d) -> Boolean = { p ->
         field.view.medium(
             kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
-        ) == com.lambda.pathing.world.Medium.CLIMBABLE
+        ) == Medium.CLIMBABLE
     }
 
     /**
@@ -66,9 +70,9 @@ internal class AnchorRollout(
     internal class PreparedRollout(
         val anchor: ValueAnchor,
         val action: TrajectoryDecision,
-        internal val movement: com.lambda.pathing.movement.Movement,
+        internal val movement: Movement,
         internal val points: List<HorizontalPoint>,
-        internal val program: com.lambda.pathing.movement.ControlProgram,
+        internal val program: ControlProgram,
         internal val evaluator: RolloutEvaluator,
         internal val descentAllowance: Double,
         internal val frameCount: Int,
@@ -246,7 +250,7 @@ internal class AnchorRollout(
         }
         if (anchor.hasVisited(eventStance)) {
             return Outcome.Rejected(
-                TrajectoryDiagnostic.RepeatedCoarseStance(frame)
+                TrajectoryDiagnostic.RepeatedCoarseStance(frame, eventStance)
             )
         }
 
@@ -281,7 +285,7 @@ internal class AnchorRollout(
         attempts.record(PlanAttempt(
             parameters = TerminalApproach(
                 sprint = action.sprint,
-                lookAheadNodes = (action as? TrajectoryDecision.Walk)?.lookAheadNodes ?: ValueFieldAnchorSearch.LOOK_AHEAD_NODES,
+                lookAheadNodes = (action as? TrajectoryDecision.Walk)?.lookAheadNodes ?: PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
                 brakeDistance = config.brakeDistances.first(),
                 stepUpJumpLeadDistance = null,
             ),

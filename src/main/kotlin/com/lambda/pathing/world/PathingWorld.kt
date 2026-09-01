@@ -31,6 +31,9 @@ class WorldEventBatch(
     val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
 }
 
+internal fun WorldEventBatch.changedChunkSet(): Set<PathingChunk> =
+    chunks + sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
+
 class PathingWorld(
     val bounds: SimulationSnapshotBounds,
     private val world: World,

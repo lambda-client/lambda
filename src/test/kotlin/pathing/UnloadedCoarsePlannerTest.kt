@@ -9,10 +9,8 @@
 
 package pathing
 
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.FrontierAnchors
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -29,6 +27,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The coarse layer where the client's world runs out.
@@ -63,7 +62,7 @@ class UnloadedCoarsePlannerTest {
         )
         val start = Stance(1, 5, 1)
         val goal = Stance(200, 5, 1)
-        val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+        val moves = moveLibrary()
         val planner = CoarsePlanner(snapshot, moves, start, goal)
 
         planner.advanceFrontier(FrontierAnchors.sweep(snapshot, moves, start, goal))
@@ -95,7 +94,7 @@ class UnloadedCoarsePlannerTest {
         }
         val planner = CoarsePlanner(
             view,
-            SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)),
+            moveLibrary(),
             Stance(0, 3, 0),
             Stance(0, 3, 40),
         )
@@ -123,7 +122,7 @@ class UnloadedCoarsePlannerTest {
         }
         val planner = CoarsePlanner(
             view,
-            SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)),
+            moveLibrary(),
             Stance(0, 3, 0),
             Stance(0, 3, 40),
         )
@@ -157,7 +156,7 @@ class UnloadedCoarsePlannerTest {
             }
         }
         for (x in 0..1) for (z in -1..1) world += PathingChunk(x, z)
-        val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+        val moves = moveLibrary()
         val start = Stance(0, 3, 0)
         val goal = Stance(120, 3, 0)
         val planner = CoarsePlanner(view, moves, start, goal)

@@ -4,7 +4,6 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -17,6 +16,7 @@ import net.minecraft.util.shape.VoxelShape
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import kotlin.time.measureTime
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * Prints where a cold long-range coarse plan spends its work; asserts nothing.
@@ -74,7 +74,7 @@ class LongRangeCoarsePerfProbeTest {
             val options = SimpleMoveOptions(allowJumpCandidates = jumps, maxJumpDrop = 2)
             var library: SimpleMoveLibrary
             val buildTime = measureTime {
-                library = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0), options)
+                library = moveLibrary(options)
             }
             val view = CountingView(environment)
             val planner = CoarsePlanner(view, library, start, goal)

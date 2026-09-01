@@ -32,6 +32,11 @@ internal class PursuitTracker(val nodes: List<HorizontalPoint>) {
         val dz = node.z - observed.position.z
         return dx * dx + dz * dz
     }
+
+    companion object {
+        /** Default nodes of lead the pursuit target sits ahead of the tracked progress. */
+        internal const val DEFAULT_LOOK_AHEAD_NODES = 1
+    }
 }
 
 internal fun yawTowards(

@@ -6,9 +6,7 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
@@ -22,7 +20,6 @@ import com.lambda.pathing.trajectory.SimulatedTrajectoryFrame
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.VirtualSearchClock
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -35,6 +32,9 @@ import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.bedrockEnvironment
+import pathing.ProbeScenarios.moveLibrary
 
 @Tag("bedrock-corpus")
 class HorizonBaselineTest {
@@ -146,10 +146,7 @@ class HorizonBaselineTest {
 
     private fun walk(scenario: Scenario): Record {
         println("[baseline] running ${scenario.name}")
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = scenario.options,
-        )
+        val moves = moveLibrary(scenario.options)
         val start = scenario.start
         val goal = scenario.goal
         val planner = CoarsePlanner(
@@ -429,16 +426,6 @@ class HorizonBaselineTest {
         ))
     }
 
-    private fun bedrockEnvironment() = SnapshotSimulationEnvironment.synthetic(
-        bounds = SimulationSnapshotBounds(
-            -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
-            BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
-        ),
-        blocks = BedrockFieldLayout.solidCells().associate {
-            BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
-        },
-    )
-
     private fun flatEnvironment(): SnapshotSimulationEnvironment {
         val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
         for (x in -20..20) for (z in -20..20) blocks[BlockPos(x, 99, z)] = SnapshotBlockPhysics.FULL_CUBE
@@ -506,10 +493,5 @@ class HorizonBaselineTest {
 
         val CONFIG = MotionConstraints()
 
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
     }
 }

@@ -4,9 +4,7 @@ package pathing
 // Not a gate -- run it when tuning the action vocabulary and compare compositions.
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
@@ -15,7 +13,6 @@ import com.lambda.pathing.movement.TrajectoryDecision
 import com.lambda.pathing.trajectory.SearchProbe
 import com.lambda.pathing.trajectory.VirtualSearchClock
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -24,6 +21,8 @@ import net.minecraft.util.math.Vec3d
 import kotlin.math.atan2
 import kotlin.test.Test
 import kotlin.time.Duration
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 class AttemptCompositionProbeTest {
     @Test
@@ -37,10 +36,7 @@ class AttemptCompositionProbeTest {
                 BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
             },
         )
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(maxJumpDrop = 2),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(maxJumpDrop = 2))
         val config = MotionConstraints()
         val tally = TallyProbe()
         for ((index, endpoints) in BedrockFieldLayout.randomEndpointPairs(count = 6).withIndex()) {
@@ -98,11 +94,4 @@ class AttemptCompositionProbeTest {
         }
     }
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
 }

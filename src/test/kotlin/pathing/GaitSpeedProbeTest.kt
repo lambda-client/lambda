@@ -8,7 +8,6 @@ import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
 import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -16,6 +15,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
 import kotlin.test.Test
+import pathing.ProbeScenarios.PROFILE
 
 /** What is actually the fastest way to cross flat ground? */
 @Tag("bedrock-corpus")
@@ -108,10 +108,5 @@ class GaitSpeedProbeTest {
         /** Ticks of coasting a release buys, measured well enough to place a brake. */
         const val BRAKE_LOOKAHEAD = 8.0
 
-        val PROFILE = PlayerPhysicsProfile(
-	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-	        width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
     }
 }

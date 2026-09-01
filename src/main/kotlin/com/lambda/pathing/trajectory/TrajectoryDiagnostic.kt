@@ -1,5 +1,6 @@
 package com.lambda.pathing.trajectory
 
+import com.lambda.pathing.core.Stance
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
@@ -21,7 +22,8 @@ sealed interface TrajectoryDiagnostic {
         val depth: Double,
     ) : TrajectoryDiagnostic
 
-    data class RepeatedCoarseStance(override val frame: Int) : TrajectoryDiagnostic
+    /** The rollout crossed into [stance], a cell the anchor's own line already visited. */
+    data class RepeatedCoarseStance(override val frame: Int, val stance: Stance) : TrajectoryDiagnostic
 
     data class UnknownTerrain(
         override val frame: Int,

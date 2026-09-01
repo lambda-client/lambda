@@ -9,11 +9,9 @@
 
 package pathing
 
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -23,6 +21,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The planner against a world that arrives while it is being walked.
@@ -72,7 +71,7 @@ class StreamingWorldTest {
     }
 
     private class Walk(val world: StreamingWorld, start: Stance, val goal: Stance) {
-        val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+        val moves = moveLibrary()
         val planner = CoarsePlanner(world.view, moves, start, goal)
         var position = start
             private set
@@ -268,7 +267,7 @@ class StreamingWorldTest {
                 else -> CoarseVoxel.AIR
             }
         }
-        val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+        val moves = moveLibrary()
         val start = Stance(0, 5, 0)
         val goal = Stance(0, 5, 200)
         val planner = CoarsePlanner(view, moves, start, goal)

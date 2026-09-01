@@ -7,7 +7,6 @@ import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
 import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -19,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import pathing.ProbeScenarios.PROFILE
 
 /**
  * The closed-form movement model, checked against the simulator rather than against itself.
@@ -237,12 +237,6 @@ class HorizontalDynamicsTest {
 
     private companion object {
         const val YAW = -90.0
-
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
 
         /** Flat ground, wide enough that nothing here ever meets a wall. */
         val GROUND: SnapshotSimulationEnvironment = SnapshotSimulationEnvironment.synthetic(

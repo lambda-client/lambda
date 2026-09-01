@@ -1,6 +1,6 @@
 package pathing
 
-import com.lambda.pathing.ImprovementArbiter
+import com.lambda.pathing.execution.ImprovementArbiter
 import com.lambda.pathing.trajectory.PublishedPath
 import com.lambda.pathing.trajectory.VirtualSearchClock
 

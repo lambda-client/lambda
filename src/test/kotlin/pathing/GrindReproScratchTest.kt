@@ -15,9 +15,13 @@ import kotlin.test.Test
  * Replays the field course dump (guarded: no-op without the local dump file) and
  * attributes search expansions. THE local reproduction of the publication-refusal
  * grind: three consecutive span-4 island jumps collect ~50k anchored-OK duplicate
- * anchors and ~47k frame-0..2 RepeatedCoarseStance fan attempts -- 120k expansions
- * for a 46-block course, frames produced barely faster than consumed. Keep until
- * the grind work lands; see the handoff.
+ * anchors and ~43k frame-0..2 RepeatedCoarseStance fan attempts -- 120k expansions
+ * for a 46-block course. Keep until the grind work lands; the quantified anatomy and
+ * the MEASURED-DEAD interventions live in the handoff (UPDATE 14/15).
+ *
+ * Caveat this instrument taught us: cursorless, publicationCap and the horizon
+ * freeze, so it attributes expansion ECONOMICS but cannot validate a grind fix --
+ * outcome-quality judgment belongs to bedrockCorpus and FieldParkourProbeTest.
  */
 class GrindReproScratchTest {
     @Test
@@ -66,6 +70,7 @@ class GrindReproScratchTest {
             },
             started = started,
             probe = probe,
+            onExhaustion = { println("ET exhaustion $it") },
         )
         println("ET outcome=${outcome.javaClass.simpleName} wall=${System.currentTimeMillis() - started}ms total-expansions=$total")
         (outcome as? PathPlanResult.Planned)?.let { println("ET final=${it.path.plan.frames.size} frames") }
@@ -74,7 +79,7 @@ class GrindReproScratchTest {
         perStance.entries.sortedByDescending { it.value }.take(6).forEach {
             println("ET hot stance ${it.key} = ${it.value} expansions")
         }
-        hotDiags.entries.sortedByDescending { it.value }.take(14).forEach {
+        hotDiags.entries.sortedByDescending { it.value }.take(8).forEach {
             println("ET hot diag ${it.value}x ${it.key}")
         }
     }

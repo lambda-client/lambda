@@ -5,7 +5,6 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
 import com.lambda.pathing.debug.ParkourCourseLayout
@@ -13,7 +12,6 @@ import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.LaunchTrigger
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SegmentFollowerProgram
@@ -21,7 +19,6 @@ import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.TrajectoryRolloutEngine
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -32,6 +29,8 @@ import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * Ground truth for a course the planner cannot finish: is each gap physically
@@ -57,10 +56,7 @@ class ParkourGapFeasibilityTest {
     private fun gapTruth(seed: Int) {
         val course = ParkourCourseLayout.course(jumps = 20, seed = seed)
         val environment = courseEnvironment(course)
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(maxJumpSpan = 3, maxJumpDrop = 2),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(maxJumpSpan = 3, maxJumpDrop = 2))
         val planner = CoarsePlanner(environment, moves, course.start, course.goal)
         check(planner.repair(Duration.INFINITE).converged) { "course-$seed must have a coarse route" }
         val route = checkNotNull(planner.routePlan(0L))
@@ -222,10 +218,5 @@ class ParkourGapFeasibilityTest {
     private companion object {
         val ENTRY_SPEEDS = doubleArrayOf(0.0, 0.06, 0.11, 0.15, 0.19, 0.23, 0.26)
 
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
     }
 }

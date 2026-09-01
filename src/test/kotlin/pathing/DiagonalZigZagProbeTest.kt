@@ -7,10 +7,8 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.movement.TrajectoryDecision
@@ -18,7 +16,6 @@ import com.lambda.pathing.trajectory.SearchProbe
 import com.lambda.pathing.trajectory.TrajectoryDiagnostic
 import com.lambda.pathing.trajectory.VirtualSearchClock
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -28,6 +25,8 @@ import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The user's live failure: lone blocks on an alternating diagonal -- a 2x2 pocket of
@@ -48,10 +47,7 @@ class DiagonalZigZagProbeTest {
         )
         val start = pads.first()
         val goal = pads.last()
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(),
-        )
+        val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
         check(planner.repair(Duration.INFINITE).converged) { "coarse must converge" }
         planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
@@ -246,10 +242,7 @@ class DiagonalZigZagProbeTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-12, 0, -8, 8, 40, 8), blocks,
         )
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(),
-        )
+        val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, Stance(0, 17, 0), Stance(-5, 11, 0))
         check(planner.repair(Duration.INFINITE).converged)
         planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
@@ -279,11 +272,4 @@ class DiagonalZigZagProbeTest {
         }
     }
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
 }

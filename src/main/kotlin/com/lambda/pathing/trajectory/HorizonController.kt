@@ -182,7 +182,7 @@ internal class HorizonController(
             running.elapsed - cursor <= searchConfig.horizonRunwayFrames
         fun refused(reason: String) {
             publishRefusals++
-            if (pressured) probe.publishRefused(reason, anchor.elapsed, running?.elapsed ?: -1, cursor ?: -1)
+            if (pressured) probe.publishRefused(reason, anchor.elapsed, running.elapsed, cursor)
         }
 
         if (anchor.elapsed > publicationCap(cursor ?: -1)) return refused("cap")
@@ -402,7 +402,7 @@ internal class HorizonController(
         // from one collision frame to seven.
         val candidateArrival = candidate.elapsed +
             field.guide(candidate.stance, SpeedClass.of(candidate.speed)) +
-            ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * candidate.collisionEvents
+            Solution.COLLISION_FRAME_PENALTY * candidate.collisionEvents
         // The tip's arrival claim is its elapsed plus the guide -- a lower bound its
         // line may not be able to achieve at all. When thousands of expansions have
         // passed without the tip extending, that claim is discounted toward what the
@@ -413,7 +413,7 @@ internal class HorizonController(
         val stale = ((support.expansionCount - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS)
             .toDouble() / STALE_TIP_RAMP_EXPANSIONS).coerceIn(0.0, 1.0) * STALE_TIP_MAX_TICKS
         val tipArrival = tip.elapsed + field.guide(tip.stance, SpeedClass.of(tip.speed)) + stale +
-            ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * tip.collisionEvents
+            Solution.COLLISION_FRAME_PENALTY * tip.collisionEvents
         if (candidateArrival + REFINEMENT_GAIN_TICKS > tipArrival) {
             lastRefusalClause = "backtrack-gain"
             return false
@@ -427,7 +427,7 @@ internal class HorizonController(
     /** Class-conditioned: a moving tip's claim and a stopped candidate's are priced as the bodies they are. */
     private fun arrivalEstimate(anchor: ValueAnchor): Double =
         anchor.elapsed + field.guide(anchor.stance, SpeedClass.of(anchor.speed)) +
-            ValueFieldAnchorSearch.COLLISION_FRAME_PENALTY * anchor.collisionEvents
+            Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
 
     private var publishedFinalScore = Int.MAX_VALUE
 
