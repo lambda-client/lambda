@@ -12,9 +12,7 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.BallisticProfile
@@ -22,7 +20,6 @@ import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -35,6 +32,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The primitive the planner used to lack, end to end.
@@ -410,10 +409,7 @@ class DropPrimitiveTest {
         )
     }
 
-    private fun library() = SimpleMoveLibrary.build(
-        costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-        options = SimpleMoveOptions(maxWalkOffDepth = 3),
-    )
+    private fun library() = moveLibrary(SimpleMoveOptions(maxWalkOffDepth = 3))
 
     /** An upper deck at y = 66 ending at x = 0, and a lower deck three blocks down. */
     private fun ledgeBlocks(): Map<BlockPos, SnapshotBlockPhysics> = buildMap {
@@ -460,10 +456,5 @@ class DropPrimitiveTest {
          */
         const val MAX_SINGLE_TREAD_AIR_FRAMES = 12
 
-        val PROFILE = PlayerPhysicsProfile(
-	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-	        width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
     }
 }

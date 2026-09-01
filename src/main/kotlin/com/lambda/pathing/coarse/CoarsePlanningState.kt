@@ -1,6 +1,6 @@
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.changedChunkSet
+import com.lambda.pathing.world.changedChunkSet
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
@@ -180,7 +180,6 @@ internal class CoarsePlanningState(
         while (route!!.goal != goal && rounds++ < TERMINAL_GRANT_ROUNDS) {
             if (cancelled()) return route
             val terminal = route.goal
-            if (DEBUG_RESOLVE) println("RESOLVE-DBG round=$rounds terminal=$terminal anchors=${planner.optimisticAnchors.size} granted=${grantedChunks.size}")
 
             world?.let { w ->
                 // The lag sections reported by the frontier probes may lie off the
@@ -213,12 +212,8 @@ internal class CoarsePlanningState(
                 maxExpansions = maxExpansions,
                 cancelled = cancelled,
             )
-            route = extractRoute(snapshotRevision, cancelled) ?: run {
-                if (DEBUG_RESOLVE) println("RESOLVE-DBG round=$rounds EXTRACT NULL after granting around $terminal (revealed=${revealed.size}, anchors=${planner.optimisticAnchors.size}): ${planner.routeFailureReport()}")
-                null
-            } ?: return null
-            if (DEBUG_RESOLVE) println("RESOLVE-DBG round=$rounds routed to ${route!!.goal}")
-            if (route!!.goal == terminal) break
+            route = extractRoute(snapshotRevision, cancelled) ?: return null
+            if (route.goal == terminal) break
         }
         if (route.goal == goal && planner.retireAllAnchors()) {
             planner.repair(
@@ -241,8 +236,6 @@ internal class CoarsePlanningState(
             }
 
     private companion object {
-
-        const val DEBUG_RESOLVE = false
 
         const val TERMINAL_GRANT_ROUNDS = 4
 

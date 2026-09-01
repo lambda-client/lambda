@@ -10,6 +10,9 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.session.ContinuousSyncPolicy
+import com.lambda.pathing.session.PlanningCancellation
+import com.lambda.pathing.world.changedChunkSet
 import com.lambda.pathing.debug.DebugChannelProbe
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
@@ -44,43 +47,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
-
-sealed interface PathPlanResult {
-    data class Planned(val path: PublishedPath) : PathPlanResult
-    data class Failed(val failure: PlanningFailure) : PathPlanResult
-    data object Cancelled : PathPlanResult
-}
-
-internal sealed interface PlanningPreparationResult {
-    data class Ready(val preparation: TrajectoryPlanningPreparation) : PlanningPreparationResult
-    data class Failed(val failure: PlanningFailure) : PlanningPreparationResult
-    data object Cancelled : PlanningPreparationResult
-}
-
-internal data class TrajectoryPlanningPreparation(
-    val finalGoal: Stance,
-    val bounds: SimulationSnapshotBounds,
-    val moveOptions: SimpleMoveOptions,
-    val seedConfig: MotionConstraints,
-    val initial: MovementSimulationState,
-    val profile: PlayerPhysicsProfile,
-    val start: Stance,
-    val planningHorizonChunks: Int,
-    val horizonRunwayFrames: Int,
-    val horizonCommitFrames: Int,
-    val coarseExpansionBudget: Int,
-    val trajectoryExpansionBudget: Int,
-
-    val settleInitial: Boolean,
-    val frontierSweepBudget: Int,
-    val bootstrapDelayMillis: Long,
-    val plannerThreads: Int,
-    val improvementBudget: Int,
-    val momentumGait: Boolean,
-    val momentumSkips: Boolean,
-    val dumpDirectory: java.nio.file.Path?,
-    val startedMillis: Long,
-)
+import com.lambda.pathing.trajectory.FrontierDomination
 
 object TrajectoryPlanner {
     private val planIds = AtomicLong()
@@ -266,6 +233,19 @@ object TrajectoryPlanner {
                 val initial =
                     if (preparation.settleInitial) settleToRest(preparation.initial, profile, snapshot)
                     else preparation.initial
+
+                // A refused ROUTE is as replayable a failure as a refused walk: the
+                // scene is what debugging needs either way, so both failure exits
+                // below write the same dump.
+                fun dumpFailure(kind: String, note: String) {
+                    val directory = dumpDirectory ?: return
+                    runCatching {
+                        PlanDump.write(
+                            directory, snapshot, start, goal, initial, profile,
+                            moveOptions, seedConfig, note = note,
+                        )
+                    }.onFailure { LOG.error("Could not write the $kind dump", it) }
+                }
                 coarseState.repairFrom(start, emptySet(), batch.changedChunkSet())
                 val planner = coarseState.planner
                 val coarseStarted = System.nanoTime()
@@ -312,18 +292,7 @@ object TrajectoryPlanner {
                             "No coarse route {} -> {} after {} expansions: {}",
                             start, goal, coarse.processedNodes, planner.routeFailureReport(),
                         )
-                        // A refused ROUTE is as replayable a failure as a refused walk:
-                        // the wave dead-ending mid-course with the world fully captured
-                        // is exactly the class that needs the scene to debug.
-                        dumpDirectory?.let { directory ->
-                            runCatching {
-                                PlanDump.write(
-                                    directory, snapshot, start, goal, initial, profile,
-                                    moveOptions, seedConfig,
-                                    note = "no coarse route; ${planner.routeFailureReport()}",
-                                )
-                            }.onFailure { LOG.error("Could not write the no-route dump", it) }
-                        }
+                        dumpFailure("no-route", "no coarse route; ${planner.routeFailureReport()}")
                         return@supplyAsync PathPlanResult.Failed(
                             PlanningFailure.NoRoute("no coarse route to the goal")
                         )
@@ -385,27 +354,19 @@ object TrajectoryPlanner {
                 )
 
                 if (outcome is PathPlanResult.Failed) {
-                    dumpDirectory?.let { directory ->
-                        runCatching {
-
-                            val journeyNote = buildString {
-                                append(outcome.failure.message)
-                                append("; route ").append(route.nodes.joinToString(" "))
-                                val anchors = planner.optimisticAnchors
-                                if (anchors.isNotEmpty()) {
-                                    append("; anchors ").append(
-                                        anchors.entries.joinToString(" ") {
-                                            "${it.key}=%.1f".format(it.value)
-                                        },
-                                    )
-                                }
-                            }
-                            PlanDump.write(
-                                directory, snapshot, start, goal, initial, profile,
-                                moveOptions, seedConfig, note = journeyNote,
+                    val journeyNote = buildString {
+                        append(outcome.failure.message)
+                        append("; route ").append(route.nodes.joinToString(" "))
+                        val anchors = planner.optimisticAnchors
+                        if (anchors.isNotEmpty()) {
+                            append("; anchors ").append(
+                                anchors.entries.joinToString(" ") {
+                                    "${it.key}=%.1f".format(it.value)
+                                },
                             )
-                        }.onFailure { LOG.error("Could not write the failed plan dump", it) }
+                        }
                     }
+                    dumpFailure("failed plan", journeyNote)
                 }
                 outcome
             } catch (_: CancellationException) {
@@ -459,8 +420,8 @@ object TrajectoryPlanner {
          * on 358, 362 or 371 frames by JIT mood. The expansion-count cap still binds.
          */
         fieldExpansionBudget: kotlin.time.Duration = FIELD_EXPANSION_BUDGET,
-        frontierDomination: com.lambda.pathing.trajectory.FrontierDomination =
-            com.lambda.pathing.trajectory.FrontierDomination.FULL,
+        frontierDomination: FrontierDomination =
+            FrontierDomination.FULL,
     ): PathPlanResult {
         var published = 0
         var last: PublishedPath? = null

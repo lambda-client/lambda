@@ -9,22 +9,19 @@ import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.*
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import com.lambda.pathing.trajectory.*
 import com.lambda.pathing.trajectory.PublishedPath
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
 import kotlin.math.atan2
 import kotlin.test.Test
 import kotlin.time.Duration
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.bedrockEnvironment
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The receding horizon, walked end to end against a wall clock, with no client.
@@ -65,10 +62,7 @@ class HorizonWalkProbeTest {
     @Test
     fun `horizon corpus`() {
         val environment = bedrockEnvironment()
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(maxJumpDrop = 2),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(maxJumpDrop = 2))
         val config = MotionConstraints()
         var total = 0
         var arrived = 0
@@ -118,16 +112,6 @@ class HorizonWalkProbeTest {
         check(arrived >= 5) { "only $arrived of 6 routes arrived" }
     }
 
-    private fun bedrockEnvironment() = SnapshotSimulationEnvironment.synthetic(
-        bounds = SimulationSnapshotBounds(
-	        -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
-	        BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
-        ),
-        blocks = BedrockFieldLayout.solidCells().associate {
-            BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
-        },
-    )
-
     /**
      * [microsPerExpansion] is the fixture's whole personality: 640 is the corpus tempo
      * (~78 expansions per body frame), 2000 a deliberately starved search (~25 per
@@ -143,19 +127,8 @@ class HorizonWalkProbeTest {
      * regression signal.
      */
     private fun walk(lookahead: Int, commitFrames: Int, microsPerExpansion: Long) {
-        val environment = SnapshotSimulationEnvironment.synthetic(
-            bounds = SimulationSnapshotBounds(
-	            -2, 56, -BedrockFieldLayout.HALF_WIDTH - 2,
-	            BedrockFieldLayout.LENGTH + 1, 71, BedrockFieldLayout.HALF_WIDTH + 2,
-            ),
-            blocks = BedrockFieldLayout.solidCells().associate {
-                BlockPos(it.x, it.y, it.z) to SnapshotBlockPhysics.FULL_CUBE
-            },
-        )
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(maxJumpDrop = 2),
-        )
+        val environment = bedrockEnvironment()
+        val moves = moveLibrary(SimpleMoveOptions(maxJumpDrop = 2))
         val config = MotionConstraints()
         val surface = BedrockFieldLayout.standableSurface(BedrockFieldLayout.solidCells())
         val head = checkNotNull(surface.filter { it.x <= 2 }.minByOrNull { it.z * it.z })
@@ -250,11 +223,4 @@ class HorizonWalkProbeTest {
         }
     }
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-	        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-	        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-	        width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
 }

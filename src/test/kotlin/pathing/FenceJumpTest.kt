@@ -13,19 +13,16 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.LaunchSolver
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.LaunchTrigger
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SegmentFollowerProgram
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.trajectory.TrajectoryRolloutEngine
@@ -36,6 +33,8 @@ import org.junit.jupiter.api.Tag
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The field jump this pins down: standing on a FENCE (feet a half block above the
@@ -144,10 +143,7 @@ class FenceJumpTest {
         val environment = fenceWorld()
         val start = Stance(0, 101, 0)
         val goal = Stance(5, 100, 0)
-        val moves = SimpleMoveLibrary.build(
-            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            SimpleMoveOptions(),
-        )
+        val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged)
         planner.expandField(extraTicks = 60.0, timeBudget = Duration.INFINITE, maxExpansions = 40_000)
@@ -196,8 +192,7 @@ class FenceJumpTest {
         )
         val origin = Stance(0, 101, 0)
         val target = Stance(5, 100, 0)
-        fun jumpEdges(options: SimpleMoveOptions) = SimpleMoveLibrary
-            .build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0), options)
+        fun jumpEdges(options: SimpleMoveOptions) = moveLibrary(options)
             .edgesFrom(environment, origin)
             .filter { it.movement == MovementId.JUMP && it.to == target }
         assertTrue(
@@ -260,11 +255,4 @@ class FenceJumpTest {
         }
     }
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
 }

@@ -6,14 +6,11 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -22,6 +19,8 @@ import net.minecraft.util.math.Vec3d
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 class DropToAdjacentGoalTest {
     @Test
@@ -35,7 +34,7 @@ class DropToAdjacentGoalTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-2, 90, -10, 16, 110, 10), blocks,
         )
-        val moves = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+        val moves = moveLibrary()
         val start = Stance(8, 100, -1)
         val goal = Stance(9, 97, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
@@ -64,11 +63,4 @@ class DropToAdjacentGoalTest {
         assertTrue(outcome is PathPlanResult.Planned, "expected a certified tape, got $outcome")
     }
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
 }

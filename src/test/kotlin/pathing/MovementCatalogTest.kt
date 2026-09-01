@@ -26,7 +26,6 @@ import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
 import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.SimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -39,6 +38,8 @@ import kotlin.time.Duration
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The claim the movement package exists to make: a new way of moving is one file.
@@ -279,10 +280,7 @@ class MovementCatalogTest {
         // climbable cell to step off rather than a solid one that caps it.
         for (x in -3..-1) world.solid(x, 6, 0)
 
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(allowClimbing = true),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(allowClimbing = true))
         val start = Stance(-2, 1, 0)
         val goal = Stance(-2, 7, 0)
         val planner = CoarsePlanner(world, moves, start, goal)
@@ -377,10 +375,5 @@ class MovementCatalogTest {
         /** What the re-asserted 0.2 rise reads as once gravity and drag have run. */
         const val CLIMB_RISE_VELOCITY = (0.2 - 0.08) * 0.98
 
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
     }
 }

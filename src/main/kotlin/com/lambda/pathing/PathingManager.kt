@@ -17,6 +17,13 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.execution.FlightPermissionHold
+import com.lambda.pathing.execution.ImprovementArbiter
+import com.lambda.pathing.execution.Walk
+import com.lambda.pathing.session.PlanningCancellation
+import com.lambda.pathing.session.PlanningJourney
+import com.lambda.pathing.session.PlanningSession
+import com.lambda.pathing.world.InterestPrimer
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
@@ -130,19 +137,8 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
     }
 
-    /** Waypoints still to walk after the active goal, oldest first: the compound route. */
-    private val routeQueue = ArrayDeque<Stance>()
-    private var routeAutomated: Automated? = null
-    private var routeLeg: Stance? = null
-
-    /**
-     * The NEXT leg's journey, pre-warmed while the body still replays the current
-     * one: its world streams capture and its coarse state exists before arrival,
-     * so the waypoint handoff pays neither the capture wait nor the coarse cold
-     * start -- only the fine search, from a body that arrived braked. Adopted by
-     * [handleRequest] when the continuation request lands.
-     */
-    private var routeNextJourney: PlanningJourney? = null
+    /** The compound route: queued waypoints, leg tracking, and the pre-warmed next leg. */
+    private val waypointRoute = WaypointRoute(PATHING_SOURCE)
 
     /**
      * Walks [waypoints] in order: the first leg is requested now and each arrival
@@ -150,82 +146,11 @@ object PathingManager : Manager<PathingRequest>(0) {
      * drops the remainder -- continuing a route past a leg that did not arrive
      * would walk the tail from the wrong place.
      */
-    fun route(automated: Automated, waypoints: List<Stance>) {
-        dropRoute()
-        val first = waypoints.firstOrNull() ?: return
-        routeAutomated = automated
-        routeLeg = first
-        routeQueue.addAll(waypoints.drop(1))
-        PathingRequest(automated, first).submit()
-    }
-
-    private fun dropRoute() {
-        routeQueue.clear()
-        routeAutomated = null
-        routeLeg = null
-        routeNextJourney?.cancel()
-        routeNextJourney = null
-    }
-
-    private fun SafeContext.primeNextRouteLeg(walk: Walk) {
-        if (routeAutomated == null) return
-        val next = routeQueue.firstOrNull() ?: return
-        // Only while replaying a COMPLETE tape: its terminal is where the body
-        // will actually stand at the handoff, so bounds and interest are primed
-        // from there, not from wherever the body happens to be mid-leg.
-        if (walk.cursor == null) return
-        val running = published ?: return
-        if (running.partial) return
-        val terminal = running.plan.frames.lastOrNull()?.state ?: return
-        val resolved = TrajectoryPlanner.resolveGoalStance(player, next)
-        if (routeNextJourney?.goal == resolved) return
-        routeNextJourney?.cancel()
-        routeNextJourney = null
-
-        val cancellation = PlanningCancellation()
-        val preparation = when (
-            val prepared = TrajectoryPlanner.prepare(
-                player = player,
-                goal = next,
-                config = walk.request.pathingConfig,
-                turnSpeed = walk.request.rotationConfig.turnSpeed,
-                cancellation = cancellation,
-                initialOverride = terminal,
-            )
-        ) {
-            is PlanningPreparationResult.Ready -> prepared.preparation
-            else -> return
-        }
-        val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
-        InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal)
-        routeNextJourney = PlanningJourney(
-            goal = preparation.finalGoal,
-            moveOptions = preparation.moveOptions,
-            profile = preparation.profile,
-            cancellation = cancellation,
-            world = pathingWorld,
-            coarseState = TrajectoryPlanner.coarseState(
-                preparation, pathingWorld.snapshot, pathingWorld::chunkCapturable,
-            ),
-        )
-        LOG.info("Pre-warming the next route leg toward {}", preparation.finalGoal)
-    }
-
-    private fun continueRoute(): Boolean {
-        val automated = routeAutomated ?: return false
-        val next = routeQueue.removeFirstOrNull() ?: run { dropRoute(); return false }
-        routeLeg = next
-        info(
-            "Route: continuing to (${next.x}, ${next.y}, ${next.z})" +
-                (routeQueue.size.takeIf { it > 0 }?.let { ", $it more after it" } ?: "") + ".",
-            PATHING_SOURCE,
-        )
-        PathingRequest(automated, next).submit()
-        return true
-    }
+    fun route(automated: Automated, waypoints: List<Stance>) =
+        waypointRoute.start(automated, waypoints)
 
     fun cancel() {
-        dropRoute()
+        waypointRoute.drop()
         releaseWalk(keepJourney = true)
         if (status is Status.Settling || status is Status.Planning ||
             status is Status.Aligning || status is Status.Executing
@@ -235,7 +160,7 @@ object PathingManager : Manager<PathingRequest>(0) {
     }
 
     fun clear() {
-        dropRoute()
+        waypointRoute.drop()
         releaseWalk()
         status = Status.Idle
         published = null
@@ -252,17 +177,14 @@ object PathingManager : Manager<PathingRequest>(0) {
         if (!request.fresh) return
 
         // A request that is not this route's own next leg replaces the route.
-        if (request.goal != routeLeg) dropRoute()
+        if (request.goal != waypointRoute.expectedLeg) waypointRoute.drop()
 
         // Adopt the pre-warmed next-leg journey before the reuse check below, so a
         // route continuation lands on a world already captured and a coarse state
         // already built instead of paying the cold start at every waypoint.
-        routeNextJourney?.let { warmed ->
-            if (warmed.goal == TrajectoryPlanner.resolveGoalStance(player, request.goal)) {
-                journey?.cancel()
-                journey = warmed
-                routeNextJourney = null
-            }
+        waypointRoute.adoptWarmJourney(TrajectoryPlanner.resolveGoalStance(player, request.goal))?.let { warmed ->
+            journey?.cancel()
+            journey = warmed
         }
 
         val sameGoal = journey?.goal == TrajectoryPlanner.resolveGoalStance(player, request.goal)
@@ -375,7 +297,7 @@ object PathingManager : Manager<PathingRequest>(0) {
         activeJourney.world.advance(budget)
         // The pre-warmed next leg streams its capture alongside: the whole point of
         // priming it is that the world is already known when the handoff comes.
-        routeNextJourney?.world?.advance(configured)
+        waypointRoute.advanceCapture(configured)
     }
 
     private fun SafeContext.launchPlanning(
@@ -535,22 +457,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         }
     }
 
-    /**
-     * How fast tape arrived versus how fast the body ate it.
-     *
-     * The body consumes exactly one frame per tick, so an adoption that adds fewer frames
-     * than the ticks it took to produce is one the walk cannot survive on: the shortfall
-     * is paid at the next brake. Printing the two rates together is what makes a stall
-     * legible as a throughput problem rather than a mysterious pause.
-     */
-    private fun Walk.publicationCadence(): String {
-        if (adoptionGains.isEmpty()) return "no adoptions"
-        val frames = adoptionGains.sum()
-        val millis = adoptionMillis.sum().coerceAtLeast(1L)
-        return "%d adoption(s) added %d frames over %d ms (%.1f frames/s produced vs %d consumed)"
-            .format(adoptionGains.size, frames, millis, frames * 1000.0 / millis, TICKS_PER_SECOND)
-    }
-
     private fun recordExecuted(path: PublishedPath) {
         synchronized(executedPaths) {
             if (executedPaths.size == MAX_RETAINED_PUBLICATIONS) executedPaths.removeFirst()
@@ -611,10 +517,10 @@ object PathingManager : Manager<PathingRequest>(0) {
         val position = player.blockPos?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "unknown position"
         val destination = goal?.let { " toward $it" } ?: ""
         val walked = activeWalk?.leg ?: 0
-        if (routeQueue.isNotEmpty()) {
-            warn("Dropping ${routeQueue.size} queued route waypoint(s): this leg failed.", PATHING_SOURCE)
+        if (waypointRoute.queuedWaypoints > 0) {
+            warn("Dropping ${waypointRoute.queuedWaypoints} queued route waypoint(s): this leg failed.", PATHING_SOURCE)
         }
-        dropRoute()
+        waypointRoute.drop()
         releaseWalk(keepJourney = true)
         status = Status.Failed(reason)
         warn("Stopped ${if (walked == 0) "before" else "during"} continuous replay at $position$destination: $reason", PATHING_SOURCE)
@@ -640,12 +546,12 @@ object PathingManager : Manager<PathingRequest>(0) {
                 !ChunkPacketLoadContext.isActive()
             ) {
                 journey?.world?.onBlockChanged(event.pos)
-                routeNextJourney?.world?.onBlockChanged(event.pos)
+                waypointRoute.onBlockChanged(event.pos)
             }
         }
         listenUnsafe<WorldEvent.ChunkEvent.Load> { event ->
             journey?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
-            routeNextJourney?.world?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
+            waypointRoute.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)
         }
         listen<TickEvent.Pre> {
             val walk = activeWalk ?: return@listen
@@ -655,7 +561,7 @@ object PathingManager : Manager<PathingRequest>(0) {
             if (status is Status.Planning) return@listen
             if (status is Status.Aligning) return@listen align(walk)
 
-            primeNextRouteLeg(walk)
+            waypointRoute.primeNextLeg(player, walk, published)
             tickExecution(walk)
         }
 
@@ -863,47 +769,11 @@ object PathingManager : Manager<PathingRequest>(0) {
             "Pathing tape profile: {} frames vs {} bound = {} optimal; {} standing still " +
                 "({}%) in {} stop(s); {}",
             path.plan.tape.frameCount, "%.0f".format(path.route.lowerBoundTicks),
-            "%.2fx".format(path.excessRatio), standingFrames(path), standingPercent(path),
-            standingRuns(path), walk.publicationCadence(),
+            "%.2fx".format(path.excessRatio), path.standingFrames(), path.standingPercent(),
+            path.standingRuns(), walk.publicationCadence(),
         )
         LOG.info("Pathing frames by movement: {}", path.movementProfile())
-        continueRoute()
-    }
-
-    /**
-     * Frames of the finished tape the body spends standing still away from the goal.
-     *
-     * A published tape always ends in a certified brake, so an unextended one is safe to
-     * replay -- but when the search cannot extend before the body arrives at that brake,
-     * the body stops, and re-rooting onto the brake bakes the deceleration and hold into
-     * the prefix of every tape that follows. Those frames are therefore a permanent
-     * record of the planner failing to keep up, and the number is the one worth watching:
-     * a walk that stops is nearly always a walk whose tape is mostly this.
-     */
-    private fun standingRunLengths(path: PublishedPath): List<Int> {
-        val frames = path.plan.frames
-        if (frames.isEmpty()) return emptyList()
-        val still = frames.map { it.state.velocity.horizontalLength() <= STANDING_SPEED }
-        val runs = ArrayList<Int>()
-        var index = 0
-        while (index < still.size) {
-            if (!still[index]) { index++; continue }
-            var end = index
-            while (end < still.size && still[end]) end++
-            // The run that reaches the last frame is the arrival stop, not a stall.
-            if (end - index >= MIN_STANDING_RUN && end < still.size) runs += end - index
-            index = end
-        }
-        return runs
-    }
-
-    private fun standingFrames(path: PublishedPath): Int = standingRunLengths(path).sum()
-
-    private fun standingRuns(path: PublishedPath): Int = standingRunLengths(path).size
-
-    private fun standingPercent(path: PublishedPath): Int {
-        val total = path.plan.tape.frameCount
-        return if (total <= 0) 0 else standingFrames(path) * 100 / total
+        waypointRoute.continueNext()
     }
 
     /**
@@ -1107,14 +977,6 @@ object PathingManager : Manager<PathingRequest>(0) {
     private const val MAX_RETAINED_TRAIL_POINTS = 4_096
 
     private const val PATHING_SOURCE = "Pathing"
-
-    /** Below this the body is standing, not merely slow. Matches the planner's stop test. */
-    private const val STANDING_SPEED = 0.012
-
-    /** Shortest still run counted as a stop rather than a slow turn. */
-    private const val MIN_STANDING_RUN = 4
-
-    private const val TICKS_PER_SECOND = 20
 
     private val ALIGNMENT_INPUT = MovementSimulationInput()
 

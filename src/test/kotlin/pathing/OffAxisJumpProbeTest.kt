@@ -5,7 +5,6 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.LaunchSolution
@@ -16,9 +15,7 @@ import com.lambda.pathing.movement.SegmentFollowerProgram
 import com.lambda.pathing.trajectory.TrajectoryRollout
 import com.lambda.pathing.trajectory.TrajectoryRolloutEngine
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import net.minecraft.util.math.Vec3d
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
@@ -27,6 +24,8 @@ import net.minecraft.util.math.BlockPos
 import kotlin.test.Test
 import kotlin.time.Duration
 import org.junit.jupiter.api.Tag
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /** Ground truth for the (3,2) off-axis jump the coarse graph reportedly misses. */
 @Tag("bedrock-corpus")
@@ -95,14 +94,6 @@ class OffAxisJumpProbeTest {
         return TrajectoryRolloutEngine.rollout(initial, PROFILE, environment, program, frameCount = 40)
     }
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
-
     @Test
     fun `a span-3 offset-2 jump across coarse graph configurations`() {
         val from = Stance(0, 100, 0)
@@ -119,10 +110,7 @@ class OffAxisJumpProbeTest {
                 "span=3 (parkour fixtures)" to SimpleMoveOptions(maxJumpSpan = 3, maxJumpDrop = 2),
             )) {
                 val environment = pads(from, to)
-                val moves = SimpleMoveLibrary.build(
-                    costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-                    options = options.second,
-                )
+                val moves = moveLibrary(options.second)
                 val planner = CoarsePlanner(environment, moves, from, to)
                 val converged = planner.repair(Duration.INFINITE).converged
                 val route = if (converged) planner.routePlan(0L) else null

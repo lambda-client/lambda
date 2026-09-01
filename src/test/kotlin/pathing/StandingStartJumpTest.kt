@@ -4,15 +4,12 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.trajectory.MotionPlanResult
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -24,6 +21,8 @@ import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The live parkour flake: a leg boundary settles the body to rest at the lip of a
@@ -59,10 +58,7 @@ class StandingStartJumpTest {
     }
 
     private fun assertNoRoute(environment: SnapshotSimulationEnvironment, goal: Stance) {
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(),
-        )
+        val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, Stance(0, 1, 0), goal)
         val converged = planner.repair(Duration.INFINITE).converged
         val route = if (converged) planner.routePlan(0L) else null
@@ -115,10 +111,7 @@ class StandingStartJumpTest {
         val environment = detourWorld()
         val start = Stance(0, 1, 0)
         val goal = Stance(5, 1, 0)
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(),
-        )
+        val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged)
         planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
@@ -192,10 +185,7 @@ class StandingStartJumpTest {
         initialX: Double = 0.93,
     ): MotionPlanResult.Success {
         val start = Stance(0, 1, 0)
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(),
-        )
+        val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "coarse search must converge")
         planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
@@ -249,11 +239,4 @@ class StandingStartJumpTest {
         )
     }
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
 }

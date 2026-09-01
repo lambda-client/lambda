@@ -6,14 +6,11 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -25,6 +22,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * Terrain that is not made of whole cubes.
@@ -358,16 +357,7 @@ class BlockShapeStanceTest {
         fenceLike = true,
     )
 
-    private val PROFILE = PlayerPhysicsProfile(
-        movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-        stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-        width = 0.6, height = 1.8, eyeHeight = 1.62,
-    )
-
-    private fun library() = SimpleMoveLibrary.build(
-        costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-        options = SimpleMoveOptions(),
-    )
+    private fun library() = moveLibrary(SimpleMoveOptions())
 
     private fun slab() = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.5, 1.0))
 

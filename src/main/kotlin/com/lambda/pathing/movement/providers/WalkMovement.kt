@@ -2,6 +2,7 @@ package com.lambda.pathing.movement.providers
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.movement.PursuitTracker
 import com.lambda.pathing.movement.TemplateSpec
 import com.lambda.pathing.movement.CellCondition
 import com.lambda.pathing.movement.CellPredicate
@@ -264,7 +265,7 @@ object WalkMovement : Movement {
         return SegmentFollowerProgram(
             nodes = context.nodes,
             sprint = decision.sprint,
-            lookAheadNodes = (decision as? TrajectoryDecision.Walk)?.lookAheadNodes ?: DEFAULT_LOOK_AHEAD,
+            lookAheadNodes = (decision as? TrajectoryDecision.Walk)?.lookAheadNodes ?: PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
             launch = context.launch,
             maxYawChange = context.constraints.maxYawDegreesPerFrame,
             easeTurns = (decision as? TrajectoryDecision.Walk)?.easeTurns == true,
@@ -300,7 +301,6 @@ object WalkMovement : Movement {
      */
     private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
 
-    private const val DEFAULT_LOOK_AHEAD = 1
 
     private val OFF_AXIS_LAUNCH_DELAYS = listOf(0, 2, 4)
 

@@ -1,9 +1,7 @@
 package pathing
 
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
@@ -12,6 +10,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.time.Duration
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * Full-course coarse connectivity over composite parkour (beds + carpeted pads),
@@ -45,10 +44,7 @@ class CompositeCourseTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 40), blocks,
         )
-        val moves = SimpleMoveLibrary.build(
-            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            SimpleMoveOptions(allowSlimeBounces = true, maxBounceDrop = 12),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true, maxBounceDrop = 12))
         for ((start, goal, label) in listOf(
             Triple(Stance(0, 10, 0), Stance(0, 8, 21), "full course"),
             Triple(Stance(0, 10, 0), Stance(0, 10, 11), "first half (beds)"),

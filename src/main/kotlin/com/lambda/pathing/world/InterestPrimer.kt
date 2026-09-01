@@ -1,4 +1,4 @@
-package com.lambda.pathing
+package com.lambda.pathing.world
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance

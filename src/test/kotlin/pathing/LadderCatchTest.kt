@@ -12,15 +12,12 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
@@ -33,6 +30,8 @@ import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The parkour move the vocabulary never had: jump a one-block gap INTO a ladder hung
@@ -55,10 +54,7 @@ class LadderCatchTest {
         )
     }
 
-    private fun moves() = SimpleMoveLibrary.build(
-        CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-        SimpleMoveOptions(allowClimbing = true),
-    )
+    private fun moves() = moveLibrary(SimpleMoveOptions(allowClimbing = true))
 
     @Test
     fun `a gap onto a ladder routes as a catch and climbs out on top`() {
@@ -112,10 +108,5 @@ class LadderCatchTest {
             coarseVoxel = CoarseVoxel.of(Medium.CLIMBABLE),
         )
 
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
     }
 }

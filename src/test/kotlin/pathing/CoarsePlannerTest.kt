@@ -33,6 +33,7 @@ import kotlin.time.Duration
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
+import pathing.ProbeScenarios.moveLibrary
 
 class CoarsePlannerTest {
     @Test
@@ -171,10 +172,7 @@ class CoarsePlannerTest {
         // A single-block bump on the direct line. Stepping up then off pays two grounded
         // vertical moves (~16 ticks); one flat jump clears it in one arc (~12) -- the
         // momentum-keeping line, which distance-only costs could never see.
-        val moves = SimpleMoveLibrary.build(
-            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            SimpleMoveOptions(allowDiagonal = false),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(allowDiagonal = false))
         val world = SyntheticView().apply {
             for (x in 0..4) this[VoxelPos(x, 0, 0)] = CoarseVoxel.FULL_BLOCK
             this[VoxelPos(2, 1, 0)] = CoarseVoxel.FULL_BLOCK // the bump (top at y=2)
@@ -195,10 +193,7 @@ class CoarsePlannerTest {
         // jump cost is airborne time (span-independent), so the long jump already wins on
         // arc time; the per-edge toll widens the margin. x=0 start, x=2 a hoppable ledge,
         // x=3.. landing: reaching x=3 is one span-3 jump or a span-2 jump plus a walk.
-        val moves = SimpleMoveLibrary.build(
-            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            SimpleMoveOptions(allowDiagonal = false, allowStepUp = false, maxWalkOffDepth = 0),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(allowDiagonal = false, allowStepUp = false, maxWalkOffDepth = 0))
         val world = SyntheticView().apply {
             for (x in listOf(0, 2, 3, 4, 5)) this[VoxelPos(x, 0, 0)] = CoarseVoxel.FULL_BLOCK
         }
@@ -217,10 +212,7 @@ class CoarsePlannerTest {
     fun `the transition toll keeps a lower bound the heuristic never overestimates`() {
         // The toll amortises over the longest template (its best per-block rate feeds the
         // heuristic), so it must remain admissible: h(from) <= edgeCost + h(to) everywhere.
-        val moves = SimpleMoveLibrary.build(
-            CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            SimpleMoveOptions(),
-        )
+        val moves = moveLibrary(SimpleMoveOptions())
         val random = kotlin.random.Random(99)
         val goal = Stance(7, 3, -4)
         repeat(20_000) {

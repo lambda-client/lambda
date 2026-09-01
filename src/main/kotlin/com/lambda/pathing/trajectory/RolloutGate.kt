@@ -6,6 +6,7 @@ import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.Medium
 
 internal class GatedRollout(
     val rollout: TrajectoryRollout,
@@ -28,7 +29,7 @@ internal class RolloutGate(
         val evaluator = RolloutEvaluator(from, points, goalPoint(), config, climbing = { p ->
             environment.medium(
                 kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
-            ) == com.lambda.pathing.world.Medium.CLIMBABLE
+            ) == Medium.CLIMBABLE
         })
         var previous = from
         var stopFrame: Int? = null

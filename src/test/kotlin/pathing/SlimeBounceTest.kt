@@ -4,8 +4,6 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.movement.CoarseMoveCosts
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.MovementId
@@ -16,7 +14,6 @@ import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -29,6 +26,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import pathing.ProbeScenarios.PROFILE
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * Landing on slime, which vanilla treats as one block behaviour among several.
@@ -468,10 +467,7 @@ class SlimeBounceTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-12, 55, -12, 20, 90, 12), blocks,
         )
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(allowSlimeBounces = true, maxWalkOffDepth = 3),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true, maxWalkOffDepth = 3))
 
         val edges = moves.edgesFrom(environment, Stance(0, lip, 0))
         val bounce = assertNotNull(
@@ -504,10 +500,7 @@ class SlimeBounceTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-12, 55, -12, 20, 90, 12), blocks,
         )
-        val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
-            options = SimpleMoveOptions(allowSlimeBounces = true, maxWalkOffDepth = 3),
-        )
+        val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true, maxWalkOffDepth = 3))
         assertTrue(
             moves.edgesFrom(environment, Stance(0, lip, 0)).none { it.movement == MovementId.BOUNCE },
             "a stone pit must not be offered as a bounce",
@@ -517,7 +510,7 @@ class SlimeBounceTest {
     /** Off by default: the arcs are long, and the terrain that rewards them is rare. */
     @Test
     fun `bounces are not offered unless asked for`() {
-        val plain = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+        val plain = moveLibrary()
         assertTrue(
             plain.templates.none { it.movement == MovementId.BOUNCE },
             "no bounce templates may exist by default",
@@ -553,11 +546,4 @@ class SlimeBounceTest {
         ),
     )
 
-    private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
-    }
 }

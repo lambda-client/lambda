@@ -5,10 +5,12 @@ import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.CorridorFollowerProgram
 import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.movement.PursuitTracker
 import com.lambda.pathing.movement.TerminalApproach
 import com.lambda.pathing.world.center
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import kotlin.math.hypot
+import com.lambda.pathing.world.Medium
 
 internal class FinishPlanner(
     private val field: CoarseValueField,
@@ -41,7 +43,7 @@ internal class FinishPlanner(
             for (sprint in config.sprintModes) {
                 for (brake in config.brakeDistances) {
                     for (lead in leads) {
-                        add(TerminalApproach(sprint, ValueFieldAnchorSearch.LOOK_AHEAD_NODES, brake, lead))
+                        add(TerminalApproach(sprint, PursuitTracker.DEFAULT_LOOK_AHEAD_NODES, brake, lead))
                     }
                 }
             }
@@ -98,7 +100,7 @@ internal class FinishPlanner(
         val evaluation = evaluate(gated.rollout, points, goal, config, climbing = { p ->
             field.view.medium(
                 kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
-            ) == com.lambda.pathing.world.Medium.CLIMBABLE
+            ) == Medium.CLIMBABLE
         })
         probe.attempt(gated.rollout, gated.stopFrame != null, evaluation.diagnostic)
         attempts.record(PlanAttempt(

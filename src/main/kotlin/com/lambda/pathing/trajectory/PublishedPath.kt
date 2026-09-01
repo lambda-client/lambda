@@ -61,6 +61,12 @@ data class PublishedPath(
          * and hold still for `stableStopFrames`.
          */
         const val TERMINAL_STOP_TICKS = 16.0
+
+        /** Below this the body is standing, not merely slow. Matches the planner's stop test. */
+        const val STANDING_SPEED = 0.012
+
+        /** Shortest still run counted as a stop rather than a slow turn. */
+        const val MIN_STANDING_RUN = 4
     }
 
     /** Frames per movement kind, heaviest first, as `movement=frames/segments`. */
@@ -69,4 +75,41 @@ data class PublishedPath(
         .mapValues { (_, parts) -> parts.sumOf { it.frames } to parts.size }
         .entries.sortedByDescending { it.value.first }
         .joinToString(" ") { (movement, cost) -> "$movement=${cost.first}/${cost.second}" }
+
+    /**
+     * Frames of the finished tape the body spends standing still away from the goal,
+     * as run lengths.
+     *
+     * A published tape always ends in a certified brake, so an unextended one is safe to
+     * replay -- but when the search cannot extend before the body arrives at that brake,
+     * the body stops, and re-rooting onto the brake bakes the deceleration and hold into
+     * the prefix of every tape that follows. Those frames are therefore a permanent
+     * record of the planner failing to keep up, and the number is the one worth watching:
+     * a walk that stops is nearly always a walk whose tape is mostly this.
+     */
+    fun standingRunLengths(): List<Int> {
+        val frames = plan.frames
+        if (frames.isEmpty()) return emptyList()
+        val still = frames.map { it.state.velocity.horizontalLength() <= STANDING_SPEED }
+        val runs = ArrayList<Int>()
+        var index = 0
+        while (index < still.size) {
+            if (!still[index]) { index++; continue }
+            var end = index
+            while (end < still.size && still[end]) end++
+            // The run that reaches the last frame is the arrival stop, not a stall.
+            if (end - index >= MIN_STANDING_RUN && end < still.size) runs += end - index
+            index = end
+        }
+        return runs
+    }
+
+    fun standingFrames(): Int = standingRunLengths().sum()
+
+    fun standingRuns(): Int = standingRunLengths().size
+
+    fun standingPercent(): Int {
+        val total = plan.tape.frameCount
+        return if (total <= 0) 0 else standingFrames() * 100 / total
+    }
 }

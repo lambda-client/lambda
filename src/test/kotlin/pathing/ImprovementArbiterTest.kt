@@ -1,7 +1,7 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.ImprovementArbiter
+import com.lambda.pathing.execution.ImprovementArbiter
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
@@ -16,7 +16,6 @@ import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.pathing.trajectory.TrajectoryPlanId
 import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -27,6 +26,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import pathing.ProbeScenarios.PROFILE
 
 class ImprovementArbiterTest {
     @Test
@@ -172,11 +172,6 @@ class ImprovementArbiterTest {
     )
 
     private companion object {
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
 
         val environment: SnapshotSimulationEnvironment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-3, -3, -3, 9, 4, 9),

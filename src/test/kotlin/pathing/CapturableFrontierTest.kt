@@ -9,10 +9,8 @@
 
 package pathing
 
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.FrontierAnchors
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -27,6 +25,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * Capture lag is not a frontier.
@@ -64,7 +63,7 @@ class CapturableFrontierTest {
         )
     }
 
-    private fun moves() = SimpleMoveLibrary.build(CoarseMoveCosts.measured(transitionOverheadTicks = 1.0))
+    private fun moves() = moveLibrary()
 
     @Test
     fun `capturable unknowns produce no probe anchors`() {

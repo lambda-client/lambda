@@ -3,9 +3,7 @@
  */
 package pathing
 
-import com.lambda.pathing.movement.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
@@ -20,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import pathing.ProbeScenarios.moveLibrary
 
 /**
  * The debug view onto the search graph.
@@ -184,7 +183,7 @@ class PlanningGraphViewTest {
         )
         return CoarsePlanner(
             environment,
-            SimpleMoveLibrary.build(costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0), options = SimpleMoveOptions()),
+            moveLibrary(SimpleMoveOptions()),
             Stance(0, 64, 0),
             Stance(30, 64, 30),
         )

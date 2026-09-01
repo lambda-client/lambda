@@ -1,19 +1,10 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
+import com.lambda.pathing.PathPlanResult
+import com.lambda.pathing.PathingRequest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-
-sealed interface PlanningFailure {
-    val message: String
-
-    data class InvalidRequest(override val message: String) : PlanningFailure
-    data class ResourceLimit(override val message: String) : PlanningFailure
-    data class WorldUnavailable(override val message: String) : PlanningFailure
-    data class NoRoute(override val message: String) : PlanningFailure
-
-    data class NoCertifiedMotion(override val message: String) : PlanningFailure
-}
 
 internal class PlanningCancellation {
     private val cancelled = AtomicBoolean()

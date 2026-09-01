@@ -18,6 +18,7 @@ import com.lambda.pathing.launch.HorizontalDynamics
 import com.lambda.pathing.movement.*
 import kotlin.math.abs
 import kotlin.math.hypot
+import com.lambda.pathing.core.HorizontalPoint
 
 object JumpMovement : Movement {
     override val id = MovementId.JUMP
@@ -117,10 +118,10 @@ object JumpMovement : Movement {
     private fun hypot(dx: Int, dz: Int): Double = kotlin.math.hypot(dx.toDouble(), dz.toDouble())
 
     /** This point shifted sideways (perp of the [from]->here axis) by [offset] blocks. */
-    private fun com.lambda.pathing.core.HorizontalPoint.laterallyShifted(
-        from: com.lambda.pathing.core.HorizontalPoint,
+    private fun HorizontalPoint.laterallyShifted(
+        from: HorizontalPoint,
         offset: Double,
-    ): com.lambda.pathing.core.HorizontalPoint {
+    ): HorizontalPoint {
         if (offset == 0.0) return this
         val length = kotlin.math.hypot(x - from.x, z - from.z)
         if (length <= 1e-9) return this
@@ -720,7 +721,7 @@ object JumpMovement : Movement {
         return SegmentFollowerProgram(
             nodes = nodes,
             sprint = context.decision.sprint,
-            lookAheadNodes = LOOK_AHEAD_NODES,
+            lookAheadNodes = PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
             launch = context.launch,
             maxYawChange = context.constraints.maxYawDegreesPerFrame,
             holdForwardInFlight = solution?.holdForward ?: true,
@@ -858,7 +859,6 @@ object JumpMovement : Movement {
 
     private const val MAX_RUN_UP_VARIANTS = 4
 
-    private const val LOOK_AHEAD_NODES = 1
 
     /** Steering nodes fetched to find the gap after this one. */
     private const val ONWARD_LOOKAHEAD = 2

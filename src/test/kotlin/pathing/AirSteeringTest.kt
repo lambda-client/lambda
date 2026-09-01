@@ -10,7 +10,6 @@ import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
 import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.util.math.Vec3d
@@ -18,6 +17,7 @@ import kotlin.math.hypot
 import kotlin.test.Test
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import pathing.ProbeScenarios.PROFILE
 
 /**
  * The flight controller, checked against the simulator rather than against itself.
@@ -186,12 +186,6 @@ class AirSteeringTest {
 
         /** Walking air acceleration everywhere: the fixture never sprints. */
         const val AIR_ACCELERATION = BallisticProfile.WALK_AIR_ACCELERATION
-
-        val PROFILE = PlayerPhysicsProfile(
-            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
-            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
-        )
 
         val AIR: SnapshotSimulationEnvironment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-64, 0, -64, 64, 200, 64), emptyMap(),
