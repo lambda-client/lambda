@@ -15,18 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers.external
+package com.lambda.interaction.container.containers.external
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.ExternalContainer
+import com.lambda.interaction.container.OpenContainerTask
+import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.ContainerRank
-import com.lambda.interaction.inventory.container.ExternalContainer
-import com.lambda.interaction.inventory.container.OpenContainerTask
-import com.lambda.interaction.inventory.container.OpenedContainerContext
-import com.lambda.interaction.inventory.select
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.acquireStack
 import com.lambda.task.tasks.breakAndCollect
@@ -49,7 +49,7 @@ import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.util.math.BlockPos
 
-object EnderChestContainer : Container(ContainerRank.EnderChest), ExternalContainer {
+object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContainer {
 	override val slots
 		get() =
 			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()

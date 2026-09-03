@@ -23,20 +23,21 @@ import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.NestedContainer
+import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.handler.handlers.ContainerHandler
-import com.lambda.interaction.inventory.container.NestedContainer
-import com.lambda.interaction.inventory.container.OpenedContainerContext
-import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.wrappers.then
-import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 import java.util.*
+import kotlin.collections.fold
 
 @Suppress("unused")
 object InventoryTweaks : Module(
@@ -63,7 +64,7 @@ object InventoryTweaks : Module(
             val stack = slot.stack
 
             when (stack.item) {
-                in shulkerBoxes if (!instantShulker) -> return@listen
+                in SHULKER_BOXES if (!instantShulker) -> return@listen
                 Items.ENDER_CHEST if (!instantEChest) -> return@listen
             }
 

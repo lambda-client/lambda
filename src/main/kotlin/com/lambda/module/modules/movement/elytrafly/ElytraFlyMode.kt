@@ -24,9 +24,8 @@ import com.lambda.event.Muteable
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
-import com.lambda.interaction.inventory.container.containers.ArmorContainer
-import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest

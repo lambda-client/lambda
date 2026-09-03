@@ -15,9 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory
+package com.lambda.interaction.container.selection
 
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.ContainerMarker
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
@@ -43,6 +44,7 @@ fun ItemStack.select(count: Int = 0) = selectStack(count) { isItemStack(this@sel
 
 @Suppress("unused")
 class StackSelection(
+	val whitelistedSlots: Collection<Slot> = emptyList(),
 	val count: Int = 0,
 	val item: Item? = null,
 	val itemStack: ItemStack? = null,
@@ -54,6 +56,7 @@ class StackSelection(
 
 	@ContainerMarker
 	fun bestMatch(stacks: Iterable<ItemStack>) = filter(stacks).firstOrNull()
+
 	@ContainerMarker
 	fun bestMatch(slots: Iterable<Slot>) = filter(slots).firstOrNull()
 
@@ -61,6 +64,7 @@ class StackSelection(
 	fun matches(stack: ItemStack) =
 		if (inShulkerBox) stack.shulkerBoxStacks.any { selector(it, null) }
 		else selector(stack, null)
+
 	@ContainerMarker
 	fun matches(slot: Slot): Boolean =
 		if (inShulkerBox) slot.stack.shulkerBoxStacks.any { selector(it, null) }
@@ -70,14 +74,19 @@ class StackSelection(
 	@JvmName("filter1")
 	fun filter(stacks: Iterable<ItemStack>) =
 		stacks
+			.let { if (whitelistedSlots.isNotEmpty()) emptyList() else it }
 			.filter(::matches)
 			.map { StackAndSlot<Slot?>(it, null) }
 			.sortedWith(comparator)
 			.map { it.stack }
+
 	@ContainerMarker
 	@JvmName("filter2")
 	fun filter(slots: Iterable<Slot>) =
 		slots
+			.let { slots ->
+				if (whitelistedSlots.isNotEmpty()) whitelistedSlots.filter { it in slots } else slots
+			}
 			.filter(::matches)
 			.map { StackAndSlot(it.stack, it) }
 			.sortedWith(comparator)
@@ -92,6 +101,7 @@ class StackSelection(
 @Suppress("unused")
 @ContainerMarker
 class StackSelectionBuilder private constructor(private val count: Int = 0) {
+	private val whitelistedSlots = mutableListOf<Slot>()
 	private var selector: (ItemStack, Slot?) -> Boolean = { _, _ -> true }
 	private var item: Item? = null
 	private var stackByRef = false
@@ -133,7 +143,7 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 	}
 
 	fun isShulkerBox() {
-		appendSelector { stack, _ -> stack.item in ItemUtils.shulkerBoxes }
+		appendSelector { stack, _ -> stack.item in ItemUtils.SHULKER_BOXES }
 	}
 
 	fun hasCustomName(name: String) {
@@ -153,7 +163,7 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 	fun isEfficientForBreaking(blockState: BlockState) {
 		appendSelector { itemStack, _ ->
 			val hasEfficientTool = efficientToolCache.getOrPut(blockState) {
-				ItemUtils.tools.any { it.getMiningSpeed(it.defaultStack, blockState) > 1f }
+				ItemUtils.TOOLS.any { it.getMiningSpeed(it.defaultStack, blockState) > 1f }
 			}
 			if (hasEfficientTool) itemStack.item.getMiningSpeed(itemStack, blockState) > 1f
 			else true
@@ -208,12 +218,11 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 	}
 
 	fun isSlot(slot: Slot) {
-		appendSelector { _, s ->
-			s != null && s matches slot
-		}
+		appendSelector { _, s -> s != null && s matches slot }
 	}
 
 	fun isSlotByReference(slot: Slot) {
+		whitelistedSlots.add(slot)
 		appendSelector { _, s -> s === slot }
 	}
 
@@ -268,6 +277,7 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 
 	private fun build() =
 		StackSelection(
+			whitelistedSlots,
 			count,
 			item,
 			itemStack,

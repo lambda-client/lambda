@@ -15,25 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers.external
+package com.lambda.interaction.container.containers.external
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.ContainerRank
-import com.lambda.interaction.inventory.container.ExternalContainer
-import com.lambda.interaction.inventory.container.NestedContainer
-import com.lambda.interaction.inventory.container.OpenContainerTask
-import com.lambda.interaction.inventory.container.OpenedContainerContext
-import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
-import com.lambda.interaction.inventory.container.containers.HotbarContainer
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.ExternalContainer
+import com.lambda.interaction.container.NestedContainer
+import com.lambda.interaction.container.OpenContainerTask
+import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
 import com.lambda.task.tasks.transfer
+import com.lambda.task.tasks.transferTo
 import com.lambda.task.tasks.wrappers.actionTask
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
@@ -53,7 +53,7 @@ data class ShulkerBoxContainer(
     override var stacks: List<ItemStack>,
     override val containedIn: Container,
     override val index: Int,
-) : NestedContainer(ContainerRank.ShulkerBox), ExternalContainer {
+) : NestedContainer(ContainerType.ShulkerBox), ExternalContainer {
     override val slots
         get(): List<Slot> =
             if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
@@ -102,6 +102,11 @@ data class ShulkerBoxContainer(
                 else actionTask { player.closeScreen() }
             }.then { breakAndCollect(blockPos) }
                 .then {
+                    selectStack {
+                        isItem(shulkerItem)
+                        hasCustomName(itemName)
+                        sortedByBestContentMatch(stacks)
+                    }.transferTo()
                     transfer(
                         selectStack {
                             isItem(shulkerItem)

@@ -26,9 +26,9 @@ import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.tasks.transferTo
 import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack

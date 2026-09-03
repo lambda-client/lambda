@@ -15,16 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers.external
+package com.lambda.interaction.container.containers.external
 
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
+import com.lambda.interaction.container.BasicOpenedContainerContext
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.OpenContainerTask
+import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.interaction.inventory.container.BasicOpenedContainerContext
-import com.lambda.interaction.inventory.container.ContainerRank
-import com.lambda.interaction.inventory.container.OpenContainerTask
-import com.lambda.interaction.inventory.container.PlacedContainer
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.openContainer
 import com.lambda.util.extension.containerSlots
@@ -32,50 +33,49 @@ import com.lambda.util.player.SlotUtils.typeSafe
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
-import net.minecraft.block.Block
+import net.minecraft.block.ChestBlock
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 
-class PlacedShulkerBoxContainer(
+data class ChestContainer(
 	override val pos: BlockPos,
-	val block: Block,
-	override val stash: StashContainer?,
-	override var stacks: List<ItemStack>
-) : PlacedContainer(ContainerRank.PlacedShulkerBox) {
-	override val slots: List<Slot>
-		get() =
-			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
-			else emptyList()
+	override var stacks: List<ItemStack>,
+	override val stash: StashContainer? = null
+) : PlacedContainer(ContainerType.Chest) {
+    override val slots
+        get(): List<Slot> =
+            if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
+            else emptyList()
 
-	override val description =
-		buildText {
-			literal("Placed shulker box at ")
-			highlighted(pos.toShortString())
-			stash?.let { stash ->
-				literal(" (contained in ")
-				highlighted(stash.name)
-				literal(")")
-			}
-		}
+    override val description =
+	    buildText {
+		    literal("Chest at ")
+		    highlighted(pos.toShortString())
+		    stash?.let { stash ->
+			    literal(" (contained in ")
+			    highlighted(stash.name)
+			    literal(")")
+		    }
+	    }
 
 	override val isAccessed
 		get() = lastInteractedBlockEntity?.let { blockEntity ->
 			blockEntity.pos == pos &&
-					blockEntity.cachedState.block == block &&
-					mc.player?.currentScreenHandler?.typeSafe == ScreenHandlerType.SHULKER_BOX
+					blockEntity.cachedState.block is ChestBlock &&
+					mc.player?.currentScreenHandler?.typeSafe == ScreenHandlerType.GENERIC_9X3
 		} ?: false
 
 	@Ta5kBuilder
 	context(automated: Automated)
 	override fun access() =
 		if (isAccessed) null
-		else OpenPlacedShulkerBoxTask(automated)
+		else AccessChestTask(automated)
 
-	inner class OpenPlacedShulkerBoxTask @Ta5kBuilder internal constructor(
+	inner class AccessChestTask @Ta5kBuilder internal constructor(
 		automated: Automated
-	) : OpenContainerTask<BasicOpenedContainerContext>(description), Automated by automated {
+	) : OpenContainerTask<OpenedContainerContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
 			openContainer(pos)
 				.onSuccess { success(BasicOpenedContainerContext(::isAccessed)) }

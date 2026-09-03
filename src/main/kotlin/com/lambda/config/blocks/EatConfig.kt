@@ -19,8 +19,8 @@ package com.lambda.config.blocks
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.inventory.StackAndSlot
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.StackAndSlot
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum

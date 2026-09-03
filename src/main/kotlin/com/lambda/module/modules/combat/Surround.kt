@@ -23,7 +23,6 @@ import com.lambda.config.hideBlock
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
 import com.lambda.module.tag.ModuleTag

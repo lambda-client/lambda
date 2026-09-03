@@ -15,21 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.interaction.container
 
-enum class ContainerRank {
-	MainHand,
-	OffHand,
-	Hotbar,
-	Inventory,
-	HotbarAndInventory,
-	Armor,
-	Player,
-	Creative,
-	ShulkerBox,
-	EnderChest,
-	PlacedShulkerBox,
-	PlacedEnderChest,
-	Chest,
-	Stash
-}
+interface ExternalContainer

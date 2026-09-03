@@ -15,14 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.interaction.container
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
-import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
@@ -44,7 +44,7 @@ import net.minecraft.text.Text
 
 // ToDo: Make jsonable to persistently store them
 abstract class Container(
-    val rank: ContainerRank
+    val type: ContainerType
 ) : Nameable, Comparable<Container> {
     override val name: String
         get() = description.string
@@ -107,14 +107,6 @@ abstract class Container(
         PlayerOpenContainerTask(description, ::isAccessed)
 
     context(automatedSafeContext: AutomatedSafeContext)
-    internal fun move(selection: StackSelection, toContainer: Container): Boolean =
-        with(automatedSafeContext) {
-            val (fromSlot, toSlot) = getTransferSlots(selection, toContainer)
-            if (fromSlot == null || toSlot == null) return false
-            swap(fromSlot, toSlot, toContainer)
-        }
-
-    context(automatedSafeContext: AutomatedSafeContext)
     internal fun swap(fromSlot: Slot, toSlot: Slot, toContainer: Container): Boolean {
         val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@Container, toContainer)
         if (transferEvent.post().isCanceled()) return false
@@ -148,5 +140,5 @@ abstract class Container(
 
     open fun getSlot(selection: StackSelection) = selection.bestMatch(slots)
 
-    override fun compareTo(other: Container) = compareBy<Container> { it.rank }.compare(this, other)
+    override fun compareTo(other: Container) = compareBy<Container> { it.type }.compare(this, other)
 }

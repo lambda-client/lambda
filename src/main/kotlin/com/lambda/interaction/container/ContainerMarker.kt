@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.interaction.container
 
-interface ExternalContainer
+@DslMarker
+annotation class ContainerMarker

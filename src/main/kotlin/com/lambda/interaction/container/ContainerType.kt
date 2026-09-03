@@ -15,23 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.interaction.container
 
-import com.lambda.context.SafeContext
-import com.lambda.task.Task
-import net.minecraft.text.Text
-
-abstract class OpenContainerTask<R : OpenedContainerContext> @Ta5kBuilder internal constructor(
-	description: Text
-) : Task<R?>() {
-	override val name = "accessing container: ${description.string}"
-}
-
-class PlayerOpenContainerTask @Ta5kBuilder internal constructor(
-	description: Text,
-	private val isAccessed: () -> Boolean
-) : OpenContainerTask<BasicOpenedContainerContext>(description) {
-	override fun SafeContext.onStart() {
-		success(BasicOpenedContainerContext(isAccessed))
-	}
+enum class ContainerType {
+	OffHand,
+	Hotbar,
+	Cursor,
+	Inventory,
+	Armor,
+	Creative,
+	ShulkerBox,
+	EnderChest,
+	PlacedShulkerBox,
+	PlacedEnderChest,
+	Chest,
+	Stash
 }

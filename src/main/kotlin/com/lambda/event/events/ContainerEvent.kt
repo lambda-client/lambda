@@ -19,7 +19,7 @@ package com.lambda.event.events
 
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.inventory.container.Container
+import com.lambda.interaction.container.Container
 import net.minecraft.screen.slot.Slot
 
 sealed class ContainerEvent {

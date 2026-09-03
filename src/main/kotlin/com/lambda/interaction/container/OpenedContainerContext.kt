@@ -15,9 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.interaction.container
 
-abstract class NestedContainer(rank: ContainerRank) : Container(rank) {
-	abstract val containedIn: Container
-	abstract val index: Int
+import com.lambda.context.Automated
+import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
+import com.lambda.task.tasks.wrappers.actionTask
+
+interface OpenedContainerContext {
+	@Ta5kBuilder
+	context(automated: Automated)
+	fun close(): Task<*>?
+}
+
+open class BasicOpenedContainerContext(
+	private val isAccessed: () -> Boolean
+) : OpenedContainerContext {
+	context(_: Automated)
+	final override fun close() =
+		if (!isAccessed()) null
+		else actionTask { player.closeScreen() }
 }

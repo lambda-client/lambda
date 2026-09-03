@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handler.handlers.findDisposable
+import com.lambda.interaction.handler.handlers.findContainerWithDisposable
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
@@ -86,7 +86,7 @@ sealed class TargetState : StateMatcher {
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
-                findDisposable()?.stacks?.firstOrNull {
+                findContainerWithDisposable()?.stacks?.firstOrNull {
                     it.item in inventoryConfig.disposables && it.item.block !in replace
                 } ?: ItemStack(Items.NETHERRACK)
             }
@@ -113,7 +113,7 @@ sealed class TargetState : StateMatcher {
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
-                findDisposable()?.stacks?.firstOrNull {
+                findContainerWithDisposable()?.stacks?.firstOrNull {
                     it.item in inventoryConfig.disposables
                 } ?: ItemStack(Items.NETHERRACK)
             }

@@ -15,25 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers
+package com.lambda.interaction.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.ContainerRank
-import com.lambda.util.player.SlotUtils.allSlots
-import com.lambda.util.player.SlotUtils.allStacks
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerType
+import com.lambda.util.player.SlotUtils.armorSlots
+import com.lambda.util.player.SlotUtils.armorStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-@Suppress("unused")
-object PlayerContainer : Container(ContainerRank.Player) {
+object ArmorContainer : Container(ContainerType.Armor) {
 	override val slots: List<Slot>
-		get() = mc.player?.allSlots ?: emptyList()
+		get() = mc.player?.armorSlots ?: emptyList()
 	override var stacks: List<ItemStack>
-		get() = mc.player?.allStacks ?: emptyList()
+		get() = mc.player?.armorStacks ?: emptyList()
 		set(_) {}
 
-	override val description = buildText { literal("Player") }
+	override val description = buildText { literal("Armor") }
+
+	override val isAccessed get() = mc.player?.currentScreenHandler?.syncId == 0
 }

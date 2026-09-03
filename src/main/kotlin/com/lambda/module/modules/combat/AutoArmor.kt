@@ -25,8 +25,7 @@ import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.inventory.container.containers.ArmorContainer
-import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
+import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

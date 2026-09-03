@@ -27,11 +27,11 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.findContainers
-import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.inventory.container.ContainerRank
-import com.lambda.interaction.inventory.select
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.manager.managers.rotating.RotationManager
@@ -207,7 +207,7 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 		}
 		val stackSelection = item?.select(if (item == Items.AIR) 0 else 1)
 			?: selectStack { sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } } }
-		val containerSelection = selectContainer { ofAnyType(ContainerRank.Hotbar) }
+		val containerSelection = selectContainer { ofAnyType(ContainerType.Hotbar) }
 		val container = stackSelection.findContainers(containerSelection).firstOrNull() ?: run {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null

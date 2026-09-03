@@ -30,8 +30,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.inventory.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

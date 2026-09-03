@@ -15,10 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory
+package com.lambda.interaction.container.selection
 
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.ContainerRank
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerMarker
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.containers.ArmorContainer
+import com.lambda.interaction.container.containers.CreativeContainer
+import com.lambda.interaction.container.containers.CursorContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.containers.OffHandContainer
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
 
 /**
  * ContainerSelection is a class that holds a predicate for matching MaterialContainers.
@@ -26,7 +34,9 @@ import com.lambda.interaction.inventory.container.ContainerRank
 @Suppress("unused")
 class ContainerSelection(
     val selector: (Container) -> Boolean,
-    val comparator: Comparator<Container> = compareBy { it.rank }
+    val containersWhitelist: Collection<Container> = emptyList(),
+    val accessedOnly: Boolean = false,
+    val comparator: Comparator<Container> = compareBy { it.type }
 ) {
     @ContainerMarker
     fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
@@ -36,13 +46,29 @@ class ContainerSelection(
 
     @ContainerMarker
     fun filter(containers: Iterable<Container>) =
-        containers
-            .filter(selector)
+        run {
+            containersWhitelist
+                .takeIf { it.isNotEmpty() }
+                ?.filter { it in containers && (!accessedOnly || it.isAccessed) }
+                ?: containers
+        }.filter(selector)
             .sortedWith(comparator)
 
     companion object {
         val EVERYTHING = ContainerSelection({ true })
         val NOTHING = ContainerSelection({ false })
+        val HOTBAR_AND_INVENTORY = selectContainer { ofAny(HotbarContainer, InventoryContainer) }
+        val PLAYER =
+            selectContainer {
+                ofAny(
+                    HotbarContainer,
+                    InventoryContainer,
+                    OffHandContainer,
+                    CursorContainer,
+                    ArmorContainer,
+                    CreativeContainer
+                )
+            }
     }
 }
 
@@ -50,15 +76,22 @@ class ContainerSelection(
 @ContainerMarker
 class ContainerSelectionBuilder private constructor() {
     private var selector: (Container) -> Boolean = { true }
-    private var comparator: Comparator<Container> = compareBy { it.rank }
+    private var containersWhitelist = mutableListOf<Container>()
+    private var accessedOnly = false
+    private var comparator: Comparator<Container> = compareBy { it.type }
     private var invertNewSelectors = false
 
-    fun ofAnyType(vararg types: ContainerRank) {
-        appendSelector { container -> types.contains(container.rank) }
+    fun ofAny(vararg container: Container) {
+        containersWhitelist.addAll(container)
+        appendSelector { container -> container in containersWhitelist }
     }
 
-    fun noneOfType(vararg types: ContainerRank) {
-        appendSelector { container -> !types.contains(container.rank) }
+    fun ofAnyType(vararg types: ContainerType) {
+        appendSelector { container -> types.contains(container.type) }
+    }
+
+    fun noneOfType(vararg types: ContainerType) {
+        appendSelector { container -> !types.contains(container.type) }
     }
 
     fun matches(stackSelection: StackSelection) {
@@ -67,6 +100,11 @@ class ContainerSelectionBuilder private constructor() {
 
     fun matches(containerSelection: ContainerSelection) {
         appendSelector { container -> containerSelection.matches(container) }
+    }
+
+    fun isAccessed() {
+        accessedOnly = true
+        appendSelector { it.isAccessed }
     }
 
     fun custom(predicate: (Container) -> Boolean) {
@@ -93,7 +131,7 @@ class ContainerSelectionBuilder private constructor() {
         this.selector = { currentSelector(it) && selector(it) xor invert }
     }
 
-    private fun build() = ContainerSelection(selector, comparator)
+    private fun build() = ContainerSelection(selector, containersWhitelist, accessedOnly, comparator)
 
     companion object {
         fun selectContainer(

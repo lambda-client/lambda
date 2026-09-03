@@ -18,12 +18,11 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
+import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.handler.handlers.GlideHandler.CHESTPLATE_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.manuallySwapped
 import com.lambda.interaction.handler.handlers.GlideHandler.swapped
-import com.lambda.interaction.inventory.container.containers.ArmorContainer
-import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.AutoArmor

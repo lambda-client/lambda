@@ -15,24 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers
+package com.lambda.interaction.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.ContainerRank
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerType
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object HotbarAndInventoryContainer : Container(ContainerRank.HotbarAndInventory) {
-	override val slots: List<Slot>
-		get() = mc.player?.hotbarAndInventorySlots ?: emptyList()
+object CursorContainer : Container(ContainerType.Cursor) {
+	override val slots: List<Slot> = emptyList()
 	override var stacks: List<ItemStack>
-		get() = mc.player?.hotbarAndInventoryStacks ?: emptyList()
+		get() = mc.player?.currentScreenHandler?.cursorStack?.let { listOf(it) } ?: emptyList()
 		set(_) {}
 
-	override val description = buildText { literal("Hotbar and Inventory") }
+	override val description = buildText { literal("Cursor") }
 }

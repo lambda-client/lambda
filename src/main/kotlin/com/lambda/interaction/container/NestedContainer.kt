@@ -15,7 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory
+package com.lambda.interaction.container
 
-@DslMarker
-annotation class ContainerMarker
+abstract class NestedContainer(type: ContainerType) : Container(type), ExternalContainer {
+	abstract val containedIn: Container
+	abstract val index: Int
+}

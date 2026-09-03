@@ -28,10 +28,10 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.handler.handlers.ContainerHandler
 import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.interaction.handler.handlers.findContainersWithSpace
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.transfer

@@ -19,9 +19,9 @@ package com.lambda.task.tasks
 
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.handler.handlers.findContainer
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.container.containers.HotbarContainer
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated

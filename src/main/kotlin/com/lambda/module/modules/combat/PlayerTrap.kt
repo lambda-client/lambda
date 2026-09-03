@@ -25,7 +25,6 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
-import com.lambda.interaction.inventory.container.containers.HotbarAndInventoryContainer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task

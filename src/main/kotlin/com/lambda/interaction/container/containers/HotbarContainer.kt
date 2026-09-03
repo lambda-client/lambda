@@ -15,32 +15,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container.containers
+package com.lambda.interaction.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.ContainerRank
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
-import com.lambda.util.player.SlotUtils.mainHandSlots
+import com.lambda.util.player.SlotUtils.hotbarSlots
+import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
-import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object MainHandContainer : Container(ContainerRank.MainHand) {
+object HotbarContainer : Container(ContainerType.Hotbar) {
     override val slots: List<Slot>
-        get() = mc.player?.mainHandSlots ?: emptyList()
-    override var stacks: List<ItemStack>
-        get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
+        get() = mc.player?.hotbarSlots ?: emptyList()
+    override var stacks
+        get() = mc.player?.hotbarStacks ?: emptyList()
         set(_) {}
 
-    override val swapMethodPriority = 10
+    override val swapMethodPriority = 9
 
-    override val description = buildText { literal("MainHand") }
+    override val description = buildText { literal("Hotbar") }
 
     context(safeContext: SafeContext)
     override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
-        swapWithHotbar(toSlot.id, safeContext.player.inventory.selectedSlot)
+        swapWithHotbar(toSlot.id, safeContext.player.hotbarSlots.indexOf(fromHere))
     }
 }

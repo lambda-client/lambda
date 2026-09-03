@@ -15,24 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.inventory.container
+package com.lambda.interaction.container
 
-import com.lambda.context.Automated
-import com.lambda.task.Task
-import com.lambda.task.Task.Ta5kBuilder
-import com.lambda.task.tasks.wrappers.actionTask
+import com.lambda.interaction.container.containers.external.StashContainer
+import net.minecraft.util.math.BlockPos
 
-interface OpenedContainerContext {
-	@Ta5kBuilder
-	context(automated: Automated)
-	fun close(): Task<*>?
-}
-
-open class BasicOpenedContainerContext(
-	private val isAccessed: () -> Boolean
-) : OpenedContainerContext {
-	context(_: Automated)
-	final override fun close() =
-		if (!isAccessed()) null
-		else actionTask { player.closeScreen() }
+abstract class PlacedContainer(type: ContainerType) : Container(type), ExternalContainer {
+	abstract val pos: BlockPos
+	abstract val stash: StashContainer?
 }

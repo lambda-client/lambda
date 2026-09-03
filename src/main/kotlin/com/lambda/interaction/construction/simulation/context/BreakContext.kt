@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.simulation.context
 
 import com.lambda.context.Automated
 import com.lambda.graphics.mc.RenderBuilder
-import com.lambda.interaction.inventory.StackSelection
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.manager.managers.rotating.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.emptyState

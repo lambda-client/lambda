@@ -28,12 +28,12 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.container.selection.StackAndSlot
+import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.handler.handlers.findContainers
-import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
-import com.lambda.interaction.inventory.StackAndSlot
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.inventory.container.ContainerRank
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
@@ -155,7 +155,7 @@ class BreakSim internal constructor(simInfo: SimInfo)
 		}
 
 		val containerSelection = selectContainer {
-			ofAnyType(ContainerRank.Hotbar)
+			ofAnyType(ContainerType.Hotbar)
 		}
 
 		val hotbarCandidates = stackSelection

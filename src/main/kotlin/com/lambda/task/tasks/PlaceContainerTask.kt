@@ -30,7 +30,7 @@ import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.math.distSq
 import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
@@ -99,7 +99,7 @@ class PlaceContainerTask @Ta5kBuilder internal constructor(
         Items.ENDER_CHEST -> {
             !ChestBlock.isChestBlocked(world, blockPos)
         }
-        in shulkerBoxes -> {
+        in SHULKER_BOXES -> {
             val box = ShulkerEntity
                 .calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
                 .offset(blockPos)

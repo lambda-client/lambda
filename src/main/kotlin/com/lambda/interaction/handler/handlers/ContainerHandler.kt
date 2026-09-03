@@ -18,31 +18,31 @@
 package com.lambda.interaction.handler.handlers
 
 import com.lambda.context.Automated
-import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerMarker
+import com.lambda.interaction.container.PlacedContainer
+import com.lambda.interaction.container.containers.external.ChestContainer
+import com.lambda.interaction.container.containers.external.DoubleChestContainer
+import com.lambda.interaction.container.containers.external.EnderChestContainer
+import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
+import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.filteredContainers
-import com.lambda.interaction.inventory.ContainerMarker
-import com.lambda.interaction.inventory.ContainerSelection
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.PlacedContainer
-import com.lambda.interaction.inventory.container.containers.external.ChestContainer
-import com.lambda.interaction.inventory.container.containers.external.DoubleChestContainer
-import com.lambda.interaction.inventory.container.containers.external.EnderChestContainer
-import com.lambda.interaction.inventory.container.containers.external.PlacedShulkerBoxContainer
-import com.lambda.interaction.inventory.container.containers.external.ShulkerBoxContainer
-import com.lambda.interaction.inventory.select
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
-import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
 import net.minecraft.block.ChestBlock
 import net.minecraft.block.entity.BlockEntity
@@ -60,7 +60,7 @@ import net.minecraft.util.math.ChunkPos
 
 @Suppress("unused")
 object ContainerHandler : Loadable {
-    private val containers: Sequence<Container>
+    val containers: Sequence<Container>
         get() {
             fun Container.allNested(): Sequence<Container> =
                 sequence {
@@ -81,9 +81,6 @@ object ContainerHandler : Loadable {
         get() = containers
             .filter { automated.inventoryConfig.containerSelection.matches(it) }
             .sorted()
-
-    val allContainers
-        get() = containers.sorted()
 
     var lastInteractedBlockEntity: BlockEntity? = null
     var pendingInteractedBlockEntity: BlockEntity? = null
@@ -158,7 +155,7 @@ object ContainerHandler : Loadable {
                 val state = blockEntity.cachedState
                 if (state.block !is ChestBlock) return
 
-                val stacks = blockEntity.stacks
+                val stacks = blockEntity.stacks()
                 val chestType = state.get(Properties.CHEST_TYPE) ?: return
                 val chunkPos = ChunkPos(pos)
 
@@ -199,7 +196,7 @@ object ContainerHandler : Loadable {
 
             is ShulkerBoxBlockEntity -> {
                 if (sh.typeSafe != ScreenHandlerType.SHULKER_BOX) return
-                val stacks = blockEntity.stacks
+                val stacks = blockEntity.stacks()
                 val chunkPos = ChunkPos(pos)
                 (chunkPos.getPlacedContainer(pos) as? PlacedShulkerBoxContainer)
                     ?.update(stacks)
@@ -219,7 +216,7 @@ object ContainerHandler : Loadable {
         slots.forEach { slot ->
             val stack = slot.stack
             val index = slot.index
-            if (stack.item in shulkerBoxes) {
+            if (stack.item in SHULKER_BOXES) {
                 storedContainers[index] =
                     ShulkerBoxContainer(
                         stack.name.string,
@@ -242,33 +239,25 @@ object ContainerHandler : Loadable {
     private fun ChunkPos.setPlacedContainer(pos: BlockPos, container: PlacedContainer) =
         placedContainers.getOrPut(this) { mutableMapOf() }.put(pos, container)
 
-    private val Inventory.stacks
-        get() = iterator().asSequence().toList()
+    private fun Inventory.stacks() = iterator().asSequence().toList()
 }
 
 @ContainerMarker
-context(automatedSafeContext: AutomatedSafeContext)
-fun StackSelection.move(destination: Container) =
-    with(automatedSafeContext) {
-        findContainer(inventoryConfig.containerSelection)
-            ?.move(this@move, destination)
-            ?: false
-    }
-
-@ContainerMarker
 context(_: Automated)
-fun findContainer(predicate: (Container) -> Boolean) = filteredContainers.find(predicate)
+fun findContainer(
+    selection: ContainerSelection
+) = filteredContainers.find(selection)
 
 @ContainerMarker
 context(automated: Automated)
 fun StackSelection.findContainer(
-    containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection
-) = findContainers(containerSelection).firstOrNull()
+    selection: ContainerSelection = ContainerSelection.EVERYTHING
+) = findContainers(selection).firstOrNull()
 
 @ContainerMarker
 context(automated: Automated)
 fun StackSelection.findContainers(
-    containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection
+    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
 ) = filteredContainers
     .filter { containerSelection.matches(it) }
     .filter { it.stackCount(this) >= count }
@@ -277,13 +266,13 @@ fun StackSelection.findContainers(
 @ContainerMarker
 context(automated: Automated)
 fun StackSelection.findContainerWithSpace(
-    containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection
+    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
 ) = findContainersWithSpace(containerSelection).firstOrNull()
 
 @ContainerMarker
 context(automated: Automated)
 fun StackSelection.findContainersWithSpace(
-    containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection
+    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
 ) = filteredContainers
     .filter { containerSelection.matches(it) }
     .filter { it.spaceAvailable(this) >= count }
@@ -291,19 +280,36 @@ fun StackSelection.findContainersWithSpace(
 
 @ContainerMarker
 context(automated: Automated)
-fun StackSelection.findSlot(
-    containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection
-) = findSlots(containerSelection).firstOrNull()
-
-@ContainerMarker
-context(automated: Automated)
 fun StackSelection.findSlots(
-    containerSelection: ContainerSelection = automated.inventoryConfig.containerSelection
-) = findContainers(containerSelection).flatMap { filter(it.slots) }
+    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+) =
+    findContainers(
+        selectContainer {
+            matches(containerSelection)
+            isAccessed()
+        }
+    ).flatMap { filter(it.slots) }
 
 @ContainerMarker
 context(automated: Automated)
-fun findDisposable() =
-    filteredContainers.find { container ->
-        automated.inventoryConfig.disposables.any { container.stackCount(it.asItem().select(1)) > 0 }
+fun findContainerWithDisposable(
+    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+) =
+    with(automated) {
+        findContainer(
+            selectContainer {
+                matches(containerSelection)
+                custom { container ->
+                    inventoryConfig.disposables.any { container.stackCount(it.asItem().select(1)) > 0 }
+                }
+            }
+        )
     }
+
+private fun getSearchContainers(scope: ContainerSearchScope): Collection<Container> {
+
+}
+
+private enum class ContainerSearchScope {
+
+}

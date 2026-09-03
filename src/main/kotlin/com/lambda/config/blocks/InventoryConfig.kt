@@ -18,11 +18,10 @@
 package com.lambda.config.blocks
 
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.inventory.ContainerSelection
-import com.lambda.interaction.inventory.ContainerSelectionBuilder.Companion.selectContainer
-import com.lambda.interaction.inventory.StackSelection
-import com.lambda.interaction.inventory.container.Container
-import com.lambda.interaction.inventory.container.ContainerRank
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
@@ -33,12 +32,11 @@ interface InventoryConfig {
 	val accessPriority: Priority
 	val storePriority: Priority
 
-	val allowedContainers: Collection<ContainerRank>
-
-	val enderChestSearchRadius: Int
-
+	val allowedContainers: Collection<com.lambda.interaction.container.ContainerType>
 	val containerSelection: ContainerSelection
 		get() = selectContainer { ofAnyType(*allowedContainers.toTypedArray()) }
+
+	val enderChestSearchRadius: Int
 
 	enum class Priority(
 		override val displayName: String,
@@ -49,22 +47,22 @@ interface InventoryConfig {
 
 		fun materialComparator(selection: StackSelection) =
 			when (this) {
-				WithMaxItems -> compareBy<Container> { it.rank }
+				WithMaxItems -> compareBy<Container> { it.type }
 					.thenByDescending { it.stackCount(selection) }
 					.thenBy { it.name }
 
-				WithMinItems -> compareBy<Container> { it.rank }
+				WithMinItems -> compareBy<Container> { it.type }
 					.thenBy { it.stackCount(selection) }
 					.thenBy { it.name }
 			}
 
 		fun spaceComparator(selection: StackSelection) =
 			when (this) {
-				WithMaxItems -> compareBy<Container> { it.rank }
+				WithMaxItems -> compareBy<Container> { it.type }
 					.thenByDescending { it.spaceAvailable(selection) }
 					.thenBy { it.name }
 
-				WithMinItems -> compareBy<Container> { it.rank }
+				WithMinItems -> compareBy<Container> { it.type }
 					.thenBy { it.spaceAvailable(selection) }
 					.thenBy { it.name }
 			}

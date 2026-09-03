@@ -34,6 +34,7 @@ import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.pendingActions
@@ -43,7 +44,6 @@ import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.getRebrea
 import com.lambda.interaction.handler.handlers.breaking.RebreakResult
 import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler
 import com.lambda.interaction.handler.handlers.packet.PacketType
-import com.lambda.interaction.inventory.StackSelection
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
 import com.lambda.interaction.manager.PositionBlocking
