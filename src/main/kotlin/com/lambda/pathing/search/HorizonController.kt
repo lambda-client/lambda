@@ -415,7 +415,7 @@ internal class HorizonController(
             parent = solution.anchor,
             inputs = frames.drop(solution.anchor.elapsed).map { it.input },
             boundary = frames.size,
-        )
+        ).also { if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(frames.drop(solution.anchor.elapsed)) }
     }
 
     private fun publishSolution(anchor: ValueAnchor): Boolean {
@@ -468,7 +468,7 @@ internal class HorizonController(
             parent = anchor,
             inputs = tail.map { it.input },
             boundary = frames.size,
-        )
+        ).also { if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(tail) }
     }
 
     /**
@@ -599,6 +599,7 @@ internal class HorizonController(
             it.via = brake.via
             it.decision = brake.decision
             it.points = brake.points
+            it.trace = brake.trace
         }
     }
 
@@ -642,6 +643,7 @@ internal class HorizonController(
             it.via = cut.via
             it.decision = cut.decision
             it.points = cut.points
+            it.trace = cut.trace
         }
     }
 
@@ -669,6 +671,7 @@ internal class HorizonController(
             it.via = tip.via
             it.decision = tip.decision
             it.points = tip.points
+            it.trace = tip.trace
         }
     }
 
@@ -719,14 +722,30 @@ internal class HorizonController(
         if (onSafePrefix == null || !probe.candidatesEnabled) return
         val pool = if (frontier.hasParked) frontier.parkedEntries else frontier.openEntries
         if (pool.isEmpty()) return
-        val root = publishedTip
         val best = pool.minByOrNull { it.order }
         val shown = pool.sortedBy { it.order }.take(MAX_SHOWN_CANDIDATES)
+        // The published spine, by identity: a candidate is drawn from where it forks off it.
+        val spine = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<ValueAnchor, Boolean>())
+        var node = publishedTip
+        while (node != null) {
+            spine += node
+            node = node.parent
+        }
         probe.candidates(
             shown.map { entry ->
+                val branch = ArrayList<ValueAnchor>()
+                var cursor: ValueAnchor? = entry.anchor
+                while (cursor != null && cursor !in spine) {
+                    branch += cursor
+                    cursor = cursor.parent
+                }
+                branch.reverse()
                 val points = ArrayList<Vec3d>()
-                root?.let { points += it.state.position }
-                lineFrom(root, entry.anchor).forEach { points += it.state.position }
+                (cursor ?: branch.firstOrNull()?.parent)?.let { points += it.state.position }
+                branch.forEach { anchor ->
+                    points += anchor.trace
+                    points += anchor.state.position
+                }
                 CandidatePath(points, entry === best)
             }
         )

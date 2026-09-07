@@ -117,6 +117,9 @@ interface PathingConfig {
     /** How close to the goal centre the walk must come to a stable stop. */
     val goalRadius: Double
 
+    /** Entering the goal cell counts as arriving; the body brakes wherever it lands nearby. */
+    val touchArrival: Boolean
+
     /**
      * Committed motion kept ahead of the body before another commitment is made.
      *

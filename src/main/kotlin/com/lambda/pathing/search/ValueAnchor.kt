@@ -35,6 +35,21 @@ internal class ValueAnchor(
 
     var points: List<HorizontalPoint> = emptyList()
 
+    /** Decimated body positions of the rollout that produced this anchor; filled only while a tree or candidate view is drawn. */
+    var trace: List<net.minecraft.util.math.Vec3d> = emptyList()
+
+    companion object {
+        /** Every [TRACE_STRIDE]th interior body position of [frames]: the shape of a rollout for the tree view. */
+        fun traceOf(frames: List<SimulatedTrajectoryFrame>): List<net.minecraft.util.math.Vec3d> {
+            if (frames.size <= TRACE_STRIDE + 1) return emptyList()
+            val trace = ArrayList<net.minecraft.util.math.Vec3d>(frames.size / TRACE_STRIDE + 1)
+            for (i in TRACE_STRIDE until frames.size - 1 step TRACE_STRIDE) trace += frames[i].state.position
+            return trace
+        }
+
+        private const val TRACE_STRIDE = 3
+    }
+
     var actions: List<PricedDecision>? = null
 
     var actionsHazardFrame: Int? = null

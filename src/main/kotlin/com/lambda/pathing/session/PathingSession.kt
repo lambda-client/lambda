@@ -104,7 +104,14 @@ class PathingSession internal constructor(
     internal val admission = TapeAdmission(this)
     internal val execution = ExecutionDriver(this)
 
-    fun telemetry(): Telemetry = telemetry.snapshot()
+    fun telemetry(): Telemetry = telemetry.snapshot().copy(
+        holds = holds,
+        repairs = repairs,
+        leg = leg,
+        queuedWaypoints = waypointRoute.queuedWaypoints,
+        sessionRestarts = sessionRestarts,
+        cadence = publicationCadence(),
+    )
 
     fun isFinished(request: PathingRequest): Boolean =
         if (active && this.request === request) state is State.Complete || state is State.Failed else true

@@ -10,6 +10,14 @@ data class MotionConstraints(
     val brakeDistances: List<Double> = listOf(0.25, 0.35, 0.45, 0.55, 0.70, 0.90, 1.15),
     val stepUpJumpLeadDistances: List<Double> = listOf(0.30, 0.55, 0.80, 1.05),
     val sprintModes: List<Boolean> = listOf(true, false),
+    /**
+     * Arrive by entering the goal cell: a grounded landing on the goal stance finishes the
+     * walk if braking from it rests on mapped ground nearby, wherever inside
+     * [touchRestRadius] that rest falls. Off, the body must rest within [goalRadius] of the
+     * goal centre, and a fast landing that coasts past it has to come back around.
+     */
+    val touchArrival: Boolean = false,
+    val touchRestRadius: Double = 1.6,
 ) {
     init {
         require(maxFrames > 0)
@@ -21,6 +29,7 @@ data class MotionConstraints(
         require(brakeDistances.isNotEmpty() && brakeDistances.all { it > 0.0 && it.isFinite() })
         require(stepUpJumpLeadDistances.isNotEmpty() && stepUpJumpLeadDistances.all { it > 0.0 && it.isFinite() })
         require(sprintModes.isNotEmpty())
+        require(touchRestRadius > 0.0 && touchRestRadius.isFinite())
     }
 
     companion object {

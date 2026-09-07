@@ -136,6 +136,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
+    override val touchArrival by c.setting(
+        "Arrive On Touch", true,
+        "Entering the goal block is arriving: the walk brakes wherever that landing rests. " +
+            "Off, it must come to rest inside Goal Radius, and a fast landing has to circle back.",
+    )
+
+    @Group(SEARCH_GROUP)
     override val horizonRunwayFrames by c.setting(
         "Horizon Runway", 20, 5..300, 5,
         "Committed motion kept ahead of the body. Smaller leaves decisions later, so the " +
