@@ -1,18 +1,18 @@
 package com.lambda.pathing.debug
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import com.lambda.pathing.prediction.UnsupportedPhysics
-import com.lambda.pathing.prediction.UnsupportedPhysicsKind
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.UnsupportedPhysics
+import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import java.nio.file.Files
 import java.nio.file.Path
 import net.minecraft.util.math.BlockPos

@@ -7,22 +7,22 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.debug.ParkourCourseLayout
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.pathing.trajectory.SearchProbe
-import com.lambda.pathing.trajectory.SimulatedTrajectoryFrame
-import com.lambda.pathing.trajectory.TrajectoryDiagnostic
-import com.lambda.pathing.trajectory.VirtualSearchClock
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.SimulatedTrajectoryFrame
+import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.search.VirtualSearchClock
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.math.abs
@@ -271,8 +271,8 @@ class HorizonBaselineTest {
 
         private val refusals = HashMap<String, Int>()
 
-        override fun publishRefused(reason: String, anchorElapsed: Int, tipElapsed: Int, executing: Int) {
-            refusals.merge(reason, 1, Int::plus)
+        override fun publishRefused(reason: () -> String, anchorElapsed: Int, tipElapsed: Int, executing: Int) {
+            refusals.merge(reason(), 1, Int::plus)
         }
 
         override fun expansion(

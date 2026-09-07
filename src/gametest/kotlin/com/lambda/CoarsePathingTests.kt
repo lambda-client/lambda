@@ -23,7 +23,8 @@ import com.lambda.PathingTestHarness.pathingFailures
 import com.lambda.PathingTestHarness.restoreArena
 import com.lambda.PathingTestHarness.scenarioSelected
 import com.lambda.config.automation.AutomationConfig
-import com.lambda.pathing.PathingManager
+import com.lambda.pathing.api.PathingService
+import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.PathingRequest
 import com.lambda.pathing.core.Stance
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
@@ -108,47 +109,47 @@ internal object CoarsePathingTests {
             server.runCommand("/tp Steve 0.5 100 0.5 0 0")
             repeat(5) { context.waitTick() }
             context.runOnClient<IllegalStateException> {
-                PathingManager.clear()
+                PathingService.clear()
                 PathingRequest(AutomationConfig.DEFAULT, Stance(0, 100, 7)).submit()
             }
 
             var ticks = 0
-            while (ticks++ < MAX_PATHING_TICKS && PathingManager.status !is PathingManager.Status.Executing) {
+            while (ticks++ < MAX_PATHING_TICKS && PathingService.status !is State.Executing) {
                 context.waitTick()
             }
-            check(PathingManager.status is PathingManager.Status.Executing) {
-                "$scenario: never started execution (${PathingManager.status})"
+            check(PathingService.status is State.Executing) {
+                "$scenario: never started execution (${PathingService.status})"
             }
 
             // This support block is in the certified route's dependency section.
             // The client update must invalidate the snapshot before replay continues.
             server.runCommand("/setblock 0 99 4 minecraft:air")
             ticks = 0
-            while (ticks++ < 40 && PathingManager.recoveries == 0) {
+            while (ticks++ < 40 && PathingService.telemetry.recoveries == 0) {
                 context.waitTick()
             }
-            check(PathingManager.recoveries == 1) {
-                "$scenario: certified generation was not invalidated (${PathingManager.status})"
+            check(PathingService.telemetry.recoveries == 1) {
+                "$scenario: certified generation was not invalidated (${PathingService.status})"
             }
             // Restore a walkable route. The second client update may restart an in-flight
             // multi-tick capture, but it must not resurrect the invalidated worker.
             server.runCommand("/setblock 0 99 4 minecraft:stone")
             ticks = 0
             while (ticks++ < MAX_PATHING_TICKS &&
-                PathingManager.status !is PathingManager.Status.Complete &&
-                PathingManager.status !is PathingManager.Status.Failed
+                PathingService.status !is State.Complete &&
+                PathingService.status !is State.Failed
             ) {
                 context.waitTick()
             }
-            check(PathingManager.status is PathingManager.Status.Complete) {
-                "$scenario: did not recover after invalidation (${PathingManager.status})"
+            check(PathingService.status is State.Complete) {
+                "$scenario: did not recover after invalidation (${PathingService.status})"
             }
         } catch (failure: IllegalStateException) {
             pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
             println("[pathing-fail] ${failure.message}")
         } finally {
             server.runCommand("/setblock 0 99 4 minecraft:stone")
-            context.runOnClient<IllegalStateException> { PathingManager.clear() }
+            context.runOnClient<IllegalStateException> { PathingService.clear() }
         }
     }
 }

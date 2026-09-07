@@ -391,7 +391,7 @@ object JumpArcProbe {
     }
 
     internal const val CORE_HALF_WIDTH = 0.2
-    private const val BODY_HEIGHT = 1.8
+    private const val BODY_HEIGHT = Kinematics.BODY_HEIGHT
     private const val CLEARANCE_CAP = 0.5
     private const val FLOOR_CONTACT_EPSILON = 1.0E-7
 
@@ -399,7 +399,7 @@ object JumpArcProbe {
     private const val MIN_DODGE_SLACK = 0.05
 
     /** Dodge lines sweep the real body, not the forgiving core; see [sweepClearance]. */
-    private const val DODGE_HALF_WIDTH = 0.3
+    private const val DODGE_HALF_WIDTH = Kinematics.BODY_HALF_WIDTH
 
     /** Fractions of the lateral slack tried when the centre line hits a PARTIAL shape. */
     private val DODGE_FRACTIONS = doubleArrayOf(0.5, -0.5, 1.0, -1.0)

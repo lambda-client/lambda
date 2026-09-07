@@ -8,21 +8,21 @@ import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.movement.MovementCatalog
+import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.debug.ParkourCourseLayout
-import com.lambda.pathing.movement.CoarseMoveCosts
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.trajectory.SearchExhaustion
-import com.lambda.pathing.trajectory.VirtualSearchClock
+import com.lambda.pathing.actions.CoarseMoveCosts
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.world.CoarseVoxel
 import kotlin.math.atan2
 import kotlin.time.Duration
@@ -110,9 +110,9 @@ internal object ProbeScenarios {
         branchExpansionHeadroomExpansions: Int = 1560,
         momentumSkips: Boolean = false,
         momentumGait: Boolean = false,
-        frontierDomination: com.lambda.pathing.trajectory.FrontierDomination =
-            com.lambda.pathing.trajectory.FrontierDomination.FULL,
-        probe: com.lambda.pathing.trajectory.SearchProbe = com.lambda.pathing.trajectory.SearchProbe.NONE,
+        frontierDomination: com.lambda.pathing.search.FrontierDomination =
+            com.lambda.pathing.search.FrontierDomination.FULL,
+        probe: com.lambda.pathing.search.SearchProbe = com.lambda.pathing.search.SearchProbe.NONE,
     ): Outcome {
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = transitionOverheadTicks),

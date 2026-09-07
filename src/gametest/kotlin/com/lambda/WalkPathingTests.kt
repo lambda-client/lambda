@@ -17,6 +17,8 @@
 
 package com.lambda
 
+import com.lambda.pathing.api.PathingService
+import com.lambda.pathing.session.PathingSession.State
 import com.lambda.PathingTestHarness.BEDROCK_FIELD_HALF_WIDTH
 import com.lambda.PathingTestHarness.BEDROCK_FIELD_LENGTH
 import com.lambda.PathingTestHarness.BEDROCK_FIELD_SEED
@@ -313,7 +315,7 @@ internal object WalkPathingTests {
 
             val goal = com.lambda.pathing.core.Stance(0, 100, 5)
             context.runOnClient<IllegalStateException> {
-                com.lambda.pathing.PathingManager.clear()
+                PathingService.clear()
                 com.lambda.pathing.PathingRequest(
                     com.lambda.config.automation.AutomationConfig.DEFAULT, goal,
                 ).submit()
@@ -334,11 +336,11 @@ internal object WalkPathingTests {
             // or the terminal wait below returns instantly against the stale status.
             var activation = 0
             while (activation++ < 100 &&
-                com.lambda.pathing.PathingManager.status is com.lambda.pathing.PathingManager.Status.Complete
+                PathingService.status is State.Complete
             ) {
                 context.waitTick()
             }
-            check(com.lambda.pathing.PathingManager.status !is com.lambda.pathing.PathingManager.Status.Complete) {
+            check(PathingService.status !is State.Complete) {
                 "$scenario: replan request was never picked up"
             }
             awaitWalkTerminal(context, scenario, "replan walk", maxTicks = 6000)
@@ -346,7 +348,7 @@ internal object WalkPathingTests {
             PathingTestHarness.pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
             println("[pathing-fail] ${failure.message}")
         } finally {
-            context.runOnClient<IllegalStateException> { com.lambda.pathing.PathingManager.clear() }
+            context.runOnClient<IllegalStateException> { PathingService.clear() }
             server.runOnServer<IllegalStateException> { minecraftServer ->
                 val world = minecraftServer.overworld
                 for (z in 9..200) for (x in -2..2) world.setBlockState(
@@ -367,13 +369,13 @@ internal object WalkPathingTests {
     ) {
         var ticks = 0
         while (ticks++ < maxTicks &&
-            com.lambda.pathing.PathingManager.status !is com.lambda.pathing.PathingManager.Status.Complete &&
-            com.lambda.pathing.PathingManager.status !is com.lambda.pathing.PathingManager.Status.Failed
+            PathingService.status !is State.Complete &&
+            PathingService.status !is State.Failed
         ) {
             context.waitTick()
         }
-        check(com.lambda.pathing.PathingManager.status is com.lambda.pathing.PathingManager.Status.Complete) {
-            "$scenario: $phase did not complete (${com.lambda.pathing.PathingManager.status})"
+        check(PathingService.status is State.Complete) {
+            "$scenario: $phase did not complete (${PathingService.status})"
         }
     }
 

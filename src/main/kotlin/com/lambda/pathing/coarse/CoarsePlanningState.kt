@@ -1,18 +1,16 @@
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.world.changedChunkSet
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.movement.CoarseMoveCosts
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.CoarseMoveCosts
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import kotlin.time.Duration
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
@@ -43,7 +41,7 @@ internal class CoarsePlanningState(
     val snapshot: SnapshotSimulationEnvironment,
     moveOptions: SimpleMoveOptions,
     start: Stance,
-    private val goal: Stance,
+    val goal: Stance,
     val horizonChunks: Int = 0,
     frontierSweepBudget: Int = 40_000,
 
@@ -88,146 +86,29 @@ internal class CoarsePlanningState(
         if (changedChunks.isNotEmpty()) planner.chunksChanged(changedChunks)
     }
 
-    private fun advanceFrontierFrom(start: Stance): Boolean =
-        planner.advanceReachableFrontier(from = start)
-
-    /** How the last route resolution spent its knowledge wait, for the startup ledger. */
-    @Volatile
-    var lastResolveReport: String = "no wait"
-        private set
-
     /** Demand exactly the sections whose lag suppressed anchors, then forget them. */
-    private fun demandCaptureLag(world: PathingWorld?) {
-        if (world == null || captureLagSections.isEmpty()) return
+    fun demandCaptureLag(world: PathingWorld) {
+        if (captureLagSections.isEmpty()) return
         world.interest(ArrayList(captureLagSections), InterestTier.DEMAND)
         captureLagSections.clear()
     }
 
-    fun resolveRoute(
-        start: Stance,
-        snapshotRevision: Long,
-        maxExpansions: Int,
-        world: PathingWorld? = null,
-        cancelled: () -> Boolean = { false },
-    ): CoarseRoutePlan? {
-
-        var route = extractRoute(snapshotRevision, cancelled)
-        if (route == null && advanceFrontierFrom(start)) {
-            planner.repair(
-                timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-            )
-            route = extractRoute(snapshotRevision, cancelled)
-        }
-        // Cold-start knowledge wait: no route and no frontier may mean the snapshot has
-        // not caught up with the client. Knowledge-driven, not wall-clock: stalls count
-        // timeouts only, real progress resets them, contentless wakes do neither.
-        // See docs/decisions/anchor-lifecycle.md.
-        if (route == null && world != null) {
-            var stalls = 0
-            var rounds = 0
-            var extracts = 0
-            val waitStarted = System.nanoTime()
-            while (route == null && !cancelled() &&
-                stalls < START_KNOWLEDGE_STALL_ROUNDS && rounds++ < START_KNOWLEDGE_MAX_ROUNDS
-            ) {
-                demandCaptureLag(world)
-                if (!world.awaitEvents(world.revision, START_KNOWLEDGE_WAIT_MILLIS)) stalls++
-                val batch = world.drainEvents()
-                if (!batch.isEmpty) {
-                    planner.chunksChanged(batch.changedChunkSet())
-                }
-                val advanced = advanceFrontierFrom(start)
-                // A silent round cannot produce a new route; extractRoute is not free.
-                if (batch.isEmpty && !advanced) continue
-                stalls = 0
-                extracts++
-                planner.repair(
-                    timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-                )
-                route = extractRoute(snapshotRevision, cancelled)
-            }
-            lastResolveReport = "wait: %d rounds (%d extracts, %d stalls) in %d ms".format(
-                rounds, extracts, stalls, (System.nanoTime() - waitStarted) / 1_000_000L,
-            )
-        }
-        if (route == null) return null
-        var rounds = 0
-        while (route!!.goal != goal && rounds++ < TERMINAL_GRANT_ROUNDS) {
-            if (cancelled()) return route
-            val terminal = route.goal
-
-            world?.let { w ->
-                // Lag sections may lie off the terminal's radius; demand them by name too.
-                demandCaptureLag(w)
-                w.interestBlocks(
-                    terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS,
-                    terminal.z - TERMINAL_INTEREST_BLOCKS,
-                    terminal.x + TERMINAL_INTEREST_BLOCKS, terminal.y + TERMINAL_INTEREST_Y_BLOCKS,
-                    terminal.z + TERMINAL_INTEREST_BLOCKS,
-                    InterestTier.DEMAND,
-                )
-                var waited = 0L
-                while (waited < TERMINAL_KNOWLEDGE_WAIT_MILLIS && !cancelled() && w.pendingDemand > 0) {
-                    if (!w.awaitEvents(w.revision, 50)) break
-                    waited += 50
-                }
-                val batch = w.drainEvents()
-                if (!batch.isEmpty) {
-                    planner.chunksChanged(batch.chunks + batch.sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) })
-                }
-            }
-            val revealed = grantChunksAround(terminal)
-            if (revealed.isEmpty() && world == null) break
-            if (revealed.isNotEmpty()) planner.chunksChanged(revealed)
-            advanceFrontierFrom(start)
-            planner.repair(
-                timeBudget = Duration.INFINITE,
-                maxExpansions = maxExpansions,
-                cancelled = cancelled,
-            )
-            route = extractRoute(snapshotRevision, cancelled) ?: return null
-            if (route.goal == terminal) break
-        }
-        if (route.goal == goal && planner.retireAllAnchors()) {
-            planner.repair(
-                timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-            )
-
-            route = extractRoute(snapshotRevision, cancelled) ?: route
-        }
-        return route
-    }
-
-    private fun extractRoute(snapshotRevision: Long, cancelled: () -> Boolean): CoarseRoutePlan? =
+    /**
+     * The best route the current knowledge admits, without waiting for more: a plain
+     * extraction, then resynchronisation, then one frontier discovery. Blocking on the
+     * world is [com.lambda.pathing.session.RouteResolution]'s job.
+     */
+    fun routePlan(snapshotRevision: Long, cancelled: () -> Boolean = { false }): CoarseRoutePlan? =
         planner.routePlan(snapshotRevision, cancelled = cancelled)
             ?: planner.resynchronizedRoutePlan(snapshotRevision, cancelled = cancelled)
-
             ?: run {
                 if (planner.discoverReachableFrontier(cancelled)) {
                     planner.routePlan(snapshotRevision, cancelled = cancelled)
                 } else null
             }
 
-    private companion object {
-
-        const val TERMINAL_GRANT_ROUNDS = 4
-
-        const val TERMINAL_INTEREST_BLOCKS = 32
-        const val TERMINAL_INTEREST_Y_BLOCKS = 16
-
-        const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
-
-        /** Cold-start knowledge wait; see docs/decisions/anchor-lifecycle.md. */
-        const val START_KNOWLEDGE_WAIT_MILLIS = 200L
-
-        /** Consecutive timed-out rounds before no-route is accepted as the true answer. */
-        const val START_KNOWLEDGE_STALL_ROUNDS = 5
-
-        /** Hard cap on wait rounds; contentless wakes are neither progress nor stalls. */
-        const val START_KNOWLEDGE_MAX_ROUNDS = 100
-    }
-
-    private fun grantChunksAround(start: Stance): Set<PathingChunk> {
+    /** Widens the planning horizon around [start]; returns the chunks newly granted. */
+    fun grantChunksAround(start: Stance): Set<PathingChunk> {
         if (horizonChunks <= 0) return emptySet()
         val revealed = HashSet<PathingChunk>()
         val centerX = start.x shr 4

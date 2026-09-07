@@ -17,7 +17,7 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
-import com.lambda.pathing.PathingManager
+import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.Stance
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
@@ -34,8 +34,8 @@ import com.lambda.util.extension.CommandBuilder
  * - `path clear` additionally wipes the published path and telemetry.
  *
  * Coordinates accept `~` and `~n` relative to the player's stance. The command
- * owns no planning or execution: it hands the route to [PathingManager] and the
- * manager plans, certifies, and replays it. `PathingRenderer` draws the result.
+ * owns no planning or execution: it hands the route to [PathingService] and the
+ * pathing session plans, certifies, and replays it. `PathingRenderer` draws the result.
  */
 object PathCommand : LambdaCommand(
     name = "path",
@@ -51,13 +51,13 @@ object PathCommand : LambdaCommand(
                     info("No goal staged. `path goal <x> <y> <z> [...]` stages one, or `path go <x> <y> <z> [...]` walks directly.")
                     return@execute
                 }
-                PathingManager.route(AutomationConfig.DEFAULT, pending)
+                PathingService.route(AutomationConfig.DEFAULT, pending)
                 info(PathingWaypoints.describe("Pathing", pending) + "...")
             }
             required(greedyString("waypoints")) { waypoints ->
                 execute {
                     val parsed = parse(waypoints().value()) ?: return@execute
-                    PathingManager.route(AutomationConfig.DEFAULT, parsed)
+                    PathingService.route(AutomationConfig.DEFAULT, parsed)
                     info(PathingWaypoints.describe("Pathing", parsed) + "...")
                 }
             }
@@ -92,7 +92,7 @@ object PathCommand : LambdaCommand(
         for (word in listOf("cancel", "c", "stop")) {
             required(literal(word)) {
                 execute {
-                    PathingManager.cancel()
+                    PathingService.cancel()
                     info("Pathing cancelled.")
                 }
             }
@@ -100,8 +100,8 @@ object PathCommand : LambdaCommand(
 
         required(literal("clear")) {
             execute {
-                PathingManager.cancel()
-                PathingManager.clear()
+                PathingService.cancel()
+                PathingService.clear()
                 info("Cleared the published path.")
             }
         }

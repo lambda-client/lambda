@@ -1,16 +1,16 @@
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.movement.MovementCatalog
-import com.lambda.pathing.movement.Movement
+import com.lambda.pathing.actions.MovementCatalog
+import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.movement.CoarseEdge
-import com.lambda.pathing.movement.CoarseMoveCosts
-import com.lambda.pathing.movement.MotionTemplate
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.actions.CoarseMoveCosts
+import com.lambda.pathing.actions.MotionTemplate
+import com.lambda.pathing.actions.SimpleMoveOptions
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -83,9 +83,12 @@ class SimpleMoveLibrary private constructor(
     fun successorCosts(view: CoarseVoxelView, origin: Stance): Map<Stance, Double> =
         edgesFrom(view, origin).minimumCostsBy { it.to }
 
-    fun heuristic(from: Stance, to: Stance): Double {
-        val dx = abs(to.x - from.x)
-        val dz = abs(to.z - from.z)
+    fun heuristic(from: Stance, to: Stance): Double = heuristic(from.x, from.y, from.z, to.x, to.y, to.z)
+
+    /** Allocation-free form for packed nodes; see [com.lambda.pathing.coarse.PackedStance]. */
+    fun heuristic(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int): Double {
+        val dx = abs(toX - fromX)
+        val dz = abs(toZ - fromZ)
         val paired = minOf(dx, dz)
         val straight = maxOf(dx, dz) - paired
 
@@ -94,7 +97,7 @@ class SimpleMoveLibrary private constructor(
         val straightLine = hypot(dx.toDouble(), dz.toDouble()) *
             heuristicCaps.straightTicksPerBlock.finiteOrZero()
         val horizontal = maxOf(octile, straightLine)
-        val dy = to.y - from.y
+        val dy = toY - fromY
         val vertical = when {
             dy > 0 -> dy * heuristicCaps.ascentTicksPerBlock.finiteOrZero()
             dy < 0 -> -dy * heuristicCaps.descentTicksPerBlock.finiteOrZero()

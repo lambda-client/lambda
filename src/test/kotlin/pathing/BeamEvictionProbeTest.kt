@@ -4,7 +4,7 @@
 package pathing
 
 import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.trajectory.FrontierDomination
+import com.lambda.pathing.search.FrontierDomination
 import kotlin.test.Test
 import org.junit.jupiter.api.Tag
 

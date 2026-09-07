@@ -143,9 +143,9 @@ class HorizontalDynamics(
         /**
          * Slipperiness of ordinary ground. Ice and slime differ and would want their own.
          */
-        const val DEFAULT_SLIPPERINESS = 0.6
+        const val DEFAULT_SLIPPERINESS = Kinematics.DEFAULT_SLIPPERINESS
 
-        const val AIR_DRAG = 0.91
+        const val AIR_DRAG = Kinematics.HORIZONTAL_DRAG
 
         fun ground(profile: BallisticProfile, sprint: Boolean) = HorizontalDynamics(
             friction = AIR_DRAG * DEFAULT_SLIPPERINESS,

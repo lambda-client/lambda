@@ -1,8 +1,8 @@
 package pathing
 
 import com.lambda.pathing.execution.ImprovementArbiter
-import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.pathing.trajectory.VirtualSearchClock
+import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.search.VirtualSearchClock
 
 /**
  * The half of the walk the corpus harness was missing: a body that can refuse a tape.

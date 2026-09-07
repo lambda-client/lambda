@@ -1,7 +1,7 @@
 package com.lambda.pathing.world
 
-import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 
 /**
  * The in-progress section: a 16 x 16 x 16 cursor (x fastest, then z, then y) writing into

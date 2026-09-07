@@ -12,16 +12,16 @@ import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
-import com.lambda.pathing.movement.LaunchTrigger
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.SegmentFollowerProgram
-import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.trajectory.TrajectoryRolloutEngine
+import com.lambda.pathing.actions.LaunchTrigger
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.SegmentFollowerProgram
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.search.TrajectoryRolloutEngine
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.test.Test
@@ -133,7 +133,7 @@ class ParkourGapFeasibilityTest {
     }
 
     private fun landingOf(
-        rollout: com.lambda.pathing.trajectory.TrajectoryRollout,
+        rollout: com.lambda.pathing.search.TrajectoryRollout,
         delay: Int,
         to: Stance,
     ) = rollout.frames.firstOrNull { frame ->
@@ -172,7 +172,7 @@ class ParkourGapFeasibilityTest {
         holdForward: Boolean,
         holdTicks: Int,
         airPlan: AirSteering.AirPlan?,
-    ): com.lambda.pathing.trajectory.TrajectoryRollout {
+    ): com.lambda.pathing.search.TrajectoryRollout {
         val dx = (to.x - from.x).toDouble()
         val dz = (to.z - from.z).toDouble()
         val length = hypot(dx, dz)

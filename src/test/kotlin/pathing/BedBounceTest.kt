@@ -14,15 +14,15 @@ import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import com.lambda.pathing.prediction.snapshot.BlockPhysicsCapture
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
+import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -80,7 +80,7 @@ class BedBounceTest {
             val before = sim.state.velocity.y
             val state = sim.tickMovement(
                 MovementSimulationInput(forward = 1.0, sprint = true, jump = frame == 2, rotation = Rotation(0.0, 0.0)),
-            ).simulator.state
+            )
             if (frame > 6 && state.velocity.y > 0.0 && reflected == 0.0) {
                 impact = before
                 reflected = state.velocity.y
@@ -114,7 +114,7 @@ class BedBounceTest {
                     sneak = frame >= 6,
                     rotation = Rotation(0.0, 0.0),
                 ),
-            ).simulator.state
+            )
             if (frame > 8 && state.onGround && state.velocity.y <= 0.0) settled = true
             assertTrue(frame <= 8 || state.velocity.y <= 0.01, "sneaked landing must not rebound, vy=${state.velocity.y} at $frame")
         }
@@ -136,7 +136,7 @@ class BedBounceTest {
                     jump = frame == 2 || frame >= 8,
                     rotation = Rotation(0.0, 0.0),
                 ),
-            ).simulator.state
+            )
             // A rebound off this fall reads ~0.25 at tick end; a real jump reads
             // (0.42 - g) * 0.98 = 0.3332. The gap between them is the assertion.
             if (frame > 6 && state.velocity.y in 0.1..0.3) bounced = true

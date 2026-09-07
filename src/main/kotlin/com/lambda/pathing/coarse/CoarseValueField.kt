@@ -2,8 +2,8 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.CoarseEdge
-import com.lambda.pathing.movement.SteeringField
+import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
 import kotlin.math.hypot

@@ -4,34 +4,42 @@ import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
-import com.lambda.pathing.PathingManager
+import com.lambda.pathing.api.PathingService
+import com.lambda.pathing.session.PathingSession.State
+import com.lambda.pathing.session.Telemetry
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.trajectory.PlanGraph
-import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.pathing.trajectory.SearchNodeRole
-import com.lambda.pathing.trajectory.TrajectoryPlan
+import com.lambda.pathing.search.PlanGraph
+import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.search.SearchNodeRole
+import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import java.awt.Color
-import com.lambda.pathing.prediction.snapshot.BlockPhysicsCapture
+import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 
 object PathingRenderer : Loadable {
-    private val config get() = PathingManager.renderConfig
+    private val config get() = PathingService.renderConfig
+
+    /** One snapshot per frame: every read below sees the same instant of the walk. */
+    private var telemetry: Telemetry = Telemetry.EMPTY
+    private var status: State = State.Idle
 
     init {
-        immediateRenderer("Pathing Debug", depthTest = { PathingManager.renderConfig.depthTest }) {
+        immediateRenderer("Pathing Debug", depthTest = { PathingService.renderConfig.depthTest }) {
             PlanningDebugChannel.treeWanted = config.enabled && config.renderSearchTree
             if (!config.enabled) return@immediateRenderer
+            telemetry = PathingService.telemetry
+            status = PathingService.status
             if (config.renderGraph) renderSearchGraph()
             if (config.renderSearchTree) renderSearchTree()
             if (config.renderPlanning) renderPlanningDebug()
             if (config.renderSearchStats) renderSearchStats()
-            val path = PathingManager.published ?: return@immediateRenderer
+            val path = telemetry.published ?: return@immediateRenderer
             if (config.renderCoarseRoute) renderCoarseRoute(path.route)
             if (config.renderTrajectory) renderTrajectory(path.plan)
             if (config.renderPlanGraph) renderPlanGraph(path.plan)
@@ -230,7 +238,7 @@ object PathingRenderer : Loadable {
     }
 
     private fun RenderBuilder.renderPlanningDebug() {
-        val published = PathingManager.published
+        val published = telemetry.published
         PlanningDebugChannel.coarseRoute?.let { route ->
 
             if (published == null || route !== published.route) renderCoarseRoute(route)
@@ -285,7 +293,7 @@ object PathingRenderer : Loadable {
             plan.frames.forEach { add(it.state.position.add(0.0, TRAJECTORY_Y, 0.0)) }
         }
 
-        val walked = (PathingManager.status as? PathingManager.Status.Executing)?.frame
+        val walked = (status as? State.Executing)?.frame
         if (walked != null && walked in 1 until points.size) {
             polyline(points.take(walked + 1), config.trailColor, screenWidth(config.trajectoryWidth))
             polyline(points.drop(walked), config.trajectoryColor, screenWidth(config.trajectoryWidth))
@@ -301,7 +309,7 @@ object PathingRenderer : Loadable {
             }
         }
 
-        val committedEnd = PathingManager.published?.spliceFrames?.lastOrNull()
+        val committedEnd = telemetry.published?.spliceFrames?.lastOrNull()
         if (config.renderSplices && committedEnd != null && committedEnd < points.size - 1) {
             polyline(
                 points.subList(committedEnd, points.size),
@@ -311,7 +319,7 @@ object PathingRenderer : Loadable {
         }
 
         if (config.renderSplices) {
-            PathingManager.published?.spliceFrames?.forEach { frame ->
+            telemetry.published?.spliceFrames?.forEach { frame ->
                 plan.frames.getOrNull(frame - 1)?.let { at ->
                     marker(at.state.position.add(0.0, TRAJECTORY_Y + 0.22, 0.0), 0.13, config.spliceColor)
                 }
@@ -322,7 +330,7 @@ object PathingRenderer : Loadable {
             marker(last.state.position.add(0.0, TRAJECTORY_Y, 0.0), 0.28, config.stopColor)
         }
 
-        val path = PathingManager.published
+        val path = telemetry.published
         if (path != null && path.partial) {
             plan.frames.lastOrNull()?.let { last ->
                 marker(last.state.position.add(0.0, TRAJECTORY_Y + 0.35, 0.0), 0.34, config.rejectColor)
@@ -407,7 +415,7 @@ object PathingRenderer : Loadable {
     }
 
     private fun RenderBuilder.renderLiveTrail() {
-        val trail = PathingManager.liveTrail
+        val trail = telemetry.trail
         if (trail.size < 2) return
         polyline(trail.map { it.add(0.0, LIVE_Y, 0.0) }, config.trailColor, screenWidth(config.trailWidth))
     }
@@ -451,34 +459,34 @@ object PathingRenderer : Loadable {
         }
     }
 
-    private fun statusLabel(): String = when (val status = PathingManager.status) {
-        is PathingManager.Status.Idle -> "idle"
-        is PathingManager.Status.Settling -> "settling ${status.goal}"
-        is PathingManager.Status.Planning -> "planning ${status.goal}"
-        is PathingManager.Status.Aligning ->
+    private fun statusLabel(): String = when (val status = status) {
+        is State.Idle -> "idle"
+        is State.Settling -> "settling ${status.goal}"
+        is State.Planning -> "planning ${status.goal}"
+        is State.Aligning ->
             "aligning trajectory  yaw error %.1f°".format(status.yawError)
-        is PathingManager.Status.Executing -> {
-            val path = PathingManager.published
+        is State.Executing -> {
+            val path = telemetry.published
             val kind = if (path?.partial == true) "safe partial" else "full"
-            val improvements = PathingManager.adopted.takeIf { it > 0 }
+            val improvements = telemetry.adopted.takeIf { it > 0 }
                 ?.let { "  improved x$it" }.orEmpty()
-            val late = PathingManager.rejectedImprovements.takeIf { it > 0 }
+            val late = telemetry.rejectedImprovements.takeIf { it > 0 }
                 ?.let { "  late x$it" }.orEmpty()
             "walking %s tape  %d/%d  dev %.2e%s%s".format(
-                kind, status.frame, status.frames, PathingManager.maxDeviation, improvements, late,
+                kind, status.frame, status.frames, telemetry.maxDeviation, improvements, late,
             )
         }
 
-        is PathingManager.Status.Complete ->
-            "complete: %d frames, max deviation %.2e".format(status.frames, PathingManager.maxDeviation)
+        is State.Complete ->
+            "complete: %d frames, max deviation %.2e".format(status.frames, telemetry.maxDeviation)
 
-        is PathingManager.Status.Failed -> "failed: ${status.reason}"
+        is State.Failed -> "failed: ${status.reason}"
     }
 
-    private fun statusColor(): Color = when (PathingManager.status) {
-        is PathingManager.Status.Executing -> config.trailColor
-        is PathingManager.Status.Complete -> config.stopColor
-        is PathingManager.Status.Failed -> config.rejectColor
+    private fun statusColor(): Color = when (status) {
+        is State.Executing -> config.trailColor
+        is State.Complete -> config.stopColor
+        is State.Failed -> config.rejectColor
         else -> config.textColor
     }
 

@@ -1,6 +1,6 @@
 package com.lambda.pathing.world
 
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 
 /**
  * The client-side reads world capture needs, so [PathingWorld] can be driven without a

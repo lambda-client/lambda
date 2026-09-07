@@ -20,7 +20,7 @@ package com.lambda
 import com.lambda.PathingTestHarness.assertMovementReplay
 import com.lambda.PathingTestHarness.restoreArena
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationInput
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
 

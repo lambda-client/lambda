@@ -5,10 +5,10 @@ package pathing
 
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import kotlin.test.Test
 import net.minecraft.util.math.BlockPos
 import org.junit.jupiter.api.Tag

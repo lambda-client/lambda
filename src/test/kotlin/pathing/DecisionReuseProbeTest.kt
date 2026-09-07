@@ -5,16 +5,16 @@ package pathing
 
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.trajectory.AnchorRollout
-import com.lambda.pathing.trajectory.AttemptAccumulator
-import com.lambda.pathing.trajectory.Outcome
-import com.lambda.pathing.trajectory.PlanSegment
-import com.lambda.pathing.trajectory.SearchProbe
-import com.lambda.pathing.trajectory.ValueAnchor
-import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
-import com.lambda.pathing.trajectory.ValueFieldSearchConfig
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.search.AnchorRollout
+import com.lambda.pathing.search.AttemptAccumulator
+import com.lambda.pathing.search.Outcome
+import com.lambda.pathing.search.PlanSegment
+import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.ValueAnchor
+import com.lambda.pathing.search.ValueFieldAnchorSearch
+import com.lambda.pathing.search.ValueFieldSearchConfig
 import com.lambda.pathing.world.center
 import kotlin.test.Test
 import kotlin.test.assertTrue

@@ -9,7 +9,7 @@
 
 package pathing
 
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.CaptureSource
 import net.minecraft.util.math.BlockPos
 

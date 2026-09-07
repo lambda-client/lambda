@@ -2,9 +2,9 @@ package com.lambda.pathing.world
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
-import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.withLock

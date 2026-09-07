@@ -7,17 +7,17 @@
  * (at your option) any later version.
  */
 
-package com.lambda.pathing.trajectory
+package com.lambda.pathing.search
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.movement.*
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.SimulationSnapshotOutOfBoundsException
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.actions.*
+import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.test.Test
@@ -47,7 +47,7 @@ class TrajectoryRolloutTest {
             frameCount = tape.frameCount,
         )
         val direct = MovementSimulator(PROFILE, environment, initial)
-        val directStates = tape.asList().map { direct.tickMovement(it).simulator.state }
+        val directStates = tape.asList().map { direct.tickMovement(it) }
 
         assertTrue(rollout.completed)
         assertEquals(directStates, rollout.frames.map { it.state })

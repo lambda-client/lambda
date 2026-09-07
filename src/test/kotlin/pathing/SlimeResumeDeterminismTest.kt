@@ -1,12 +1,12 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import net.minecraft.util.math.BlockPos
@@ -48,12 +48,12 @@ class SlimeResumeDeterminismTest {
             onGround = true,
         )
         val continuous = MovementSimulator(PROFILE, environment, initial)
-        val states = inputs.map { continuous.tickMovement(it).simulator.state }
+        val states = inputs.map { continuous.tickMovement(it) }
 
         for (resumeAt in inputs.indices) {
             val resumed = MovementSimulator(PROFILE, environment, if (resumeAt == 0) initial else states[resumeAt - 1])
             for (frame in resumeAt until inputs.size) {
-                val state = resumed.tickMovement(inputs[frame]).simulator.state
+                val state = resumed.tickMovement(inputs[frame])
                 assertEquals(
                     states[frame].position, state.position,
                     "resume@$resumeAt frame $frame position",

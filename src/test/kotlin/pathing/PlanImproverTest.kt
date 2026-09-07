@@ -4,9 +4,9 @@
 package pathing
 
 import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
-import com.lambda.pathing.prediction.simulation.MovementSimulator
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.physics.MovementSimulationStepResult
+import com.lambda.pathing.physics.MovementSimulator
 import kotlin.math.hypot
 import kotlin.test.Test
 import kotlin.test.assertTrue

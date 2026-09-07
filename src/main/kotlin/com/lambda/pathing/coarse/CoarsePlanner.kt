@@ -1,30 +1,31 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.graph.CoarseRouteCandidate
-import com.lambda.pathing.graph.DStarLite
-import com.lambda.pathing.graph.LazyGraph
+import com.lambda.pathing.graph.LongDStarLite
+import com.lambda.pathing.graph.LongLazyGraph
 import com.lambda.pathing.graph.TailCost
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.movement.CoarseEdge
+import com.lambda.pathing.actions.CoarseEdge
+import it.unimi.dsi.fastutil.longs.LongArrayList
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * The coarse layer's D* runs over [MomentumStance] -- stance times [SpeedClass] -- so
- * the field can price momentum honestly; see [MomentumRules]. Everything public stays
- * stance-shaped: callers never meet the class dimension, they meet stance values that
- * are the best over both classes, and routes whose brake self-edges have been folded
- * away.
+ * The coarse layer's D* runs over [PackedStance] nodes -- stance times [SpeedClass] packed
+ * into one long -- so the field can price momentum honestly; see [MomentumRules].
+ * Everything public stays stance-shaped: callers never meet the class dimension, they
+ * meet stance values that are the best over both classes, and routes whose brake
+ * self-edges have been folded away.
  */
 class CoarsePlanner(
 
     val view: CoarseVoxelView,
     val moves: SimpleMoveLibrary,
     start: Stance,
-    goal: Stance,
+    val goal: GoalShape,
 
     private val sweepBudget: Int = 40_000,
 
@@ -35,55 +36,94 @@ class CoarsePlanner(
     private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
 
+    /** The one-stance goal every caller has today: a [GoalShape.Point]. */
+    constructor(
+        view: CoarseVoxelView,
+        moves: SimpleMoveLibrary,
+        start: Stance,
+        goal: Stance,
+        sweepBudget: Int = 40_000,
+        capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
+        onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
+    ) : this(view, moves, start, GoalShape.Point(goal, moves), sweepBudget, capturable, onCaptureLag)
+
     private val anchors = HashMap<Stance, Double>()
 
-    val goalStance: Stance = goal
+    val goalStance: Stance = goal.anchorStance
 
-    private val goalNode = MomentumStance(goal, SpeedClass.STOPPED)
+    private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
     private val edgeCache = CoarseEdgeCache(view, moves)
 
-    private val graph = LazyGraph(
-        successorProvider = { node: MomentumStance ->
-            val base = MomentumRules.successors(edgeCache, node)
-            val optimistic = optimisticEdgeFrom(node)
-            if (optimistic.isEmpty()) base else base + optimistic
+    private val graph = LongLazyGraph(
+        successorProvider = { node, sink ->
+            MomentumRules.successors(edgeCache, node, sink)
+            // Put semantics on purpose: an anchor's optimistic edge to the goal replaces
+            // any real edge to the goal node, as the old `base + optimistic` did.
+            if (anchors.isNotEmpty()) {
+                val cost = anchors[PackedStance.stance(node)]
+                if (cost != null) sink.add(goalNode, cost)
+            }
         },
-        predecessorProvider = { node: MomentumStance ->
-            val base = MomentumRules.predecessors(edgeCache, node)
-            val viaAnchors = if (node == goalNode) anchorPredecessors() else emptyMap()
-            if (viaAnchors.isEmpty()) base else base + viaAnchors
+        predecessorProvider = { node, sink ->
+            MomentumRules.predecessors(edgeCache, node, sink)
+            if (node == goalNode && anchors.isNotEmpty()) {
+                for ((stance, cost) in anchors) {
+                    sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
+                    sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
+                }
+            }
         },
     )
 
-    val search = DStarLite(
+    val search = LongDStarLite(
         graph = graph,
-        start = MomentumStance(start, SpeedClass.STOPPED),
+        start = PackedStance.pack(start, SpeedClass.STOPPED),
         goal = goalNode,
-        heuristic = { a, b -> moves.heuristic(a.stance, b.stance) },
-        nodeTieBreaker = compareBy({ it.stance.y }, { it.stance.x }, { it.stance.z }, { it.speed }),
+        heuristic = { a, b ->
+            moves.heuristic(
+                PackedStance.unpackX(a), PackedStance.unpackY(a), PackedStance.unpackZ(a),
+                PackedStance.unpackX(b), PackedStance.unpackY(b), PackedStance.unpackZ(b),
+            )
+        },
+        describe = PackedStance::describe,
     )
 
     val graphSize: Int get() = graph.size
 
-    val graphNodes: Set<Stance> get() = graph.nodes.mapTo(HashSet()) { it.stance }
+    /**
+     * Visits every distinct stance the graph has adopted, once, without materialising a
+     * set: a stance whose STOPPED node is known is visited there; a MOVING-only stance is
+     * visited at its MOVING node.
+     */
+    fun forEachGraphStance(action: (x: Int, y: Int, z: Int) -> Unit) {
+        val iterator = graph.nodes.iterator()
+        while (iterator.hasNext()) {
+            val node = iterator.nextLong()
+            if (PackedStance.speedBit(node) != 0 && graph.contains(PackedStance.withSpeed(node, SpeedClass.STOPPED))) continue
+            action(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))
+        }
+    }
 
     /** Best-over-classes cost to goal, for observers that think in stances. */
     fun stanceCost(stance: Stance): Double = minOf(
-        search.g(MomentumStance(stance, SpeedClass.MOVING)),
-        search.g(MomentumStance(stance, SpeedClass.STOPPED)),
+        search.g(PackedStance.pack(stance, SpeedClass.MOVING)),
+        search.g(PackedStance.pack(stance, SpeedClass.STOPPED)),
     )
 
     fun inFrontier(stance: Stance): Boolean =
-        MomentumStance(stance, SpeedClass.MOVING) in search.queue ||
-            MomentumStance(stance, SpeedClass.STOPPED) in search.queue
+        PackedStance.pack(stance, SpeedClass.MOVING) in search.queue ||
+            PackedStance.pack(stance, SpeedClass.STOPPED) in search.queue
 
     fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
         val merged = HashMap<Stance, Double>()
         for (speed in SpeedClass.entries) {
-            for ((successor, cost) in graph.knownSuccessors(MomentumStance(node, speed))) {
-                if (successor.stance == node) continue
-                merged.merge(successor.stance, cost, ::minOf)
+            val edges = graph.knownSuccessors(PackedStance.pack(node, speed))
+            for (i in 0 until edges.size) {
+                val successor = edges.node(i)
+                val stance = PackedStance.stance(successor)
+                if (stance == node) continue
+                merged.merge(stance, edges.cost(i), ::minOf)
             }
         }
         return merged
@@ -93,34 +133,19 @@ class CoarsePlanner(
         timeBudget: Duration = 5.milliseconds,
         maxExpansions: Int = Int.MAX_VALUE,
         cancelled: () -> Boolean = { false },
-    ): DStarLite.ComputeResult = search.computeShortestPath(timeBudget, maxExpansions, cancelled)
+    ): LongDStarLite.ComputeResult = search.computeShortestPath(timeBudget, maxExpansions, cancelled)
 
-    fun updateStart(start: Stance) = search.updateStart(MomentumStance(start, SpeedClass.STOPPED))
+    fun updateStart(start: Stance) = search.updateStart(PackedStance.pack(start, SpeedClass.STOPPED))
 
     val optimisticAnchors: Map<Stance, Double> get() = HashMap(anchors)
 
     fun optimisticEdgeCost(from: Stance): Double = SpeedClass.entries.minOf {
-        graph.knownSuccessors(MomentumStance(from, it))[goalNode] ?: Double.POSITIVE_INFINITY
-    }
-
-    private fun optimisticEdgeFrom(node: MomentumStance): Map<MomentumStance, Double> {
-        val cost = anchors[node.stance] ?: return emptyMap()
-        return mapOf(goalNode to cost)
-    }
-
-    private fun anchorPredecessors(): Map<MomentumStance, Double> {
-        if (anchors.isEmpty()) return emptyMap()
-        val out = LinkedHashMap<MomentumStance, Double>(anchors.size * 2)
-        for ((stance, cost) in anchors) {
-            out[MomentumStance(stance, SpeedClass.MOVING)] = cost
-            out[MomentumStance(stance, SpeedClass.STOPPED)] = cost
-        }
-        return out
+        graph.knownSuccessors(PackedStance.pack(from, it)).costOf(goalNode)
     }
 
     private fun updateAnchorEdges(anchor: Stance, cost: Double) {
-        search.updateEdge(MomentumStance(anchor, SpeedClass.MOVING), goalNode, cost)
-        search.updateEdge(MomentumStance(anchor, SpeedClass.STOPPED), goalNode, cost)
+        search.updateEdge(PackedStance.pack(anchor, SpeedClass.MOVING), goalNode, cost)
+        search.updateEdge(PackedStance.pack(anchor, SpeedClass.STOPPED), goalNode, cost)
     }
 
     fun advanceFrontier(probed: Map<Stance, Double>): Boolean {
@@ -163,7 +188,7 @@ class CoarsePlanner(
      * see docs/decisions/anchor-lifecycle.md.
      */
     fun advanceReachableFrontier(
-        from: Stance = search.start.stance,
+        from: Stance = PackedStance.stance(search.start),
         cancelled: () -> Boolean = { false },
     ): Boolean = advanceFrontier(
         FrontierAnchors.sweep(
@@ -184,7 +209,7 @@ class CoarsePlanner(
         timeBudget: Duration = 50.milliseconds,
         maxExpansions: Int = Int.MAX_VALUE,
         cancelled: () -> Boolean = { false },
-    ): DStarLite.ComputeResult = search.expandField(extraTicks, timeBudget, maxExpansions, cancelled)
+    ): LongDStarLite.ComputeResult = search.expandField(extraTicks, timeBudget, maxExpansions, cancelled)
 
     fun route(
         maxLength: Int = 10_000,
@@ -196,9 +221,13 @@ class CoarsePlanner(
             cancelled = cancelled,
         ) ?: return null
         // Brake self-edges fold away: consecutive nodes sharing a stance are one visit.
-        val stances = ArrayList<Stance>(candidate.nodes.size)
-        for (node in candidate.nodes) {
-            if (stances.lastOrNull() != node.stance) stances += node.stance
+        val nodes = candidate.nodes
+        val stances = ArrayList<Stance>(nodes.size)
+        var previous = 0L
+        for (i in 0 until nodes.size) {
+            val node = nodes.getLong(i)
+            if (i == 0 || !PackedStance.sameStance(previous, node)) stances += PackedStance.stance(node)
+            previous = node
         }
         return CoarseRouteCandidate(
             nodes = stances,
@@ -216,7 +245,7 @@ class CoarsePlanner(
         val candidate = route(maxLength, cancelled) ?: return null
 
         val nodes =
-            if (candidate.nodes.size >= 2 && candidate.nodes.last() == goalStance &&
+            if (candidate.nodes.size >= 2 && goal.satisfied(candidate.nodes.last()) &&
                 candidate.nodes[candidate.nodes.size - 2] in anchors
             ) candidate.nodes.dropLast(1) else candidate.nodes
         val edges = nodes.zipWithNext { from, to -> liveEdge(from, to) ?: return null }
@@ -230,7 +259,7 @@ class CoarsePlanner(
             .minWithOrNull(compareBy({ it.lowerBoundTicks }, { it.id.template.value }))
 
     fun routeFailureReport(): String = buildString {
-        append("start=").append(search.start.stance)
+        append("start=").append(PackedStance.stance(search.start))
         append(" g=%.1f rhs=%.1f".format(search.g(search.start), search.rhs(search.start)))
         append(" nodes=").append(graphSize)
         append(" queue=").append(search.queue.size())
@@ -274,15 +303,15 @@ class CoarsePlanner(
         return null
     }
 
-    fun tailCost(node: Stance = search.start.stance): TailCost = stanceTailCost(node)
+    fun tailCost(node: Stance = PackedStance.stance(search.start)): TailCost = stanceTailCost(node)
 
     /**
      * The better-informed of the two class nodes: exactness first, then cost. A raw min
      * over classes would prefer an unexplored MOVING node's bound over an exact STOPPED answer.
      */
     private fun stanceTailCost(node: Stance): TailCost {
-        val moving = search.tailCost(MomentumStance(node, SpeedClass.MOVING))
-        val stopped = search.tailCost(MomentumStance(node, SpeedClass.STOPPED))
+        val moving = search.tailCost(PackedStance.pack(node, SpeedClass.MOVING))
+        val stopped = search.tailCost(PackedStance.pack(node, SpeedClass.STOPPED))
         return when {
             moving is TailCost.Exact && stopped is TailCost.Exact ->
                 if (moving.ticks <= stopped.ticks) moving else stopped
@@ -294,14 +323,14 @@ class CoarsePlanner(
         }
     }
 
-    private fun synchronizeStances(affected: Iterable<Stance>): DStarLite.SynchronizationResult {
+    private fun synchronizeStances(affected: Iterable<Stance>): LongDStarLite.SynchronizationResult {
         // Synchronization regenerates from the live view: memoized edges go first, even
         // for callers that arrive without a world-change notification.
         edgeCache.invalidateStances(affected)
-        val lifted = HashSet<MomentumStance>()
+        val lifted = LongArrayList()
         for (stance in affected) {
-            lifted += MomentumStance(stance, SpeedClass.MOVING)
-            lifted += MomentumStance(stance, SpeedClass.STOPPED)
+            lifted.add(PackedStance.pack(stance, SpeedClass.MOVING))
+            lifted.add(PackedStance.pack(stance, SpeedClass.STOPPED))
         }
         return search.synchronizeAffected(lifted)
     }
@@ -325,24 +354,26 @@ class CoarsePlanner(
     )
 
     private fun nodeLabel(stance: Stance, speed: SpeedClass): Double {
-        val node = MomentumStance(stance, speed)
+        val node = PackedStance.pack(stance, speed)
         return minOf(search.g(node), search.rhs(node))
     }
 
-    fun worldChanged(changed: Iterable<VoxelPos>): DStarLite.SynchronizationResult {
+    fun worldChanged(changed: Iterable<VoxelPos>): LongDStarLite.SynchronizationResult {
         edgeCache.invalidateVoxels(changed)
         val affected = HashSet<Stance>()
         changed.forEach { affected += moves.affectedOrigins(it) }
         return synchronizeStances(affected)
     }
 
-    fun chunksChanged(chunks: Iterable<PathingChunk>): DStarLite.SynchronizationResult {
+    fun chunksChanged(chunks: Iterable<PathingChunk>): LongDStarLite.SynchronizationResult {
         // Range-based cache eviction, not graph-node-filtered: the cache can hold
         // stances the graph never adopted (steering reads, rim origins).
         edgeCache.invalidateChunks(chunks)
         val affected = HashSet<Stance>()
-        val nodes = graphNodes
-        chunks.forEach { affected += moves.affectedOrigins(it, nodes) }
+        val ranges = chunks.map(moves::originColumnRanges)
+        forEachGraphStance { x, y, z ->
+            if (ranges.any { (xs, zs) -> x in xs && z in zs }) affected += Stance(x, y, z)
+        }
         return synchronizeStances(affected)
     }
 }

@@ -3,11 +3,12 @@ package pathing
 import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanningState
+import com.lambda.pathing.session.RouteResolution
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
-import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.trajectory.SearchProbe
-import com.lambda.pathing.trajectory.TrajectoryDiagnostic
+import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.TrajectoryDiagnostic
 import java.nio.file.Path
 import kotlin.test.Test
 
@@ -36,7 +37,7 @@ class GrindReproScratchTest {
             start = loaded.start, goal = loaded.goal, horizonChunks = 4,
         )
         state.planner.repair(kotlin.time.Duration.INFINITE)
-        val route = state.resolveRoute(loaded.start, 0L, 1_000_000) ?: return
+        val route = RouteResolution(state).resolve(loaded.start, 0L, 1_000_000) ?: return
         route.edges.forEach { println("ET route ${it.from} -> ${it.to} ${it.movement}") }
 
         val perStance = HashMap<Stance, Int>()

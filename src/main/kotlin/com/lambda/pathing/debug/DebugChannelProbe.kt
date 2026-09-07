@@ -3,12 +3,12 @@ package com.lambda.pathing.debug
 import com.lambda.Lambda.LOG
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.trajectory.CandidatePath
-import com.lambda.pathing.trajectory.SearchProbe
-import com.lambda.pathing.trajectory.SearchStatsView
-import com.lambda.pathing.trajectory.SearchTreeView
-import com.lambda.pathing.trajectory.TrajectoryDiagnostic
-import com.lambda.pathing.trajectory.TrajectoryRollout
+import com.lambda.pathing.search.CandidatePath
+import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.SearchStatsView
+import com.lambda.pathing.search.SearchTreeView
+import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.search.TrajectoryRollout
 
 class DebugChannelProbe(
     private val verbose: Boolean = java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures"),

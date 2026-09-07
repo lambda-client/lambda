@@ -10,11 +10,11 @@
 package pathing
 
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
-import com.lambda.pathing.movement.CoarseMoveCosts
-import com.lambda.pathing.movement.CoarseMoveRates
+import com.lambda.pathing.actions.CoarseMoveCosts
+import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.graph.TailCost
 import com.lambda.pathing.core.MovementId

@@ -11,9 +11,9 @@ package pathing
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
-import com.lambda.pathing.prediction.SnapshotSectionUnavailableException
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.physics.SnapshotSectionUnavailableException
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.WorldMutation

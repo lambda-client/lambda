@@ -3,11 +3,18 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.movement.CoarseEdge
+import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.world.CoarseVoxelView
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import it.unimi.dsi.fastutil.longs.LongSet
 
 /**
- * Per-session memo of [SimpleMoveLibrary] edge lists, keyed by stance in both directions.
+ * Per-session memo of [SimpleMoveLibrary] edge lists, keyed by packed stance in both
+ * directions. Keys are [PackedStance] longs with the speed bit cleared, so a D* expansion
+ * looks its node up without materialising a [Stance]; the speed dimension is
+ * [MomentumRules]' business, not the cache's.
+ *
  * A cached list in either direction answers the other's per-template lookup, except that
  * an empty incoming list for a non-stance target is never reused by the outgoing side
  * (templates may offer edges onto cells that fail the stance test). Invalidation mirrors
@@ -20,23 +27,34 @@ internal class CoarseEdgeCache(
     private val view: CoarseVoxelView,
     private val moves: SimpleMoveLibrary,
 ) {
-    private val outgoing = HashMap<Stance, List<CoarseEdge>>()
-    private val incoming = HashMap<Stance, List<CoarseEdge>>()
+    private val outgoing = Long2ObjectOpenHashMap<List<CoarseEdge>>()
+    private val incoming = Long2ObjectOpenHashMap<List<CoarseEdge>>()
 
     /** Targets whose incoming list is empty only because the target is not a stance. */
-    private val nonStanceTargets = HashSet<Stance>()
+    private val nonStanceTargets = LongOpenHashSet()
 
-    fun edgesFrom(origin: Stance): List<CoarseEdge> =
-        outgoing.getOrPut(origin) { computeEdgesFrom(origin) }
+    /** Outgoing edges of the stance of [node]; the speed bit is ignored. */
+    fun edgesFrom(node: Long): List<CoarseEdge> {
+        val key = stanceKey(node)
+        return outgoing.get(key) ?: computeEdgesFrom(PackedStance.stance(key)).also { outgoing.put(key, it) }
+    }
 
-    fun edgesTo(target: Stance): List<CoarseEdge> =
-        incoming.getOrPut(target) { computeEdgesTo(target) }
+    /** Incoming edges of the stance of [node]; the speed bit is ignored. */
+    fun edgesTo(node: Long): List<CoarseEdge> {
+        val key = stanceKey(node)
+        return incoming.get(key) ?: computeEdgesTo(PackedStance.stance(key)).also { incoming.put(key, it) }
+    }
+
+    fun edgesFrom(origin: Stance): List<CoarseEdge> = edgesFrom(key(origin))
+
+    fun edgesTo(target: Stance): List<CoarseEdge> = edgesTo(key(target))
 
     private fun computeEdgesFrom(origin: Stance): List<CoarseEdge> {
         if (!moves.isStance(view, origin)) return emptyList()
         return moves.templates.mapNotNull { template ->
             val target = origin.offset(template.dx, template.dy, template.dz)
-            val known = if (target in nonStanceTargets) null else incoming[target]
+            val targetKey = key(target)
+            val known = if (nonStanceTargets.contains(targetKey)) null else incoming.get(targetKey)
             if (known != null) known.firstOrNull { it.id.template == template.id }
             else template.edge(view, origin)
         }
@@ -44,12 +62,12 @@ internal class CoarseEdgeCache(
 
     private fun computeEdgesTo(target: Stance): List<CoarseEdge> {
         if (!moves.isStance(view, target)) {
-            nonStanceTargets += target
+            nonStanceTargets.add(key(target))
             return emptyList()
         }
         return moves.templates.mapNotNull { template ->
             val origin = target.offset(-template.dx, -template.dy, -template.dz)
-            val known = outgoing[origin]
+            val known = outgoing.get(key(origin))
             if (known != null) known.firstOrNull { it.id.template == template.id }
             else if (moves.isStance(view, origin)) template.edge(view, origin) else null
         }
@@ -57,18 +75,20 @@ internal class CoarseEdgeCache(
 
     fun invalidateStances(stances: Iterable<Stance>) {
         for (stance in stances) {
-            outgoing.remove(stance)
-            incoming.remove(stance)
-            nonStanceTargets.remove(stance)
+            val k = key(stance)
+            outgoing.remove(k)
+            incoming.remove(k)
+            nonStanceTargets.remove(k)
         }
     }
 
     fun invalidateVoxels(changed: Iterable<VoxelPos>) {
         for (voxel in changed) {
-            moves.affectedOrigins(voxel).forEach(outgoing::remove)
+            for (origin in moves.affectedOrigins(voxel)) outgoing.remove(key(origin))
             for (target in moves.affectedTargets(voxel)) {
-                incoming.remove(target)
-                nonStanceTargets.remove(target)
+                val k = key(target)
+                incoming.remove(k)
+                nonStanceTargets.remove(k)
             }
         }
     }
@@ -77,13 +97,26 @@ internal class CoarseEdgeCache(
         val originRanges = chunks.map(moves::originColumnRanges)
         if (originRanges.isEmpty()) return
         val targetRanges = chunks.map(moves::targetColumnRanges)
-        outgoing.keys.removeAll { stance ->
-            originRanges.any { (x, z) -> stance.x in x && stance.z in z }
+        removeColumns(outgoing.keys, originRanges)
+        removeColumns(incoming.keys, targetRanges)
+        removeColumns(nonStanceTargets, targetRanges)
+    }
+
+    private fun removeColumns(keys: LongSet, ranges: List<Pair<IntRange, IntRange>>) {
+        val iterator = keys.iterator()
+        while (iterator.hasNext()) {
+            val k = iterator.nextLong()
+            val x = PackedStance.unpackX(k)
+            val z = PackedStance.unpackZ(k)
+            if (ranges.any { (xs, zs) -> x in xs && z in zs }) iterator.remove()
         }
-        val touchesTarget = { stance: Stance ->
-            targetRanges.any { (x, z) -> stance.x in x && stance.z in z }
-        }
-        incoming.keys.removeAll(touchesTarget)
-        nonStanceTargets.removeAll(touchesTarget)
+    }
+
+    private companion object {
+        private const val SPEED_BIT = 1L
+
+        fun stanceKey(node: Long): Long = node and SPEED_BIT.inv()
+
+        fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
     }
 }

@@ -4,12 +4,12 @@
 package pathing
 
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.test.AfterTest
@@ -41,7 +41,9 @@ class PlanningGraphViewTest {
         PlanningDebugChannel.publishGraph(planner, Vec3d(0.5, 64.0, 0.5))
         val sample = assertNotNull(PlanningDebugChannel.graph, "an active channel must publish a graph")
 
-        assertEquals(planner.graphNodes.size, sample.total, "the total must be the whole graph, not the sample")
+        var graphStances = 0
+        planner.forEachGraphStance { _, _, _ -> graphStances++ }
+        assertEquals(graphStances, sample.total, "the total must be the whole graph, not the sample")
         assertTrue(sample.nodes.isNotEmpty(), "a converged search must have touched something")
         assertTrue(
             sample.nodes.size <= sample.total,
