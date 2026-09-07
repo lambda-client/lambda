@@ -113,6 +113,7 @@ internal object ProbeScenarios {
         frontierDomination: com.lambda.pathing.search.FrontierDomination =
             com.lambda.pathing.search.FrontierDomination.FULL,
         probe: com.lambda.pathing.search.SearchProbe = com.lambda.pathing.search.SearchProbe.NONE,
+        constraints: MotionConstraints = MotionConstraints(),
     ): Outcome {
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = transitionOverheadTicks),
@@ -137,7 +138,7 @@ internal object ProbeScenarios {
                 velocity = Vec3d(0.0, -0.0784, 0.0),
                 onGround = true,
             ),
-            PROFILE, scenario.environment, MotionConstraints(),
+            PROFILE, scenario.environment, constraints,
             cursorFrame = { executor.cursorFrame() },
             publish = { path, _ -> executor.offer(path) },
             started = System.currentTimeMillis(),

@@ -1,7 +1,9 @@
 package com.lambda.pathing.debug
 
+import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.search.TrajectoryDiagnostic
@@ -46,6 +48,7 @@ object PlanningDebugChannel {
 
         val fromCost: Double,
         val toCost: Double,
+        val movement: MovementId?,
     )
 
     class GraphSample(
@@ -86,6 +89,49 @@ object PlanningDebugChannel {
     @Volatile
     var treeWanted: Boolean = false
 
+    /** Set by the renderer: the coarse graph is re-sampled during the walk only while it is drawn. */
+    @Volatile
+    var graphWanted: Boolean = false
+
+    @Volatile
+    private var lastGraphMillis = 0L
+
+    /**
+     * Re-sample the coarse graph after the route was re-resolved, at most every
+     * [GRAPH_REFRESH_MILLIS], and only while someone draws it. Sampling walks every stance
+     * D* holds, so it is paced.
+     */
+    fun refreshGraph(planner: CoarsePlanner, around: Vec3d) {
+        if (!active || !graphWanted) return
+        val now = System.currentTimeMillis()
+        if (now - lastGraphMillis < GRAPH_REFRESH_MILLIS) return
+        lastGraphMillis = now
+        publishGraph(planner, around)
+    }
+
+    /** Set by the HUD each frame: it wants live search counters even with the world render off. */
+    @Volatile
+    var hudWanted: Boolean = false
+
+    /** The last completed search's exit report and the sync ledger that went with it. */
+    @Volatile
+    var lastExhaustion: com.lambda.pathing.search.SearchExhaustion? = null
+        private set
+
+    @Volatile
+    var lastExhaustionLedger: String = ""
+        private set
+
+    @Volatile
+    var lastExhaustionMillis: Long = 0L
+        private set
+
+    fun publishExhaustion(report: com.lambda.pathing.search.SearchExhaustion, ledger: String) {
+        lastExhaustion = report
+        lastExhaustionLedger = ledger
+        lastExhaustionMillis = System.currentTimeMillis()
+    }
+
     fun publishTree(view: SearchTreeView) {
         if (active) tree = view
     }
@@ -104,6 +150,7 @@ object PlanningDebugChannel {
 
     fun publishGraph(planner: CoarsePlanner, around: Vec3d) {
         if (!active) return
+        lastGraphMillis = System.currentTimeMillis()
         val anchors = planner.optimisticAnchors
         val goal = planner.goalStance
         val view = planner.view
@@ -138,6 +185,11 @@ object PlanningDebugChannel {
         val edges = ArrayList<GraphEdge>()
         stances.forEach { from ->
             val successors = planner.knownSuccessorsOf(from)
+            val cheapest = HashMap<Stance, CoarseEdge>()
+            planner.knownEdgesOf(from).forEach { edge ->
+                val existing = cheapest[edge.to]
+                if (existing == null || edge.lowerBoundTicks < existing.lowerBoundTicks) cheapest[edge.to] = edge
+            }
 
             val real = successors.filterKeys { to -> to in drawn && !(to == goal && from in anchors) }
             if (real.isEmpty()) return@forEach
@@ -158,6 +210,7 @@ object PlanningDebugChannel {
                         policy = to == best,
                         fromCost = fromCost,
                         toCost = planner.stanceCost(to),
+                        movement = cheapest[to]?.movement,
                     )
                 }
             }
@@ -225,6 +278,8 @@ object PlanningDebugChannel {
     fun reset() {
         active = false
         coarseRoute = null
+        lastExhaustion = null
+        lastExhaustionLedger = ""
         attempts = emptyList()
         candidateLines = emptyList()
         tree = null
@@ -234,6 +289,8 @@ object PlanningDebugChannel {
     }
 
     private const val MAX_ATTEMPTS = 32
+
+    private const val GRAPH_REFRESH_MILLIS = 1500L
 
     private const val DECIMATION = 2
 }

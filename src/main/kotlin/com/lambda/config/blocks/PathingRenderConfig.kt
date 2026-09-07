@@ -5,6 +5,14 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.lambda.config.blocks
@@ -12,112 +20,99 @@ package com.lambda.config.blocks
 import java.awt.Color
 
 /**
- * How a requested walk is drawn.
+ * How a walk is drawn in the world. Text never appears in the world: every number lives
+ * in the Pathing HUD element, the world shows geometry only.
  *
- * The gap between the trajectory colour (what the simulator predicted) and the trail
- * colour (where the body went) is simulator error, and is the point of the render.
+ * Reading the picture: the coarse route is the plan's skeleton (one colour per movement
+ * kind), the trajectory is the certified tape (dim behind the body, bright ahead), the
+ * trail is where the body actually went. Trail and trajectory separating is simulator error.
  */
 interface PathingRenderConfig {
     val enabled: Boolean
     val depthTest: Boolean
 
+    // Layers, in the order a reader needs them.
     val renderCoarseRoute: Boolean
     val renderTrajectory: Boolean
     val renderJumpMarkers: Boolean
     val renderSplices: Boolean
-    val renderCandidates: Boolean
     val renderTrail: Boolean
-    val renderLabels: Boolean
+    val renderGoal: Boolean
 
-    /** Live planning view: the coarse route as it lands, candidates as they are tried. */
+    /** Live planning view: the coarse route as it lands and every rollout as the search tries it. */
     val renderPlanning: Boolean
+    val renderCandidates: Boolean
 
-    /**
-     * The trajectory search's own anchor tree, and the counters driving it.
-     *
-     * The coarse graph shows where the planner may go; this shows what it is actually
-     * doing with that freedom -- which line the body is committed to, which branches are
-     * still arguing, and how much of the budget each is costing.
-     */
+    /** The certified plan as its junction graph: spans shaded by pace, junctions where a repair may cut. */
     val renderPlanGraph: Boolean
-    val renderPlanGraphLabels: Boolean
+    val renderPlanGraphPace: Boolean
 
+    /** The trajectory search's live anchor tree: committed spine, best rival, open branches. */
     val renderSearchTree: Boolean
     val renderSearchTreeNodes: Boolean
-    val renderSearchStats: Boolean
 
-    /** The search graph itself: every cell D* touched, coloured by cost to the goal. */
+    /** The coarse search graph: every cell D* touched, shaded by cost to the goal. */
     val renderGraph: Boolean
     val renderGraphFrontier: Boolean
-
-    /** The moves between cells, not just the cells: the flow the search would follow. */
     val renderGraphEdges: Boolean
+    val renderGraphCells: Boolean
 
-    /** Every expanded move, not only the one the search picked out of each cell. */
-    val renderGraphAllEdges: Boolean
-
-    /** Screen-space widths, in pixels. */
+    /** Screen-space widths, in pixels, and marker sizes in blocks. */
     val coarseWidth: Int
     val trajectoryWidth: Int
     val trailWidth: Int
-    val labelSize: Double
-    val graphNodeSize: Double
-    val graphEdgeWidth: Int
     val searchTreeWidth: Int
+    val graphEdgeWidth: Int
+    val graphNodeSize: Double
     val searchTreeNodeSize: Double
     val junctionSize: Double
 
-    /**
-     * How much of the search graph the view is allowed to take, per publish.
-     *
-     * Budgets rather than a preference: the graph runs to tens of thousands of cells on
-     * a long path and the render is per-frame, so something has to bound it. What is
-     * drawn against the total is reported in the label, so raising these to look further
-     * is a decision the view makes visible rather than one it hides.
-     */
+    /** Budgets for the graph view, per publish; what is drawn against the total is in the HUD. */
     val graphRadius: Double
     val graphCellBudget: Int
     val graphEdgeBudget: Int
 
+    // Movement kinds, shared by the coarse route in the world and the tape profile in the HUD.
     val walkColor: Color
     val stepUpColor: Color
     val walkOffColor: Color
     val dropColor: Color
-    val unknownMovementColor: Color
-    val jumpCandidateColor: Color
-    val nodeColor: Color
-    val trajectoryColor: Color
     val jumpColor: Color
+    val bounceColor: Color
+    val climbColor: Color
+    val unknownMovementColor: Color
+
+    // The tape.
+    val trajectoryColor: Color
+    val executedColor: Color
+    val trailColor: Color
+    val jumpMarkerColor: Color
     val spliceColor: Color
+    val stopColor: Color
+    val partialStopColor: Color
+    val goalColor: Color
+
+    // Live planning.
+    val attemptColor: Color
+    val rejectColor: Color
     val bestCandidateColor: Color
     val candidateColor: Color
-    val stopColor: Color
-    val trailColor: Color
-    val rejectColor: Color
-    val textColor: Color
 
-    /** Graph cells are shaded between these by cost to the goal; near means cheap. */
+    // The coarse graph.
     val graphNearColor: Color
     val graphFarColor: Color
     val graphUnreachableColor: Color
     val graphFrontierColor: Color
-
-    /** Expanded moves the search did not pick; the picked ones take the cell's shade. */
-    val graphEdgeColor: Color
-
-    /** Cells holding the optimistic step into terrain the client has not streamed. */
     val graphAnchorColor: Color
 
-    /** Junctions a branch may rejoin at, and the ones it may not. */
+    // The plan graph.
     val junctionColor: Color
     val unsettledJunctionColor: Color
-
-    /** Spine segments shade between these by frames spent per block covered. */
     val segmentFastColor: Color
     val segmentSlowColor: Color
     val alternateColor: Color
 
-    /** Anchor-tree roles: the committed line, the best rival, and the live frontier. */
+    // The anchor tree.
     val spineColor: Color
     val treeBestColor: Color
     val treeOpenColor: Color

@@ -37,7 +37,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
         walk.planningYaw = player.moveYaw.toDouble()
         walk.state = State.Planning(walk.goalLabel())
         PlanningDebugChannel.begin(
-            request.pathingRenderConfig.enabled &&
+            PlanningDebugChannel.hudWanted || request.pathingRenderConfig.enabled &&
                 (request.pathingRenderConfig.renderPlanning || request.pathingRenderConfig.renderGraph),
             PlanningDebugChannel.GraphViewLimits(
                 radius = request.pathingRenderConfig.graphRadius,

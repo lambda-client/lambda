@@ -18,6 +18,14 @@ data class Telemetry(
     val executed: List<PublishedPath>,
     /** The body's observed positions, one per executed frame, capped at [WalkTelemetry.MAX_RETAINED_TRAIL_POINTS]. */
     val trail: List<Vec3d>,
+    /** Session-level counters, filled in by the session when it snapshots. */
+    val holds: Int = 0,
+    val repairs: Int = 0,
+    val leg: Int = 0,
+    val queuedWaypoints: Int = 0,
+    val sessionRestarts: Int = 0,
+    /** Frames adopted against ticks spent, see [com.lambda.pathing.session.PathingSession.publicationCadence]. */
+    val cadence: String = "",
 ) {
     companion object {
         val EMPTY = Telemetry(

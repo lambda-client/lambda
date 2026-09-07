@@ -168,6 +168,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
             path.standingRuns(), walk.publicationCadence(),
         )
         LOG.info("Pathing frames by movement: {}", path.movementProfile())
+        LOG.info("Pathing {}", path.approachProfile())
         walk.continueRoute()
     }
 

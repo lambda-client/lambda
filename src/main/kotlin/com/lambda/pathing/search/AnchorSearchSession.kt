@@ -594,9 +594,12 @@ internal class AnchorSearchSession(
         when (outcome) {
             is Outcome.Anchored -> {
                 annealing.noteGuide(outcome.anchor.stance)
-                // A moving arrival on the goal stance may be unfinishable any other way.
-                if (outcome.anchor.stance == goalStance && best == null) {
-                    finishByBraking(outcome.anchor)
+                // A moving arrival on the goal stance: with touch arrival it is the finish
+                // (brake wherever the landing rests); otherwise it may still be the only
+                // way to finish at all, kept as the fallback.
+                if (outcome.anchor.stance == goalStance) {
+                    if (config.touchArrival) finishByTouch(outcome.anchor)
+                    else if (best == null) finishByBraking(outcome.anchor)
                 }
                 frontier.admit(outcome.anchor)
                 horizon.publishPrefix(outcome.anchor, expansions)
@@ -792,6 +795,21 @@ internal class AnchorSearchSession(
     }
 
     /**
+     * Touch arrival: the body entered the goal cell grounded; braking from there is a
+     * solution proper if the rest lands on mapped ground within [MotionConstraints.touchRestRadius]
+     * of the goal at the goal's height. It competes on score like any sealed finish, so
+     * the horizon publishes it instead of rolling on past the goal.
+     */
+    private fun finishByTouch(anchor: ValueAnchor) {
+        val (solution, resting) = brakeWithResting(anchor) ?: return
+        val goal = goalPoint
+        val distance = kotlin.math.hypot(resting.position.x - goal.x, resting.position.z - goal.z)
+        if (distance > config.touchRestRadius) return
+        if (kotlin.math.abs(resting.position.y - goal.y) > GOAL_BRAKE_VERTICAL_TOLERANCE) return
+        retain(solution)
+    }
+
+    /**
      * Hand the debug channel the live counters and, if something is drawing it, the
      * anchor tree. Wall-clock paced so the sample rate is machine-independent.
      */
@@ -864,6 +882,7 @@ internal class AnchorSearchSession(
                 to = anchor.state.position,
                 role = role,
                 via = anchor.via,
+                trace = anchor.trace,
             )
         }
         probe.tree(

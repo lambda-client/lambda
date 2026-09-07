@@ -121,6 +121,7 @@ object TrajectoryPlanner {
             maxFrames = config.maxFrames,
             maxYawDegreesPerFrame = turnSpeed,
             goalRadius = config.goalRadius,
+            touchArrival = config.touchArrival,
             maxSafeFallDistance = config.maxSafeFallDistance,
             sprintModes = if (config.allowSprint) listOf(true, false) else listOf(false),
         )
@@ -333,7 +334,8 @@ object TrajectoryPlanner {
                     probe = probe,
                     // Logged on both outcomes so two sessions at one goal compare field by field.
                     onExhaustion = {
-                        LOG.info("Trajectory search {} -> {}: {} coarseSync={}ms", start, goal, it, worldSync.syncMillis)
+                        LOG.info("Trajectory search {} -> {}: {} {}", start, goal, it, worldSync.ledger)
+                        PlanningDebugChannel.publishExhaustion(it, worldSync.ledger)
                     },
                     parallelism = preparation.plannerThreads,
                     improvementBudget = preparation.improvementBudget,

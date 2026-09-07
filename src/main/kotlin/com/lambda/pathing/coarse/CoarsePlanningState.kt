@@ -129,11 +129,15 @@ internal class CoarsePlanningState(
      * extraction, then resynchronisation, then one frontier discovery. Blocking on the
      * world is [com.lambda.pathing.session.RouteResolution]'s job.
      */
-    fun routePlan(snapshotRevision: Long, cancelled: () -> Boolean = { false }): CoarseRoutePlan? =
+    fun routePlan(
+        snapshotRevision: Long,
+        cancelled: () -> Boolean = { false },
+        maxExpansions: Int = Int.MAX_VALUE,
+    ): CoarseRoutePlan? =
         planner.routePlan(snapshotRevision, cancelled = cancelled)
-            ?: planner.resynchronizedRoutePlan(snapshotRevision, cancelled = cancelled)
+            ?: planner.resynchronizedRoutePlan(snapshotRevision, cancelled = cancelled, maxExpansions = maxExpansions)
             ?: run {
-                if (planner.discoverReachableFrontier(cancelled)) {
+                if (planner.discoverReachableFrontier(cancelled, maxExpansions)) {
                     planner.routePlan(snapshotRevision, cancelled = cancelled)
                 } else null
             }

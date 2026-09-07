@@ -54,6 +54,27 @@ data class PublishedPath(
     }
 
     /** Frames per movement kind, heaviest first, as `movement=frames/segments`. */
+    /**
+     * How the tape ends at [finalGoal]: the frame it first comes within a block, the frames
+     * spent from there to rest, the furthest it strays afterwards, and how often it leaves
+     * the goal's neighbourhood and returns. A loop count above zero is a walk around the goal.
+     */
+    fun approachProfile(): String {
+        val gx = finalGoal.x + 0.5
+        val gz = finalGoal.z + 0.5
+        val distances = plan.frames.map { kotlin.math.hypot(it.state.position.x - gx, it.state.position.z - gz) }
+        val near = distances.indexOfFirst { it <= 1.0 }
+        if (near < 0) return "approach: never within a block of the goal (final %.2f)".format(distances.lastOrNull() ?: Double.NaN)
+        val tail = distances.subList(near, distances.size)
+        var left = false
+        var loops = 0
+        tail.forEach { d ->
+            if (d > 1.5) left = true
+            if (left && d <= 1.0) { loops++; left = false }
+        }
+        return "approach: near@%d tail=%d stray=%.2f loops=%d final=%.2f".format(near, tail.size, tail.max(), loops, distances.last())
+    }
+
     fun movementProfile(): String = segments
         .groupBy { it.movement }
         .mapValues { (_, parts) -> parts.sumOf { it.frames } to parts.size }

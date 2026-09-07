@@ -116,6 +116,9 @@ class CoarsePlanner(
         PackedStance.pack(stance, SpeedClass.MOVING) in search.queue ||
             PackedStance.pack(stance, SpeedClass.STOPPED) in search.queue
 
+    /** The transitions the lazy graph has materialised out of [node]; empty when the cell was never expanded. */
+    fun knownEdgesOf(node: Stance): List<CoarseEdge> = edgeCache.cachedEdgesFrom(node) ?: emptyList()
+
     fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
         val merged = HashMap<Stance, Double>()
         for (speed in SpeedClass.entries) {
@@ -222,9 +225,12 @@ class CoarsePlanner(
     private var sweepFrom: Stance? = null
     private var sweepDirty = false
 
-    fun discoverReachableFrontier(cancelled: () -> Boolean = { false }): Boolean {
+    fun discoverReachableFrontier(
+        cancelled: () -> Boolean = { false },
+        maxExpansions: Int = Int.MAX_VALUE,
+    ): Boolean {
         val changed = advanceReachableFrontier(cancelled = cancelled)
-        if (changed) repair(timeBudget = Duration.INFINITE, cancelled = cancelled)
+        if (changed) repair(timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled)
         return changed
     }
 
@@ -313,6 +319,7 @@ class CoarsePlanner(
         cancelled: () -> Boolean = { false },
         maxLength: Int = 10_000,
         maxRounds: Int = ROUTE_RESYNCHRONIZATION_ROUNDS,
+        maxExpansions: Int = Int.MAX_VALUE,
     ): CoarseRoutePlan? {
         repeat(maxRounds) {
             if (cancelled()) return null
@@ -321,7 +328,7 @@ class CoarsePlanner(
             if (synchronized.edgesRemoved + synchronized.edgesChanged + synchronized.edgesAdded == 0) {
                 return null
             }
-            repair(timeBudget = Duration.INFINITE, cancelled = cancelled)
+            repair(timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled)
             routePlan(snapshotRevision, maxLength)?.let { return it }
         }
         return null

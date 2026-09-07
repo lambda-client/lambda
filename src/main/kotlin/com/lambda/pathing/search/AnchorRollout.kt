@@ -255,6 +255,7 @@ internal class AnchorRollout(
                 it.via = action.movement
                 it.decision = action
                 it.points = points
+                if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(frames)
             },
         )
     }
@@ -285,4 +286,5 @@ internal class AnchorRollout(
             blockedProgress = progressOf(anchor.stance),
         ))
     }
+
 }

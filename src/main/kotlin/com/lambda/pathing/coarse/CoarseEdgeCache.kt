@@ -59,6 +59,9 @@ internal class CoarseEdgeCache(
 
     fun edgesFrom(origin: Stance): List<CoarseEdge> = edgesFrom(key(origin))
 
+    /** The cached outgoing edges of [origin], or null when never computed. Never computes: a read-only peek for views. */
+    fun cachedEdgesFrom(origin: Stance): List<CoarseEdge>? = outgoing.get(key(origin))
+
     fun edgesTo(target: Stance): List<CoarseEdge> = edgesTo(key(target))
 
     private fun computeEdgesFrom(origin: Stance): List<CoarseEdge> {

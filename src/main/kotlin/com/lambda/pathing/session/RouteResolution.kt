@@ -36,7 +36,7 @@ internal class RouteResolution(
         val ledger = StringBuilder()
 
         var t = System.nanoTime()
-        var route = state.routePlan(snapshotRevision, cancelled)
+        var route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
         ledger.append("extract %d".format((System.nanoTime() - t) / 1_000_000L))
         if (route == null) {
             t = System.nanoTime()
@@ -49,7 +49,7 @@ internal class RouteResolution(
                 )
                 ledger.append(", repair %d".format((System.nanoTime() - t) / 1_000_000L))
                 t = System.nanoTime()
-                route = state.routePlan(snapshotRevision, cancelled)
+                route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
                 ledger.append(", extract %d".format((System.nanoTime() - t) / 1_000_000L))
             }
         }
@@ -88,7 +88,7 @@ internal class RouteResolution(
                 )
                 repairNanos += System.nanoTime() - t
                 t = System.nanoTime()
-                route = state.routePlan(snapshotRevision, cancelled)
+                route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
                 extractNanos += System.nanoTime() - t
             }
             ledger.append(
@@ -157,7 +157,7 @@ internal class RouteResolution(
             )
             grantRepairNanos += System.nanoTime() - t
             t = System.nanoTime()
-            route = state.routePlan(snapshotRevision, cancelled)
+            route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
             grantExtractNanos += System.nanoTime() - t
             if (route == null) {
                 lastResolveReport = ledger.toString()
@@ -179,7 +179,7 @@ internal class RouteResolution(
                 timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
             )
 
-            route = state.routePlan(snapshotRevision, cancelled) ?: route
+            route = state.routePlan(snapshotRevision, cancelled, maxExpansions) ?: route
         }
         ledger.append("; total %d ms".format((System.nanoTime() - resolveStarted) / 1_000_000L))
         lastResolveReport = ledger.toString()

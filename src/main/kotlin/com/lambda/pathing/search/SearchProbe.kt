@@ -28,6 +28,8 @@ class SearchTreeEdge(
     val to: Vec3d,
     val role: SearchNodeRole,
     val via: MovementId?,
+    /** Body positions between [from] and [to], so the edge is drawn as the rollout ran, not as a chord. */
+    val trace: List<Vec3d> = emptyList(),
 )
 
 /** The live anchor tree, sampled for drawing: the spine is the committed tape, the rest is the search. */
