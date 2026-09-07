@@ -38,11 +38,24 @@ class LadderCatchFromRestProbeTest {
         // Walked under the corpus tempo (a body consuming the tape), as the field does.
         val clock = VirtualSearchClock(microsPerExpansion = microsPerExpansion)
         val seen = HashMap<String, Int>()
+        val byStance = java.util.TreeMap<Int, IntArray>() // route index -> [expansions, anchored]
+        val routeIndex = route.nodes.withIndex().associate { (i, n) -> n to i }
         val probe = object : com.lambda.pathing.search.SearchProbe {
             override fun expansion(from: com.lambda.pathing.core.Stance, action: com.lambda.pathing.actions.TrajectoryDecision, diagnostic: com.lambda.pathing.search.TrajectoryDiagnostic?) {
-                if (kotlin.math.abs(from.x - watch.x) > 2 || kotlin.math.abs(from.z - watch.z) > 2 || kotlin.math.abs(from.y - watch.y) > 2) return
-                val key = "$from " + action.toString().replace(Regex("solution=LaunchSolution\\([^)]*\\)"), "sol").take(120) + " -> " + (diagnostic?.toString()?.take(90) ?: "anchored")
-                seen.merge(key, 1, Int::plus)
+                val idx = routeIndex[from] ?: -1
+                val cell = byStance.getOrPut(idx) { IntArray(2) }
+                cell[0]++
+                if (diagnostic == null) cell[1]++
+                if (idx in 12..16) {
+                    val key = "$idx $from ${action.toString().substringBefore("(")}:${(action as? com.lambda.pathing.actions.TrajectoryDecision.Launch)?.step ?: (action as? com.lambda.pathing.actions.TrajectoryDecision.Walk)?.step ?: ""} -> " + (diagnostic?.toString()?.substringBefore("(") ?: "anchored")
+                    seen.merge(key, 1, Int::plus)
+                }
+            }
+            override fun restarted(moving: Boolean, seedElapsed: Int, executing: Int, expansions: Int, drops: Int, spent: Int) {
+                println("[catch]   restart moving=$moving seed=$seedElapsed cursor=$executing expansions=$expansions drops=$drops")
+            }
+            override fun publishRefused(reason: () -> String, anchorElapsed: Int, tipElapsed: Int, executing: Int) {
+                seen.merge("refused ${reason()}", 1, Int::plus)
             }
         }
         val outcome = TrajectoryPlanner.walkHorizon(
@@ -50,7 +63,8 @@ class LadderCatchFromRestProbeTest {
             cursorFrame = { clock.cursorFrame() }, publish = { _, _ -> }, started = System.currentTimeMillis(),
             clock = clock, probe = probe,
         )
-        seen.entries.sortedByDescending { it.value }.take(16).forEach { (k, n) -> println("[catch]   $name x$n $k") }
+        println("[catch]   expansions by route index: " + byStance.entries.joinToString(" ") { "${it.key}:${it.value[0]}/${it.value[1]}" })
+        seen.entries.sortedByDescending { it.value }.take(30).forEach { (k, n) -> println("[catch]   x$n $k") }
         println("[catch] tempo=${microsPerExpansion}us $name " + when (outcome) {
             is PathPlanResult.Planned -> "PLANNED frames=${outcome.path.plan.frames.size}"
             is PathPlanResult.Failed -> "FAILED ${outcome.failure.message.take(900)}"
