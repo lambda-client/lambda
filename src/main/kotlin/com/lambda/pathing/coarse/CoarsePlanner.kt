@@ -10,6 +10,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.actions.CoarseEdge
 import it.unimi.dsi.fastutil.longs.LongArrayList
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -190,13 +191,36 @@ class CoarsePlanner(
     fun advanceReachableFrontier(
         from: Stance = PackedStance.stance(search.start),
         cancelled: () -> Boolean = { false },
-    ): Boolean = advanceFrontier(
-        FrontierAnchors.sweep(
-            view, moves, from, goalStance, maxNodes = sweepBudget, cancelled = cancelled,
+    ): Boolean {
+        if (from == goalStance || FrontierAnchors.refusesOptimism(view, moves, goalStance)) {
+            return advanceFrontier(emptyMap())
+        }
+        // Resume the flood where knowledge grew. Only origins that read an unknown cell can
+        // gain edges through capture, so re-expanding those (with the interior already
+        // visited) reaches everything a fresh flood would. Mutations and a moved start
+        // invalidate that argument and force a full sweep.
+        val incremental = sweepFrom == from && !sweepDirty && sweptVisited.isNotEmpty()
+        val seeds: Collection<Stance> = if (incremental) ArrayList(sweptIncomplete) else {
+            if (!moves.isStance(view, from)) return advanceFrontier(emptyMap())
+            sweptVisited.clear()
+            sweptIncomplete.clear()
+            sweepFrom = from
+            sweepDirty = false
+            listOf(from)
+        }
+        val probed = FrontierAnchors.sweep(
+            view, moves, seeds, goalStance, sweptVisited, sweptIncomplete,
+            maxNodes = sweepBudget, cancelled = cancelled,
             capturable = capturable, onCaptureLag = onCaptureLag,
             edges = edgeCache::edgesFrom,
-        ),
-    )
+        )
+        return advanceFrontier(probed)
+    }
+
+    private val sweptVisited = HashSet<Stance>()
+    private val sweptIncomplete = HashSet<Stance>()
+    private var sweepFrom: Stance? = null
+    private var sweepDirty = false
 
     fun discoverReachableFrontier(cancelled: () -> Boolean = { false }): Boolean {
         val changed = advanceReachableFrontier(cancelled = cancelled)
@@ -359,21 +383,59 @@ class CoarsePlanner(
     }
 
     fun worldChanged(changed: Iterable<VoxelPos>): LongDStarLite.SynchronizationResult {
+        sweepDirty = true
         edgeCache.invalidateVoxels(changed)
         val affected = HashSet<Stance>()
         changed.forEach { affected += moves.affectedOrigins(it) }
         return synchronizeStances(affected)
     }
 
-    fun chunksChanged(chunks: Iterable<PathingChunk>): LongDStarLite.SynchronizationResult {
+    /**
+     * Chunk arrivals: evict the affected cache columns at once, then regenerate the
+     * affected graph nodes' edges -- all of them, or at most [maxStances] now with the
+     * rest left in [pendingSyncSize] for [continueSync]. Slicing keeps a streaming world
+     * from blocking the search thread; a node not yet resynchronised simply keeps its
+     * edges from before the arrival, which is knowledge lag, not inconsistency.
+     */
+    fun chunksChanged(
+        chunks: Iterable<PathingChunk>,
+        maxStances: Int = Int.MAX_VALUE,
+        arrivalsOnly: Boolean = false,
+    ): LongDStarLite.SynchronizationResult {
         // Range-based cache eviction, not graph-node-filtered: the cache can hold
-        // stances the graph never adopted (steering reads, rim origins).
-        edgeCache.invalidateChunks(chunks)
-        val affected = HashSet<Stance>()
+        // stances the graph never adopted (steering reads, rim origins). For pure
+        // arrivals only origins that read an unknown cell can change; the rest keep
+        // both their cache entry and their graph edges.
+        if (!arrivalsOnly) sweepDirty = true
         val ranges = chunks.map(moves::originColumnRanges)
         forEachGraphStance { x, y, z ->
-            if (ranges.any { (xs, zs) -> x in xs && z in zs }) affected += Stance(x, y, z)
+            if (ranges.any { (xs, zs) -> x in xs && z in zs }) {
+                if (arrivalsOnly && edgeCache.isComplete(Stance(x, y, z))) return@forEachGraphStance
+                pendingSync.add(PackedStance.pack(x, y, z, SpeedClass.STOPPED))
+            }
         }
-        return synchronizeStances(affected)
+        edgeCache.invalidateChunks(chunks, arrivalsOnly)
+        return continueSync(maxStances)
     }
+
+    /** Stances whose edges still await regeneration after a sliced [chunksChanged]. */
+    val pendingSyncSize: Int get() = pendingSync.size
+
+    /** Regenerates up to [maxStances] pending stances, lowest packed key first. */
+    fun continueSync(maxStances: Int = Int.MAX_VALUE): LongDStarLite.SynchronizationResult {
+        if (pendingSync.isEmpty()) return LongDStarLite.SynchronizationResult(0, 0, 0, 0)
+        val ordered = pendingSync.toLongArray()
+        ordered.sort()
+        val count = minOf(maxStances, ordered.size)
+        val lifted = LongArrayList(count * 2)
+        for (i in 0 until count) {
+            val key = ordered[i]
+            pendingSync.remove(key)
+            lifted.add(PackedStance.withSpeed(key, SpeedClass.MOVING))
+            lifted.add(key)
+        }
+        return search.synchronizeAffected(lifted)
+    }
+
+    private val pendingSync = LongOpenHashSet()
 }

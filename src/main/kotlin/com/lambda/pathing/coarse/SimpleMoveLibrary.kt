@@ -25,6 +25,8 @@ class SimpleMoveLibrary private constructor(
     private val maxReadX = readOffsets.maxOf(VoxelPos::x)
     private val minReadZ = readOffsets.minOf(VoxelPos::z)
     private val maxReadZ = readOffsets.maxOf(VoxelPos::z)
+    private val minReadY = minOf(readOffsets.minOf(VoxelPos::y), -1)
+    private val maxReadY = maxOf(readOffsets.maxOf(VoxelPos::y), 1)
 
     /**
      * Read offsets relative to each template's TARGET: the mirror of [readOffsets]
@@ -56,6 +58,36 @@ class SimpleMoveLibrary private constructor(
         val descentTicksPerBlock: Double,
         val straightTicksPerBlock: Double,
     )
+
+    /**
+     * True when any cell an outgoing edge of [origin] can read is unknown in [view]. An
+     * origin whose reads are all known has edges that no later capture can change, so
+     * arrival resynchronisation may skip it; see docs/decisions/world-capture.md.
+     */
+    fun readsUnknown(view: CoarseVoxelView, origin: Stance): Boolean {
+        // Knowledge is section-granular in every view (captured sections, granted chunk
+        // columns), so one sample per section overlapping the read box decides it.
+        val x0 = origin.x + minReadX
+        val x1 = origin.x + maxReadX
+        val y0 = origin.y + minReadY
+        val y1 = origin.y + maxReadY
+        val z0 = origin.z + minReadZ
+        val z1 = origin.z + maxReadZ
+        var x = x0
+        while (x <= x1) {
+            var z = z0
+            while (z <= z1) {
+                var y = y0
+                while (y <= y1) {
+                    if (!view.isKnown(x, y, z)) return true
+                    y = (y or 15) + 1
+                }
+                z = (z or 15) + 1
+            }
+            x = (x or 15) + 1
+        }
+        return false
+    }
 
     fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
         if (stance.y !in view.simulableStanceY) return false
