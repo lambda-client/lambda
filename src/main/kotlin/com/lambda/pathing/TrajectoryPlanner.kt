@@ -13,7 +13,6 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.ContinuousSyncPolicy
 import com.lambda.pathing.session.PlanningCancellation
 import com.lambda.pathing.session.RouteResolution
-import com.lambda.pathing.world.changedChunkSet
 import com.lambda.pathing.debug.DebugChannelProbe
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
@@ -235,7 +234,8 @@ object TrajectoryPlanner {
                         )
                     }.onFailure { LOG.error("Could not write the $kind dump", it) }
                 }
-                coarseState.repairFrom(start, emptySet(), batch.changedChunkSet())
+                coarseState.repairFrom(start, emptySet(), emptySet())
+                coarseState.applyEvents(batch)
                 val planner = coarseState.planner
                 val routeResolution = RouteResolution(coarseState)
                 val coarseStarted = System.nanoTime()
@@ -332,7 +332,9 @@ object TrajectoryPlanner {
                     adoptedSequence = adoptedSequenceProvider,
                     probe = probe,
                     // Logged on both outcomes so two sessions at one goal compare field by field.
-                    onExhaustion = { LOG.info("Trajectory search {} -> {}: {}", start, goal, it) },
+                    onExhaustion = {
+                        LOG.info("Trajectory search {} -> {}: {} coarseSync={}ms", start, goal, it, worldSync.syncMillis)
+                    },
                     parallelism = preparation.plannerThreads,
                     improvementBudget = preparation.improvementBudget,
                     momentumGait = preparation.momentumGait,

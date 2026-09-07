@@ -31,6 +31,16 @@ class WorldEventBatch(
 internal fun WorldEventBatch.changedChunkSet(): Set<PathingChunk> =
     chunks + sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
 
+/** Chunks whose known content may have changed: reloads and re-captured (mutated) sections. */
+internal fun WorldEventBatch.mutatedChunkSet(): Set<PathingChunk> =
+    chunks + mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
+
+/** Chunks that only gained knowledge: freshly captured sections, minus anything mutated. */
+internal fun WorldEventBatch.arrivalChunkSet(): Set<PathingChunk> {
+    val mutated = mutatedChunkSet()
+    return sections.mapNotNullTo(HashSet()) { PathingChunk(it.x, it.z).takeUnless { chunk -> chunk in mutated } }
+}
+
 /**
  * The streaming world the planner reads: owns the [snapshot], captures sections from a
  * [CaptureSource] on the client thread by interest tier, and publishes changes through a

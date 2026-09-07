@@ -33,11 +33,23 @@ internal class CoarseEdgeCache(
     /** Targets whose incoming list is empty only because the target is not a stance. */
     private val nonStanceTargets = LongOpenHashSet()
 
+    /** Origins whose outgoing edges were computed with every read cell known. */
+    private val completeOrigins = LongOpenHashSet()
+
     /** Outgoing edges of the stance of [node]; the speed bit is ignored. */
     fun edgesFrom(node: Long): List<CoarseEdge> {
         val key = stanceKey(node)
-        return outgoing.get(key) ?: computeEdgesFrom(PackedStance.stance(key)).also { outgoing.put(key, it) }
+        return outgoing.get(key) ?: run {
+            val stance = PackedStance.stance(key)
+            val edges = computeEdgesFrom(stance)
+            outgoing.put(key, edges)
+            if (!moves.readsUnknown(view, stance)) completeOrigins.add(key)
+            edges
+        }
     }
+
+    /** True when [stance]'s cached outgoing edges cannot change through further capture. */
+    fun isComplete(stance: Stance): Boolean = completeOrigins.contains(key(stance))
 
     /** Incoming edges of the stance of [node]; the speed bit is ignored. */
     fun edgesTo(node: Long): List<CoarseEdge> {
@@ -77,6 +89,7 @@ internal class CoarseEdgeCache(
         for (stance in stances) {
             val k = key(stance)
             outgoing.remove(k)
+            completeOrigins.remove(k)
             incoming.remove(k)
             nonStanceTargets.remove(k)
         }
@@ -84,7 +97,11 @@ internal class CoarseEdgeCache(
 
     fun invalidateVoxels(changed: Iterable<VoxelPos>) {
         for (voxel in changed) {
-            for (origin in moves.affectedOrigins(voxel)) outgoing.remove(key(origin))
+            for (origin in moves.affectedOrigins(voxel)) {
+                val k = key(origin)
+                outgoing.remove(k)
+                completeOrigins.remove(k)
+            }
             for (target in moves.affectedTargets(voxel)) {
                 val k = key(target)
                 incoming.remove(k)
@@ -93,19 +110,25 @@ internal class CoarseEdgeCache(
         }
     }
 
-    fun invalidateChunks(chunks: Iterable<PathingChunk>) {
+    /**
+     * Evicts what [chunks] can have changed. [arrivalsOnly] means the chunks went from
+     * unknown to known and nothing known changed: complete origins keep their edges.
+     */
+    fun invalidateChunks(chunks: Iterable<PathingChunk>, arrivalsOnly: Boolean = false) {
         val originRanges = chunks.map(moves::originColumnRanges)
         if (originRanges.isEmpty()) return
         val targetRanges = chunks.map(moves::targetColumnRanges)
-        removeColumns(outgoing.keys, originRanges)
+        removeColumns(outgoing.keys, originRanges, keep = if (arrivalsOnly) completeOrigins else null)
+        if (!arrivalsOnly) removeColumns(completeOrigins, originRanges)
         removeColumns(incoming.keys, targetRanges)
         removeColumns(nonStanceTargets, targetRanges)
     }
 
-    private fun removeColumns(keys: LongSet, ranges: List<Pair<IntRange, IntRange>>) {
+    private fun removeColumns(keys: LongSet, ranges: List<Pair<IntRange, IntRange>>, keep: LongSet? = null) {
         val iterator = keys.iterator()
         while (iterator.hasNext()) {
             val k = iterator.nextLong()
+            if (keep != null && keep.contains(k)) continue
             val x = PackedStance.unpackX(k)
             val z = PackedStance.unpackZ(k)
             if (ranges.any { (xs, zs) -> x in xs && z in zs }) iterator.remove()

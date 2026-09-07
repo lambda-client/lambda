@@ -117,9 +117,13 @@ internal class PlanningLauncher(private val walk: PathingSession) {
                         completed.failure.message,
                     )
                     planSuccessor()
-                } else if (walk.sessionRestarts < MAX_SESSION_RESTARTS) {
-                    // Dead-ended before anything was published or installed --
-                    // retry from rest instead of abandoning the walk outright.
+                } else if (walk.sessionRestarts < MAX_SESSION_RESTARTS &&
+                    walk.journey?.world?.revision != session.launchRevision
+                ) {
+                    // Dead-ended before anything was published or installed. The planner
+                    // is deterministic, so a retry only makes sense when the world has
+                    // learned something since the launch; on an unchanged world the
+                    // answer would be the same and the failure is final.
                     walk.sessionRestarts++
                     walk.planningSession = null
                     LOG.info(
@@ -227,6 +231,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
             onLaunchFailure(failure)
             return
         }
+        session.launchRevision = journey.world.revision
         session.attach(planning)
 
         planning.whenCompleteAsync({ result, failure -> onComplete(result, failure) }, mc)

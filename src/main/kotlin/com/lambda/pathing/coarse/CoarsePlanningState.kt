@@ -10,6 +10,9 @@ import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
+import com.lambda.pathing.world.WorldEventBatch
+import com.lambda.pathing.world.arrivalChunkSet
+import com.lambda.pathing.world.mutatedChunkSet
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
@@ -67,9 +70,18 @@ internal class CoarsePlanningState(
         grantChunksAround(start)
     }
 
+    /**
+     * Capturability is scoped to the horizon: a cell past the ring is unknown by design,
+     * not by lag, so it anchors like unstreamed terrain. Without this the sweep waits
+     * forever on chunks the world can capture but the view will never show.
+     */
+    private val capturableInView: (Int, Int) -> Boolean =
+        if (horizonChunks <= 0) capturable
+        else { cx, cz -> PathingChunk(cx, cz) in grantedChunks && capturable(cx, cz) }
+
     val planner = CoarsePlanner(
         view, moves, start, goal,
-        sweepBudget = frontierSweepBudget, capturable = capturable,
+        sweepBudget = frontierSweepBudget, capturable = capturableInView,
         onCaptureLag = collectCaptureLag,
     )
 
@@ -78,12 +90,31 @@ internal class CoarsePlanningState(
 
         val revealed = grantChunksAround(start)
         if (changed.isNotEmpty()) planner.worldChanged(changed)
-        val arrivals = changedChunks + revealed
-        if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals)
+        if (changedChunks.isNotEmpty()) planner.chunksChanged(changedChunks)
+        if (revealed.isNotEmpty()) planner.chunksChanged(revealed, arrivalsOnly = true)
     }
 
-    fun applyEvents(changedChunks: Set<PathingChunk>) {
-        if (changedChunks.isNotEmpty()) planner.chunksChanged(changedChunks)
+    /**
+     * A world batch mid-walk: mutated chunks resynchronise fully, pure arrivals only where
+     * an origin read the unknown. [maxStances] bounds the work done now, see [continueSync].
+     */
+    fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {
+        val mutated = batch.mutatedChunkSet()
+        if (mutated.isNotEmpty()) planner.chunksChanged(mutated, maxStances)
+        val arrivals = batch.arrivalChunkSet()
+        if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals, maxStances, arrivalsOnly = true)
+    }
+
+    /** Newly granted horizon chunks: the view went from unknown to known, nothing known changed. */
+    fun revealChunks(revealed: Set<PathingChunk>) {
+        if (revealed.isNotEmpty()) planner.chunksChanged(revealed, arrivalsOnly = true)
+    }
+
+    /** Resynchronises up to [maxStances] more graph nodes; true when work remains after this call. */
+    fun continueSync(maxStances: Int): Boolean {
+        if (planner.pendingSyncSize == 0) return false
+        planner.continueSync(maxStances)
+        return planner.pendingSyncSize > 0
     }
 
     /** Demand exactly the sections whose lag suppressed anchors, then forget them. */

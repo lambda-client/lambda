@@ -204,9 +204,15 @@ internal class AnchorSearchSession(
 
     fun run(): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
+        // A body on a block's edge floors to a cell that is no stance; the coarse route
+        // starts from its supporting block, so the root does too.
+        val bodyStance = stanceOf(initialState)
+        val rootStance = if (field.isMapped(bodyStance)) bodyStance else {
+            ValueFieldAnchorSearch.supportedStanceOf(initialState)?.takeIf { field.isMapped(it) } ?: bodyStance
+        }
         val root = ValueAnchor(
             state = initialState,
-            stance = stanceOf(initialState),
+            stance = rootStance,
             elapsed = 0,
             collisionEvents = 0,
             launchMargin = 0,
@@ -217,7 +223,7 @@ internal class AnchorSearchSession(
         )
         frontier.admit(root)
 
-        annealing.noteGuide(stanceOf(initialState))
+        annealing.noteGuide(rootStance)
         horizon.begin()
         constructSpine(root)
         while (true) {
