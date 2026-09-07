@@ -18,12 +18,10 @@ import kotlin.math.sqrt
 
 object JumpArcProbe {
     /**
-     * [reads] is derived on demand by re-running the sweep with recording enabled:
-     * the only consumer is route-plan dependency collection, which reads it for the
-     * handful of edges on a resolved route immediately after generating them -- while
-     * the thousands of probes behind graph expansion never ask. Recording eagerly put
-     * a hash-set insert on every swept cell of every one of those probes, which was a
-     * measurable slice of lazy-graph construction.
+     * [reads] is derived on demand by re-running the sweep with recording enabled: only
+     * route-plan dependency collection asks, for a handful of edges, and eager recording
+     * on every probe was a measurable slice of graph construction.
+     * See docs/decisions/launch-solver.md (lazy sweep recording).
      */
     class Reachable(
         val solution: LaunchSolution,
@@ -290,10 +288,9 @@ object JumpArcProbe {
         failure: SweepFailure? = null,
 
         /**
-         * Swept body half-width. The centre line uses the forgiving core (the rollout
-         * certifies reality); a DODGE line is chosen because the corridor is known
-         * tight, so it sweeps the full body instead -- a dodge that only clears the
-         * core clips the real shoulders and fails certification every time.
+         * Swept body half-width: the forgiving core on the centre line (the rollout
+         * certifies reality), the full body on a DODGE line, whose corridor is known
+         * tight. See docs/decisions/launch-solver.md (dodge lines).
          */
         halfWidth: Double = CORE_HALF_WIDTH,
     ): Double? {

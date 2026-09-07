@@ -14,41 +14,33 @@ import org.junit.jupiter.api.Tag
  * 82% of anchors created are merged or evicted on arrival at `frontierPerKey = 3`, while
  * the rejoin experiments measured bodies one bucket apart sharing only 45% of their
  * decision futures -- so the beam may be throwing away the anchor that makes the jump and
- * paying to rediscover it. Two reads on one sweep: the cap against tape quality and
- * search cost, and -- on the relaxed rung -- the shipping policy run in shadow, counting
- * winning-lineage anchors it would have refused. Non-gating report.
+ * paying to rediscover it. One read per rung: the cap and domination policy against tape
+ * quality and search cost. Non-gating report.
  */
 @Tag("bedrock-corpus")
 class BeamEvictionProbeTest {
 
     @Test
-    fun `per-key cap and domination against tape quality, with the shipping beam in shadow`() {
+    fun `per-key cap and domination against tape quality`() {
         val scenarios = ProbeScenarios.sample()
-        println("[beam] rungs: perKey x domination; shadow = shipping policy (perKey=3, domination) mirrored on relaxed rungs")
+        println("[beam] rungs: perKey x domination")
         for (rung in RUNGS) {
             var arrived = 0
             var frames = 0
             var expansions = 0L
             var admitted = 0L
             var refused = 0L
-            var shadowRefusals = 0L
-            var lineage = 0
-            var lineageRefused = 0
             val per = StringBuilder()
             for (scenario in scenarios) {
                 val outcome = ProbeScenarios.plan(
                     scenario,
                     frontierPerKey = rung.perKey,
                     frontierDomination = rung.domination,
-                    beamShadowPerKey = if (rung.shadowed) SHIPPING else 0,
                 )
                 for (exhaustion in outcome.exhaustions) {
                     expansions += exhaustion.expansions.toLong()
                     admitted += exhaustion.anchorsAdmitted.toLong()
                     refused += (exhaustion.beamDominated + exhaustion.beamCapped).toLong()
-                    shadowRefusals += exhaustion.beamShadowRefusals.toLong()
-                    lineage += exhaustion.beamShadowLineage
-                    lineageRefused += exhaustion.beamShadowLineageRefused
                 }
                 val path = (outcome.result as? PathPlanResult.Planned)?.path
                 if (path != null && !path.partial) {
@@ -57,20 +49,14 @@ class BeamEvictionProbeTest {
                     per.append(" ").append(path.plan.frames.size)
                 } else per.append(" FAIL")
             }
-            val line = StringBuilder(
-                "[beam] perKey=%-2d dom=%-14s arrived=%d/%d  frames=%-5d expansions=%-8d admitted=%-7d refused=%-7d"
-                    .format(rung.perKey, rung.domination, arrived, scenarios.size, frames, expansions, admitted, refused),
+            println(
+                "[beam] perKey=%-2d dom=%-14s arrived=%d/%d  frames=%-5d expansions=%-8d admitted=%-7d refused=%-7d |%s"
+                    .format(rung.perKey, rung.domination, arrived, scenarios.size, frames, expansions, admitted, refused, per),
             )
-            if (rung.shadowed) {
-                line.append(
-                    "  shadowRefusals=%d lineageRefused=%d/%d".format(shadowRefusals, lineageRefused, lineage),
-                )
-            }
-            println(line.append(" |").append(per))
         }
     }
 
-    private class Rung(val perKey: Int, val domination: FrontierDomination, val shadowed: Boolean = false)
+    private class Rung(val perKey: Int, val domination: FrontierDomination)
 
     /**
      * The corpus at production speed: ~600 expansions per body frame instead of the
@@ -123,8 +109,7 @@ class BeamEvictionProbeTest {
         val RUNGS = listOf(
             Rung(3, domination = FrontierDomination.FULL),
             Rung(3, domination = FrontierDomination.POSITION_AWARE),
-            Rung(64, domination = FrontierDomination.OFF, shadowed = true),
+            Rung(64, domination = FrontierDomination.OFF),
         )
-        const val SHIPPING = 3
     }
 }

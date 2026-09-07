@@ -8,13 +8,10 @@ import kotlin.math.hypot
 object FrontierAnchors {
 
     /**
-     * Chunks the client could capture into the snapshot right now. Unknown cells in
-     * such a chunk are KNOWLEDGE LAG, not frontier: the right response is waiting for
-     * capture, never an optimistic anchor. Anchoring on them is how a cold start walks
-     * random two-block routes toward its own uncaptured surroundings, each retired by
-     * the next capture batch -- the body wanders until the real graph connects. The
-     * default claims nothing is capturable, which preserves the pure-view behaviour
-     * for callers without a client world (tests, replays).
+     * Default `capturable` predicate: unknown cells in a chunk the client could capture
+     * now are knowledge lag, never frontier. Claiming nothing is capturable preserves
+     * pure-view behaviour for callers without a client world (tests, replays).
+     * See docs/decisions/anchor-lifecycle.md.
      */
     val NOTHING_CAPTURABLE: (Int, Int) -> Boolean = { _, _ -> false }
 
@@ -29,12 +26,7 @@ object FrontierAnchors {
         capturable: (Int, Int) -> Boolean = NOTHING_CAPTURABLE,
         onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 
-        /**
-         * Edge source; callers with a session edge cache pass it so repeated sweeps
-         * (cold-start resolve retries especially) reuse probes instead of re-running
-         * the full template loop per visited node -- on jump-heavy terrain that was
-         * hundreds of milliseconds per sweep.
-         */
+        /** Edge source; pass the session [CoarseEdgeCache] so repeated sweeps reuse probes. */
         edges: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
     ): Map<Stance, Double> {
         if (from == goal || refusesOptimism(view, moves, goal)) return emptyMap()

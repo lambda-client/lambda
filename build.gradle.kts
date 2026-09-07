@@ -215,10 +215,24 @@ dependencies {
 tasks {
     test {
         useJUnitPlatform {
-            excludeTags("bedrock-corpus")
+            excludeTags("bedrock-corpus", "bench")
         }
         maxHeapSize = "4g"
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+    }
+
+    register<Test>("bench") {
+        description = "Planner wall-time benchmark: us per coarse node, per simulated tick, per expansion."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform {
+            includeTags("bench")
+        }
+        maxHeapSize = "4g"
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        testLogging { showStandardStreams = true }
+        outputs.upToDateWhen { false }
     }
 
     register<Test>("bedrockCorpus") {

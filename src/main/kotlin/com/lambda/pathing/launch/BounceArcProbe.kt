@@ -59,10 +59,7 @@ object BounceArcProbe {
         val padY = from.y - drop - 1
 
         // No slime under the flight ray, no bounce: everything past this line costs
-        // dozens of arc solves per launch style, and on jump-heavy terrain most
-        // geometrically matching templates have nothing bouncy beneath them -- the
-        // unfiltered probe measured around five MILLISECONDS per graph node, which
-        // starved the coarse wave inside the startup knowledge wait on a long course.
+        // dozens of arc solves per launch style. See docs/decisions/launch-solver.md.
         var anyBouncy = false
         var along = 1.0
         while (along < length + 0.5) {
@@ -83,15 +80,11 @@ object BounceArcProbe {
         val landingOffset = view.surfaceOffset(from.x + dx, from.y + rise - 1, from.z + dz)
         val riseHeight = rise + landingOffset - launchOffset
 
-        // The ceiling over the LAUNCH ASCENT: the lowest blocking cell within jump
-        // reach above the ray's first few blocks -- where the arc is actually high.
-        // The solver clamps its ascent there with the vertical speed zeroed --
-        // vanilla's rising head collision -- so a jump that merely GRAZES a
-        // three-block ceiling (by 0.05, on the field course) still solves instead of
-        // flying an arc the sweep must refuse. Deliberately NOT the whole ray: the
-        // same course hangs a lower ceiling over the LANDING, four blocks above the
-        // descending body, and folding it into the clamp buried the launch. A
-        // ceiling the arc genuinely hits further out still fails the sweep honestly.
+        // The ceiling over the LAUNCH ASCENT only: the solver clamps the ascent there
+        // with vertical speed zeroed (vanilla's rising head collision), so a grazing
+        // jump still solves. Not the whole ray -- a lower ceiling over the descending
+        // landing would bury the launch; one the arc genuinely hits still fails the sweep.
+        // See docs/decisions/launch-solver.md (headroom).
         var ceilingBottom = Double.POSITIVE_INFINITY
         run {
             val feetCell = floor(launchHeight).toInt()
@@ -145,13 +138,10 @@ object BounceArcProbe {
             return clearance >= 0.0
         }
 
-        // Standing starts first: a launch from rest at the lip has no entry speed for
-        // the program to reproduce, and a moving-entry bounce is a knife edge -- a
-        // thirty-tick glide amplifies entry error about sixteenfold, measured
-        // overflying the pad by a block off a 0.07 approach error.
-        // Every standing style is offered to the sweep: a long-hold style can put
-        // its contact past the pad or clip the far wall on the rebound where a
-        // gentler one contacts deep in the pit and clears.
+        // Standing starts first: a launch from rest has no entry speed to reproduce,
+        // while a moving entry amplifies its error ~16x over the glide. Every standing
+        // style is offered to the sweep (a long hold can clip the far wall where a
+        // gentler one clears). See docs/decisions/launch-solver.md (standing starts).
         for ((jump, sprint) in BounceSolver.STANDING_STYLES) {
             val solution = solveRefined(view, from, dx, dz, length, drop, launchOffset, reads) { contactDepth ->
                 BounceSolver.solveStanding(
@@ -193,11 +183,10 @@ object BounceArcProbe {
     )
 
     /**
-     * The pad's contact surface is where the body really bounces, and a carpeted pad's
-     * surface is 0.9375 below its coarse contact stance -- solved against the integer
-     * plane the arc contacted a block early with the wrong impact speed and never
-     * certified. The contact CELL depends on the solved arc, so solve, look up the
-     * surface where that arc contacts, and re-solve until the assumption holds.
+     * Solve against the pad's REAL contact surface (a carpeted pad's is 0.9375 below its
+     * coarse stance). The contact CELL depends on the solved arc, so solve, look up the
+     * surface there, and re-solve until the assumption holds.
+     * See docs/decisions/launch-solver.md (real heights).
      */
     private inline fun solveRefined(
         view: CoarseVoxelView,
@@ -221,11 +210,9 @@ object BounceArcProbe {
     }
 
     /**
-     * The refinement needs a first guess it can solve AT: seeding with the integer
-     * plane fails when only the corrected depth admits a solution (a carpeted pad
-     * shifts the window by nearly a block), so the seed is the first standable
-     * surface the flight ray crosses on the pad level -- pads are uniform under an
-     * arc in practice, and the fixed-point pass corrects any cell mismatch.
+     * First guess for [solveRefined]: the first standable surface the flight ray crosses
+     * on the pad level (the integer plane fails where only the corrected depth admits a
+     * solution). The fixed-point pass corrects any cell mismatch.
      */
     private fun seedContactOffset(
         view: CoarseVoxelView,
@@ -267,13 +254,10 @@ object BounceArcProbe {
     }
 
     /**
-     * Whether the single cell under a contact point bounces -- directly, or through
-     * thin cover: the game samples the landing block 0.2 BELOW the feet
-     * (MovementSimulator.LANDING_Y_OFFSET), so carpet-on-slime bounces in reality
-     * and in the rollout. STRICT on purpose: this used to accept any cell within a
-     * one-cell slack, and on a one-block pad that blessed arcs whose contact fell on
-     * the pit floor BESIDE the slime -- the body took the fall the exemption was
-     * promising away.
+     * Whether the single cell under a contact point bounces, directly or through thin
+     * cover (the game samples the landing block 0.2 BELOW the feet,
+     * MovementSimulator.LANDING_Y_OFFSET). STRICT on purpose: a one-cell slack blessed
+     * contacts on the pit floor beside the slime. See docs/decisions/launch-solver.md.
      */
     private fun bouncyCell(
         view: CoarseVoxelView,
@@ -294,13 +278,10 @@ object BounceArcProbe {
     }
 
     /**
-     * Jump launches first -- the human default, and the only launch that lands less
-     * than two below the lip; their higher arcs fail the sweep under a tight ceiling
-     * and fall through to the walk-off combos. Within a launch style, longer holds
-     * first (they leave the most entry-speed headroom), then the partial holds that
-     * cover the dead band between the released and held lines, then released.
-     * (jump, sprint, released/short-hold) is excluded: vanilla drops sprint the
-     * moment forward is released, so the boost the model assumes is unreliable.
+     * Combo order: jump launches first (the only launch landing less than two below the
+     * lip), then walk-off; within a style longest hold, then these partial holds, then
+     * released. (jump, sprint, hold < 2) is excluded: vanilla drops sprint the moment
+     * forward is released. See docs/decisions/launch-solver.md (combo order).
      */
     private val PARTIAL_HOLDS = intArrayOf(20, 16, 12, 8, 5, 3, 2)
 
@@ -319,15 +300,11 @@ object BounceArcProbe {
         }
     }
 
-    /** Cover no taller than the game's 0.2 landing probe still bounces off what's below. */
     /**
-     * The standable reach along the flight ray from the launch cell's centre.
-     *
-     * The support shape is the cell under the stance, or the cell below THAT when
-     * the surface is an intrusion poking up (a fence's top half). Only boxes that
-     * actually carry the feet count -- a fence's low skirt does not extend the
-     * lip, but a connected arm at full height does. Falls back to the full-block
-     * reach when the view carries no shapes.
+     * The standable reach along the flight ray from the launch cell's centre: the support
+     * shape (the cell under the stance, or the one below when the surface is an intrusion
+     * such as a fence top) counting only boxes that carry the feet, plus the body's
+     * half-width. Falls back to the full-block reach when the view carries no shapes.
      */
     private fun launchReach(
         view: CoarseVoxelView,
@@ -358,6 +335,7 @@ object BounceArcProbe {
 
     private const val SUPPORT_SURFACE_EPSILON = 1.0E-4
 
+    /** Cover no taller than the game's 0.2 landing probe still bounces off what's below. */
     private const val THIN_COVER_SURFACE = 0.2
 
     private const val BODY_HEIGHT = 1.8

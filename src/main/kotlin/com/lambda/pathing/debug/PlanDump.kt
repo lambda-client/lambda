@@ -156,9 +156,8 @@ object PlanDump {
     private fun SimpleMoveOptions.dump(): String = listOf(
         "options", allowDiagonal, allowStepUp, maxWalkOffDepth, allowJumpCandidates,
         maxJumpSpan, maxJumpDrop, allowOffAxisJumps,
-        // Appended after the fact; readers tolerate their absence in old dumps. A
-        // dump that silently drops an option replays a DIFFERENT planner: the slime
-        // course's failure dumps re-planned bounce-less and hid the real bug.
+        // Appended fields; readers default them for old dumps. Every option must be
+        // dumped, or a replay runs a different planner than the one that failed.
         allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
         allowDeepDropJumps,
     ).joinToString(" ")

@@ -57,9 +57,9 @@ data class SnapshotBlockPhysics(
             slipperiness = slipperiness,
             velocityMultiplier = velocityMultiplier,
             jumpVelocityMultiplier = jumpVelocityMultiplier,
-            // Coarse-bouncy only at full reflection: the bounce vocabulary's solver
-            // flies factor 1.0, so a bed's 0.66 bounces in the SIMULATOR but does
-            // not mint bounce edges (yet -- threading the factor through is the gap).
+            // Coarse-bouncy only at full reflection: the bounce solver flies factor 1.0,
+            // so a bed bounces in the SIMULATOR but mints no bounce edges.
+            // See docs/decisions/snapshot-capture.md.
             coarseVoxel = SnapshotSimulationEnvironment.coarseVoxelOf(shape, bouncy = bounceFactor >= 1.0),
             fenceLike = fenceLike,
             bounceFactor = bounceFactor,

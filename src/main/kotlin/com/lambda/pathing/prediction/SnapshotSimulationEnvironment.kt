@@ -382,8 +382,7 @@ class SnapshotSimulationEnvironment internal constructor(
                 CoarseVoxel.UNKNOWN
             } else {
                 // Beds bounce in the SIMULATOR but stay coarse-unbouncy: the bounce
-                // vocabulary's solver flies a full reflection, and a 0.66 rebound
-                // needs the factor threaded through before beds can be bounce pads.
+                // solver flies a full reflection only. See docs/decisions/snapshot-capture.md.
                 coarseVoxelOf(shape, bouncy = slime)
             }
             return SnapshotBlockPhysics(

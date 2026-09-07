@@ -165,16 +165,10 @@ object WalkMovement : Movement {
     }
 
     /**
-     * A steering heading is free; a launch heading is a gamble priced by where it lands.
-     *
-     * The distinction is [TrajectoryDecision.Heading.delayFrames]. With no delay the body
-     * stays on the ground and merely turns, which is the cheapest thing it can do. With
-     * one it leaves the ground on a free bearing, and the evaluator then holds the whole
-     * flight above the steering chain's lowest node -- so a bearing with nothing to land
-     * on at corridor height is a dozen frames of physics for a foregone refusal. Three
-     * quarters of these were measured rejected, but removing them outright measured worse
-     * than leaving them in: the search simply spent the budget colliding instead. Pricing
-     * lets the cheap ones stay ahead without closing the door on the rest.
+     * A steering heading (no [TrajectoryDecision.Heading.delayFrames]) is free; a launch
+     * heading leaves the ground on a free bearing and is priced by whether anything landable
+     * lies along it. Priced rather than pruned: see docs/decisions/movement-tuning.md
+     * (launch headings).
      */
     override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
         // Walking an edge the coarse graph classified as a gap or a fall is offered on the
@@ -292,12 +286,8 @@ object WalkMovement : Movement {
     val DIAGONALS = listOf(-1 to -1, -1 to 1, 1 to -1, 1 to 1)
 
     /**
-     * Follow styles offered per coarse step, as (lookAheadNodes, easeTurns).
-     *
-     * Collapsing these to one was tried: decisions fell 7% and simulated frames rose 8.5%,
-     * because the search is bounded by its expansion budget rather than by the work in
-     * front of it, so anything taken away is simply spent elsewhere. Left as they are --
-     * the lever that matters is the budget, not the vocabulary.
+     * Follow styles offered per coarse step, as (lookAheadNodes, easeTurns). Kept as
+     * three; see docs/decisions/movement-tuning.md (walk styles).
      */
     private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
 
@@ -323,12 +313,8 @@ object WalkMovement : Movement {
     private const val LAUNCH_MAX_RISE = 1
 
     /**
-     * A launch heading onto real ground: speculative even at its best.
-     *
-     * Priced above the cold temperature on purpose. A heading launch aims on a free
-     * bearing rather than a solved arc, and the fan of them is large -- thirty-odd per
-     * anchor once the offsets and delays multiply out. Leaving them affordable from the
-     * start let them crowd out the solved jumps entirely. They are what a stall buys.
+     * A launch heading onto real ground: above the cold temperature on purpose, so the
+     * thirty-odd per anchor cannot crowd out solved jumps. They are what a stall buys.
      */
     private const val LAUNCH_HEADING_DIFFICULTY = 0.45
 

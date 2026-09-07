@@ -45,11 +45,7 @@ internal class AnchorRollout(
         ) == Medium.CLIMBABLE
     }
 
-    /**
-     * A landing with mapped stances beside it is open terrain; one without is an
-     * isolated pad. Two neighbours is the threshold rather than one so a cell at the
-     * edge of a platform still counts as open -- it has the platform behind it.
-     */
+    /** Open terrain (at least two mapped neighbours) versus an isolated pad. See docs/decisions/movement-tuning.md. */
     private fun openLanding(target: Stance): Boolean {
         var mapped = 0
         if (field.isMapped(Stance(target.x + 1, target.y, target.z))) mapped++
@@ -222,14 +218,8 @@ internal class AnchorRollout(
 
         var cornerCatch = 0
         if (!field.isStance(eventStance)) {
-            // A corner catch: the body stands on a pad's edge with its centre floored
-            // into the air cell beside it. The support block names the real stance.
-            // Priced like the scrape it is, at two collision events: a clean centred
-            // landing typically pays a few brake frames the corner catch skips, so one
-            // event (four frames) measured as a dead heat on the drop staircase and the
-            // wobbling tape kept winning. Two makes clean strictly better wherever it
-            // exists, while a course whose only way onward is the corner (the diagonal
-            // zig-zag) still gets it.
+            // A corner catch: the support block names the real stance, priced at two
+            // collision events so a clean landing is strictly better. See docs/decisions/movement-tuning.md.
             val supported = ValueFieldAnchorSearch.supportedStanceOf(frames.last().state)
                 ?.takeIf { field.isStance(it) }
             if (supported == null) {

@@ -4,13 +4,8 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 
 /**
- * The velocity dimension the coarse graph never had.
- *
- * Two classes, deliberately: a body is either carrying momentum or it is not, and that
- * single bit is what every measured blind spot of the flat graph reduces to -- momentum
- * through corners, jump chains priced as independent hops, the transition tax charged
- * to motion that never stops. Finer classes (headings, speed bands) only earn their
- * node-count once this bit has been measured to pay.
+ * The coarse graph's velocity dimension: a body is either carrying momentum or it is not.
+ * Finer classes (headings, speed bands) must earn their node count against this bit.
  */
 enum class SpeedClass {
     STOPPED, MOVING;
@@ -25,19 +20,14 @@ enum class SpeedClass {
 }
 
 data class MomentumStance(val stance: Stance, val speed: SpeedClass) {
-    /**
-     * Stable across JVMs, deliberately: an enum's default hashCode is its identity
-     * hash, which reorders every HashMap of momentum nodes -- and with them the D*
-     * successor iteration and its tie-breaks -- differently on every run. Measured as
-     * the same baseline walk landing on 364 or 369 frames from one JVM to the next.
-     */
+    /** Ordinal, not enum identity hash: JVM-stable map order; see docs/decisions/determinism.md. */
     override fun hashCode(): Int = 31 * stance.hashCode() + speed.ordinal
 }
 
 /**
  * Class-conditioned edges over the same stance-level move library.
  *
- * The rules are the honest half of the §49 fossil: the one-tick transition tax models
+ * The one-tick transition tax (see docs/decisions/transition-overhead.md) models
  * decision friction a MOVING body chaining decisions does not pay, so MOVING departures
  * shed it; a STOPPED body pays the tax AND its acceleration back to cruise. Precision
  * movements bound the classes: a climb must be entered from rest, a climb or step-up
@@ -49,10 +39,10 @@ internal object MomentumRules {
     /** Ticks a body departing from rest spends short of cruise across its first edge. */
     const val STARTUP_TICKS = 2.0
 
-    /** The brake self-edge: sprint to standstill, measured as a handful of friction ticks. */
+    /** The brake self-edge: sprint to standstill. */
     const val BRAKE_TICKS = 4.0
 
-    /** The per-edge transition tax a chained MOVING body does not pay. */
+    /** The per-edge transition tax a chained MOVING body does not pay; see docs/decisions/transition-overhead.md. */
     const val CHAIN_TAX_TICKS = 1.0
 
     fun departsStoppedOnly(movement: MovementId): Boolean = movement == MovementId.CLIMB
@@ -72,10 +62,7 @@ internal object MomentumRules {
         edges: CoarseEdgeCache,
         node: MomentumStance,
     ): Map<MomentumStance, Double> {
-        // Insertion-ordered on purpose: these maps drive the D* successor iteration,
-        // and a hash-ordered map's treeified bins break equal-hash ties by identity
-        // hash -- run-to-run nondeterminism measured as the same walk landing on 360,
-        // 364 or 371 frames across JVMs.
+        // Insertion-ordered: drives the D* successor iteration; see docs/decisions/determinism.md.
         val out = LinkedHashMap<MomentumStance, Double>()
         if (node.speed == SpeedClass.MOVING) {
             out[MomentumStance(node.stance, SpeedClass.STOPPED)] = BRAKE_TICKS

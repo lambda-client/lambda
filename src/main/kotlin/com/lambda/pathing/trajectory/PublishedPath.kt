@@ -32,20 +32,10 @@ data class PublishedPath(
     val segments: List<TapeSegment> = emptyList(),
 ) {
     /**
-     * Frames spent per frame the coarse route could not have avoided.
-     *
-     * [com.lambda.pathing.coarse.CoarseRoutePlan.lowerBoundTicks] is admissible -- no body
-     * crosses that route in fewer ticks -- so this is the one honest quality number the
-     * planner can produce about itself. 1.0 is optimal for the route it was given; a walk
-     * that reads 2.5 is not a slow search, it is a tape twice as long as it needs to be.
-     *
-     * [TERMINAL_STOP_TICKS] is added because the coarse bound prices *travel* and nothing
-     * else. Every walk ends by decelerating, centring inside the goal radius and holding
-     * still long enough to certify the stop, and none of that crosses ground the bound
-     * knows about. Left out, the same fixed cost reads as +8% on a two-hundred-tick route
-     * and +76% on a twenty-tick one -- which is exactly the shape that made the corpus
-     * parkour fixtures look 71% over while measuring a body that cleared both gaps in 20
-     * frames against a bound of 21.
+     * Frames spent per frame the coarse route could not have avoided: tape length over the
+     * admissible [com.lambda.pathing.coarse.CoarseRoutePlan.lowerBoundTicks] plus the
+     * fixed arrival cost [TERMINAL_STOP_TICKS]. 1.0 is optimal for the route given.
+     * See docs/decisions/session-loop.md.
      */
     val excessRatio: Double
         get() = (route.lowerBoundTicks + TERMINAL_STOP_TICKS).let {
@@ -53,13 +43,7 @@ data class PublishedPath(
         }
 
     private companion object {
-        /**
-         * Frames a walk spends arriving rather than travelling.
-         *
-         * Measured on the parkour fixture: the body lands on the goal block moving at
-         * 0.23 b/t and needs sixteen frames to decelerate, settle within the goal radius
-         * and hold still for `stableStopFrames`.
-         */
+        /** Frames a walk spends arriving (decelerate, centre, hold) rather than travelling. */
         const val TERMINAL_STOP_TICKS = 16.0
 
         /** Below this the body is standing, not merely slow. Matches the planner's stop test. */
@@ -77,15 +61,8 @@ data class PublishedPath(
         .joinToString(" ") { (movement, cost) -> "$movement=${cost.first}/${cost.second}" }
 
     /**
-     * Frames of the finished tape the body spends standing still away from the goal,
-     * as run lengths.
-     *
-     * A published tape always ends in a certified brake, so an unextended one is safe to
-     * replay -- but when the search cannot extend before the body arrives at that brake,
-     * the body stops, and re-rooting onto the brake bakes the deceleration and hold into
-     * the prefix of every tape that follows. Those frames are therefore a permanent
-     * record of the planner failing to keep up, and the number is the one worth watching:
-     * a walk that stops is nearly always a walk whose tape is mostly this.
+     * Run lengths of frames the finished tape spends standing still away from the goal:
+     * the permanent record of brakes the search failed to extend past.
      */
     fun standingRunLengths(): List<Int> {
         val frames = plan.frames

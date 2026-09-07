@@ -57,18 +57,9 @@ data class BallisticProfile(
 
     /**
      * Speeds from which [target] can be reached within [ticks] of standing on the ground.
-     *
-     * The piece a one-gap lookahead was missing. Asking whether a launch's exit speed
-     * lands *inside* the next gap's entry window is the wrong question when the body gets
-     * to stand on the pad in between: measured on a corpus course, a jump exits at 0.2431
-     * into a gap wanting 0.0917-0.1702, which reads as hopeless, while one tick of
-     * coasting takes it to 0.1327 and straight into the window. The right question is
-     * whether the window is *reachable*, and this answers it.
-     *
-     * Coasting only sheds speed and holding forward only builds it, so the reachable set
-     * after `k` ticks is an interval that widens with `k`; taking the widest admits any
-     * entry the body could arrange. Deliberately generous -- this exists to stop good
-     * launches being discarded, and the rollout still has to certify whatever survives.
+     * Coasting only sheds speed and holding forward only builds it, so the result is an
+     * interval widening with [ticks]. Deliberately generous: the rollout still certifies.
+     * See docs/decisions/movement-tuning.md (exit-speed window through the pad).
      */
     fun groundReachable(
         target: ClosedFloatingPointRange<Double>,
@@ -117,18 +108,10 @@ data class BallisticProfile(
     }
 
     /**
-     * Fly an arc, optionally letting go of forward partway through it.
-     *
-     * [holdTicks] is the missing control dimension. Held for the whole flight, an arc's
-     * landing distance and its exit speed rise together -- they are one number wearing two
-     * hats, and a chain of gaps that needs to land far *and* slowly has nowhere to go.
-     * Releasing partway decouples them, because acceleration applied early is dragged for
-     * the rest of the flight while acceleration applied late is not. Measured on a flat
-     * sprint jump entered at 0.11: holding throughout lands at 3.42 moving 0.251, holding
-     * the first eight ticks lands at 3.18 moving 0.170, and holding the first three lands
-     * at 2.51 moving 0.104 -- roughly a twofold spread in exit speed at a given distance.
-     *
-     * The default holds throughout, which is what every caller did before this existed.
+     * Fly an arc, optionally releasing forward after [holdTicks] air ticks. Acceleration
+     * applied early is dragged for the rest of the flight while late acceleration is not,
+     * so the hold decouples landing distance from exit speed. Default holds throughout.
+     * See docs/decisions/launch-solver.md (partial holds).
      */
     fun fly(
         mode: LaunchMode,
@@ -194,21 +177,11 @@ data class BallisticProfile(
     }
 
     /**
-     * [drop] and [rise] are heights relative to the launch feet, and they are REAL
-     * heights, not stance deltas: a carpet-covered pad's contact surface sits 0.9375
-     * below its coarse contact stance, and solving the arc against the integer plane
-     * instead bounced almost a block early -- wrong contact distance, wrong impact
-     * speed, wrong rebound -- and no carpeted bounce ever certified.
-     *
-     * [jump] launches off the lip with the jump key instead of walking off it. The
-     * extra 1.25 of apex converts to impact speed at the pad, so the rebound gives
-     * back more height and glides further -- it is what a human almost always does,
-     * and it is the only way to land less than two below the lip.
-     *
-     * [holdTicks] releases forward partway, exactly as [fly] does and for the same
-     * reason: the released and held-throughout lines leave a dead band of middle
-     * distances (a drop-6 bounce coasts to ~3 released and no less than ~6 held),
-     * and partial holds are the family that interpolates across it.
+     * A slime bounce. [drop] and [rise] are REAL heights relative to the launch feet, not
+     * stance deltas (a carpeted pad's surface sits 0.9375 below its coarse stance).
+     * [jump] launches with the jump key: the extra apex becomes impact speed, and it is
+     * the only way to land less than two below the lip. [holdTicks] releases forward
+     * partway, as [fly] does. See docs/decisions/launch-solver.md.
      */
     fun bounce(
         entrySpeed: Double,
@@ -222,12 +195,9 @@ data class BallisticProfile(
         maxTicks: Int = MAX_BOUNCE_TICKS,
 
         /**
-         * Highest feet height above the launch the corridor's ceiling admits. An
-         * ascent that would cross it stops THERE with its vertical speed zeroed --
-         * exactly vanilla's rising head collision -- instead of flying an arc the
-         * sweep must refuse. A jump under a three-block ceiling grazes it by five
-         * hundredths and works fine in the game; refusing it cost the field a
-         * course jump.
+         * Highest feet height above the launch the ceiling admits. An ascent that would
+         * cross it stops THERE with vertical speed zeroed (vanilla's rising head
+         * collision) rather than being refused. See docs/decisions/launch-solver.md.
          */
         headroom: Double = Double.POSITIVE_INFINITY,
     ): ArcSample? {

@@ -25,11 +25,10 @@ import com.lambda.pathing.prediction.simulation.MovementSimulator
 /**
  * Builds the player movement prediction engine based on minecraft physics logic.
  *
- * The simulator is now input-driven so it can be reused for pathing and
- * movement validation, while this helper keeps the legacy "predict the current
- * player with current live input" entry point for existing callers.
+ * The simulator is input-driven; this helper is the "predict the current player with
+ * current live input" entry point.
  *
- * Still not implemented:
+ * Not implemented:
  * - elytra movement
  * - movement in fluids
  * - ladder climbing

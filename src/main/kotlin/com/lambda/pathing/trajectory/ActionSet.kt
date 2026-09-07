@@ -14,14 +14,9 @@ import com.lambda.pathing.movement.ProposalContext
 import com.lambda.pathing.movement.TrajectoryDecision
 
 /**
- * How wide the trajectory search may look when the guide stops moving.
- *
- * [steps] and [marginTicks] widen the *proposable* successor set: how many coarse
- * steps are offered, and how far from optimal one may be. [guideExpansionTicks] is
- * unrelated -- it is how far past the goal-optimal band the coarse value field is
- * labelled, so that a detour has somewhere mapped to land. Escalation wants a lot of
- * the last and can afford the second only because the excess is charged rather than
- * waved through: see the detour price in [ActionSet.actions].
+ * The proposable successor set: how many coarse [steps] are offered from an anchor and how
+ * many ticks off the best line ([marginTicks]) one may be. The excess is charged in the
+ * frontier order, not filtered; see [ActionSet.actions].
  */
 internal data class CorridorLevel(
     val steps: Int,
@@ -36,26 +31,12 @@ internal class ActionSet(
     private val corridor: () -> CorridorLevel,
 ) {
     /**
-     * The movements offered at [anchor], cheapest first.
-     *
-     * Ordering used to be positional -- descents, then launches, then walks, with the
-     * list flipped when the leading coarse step was not a walk. Nothing in it knew what a
-     * decision cost, so an anchor was ground through its whole vocabulary at one priority
-     * before the search descended. Now every decision carries a price and the list is
-     * sorted by it, which is what lets [Frontier] re-rank an anchor as its cheap options
-     * are used up.
-     *
-     * Two prices are added to whatever the owning movement charges:
-     *
-     * - the **detour excess**, how many ticks worse than the best available successor this
-     *   decision's coarse step is. A wide corridor is an escape hatch, and this is what
-     *   keeps it from also being a preference -- a step nine blocks off the best line stays
-     *   reachable and stops competing with one on it.
-     * - **temperature**, which withholds difficult movements until the search has evidence
-     *   it needs them.
+     * The movements offered at [anchor], cheapest first. Each decision's price is the
+     * owning movement's plus the detour excess (ticks its coarse step is worse than the best
+     * successor); [temperature] then withholds what is not yet affordable. Sorted by price
+     * so [Frontier] can re-rank an anchor as its cheap options are used up.
      */
     fun actions(anchor: ValueAnchor, temperature: Temperature): List<PricedDecision> {
-
         if (anchor.parent != null && field.guide(anchor.stance) <= searchConfig.finishValueTicks) {
             return emptyList()
         }
@@ -68,10 +49,8 @@ internal class ActionSet(
         if (steps.isEmpty()) return emptyList()
 
         val costOf = HashMap<Stance, Double>(steps.size)
-        // Blended, deliberately, after measuring the alternative: pricing each step's
-        // continuation at its edge's arrival class bought the traverse eleven frames,
-        // spent four collision frames for them, and broke the starved-tempo fixture's
-        // arrival outright. The detour ranking wants the safe bound, not the sharp one.
+        // Blended guide, not the edge's arrival class: the detour ranking wants the safe
+        // bound. See docs/decisions/beam.md.
         steps.forEach { costOf[it.to] = it.lowerBoundTicks + field.guide(it.to) }
         val bestCost = costOf.values.min()
         val byDestination = steps.associateBy { it.to }
@@ -125,11 +104,8 @@ internal class ActionSet(
 
         if (priced.isEmpty()) return emptyList()
 
-        // At equal surcharge, a decision that spans several coarse edges sorts ahead
-        // of one that serves a single edge: it prepays the edges it flies over, and
-        // FREE ties otherwise resolve by insertion order -- measured leaving the gait
-        // hop its turn on 43 anchors out of seven thousand. Prices stay non-negative;
-        // this is ordering, not cost.
+        // At equal surcharge an edge-spanning launch sorts ahead of a single-edge decision.
+        // Ordering only, not cost; see docs/decisions/beam.md.
         fun spansEdges(decision: TrajectoryDecision): Boolean =
             decision is TrajectoryDecision.Launch && decision.solution == null &&
                 decision.delayFrames == 0 && decision.step !in costOf
@@ -139,11 +115,8 @@ internal class ActionSet(
         val affordable = ordered.filter { temperature.affords(it.price) }
         if (affordable.isNotEmpty()) return affordable
 
-        // Nothing here is affordable yet, which means this stance needs more than the
-        // search has so far bought -- a lip that only a run-up clears, say. Offer the
-        // whole cheapest tier rather than a single decision: the variants within a tier
-        // are the launch offsets and hop gaps that decide whether it works at all, and
-        // handing out one per escalation is how a certifiable gap goes uncertified.
+        // Nothing affordable yet: offer the whole cheapest tier, not a single decision.
+        // See docs/decisions/annealing.md.
         val floor = ordered.minOf { it.price.difficulty }
         return ordered.filter { it.price.difficulty <= floor + DIFFICULTY_TIER }
     }
@@ -152,7 +125,6 @@ internal class ActionSet(
         val owner = catalog[edge.movement]
         val context = DecisionContext(anchor, edge, config, field.view, steering = field)
         return buildList {
-
             if (owner != null && owner.id != MovementId.WALK) addAll(owner.decisions(context))
             catalog.movements.forEach { movement ->
                 if (movement !== owner && movement.offersFor(edge)) addAll(movement.decisions(context))
@@ -161,7 +133,7 @@ internal class ActionSet(
     }
 
     private companion object {
-
+        /** Coarse steps whose owner movements are asked for decisions at the normal margin. */
         private const val LAUNCH_STEPS = 2
 
         /** Width of the "equally hard" band used when nothing at all is affordable. */

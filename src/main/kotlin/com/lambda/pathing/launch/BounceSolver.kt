@@ -89,16 +89,10 @@ object BounceSolver {
     }
 
     /**
-     * A launch from REST at the lip, distance dialed in with [BounceSolution.holdTicks].
-     *
-     * The moving-entry solve above is a knife edge in execution: a thirty-tick glide
-     * amplifies entry speed by around sixteen blocks per block-per-tick, so the
-     * program must reproduce the solved speed to a few hundredths -- measured
-     * overflying a pad by a full block off a 0.07 approach error. A standing start
-     * has no entry to reproduce, and a tick of hold moves the landing about a
-     * quarter block, safely inside the landing window. Tried per launch style in
-     * preference order; hold duration found by binary search (distance is monotone
-     * in it).
+     * A launch from REST at the lip, distance dialed in with [BounceSolution.holdTicks]:
+     * no entry speed to reproduce (a moving entry amplifies its error ~16x over the
+     * glide). Styles tried in preference order; hold found by binary search (distance is
+     * monotone in it). See docs/decisions/launch-solver.md (standing starts).
      */
     fun solveStanding(
         horizontalDistance: Double,
@@ -111,11 +105,9 @@ object BounceSolver {
         riseHeight: Double = rise.toDouble(),
 
         /**
-         * Where the arc's CONTACT lands, judged by the caller: infinity refuses the
-         * hold, finite values rank it (the probe returns the distance from the pad
-         * cell's centre). Landing distance alone once accepted an arc whose contact
-         * fell one cell short of a single-block pad -- the body hit the pit floor
-         * beside the slime and took the fall. Takes the reach from the stance centre.
+         * Judges the arc's CONTACT reach from the stance centre: infinity refuses the
+         * hold, finite values rank it. Landing distance alone is not enough on a
+         * one-block pad. See docs/decisions/launch-solver.md (contact on the slime).
          */
         contactPenalty: (Double) -> Double = { 0.0 },
 
@@ -192,13 +184,10 @@ object BounceSolver {
     private const val HOLD_SCAN = 3
 
     /**
-     * How far from the landing cell's CENTRE a standing arc may put the feet and
-     * still stand: half a cell plus the body's half-width -- a corner catch. The
-     * moving-entry window stays at [LANDING_WINDOW] (its half also prices the
-     * entry-speed slack, which must stay tight); the standing family has no entry
-     * error to guard, so it may use the full physical reach. Field-measured: a
-     * ceiling-clamped bounce landing 0.53 past centre caught the ledge and played
-     * fine, refused only by the old +-0.5 gate.
+     * How far from the landing cell's CENTRE a standing arc may put the feet: half a cell
+     * plus the body's half-width. The moving-entry family keeps the tighter
+     * [LANDING_WINDOW], whose half also prices entry-speed slack.
+     * See docs/decisions/launch-solver.md (support reach).
      */
     private const val LANDING_SUPPORT_REACH = 0.8
 
@@ -224,11 +213,9 @@ object BounceSolver {
     private const val LANDING_WINDOW = 1.0
 
     /**
-     * Default standable reach along the ray from the launch cell's centre: half a
-     * FULL BLOCK plus the body's half-width. Partial launch supports reach less --
-     * a fence post 0.425 -- and the probe measures the real reach from the support
-     * shape; creeping to a full-block lip on a post is a walk straight off it
-     * (the field's fence-launched bounce fell into the gap at frame 15, every arc).
+     * Default standable reach along the ray from the launch cell's centre: half a FULL
+     * BLOCK plus the body's half-width. Partial supports reach less (a fence post 0.425)
+     * and the probe passes the real reach. See docs/decisions/launch-solver.md.
      */
     const val LAUNCH_OFFSET = 0.8
 }

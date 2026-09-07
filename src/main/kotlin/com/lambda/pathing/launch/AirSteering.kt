@@ -8,26 +8,17 @@ import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
- * Closed-loop landing correction for the air phase of a jump.
- *
- * The arc model treats a flight as ballistic, but it is not: air drag is 0.91, so inputs
- * applied mid-flight move the landing point by more than a block over a typical arc. The
- * simulator has always accepted that authority and the planner never used it -- a solved
- * launch either landed on its pad or produced one more FellBelowRoute for the search to
- * price. This is the first consumer of [HorizontalDynamics.air]'s arithmetic: each tick
+ * Closed-loop landing correction for the air phase of a jump. Air drag is 0.91, so
+ * mid-flight inputs move the landing by more than a block over a typical arc; each tick
  * the remaining flight is known (vertical motion is uncontrolled), the drift landing is a
- * geometric series away, and the input that best moves it onto the aim point is one
- * comparison over the eight key directions.
+ * geometric series away ([HorizontalDynamics.air]), and the input that best moves it onto
+ * the aim point is one comparison over the eight key directions.
  *
- * Only vanilla-legal control is emitted: key combinations with components in {-1, 0, 1}
- * -- never a fractional throttle. The magnitude a key press cannot express is expressed
- * by WHICH remaining ticks press, re-decided from observed state every tick, which is
- * the same schedule-not-throttle trick [LaunchSolution.holdTicks] already plays in one
- * dimension.
- *
- * The correction is a delta against the planned hold schedule, not a replacement for it:
- * when the flight is on course the caller keeps its planned inputs byte-for-byte, so a
- * certified tape whose arc model was exact is unchanged by this existing.
+ * Only vanilla-legal control is emitted: key combinations with components in {-1, 0, 1},
+ * never a fractional throttle; magnitude is expressed by WHICH remaining ticks press,
+ * re-decided every tick. The correction is a delta against the planned hold schedule: on
+ * course, the caller keeps its planned inputs byte-for-byte, so a certified tape whose arc
+ * model was exact is unchanged.
  */
 object AirSteering {
     data class Keys(val forward: Double, val strafe: Double)
@@ -147,10 +138,9 @@ object AirSteering {
     }
 
     /**
-     * Within this landing error the schedule proceeds unmodified. Solver aims sit at
-     * least [LaunchSolver.LANDING_SAFETY_BLOCKS] inside the pad edge, so a tenth of a
-     * block of scatter still lands with margin -- and not correcting inside it keeps
-     * certified tapes identical wherever the arc model was already exact.
+     * Within this landing error the schedule proceeds unmodified; half the solver's
+     * `LANDING_SAFETY_BLOCKS`, so scatter inside it still lands with margin.
+     * See docs/decisions/launch-solver.md (air-steering deadband).
      */
     private const val ON_TARGET_BLOCKS = 0.1
 

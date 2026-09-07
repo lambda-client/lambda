@@ -7,31 +7,14 @@ import com.lambda.pathing.movement.CoarseEdge
 import com.lambda.pathing.world.CoarseVoxelView
 
 /**
- * Stance-level memo for coarse edge generation, shared by everything in one planning
- * session that asks the move library for edges: both speed classes of the momentum
- * graph, successor and predecessor generation, route liveEdge checks and the value
- * field's steering reads. Before this cache each of those callers re-ran the full
- * template probe loop -- the same stance's edges were generated up to four times, and
- * the arc sweeps inside those probes are the dominant cost of building the lazy graph.
- *
- * The two directions share probes at list granularity: the edge o -> t sits in
- * edgesFrom(o) exactly when the inverted template probe in edgesTo(t) would find it,
- * so a cached list in either direction answers the other's per-template lookup without
- * re-probing. One asymmetry is honoured: edgesTo additionally requires the TARGET to
- * be a stance, so an empty incoming list recorded for a non-stance target is marked
- * and never trusted by the outgoing composition (a template may legally offer an edge
- * onto a cell that fails the stance test, e.g. outside the simulable Y range).
- *
- * Invalidation mirrors the library's read-set contract exactly: [invalidateVoxels] and
- * [invalidateChunks] evict what a change can reach ([SimpleMoveLibrary.affectedOrigins]
- * on the outgoing side, [SimpleMoveLibrary.affectedTargets] on the incoming side), and
- * [invalidateStances] drops explicit stances so a resynchronization pass regenerates
- * from the live view. Chunk eviction filters the cache's own keys by column range
- * rather than the graph's node set, because the cache can hold stances the graph never
- * adopted (value-field steering reads, rim origins).
- *
- * Not thread-safe, like every other structure in the coarse layer: one planning
- * session owns it.
+ * Per-session memo of [SimpleMoveLibrary] edge lists, keyed by stance in both directions.
+ * A cached list in either direction answers the other's per-template lookup, except that
+ * an empty incoming list for a non-stance target is never reused by the outgoing side
+ * (templates may offer edges onto cells that fail the stance test). Invalidation mirrors
+ * the library's read sets: [SimpleMoveLibrary.affectedOrigins] outgoing,
+ * [SimpleMoveLibrary.affectedTargets] incoming. Chunk eviction filters by column range,
+ * not by graph membership, because the cache holds stances the graph never adopted.
+ * Not thread-safe; one planning session owns it.
  */
 internal class CoarseEdgeCache(
     private val view: CoarseVoxelView,

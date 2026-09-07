@@ -34,11 +34,9 @@ internal class ClimbProgram(
             if (overLip && !aligned) {
                 0.0
             } else if (overLip && takeoff != null && aim != null) {
-                // Creep off the lip: a full-speed walk-off carries ~0.2 of drift
-                // into the column, and a ladder caps the FALL but barely brakes the
-                // horizontal -- the body coasted clean through a one-wide column
-                // and out the far side (measured on the field course's top entry).
-                // Entering at tap speed keeps the total drift inside the cell.
+                // Creep off the lip: a ladder caps the FALL but barely brakes the
+                // horizontal, so a full-speed walk-off coasts through a one-wide column.
+                // See docs/decisions/launch-solver.md (ladder entry).
                 val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
                 val speed = observed.velocity.horizontalLength()
                 when {
@@ -50,9 +48,8 @@ internal class ClimbProgram(
         } else if (holdWhileClimbing) {
             1.0
         } else if (overLip && observed.velocity.horizontalLength() > DRIFT_REST_SPEED) {
-            // Brake the entry drift inside the column: a ladder caps the fall but
-            // not the horizontal, and even a tap's worth of entry speed integrates
-            // to a block of drift over a long descent -- out the far side.
+            // Brake the entry drift inside the column: even a tap's worth of entry
+            // speed integrates to a block of drift over a long descent.
             -1.0
         } else {
             0.0
@@ -61,13 +58,9 @@ internal class ClimbProgram(
         return MovementSimulationInput(
             forward = forward,
             sprint = false,
-            // Jump from the ground too: a ladder whose bottom cell hangs over a gap
-            // must be ENTERED jumping -- walking in first drops the feet below the
-            // ladder's bottom cell, vanilla stops counting the body as climbing the
-            // moment the feet cell is not climbable, and nothing arrests the fall
-            // (measured as the body pacing in front of the field course's ladder).
-            // On a floored ladder base the extra hop costs a frame or two and the
-            // wall-press takes over identically.
+            // Jump from the ground too: a ladder whose bottom cell hangs over a gap must
+            // be ENTERED jumping (vanilla stops counting the body as climbing once the
+            // feet cell is not climbable). On a floored base the hop costs a frame or two.
             jump = climbWithJump,
             rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
         )

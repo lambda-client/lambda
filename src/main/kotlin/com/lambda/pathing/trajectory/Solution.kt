@@ -19,24 +19,14 @@ internal class Solution(
     val tailFrames: List<SimulatedTrajectoryFrame>,
 ) {
     /**
-     * The decisions this solution was built from; see [PlanSegment].
-     *
-     * Lazy on purpose. A solution is produced speculatively -- every finish sweep and
-     * every arrival builds one -- while at most one per publication is ever certified
-     * into a plan. Building the chain eagerly walked every anchor on a hot path and cost
-     * enough wall clock to fail `HorizonWalkProbeTest`'s deliberately-starved fixture,
-     * where the body outran a search that no longer fit its step budget.
+     * The decisions this solution was built from; see [PlanSegment]. Lazy because solutions
+     * are produced speculatively and few are certified. See docs/decisions/improver.md.
      */
     val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
 
     val score: Int get() = frames + COLLISION_FRAME_PENALTY * collisionEvents
 
-    /**
-     * How the tape's frames divide between the movements that produced them.
-     *
-     * The terminal run is attributed to whatever the last anchor was doing, which is
-     * close enough: it is a brake or a corridor follow either way.
-     */
+    /** Frames per movement kind; the terminal run is attributed to the last anchor's movement. */
     fun segments(): List<TapeSegment> {
         val out = ArrayList<TapeSegment>()
         var node: ValueAnchor? = anchor
@@ -55,11 +45,8 @@ internal class Solution(
         internal const val COLLISION_FRAME_PENALTY = 4
 
         /**
-         * The decision chain behind a finished tape, root first, plus its terminal.
-         *
-         * Walked from the leaf because that is the only direction anchors link, then
-         * reversed. An anchor with no decision is a brake tail rather than a movement --
-         * the search publishes those as safe stops -- so it becomes a terminal too.
+         * The decision chain behind a finished tape, root first, plus its terminal. An
+         * anchor with no decision is a brake tail and becomes a terminal too.
          */
         private fun segmentsOf(
             anchor: ValueAnchor,

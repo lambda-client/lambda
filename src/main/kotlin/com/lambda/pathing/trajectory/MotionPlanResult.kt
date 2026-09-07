@@ -29,13 +29,8 @@ internal class AttemptAccumulator {
 }
 
 /**
- * What the search had spent, unlocked and reached when it stopped.
- *
- * Recorded on the way out whether or not a tape was found, because the question worth
- * answering is comparative: a session that dead-ends mid-walk was measured burning 64,001
- * attempts on a stance that a session started fresh from the same body cleared in 400.
- * Two searches, one goal, a 160-fold difference -- so the interesting quantity is not the
- * failure on its own but which of these fields differ between the two.
+ * What the search had spent, unlocked and reached when it stopped. Recorded on every exit
+ * so two sessions at the same goal can be compared field by field. See docs/decisions/session-loop.md.
  */
 data class SearchExhaustion(
     val exit: String,
@@ -72,9 +67,6 @@ data class SearchExhaustion(
     val commitAttempts: Int = 0,
     val commitSuppressed: Int = 0,
     val publishRefusals: Int = 0,
-    val beamShadowRefusals: Int = 0,
-    val beamShadowLineage: Int = 0,
-    val beamShadowLineageRefused: Int = 0,
 ) {
     override fun toString(): String = buildString {
         append("exit=").append(exit)
@@ -111,10 +103,6 @@ data class SearchExhaustion(
             append(" suppressed=").append(commitSuppressed)
             append(" refusals=").append(publishRefusals)
         }
-        if (beamShadowLineage > 0) {
-            append(" shadowRefused=").append(beamShadowLineageRefused).append('/').append(beamShadowLineage)
-            append(" shadowRefusals=").append(beamShadowRefusals)
-        }
     }
 }
 
@@ -143,25 +131,15 @@ sealed interface MotionPlanResult {
         val planSegments: List<PlanSegment> = emptyList(),
 
         /**
-         * This tape's estimated arrival and the running tape's, computed in the same
-         * instant against the same guide field, plus the running publication compared
-         * against. Guide values drift as the field expands, so arrival numbers from two
-         * different publish times cannot be compared -- these can, and they are what
-         * lets the adoption arbiter accept a backtrack swap instead of refusing every
-         * tape whose anchor does not advance.
+         * This tape's estimated arrival and the running tape's, computed in the same instant
+         * against the same guide field, plus the running publication compared against. Guide
+         * values drift, so only same-instant pairs are comparable. See docs/decisions/publication-protocol.md.
          */
         val arrivalTicksEstimate: Double = Double.NaN,
         val comparedRunningArrivalTicks: Double = Double.NaN,
         val comparedRunningSequence: Long = -1,
 
-        /**
-         * Where the tape's frames went, against what the coarse route says they had to.
-         *
-         * [CoarseRoutePlan.lowerBoundTicks] is admissible: no body can cross that route in
-         * fewer ticks. It is therefore the denominator the trajectory layer has never been
-         * measured against -- tape length on its own says a walk is 209 frames without
-         * saying whether that is excellent or twice what it should be.
-         */
+        /** Frames per movement kind, for comparison against the route's admissible [CoarseRoutePlan.lowerBoundTicks]. */
         val segments: List<TapeSegment> = emptyList(),
     ) : MotionPlanResult {
         val lowerBoundTicks: Double get() = sourceRoute.lowerBoundTicks

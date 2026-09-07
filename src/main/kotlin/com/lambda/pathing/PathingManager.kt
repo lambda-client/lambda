@@ -352,11 +352,9 @@ object PathingManager : Manager<PathingRequest>(0) {
                     if (walk.cursor != null) adopt(walk, completed.path) else begin(walk, completed.path)
                 is PathPlanResult.Failed ->
                     if (walk.cursor != null) {
-                        // The session died mid-walk. The body still has certified tape to
-                        // replay, and the replacement plan is cheap -- measured at 85 ms
-                        // against a hold the body sat in for over a second -- so start it
-                        // now, from where the tape is going to leave the body, instead of
-                        // waiting until it has arrived there and stopped.
+                        // The session died mid-walk with certified tape still to replay:
+                        // plan the successor from the tape's end now, not on arrival.
+                        // See docs/decisions/publication-protocol.md.
                         walk.sessionFailure = completed.failure.message
                         LOG.info(
                             "Planning session dead-ended mid-walk ({}); planning the successor now",
@@ -625,8 +623,6 @@ object PathingManager : Manager<PathingRequest>(0) {
             return
         }
 
-
-
         val current = published ?: return
         val running = walk.cursor ?: return
 
@@ -709,7 +705,6 @@ object PathingManager : Manager<PathingRequest>(0) {
         walk.request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
     }
 
-
     private fun SafeContext.align(walk: Walk) {
         val path = walk.pendingPath ?: return fail("lost the certified plan while aligning")
         val positionDrift = player.pos.distanceTo(path.plan.initialState.position)
@@ -729,9 +724,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
         status = Status.Aligning(walk.leg + 1, yawDrift)
         if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
-            // Install regardless rather than fail: a rotation mode that cannot settle
-            // exactly gets the old behavior back -- the first frame may reject and
-            // recover -- instead of a dead walk.
+            // Install regardless rather than fail; see docs/decisions/execution-tolerance.md.
             warn(
                 "Installing with %.2f° of launch yaw error; the rotation could not settle exactly."
                     .format(yawDrift),
@@ -827,17 +820,8 @@ object PathingManager : Manager<PathingRequest>(0) {
     }
 
     /**
-     * Plan the next leg from where the running tape ends, while the body is still on it.
-     *
-     * A session that dead-ends mid-walk leaves the body with certified tape still to
-     * replay, and the tape ends in a certified stop -- so the position, velocity and yaw
-     * the body will have when it gets there are known exactly, to within the replay
-     * deviation the executor already enforces. That makes the successor plannable now
-     * rather than on arrival, which is the difference between the body flowing into the
-     * next leg and standing still while a fresh search runs.
-     *
-     * Nothing here is load-bearing: if the successor does not arrive in time, or arrives
-     * stale, the hold falls back to replanning from rest exactly as before.
+     * Plan the next leg from the running tape's certified terminal while the body is still
+     * on it. Not load-bearing: a late or stale successor falls back to replanning from rest.
      */
     private fun SafeContext.planSuccessor(walk: Walk) {
         if (walk.successorSession != null || walk.successorPath != null) return
@@ -871,9 +855,7 @@ object PathingManager : Manager<PathingRequest>(0) {
             TrajectoryPlanner.planAsync(
                 preparation = preparation,
                 world = successorJourney.world,
-                // The successor's tape is not being replayed yet, so it has no cursor and
-                // nothing has acknowledged it. Handing it the running tape's frame would
-                // have its horizon commit against motion that belongs to another plan.
+                // Not being replayed yet: no cursor, nothing acked.
                 cursorFrame = { null },
                 adoptedSequenceProvider = { Long.MAX_VALUE },
                 onImprovement = { improvement ->
@@ -948,17 +930,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
     private const val START_DRIFT_TOLERANCE = 0.35
 
-    /**
-     * Launch yaw agreement required before frame 0 may execute, in degrees.
-     *
-     * This is arithmetic, not preference. The replay cursor rejects a frame whose
-     * position errs by 2e-6 blocks, and one movement tick at sprint speed turns a yaw
-     * residual into sin(residual) * 0.36 blocks of lateral error -- so anything above
-     * ~3e-4 degrees at frame 0 GUARANTEES a rejection and a full replan. The old 1.0
-     * tolerance installed tapes with mid-turn residuals that could never replay; the
-     * field paid a recover each time. Rotation modes that cannot settle exactly fall
-     * back to installing after the alignment timeout, which is the old behavior.
-     */
+    /** Yaw agreement required before frame 0 may execute, in degrees. See docs/decisions/yaw-epsilon.md. */
     private const val FIRST_FRAME_YAW_EPSILON = 2.5e-4
 
     private const val MAX_ALIGNMENT_TICKS = 40
