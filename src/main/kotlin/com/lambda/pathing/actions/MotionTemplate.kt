@@ -7,6 +7,9 @@ import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.launch.BounceArcProbe
 import com.lambda.pathing.launch.JumpArcProbe
+import com.lambda.pathing.launch.LaunchSolver
+import com.lambda.pathing.launch.LaunchSolution
+import com.lambda.pathing.launch.BallisticProfile
 import kotlin.math.abs
 
 class MotionTemplate internal constructor(
@@ -113,6 +116,10 @@ class MotionTemplate internal constructor(
             lowerBoundTicks
         }
 
+        val spec = arc
+        val standingStart = spec == null || probed == null ||
+            standingStartViable(view, origin, spec, probed.solution)
+
         return CoarseEdge(
             id = CoarseEdgeId(id, origin),
             from = origin,
@@ -126,7 +133,37 @@ class MotionTemplate internal constructor(
                 }
             },
             launch = probed?.solution,
+            standingStart = standingStart,
         )
+    }
+
+    /**
+     * Can a body at rest on [origin] reach an entry speed this arc accepts? Its run-up is
+     * the launch cell itself plus one cell behind when that cell is a stance; the solver
+     * is asked for any offset and mode within the speed that run-up yields.
+     */
+    private fun standingStartViable(
+        view: CoarseVoxelView,
+        origin: Stance,
+        spec: ArcSpec,
+        solution: LaunchSolution,
+    ): Boolean {
+        val profile = BallisticProfile.VANILLA
+        val behindX = origin.x - Integer.signum(spec.dx)
+        val behindZ = origin.z - Integer.signum(spec.dz)
+        val behind = view.standingSurface(behindX, origin.y - 1, behindZ) != null &&
+            view.voxel(behindX, origin.y, behindZ).centerPassable &&
+            view.voxel(behindX, origin.y + 1, behindZ).centerPassable
+        val runUp = IN_CELL_RUN_UP + if (behind) 1.0 else 0.0
+        fun reach(sprint: Boolean): Double =
+            profile.runUpSpeed(0.0, profile.groundRunUpTicks(0.0, runUp, sprint, STANDING_RUN_UP_TICKS), sprint)
+        // The probe's own solution already fits when its slowest feasible entry is within reach.
+        if (solution.speed - solution.speedSlack <= reach(solution.mode.sprint)) return true
+        return LaunchSolver.best(
+            origin, target(origin), profile, spec.modes,
+            maxEntrySpeed = { reach(it.sprint) },
+            rise = spec.rise + surfaceOffset(view, target(origin)) - surfaceOffset(view, origin),
+        ) != null
     }
 
     internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -154,6 +191,11 @@ class MotionTemplate internal constructor(
     }
 
     private companion object {
+        /** Run-up a body at rest has inside its own launch cell, in blocks. */
+        const val IN_CELL_RUN_UP = 0.7
+
+        const val STANDING_RUN_UP_TICKS = 24
+
         val ORIGIN_STANCE_READS = listOf(
             VoxelPos(0, -1, 0),
             VoxelPos(0, 0, 0),

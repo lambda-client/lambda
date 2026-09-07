@@ -19,6 +19,8 @@ internal object ImprovementArbiter {
         cursorFrame: Int?,
         awaitingObservation: Boolean,
         offered: PublishedPath,
+        /** The running tape is invalid from this frame on (a repair cut): any newer valid tape wins. */
+        runningInvalidFrom: Int? = null,
     ): Verdict {
         if (running == null || cursorFrame == null) return Verdict.BeginFresh
         if (offered.planningGeneration != running.planningGeneration) {
@@ -31,6 +33,12 @@ internal object ImprovementArbiter {
 
         if (cursorFrame > offered.plan.tape.frameCount) {
             return Verdict.Keep("improvement is shorter than the walk so far")
+        }
+        if (runningInvalidFrom != null) {
+            // The running tail is void; the only questions left are generation, sequence
+            // and whether the offer agrees with what the body has already pressed.
+            val diverges = (0 until cursorFrame).any { running.plan.tape[it] != offered.plan.tape[it] }
+            return if (diverges) Verdict.Keep("repair diverges behind the cursor") else Verdict.Adopt(cursorFrame)
         }
         if (!running.partial && !offered.partial &&
             offered.plan.tape.frameCount >= running.plan.tape.frameCount

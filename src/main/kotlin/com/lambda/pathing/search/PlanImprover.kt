@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.TerminalApproach
 import java.util.IdentityHashMap
 
 /**
@@ -61,6 +62,41 @@ internal class PlanImprover(
     }
 
     private class Crossing(val anchor: ValueAnchor, val rejoin: Int)
+
+    /**
+     * The plan DAG's quality producer on a partial tape: rewrite one span of the published
+     * spine between two junctions the body has not reached, re-run the remaining decisions
+     * from the rejoin, and return the rewritten tip when it arrives at least [minGainFrames]
+     * earlier (collisions priced as [Solution.score] prices them). No finisher is involved:
+     * the tip's own brake is re-certified by the publication gate. Null when no span improves.
+     */
+    fun improveTip(tip: ValueAnchor, budget: Int, minGainFrames: Int = 1): ValueAnchor? {
+        if (budget <= 0 || rolloutsSpent >= budget) return null
+        val chain = chainOf(tip)
+        if (chain.size < 3) return null
+        val segments = Solution.segmentsOf(tip, emptyList(), TerminalApproach(sprint = false, lookAheadNodes = 1, brakeDistance = 0.0, stepUpJumpLeadDistance = null))
+        val graph = PlanGraph.of(segments, chain.first().state) ?: return null
+        val tipScore = tip.elapsed + Solution.COLLISION_FRAME_PENALTY * tip.collisionEvents
+
+        for (start in departures(graph, chain)) {
+            if (rolloutsSpent >= budget) return null
+            val from = chain[start]
+            spansTried++
+            if (!canReach(from)) {
+                spansUnreachable++
+                continue
+            }
+            val crossing = cross(from, chain, start + 1, MAX_SHORTCUT_DEPTH) ?: continue
+            crossingsFound++
+            val tail = recertify(chain, crossing.rejoin + 1, crossing.anchor) ?: continue
+            tailsSurvived++
+            val score = tail.elapsed + Solution.COLLISION_FRAME_PENALTY * tail.collisionEvents
+            if (score + minGainFrames > tipScore) continue
+            alternatesOffered++
+            return tail
+        }
+        return null
+    }
 
     /**
      * Segments this pass certified, by identity, and the solutions whose terminal tails

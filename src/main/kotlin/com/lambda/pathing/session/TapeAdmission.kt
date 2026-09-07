@@ -72,6 +72,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
             cursorFrame = walk.cursor?.nextFrame,
             awaitingObservation = walk.awaitingObservation,
             offered = path,
+            runningInvalidFrom = walk.repairDeadline,
         )) {
             ImprovementArbiter.Verdict.BeginFresh -> begin(path)
 
@@ -96,6 +97,12 @@ internal class TapeAdmission(private val walk: PathingSession) {
                 walk.recordAdoption(path.plan.tape.frameCount)
                 walk.holding = false
                 walk.sessionRestarts = 0
+                if (walk.repairDeadline != null) {
+                    walk.repairs++
+                    LOG.info("Adopted the repaired tape at frame {} (cut was frame {})", frame, walk.repairDeadline)
+                }
+                walk.repairDeadline = null
+                walk.repairDeviation = null
                 walk.state = State.Executing(frame, path.plan.tape.frameCount, walk.leg)
                 walk.telemetry.countAdoption()
             }
@@ -130,6 +137,8 @@ internal class TapeAdmission(private val walk: PathingSession) {
         walk.planningSession?.adoptedSequence = path.publicationSequence.toLong()
         walk.awaitingObservation = false
         walk.holding = false
+        walk.repairDeadline = null
+        walk.repairDeviation = null
         walk.leg++
         walk.state = State.Executing(0, path.plan.tape.frameCount, walk.leg)
         info(
@@ -145,6 +154,8 @@ internal class TapeAdmission(private val walk: PathingSession) {
     fun SafeContext.executionEnvironmentDeviation(
         path: PublishedPath,
         nextFrame: Int,
+        /** Frames at or past this are not going to be replayed (a repair cut), so their reads do not count. */
+        untilFrame: Int = path.plan.tape.frameCount,
     ): ExecutionDeviation? {
         val liveProfile = with(walk) { liveProfile() }
         if (!liveProfile.isCompatibleWith(path.profile)) {
@@ -154,8 +165,8 @@ internal class TapeAdmission(private val walk: PathingSession) {
         if (world.revision <= path.plan.snapshotRevision) return null
         val mutation = world.changedSince(
             snapshotRevision = path.plan.snapshotRevision,
-            dependedSections = path.plan.dependencySectionsFrom(nextFrame),
-            dependedChunks = path.plan.dependencyChunksFrom(nextFrame),
+            dependedSections = path.plan.dependencySectionsBetween(nextFrame, untilFrame),
+            dependedChunks = path.plan.dependencyChunksBetween(nextFrame, untilFrame),
         ) ?: return null
         return ExecutionDeviation.WorldChanged(path.plan.snapshotRevision, mutation)
     }

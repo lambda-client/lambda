@@ -160,6 +160,22 @@ internal class AnchorSearchSession(
     private fun restartable(): Boolean =
         best == null && finalSolution == null && recovery.restartable()
 
+    /** The DAG repair (see [HorizonController.repairFor]): re-root at the cut and forget what lies beyond it. */
+    private fun repairFor(mutations: Set<com.lambda.pathing.core.PathingSection>) {
+        val cut = horizon.repairFor(mutations) ?: return
+        fun beyond(solution: Solution?) = solution != null &&
+            solution.anchor !== cut && solution.anchor.descendsFrom(cut)
+        if (beyond(best)) best = null
+        if (beyond(finalSolution)) finalSolution = null
+        if (beyond(brakedFallback)) brakedFallback = null
+        finishSweeps = 0
+        sweepEpoch++
+        expansionsWindowStart = expansions
+        annealing.rewindForRestart(cut.stance)
+        horizon.invalidateCommitMemo()
+        frontier.updateRoute(routeIndex)
+    }
+
     private fun restartFromTape(): Boolean {
         if (best != null) return false
         val seed = recovery.restartSeed(expansions, stats.adoptableDrops) ?: return false
@@ -172,10 +188,12 @@ internal class AnchorSearchSession(
     }
 
     private fun syncWorld() {
-        when (val result = worldSync?.invoke(route) ?: return) {
+        val result = worldSync?.invoke(route) ?: return
+        repairFor(result.mutations)
+        when (result) {
             WorldSyncResult.Quiet -> return
 
-            WorldSyncResult.Woken -> {
+            is WorldSyncResult.Woken -> {
                 if (frontier.hasBlocked) {
                     sweepEpoch++
                     finishSweeps = 0
@@ -415,6 +433,7 @@ internal class AnchorSearchSession(
             if (expansions / IMPROVEMENT_INTERVAL != improveBucket) {
                 improveBucket = expansions / IMPROVEMENT_INTERVAL
                 improveIncumbent()
+                improvePublished()
             }
 
             val prepared = rollouts.prepare(anchor, action)
@@ -894,6 +913,8 @@ internal class AnchorSearchSession(
             commitAttempts = horizon.commitAttempts,
             commitSuppressed = horizon.commitSuppressed,
             publishRefusals = horizon.publishRefusals,
+            repairs = horizon.repairs,
+            junctionRestarts = horizon.junctionRestarts,
         )
     }
 
@@ -986,6 +1007,28 @@ internal class AnchorSearchSession(
         val improved = improver.improve(incumbent, slice) ?: return
         stats.improvementSaved += incumbent.frames - improved.frames
         retain(improved)
+    }
+
+    /**
+     * The DAG's quality producer while walking: rewrite a span of the published spine and
+     * offer the shorter tip through the ordinary publication gate, which brakes, certifies
+     * and applies the swap floor. Runs only while no full solution exists (the incumbent
+     * path has its own improver) and within the shared improvement budget.
+     */
+    private fun improvePublished() {
+        if (searchConfig.improvementBudget <= 0 || best != null) return
+        val tip = horizon.publishedTip ?: return
+        if (improver.rolloutsSpent >= searchConfig.improvementBudget) return
+        val slice = minOf(searchConfig.improvementBudget, improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS)
+        val better = improver.improveTip(tip, slice, minGainFrames = SWAP_FLOOR_GAIN_TICKS.toInt()) ?: return
+        stats.improvementRollouts = improver.rolloutsSpent
+        stats.improvementDiagnosis = improver.diagnosis()
+        frontier.reopen(better)
+        horizon.publishPrefix(better, expansions)
+        if (horizon.publishedTip === better) {
+            stats.improvementSplices++
+            stats.improvementSaved += tip.elapsed - better.elapsed
+        }
     }
 
     private fun improve(solution: Solution): Solution {

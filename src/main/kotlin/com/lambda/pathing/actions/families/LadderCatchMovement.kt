@@ -76,14 +76,19 @@ object LadderCatchMovement : Movement {
     override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
         val edge = context.edge
         val reachable = maxOf(context.body.speed, context.ballistics.cruiseSpeed(sprint = true))
+        // A catch has no floor to land on: the body must reach the plank while its feet
+        // are still inside the ladder cell, and a slow arc arrives there already falling
+        // (it hangs an instant, slides below the rung, and drops). Prefer the fastest
+        // entry the run-up allows; the plank stops any overshoot.
         val solutions = listOfNotNull(
-            edge.launch,
             LaunchSolver.best(
                 edge.from, edge.to,
                 profile = context.ballistics,
                 modes = MODES,
                 maxEntrySpeed = { reachable },
+                catch = true,
             ),
+            edge.launch,
         ).distinctBy { it.mode to it.launchOffset }
             .filter { context.constraints.sprintModes.contains(it.sprint) }
 
@@ -132,6 +137,7 @@ object LadderCatchMovement : Movement {
             maxYawChange = context.constraints.maxYawDegreesPerFrame,
             holdForwardInFlight = true,
             airPlan = airPlan,
+            holdJumpInFlight = true,
         )
     }
 

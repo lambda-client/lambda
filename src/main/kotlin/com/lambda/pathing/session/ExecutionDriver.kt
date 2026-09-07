@@ -14,6 +14,7 @@ import com.lambda.pathing.session.PathingSession.Companion.MAX_SESSION_RESTARTS
 import com.lambda.pathing.session.PathingSession.Companion.MAX_STATE_RECOVERIES
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
+import com.lambda.pathing.search.PlanGraph
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.threading.runSafeAutomated
@@ -72,8 +73,17 @@ internal class ExecutionDriver(private val walk: PathingSession) {
         }
 
         val observed = observe(current.plan, running.nextFrame)
-        with(admission) { executionEnvironmentDeviation(current, nextFrame = running.nextFrame) }?.let { deviation ->
-            return reject(running.nextFrame, deviation, observed, afterInput = false)
+        walk.repairDeadline?.let { deadline ->
+            if (running.nextFrame >= deadline) {
+                // The cut is here and no repaired tape arrived: stop and replan, as before.
+                val deviation = walk.repairDeviation ?: ExecutionDeviation.Protocol("repair deadline reached")
+                return reject(running.nextFrame, deviation, observed, afterInput = false)
+            }
+        }
+        with(admission) {
+            executionEnvironmentDeviation(current, nextFrame = running.nextFrame, untilFrame = repairUntil(current))
+        }?.let { deviation ->
+            return handleDeviation(current, running.nextFrame, deviation, observed, afterInput = false)
         }
         when (val next = running.nextInput(observed)) {
             is ExecutionInputResult.Apply -> {
@@ -100,8 +110,10 @@ internal class ExecutionDriver(private val walk: PathingSession) {
         frame: Int,
     ): Boolean {
         val observed = observe(path.plan, frame + 1)
-        with(admission) { executionEnvironmentDeviation(path, nextFrame = frame) }?.let { deviation ->
-            reject(frame, deviation, observed, afterInput = true)
+        with(admission) {
+            executionEnvironmentDeviation(path, nextFrame = frame, untilFrame = repairUntil(path))
+        }?.let { deviation ->
+            handleDeviation(path, frame, deviation, observed, afterInput = true)
             return false
         }
         val result = active.observeAfterTick(observed)
@@ -143,6 +155,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
                 "${path.publicationSequence.coerceAtLeast(1)} publication(s), " +
                 "${telemetry.adopted} adoption(s), ${walk.holds} hold(s)" +
                 (if (telemetry.recoveries > 0) ", recovered ${telemetry.recoveries} time(s)" else "") +
+                (if (walk.repairs > 0) ", repaired ${walk.repairs} time(s)" else "") +
                 (if (telemetry.rejectedImprovements > 0) ", rejected ${telemetry.rejectedImprovements}" else "") +
                 "; max replay deviation %.2e".format(telemetry.maxDeviation),
             PATHING_SOURCE,
@@ -208,6 +221,39 @@ internal class ExecutionDriver(private val walk: PathingSession) {
         }
     }
 
+    private fun repairUntil(path: PublishedPath): Int = walk.repairDeadline ?: path.plan.tape.frameCount
+
+    /**
+     * A world change under the running tape: cut at the last rejoinable junction ahead of
+     * the body and before the first frame that read the change, keep replaying up to it,
+     * and let the running search publish the repaired tail (it sees the same mutation and
+     * re-roots at the same cut). Anything else, or no cut ahead, rejects as before.
+     * See docs/decisions/publication-protocol.md (local repair).
+     */
+    private fun SafeContext.handleDeviation(
+        path: PublishedPath,
+        frame: Int,
+        deviation: ExecutionDeviation,
+        observed: MovementSimulationState,
+        afterInput: Boolean,
+    ) {
+        if (deviation is ExecutionDeviation.WorldChanged && walk.planningSession != null) {
+            val first = path.plan.firstFrameReading(deviation.mutation)
+            val graph = first?.let { PlanGraph.of(path.plan) }
+            val junction = graph?.repairJunction(first, frame, REPAIR_MIN_LEAD_FRAMES)
+            if (junction != null && (walk.repairDeadline?.let { junction.frame < it } != false)) {
+                walk.repairDeadline = junction.frame
+                walk.repairDeviation = deviation
+                LOG.info(
+                    "World changed under frame {} of the running tape; replaying to junction frame {} while the search repairs the tail",
+                    first, junction.frame,
+                )
+                return
+            }
+        }
+        reject(frame, deviation, observed, afterInput)
+    }
+
     fun SafeContext.reject(
         frame: Int,
         deviation: ExecutionDeviation,
@@ -225,6 +271,11 @@ internal class ExecutionDriver(private val walk: PathingSession) {
                     else fail(report)
             }
         }
+    }
+
+    private companion object {
+        /** Frames the cut must sit ahead of the cursor: the search's fork margin plus a commit's worth of runway. */
+        const val REPAIR_MIN_LEAD_FRAMES = 8
     }
 
     fun SafeContext.observe(plan: TrajectoryPlan, frame: Int) =

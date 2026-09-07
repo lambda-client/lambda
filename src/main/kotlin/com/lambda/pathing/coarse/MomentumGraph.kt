@@ -66,6 +66,7 @@ internal object MomentumRules {
         }
         for (edge in edges.edgesFrom(node)) {
             if (speed == SpeedClass.MOVING && departsStoppedOnly(edge.movement)) continue
+            if (speed == SpeedClass.STOPPED && !edge.standingStart) continue
             val arrive = if (arrivesStopped(edge.movement)) SpeedClass.STOPPED else SpeedClass.MOVING
             val cost = when (speed) {
                 SpeedClass.MOVING -> movingCost(edge.lowerBoundTicks)
@@ -86,7 +87,9 @@ internal object MomentumRules {
             if (!departsStoppedOnly(edge.movement)) {
                 out.addMin(PackedStance.pack(edge.from, SpeedClass.MOVING), movingCost(edge.lowerBoundTicks))
             }
-            out.addMin(PackedStance.pack(edge.from, SpeedClass.STOPPED), stoppedCost(edge.movement, edge.lowerBoundTicks))
+            if (edge.standingStart) {
+                out.addMin(PackedStance.pack(edge.from, SpeedClass.STOPPED), stoppedCost(edge.movement, edge.lowerBoundTicks))
+            }
         }
     }
 }

@@ -77,6 +77,16 @@ class PathingSession internal constructor(
     internal var sessionFailure: String? = null
 
     /**
+     * DAG repair in progress: the running tape is valid only up to this frame (the cut
+     * junction) because the world changed under its tail; the search is re-solving from
+     * there. If no repaired tape is adopted before the cursor reaches it, the walk falls
+     * back to stopping and replanning with [repairDeviation] as the reason.
+     */
+    internal var repairDeadline: Int? = null
+    internal var repairDeviation: com.lambda.pathing.execution.ExecutionDeviation? = null
+    internal var repairs = 0
+
+    /**
      * The next leg, planned from the running tape's terminal while the body is still on it
      * and installed on arrival. See docs/decisions/publication-protocol.md.
      */
@@ -305,6 +315,8 @@ class PathingSession internal constructor(
         pendingImprovement = null
         holding = false
         sessionFailure = null
+        repairDeadline = null
+        repairDeviation = null
         planningYaw = null
         alignmentTicks = 0
         settleTicks = 0

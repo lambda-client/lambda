@@ -86,6 +86,9 @@ internal class StallRecovery(
     // Tip frames already restarted from while moving; a second restart there concedes to the brake.
     private val restartedMoving = HashSet<Int>()
 
+    // Junction frames already restarted from; each junction restart walks one junction further back.
+    private val restartedJunctions = HashSet<Int>()
+
     fun restartable(): Boolean =
         tapeRestarts < MAX_TAPE_RESTARTS && horizon.latestBrakeContinuation() != null
 
@@ -97,8 +100,11 @@ internal class StallRecovery(
      */
     fun restartSeed(expansions: Int, drops: Int): ValueAnchor? {
         if (tapeRestarts >= MAX_TAPE_RESTARTS) return null
+        // Tip first (same line, fresh attempts), then one junction back per restart (a
+        // different line into the obstacle, the plan DAG's cut), the brake last.
         val moving = horizon.movingTipContinuation()?.takeIf { restartedMoving.add(it.elapsed) }
         val seed = moving
+            ?: horizon.junctionContinuation(restartedJunctions)
             ?: horizon.latestBrakeContinuation()
             ?: return null
         probe.restarted(
@@ -118,6 +124,6 @@ internal class StallRecovery(
         const val BLOCKED_WAIT_SLICE_MILLIS = 200L
         const val MAX_BLOCKED_WAIT_MILLIS = 4_000L
         const val MAX_FRUITLESS_WAKES = 2
-        const val MAX_TAPE_RESTARTS = 3
+        const val MAX_TAPE_RESTARTS = 5
     }
 }
