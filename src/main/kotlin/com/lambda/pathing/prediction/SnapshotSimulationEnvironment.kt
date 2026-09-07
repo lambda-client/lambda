@@ -17,97 +17,159 @@
 
 package com.lambda.pathing.prediction
 
-import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.CollisionClass
-import com.lambda.pathing.world.Medium
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.prediction.snapshot.SectionStore
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.prediction.snapshot.SnapshotCaptureJob
 import com.lambda.pathing.prediction.snapshot.SnapshotCaptureResult
 import com.lambda.pathing.prediction.snapshot.SnapshotStorageStats
-import com.lambda.util.BlockUtils.isFenceLike
+import com.lambda.pathing.world.CoarseVoxel
+import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.CollisionClass
+import com.lambda.pathing.world.Medium
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
-import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
-import net.minecraft.block.ShapeContext
+import it.unimi.dsi.fastutil.longs.LongArrayList
+import java.util.Collections
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.registry.Registries
-import net.minecraft.registry.tag.BlockTags
-import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.World
-import java.util.Collections
 
+/**
+ * An immutable, palette-compressed block snapshot serving both the physics
+ * ([SimulationEnvironment]) and the coarse ([CoarseVoxelView]) contracts.
+ *
+ * Sections live in a copy-on-write [SectionStore] behind a shared [StoreRef], so a
+ * streaming owner ([com.lambda.pathing.world.PathingWorld]) can install and drop
+ * sections while planner threads read a consistent table. When [sparse] is set, a key
+ * absent from the store is *unavailable* (not yet captured); otherwise absent cells fall
+ * back to [defaultBlock]. [missingSection] and [unavailableSectionKeys] are seams for
+ * lazily generated fixtures. [edits] overlays planned block changes on top of the store.
+ */
 class SnapshotSimulationEnvironment internal constructor(
     val bounds: SimulationSnapshotBounds,
-    sections: Map<Long, ImmutableSnapshotSection>,
+    private val storeRef: StoreRef,
     private val defaultBlock: SnapshotBlockPhysics?,
-    shareSections: Boolean = false,
+    private val sparse: Boolean = false,
     private val missingSection: ((Int, Int, Int, Boolean) -> ImmutableSnapshotSection)? = null,
-    private val sparseSectionCoordinates: Map<Long, Triple<Int, Int, Int>>? = null,
     private val unavailableSectionKeys: Set<Long>? = null,
-    private val sectionUnavailable: ((Long) -> Boolean)? = null,
     private val onExactMiss: ((Long) -> Unit)? = null,
+    private val edits: Long2ObjectMap<SnapshotBlockPhysics>? = null,
 ) : SimulationEnvironment, CoarseVoxelView {
+    internal constructor(
+        bounds: SimulationSnapshotBounds,
+        sections: Map<Long, ImmutableSnapshotSection>,
+        defaultBlock: SnapshotBlockPhysics?,
+        missingSection: ((Int, Int, Int, Boolean) -> ImmutableSnapshotSection)? = null,
+        unavailableSectionKeys: Set<Long>? = null,
+    ) : this(
+        bounds = bounds,
+        storeRef = StoreRef(SectionStore.of(sections)),
+        defaultBlock = defaultBlock,
+        missingSection = missingSection,
+        unavailableSectionKeys = unavailableSectionKeys,
+    )
+
+    /** The mutable cell of a copy-on-write table; writers serialise on the ref itself. */
+    internal class StoreRef(@Volatile var store: SectionStore) {
+        fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(this) {
+            store = store.with(key, section)
+        }
+
+        fun remove(keys: LongArrayList) = synchronized(this) {
+            store = store.without(keys)
+        }
+    }
+
     private fun interface SnapshotReadObserver {
         fun onRead(pos: BlockPos)
     }
 
-    private val sections: Map<Long, ImmutableSnapshotSection> = if (shareSections) sections else
-        Long2ObjectOpenHashMap<ImmutableSnapshotSection>().apply { putAll(sections) }
+    private val store: SectionStore get() = storeRef.store
 
-    internal fun storageStats() = SnapshotStorageStats(
-        sections = sections.size,
-        paletteEntries = sections.values.sumOf(ImmutableSnapshotSection::paletteSize),
-        indexBytes = sections.values.sumOf(ImmutableSnapshotSection::indexStorageBytes),
-    )
+    internal fun hasSection(key: Long): Boolean = store.contains(key)
+
+    internal fun install(key: Long, section: ImmutableSnapshotSection) = storeRef.install(key, section)
+
+    internal fun removeSections(keys: LongArrayList) = storeRef.remove(keys)
+
+    internal inline fun forEachSectionKey(action: (Long) -> Unit) = store.forEach { key, _ -> action(key) }
+
+    /** This snapshot with [edits] applied on top of the shared section table. */
+    fun withEdits(edits: Map<BlockPos, SnapshotBlockPhysics>): SnapshotSimulationEnvironment {
+        val packed = Long2ObjectOpenHashMap<SnapshotBlockPhysics>(edits.size)
+        edits.forEach { (pos, physics) ->
+            require(pos in bounds) { "Edit $pos lies outside $bounds" }
+            packed.put(BlockPos.asLong(pos.x, pos.y, pos.z), physics)
+        }
+        return SnapshotSimulationEnvironment(
+            bounds, storeRef, defaultBlock, sparse, missingSection, unavailableSectionKeys, onExactMiss, packed,
+        )
+    }
+
+    internal fun storageStats(): SnapshotStorageStats {
+        var palette = 0
+        var bytes = 0
+        val store = store
+        store.forEach { _, section ->
+            palette += section.paletteSize
+            bytes += section.indexStorageBytes
+        }
+        return SnapshotStorageStats(sections = store.size, paletteEntries = palette, indexBytes = bytes)
+    }
 
     internal fun forEachSnapshotBlock(action: (Long, SnapshotBlockPhysics) -> Unit) {
-        sparseSectionCoordinates?.forEach { (key, coordinate) ->
-            val section = sections[key] ?: return@forEach
-            val (sectionX, sectionY, sectionZ) = coordinate
-            for (localY in 0..15) for (localZ in 0..15) for (localX in 0..15) {
-                val x = (sectionX shl 4) + localX
-                val y = (sectionY shl 4) + localY
-                val z = (sectionZ shl 4) + localZ
-                if (x in bounds.minX..bounds.maxX && y in bounds.minY..bounds.maxY &&
-                    z in bounds.minZ..bounds.maxZ
-                ) action(BlockPos.asLong(x, y, z), section[x, y, z])
+        if (sparse) {
+            store.forEach { key, section ->
+                val sectionX = ChunkSectionPos.unpackX(key)
+                val sectionY = ChunkSectionPos.unpackY(key)
+                val sectionZ = ChunkSectionPos.unpackZ(key)
+                for (localY in 0..15) for (localZ in 0..15) for (localX in 0..15) {
+                    val x = (sectionX shl 4) + localX
+                    val y = (sectionY shl 4) + localY
+                    val z = (sectionZ shl 4) + localZ
+                    if (x in bounds.minX..bounds.maxX && y in bounds.minY..bounds.maxY &&
+                        z in bounds.minZ..bounds.maxZ
+                    ) action(BlockPos.asLong(x, y, z), section[x, y, z])
+                }
             }
-        } ?: run {
-        for (y in bounds.minY..bounds.maxY) for (z in bounds.minZ..bounds.maxZ) for (x in bounds.minX..bounds.maxX) {
-            val physics = blockInside(x, y, z) ?: error("Incomplete snapshot at ($x,$y,$z)")
-            action(BlockPos.asLong(x, y, z), physics)
-        }
+        } else {
+            for (y in bounds.minY..bounds.maxY) for (z in bounds.minZ..bounds.maxZ) for (x in bounds.minX..bounds.maxX) {
+                val physics = blockInside(x, y, z) ?: error("Incomplete snapshot at ($x,$y,$z)")
+                action(BlockPos.asLong(x, y, z), physics)
+            }
         }
     }
 
     override val simulableStanceY: IntRange = bounds.simulableStanceY
 
+    private fun inBounds(x: Int, y: Int, z: Int): Boolean =
+        x in bounds.minX..bounds.maxX && y in bounds.minY..bounds.maxY && z in bounds.minZ..bounds.maxZ
+
     override fun isKnown(x: Int, y: Int, z: Int): Boolean {
-        if (x !in bounds.minX..bounds.maxX || y !in bounds.minY..bounds.maxY || z !in bounds.minZ..bounds.maxZ) {
-            return false
-        }
-        blockInside(x, y, z, exact = false) ?: return false
-        return !isUnavailable(x, y, z)
+        if (!inBounds(x, y, z)) return false
+        val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
+        val installed = store[key]
+        physicsIn(resolveSection(installed, key, x shr 4, y shr 4, z shr 4, exact = false), x, y, z) ?: return false
+        return !isUnavailable(key, installed)
     }
 
-    internal fun isUnavailable(x: Int, y: Int, z: Int): Boolean =
-        sectionIsUnavailable(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4))
+    internal fun isUnavailable(x: Int, y: Int, z: Int): Boolean {
+        val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
+        return isUnavailable(key, store[key])
+    }
 
-    private fun sectionIsUnavailable(key: Long): Boolean =
-        sectionUnavailable?.invoke(key) ?: (unavailableSectionKeys?.contains(key) == true)
+    private fun isUnavailable(key: Long, installed: ImmutableSnapshotSection?): Boolean =
+        (sparse && installed == null) || unavailableSectionKeys?.contains(key) == true
 
     override fun slipperiness(pos: BlockPos): Double = checkedBlockAt(pos, null).slipperiness
 
@@ -116,30 +178,28 @@ class SnapshotSimulationEnvironment internal constructor(
     override fun jumpVelocityMultiplier(pos: BlockPos): Double = checkedBlockAt(pos, null).jumpVelocityMultiplier
 
     override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel {
-        if (x !in bounds.minX..bounds.maxX || y !in bounds.minY..bounds.maxY || z !in bounds.minZ..bounds.maxZ) {
-            return CoarseVoxel.UNKNOWN
-        }
-        val block = blockInside(x, y, z, exact = false) ?: return CoarseVoxel.UNKNOWN
+        if (!inBounds(x, y, z)) return CoarseVoxel.UNKNOWN
+        val block = blockInside(x, y, z) ?: return CoarseVoxel.UNKNOWN
         return if (block.unsupportedPhysics == null) block.coarseVoxel else CoarseVoxel.HAZARD
     }
 
     override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape {
-        if (x !in bounds.minX..bounds.maxX || y !in bounds.minY..bounds.maxY || z !in bounds.minZ..bounds.maxZ) {
-            return VoxelShapes.fullCube()
-        }
+        if (!inBounds(x, y, z)) return VoxelShapes.fullCube()
         val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-        if (sectionIsUnavailable(key)) return VoxelShapes.empty()
-        val block = blockInside(x, y, z, exact = false) ?: return VoxelShapes.fullCube()
+        val installed = store[key]
+        if (isUnavailable(key, installed)) return VoxelShapes.empty()
+        val block = physicsIn(resolveSection(installed, key, x shr 4, y shr 4, z shr 4, exact = false), x, y, z)
+            ?: return VoxelShapes.fullCube()
         return if (block.unsupportedPhysics == null) block.collisionShape else VoxelShapes.fullCube()
     }
 
     override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass {
-        if (x !in bounds.minX..bounds.maxX || y !in bounds.minY..bounds.maxY || z !in bounds.minZ..bounds.maxZ) {
-            return CollisionClass.FULL
-        }
+        if (!inBounds(x, y, z)) return CollisionClass.FULL
         val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-        if (sectionIsUnavailable(key)) return CollisionClass.EMPTY
-        val block = blockInside(x, y, z, exact = false) ?: return CollisionClass.FULL
+        val installed = store[key]
+        if (isUnavailable(key, installed)) return CollisionClass.EMPTY
+        val block = physicsIn(resolveSection(installed, key, x shr 4, y shr 4, z shr 4, exact = false), x, y, z)
+            ?: return CollisionClass.FULL
         return block.collisionClass
     }
 
@@ -174,12 +234,13 @@ class SnapshotSimulationEnvironment internal constructor(
 
         var result: ArrayList<VoxelShape>? = null
         val mutable = BlockPos.Mutable()
+        val cursor = ExactReadCursor(store)
         for (y in minY..maxY) {
             for (z in minZ..maxZ) {
                 for (x in minX..maxX) {
                     val pos = mutable.set(x, y, z)
                     observer?.onRead(pos)
-                    val block = blockAt(pos)
+                    val block = cursor.blockAt(pos)
                     val unsupported = block.unsupportedPhysics
                     if (unsupported != null && query.intersectsUnitBlock(x, y, z)) {
                         throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
@@ -236,13 +297,14 @@ class SnapshotSimulationEnvironment internal constructor(
         var best: BlockPos? = null
         var bestDistance = Double.MAX_VALUE
         val mutable = BlockPos.Mutable()
+        val cursor = ExactReadCursor(store)
 
         for (y in minY..maxY) {
             for (z in minZ..maxZ) {
                 for (x in minX..maxX) {
                     val pos = mutable.set(x, y, z)
                     observer?.onRead(pos)
-                    val block = blockAt(pos)
+                    val block = cursor.blockAt(pos)
                     if (block.collisionShape.isEmpty) continue
 
                     val collides = block.collisionShape
@@ -265,32 +327,73 @@ class SnapshotSimulationEnvironment internal constructor(
         return best
     }
 
-    private fun blockAt(pos: BlockPos): SnapshotBlockPhysics {
-        if (pos !in bounds) throw SimulationSnapshotOutOfBoundsException(pos.toImmutable())
-        return blockInside(pos.x, pos.y, pos.z, exact = true) ?: run {
-            val sectionX = pos.x shr 4
-            val sectionY = pos.y shr 4
-            val sectionZ = pos.z shr 4
-            val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
-            if (sectionIsUnavailable(key)) {
-                onExactMiss?.invoke(key)
-                throw SnapshotSectionUnavailableException(sectionX, sectionY, sectionZ)
+    /**
+     * Exact reads for one collision query: resolves the section once per section the
+     * scan crosses instead of once per cell, and throws the same way [blockAt] does.
+     */
+    private inner class ExactReadCursor(private val store: SectionStore) {
+        private var resolved = false
+        private var key = 0L
+        private var section: ImmutableSnapshotSection? = null
+
+        fun blockAt(pos: BlockPos): SnapshotBlockPhysics {
+            if (pos !in bounds) throw SimulationSnapshotOutOfBoundsException(pos.toImmutable())
+            val x = pos.x
+            val y = pos.y
+            val z = pos.z
+            val sectionX = x shr 4
+            val sectionY = y shr 4
+            val sectionZ = z shr 4
+            val k = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
+            if (!resolved || k != key) {
+                key = k
+                section = resolveSection(store[k], k, sectionX, sectionY, sectionZ, exact = true)
+                resolved = true
             }
-            throw IllegalStateException("Incomplete production snapshot at $pos")
+            return physicsIn(section, x, y, z) ?: missingExact(pos, k, sectionX, sectionY, sectionZ)
         }
     }
 
-    private fun blockInside(x: Int, y: Int, z: Int, exact: Boolean = false): SnapshotBlockPhysics? {
+    private fun blockAt(pos: BlockPos): SnapshotBlockPhysics {
+        if (pos !in bounds) throw SimulationSnapshotOutOfBoundsException(pos.toImmutable())
+        val sectionX = pos.x shr 4
+        val sectionY = pos.y shr 4
+        val sectionZ = pos.z shr 4
+        val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
+        val section = resolveSection(store[key], key, sectionX, sectionY, sectionZ, exact = true)
+        return physicsIn(section, pos.x, pos.y, pos.z) ?: missingExact(pos, key, sectionX, sectionY, sectionZ)
+    }
+
+    private fun missingExact(pos: BlockPos, key: Long, sectionX: Int, sectionY: Int, sectionZ: Int): Nothing {
+        if (isUnavailable(key, store[key])) {
+            onExactMiss?.invoke(key)
+            throw SnapshotSectionUnavailableException(sectionX, sectionY, sectionZ)
+        }
+        throw IllegalStateException("Incomplete production snapshot at $pos")
+    }
+
+    private fun blockInside(x: Int, y: Int, z: Int): SnapshotBlockPhysics? {
         val sectionX = x shr 4
         val sectionY = y shr 4
         val sectionZ = z shr 4
         val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
-        val installed = sections[key]
-        val section = if (installed != null && (!exact || unavailableSectionKeys?.contains(key) != true)) {
-            installed
-        } else {
-            missingSection?.invoke(sectionX, sectionY, sectionZ, exact)
-        }
+        return physicsIn(resolveSection(store[key], key, sectionX, sectionY, sectionZ, exact = false), x, y, z)
+    }
+
+    /** The installed section unless an exact read must not trust an unavailable key; else the lazy fallback. */
+    private fun resolveSection(
+        installed: ImmutableSnapshotSection?,
+        key: Long,
+        sectionX: Int,
+        sectionY: Int,
+        sectionZ: Int,
+        exact: Boolean,
+    ): ImmutableSnapshotSection? =
+        if (installed != null && (!exact || unavailableSectionKeys?.contains(key) != true)) installed
+        else missingSection?.invoke(sectionX, sectionY, sectionZ, exact)
+
+    private fun physicsIn(section: ImmutableSnapshotSection?, x: Int, y: Int, z: Int): SnapshotBlockPhysics? {
+        edits?.get(BlockPos.asLong(x, y, z))?.let { return it }
         return section?.get(x, y, z) ?: defaultBlock
     }
 
@@ -313,6 +416,8 @@ class SnapshotSimulationEnvironment internal constructor(
             maxZ > z && minZ < z + 1.0
 
     companion object {
+        private const val COLLISION_EPSILON = 1.0E-7
+
         internal fun beginCapture(
             world: World,
             player: ClientPlayerEntity,
@@ -334,6 +439,18 @@ class SnapshotSimulationEnvironment internal constructor(
             }
         }
 
+        /** A streaming snapshot whose sections are installed by its owner over time. */
+        internal fun streaming(
+            bounds: SimulationSnapshotBounds,
+            onExactMiss: (Long) -> Unit,
+        ): SnapshotSimulationEnvironment = SnapshotSimulationEnvironment(
+            bounds = bounds,
+            storeRef = StoreRef(SectionStore.EMPTY),
+            defaultBlock = null,
+            sparse = true,
+            onExactMiss = onExactMiss,
+        )
+
         fun synthetic(
             bounds: SimulationSnapshotBounds,
             blocks: Map<BlockPos, SnapshotBlockPhysics>,
@@ -351,99 +468,6 @@ class SnapshotSimulationEnvironment internal constructor(
                 defaultBlock = SnapshotBlockPhysics.AIR,
             )
         }
-
-        internal fun coarseVoxelOf(shape: VoxelShape, bouncy: Boolean = false): CoarseVoxel {
-            if (shape.isEmpty) return CoarseVoxel.AIR
-            val underBody = VoxelShapes.combineAndSimplify(shape, CENTERED_SUPPORT_COLUMN, BooleanBiFunction.AND)
-            val top = if (underBody.isEmpty) 0.0 else underBody.getMax(Direction.Axis.Y)
-            val standsProud = top > 1.0 + COLLISION_EPSILON
-            return CoarseVoxel(
-                fullyPassable = false,
-                centerPassable = !VoxelShapes.matchesAnywhere(shape, CENTERED_PLAYER_COLUMN, BooleanBiFunction.AND),
-                standingSurface = top.takeIf { !standsProud && it > 0.0 }?.coerceAtMost(1.0),
-                intrusionHeight = (top - 1.0).coerceAtLeast(0.0),
-                bouncy = bouncy,
-            )
-        }
-
-        internal fun BlockState.capturePhysics(
-            world: World,
-            pos: BlockPos,
-            shapeContext: ShapeContext,
-        ): SnapshotBlockPhysics {
-            val shape = getCollisionShape(world, pos, shapeContext)
-            val unsupported = unsupportedPhysics(this)
-            val medium = mediumOf(this)
-            val slime = isOf(Blocks.SLIME_BLOCK)
-            val bed = block is net.minecraft.block.BedBlock
-            val coarseVoxel = if (medium == Medium.CLIMBABLE) {
-                CoarseVoxel.of(Medium.CLIMBABLE)
-            } else if (unsupported != null) {
-                CoarseVoxel.UNKNOWN
-            } else {
-                // Beds bounce in the SIMULATOR but stay coarse-unbouncy: the bounce
-                // solver flies a full reflection only. See docs/decisions/snapshot-capture.md.
-                coarseVoxelOf(shape, bouncy = slime)
-            }
-            return SnapshotBlockPhysics(
-                collisionShape = shape,
-                slipperiness = block.slipperiness.toDouble(),
-                velocityMultiplier = block.velocityMultiplier.toDouble(),
-                jumpVelocityMultiplier = block.jumpVelocityMultiplier.toDouble(),
-                unsupportedPhysics = unsupported,
-                coarseVoxel = coarseVoxel,
-                fenceLike = isFenceLike(),
-                // Vanilla BedBlock.bounceEntity reflects a living body at 0.66.
-                bounceFactor = if (slime) 1.0 else if (bed) BED_BOUNCE_FACTOR else 0.0,
-                dampensSteppingSpeed = slime,
-            )
-        }
-
-        internal fun mediumOf(state: BlockState): Medium = when {
-            !state.fluidState.isEmpty ->
-                if (state.fluidState.isIn(FluidTags.LAVA)) Medium.LAVA else Medium.WATER
-            state.isIn(BlockTags.CLIMBABLE) -> Medium.CLIMBABLE
-            state.isOf(Blocks.COBWEB) -> Medium.COBWEB
-            state.isOf(Blocks.POWDER_SNOW) -> Medium.POWDER_SNOW
-            else -> Medium.SOLID
-        }
-
-        private fun unsupportedPhysics(state: BlockState): UnsupportedPhysics? = when {
-            !state.fluidState.isEmpty -> UnsupportedPhysicsKind.FLUID
-            state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
-            state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
-            state.isOf(Blocks.HONEY_BLOCK) -> UnsupportedPhysicsKind.HONEY_SIDE_EFFECTS
-            else -> null
-        }?.let { kind ->
-            UnsupportedPhysics(
-                kind = kind,
-                blockId = Registries.BLOCK.getId(state.block).toString(),
-            )
-        }
-
-        /** Vanilla's exact 0.66f widened to double, as BedBlock.bounceEntity computes it. */
-        const val BED_BOUNCE_FACTOR = 0.6600000262260437
-
-        private const val COLLISION_EPSILON = 1.0E-7
-        private val CENTERED_PLAYER_COLUMN = VoxelShapes.cuboid(
-            0.2 + COLLISION_EPSILON,
-            COLLISION_EPSILON,
-            0.2 + COLLISION_EPSILON,
-            0.8 - COLLISION_EPSILON,
-            1.0 - COLLISION_EPSILON,
-            0.8 - COLLISION_EPSILON,
-        )
-
-        private val CENTERED_SUPPORT_COLUMN = VoxelShapes.cuboid(
-            0.2 + COLLISION_EPSILON,
-            0.0,
-            0.2 + COLLISION_EPSILON,
-            0.8 - COLLISION_EPSILON,
-            SUPPORT_COLUMN_CEILING,
-            0.8 - COLLISION_EPSILON,
-        )
-
-        const val SUPPORT_COLUMN_CEILING = 2.0
     }
 
     class TrackedSnapshotSimulationEnvironment internal constructor(
@@ -486,6 +510,7 @@ class SnapshotSimulationEnvironment internal constructor(
             observer.onRead(pos)
             return snapshot.isClimbable(pos)
         }
+
         override fun bounceFactor(pos: BlockPos): Double =
             snapshot.checkedBlockAt(pos, observer).bounceFactor
 

@@ -17,6 +17,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 import com.lambda.pathing.prediction.simulation.MovementSimulator
@@ -42,7 +43,7 @@ import pathing.ProbeScenarios.moveLibrary
 class BedBounceTest {
     private val bed = SnapshotBlockPhysics.of(
         VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.5625, 1.0),
-        bounceFactor = SnapshotSimulationEnvironment.BED_BOUNCE_FACTOR,
+        bounceFactor = BlockPhysicsCapture.BED_BOUNCE_FACTOR,
     )
 
     private fun bedFloor(): SnapshotSimulationEnvironment {
@@ -90,7 +91,7 @@ class BedBounceTest {
         // The reflection happens mid-tick, so the observed velocity carries the same
         // tick's gravity and drag: ((-impact * 0.66) - g) * 0.98. The field log's
         // observed rebound (0.2542683097376668) matches this to the last digit.
-        val expected = ((-impact) * SnapshotSimulationEnvironment.BED_BOUNCE_FACTOR - PROFILE.gravity) * 0.98
+        val expected = ((-impact) * BlockPhysicsCapture.BED_BOUNCE_FACTOR - PROFILE.gravity) * 0.98
         // 1e-6, not tighter: vanilla mixes float32 into the drag chain, and the
         // scalar recomputation here differs in association order at the ninth digit.
         assertTrue(

@@ -15,7 +15,7 @@ import com.lambda.pathing.trajectory.TrajectoryPlan
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import java.awt.Color
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.snapshot.BlockPhysicsCapture
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -521,7 +521,7 @@ object PathingRenderer : Loadable {
         val world = mc.world
         val support = world?.let {
             val pos = BlockPos(x, y - 1, z)
-            SnapshotSimulationEnvironment.coarseVoxelOf(it.getBlockState(pos).getCollisionShape(it, pos))
+            BlockPhysicsCapture.coarseVoxelOf(it.getBlockState(pos).getCollisionShape(it, pos))
         }
         return Vec3d(x + 0.5, y + (support?.surfaceOffset ?: 0.0) + yOffset, z + 0.5)
     }
