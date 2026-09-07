@@ -45,8 +45,6 @@ internal data class TrajectoryPlanningPreparation(
     val horizonCommitFrames: Int,
     val coarseExpansionBudget: Int,
     val trajectoryExpansionBudget: Int,
-
-    val settleInitial: Boolean,
     val frontierSweepBudget: Int,
     val bootstrapDelayMillis: Long,
     val plannerThreads: Int,

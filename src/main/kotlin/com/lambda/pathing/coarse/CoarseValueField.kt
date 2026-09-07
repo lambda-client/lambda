@@ -17,11 +17,7 @@ class CoarseValueField(
     /** Class-conditioned labels; defaults to the blended [label] where a planner predates momentum. */
     private val labelAt: (Stance, SpeedClass) -> Double = { stance, _ -> label(stance) },
 
-    /**
-     * Where edge lists come from. The planner passes its session edge cache so the
-     * steering reads reuse the probes the coarse search already paid for; the default
-     * recomputes from the move library, which is what standalone fields did before.
-     */
+    /** Edge source; the planner passes its session edge cache so steering reads reuse probes. */
     private val edgeProvider: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
 ) : SteeringField {
     private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
@@ -43,18 +39,11 @@ class CoarseValueField(
             }
         }
 
-        guides.keys.removeAll { stance ->
-            PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
-        }
-        movingGuides.keys.removeAll { stance ->
-            PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
-        }
-        stoppedGuides.keys.removeAll { stance ->
-            PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
-        }
-        edges.keys.removeAll { stance ->
-            PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo
-        }
+        val inHalo = { stance: Stance -> PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo }
+        guides.keys.removeAll(inHalo)
+        movingGuides.keys.removeAll(inHalo)
+        stoppedGuides.keys.removeAll(inHalo)
+        edges.keys.removeAll(inHalo)
     }
 
     fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
@@ -65,39 +54,29 @@ class CoarseValueField(
         stoppedGuides.clear()
     }
 
-    fun guide(stance: Stance): Double {
-        val cached = guides.getDouble(stance)
-        if (!cached.isNaN()) return cached
-
-        val direct = label(stance)
-        val computed = if (direct.isFinite()) direct else {
-            var best = Double.POSITIVE_INFINITY
-            for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
-                val neighbour = label(to)
-                if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
-            }
-            best
-        }
-        guides.put(stance, computed)
-        return computed
-    }
+    fun guide(stance: Stance): Double = guideVia(guides, stance, label)
 
     /**
-     * Ticks to goal for a body at [stance] in speed class [speed] -- what makes an
-     * arrival estimate honest per state: a stopped body's remaining time includes its
-     * acceleration, a moving one's includes neither that nor the transition tax its
-     * chain never pays. Falls back through the same neighbour derivation as [guide].
+     * Ticks to goal for a body at [stance] in speed class [speed]: a STOPPED body's estimate
+     * includes its acceleration, a MOVING one's does not. Same neighbour fallback as [guide].
      */
-    fun guide(stance: Stance, speed: SpeedClass): Double {
-        val cache = if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides
+    fun guide(stance: Stance, speed: SpeedClass): Double =
+        guideVia(if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides, stance) { labelAt(it, speed) }
+
+    /** The label itself when the field reaches [stance]; otherwise the best labelled neighbour plus the edge. */
+    private inline fun guideVia(
+        cache: it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>,
+        stance: Stance,
+        labelOf: (Stance) -> Double,
+    ): Double {
         val cached = cache.getDouble(stance)
         if (!cached.isNaN()) return cached
 
-        val direct = labelAt(stance, speed)
+        val direct = labelOf(stance)
         val computed = if (direct.isFinite()) direct else {
             var best = Double.POSITIVE_INFINITY
             for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
-                val neighbour = labelAt(to, speed)
+                val neighbour = labelOf(to)
                 if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
             }
             best

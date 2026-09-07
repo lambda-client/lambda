@@ -128,20 +128,10 @@ class CompletionContext(
 )
 
 /**
- * How close [solution]'s landing comes to taking fall damage, as a 0..1 fraction.
- *
- * Deliberately flat then steep rather than proportional. Every jump has an apex above
- * its landing -- a level sprint jump measures about 1.25 blocks over the corpus -- and
- * charging for that is charging for jumping at all, which measurably starved the search
- * of the launches it needed. Nothing is at stake until the drop comes within the arc
- * model's own error of the limit, and then everything is: the model describes the ideal
- * entry, the body's real one differs, and the difference is what decides between a clean
- * landing and a refusal. Bouncy ground, which the evaluator exempts from fall damage
- * outright, prices at zero.
- *
- * Refusing the risky ones outright measured worse than pricing them. A launch the model
- * calls fatal is sometimes the only way across, and taking it away just moved the search
- * budget into colliding with walls instead.
+ * How close [solution]'s landing comes to taking fall damage, as a 0..1 fraction: zero
+ * until the drop is within [ARC_MODEL_ERROR_BLOCKS] of the safe limit, then steep. Bouncy
+ * ground (exempt from fall damage) prices at zero. Risky launches are priced, never
+ * refused here. See docs/decisions/movement-tuning.md (landing risk).
  */
 fun DecisionContext.landingRisk(solution: LaunchSolution): Double {
     if (view.voxel(edge.to.x, edge.to.y - 1, edge.to.z).bouncy) return 0.0
@@ -153,12 +143,7 @@ fun DecisionContext.landingRisk(solution: LaunchSolution): Double {
     return ((fall - safe) / ARC_MODEL_ERROR_BLOCKS).coerceIn(0.0, 1.0)
 }
 
-/**
- * How far a landing has to be from the safe fall limit before it stops being a gamble.
- *
- * One block: wider than the gap measured between the ballistic model's predicted landing
- * and the simulator's, with room for the entry speed the body actually arrives at.
- */
+/** Blocks from the safe fall limit inside which a landing is priced as a gamble; wider than the arc model's measured landing error. */
 private const val ARC_MODEL_ERROR_BLOCKS = 1.0
 
 interface Movement {

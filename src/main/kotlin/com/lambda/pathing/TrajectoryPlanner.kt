@@ -31,10 +31,7 @@ import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
 import com.lambda.pathing.trajectory.ValueFieldSearchConfig
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
-import com.lambda.pathing.prediction.simulation.MovementSimulator
 import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
@@ -62,7 +59,6 @@ object TrajectoryPlanner {
         maxDescentBlocksPerTick = 4.0,
     )
 
-
     internal fun coarseState(
         preparation: TrajectoryPlanningPreparation,
         snapshot: SnapshotSimulationEnvironment,
@@ -73,7 +69,6 @@ object TrajectoryPlanner {
         frontierSweepBudget = preparation.frontierSweepBudget,
         capturable = capturable,
     )
-
 
     internal fun resolveStartStance(initial: MovementSimulationState): Stance {
         val base = Stance.of(initial.position, initial.onGround)
@@ -104,8 +99,6 @@ object TrajectoryPlanner {
         cancellation: PlanningCancellation,
 
         initialOverride: MovementSimulationState? = null,
-
-        settleInitial: Boolean = false,
     ): PlanningPreparationResult {
         val started = System.currentTimeMillis()
         @Suppress("NAME_SHADOWING")
@@ -186,7 +179,6 @@ object TrajectoryPlanner {
                 horizonCommitFrames = config.horizonCommitFrames,
                 coarseExpansionBudget = config.coarseExpansionBudget,
                 trajectoryExpansionBudget = config.trajectoryExpansionBudget,
-                settleInitial = settleInitial,
                 frontierSweepBudget = config.frontierSweepBudget,
                 bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
                 plannerThreads = config.plannerThreads,
@@ -230,13 +222,9 @@ object TrajectoryPlanner {
                 awaitStartKnowledge(world, snapshot, start, goal, cancellation)
                 val knowledgeMillis = (System.nanoTime() - knowledgeStarted) / 1_000_000L
                 val batch = world.drainEvents()
-                val initial =
-                    if (preparation.settleInitial) settleToRest(preparation.initial, profile, snapshot)
-                    else preparation.initial
+                val initial = preparation.initial
 
-                // A refused ROUTE is as replayable a failure as a refused walk: the
-                // scene is what debugging needs either way, so both failure exits
-                // below write the same dump.
+                // A refused route and a refused walk write the same replayable dump.
                 fun dumpFailure(kind: String, note: String) {
                     val directory = dumpDirectory ?: return
                     runCatching {
@@ -300,10 +288,8 @@ object TrajectoryPlanner {
                 val routeMillis = (System.nanoTime() - routeStarted) / 1_000_000L
                 PlanningDebugChannel.publishRoute(route)
 
-                // The startup ledger: where the seconds between the request and the
-                // first trajectory expansion actually went. knowledge-wait is capture
-                // pacing (cold-start waits tick at the snapshot budget); route covers
-                // resolveRoute's terminal grant rounds and their knowledge waits.
+                // Startup ledger: knowledge-wait is capture pacing, route covers
+                // resolveRoute's grant rounds. See docs/decisions/startup.md.
                 LOG.info(
                     "Planning startup {} -> {}: knowledge-wait={} ms, coarse={} ms, " +
                         "field={} ms, route={} ms ({}), since-request={} ms; capture so far: {}",
@@ -342,10 +328,7 @@ object TrajectoryPlanner {
                     field = field,
                     adoptedSequence = adoptedSequenceProvider,
                     probe = probe,
-                    // Logged on both outcomes on purpose. A session that dead-ends
-                    // mid-walk and the fresh session that then clears the same goal in a
-                    // fraction of the attempts print the same fields, so the difference
-                    // between them can be read off directly instead of inferred.
+                    // Logged on both outcomes so two sessions at one goal compare field by field.
                     onExhaustion = { LOG.info("Trajectory search {} -> {}: {}", start, goal, it) },
                     parallelism = preparation.plannerThreads,
                     improvementBudget = preparation.improvementBudget,
@@ -404,20 +387,12 @@ object TrajectoryPlanner {
         maxTemperature: Double = 1.0,
         improvementBudget: Int = 0,
         frontierPerKey: Int = 3,
-        beamShadowPerKey: Int = 0,
         branchExpansionHeadroomExpansions: Int = 1560,
         momentumSkips: Boolean = false,
         momentumGait: Boolean = false,
-        guideWeight: Double = 1.0,
-        tipLineCreditTicks: Double = 0.0,
-        depthLaneInterval: Int = 0,
-        mergeSurchargeTicks: Double = 0.0,
         /**
-         * Wall-time cap on each mid-walk guide expansion. The production default keeps
-         * the planner thread responsive; harnesses driven by a virtual clock MUST pass
-         * [Duration.INFINITE] -- a real-time budget inside an otherwise virtual walk
-         * makes guide coverage machine-dependent, measured as the same fixture landing
-         * on 358, 362 or 371 frames by JIT mood. The expansion-count cap still binds.
+         * Wall-time cap on each mid-walk guide expansion. Virtual-clock harnesses must pass
+         * [Duration.INFINITE]; the expansion-count cap still binds. See docs/decisions/determinism.md.
          */
         fieldExpansionBudget: kotlin.time.Duration = FIELD_EXPANSION_BUDGET,
         frontierDomination: FrontierDomination =
@@ -450,14 +425,9 @@ object TrajectoryPlanner {
                 maxTemperature = maxTemperature,
                 improvementBudget = improvementBudget,
                 frontierPerKey = frontierPerKey,
-                beamShadowPerKey = beamShadowPerKey,
                 branchExpansionHeadroomExpansions = branchExpansionHeadroomExpansions,
                 momentumSkips = momentumSkips,
                 momentumGait = momentumGait,
-                guideWeight = guideWeight,
-                tipLineCreditTicks = tipLineCreditTicks,
-                depthLaneInterval = depthLaneInterval,
-                mergeSurchargeTicks = mergeSurchargeTicks,
                 frontierDomination = frontierDomination,
             ),
             onSafePrefix = { step ->
@@ -576,25 +546,20 @@ object TrajectoryPlanner {
 
     private const val HORIZON_CHUNK_FRAMES = 20
 
-    // Measured at 2 during the just-in-time rework (2026-08-27): a 60-frame window
-    // lost bedrock-04 outright and a holdout course -- too little room to route around
-    // a hard section before the drip needs tape. Locality comes from divergence
-    // pruning and the publication cap instead; the exploration window stays at 3.
+    // Exploration window past the committed root, in commit chunks; 2 is too little.
+    // See docs/decisions/startup.md.
     private const val HORIZON_WINDOW_CHUNKS = 3
 
     private const val HORIZON_FINAL_COMMIT_CHUNKS = 2
 
     private const val HORIZON_BOOTSTRAP_DELAY_MS = 200L
 
-    // The expansion budget applies per publication window now (it resets on every
-    // publish and on tape restarts): a stuck window should restart the search from
-    // the tape's settled continuation, not grind for minutes.
+    // Expansion budget per publication window (reset on publish and tape restart).
     private const val PER_WINDOW_EXPANSIONS = 120_000
 
     private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400
 
     private const val HORIZON_EXPANSIONS = 2_000_000
-
 
     private fun awaitStartKnowledge(
         world: PathingWorld,
@@ -632,32 +597,6 @@ object TrajectoryPlanner {
     private const val COLD_START_GOAL_WAIT_MILLIS = 500L
 
     private const val COLD_START_INTEREST_WAIT_MILLIS = 1_500L
-
-    private fun settleToRest(
-        initial: MovementSimulationState,
-        profile: PlayerPhysicsProfile,
-        snapshot: SnapshotSimulationEnvironment,
-    ): MovementSimulationState {
-        var settled = initial
-        val simulator = MovementSimulator(
-            profile = profile,
-            environment = snapshot,
-            initialState = initial,
-            skipEntityCollisions = true,
-        )
-        repeat(SETTLE_ROLLOUT_TICKS) {
-            val step = simulator.tryTickMovement(MovementSimulationInput())
-            if (step !is MovementSimulationStepResult.Advanced) {
-                return initial
-            }
-            val next = simulator.state
-            if (next.position == settled.position && next.velocity == settled.velocity) return settled
-            settled = next
-        }
-        return initial
-    }
-
-    private const val SETTLE_ROLLOUT_TICKS = 40
 
     private fun climbHorizonFrames(route: CoarseRoutePlan): Int =
         route.edges.count { it.movement == MovementId.CLIMB } * CLIMB_HORIZON_FRAMES_PER_EDGE

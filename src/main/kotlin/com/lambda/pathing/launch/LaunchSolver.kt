@@ -131,15 +131,10 @@ object LaunchSolver {
         /**
          * Entry speeds the *following* gap can accept, if the caller knows of one.
          *
-         * An uninformed solve picks the arc that lands most comfortably and lets the exit
-         * speed fall where it may. That is fine when the body can brake afterwards and
-         * wrong when it cannot: on a chain of one-block pads the exit speed *is* the next
-         * gap's entry speed, and a launch that lands at 0.24 into a gap wanting 0.09 has
-         * failed before it left the ground -- measured on `parkour-course-1`, where every
-         * solution for the second gap overshoots by half a block or more.
-         *
-         * Null keeps the historical behaviour exactly, including which throttle policies
-         * are considered, so an uninformed caller solves precisely what it always did.
+         * On a chain of pads the exit speed *is* the next gap's entry speed, so an informed
+         * solve trims the arc to land inside this window. Null keeps the historical
+         * behaviour exactly, including which throttle policies are considered.
+         * See docs/decisions/movement-tuning.md (exit-speed window).
          */
         exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
     ): List<LaunchSolution> {
@@ -193,18 +188,9 @@ object LaunchSolver {
 
         var best: LaunchSolution? = null
 
-        // Jumps are solved holding forward and nothing else, which fixes every jump's
-        // landing speed at the highest it can be: a sprint jump entered at 0.11 blocks per
-        // tick arrives at 0.24, and that arrival is the next gap's entry speed. On a chain
-        // of one-block pads there is nowhere to shed it, and measured on
-        // `parkour-course-1` the second gap then wants 0.09-0.17 and every option
-        // overshoots. Offering the released variant here is the obvious answer and does
-        // not work on its own: it changes which solution wins on margin, which broke three
-        // LaunchSolverTest contracts without making any course pass. The fix wants the
-        // *search* to weigh landing speed against the next gap, not the solver to guess.
         // Releasing forward in flight is the only way a jump lands slower than it took
-        // off, and it is worth considering exactly when the landing speed has to satisfy
-        // something. Uninformed, jumps hold forward as they always have.
+        // off, so the released variant is offered only when a landing speed must be
+        // satisfied; uninformed jumps hold forward. See docs/decisions/movement-tuning.md.
         val policies =
             if (mode.drops || exitSpeedWindow != null) listOf(true, false) else listOf(true)
 
@@ -254,16 +240,10 @@ object LaunchSolver {
     /**
      * Trim the throttle so the arc still lands, but arrives slowly enough to continue.
      *
-     * Only reached when something downstream has said how fast the body may arrive and the
-     * full-throttle arc is too fast. Exit speed rises monotonically with how long forward
-     * is held, so the longest hold that fits the window is found by bisection -- a dozen
-     * arcs rather than the seventy-odd an enumeration costs, and that difference is not
-     * cosmetic: enumerating every schedule on every edge made jump solving twenty-five
-     * times more expensive and dropped `bedrock-traverse` from thirty route nodes to three.
-     *
-     * The entry speed is re-solved at each trial rather than carried over. Releasing early
-     * shortens the arc, so an entry chosen for full throttle lands in the gap -- keeping it
-     * fixed makes every trim fail its landing check and the whole mechanism inert.
+     * Only reached when a downstream window says how fast the body may arrive and the
+     * full-throttle arc is too fast. Exit speed rises monotonically with hold length, so
+     * the longest fitting hold is found by bisection, and the entry speed is re-solved at
+     * each trial. See docs/decisions/movement-tuning.md (released-hold bisection).
      */
     private fun released(
         solution: LaunchSolution,

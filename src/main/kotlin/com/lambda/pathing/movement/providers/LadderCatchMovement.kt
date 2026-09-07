@@ -157,10 +157,7 @@ object LadderCatchMovement : Movement {
 
     override val pressesIntoTerrain: Boolean get() = true
 
-    override fun descentAllowance(decision: TrajectoryDecision): Double {
-        val step = (decision as? TrajectoryDecision.Launch)?.step ?: return 1.0
-        return 1.0
-    }
+    override fun descentAllowance(decision: TrajectoryDecision): Double = 1.0
 
     private val MODES = LaunchMode.entries
 

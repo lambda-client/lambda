@@ -48,13 +48,10 @@ object SlimeBounceMovement : Movement {
         val height = rise.toDouble()
         val offset = BounceSolver.LAUNCH_OFFSET
 
-        // The solver tries every launch style, so the offer window must span them
-        // all: each of the jump and walk-off lines contributes its own floor (the
-        // GENTLEST launch -- standing, forward released; the sprint-hold floor once
-        // used here silently dropped every softer bounce, including the classic
-        // parkour rebound) and its own ceiling (standing sprint-hold plus a full
-        // head of momentum). A rise only a jump can deliver simply has no walk-off
-        // line to contribute.
+        // The solver tries every launch style, so the offer window spans them all: each
+        // jump and walk-off line contributes its floor (the GENTLEST launch: standing,
+        // forward released) and its ceiling (standing sprint-hold plus full momentum).
+        // A rise only a jump can deliver has no walk-off line to contribute.
         var floor = Double.POSITIVE_INFINITY
         var ceiling = Double.NEGATIVE_INFINITY
         for (jump in listOf(true, false)) {
@@ -148,12 +145,9 @@ object SlimeBounceMovement : Movement {
     private const val MAX_SPAN = 12
 
     /**
-     * The shallowest STANCE drop offered. Two, not three: stance deltas are not
-     * physical heights in the drop dimension either -- the field's fence-launched
-     * bounce falls a REAL 2.44 (launch feet half a block proud of the stance grid,
-     * carpet lifting the contact stance a block) yet reads drop 2, and MIN_DROP=3
-     * made it structurally unofferable. The physics window above and the probe's
-     * refined surfaces judge each template; the floor only bounds the fan.
+     * The shallowest STANCE drop offered. Stance deltas are not physical heights (a real
+     * 2.44 fall can read drop 2); the physics window and the probe judge each template,
+     * this only bounds the fan. See docs/decisions/launch-solver.md (minimum stance drop).
      */
     private const val MIN_DROP = 2
 

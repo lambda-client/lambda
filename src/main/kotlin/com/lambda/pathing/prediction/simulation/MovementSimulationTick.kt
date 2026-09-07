@@ -31,23 +31,6 @@ data class MovementSimulationTick(
 	val isJumping: Boolean,
 	val simulator: MovementSimulator,
 ) {
-    fun next() = skipTicks(1)
-
-    fun next(input: MovementSimulationInput) = simulator.tickMovement(input)
-
-    fun skipTicks(amount: Int) = skipTicks(amount) { _, _ -> null }
-
-    fun skipTicks(
-        amount: Int,
-        inputProvider: (tick: Int, current: MovementSimulationTick) -> MovementSimulationInput?,
-    ) = with(simulator) {
-        repeat(amount) { tick ->
-            tickMovement(inputProvider(tick, lastTick))
-        }
-
-        lastTick
-    }
-
     fun skipUntil(amount: Int = 20, block: (MovementSimulationTick) -> Boolean) =
         skipUntil(amount, { _, _ -> null }, block)
 

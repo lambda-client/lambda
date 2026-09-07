@@ -18,24 +18,10 @@ data class VelocityDisc(val x: Double, val z: Double, val radius: Double) {
     fun contains(vx: Double, vz: Double, tolerance: Double = 0.0): Boolean =
         hypot(vx - x, vz - z) <= radius + tolerance
 
-    /** The point of the disc closest to a velocity, which is the best available substitute for it. */
-    fun nearest(vx: Double, vz: Double): Pair<Double, Double> {
-        val dx = vx - x
-        val dz = vz - z
-        val distance = hypot(dx, dz)
-        if (distance <= radius || distance < 1e-12) return vx to vz
-        val scale = radius / distance
-        return (x + dx * scale) to (z + dz * scale)
-    }
-
     /**
-     * The range of speeds along a direction this disc can produce.
-     *
-     * A launch cares about how fast the body is travelling *down the gap*; how much it is
-     * also drifting sideways is a separate tolerance the arc carries of its own. Testing
-     * the whole velocity vector instead conflates the two and refuses launches whose
-     * lateral drift the arc would have absorbed -- which measured as a corpus route
-     * falling from thirty certified nodes to three.
+     * The range of speeds along a direction this disc can produce. Launch feasibility is
+     * judged on this projection, not the whole vector: lateral drift is the arc's own
+     * tolerance. See docs/decisions/movement-tuning.md (entry reachability).
      */
     fun projectOnto(unitX: Double, unitZ: Double): ClosedFloatingPointRange<Double> {
         val centre = x * unitX + z * unitZ
@@ -150,16 +136,6 @@ class HorizontalDynamics(
         val spread = sqrt(1.0 + decay * decay - 2.0 * decay * cos(radians))
         if (spread < 1e-12) return cruise
         return acceleration * decaySum(ticks) / spread
-    }
-
-    /** Ticks of holding nothing that bring a speed down to [target]. */
-    fun coastTicksTo(speed: Double, target: Double, limit: Int = 16): Int {
-        var current = speed
-        for (tick in 0..limit) {
-            if (current <= target) return tick
-            current *= friction
-        }
-        return limit
     }
 
     companion object {

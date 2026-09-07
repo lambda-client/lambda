@@ -29,23 +29,13 @@ internal class Walk(val request: PathingRequest) {
     var sessionFailure: String? = null
 
     /**
-     * The next leg, planned from the running tape's terminal while the body is still on it.
-     *
-     * A session that dead-ends mid-walk used to leave the body to drain its tape, stop,
-     * and only then start a fresh search. The successor removes the search from that
-     * critical path -- it is planned during replay and installed on arrival.
+     * The next leg, planned from the running tape's terminal while the body is still on it
+     * and installed on arrival. See docs/decisions/publication-protocol.md.
      */
     var successorSession: PlanningSession? = null
     var successorPath: PublishedPath? = null
 
-    /**
-     * Frames each adoption added to the tape, and how long the search took to find them.
-     *
-     * Together these are the walk's throughput. The body consumes one frame per tick no
-     * matter what, so an adoption that adds fewer frames than the ticks it cost is one
-     * the walk runs a deficit on, and the deficit is paid at the next brake -- which is
-     * what a mid-route stop actually is.
-     */
+    /** Frames each adoption added to the tape, and the ticks the search took to find them. */
     val adoptionGains = ArrayList<Int>()
     val adoptionMillis = ArrayList<Long>()
 
@@ -61,12 +51,8 @@ internal class Walk(val request: PathingRequest) {
     }
 
     /**
-     * How fast tape arrived versus how fast the body ate it.
-     *
-     * The body consumes exactly one frame per tick, so an adoption that adds fewer frames
-     * than the ticks it took to produce is one the walk cannot survive on: the shortfall
-     * is paid at the next brake. Printing the two rates together is what makes a stall
-     * legible as a throughput problem rather than a mysterious pause.
+     * Frames adopted against ticks spent: the body eats one frame per tick, so a deficit
+     * here is paid at the next brake. See docs/decisions/session-loop.md.
      */
     fun publicationCadence(): String {
         if (adoptionGains.isEmpty()) return "no adoptions"

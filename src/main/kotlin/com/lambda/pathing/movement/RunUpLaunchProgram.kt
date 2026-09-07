@@ -6,18 +6,15 @@ import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import kotlin.math.abs
-import kotlin.math.hypot
 
 internal class RunUpLaunchProgram(
     private val takeoff: HorizontalPoint,
     private val aim: HorizontalPoint,
     private val solution: LaunchSolution,
-    retreatAlong: Double,
+    private val retreatAlong: Double,
     hopAlong: Double?,
     private val maxYawChange: Double,
 ) : ControlProgram {
-    private val retreatAlong = retreatAlong
     private val jumpTargets = ArrayDeque(listOfNotNull(hopAlong, solution.launchOffset))
 
     private var retreatDone = false
@@ -36,7 +33,7 @@ internal class RunUpLaunchProgram(
         if (launched && !observed.onGround) {
             return MovementSimulationInput(
                 forward = if (solution.holdForward) 1.0 else 0.0,
-                strafe = airborneStrafe(observed),
+                strafe = airborneStrafe(takeoff, aim, observed, LATERAL_DEADBAND),
                 sprint = solution.sprint && solution.holdForward,
                 rotation = rotation,
             )
@@ -69,22 +66,6 @@ internal class RunUpLaunchProgram(
             jump = jump,
             rotation = rotation,
         )
-    }
-
-    private fun airborneStrafe(observed: MovementSimulationState): Double {
-        val offset = lateralOffset(observed)
-        if (abs(offset) < LATERAL_DEADBAND) return 0.0
-        return if (offset > 0.0) 1.0 else -1.0
-    }
-
-    private fun lateralOffset(observed: MovementSimulationState): Double {
-        val dx = aim.x - takeoff.x
-        val dz = aim.z - takeoff.z
-        val length = hypot(dx, dz)
-        if (length <= 1e-9) return 0.0
-        val px = observed.position.x - takeoff.x
-        val pz = observed.position.z - takeoff.z
-        return (dx * pz - dz * px) / length
     }
 
     private companion object {

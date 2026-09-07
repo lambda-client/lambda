@@ -31,13 +31,10 @@ class MotionTemplate internal constructor(
         val bounceDrop: Int? = null,
 
         /**
-         * Dynamic admission on the REAL rise (stance rise corrected by launch and
-         * landing surface offsets), judged where the surfaces are known. The static
-         * template gate cannot see partial blocks: a "rise 1" landing on a bottom
-         * trapdoor is a 0.19 ascent that flies like a flat jump -- measured in the
-         * field as a 3-gap trapdoor step no template would offer -- while the same
-         * stance delta onto a full block is a true block of height with a shorter
-         * measured reach. Null admits everything.
+         * Dynamic admission on the REAL rise (stance rise corrected by launch and landing
+         * surface offsets), judged where the surfaces are known: a "rise 1" onto a bottom
+         * trapdoor is a 0.19 ascent, onto a full block a true block of height with a
+         * shorter reach. Null admits everything. See docs/decisions/movement-tuning.md.
          */
         val riseAdmission: ((Double) -> Boolean)? = null,
     )

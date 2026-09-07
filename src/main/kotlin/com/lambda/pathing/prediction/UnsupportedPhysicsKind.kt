@@ -19,7 +19,6 @@ package com.lambda.pathing.prediction
 
 enum class UnsupportedPhysicsKind {
     FLUID,
-    CLIMBABLE,
     COBWEB,
     POWDER_SNOW,
     HONEY_SIDE_EFFECTS,

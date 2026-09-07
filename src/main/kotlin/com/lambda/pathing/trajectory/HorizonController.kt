@@ -65,13 +65,10 @@ internal class HorizonController(
     private var pendingAckSinceMillis: Long? = null
 
     /**
-     * The refusal grind, counted. A commit attempt whose inputs cannot have changed
-     * since the last full refusal is suppressed without re-walking the line: every gate
-     * in [publishableOver] is a function of the running publication, the ack state, the
-     * roots and the chosen leaf -- the cursor is deliberately not in the key, because a
-     * divergence refusal is monotone in it (once a fork is behind the cursor it stays
-     * behind) and no other clause reads it. bedrock-05 was measured refusing the same
-     * nine candidates 157 rounds in a row, byte-identical; that is this memo's target.
+     * Commit attempts, those suppressed by the refused-commit memo, and publication
+     * refusals. The memo key is the running tip, root, ack state, leaf and best candidate;
+     * the cursor is deliberately excluded (divergence refusals are monotone in it).
+     * See docs/decisions/publication-protocol.md.
      */
     var commitAttempts = 0
         private set
@@ -98,11 +95,8 @@ internal class HorizonController(
     private val publications = ArrayDeque<Publication>()
 
     /**
-     * The executed frame, remembered.
-     *
-     * Asking for the cursor is not a free read -- the manager delivers pending
-     * publications on the way past -- so anything that only wants to *report* the cursor
-     * reads this instead of asking again.
+     * The last executed frame read from [cursorFrame]. Reading the cursor has side effects
+     * (the manager delivers pending publications), so reporting reads this instead.
      */
     var observedCursor: Int = -1
         private set
@@ -186,10 +180,8 @@ internal class HorizonController(
         }
 
         if (anchor.elapsed > publicationCap(cursor ?: -1)) return refused("cap")
-        // With a full solution standing, only its own prefix is publishable here.
-        // Publishing whatever anchored first let refinement churn onto the tape the
-        // moment the runway ran low; branch changes go through commitFromCandidates,
-        // which weighs them, instead.
+        // With a full solution standing only its own prefix is publishable here; branch
+        // changes go through commitFromCandidates, which weighs them.
         support.incumbentAnchor?.let { incumbent ->
             if (!incumbent.descendsFrom(anchor)) return refused("off-incumbent")
         }
@@ -198,9 +190,7 @@ internal class HorizonController(
             if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
 
             if (support.expansionCount < searchConfig.minCommitExpansions) return
-            // On a course this short the full solution lands within the same breath;
-            // publishing a partial first only sets up a divergence rejection and a
-            // hold at its brake. Let the session finalize instead.
+            // A course this short finalizes whole; a partial first would only hold at its brake.
             if (remaining <= FIRST_PUBLISH_MIN_REMAINING_TICKS) return
         } else {
             if (!ackedUpToDate()) return refused("unacked")
@@ -214,14 +204,9 @@ internal class HorizonController(
     }
 
     /**
-     * The deepest frame a publication may reach: a few chunks past the body, never the
-     * deepest certifiable anchor. Handing the executor half the course at once froze
-     * its quality -- an improvement can only replace tape that diverges ahead of the
-     * cursor, so everything inside a long published prefix was already decided. Keeping
-     * the published runway short leaves the near future open for the just-in-time
-     * refinement the search spends its idle capacity on, while staying long enough to
-     * absorb a planner hiccup (a streaming hole, a capture wait) without the body
-     * running into the brake tail.
+     * The deepest frame a publication may reach: [PUBLISH_RUNWAY_CHUNKS] commit chunks past
+     * the body, never the deepest certifiable anchor, so the near future stays open to
+     * refinement. See docs/decisions/publication-protocol.md.
      */
     private fun publicationCap(executing: Int): Int =
         maxOf(executing, 0) + searchConfig.horizonCommitFrames * PUBLISH_RUNWAY_CHUNKS
@@ -238,10 +223,7 @@ internal class HorizonController(
         val executing = cursor() ?: -1
         val floor = maxOf(reachableRoot?.elapsed ?: 0, executing)
 
-        // Only the best-ranked candidate, deliberately. Working down the list was tried
-        // twice and regressed twice: publishing re-roots the frontier onto whatever it
-        // commits, so handing the body the branch the search ranked worst is not a rescue
-        // from a refused commit, it is a mistake the body then has to walk.
+        // Only the best-ranked candidate, never a list; see docs/decisions/publication-protocol.md.
         val leaf = along?.takeIf { it.elapsed > floor }
         val pool = if (frontier.hasParked) {
             frontier.parkedEntries
@@ -301,17 +283,11 @@ internal class HorizonController(
             certifyRefused++
             return false
         }
-        // Deepest-first inside the cap: the smallest publication is the deepest one
-        // that still fits the runway budget.
+        // Deepest-first inside the cap, then the smallest overshoot past it: brakable
+        // anchors are sparse on a jump chain and refusing stalls the body.
         for (candidate in line.filter { it.elapsed <= cap }.sortedByDescending { it.elapsed }) {
             if (tryPublish(candidate)) return true
         }
-        // A publication must end at an anchor a passive brake can settle from, and on a
-        // jump chain those are sparse -- every capped candidate can be mid-flight or
-        // skidding off a lip, with the nearest brakable point beyond the cap. Overshoot
-        // by as little as possible rather than refuse: the refusals were measured
-        // (commit-line-refused in the hundreds at each stall) as the body braking at
-        // the tape end with certified work sitting unpublishable.
         for (candidate in line.filter { it.elapsed > cap }.sortedBy { it.elapsed }) {
             if (tryPublish(candidate)) return true
         }
@@ -326,15 +302,7 @@ internal class HorizonController(
 
     /**
      * Push the local horizon out so anchors parked beyond it can be expanded again.
-     *
-     * The horizon is a budget the search sets itself -- how far past the committed root it
-     * will look before insisting on a decision -- and hitting it with an empty open list
-     * and anchors waiting behind it is not a dead end, it is the budget being wrong. A
-     * production session ended at route node fourteen of sixteen this way, reporting a
-     * refused commit while holding twelve parked anchors it had declined to expand.
-     *
-     * Returns false when nothing moves, so a caller can distinguish "there was more to do"
-     * from "there genuinely was not" and stop rather than spin.
+     * Returns false when nothing moved, so the caller stops rather than spins.
      */
     fun extendHorizon(): Boolean {
         if (searchConfig.localHorizonFrames <= 0) return false
@@ -347,22 +315,15 @@ internal class HorizonController(
     }
 
     /**
-     * A new publication must genuinely improve on the running tape: a descendant must
-     * extend past the tip; any other branch is a deliberate backtrack, allowed only
-     * when it departs ahead of the executed frames and gets meaningfully closer to
-     * the goal than the tip -- otherwise siblings thrash the tape back and forth.
+     * The swap gate: a descendant must extend past the tip; any other branch must fork
+     * ahead of the cursor (plus in-flight margin), not be an ancestor, leave a commit
+     * chunk of runway, and beat the tip's estimated arrival by the swap floor.
+     * Clause evidence: docs/decisions/publication-protocol.md.
      */
     private fun publishableOver(tip: ValueAnchor, candidate: ValueAnchor, executing: Int): Boolean {
-        // The cursor keeps advancing while a publication is in flight: without a
-        // margin, a tape that diverges just ahead of the cursor arrives diverging
-        // just behind it and is refused.
         if (executing >= 0) {
             val divergence = executionDivergence(candidate)
             if (divergence < executing + PUBLISH_DIVERGENCE_MARGIN_FRAMES) {
-                // Dead forks and just-missed forks are different diseases: a fork the
-                // cursor passed long ago was never going to publish from here, while one
-                // inside the in-flight margin lost a race the search could have won by
-                // committing earlier.
                 lastRefusalClause = if (divergence < executing) "divergence-dead" else "divergence-margin"
                 return false
             }
@@ -374,44 +335,21 @@ internal class HorizonController(
             }
             return true
         }
-        // The mirror image: a candidate the tip descends from is not a swap, it is a
-        // rollback -- it hands the executor a strict prefix of the tape it already
-        // has. The arrival gate below cannot refuse it on its own, because the walked
-        // prefix always costs more frames than the guide ever claimed for it, so the
-        // ancestor reads as "closer to arrival" than the tip it produced. Measured as
-        // a cursor-less session (the vine fixture) publishing tip and ancestor in
-        // alternation forever.
+        // An ancestor of the tip is a rollback, not a swap; the arrival gate cannot catch it.
         if (tip.descendsFrom(candidate)) {
             lastRefusalClause = "ancestor-rollback"
             return false
         }
-        // A swap that leaves the body with less than a commit chunk of certified tape
-        // is a death trap regardless of its arrival estimate: the cursor reaches the
-        // shortened tip, the divergence margin then refuses every extension -- they all
-        // fork at the tip, inside the margin -- and the session restarts into the same
-        // wall until it exhausts. Measured killing two baseline walks at frame 13.
         if (executing >= 0 && candidate.elapsed < executing + searchConfig.horizonCommitFrames) {
             lastRefusalClause = "swap-short-runway"
             return false
         }
-        // A publication on another branch must improve the ESTIMATED ARRIVAL, not
-        // just the coarse guide: comparing guides alone let the tape swap onto a
-        // branch with less progress -- a physical loop the body then walks. Collisions
-        // are priced the way Solution.score prices them, or a swap could buy its three
-        // ticks by scraping walls -- measured as a refinement pass taking a scenario
-        // from one collision frame to seven.
-        val candidateArrival = candidate.elapsed +
-            field.guide(candidate.stance, SpeedClass.of(candidate.speed)) +
-            Solution.COLLISION_FRAME_PENALTY * candidate.collisionEvents
-        // The tip's arrival claim is its elapsed plus the guide -- a lower bound its
-        // line may not be able to achieve at all. When thousands of expansions have
-        // passed without the tip extending, that claim is discounted toward what the
-        // tape actually delivers (a brake stop): measured on bedrock-00's endgame, the
-        // gate held a frozen tip's optimistic estimate against candidates that were
-        // nearly at the goal, the body braked five frames and the session restarted --
-        // the fixture's only remaining stall.
+        // Estimated arrival, collisions priced as Solution.score prices them; the tip's
+        // claim erodes toward a brake stop while it fails to extend (stale-tip discount).
+        val candidateArrival = arrivalEstimate(candidate)
         val stale = ((support.expansionCount - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS)
             .toDouble() / STALE_TIP_RAMP_EXPANSIONS).coerceIn(0.0, 1.0) * STALE_TIP_MAX_TICKS
+        // Not arrivalEstimate(tip) + stale: re-associating the sum is not bit-identical.
         val tipArrival = tip.elapsed + field.guide(tip.stance, SpeedClass.of(tip.speed)) + stale +
             Solution.COLLISION_FRAME_PENALTY * tip.collisionEvents
         if (candidateArrival + REFINEMENT_GAIN_TICKS > tipArrival) {
@@ -432,22 +370,13 @@ internal class HorizonController(
     private var publishedFinalScore = Int.MAX_VALUE
 
     /**
-     * Hand the executor a SEALED finish -- terminal tail included -- as an ordinary
-     * running publication, the moment it exists and while its fork is still adoptable.
-     * The finalize return used to be the only carrier for a finished tape, and the
-     * near-end gate held it until the cursor had passed the seal anchor's fork; the
-     * executor then refused it as diverging behind the cursor and the body braked at
-     * the old tape's end (the traverse's four-frame endgame stall, decoded in the
-     * session notes). Publishing it instead makes the finish just another publication:
-     * the session keeps refining, and a later, shorter seal replaces it through the
-     * same gate. Score-gated so equal finishes never spam the ack channel.
+     * Publish a sealed finish, terminal tail included, as an ordinary running publication
+     * so the session survives to refine it; a later shorter seal replaces it through the
+     * same gate. Score-gated, and only ever an upgrade of a walk already in motion.
+     * See docs/decisions/publication-protocol.md.
      */
     fun publishFinished(solution: Solution): Boolean {
         val publish = onSafePrefix ?: return false
-        // Only ever an UPGRADE of a walk already in motion. Publishing the very first
-        // seal put short courses on their unpolished spine tape -- the bootstrap rules
-        // in publishPrefix exist precisely to let those finalize once, polished
-        // (flat-diagonal went 50 to 65 with six stall frames when this fired freely).
         if (publications.isEmpty()) return false
         if (solution.score >= publishedFinalScore) return false
         if (!adoptable(solution.anchor)) return false
@@ -536,11 +465,8 @@ internal class HorizonController(
     }
 
     /**
-     * A publication the executor has not acknowledged within the timeout was rejected
-     * or lost -- most often the cursor advanced past its divergence point while it was
-     * in flight. Drop the unacked tail and fall back to the acknowledged tape, so the
-     * search publishes extensions of what the body is actually replaying instead of
-     * jamming forever behind a tape that will never be installed.
+     * A publication unacknowledged for [ACK_ROLLBACK_MILLIS] was rejected or lost: drop the
+     * unacked tail and fall back to the acknowledged tape.
      */
     private fun maybeRollback() {
         if (ackedUpToDate()) {
@@ -568,7 +494,7 @@ internal class HorizonController(
         return acked >= newest.sequence
     }
 
-    /** Elapsed frame at which [candidate]'s lineage departs from [running]'s. */
+    /** Memoised ancestor set of the running tip, for [divergenceElapsed]. */
     private var runningLineFor: ValueAnchor? = null
     private val runningLine = HashSet<ValueAnchor>()
 
@@ -612,27 +538,17 @@ internal class HorizonController(
     }
 
     /**
-     * Whether [anchor] can still lead to an adoptable publication. Execution kills
-     * branches continuously: once the cursor passes the frame where a branch departs
-     * the acked tape, nothing that branch leads to can ever be published -- the
-     * divergence clause will refuse it forever. Leaving such branches in the frontier
-     * was measured as the search chasing a better-but-dead line while the tape starved
-     * and the body braked at the tip (every stall's refusals were divergence refusals
-     * with a frozen divergence behind an advancing cursor). Anchors still ON the acked
-     * tape report their own elapsed as divergence; they are the tape and stay live.
+     * Whether [anchor] can still lead to an adoptable publication: its fork must be at
+     * least the divergence margin ahead of the cursor. Anchors on the acked tape stay live.
      */
     fun adoptable(anchor: ValueAnchor): Boolean =
         forkLife(anchor) >= PUBLISH_DIVERGENCE_MARGIN_FRAMES
 
     /**
-     * Whether a finished solution rooted at [anchor] must be finalized NOW to remain
-     * adoptable. A finish sealed from a tape ancestor forks the running tape at that
-     * ancestor's frame, and the fork dies when the cursor passes it -- measured on the
-     * traverse as a finish sealed at frame 396 with the body at 385, deferred by the
-     * near-end gate until the body stood at 400, refused by the executor as diverging
-     * behind the cursor, and re-finished from rest after a four-frame stall. Unlike
-     * [forkLife], an on-tape anchor is NOT exempt here: publishing a fork at an
-     * executed ancestor dies exactly the same way.
+     * Whether a finish sealed at [anchor] must be published now to remain adoptable: its
+     * fork is within margin plus [FINAL_FORK_HEADROOM_FRAMES] of the cursor. Unlike
+     * [forkLife], an on-tape anchor is not exempt -- a fork published at an executed
+     * ancestor dies the same way. See docs/decisions/publication-protocol.md.
      */
     fun finalWindowClosing(anchor: ValueAnchor): Boolean {
         val executing = cursor() ?: return false
@@ -680,18 +596,9 @@ internal class HorizonController(
     }
 
     /**
-     * The running tape's tip as a fresh continuation, still moving.
-     *
-     * The counterpart to [latestBrakeContinuation], and the one to try first. Re-rooting
-     * onto the resting brake makes stopping mandatory: `canReach` then requires every
-     * later anchor to descend from the brake, so the certified tape necessarily contains
-     * the deceleration and the body physically halts. Four production runs each recorded
-     * exactly one restart and exactly one eight-frame stop.
-     *
-     * A drained frontier is a statement about that frontier -- its anchors have spent
-     * their vocabulary -- not about the tip being unextendable. This hands the search the
-     * same tape prefix with a clean slate: same parent, same inputs, so any solution
-     * through it replays identically, but with no attempts recorded and no brake implied.
+     * The running tape's tip as a fresh continuation, still moving: same parent and inputs
+     * (so solutions through it replay identically), no attempts recorded, no brake implied.
+     * Tried before [latestBrakeContinuation]; see docs/decisions/session-loop.md.
      */
     fun movingTipContinuation(): ValueAnchor? {
         val tip = publishedTip ?: return null
@@ -736,35 +643,31 @@ internal class HorizonController(
 
     companion object {
 
+        /** Frames a fork must sit ahead of the cursor: the in-flight publication margin. */
         const val PUBLISH_DIVERGENCE_MARGIN_FRAMES = 3
 
-        /** Frames of fork life below which a sealed finish is finalized rather than polished. */
+        /** Frames of fork life below which a sealed finish is published rather than polished. */
         const val FINAL_FORK_HEADROOM_FRAMES = 12
 
         private const val MIN_COMMIT_PROGRESS_TICKS = 1.0
 
-        const val REFINEMENT_GAIN_TICKS = 3.0
+        /** The swap floor; see docs/decisions/swap-floor.md. */
+        const val REFINEMENT_GAIN_TICKS = SWAP_FLOOR_GAIN_TICKS
 
-        /** Expansions of a tip failing to extend before its arrival claim starts to erode. */
+        /** Stale-tip discount ramp, in expansions since the last publication; see docs/decisions/publication-protocol.md. */
         const val STALE_TIP_FLOOR_EXPANSIONS = 2000
 
         const val STALE_TIP_RAMP_EXPANSIONS = 4000
 
-        /** Full staleness discounts the claim by about a brake tail: what a frozen tape truly delivers. */
+        /** Full staleness discounts the tip's claim by about a brake tail. */
         const val STALE_TIP_MAX_TICKS = 30.0
 
         const val FIRST_PUBLISH_MIN_REMAINING_TICKS = 30.0
 
-        /**
-         * Published runway in commit chunks: three chunks is two to three seconds of
-         * certified motion ahead of the body -- enough to ride out a streaming hole or
-         * a capture wait, small enough that most of the course stays open to
-         * improvement. See [publicationCap].
-         */
+        /** Published runway in commit chunks; see [publicationCap]. */
         const val PUBLISH_RUNWAY_CHUNKS = 3
 
         const val ACK_ROLLBACK_MILLIS = 150L
-
 
         const val MAX_SHOWN_CANDIDATES = 12
 

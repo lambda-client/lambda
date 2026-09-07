@@ -40,12 +40,7 @@ object ValueFieldAnchorSearch {
 
         probe: SearchProbe = SearchProbe.NONE,
 
-        /**
-         * Where the search reports what it had spent and unlocked when it stopped.
-         *
-         * A callback rather than a log line: this runs inside plain unit tests, and the
-         * mod's logger cannot static-initialise outside a Minecraft runtime.
-         */
+        /** Receives the [SearchExhaustion] on every exit; a callback because the mod logger cannot initialise in unit tests. */
         onExhaustion: ((SearchExhaustion) -> Unit)? = null,
 
         /**
@@ -76,13 +71,9 @@ object ValueFieldAnchorSearch {
         Stance.of(state.position, state.onGround)
 
     /**
-     * Where a grounded state is actually standing, when flooring its centre names a
-     * cell that is not a stance at all: the body caught a lone pad with its edge and
-     * hangs its centre over the air beside it. On the diagonal zig-zag fixture every
-     * corner catch of the far pad was rejected as FellBelowRoute this way. A FALLBACK
-     * only -- a landing whose floored cell is a real stance keeps its name, so clean
-     * centred landings and sloppy corner catches stay distinguishable and the drop
-     * staircase's hold-the-line quality gate keeps meaning something.
+     * The stance a grounded body is actually supported by when flooring its centre names a
+     * non-stance cell (a corner catch). Fallback only: a landing whose floored cell is a real
+     * stance keeps its name. See docs/decisions/movement-tuning.md.
      */
     internal fun supportedStanceOf(state: MovementSimulationState): Stance? {
         if (!state.onGround) return null

@@ -6,8 +6,7 @@ package com.lambda.pathing.movement
  * The coarse graph prices *where* the body goes. This prices *how*: two decisions that
  * cross the same edge can differ by fifty frames of run-up, or by whether the landing has
  * a hand's width of slack or none at all. Without that difference in the frontier order,
- * an anchor is expanded by list position -- every gait, every launch delay, every heading
- * offset -- before the search descends, which is measurably where the search budget goes.
+ * an anchor is expanded by list position before the search descends.
  *
  * The two components are not interchangeable:
  *

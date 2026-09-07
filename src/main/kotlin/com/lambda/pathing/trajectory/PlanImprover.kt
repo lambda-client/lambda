@@ -5,38 +5,16 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 /**
- * Makes a solved plan shorter by replacing expensive spans with shortcuts.
- *
- * This is the half of the design the search could never do. The old search had one
- * frontier answering "do we have a path" and "is it a good path" at once, which is why it
- * could be a hundred thousand expansions deep and still have nothing to hand the body.
- * By the time this runs a full solution already exists, so every rollout spent here can
- * only buy a shorter tape -- and if it buys nothing, the solution is still there.
- *
- * The loop is: rank spans of the solution's anchor chain by frames per block covered, try
- * to cross the worst one in fewer frames, then **re-run the rest of the plan's decisions
- * from wherever the shortcut actually came out**. That last step is why decisions are
- * retained at all. Replaying the recorded inputs from a displaced body re-certifies 0.9%
- * of the time at one beam bucket; re-running the decisions re-certifies 45%, because a
- * movement program re-solves its launch instead of replaying a stale one.
- *
- * Everything is rebuilt as a real anchor chain rather than assembled by hand, so the
- * result is an ordinary [Solution] -- certification, publication and the executor see
- * nothing new. A refused shortcut costs a median two to six rollouts, against the
- * seven-hundred-odd per published frame the receding-horizon search was measured burning.
- * Failure is cheap here on purpose.
+ * Shortens a solved plan by replacing expensive spans with shortcuts: rank spans of the
+ * anchor chain by frames per block, cross the worst in fewer frames, then re-run the rest
+ * of the plan's decisions from where the shortcut came out. The result is an ordinary
+ * [Solution] built as a real anchor chain. See docs/decisions/improver.md.
  */
 internal class PlanImprover(
     private val rollouts: AnchorRollout,
     private val vocabulary: ActionSet,
     private val finisher: FinishPlanner,
-    /**
-     * Whether a cut point is still adoptable.
-     *
-     * A splice behind the executed cursor can never be published, and offering one is
-     * worse than useless: it spends the budget and then loses to the tape the body is
-     * already replaying.
-     */
+    /** Whether a cut point is still adoptable; a splice behind the cursor can never publish. */
     private val canReach: (ValueAnchor) -> Boolean = { true },
     private val temperature: Temperature = Temperature(level = 1.0),
 ) {
@@ -64,7 +42,6 @@ internal class PlanImprover(
         if (nearestMissBlocks.isFinite()) append(" nearestMiss=%.2f".format(nearestMissBlocks))
     }
 
-
     /** The best solution found within [budget] rollouts, or null when nothing improved. */
     fun improve(solution: Solution, budget: Int): Solution? {
         if (budget <= 0) return null
@@ -87,11 +64,7 @@ internal class PlanImprover(
         val chain = chainOf(solution.anchor)
         if (chain.size < 3) return null
 
-        // Any anchor further along the plan is a legal rejoin, not just a chosen one.
-        // Demanding an exact landing on a pre-selected junction found nothing at all:
-        // the vocabulary proposes coarse steps within three of the body, and a junction
-        // two to eight segments ahead is simply not something it aims at. Offering the
-        // whole remaining chain as targets costs nothing and is what makes this fire.
+        // Any anchor further along the plan is a legal rejoin, not just a chosen junction.
         val rejoins = HashMap<Stance, Int>()
         chain.forEachIndexed { index, anchor -> rejoins[anchor.stance] = index }
 
@@ -104,12 +77,7 @@ internal class PlanImprover(
                 continue
             }
 
-            // Rejoining at the very next anchor is allowed, and turns out to be where
-            // nearly all the wins are. Skipping a segment needs a coarse move longer than
-            // the one the plan used, and the move library rarely has one -- measured as
-            // one crossing across seventeen fully-reachable spans. Reaching the SAME
-            // stance in fewer frames only needs a better-flown version of the same
-            // movement, which the vocabulary offers several of.
+            // Rejoining at the very next anchor is allowed; it is where nearly all wins are.
             val crossing = cross(from, rejoins, chain, start + 1, MAX_SHORTCUT_DEPTH) ?: continue
             crossingsFound++
 
@@ -125,8 +93,7 @@ internal class PlanImprover(
     private fun rankedStarts(chain: List<ValueAnchor>): List<Int> {
         val worst = HashMap<Int, Double>()
         for (start in chain.indices) {
-            // Ranking executed spans burned most of a live slice's budget on cut points
-            // that can never publish -- 29 of 35 span attempts on a walking traverse.
+            // Executed spans can never publish; do not spend budget ranking them.
             if (!canReach(chain[start])) continue
             for (end in start + 2..minOf(start + MAX_SPAN, chain.lastIndex)) {
                 val frames = chain[end].elapsed - chain[start].elapsed
@@ -141,10 +108,8 @@ internal class PlanImprover(
     }
 
     /**
-     * Reach [target] from [anchor] before frame [limit], cheapest options first.
-     *
-     * Depth-limited rather than best-first: a shortcut worth having is one or two
-     * movements, and the frame limit prunes hard enough that a wider search buys nothing.
+     * Reach a rejoin from [anchor] within [depth] movements, cheapest options first.
+     * Depth-limited rather than best-first: a shortcut worth having is one or two movements.
      */
     private fun cross(
         anchor: ValueAnchor,
@@ -168,19 +133,9 @@ internal class PlanImprover(
     }
 
     /**
-     * The junction this crossing rejoins, by body state rather than cell identity.
-     *
-     * Demanding the exact coarse stance the plan visits was the improver's cage: a
-     * maneuver that carries speed lands wherever momentum puts it, usually a cell the
-     * plan never touches, and the old test threw every such crossing away -- measured
-     * as ~0 splices per field walk from 1,500 rollouts. What actually decides whether
-     * the tail survives is the body state at the junction, and that tolerance is
-     * measured, not guessed: decision re-runs re-certify 77% from a quarter beam
-     * bucket, 56% from half. Half a bucket is accepted here because [recertify]
-     * validates every candidate anyway -- a false accept costs its rollouts, a false
-     * reject costs the splice. The exact-stance rejoin stays as one clause of the
-     * match; it needs no state agreement because the re-run has always been trusted to
-     * settle those.
+     * The furthest junction this crossing rejoins, matched by exact stance or by body
+     * state within the rejoin tolerances; [recertify] validates every match.
+     * See docs/decisions/improver.md.
      */
     private fun rejoinIndex(next: ValueAnchor, chain: List<ValueAnchor>, minRejoin: Int): Int? {
         var best: Int? = null
@@ -246,15 +201,14 @@ internal class PlanImprover(
         /** A shortcut worth having is one or two movements; four is already a detour. */
         const val MAX_SHORTCUT_DEPTH = 3
 
-        /** From the measured re-certification depth: past this the tail rarely survives. */
+        /** Segments a shortcut may span: the re-certification depth. See docs/decisions/improver.md. */
         const val MAX_SPAN = 8
 
         const val MIN_SPAN_BLOCKS = 1.0
 
-        /** One beam position bucket: decision re-runs still re-certify 45% from here, and recertify filters the rest. */
+        /** Rejoin tolerances: one beam position bucket and one beam speed bucket. */
         const val REJOIN_POSITION_TOLERANCE_BLOCKS = 0.25
 
-        /** One beam speed bucket, same experiment. */
         const val REJOIN_VELOCITY_TOLERANCE_BLOCKS = 0.075
         const val MAX_ROUNDS = 8
 

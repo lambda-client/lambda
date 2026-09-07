@@ -39,24 +39,10 @@ object JumpMovement : Movement {
     }
 
     /**
-     * A jump candidate must be provably reachable from a standing start on its own
-     * block, because the coarse graph cannot promise a run-up exists at the launch --
-     * a route through a jump that needs carried momentum is a route the trajectory
-     * layer may be unable to honour, and the coarse graph is supposed to be a lower
-     * bound the search solves every time.
-     *
-     * The distance that matters is the AIR GAP, corner to corner: the body launches
-     * from the lip nearest the target and catches the landing at its nearest corner,
-     * so a (4,2) cell jump is not 4.47 blocks of flight but the diagonal of the 3x1
-     * air rectangle between the blocks, 3.16. The old gate compared cell-centre
-     * distance against `hypot(maxJumpSpan, 1)`, which granted exactly one block of
-     * lateral offset at full span and silently dropped real jumps like (4,2) while
-     * admitting momentum-only ones like straight span-5.
-     *
-     * The ceilings are rollout-measured, not derived (OffAxisJumpProbeTest, standing
-     * start at pad centre, every solution x delay): flat and dropping jumps certify
-     * solidly up to a 3.16 air gap and only 1-in-9 at 4.0; rising jumps stop at 2.83.
-     * [SimpleMoveOptions.maxJumpSpan] remains the user-facing cap, now per axis.
+     * A jump template must be reachable from a standing start on its own block (the
+     * coarse graph cannot promise a run-up). The gate is the corner-to-corner AIR GAP,
+     * not cell-centre distance, against rollout-measured ceilings; [SimpleMoveOptions.maxJumpSpan]
+     * is a per-axis user cap on top. See docs/decisions/movement-tuning.md (standing reach).
      */
     private fun offered(dx: Int, dz: Int, rise: Int, options: SimpleMoveOptions): Boolean {
         val distance = hypot(dx, dz)
@@ -65,16 +51,10 @@ object JumpMovement : Movement {
         if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
         if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return false
 
-        // Statically the WIDEST ceiling this stance delta could honestly reach:
-        // whether a "rise 1" stance delta is a true block of height or a fifth of
-        // one (a bottom trapdoor's landing), and whether a "drop 1" is a real
-        // block of descent or a slab lip's near-flat step, only the surfaces can
-        // say -- the honest reach for the REAL rise is applied dynamically in the
-        // edge (see the admission in [spec]). The deep-drop ceiling is opt-in
-        // (see [SimpleMoveOptions.allowDeepDropJumps] for the measured trade),
-        // and deliberately not offered for LEVEL deltas even though a level delta
-        // can hide a real half-drop (full block onto a slab): the whole drop ring
-        // on every level pair is fan no course has yet earned.
+        // Statically the WIDEST ceiling this stance delta could reach; the real
+        // (surface-corrected) rise is judged in [spec]'s riseAdmission. The deep-drop
+        // ceiling is opt-in and never offered for LEVEL deltas.
+        // See docs/decisions/movement-tuning.md (deep-drop jumps).
         val ceiling = if (rise < 0 && options.allowDeepDropJumps) FULL_DROP_AIR_GAP_BLOCKS
             else STANDING_AIR_GAP_BLOCKS
         return airGap(dx, dz) <= ceiling + REACH_EPSILON
@@ -94,23 +74,15 @@ object JumpMovement : Movement {
     private val RISING_STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(2.0, 2.0)
 
     /**
-     * The drop-extended reaches, rollout-measured like the others (FenceJumpTest's
-     * drop-reach matrix, standing start, delays 0..4 from the cell centre): a real
-     * half-block of descent certifies a 4.0 air gap (span 5 straight; the field case
-     * is a fence launch, feet half a block proud, onto a full block a stance below),
-     * a real block certifies the 4.12-4.24 diagonals, and a 5.0 air gap certifies
-     * at NO measured drop -- the flight crosses the landing plane two-thirds of a
-     * block short even from a running start on the launch block.
+     * Drop-extended reaches: half a block of real descent certifies a 4.0 air gap, a
+     * full block the 4.12-4.24 diagonals; 5.0 never certifies.
+     * See docs/decisions/movement-tuning.md (drop-extended reaches).
      */
     private const val HALF_DROP_AIR_GAP_BLOCKS = 4.0
 
     private val FULL_DROP_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 3.0)
 
-    /**
-     * Real-rise boundaries for the drop-extended ceilings, placed between the
-     * measured clusters (drop 0.0 fails / 0.5 passes at gap 4.0; 0.5 fails / 1.0
-     * passes at the wide diagonals), never at a plausible round number.
-     */
+    /** Real-rise boundaries for the drop-extended ceilings, placed between measured clusters. */
     private const val HALF_DROP_RISE = -0.25
 
     private const val FULL_DROP_RISE = -0.75
@@ -139,14 +111,9 @@ object JumpMovement : Movement {
             conditions = WalkMovement.stanceConditions(dx, rise, dz),
             arc = MotionTemplate.ArcSpec(
                 dx, dz, rise, MODES,
-                // The measured reach ladder, judged against the surface-corrected
-                // rise. A genuinely rising jump keeps its measured shorter reach; a
-                // short real ascent flies at the flat ceiling (field-verified: 0.19,
-                // a bottom trapdoor, and 0.5, a slab lip, both certify a three-gap
-                // while a true block of rise caps at the rising reach). Beyond the
-                // flat ceiling the gap must be BOUGHT with real descent: half a
-                // block unlocks 4.0, a full block the wide diagonals -- every rung
-                // a measured cluster, every boundary between two of them.
+                // Reach ladder judged against the surface-corrected rise: a real ascent
+                // keeps the rising reach, a near-flat one gets the flat ceiling, longer
+                // gaps must be bought with descent. See docs/decisions/movement-tuning.md.
                 riseAdmission = { realRise ->
                     when {
                         gap <= RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
@@ -167,15 +134,9 @@ object JumpMovement : Movement {
     override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y >= edge.from.y
 
     /**
-     * Momentum skips: a sprint-jump across cells the route merely walks.
-     *
-     * The coarse graph only carries jump edges where a gap forces one, so a moving body
-     * was never offered "clear the next three walkable cells in one flight" -- the
-     * fastest maneuver in the calibration table (sprint-jump 0.364 b/t against sprint's
-     * 0.281) was invisible exactly where it wins. The targets are derived, not searched:
-     * the steering chain names the cells ahead, and the launch solver answers which of
-     * them this body's speed can reach, furthest first. Landing anywhere short is not a
-     * failure -- the rollout anchors wherever the body comes down.
+     * Momentum skips: a sprint-jump across cells the route merely walks. Targets come
+     * from the steering chain, furthest reachable first; landing short is not a failure,
+     * the rollout anchors wherever the body comes down.
      */
     override fun proposals(context: ProposalContext): Proposals {
         val gait = if (context.momentumGait) gaitHop(context) else null
@@ -186,13 +147,9 @@ object JumpMovement : Movement {
 
     /**
      * The chained sprint-jump gait: one natural-distance hop along a straight, level
-     * chain stretch, as a solution-less [TrajectoryDecision.Launch] -- open-loop
-     * flight, forward held throughout, jump pressed on the first grounded tick.
-     * Chaining needs no special machinery: the landing anchor is grounded and fast, so
-     * the next poll proposes the next hop, and the input timing across the anchor cut
-     * is identical to a single program pressing jump on the tick after landing. This is
-     * where the measured 0.364 b/t sprint-jump rate lives, against sprint's 0.281 --
-     * the gait the calibration measured and the vocabulary never offered.
+     * chain stretch, as a solution-less [TrajectoryDecision.Launch] (open-loop, forward
+     * held, jump on the first grounded tick). The landing anchor is grounded and fast,
+     * so the next poll proposes the next hop; no chaining machinery is needed.
      */
     private fun gaitHop(context: ProposalContext): TrajectoryDecision? {
         val body = context.body
@@ -205,20 +162,16 @@ object JumpMovement : Movement {
         var target: Stance? = null
         for (index in 1 until chain.size) {
             val cell = chain[index]
-            // The level bound guards every cell the flight crosses; alignment only the
-            // cell it aims at. Chains on open ground zigzag half a block around the
-            // straight line, and demanding each intermediate wobble lie on the heading
-            // killed the gait almost everywhere it belongs -- thirty-eight proposals in
-            // a thirty-thousand-expansion walk.
+            // The level bound guards every crossed cell; alignment only the target cell
+            // (chains zigzag half a block). See docs/decisions/movement-tuning.md (gait).
             if (abs(cell.y - body.stance.y) > 1) break
             val towardX = (cell.x - body.stance.x).toDouble()
             val towardZ = (cell.z - body.stance.z).toDouble()
             val distance = hypot(towardX, towardZ)
             if (distance > GAIT_MAX_HOP_BLOCKS) break
             if (distance < GAIT_MIN_HOP_BLOCKS) continue
-            // Flown-over cells may rise a block; the landing may not. An uphill landing
-            // spends the arc's tail on the climb and arrives slow -- measured costing a
-            // pad course the eight frames the flat-landing variant had won.
+            // Flown-over cells may rise a block; the landing may not (an uphill landing
+            // spends the arc's tail on the climb and arrives slow).
             if (cell.y > body.stance.y) continue
             val alignment = (heading.first * towardX + heading.second * towardZ) /
                 (headingLength * distance)
@@ -259,23 +212,9 @@ object JumpMovement : Movement {
                 modes = MODES,
                 maxEntrySpeed = { reachable },
             ) ?: continue
-            // A skip must be a CUT or a FALL, never flat-straight jump spam. Measured
-            // on the corpus movement profiles: skips flip the gait jump-heavy
-            // everywhere, which wins six frames on a pad course and loses eleven on the
-            // open traverse -- an isolated launch pays prep, landing and
-            // re-acceleration that no per-flight arithmetic here captures, and the fast
-            // 0.364 b/t figure belongs to the chained gait this decision does not
-            // produce. Flight only beats ground where it shortens the path (momentum
-            // through a corner, a diagonal across the chain's zigzag) or where the
-            // ground itself drops away.
-            // What separates a skip worth flying from jump spam is what it skips OVER.
-            // Chain steps that are themselves gaps mean the skip merges two jumps into
-            // one flight -- always worth proposing where the solver says it lands. Over
-            // plain walked ground, flight must either cut the path short (momentum
-            // through a corner) or convert a real drop into horizontal ground; a
-            // one-block descent is a walking matter, and letting every downhill cell
-            // through spammed rolling terrain with launches (bedrock-08 ended short,
-            // bedrock-05 stalled twenty frames' worth).
+            // A skip must merge two gaps into one flight, cut the walked path, or convert
+            // a real drop; flat jump spam loses on open ground. See
+            // docs/decisions/movement-tuning.md (skip admission).
             var walked = 0.0
             var skipsGap = false
             for (step in 1..index) {
@@ -447,18 +386,10 @@ object JumpMovement : Movement {
     }
 
     /**
-     * Whether the body simply cannot be going the right speed by the time it launches.
-     *
-     * Horizontal movement is `v' = friction * (v + acceleration * u)`, which makes the
-     * velocities reachable in a given number of ticks a disc with a closed-form centre and
-     * radius. Projecting it onto the gap gives the speeds the body could be travelling at
-     * when it launches, and the arc's own entry band says which of those will do -- one
-     * interval overlap, exactly, replacing a scalar approximation that forgave a fixed
-     * tenth of a block per tick because it ignored which way the body was already moving.
-     *
-     * Deliberately the projection and not the whole velocity: sideways drift at launch is
-     * real but the arc carries its own lateral tolerance for it, and refusing launches on
-     * that basis measured as a corpus route falling from thirty certified nodes to three.
+     * Whether the body cannot be at the arc's entry speed after [delay] ticks: the
+     * reachable velocity disc, projected onto the gap, must overlap the entry band.
+     * Deliberately the projection, not the whole velocity -- the arc carries its own
+     * lateral tolerance. See docs/decisions/movement-tuning.md (entry reachability).
      */
     private fun unreachableEntry(
         context: DecisionContext,
@@ -510,13 +441,9 @@ object JumpMovement : Movement {
     }
 
     /**
-     * Entry speeds the gap after this one can accept, when there is one.
-     *
-     * Only gaps are asked about. A walk onward imposes nothing -- the body brakes on the
-     * ground between them -- so informing the solver there would narrow its choices for no
-     * reason. A jump onward is the case that matters: this launch's exit speed becomes
-     * that one's entry speed with a single block in between, and choosing an arc that
-     * lands too fast to leave again is how a chain of pads dead-ends at the second one.
+     * Entry speeds the gap after this one can accept, or null when the onward step is a
+     * walk (the body brakes on the ground, so no window applies). This launch's exit
+     * speed becomes that gap's entry speed with a single block in between.
      */
     private fun onwardEntryWindow(context: DecisionContext): ClosedFloatingPointRange<Double>? {
         val steering = context.steering ?: return null
@@ -534,11 +461,9 @@ object JumpMovement : Movement {
         if (solutions.isEmpty()) return null
         val entry = solutions.minOf { it.speed - it.speedSlack }..
             solutions.maxOf { it.speed + it.speedSlack }
-        // Pulled back through the pad. This launch's exit speed does not have to *be* an
-        // entry the next gap accepts -- it has to be one the body can turn into such an
-        // entry with the ticks it gets standing there. Comparing the two directly rejected
-        // launches that work: on `parkour-course-1` the first gap exits at 0.2431 into a
-        // window of 0.0917-0.1702, and a single coasting tick lands it at 0.1327.
+        // Pulled back through the pad: the exit speed need not BE an entry the next gap
+        // accepts, only one the body can coast into during its ticks on the pad. See
+        // docs/decisions/movement-tuning.md (exit-speed window through the pad).
         return context.ballistics.groundReachable(entry, PAD_GROUND_TICKS, sprint = true)
     }
 
@@ -555,23 +480,12 @@ object JumpMovement : Movement {
     }
 
     /**
-     * Ticks of run-up after which the body is actually able to make this launch.
-     *
-     * A jump has to satisfy two conditions on the same tick: the body must be *at* the
-     * launch offset along the gap, and it must be *travelling* at the entry speed the arc
-     * was solved for. These were handled separately and approximately -- a distance-based
-     * estimate of when the offset is reached, then a bracket of one tick either side of it
-     * in the hope that the speed came out right. Both are computable exactly.
-     *
-     * Horizontal movement is `v' = friction * (v + acceleration * u)`, and the game moves
-     * the body by the pre-friction velocity, so rolling the run-up forward analytically
-     * gives position and speed at every tick for the cost of a few multiplications. The
-     * ticks where the speed lands inside the arc's entry band are the candidates, ranked
-     * by how close the body is to the launch offset when they arrive.
-     *
-     * Falls back to the old estimate when no tick satisfies the speed. The run-up modelled
-     * here drives straight down the gap while the follower steers toward the nodes, so the
-     * two disagree slightly on a curve, and losing the launch entirely is the worse error.
+     * Ticks of run-up after which the body is both AT the launch offset and AT the arc's
+     * entry speed. The run-up is rolled analytically (`v' = friction * (v + acceleration * u)`,
+     * displacement by the pre-friction velocity); ticks whose speed lies in the entry band
+     * are candidates. Falls back to the distance estimate when none fits: this roll drives
+     * straight down the gap while the follower steers toward nodes, and losing the launch
+     * entirely is the worse error.
      */
     private fun launchDelays(context: DecisionContext, solution: LaunchSolution): List<Int> {
         val edge = context.edge
@@ -588,22 +502,15 @@ object JumpMovement : Movement {
         var velocityZ = body.velocity.z
         var along = alongEdge(from, to, body.position.x, body.position.z)
 
-        // The follower accelerates along its YAW, and the yaw turns toward the gap at a
-        // bounded rate -- on a ninety-degree zig-zag the first three run-up ticks push
-        // sideways, not down the gap. Rolling with gap-aligned acceleration from tick
-        // zero overestimated every delay's entry speed, so each proposed arc undershot
-        // and clipped the landing face; modelling the turn makes the roll match what
-        // the body will actually do.
+        // Acceleration follows the YAW, which turns toward the gap at a bounded rate;
+        // rolling gap-aligned from tick zero overestimates entry speed on a zig-zag.
         val bearing = Math.toDegrees(kotlin.math.atan2(-(to.x - from.x), to.z - from.z))
         var yaw = body.rotation.yaw
 
         class Fit(val delay: Int, val cost: Double, val misplacement: Double, val speedError: Double)
 
-        // The body must still be standing when the trigger fires: a delay long enough
-        // that the run has carried it past the lip proposes a jump that never happens
-        // (the trigger only presses on ground) -- the body just runs off and falls. The
-        // standable extent along the gap is the cell's half-extent in that direction
-        // plus the body's half width hanging over the lip.
+        // The body must still be standing when the trigger fires (it only presses on
+        // ground): the cell's half-extent along the gap plus the body's half width.
         val standableAlong = 0.5 * (kotlin.math.abs(unitX) + kotlin.math.abs(unitZ)) + 0.3
 
         val fitting = ArrayList<Fit>()
@@ -611,11 +518,8 @@ object JumpMovement : Movement {
             if (along > standableAlong) break
             val speed = velocityX * unitX + velocityZ * unitZ
             if (kotlin.math.abs(speed - solution.speed) <= solution.speedSlack) {
-                // Cost in ticks, so the two terms are commensurable: the run-up itself,
-                // plus what the offset error would take to walk off at cruise. Ranking on
-                // the error alone buys perfect placement with arbitrarily long run-ups --
-                // measured as a corpus route going from four percent over its bound to
-                // forty-two.
+                // Cost in ticks so the terms are commensurable: the run-up plus the offset
+                // error walked off at cruise.
                 val misplacement = kotlin.math.abs(along - solution.launchOffset)
                 fitting += Fit(
                     delay,
@@ -636,28 +540,17 @@ object JumpMovement : Movement {
             velocityZ = (velocityZ + dynamics.acceleration * forwardZ) * dynamics.friction
             along += (velocityX * unitX + velocityZ * unitZ) / dynamics.friction
         }
-        // NOTE (measured, do not redo naively): offering delay-0 for bodies faster
-        // than the arc's band on open level edges DID tighten chain cadence (two-tick
-        // landing stays became one-tick) and still made tapes WORSE (flat run 313 to
-        // 321) -- the overshooting arcs land where the line selection then does worse.
-        // Cadence is not separable from line value; the fix lives in a velocity-aware
-        // guide, not here.
+        // No delay-0 for bodies faster than the band: see docs/decisions/movement-tuning.md
+        // (launch-delay ranking).
         if (fitting.isEmpty()) {
             val nominal = launchFrame(context, solution)
             return LAUNCH_BRACKET.map { (nominal + it).coerceAtLeast(0) }
                 .distinct()
                 .filter { !unreachableEntry(context, it, solution) }
         }
-        // Three objectives that genuinely disagree, so offer the best of each rather than
-        // weighing them against one another. Cheapest run-up is what open ground wants --
-        // ranking on placement alone took a corpus route from four percent over its bound
-        // to forty-two. Best placement is what a one-block pad wants, and ranking on cost
-        // alone lost a whole parkour course. Best ENTRY SPEED is what a diagonal lone-pad
-        // hop wants: the band admits slow early delays whose arcs land at the window's
-        // near edge, and on the zig-zag fixture the cheap and true picks were exactly the
-        // three undershooting delays -- an arc short on entry speed is beyond the air
-        // controller's help, because holding forward is already the whole along-track
-        // authority. The frontier is priced; it can decide.
+        // Three objectives that genuinely disagree (open ground wants cheap, a one-block
+        // pad wants placement, a lone diagonal pad wants entry speed): offer the best of
+        // each and let the priced frontier decide. See docs/decisions/movement-tuning.md.
         val cheapest = fitting.sortedBy { it.cost }.map { it.delay }
         val truest = fitting.sortedBy { it.misplacement }.map { it.delay }
         val fastest = fitting.sortedBy { it.speedError }.map { it.delay }
@@ -704,11 +597,9 @@ object JumpMovement : Movement {
             )
         }
         val solution = (decision as? TrajectoryDecision.Launch)?.solution
-        // A dodged flight line must be RUN, not just aimed at: the air steering's
-        // authority develops late in the arc, so a mid-corridor pane is reached before
-        // an aim-only correction has diverged from the centre line. Shifting the
-        // landing node makes the ground approach and the launch bearing follow the
-        // swept-clear offset line from the start.
+        // A dodged flight line must be RUN, not just aimed at: air-steering authority
+        // develops late in the arc, so shifting the landing node makes the ground
+        // approach and launch bearing follow the swept-clear line from the start.
         val step = (decision as? TrajectoryDecision.Launch)?.step
         val nodes = if (solution != null && solution.lateralOffset != 0.0 && step != null) {
             val from = context.body.stance.center()
@@ -745,13 +636,9 @@ object JumpMovement : Movement {
         val unitX = dx / length
         val unitZ = dz / length
         return AirSteering.AirPlan(
-            // The centre of the landing cell, not the solver's own aim: every onward
-            // solution and delay roll is solved from a cell-centre origin, so landing
-            // there makes the next edge's model true -- and it is the point of maximum
-            // margin against both lips. The solver's aim optimises this landing alone;
-            // the centre serves the chain. A lateral offset (a dodged pane in the
-            // corridor) shifts the aim off-centre by exactly the swept-clear line's
-            // shift -- the chain-model cost is the price of making the jump at all.
+            // The landing cell's centre, not the solver's aim: onward solutions and delay
+            // rolls are solved from a cell-centre origin, and centre has maximum margin
+            // against both lips. A lateral offset shifts the aim by the swept-clear line.
             aimX = to.x + 0.5 - unitZ * solution.lateralOffset,
             aimZ = to.z + 0.5 + unitX * solution.lateralOffset,
             unitX = unitX,
@@ -782,9 +669,6 @@ object JumpMovement : Movement {
         val retreatFrames = (-runUp.retreatAlong).coerceAtLeast(0.0) * RETREAT_FRAMES_PER_BLOCK
         return RUN_UP_TRANSITION_FRAMES + retreatFrames.toInt() + runUp.solution.airTicks
     }
-
-    fun triggerFor(decision: TrajectoryDecision): LaunchTrigger? =
-        (decision as? TrajectoryDecision.Launch)?.let { LaunchTrigger(it.delayFrames) }
 
     private val MODES = LaunchMode.entries.filter { it.jumps }
 
@@ -831,14 +715,7 @@ object JumpMovement : Movement {
 
     private val LAUNCH_BRACKET = listOf(0, -1, 1)
 
-    /** Launch ticks offered per solution: the cheapest two run-ups and the truest two. */
-    private const val MAX_LAUNCH_CANDIDATES = 4
-
-    /**
-     * Delay candidates per solution: two picks from each of the three ranking
-     * objectives, before dedup. A tighter cap silently drops one objective's picks and
-     * re-creates the failure that objective exists to prevent.
-     */
+    /** Two picks from each of the three ranking objectives, before dedup; a tighter cap drops an objective. */
     private const val MAX_LAUNCH_DELAY_CANDIDATES = 6
 
     private const val MAX_LAUNCH_FRAME = 8
@@ -864,22 +741,15 @@ object JumpMovement : Movement {
     private const val ONWARD_LOOKAHEAD = 2
 
     /**
-     * Ticks the body is assumed to get on the pad between two gaps.
-     *
-     * A landing pad on a parkour course is one block, which is a tick or three of contact
-     * depending on how fast the body crosses it. Three is the generous end on purpose:
-     * this widens what the solver will consider, and the rollout still has to certify it.
+     * Ticks the body is assumed to stand on a one-block pad between two gaps; the
+     * generous end on purpose, since the rollout still certifies what the solver admits.
      */
     private const val PAD_GROUND_TICKS = 3
 
     /**
-     * Entry-speed slack, in blocks per tick, at which a launch stops being fussy.
-     *
-     * Measured against the corpus rather than guessed: solved jump edges there run
-     * p10 = 0.076, p50 = 0.095, p90 = 0.119 blocks per tick of slack. Setting the bar at
-     * the low decile prices the ordinary jump at nothing and reserves the difficulty for
-     * the genuinely tight minority -- the first attempt at this used a third of the value
-     * and priced the whole population as fussy, which starved the search of jumps.
+     * Entry-speed slack, in blocks per tick, at which a launch stops being fussy: the
+     * corpus p10 of solved-edge slack, so the ordinary jump prices at nothing.
+     * See docs/decisions/movement-tuning.md (comfortable slack).
      */
     private const val COMFORTABLE_SPEED_SLACK = 0.08
 

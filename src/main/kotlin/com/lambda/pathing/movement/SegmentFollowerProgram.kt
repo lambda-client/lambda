@@ -32,23 +32,14 @@ internal class SegmentFollowerProgram(
     private val easeTurns: Boolean = false,
 
     /**
-     * Whether forward stays pressed once the body leaves the ground.
-     *
-     * Releasing it is the only way a jump lands slower than it took off. Holding forward
-     * adds ground acceleration on the launch tick and air acceleration every tick after,
-     * so a sprint jump entered at 0.11 blocks per tick arrives at 0.24 -- and on a course
-     * of one-block pads that is the difference between chaining and falling: the landing
-     * speed becomes the next gap's entry speed, with no room on the pad to shed it.
+     * Whether forward stays pressed once the body leaves the ground. Releasing it is the
+     * only way a jump lands slower than it took off (see [LaunchSolution.holdForward]).
      */
     private val holdForwardInFlight: Boolean = true,
 
     /**
-     * Air ticks to keep forward pressed after the launch before releasing it.
-     *
-     * Where the arc's landing distance and its exit speed are set independently. Holding
-     * throughout couples them; letting go partway lands the same distance moving slower,
-     * which is what a chain of small pads needs and what the body could never previously
-     * be asked to do.
+     * Air ticks to keep forward pressed after the launch before releasing it; the solved
+     * schedule that sets landing distance and exit speed independently ([LaunchSolution.holdTicks]).
      */
     private val holdTicks: Int = Int.MAX_VALUE,
 

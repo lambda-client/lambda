@@ -121,17 +121,11 @@ class TrajectoryExecutionCursor(
         componentDeviation("box.minY", expected.boundingBox.minY, actual.boundingBox.minY, positionTolerance)?.let { return it }
         componentDeviation("box.minZ", expected.boundingBox.minZ, actual.boundingBox.minZ, positionTolerance)?.let { return it }
         componentDeviation("box.maxX", expected.boundingBox.maxX, actual.boundingBox.maxX, positionTolerance)?.let { return it }
-        // maxY completes the box. It is the component that moves when the pose does --
-        // a sneak or a swim the tape did not plan changes the body's height and nothing
-        // else, so leaving it out let exactly that class of divergence replay unchecked.
+        // maxY is the component an unplanned pose change moves; see docs/decisions/execution-tolerance.md.
         val boxHeight = componentDeviation("box.maxY", expected.boundingBox.maxY, actual.boundingBox.maxY, positionTolerance)
         if (boxHeight != null) {
-            // The live client's pose height catches up a tick behind the simulator on a
-            // sneak release: measured on pathing-descending-drops as three recoveries
-            // whose reports were bit-identical in position, velocity, and every flag --
-            // sneaking false/false -- with only the box height reading the crouch pose.
-            // That exact signature gets a short grace; anything else, including an
-            // unplanned live sneak (whose flags differ), still rejects.
+            // The live pose height lags the simulator by a tick on a sneak release; only
+            // that exact signature gets a short grace. An unplanned live sneak still rejects.
             if (!isPoseHeightLag(expected, actual) || poseLagFrames >= MAX_POSE_LAG_FRAMES) return boxHeight
             poseLagFrames++
         } else {
@@ -209,10 +203,7 @@ class TrajectoryExecutionCursor(
         /** Standing box height 1.8 against the crouching pose's 1.5. */
         const val POSE_HEIGHT_DELTA = 0.3
 
-        /**
-         * Live pose catch-up is one tick, observed by both the pre-input and the
-         * post-tick comparison of the same boundary; three covers it with one spare.
-         */
+        /** Pose catch-up is one tick seen by two comparisons; three covers it with one spare. */
         const val MAX_POSE_LAG_FRAMES = 3
     }
 }

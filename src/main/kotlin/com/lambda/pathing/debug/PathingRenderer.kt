@@ -122,14 +122,7 @@ object PathingRenderer : Loadable {
         SearchNodeRole.INTERIOR -> config.treeInteriorColor
     }
 
-    /**
-     * The anchor tree, drawn back-to-front by importance.
-     *
-     * Interior scaffolding first and the committed spine last, so the line the body is
-     * actually going to walk is never buried under the thousands of anchors arguing
-     * about replacing it. Width carries the same ranking as colour because at a few
-     * thousand nodes hue alone stops separating them.
-     */
+    /** The anchor tree, drawn in [DRAW_ORDER] so the spine is never buried; width ranks like colour. */
     private fun RenderBuilder.renderSearchTree() {
         val tree = PlanningDebugChannel.tree ?: return
         if (tree.edges.isEmpty() && tree.nodes.isEmpty()) return
@@ -192,14 +185,7 @@ object PathingRenderer : Loadable {
         }
     }
 
-    /**
-     * The counters, where the body is, updated while the search runs.
-     *
-     * Every number here has been the answer to a production question at least once, and
-     * the two that matter most are placed together on purpose: runway (how many certified
-     * frames are left in front of the cursor) against production, because a walk that
-     * stalls always shows it here first.
-     */
+    /** Live search counters at the body; runway (certified frames ahead of the cursor) turns red when starving. */
     private fun RenderBuilder.renderSearchStats() {
         val stats = PlanningDebugChannel.stats ?: return
         val origin = mc.player?.pos ?: return
@@ -345,13 +331,9 @@ object PathingRenderer : Loadable {
     }
 
     /**
-     * The certified plan as its junction graph.
-     *
-     * One coloured run per decision rather than one line for the whole tape, because the
-     * question this view answers is *which* decision is expensive -- a 200-frame tape
-     * says nothing about where the frames went. Shading is frames per block covered
-     * against a sprint, so a stretch that wandered reads red while a clean run reads
-     * green, and the junctions say where a shortcut is allowed to cut in.
+     * The certified plan as its junction graph: one run per decision, shaded by frames per
+     * block between [FRAMES_PER_BLOCK_IDEAL] and [FRAMES_PER_BLOCK_WORST]; junctions mark
+     * where a shortcut may cut in.
      */
     private fun RenderBuilder.renderPlanGraph(plan: TrajectoryPlan) {
         val graph = PlanGraph.of(plan) ?: return

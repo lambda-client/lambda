@@ -20,15 +20,7 @@ internal class ValueAnchor(
     val inputs: List<MovementSimulationInput>,
     val boundary: Int,
 ) : BodyState {
-    /**
-     * The decision whose rollout produced this anchor, for attribution only.
-     *
-     * The search's own cost accounting is in frames, which says how expensive a tape is
-     * but not what made it expensive. Carrying the movement lets a finished tape be split
-     * by what the body was doing, and that split compared against the coarse route's
-     * admissible lower bound -- the only denominator in the system that says what the
-     * motion *should* have cost.
-     */
+    /** The movement whose rollout produced this anchor, for attribution only (see [TapeSegment]). */
     var via: MovementId? = null
 
     /**
@@ -47,13 +39,8 @@ internal class ValueAnchor(
     var actionsEpoch: Int = -1
 
     /**
-     * Queue penalty for the cheapest movement this anchor has left to try.
-     *
-     * Zero until the anchor is first expanded, which keeps its admission optimistic --
-     * the vocabulary is not built until the anchor is actually polled, and guessing high
-     * would bury a good anchor before anything was known about it. From the first
-     * expansion on it is the honest price of continuing here, so an anchor whose cheap
-     * options are used up sinks past a fresh one whose next move is a plain walk.
+     * Queue penalty for the cheapest movement this anchor has left to try; zero until first
+     * expanded (the vocabulary is not built before the anchor is polled). See docs/decisions/beam.md.
      */
     var pendingSurcharge: Double = 0.0
 
@@ -66,10 +53,8 @@ internal class ValueAnchor(
     var sweptEpoch: Int = -1
 
     /**
-     * Cached frame where this anchor's tape departs the acked running tape, valid
-     * while [divergenceSequence] matches the publication it was computed against.
-     * Divergence is fixed per publication, and the liveness check runs at poll time --
-     * uncached it is a lineage walk per poll.
+     * Cached frame where this anchor's tape departs the acked running tape, valid while
+     * [divergenceSequence] matches the publication it was computed against.
      */
     var divergenceElapsed: Int = -1
     var divergenceSequence: Long = Long.MIN_VALUE

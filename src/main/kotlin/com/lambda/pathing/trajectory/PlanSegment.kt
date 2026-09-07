@@ -7,24 +7,10 @@ import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 
 /**
- * One decision, executed and certified: the source a tape was compiled from.
- *
- * A [TrajectoryPlan] used to be a recording -- a flat input tape plus the frames it
- * produced -- and a recording can only be replayed from exactly the state it was recorded
- * at. Measured against this corpus, replaying a certified suffix from a body displaced by
- * a quarter of a beam bucket certified 1.9% of the time, and from three centimetres out,
- * 74%. Open-loop inputs do not survive a different body, because a launch amplifies state
- * error into a missed pad while walking contracts it.
- *
- * The decisions that generated those frames do survive, because each one is a closed-loop
- * controller that re-solves rather than replays: a [TrajectoryDecision.Launch] re-run
- * three centimetres left re-solves its launch window. So the plan keeps both -- segments
- * as the source, the tape as the compiled artifact the executor replays unchanged.
- *
- * [points] is the reason a decision alone is not enough. `AnchorRollout.prepare` builds a
- * movement's program from the coarse guide chain, not from the decision, so a decision
- * re-run against a value field that has since expanded would silently build a different
- * program. Storing the resolved chain makes a segment reproducible on its own terms.
+ * One decision, executed and certified: the source a tape was compiled from. Segments are
+ * re-run by re-executing the decision (a closed-loop controller), never by replaying the
+ * inputs; [Move.points] pins the guide chain the program was built from so a re-run
+ * against an expanded field builds the same program. See docs/decisions/improver.md.
  */
 sealed interface PlanSegment {
     val entry: MovementSimulationState
@@ -40,12 +26,8 @@ sealed interface PlanSegment {
     val endFrame: Int get() = startFrame + inputs.size
 
     /**
-     * Whether a rejoining branch may re-enter the plan here.
-     *
-     * Grounded and still moving. Not "stopped" -- the body never slows down for this.
-     * The exclusion is being airborne: re-entering a ballistic arc solved for a different
-     * launch is meaningless, while re-running a launch decision from a different ground
-     * state is exactly what the launch solver is for.
+     * Whether a rejoining branch may re-enter the plan here: grounded and still moving.
+     * Being airborne is the exclusion, not speed.
      */
     fun settledExit(stoppedSpeed: Double): Boolean =
         exit.onGround && exit.velocity.horizontalLength() > stoppedSpeed
@@ -67,11 +49,9 @@ sealed interface PlanSegment {
     }
 
     /**
-     * The braking run onto the goal, or a brake tail published as a safe stop.
-     *
-     * Not re-run like a [Move]: the terminal is re-derived by asking `FinishPlanner` to
-     * finish from whatever anchor it now starts at, which searches its own approach grid.
-     * The recorded [approach] is the one that won last time, which is worth trying first.
+     * The braking run onto the goal, or a brake tail published as a safe stop. Re-derived
+     * by `FinishPlanner` from its new entry rather than re-run; [approach] is the one that
+     * won last time.
      */
     class Terminal(
         val approach: TerminalApproach,

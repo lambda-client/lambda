@@ -4,11 +4,8 @@ import com.lambda.pathing.movement.MotionConstraints
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
 
 /**
- * A junction: a body between two segments, and whether a branch may rejoin there.
- *
- * Junctions are the only places a plan can be cut. They exist because segments are
- * decisions, and a decision either runs or it does not -- there is no meaningful body
- * state halfway through a launch to splice against.
+ * A body between two segments, and whether a branch may rejoin there. Junctions are the
+ * only places a plan can be cut: a decision either runs or it does not.
  */
 class PlanJunction(
     val index: Int,
@@ -18,24 +15,10 @@ class PlanJunction(
 )
 
 /**
- * A plan as a graph over its junctions, so improvement is a shortest path rather than a
- * re-search.
- *
- * The spine is the committed chain of segments to the goal, one edge per junction pair.
- * An [Alternate] is a chain of segments that departs one junction and rejoins a later
- * one, and the plan the body should actually walk is the cheapest route through both --
- * which for a graph this small is a linear DP, not a search.
- *
- * The point of the structure is that it makes the two questions separable. "Do we have a
- * path" is answered by the spine, always, from the moment one exists. "Is it a good path"
- * is answered by shortcuts competing against spine spans, each one bounded, independently
- * verifiable, and cheap to throw away. The old search had to answer both at once with one
- * frontier, which is why it could be a hundred thousand expansions deep and still have
- * nothing to hand the body.
- *
- * Rejoin tolerance is measured, not assumed: re-running a decision chain from a body a
- * quarter of a beam bucket off re-certifies about six segments before it diverges, so an
- * alternate spanning much more than that should expect to be refused.
+ * A plan as a graph over its junctions: the spine is the committed segment chain to the
+ * goal, an [Alternate] departs one junction and rejoins a later one, and [bestRoute] is
+ * the cheapest route through both (a linear DP; edges run forward). Alternates spanning
+ * more than the re-certification depth should expect refusal; see docs/decisions/improver.md.
  */
 class PlanGraph private constructor(
     val junctions: List<PlanJunction>,
@@ -57,12 +40,7 @@ class PlanGraph private constructor(
     fun spineFrames(from: Int, to: Int): Int =
         spine.subList(from, to).sumOf { it.frameCount }
 
-    /**
-     * The cheapest route from start to goal over spine edges and alternates.
-     *
-     * Junctions are topologically ordered by construction -- every edge runs forward --
-     * so one sweep in index order settles it.
-     */
+    /** The cheapest route from start to goal over spine edges and alternates; one forward sweep. */
     fun bestRoute(): List<PlanSegment> {
         val last = junctions.lastIndex
         val cost = IntArray(last + 1) { Int.MAX_VALUE }
@@ -106,13 +84,9 @@ class PlanGraph private constructor(
         PlanGraph(junctions, spine, alternates + alternate)
 
     /**
-     * Spine spans worth attacking, dearest first.
-     *
-     * Ranked by frames spent per block of ground covered, against the span's straight-line
-     * displacement. It is a proxy -- a climb legitimately costs more per block than a
-     * sprint -- but it is self-contained, and it reliably finds the stretches where the
-     * body wandered, which is what a shortcut is for. [maxSpan] keeps candidates inside
-     * the measured re-certification depth.
+     * Settled-to-settled spine spans, dearest first by frames per block of straight-line
+     * displacement (a proxy: a climb legitimately costs more per block). [maxSpan] keeps
+     * candidates inside the re-certification depth.
      */
     fun improvementTargets(maxSpan: Int = DEFAULT_MAX_SPAN): List<Span> {
         val targets = ArrayList<Span>()
@@ -135,7 +109,7 @@ class PlanGraph private constructor(
     class Span(val from: Int, val to: Int, val frames: Int, val framesPerBlock: Double)
 
     companion object {
-        /** Segments a shortcut may span, from the measured re-certification depth. */
+        /** Segments a shortcut may span: the re-certification depth. See docs/decisions/improver.md. */
         const val DEFAULT_MAX_SPAN = 8
 
         private const val MIN_SPAN_BLOCKS = 1.0

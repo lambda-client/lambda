@@ -45,11 +45,14 @@ class CoarsePlanner(
 
     private val graph = LazyGraph(
         successorProvider = { node: MomentumStance ->
-            MomentumRules.successors(edgeCache, node) + optimisticEdgeFrom(node)
+            val base = MomentumRules.successors(edgeCache, node)
+            val optimistic = optimisticEdgeFrom(node)
+            if (optimistic.isEmpty()) base else base + optimistic
         },
         predecessorProvider = { node: MomentumStance ->
-            if (node == goalNode) MomentumRules.predecessors(edgeCache, node) + anchorPredecessors()
-            else MomentumRules.predecessors(edgeCache, node)
+            val base = MomentumRules.predecessors(edgeCache, node)
+            val viaAnchors = if (node == goalNode) anchorPredecessors() else emptyMap()
+            if (viaAnchors.isEmpty()) base else base + viaAnchors
         },
     )
 
@@ -123,14 +126,8 @@ class CoarsePlanner(
     fun advanceFrontier(probed: Map<Stance, Double>): Boolean {
         var changed = false
 
-        // Creation and retirement are deliberately asymmetric about capture lag. A
-        // NEW anchor must not be minted where the unknown is merely uncaptured (the
-        // cold-start random walk), but an EXISTING anchor must survive that same lag:
-        // as the body approaches, its chunks enter render distance and turn
-        // capturable moments before capture lands -- retiring on capturability
-        // withdrew the optimistic edge before knowledge replaced it, the route
-        // terminal regressed, and the body circled the goal until capture caught up.
-        // Retirement therefore waits for the cells to be actually KNOWN.
+        // Retirement waits for cells to be KNOWN; creation refuses merely capturable
+        // unknowns. The asymmetry is deliberate: docs/decisions/anchor-lifecycle.md.
         val refused = FrontierAnchors.refusesOptimism(view, moves, goalStance)
         val retired = anchors.keys.filterTo(ArrayList()) {
             refused || !FrontierAnchors.bordersUnknown(view, it)
@@ -161,13 +158,9 @@ class CoarsePlanner(
     }
 
     /**
-     * Mint anchors by FLOODING from [from] through real edges: every anchor is
-     * reachable by construction. The ray-march probe this replaced planted anchors
-     * wherever a straight line toward the goal happened to end -- unreachable
-     * "ghost" anchors whose optimistic edges fed the backward wave into terrain the
-     * body could never come from (the disconnected box-shaped graph patches).
-     * Optimism is a route-TERMINAL device, never a movement: the tape walks only to
-     * the anchor, and only informed edges are ever executed.
+     * Mints anchors by flooding from [from] through real edges, so every anchor is
+     * reachable by construction. Optimism is a route-terminal device, never a movement;
+     * see docs/decisions/anchor-lifecycle.md.
      */
     fun advanceReachableFrontier(
         from: Stance = search.start.stance,
@@ -284,9 +277,8 @@ class CoarsePlanner(
     fun tailCost(node: Stance = search.start.stance): TailCost = stanceTailCost(node)
 
     /**
-     * The better-informed of the two class nodes: exactness first, then cost. Taking
-     * the raw min over classes handed back an unexplored MOVING node's bounds where the
-     * STOPPED start had an exact answer.
+     * The better-informed of the two class nodes: exactness first, then cost. A raw min
+     * over classes would prefer an unexplored MOVING node's bound over an exact STOPPED answer.
      */
     private fun stanceTailCost(node: Stance): TailCost {
         val moving = search.tailCost(MomentumStance(node, SpeedClass.MOVING))
@@ -303,9 +295,8 @@ class CoarsePlanner(
     }
 
     private fun synchronizeStances(affected: Iterable<Stance>): DStarLite.SynchronizationResult {
-        // Every synchronization regenerates from the live view, so the memoized edges
-        // for the affected stances must go first -- including for callers like route
-        // resynchronization that arrive without a world-change notification.
+        // Synchronization regenerates from the live view: memoized edges go first, even
+        // for callers that arrive without a world-change notification.
         edgeCache.invalidateStances(affected)
         val lifted = HashSet<MomentumStance>()
         for (stance in affected) {
@@ -350,7 +341,8 @@ class CoarsePlanner(
         // stances the graph never adopted (steering reads, rim origins).
         edgeCache.invalidateChunks(chunks)
         val affected = HashSet<Stance>()
-        chunks.forEach { affected += moves.affectedOrigins(it, graphNodes) }
+        val nodes = graphNodes
+        chunks.forEach { affected += moves.affectedOrigins(it, nodes) }
         return synchronizeStances(affected)
     }
 }

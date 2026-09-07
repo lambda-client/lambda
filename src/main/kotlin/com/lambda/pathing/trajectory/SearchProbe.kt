@@ -30,15 +30,7 @@ class SearchTreeEdge(
     val via: MovementId?,
 )
 
-/**
- * The live anchor tree: what the trajectory search is actually holding right now.
- *
- * The coarse graph has always been drawable and the trajectory search never was, which
- * left the expensive half of the planner invisible -- a session burning a hundred
- * thousand expansions looked exactly like one burning four hundred. Roles are what make
- * it readable: the spine is the tape the body is committed to, and everything else is
- * the search arguing about what should replace it.
- */
+/** The live anchor tree, sampled for drawing: the spine is the committed tape, the rest is the search. */
 class SearchTreeView(
     val nodes: List<SearchTreeNode>,
     val edges: List<SearchTreeEdge>,
@@ -83,11 +75,7 @@ interface SearchProbe {
     /**
      * One expansion with its full identity: the stance it grew from, the decision tried,
      * and the rejection it produced (null when the rollout anchored, arrived, or blocked).
-     *
-     * [decision] stays for its cheap tally consumers; this hook exists so a harness can
-     * attribute search work to coarse route edges -- which edge eats the attempts, and
-     * whether its failures are one diagnostic repeated byte-identically (a grind) or
-     * varied (a search still learning).
+     * Lets a harness attribute search work to coarse route edges; [decision] is the cheap tally.
      */
     fun expansion(from: Stance, action: TrajectoryDecision, diagnostic: TrajectoryDiagnostic?) {}
 
@@ -106,14 +94,9 @@ interface SearchProbe {
     fun sync(sections: Int, mutations: Int, chunks: Int, routeAffected: Boolean, extending: Boolean) {}
 
     /**
-     * The body ran out of certified motion and executed into a published brake tail.
-     *
-     * This is the stall the walk shows as a dead stop, and it is expensive beyond the
-     * pause: re-rooting onto the brake discards every frontier anchor, because the body
-     * has now pressed inputs those anchors' tapes do not contain. [open] and [parked] are
-     * what the search had available at that moment and [deepestElapsed] how far the best
-     * of it reached, which together say whether the publication was impossible or merely
-     * refused.
+     * The body executed into a published brake tail (a dead stop; re-rooting onto the brake
+     * discards every frontier anchor). [open], [parked] and [deepestElapsed] say whether a
+     * publication was impossible or merely refused.
      */
     fun braked(tipElapsed: Int, executing: Int, open: Int, parked: Int, deepestElapsed: Int) {}
 
@@ -121,26 +104,21 @@ interface SearchProbe {
     fun polled(stance: Stance, elapsed: Int, orderBits: Long, boundBits: Long, sequence: Long) {}
 
     /**
-     * One finish-sweep attempt: whether the guide chain reached the goal at all, whether
-     * a terminal run sealed, and how fast the body was when it tried. The finisher fails
-     * silently otherwise, and the endgame stalls are exactly its silent failures.
+     * One finish-sweep attempt: whether the guide chain reached the goal, whether a
+     * terminal run sealed, and the body's speed when it tried.
      */
     fun finishAttempt(stance: Stance, elapsed: Int, speed: Double, chainReached: Boolean, sealed: Boolean) {}
 
     /**
-     * The frontier genuinely drained and the search restarted from the tape's
-     * continuation. [moving] distinguishes the tip restart (clean slate, body keeps
-     * walking) from the brake restart (the body will halt). [drops] and [spent] say what
-     * the drained frontier died of: drops are branches executed past their fork and
-     * discarded at poll, spent are anchors that ground through their whole vocabulary.
+     * The frontier drained and the search restarted from the tape's continuation. [moving]:
+     * tip restart (body keeps walking) versus brake restart (body will halt). [drops] are
+     * branches executed past their fork, [spent] anchors that exhausted their vocabulary.
      */
     fun restarted(moving: Boolean, seedElapsed: Int, executing: Int, expansions: Int, drops: Int, spent: Int) {}
 
     /**
-     * A publication was refused while the body was inside the runway window -- the
-     * frames before a potential stall. [reason] names the specific gate; the ledger's
-     * standing instruction is to attribute refusals to gates before touching any of
-     * them, because three fixes built on an unmeasured model of this all regressed.
+     * A publication was refused while the body was inside the runway window. [reason] names
+     * the gate; attribute refusals to gates before changing any (docs/decisions/publication-protocol.md).
      */
     fun publishRefused(reason: String, anchorElapsed: Int, tipElapsed: Int, executing: Int) {}
 

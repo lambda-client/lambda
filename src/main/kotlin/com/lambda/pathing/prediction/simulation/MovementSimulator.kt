@@ -40,12 +40,11 @@ import kotlin.math.sqrt
  * Reusable Minecraft-style movement simulator based on the client's own movement code.
  *
  * World reads and player constants are injected ([com.lambda.pathing.prediction.SimulationEnvironment],
- * [PlayerPhysicsProfile]). The current live environment is client-thread only;
- * a future immutable planner snapshot can implement the same interface without
- * changing the movement equations. Live-entity extras (entity collisions and
- * the sneak ledge clamp) exist only when a [livePlayer] is attached.
+ * [PlayerPhysicsProfile]); the live environment is client-thread only, the snapshot one
+ * is immutable. Live-entity extras (entity collisions and the sneak ledge clamp) exist
+ * only when a [livePlayer] is attached.
  *
- * Still intentionally unsupported for now:
+ * Intentionally unsupported:
  * - fluids
  * - ladders / vines
  * - webs

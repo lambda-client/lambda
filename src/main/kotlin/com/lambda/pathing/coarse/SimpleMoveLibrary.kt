@@ -83,9 +83,6 @@ class SimpleMoveLibrary private constructor(
     fun successorCosts(view: CoarseVoxelView, origin: Stance): Map<Stance, Double> =
         edgesFrom(view, origin).minimumCostsBy { it.to }
 
-    fun predecessorCosts(view: CoarseVoxelView, target: Stance): Map<Stance, Double> =
-        edgesTo(view, target).minimumCostsBy { it.from }
-
     fun heuristic(from: Stance, to: Stance): Double {
         val dx = abs(to.x - from.x)
         val dz = abs(to.z - from.z)
@@ -172,6 +169,11 @@ class SimpleMoveLibrary private constructor(
             .minOfOrNull { it.lowerBoundTicks }
             ?: 1.0
 
+        /**
+         * Per-block lower bounds over the template set, so [heuristic] stays admissible:
+         * each cap is the cheapest ticks-per-unit any template achieves along that axis,
+         * then relaxed until every off-axis template is priced at or below its own minimum.
+         */
         private fun deriveCaps(templates: List<MotionTemplate>): HeuristicCaps {
             var axis = Double.POSITIVE_INFINITY
             var diagonal = Double.POSITIVE_INFINITY

@@ -6,10 +6,7 @@ class LazyGraph<N>(
     private val successorProvider: (N) -> Map<N, Double>,
     private val predecessorProvider: (N) -> Map<N, Double> = successorProvider,
 ) {
-    // The inner maps are what the search iterates; insertion order keeps that
-    // iteration identical across JVMs. A hash-ordered map's treeified bins break
-    // equal-hash ties by identity hash, which made long walks land on different frame
-    // counts run to run.
+    // Insertion-ordered inner maps keep search iteration identical across JVMs; see docs/decisions/determinism.md.
     private val successorEdges = HashMap<N, LinkedHashMap<N, Double>>()
     private val predecessorEdges = HashMap<N, LinkedHashMap<N, Double>>()
     private val initializedSuccessors = HashSet<N>()
@@ -47,11 +44,6 @@ class LazyGraph<N>(
     fun markPredecessorsInitialized(node: N) {
         initializedPredecessors += node
         knownNodes += node
-    }
-
-    fun cost(from: N, to: N): Double {
-        ensureSuccessors(from)
-        return successorEdges[from]?.get(to) ?: Double.POSITIVE_INFINITY
     }
 
     fun setCost(from: N, to: N, cost: Double) {

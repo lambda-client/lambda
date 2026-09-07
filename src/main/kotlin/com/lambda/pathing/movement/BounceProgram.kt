@@ -7,8 +7,6 @@ import com.lambda.pathing.launch.BounceSolution
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.prediction.simulation.MovementSimulationInput
 import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import kotlin.math.abs
-import kotlin.math.hypot
 
 internal class BounceProgram(
     private val takeoff: HorizontalPoint,
@@ -43,9 +41,8 @@ internal class BounceProgram(
             // of the arc coasts, exactly as the solver flew it.
             forward = if (solution.holdForward && flightTicks < solution.holdTicks) 1.0 else 0.0
         } else if (standingStart) {
-            // A standing launch: creep to the lip, come to rest, then launch from
-            // rest -- there is no entry speed to reproduce, which is the whole point
-            // (a moving entry amplifies its error sixteenfold over the glide).
+            // A standing launch: creep to the lip, come to rest, then launch from rest;
+            // there is no entry speed to reproduce.
             val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
             val speed = observed.velocity.horizontalLength()
             val runout = (speed + CREEP_TAP_SPEED) * COAST_RUNOUT_TICKS
@@ -79,15 +76,14 @@ internal class BounceProgram(
             }
         }
 
-        // A standing start creeps WITHOUT sprint: the creep's throttle math is sized
-        // to walk taps, and a sprint tap moves nearly a quarter block -- measured
-        // walking the body clean off the lip before the launch tick ever fired. The
-        // sprint-jump boost only needs the sprint flag ON THE LAUNCH TICK itself.
+        // A standing start creeps WITHOUT sprint (a sprint tap moves nearly a quarter
+        // block, off the lip); the sprint-jump boost needs the flag ON THE LAUNCH TICK
+        // only. See docs/decisions/launch-solver.md (standing starts).
         val sprint = solution.sprint && forward > 0.0 &&
             (!standingStart || launchedStanding || airborne)
         return MovementSimulationInput(
             forward = forward,
-            strafe = if (airborne && !landed) airborneStrafe(observed) else 0.0,
+            strafe = if (airborne && !landed) airborneStrafe(takeoff, aim, observed, LATERAL_DEADBAND) else 0.0,
             sprint = sprint,
             jump = jump,
             sneak = false,
@@ -101,22 +97,6 @@ internal class BounceProgram(
 
     private fun approachForward(observed: MovementSimulationState): Double =
         if (observed.velocity.horizontalLength() >= solution.speed + solution.speedSlack) 0.0 else 1.0
-
-    private fun airborneStrafe(observed: MovementSimulationState): Double {
-        val offset = lateralOffset(observed)
-        if (abs(offset) < LATERAL_DEADBAND) return 0.0
-        return if (offset > 0.0) 1.0 else -1.0
-    }
-
-    private fun lateralOffset(observed: MovementSimulationState): Double {
-        val dx = aim.x - takeoff.x
-        val dz = aim.z - takeoff.z
-        val length = hypot(dx, dz)
-        if (length <= 1e-9) return 0.0
-        val px = observed.position.x - takeoff.x
-        val pz = observed.position.z - takeoff.z
-        return (dx * pz - dz * px) / length
-    }
 
     private companion object {
 

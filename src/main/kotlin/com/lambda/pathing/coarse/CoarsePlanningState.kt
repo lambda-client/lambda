@@ -16,16 +16,7 @@ import kotlin.time.Duration
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
-/**
- * The one-tick transition overhead is a fossil of the tape-per-edge architecture --
- * chained decisions stopped paying it, which is why tapes measure 0.78-0.84x of the
- * "admissible" bound -- but removing it is NOT free: swept 1.0/0.5/0.25/0.0, the
- * corpus improves monotonically (1254 to 1217) while the baseline walks trade course
- * wins for open-terrain collisions and stalls at every rung, and 0.25 even ends a
- * walk short. Cheaper walking re-ranks lines through the same velocity-blind guide
- * that blocks the momentum proposers; the honest re-price ships together with the
- * velocity-aware coarse layer, not before it.
- */
+/** Measured coarse costs; the 1.0-tick overhead is deliberate, see docs/decisions/transition-overhead.md. */
 internal val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
 
 internal class PlanningHorizonView(
@@ -67,11 +58,7 @@ internal class CoarsePlanningState(
         if (horizonChunks <= 0) snapshot
         else PlanningHorizonView(snapshot, grantedChunks)
 
-    /**
-     * Sections whose capture lag suppressed an anchor: exactly the knowledge the
-     * planner is stuck on. Primed at DEMAND tier by the route-resolution waits, so
-     * refusing to guess always comes with asking to know.
-     */
+    /** Sections whose capture lag suppressed an anchor; demanded before every wait round. */
     private val captureLagSections = HashSet<Long>()
 
     private val collectCaptureLag: (Int, Int, Int) -> Unit = { x, y, z ->
@@ -131,23 +118,15 @@ internal class CoarsePlanningState(
             )
             route = extractRoute(snapshotRevision, cancelled)
         }
-        // No route and no frontier can simply mean the snapshot has not caught up with
-        // the client yet: anchors refuse capturable unknowns, so a cold start whose
-        // surroundings are still being captured has neither. Wait for capture progress
-        // and retry -- the alternative was optimistic micro-routes toward the body's
-        // own uncaptured ring, retired by every capture batch: a random walk. The loop
-        // is knowledge-driven, not wall-clock: any revision progress resets the stall
-        // count, and sustained silence exits to the honest no-route failure.
+        // Cold-start knowledge wait: no route and no frontier may mean the snapshot has
+        // not caught up with the client. Knowledge-driven, not wall-clock: stalls count
+        // timeouts only, real progress resets them, contentless wakes do neither.
+        // See docs/decisions/anchor-lifecycle.md.
         if (route == null && world != null) {
             var stalls = 0
             var rounds = 0
             var extracts = 0
             val waitStarted = System.nanoTime()
-            // Stalls count TIMEOUTS only, and useful progress (a capture batch or a
-            // frontier advance) resets them -- a chunk event with no captured content
-            // wakes the wait without either, and such wakes must neither reset the
-            // exit condition nor count toward it. The round cap bounds a pathological
-            // spin on contentless churn.
             while (route == null && !cancelled() &&
                 stalls < START_KNOWLEDGE_STALL_ROUNDS && rounds++ < START_KNOWLEDGE_MAX_ROUNDS
             ) {
@@ -158,11 +137,7 @@ internal class CoarsePlanningState(
                     planner.chunksChanged(batch.changedChunkSet())
                 }
                 val advanced = advanceFrontierFrom(start)
-                // A silent round cannot produce the route the last attempt failed to
-                // find, and the attempt is not free: extractRoute re-checks the route
-                // stances and may run the frontier sweep. Rounds are paced by capture
-                // ticks, so paying that per round dominated the startup ledger's
-                // route bucket on jump-heavy terrain.
+                // A silent round cannot produce a new route; extractRoute is not free.
                 if (batch.isEmpty && !advanced) continue
                 stalls = 0
                 extracts++
@@ -182,9 +157,7 @@ internal class CoarsePlanningState(
             val terminal = route.goal
 
             world?.let { w ->
-                // The lag sections reported by the frontier probes may lie off the
-                // terminal's radius (a lateral column blocking a wide jump corridor);
-                // demand them by name alongside the terminal neighborhood.
+                // Lag sections may lie off the terminal's radius; demand them by name too.
                 demandCaptureLag(w)
                 w.interestBlocks(
                     terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS,
@@ -244,13 +217,13 @@ internal class CoarsePlanningState(
 
         const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
 
-        /** Per-round wait for cold-start capture; useful progress resets the stalls. */
+        /** Cold-start knowledge wait; see docs/decisions/anchor-lifecycle.md. */
         const val START_KNOWLEDGE_WAIT_MILLIS = 200L
 
-        /** Consecutive silent rounds before no-route is accepted as the true answer. */
+        /** Consecutive timed-out rounds before no-route is accepted as the true answer. */
         const val START_KNOWLEDGE_STALL_ROUNDS = 5
 
-        /** Hard cap on wait rounds: contentless chunk-event wakes must not spin forever. */
+        /** Hard cap on wait rounds; contentless wakes are neither progress nor stalls. */
         const val START_KNOWLEDGE_MAX_ROUNDS = 100
     }
 
