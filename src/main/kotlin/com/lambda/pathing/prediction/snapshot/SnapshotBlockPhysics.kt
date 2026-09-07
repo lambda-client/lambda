@@ -17,7 +17,6 @@
 
 package com.lambda.pathing.prediction.snapshot
 
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import com.lambda.pathing.prediction.UnsupportedPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CollisionClass
@@ -60,7 +59,7 @@ data class SnapshotBlockPhysics(
             // Coarse-bouncy only at full reflection: the bounce solver flies factor 1.0,
             // so a bed bounces in the SIMULATOR but mints no bounce edges.
             // See docs/decisions/snapshot-capture.md.
-            coarseVoxel = SnapshotSimulationEnvironment.coarseVoxelOf(shape, bouncy = bounceFactor >= 1.0),
+            coarseVoxel = BlockPhysicsCapture.coarseVoxelOf(shape, bouncy = bounceFactor >= 1.0),
             fenceLike = fenceLike,
             bounceFactor = bounceFactor,
             dampensSteppingSpeed = dampensSteppingSpeed,

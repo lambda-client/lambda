@@ -9,7 +9,6 @@
 
 package com.lambda.pathing.prediction.snapshot
 
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
 import net.minecraft.block.BlockState
 import net.minecraft.block.ShapeContext
 import net.minecraft.util.math.BlockPos
@@ -33,14 +32,10 @@ internal class BlockPhysicsInterner(private val shapeContext: ShapeContext) {
 
     fun capture(world: World, pos: BlockPos, state: BlockState): SnapshotBlockPhysics {
         if (state.block.hasDynamicBounds()) {
-            return with(SnapshotSimulationEnvironment.Companion) {
-                state.capturePhysics(world, pos, shapeContext)
-            }
+            return BlockPhysicsCapture.capture(state, world, pos, shapeContext)
         }
         return byState.getOrPut(state) {
-            with(SnapshotSimulationEnvironment.Companion) {
-                state.capturePhysics(world, pos, shapeContext)
-            }
+            BlockPhysicsCapture.capture(state, world, pos, shapeContext)
         }
     }
 }

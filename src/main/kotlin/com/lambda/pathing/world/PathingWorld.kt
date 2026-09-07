@@ -2,19 +2,16 @@ package com.lambda.pathing.world
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
-import com.lambda.pathing.prediction.snapshot.BlockPhysicsInterner
 import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import it.unimi.dsi.fastutil.longs.LongArrayList
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.world.World
-import kotlin.math.abs
 
 enum class InterestTier {
     DEMAND,
@@ -34,39 +31,31 @@ class WorldEventBatch(
 internal fun WorldEventBatch.changedChunkSet(): Set<PathingChunk> =
     chunks + sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
 
+/**
+ * The streaming world the planner reads: owns the [snapshot], captures sections from a
+ * [CaptureSource] on the client thread by interest tier, and publishes changes through a
+ * [RevisionLog]. New sections install immediately; a re-captured section waits in
+ * [pendingReplacements] until the planner's next [drainEvents].
+ * See docs/decisions/world-capture.md.
+ */
 class PathingWorld(
     val bounds: SimulationSnapshotBounds,
-    private val world: World,
-    private val player: ClientPlayerEntity,
+    private val source: CaptureSource,
 ) {
-    private val sections = ConcurrentHashMap<Long, ImmutableSnapshotSection>()
-    private val sectionCoordinates = ConcurrentHashMap<Long, Triple<Int, Int, Int>>()
+    constructor(
+        bounds: SimulationSnapshotBounds,
+        world: World,
+        player: ClientPlayerEntity,
+    ) : this(bounds, MinecraftCaptureSource(world, player))
 
     private val pendingReplacements = ConcurrentHashMap<Long, ImmutableSnapshotSection>()
     private val pendingRemovals = ConcurrentHashMap.newKeySet<Long>()
 
-    private val lock = ReentrantLock()
-    private val changed = lock.newCondition()
-
-    private var revisionCounter = 0L
-    private var closed = false
-    private val pendingSections = HashSet<PathingSection>()
-    private val pendingChunks = HashSet<PathingChunk>()
-    private val pendingMutations = HashSet<PathingSection>()
-    private val sectionRevisions = HashMap<PathingSection, Long>()
-    private val chunkRevisions = HashMap<PathingChunk, Long>()
-
-    private val interestQueues = Array(InterestTier.entries.size) { ArrayDeque<Long>() }
-    private val interested = HashSet<Long>()
-
-    private val deferred = LinkedHashSet<Long>()
-
-    private val mutablePos = BlockPos.Mutable()
-    private val shapeContext = net.minecraft.block.ShapeContext.of(player)
-    private val physicsInterner = BlockPhysicsInterner(shapeContext)
-
-    @Volatile private var trustedChunks: Set<Long> = emptySet()
-    private var trustedRefreshTick = 0
+    private val revisions = RevisionLog()
+    private val lock = revisions.lock
+    private val interestQueue = InterestQueue(present = { key -> snapshot.hasSection(key) && key !in pendingRemovals })
+    private val trusted = TrustedChunks(source)
+    private val capture = SectionCapture()
 
     // Capture throughput, for the planning-startup ledger: written on the client
     // thread, read from the planner thread.
@@ -77,69 +66,33 @@ class PathingWorld(
     fun captureLedger(): String =
         "%d sections/%d cells in %d ms".format(capturedSections, capturedCells, captureNanos / 1_000_000L)
 
-    private var activeKey: Long? = null
-    private var builder = ImmutableSnapshotSection.Builder()
-    private var cursorX = 0
-    private var cursorY = 0
-    private var cursorZ = 0
+    val snapshot: SnapshotSimulationEnvironment = SnapshotSimulationEnvironment.streaming(bounds, ::demandMiss)
 
-    val snapshot: SnapshotSimulationEnvironment = SnapshotSimulationEnvironment(
-        bounds = bounds,
-        sections = sections,
-        defaultBlock = null,
-        shareSections = true,
-        missingSection = null,
-        sparseSectionCoordinates = sectionCoordinates,
-        unavailableSectionKeys = null,
-        sectionUnavailable = { key -> !sections.containsKey(key) },
-        onExactMiss = ::demandMiss,
-    )
-
-    val revision: Long get() = lock.withLock { revisionCounter }
+    val revision: Long get() = revisions.revision
 
     val pendingInterest: Int
-        get() = lock.withLock {
-            interestQueues.sumOf { it.size } + (if (activeKey != null) 1 else 0)
-        }
+        get() = lock.withLock { interestQueue.size + (if (capture.activeKey != null) 1 else 0) }
 
     val pendingDemand: Int
-        get() = lock.withLock { interestQueues[InterestTier.DEMAND.ordinal].size }
+        get() = lock.withLock { interestQueue.demandSize }
 
-    fun chunkCapturable(chunkX: Int, chunkZ: Int): Boolean =
-        net.minecraft.util.math.ChunkPos.toLong(chunkX, chunkZ) in trustedChunks
-
-    private fun refreshTrustedChunks() {
-        val center = player.chunkPos
-        val view = MinecraftClient.getInstance().options.clampedViewDistance
-        val fresh = HashSet<Long>()
-        for (cx in (center.x - view - 2)..(center.x + view + 2)) {
-            for (cz in (center.z - view - 2)..(center.z + view + 2)) {
-                if (isTrustedLoadedChunk(cx, cz)) fresh += net.minecraft.util.math.ChunkPos.toLong(cx, cz)
-            }
-        }
-        trustedChunks = fresh
-    }
+    fun chunkCapturable(chunkX: Int, chunkZ: Int): Boolean = trusted.contains(chunkX, chunkZ)
 
     fun advance(budgetMillis: Double) {
-        check(MinecraftClient.getInstance().isOnThread) {
-            "PathingWorld capture must advance on the client thread"
-        }
+        check(source.isOnClientThread()) { "PathingWorld capture must advance on the client thread" }
         val started = System.nanoTime()
         val deadline = started + (budgetMillis * 1_000_000.0).toLong()
-        if (trustedRefreshTick++ % TRUSTED_REFRESH_TICKS == 0) refreshTrustedChunks()
-        promoteDeferred()
+        trusted.tick()
+        lock.withLock { interestQueue.promoteDeferred(::trustedKey) }
         var written = 0
         var completed = 0
         while (written == 0 || System.nanoTime() < deadline) {
-            val key = activeKey ?: nextCapturable() ?: break
-            val baseX = ChunkSectionPos.unpackX(key) shl 4
-            val baseY = ChunkSectionPos.unpackY(key) shl 4
-            val baseZ = ChunkSectionPos.unpackZ(key) shl 4
-            val pos = mutablePos.set(baseX + cursorX, baseY + cursorY, baseZ + cursorZ)
-            val physics = physicsInterner.capture(world, pos, world.getBlockState(pos))
-            builder.set(cursorX, cursorY, cursorZ, physics)
+            val key = capture.activeKey ?: nextCapturable() ?: break
+            val x = (ChunkSectionPos.unpackX(key) shl 4) + capture.localX
+            val y = (ChunkSectionPos.unpackY(key) shl 4) + capture.localY
+            val z = (ChunkSectionPos.unpackZ(key) shl 4) + capture.localZ
             written++
-            if (advanceCursor()) {
+            if (capture.writeNext(source.physicsAt(x, y, z))) {
                 completeSection(key)
                 completed++
             }
@@ -152,37 +105,25 @@ class PathingWorld(
     }
 
     fun onBlockChanged(pos: BlockPos) {
-        val key = ChunkSectionPos.asLong(pos.x shr 4, pos.y shr 4, pos.z shr 4)
-        invalidateSection(key, mutation = true)
+        invalidateSection(ChunkSectionPos.asLong(pos.x shr 4, pos.y shr 4, pos.z shr 4), mutation = true)
     }
 
     fun onChunkEvent(chunkX: Int, chunkZ: Int) {
-        val hadContent = sectionCoordinates.values.any { it.first == chunkX && it.third == chunkZ }
-        lock.withLock {
-            if (hadContent) {
-                val next = ++revisionCounter
-                chunkRevisions[PathingChunk(chunkX, chunkZ)] = next
-                pendingChunks += PathingChunk(chunkX, chunkZ)
-            }
-            changed.signalAll()
+        val inChunk = LongArrayList()
+        snapshot.forEachSectionKey { key ->
+            if (ChunkSectionPos.unpackX(key) == chunkX && ChunkSectionPos.unpackZ(key) == chunkZ) inChunk.add(key)
         }
-        if (hadContent) {
-            sectionCoordinates.entries
-                .filter { (_, coordinate) -> coordinate.first == chunkX && coordinate.third == chunkZ }
-                .forEach { (key, _) -> invalidateSection(key, mutation = false) }
+        if (inChunk.isEmpty) {
+            revisions.signal()
+            return
         }
-
+        revisions.recordChunkChanged(PathingChunk(chunkX, chunkZ))
+        val keys = inChunk.iterator()
+        while (keys.hasNext()) invalidateSection(keys.nextLong(), mutation = false)
     }
 
     fun interest(sectionKeys: Iterable<Long>, tier: InterestTier) {
-        lock.withLock {
-            val queue = interestQueues[tier.ordinal]
-            for (key in sectionKeys) {
-                if (sections.containsKey(key) && key !in pendingRemovals) continue
-                if (!interested.add(key)) continue
-                queue.addLast(key)
-            }
-        }
+        lock.withLock { interestQueue.add(sectionKeys, tier) }
     }
 
     fun interestBlocks(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int, tier: InterestTier) {
@@ -201,59 +142,24 @@ class PathingWorld(
         snapshotRevision: Long,
         dependedSections: Set<PathingSection>,
         dependedChunks: Set<PathingChunk>,
-    ): WorldMutation? = lock.withLock {
-        if (revisionCounter <= snapshotRevision) return null
-        dependedSections.forEach { section ->
-            val at = sectionRevisions[section] ?: return@forEach
-            if (at > snapshotRevision) return WorldMutation.Section(section, at)
-        }
-        dependedChunks.forEach { chunk ->
-            val at = chunkRevisions[chunk] ?: return@forEach
-            if (at > snapshotRevision) return WorldMutation.Chunk(chunk, at)
-        }
-        null
-    }
+    ): WorldMutation? = revisions.changedSince(snapshotRevision, dependedSections, dependedChunks)
 
-    fun close() {
-        lock.withLock {
-            closed = true
-            changed.signalAll()
-        }
-    }
+    fun close() = revisions.close()
 
     fun drainEvents(): WorldEventBatch {
+        val removed = LongArrayList()
         for (key in pendingRemovals.toList()) {
-            if (pendingRemovals.remove(key)) {
-                sections.remove(key)
-                sectionCoordinates.remove(key)
-            }
+            if (pendingRemovals.remove(key)) removed.add(key)
         }
+        if (!removed.isEmpty) snapshot.removeSections(removed)
         for ((key, section) in pendingReplacements) {
-            if (pendingReplacements.remove(key, section)) {
-                sections[key] = section
-                sectionCoordinates[key] = Triple(
-                    ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key), ChunkSectionPos.unpackZ(key),
-                )
-            }
+            if (pendingReplacements.remove(key, section)) snapshot.install(key, section)
         }
-        return lock.withLock {
-            val batch = WorldEventBatch(
-                revisionCounter, HashSet(pendingSections), HashSet(pendingChunks), HashSet(pendingMutations),
-            )
-            pendingSections.clear()
-            pendingChunks.clear()
-            pendingMutations.clear()
-            batch
-        }
+        return revisions.drain()
     }
 
-    fun awaitEvents(sinceRevision: Long, timeoutMillis: Long): Boolean = lock.withLock {
-        var remaining = timeoutMillis * 1_000_000L
-        while (!closed && revisionCounter <= sinceRevision && remaining > 0) {
-            remaining = changed.awaitNanos(remaining)
-        }
-        revisionCounter > sinceRevision
-    }
+    fun awaitEvents(sinceRevision: Long, timeoutMillis: Long): Boolean =
+        revisions.awaitEvents(sinceRevision, timeoutMillis)
 
     private fun demandMiss(key: Long) {
         val sx = ChunkSectionPos.unpackX(key)
@@ -269,121 +175,35 @@ class PathingWorld(
     }
 
     private fun invalidateSection(key: Long, mutation: Boolean) {
-        val present = sections.containsKey(key) || pendingReplacements.containsKey(key)
-        lock.withLock {
-            if (mutation) {
-                val next = ++revisionCounter
-                val section = PathingSection(
-                    ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key), ChunkSectionPos.unpackZ(key),
-                )
-                sectionRevisions[section] = next
-                pendingSections += section
-                pendingMutations += section
-            }
-            changed.signalAll()
-        }
+        val present = snapshot.hasSection(key) || pendingReplacements.containsKey(key)
+        if (mutation) revisions.recordMutation(sectionOf(key)) else revisions.signal()
         if (present) {
             pendingReplacements.remove(key)
-            if (activeKey == key) {
-                activeKey = null
-                builder = ImmutableSnapshotSection.Builder()
-            }
-
+            if (capture.activeKey == key) capture.abandon()
             pendingRemovals += key
             interest(listOf(key), InterestTier.DEMAND)
         }
     }
 
-    private fun promoteDeferred() {
-        if (deferred.isEmpty()) return
-        val promoted = deferred.filter { key ->
-            isTrustedLoadedChunk(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key))
-        }
-        promoted.forEach { key ->
-            deferred.remove(key)
-            lock.withLock {
-                if (interested.add(key)) interestQueues[InterestTier.DEMAND.ordinal].addLast(key)
-            }
-        }
-    }
+    private fun trustedKey(key: Long): Boolean =
+        trusted.isTrusted(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key))
 
-    private fun nextCapturable(): Long? {
-        lock.withLock {
-            for (queue in interestQueues) {
-                while (queue.isNotEmpty()) {
-                    val key = queue.removeFirst()
-                    interested.remove(key)
-                    if (sections.containsKey(key) && key !in pendingRemovals) continue
-                    if (!isTrustedLoadedChunk(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key))) {
-                        deferred += key
-                        continue
-                    }
-                    activeKey = key
-                    builder = ImmutableSnapshotSection.Builder()
-                    cursorX = 0
-                    cursorY = 0
-                    cursorZ = 0
-                    return key
-                }
-            }
-        }
-        return null
-    }
-
-    private fun advanceCursor(): Boolean {
-        if (cursorX < 15) {
-            cursorX++
-            return false
-        }
-        cursorX = 0
-        if (cursorZ < 15) {
-            cursorZ++
-            return false
-        }
-        cursorZ = 0
-        if (cursorY < 15) {
-            cursorY++
-            return false
-        }
-        return true
+    private fun nextCapturable(): Long? = lock.withLock {
+        interestQueue.nextCapturable(::trustedKey)?.also(capture::begin)
     }
 
     private fun completeSection(key: Long) {
-        val frozen = builder.build(expectedWrites = SECTION_CELLS)
-        activeKey = null
-        builder = ImmutableSnapshotSection.Builder()
+        val frozen = capture.build()
         val replacing = key in pendingRemovals
         if (replacing) {
-
             pendingRemovals.remove(key)
             pendingReplacements[key] = frozen
         } else {
-            sections[key] = frozen
-            sectionCoordinates[key] = Triple(
-                ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key), ChunkSectionPos.unpackZ(key),
-            )
+            snapshot.install(key, frozen)
         }
-        lock.withLock {
-            revisionCounter++
-            pendingSections += PathingSection(
-                ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key), ChunkSectionPos.unpackZ(key),
-            )
-            changed.signalAll()
-        }
+        revisions.recordCaptured(sectionOf(key))
     }
 
-    private fun isTrustedLoadedChunk(chunkX: Int, chunkZ: Int): Boolean {
-        if (!world.chunkManager.isChunkLoaded(chunkX, chunkZ)) return false
-        val center = player.chunkPos
-        val viewDistance = MinecraftClient.getInstance().options.clampedViewDistance
-        val dx = maxOf(0, abs(chunkX - center.x) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-        val dz = maxOf(0, abs(chunkZ - center.z) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-        return dx * dx + dz * dz < viewDistance.toLong() * viewDistance
-    }
-
-    private companion object {
-        const val SECTION_CELLS = 16 * 16 * 16
-        const val CHUNK_FILTER_EDGE_MARGIN = 2
-        const val TRUSTED_REFRESH_TICKS = 4
-    }
+    private fun sectionOf(key: Long) =
+        PathingSection(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key), ChunkSectionPos.unpackZ(key))
 }

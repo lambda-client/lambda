@@ -4,6 +4,7 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.movement.SimpleMoveOptions
 import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.prediction.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.math.BlockPos
@@ -26,7 +27,7 @@ class CompositeCourseTest {
         val carpet = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.0625, 1.0))
         val bed = SnapshotBlockPhysics.of(
             VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.5625, 1.0),
-            bounceFactor = SnapshotSimulationEnvironment.BED_BOUNCE_FACTOR,
+            bounceFactor = BlockPhysicsCapture.BED_BOUNCE_FACTOR,
         )
         val blocks = buildMap {
             for (x in -1..1) {
@@ -68,7 +69,7 @@ class CompositeCourseTest {
         val carpet = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.0625, 1.0))
         val bed = SnapshotBlockPhysics.of(
             VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.5625, 1.0),
-            bounceFactor = SnapshotSimulationEnvironment.BED_BOUNCE_FACTOR,
+            bounceFactor = BlockPhysicsCapture.BED_BOUNCE_FACTOR,
         )
         // Six repeats of the 24-block segment: 144 blocks, nine chunks of course.
         val blocks = buildMap {
