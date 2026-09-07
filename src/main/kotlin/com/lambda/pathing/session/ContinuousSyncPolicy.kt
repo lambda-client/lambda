@@ -38,7 +38,7 @@ internal class ContinuousSyncPolicy(
             val t = System.nanoTime()
             val more = coarseState.continueSync(SYNC_SLICE_STANCES)
             syncNanos += System.nanoTime() - t
-            if (more) return WorldSyncResult.Woken
+            if (more) return WorldSyncResult.Woken()
             // A horizon-truncated route never extends by itself when its terminal area
             // is already loaded -- no world event will ever arrive. Re-resolve
             // periodically until the route reaches the final goal.
@@ -64,8 +64,9 @@ internal class ContinuousSyncPolicy(
         val extending = current.goal != finalGoal
         val mutated = batch.mutations.isNotEmpty() || batch.chunks.isNotEmpty()
 
+        val mutatedSections = mutatedSectionSet(batch)
         if (!routeNeighborhoodTouched(current, batch) || (!extending && !mutated)) {
-            return WorldSyncResult.Woken
+            return WorldSyncResult.Woken(mutatedSections)
         }
         field.invalidate(batch.sections)
 
@@ -93,7 +94,24 @@ internal class ContinuousSyncPolicy(
                 InterestTier.CORRIDOR,
             )
         }
-        return WorldSyncResult.Changed(next)
+        return WorldSyncResult.Changed(next, mutatedSections)
+    }
+
+    /** Re-captured sections plus every section of a reloaded chunk the snapshot holds. */
+    private fun mutatedSectionSet(batch: WorldEventBatch): Set<PathingSection> {
+        if (batch.mutations.isEmpty() && batch.chunks.isEmpty()) return emptySet()
+        val out = HashSet<PathingSection>(batch.mutations)
+        if (batch.chunks.isNotEmpty()) {
+            val chunks = batch.chunks
+            world.snapshot.forEachSectionKey { key ->
+                val x = net.minecraft.util.math.ChunkSectionPos.unpackX(key)
+                val z = net.minecraft.util.math.ChunkSectionPos.unpackZ(key)
+                if (PathingChunk(x, z) in chunks) {
+                    out += PathingSection(x, net.minecraft.util.math.ChunkSectionPos.unpackY(key), z)
+                }
+            }
+        }
+        return out
     }
 
     private fun routeNeighborhoodTouched(

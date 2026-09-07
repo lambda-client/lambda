@@ -189,6 +189,18 @@ internal class Frontier(
         buckets.clear()
     }
 
+    /** Forget every anchor below [root] (not [root] itself): their rollouts read a world that is gone. */
+    fun dropDescendants(root: ValueAnchor) {
+        fun stale(anchor: ValueAnchor) = anchor !== root && anchor.descendsFrom(root)
+        val kept = open.filterTo(ArrayList()) { !stale(it.anchor) }
+        open.clear()
+        open.addAll(kept)
+        parked.removeAll { stale(it.anchor) }
+        reserve.removeAll { stale(it.anchor) }
+        blocked.removeAll { stale(it.anchor) }
+        rebuildBeamBuckets()
+    }
+
     fun parkBlocked(anchor: ValueAnchor, action: TrajectoryDecision) {
         blocked += BlockedAttempt(anchor, action)
     }

@@ -67,6 +67,8 @@ data class SearchExhaustion(
     val commitAttempts: Int = 0,
     val commitSuppressed: Int = 0,
     val publishRefusals: Int = 0,
+    val repairs: Int = 0,
+    val junctionRestarts: Int = 0,
 ) {
     override fun toString(): String = buildString {
         append("exit=").append(exit)
@@ -103,6 +105,8 @@ data class SearchExhaustion(
             append(" suppressed=").append(commitSuppressed)
             append(" refusals=").append(publishRefusals)
         }
+        if (repairs > 0) append(" repairs=").append(repairs)
+        if (junctionRestarts > 0) append(" junctionRestarts=").append(junctionRestarts)
     }
 }
 

@@ -46,6 +46,16 @@ class TrajectoryPlan private constructor(
             reads.forEach { put(PathingChunk.containing(it), frame) }
         }
     }
+    private val firstSectionReadFrame: Map<PathingSection, Int> = buildMap {
+        frameDependencies.forEachIndexed { frame, reads ->
+            reads.forEach { putIfAbsent(PathingSection.containing(it), frame) }
+        }
+    }
+    private val firstChunkReadFrame: Map<PathingChunk, Int> = buildMap {
+        frameDependencies.forEachIndexed { frame, reads ->
+            reads.forEach { putIfAbsent(PathingChunk.containing(it), frame) }
+        }
+    }
     val certifiedThrough: Int get() = frames.lastIndex
 
     init {
@@ -117,6 +127,27 @@ class TrajectoryPlan private constructor(
     fun dependencyChunksFrom(nextFrame: Int): Set<PathingChunk> {
         require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
         return lastChunkReadFrame.filterValues { it >= nextFrame }.keys
+    }
+
+    /** Sections read by frames in `[nextFrame, untilFrame)`: the part of the tape still to be replayed. */
+    fun dependencySectionsBetween(nextFrame: Int, untilFrame: Int): Set<PathingSection> {
+        require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
+        return lastSectionReadFrame.filter { (section, last) ->
+            last >= nextFrame && (firstSectionReadFrame[section] ?: 0) < untilFrame
+        }.keys
+    }
+
+    fun dependencyChunksBetween(nextFrame: Int, untilFrame: Int): Set<PathingChunk> {
+        require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
+        return lastChunkReadFrame.filter { (chunk, last) ->
+            last >= nextFrame && (firstChunkReadFrame[chunk] ?: 0) < untilFrame
+        }.keys
+    }
+
+    /** The first frame whose rollout read what [mutation] changed, or null if the tape never did. */
+    fun firstFrameReading(mutation: com.lambda.pathing.world.WorldMutation): Int? = when (mutation) {
+        is com.lambda.pathing.world.WorldMutation.Section -> firstSectionReadFrame[mutation.section]
+        is com.lambda.pathing.world.WorldMutation.Chunk -> firstChunkReadFrame[mutation.chunk]
     }
 
     companion object {

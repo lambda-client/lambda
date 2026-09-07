@@ -8,6 +8,10 @@ internal class Publication(
     val sequence: Long,
     val anchor: ValueAnchor,
     val brakeAnchor: ValueAnchor,
+    /** What the certified tape read, per frame, and the decisions it compiled from: the repair inputs. */
+    val frameDependencies: List<Set<com.lambda.pathing.core.VoxelPos>> = emptyList(),
+    val planSegments: List<PlanSegment> = emptyList(),
+    val initialState: com.lambda.pathing.physics.MovementSimulationState? = null,
 )
 
 /**
@@ -173,6 +177,10 @@ internal class HorizonController(
         }
 
         if (anchor.elapsed > publicationCap(cursor ?: -1)) return refused { "cap" }
+        // A published tape brakes to rest at its tip; a rest with no standing-start
+        // continuation strands the body (a one-block pillar before a momentum-only
+        // catch). Publish an earlier or later anchor instead.
+        if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refused { "no-rest-continuation" }
         // With a full solution standing only its own prefix is publishable here; branch
         // changes go through commitFromCandidates, which weighs them.
         incumbentAnchor()?.let { incumbent ->
@@ -335,6 +343,8 @@ internal class HorizonController(
         }
         // Estimated arrival, collisions priced as Solution.score prices them; the tip's
         // claim erodes toward a brake stop while it fails to extend (stale-tip discount).
+        // A tip whose tail the world invalidated has no arrival claim left to beat.
+        if (tipInvalidated) return true
         val candidateArrival = arrivalEstimate(candidate)
         val stale = ((expansionCount() - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS)
             .toDouble() / STALE_TIP_RAMP_EXPANSIONS).coerceIn(0.0, 1.0) * STALE_TIP_MAX_TICKS
@@ -376,9 +386,13 @@ internal class HorizonController(
         expansionsAtPublish = expansionCount()
         refusedCommit = null
         publishedSequence++
-        publications += Publication(publishedSequence, terminal, terminal)
+        publications += Publication(
+            publishedSequence, terminal, terminal,
+            certified.frameDependencies, certified.planSegments, certified.rollout.initialState,
+        )
         while (publications.size > MAX_TRACKED_PUBLICATIONS) publications.removeFirst()
         publishedFinalScore = solution.score
+        tipInvalidated = false
         publish(certified)
         return true
     }
@@ -425,7 +439,11 @@ internal class HorizonController(
             sequence = publishedSequence,
             anchor = anchor,
             brakeAnchor = brakeAnchorOf(anchor, certified),
+            frameDependencies = certified.frameDependencies,
+            planSegments = certified.planSegments,
+            initialState = certified.rollout.initialState,
         )
+        tipInvalidated = false
         while (publications.size > MAX_TRACKED_PUBLICATIONS) publications.removeFirst()
         publish(certified)
         return true
@@ -585,6 +603,52 @@ internal class HorizonController(
     }
 
     /**
+     * A junction restart: the running tape's last rejoinable junction before its tip that
+     * the body has not reached and that [tried] does not hold yet, as a fresh continuation.
+     * Used when the tip itself has dead-ended: re-rooting one junction back lets the search
+     * take a different line into the obstacle while the body keeps replaying the prefix.
+     * Voids the tip's arrival claim so the new line can publish over it.
+     */
+    fun junctionContinuation(tried: MutableSet<Int>): ValueAnchor? {
+        val acked = adoptedSequence?.invoke() ?: Long.MAX_VALUE
+        val running = publications.lastOrNull { it.sequence <= acked } ?: return null
+        val initial = running.initialState ?: return null
+        val graph = PlanGraph.of(running.planSegments, initial) ?: return null
+        val cursor = maxOf(observedCursor, 0)
+        var junction: PlanJunction? = null
+        for (candidate in graph.junctions.asReversed()) {
+            if (candidate.index == 0 || !candidate.rejoinable) continue
+            if (candidate.frame >= running.anchor.elapsed) continue
+            if (candidate.frame < cursor + PUBLISH_DIVERGENCE_MARGIN_FRAMES) break
+            if (tried.add(candidate.frame)) { junction = candidate; break }
+        }
+        val at = junction ?: return null
+        var cut: ValueAnchor? = running.anchor
+        while (cut != null && cut.elapsed > at.frame) cut = cut.parent
+        if (cut == null || cut.elapsed != at.frame) return null
+        tipInvalidated = true
+        junctionRestarts++
+        return ValueAnchor(
+            state = cut.state,
+            stance = cut.stance,
+            elapsed = cut.elapsed,
+            collisionEvents = cut.collisionEvents,
+            launchMargin = cut.launchMargin,
+            inputSwitches = cut.inputSwitches,
+            parent = cut.parent,
+            inputs = cut.inputs,
+            boundary = cut.boundary,
+        ).also {
+            it.via = cut.via
+            it.decision = cut.decision
+            it.points = cut.points
+        }
+    }
+
+    var junctionRestarts = 0
+        private set
+
+    /**
      * The running tape's tip as a fresh continuation, still moving: same parent and inputs
      * (so solutions through it replay identically), no attempts recorded, no brake implied.
      * Tried before [latestBrakeContinuation]; see docs/decisions/session-loop.md.
@@ -611,6 +675,44 @@ internal class HorizonController(
     fun reRootForRestart(anchor: ValueAnchor) {
         reRootOnto(anchor)
         frontier.reopen(anchor)
+    }
+
+    /** Set when the running tape's tail was invalidated by a world change; cleared by the next publication. */
+    private var tipInvalidated = false
+
+    var repairs = 0
+        private set
+
+    /**
+     * The DAG repair: when [mutations] touch what the running tape's tail read, cut the
+     * plan at [PlanGraph.repairJunction] and re-root the search there, discarding every
+     * anchor below the cut (their rollouts read the old world). The executor keeps
+     * replaying the spine up to the cut; the tape published from here is the alternate
+     * that rejoins nothing and replaces the tail. Returns the cut anchor, or null when
+     * nothing published depends on the change or no cut is ahead of the body.
+     * See docs/decisions/publication-protocol.md (local repair).
+     */
+    fun repairFor(mutations: Set<com.lambda.pathing.core.PathingSection>): ValueAnchor? {
+        if (mutations.isEmpty()) return null
+        val running = publications.lastOrNull() ?: return null
+        val initial = running.initialState ?: return null
+        val first = running.frameDependencies.indexOfFirst { reads ->
+            reads.any { com.lambda.pathing.core.PathingSection.containing(it) in mutations }
+        }
+        if (first < 0) return null
+        val graph = PlanGraph.of(running.planSegments, initial) ?: return null
+        val cursor = maxOf(observedCursor, 0)
+        val junction = graph.repairJunction(first, cursor, PUBLISH_DIVERGENCE_MARGIN_FRAMES) ?: return null
+        var cut: ValueAnchor? = running.anchor
+        while (cut != null && cut.elapsed > junction.frame) cut = cut.parent
+        if (cut == null || cut.elapsed != junction.frame) return null
+        frontier.dropDescendants(cut)
+        reRootOnto(cut)
+        frontier.reopen(cut)
+        tipInvalidated = true
+        refusedCommit = null
+        repairs++
+        return cut
     }
 
     fun publishCandidates() {

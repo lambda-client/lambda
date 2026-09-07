@@ -49,6 +49,14 @@ internal class SegmentFollowerProgram(
      * point replaces the scheduled input. Null flies the historical open schedule.
      */
     private val airPlan: AirSteering.AirPlan? = null,
+
+    /**
+     * Keep the jump key down while airborne. Vanilla re-jumps only from the ground, so in
+     * flight this is inert -- until the feet enter a climbable cell, where a held jump
+     * climbs at once instead of waiting for the body to press into the rungs. That is
+     * what makes a single-block ladder catchable; see docs/decisions/movement-tuning.md.
+     */
+    private val holdJumpInFlight: Boolean = false,
 ) : ControlProgram {
     private var airborneTicks = 0
     private val pursuit = PursuitTracker(nodes)
@@ -65,6 +73,7 @@ internal class SegmentFollowerProgram(
         // the ballistic model prices the launch tick's ground acceleration too, so this
         // has to start on the same tick the jump is pressed, not the one after.
         val flying = jump || (launch?.hasFired == true && !observed.onGround)
+        val jumpKey = jump || (holdJumpInFlight && flying)
         if (flying) airborneTicks++ else airborneTicks = 0
         val coasting = flying && (!holdForwardInFlight || airborneTicks > holdTicks)
 
@@ -102,7 +111,7 @@ internal class SegmentFollowerProgram(
             },
             strafe = steered?.strafe ?: 0.0,
             sprint = sprint,
-            jump = jump,
+            jump = jumpKey,
             rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
         )
     }

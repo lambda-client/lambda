@@ -32,4 +32,12 @@ data class CoarseEdge(
     val launch: LaunchSolution? = null,
 
     val bounce: BounceSolution? = null,
+
+    /**
+     * Whether a body at rest on [from] can execute this edge with only the run-up its own
+     * cell (and one walkable cell behind it) affords. False for launches that need
+     * momentum carried in from earlier movement; the STOPPED class never departs on those.
+     * See docs/decisions/movement-tuning.md (standing starts).
+     */
+    val standingStart: Boolean = true,
 )

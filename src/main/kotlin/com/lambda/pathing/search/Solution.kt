@@ -58,7 +58,7 @@ internal class Solution(
          * The decision chain behind a finished tape, root first, plus its terminal. An
          * anchor with no decision is a brake tail and becomes a terminal too.
          */
-        private fun segmentsOf(
+        internal fun segmentsOf(
             anchor: ValueAnchor,
             tail: List<SimulatedTrajectoryFrame>,
             parameters: TerminalApproach,

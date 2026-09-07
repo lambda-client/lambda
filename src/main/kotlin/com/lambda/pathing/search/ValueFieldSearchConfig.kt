@@ -80,9 +80,17 @@ data class ValueFieldSearchConfig(
 
 sealed interface WorldSyncResult {
 
+    /** Sections whose known content changed (re-captured or reloaded), for tape repair. */
+    val mutations: Set<com.lambda.pathing.core.PathingSection> get() = emptySet()
+
     data object Quiet : WorldSyncResult
 
-    data object Woken : WorldSyncResult
+    data class Woken(
+        override val mutations: Set<com.lambda.pathing.core.PathingSection> = emptySet(),
+    ) : WorldSyncResult
 
-    data class Changed(val route: CoarseRoutePlan?) : WorldSyncResult
+    data class Changed(
+        val route: CoarseRoutePlan?,
+        override val mutations: Set<com.lambda.pathing.core.PathingSection> = emptySet(),
+    ) : WorldSyncResult
 }

@@ -33,13 +33,17 @@ class LiveRefusalReplayTest {
                 cursorFrame = { null }, publish = { _, _ -> },
                 started = System.currentTimeMillis(),
             )
+            println("[replay] ${p.fileName} options=${loaded.moveOptions} constraints=${loaded.searchConfig}")
+            println("[replay] ${p.fileName} route(${route.nodes.size}): " + route.edges.joinToString(" ") { "${it.movement}->${it.to}" })
+            println("[replay] ${p.fileName} note=${loaded.note?.take(600)}")
             val detail = when (outcome) {
                 is MotionPlanResult.NoSafeStop ->
                     "NoSafeStop attempts=${outcome.attemptCount} nearest=${outcome.nearest?.let {
                         "err=%.3f speed=%.3f frames=%d diag=%s".format(
                             it.finalGoalError, it.finalHorizontalSpeed, it.simulatedFrames, it.diagnostic)
                     }}"
-                is PathPlanResult.Planned -> "PLANNED"
+                is PathPlanResult.Planned -> "PLANNED frames=${outcome.path.plan.frames.size}"
+                is PathPlanResult.Failed -> "FAILED ${outcome.failure.message}"
                 else -> outcome::class.simpleName ?: "?"
             }
             println("[replay] ${p.fileName} start=${loaded.start} goal=${loaded.goal}: $detail")

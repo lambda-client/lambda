@@ -137,6 +137,14 @@ object LaunchSolver {
          * See docs/decisions/movement-tuning.md (exit-speed window).
          */
         exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
+
+        /**
+         * A catch, not a landing: the body must reach the target's face while its feet
+         * are still at or above [rise], and the face stops any overshoot. The landing
+         * window loses its far edge and the fastest feasible entry is taken; a slow arc
+         * arrives already descending and slides below the rung.
+         */
+        catch: Boolean = false,
     ): List<LaunchSolution> {
         val dx = (to.x - from.x).toDouble()
         val dz = (to.z - from.z).toDouble()
@@ -151,7 +159,7 @@ object LaunchSolver {
         return modes.filter { it.supports(rise) }.mapNotNull { mode ->
             solveMode(
                 from, to, unitX, unitZ, rise, lateral, mode, profile,
-                maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow,
+                maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow, catch,
             )
         }.sortedWith(LaunchSolution.BEST_FIRST)
     }
@@ -165,8 +173,9 @@ object LaunchSolver {
         preferredEntrySpeed: (LaunchMode) -> Double = { profile.cruiseSpeed(it.sprint) },
         rise: Double = (to.y - from.y).toDouble(),
         exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
+        catch: Boolean = false,
     ): LaunchSolution? =
-        solve(from, to, profile, modes, maxEntrySpeed, preferredEntrySpeed, rise, exitSpeedWindow)
+        solve(from, to, profile, modes, maxEntrySpeed, preferredEntrySpeed, rise, exitSpeedWindow, catch)
             .firstOrNull()
 
     private fun solveMode(
@@ -181,10 +190,12 @@ object LaunchSolver {
         maxEntrySpeed: Double,
         preferredEntrySpeed: Double,
         exitSpeedWindow: ClosedFloatingPointRange<Double>?,
+        catch: Boolean = false,
     ): LaunchSolution? {
         if (maxEntrySpeed < 0.0) return null
 
-        val window = landingWindow(from, to, unitX, unitZ) ?: return null
+        val landing = landingWindow(from, to, unitX, unitZ) ?: return null
+        val window = if (catch) landing.start..Double.POSITIVE_INFINITY else landing
 
         var best: LaunchSolution? = null
 
@@ -214,7 +225,7 @@ object LaunchSolver {
                 val feasibleHigh = min(speedFor(window.endInclusive), maxEntrySpeed)
                 if (feasibleHigh < feasibleLow) continue
 
-                val speed = preferredSpeed(preferredEntrySpeed, feasibleLow, feasibleHigh, slope)
+                val speed = if (catch) feasibleHigh else preferredSpeed(preferredEntrySpeed, feasibleLow, feasibleHigh, slope)
 
                 val arc = profile.fly(mode, speed, rise, holdForward) ?: continue
                 val candidate = LaunchSolution(

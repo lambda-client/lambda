@@ -86,6 +86,20 @@ class PlanGraph private constructor(
         return route
     }
 
+    /**
+     * Where a plan is cut when the world changes under its tail: the last rejoinable
+     * junction strictly before [firstAffectedFrame] that the body has not reached yet
+     * ([cursorFrame] plus [minLeadFrames] of in-flight margin). Everything before it is
+     * still certified against the world as it is; everything after is re-solved as an
+     * alternate from it. Null when no such cut exists and the walk must stop instead.
+     */
+    fun repairJunction(firstAffectedFrame: Int, cursorFrame: Int, minLeadFrames: Int): PlanJunction? =
+        junctions.lastOrNull { junction ->
+            junction.index > 0 && junction.rejoinable &&
+                junction.frame < firstAffectedFrame &&
+                junction.frame >= cursorFrame + minLeadFrames
+        }
+
     /** This graph with one more alternate offered; the original is unchanged. */
     fun with(alternate: Alternate): PlanGraph =
         PlanGraph(junctions, spine, alternates + alternate)
