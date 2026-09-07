@@ -6,7 +6,7 @@ import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.debug.PlanDump
-import com.lambda.pathing.trajectory.MotionPlanResult
+import com.lambda.pathing.search.MotionPlanResult
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

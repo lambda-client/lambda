@@ -18,15 +18,16 @@
 package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.prediction.MovementInputProvider
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
-import com.lambda.pathing.prediction.SimulationEnvironment
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.LivePrediction
+import com.lambda.pathing.physics.MovementInputProvider
+import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.SimulationEnvironment
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Box
@@ -49,9 +50,9 @@ class MovementSimulatorTest {
             repeat(6) { add(MovementSimulationInput()) }
         }
 
-        val first = tape.map { simulator.tickMovement(it).simulator.state }
+        val first = tape.map { simulator.tickMovement(it) }
         simulator.reset(initial)
-        val replay = tape.map { simulator.tickMovement(it).simulator.state }
+        val replay = tape.map { simulator.tickMovement(it) }
 
         first.zip(replay).forEachIndexed { index, (expected, actual) ->
             assertStateEquals(expected, actual, "frame $index")
@@ -69,18 +70,13 @@ class MovementSimulatorTest {
 	        MovementSimulationInput(forward = 0.5, strafe = -0.5, sprint = true),
         )
         var cursor = 0
-        val provided = MovementSimulator(
-	        profile = PROFILE,
-	        environment = FlatGroundEnvironment,
-	        initialState = initial,
-	        inputProvider = MovementInputProvider { tape[cursor++] },
-        )
+        val provided = LivePrediction(simulator(initial), MovementInputProvider { tape[cursor++] })
         val explicit = simulator(initial)
 
         tape.forEachIndexed { index, input ->
-            val expected = explicit.tickMovement(input).simulator.state
-            val actual = provided.tickMovement().simulator.state
-            assertStateEquals(expected, actual, "frame $index")
+            val expected = explicit.tickMovement(input)
+            provided.advance()
+            assertStateEquals(expected, provided.state, "frame $index")
         }
     }
 
@@ -100,7 +96,7 @@ class MovementSimulatorTest {
     fun `floor collision preserves grounded state and vanilla stored fall velocity`() {
         val simulator = simulator(groundedState())
 
-        val state = simulator.tickMovement(MovementSimulationInput()).simulator.state
+        val state = simulator.tickMovement(MovementSimulationInput())
 
         assertClose(0.0, state.position.y, "grounded y")
         assertClose(-0.0784, state.velocity.y, "stored grounded velocity")
@@ -124,7 +120,7 @@ class MovementSimulatorTest {
         val simulator = simulator(groundedState())
         simulator.tickMovement(MovementSimulationInput(jump = true))
 
-        val state = simulator.tickMovement(MovementSimulationInput()).simulator.state
+        val state = simulator.tickMovement(MovementSimulationInput())
 
         assertEquals(0, state.jumpingCooldown)
         assertTrue(!state.isJumping)
@@ -150,7 +146,7 @@ class MovementSimulatorTest {
         val simulator = simulator(groundedState())
         simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true))
 
-        val released = simulator.tickMovement(MovementSimulationInput(forward = 1.0)).simulator.state
+        val released = simulator.tickMovement(MovementSimulationInput(forward = 1.0))
 
         assertTrue(released.isSprinting)
     }
@@ -160,7 +156,7 @@ class MovementSimulatorTest {
         val simulator = simulator(groundedState())
         simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true))
 
-        val coast = simulator.tickMovement(MovementSimulationInput()).simulator.state
+        val coast = simulator.tickMovement(MovementSimulationInput())
 
         assertTrue(!coast.isSprinting)
     }
@@ -181,11 +177,11 @@ class MovementSimulatorTest {
 	        rotation = Rotation(0.7, 0.0),
         )
 
-        val collision = simulator.tickMovement(input).simulator.state
+        val collision = simulator.tickMovement(input)
         assertTrue(collision.horizontalCollision)
         assertTrue(collision.collidedSoftly)
 
-        val retained = simulator.tickMovement(input).simulator.state
+        val retained = simulator.tickMovement(input)
         assertTrue(retained.isSprinting)
     }
 

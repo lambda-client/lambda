@@ -4,37 +4,38 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseKinematicEnvelope
-import com.lambda.pathing.movement.CoarseMoveRates
+import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.ContinuousSyncPolicy
 import com.lambda.pathing.session.PlanningCancellation
+import com.lambda.pathing.session.RouteResolution
 import com.lambda.pathing.world.changedChunkSet
 import com.lambda.pathing.debug.DebugChannelProbe
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
-import com.lambda.pathing.movement.MotionConstraints
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.trajectory.MotionPlanResult
-import com.lambda.pathing.trajectory.SearchClock
-import com.lambda.pathing.trajectory.SearchProbe
-import com.lambda.pathing.trajectory.SearchExhaustion
-import com.lambda.pathing.trajectory.SystemSearchClock
-import com.lambda.pathing.trajectory.WorldSyncResult
-import com.lambda.pathing.trajectory.TrajectoryPlan
-import com.lambda.pathing.trajectory.TrajectoryPlanId
-import com.lambda.pathing.trajectory.ValueFieldAnchorSearch
-import com.lambda.pathing.trajectory.ValueFieldSearchConfig
+import com.lambda.pathing.search.MotionPlanResult
+import com.lambda.pathing.search.SearchClock
+import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.SystemSearchClock
+import com.lambda.pathing.search.WorldSyncResult
+import com.lambda.pathing.search.TrajectoryPlan
+import com.lambda.pathing.search.TrajectoryPlanId
+import com.lambda.pathing.search.ValueFieldAnchorSearch
+import com.lambda.pathing.search.ValueFieldSearchConfig
 import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -44,7 +45,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
-import com.lambda.pathing.trajectory.FrontierDomination
+import com.lambda.pathing.search.FrontierDomination
 
 object TrajectoryPlanner {
     private val planIds = AtomicLong()
@@ -236,6 +237,7 @@ object TrajectoryPlanner {
                 }
                 coarseState.repairFrom(start, emptySet(), batch.changedChunkSet())
                 val planner = coarseState.planner
+                val routeResolution = RouteResolution(coarseState)
                 val coarseStarted = System.nanoTime()
                 val coarse = planner.repair(
                     timeBudget = Duration.INFINITE,
@@ -271,7 +273,7 @@ object TrajectoryPlanner {
                 PlanningDebugChannel.publishGraph(planner, initial.position)
 
                 val routeStarted = System.nanoTime()
-                val route = coarseState.resolveRoute(
+                val route = routeResolution.resolve(
                     start, snapshotRevision, preparation.coarseExpansionBudget, world,
                 ) { cancellation.isCancelled }
                     ?: run {
@@ -289,12 +291,12 @@ object TrajectoryPlanner {
                 PlanningDebugChannel.publishRoute(route)
 
                 // Startup ledger: knowledge-wait is capture pacing, route covers
-                // resolveRoute's grant rounds. See docs/decisions/startup.md.
+                // RouteResolution's grant rounds. See docs/decisions/startup.md.
                 LOG.info(
                     "Planning startup {} -> {}: knowledge-wait={} ms, coarse={} ms, " +
                         "field={} ms, route={} ms ({}), since-request={} ms; capture so far: {}",
                     start, goal, knowledgeMillis, coarseMillis, fieldMillis, routeMillis,
-                    coarseState.lastResolveReport,
+                    routeResolution.lastResolveReport,
                     System.currentTimeMillis() - started, world.captureLedger(),
                 )
 
@@ -303,6 +305,7 @@ object TrajectoryPlanner {
                 val worldSync = ContinuousSyncPolicy(
                     world = world,
                     coarseState = coarseState,
+                    resolution = routeResolution,
                     field = field,
                     start = start,
                     finalGoal = preparation.finalGoal,

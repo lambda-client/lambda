@@ -10,23 +10,24 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.*
-import com.lambda.pathing.movement.providers.WalkMovement
+import com.lambda.pathing.actions.*
+import com.lambda.pathing.actions.StanceRules
+import com.lambda.pathing.actions.families.WalkMovement
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.SimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.MovementSimulationStepResult
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.physics.SimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -309,7 +310,7 @@ class MovementCatalogTest {
                 dx = 4, dy = 0, dz = 0,
                 movement = id,
                 cost = 1.0,
-                conditions = WalkMovement.stanceConditions(4, 0, 0),
+                conditions = StanceRules.stanceConditions(4, 0, 0),
             )
         )
 

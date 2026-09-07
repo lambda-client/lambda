@@ -4,11 +4,11 @@
 package pathing
 
 import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.trajectory.TrajectoryPlan
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.MovementSimulationStepResult
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.search.TrajectoryPlan
 import kotlin.math.abs
 import kotlin.test.Test
 import net.minecraft.util.math.Vec3d

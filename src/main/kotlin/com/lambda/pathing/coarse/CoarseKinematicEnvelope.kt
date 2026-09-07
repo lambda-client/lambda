@@ -1,6 +1,6 @@
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.movement.CoarseMoveCosts
+import com.lambda.pathing.actions.CoarseMoveCosts
 import net.minecraft.util.math.Vec3d
 import kotlin.math.hypot
 

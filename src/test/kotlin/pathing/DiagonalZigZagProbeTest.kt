@@ -9,16 +9,16 @@ import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.movement.TrajectoryDecision
-import com.lambda.pathing.trajectory.SearchProbe
-import com.lambda.pathing.trajectory.TrajectoryDiagnostic
-import com.lambda.pathing.trajectory.VirtualSearchClock
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.search.VirtualSearchClock
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.math.atan2
 import kotlin.test.Test
 import kotlin.time.Duration
@@ -130,11 +130,11 @@ class DiagonalZigZagProbeTest {
                     var landed = 0
                     for (delay in 0..8) {
                         val nodes = if (chain == "short") listOf(from, to) else listOf(from, to, onward)
-                        val program = com.lambda.pathing.movement.SegmentFollowerProgram(
+                        val program = com.lambda.pathing.actions.SegmentFollowerProgram(
                             nodes = nodes.map { it.center() },
                             sprint = solution.sprint,
                             lookAheadNodes = 1,
-                            launch = com.lambda.pathing.movement.LaunchTrigger(delay),
+                            launch = com.lambda.pathing.actions.LaunchTrigger(delay),
                             maxYawChange = MotionConstraints().maxYawDegreesPerFrame,
                             holdForwardInFlight = solution.holdForward,
                             holdTicks = solution.holdTicks,
@@ -155,7 +155,7 @@ class DiagonalZigZagProbeTest {
                             velocity = Vec3d(0.0, -0.0784, 0.0),
                             onGround = true,
                         )
-                        val rollout = com.lambda.pathing.trajectory.TrajectoryRolloutEngine.rollout(
+                        val rollout = com.lambda.pathing.search.TrajectoryRolloutEngine.rollout(
                             initial, PROFILE, environment, program, frameCount = 40,
                         )
                         val landing = rollout.frames.firstOrNull { frame ->
@@ -201,11 +201,11 @@ class DiagonalZigZagProbeTest {
                 velocity = Vec3d(0.16586622906921053, -0.0784000015258789, 0.08150566402397656),
                 onGround = true,
             )
-            val program = com.lambda.pathing.movement.SegmentFollowerProgram(
+            val program = com.lambda.pathing.actions.SegmentFollowerProgram(
                 nodes = pads.drop(1).map { it.center() },
                 sprint = solution.sprint,
                 lookAheadNodes = 1,
-                launch = com.lambda.pathing.movement.LaunchTrigger(delay),
+                launch = com.lambda.pathing.actions.LaunchTrigger(delay),
                 maxYawChange = MotionConstraints().maxYawDegreesPerFrame,
                 holdForwardInFlight = solution.holdForward,
                 holdTicks = solution.holdTicks,
@@ -219,7 +219,7 @@ class DiagonalZigZagProbeTest {
                     walkAcceleration = com.lambda.pathing.launch.BallisticProfile.WALK_AIR_ACCELERATION,
                 ),
             )
-            val rollout = com.lambda.pathing.trajectory.TrajectoryRolloutEngine.rollout(
+            val rollout = com.lambda.pathing.search.TrajectoryRolloutEngine.rollout(
                 initial, PROFILE, environment, program, frameCount = 18,
             )
             println("[trace] delay=$delay")

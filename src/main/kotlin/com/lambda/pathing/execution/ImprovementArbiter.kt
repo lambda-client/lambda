@@ -1,7 +1,7 @@
 package com.lambda.pathing.execution
 
-import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.pathing.trajectory.SWAP_FLOOR_GAIN_TICKS
+import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.search.SWAP_FLOOR_GAIN_TICKS
 
 internal object ImprovementArbiter {
     sealed interface Verdict {

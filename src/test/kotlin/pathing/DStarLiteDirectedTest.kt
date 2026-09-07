@@ -5,14 +5,23 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package pathing
 
-import com.lambda.pathing.graph.CoarseRouteCandidate
-import com.lambda.pathing.graph.DStarLite
-import com.lambda.pathing.graph.LazyGraph
+import com.lambda.pathing.graph.LongDStarLite
+import com.lambda.pathing.graph.LongLazyGraph
+import com.lambda.pathing.graph.LongRouteCandidate
 import com.lambda.pathing.graph.TailCost
+import it.unimi.dsi.fastutil.longs.LongArrayList
 import java.util.PriorityQueue
 import kotlin.random.Random
 import kotlin.test.Test
@@ -48,7 +57,7 @@ class DStarLiteDirectedTest {
         assertTrue(result.converged)
         assertFalse(result.timedOut)
         assertFalse(result.expansionLimitReached)
-        assertEquals(listOf(0, 1, 2), planner.path())
+        assertEquals(LongArrayList.of(0L, 1L, 2L), planner.path())
         assertExactCost(2.0, planner.tailCost())
     }
 
@@ -87,7 +96,7 @@ class DStarLiteDirectedTest {
             2 to emptyMap(),
         )
         val graph = lazyGraph(edges)
-        val planner = DStarLite(graph, 0, 2, heuristic = { _, _ -> 0.0 })
+        val planner = LongDStarLite(graph, 0, 2, heuristic = { _, _ -> 0.0 })
         planner.computeShortestPath(timeBudget = Duration.INFINITE)
         assertExactCost(2.0, planner.tailCost())
 
@@ -101,7 +110,7 @@ class DStarLiteDirectedTest {
         val result = planner.computeShortestPath(timeBudget = Duration.INFINITE)
         assertTrue(result.converged)
         assertExactCost(4.0, planner.tailCost())
-        assertEquals(listOf(0, 2), planner.path())
+        assertEquals(LongArrayList.of(0L, 2L), planner.path())
     }
 
     @Test
@@ -149,7 +158,7 @@ class DStarLiteDirectedTest {
             val graph = lazyGraph(edges)
             var start = random.nextInt(nodeCount)
             val goal = random.nextInt(nodeCount)
-            val planner = DStarLite(graph, start, goal, heuristic = { _, _ -> 0.0 })
+            val planner = LongDStarLite(graph, start.toLong(), goal.toLong(), heuristic = { _, _ -> 0.0 })
 
             planner.computeShortestPath(timeBudget = Duration.INFINITE)
             assertPlannerMatches(dijkstra(edges, start, goal), planner.tailCost(), "seed=$seed initial")
@@ -160,18 +169,18 @@ class DStarLiteDirectedTest {
                 if (to >= from) to++
 
                 // Capture the old graph value before changing the provider.
-                graph.successors(from)
+                graph.successors(from.toLong())
                 val newCost = when (random.nextInt(3)) {
                     0 -> Double.POSITIVE_INFINITY
                     else -> random.nextInt(1, 25).toDouble()
                 }
                 if (newCost.isFinite()) edges.getValue(from)[to] = newCost
                 else edges.getValue(from).remove(to)
-                planner.updateEdge(from, to, newCost)
+                planner.updateEdge(from.toLong(), to.toLong(), newCost)
 
                 if (mutation % 9 == 8) {
                     start = random.nextInt(nodeCount)
-                    planner.updateStart(start)
+                    planner.updateStart(start.toLong())
                 }
 
                 val result = planner.computeShortestPath(timeBudget = Duration.INFINITE)
@@ -187,42 +196,42 @@ class DStarLiteDirectedTest {
     @Test
     fun `invalid costs and heuristics fail at the boundary`() {
         assertFailsWith<IllegalArgumentException> {
-            LazyGraph<Int>({ mapOf(1 to -1.0) }).successors(0)
+            LongLazyGraph({ _, sink -> sink.add(1, -1.0) }).successors(0)
         }
         assertFailsWith<IllegalArgumentException> {
-            LazyGraph<Int>({ mapOf(1 to Double.NaN) }).successors(0)
+            LongLazyGraph({ _, sink -> sink.add(1, Double.NaN) }).successors(0)
         }
         assertFailsWith<IllegalArgumentException> {
-            DStarLite(LazyGraph({ _: Int -> emptyMap() }), 0, 1, heuristic = { _, _ -> Double.NaN })
+            LongDStarLite(LongLazyGraph({ _, _ -> }), 0, 1, heuristic = { _, _ -> Double.NaN })
         }
 
-        val graph = LazyGraph<Int>({ mapOf(1 to Double.POSITIVE_INFINITY) })
+        val graph = LongLazyGraph({ _, sink -> sink.add(1, Double.POSITIVE_INFINITY) })
         assertTrue(graph.successors(0).isEmpty())
     }
 
     @Test
     fun `lazy provider failure leaves node retryable and unpublished`() {
         var attempts = 0
-        val graph = LazyGraph<Int>({ node ->
-            if (node == 0 && attempts++ == 0) error("section not ready")
-            if (node == 0) mapOf(1 to 2.0) else emptyMap()
+        val graph = LongLazyGraph({ node, sink ->
+            if (node == 0L && attempts++ == 0) error("section not ready")
+            if (node == 0L) sink.add(1, 2.0)
         })
 
         assertFailsWith<IllegalStateException> { graph.successors(0) }
-        assertFalse(0 in graph)
-        assertEquals(mapOf(1 to 2.0), graph.successors(0))
-        assertTrue(0 in graph)
+        assertFalse(0L in graph)
+        assertEquals(mapOf(1L to 2.0), graph.successors(0).toMap())
+        assertTrue(0L in graph)
     }
 
     @Test
     fun `moving start materializes a lazy vertex after the old queue emptied`() {
-        val graph = LazyGraph<Int>(
-            successorProvider = { node -> if (node == 3) mapOf(2 to 1.0) else emptyMap() },
+        val graph = LongLazyGraph(
+            successorProvider = { node, sink -> if (node == 3L) sink.add(2, 1.0) },
             // Node 3 models a stance reached by continuous execution which was not
             // part of the predecessor field when the old start was solved.
-            predecessorProvider = { emptyMap() },
+            predecessorProvider = { _, _ -> },
         )
-        val planner = DStarLite(graph, start = 2, goal = 2, heuristic = { _, _ -> 0.0 })
+        val planner = LongDStarLite(graph, start = 2, goal = 2, heuristic = { _, _ -> 0.0 })
         assertTrue(planner.computeShortestPath(Duration.INFINITE).converged)
         assertTrue(planner.queue.isEmpty())
 
@@ -230,19 +239,39 @@ class DStarLiteDirectedTest {
         val repaired = planner.computeShortestPath(Duration.INFINITE)
 
         assertTrue(repaired.converged)
-        assertEquals(listOf(3, 2), planner.path())
+        assertEquals(LongArrayList.of(3L, 2L), planner.path())
         assertExactCost(1.0, planner.tailCost())
     }
 
-    private fun planner(edges: DirectedEdges, start: Int, goal: Int) =
-        DStarLite(lazyGraph(edges), start, goal, heuristic = { _, _ -> 0.0 }, nodeTieBreaker = naturalOrder())
+    @Test
+    fun `descent report agrees with the route it describes`() {
+        val edges = mutableDirectedGraph(
+            0 to mapOf(1 to 1.0, 2 to 1.0),
+            1 to mapOf(3 to 1.0),
+            2 to mapOf(3 to 1.0),
+            3 to emptyMap(),
+        )
+        val planner = planner(edges, start = 0, goal = 3)
+        planner.computeShortestPath(timeBudget = Duration.INFINITE)
 
-    private fun lazyGraph(edges: DirectedEdges) = LazyGraph<Int>(
-        successorProvider = { node -> edges[node]?.toMap().orEmpty() },
-        predecessorProvider = { node ->
-            buildMap {
-                for ((from, outgoing) in edges) outgoing[node]?.let { put(from, it) }
-            }
+        // Equal-cost fork: the smaller node wins in the route AND in the report.
+        assertEquals(LongArrayList.of(0L, 1L, 3L), planner.path())
+        assertEquals("reaches-goal-in-2", planner.routeDescentReport())
+
+        val lonely = planner(mutableDirectedGraph(0 to emptyMap(), 5 to emptyMap()), start = 0, goal = 5)
+        lonely.computeShortestPath(timeBudget = Duration.INFINITE)
+        assertEquals("unreachable-start", lonely.routeDescentReport())
+    }
+
+    private fun planner(edges: DirectedEdges, start: Int, goal: Int) =
+        LongDStarLite(lazyGraph(edges), start.toLong(), goal.toLong(), heuristic = { _, _ -> 0.0 })
+
+    private fun lazyGraph(edges: DirectedEdges) = LongLazyGraph(
+        successorProvider = { node, sink ->
+            edges[node.toInt()]?.forEach { (to, cost) -> sink.add(to.toLong(), cost) }
+        },
+        predecessorProvider = { node, sink ->
+            for ((from, outgoing) in edges) outgoing[node.toInt()]?.let { sink.add(from.toLong(), it) }
         },
     )
 
@@ -290,7 +319,7 @@ class DStarLiteDirectedTest {
 
     private fun assertRouteMatches(
         expected: Double,
-        route: CoarseRouteCandidate<Int>?,
+        route: LongRouteCandidate?,
         start: Int,
         goal: Int,
         edges: DirectedEdges,
@@ -302,9 +331,13 @@ class DStarLiteDirectedTest {
         }
         requireNotNull(route)
         assertTrue(route.exactFromStart, context)
-        assertEquals(start, route.nodes.first(), context)
-        assertEquals(goal, route.nodes.last(), context)
-        val actual = route.nodes.zipWithNext { from, to -> edges.getValue(from).getValue(to) }.sum()
+        val nodes = route.nodes
+        assertEquals(start.toLong(), nodes.getLong(0), context)
+        assertEquals(goal.toLong(), nodes.getLong(nodes.size - 1), context)
+        var actual = 0.0
+        for (i in 1 until nodes.size) {
+            actual += edges.getValue(nodes.getLong(i - 1).toInt()).getValue(nodes.getLong(i).toInt())
+        }
         assertEquals(expected, actual, 1e-9, context)
         assertEquals(actual, route.ticks, 1e-9, context)
     }

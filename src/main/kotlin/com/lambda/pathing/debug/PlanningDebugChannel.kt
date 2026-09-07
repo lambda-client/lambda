@@ -4,10 +4,10 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.trajectory.TrajectoryDiagnostic
-import com.lambda.pathing.trajectory.SearchStatsView
-import com.lambda.pathing.trajectory.SearchTreeView
-import com.lambda.pathing.trajectory.TrajectoryRollout
+import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.search.SearchStatsView
+import com.lambda.pathing.search.SearchTreeView
+import com.lambda.pathing.search.TrajectoryRollout
 import net.minecraft.util.math.Vec3d
 
 object PlanningDebugChannel {
@@ -104,17 +104,21 @@ object PlanningDebugChannel {
 
     fun publishGraph(planner: CoarsePlanner, around: Vec3d) {
         if (!active) return
-        val nodes = planner.graphNodes
-        val total = nodes.size
         val anchors = planner.optimisticAnchors
         val goal = planner.goalStance
         val view = planner.view
         val limits = graphLimits
         val radiusSquared = limits.radius * limits.radius
 
-        val stances = nodes.asSequence()
-            .map { stance -> stance to distanceSquared(stance, around) }
-            .filter { (_, distance) -> distance <= radiusSquared }
+        var total = 0
+        val within = ArrayList<Pair<Stance, Double>>()
+        planner.forEachGraphStance { x, y, z ->
+            total++
+            val stance = Stance(x, y, z)
+            val distance = distanceSquared(stance, around)
+            if (distance <= radiusSquared) within += stance to distance
+        }
+        val stances = within.asSequence()
             .sortedWith(compareBy({ !planner.stanceCost(it.first).isFinite() }, { it.second }))
             .take(limits.cells)
             .map { (stance, _) -> stance }

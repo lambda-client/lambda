@@ -4,7 +4,7 @@
 package pathing
 
 import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.trajectory.PlanSegment
+import com.lambda.pathing.search.PlanSegment
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

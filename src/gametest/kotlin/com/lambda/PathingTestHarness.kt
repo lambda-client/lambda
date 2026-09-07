@@ -21,20 +21,22 @@ import com.lambda.context.SafeContext
 import com.lambda.context.Automated
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingConfig
-import com.lambda.pathing.PathingManager
+import com.lambda.pathing.api.PathingService
+import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.PathingRequest
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.trajectory.PublishedPath
+import com.lambda.pathing.search.PublishedPath
 import com.lambda.threading.runSafe
 import com.lambda.util.player.MovementUtils.buildMovementInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.LiveSimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
 import net.minecraft.client.input.Input
@@ -207,7 +209,7 @@ internal object PathingTestHarness {
         context.runOnClient<IllegalStateException> {
             val player = Lambda.mc.player ?: error("Missing client player")
             check(player.isOnGround) { "$scenario: player did not settle" }
-            PathingManager.clear()
+            PathingService.clear()
             val base = AutomationConfig.DEFAULT.pathingConfig
             val automated = if (plannerMaxFrames != null) {
                 object : Automated by AutomationConfig.DEFAULT {
@@ -245,16 +247,16 @@ internal object PathingTestHarness {
         var stuckReported = false
         while (ticks++ < maxPathingTicks) {
             context.waitTick()
-            val status = PathingManager.status
-            if (status is PathingManager.Status.Complete || status is PathingManager.Status.Failed) break
+            val status = PathingService.status
+            if (status is State.Complete || status is State.Failed) break
             // Progress watch: an Executing frame that does not advance, or any
             // non-executing state that persists, is a stuck walk RIGHT NOW -- record
             // it with live planner state instead of a generic timeout much later.
             val observed = when (status) {
-                is PathingManager.Status.Executing -> "exec" to status.frame
-                is PathingManager.Status.Planning -> "plan" to 0
-                is PathingManager.Status.Settling -> "settle" to 0
-                is PathingManager.Status.Aligning -> "align" to 0
+                is State.Executing -> "exec" to status.frame
+                is State.Planning -> "plan" to 0
+                is State.Settling -> "settle" to 0
+                is State.Aligning -> "align" to 0
                 else -> "other" to 0
             }
             if (observed == lastObserved) stillTicks++ else { stillTicks = 0; stuckReported = false }
@@ -263,15 +265,15 @@ internal object PathingTestHarness {
                 stuckReported = true
                 recordStuck(
                     "no progress for $stillTicks ticks in ${observed.first}(${observed.second})",
-                    "at tick $ticks: ${PathingManager.diagnostics()}",
+                    "at tick $ticks: ${PathingService.diagnostics()}",
                 )
             }
         }
 
         context.runOnClient<IllegalStateException> {
-            val status = PathingManager.status
-            val published = PathingManager.published
-            if (status !is PathingManager.Status.Complete || published == null) {
+            val status = PathingService.status
+            val published = PathingService.telemetry.published
+            if (status !is State.Complete || published == null) {
                 PathingMetricSink.record(
                     PathingMetricSink.Run(
                         scenario, success = false, completionTicks = ticks,
@@ -279,11 +281,11 @@ internal object PathingTestHarness {
                         collisionFrames = 0, bumps = 0,
                         launchMarginFrames = published?.launchMarginFrames ?: 0,
                         planLatencyMs = published?.planMillis ?: 0L,
-                        maxReplayDeviation = PathingManager.maxDeviation,
+                        maxReplayDeviation = PathingService.telemetry.maxDeviation,
                     ),
                 )
             }
-            check(status is PathingManager.Status.Complete) { "$scenario: ended $status" }
+            check(status is State.Complete) { "$scenario: ended $status" }
             check(status.legs >= minLegs) {
                 "$scenario: expected at least $minLegs windows, walked ${status.legs}"
             }
@@ -297,7 +299,7 @@ internal object PathingTestHarness {
             // Every plan the body walked, not just the last one. A journey that stopped
             // and replanned ends on a short final leg, and asking that leg whether the
             // trip pressed jump answers about the last few blocks instead.
-            val walked = PathingManager.executed.ifEmpty { listOf(path) }
+            val walked = PathingService.telemetry.executed.ifEmpty { listOf(path) }
             check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
             println(
                 "[pathing-diag] $scenario: sprint=${path.parameters.sprint} " +
@@ -379,8 +381,8 @@ internal object PathingTestHarness {
                 }
             }
 
-            check(PathingManager.maxDeviation <= maxDeviation) {
-                "$scenario: max deviation ${PathingManager.maxDeviation} exceeded $maxDeviation"
+            check(PathingService.telemetry.maxDeviation <= maxDeviation) {
+                "$scenario: max deviation ${PathingService.telemetry.maxDeviation} exceeded $maxDeviation"
             }
             val frames = path.plan.frames
             var previousCollision = frames.firstOrNull()?.let { path.plan.initialState.horizontalCollision } ?: false
@@ -419,11 +421,11 @@ internal object PathingTestHarness {
                     // horizon -- the arriving publication is made at the end of the walk,
                     // so reading it measured the journey rather than the wait before it.
                     planLatencyMs = walked.first().planMillis,
-                    maxReplayDeviation = PathingManager.maxDeviation,
+                    maxReplayDeviation = PathingService.telemetry.maxDeviation,
                 )
             PathingMetricSink.record(metrics)
             PathingMetricSink.assertWithinBaseline(metrics)
-            PathingManager.clear()
+            PathingService.clear()
         }
     }
 
@@ -458,11 +460,15 @@ internal object PathingTestHarness {
                 ),
             )
 
-            val liveSimulator = MovementSimulator(player, initial)
-            val liveExpected = tape.map { liveSimulator.tickMovement(it).simulator.state }
+            val liveSimulator = MovementSimulator(
+                PlayerPhysicsProfile.capture(player),
+                LiveSimulationEnvironment(player.entityWorld, player, entityCollisions = true),
+                initial,
+            )
+            val liveExpected = tape.map { liveSimulator.tickMovement(it) }
             expected = CompletableFuture.supplyAsync {
                 val snapshotSimulator = MovementSimulator(profile, snapshot, initial)
-                tape.map { snapshotSimulator.tickMovement(it).simulator.state }
+                tape.map { snapshotSimulator.tickMovement(it) }
             }.join()
 
             liveExpected.zip(expected).forEachIndexed { frame, (live, captured) ->

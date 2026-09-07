@@ -4,12 +4,13 @@ package pathing
 // walks to the edge of its first horizon ring, the ring then advances over the goal,
 // and the repaired backward field must still reach the new start.
 import com.lambda.pathing.coarse.CoarsePlanningState
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.session.RouteResolution
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.BedrockFieldLayout
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import kotlin.test.Test
 import kotlin.test.assertNotNull
@@ -35,7 +36,7 @@ class HorizonRingAdvanceTest {
         state.repairFrom(start, emptySet(), emptySet())
         state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         val first = assertNotNull(
-            state.resolveRoute(start, 1L, 1_000_000), "the first leg must route",
+            RouteResolution(state).resolve(start, 1L, 1_000_000), "the first leg must route",
         )
         println("[ring] first leg ends at ${first.goal}, nodes=${state.planner.graphSize}")
         // Resolving the terminal's fiction must keep the route off one-way pockets: the
@@ -52,7 +53,7 @@ class HorizonRingAdvanceTest {
         state.repairFrom(second, emptySet(), emptySet())
         val repair = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         println("[ring] second repair expansions=${repair.processedNodes} nodes=${state.planner.graphSize} converged=${repair.converged}")
-        val route = state.resolveRoute(second, 2L, 1_000_000)
+        val route = RouteResolution(state).resolve(second, 2L, 1_000_000)
         if (route == null) println("[ring] FAILURE ${state.planner.routeFailureReport()}")
         assertNotNull(route, "the retained journey must route after the ring advanced")
     }

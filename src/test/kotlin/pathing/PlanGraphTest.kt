@@ -4,8 +4,8 @@
 package pathing
 
 import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.trajectory.PlanGraph
-import com.lambda.pathing.trajectory.PlanSegment
+import com.lambda.pathing.search.PlanGraph
+import com.lambda.pathing.search.PlanSegment
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -86,6 +86,31 @@ class PlanGraphTest {
                         "J%d..J%d %df/%.1f b".format(it.from, it.to, it.frames, it.frames / it.framesPerBlock)
                     },
                 ),
+            )
+        }
+    }
+
+    @Test
+    fun `rejoinable junctions include every settled one and honour the predicate`() {
+        for (scenario in ProbeScenarios.all()) {
+            val plan = (ProbeScenarios.planned(scenario).result as? PathPlanResult.Planned)
+                ?.path?.takeIf { !it.partial }?.plan ?: continue
+            val graph = PlanGraph.of(plan) ?: continue
+            graph.junctions.forEach { junction ->
+                if (junction.settled) assertTrue(junction.rejoinable, "${scenario.name}: settled J${junction.index} not rejoinable")
+                if (junction.index > 0) {
+                    assertEquals(junction.state.onGround, junction.rejoinable, "${scenario.name}: J${junction.index} predicate")
+                }
+            }
+            // The start is always a legal cut; with no other cut points there are no spans.
+            val none = PlanGraph.of(plan, rejoinable = { false })!!
+            assertTrue(none.junctions.first().rejoinable, "${scenario.name}: start must stay a cut point")
+            assertTrue(none.improvementTargets().isEmpty(), "${scenario.name}: spans without rejoinable ends")
+            // The rejoin rule offers at least what settled-only did.
+            val settledOnly = PlanGraph.of(plan, rejoinable = { it.onGround && it.velocity.horizontalLength() > 0.02 })!!
+            assertTrue(
+                graph.improvementTargets().size >= settledOnly.improvementTargets().size,
+                "${scenario.name}: rejoin rule offers fewer spans than settled-only",
             )
         }
     }

@@ -3,13 +3,13 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.HorizontalDynamics
-import com.lambda.pathing.prediction.simulation.MovementSimulationInput
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.MovementSimulationStepResult
-import com.lambda.pathing.prediction.simulation.MovementSimulator
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
+import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.MovementSimulationStepResult
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
@@ -215,7 +215,7 @@ class HorizontalDynamicsTest {
         throttle: Double,
         sprint: Boolean,
     ): MovementSimulationState {
-        val simulator = MovementSimulator(PROFILE, GROUND, from, skipEntityCollisions = true)
+        val simulator = MovementSimulator(PROFILE, GROUND, from)
         val result = simulator.tryTickMovement(
             MovementSimulationInput(
                 forward = throttle,

@@ -348,7 +348,7 @@ object LaunchSolver {
 
     private val DROP_OFFSETS = listOf(0.5 + BODY_HALF_WIDTH)
 
-    private const val BODY_HALF_WIDTH = 0.3
+    private const val BODY_HALF_WIDTH = Kinematics.BODY_HALF_WIDTH
 
     private const val LANDING_SAFETY_BLOCKS = 0.2
 

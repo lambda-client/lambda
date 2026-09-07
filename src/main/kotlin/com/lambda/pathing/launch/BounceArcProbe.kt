@@ -331,14 +331,14 @@ object BounceArcProbe {
         return (extent + BODY_HALF_WIDTH).coerceIn(BODY_HALF_WIDTH, BounceSolver.LAUNCH_OFFSET)
     }
 
-    private const val BODY_HALF_WIDTH = 0.3
+    private const val BODY_HALF_WIDTH = Kinematics.BODY_HALF_WIDTH
 
     private const val SUPPORT_SURFACE_EPSILON = 1.0E-4
 
     /** Cover no taller than the game's 0.2 landing probe still bounces off what's below. */
     private const val THIN_COVER_SURFACE = 0.2
 
-    private const val BODY_HEIGHT = 1.8
+    private const val BODY_HEIGHT = Kinematics.BODY_HEIGHT
 
     /** Blocks of ray the launch ascent spans before the arc is past its apex. */
     private const val LAUNCH_ASCENT_REACH = 3.5

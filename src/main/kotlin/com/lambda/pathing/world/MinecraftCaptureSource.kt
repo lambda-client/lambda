@@ -1,7 +1,7 @@
 package com.lambda.pathing.world
 
-import com.lambda.pathing.prediction.snapshot.BlockPhysicsInterner
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.BlockPhysicsInterner
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.block.ShapeContext
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity

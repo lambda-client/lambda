@@ -3,11 +3,10 @@ package com.lambda.pathing
 import com.lambda.Lambda.LOG
 import com.lambda.context.Automated
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.execution.Walk
 import com.lambda.pathing.session.PlanningCancellation
 import com.lambda.pathing.session.PlanningJourney
 import com.lambda.pathing.world.InterestPrimer
-import com.lambda.pathing.trajectory.PublishedPath
+import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.client.network.ClientPlayerEntity
@@ -38,13 +37,14 @@ internal class WaypointRoute(private val source: String) {
 
     val queuedWaypoints: Int get() = queue.size
 
-    fun start(automated: Automated, waypoints: List<Stance>) {
+    /** Requests the first leg and queues the rest; null when there is nothing to walk. */
+    fun start(automated: Automated, waypoints: List<Stance>): PathingRequest? {
         drop()
-        val first = waypoints.firstOrNull() ?: return
+        val first = waypoints.firstOrNull() ?: return null
         this.automated = automated
         expectedLeg = first
         queue.addAll(waypoints.drop(1))
-        PathingRequest(automated, first).submit()
+        return PathingRequest(automated, first).submit()
     }
 
     fun drop() {
@@ -62,13 +62,19 @@ internal class WaypointRoute(private val source: String) {
         return warmed
     }
 
-    fun primeNextLeg(player: ClientPlayerEntity, walk: Walk, published: PublishedPath?) {
+    /** [replaying] is whether the walk holds an execution cursor; [request] is the leg being walked. */
+    fun primeNextLeg(
+        player: ClientPlayerEntity,
+        request: PathingRequest,
+        replaying: Boolean,
+        published: PublishedPath?,
+    ) {
         if (automated == null) return
         val next = queue.firstOrNull() ?: return
         // Only while replaying a COMPLETE tape: its terminal is where the body
         // will actually stand at the handoff, so bounds and interest are primed
         // from there, not from wherever the body happens to be mid-leg.
-        if (walk.cursor == null) return
+        if (!replaying) return
         val running = published ?: return
         if (running.partial) return
         val terminal = running.plan.frames.lastOrNull()?.state ?: return
@@ -82,8 +88,8 @@ internal class WaypointRoute(private val source: String) {
             val prepared = TrajectoryPlanner.prepare(
                 player = player,
                 goal = next,
-                config = walk.request.pathingConfig,
-                turnSpeed = walk.request.rotationConfig.turnSpeed,
+                config = request.pathingConfig,
+                turnSpeed = request.rotationConfig.turnSpeed,
                 cancellation = cancellation,
                 initialOverride = terminal,
             )

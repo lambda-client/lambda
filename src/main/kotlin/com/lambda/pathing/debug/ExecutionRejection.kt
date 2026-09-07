@@ -2,8 +2,8 @@ package com.lambda.pathing.debug
 
 import com.lambda.Lambda.mc
 import com.lambda.pathing.execution.ExecutionDeviation
-import com.lambda.pathing.trajectory.PublishedPath
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
+import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.physics.MovementSimulationState
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 

@@ -9,7 +9,7 @@
 
 package pathing
 
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.SectionCapture
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test

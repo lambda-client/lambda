@@ -6,9 +6,9 @@ import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.trajectory.SearchProbe
+import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.world.changedChunkSet
-import com.lambda.pathing.trajectory.WorldSyncResult
+import com.lambda.pathing.search.WorldSyncResult
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.WorldEventBatch
@@ -16,6 +16,7 @@ import com.lambda.pathing.world.WorldEventBatch
 internal class ContinuousSyncPolicy(
     private val world: PathingWorld,
     private val coarseState: CoarsePlanningState,
+    private val resolution: RouteResolution,
     private val field: CoarseValueField,
     private val start: Stance,
     private val finalGoal: Stance,
@@ -39,7 +40,7 @@ internal class ContinuousSyncPolicy(
                 return WorldSyncResult.Quiet
             }
             lastQuietExtension = now
-            val next = coarseState.resolveRoute(
+            val next = resolution.resolve(
                 start, snapshotRevision, coarseExpansionBudget,
             ) { cancelled() }
             if (next == null || next.nodes == current.nodes) return WorldSyncResult.Quiet
@@ -66,7 +67,7 @@ internal class ContinuousSyncPolicy(
             routeAffected, extending,
         )
         val next = if (routeAffected) {
-            coarseState.resolveRoute(
+            resolution.resolve(
                 start, snapshotRevision, coarseExpansionBudget,
             ) { cancelled() }
         } else null

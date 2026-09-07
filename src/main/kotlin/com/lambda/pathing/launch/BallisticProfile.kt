@@ -1,6 +1,6 @@
 package com.lambda.pathing.launch
 
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.physics.PlayerPhysicsProfile
 
 enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
     SPRINT_JUMP(sprint = true, jumps = true),
@@ -294,25 +294,25 @@ data class BallisticProfile(
         /** Jump launches add roughly a dozen ticks of apex to the deepest arcs. */
         const val MAX_BOUNCE_TICKS = 64
 
-        const val SPRINT_JUMP_BOOST = 0.2
+        const val SPRINT_JUMP_BOOST = Kinematics.SPRINT_JUMP_BOOST
 
-        const val INPUT_DAMPING = 0.98
+        const val INPUT_DAMPING = Kinematics.INPUT_DAMPING
 
-        const val VERTICAL_DRAG = 0.98
-        const val HORIZONTAL_DRAG = 0.91
+        const val VERTICAL_DRAG = Kinematics.VERTICAL_DRAG
+        const val HORIZONTAL_DRAG = Kinematics.HORIZONTAL_DRAG
 
         const val WALK_AIR_ACCELERATION = INPUT_DAMPING * 0.02
         const val SPRINT_AIR_ACCELERATION = INPUT_DAMPING * 0.026
 
         const val MAX_ARC_TICKS = 24
 
-        private const val DEFAULT_MOVEMENT_SPEED = 0.1
-        private const val DEFAULT_SLIPPERINESS = 0.6
+        private const val DEFAULT_MOVEMENT_SPEED = Kinematics.DEFAULT_MOVEMENT_SPEED
+        private const val DEFAULT_SLIPPERINESS = Kinematics.DEFAULT_SLIPPERINESS
 
         val VANILLA = of(
             movementSpeed = DEFAULT_MOVEMENT_SPEED,
-            gravity = 0.08,
-            jumpStrength = 0.42,
+            gravity = Kinematics.GRAVITY,
+            jumpStrength = Kinematics.JUMP_VELOCITY,
             jumpBoostVelocityModifier = 0.0,
             slipperiness = DEFAULT_SLIPPERINESS,
         )

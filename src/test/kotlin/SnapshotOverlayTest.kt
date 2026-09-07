@@ -1,11 +1,11 @@
 /*
  * Copyright 2026 Lambda
  */
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
-import com.lambda.pathing.prediction.snapshot.SectionStore
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.world.snapshot.SectionStore
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.CollisionClass
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import kotlin.test.Test

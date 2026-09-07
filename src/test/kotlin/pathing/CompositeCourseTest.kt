@@ -1,12 +1,13 @@
 package pathing
 
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.session.RouteResolution
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.prediction.SnapshotSimulationEnvironment
-import com.lambda.pathing.prediction.snapshot.BlockPhysicsCapture
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
@@ -101,7 +102,7 @@ class CompositeCourseTest {
             goal = Stance(0, 10, 145),
             horizonChunks = 4,
         )
-        val route = state.resolveRoute(
+        val route = RouteResolution(state).resolve(
             start = Stance(0, 10, 0), snapshotRevision = 0L, maxExpansions = 1_000_000,
         )
         val resolved = checkNotNull(route) {

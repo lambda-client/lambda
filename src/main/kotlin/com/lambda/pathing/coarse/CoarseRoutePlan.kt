@@ -3,7 +3,7 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.graph.TailCost
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.movement.CoarseEdge
+import com.lambda.pathing.actions.CoarseEdge
 
 data class CoarseRoutePlan(
     val snapshotRevision: Long,

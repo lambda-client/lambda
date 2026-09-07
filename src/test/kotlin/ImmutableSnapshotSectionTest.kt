@@ -9,8 +9,8 @@
 
 package com.lambda.util.player.prediction
 
-import com.lambda.pathing.prediction.snapshot.ImmutableSnapshotSection
-import com.lambda.pathing.prediction.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals

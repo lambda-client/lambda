@@ -1,12 +1,12 @@
 package com.lambda.pathing
 
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.MotionConstraints
-import com.lambda.pathing.movement.SimpleMoveOptions
-import com.lambda.pathing.prediction.snapshot.SimulationSnapshotBounds
-import com.lambda.pathing.prediction.simulation.MovementSimulationState
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
-import com.lambda.pathing.trajectory.PublishedPath
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.search.PublishedPath
 import java.nio.file.Path
 
 sealed interface PlanningFailure {

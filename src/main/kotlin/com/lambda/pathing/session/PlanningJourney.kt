@@ -3,9 +3,9 @@ package com.lambda.pathing.session
 import com.lambda.pathing.TrajectoryPlanningPreparation
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.movement.SimpleMoveOptions
+import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.prediction.simulation.PlayerPhysicsProfile
+import com.lambda.pathing.physics.PlayerPhysicsProfile
 
 internal class PlanningJourney(
     val goal: Stance,
