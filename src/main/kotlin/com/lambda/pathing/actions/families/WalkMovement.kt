@@ -13,7 +13,9 @@ import com.lambda.pathing.actions.DecisionPrice
 import com.lambda.pathing.actions.HeadingFollowerProgram
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
+import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.world.Medium
 import com.lambda.pathing.core.MovementKeys
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.bearingBetween
@@ -104,11 +106,20 @@ object WalkMovement : Movement {
         val walks = ArrayList<TrajectoryDecision>()
         val launches = ArrayList<TrajectoryDecision>()
 
+        // Walking is offered on gap and fall edges on the chance the geometry is kinder
+        // than the template (priced, not pruned). It is not offered where the ground the
+        // walk needs does not exist: across a bounce pit, onto a ladder cell, up a climb,
+        // or from a body hanging on a ladder -- those burned thousands of rollouts per
+        // stance on the field parkour dump. See docs/decisions/movement-tuning.md.
+        val climbing = context.view.medium(body.stance.x, body.stance.y, body.stance.z) == Medium.CLIMBABLE
         for (step in steps) {
+            if (climbing || !walkable(step)) continue
             walks += decisions(DecisionContext(body, step, context.constraints, context.view))
         }
 
-        val target = steps.first().to
+        val leading = steps.first()
+        if (climbing || !walkable(leading)) return Proposals(walks, launches)
+        val target = leading.to
         val bearing = routeBearing(context, target)
 
         // Both of these cost a steering-chain descent, and the loops below asked for them
@@ -165,6 +176,12 @@ object WalkMovement : Movement {
         }
 
         return Proposals(walks, launches)
+    }
+
+    /** Edges whose target a grounded walk or a free heading can physically reach. */
+    private fun walkable(edge: CoarseEdge): Boolean = when (edge.movement) {
+        MovementId.BOUNCE, MovementId.LADDER_CATCH, MovementId.CLIMB -> false
+        else -> true
     }
 
     /**
