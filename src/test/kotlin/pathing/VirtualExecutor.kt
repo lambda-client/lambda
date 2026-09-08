@@ -96,7 +96,7 @@ internal class VirtualExecutor(
             // is blocked on the acknowledgement either way.
             is ImprovementArbiter.Verdict.Keep -> {
                 refusals++
-                refusalReasons.merge((verdict as ImprovementArbiter.Verdict.Keep).reason, 1, Int::plus)
+                refusalReasons.merge(verdict.reason, 1, Int::plus)
             }
 
             ImprovementArbiter.Verdict.DeferForObservation -> refusals++

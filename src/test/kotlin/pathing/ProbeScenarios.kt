@@ -11,7 +11,6 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.debug.ParkourCourseLayout
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.MotionConstraints

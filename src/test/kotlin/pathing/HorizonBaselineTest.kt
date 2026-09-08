@@ -9,7 +9,6 @@ import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.debug.ParkourCourseLayout
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.actions.MotionConstraints
