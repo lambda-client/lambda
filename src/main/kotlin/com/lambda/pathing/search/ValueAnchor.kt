@@ -35,6 +35,9 @@ internal class ValueAnchor(
 
     var points: List<HorizontalPoint> = emptyList()
 
+    /** The subset of [collisionEvents] that began mid-air; see [airborneCollisionEvents]. Cumulative along the chain. */
+    var airborneCollisionEvents: Int = 0
+
     /**
      * The first anchor of a leg in a compound route: the revisit rule looks no further back.
      * A later leg may legitimately cross cells an earlier leg walked.

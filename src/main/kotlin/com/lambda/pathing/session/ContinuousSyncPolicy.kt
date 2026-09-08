@@ -34,9 +34,6 @@ internal class ContinuousSyncPolicy(
     private var resolveNanos = 0L
     private var resolves = 0
 
-    /** Search-thread time spent in coarse resynchronisation, for the exhaustion ledger. */
-    val syncMillis: Long get() = syncNanos / 1_000_000L
-
     /** Search-thread time spent re-resolving the route (ring grants, sweeps, D* repair). */
     val ledger: String get() = "coarseSync=${syncNanos / 1_000_000L}ms[apply ${(syncNanos - resolveNanos) / 1_000_000L}, resolve ${resolveNanos / 1_000_000L} x$resolves]"
 

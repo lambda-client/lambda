@@ -31,17 +31,17 @@ class FlatRunProbeTest {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-10, 58, -10, 10, 90, 114), blocks,
         )
-        for (gait in listOf(false, true)) {
+        run {
             val scenario = ProbeScenarios.Scenario(
                 "flat-100", environment, Stance(0, 64, 0), Stance(0, 64, 100),
                 SimpleMoveOptions(maxJumpDrop = 2),
             )
-            val outcome = ProbeScenarios.plan(scenario, momentumGait = gait)
+            val outcome = ProbeScenarios.plan(scenario)
             val path = (outcome.result as? PathPlanResult.Planned)?.path
             if (path != null && !path.partial) {
                 println(
-                    "[flat] gait=%-5s frames=%-4d (gait reference 286, sprint 358) %s"
-                        .format(gait, path.plan.frames.size, path.movementProfile()),
+                    "[flat] frames=%-4d (gait reference 286, sprint 358) %s"
+                        .format(path.plan.frames.size, path.movementProfile()),
                 )
                 // Grounded-run lengths between flights: the gait loses exactly one tick
                 // per landing spent on the ground beyond the single tick a chain needs.
@@ -58,7 +58,7 @@ class FlatRunProbeTest {
                 val histogram = runs.groupingBy { it }.eachCount().toSortedMap()
                 println("[flat]   grounded runs between flights: $histogram")
             } else {
-                println("[flat] gait=$gait FAIL last: ${outcome.exhaustions.lastOrNull()}")
+                println("[flat] FAIL last: ${outcome.exhaustions.lastOrNull()}")
             }
         }
     }

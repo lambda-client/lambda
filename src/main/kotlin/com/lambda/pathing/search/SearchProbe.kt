@@ -95,17 +95,9 @@ interface SearchProbe {
 
     fun sync(sections: Int, mutations: Int, chunks: Int, routeAffected: Boolean, extending: Boolean) {}
 
-    /** A polled anchor discarded before any rollout: fork-dropped, starved, parked, skipped (incumbent), or out of actions. */
-    fun discarded(stance: Stance, elapsed: Int, reason: String, forkLife: Int) {}
 
-    /** One frontier admission and how it ended: enqueued, unmapped, unreachable, dominated, capped, pruned. */
-    fun admission(stance: Stance, elapsed: Int, outcome: String) {}
 
-    /** After a tape restart re-rooted on [seed]: what the frontier holds and what the field says of the seed. */
-    fun restartRooted(seed: Stance, elapsed: Int, guide: Double, open: Int, parked: Int) {}
 
-    /** The search re-targeted onto the next leg of a compound route at [waypoint]. */
-    fun legSwitched(waypoint: Stance, elapsed: Int, expansions: Int) {}
 
     /**
      * The body executed into a published brake tail (a dead stop; re-rooting onto the brake
@@ -114,14 +106,7 @@ interface SearchProbe {
      */
     fun braked(tipElapsed: Int, executing: Int, open: Int, parked: Int, deepestElapsed: Int) {}
 
-    /** One frontier poll, with the exact ordering values that won it: determinism forensics. */
-    fun polled(stance: Stance, elapsed: Int, orderBits: Long, boundBits: Long, sequence: Long) {}
 
-    /**
-     * One finish-sweep attempt: whether the guide chain reached the goal, whether a
-     * terminal run sealed, and the body's speed when it tried.
-     */
-    fun finishAttempt(stance: Stance, elapsed: Int, speed: Double, chainReached: Boolean, sealed: Boolean) {}
 
     /**
      * The frontier drained and the search restarted from the tape's continuation. [moving]:

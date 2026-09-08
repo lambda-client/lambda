@@ -144,6 +144,13 @@ interface PathingConfig {
      */
     val dumpFailedPlans: Boolean get() = false
 
+    /**
+     * Write the same dump for every planned leg, not only refusals, with the certified
+     * frame count in the note. Turns a real course into an offline fixture the improver
+     * and the slack audit can be measured against.
+     */
+    val dumpAllPlans: Boolean get() = false
+
     /** Deepest fall the trajectory layer will certify as survivable on ordinary ground. */
     val maxSafeFallDistance: Double get() = 3.0
 
@@ -170,10 +177,6 @@ interface PathingConfig {
      * certified. 0 publishes the search's answer unchanged.
      */
     val improvementBudget: Int get() = 1500
-
-    val momentumGait: Boolean get() = false
-
-    val momentumSkips: Boolean get() = false
 
     /** Retries while the exact world capture catches up to a body at the streamed frontier. */
     val captureRetries: Int get() = 4

@@ -42,14 +42,21 @@ internal class BounceProgram(
             forward = if (solution.holdForward && flightTicks < solution.holdTicks) 1.0 else 0.0
         } else if (standingStart) {
             // A standing launch: creep to the lip, come to rest, then launch from rest;
-            // there is no entry speed to reproduce.
+            // there is no entry speed to reproduce. A body that ARRIVES moving (a landing
+            // on the pad) may carry more speed than the remaining run to the lip can shed
+            // by friction: it brakes, as a player would, instead of coasting off the edge.
             val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
             val speed = observed.velocity.horizontalLength()
             val runout = (speed + CREEP_TAP_SPEED) * COAST_RUNOUT_TICKS
             if (along + runout < solution.launchOffset) {
                 forward = 1.0 // a tap from here still coasts to rest before the lip
             } else if (speed > solution.speedSlack && !launchedStanding) {
-                forward = 0.0 // rolling out the last of the creep
+                // Rolling out the last of the creep -- unless this is arrival speed the run
+                // to the lip cannot shed: then brake. The creep's own taps never exceed
+                // BRAKE_MIN_SPEED, so a standing start from rest is unaffected.
+                val coast = speed * COAST_RUNOUT_TICKS
+                val overshoots = along + coast > solution.launchOffset + BRAKE_OVERSHOOT_BLOCKS
+                forward = if (speed > BRAKE_MIN_SPEED && overshoots) -1.0 else 0.0
             } else {
                 // At rest on the lip: this tick is the model's launch tick.
                 launchedStanding = true
@@ -81,9 +88,17 @@ internal class BounceProgram(
         // only. See docs/decisions/launch-solver.md (standing starts).
         val sprint = solution.sprint && forward > 0.0 &&
             (!standingStart || launchedStanding || airborne)
+        // Lateral correction in flight is proportional and, while forward is held, capped:
+        // the game normalises the input vector, so a full strafe alongside a full forward
+        // costs 30% of the forward acceleration a marginal arc needs to reach its pad.
+        val strafe = if (airborne && !landed) {
+            val proportional = (lateralOffset(takeoff, aim, observed) / LATERAL_FULL_OFFSET).coerceIn(-1.0, 1.0)
+            val limit = if (forward > 0.0) HELD_FORWARD_MAX_STRAFE else 1.0
+            if (kotlin.math.abs(proportional) < LATERAL_DEADBAND / LATERAL_FULL_OFFSET) 0.0 else proportional.coerceIn(-limit, limit)
+        } else 0.0
         return MovementSimulationInput(
             forward = forward,
-            strafe = if (airborne && !landed) airborneStrafe(takeoff, aim, observed, LATERAL_DEADBAND) else 0.0,
+            strafe = strafe,
             sprint = sprint,
             jump = jump,
             sneak = false,
@@ -104,7 +119,19 @@ internal class BounceProgram(
 
         const val LATERAL_DEADBAND = 0.05
 
+        /** Lateral error at which the strafe would be full; smaller errors get a proportional share. */
+        const val LATERAL_FULL_OFFSET = 0.5
+
+        /** Strafe allowed while forward is held: keeps the normalised forward component above 0.95. */
+        const val HELD_FORWARD_MAX_STRAFE = 0.33
+
         const val LIP_MARGIN = LIP_LOOKAHEAD_MARGIN
+
+        /** Arrival speed above which a standing start brakes rather than coasts; creep taps stay below it. */
+        const val BRAKE_MIN_SPEED = 0.12
+
+        /** Coast past the launch offset tolerated before braking; the body still stands on the block. */
+        const val BRAKE_OVERSHOOT_BLOCKS = 0.15
 
         /** One walk tap's speed; with [COAST_RUNOUT_TICKS] it bounds a creep step's travel. */
         const val CREEP_TAP_SPEED = 0.06

@@ -44,7 +44,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
-import com.lambda.pathing.search.FrontierDomination
 
 object TrajectoryPlanner {
     private val planIds = AtomicLong()
@@ -179,7 +178,7 @@ object TrajectoryPlanner {
             )
         }
 
-        val dumpDirectory = if (config.dumpFailedPlans || java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")) {
+        val dumpDirectory = if (config.dumpFailedPlans || config.dumpAllPlans || java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")) {
             MinecraftClient.getInstance().runDirectory.toPath().resolve(DUMP_DIRECTORY)
         } else {
             null
@@ -203,9 +202,8 @@ object TrajectoryPlanner {
                 bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
                 plannerThreads = config.plannerThreads,
                 improvementBudget = config.improvementBudget,
-                momentumGait = config.momentumGait,
-                momentumSkips = config.momentumSkips,
                 dumpDirectory = dumpDirectory,
+                dumpAllPlans = config.dumpAllPlans,
                 startedMillis = started,
             )
         )
@@ -256,6 +254,7 @@ object TrajectoryPlanner {
                             moveOptions, seedConfig, note = note,
                         )
                     }.onFailure { LOG.error("Could not write the $kind dump", it) }
+                        .onSuccess { LOG.info("Wrote the {} dump: {}", kind, it) }
                 }
                 coarseState.repairFrom(start, emptySet(), emptySet())
                 coarseState.applyEvents(batch)
@@ -278,7 +277,8 @@ object TrajectoryPlanner {
                 if (!coarse.converged) {
                     return@supplyAsync PathPlanResult.Failed(
                         PlanningFailure.ResourceLimit(
-                            "coarse search did not converge within ${preparation.coarseExpansionBudget} expansions"
+                            "coarse search did not converge within ${preparation.coarseExpansionBudget} expansions" +
+                                (coarse.stall?.let { "; stalled: $it" } ?: "")
                         )
                     )
                 }
@@ -377,8 +377,6 @@ object TrajectoryPlanner {
                     legs = legs,
                     parallelism = preparation.plannerThreads,
                     improvementBudget = preparation.improvementBudget,
-                    momentumGait = preparation.momentumGait,
-                    momentumSkips = preparation.momentumSkips,
                 )
 
                 if (outcome is PathPlanResult.Failed) {
@@ -395,6 +393,14 @@ object TrajectoryPlanner {
                         }
                     }
                     dumpFailure("failed plan", journeyNote)
+                }
+                if (outcome is PathPlanResult.Planned && preparation.dumpAllPlans) {
+                    val path = outcome.path
+                    dumpFailure(
+                        "planned",
+                        "planned ${path.plan.frames.size} frames in ${System.currentTimeMillis() - started} ms; " +
+                            "${path.movementProfile()}; route ${route.nodes.joinToString(" ")}",
+                    )
                 }
                 outcome
             } catch (_: CancellationException) {
@@ -433,15 +439,11 @@ object TrajectoryPlanner {
         improvementBudget: Int = 0,
         frontierPerKey: Int = 3,
         branchExpansionHeadroomExpansions: Int = 1560,
-        momentumSkips: Boolean = false,
-        momentumGait: Boolean = false,
         /**
          * Wall-time cap on each mid-walk guide expansion. Virtual-clock harnesses must pass
          * [Duration.INFINITE]; the expansion-count cap still binds. See docs/decisions/determinism.md.
          */
         fieldExpansionBudget: kotlin.time.Duration = FIELD_EXPANSION_BUDGET,
-        frontierDomination: FrontierDomination =
-            FrontierDomination.FULL,
         /** The further legs of a compound route; null for a single goal. */
         legs: LegChain? = null,
     ): PathPlanResult {
@@ -477,9 +479,6 @@ object TrajectoryPlanner {
                 improvementBudget = improvementBudget,
                 frontierPerKey = frontierPerKey,
                 branchExpansionHeadroomExpansions = branchExpansionHeadroomExpansions,
-                momentumSkips = momentumSkips,
-                momentumGait = momentumGait,
-                frontierDomination = frontierDomination,
             ),
             onSafePrefix = { step ->
                 if (!cancelled()) {

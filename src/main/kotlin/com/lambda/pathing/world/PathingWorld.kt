@@ -28,9 +28,6 @@ class WorldEventBatch(
     val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
 }
 
-internal fun WorldEventBatch.changedChunkSet(): Set<PathingChunk> =
-    chunks + sections.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
-
 /** Chunks whose known content may have changed: reloads and re-captured (mutated) sections. */
 internal fun WorldEventBatch.mutatedChunkSet(): Set<PathingChunk> =
     chunks + mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) }

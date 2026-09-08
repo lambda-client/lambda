@@ -164,7 +164,10 @@ internal class LegChain(
         state.repairFrom(start, emptySet(), emptySet())
         val planner = state.planner
         val coarse = planner.repair(timeBudget = Duration.INFINITE, maxExpansions = coarseExpansionBudget, cancelled = cancelled)
-        if (!coarse.converged || coarse.cancelled || cancelled()) return null
+        if (!coarse.converged || coarse.cancelled || cancelled()) {
+            if (!coarse.converged && !coarse.cancelled) LOG.warn("Route leg {} coarse search did not converge ({} expansions){}", index + 1, coarse.processedNodes, coarse.stall?.let { "; stalled: $it" } ?: "")
+            return null
+        }
         planner.expandField(
             extraTicks = fieldExpansionTicks,
             timeBudget = fieldExpansionBudget,

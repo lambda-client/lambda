@@ -109,10 +109,6 @@ internal object ProbeScenarios {
         improvementBudget: Int = 0,
         frontierPerKey: Int = 3,
         branchExpansionHeadroomExpansions: Int = 1560,
-        momentumSkips: Boolean = false,
-        momentumGait: Boolean = false,
-        frontierDomination: com.lambda.pathing.search.FrontierDomination =
-            com.lambda.pathing.search.FrontierDomination.FULL,
         probe: com.lambda.pathing.search.SearchProbe = com.lambda.pathing.search.SearchProbe.NONE,
         constraints: MotionConstraints = MotionConstraints(),
     ): Outcome {
@@ -151,9 +147,6 @@ internal object ProbeScenarios {
             improvementBudget = improvementBudget,
             frontierPerKey = frontierPerKey,
             branchExpansionHeadroomExpansions = branchExpansionHeadroomExpansions,
-            momentumSkips = momentumSkips,
-            momentumGait = momentumGait,
-            frontierDomination = frontierDomination,
             probe = probe,
             fieldExpansionBudget = Duration.INFINITE,
         )

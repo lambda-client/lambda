@@ -16,6 +16,20 @@ internal fun collisionEvents(
     return events
 }
 
+/** [collisionEvents] restricted to events that begin while the body is airborne: a mid-flight wall, not a grounded graze. */
+internal fun airborneCollisionEvents(
+    entry: MovementSimulationState,
+    frames: List<SimulatedTrajectoryFrame>,
+): Int {
+    var previous = entry.horizontalCollision
+    var events = 0
+    for (frame in frames) {
+        if (frame.state.horizontalCollision && !previous && !frame.state.onGround) events++
+        previous = frame.state.horizontalCollision
+    }
+    return events
+}
+
 internal fun inputSwitches(
     entryInput: MovementSimulationInput?,
     frames: List<SimulatedTrajectoryFrame>,

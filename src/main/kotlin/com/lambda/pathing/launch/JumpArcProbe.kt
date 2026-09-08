@@ -85,12 +85,6 @@ object JumpArcProbe {
 
     private val planCache = ConcurrentHashMap<ArcSample, SweepPlan>()
 
-    /** Test hook: determinism experiments need runs that share no memoized state. */
-    internal fun clearCachesForTest() {
-        solutionCache.clear()
-        planCache.clear()
-    }
-
     fun probe(
         view: CoarseVoxelView,
         from: Stance,

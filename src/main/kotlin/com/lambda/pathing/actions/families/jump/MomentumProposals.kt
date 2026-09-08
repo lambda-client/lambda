@@ -11,7 +11,8 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 /**
- * Momentum proposers, both opt-in ([ProposalContext.momentumGait], [ProposalContext.momentumSkips]):
+ * Momentum proposers, offered only when [ProposalContext.momentum] is set (the improver's
+ * vocabulary; the search measured them as stall trades, docs/decisions/movement-tuning.md):
  * the chained sprint-jump gait and skips across cells the route merely walks. Targets come
  * from the steering chain, furthest reachable first; landing short is not a failure, the
  * rollout anchors wherever the body comes down.
@@ -19,7 +20,8 @@ import kotlin.math.hypot
 internal object MomentumProposals {
 
     fun proposals(context: ProposalContext): Proposals {
-        val gait = if (context.momentumGait) gaitHop(context) else null
+        if (!context.momentum) return Proposals.EMPTY
+        val gait = gaitHop(context)
         val skips = skipProposals(context)
         if (gait == null) return skips
         return Proposals(launches = listOf(gait) + skips.launches)
@@ -62,7 +64,6 @@ internal object MomentumProposals {
     }
 
     private fun skipProposals(context: ProposalContext): Proposals {
-        if (!context.momentumSkips) return Proposals.EMPTY
         val body = context.body
         if (!body.state.onGround) return Proposals.EMPTY
         if (body.speed < SKIP_MIN_SPEED) return Proposals.EMPTY

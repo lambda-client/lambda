@@ -4,7 +4,6 @@
 package pathing
 
 import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.search.FrontierDomination
 import kotlin.test.Test
 import org.junit.jupiter.api.Tag
 
@@ -23,7 +22,7 @@ class BeamEvictionProbeTest {
     @Test
     fun `per-key cap and domination against tape quality`() {
         val scenarios = ProbeScenarios.sample()
-        println("[beam] rungs: perKey x domination")
+        println("[beam] rungs: perKey")
         for (rung in RUNGS) {
             var arrived = 0
             var frames = 0
@@ -35,7 +34,6 @@ class BeamEvictionProbeTest {
                 val outcome = ProbeScenarios.plan(
                     scenario,
                     frontierPerKey = rung.perKey,
-                    frontierDomination = rung.domination,
                 )
                 for (exhaustion in outcome.exhaustions) {
                     expansions += exhaustion.expansions.toLong()
@@ -50,13 +48,13 @@ class BeamEvictionProbeTest {
                 } else per.append(" FAIL")
             }
             println(
-                "[beam] perKey=%-2d dom=%-14s arrived=%d/%d  frames=%-5d expansions=%-8d admitted=%-7d refused=%-7d |%s"
-                    .format(rung.perKey, rung.domination, arrived, scenarios.size, frames, expansions, admitted, refused, per),
+                "[beam] perKey=%-2d arrived=%d/%d  frames=%-5d expansions=%-8d admitted=%-7d refused=%-7d |%s"
+                    .format(rung.perKey, arrived, scenarios.size, frames, expansions, admitted, refused, per),
             )
         }
     }
 
-    private class Rung(val perKey: Int, val domination: FrontierDomination)
+    private class Rung(val perKey: Int)
 
     /**
      * The corpus at production speed: ~600 expansions per body frame instead of the
@@ -99,17 +97,9 @@ class BeamEvictionProbeTest {
 
     private companion object {
         /**
-         * Three rungs, one lesson each: the shipping beam, the position-aware refinement
-         * that beats it on the corpus (held back by the refusal grind on the baseline
-         * walks), and the free search that bounds what the beam costs at all. The full
-         * ladder that established the curve -- widening the cap alone changes nothing,
-         * because nearly every refusal is domination -- lives in the session notes; this
-         * task shares a JVM with a wall-clock test that starves under load.
+         * The shipping beam and a wide one that bounds what the cap costs; the domination
+         * ladder that established the curve is recorded in docs/decisions/beam.md.
          */
-        val RUNGS = listOf(
-            Rung(3, domination = FrontierDomination.FULL),
-            Rung(3, domination = FrontierDomination.POSITION_AWARE),
-            Rung(64, domination = FrontierDomination.OFF),
-        )
+        val RUNGS = listOf(Rung(3), Rung(64))
     }
 }

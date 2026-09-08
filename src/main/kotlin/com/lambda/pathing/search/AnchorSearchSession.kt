@@ -59,7 +59,7 @@ internal class AnchorSearchSession(
     private val nextLeg: ((Stance) -> LegHandoff?)? = null,
     private val hasNextLeg: () -> Boolean = { false },
 ) {
-    private val vocabulary = ActionSet(catalog, field, config, searchConfig) { corridor() }
+    private val vocabulary = ActionSet(catalog, field, config, searchConfig, corridor = { corridor() })
 
     /** Walk-through waypoints this search has passed, in tape frames. */
     private val legTouches = ArrayList<LegTouch>()
@@ -195,7 +195,6 @@ internal class AnchorSearchSession(
         expansionsWindowStart = expansions
         annealing.rewindForRestart(seed.stance)
         horizon.reRootForRestart(seed)
-        probe.restartRooted(seed.stance, seed.elapsed, field.guide(seed.stance), frontier.openSize, frontier.parkedSize)
         return true
     }
 
@@ -419,13 +418,9 @@ internal class AnchorSearchSession(
     private fun selectBatch(batch: MutableList<AnchorRollout.PreparedRollout>): MotionPlanResult? {
         while (batch.size < parallelism) {
             val entry = frontier.poll() ?: break
-            probe.polled(
-                entry.anchor.stance, entry.anchor.elapsed,
-                entry.order.toRawBits(), entry.bound.toRawBits(), entry.sequence,
-            )
             if (!worthExpanding(entry)) continue
             when (judgeAgainstIncumbent(entry)) {
-                Verdict.SKIP -> { probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "incumbent", horizon.forkLife(entry.anchor)); continue }
+                Verdict.SKIP -> continue
                 Verdict.FINISH -> return finish(best!!)
                 Verdict.EXPAND -> Unit
             }
@@ -435,7 +430,6 @@ internal class AnchorSearchSession(
 
             val priced = nextAction(anchor)
             if (priced == null) {
-                probe.discarded(anchor.stance, anchor.elapsed, "no-action", horizon.forkLife(anchor))
                 if (annealing.canEscalate()) recovery.spend(anchor)
                 continue
             }
@@ -446,7 +440,6 @@ internal class AnchorSearchSession(
             if (expansions / IMPROVEMENT_INTERVAL != improveBucket) {
                 improveBucket = expansions / IMPROVEMENT_INTERVAL
                 improveIncumbent()
-                improvePublished()
             }
 
             val prepared = rollouts.prepare(anchor, action)
@@ -466,12 +459,10 @@ internal class AnchorSearchSession(
         val forkLife = horizon.forkLife(entry.anchor)
         if (forkLife < HorizonController.PUBLISH_DIVERGENCE_MARGIN_FRAMES) {
             stats.adoptableDrops++
-            probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "fork-dropped", forkLife)
             return false
         }
         if (!entry.starveExempt && tempo.starved(forkLife, searchConfig.branchExpansionHeadroomExpansions)) {
             stats.forkStarvedDrops++
-            probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "starved", forkLife)
             frontier.starve(entry)
             return false
         }
@@ -479,7 +470,6 @@ internal class AnchorSearchSession(
         if (entry.anchor.elapsed >= horizon.horizonEnd &&
             field.guide(entry.anchor.stance) > searchConfig.finishValueTicks
         ) {
-            probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "parked", forkLife)
             frontier.park(entry)
             return false
         }
@@ -1004,7 +994,6 @@ internal class AnchorSearchSession(
         annealing.noteGuide(anchor.stance)
         horizon.invalidateCommitMemo()
         stats.legSwitches++
-        probe.legSwitched(handoff.waypoint, anchor.elapsed, expansions)
     }
 
     private fun retain(solution: Solution) {
@@ -1062,13 +1051,8 @@ internal class AnchorSearchSession(
     private val improver by lazy {
         PlanImprover(
             rollouts = rollouts,
-            // Always carries skips and gait: every candidate survives recertify and a
-            // score comparison before it can touch the plan.
-            vocabulary = ActionSet(
-                catalog, field, config,
-                searchConfig.copy(momentumSkips = true, momentumGait = true),
-                corridor = ::corridor,
-            ),
+            // The wider vocabulary: every candidate survives recertify and a score comparison.
+            vocabulary = ActionSet(catalog, field, config, searchConfig, corridor = ::corridor, momentum = true),
             finisher = finisher,
             canReach = horizon::canReach,
         )
@@ -1082,38 +1066,16 @@ internal class AnchorSearchSession(
         if (searchConfig.improvementBudget <= 0) return
         val incumbent = best ?: return
         if (improver.rolloutsSpent >= searchConfig.improvementBudget) return
-        val slice = minOf(
-            searchConfig.improvementBudget,
-            improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS,
-        )
-        val improved = measuredImprovement { improver.improve(incumbent, slice) } ?: return
-        stats.improvementSaved += incumbent.frames - improved.frames
-        retain(improved)
-    }
-
-    /**
-     * The DAG's quality producer while walking: rewrite a span of the published spine and
-     * offer the shorter tip through the ordinary publication gate, which brakes, certifies
-     * and applies the swap floor. Runs only while no full solution exists (the incumbent
-     * path has its own improver) and within the shared improvement budget.
-     */
-    private fun improvePublished() {
-        if (searchConfig.improvementBudget <= 0 || best != null) return
-        val tip = horizon.publishedTip ?: return
-        if (improver.rolloutsSpent >= searchConfig.improvementBudget) return
         val slice = minOf(searchConfig.improvementBudget, improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS)
-        val better = measuredImprovement {
-            improver.improveTip(tip, slice, minGainFrames = SWAP_FLOOR_GAIN_TICKS.toInt())
-        } ?: return
-        frontier.reopen(better)
-        horizon.publishPrefix(better, expansions)
-        if (horizon.publishedTip === better) {
-            stats.improvementSplices++
-            stats.improvementSaved += tip.elapsed - better.elapsed
-        }
+        val improved = measuredImprovement { improver.improve(incumbent, slice) } ?: return
+        // The improver already proved it shorter (and gated its collisions); the score
+        // comparison in retain would refuse a grounded-bump trade it deliberately accepted.
+        if (!horizon.canReach(improved.anchor) || !executionCompatible(improved.anchor)) return
+        stats.improvementSaved += incumbent.frames - improved.frames
+        best = improved
+        expansionsSinceImprovement = 0
     }
 
-    /** Count unsuccessful slices too, without overwriting published-tip splice totals. */
     private inline fun <T> measuredImprovement(block: () -> T): T {
         val before = improver.splices
         val result = block()
@@ -1125,14 +1087,12 @@ internal class AnchorSearchSession(
 
     private fun improve(solution: Solution): Solution {
         if (searchConfig.improvementBudget <= 0) return solution
-        val improved = measuredImprovement { improver.improve(solution, searchConfig.improvementBudget) }
-        if (improved == null) return solution
+        val improved = measuredImprovement { improver.improve(solution, searchConfig.improvementBudget) } ?: return solution
         // A shorter tape the publisher would refuse is not an improvement.
         if (!horizon.canReach(improved.anchor)) return solution
         stats.improvementSaved += solution.frames - improved.frames
         return improved
     }
-
 }
 
 /** The first frame at which this decision's rollout can differ from its family's: its launch. */
@@ -1150,11 +1110,11 @@ private const val VIEW_INTERVAL_MILLIS = 100L
 /** Anchors drawn before the tree sample gives up; the search routinely holds far more. */
 private const val MAX_TREE_NODES = 4096
 
+private const val FINAL_IMPROVEMENT_WINDOW = 256
+
 /** Expansions between improvement slices, and how many rollouts each may spend. */
 private const val IMPROVEMENT_INTERVAL = 2000
 private const val IMPROVEMENT_SLICE_ROLLOUTS = 250
-
-private const val FINAL_IMPROVEMENT_WINDOW = 256
 
 /** Frames before the finished tape's end at which the surviving session returns it. */
 private const val ARRIVAL_RETURN_FRAMES = 2

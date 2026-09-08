@@ -51,8 +51,6 @@ class MotionTemplate internal constructor(
 
     fun target(origin: Stance): Stance = origin.offset(dx, dy, dz)
 
-    internal val flightless: Boolean get() = arc == null
-
     internal val minimumTicks: Double = minOf(lowerBoundTicks, strideCost ?: lowerBoundTicks)
 
     private fun bounceEdge(

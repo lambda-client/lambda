@@ -217,28 +217,10 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     override val improvementBudget by c.setting(
         "Improvement Budget", 1500, 0..20000, 100,
         "Rollouts a solved plan may spend replacing its most wasteful spans with " +
-            "shortcuts, re-running the decisions behind each splice to check the rest of " +
-            "the plan survives it. Runs only once a full solution exists, so it can only " +
-            "shorten the tape or waste its budget. 0 disables it.",
+            "shortcuts aimed at the plan's own junctions, re-running the decisions behind " +
+            "each splice to check the rest of the plan survives it. Runs only once a full " +
+            "solution exists, so it can only shorten the tape or waste its budget. 0 disables it.",
         unit = " rollouts",
-    )
-
-    @Group(SEARCH_GROUP)
-    override val momentumGait by c.setting(
-        "Momentum Gait", false,
-        "Offer the chained sprint-jump gait on straight, level stretches. The gait is " +
-            "real (0.35 blocks per tick sustained against 0.28 sprinting) but placing " +
-            "it by rule trades stalls on open terrain in the offline corpus; this " +
-            "toggle exists to measure it on real courses.",
-    )
-
-    @Group(SEARCH_GROUP)
-    override val momentumSkips by c.setting(
-        "Momentum Skips", false,
-        "Offer solver-derived jumps across cells the route walks: cuts through " +
-            "corners, gap merges, and drops that convert height to distance. Wins " +
-            "parkour courses offline and loses open terrain; a field toggle for the " +
-            "same reason as the gait.",
     )
 
     @Group(SEARCH_GROUP)
@@ -259,6 +241,14 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         "Dump Failed Plans", false,
         "On a refusal, write the captured world, endpoints and entry state to " +
             "neolambda/pathing-dumps so the failure can be replayed and fixed offline.",
+    )
+
+    @Group(SEARCH_GROUP)
+    override val dumpAllPlans by c.setting(
+        "Dump All Plans", false,
+        "Write the captured world, endpoints and entry state of every planned leg to " +
+            "neolambda/pathing-dumps, successes included, so a real course can be replayed " +
+            "and improved offline.",
     )
 
     private companion object {

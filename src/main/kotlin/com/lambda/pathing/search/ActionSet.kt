@@ -29,6 +29,8 @@ internal class ActionSet(
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
     private val corridor: () -> CorridorLevel,
+    /** Offer momentum proposals (gait hops, skips): the improver's wider vocabulary, never the search's. */
+    private val momentum: Boolean = false,
 ) {
     /**
      * The movements offered at [anchor], cheapest first. Each decision's price is the
@@ -87,8 +89,7 @@ internal class ActionSet(
             headingFanDegrees = searchConfig.headingFanDegrees,
             guideTicks = { field.guide(it) },
             movingGuideTicks = { field.guide(it, SpeedClass.MOVING) },
-            momentumSkips = searchConfig.momentumSkips,
-            momentumGait = searchConfig.momentumGait,
+            momentum = momentum,
         )
         for (movement in catalog.movements) {
             val proposals = movement.proposals(proposalContext)

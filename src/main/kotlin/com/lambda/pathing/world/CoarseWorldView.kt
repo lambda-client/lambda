@@ -46,9 +46,6 @@ enum class Medium {
     CLIMBABLE,
     SOLID,
     UNKNOWN,
-    ;
-
-    val breathable: Boolean get() = this == AIR
 }
 
 data class CoarseVoxel(
