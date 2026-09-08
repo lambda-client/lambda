@@ -12,6 +12,7 @@ import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import kotlin.test.Test
+import kotlin.test.assertTrue
 import net.minecraft.util.math.BlockPos
 import org.junit.jupiter.api.Tag
 
@@ -48,6 +49,8 @@ class FieldParkourProbeTest {
             var improveSplices = 0L
             var suppressed = 0L
             for (exhaustion in outcome.exhaustions) {
+                assertTrue(exhaustion.improvementRollouts <= 1500,
+                    "${scenario.name}: field improver exceeded its rollout ceiling")
                 expansions += exhaustion.expansions.toLong()
                 admitted += exhaustion.anchorsAdmitted.toLong()
                 merged += (exhaustion.beamDominated + exhaustion.beamEvicted + exhaustion.beamCapped).toLong()
@@ -73,7 +76,7 @@ class FieldParkourProbeTest {
                         ),
                 )
             } else {
-                println("[field] %-8s FAIL last: %s".format(scenario.name, outcome.exhaustions.lastOrNull()))
+                error("${scenario.name}: field-tempo planning failed: ${outcome.exhaustions.lastOrNull()}")
             }
         }
         println("[field] total frames=%d vs bound=%.0f".format(frames, bound))

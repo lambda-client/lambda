@@ -27,6 +27,7 @@ class PlanGraph private constructor(
     val junctions: List<PlanJunction>,
     val spine: List<PlanSegment>,
     val alternates: List<Alternate>,
+    private val spineCosts: IntArray,
 ) {
     /**
      * A candidate replacement for the spine between two junctions. One produced by a moving
@@ -41,15 +42,27 @@ class PlanGraph private constructor(
         val frames: Int get() = segments.sumOf { it.frameCount }
     }
 
-    val frames: Int get() = spine.sumOf { it.frameCount }
+    val frames: Int get() = spineCosts.last()
 
     /** Frames the spine spends between two junctions. */
-    fun spineFrames(from: Int, to: Int): Int =
-        spine.subList(from, to).sumOf { it.frameCount }
+    fun spineFrames(from: Int, to: Int): Int {
+        require(from in 0..to && to <= spine.size) { "Invalid spine span: $from..$to" }
+        return spineCosts[to] - spineCosts[from]
+    }
 
     /** The cheapest route from start to goal over spine edges and alternates; one forward sweep. */
     fun bestRoute(): List<PlanSegment> {
+        if (alternates.isEmpty()) return spine
         val last = junctions.lastIndex
+        // Intrusive adjacency over alternate indices avoids a map/list/boxed-key per
+        // junction. Prepending in reverse preserves offer order and equal-cost ties.
+        val outgoing = IntArray(last + 1) { -1 }
+        val next = IntArray(alternates.size)
+        for (index in alternates.indices.reversed()) {
+            val departure = alternates[index].from
+            next[index] = outgoing[departure]
+            outgoing[departure] = index
+        }
         val cost = IntArray(last + 1) { Int.MAX_VALUE }
         val via = arrayOfNulls<Alternate>(last + 1)
         val from = IntArray(last + 1) { -1 }
@@ -62,14 +75,16 @@ class PlanGraph private constructor(
                 from[at + 1] = at
                 via[at + 1] = null
             }
-            alternates.forEach { alternate ->
-                if (alternate.from != at) return@forEach
+            var index = outgoing[at]
+            while (index >= 0) {
+                val alternate = alternates[index]
                 val through = cost[at] + alternate.frames
                 if (through < cost[alternate.to]) {
                     cost[alternate.to] = through
                     from[alternate.to] = at
                     via[alternate.to] = alternate
                 }
+                index = next[index]
             }
         }
 
@@ -79,7 +94,13 @@ class PlanGraph private constructor(
             val previous = from[at]
             if (previous < 0) return spine
             val alternate = via[at]
-            if (alternate == null) route += spine[previous] else route.addAll(alternate.segments)
+            if (alternate == null) {
+                route += spine[previous]
+            } else {
+                // Backtracking reverses edges AND their segments. The final reversal must
+                // restore both, or a shortcut's terminal brake precedes its movements.
+                for (index in alternate.segments.indices.reversed()) route += alternate.segments[index]
+            }
             at = previous
         }
         route.reverse()
@@ -102,7 +123,7 @@ class PlanGraph private constructor(
 
     /** This graph with one more alternate offered; the original is unchanged. */
     fun with(alternate: Alternate): PlanGraph =
-        PlanGraph(junctions, spine, alternates + alternate)
+        PlanGraph(junctions, spine, alternates + alternate, spineCosts)
 
     /**
      * Rejoinable-to-rejoinable spine spans, dearest first by frames per block of
@@ -112,7 +133,40 @@ class PlanGraph private constructor(
      */
     fun improvementTargets(maxSpan: Int = DEFAULT_MAX_SPAN): List<Span> {
         val targets = ArrayList<Span>()
-        for (start in junctions.indices) {
+        forEachImprovementSpan(maxSpan, junctions.size) { from, to, frames, score ->
+            targets += Span(from, to, frames, score)
+        }
+        targets.sortByDescending { it.framesPerBlock }
+        return targets
+    }
+
+    /**
+     * The first occurrence of each departure in [improvementTargets], without creating
+     * and sorting every span only to discard repeated departures. Ties retain junction
+     * order, exactly as the stable span sort does.
+     */
+    fun improvementDepartures(
+        beforeJunction: Int = junctions.lastIndex,
+        maxSpan: Int = DEFAULT_MAX_SPAN,
+    ): List<Int> {
+        require(beforeJunction in 0..junctions.size)
+        val scores = DoubleArray(beforeJunction) { Double.NEGATIVE_INFINITY }
+        forEachImprovementSpan(maxSpan, beforeJunction) { from, _, _, score ->
+            if (score.compareTo(scores[from]) > 0) scores[from] = score
+        }
+        return scores.indices.asSequence()
+            .filter { scores[it] != Double.NEGATIVE_INFINITY }
+            .sortedByDescending { scores[it] }
+            .toList()
+    }
+
+    /** Shared geometry and scoring; callers choose whether they need spans or departures. */
+    private inline fun forEachImprovementSpan(
+        maxSpan: Int,
+        beforeJunction: Int,
+        visit: (Int, Int, Int, Double) -> Unit,
+    ) {
+        for (start in 0 until beforeJunction) {
             if (!junctions[start].rejoinable) continue
             for (end in start + 1..minOf(start + maxSpan, junctions.lastIndex)) {
                 if (!junctions[end].rejoinable) continue
@@ -121,11 +175,9 @@ class PlanGraph private constructor(
                 val displacement = junctions[start].state.position
                     .distanceTo(junctions[end].state.position)
                 if (displacement < MIN_SPAN_BLOCKS) continue
-                targets += Span(start, end, frames, frames / displacement)
+                visit(start, end, frames, frames / displacement)
             }
         }
-        targets.sortByDescending { it.framesPerBlock }
-        return targets
     }
 
     class Span(val from: Int, val to: Int, val frames: Int, val framesPerBlock: Double)
@@ -156,6 +208,9 @@ class PlanGraph private constructor(
             if (spine.isEmpty()) return null
 
             val junctions = ArrayList<PlanJunction>(spine.size + 1)
+            // Frame costs are independent of the segments' original tape offsets after a
+            // splice. Share this immutable prefix index across versions of the same spine.
+            val spineCosts = IntArray(spine.size + 1)
             junctions += PlanJunction(
                 index = 0,
                 frame = 0,
@@ -165,6 +220,7 @@ class PlanGraph private constructor(
                 rejoinable = true,
             )
             spine.forEachIndexed { index, segment ->
+                spineCosts[index + 1] = spineCosts[index] + segment.frameCount
                 junctions += PlanJunction(
                     index = index + 1,
                     frame = segment.endFrame,
@@ -173,7 +229,7 @@ class PlanGraph private constructor(
                     rejoinable = rejoinable(segment.exit),
                 )
             }
-            return PlanGraph(junctions, spine, emptyList())
+            return PlanGraph(junctions, spine, emptyList(), spineCosts)
         }
     }
 }

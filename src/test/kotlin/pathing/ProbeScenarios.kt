@@ -56,15 +56,7 @@ internal object ProbeScenarios {
     )
 
     fun all(): List<Scenario> = buildList {
-        for (seed in 1..4) {
-            val course = ParkourCourseLayout.course(jumps = 20, seed = seed)
-            add(
-                Scenario(
-                    "course-$seed", courseEnvironment(course), course.start, course.goal,
-                    SimpleMoveOptions(maxJumpSpan = 3, maxJumpDrop = 2),
-                )
-            )
-        }
+        for (seed in 1..4) add(parkour(seed))
         val surface = BedrockFieldLayout.standableSurface(BedrockFieldLayout.solidCells())
         val head = surface.filter { it.x <= 2 }.minByOrNull { it.z * it.z }!!
         val tail = surface.filter { it.x >= BedrockFieldLayout.LENGTH - 3 }.minByOrNull { it.z * it.z }!!
@@ -97,6 +89,15 @@ internal object ProbeScenarios {
      * long traverse separates them as well as five do. The corpus task shares a JVM with a
      * wall-clock test, so the other three are cost without signal.
      */
+    /** Same terrain/options as the recorded courses, with independent holdout seeds. */
+    fun parkour(seed: Int): Scenario {
+        val course = ParkourCourseLayout.course(jumps = 20, seed = seed)
+        return Scenario(
+            "course-$seed", courseEnvironment(course), course.start, course.goal,
+            SimpleMoveOptions(maxJumpSpan = 3, maxJumpDrop = 2),
+        )
+    }
+
     fun sample(): List<Scenario> = all().filter { it.name == "course-2" || it.name == "bedrock-traverse" }
 
     fun plan(

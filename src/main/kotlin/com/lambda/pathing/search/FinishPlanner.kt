@@ -25,25 +25,26 @@ internal class FinishPlanner(
 ) {
     private var provenFinish: TerminalApproach? = null
 
-    fun finishFrom(anchor: ValueAnchor): Solution? {
+    /** A denied attempt stops the parameter search, retaining any already certified best tail. */
+    fun finishFrom(anchor: ValueAnchor, canStartRollout: () -> Boolean = { true }): Solution? {
         val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
         if (!field.reachesGoal(chain)) {
             probe.finishAttempt(anchor.stance, anchor.elapsed, anchor.speed, chainReached = false, sealed = false)
             return null
         }
         val points = chain.map { it.center(environment) }
-        val leads: List<Double?> = if (chain.zipWithNext().any { (from, to) -> to.y > from.y }) {
+        val leads: List<Double?> = if (chain.asSequence().zipWithNext().any { (from, to) -> to.y > from.y }) {
             config.stepUpJumpLeadDistances
         } else {
             listOf(null)
         }
 
-        val grid = buildList {
-            provenFinish?.let { add(it) }
+        val grid = sequence {
+            provenFinish?.let { yield(it) }
             for (sprint in config.sprintModes) {
                 for (brake in config.brakeDistances) {
                     for (lead in leads) {
-                        add(TerminalApproach(sprint, PursuitTracker.DEFAULT_LOOK_AHEAD_NODES, brake, lead))
+                        yield(TerminalApproach(sprint, PursuitTracker.DEFAULT_LOOK_AHEAD_NODES, brake, lead))
                     }
                 }
             }
@@ -53,6 +54,7 @@ internal class FinishPlanner(
         var bestFrames: List<SimulatedTrajectoryFrame>? = null
         var bestParameters: TerminalApproach? = null
         for (parameters in grid) {
+            if (!canStartRollout()) break
             val frames = terminalRun(anchor, chain, points, parameters) ?: continue
             val rank = TrajectoryRank(
                 certifiedAndSafe = true,

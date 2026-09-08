@@ -31,6 +31,6 @@ class AllocationGateTest {
     }
 
     companion object {
-        const val MAX_BYTES_PER_TICK = 10_000L // 7 Sep 2026: baseline 7,629; after Stage 3 6,600–7,300 (JIT-dependent)
+        const val MAX_BYTES_PER_TICK = 5_000L // 8 Sep 2026: cached support geometry 6,620 -> 3,576; allow JIT headroom
     }
 }

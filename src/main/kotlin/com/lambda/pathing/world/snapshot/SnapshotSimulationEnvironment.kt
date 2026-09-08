@@ -305,11 +305,7 @@ class SnapshotSimulationEnvironment internal constructor(
                     val block = cursor.blockAt(pos)
                     if (block.collisionShape.isEmpty) continue
 
-                    val collides = block.collisionShape
-                        .offset(x.toDouble(), y.toDouble(), z.toDouble())
-                        .boundingBoxes
-                        .any { it.intersects(box) }
-                    if (!collides) continue
+                    if (!block.intersectsCollisionBox(box, x, y, z)) continue
 
                     val candidate = pos.toImmutable()
                     val distance = candidate.getSquaredDistance(entityPos)

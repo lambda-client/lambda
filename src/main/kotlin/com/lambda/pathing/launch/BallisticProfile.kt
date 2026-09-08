@@ -125,8 +125,10 @@ data class BallisticProfile(
         var verticalVelocity = 0.0
         var height = 0.0
         var distance = 0.0
-        val heights = ArrayList<Double>(maxTicks)
-        val distances = ArrayList<Double>(maxTicks)
+        require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
+        // Tick zero is the launch sample; successful arcs own only their used prefix.
+        val heights = DoubleArray(maxTicks + 1)
+        val distances = DoubleArray(maxTicks + 1)
 
         if (mode.jumps) {
             verticalVelocity = jumpVelocity
@@ -138,8 +140,8 @@ data class BallisticProfile(
         height += verticalVelocity
         verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
         velocity *= groundFriction
-        heights += height
-        distances += distance
+        heights[0] = height
+        distances[0] = distance
 
         val airAcceleration = when {
             !holdForward -> 0.0
@@ -155,13 +157,13 @@ data class BallisticProfile(
                 if (height < rise) return null
 
                 if (height + verticalVelocity <= rise) {
-                    heights += rise
-                    distances += distance
+                    heights[tick] = rise
+                    distances[tick] = distance
                     return ArcSample(
                         airTicks = tick,
                         distance = distance,
-                        heights = heights.toDoubleArray(),
-                        distances = distances.toDoubleArray(),
+                        heights = heights.copyOf(tick + 1),
+                        distances = distances.copyOf(tick + 1),
                         exitSpeed = velocity * HORIZONTAL_DRAG,
                     )
                 }
@@ -170,8 +172,8 @@ data class BallisticProfile(
             height += verticalVelocity
             verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
             velocity *= HORIZONTAL_DRAG
-            heights += height
-            distances += distance
+            heights[tick] = height
+            distances[tick] = distance
         }
         return null
     }
@@ -207,8 +209,10 @@ data class BallisticProfile(
         var verticalVelocity = 0.0
         var height = 0.0
         var distance = 0.0
-        val heights = ArrayList<Double>(maxTicks)
-        val distances = ArrayList<Double>(maxTicks)
+        require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
+        // Tick zero is the launch sample; successful arcs own only their used prefix.
+        val heights = DoubleArray(maxTicks + 1)
+        val distances = DoubleArray(maxTicks + 1)
         var bounced = false
         var groundedLastTick = false
 
@@ -232,8 +236,8 @@ data class BallisticProfile(
         ascend()
         verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
         velocity *= groundFriction
-        heights += height
-        distances += distance
+        heights[0] = height
+        distances[0] = distance
 
         val airAcceleration = when {
             !holdForward -> 0.0
@@ -266,13 +270,13 @@ data class BallisticProfile(
             } else if (verticalVelocity < 0.0) {
                 if (height < rise) return null
                 if (height + verticalVelocity <= rise) {
-                    heights += rise
-                    distances += distance
+                    heights[tick] = rise
+                    distances[tick] = distance
                     return ArcSample(
                         airTicks = tick,
                         distance = distance,
-                        heights = heights.toDoubleArray(),
-                        distances = distances.toDoubleArray(),
+                        heights = heights.copyOf(tick + 1),
+                        distances = distances.copyOf(tick + 1),
                         exitSpeed = velocity * HORIZONTAL_DRAG,
                     )
                 }
@@ -283,8 +287,8 @@ data class BallisticProfile(
 
             verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
             velocity *= if (grounded) groundFriction else HORIZONTAL_DRAG
-            heights += height
-            distances += distance
+            heights[tick] = height
+            distances[tick] = distance
         }
         return null
     }
