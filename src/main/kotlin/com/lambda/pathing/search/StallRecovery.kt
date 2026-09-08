@@ -89,6 +89,18 @@ internal class StallRecovery(
     // Junction frames already restarted from; each junction restart walks one junction further back.
     private val restartedJunctions = HashSet<Int>()
 
+    /**
+     * A new leg of a compound route: the restart budget, the restart memory and the spent
+     * anchors all belonged to the leg just finished. Without this a five-leg route shares
+     * one budget of [MAX_TAPE_RESTARTS] and dies "exhausted" on its last leg.
+     */
+    fun beginLeg() {
+        tapeRestarts = 0
+        restartedMoving.clear()
+        restartedJunctions.clear()
+        spentAnchors.clear()
+    }
+
     fun restartable(): Boolean =
         tapeRestarts < MAX_TAPE_RESTARTS && horizon.latestBrakeContinuation() != null
 

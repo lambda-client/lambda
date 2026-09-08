@@ -11,6 +11,9 @@ internal class SearchStats {
     /** Polled branches whose fork the cursor had already passed. */
     var adoptableDrops = 0
 
+    /** Walk-through waypoints passed by re-targeting the running search. */
+    var legSwitches = 0
+
     /** Polled branches moved to the starved reserve for lack of expansion headroom. */
     var forkStarvedDrops = 0
 

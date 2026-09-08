@@ -15,9 +15,11 @@ import com.lambda.pathing.session.Telemetry
  */
 object PathingService {
     /**
-     * Walks [waypoints] in order: the first leg is requested now and each arrival submits
-     * the next. Any unrelated pathing request, a cancel, or a failed leg drops the
-     * remainder. Returns the first leg's request, or null when there were no waypoints.
+     * Walks [waypoints] in order. With the Pathing setting "Waypoint Arrival" at Walk
+     * Through (the default) the intermediate waypoints are checkpoints passed at speed by
+     * one continuous search; at Stand Still each is a leg that ends at rest and the next
+     * is requested on arrival. Any unrelated pathing request, a cancel, or a failed leg
+     * drops the remainder. Returns the first request, or null when there were no waypoints.
      */
     fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? =
         PathingManager.route(automated, waypoints)

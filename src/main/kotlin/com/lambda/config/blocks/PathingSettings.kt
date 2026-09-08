@@ -143,6 +143,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
+    override val waypointArrival by c.setting(
+        "Waypoint Arrival", com.lambda.pathing.core.ArrivalMode.WALK_THROUGH,
+        "Walk Through: a route's intermediate waypoints are checkpoints passed at speed, one " +
+            "continuous tape. Stand Still: the body rests at each waypoint before the next leg.",
+    )
+
+    @Group(SEARCH_GROUP)
     override val horizonRunwayFrames by c.setting(
         "Horizon Runway", 20, 5..300, 5,
         "Committed motion kept ahead of the body. Smaller leaves decisions later, so the " +

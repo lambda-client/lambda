@@ -2,49 +2,68 @@ package com.lambda.pathing
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.Automated
+import com.lambda.pathing.core.ArrivalMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.PlanningCancellation
 import com.lambda.pathing.session.PlanningJourney
 import com.lambda.pathing.world.InterestPrimer
-import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.world.PathingWorld
+import com.lambda.pathing.search.PublishedPath
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.client.network.ClientPlayerEntity
 
 /**
- * The compound route: waypoints still to walk after the active goal. The first leg is
- * requested by [start] and each (non-partial) arrival submits the next via
- * [continueNext]. Any unrelated pathing request, a cancel, or a failed leg drops the
- * remainder -- continuing a route past a leg that did not arrive would walk the tail
- * from the wrong place.
+ * The compound route. Waypoints are grouped into requests: a run of walk-through
+ * waypoints and the stand-still waypoint (or final goal) that ends it make one request,
+ * walked as one continuous tape by one search. Each (non-partial) arrival submits the
+ * next group via [continueNext]. Any unrelated pathing request, a cancel, or a failed
+ * leg drops the remainder -- continuing a route past a leg that did not arrive would
+ * walk the tail from the wrong place. See docs/decisions/arrival.md.
  */
 internal class WaypointRoute(private val source: String) {
-    private val queue = ArrayDeque<Stance>()
+    /** A request's worth of route: the walk-through waypoints and the goal that ends the group. */
+    private class Group(val through: List<Stance>, val goal: Stance) {
+        val size: Int get() = through.size + 1
+    }
+
+    private val queue = ArrayDeque<Group>()
     private var automated: Automated? = null
 
-    /** The leg currently being walked; a request for any other goal replaces the route. */
+    /** The goal of the group currently being walked; a request for any other goal replaces the route. */
     var expectedLeg: Stance? = null
         private set
 
     /**
-     * The NEXT leg's journey, pre-warmed while the body still replays the current
-     * one: its world streams capture and its coarse state exists before arrival,
-     * so the waypoint handoff pays neither the capture wait nor the coarse cold
-     * start -- only the fine search, from a body that arrived braked. Adopted by
+     * The NEXT group's journey, pre-warmed while the body still replays the current one:
+     * its world streams capture and its coarse states exist before arrival, so the
+     * handoff pays neither the capture wait nor the coarse cold start. Adopted by
      * [adoptWarmJourney] when the continuation request lands.
      */
     private var nextJourney: PlanningJourney? = null
 
-    val queuedWaypoints: Int get() = queue.size
+    /** Waypoints still to walk after the active request, across every queued group. */
+    val queuedWaypoints: Int get() = queue.sumOf { it.size }
 
-    /** Requests the first leg and queues the rest; null when there is nothing to walk. */
-    fun start(automated: Automated, waypoints: List<Stance>): PathingRequest? {
+    /** Requests the first group and queues the rest; null when there is nothing to walk. */
+    fun start(automated: Automated, waypoints: List<Stance>, intermediate: ArrivalMode): PathingRequest? {
         drop()
-        val first = waypoints.firstOrNull() ?: return null
+        if (waypoints.isEmpty()) return null
         this.automated = automated
-        expectedLeg = first
-        queue.addAll(waypoints.drop(1))
-        return PathingRequest(automated, first).submit()
+        val groups = ArrayList<Group>()
+        val through = ArrayList<Stance>()
+        waypoints.forEachIndexed { index, waypoint ->
+            val last = index == waypoints.lastIndex
+            if (!last && intermediate == ArrivalMode.WALK_THROUGH) {
+                through += waypoint
+            } else {
+                groups += Group(through.toList(), waypoint)
+                through.clear()
+            }
+        }
+        val first = groups.first()
+        queue.addAll(groups.drop(1))
+        expectedLeg = first.goal
+        return PathingRequest(automated, first.goal, first.through).submit()
     }
 
     fun drop() {
@@ -62,7 +81,7 @@ internal class WaypointRoute(private val source: String) {
         return warmed
     }
 
-    /** [replaying] is whether the walk holds an execution cursor; [request] is the leg being walked. */
+    /** [replaying] is whether the walk holds an execution cursor; [request] is the group being walked. */
     fun primeNextLeg(
         player: ClientPlayerEntity,
         request: PathingRequest,
@@ -78,7 +97,7 @@ internal class WaypointRoute(private val source: String) {
         val running = published ?: return
         if (running.partial) return
         val terminal = running.plan.frames.lastOrNull()?.state ?: return
-        val resolved = TrajectoryPlanner.resolveGoalStance(player, next)
+        val resolved = TrajectoryPlanner.resolveGoalStance(player, next.goal)
         if (nextJourney?.goal == resolved) return
         nextJourney?.cancel()
         nextJourney = null
@@ -87,25 +106,27 @@ internal class WaypointRoute(private val source: String) {
         val preparation = when (
             val prepared = TrajectoryPlanner.prepare(
                 player = player,
-                goal = next,
+                goal = next.goal,
                 config = request.pathingConfig,
                 turnSpeed = request.rotationConfig.turnSpeed,
                 cancellation = cancellation,
                 initialOverride = terminal,
+                waypoints = next.through,
             )
         ) {
             is PlanningPreparationResult.Ready -> prepared.preparation
             else -> return
         }
         val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
-        InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal)
+        InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal, preparation.waypoints)
         nextJourney = PlanningJourney(
             goal = preparation.finalGoal,
+            waypoints = preparation.waypoints,
             moveOptions = preparation.moveOptions,
             profile = preparation.profile,
             cancellation = cancellation,
             world = pathingWorld,
-            coarseState = TrajectoryPlanner.coarseState(
+            legs = TrajectoryPlanner.journeyLegs(
                 preparation, pathingWorld.snapshot, pathingWorld::chunkCapturable,
             ),
         )
@@ -115,13 +136,14 @@ internal class WaypointRoute(private val source: String) {
     fun continueNext(): Boolean {
         val automated = automated ?: return false
         val next = queue.removeFirstOrNull() ?: run { drop(); return false }
-        expectedLeg = next
+        expectedLeg = next.goal
         info(
-            "Route: continuing to (${next.x}, ${next.y}, ${next.z})" +
-                (queue.size.takeIf { it > 0 }?.let { ", $it more after it" } ?: "") + ".",
+            "Route: continuing to (${next.goal.x}, ${next.goal.y}, ${next.goal.z})" +
+                (next.through.size.takeIf { it > 0 }?.let { " through $it waypoint(s)" } ?: "") +
+                (queuedWaypoints.takeIf { it > 0 }?.let { ", $it more after it" } ?: "") + ".",
             source,
         )
-        PathingRequest(automated, next).submit()
+        PathingRequest(automated, next.goal, next.through).submit()
         return true
     }
 

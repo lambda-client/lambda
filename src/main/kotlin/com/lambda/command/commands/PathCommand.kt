@@ -26,8 +26,8 @@ import com.lambda.util.extension.CommandBuilder
  * The one pathing command.
  *
  * - `path go` walks the staged goal; `path go <x> <y> <z> [<x> <y> <z> ...]`
- *   walks the given waypoints directly, in order (each leg planned, certified,
- *   and replayed before the next is submitted).
+ *   walks the given waypoints directly, in order. Intermediate waypoints are passed
+ *   at speed as one continuous tape (Pathing setting "Waypoint Arrival"); the last rests.
  * - `path goal <x> <y> <z> [...]` stages a goal without walking; bare
  *   `path goal` shows it, `path goal clear` forgets it.
  * - `path cancel` (or `path c`) stops the walk and drops queued waypoints.

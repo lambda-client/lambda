@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -25,7 +25,7 @@ internal data class CorridorLevel(
 
 internal class ActionSet(
     private val catalog: MovementCatalog,
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
     private val corridor: () -> CorridorLevel,

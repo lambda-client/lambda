@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
@@ -28,7 +28,7 @@ internal sealed interface Outcome {
 
 internal class AnchorRollout(
     private val movements: MovementCatalog,
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
     private val environment: SnapshotSimulationEnvironment,

@@ -35,6 +35,12 @@ internal class ValueAnchor(
 
     var points: List<HorizontalPoint> = emptyList()
 
+    /**
+     * The first anchor of a leg in a compound route: the revisit rule looks no further back.
+     * A later leg may legitimately cross cells an earlier leg walked.
+     */
+    var legRoot: Boolean = false
+
     /** Decimated body positions of the rollout that produced this anchor; filled only while a tree or candidate view is drawn. */
     var trace: List<net.minecraft.util.math.Vec3d> = emptyList()
 
@@ -131,6 +137,7 @@ internal class ValueAnchor(
         var node: ValueAnchor? = this
         while (node != null) {
             if (node.stance == visited) return true
+            if (node.legRoot) return false
             node = node.parent
         }
         return false

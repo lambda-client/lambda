@@ -2,7 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
@@ -18,13 +18,15 @@ internal class ContinuousSyncPolicy(
     private val world: PathingWorld,
     private val coarseState: CoarsePlanningState,
     private val resolution: RouteResolution,
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val start: Stance,
     private val finalGoal: Stance,
     private val snapshotRevision: Long,
     private val coarseExpansionBudget: Int,
     private val cancelled: () -> Boolean,
     private val probe: SearchProbe,
+    /** Every non-empty batch drained here, for the legs of a compound route still ahead. */
+    private val onBatch: (WorldEventBatch) -> Unit = {},
 ) : (CoarseRoutePlan) -> WorldSyncResult {
     private var lastQuietExtension = 0L
 
@@ -40,6 +42,7 @@ internal class ContinuousSyncPolicy(
 
     override fun invoke(current: CoarseRoutePlan): WorldSyncResult {
         val batch = world.drainEvents()
+        if (!batch.isEmpty) onBatch(batch)
         if (batch.isEmpty) {
             // Finish a sliced resynchronisation before treating the world as quiet.
             val t = System.nanoTime()

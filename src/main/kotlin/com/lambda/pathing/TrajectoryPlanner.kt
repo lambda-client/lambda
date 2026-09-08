@@ -53,22 +53,37 @@ object TrajectoryPlanner {
         Thread(task, "NeoLambda-PathPlanner").apply { isDaemon = true }
     }
 
+    /** Resolves the further legs of a compound route while the planner thread searches the current one. */
+    private val legExecutor = Executors.newCachedThreadPool { task ->
+        Thread(task, "NeoLambda-PathPlanner-legs").apply { isDaemon = true }
+    }
+
     val envelope = CoarseKinematicEnvelope(
         maxHorizontalBlocksPerTick = 0.6,
         maxAscentBlocksPerTick = 0.5,
         maxDescentBlocksPerTick = 4.0,
     )
 
-    internal fun coarseState(
+    /**
+     * One coarse state per leg of the route: the walk-through waypoints in order, then the
+     * final goal. Each leg's D* targets its own goal and starts where the previous leg ends.
+     */
+    internal fun journeyLegs(
         preparation: TrajectoryPlanningPreparation,
         snapshot: SnapshotSimulationEnvironment,
         capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
-    ) = CoarsePlanningState(
-        snapshot, preparation.moveOptions, preparation.start, preparation.finalGoal,
-        horizonChunks = preparation.planningHorizonChunks,
-        frontierSweepBudget = preparation.frontierSweepBudget,
-        capturable = capturable,
-    )
+    ): List<CoarsePlanningState> {
+        val goals = preparation.waypoints + preparation.finalGoal
+        val starts = listOf(preparation.start) + preparation.waypoints
+        return goals.indices.map { index ->
+            CoarsePlanningState(
+                snapshot, preparation.moveOptions, starts[index], goals[index],
+                horizonChunks = preparation.planningHorizonChunks,
+                frontierSweepBudget = preparation.frontierSweepBudget,
+                capturable = capturable,
+            )
+        }
+    }
 
     internal fun resolveStartStance(initial: MovementSimulationState): Stance {
         val base = Stance.of(initial.position, initial.onGround)
@@ -99,10 +114,13 @@ object TrajectoryPlanner {
         cancellation: PlanningCancellation,
 
         initialOverride: MovementSimulationState? = null,
+        /** Walk-through waypoints before [goal], in order; each becomes a leg of one continuous search. */
+        waypoints: List<Stance> = emptyList(),
     ): PlanningPreparationResult {
         val started = System.currentTimeMillis()
         @Suppress("NAME_SHADOWING")
         val goal = resolveGoalStance(player, goal)
+        val resolvedWaypoints = waypoints.map { resolveGoalStance(player, it) }
         val moveOptions = SimpleMoveOptions(
             allowDiagonal = config.allowDiagonal,
             allowStepUp = config.allowStepUp,
@@ -169,6 +187,7 @@ object TrajectoryPlanner {
         return PlanningPreparationResult.Ready(
             TrajectoryPlanningPreparation(
                 finalGoal = goal,
+                waypoints = resolvedWaypoints,
                 bounds = bounds,
                 moveOptions = moveOptions,
                 seedConfig = seedConfig,
@@ -202,12 +221,15 @@ object TrajectoryPlanner {
         cancellation: PlanningCancellation,
         planningGeneration: Long,
         snapshotRevision: Long,
-        coarseState: CoarsePlanningState =
-            coarseState(preparation, world.snapshot, world::chunkCapturable),
+        /** The route's legs, first leg first; see [journeyLegs]. */
+        legStates: List<CoarsePlanningState> =
+            journeyLegs(preparation, world.snapshot, world::chunkCapturable),
     ): CompletableFuture<PathPlanResult> {
         if (cancellation.isCancelled) return CompletableFuture.completedFuture(PathPlanResult.Cancelled)
+        require(legStates.size == preparation.waypoints.size + 1) { "one coarse state per leg" }
+        val coarseState = legStates.first()
         val snapshot = world.snapshot
-        val goal = preparation.finalGoal
+        val goal = coarseState.goal
         val start = preparation.start
         val profile = preparation.profile
         val moveOptions = preparation.moveOptions
@@ -303,18 +325,33 @@ object TrajectoryPlanner {
 
                 val field = planner.valueField()
                 val probe = DebugChannelProbe()
+                val legs = LegChain(
+                    world = world,
+                    states = legStates.drop(1),
+                    starts = preparation.waypoints,
+                    coarseExpansionBudget = preparation.coarseExpansionBudget,
+                    snapshotRevision = snapshotRevision,
+                    cancelled = { cancellation.isCancelled },
+                    probe = probe,
+                    executor = legExecutor,
+                    fieldExpansionTicks = FIELD_EXPANSION_TICKS,
+                    fieldExpansionBudget = FIELD_EXPANSION_BUDGET,
+                    fieldExpansionNodes = FIELD_EXPANSION_NODES,
+                )
                 val worldSync = ContinuousSyncPolicy(
                     world = world,
                     coarseState = coarseState,
                     resolution = routeResolution,
                     field = field,
                     start = start,
-                    finalGoal = preparation.finalGoal,
+                    finalGoal = goal,
                     snapshotRevision = snapshotRevision,
                     coarseExpansionBudget = preparation.coarseExpansionBudget,
                     cancelled = { cancellation.isCancelled },
                     probe = probe,
+                    onBatch = legs::onBatch,
                 )
+                legs.begin(LegChain.Leg(coarseState, route, field, routeResolution, worldSync))
                 val outcome = walkHorizon(
                     route, planner, initial, profile, snapshot, seedConfig, cursorFrame,
                     publish = { path, running -> if (running) onImprovement(path) else onSafePrefix(path) },
@@ -334,9 +371,10 @@ object TrajectoryPlanner {
                     probe = probe,
                     // Logged on both outcomes so two sessions at one goal compare field by field.
                     onExhaustion = {
-                        LOG.info("Trajectory search {} -> {}: {} {}", start, goal, it, worldSync.ledger)
-                        PlanningDebugChannel.publishExhaustion(it, worldSync.ledger)
+                        LOG.info("Trajectory search {} -> {}: {} {}", start, preparation.finalGoal, it, legs.ledger)
+                        PlanningDebugChannel.publishExhaustion(it, legs.ledger)
                     },
+                    legs = legs,
                     parallelism = preparation.plannerThreads,
                     improvementBudget = preparation.improvementBudget,
                     momentumGait = preparation.momentumGait,
@@ -386,7 +424,7 @@ object TrajectoryPlanner {
         cancelled: () -> Boolean = { false },
         planningGeneration: Long = 0L,
         finalGoal: Stance = route.goal,
-        field: CoarseValueField = planner.valueField(),
+        field: com.lambda.pathing.coarse.ValueField = planner.valueField(),
         adoptedSequence: () -> Long = { Long.MAX_VALUE },
         probe: SearchProbe = SearchProbe.NONE,
         onExhaustion: ((SearchExhaustion) -> Unit)? = null,
@@ -404,9 +442,15 @@ object TrajectoryPlanner {
         fieldExpansionBudget: kotlin.time.Duration = FIELD_EXPANSION_BUDGET,
         frontierDomination: FrontierDomination =
             FrontierDomination.FULL,
+        /** The further legs of a compound route; null for a single goal. */
+        legs: LegChain? = null,
     ): PathPlanResult {
         var published = 0
         var last: PublishedPath? = null
+
+        // A compound route's search must be able to change goal: it reads a switchable field.
+        val searchField: com.lambda.pathing.coarse.ValueField =
+            if (legs != null && field is CoarseValueField) com.lambda.pathing.coarse.SwitchableValueField(field) else field
 
         // Rollout workers for batch-parallel expansion. Daemon threads, owned by this
         // walk: the coordinator selects and applies, the workers only simulate.
@@ -418,7 +462,7 @@ object TrajectoryPlanner {
         try {
 
         val result = ValueFieldAnchorSearch.search(
-            route, planner.moves.catalog, field, initial, profile, snapshot, seedConfig,
+            route, planner.moves.catalog, searchField, initial, profile, snapshot, seedConfig,
             ValueFieldSearchConfig(
                 safePrefixFrames = commitFrames,
                 safePrefixDelayMillis = bootstrapDelayMillis,
@@ -456,10 +500,11 @@ object TrajectoryPlanner {
             clock = clock,
             cancelled = cancelled,
             worldWait = worldWait,
-            worldSync = worldSync,
+            worldSync = if (legs != null) { current -> legs.sync(current) } else worldSync,
             sectionCapturable = sectionCapturable,
             expandGuide = { marginTicks ->
-                planner.expandField(
+                if (legs != null) legs.expandGuide(marginTicks)
+                else planner.expandField(
                     extraTicks = FIELD_EXPANSION_TICKS + marginTicks,
                     timeBudget = fieldExpansionBudget,
                     maxExpansions = FIELD_EXPANSION_NODES,
@@ -471,6 +516,8 @@ object TrajectoryPlanner {
             onExhaustion = onExhaustion,
             parallelism = parallelism,
             executor = pool,
+            nextLeg = legs?.let { chain -> { touched -> chain.handoff(touched) } },
+            hasNextLeg = { legs?.hasNext() ?: false },
         )
 
         return when (result) {
@@ -547,6 +594,7 @@ object TrajectoryPlanner {
         arrivalTicksEstimate = seed.arrivalTicksEstimate,
         comparedRunningArrivalTicks = seed.comparedRunningArrivalTicks,
         comparedRunningSequence = seed.comparedRunningSequence,
+        legTouches = seed.legTouches,
     )
 
     private const val HORIZON_FRAMES = 20

@@ -6,7 +6,10 @@ import com.lambda.pathing.core.Stance
 
 class PathingRequest(
     automated: Automated,
+    /** The final goal, where the body comes to rest. */
     val goal: Stance,
+    /** Walk-through waypoints before [goal], in order: passed at speed, never stopped at. */
+    val waypoints: List<Stance> = emptyList(),
 ) : Request(), Automated by automated {
     override val requestId = requestCount++
     override val tickStageMask = PathingManager.openStages.toSet()

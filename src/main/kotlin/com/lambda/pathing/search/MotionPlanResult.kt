@@ -63,6 +63,7 @@ data class SearchExhaustion(
     val beamBuckets: Int,
     val beamLargestBucket: Int,
     val adoptableDrops: Int = 0,
+    val legSwitches: Int = 0,
     val forkStarvedDrops: Int = 0,
     val commitAttempts: Int = 0,
     val commitSuppressed: Int = 0,
@@ -100,6 +101,7 @@ data class SearchExhaustion(
         append(" maxBucket=").append(beamLargestBucket)
         if (commitAttempts + commitSuppressed + publishRefusals > 0) {
             append(" drops=").append(adoptableDrops)
+            if (legSwitches > 0) append(" legs=").append(legSwitches)
             append(" starved=").append(forkStarvedDrops)
             append(" commits=").append(commitAttempts)
             append(" suppressed=").append(commitSuppressed)
@@ -145,6 +147,9 @@ sealed interface MotionPlanResult {
 
         /** Frames per movement kind, for comparison against the route's admissible [CoarseRoutePlan.lowerBoundTicks]. */
         val segments: List<TapeSegment> = emptyList(),
+
+        /** Where this tape passes the walk-through waypoints of a compound route, in order. */
+        val legTouches: List<LegTouch> = emptyList(),
     ) : MotionPlanResult {
         val lowerBoundTicks: Double get() = sourceRoute.lowerBoundTicks
 
