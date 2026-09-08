@@ -14,30 +14,30 @@ import com.lambda.pathing.session.Telemetry
  * session; [status] and [telemetry] are safe to read from any thread.
  */
 object PathingService {
-    /**
-     * Walks [waypoints] in order. With the Pathing setting "Waypoint Arrival" at Walk
-     * Through (the default) the intermediate waypoints are checkpoints passed at speed by
-     * one continuous search; at Stand Still each is a leg that ends at rest and the next
-     * is requested on arrival. Any unrelated pathing request, a cancel, or a failed leg
-     * drops the remainder. Returns the first request, or null when there were no waypoints.
-     */
-    fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? =
-        PathingManager.route(automated, waypoints)
+	/**
+	 * Walks [waypoints] in order. With the Pathing setting "Waypoint Arrival" at Walk
+	 * Through (the default) the intermediate waypoints are checkpoints passed at speed by
+	 * one continuous search; at Stand Still each is a leg that ends at rest and the next
+	 * is requested on arrival. Any unrelated pathing request, a cancel, or a failed leg
+	 * drops the remainder. Returns the first request, or null when there were no waypoints.
+	 */
+	fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? =
+		PathingManager.route(automated, waypoints)
 
-    /** Stops the walk and drops queued waypoints; the published tape and telemetry stay for the renderer. */
-    fun cancel() = PathingManager.cancel()
+	/** Stops the walk and drops queued waypoints; the published tape and telemetry stay for the renderer. */
+	fun cancel() = PathingManager.cancel()
 
-    /** [cancel] plus forgetting the published tape, the telemetry and the retained journey. */
-    fun clear() = PathingManager.clear()
+	/** [cancel] plus forgetting the published tape, the telemetry and the retained journey. */
+	fun clear() = PathingManager.clear()
 
-    val status: State get() = PathingManager.status
+	val status: State get() = PathingManager.status
 
-    val telemetry: Telemetry get() = PathingManager.telemetry
+	val telemetry: Telemetry get() = PathingManager.telemetry
 
-    /** True while a leg is being walked or a further leg (or request) is still queued. */
-    val isRouting: Boolean get() = PathingManager.isRouting
+	/** True while a leg is being walked or a further leg (or request) is still queued. */
+	val isRouting: Boolean get() = PathingManager.isRouting
 
-    val renderConfig: PathingRenderConfig get() = PathingManager.renderConfig
+	val renderConfig: PathingRenderConfig get() = PathingManager.renderConfig
 
-    fun diagnostics(): String = PathingManager.diagnostics()
+	fun diagnostics(): String = PathingManager.diagnostics()
 }

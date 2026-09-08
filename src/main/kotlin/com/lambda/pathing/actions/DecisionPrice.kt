@@ -18,25 +18,25 @@ package com.lambda.pathing.actions
  *   [com.lambda.pathing.search.Temperature] -- whether it is offered at all yet.
  */
 data class DecisionPrice(
-    /** Frames of setup beyond the coarse edge's own estimate. Never negative. */
-    val ticks: Double = 0.0,
+	/** Frames of setup beyond the coarse edge's own estimate. Never negative. */
+	val ticks: Double = 0.0,
 
-    /** 0 for a movement that always works, 1 at the edge of what the physics allows. */
-    val difficulty: Double = 0.0,
+	/** 0 for a movement that always works, 1 at the edge of what the physics allows. */
+	val difficulty: Double = 0.0,
 ) {
-    init {
-        require(ticks >= 0.0 && ticks.isFinite()) { "decision ticks must be finite and non-negative: $ticks" }
-        require(difficulty in 0.0..1.0) { "difficulty is a 0..1 fraction: $difficulty" }
-    }
+	init {
+		require(ticks >= 0.0 && ticks.isFinite()) { "decision ticks must be finite and non-negative: $ticks" }
+		require(difficulty in 0.0..1.0) { "difficulty is a 0..1 fraction: $difficulty" }
+	}
 
-    operator fun plus(other: DecisionPrice) = DecisionPrice(
-        ticks = ticks + other.ticks,
-        difficulty = maxOf(difficulty, other.difficulty),
-    )
+	operator fun plus(other: DecisionPrice) = DecisionPrice(
+		ticks = ticks + other.ticks,
+		difficulty = maxOf(difficulty, other.difficulty),
+	)
 
-    companion object {
-        val FREE = DecisionPrice()
-    }
+	companion object {
+		val FREE = DecisionPrice()
+	}
 }
 
 /** A decision together with what attempting it costs. */

@@ -13,7 +13,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.ShapeContext
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
-import java.util.IdentityHashMap
+import java.util.*
 
 /**
  * One [SnapshotBlockPhysics] per distinct [BlockState], not per cell.
@@ -28,14 +28,14 @@ import java.util.IdentityHashMap
  * Not thread-safe: one capture pipeline owns it, on the client thread.
  */
 internal class BlockPhysicsInterner(private val shapeContext: ShapeContext) {
-    private val byState = IdentityHashMap<BlockState, SnapshotBlockPhysics>()
+	private val byState = IdentityHashMap<BlockState, SnapshotBlockPhysics>()
 
-    fun capture(world: World, pos: BlockPos, state: BlockState): SnapshotBlockPhysics {
-        if (state.block.hasDynamicBounds()) {
-            return BlockPhysicsCapture.capture(state, world, pos, shapeContext)
-        }
-        return byState.getOrPut(state) {
-            BlockPhysicsCapture.capture(state, world, pos, shapeContext)
-        }
-    }
+	fun capture(world: World, pos: BlockPos, state: BlockState): SnapshotBlockPhysics {
+		if (state.block.hasDynamicBounds()) {
+			return BlockPhysicsCapture.capture(state, world, pos, shapeContext)
+		}
+		return byState.getOrPut(state) {
+			BlockPhysicsCapture.capture(state, world, pos, shapeContext)
+		}
+	}
 }

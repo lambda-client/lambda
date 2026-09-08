@@ -11,10 +11,10 @@ import com.lambda.pathing.core.Stance
  * breaks. See docs/decisions/arrival.md (walk-through waypoints).
  */
 class LegHandoff(
-    val route: CoarseRoutePlan,
-    val field: CoarseValueField,
-    /** The waypoint whose touch triggered the handoff. */
-    val waypoint: Stance,
+	val route: CoarseRoutePlan,
+	val field: CoarseValueField,
+	/** The waypoint whose touch triggered the handoff. */
+	val waypoint: Stance,
 )
 
 /** The frame a certified tape touches a walk-through waypoint, in tape frame numbering. */

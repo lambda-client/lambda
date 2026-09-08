@@ -9,14 +9,14 @@ import com.lambda.pathing.core.VoxelPos
  */
 sealed interface WorldEffect {
 
-    data class Place(val at: VoxelPos, val block: BlockKind) : WorldEffect
+	data class Place(val at: VoxelPos, val block: BlockKind) : WorldEffect
 
-    data class Break(val at: VoxelPos) : WorldEffect
+	data class Break(val at: VoxelPos) : WorldEffect
 
-    data class Toggle(val at: VoxelPos) : WorldEffect
+	data class Toggle(val at: VoxelPos) : WorldEffect
 }
 
 /** The kinds of block a [WorldEffect.Place] can put down; grows with the placing actions. */
 enum class BlockKind {
-    SOLID,
+	SOLID,
 }

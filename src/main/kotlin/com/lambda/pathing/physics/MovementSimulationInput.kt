@@ -36,19 +36,19 @@ data class MovementSimulationInput(
 	/** A planned block interaction for this tick; the simulator ignores it until world-changing actions land. */
 	val interaction: Interaction? = null,
 ) {
-    companion object {
-        fun from(
-	        input: Input,
-	        rotation: Rotation? = null,
-	        useItemSlowdown: Boolean = false,
-        ) = MovementSimulationInput(
-            forward = input.forward.toDouble(),
-            strafe = input.strafe.toDouble(),
-            jump = input.jumping,
-            sneak = input.sneaking,
-            sprint = input.sprinting,
-            useItemSlowdown = useItemSlowdown,
-            rotation = rotation,
-        )
-    }
+	companion object {
+		fun from(
+			input: Input,
+			rotation: Rotation? = null,
+			useItemSlowdown: Boolean = false,
+		) = MovementSimulationInput(
+			forward = input.forward.toDouble(),
+			strafe = input.strafe.toDouble(),
+			jump = input.jumping,
+			sneak = input.sneaking,
+			sprint = input.sprinting,
+			useItemSlowdown = useItemSlowdown,
+			rotation = rotation,
+		)
+	}
 }

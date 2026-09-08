@@ -17,46 +17,41 @@
 
 package com.lambda.pathing.physics
 
-import com.lambda.pathing.physics.MovementSimulationInput
-import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.MovementSimulationTick
-import com.lambda.pathing.physics.MovementSimulator
-import net.minecraft.util.math.Vec3d
-
 /**
  * Drives a [MovementSimulator] from an input source, tick by tick, for live prediction
  * (fall damage, next-tick position). The planner never uses this; it rolls tapes through
  * [MovementSimulator.stepFrom] directly.
  */
 class LivePrediction(
-    private val simulator: MovementSimulator,
-    private val inputProvider: MovementInputProvider,
+	private val simulator: MovementSimulator,
+	private val inputProvider: MovementInputProvider,
 ) {
-    val state: MovementSimulationState get() = simulator.state
+	val state: MovementSimulationState get() = simulator.state
 
-    val tick: MovementSimulationTick get() = simulator.state.let {
-        MovementSimulationTick(
-            position = it.position,
-            rotation = it.rotation,
-            velocity = it.velocity,
-            boundingBox = it.boundingBox,
-            eyePos = it.position.add(0.0, simulator.eyeHeight, 0.0),
-            onGround = it.onGround,
-            isJumping = it.isJumping,
-        )
-    }
+	val tick: MovementSimulationTick
+		get() = simulator.state.let {
+			MovementSimulationTick(
+				position = it.position,
+				rotation = it.rotation,
+				velocity = it.velocity,
+				boundingBox = it.boundingBox,
+				eyePos = it.position.add(0.0, simulator.eyeHeight, 0.0),
+				onGround = it.onGround,
+				isJumping = it.isJumping,
+			)
+		}
 
-    fun advance(input: MovementSimulationInput = inputProvider.nextInput(simulator)): MovementSimulationTick {
-        simulator.tickMovement(input)
-        return tick
-    }
+	fun advance(input: MovementSimulationInput = inputProvider.nextInput(simulator)): MovementSimulationTick {
+		simulator.tickMovement(input)
+		return tick
+	}
 
-    /** Advances up to [amount] ticks, returning the first tick that satisfies [until], else the last. */
-    fun skipUntil(amount: Int = 20, until: (MovementSimulationTick) -> Boolean): MovementSimulationTick {
-        repeat(amount) {
-            val prediction = advance()
-            if (until(prediction)) return prediction
-        }
-        return tick
-    }
+	/** Advances up to [amount] ticks, returning the first tick that satisfies [until], else the last. */
+	fun skipUntil(amount: Int = 20, until: (MovementSimulationTick) -> Boolean): MovementSimulationTick {
+		repeat(amount) {
+			val prediction = advance()
+			if (until(prediction)) return prediction
+		}
+		return tick
+	}
 }

@@ -13,24 +13,25 @@ import com.lambda.pathing.world.CoarseVoxelView
  * route hands over from one leg to the next.
  */
 interface ValueField : SteeringField {
-    val view: CoarseVoxelView
-    val goal: Stance
+	val view: CoarseVoxelView
+	val goal: Stance
 
-    fun invalidate(sections: Set<PathingSection>)
-    fun lowerBound(stance: Stance): Double
-    fun clearGuideCache()
-    fun guide(stance: Stance): Double
-    fun guide(stance: Stance, speed: SpeedClass): Double
-    fun isMapped(stance: Stance): Boolean
-    fun edgesFrom(stance: Stance): List<CoarseEdge>
-    fun isStance(stance: Stance): Boolean
-    fun steps(
-        stance: Stance,
-        count: Int,
-        marginTicks: Double = Double.MAX_VALUE,
-        heading: Pair<Double, Double>? = null,
-    ): List<CoarseEdge>
-    fun reachesGoal(chain: List<Stance>): Boolean
+	fun invalidate(sections: Set<PathingSection>)
+	fun lowerBound(stance: Stance): Double
+	fun clearGuideCache()
+	fun guide(stance: Stance): Double
+	fun guide(stance: Stance, speed: SpeedClass): Double
+	fun isMapped(stance: Stance): Boolean
+	fun edgesFrom(stance: Stance): List<CoarseEdge>
+	fun isStance(stance: Stance): Boolean
+	fun steps(
+		stance: Stance,
+		count: Int,
+		marginTicks: Double = Double.MAX_VALUE,
+		heading: Pair<Double, Double>? = null,
+	): List<CoarseEdge>
+
+	fun reachesGoal(chain: List<Stance>): Boolean
 }
 
 /**
@@ -39,23 +40,25 @@ interface ValueField : SteeringField {
  * the delegate and re-roots the frontier, nothing else has to learn about legs.
  */
 class SwitchableValueField(initial: CoarseValueField) : ValueField {
-    @Volatile
-    var current: CoarseValueField = initial
+	@Volatile
+	var current: CoarseValueField = initial
 
-    override val view: CoarseVoxelView get() = current.view
-    override val goal: Stance get() = current.goal
+	override val view: CoarseVoxelView get() = current.view
+	override val goal: Stance get() = current.goal
 
-    override fun invalidate(sections: Set<PathingSection>) = current.invalidate(sections)
-    override fun lowerBound(stance: Stance): Double = current.lowerBound(stance)
-    override fun clearGuideCache() = current.clearGuideCache()
-    override fun guide(stance: Stance): Double = current.guide(stance)
-    override fun guide(stance: Stance, speed: SpeedClass): Double = current.guide(stance, speed)
-    override fun isMapped(stance: Stance): Boolean = current.isMapped(stance)
-    override fun edgesFrom(stance: Stance): List<CoarseEdge> = current.edgesFrom(stance)
-    override fun isStance(stance: Stance): Boolean = current.isStance(stance)
-    override fun steps(stance: Stance, count: Int, marginTicks: Double, heading: Pair<Double, Double>?): List<CoarseEdge> =
-        current.steps(stance, count, marginTicks, heading)
-    override fun chain(stance: Stance, firstStep: Stance?, length: Int, heading: Pair<Double, Double>?): List<Stance> =
-        current.chain(stance, firstStep, length, heading)
-    override fun reachesGoal(chain: List<Stance>): Boolean = current.reachesGoal(chain)
+	override fun invalidate(sections: Set<PathingSection>) = current.invalidate(sections)
+	override fun lowerBound(stance: Stance): Double = current.lowerBound(stance)
+	override fun clearGuideCache() = current.clearGuideCache()
+	override fun guide(stance: Stance): Double = current.guide(stance)
+	override fun guide(stance: Stance, speed: SpeedClass): Double = current.guide(stance, speed)
+	override fun isMapped(stance: Stance): Boolean = current.isMapped(stance)
+	override fun edgesFrom(stance: Stance): List<CoarseEdge> = current.edgesFrom(stance)
+	override fun isStance(stance: Stance): Boolean = current.isStance(stance)
+	override fun steps(stance: Stance, count: Int, marginTicks: Double, heading: Pair<Double, Double>?): List<CoarseEdge> =
+		current.steps(stance, count, marginTicks, heading)
+
+	override fun chain(stance: Stance, firstStep: Stance?, length: Int, heading: Pair<Double, Double>?): List<Stance> =
+		current.chain(stance, firstStep, length, heading)
+
+	override fun reachesGoal(chain: List<Stance>): Boolean = current.reachesGoal(chain)
 }

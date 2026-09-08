@@ -7,10 +7,10 @@ import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
  * Minecraft client. All members are called on the client thread only.
  */
 interface CaptureSource {
-    fun isChunkLoaded(chunkX: Int, chunkZ: Int): Boolean
-    val playerChunkX: Int
-    val playerChunkZ: Int
-    val viewDistance: Int
-    fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics
-    fun isOnClientThread(): Boolean
+	fun isChunkLoaded(chunkX: Int, chunkZ: Int): Boolean
+	val playerChunkX: Int
+	val playerChunkZ: Int
+	val viewDistance: Int
+	fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics
+	fun isOnClientThread(): Boolean
 }

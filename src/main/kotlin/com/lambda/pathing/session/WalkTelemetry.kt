@@ -9,30 +9,30 @@ import net.minecraft.util.math.Vec3d
  * of a torn read across separate volatiles.
  */
 data class Telemetry(
-    val published: PublishedPath?,
-    val maxDeviation: Double,
-    val adopted: Int,
-    val recoveries: Int,
-    val rejectedImprovements: Int,
-    /** Every tape the body walked this walk, oldest first, capped at [WalkTelemetry.MAX_RETAINED_PUBLICATIONS]. */
-    val executed: List<PublishedPath>,
-    /** The body's observed positions, one per executed frame, capped at [WalkTelemetry.MAX_RETAINED_TRAIL_POINTS]. */
-    val trail: List<Vec3d>,
-    /** Session-level counters, filled in by the session when it snapshots. */
-    val holds: Int = 0,
-    val repairs: Int = 0,
-    val leg: Int = 0,
-    val queuedWaypoints: Int = 0,
-    val sessionRestarts: Int = 0,
-    /** Frames adopted against ticks spent, see [com.lambda.pathing.session.PathingSession.publicationCadence]. */
-    val cadence: String = "",
+	val published: PublishedPath?,
+	val maxDeviation: Double,
+	val adopted: Int,
+	val recoveries: Int,
+	val rejectedImprovements: Int,
+	/** Every tape the body walked this walk, oldest first, capped at [WalkTelemetry.MAX_RETAINED_PUBLICATIONS]. */
+	val executed: List<PublishedPath>,
+	/** The body's observed positions, one per executed frame, capped at [WalkTelemetry.MAX_RETAINED_TRAIL_POINTS]. */
+	val trail: List<Vec3d>,
+	/** Session-level counters, filled in by the session when it snapshots. */
+	val holds: Int = 0,
+	val repairs: Int = 0,
+	val leg: Int = 0,
+	val queuedWaypoints: Int = 0,
+	val sessionRestarts: Int = 0,
+	/** Frames adopted against ticks spent, see [com.lambda.pathing.session.PathingSession.publicationCadence]. */
+	val cadence: String = "",
 ) {
-    companion object {
-        val EMPTY = Telemetry(
-            published = null, maxDeviation = 0.0, adopted = 0, recoveries = 0,
-            rejectedImprovements = 0, executed = emptyList(), trail = emptyList(),
-        )
-    }
+	companion object {
+		val EMPTY = Telemetry(
+			published = null, maxDeviation = 0.0, adopted = 0, recoveries = 0,
+			rejectedImprovements = 0, executed = emptyList(), trail = emptyList(),
+		)
+	}
 }
 
 /**
@@ -40,82 +40,82 @@ data class Telemetry(
  * taken from any thread and is rebuilt at most once per mutation.
  */
 internal class WalkTelemetry {
-    @Volatile
-    var published: PublishedPath? = null
-        set(value) {
-            field = value
-            invalidate()
-        }
+	@Volatile
+	var published: PublishedPath? = null
+		set(value) {
+			field = value
+			invalidate()
+		}
 
-    var maxDeviation: Double = 0.0
-        private set
+	var maxDeviation: Double = 0.0
+		private set
 
-    var adopted: Int = 0
-        private set
+	var adopted: Int = 0
+		private set
 
-    var recoveries: Int = 0
-        private set
+	var recoveries: Int = 0
+		private set
 
-    var rejectedImprovements: Int = 0
-        private set
+	var rejectedImprovements: Int = 0
+		private set
 
-    private val executedPaths = ArrayDeque<PublishedPath>()
-    private val trail = ArrayDeque<Vec3d>()
+	private val executedPaths = ArrayDeque<PublishedPath>()
+	private val trail = ArrayDeque<Vec3d>()
 
-    @Volatile
-    private var cached: Telemetry? = null
+	@Volatile
+	private var cached: Telemetry? = null
 
-    private val lock = Any()
+	private val lock = Any()
 
-    private fun invalidate() {
-        cached = null
-    }
+	private fun invalidate() {
+		cached = null
+	}
 
-    fun recordExecuted(path: PublishedPath) = synchronized(lock) {
-        if (executedPaths.size == MAX_RETAINED_PUBLICATIONS) executedPaths.removeFirst()
-        executedPaths.addLast(path)
-        invalidate()
-    }
+	fun recordExecuted(path: PublishedPath) = synchronized(lock) {
+		if (executedPaths.size == MAX_RETAINED_PUBLICATIONS) executedPaths.removeFirst()
+		executedPaths.addLast(path)
+		invalidate()
+	}
 
-    fun recordTrail(position: Vec3d, deviation: Double) = synchronized(lock) {
-        if (trail.size == MAX_RETAINED_TRAIL_POINTS) trail.removeFirst()
-        trail.addLast(position)
-        maxDeviation = maxOf(maxDeviation, deviation)
-        invalidate()
-    }
+	fun recordTrail(position: Vec3d, deviation: Double) = synchronized(lock) {
+		if (trail.size == MAX_RETAINED_TRAIL_POINTS) trail.removeFirst()
+		trail.addLast(position)
+		maxDeviation = maxOf(maxDeviation, deviation)
+		invalidate()
+	}
 
-    fun countAdoption() = synchronized(lock) {
-        adopted++
-        invalidate()
-    }
+	fun countAdoption() = synchronized(lock) {
+		adopted++
+		invalidate()
+	}
 
-    fun countRecovery() = synchronized(lock) {
-        recoveries++
-        invalidate()
-    }
+	fun countRecovery() = synchronized(lock) {
+		recoveries++
+		invalidate()
+	}
 
-    fun countRejectedImprovement() = synchronized(lock) {
-        rejectedImprovements++
-        invalidate()
-    }
+	fun countRejectedImprovement() = synchronized(lock) {
+		rejectedImprovements++
+		invalidate()
+	}
 
-    fun snapshot(): Telemetry {
-        cached?.let { return it }
-        return synchronized(lock) {
-            cached ?: Telemetry(
-                published = published,
-                maxDeviation = maxDeviation,
-                adopted = adopted,
-                recoveries = recoveries,
-                rejectedImprovements = rejectedImprovements,
-                executed = ArrayList(executedPaths),
-                trail = ArrayList(trail),
-            ).also { cached = it }
-        }
-    }
+	fun snapshot(): Telemetry {
+		cached?.let { return it }
+		return synchronized(lock) {
+			cached ?: Telemetry(
+				published = published,
+				maxDeviation = maxDeviation,
+				adopted = adopted,
+				recoveries = recoveries,
+				rejectedImprovements = rejectedImprovements,
+				executed = ArrayList(executedPaths),
+				trail = ArrayList(trail),
+			).also { cached = it }
+		}
+	}
 
-    companion object {
-        const val MAX_RETAINED_PUBLICATIONS = 256
-        const val MAX_RETAINED_TRAIL_POINTS = 4_096
-    }
+	companion object {
+		const val MAX_RETAINED_PUBLICATIONS = 256
+		const val MAX_RETAINED_TRAIL_POINTS = 4_096
+	}
 }
