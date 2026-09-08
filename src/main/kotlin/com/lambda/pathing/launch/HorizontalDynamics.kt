@@ -1,6 +1,5 @@
 package com.lambda.pathing.launch
 
-import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -165,14 +164,6 @@ class HorizontalDynamics(
         fun heading(yawDegrees: Double): Pair<Double, Double> {
             val radians = Math.toRadians(yawDegrees)
             return -sin(radians) to cos(radians)
-        }
-
-        /** Smallest turn between two bearings, in radians. */
-        fun turnBetween(fromYaw: Double, toYaw: Double): Double {
-            var delta = (toYaw - fromYaw) % 360.0
-            if (delta > 180.0) delta -= 360.0
-            if (delta < -180.0) delta += 360.0
-            return Math.toRadians(abs(delta))
         }
     }
 }

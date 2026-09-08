@@ -110,7 +110,6 @@ interface PathingRenderConfig {
     val unsettledJunctionColor: Color
     val segmentFastColor: Color
     val segmentSlowColor: Color
-    val alternateColor: Color
 
     // The anchor tree.
     val spineColor: Color

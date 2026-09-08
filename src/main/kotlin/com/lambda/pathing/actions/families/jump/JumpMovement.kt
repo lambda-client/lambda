@@ -17,9 +17,9 @@ import com.lambda.pathing.actions.landingRisk
 
 /**
  * Ground-launched jumps. The fan lives in [JumpTemplates], solving and run-ups in
- * [JumpDecisions], the jump-key timing in [JumpLaunchDelays], the opt-in momentum
- * proposers in [MomentumProposals] and the controllers in [JumpPrograms]; this object
- * only prices and delegates.
+ * [JumpDecisions], the jump-key timing in [JumpLaunchDelays], the improver-only momentum
+ * proposers in [MomentumProposals] and the controllers in [JumpPrograms]; this object only
+ * prices and delegates.
  */
 object JumpMovement : Movement {
     override val id = MovementId.JUMP

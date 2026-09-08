@@ -78,6 +78,14 @@ class LongDStarLite(
         var timedOut = false
         var expansionLimitReached = false
         var wasCancelled = false
+        var stall: String? = null
+        // A live session once spent a million steps in 47 ms without converging: the loop
+        // was re-processing one node whose values never settled. Detect the pattern and
+        // report the node rather than burning the budget silently.
+        var stallNode = 0L
+        var stallG = 0.0
+        var stallRhs = 0.0
+        var stallSteps = 0
 
         while (shouldCompute()) {
             if ((processed and DEADLINE_CHECK_MASK) == 0 && cancelled()) {
@@ -92,6 +100,24 @@ class LongDStarLite(
                 timedOut = true
                 break
             }
+            if (queue.isEmpty()) {
+                stall = "queue empty while start is inconsistent: start=${describe(start)} g=${g(start)} rhs=${rhs(start)}"
+                break
+            }
+            val top = queue.top()
+            val topG = g(top)
+            val topRhs = rhs(top)
+            if (top == stallNode && topG == stallG && topRhs == stallRhs) {
+                if (++stallSteps >= STALL_STEPS) {
+                    stall = "node ${describe(top)} re-processed $stallSteps times with g=$topG rhs=$topRhs key=(${queue.topFirst()}, ${queue.topSecond()}) km=$km"
+                    break
+                }
+            } else {
+                stallNode = top
+                stallG = topG
+                stallRhs = topRhs
+                stallSteps = 0
+            }
 
             step()
             processed++
@@ -103,6 +129,7 @@ class LongDStarLite(
             expansionLimitReached = expansionLimitReached,
             cancelled = wasCancelled,
             converged = !shouldCompute(),
+            stall = stall,
         )
     }
 
@@ -498,15 +525,6 @@ class LongDStarLite(
 
     fun rhs(node: Long): Double = rhsValues.get(node)
 
-    /** First key component `min(g, rhs) + h(start, node) + km`. */
-    fun keyFirst(node: Long): Double {
-        val minCost = min(g(node), rhs(node))
-        return minCost + checkedHeuristic(start, node) + km
-    }
-
-    /** Second key component `min(g, rhs)`. */
-    fun keySecond(node: Long): Double = min(g(node), rhs(node))
-
     fun updateVertex(node: Long) {
         val inQueue = node in queue
         val nodeG = g(node)
@@ -544,10 +562,12 @@ class LongDStarLite(
     }
 
     private fun setG(node: Long, value: Double) {
+        require(!value.isNaN()) { "D* Lite g must not be NaN: ${describe(node)}" }
         if (value == INF) gValues.remove(node) else gValues.put(node, value)
     }
 
     private fun setRhs(node: Long, value: Double) {
+        require(!value.isNaN()) { "D* Lite rhs must not be NaN: ${describe(node)}" }
         if (value == INF) rhsValues.remove(node) else rhsValues.put(node, value)
     }
 
@@ -565,6 +585,8 @@ class LongDStarLite(
         val expansionLimitReached: Boolean,
         val cancelled: Boolean,
         val converged: Boolean,
+        /** Non-null when the loop was cut short because one node never settled; names it. */
+        val stall: String? = null,
     )
 
     data class SynchronizationResult(
@@ -578,6 +600,8 @@ class LongDStarLite(
         private const val INF = Double.POSITIVE_INFINITY
         private const val EPSILON = 1e-9
         private const val DEADLINE_CHECK_MASK = 0x0F
+        /** Consecutive steps on one unchanged top node before the loop is declared stalled. */
+        private const val STALL_STEPS = 4096
 
         private const val MAX_DESCENT_ROUNDS = 256
 

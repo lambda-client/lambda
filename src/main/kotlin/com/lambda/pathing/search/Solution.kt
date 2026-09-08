@@ -18,11 +18,13 @@ internal class Solution(
 ) {
     /**
      * The decisions this solution was built from; see [PlanSegment]. Lazy because solutions
-     * are produced speculatively and few are certified. See docs/decisions/improver.md.
-     * Invariant: this is the actual certified decision chain, not a second route model.
-     * [PlanImprover] re-runs the suffix and returns its complete winning solution;
-     * [Certifier] publishes that chain without reconstructing it from graph segments.
+     * are produced speculatively and few are certified. Invariant: this is the actual
+     * certified decision chain, not a second route model; [Certifier] publishes it without
+     * reconstructing it from graph segments.
      */
+    /** Collision events that began mid-air, across the chain and the terminal tail. */
+    val airborneCollisionEvents: Int by lazy { anchor.airborneCollisionEvents + airborneCollisionEvents(anchor.state, tailFrames) }
+
     val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
 
     /**

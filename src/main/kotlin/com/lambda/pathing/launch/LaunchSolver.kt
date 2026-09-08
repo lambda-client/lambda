@@ -53,8 +53,6 @@ data class LaunchSolution(
 
     val apex: Double get() = arc.apex
 
-    val flightDistance: Double get() = aimDistance - launchOffset
-
     /**
      * Blocks the body drops between the arc's apex and its landing.
      *

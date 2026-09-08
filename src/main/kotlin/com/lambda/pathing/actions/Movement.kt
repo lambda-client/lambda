@@ -83,9 +83,8 @@ class ProposalContext(
     /** The MOVING-class guide: what the remainder costs a body that keeps its momentum. */
     val movingGuideTicks: (Stance) -> Double = guideTicks,
 
-    val momentumSkips: Boolean = true,
-
-    val momentumGait: Boolean = true,
+    /** Whether momentum proposals (gait hops, skips across walked cells) are wanted; the improver's vocabulary only. */
+    val momentum: Boolean = false,
 )
 
 class Proposals(

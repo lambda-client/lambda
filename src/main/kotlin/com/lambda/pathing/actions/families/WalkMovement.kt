@@ -113,7 +113,12 @@ object WalkMovement : Movement {
         // stance on the field parkour dump. See docs/decisions/movement-tuning.md.
         val climbing = context.view.medium(body.stance.x, body.stance.y, body.stance.z) == Medium.CLIMBABLE
         for (step in steps) {
-            if (climbing || !walkable(step)) continue
+            if (!walkable(step)) continue
+            // From a ladder the one walk that works is the exit onto the block above: the
+            // body climbs out holding forward and steps off the ladder's top edge (the
+            // rollout treats that edge as transit). Level or downward walks off a ladder
+            // burned thousands of rollouts per cell and stay out.
+            if (climbing && !(step.movement == MovementId.STEP_UP && step.to.y > body.stance.y)) continue
             walks += decisions(DecisionContext(body, step, context.constraints, context.view))
         }
 

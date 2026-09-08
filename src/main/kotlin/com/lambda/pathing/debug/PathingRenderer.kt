@@ -197,9 +197,8 @@ object PathingRenderer : Loadable {
     // ---- The plan graph -------------------------------------------------------------------
 
     /**
-     * The certified plan as its decision graph: a diamond at every junction a repair or a
-     * shortcut may cut at, dotted alternates where the improver found a rival span, and
-     * (opt-in) the spans themselves shaded by pace on top of the tape.
+     * The certified plan as its decision graph: a diamond at every junction a repair may
+     * cut at, and (opt-in) the spans themselves shaded by pace on top of the tape.
      */
     private fun RenderBuilder.renderPlanGraph(plan: TrajectoryPlan) {
         val graph = PlanGraph.of(plan) ?: return
@@ -217,16 +216,6 @@ object PathingRenderer : Loadable {
                 val perBlock = if (blocks > 0.05) segment.frameCount / blocks else FRAMES_PER_BLOCK_WORST
                 val heat = ((perBlock - FRAMES_PER_BLOCK_IDEAL) / (FRAMES_PER_BLOCK_WORST - FRAMES_PER_BLOCK_IDEAL)).coerceIn(0.0, 1.0)
                 polyline(points, lerp(heat, config.segmentFastColor, config.segmentSlowColor), width)
-            }
-        }
-
-        graph.alternates.forEach { alternate ->
-            alternate.segments.forEach { segment ->
-                line(
-                    segment.entry.position.add(0.0, PLAN_GRAPH_Y + 0.05, 0.0),
-                    segment.exit.position.add(0.0, PLAN_GRAPH_Y + 0.05, 0.0),
-                    config.alternateColor, width, OPTIMISTIC_DOTS,
-                )
             }
         }
 

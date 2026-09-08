@@ -167,7 +167,14 @@ internal class AnchorRollout(
 
                         val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed ||
                             action.leavesGround || movement.completesAirborne
-                        if (done && moving && stance != anchor.stance) {
+                        // A body that has just climbed out stands on the thin top edge of the
+                        // ladder block: physically supported, but over a column the coarse
+                        // model does not map as a stance. That is transit, not arrival; the
+                        // program keeps steering to its target cell. See docs/decisions/movement-tuning.md.
+                        val onLadderTop = frame.state.onGround && !movement.completesAirborne &&
+                            field.view.medium(stance.x, stance.y - 1, stance.z) == Medium.CLIMBABLE &&
+                            !field.isStance(stance)
+                        if (done && moving && stance != anchor.stance && !onLadderTop) {
                             prepared.eventFrame = frame.index
                             prepared.eventStance = stance
                             true
@@ -253,6 +260,7 @@ internal class AnchorRollout(
                 boundary = anchor.elapsed + frames.size,
             ).also {
                 it.via = action.movement
+                it.airborneCollisionEvents = anchor.airborneCollisionEvents + airborneCollisionEvents(anchor.state, frames)
                 it.decision = action
                 it.points = points
                 if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(frames)

@@ -220,9 +220,6 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     @Group(GRAPH_GROUP)
     override val segmentSlowColor by c.setting("Span Slow", Color(248, 113, 113, 220)) { enabled && renderPlanGraph }
 
-    @Group(GRAPH_GROUP)
-    override val alternateColor by c.setting("Alternate", Color(253, 224, 71, 240)) { enabled && renderPlanGraph }
-
     @Group(TREE_GROUP)
     override val spineColor by c.setting("Spine", Color(52, 211, 153, 245)) { enabled && renderSearchTree }
 

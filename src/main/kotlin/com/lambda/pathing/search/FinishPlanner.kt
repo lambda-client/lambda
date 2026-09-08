@@ -25,13 +25,16 @@ internal class FinishPlanner(
 ) {
     private var provenFinish: TerminalApproach? = null
 
-    /** A denied attempt stops the parameter search, retaining any already certified best tail. */
-    fun finishFrom(anchor: ValueAnchor, canStartRollout: () -> Boolean = { true }): Solution? {
+    /**
+     * A denied attempt stops the parameter search, retaining any already certified best
+     * tail. The proven parameters are tried first and, unless [exhaustive], returned as soon
+     * as they certify: the search finishes many anchors and pays for the memo once. The
+     * improver finishes one body that arrived faster than the spine's, so it sweeps the
+     * whole grid: the memoised brake was tuned for a slower arrival.
+     */
+    fun finishFrom(anchor: ValueAnchor, exhaustive: Boolean = false, canStartRollout: () -> Boolean = { true }): Solution? {
         val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
-        if (!field.reachesGoal(chain)) {
-            probe.finishAttempt(anchor.stance, anchor.elapsed, anchor.speed, chainReached = false, sealed = false)
-            return null
-        }
+        if (!field.reachesGoal(chain)) return null
         val points = chain.map { it.center(environment) }
         val leads: List<Double?> = if (chain.asSequence().zipWithNext().any { (from, to) -> to.y > from.y }) {
             config.stepUpJumpLeadDistances
@@ -65,7 +68,7 @@ internal class FinishPlanner(
                 inputSwitches = anchor.inputSwitches +
                     inputSwitches(anchor.inputs.lastOrNull(), frames),
             )
-            if (parameters == provenFinish) {
+            if (!exhaustive && parameters == provenFinish) {
                 return Solution.of(anchor, frames, parameters, rank.collisionEvents)
             }
             val incumbent = bestRank
@@ -76,12 +79,7 @@ internal class FinishPlanner(
             }
         }
 
-        val rank = bestRank
-        probe.finishAttempt(
-            anchor.stance, anchor.elapsed, anchor.speed,
-            chainReached = true, sealed = rank != null,
-        )
-        if (rank == null) return null
+        val rank = bestRank ?: return null
         val parameters = bestParameters!!
         provenFinish = parameters
         return Solution.of(anchor, bestFrames!!, parameters, rank.collisionEvents)

@@ -14,7 +14,6 @@ sealed interface PlanningFailure {
 
     data class InvalidRequest(override val message: String) : PlanningFailure
     data class ResourceLimit(override val message: String) : PlanningFailure
-    data class WorldUnavailable(override val message: String) : PlanningFailure
     data class NoRoute(override val message: String) : PlanningFailure
 
     data class NoCertifiedMotion(override val message: String) : PlanningFailure
@@ -51,8 +50,8 @@ internal data class TrajectoryPlanningPreparation(
     val bootstrapDelayMillis: Long,
     val plannerThreads: Int,
     val improvementBudget: Int,
-    val momentumGait: Boolean,
-    val momentumSkips: Boolean,
     val dumpDirectory: Path?,
+    /** Whether successful legs are dumped too (see PathingConfig.dumpAllPlans). */
+    val dumpAllPlans: Boolean,
     val startedMillis: Long,
 )

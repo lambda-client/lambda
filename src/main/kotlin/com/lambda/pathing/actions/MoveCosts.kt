@@ -17,10 +17,6 @@ object CoarseMoveRates {
 
     const val MIN_JUMP_DISTANCE = 2.0
 
-    const val JUMP_AIR_TICKS = 12.0
-
-    const val JUMP_RISE_TICKS = 2.0
-
     const val CLIMB_TICKS_PER_BLOCK = 1.0 / 0.117
 
     private const val MAX_FALL_TABLE_DEPTH = 12

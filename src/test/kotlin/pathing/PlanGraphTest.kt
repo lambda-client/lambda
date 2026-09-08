@@ -11,13 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Tag
 
-/**
- * The junction graph over a certified plan, and the shortest path through it.
- *
- * With no alternates offered the graph must be exactly the spine -- a structure that
- * quietly reorders or drops segments would be worse than no structure at all. With one
- * offered it must take it when it is cheaper and refuse it when it is not.
- */
+/** The junction graph over a certified plan: one junction per segment boundary, frame 0 first. */
 @Tag("bedrock-corpus")
 class PlanGraphTest {
 
@@ -28,7 +22,7 @@ class PlanGraphTest {
     }
 
     @Test
-    fun `with no alternates the best route is the spine`() {
+    fun `junctions cover the spine`() {
         val graphs = graphs()
         assertTrue(graphs.isNotEmpty(), "no scenario produced a full plan")
         for ((name, graph) in graphs) {
@@ -37,55 +31,6 @@ class PlanGraphTest {
             assertEquals(
                 graph.frames, graph.junctions.last().frame,
                 "$name: last junction is not the end of the tape",
-            )
-            assertEquals(graph.spine, graph.bestRoute(), "$name: best route drifted from the spine")
-        }
-    }
-
-    @Test
-    fun `a cheaper alternate is taken and a dearer one is refused`() {
-        for ((name, graph) in graphs()) {
-            val from = graph.junctions.indexOfFirst { it.settled && it.index in 1..graph.spine.size - 4 }
-            if (from < 0) continue
-            val to = minOf(from + 3, graph.spine.size)
-            val spanFrames = graph.spineFrames(from, to)
-            val replaced = graph.spine.subList(from, to)
-
-            // A shortcut is only ever adopted on frames, so fake one by reusing the span's
-            // own segments and letting the graph compare counts.
-            val cheaper = graph.with(
-                PlanGraph.Alternate(from, to, replaced.dropLast(1)),
-            )
-            assertTrue(
-                cheaper.bestRoute().sumOf { it.frameCount } < spanFrames + graph.frames - spanFrames + 1,
-                "$name: cheaper alternate was not taken",
-            )
-            assertTrue(
-                cheaper.bestRoute().size < graph.spine.size,
-                "$name: cheaper alternate did not shorten the route",
-            )
-
-            val dearer = graph.with(
-                PlanGraph.Alternate(from, to, replaced + replaced.first()),
-            )
-            assertEquals(
-                graph.spine, dearer.bestRoute(),
-                "$name: a more expensive alternate was taken anyway",
-            )
-        }
-    }
-
-    @Test
-    fun `report the junction structure`() {
-        for ((name, graph) in graphs()) {
-            val targets = graph.improvementTargets().take(3)
-            println(
-                "[graph] %-18s frames=%-4d junctions=%-3d settled=%-3d  worst spans: %s".format(
-                    name, graph.frames, graph.junctions.size, graph.junctions.count { it.settled },
-                    targets.joinToString("  ") {
-                        "J%d..J%d %df/%.1f b".format(it.from, it.to, it.frames, it.frames / it.framesPerBlock)
-                    },
-                ),
             )
         }
     }
@@ -102,16 +47,10 @@ class PlanGraphTest {
                     assertEquals(junction.state.onGround, junction.rejoinable, "${scenario.name}: J${junction.index} predicate")
                 }
             }
-            // The start is always a legal cut; with no other cut points there are no spans.
+            // The start is always a legal cut.
             val none = PlanGraph.of(plan, rejoinable = { false })!!
             assertTrue(none.junctions.first().rejoinable, "${scenario.name}: start must stay a cut point")
-            assertTrue(none.improvementTargets().isEmpty(), "${scenario.name}: spans without rejoinable ends")
-            // The rejoin rule offers at least what settled-only did.
-            val settledOnly = PlanGraph.of(plan, rejoinable = { it.onGround && it.velocity.horizontalLength() > 0.02 })!!
-            assertTrue(
-                graph.improvementTargets().size >= settledOnly.improvementTargets().size,
-                "${scenario.name}: rejoin rule offers fewer spans than settled-only",
-            )
+            assertTrue(none.junctions.drop(1).none { it.rejoinable }, "${scenario.name}: predicate ignored")
         }
     }
 

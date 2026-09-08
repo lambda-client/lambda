@@ -2,14 +2,6 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
 
-/**
- * How the beam decides one same-bucket anchor makes another redundant. [FULL]: earlier,
- * at least as fast, no more collisions or input switches. [POSITION_AWARE] additionally
- * requires the dominator to stand at least as close to the next coarse cell. [OFF] keeps
- * everything up to the per-key cap. Default and measurements: docs/decisions/beam.md.
- */
-enum class FrontierDomination { FULL, POSITION_AWARE, OFF }
-
 data class ValueFieldSearchConfig(
     val maxExpansions: Int = 8000,
     val stallExpansions: Int = 3000,
@@ -39,19 +31,6 @@ data class ValueFieldSearchConfig(
      * frame. 0 disables. Denominated in expansions, never frames: docs/decisions/tempo-law.md.
      */
     val branchExpansionHeadroomExpansions: Int = 1560,
-    /**
-     * Offer solver-derived momentum jumps across route cells in the search vocabulary
-     * (see MomentumProposals). The improver always gets them.
-     * Default evidence: docs/decisions/movement-tuning.md.
-     */
-    val momentumSkips: Boolean = false,
-    /**
-     * Offer the chained sprint-jump gait in the search vocabulary (see
-     * MomentumProposals.gaitHop). The improver always gets it. Default evidence:
-     * docs/decisions/movement-tuning.md.
-     */
-    val momentumGait: Boolean = false,
-    val frontierDomination: FrontierDomination = FrontierDomination.FULL,
     val speedBucketBlocks: Double = 0.075,
     val maxTemperature: Double = 1.0,
     /** Rollouts a solved plan may spend having its worst spans shortcut. 0 disables it. */

@@ -8,7 +8,6 @@ import com.lambda.pathing.core.center
 import java.util.PriorityQueue
 import kotlin.math.atan2
 import kotlin.math.floor
-import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.actions.TrajectoryDecision
 
 /**
@@ -100,7 +99,6 @@ internal class Frontier(
     var beamCapped = 0
         private set
 
-    private val nextCenters = HashMap<Stance, HorizontalPoint?>()
 
     val beamBuckets: Int get() = buckets.size
     val beamLargestBucket: Int get() = buckets.values.maxOfOrNull { it.size } ?: 0
@@ -227,7 +225,6 @@ internal class Frontier(
 
     fun rescore() {
         fieldEpoch++
-        nextCenters.clear()
         val entries = open.toList()
         open.clear()
         entries.forEach { entry ->
@@ -264,37 +261,30 @@ internal class Frontier(
     fun admit(anchor: ValueAnchor) {
         val guide = orderGuide(anchor)
             .takeIf { it.isFinite() }
-            ?: if (anchor.parent == null) field.lowerBound(anchor.stance) else {
-                probe.admission(anchor.stance, anchor.elapsed, "unmapped")
-                return
-            }
+            ?: if (anchor.parent == null) field.lowerBound(anchor.stance) else return
         deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
 
         val key = keyOf(anchor)
         if (!reachability.canReach(anchor)) {
             unreachableAdmissions++
-            probe.admission(anchor.stance, anchor.elapsed, "unreachable")
             return
         }
 
         anchorsAdmitted++
         val bucket = buckets.getOrPut(key) { ArrayList() }
-        if (searchConfig.frontierDomination != FrontierDomination.OFF) {
-            val positionAware = searchConfig.frontierDomination == FrontierDomination.POSITION_AWARE
-            if (bucket.any { it.preferredForBeamOver(anchor, positionAware) }) {
-                beamDominated++
-                probe.admission(anchor.stance, anchor.elapsed, "dominated")
-                return
-            }
-            val before = bucket.size
-            bucket.removeAll { anchor.preferredForBeamOver(it, positionAware) }
-            beamEvicted += before - bucket.size
+        // Beam domination: earlier, at least as fast, no more collisions or input switches.
+        // Measured alternatives (position-aware, off): docs/decisions/beam.md.
+        if (bucket.any { it.preferredForBeamOver(anchor) }) {
+            beamDominated++
+            return
         }
+        val before = bucket.size
+        bucket.removeAll { anchor.preferredForBeamOver(it) }
+        beamEvicted += before - bucket.size
         if (bucket.size >= searchConfig.frontierPerKey) {
             val worst = bucket.maxByOrNull { it.elapsed } ?: return
             if (worst.elapsed <= anchor.elapsed) {
                 beamCapped++
-                probe.admission(anchor.stance, anchor.elapsed, "capped")
                 return
             }
             bucket.remove(worst)
@@ -307,13 +297,9 @@ internal class Frontier(
         incumbentScore()?.let {
             val bound = anchor.elapsed + guide +
                 Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
-            if (bound >= it) {
-                probe.admission(anchor.stance, anchor.elapsed, "pruned")
-                return
-            }
+            if (bound >= it) return
         }
 
-        probe.admission(anchor.stance, anchor.elapsed, "enqueued")
         enqueue(entryFor(anchor, guide))
     }
 
@@ -328,29 +314,11 @@ internal class Frontier(
         anchor = anchor,
     )
 
-    private fun ValueAnchor.preferredForBeamOver(
-        other: ValueAnchor,
-        positionAware: Boolean = false,
-    ): Boolean =
+    private fun ValueAnchor.preferredForBeamOver(other: ValueAnchor): Boolean =
         elapsed <= other.elapsed &&
             speed >= other.speed - SPEED_DOMINANCE_SLACK &&
             collisionEvents <= other.collisionEvents &&
-            inputSwitches <= other.inputSwitches &&
-            (!positionAware || atLeastAsCloseToNextCell(other))
-
-    private fun ValueAnchor.atLeastAsCloseToNextCell(other: ValueAnchor): Boolean {
-        val next = nextCellCenter(stance) ?: return true
-        return kotlin.math.hypot(state.position.x - next.x, state.position.z - next.z) <=
-            kotlin.math.hypot(other.state.position.x - next.x, other.state.position.z - next.z) +
-            POSITION_DOMINANCE_SLACK
-    }
-
-    private fun nextCellCenter(stance: Stance): HorizontalPoint? {
-        if (!nextCenters.containsKey(stance)) {
-            nextCenters[stance] = field.steps(stance, 1).firstOrNull()?.to?.center()
-        }
-        return nextCenters[stance]
-    }
+            inputSwitches <= other.inputSwitches
 
     /**
      * Bumped by every [rescore]: the field's guide values are frozen between rescores
@@ -425,9 +393,6 @@ internal class Frontier(
     private companion object {
 
         const val SPEED_DOMINANCE_SLACK = 0.01
-
-        /** Within-bucket positions differ by a quarter block at most; ties go to the earlier body. */
-        const val POSITION_DOMINANCE_SLACK = 0.02
 
         /** Position bucket on every axis; half a block collapses slow climbs. See docs/decisions/beam.md. */
         const val POSITION_BUCKET_BLOCKS = 0.25
