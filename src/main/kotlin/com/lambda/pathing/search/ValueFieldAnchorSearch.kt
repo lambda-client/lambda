@@ -1,7 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.MovementCatalog
@@ -15,7 +15,7 @@ object ValueFieldAnchorSearch {
     fun search(
         route: CoarseRoutePlan,
         catalog: MovementCatalog,
-        field: CoarseValueField,
+        field: ValueField,
         initialState: MovementSimulationState,
         profile: PlayerPhysicsProfile,
         environment: SnapshotSimulationEnvironment,
@@ -52,6 +52,8 @@ object ValueFieldAnchorSearch {
          */
         parallelism: Int = 1,
         executor: ExecutorService? = null,
+        nextLeg: ((Stance) -> LegHandoff?)? = null,
+        hasNextLeg: () -> Boolean = { false },
     ): MotionPlanResult {
         if (cancelled()) return MotionPlanResult.Cancelled
         val unsupported = route.edges.mapTo(HashSet()) { it.movement }
@@ -64,6 +66,8 @@ object ValueFieldAnchorSearch {
             expandGuide, adoptedSequence, finalGoal, probe, onExhaustion,
             parallelism = if (executor != null) parallelism.coerceAtLeast(1) else 1,
             executor = executor,
+            nextLeg = nextLeg,
+            hasNextLeg = hasNextLeg,
         ).run()
     }
 

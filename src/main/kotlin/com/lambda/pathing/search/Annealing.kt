@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 
 /**
@@ -11,7 +11,7 @@ import com.lambda.pathing.core.Stance
  * lists. See docs/decisions/annealing.md.
  */
 internal class Annealing(
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val frontier: Frontier,
     private val horizon: HorizonController,
     private val recovery: StallRecovery,

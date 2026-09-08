@@ -30,6 +30,9 @@ data class PublishedPath(
 
     /** How the tape's frames divide between the movements that produced them. */
     val segments: List<TapeSegment> = emptyList(),
+
+    /** Frames at which this tape passes the route's walk-through waypoints, in order. */
+    val legTouches: List<LegTouch> = emptyList(),
 ) {
     /**
      * Frames spent per frame the coarse route could not have avoided: tape length over the

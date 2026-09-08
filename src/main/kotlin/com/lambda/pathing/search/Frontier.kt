@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
@@ -35,13 +35,16 @@ internal fun interface ReachabilityPolicy {
 }
 
 internal class Frontier(
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val config: MotionConstraints,
     private val searchConfig: ValueFieldSearchConfig,
     private var routeIndex: Map<Stance, Int>,
     private val incumbentScore: () -> Int?,
 ) {
     var reachability: ReachabilityPolicy = ReachabilityPolicy { true }
+
+    /** Diagnostics only; admission outcomes are reported here. */
+    var probe: SearchProbe = SearchProbe.NONE
     class OpenEntry(
         val order: Double,
         val bound: Double,
@@ -189,6 +192,15 @@ internal class Frontier(
         buckets.clear()
     }
 
+    /**
+     * A leg handover: only [root]'s lineage survives, parked branches included. The old
+     * leg's frontier was ranked against a field that no longer applies.
+     */
+    fun retainLineage(root: ValueAnchor) {
+        retainDescendants(root)
+        parked.retainAll { it.anchor.descendsFrom(root) }
+    }
+
     /** Forget every anchor below [root] (not [root] itself): their rollouts read a world that is gone. */
     fun dropDescendants(root: ValueAnchor) {
         fun stale(anchor: ValueAnchor) = anchor !== root && anchor.descendsFrom(root)
@@ -252,12 +264,16 @@ internal class Frontier(
     fun admit(anchor: ValueAnchor) {
         val guide = orderGuide(anchor)
             .takeIf { it.isFinite() }
-            ?: if (anchor.parent == null) field.lowerBound(anchor.stance) else return
+            ?: if (anchor.parent == null) field.lowerBound(anchor.stance) else {
+                probe.admission(anchor.stance, anchor.elapsed, "unmapped")
+                return
+            }
         deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
 
         val key = keyOf(anchor)
         if (!reachability.canReach(anchor)) {
             unreachableAdmissions++
+            probe.admission(anchor.stance, anchor.elapsed, "unreachable")
             return
         }
 
@@ -267,6 +283,7 @@ internal class Frontier(
             val positionAware = searchConfig.frontierDomination == FrontierDomination.POSITION_AWARE
             if (bucket.any { it.preferredForBeamOver(anchor, positionAware) }) {
                 beamDominated++
+                probe.admission(anchor.stance, anchor.elapsed, "dominated")
                 return
             }
             val before = bucket.size
@@ -277,6 +294,7 @@ internal class Frontier(
             val worst = bucket.maxByOrNull { it.elapsed } ?: return
             if (worst.elapsed <= anchor.elapsed) {
                 beamCapped++
+                probe.admission(anchor.stance, anchor.elapsed, "capped")
                 return
             }
             bucket.remove(worst)
@@ -289,9 +307,13 @@ internal class Frontier(
         incumbentScore()?.let {
             val bound = anchor.elapsed + guide +
                 Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
-            if (bound >= it) return
+            if (bound >= it) {
+                probe.admission(anchor.stance, anchor.elapsed, "pruned")
+                return
+            }
         }
 
+        probe.admission(anchor.stance, anchor.elapsed, "enqueued")
         enqueue(entryFor(anchor, guide))
     }
 

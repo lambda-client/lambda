@@ -1,7 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.BrakeToStopProgram
 import com.lambda.pathing.actions.MotionConstraints
@@ -31,7 +31,7 @@ private const val WORLD_SYNC_INTERVAL = 64
 internal class AnchorSearchSession(
     private var route: CoarseRoutePlan,
     private val catalog: MovementCatalog,
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val initialState: MovementSimulationState,
     private val profile: PlayerPhysicsProfile,
     private val environment: SnapshotSimulationEnvironment,
@@ -51,8 +51,18 @@ internal class AnchorSearchSession(
     private val onExhaustion: ((SearchExhaustion) -> Unit)?,
     private val parallelism: Int = 1,
     private val executor: ExecutorService? = null,
+    /**
+     * Compound routes: the leg after the current goal, or null when the current goal is
+     * the last. Consulted when an anchor lands on the goal stance; a non-null handoff
+     * makes that landing a leg switch instead of a finish. May block until the leg is resolved.
+     */
+    private val nextLeg: ((Stance) -> LegHandoff?)? = null,
+    private val hasNextLeg: () -> Boolean = { false },
 ) {
     private val vocabulary = ActionSet(catalog, field, config, searchConfig) { corridor() }
+
+    /** Walk-through waypoints this search has passed, in tape frames. */
+    private val legTouches = ArrayList<LegTouch>()
 
     private var goalStance = route.goal
     private var goalPoint = goalStance.center(environment)
@@ -76,6 +86,7 @@ internal class AnchorSearchSession(
 
     init {
         frontier.reachability = ReachabilityPolicy(horizon::canReach)
+        frontier.probe = probe
     }
 
     private val stats = SearchStats()
@@ -184,6 +195,7 @@ internal class AnchorSearchSession(
         expansionsWindowStart = expansions
         annealing.rewindForRestart(seed.stance)
         horizon.reRootForRestart(seed)
+        probe.restartRooted(seed.stance, seed.elapsed, field.guide(seed.stance), frontier.openSize, frontier.parkedSize)
         return true
     }
 
@@ -413,7 +425,7 @@ internal class AnchorSearchSession(
             )
             if (!worthExpanding(entry)) continue
             when (judgeAgainstIncumbent(entry)) {
-                Verdict.SKIP -> continue
+                Verdict.SKIP -> { probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "incumbent", horizon.forkLife(entry.anchor)); continue }
                 Verdict.FINISH -> return finish(best!!)
                 Verdict.EXPAND -> Unit
             }
@@ -423,6 +435,7 @@ internal class AnchorSearchSession(
 
             val priced = nextAction(anchor)
             if (priced == null) {
+                probe.discarded(anchor.stance, anchor.elapsed, "no-action", horizon.forkLife(anchor))
                 if (annealing.canEscalate()) recovery.spend(anchor)
                 continue
             }
@@ -453,10 +466,12 @@ internal class AnchorSearchSession(
         val forkLife = horizon.forkLife(entry.anchor)
         if (forkLife < HorizonController.PUBLISH_DIVERGENCE_MARGIN_FRAMES) {
             stats.adoptableDrops++
+            probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "fork-dropped", forkLife)
             return false
         }
         if (!entry.starveExempt && tempo.starved(forkLife, searchConfig.branchExpansionHeadroomExpansions)) {
             stats.forkStarvedDrops++
+            probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "starved", forkLife)
             frontier.starve(entry)
             return false
         }
@@ -464,6 +479,7 @@ internal class AnchorSearchSession(
         if (entry.anchor.elapsed >= horizon.horizonEnd &&
             field.guide(entry.anchor.stance) > searchConfig.finishValueTicks
         ) {
+            probe.discarded(entry.anchor.stance, entry.anchor.elapsed, "parked", forkLife)
             frontier.park(entry)
             return false
         }
@@ -493,6 +509,7 @@ internal class AnchorSearchSession(
     private fun sweepFinish(anchor: ValueAnchor) {
         val remaining = field.guide(anchor.stance)
         if (anchor.sweptEpoch != sweepEpoch &&
+            !hasNextLeg() &&
             remaining <= searchConfig.finishValueTicks &&
             finishSweeps < searchConfig.maxFinishSweeps &&
             horizon.canReach(anchor) &&
@@ -598,13 +615,20 @@ internal class AnchorSearchSession(
                 // (brake wherever the landing rests); otherwise it may still be the only
                 // way to finish at all, kept as the fallback.
                 if (outcome.anchor.stance == goalStance) {
+                    val handoff = if (hasNextLeg()) nextLeg?.invoke(goalStance) else null
+                    if (handoff != null) {
+                        switchLeg(outcome.anchor, handoff)
+                        horizon.publishPrefix(outcome.anchor, expansions)
+                        return outcome
+                    }
                     if (config.touchArrival) finishByTouch(outcome.anchor)
                     else if (best == null) finishByBraking(outcome.anchor)
                 }
                 frontier.admit(outcome.anchor)
                 horizon.publishPrefix(outcome.anchor, expansions)
             }
-            is Outcome.Arrived -> retain(
+            // A rollout that came to rest on a walk-through waypoint is not a finish.
+            is Outcome.Arrived -> if (!hasNextLeg()) retain(
                 Solution.of(
                     anchor,
                     outcome.frames.take(outcome.stopFrame + 1),
@@ -654,7 +678,7 @@ internal class AnchorSearchSession(
             val remaining = field.guide(current.stance)
             if (!remaining.isFinite()) break
             if (remaining <= searchConfig.finishValueTicks) {
-                if (current.sweptEpoch != sweepEpoch && finishSweeps < searchConfig.maxFinishSweeps) {
+                if (!hasNextLeg() && current.sweptEpoch != sweepEpoch && finishSweeps < searchConfig.maxFinishSweeps) {
                     current.sweptEpoch = sweepEpoch
                     finishSweeps++
                     finisher.finishFrom(current)?.let { retain(it) }
@@ -928,6 +952,7 @@ internal class AnchorSearchSession(
             beamBuckets = frontier.beamBuckets,
             beamLargestBucket = frontier.beamLargestBucket,
             adoptableDrops = stats.adoptableDrops,
+            legSwitches = stats.legSwitches,
             forkStarvedDrops = stats.forkStarvedDrops,
             commitAttempts = horizon.commitAttempts,
             commitSuppressed = horizon.commitSuppressed,
@@ -937,12 +962,50 @@ internal class AnchorSearchSession(
         )
     }
 
-    private fun certify(solution: Solution): MotionPlanResult = certifier.certify(
-        solution,
-        route = route,
-        remainingGuideTicks = field.guide(solution.anchor.stance),
-        attemptCount = attempts.count,
-    )
+    private fun certify(solution: Solution): MotionPlanResult {
+        val result = certifier.certify(
+            solution,
+            route = route,
+            remainingGuideTicks = field.guide(solution.anchor.stance),
+            attemptCount = attempts.count,
+        )
+        if (result !is MotionPlanResult.Success || legTouches.isEmpty()) return result
+        return result.copy(legTouches = legTouches.filter { it.frame <= solution.frames })
+    }
+
+    /**
+     * A walk-through waypoint touched: the search keeps this anchor and its lineage (the
+     * tape so far), swaps the field and route for the next leg, and continues expanding
+     * from here toward the new goal. Everything ranked against the old field goes: the
+     * rest of the frontier, the incumbent, the finish state, the annealing progress.
+     */
+    private fun switchLeg(anchor: ValueAnchor, handoff: LegHandoff) {
+        legTouches += LegTouch(anchor.elapsed, goalStance)
+        anchor.legRoot = true
+        (field as? com.lambda.pathing.coarse.SwitchableValueField)?.current = handoff.field
+        route = handoff.route
+        goalStance = route.goal
+        goalPoint = goalStance.center(environment)
+        routeIndex = route.nodes.withIndex().associate { (index, node) -> node to index }
+
+        best = null
+        finalSolution = null
+        brakedFallback = null
+        finishSweeps = 0
+        sweepEpoch++
+        expansionsWindowStart = expansions
+        expansionsSinceImprovement = 0
+
+        frontier.retainLineage(anchor)
+        frontier.updateRoute(routeIndex)
+        horizon.reRootForRestart(anchor)
+        recovery.beginLeg()
+        annealing.rewindForRestart(anchor.stance)
+        annealing.noteGuide(anchor.stance)
+        horizon.invalidateCommitMemo()
+        stats.legSwitches++
+        probe.legSwitched(handoff.waypoint, anchor.elapsed, expansions)
+    }
 
     private fun retain(solution: Solution) {
         // A solution diverging under frames the body already pressed can never be adopted.

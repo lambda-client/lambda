@@ -58,6 +58,11 @@ class PathingSession internal constructor(
 
     internal var leg = 0
 
+    /** Walk-through waypoints of [request] the body has passed; a replan starts after them. */
+    internal var passedWaypoints = 0
+
+    internal fun remainingWaypoints(): List<Stance> = request.waypoints.drop(passedWaypoints)
+
     internal var planningYaw: Double? = null
 
     internal var pendingPath: PublishedPath? = null
@@ -108,7 +113,7 @@ class PathingSession internal constructor(
         holds = holds,
         repairs = repairs,
         leg = leg,
-        queuedWaypoints = waypointRoute.queuedWaypoints,
+        queuedWaypoints = remainingWaypoints().size + waypointRoute.queuedWaypoints,
         sessionRestarts = sessionRestarts,
         cadence = publicationCadence(),
     )

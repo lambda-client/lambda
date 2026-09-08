@@ -9,17 +9,17 @@ import kotlin.math.floor
 import kotlin.math.hypot
 
 class CoarseValueField(
-    val view: CoarseVoxelView,
+    override val view: CoarseVoxelView,
     private val moves: SimpleMoveLibrary,
     private val label: (Stance) -> Double,
-    val goal: Stance,
+    override val goal: Stance,
 
     /** Class-conditioned labels; defaults to the blended [label] where a planner predates momentum. */
     private val labelAt: (Stance, SpeedClass) -> Double = { stance, _ -> label(stance) },
 
     /** Edge source; the planner passes its session edge cache so steering reads reuse probes. */
     private val edgeProvider: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
-) : SteeringField {
+) : ValueField {
     private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
         .apply { defaultReturnValue(Double.NaN) }
     private val movingGuides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
@@ -28,7 +28,7 @@ class CoarseValueField(
         .apply { defaultReturnValue(Double.NaN) }
     private val edges = HashMap<Stance, List<CoarseEdge>>()
 
-    fun invalidate(sections: Set<PathingSection>) {
+    override fun invalidate(sections: Set<PathingSection>) {
         if (sections.isEmpty()) return
         val halo = HashSet<PathingSection>(sections.size * 27)
         for (section in sections) {
@@ -46,21 +46,21 @@ class CoarseValueField(
         edges.keys.removeAll(inHalo)
     }
 
-    fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
+    override fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
-    fun clearGuideCache() {
+    override fun clearGuideCache() {
         guides.clear()
         movingGuides.clear()
         stoppedGuides.clear()
     }
 
-    fun guide(stance: Stance): Double = guideVia(guides, stance, label)
+    override fun guide(stance: Stance): Double = guideVia(guides, stance, label)
 
     /**
      * Ticks to goal for a body at [stance] in speed class [speed]: a STOPPED body's estimate
      * includes its acceleration, a MOVING one's does not. Same neighbour fallback as [guide].
      */
-    fun guide(stance: Stance, speed: SpeedClass): Double =
+    override fun guide(stance: Stance, speed: SpeedClass): Double =
         guideVia(if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides, stance) { labelAt(it, speed) }
 
     /** The label itself when the field reaches [stance]; otherwise the best labelled neighbour plus the edge. */
@@ -85,18 +85,18 @@ class CoarseValueField(
         return computed
     }
 
-    fun isMapped(stance: Stance): Boolean = guide(stance).isFinite()
+    override fun isMapped(stance: Stance): Boolean = guide(stance).isFinite()
 
-    fun edgesFrom(stance: Stance): List<CoarseEdge> =
+    override fun edgesFrom(stance: Stance): List<CoarseEdge> =
         edges.getOrPut(stance) { edgeProvider(stance) }
 
-    fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
+    override fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
 
-    fun steps(
+    override fun steps(
         stance: Stance,
         count: Int,
-        marginTicks: Double = Double.MAX_VALUE,
-        heading: Pair<Double, Double>? = null,
+        marginTicks: Double,
+        heading: Pair<Double, Double>?,
     ): List<CoarseEdge> {
         val byDestination = HashMap<Stance, CoarseEdge>()
         for (edge in edgesFrom(stance)) {
@@ -179,7 +179,7 @@ class CoarseValueField(
         return (hx * dx + hz * dz) / (headingLength * stepLength)
     }
 
-    fun reachesGoal(chain: List<Stance>): Boolean = chain.lastOrNull() == goal
+    override fun reachesGoal(chain: List<Stance>): Boolean = chain.lastOrNull() == goal
 
     private companion object {
         const val TIE_TICKS = 0.5

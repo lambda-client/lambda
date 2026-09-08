@@ -15,6 +15,7 @@ import com.lambda.pathing.session.PathingSession.Companion.MAX_STATE_RECOVERIES
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.search.PlanGraph
+import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.threading.runSafeAutomated
@@ -73,6 +74,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
         }
 
         val observed = observe(current.plan, running.nextFrame)
+        announcePassedWaypoints(current, running.nextFrame)
         walk.repairDeadline?.let { deadline ->
             if (running.nextFrame >= deadline) {
                 // The cut is here and no repaired tape arrived: stop and replan, as before.
@@ -223,6 +225,26 @@ internal class ExecutionDriver(private val walk: PathingSession) {
     }
 
     private fun repairUntil(path: PublishedPath): Int = walk.repairDeadline ?: path.plan.tape.frameCount
+
+    /** The body pressed past a walk-through waypoint's frame: one leg done, no stop. */
+    private fun SafeContext.announcePassedWaypoints(path: PublishedPath, frame: Int) {
+        // A tape's touches are numbered from the session's own first leg, which is not the
+        // route's first leg after a replan mid-route: match by waypoint, never by index.
+        val waypoints = walk.request.waypoints
+        for (touch in path.legTouches) {
+            if (touch.frame > frame) break
+            val next = waypoints.getOrNull(walk.passedWaypoints) ?: break
+            if (touch.waypoint != next && touch.waypoint != TrajectoryPlanner.resolveGoalStance(player, next)) continue
+            walk.passedWaypoints++
+            walk.leg++
+            val remaining = walk.remainingWaypoints().size
+            info(
+                "Passed ${touch.waypoint} at frame ${touch.frame}" +
+                    (if (remaining > 0) ", $remaining waypoint(s) before ${path.finalGoal}." else ", heading to ${path.finalGoal}."),
+                PATHING_SOURCE,
+            )
+        }
+    }
 
     /**
      * A world change under the running tape: cut at the last rejoinable junction ahead of

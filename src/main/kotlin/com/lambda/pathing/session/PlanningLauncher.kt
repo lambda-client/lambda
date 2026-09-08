@@ -9,6 +9,8 @@ import com.lambda.pathing.TrajectoryPlanningPreparation
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.MAX_SESSION_RESTARTS
+import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.world.InterestPrimer
@@ -35,6 +37,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
         walk.planningSession = session
 
         walk.planningYaw = player.moveYaw.toDouble()
+        skipWaypointsUnderfoot()
         walk.state = State.Planning(walk.goalLabel())
         PlanningDebugChannel.begin(
             PlanningDebugChannel.hudWanted || request.pathingRenderConfig.enabled &&
@@ -52,6 +55,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
             config = request.pathingConfig,
             turnSpeed = request.rotationConfig.turnSpeed,
             cancellation = session.cancellation,
+            waypoints = walk.remainingWaypoints(),
         )) {
             is PlanningPreparationResult.Ready -> prepared.preparation
             is PlanningPreparationResult.Failed -> return with(walk) { fail(prepared.failure.message) }
@@ -60,14 +64,15 @@ internal class PlanningLauncher(private val walk: PathingSession) {
         val currentJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: run {
             walk.journey?.cancel()
             val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
-            InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal)
+            InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal, preparation.waypoints)
             PlanningJourney(
                 goal = preparation.finalGoal,
+                waypoints = preparation.waypoints,
                 moveOptions = preparation.moveOptions,
                 profile = preparation.profile,
                 cancellation = PlanningCancellation(),
                 world = pathingWorld,
-                coarseState = TrajectoryPlanner.coarseState(
+                legs = TrajectoryPlanner.journeyLegs(
                     preparation, pathingWorld.snapshot, pathingWorld::chunkCapturable,
                 ),
             ).also { walk.journey = it }
@@ -92,6 +97,22 @@ internal class PlanningLauncher(private val walk: PathingSession) {
             onComplete = { result, failure -> completePlanning(session, result, failure) },
         )
         with(walk) { advanceSnapshotCapture() }
+    }
+
+    /**
+     * A replan from rest at a walk-through waypoint (a leg that finished there because its
+     * successor could not be handed over) must not route back to the cell it stands on.
+     */
+    private fun SafeContext.skipWaypointsUnderfoot() {
+        val waypoints = walk.request.waypoints
+        while (walk.passedWaypoints < waypoints.size) {
+            val waypoint = TrajectoryPlanner.resolveGoalStance(player, waypoints[walk.passedWaypoints])
+            val horizontal = kotlin.math.hypot(player.pos.x - (waypoint.x + 0.5), player.pos.z - (waypoint.z + 0.5))
+            if (horizontal > WAYPOINT_UNDERFOOT_BLOCKS || kotlin.math.abs(player.pos.y - waypoint.y) > 1.0) break
+            walk.passedWaypoints++
+            walk.leg++
+            info("Standing at waypoint $waypoint; continuing past it.", PATHING_SOURCE)
+        }
     }
 
     private fun SafeContext.completePlanning(session: PlanningSession, result: PathPlanResult?, failure: Throwable?) {
@@ -158,6 +179,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
                 turnSpeed = request.rotationConfig.turnSpeed,
                 cancellation = session.cancellation,
                 initialOverride = terminal,
+                waypoints = walk.remainingWaypoints(),
             )
         ) {
             is PlanningPreparationResult.Ready -> prepared.preparation
@@ -225,7 +247,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
                 cancellation = session.cancellation,
                 planningGeneration = session.generation,
                 snapshotRevision = journey.world.revision,
-                coarseState = journey.coarseState,
+                legStates = journey.legsFor(preparation),
             )
         } catch (failure: Exception) {
             onLaunchFailure(failure)
@@ -241,5 +263,10 @@ internal class PlanningLauncher(private val walk: PathingSession) {
         var root = this
         while (root.cause != null && root.cause !== root) root = root.cause!!
         return root.message ?: root::class.simpleName ?: "unknown error"
+    }
+
+    private companion object {
+        /** Within this of a waypoint's centre the body is on it, not on its way to it. */
+        const val WAYPOINT_UNDERFOOT_BLOCKS = 1.5
     }
 }

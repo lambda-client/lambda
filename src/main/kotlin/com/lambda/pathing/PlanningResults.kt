@@ -34,6 +34,8 @@ internal sealed interface PlanningPreparationResult {
 
 internal data class TrajectoryPlanningPreparation(
     val finalGoal: Stance,
+    /** Walk-through waypoints before [finalGoal], resolved to stances, in order. */
+    val waypoints: List<Stance>,
     val bounds: SimulationSnapshotBounds,
     val moveOptions: SimpleMoveOptions,
     val seedConfig: MotionConstraints,

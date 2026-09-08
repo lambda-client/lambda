@@ -120,6 +120,9 @@ interface PathingConfig {
     /** Entering the goal cell counts as arriving; the body brakes wherever it lands nearby. */
     val touchArrival: Boolean
 
+    /** What reaching an intermediate waypoint of a route means; the final goal always rests. */
+    val waypointArrival: com.lambda.pathing.core.ArrivalMode
+
     /**
      * Committed motion kept ahead of the body before another commitment is made.
      *

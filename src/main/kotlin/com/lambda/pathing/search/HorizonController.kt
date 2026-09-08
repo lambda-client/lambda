@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.coarse.SpeedClass
 import net.minecraft.util.math.Vec3d
 
@@ -23,7 +23,7 @@ internal class Publication(
  */
 internal class HorizonController(
     private val searchConfig: ValueFieldSearchConfig,
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val frontier: Frontier,
     private val clock: SearchClock,
     private val cursorFrame: (() -> Int?)?,

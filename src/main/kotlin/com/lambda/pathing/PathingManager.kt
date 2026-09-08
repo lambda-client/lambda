@@ -73,7 +73,7 @@ object PathingManager : Manager<PathingRequest>(0) {
      * would walk the tail from the wrong place.
      */
     fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? =
-        waypointRoute.start(automated, waypoints)
+        waypointRoute.start(automated, waypoints, automated.pathingConfig.waypointArrival)
 
     fun cancel() {
         waypointRoute.drop()

@@ -95,6 +95,18 @@ interface SearchProbe {
 
     fun sync(sections: Int, mutations: Int, chunks: Int, routeAffected: Boolean, extending: Boolean) {}
 
+    /** A polled anchor discarded before any rollout: fork-dropped, starved, parked, skipped (incumbent), or out of actions. */
+    fun discarded(stance: Stance, elapsed: Int, reason: String, forkLife: Int) {}
+
+    /** One frontier admission and how it ended: enqueued, unmapped, unreachable, dominated, capped, pruned. */
+    fun admission(stance: Stance, elapsed: Int, outcome: String) {}
+
+    /** After a tape restart re-rooted on [seed]: what the frontier holds and what the field says of the seed. */
+    fun restartRooted(seed: Stance, elapsed: Int, guide: Double, open: Int, parked: Int) {}
+
+    /** The search re-targeted onto the next leg of a compound route at [waypoint]. */
+    fun legSwitched(waypoint: Stance, elapsed: Int, expansions: Int) {}
+
     /**
      * The body executed into a published brake tail (a dead stop; re-rooting onto the brake
      * discards every frontier anchor). [open], [parked] and [deepestElapsed] say whether a

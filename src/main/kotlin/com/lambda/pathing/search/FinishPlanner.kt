@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.CorridorFollowerProgram
@@ -13,7 +13,7 @@ import kotlin.math.hypot
 import com.lambda.pathing.world.Medium
 
 internal class FinishPlanner(
-    private val field: CoarseValueField,
+    private val field: ValueField,
     private val environment: SnapshotSimulationEnvironment,
     private val config: MotionConstraints,
     private val gate: RolloutGate,
