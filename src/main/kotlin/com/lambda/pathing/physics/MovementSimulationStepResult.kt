@@ -17,9 +17,7 @@
 
 package com.lambda.pathing.physics
 
-import com.lambda.pathing.physics.SimulationEnvironmentException
-
 sealed interface MovementSimulationStepResult {
-    data class Advanced(val state: MovementSimulationState) : MovementSimulationStepResult
-    data class Rejected(val failure: SimulationEnvironmentException) : MovementSimulationStepResult
+	data class Advanced(val state: MovementSimulationState) : MovementSimulationStepResult
+	data class Rejected(val failure: SimulationEnvironmentException) : MovementSimulationStepResult
 }

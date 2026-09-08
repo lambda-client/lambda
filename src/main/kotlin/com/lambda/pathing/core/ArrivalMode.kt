@@ -9,6 +9,6 @@ import com.lambda.util.NamedEnum
  * without a stop, so a compound route is one continuous tape. The final goal always rests.
  */
 enum class ArrivalMode(override val displayName: String) : NamedEnum {
-    STAND_STILL("Stand Still"),
-    WALK_THROUGH("Walk Through"),
+	STAND_STILL("Stand Still"),
+	WALK_THROUGH("Walk Through"),
 }

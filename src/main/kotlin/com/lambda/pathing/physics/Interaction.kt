@@ -28,11 +28,11 @@ import net.minecraft.util.math.Direction
  * exists so the world-changing action families do not have to widen the input later.
  */
 sealed interface Interaction {
-    val target: VoxelPos
+	val target: VoxelPos
 
-    /** Right-click the block face (open a door, place against it). */
-    data class Use(override val target: VoxelPos, val face: Direction) : Interaction
+	/** Right-click the block face (open a door, place against it). */
+	data class Use(override val target: VoxelPos, val face: Direction) : Interaction
 
-    /** Left-click the block face (start or continue breaking it). */
-    data class Attack(override val target: VoxelPos, val face: Direction) : Interaction
+	/** Left-click the block face (start or continue breaking it). */
+	data class Attack(override val target: VoxelPos, val face: Direction) : Interaction
 }

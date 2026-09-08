@@ -22,42 +22,42 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 
 interface SimulationEnvironment {
-    fun slipperiness(pos: BlockPos): Double
-    fun velocityMultiplier(pos: BlockPos): Double
-    fun jumpVelocityMultiplier(pos: BlockPos): Double
-    fun adjustMovementForCollisions(
-        movement: Vec3d,
-        boundingBox: Box,
-        onGround: Boolean,
-        stepHeight: Double,
-    ): Vec3d
+	fun slipperiness(pos: BlockPos): Double
+	fun velocityMultiplier(pos: BlockPos): Double
+	fun jumpVelocityMultiplier(pos: BlockPos): Double
+	fun adjustMovementForCollisions(
+		movement: Vec3d,
+		boundingBox: Box,
+		onGround: Boolean,
+		stepHeight: Double,
+	): Vec3d
 
-    /**
-     * @see net.minecraft.world.CollisionView.findSupportingBlockPos
-     */
-    fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos?
+	/**
+	 * @see net.minecraft.world.CollisionView.findSupportingBlockPos
+	 */
+	fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos?
 
-    fun isFenceLike(pos: BlockPos): Boolean
+	fun isFenceLike(pos: BlockPos): Boolean
 
-    /**
-     * @see net.minecraft.entity.LivingEntity.isClimbing
-     */
-    fun isClimbable(pos: BlockPos): Boolean = false
+	/**
+	 * @see net.minecraft.entity.LivingEntity.isClimbing
+	 */
+	fun isClimbable(pos: BlockPos): Boolean = false
 
-    /**
-     * @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking
-     * @see net.minecraft.entity.player.PlayerEntity.updatePose
-     */
-    fun isSpaceEmpty(box: Box): Boolean? = null
+	/**
+	 * @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking
+	 * @see net.minecraft.entity.player.PlayerEntity.updatePose
+	 */
+	fun isSpaceEmpty(box: Box): Boolean? = null
 
-    /**
-     * @see net.minecraft.block.SlimeBlock.onEntityLand
-     */
-    fun bounceFactor(pos: BlockPos): Double = 0.0
+	/**
+	 * @see net.minecraft.block.SlimeBlock.onEntityLand
+	 */
+	fun bounceFactor(pos: BlockPos): Double = 0.0
 
-    /**
-     * @see net.minecraft.block.SlimeBlock.onSteppedOn
-     */
-    fun dampensSteppingSpeed(pos: BlockPos): Boolean = false
+	/**
+	 * @see net.minecraft.block.SlimeBlock.onSteppedOn
+	 */
+	fun dampensSteppingSpeed(pos: BlockPos): Boolean = false
 }
 

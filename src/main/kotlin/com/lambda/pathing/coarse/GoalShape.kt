@@ -21,22 +21,22 @@ import com.lambda.pathing.core.Stance
  */
 interface GoalShape {
 
-    /** Admissible lower bound on the ticks from [from] to any satisfying stance. */
-    fun heuristic(from: Stance): Double
+	/** Admissible lower bound on the ticks from [from] to any satisfying stance. */
+	fun heuristic(from: Stance): Double
 
-    /** The executor's arrival test. */
-    fun satisfied(stance: Stance): Boolean
+	/** The executor's arrival test. */
+	fun satisfied(stance: Stance): Boolean
 
-    /** The concrete D* goal node today: the stance the value field descends towards. */
-    val anchorStance: Stance
+	/** The concrete D* goal node today: the stance the value field descends towards. */
+	val anchorStance: Stance
 
-    /** Exactly one stance satisfies: the goal the planner has always had. */
-    data class Point(val stance: Stance, val moves: SimpleMoveLibrary) : GoalShape {
+	/** Exactly one stance satisfies: the goal the planner has always had. */
+	data class Point(val stance: Stance, val moves: SimpleMoveLibrary) : GoalShape {
 
-        override fun heuristic(from: Stance): Double = moves.heuristic(from, stance)
+		override fun heuristic(from: Stance): Double = moves.heuristic(from, stance)
 
-        override fun satisfied(stance: Stance): Boolean = stance == this.stance
+		override fun satisfied(stance: Stance): Boolean = stance == this.stance
 
-        override val anchorStance: Stance get() = stance
-    }
+		override val anchorStance: Stance get() = stance
+	}
 }

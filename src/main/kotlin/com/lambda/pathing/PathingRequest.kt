@@ -5,23 +5,23 @@ import com.lambda.interaction.managers.Request
 import com.lambda.pathing.core.Stance
 
 class PathingRequest(
-    automated: Automated,
-    /** The final goal, where the body comes to rest. */
-    val goal: Stance,
-    /** Walk-through waypoints before [goal], in order: passed at speed, never stopped at. */
-    val waypoints: List<Stance> = emptyList(),
+	automated: Automated,
+	/** The final goal, where the body comes to rest. */
+	val goal: Stance,
+	/** Walk-through waypoints before [goal], in order: passed at speed, never stopped at. */
+	val waypoints: List<Stance> = emptyList(),
 ) : Request(), Automated by automated {
-    override val requestId = requestCount++
-    override val tickStageMask = PathingManager.openStages.toSet()
+	override val requestId = requestCount++
+	override val tickStageMask = PathingManager.openStages.toSet()
 
-    override val nowOrNothing = false
+	override val nowOrNothing = false
 
-    override val done: Boolean get() = PathingManager.isFinished(this)
+	override val done: Boolean get() = PathingManager.isFinished(this)
 
-    override fun submit(queueIfMismatchedStage: Boolean): PathingRequest =
-        PathingManager.request(this, queueIfMismatchedStage)
+	override fun submit(queueIfMismatchedStage: Boolean): PathingRequest =
+		PathingManager.request(this, queueIfMismatchedStage)
 
-    companion object {
-        private var requestCount = 0
-    }
+	companion object {
+		private var requestCount = 0
+	}
 }

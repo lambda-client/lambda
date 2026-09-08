@@ -18,10 +18,6 @@
 package com.lambda.pathing.physics
 
 import com.lambda.context.SafeContext
-import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.LiveSimulationEnvironment
-import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.physics.MovementSimulator
 
 /**
  * Builds the player movement prediction engine based on minecraft physics logic.
@@ -37,12 +33,12 @@ import com.lambda.pathing.physics.MovementSimulator
  * - item-specific movement slowdown
  */
 fun SafeContext.buildPlayerPrediction(): LivePrediction =
-    LivePrediction(buildMovementSimulator(), MovementInputProvider.live(player))
+	LivePrediction(buildMovementSimulator(), MovementInputProvider.live(player))
 
 fun SafeContext.buildMovementSimulator(
-    initialState: MovementSimulationState = MovementSimulationState.from(player),
+	initialState: MovementSimulationState = MovementSimulationState.from(player),
 ): MovementSimulator = MovementSimulator(
-    profile = PlayerPhysicsProfile.capture(player),
-    environment = LiveSimulationEnvironment(player.entityWorld, player, entityCollisions = true),
-    initialState = initialState,
+	profile = PlayerPhysicsProfile.capture(player),
+	environment = LiveSimulationEnvironment(player.entityWorld, player, entityCollisions = true),
+	initialState = initialState,
 )
