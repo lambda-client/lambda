@@ -22,14 +22,17 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
+import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
-import com.lambda.util.item.ItemStackUtils.empty
+import com.lambda.util.item.ItemStackUtils.emptySpace
+import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemStackUtils.spaceLeft
+import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.item.ItemUtils.toItemCount
 import com.lambda.util.text.TextBuilder
 import com.lambda.util.text.TextDsl
@@ -71,6 +74,8 @@ abstract class Container(
         it.stack.isStackable
     }
 
+    open val isAccessed get() = true
+
     context(_: SafeContext)
     fun descriptionAndStock(selection: StackSelection) =
         buildText {
@@ -83,28 +88,71 @@ abstract class Container(
     fun TextBuilder.stock(selection: StackSelection) {
         literal("\n")
         literal("Contains ")
-        val available = stackCount(selection)
+        val available = count(selection)
         highlighted(if (available == Int.MAX_VALUE) "∞" else available.toItemCount())
         literal(" of ")
         highlighted("${selection.optimalStack?.name?.string}")
         literal("\n")
         literal("Could store ")
-        val left = spaceAvailable(selection)
+        val left = spaceLeft(selection)
         highlighted(if (left == Int.MAX_VALUE) "∞" else left.toItemCount())
         literal(" of ")
         highlighted("${selection.optimalStack?.name?.string}")
     }
 
-    open val isAccessed get() = true
-
     fun update(slots: List<ItemStack>) {
         this.stacks = slots
+    }
+
+    fun scanStacksForNestedContainers() {
+        stacks.forEachIndexed { index, stack ->
+            if (stack.item in SHULKER_BOXES) {
+                storedContainers[index] =
+                    ShulkerBoxContainer(
+                        stack.name.string,
+                        stack.item,
+                        stack.shulkerBoxStacks,
+                        this,
+                        index
+                    ).also { it.scanStacksForNestedContainers() }
+            } else storedContainers.remove(index)
+        }
     }
 
     @Ta5kBuilder
     context(automated: Automated)
     open fun access(): OpenContainerTask<*>? =
         PlayerOpenContainerTask(description, ::isAccessed)
+
+    open fun count(selection: StackSelection) =
+        slots.takeUnless { it.isEmpty() }?.let { selection.filter(it).count }
+            ?: selection.filter(stacks).count
+
+    open fun spaceLeft(selection: StackSelection) =
+	    slots.takeUnless { it.isEmpty() }?.let { selection.filter(it).spaceLeft + it.emptySpace }
+		    ?: (selection.filter(stacks).spaceLeft + stacks.emptySpace)
+
+    open fun findSlots(selection: StackSelection) = selection.filter(slots)
+
+    fun findSlot(selection: StackSelection) = findSlots(selection).firstOrNull()
+
+    open fun findStacks(selection: StackSelection) = selection.filter(stacks)
+
+    fun findStack(selection: StackSelection) = findStacks(selection).firstOrNull()
+
+    context(_: Automated)
+    fun findMoveSlots(
+        selection: StackSelection,
+        toContainer: Container,
+        toStackSelection: StackSelection = StackSelection.EVERYTHING
+    ) = Pair(findSlot(selection), toContainer.findReplaceSlot(toStackSelection))
+
+    context(_: Automated)
+    open fun findReplaceSlot(
+        selection: StackSelection = StackSelection.EVERYTHING
+    ) = findSlots(selection)
+        .sortedWith(replaceSorter)
+        .firstOrNull()
 
     context(automatedSafeContext: AutomatedSafeContext)
     internal fun swap(fromSlot: Slot, toSlot: Slot, toContainer: Container): Boolean {
@@ -124,21 +172,6 @@ abstract class Container(
             if (!toSlot.stack.isEmpty) pickup(fromHere.id)
         }
     }
-
-    open fun stackCount(selection: StackSelection) =
-        selection.filter(stacks).count
-
-    open fun spaceAvailable(selection: StackSelection) =
-        selection.filter(stacks).spaceLeft + stacks.empty
-
-    context(_: Automated)
-    fun getTransferSlots(selection: StackSelection, destination: Container): Pair<Slot?, Slot?> =
-        Pair(getSlot(selection), destination.getReplaceSlot())
-
-    context(_: Automated)
-    open fun getReplaceSlot() = slots.sortedWith(replaceSorter).firstOrNull()
-
-    open fun getSlot(selection: StackSelection) = selection.bestMatch(slots)
 
     override fun compareTo(other: Container) = compareBy<Container> { it.type }.compare(this, other)
 }

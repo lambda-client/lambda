@@ -76,8 +76,8 @@ object ItemStackUtils {
     val ItemStack.hasSpace get() = spaceLeft > 0
     val List<ItemStack>.spaceLeft get() = sumOf { it.spaceLeft }
     val List<Slot>.spaceLeft @JvmName("slotSpaceLeft") get() = sumOf { it.stack.spaceLeft }
-    val List<ItemStack>.empty: Int get() = count { it.isEmpty }
-    val List<Slot>.empty: Int @JvmName("slotEmpty") get() = count { it.stack.isEmpty }
+    val List<ItemStack>.emptySpace: Int get() = count { it.isEmpty }
+    val List<Slot>.emptySpace: Int @JvmName("emptySlotSpace") get() = count { it.stack.isEmpty }
     val List<ItemStack>.count: Int get() = if (isEmpty()) -1 else sumOf { it.count }
     val List<Slot>.count: Int @JvmName("slotCount") get() = if (isEmpty()) -1 else sumOf { it.stack.count }
     val List<ItemStack>.copy: List<ItemStack> get() = map { it.copy() }

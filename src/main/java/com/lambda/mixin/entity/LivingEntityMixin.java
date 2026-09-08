@@ -49,7 +49,6 @@ import static com.lambda.threading.ThreadingKt.runSafe;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
-
     @Unique private final LivingEntity lambda$instance = (LivingEntity) (Object) this;
 
     @Definition(id = "getJumpVelocity", method = "Lnet/minecraft/entity/LivingEntity;getJumpVelocity()F")

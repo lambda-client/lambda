@@ -25,7 +25,7 @@ import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Compan
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build

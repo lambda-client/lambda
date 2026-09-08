@@ -23,7 +23,7 @@ import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.complex.Bind
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode

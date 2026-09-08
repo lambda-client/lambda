@@ -158,8 +158,7 @@ class BreakSim internal constructor(simInfo: SimInfo)
 			ofAnyType(ContainerType.Hotbar)
 		}
 
-		val hotbarCandidates = stackSelection
-			.findContainers(containerSelection)
+		val hotbarCandidates = findContainers(stackSelection, containerSelection)
 			.flatMap { stackSelection.filter(it.stacks) }
 			.toList()
 		if (hotbarCandidates.isEmpty()) {

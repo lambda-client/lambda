@@ -67,6 +67,6 @@ class AcquirePlacedBlockTask @Ta5kBuilder internal constructor(
 	override fun SafeContext.onStart() {
 		findBlock(block, searchRadius)
 			.softFail()
-			.execute(this@AcquirePlacedBlockTask)
+			.start()
 	}
 }

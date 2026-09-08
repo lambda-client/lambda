@@ -208,14 +208,18 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 		val stackSelection = item?.select(if (item == Items.AIR) 0 else 1)
 			?: selectStack { sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } } }
 		val containerSelection = selectContainer { ofAnyType(ContainerType.Hotbar) }
-		val container = stackSelection.findContainers(containerSelection).firstOrNull() ?: run {
-			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
-			return null
-		}
-		return stackSelection.filter(container.slots).run {
-			firstOrNull { it.index == player.inventory.selectedSlot }
-				?: firstOrNull()
-		}
+		val container = findContainers(stackSelection, containerSelection)
+			.firstOrNull()
+			?: run {
+				result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
+				return null
+			}
+		return stackSelection
+			.filter(container.slots)
+			.run {
+				firstOrNull { it.index == player.inventory.selectedSlot }
+					?: firstOrNull()
+			}
 	}
 
 	private suspend fun AutomatedSafeContext.simRotation(

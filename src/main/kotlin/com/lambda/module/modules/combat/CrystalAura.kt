@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
@@ -28,14 +28,17 @@ import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffHandContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.handler.handlers.move
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
@@ -49,7 +52,7 @@ import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.distSq
-import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
@@ -480,21 +483,33 @@ object CrystalAura : Module(
             if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done)
                 return@runSafe
 
-			val selection = selectStack { isItem(Items.END_CRYSTAL) }
+			val selection = Items.END_CRYSTAL.select()
+
 			if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
 				(swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
 			) runSafeAutomated {
 				if (!swap) return@runSafe
-				var crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.matches(it) }
-				if (crystalSlot < 0) {
-					val swapTo = when (swapHand) {
-						Hand.MAIN_HAND -> HotbarContainer
-						Hand.OFF_HAND -> OffHandContainer
-					}
-					if (!selection.move(swapTo)) return@runSafe
-					crystalSlot = HotbarContainer.stacks.indexOfFirst { selection.matches(it) }
+
+				val toContainer =
+                    when (swapHand) {
+				    	Hand.MAIN_HAND -> HotbarContainer
+				    	Hand.OFF_HAND -> OffHandContainer
+				    }.select()
+
+				val crystalSlot = findContainer(selection, toContainer)
+                    ?.findSlot(selection)
+
+				if (crystalSlot == null) {
+					if (!selection.move(InventoryContainer.select(), toContainer)) return@runSafe
 				}
-				if (!hotbarRequest(crystalSlot).submit().done) return@runSafe
+
+				if (swapHand == Hand.MAIN_HAND) {
+					val crystalSlot = selection
+                        .bestMatch(HotbarContainer.slots)
+                        ?.index
+                        ?: return@runSafe
+					if (crystalSlot < 0 || !hotbarRequest(crystalSlot).submit().done) return@runSafe
+				}
 			}
 
             placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
@@ -531,7 +546,7 @@ object CrystalAura : Module(
     }
 
     private val EndCrystalEntity.baseBlockPos get() =
-        (pos - Vec3d(0.0, 0.5, 0.0)).flooredBlockPos
+        (pos - Vec3d(0.0, 0.5, 0.0)).blockPos
 
     private val BlockPos.crystalPosition get() =
         this.getHitVec(Direction.UP)

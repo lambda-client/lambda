@@ -32,7 +32,7 @@ import com.lambda.interaction.construction.blueprint.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.task.Task
 import com.lambda.task.start

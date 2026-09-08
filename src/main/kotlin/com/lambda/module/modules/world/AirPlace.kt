@@ -36,7 +36,7 @@ import com.lambda.interaction.manager.managers.interacting.InteractRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode

@@ -20,7 +20,7 @@ package com.lambda.module.modules.world
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.FileUtils.locationBoundDirectory
 import com.lambda.util.FolderRegistry
 import com.lambda.util.StringUtils.hashString

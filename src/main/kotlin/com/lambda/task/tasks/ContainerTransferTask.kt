@@ -26,7 +26,8 @@ import com.lambda.interaction.container.ExternalContainer
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
+import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.taskOrNull
@@ -40,51 +41,75 @@ context(automated: Automated)
 fun transfer(
 	selection: StackSelection,
 	fromSelection: ContainerSelection = ContainerSelection.EVERYTHING,
-	toSelection: ContainerSelection
-) = ContainerTransferTask(selection, fromSelection, toSelection, automated)
+	toSelection: ContainerSelection,
+	toStack: StackSelection = StackSelection.EVERYTHING
+) = ContainerTransferTask(selection, fromSelection, toSelection, toStack, automated)
 
 @Ta5kBuilder
 @JvmName("transferExt")
 context(automated: Automated)
-fun StackSelection.transferTo(
+fun StackSelection.transfer(
 	fromSelection: ContainerSelection = ContainerSelection.EVERYTHING,
-	toSelection: ContainerSelection
-) = transfer(this, fromSelection, toSelection)
+	toSelection: ContainerSelection,
+	toStack: StackSelection = StackSelection.EVERYTHING
+) = transfer(this, fromSelection, toSelection, toStack)
 
 class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private val selection: StackSelection,
 	private val fromSelection: ContainerSelection,
 	private val toSelection: ContainerSelection,
+	private val toStack: StackSelection,
 	automated: Automated
 ) : Task<Slot>(), Automated by automated {
 	override val name = "Transferring $selection from $fromSelection to $toSelection"
 
 	override fun SafeContext.onStart() {
-		val fromContainer = findContainer(containerSelection)
-			?: run {
-				failure(IllegalStateException("Could not find container to pull $selection from"))
+		val singleSelection = selection.mutate(count = if (selection.count == 0) 0 else 1)
+
+		val fromContainers = findContainers(singleSelection, fromSelection).toList()
+		val toContainers = findContainers(toStack, toSelection)
+			.filter { toStack !== StackSelection.EVERYTHING || it.spaceLeft(singleSelection) > 0 }
+			.toList()
+
+		if (fromContainers.isEmpty()) {
+			failure(IllegalStateException("Could not find any container to pull $selection from"))
+			return
+		}
+		if (toContainers.isEmpty()) {
+			failure(IllegalStateException("Could not find any container with space to push $selection to"))
+			return
+		}
+
+		if (selection.count > 0) {
+			val totalAvailable = fromContainers.sumOf { it.count(singleSelection) }
+			if (totalAvailable < selection.count) {
+				failure(IllegalStateException("Not enough items across all containers to pull $selection"))
 				return
 			}
+		}
+
+		val fromContainer = fromContainers.first()
+		val toContainer = toContainers.first()
+
 		when {
-			fromContainer.isAccessed && toContainer.isAccessed ->
-				TransferTask()
+			fromContainers.all { it.isAccessed } && toContainers.all { it.isAccessed } ->
+				TransferTask(fromContainers, toContainers)
 					.onSuccess { success(it) }
 
 			fromContainer !is ExternalContainer ->
-				openTransferClose(toContainer, toContainer, containerSelection)
+				openTransferClose(toContainer, fromSelection, toSelection)
 
 			toContainer !is ExternalContainer ->
-				openTransferClose(fromContainer, toContainer, containerSelection)
+				openTransferClose(fromContainer, fromSelection, toSelection)
 
-			else -> {
+			else ->
 				taskOrNull { fromContainer.access() }
 					.then { fromCtx ->
-						transfer(selection, toContainer, ContainerSelection.HOTBAR_AND_INVENTORY)
+						transfer(selection, fromSelection, ContainerSelection.HOTBAR_AND_INVENTORY)
 							.thenOrNull { fromCtx?.close() }
 					}
 					.thenOrNull { toContainer.access() }
-					.then { toCtx -> transferAndClose(toCtx, toContainer, ContainerSelection.HOTBAR_AND_INVENTORY) }
-			}
+					.then { toCtx -> transferAndClose(toCtx, ContainerSelection.HOTBAR_AND_INVENTORY, toSelection) }
 		}?.start()
 	}
 
@@ -96,11 +121,11 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	@Ta5kBuilder
 	private fun openTransferClose(
 		containerToOpen: Container,
-		to: Container,
-		containerSelection: ContainerSelection
+		fromSelection: ContainerSelection,
+		toSelection: ContainerSelection
 	) = containerToOpen
 		.access()
-		?.then { ctx -> transferAndClose(ctx, to, containerSelection) }
+		?.then { ctx -> transferAndClose(ctx, fromSelection, toSelection) }
 
 	/**
 	 * Transfers [selection] from [from] to [to], then closes the container via [ctx].
@@ -117,7 +142,10 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				?.onSuccess { success(slot) }
 		}
 
-	private inner class TransferTask @Ta5kBuilder constructor() : Task<Slot>() {
+	private inner class TransferTask @Ta5kBuilder constructor(
+		private val fromContainers: List<Container>,
+		private val toContainers: List<Container>
+	) : Task<Slot>() {
 		override val name = "Transferring"
 
 		private var transferred = 0
@@ -127,21 +155,39 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			listen<TickEvent.Pre> {
 				runSafeAutomated {
 					while (selection.count == 0 || transferred < selection.count) {
-						val (fromSlot, toSlot) = fromContainer.getTransferSlots(selection, toContainer)
+						val currentSelection = selection.mutate(count = if (selection.count == 0) 0 else selection.count - transferred)
 
-						if (fromSlot == null || toSlot == null) {
+						var fromSlot: Slot? = null
+						var toSlot: Slot? = null
+						var fromContainer: Container? = null
+						var toContainer: Container? = null
+
+						for (fc in fromContainers) {
+							for (tc in toContainers) {
+								val slots = fc.findMoveSlots(currentSelection, tc, toStack)
+								if (slots.first != null && slots.second != null) {
+									fromSlot = slots.first
+									toSlot = slots.second
+									fromContainer = fc
+									toContainer = tc
+									break
+								}
+							}
+							if (fromSlot != null) break
+						}
+
+						if (fromSlot == null || toSlot == null || fromContainer == null || toContainer == null) {
 							lastSlot?.let { slot ->
 								if (selection.count == 0 || transferred >= selection.count) {
 									success(slot)
 									return@listen
 								}
 							}
-							if (fromSlot == null) checkFail()
-							else failure("Unable to find a slot to transfer to.")
+							checkFail()
 							return@listen
 						}
 
-						val moveCount = fromSlot.stack.count
+						val moveCount = minOf(fromSlot.stack.count, if (selection.count == 0) Int.MAX_VALUE else selection.count - transferred)
 						if (!fromContainer.swap(fromSlot, toSlot, toContainer)) {
 							checkFail()
 							return@listen

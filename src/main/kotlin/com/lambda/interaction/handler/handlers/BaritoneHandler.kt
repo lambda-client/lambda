@@ -28,7 +28,7 @@ import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.RotationSettings
 import com.lambda.config.categories.LambdaCategory
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.context.Automated
 import com.lambda.util.BlockUtils.blockPos
 import net.minecraft.util.BlockMirror

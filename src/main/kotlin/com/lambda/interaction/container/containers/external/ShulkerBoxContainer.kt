@@ -27,13 +27,14 @@ import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.select
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
 import com.lambda.task.tasks.placeContainer
 import com.lambda.task.tasks.transfer
-import com.lambda.task.tasks.transferTo
 import com.lambda.task.tasks.wrappers.actionTask
 import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
@@ -79,8 +80,8 @@ data class ShulkerBoxContainer(
         override fun SafeContext.onStart() {
             transfer(
                 selectStack { inIndex(index); isItem(shulkerItem) },
-                containedIn,
-                HotbarContainer
+                containedIn.select(),
+                HotbarContainer.select()
             ).then { slot -> placeContainer(slot) }
                 .then { pos ->
                     openContainer(pos).onSuccess {
@@ -104,17 +105,11 @@ data class ShulkerBoxContainer(
                 .then {
                     selectStack {
                         isItem(shulkerItem)
-                        hasCustomName(itemName)
+                        hasName(itemName)
                         sortedByBestContentMatch(stacks)
-                    }.transferTo()
-                    transfer(
-                        selectStack {
-                            isItem(shulkerItem)
-                            hasCustomName(itemName)
-                            sortedByBestContentMatch(stacks)
-                        },
-                        HotbarAndInventoryContainer,
-                        fromContainer
+                    }.transfer(
+                        ContainerSelection.HOTBAR_AND_INVENTORY,
+                        fromContainer.select()
                     )
                 }
     }

@@ -33,8 +33,9 @@ import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.task.tasks.transferTo
+import com.lambda.task.tasks.transfer
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -119,7 +120,7 @@ sealed class BreakResult : BuildResult() {
         context(_: Automated)
         override fun resolve() =
             selectStack { inverted { isItem(badItem) } }
-                .transferTo(HotbarContainer)
+                .transfer(toSelection = HotbarContainer.select())
 
         override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {

@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.container.selection
 
+import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerMarker
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.util.EnchantmentUtils.getEnchantment
@@ -43,7 +44,7 @@ fun Item.select(count: Int = 0) = selectStack(count) { isItem(this@select) }
 fun ItemStack.select(count: Int = 0) = selectStack(count) { isItemStack(this@select) }
 
 @Suppress("unused")
-class StackSelection(
+class StackSelection @ContainerMarker internal constructor(
 	val whitelistedSlots: Collection<Slot> = emptyList(),
 	val count: Int = 0,
 	val item: Item? = null,
@@ -85,12 +86,20 @@ class StackSelection(
 	fun filter(slots: Iterable<Slot>) =
 		slots
 			.let { slots ->
-				if (whitelistedSlots.isNotEmpty()) whitelistedSlots.filter { it in slots } else slots
+				if (whitelistedSlots.isNotEmpty()) {
+					whitelistedSlots.filter { it in slots }
+				} else slots
 			}
 			.filter(::matches)
 			.map { StackAndSlot(it.stack, it) }
 			.sortedWith(comparator)
 			.map { it.slot }
+
+	infix fun isIn(container: Container) =
+		container.count(this) >= count
+
+	infix fun spaceIn(container: Container) =
+		container.spaceLeft(this) >= count
 
 	companion object {
 		val EVERYTHING = StackSelection { _, _ -> true }
@@ -100,15 +109,29 @@ class StackSelection(
 
 @Suppress("unused")
 @ContainerMarker
-class StackSelectionBuilder private constructor(private val count: Int = 0) {
+class StackSelectionBuilder @ContainerMarker private constructor(
+	private var count: Int = 0
+) {
 	private val whitelistedSlots = mutableListOf<Slot>()
 	private var selector: (ItemStack, Slot?) -> Boolean = { _, _ -> true }
 	private var item: Item? = null
-	private var stackByRef = false
 	private var itemStack: ItemStack? = null
 	private var comparator: Comparator<StackAndSlot<*>>? = null
 	private var inShulkerBoxesOnly: Boolean = false
 	private var invertNewSelectors = false
+
+	@ContainerMarker
+	private constructor(
+		selection: StackSelection,
+		count: Int = selection.count
+	) : this(count) {
+		this.whitelistedSlots.addAll(selection.whitelistedSlots)
+		this.selector = selection.selector
+		this.item = selection.item
+		this.itemStack = selection.itemStack
+		this.comparator = selection.comparator
+		this.inShulkerBoxesOnly = selection.inShulkerBox
+	}
 
 	fun isItem(item: Item) {
 		this.item = item
@@ -146,7 +169,7 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 		appendSelector { stack, _ -> stack.item in ItemUtils.SHULKER_BOXES }
 	}
 
-	fun hasCustomName(name: String) {
+	fun hasName(name: String) {
 		appendSelector { stack, _ ->
 			stack.name.string == name
 		}
@@ -293,6 +316,11 @@ class StackSelectionBuilder private constructor(private val count: Int = 0) {
 			count: Int = 0,
 			builder: StackSelectionBuilder.() -> Unit
 		) = StackSelectionBuilder(count).apply(builder).build()
+
+		fun StackSelection.mutate(
+			count: Int = this.count,
+			builder: StackSelectionBuilder.() -> Unit = {}
+		) = StackSelectionBuilder(this, count).apply(builder).build()
 	}
 }
 

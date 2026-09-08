@@ -45,7 +45,7 @@ import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.portalPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build

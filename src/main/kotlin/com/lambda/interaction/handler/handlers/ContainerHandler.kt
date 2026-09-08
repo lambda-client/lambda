@@ -26,6 +26,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerMarker
+import com.lambda.interaction.container.ContainerSerializer
 import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.external.ChestContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
@@ -35,16 +36,17 @@ import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.handler.handlers.ContainerHandler.filteredContainers
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.util.BlockUtils.blockEntity
-import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.FolderRegistry
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
 import net.minecraft.block.ChestBlock
+import net.minecraft.block.ShulkerBoxBlock
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity
@@ -56,260 +58,307 @@ import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.ChunkPos
+import com.lambda.Lambda
+import com.lambda.context.AutomatedSafeContext
+import java.nio.file.Files
 
 @Suppress("unused")
 object ContainerHandler : Loadable {
-    val containers: Sequence<Container>
-        get() {
-            fun Container.allNested(): Sequence<Container> =
-                sequence {
-                    val nested = storedContainers.values
-                    yieldAll(nested)
-                    nested.forEach { yieldAll(it.allNested()) }
-                }
-            val baseContainers = compileContainers.asSequence() +
-                    placedContainers.values.asSequence().flatMap { it.values }
-            return baseContainers + baseContainers.flatMap { it.allNested() }
-        }
+	val compileContainers = getInstances<Container>()
+	var accessedPlacedContainer: PlacedContainer? = null
+		private set
 
-    val compileContainers = getInstances<Container>()
-    val placedContainers = mutableMapOf<ChunkPos, MutableMap<BlockPos, PlacedContainer>>()
+	var lastInteractedBlockEntity: BlockEntity? = null
+	var pendingInteractedBlockEntity: BlockEntity? = null
 
-    context(automated: Automated)
-    val filteredContainers
-        get() = containers
-            .filter { automated.inventoryConfig.containerSelection.matches(it) }
-            .sorted()
+	override fun load(): String {
+		ContainerSerializer.loadEnderChest()
+		return "Loaded ${compileContainers.size} containers"
+	}
 
-    var lastInteractedBlockEntity: BlockEntity? = null
-    var pendingInteractedBlockEntity: BlockEntity? = null
+	init {
+		listen<PacketEvent.Send.Post> { event ->
+			val packet = event.packet as? PlayerInteractBlockC2SPacket ?: return@listen
+			val entity = blockEntity(packet.blockHitResult.blockPos)
+			pendingInteractedBlockEntity = entity
+			lastInteractedBlockEntity = entity
+		}
 
-    override fun load() = "Loaded ${compileContainers.size} containers"
+		listen<InventoryEvent.Close> { event ->
+			val sh = event.screenHandler
+			onContainerUpdate(sh)
+			if (sh.syncId != 0 && pendingInteractedBlockEntity == null) {
+				lastInteractedBlockEntity = null
+			}
+			accessedPlacedContainer = null
+		}
 
-    init {
-        listen<PacketEvent.Send.Post> { event ->
-            val packet = event.packet as? PlayerInteractBlockC2SPacket ?: return@listen
-            val entity = blockEntity(packet.blockHitResult.blockPos)
-            pendingInteractedBlockEntity = entity
-            lastInteractedBlockEntity = entity
-        }
+		listen<InventoryEvent.Open> {
+			if (it.screenHandler.syncId != 0) {
+				pendingInteractedBlockEntity = null
+			}
+		}
 
-        listen<InventoryEvent.Close> { event ->
-            val sh = event.screenHandler
-            onContainerUpdate(sh)
-            if (sh.syncId != 0 && pendingInteractedBlockEntity == null) {
-                lastInteractedBlockEntity = null
-            }
-        }
+		listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
+		listen<InventoryEvent.SlotUpdate> { onContainerUpdate() }
 
-        listen<InventoryEvent.Open> {
-            if (it.screenHandler.syncId != 0) {
-                pendingInteractedBlockEntity = null
-            }
-        }
+		listen<WorldEvent.BlockUpdate.Client> { event ->
+			val oldBlock = event.oldState.block
+			if (oldBlock is ChestBlock || oldBlock is ShulkerBoxBlock) {
+				if (event.newState.block != oldBlock) {
+					ContainerSerializer.removeContainer(event.pos)
+				}
+			}
+		}
 
-        listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
-        listen<InventoryEvent.SlotUpdate> { onContainerUpdate() }
+		listen<WorldEvent.ChunkEvent.Load> { event ->
+			val chunk = event.chunk
+			val prefix = "${chunk.pos.x}_${chunk.pos.z}_"
+			
+			try {
+				val dir = FolderRegistry.containers
+				if (Files.exists(dir)) {
+					Files.newDirectoryStream(dir, "$prefix*.json").use { stream ->
+						stream.forEach { path ->
+							val parts = path.fileName.toString().removeSuffix(".json").split('_')
+							if (parts.size == 5) {
+								val x = parts[2].toIntOrNull() ?: return@forEach
+								val y = parts[3].toIntOrNull() ?: return@forEach
+								val z = parts[4].toIntOrNull() ?: return@forEach
+								val pos = BlockPos(x, y, z)
+								val entity = chunk.blockEntities[pos]
+								if (entity !is ChestBlockEntity && entity !is ShulkerBoxBlockEntity) {
+									Files.deleteIfExists(path)
+								}
+							}
+						}
+					}
+				}
+			} catch (e: Exception) {
+				Lambda.LOG.warn("Failed to clean up ghost containers for chunk ${chunk.pos}", e)
+			}
+		}
+	}
 
-        listen<WorldEvent.BlockUpdate.Server> { event ->
-            val pos = event.pos
-            val containersInChunk = placedContainers[ChunkPos(pos)] ?: return@listen
-            val cachedContainer = containersInChunk[pos] ?: return@listen
-            val currentState = blockState(cachedContainer.pos)
-            if (currentState.block != event.newState.block) {
-                containersInChunk.remove(pos)
-            }
-        }
+	private fun SafeContext.onContainerUpdate(sh: ScreenHandler = player.currentScreenHandler) {
+		val blockEntity = lastInteractedBlockEntity
+		if (blockEntity != null) updatePlacedContainer(sh, blockEntity)
+	}
 
-        listen<WorldEvent.ChunkEvent.Load> { event ->
-            val chunk = event.chunk
-            val cachedContainers = placedContainers[chunk.pos] ?: return@listen
-            cachedContainers.values.retainAll { container ->
-                val matchingEntity = chunk.blockEntities[container.pos] ?: return@retainAll false
-                blockState(container.pos).block == matchingEntity.cachedState.block
-            }
-        }
-    }
+	private fun updatePlacedContainer(
+		sh: ScreenHandler,
+		blockEntity: BlockEntity
+	) {
+		val pos = blockEntity.pos
+		when (blockEntity) {
+			is EnderChestBlockEntity -> {
+				if (sh.typeSafe != ScreenHandlerType.GENERIC_9X3) return
+				EnderChestContainer.apply {
+					update(sh.containerStacks)
+					scanContainerContents()
+				}
+				ContainerSerializer.saveEnderChest()
+			}
 
-    private fun SafeContext.onContainerUpdate(sh: ScreenHandler = player.currentScreenHandler) {
-        val blockEntity = lastInteractedBlockEntity
-        if (blockEntity != null) updatePlacedContainer(sh, blockEntity)
-    }
+			is ChestBlockEntity -> {
+				val state = blockEntity.cachedState
+				if (state.block !is ChestBlock) return
 
-    private fun updatePlacedContainer(
-        sh: ScreenHandler,
-        blockEntity: BlockEntity
-    ) {
-        val pos = blockEntity.pos
-        when (blockEntity) {
-            is EnderChestBlockEntity -> {
-                if (sh.typeSafe != ScreenHandlerType.GENERIC_9X3) return
-                EnderChestContainer.apply {
-                    update(sh.containerStacks)
-                    scanContainerContents()
-                }
-            }
+				val stacks = blockEntity.stacks()
+				val chestType = state.get(Properties.CHEST_TYPE) ?: return
 
-            is ChestBlockEntity -> {
-                val state = blockEntity.cachedState
-                if (state.block !is ChestBlock) return
+				if (chestType == ChestType.SINGLE) {
+					if (sh.typeSafe != ScreenHandlerType.GENERIC_9X3) return
+					(accessedPlacedContainer as? ChestContainer)
+						?.update(stacks)
+						?: run { accessedPlacedContainer = ChestContainer(pos, stacks) }
+				} else {
+					if (sh.typeSafe != ScreenHandlerType.GENERIC_9X6) return
+					val facing = state.get(Properties.HORIZONTAL_FACING) ?: return
+					val otherPos =
+						when (chestType) {
+							ChestType.LEFT -> pos.offset(facing.rotateYClockwise())
+							ChestType.RIGHT -> pos.offset(facing.rotateYCounterclockwise())
+						}
+					val leftPos = if (chestType == ChestType.LEFT) pos else otherPos
+					val rightPos = if (chestType == ChestType.RIGHT) pos else otherPos
 
-                val stacks = blockEntity.stacks()
-                val chestType = state.get(Properties.CHEST_TYPE) ?: return
-                val chunkPos = ChunkPos(pos)
+					val existing = accessedPlacedContainer as? DoubleChestContainer
+					if (existing != null && existing.pos == pos) {
+						existing.update(stacks)
+					} else {
+						accessedPlacedContainer = DoubleChestContainer(pos, leftPos, rightPos, stacks)
+					}
+				}
 
-                if (chestType == ChestType.SINGLE) {
-                    if (sh.typeSafe != ScreenHandlerType.GENERIC_9X3) return
-                    (chunkPos.getPlacedContainer(pos) as? ChestContainer)
-                        ?.update(stacks)
-                        ?: run { chunkPos.setPlacedContainer(pos, ChestContainer(pos, stacks)) }
-                } else {
-                    if (sh.typeSafe != ScreenHandlerType.GENERIC_9X6) return
-                    val facing = state.get(Properties.HORIZONTAL_FACING) ?: return
-                    val otherPos =
-                        when (chestType) {
-                            ChestType.LEFT -> pos.offset(facing.rotateYClockwise())
-                            ChestType.RIGHT -> pos.offset(facing.rotateYCounterclockwise())
-                        }
-                    val leftPos = if (chestType == ChestType.LEFT) pos else otherPos
-                    val leftChunkPos = ChunkPos(leftPos)
-                    val rightPos = if (chestType == ChestType.RIGHT) pos else otherPos
-                    val rightChunkPos = ChunkPos(rightPos)
+				accessedPlacedContainer?.let {
+					it.scanContainerContents()
+					ContainerSerializer.saveContainer(it)
+				}
+			}
 
-                    val existing = (leftChunkPos.getPlacedContainer(leftPos) as? DoubleChestContainer)
-                        ?: (rightChunkPos.getPlacedContainer(rightPos) as? DoubleChestContainer)
+			is ShulkerBoxBlockEntity -> {
+				if (sh.typeSafe != ScreenHandlerType.SHULKER_BOX) return
+				val stacks = blockEntity.stacks()
+				(accessedPlacedContainer as? PlacedShulkerBoxContainer)
+					?.update(stacks)
+					?: run {
+						accessedPlacedContainer = PlacedShulkerBoxContainer(pos, blockEntity.cachedState.block, null, stacks)
+					}
 
-                    if (existing != null) {
-                        existing.update(stacks)
-                        leftChunkPos.setPlacedContainer(leftPos, existing)
-                        rightChunkPos.setPlacedContainer(rightPos, existing)
-                    } else {
-                        val doubleChest = DoubleChestContainer(pos, leftPos, rightPos, stacks)
-                        leftChunkPos.setPlacedContainer(leftPos, doubleChest)
-                        rightChunkPos.setPlacedContainer(rightPos, doubleChest)
-                    }
-                }
+				accessedPlacedContainer?.let {
+					it.scanContainerContents()
+					ContainerSerializer.saveContainer(it)
+				}
+			}
+		}
+	}
 
-                chunkPos.getPlacedContainer(pos)?.scanContainerContents()
-            }
+	private fun Container.scanContainerContents() {
+		slots.forEach { slot ->
+			val stack = slot.stack
+			val index = slot.index
+			if (stack.item in SHULKER_BOXES) {
+				storedContainers[index] =
+					ShulkerBoxContainer(
+						stack.name.string,
+						stack.item,
+						stack.shulkerBoxStacks,
+						this,
+						index
+					).also { it.scanContainerContents() }
+			} else storedContainers.remove(index)
+		}
+	}
 
-            is ShulkerBoxBlockEntity -> {
-                if (sh.typeSafe != ScreenHandlerType.SHULKER_BOX) return
-                val stacks = blockEntity.stacks()
-                val chunkPos = ChunkPos(pos)
-                (chunkPos.getPlacedContainer(pos) as? PlacedShulkerBoxContainer)
-                    ?.update(stacks)
-                    ?: run {
-                        chunkPos.setPlacedContainer(
-                            pos,
-                            PlacedShulkerBoxContainer(pos, blockEntity.cachedState.block, null, stacks)
-                        )
-                    }
+	private fun Inventory.stacks() = iterator().asSequence().toList()
+}
 
-                chunkPos.getPlacedContainer(pos)?.scanContainerContents()
-            }
-        }
-    }
+@ContainerMarker
+context(_: AutomatedSafeContext)
+fun StackSelection.move(
+	fromSelection: ContainerSelection = ContainerSelection.EVERYTHING,
+	toSelection: ContainerSelection = ContainerSelection.EVERYTHING,
+	toStackSelection: StackSelection = StackSelection.EVERYTHING
+): Boolean {
+	val singleSelection = mutate(count.coerceAtMost(64))
+	val fromContainer =
+		findContainer(
+			singleSelection,
+			selectContainer {
+				matches(fromSelection)
+				isAccessed()
+			}
+		)
+		?: return false
 
-    private fun Container.scanContainerContents() {
-        slots.forEach { slot ->
-            val stack = slot.stack
-            val index = slot.index
-            if (stack.item in SHULKER_BOXES) {
-                storedContainers[index] =
-                    ShulkerBoxContainer(
-                        stack.name.string,
-                        stack.item,
-                        stack.shulkerBoxStacks,
-                        this,
-                        index
-                    ).also { it.scanContainerContents() }
-            } else storedContainers.remove(index)
-        }
-    }
+	val toContainer =
+		findContainer(
+			toStackSelection,
+			selectContainer {
+				matches(toSelection)
+				isAccessed()
+			}
+		)
+		?: return false
 
-    private fun getPlacedContainer(pos: BlockPos) = placedContainers[ChunkPos(pos)]?.get(pos)
+	val (fromSlot, toSlot) = fromContainer.findMoveSlots(this, toContainer, toStackSelection)
+	if (fromSlot == null || toSlot == null) return false
 
-    private fun ChunkPos.getPlacedContainer(pos: BlockPos) = placedContainers[this]?.get(pos)
-
-    private fun setPlacedContainer(pos: BlockPos, container: PlacedContainer) =
-        placedContainers.getOrPut(ChunkPos(pos)) { mutableMapOf() }.put(pos, container)
-
-    private fun ChunkPos.setPlacedContainer(pos: BlockPos, container: PlacedContainer) =
-        placedContainers.getOrPut(this) { mutableMapOf() }.put(pos, container)
-
-    private fun Inventory.stacks() = iterator().asSequence().toList()
+	return fromContainer.swap(fromSlot, toSlot, toContainer)
 }
 
 @ContainerMarker
 context(_: Automated)
 fun findContainer(
-    selection: ContainerSelection
-) = filteredContainers.find(selection)
+	stackSelection: StackSelection = StackSelection.EVERYTHING,
+	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+) = findContainers(stackSelection, containerSelection)
+	.firstOrNull()
 
 @ContainerMarker
 context(automated: Automated)
-fun StackSelection.findContainer(
-    selection: ContainerSelection = ContainerSelection.EVERYTHING
-) = findContainers(selection).firstOrNull()
+fun findContainers(
+	stackSelection: StackSelection = StackSelection.EVERYTHING,
+	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+) = searchContainers(containerSelection.scope)
+	.filter { containerSelection.matches(it) }
+	.filter { stackSelection isIn it }
+	.sortedWith(automated.inventoryConfig.accessPriority.materialComparator(stackSelection))
 
 @ContainerMarker
-context(automated: Automated)
-fun StackSelection.findContainers(
-    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) = filteredContainers
-    .filter { containerSelection.matches(it) }
-    .filter { it.stackCount(this) >= count }
-    .sortedWith(automated.inventoryConfig.accessPriority.materialComparator(this))
-
-@ContainerMarker
-context(automated: Automated)
+context(_: Automated)
 fun StackSelection.findContainerWithSpace(
-    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) = findContainersWithSpace(containerSelection).firstOrNull()
+	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+) = findContainersWithSpace(containerSelection)
+	.firstOrNull()
 
 @ContainerMarker
 context(automated: Automated)
 fun StackSelection.findContainersWithSpace(
-    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) = filteredContainers
-    .filter { containerSelection.matches(it) }
-    .filter { it.spaceAvailable(this) >= count }
-    .sortedWith(automated.inventoryConfig.accessPriority.spaceComparator(this))
+	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+) = searchContainers(containerSelection.scope)
+	.filter { containerSelection.matches(it) }
+	.filter { this spaceIn it }
+	.sortedWith(automated.inventoryConfig.accessPriority.spaceComparator(this))
 
 @ContainerMarker
-context(automated: Automated)
-fun StackSelection.findSlots(
-    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) =
-    findContainers(
-        selectContainer {
-            matches(containerSelection)
-            isAccessed()
-        }
-    ).flatMap { filter(it.slots) }
-
-@ContainerMarker
-context(automated: Automated)
+context(_: Automated)
 fun findContainerWithDisposable(
-    containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+) = findContainersWithDisposable(containerSelection)
+	.firstOrNull()
+
+@ContainerMarker
+context(automated: Automated)
+fun findContainersWithDisposable(
+	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
 ) =
-    with(automated) {
-        findContainer(
-            selectContainer {
-                matches(containerSelection)
-                custom { container ->
-                    inventoryConfig.disposables.any { container.stackCount(it.asItem().select(1)) > 0 }
-                }
-            }
-        )
-    }
+	with(automated) {
+		findContainers(
+			containerSelection = selectContainer(containerSelection.scope) {
+				matches(containerSelection)
+				matchesStacks(
+					selectStack(1) {
+						isOneOfItems(inventoryConfig.disposables)
+					}
+				)
+			}
+		)
+	}
 
-private fun getSearchContainers(scope: ContainerSearchScope): Collection<Container> {
+context(automated: Automated)
+private fun searchContainers(scope: ContainerSearchScope): Sequence<Container> {
+	fun Container.allNested(): Sequence<Container> =
+		sequence {
+			yield(this@allNested)
+			storedContainers.values.forEach { nested ->
+				yieldAll(nested.allNested())
+			}
+		}
 
+	val compiled = ContainerHandler.compileContainers.asSequence()
+	val placedSeq = sequenceOf(ContainerHandler.accessedPlacedContainer).filterNotNull()
+
+	val baseContainers =
+		when (scope) {
+			ContainerSearchScope.Player -> compiled - EnderChestContainer
+			ContainerSearchScope.Compiled -> compiled
+			ContainerSearchScope.Accessed -> placedSeq + compiled.filter { it.isAccessed }
+			ContainerSearchScope.All -> compiled + placedSeq +
+					ContainerSerializer.serializedContainers.filter { diskContainer ->
+						diskContainer.pos != ContainerHandler.accessedPlacedContainer?.pos
+					}
+		}
+
+	return baseContainers
+		.flatMap { it.allNested() }
+		.filter { automated.inventoryConfig.containerSelection.matches(it) }
 }
 
-private enum class ContainerSearchScope {
-
+enum class ContainerSearchScope {
+	Player,
+	Compiled,
+	Accessed,
+	All
 }

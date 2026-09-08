@@ -17,23 +17,26 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hideBlock
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
+import com.lambda.interaction.handler.handlers.findContainer
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.shrinkByEpsilon
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.blockPos
 import com.lambda.util.world.entitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -68,14 +71,26 @@ object PlayerTrap : Module(
 
 		onEnable {
 			task = tickingBlueprint {
-				val block = HotbarAndInventoryContainer.stacks.firstOrNull {
-					it.item is BlockItem && blocks.contains(it.item.block)
-				}?.item?.block ?: return@tickingBlueprint emptyMap()
-				val targetPlayer = if (self) player
-				else entitySearch<OtherClientPlayerEntity>(
-					buildConfig.blockReach,
-					player.eyePos.flooredBlockPos
-				).firstOrNull { friends || !isFriend(it.gameProfile) } ?: return@tickingBlueprint emptyMap()
+				val selection =
+					selectStack {
+						custom { stack, _ ->
+							stack.item is BlockItem && blocks.contains(stack.item.block)
+						}
+					}
+
+				val block = findContainer(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
+					?.findStack(selection)
+					?.item?.block
+					?: return@tickingBlueprint emptyMap()
+
+				val targetPlayer =
+					if (self) player
+					else entitySearch<OtherClientPlayerEntity>(
+						buildConfig.blockReach,
+						player.eyePos.blockPos
+					).firstOrNull { friends || !isFriend(it.gameProfile) }
+						?: return@tickingBlueprint emptyMap()
+
 				getTrapPositions(targetPlayer).associateWith { TargetState.Block(block) }
 			}.build(finishOnDone = false)
 				.start()
@@ -84,8 +99,8 @@ object PlayerTrap : Module(
 	}
 
 	fun SafeContext.getTrapPositions(player: PlayerEntity): Set<BlockPos> {
-		val min = player.boundingBox.shrinkByEpsilon().minPos.flooredBlockPos.add(-1, -1, -1)
-		val max = player.boundingBox.shrinkByEpsilon().maxPos.flooredBlockPos.add(1, 1, 1)
+		val min = player.boundingBox.shrinkByEpsilon().minPos.blockPos.add(-1, -1, -1)
+		val max = player.boundingBox.shrinkByEpsilon().maxPos.blockPos.add(1, 1, 1)
 
 		return buildSet {
 			(min.x + 1..<max.x).forEach { x ->

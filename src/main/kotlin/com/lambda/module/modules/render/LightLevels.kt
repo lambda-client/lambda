@@ -19,7 +19,6 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.Group
 import com.lambda.config.blocks.WorldLineSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.withEdits
@@ -29,10 +28,10 @@ import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ChunkedRenderer.Companion.chunkedRenderer
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
 import com.lambda.util.world.toBlockPos
@@ -92,7 +91,7 @@ object LightLevels : Module(
 
 			runSafe {
 				if (areaMode.player) buildPositions(positions, player.blockPos)
-				if (areaMode.camera) buildPositions(positions, mc.gameRenderer.camera.pos.flooredBlockPos)
+				if (areaMode.camera) buildPositions(positions, mc.gameRenderer.camera.pos.blockPos)
 				positions.forEach { pos ->
 					buildRender(pos, dashStyle)
 				}

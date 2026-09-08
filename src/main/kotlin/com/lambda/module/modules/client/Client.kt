@@ -22,7 +22,7 @@ import com.lambda.config.Tab
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import java.awt.Color
 
 object Client : Module(

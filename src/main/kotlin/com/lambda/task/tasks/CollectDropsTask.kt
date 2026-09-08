@@ -48,7 +48,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 ) : Task<Unit>(), Automated by automated {
 	override val name get() = "Collecting ${drops.size} item drop(s)"
 
-	override fun SafeContext.onStart() {
+	init {
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
 				val target =

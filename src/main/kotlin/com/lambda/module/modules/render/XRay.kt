@@ -23,7 +23,7 @@ import com.lambda.config.settings.collections.onDeselect
 import com.lambda.config.settings.collections.onSelect
 import com.lambda.context.SafeContext
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.BlockUtils
 import net.minecraft.block.Blocks
 import net.minecraft.fluid.Fluids

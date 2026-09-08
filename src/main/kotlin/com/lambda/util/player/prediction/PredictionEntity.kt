@@ -26,7 +26,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.MathUtils.toIntSign
 import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
 import com.lambda.util.player.MovementUtils.forward
@@ -85,7 +85,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
     // Other shit
     private var jumpingCooldown = player.jumpingCooldown
-    private var velocityAffectingPos = player.supportingBlockPos.orElse((position + DOWN * 0.001).flooredBlockPos)
+    private var velocityAffectingPos = player.supportingBlockPos.orElse((position + DOWN * 0.001).blockPos)
 
     private var horizontalCollision = player.horizontalCollision
     private var verticalCollision = player.verticalCollision
@@ -208,7 +208,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         }
 
         val velocityMultiplier = run {
-            val f = blockState(position.flooredBlockPos).block.velocityMultiplier.toDouble()
+            val f = blockState(position.blockPos).block.velocityMultiplier.toDouble()
             val g = blockState(velocityAffectingPos).block.velocityMultiplier.toDouble()
             if (f == 1.0) g else f
         }
@@ -220,7 +220,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             boundingBox = normalized.offset(position)
         }
 
-        velocityAffectingPos = (position + DOWN * 0.001).flooredBlockPos
+        velocityAffectingPos = (position + DOWN * 0.001).blockPos
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */
@@ -232,7 +232,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
         /** @see net.minecraft.entity.Entity.getJumpVelocityMultiplier */
         val jumpHeight = run {
-            val f = blockState(position.flooredBlockPos).block.jumpVelocityMultiplier.toDouble()
+            val f = blockState(position.blockPos).block.jumpVelocityMultiplier.toDouble()
             val g = blockState(velocityAffectingPos).block.jumpVelocityMultiplier.toDouble()
             if (f == 1.0) g else f
         } * 0.42 + player.jumpBoostVelocityModifier

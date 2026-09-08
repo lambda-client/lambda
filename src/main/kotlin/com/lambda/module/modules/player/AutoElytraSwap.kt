@@ -26,7 +26,7 @@ import com.lambda.interaction.handler.handlers.GlideHandler.swapped
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.AutoArmor
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.PlayerUtils.canGlideWithChestPiece
 import net.minecraft.screen.slot.Slot

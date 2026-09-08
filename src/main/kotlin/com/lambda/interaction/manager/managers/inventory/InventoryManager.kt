@@ -22,9 +22,9 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler.canSendPackets
-import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler.sentPackets
-import com.lambda.interaction.handler.handlers.packet.PacketType
+import com.lambda.interaction.handler.handlers.PacketLimitHandler.canSendPackets
+import com.lambda.interaction.handler.handlers.PacketLimitHandler.sentPackets
+import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.actions
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.activeRequest

@@ -28,8 +28,9 @@ import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.task.tasks.transferTo
+import com.lambda.task.tasks.transfer
 import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
@@ -100,7 +101,7 @@ sealed class GenericResult : BuildResult() {
         context(_: Automated)
         override fun resolve() =
             neededSelection
-                .transferTo(HotbarContainer)
+                .transfer(toSelection = HotbarContainer.select())
 
         override fun RenderBuilder.render() {
             val center = pos.toCenterPos()

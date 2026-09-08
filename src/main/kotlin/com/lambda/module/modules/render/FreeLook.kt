@@ -23,7 +23,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.extension.rotation
 import net.minecraft.client.option.Perspective
 

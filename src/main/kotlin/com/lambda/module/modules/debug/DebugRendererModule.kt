@@ -18,7 +18,7 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 
 @Suppress("unused")
 object DebugRendererModule: Module(

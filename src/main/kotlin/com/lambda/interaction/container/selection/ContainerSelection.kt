@@ -27,13 +27,26 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffHandContainer
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.handler.handlers.ContainerSearchScope
+
+@ContainerMarker
+fun Container.select(
+    scope: ContainerSearchScope = ContainerSearchScope.Accessed
+) = selectContainer(scope) { ofAny(this@select) }
+
+@ContainerMarker
+fun selectContainers(
+    vararg containers: Container,
+    scope: ContainerSearchScope = ContainerSearchScope.Accessed
+) = selectContainer(scope) { ofAny(*containers) }
 
 /**
- * ContainerSelection is a class that holds a predicate for matching MaterialContainers.
+ * ContainerSelection is a class that holds a predicate for matching containers.
  */
 @Suppress("unused")
-class ContainerSelection(
+class ContainerSelection @ContainerMarker internal constructor(
     val selector: (Container) -> Boolean,
+    val scope: ContainerSearchScope = ContainerSearchScope.Accessed,
     val containersWhitelist: Collection<Container> = emptyList(),
     val accessedOnly: Boolean = false,
     val comparator: Comparator<Container> = compareBy { it.type }
@@ -57,24 +70,35 @@ class ContainerSelection(
     companion object {
         val EVERYTHING = ContainerSelection({ true })
         val NOTHING = ContainerSelection({ false })
-        val HOTBAR_AND_INVENTORY = selectContainer { ofAny(HotbarContainer, InventoryContainer) }
+        val HOTBAR_AND_INVENTORY = selectContainers(HotbarContainer, InventoryContainer)
         val PLAYER =
-            selectContainer {
-                ofAny(
-                    HotbarContainer,
-                    InventoryContainer,
-                    OffHandContainer,
-                    CursorContainer,
-                    ArmorContainer,
-                    CreativeContainer
-                )
-            }
+            selectContainers(
+                HotbarContainer,
+                InventoryContainer,
+                OffHandContainer,
+                CursorContainer,
+                ArmorContainer,
+                CreativeContainer
+            )
     }
 }
 
 @Suppress("unused")
 @ContainerMarker
-class ContainerSelectionBuilder private constructor() {
+class ContainerSelectionBuilder @ContainerMarker private constructor(
+    private val scope: ContainerSearchScope
+) {
+    @ContainerMarker
+    private constructor(
+        selection: ContainerSelection,
+        scope: ContainerSearchScope
+    ) : this(scope) {
+        this.selector = selection.selector
+        this.containersWhitelist.addAll(selection.containersWhitelist)
+        this.accessedOnly = selection.accessedOnly
+        this.comparator = selection.comparator
+    }
+
     private var selector: (Container) -> Boolean = { true }
     private var containersWhitelist = mutableListOf<Container>()
     private var accessedOnly = false
@@ -94,8 +118,12 @@ class ContainerSelectionBuilder private constructor() {
         appendSelector { container -> !types.contains(container.type) }
     }
 
-    fun matches(stackSelection: StackSelection) {
+    fun matchesSlots(stackSelection: StackSelection) {
         appendSelector { container -> stackSelection.filter(container.slots).isNotEmpty() }
+    }
+
+    fun matchesStacks(stackSelection: StackSelection) {
+        appendSelector { container -> stackSelection.filter(container.stacks).isNotEmpty() }
     }
 
     fun matches(containerSelection: ContainerSelection) {
@@ -131,11 +159,17 @@ class ContainerSelectionBuilder private constructor() {
         this.selector = { currentSelector(it) && selector(it) xor invert }
     }
 
-    private fun build() = ContainerSelection(selector, containersWhitelist, accessedOnly, comparator)
+    private fun build() = ContainerSelection(selector, scope, containersWhitelist, accessedOnly, comparator)
 
     companion object {
         fun selectContainer(
+            scope: ContainerSearchScope = ContainerSearchScope.Accessed,
             builder: ContainerSelectionBuilder.() -> Unit
-        ) = ContainerSelectionBuilder().apply(builder).build()
+        ) = ContainerSelectionBuilder(scope).apply(builder).build()
+
+        fun ContainerSelection.mutate(
+            scope: ContainerSearchScope = this.scope,
+            builder: ContainerSelectionBuilder.() -> Unit = {}
+        ) = ContainerSelectionBuilder(this, scope).apply(builder).build()
     }
 }

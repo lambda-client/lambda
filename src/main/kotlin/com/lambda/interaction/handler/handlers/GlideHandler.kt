@@ -17,9 +17,11 @@
 
 package com.lambda.interaction.handler.handlers
 
+import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
 import com.lambda.module.modules.combat.AutoArmor
@@ -164,14 +166,18 @@ object GlideHandler {
 	}
 
 	@JvmStatic
-	context(safeContext: SafeContext)
+	context(safeContext: SafeContext, _: Automated)
 	fun canGlide(): Boolean =
 		with(safeContext) {
 			val fakeFly = ElytraFly.isEnabled && ElytraFly.fakeFly
 			val canGlideAlready = player.canGlideWithChestPiece() != fakeFly
 			if (!autoSwapChecking || canGlideAlready) return canGlideAlready
 			val selection = if (fakeFly) CHESTPLATE_SELECTION else ELYTRA_SELECTION
-			return selection.findContainers(HOTBAR_AND_INVENTORY_CONTAINERS)
+			return findContainers(
+				selection,
+				ContainerSelection.HOTBAR_AND_INVENTORY
+			).toList()
+				.isNotEmpty()
 		}
 
 	private class PendingGlideAction(

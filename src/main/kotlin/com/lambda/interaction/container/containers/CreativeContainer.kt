@@ -40,30 +40,35 @@ data object CreativeContainer : Container(ContainerType.Creative) {
 
 	override val description = buildText { literal("Creative") }
 
+	override fun count(selection: StackSelection): Int =
+		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+
+	override fun spaceLeft(selection: StackSelection): Int =
+		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+
 	context(safeContext: SafeContext)
 	override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
 		clickCreativeStack(fromHere.stack, toSlot.id)
 		safeContext.player.currentScreenHandler.slots.getOrNull(toSlot.id)?.stack = fromHere.stack
 	}
 
-	override fun getSlot(selection: StackSelection) =
-		selection.optimalStack?.let { stack ->
-			Slot(
-				object : SingleStackInventory {
-					override fun getStack() = stack
-					override fun setStack(stack: ItemStack?) {}
-					override fun markDirty() {}
-					override fun canPlayerUse(player: PlayerEntity?) = false
-				},
-				0, 0, 0
-			)
-		}
+	override fun findSlots(selection: StackSelection) =
+		listOfNotNull(
+			selection.optimalStack?.let { stack ->
+				Slot(
+					object : SingleStackInventory {
+						override fun getStack() = stack
+						override fun setStack(stack: ItemStack?) {}
+						override fun markDirty() {}
+						override fun canPlayerUse(player: PlayerEntity?) = false
+					},
+					0, 0, 0
+				)
+			}
+		)
 
-	override fun stackCount(selection: StackSelection): Int =
-		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
-
-	override fun spaceAvailable(selection: StackSelection): Int =
-		if (mc.player?.isCreative == true && correctScreenHandler && selection.optimalStack != null) Int.MAX_VALUE else -1
+	override fun findStacks(selection: StackSelection) =
+		listOfNotNull(selection.optimalStack)
 
 	private val correctScreenHandler
 		get() = mc.player?.currentScreenHandler is PlayerScreenHandler || mc.player?.currentScreenHandler is CreativeInventoryScreen.CreativeScreenHandler

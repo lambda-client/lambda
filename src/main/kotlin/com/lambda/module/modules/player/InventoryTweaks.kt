@@ -28,7 +28,7 @@ import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.handler.handlers.ContainerHandler
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.wrappers.then

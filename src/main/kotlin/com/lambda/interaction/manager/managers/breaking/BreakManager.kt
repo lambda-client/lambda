@@ -42,8 +42,8 @@ import com.lambda.interaction.handler.handlers.breaking.BrokenBlockHandler.start
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler
 import com.lambda.interaction.handler.handlers.breaking.RebreakHandler.getRebreakPotential
 import com.lambda.interaction.handler.handlers.breaking.RebreakResult
-import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler
-import com.lambda.interaction.handler.handlers.packet.PacketType
+import com.lambda.interaction.handler.handlers.PacketLimitHandler
+import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
 import com.lambda.interaction.manager.PositionBlocking

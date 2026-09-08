@@ -38,11 +38,12 @@ data class StashContainer(
         get() = chests.flatMap { it.stacks }
         set(_) {}
 
-    override val description = buildText {
-        literal("Stash at ")
-        highlighted(pos.center.roundedBlockPos.toShortString())
-    }
+    override val description =
+        buildText {
+            literal("Stash at ")
+            highlighted(pos.center.roundedBlockPos.toShortString())
+        }
 
-    override fun stackCount(selection: StackSelection): Int =
-        chests.sumOf { it.stackCount(selection) }
+    override fun count(selection: StackSelection): Int =
+        chests.sumOf { it.count(selection) }
 }

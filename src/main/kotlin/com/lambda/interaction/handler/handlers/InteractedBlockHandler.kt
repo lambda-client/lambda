@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.handler.handlers.interacting
+package com.lambda.interaction.handler.handlers
 
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.InteractConfig
@@ -32,8 +32,8 @@ import com.lambda.util.collections.LimitedDecayQueue
 
 internal object InteractedBlockHandler : PostActionHandler<InteractInfo>() {
 	override val pendingActions = LimitedDecayQueue<InteractInfo>(
-		AutomationConfig.DEFAULT.buildConfig.maxPendingActions,
-		AutomationConfig.DEFAULT.buildConfig.actionTimeout * 50L
+		AutomationConfig.Companion.DEFAULT.buildConfig.maxPendingActions,
+		AutomationConfig.Companion.DEFAULT.buildConfig.actionTimeout * 50L
 	) {
 		if (Client.verboseDebug) warn("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
 		if (it.interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.AwaitThenPlace) {

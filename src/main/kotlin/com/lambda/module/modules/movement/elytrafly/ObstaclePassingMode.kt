@@ -30,7 +30,7 @@ import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.SpeedUnit
 import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
-import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.isLoaded
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -90,7 +90,7 @@ abstract class ObstaclePassingMode(
 
 		passingToPos?.let { passingTo ->
 			if (passingTo distSq startPos < playerPos distSq startPos) {
-				val atClosestPointBlockPos = closestLinePoint.flooredBlockPos == player.blockPos
+				val atClosestPointBlockPos = closestLinePoint.blockPos == player.blockPos
 				if (!atClosestPointBlockPos) pathToValidPoint(closestLinePoint, snappedDir, false)
 				else {
 					BaritoneHandler.cancel()
@@ -172,7 +172,7 @@ abstract class ObstaclePassingMode(
 
 	private fun passTo(pos: Vec3d) {
 		passingToPos = pos
-		BaritoneHandler.setGoalAndPath(GoalGetToBlock(pos.flooredBlockPos))
+		BaritoneHandler.setGoalAndPath(GoalGetToBlock(pos.blockPos))
 	}
 
 	protected fun Vec3d.findClosestPointOnLine(snappedDirection: Vec3d): Vec3d {
@@ -185,7 +185,7 @@ abstract class ObstaclePassingMode(
 	private fun Vec3d.isObstructed(direction: Vec3d) =
 		if (!isLoaded) false
 		else {
-			flooredBlockPos.down().let { downPos ->
+			blockPos.down().let { downPos ->
 				!safeContext.blockState(downPos).isSolidBlock(safeContext.world, downPos)
 			} ||
 					if (add(0.0, passerConfig.minObstacleHeight, 0.0).rayCastObstructed(direction)) true

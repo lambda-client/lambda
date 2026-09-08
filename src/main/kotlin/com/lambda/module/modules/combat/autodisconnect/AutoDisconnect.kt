@@ -28,7 +28,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils
 import com.lambda.util.CommunicationUtils.info

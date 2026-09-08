@@ -25,7 +25,9 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.ArmorContainer
+import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
+import com.lambda.interaction.handler.handlers.findContainer
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
@@ -85,11 +87,12 @@ abstract class ElytraFlyMode(
 			}
 		}
 
-		val elytraSlot = findElytra() ?: run {
-			logError("Fake Fly requires an elytra in your inventory, preferably in your hotbar.")
-			ElytraFly.disable()
-			return false
-		}
+		val elytraSlot = findElytra()
+			?: run {
+				logError("Fake Fly requires an elytra in your inventory, preferably in your hotbar")
+				ElytraFly.disable()
+				return false
+			}
 		val elytraInHotbar = elytraSlot.index in 0..8
 
 		val chestSlot = ArmorContainer.slots.getOrNull(1) ?: return false
@@ -111,16 +114,21 @@ abstract class ElytraFlyMode(
 			}
 		}
 
-		val inventoryRequest = inventoryRequest {
-			swapChest()
-			action { startFly() }
-			swapChest()
-		}.submit(false)
+		val inventoryRequest =
+			inventoryRequest {
+				swapChest()
+				action { startFly() }
+				swapChest()
+			}.submit(false)
 
 		return inventoryRequest.done
 	}
 
-	fun findElytra(): Slot? = ELYTRA_SELECTION.filter(HotbarAndInventoryContainer.slots).minByOrNull { it.index }
+	fun findElytra(): Slot? =
+		findContainer(
+			ELYTRA_SELECTION,
+			ContainerSelection.HOTBAR_AND_INVENTORY
+		)?.findSlot(ELYTRA_SELECTION)
 
 	protected fun SafeContext.startFly() {
 		player.setFlag(Entity.GLIDING_FLAG_INDEX, true)

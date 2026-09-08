@@ -28,10 +28,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.simulation.context.InteractContext
-import com.lambda.interaction.handler.handlers.interacting.InteractedBlockHandler
-import com.lambda.interaction.handler.handlers.interacting.InteractedBlockHandler.startPending
-import com.lambda.interaction.handler.handlers.packet.PacketLimitHandler
-import com.lambda.interaction.handler.handlers.packet.PacketType
+import com.lambda.interaction.handler.handlers.InteractedBlockHandler
+import com.lambda.interaction.handler.handlers.InteractedBlockHandler.startPending
+import com.lambda.interaction.handler.handlers.PacketLimitHandler
+import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
 import com.lambda.interaction.manager.PositionBlocking

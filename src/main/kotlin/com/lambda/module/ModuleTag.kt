@@ -15,12 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.tag
+package com.lambda.module
 
 import com.lambda.util.Nameable
 
 /**
- * The [ModuleTag] class represents a tag, that can be associated in any cardinality with a [Module].
+ * The [ModuleTag] class represents a tag, that can be associated in any cardinality with a [java.lang.Module].
  *
  * Tags are used to categorize and organize modules, making them easier to find.
  * They can be custom created as per the user's needs.

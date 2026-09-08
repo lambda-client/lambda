@@ -19,7 +19,7 @@ package com.lambda.module.modules.movement.elytrafly.modes
 
 import com.lambda.config.Config
 import com.lambda.config.Group
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent

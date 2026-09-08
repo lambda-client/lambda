@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.Config
 import com.lambda.config.Tab
 import com.lambda.config.categories.GuiCategory
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPressUnsafe
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
@@ -49,8 +49,8 @@ import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
-import com.lambda.module.tag.ModuleTag
-import com.lambda.module.tag.ModuleTag.Companion.shownTags
+import com.lambda.module.ModuleTag
+import com.lambda.module.ModuleTag.Companion.shownTags
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.Describable
@@ -157,8 +157,7 @@ object ClickGuiLayout : Loadable, Config(
 				mc.window.setIcon(mc.defaultResourcePack, icon)
 			}
 		}
-	@JvmStatic
-	@Tab(GENERAL_TAB) val setLambdaWindowTitle by setting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }
+	@Tab(GENERAL_TAB) @JvmStatic val setLambdaWindowTitle by setting("Set Lambda Window Title", true).onValueChange { _, _ -> mc.updateWindowTitle() }
 	@Tab(GENERAL_TAB) val lambdaTitleAppendixName by setting("Append Username", true) { setLambdaWindowTitle }.onValueChange { _, _ -> mc.updateWindowTitle() }
 	@Tab(GENERAL_TAB) val backgroundBlur by setting("Background Blur", true)
 	@Tab(GENERAL_TAB) val backgroundDarkening by setting("Background Darkening", true)

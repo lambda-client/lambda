@@ -43,7 +43,7 @@ import com.lambda.imgui.type.ImBoolean
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleRegistry.moduleNameMap
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.network.LambdaAPI
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.info
