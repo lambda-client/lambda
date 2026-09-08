@@ -10,7 +10,7 @@ import net.minecraft.util.shape.VoxelShapes
 /**
  * A seeded parkour course: isolated pads separated by gaps that must be jumped.
  *
- * The corpus had no fixture of this shape and it showed. [BedrockFieldLayout] is open
+ * The corpus had no fixture of this shape and it showed. [pathing.BedrockFieldLayout] is open
  * terrain where the body can walk almost anywhere, so a trajectory search that struggles
  * on gaps still scores well on it; the only parkour fixtures were two-jump toys that
  * finish in 36 frames, short enough that the terminal stop dominates them and long enough

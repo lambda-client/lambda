@@ -3,7 +3,6 @@ package pathing
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView

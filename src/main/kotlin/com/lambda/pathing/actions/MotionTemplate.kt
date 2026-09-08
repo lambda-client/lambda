@@ -11,6 +11,7 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class MotionTemplate internal constructor(
 	val id: MotionTemplateId,
@@ -171,8 +172,8 @@ class MotionTemplate internal constructor(
 
 				val steps = maxOf(abs(spec.dx), abs(spec.dz))
 				for (step in 0..steps) {
-					val alongX = if (steps == 0) 0 else Math.round(spec.dx.toDouble() * step / steps).toInt()
-					val alongZ = if (steps == 0) 0 else Math.round(spec.dz.toDouble() * step / steps).toInt()
+					val alongX = if (steps == 0) 0 else (spec.dx.toDouble() * step / steps).roundToInt()
+					val alongZ = if (steps == 0) 0 else (spec.dz.toDouble() * step / steps).roundToInt()
 					val floorReach = minOf(spec.rise, -(spec.bounceDrop ?: 0), 0) - 2
 					for (y in floorReach..ARC_READ_CEILING) {
 						for (ox in -1..1) {

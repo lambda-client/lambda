@@ -1,6 +1,7 @@
-package com.lambda.pathing.debug
+package pathing
 
 import com.lambda.pathing.core.VoxelPos
+import kotlin.math.hypot
 import kotlin.random.Random
 
 object BedrockFieldLayout {
@@ -78,7 +79,7 @@ object BedrockFieldLayout {
             val to = surface[random.nextInt(surface.size)]
             val dx = (to.x - from.x).toDouble()
             val dz = (to.z - from.z).toDouble()
-            if (kotlin.math.hypot(dx, dz) >= minHorizontalDistance) {
+            if (hypot(dx, dz) >= minHorizontalDistance) {
                 pairs += from to to
             }
         }

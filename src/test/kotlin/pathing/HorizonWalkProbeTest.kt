@@ -8,7 +8,6 @@ import com.lambda.pathing.actions.*
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.*
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.debug.BedrockFieldLayout
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
