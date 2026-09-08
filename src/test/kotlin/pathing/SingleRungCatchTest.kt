@@ -17,6 +17,8 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
@@ -57,6 +59,16 @@ class SingleRungCatchTest {
 
     @Test
     fun `a single rung is caught from a standing start and climbed out on top`() {
+        catchFrom(Vec3d(0.5, 69.0, 0.5))
+    }
+
+    @Test
+    fun `a stopped body at the front edge retains a reachable catch gait`() {
+        // Translated from plan-1788868411989.dump: no runway remains before launch.
+        catchFrom(Vec3d(0.406441704596475, 69.0, 0.0736899258351))
+    }
+
+    private fun catchFrom(position: Vec3d) {
         val environment = environment()
         val moves = moveLibrary(SimpleMoveOptions(allowClimbing = true))
         val planner = CoarsePlanner(environment, moves, Stance(0, 69, 0), Stance(0, 71, -6))
@@ -70,7 +82,7 @@ class SingleRungCatchTest {
 
         val initial = MovementSimulationState.synthetic(
             profile = PROFILE,
-            position = Vec3d(0.5, 69.0, 0.5),
+            position = position,
             rotation = Rotation(180.0, 0.0),
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
@@ -82,7 +94,14 @@ class SingleRungCatchTest {
             started = System.currentTimeMillis(),
         )
         val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
-        val terminal = path.plan.frames.last().state.position
+        assertTrue(!path.partial, "must complete the climb")
+        val simulator = MovementSimulator(PROFILE, environment, initial)
+        for (input in path.plan.tape.asList()) {
+            assertTrue(simulator.tryTickMovement(input) is MovementSimulationStepResult.Advanced)
+        }
+        val terminal = simulator.state.position
+        assertTrue(simulator.state.onGround && simulator.state.velocity.horizontalLength() <= MotionConstraints().stoppedSpeed)
+        println("[single-rung] start=$position certified=${path.plan.tape.frameCount}")
         assertTrue(terminal.y > 70.5 && terminal.z < -3.5, "the tape must end on the deck, ended at $terminal")
     }
 

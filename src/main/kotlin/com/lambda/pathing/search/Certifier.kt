@@ -10,8 +10,8 @@ import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
 /**
  * Replays a solution's tape from the session's initial state and packages the certified
- * frames. The segments it publishes are `solution.planSegments`, which are the plan graph's
- * best route by construction (see [Solution.planSegments]).
+ * frames. Its published segments are `solution.planSegments`, the same decision chain
+ * that produced this solution's tape (see [Solution.planSegments]).
  */
 internal class Certifier(
     private val initialState: MovementSimulationState,

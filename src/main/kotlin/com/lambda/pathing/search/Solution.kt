@@ -19,9 +19,9 @@ internal class Solution(
     /**
      * The decisions this solution was built from; see [PlanSegment]. Lazy because solutions
      * are produced speculatively and few are certified. See docs/decisions/improver.md.
-     * Invariant: this chain is the plan graph's best route -- [PlanImprover] assembles its
-     * result from `PlanGraph.bestRoute()`, so what [Certifier] publishes is that route by
-     * construction and consults no second structure.
+     * Invariant: this is the actual certified decision chain, not a second route model.
+     * [PlanImprover] re-runs the suffix and returns its complete winning solution;
+     * [Certifier] publishes that chain without reconstructing it from graph segments.
      */
     val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
 

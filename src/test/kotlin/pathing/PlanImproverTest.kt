@@ -9,6 +9,8 @@ import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulator
 import kotlin.math.hypot
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Tag
 
@@ -40,6 +42,8 @@ class PlanImproverTest {
                 ?.path?.takeIf { !it.partial }?.plan ?: continue
             val outcome = ProbeScenarios.plan(scenario, improvementBudget = BUDGET)
             outcome.exhaustions.forEach { exhaustion ->
+                assertTrue(exhaustion.improvementRollouts <= BUDGET,
+                    "${scenario.name}: improver exceeded its $BUDGET rollout ceiling")
                 if (exhaustion.improvementRollouts > 0) {
                     println(
                         "[improve]   %s: %d splices, %d frames, %d rollouts (%s)".format(
@@ -49,8 +53,14 @@ class PlanImproverTest {
                     )
                 }
             }
-            val spliced = (outcome.result as? PathPlanResult.Planned)
-                ?.path?.takeIf { !it.partial }?.plan ?: continue
+            val spliced = assertNotNull(
+                (outcome.result as? PathPlanResult.Planned)?.path?.takeIf { !it.partial }?.plan,
+                "${scenario.name}: enabling improvement lost a previously complete plan",
+            )
+            assertEquals(
+                spliced.tape.asList(), spliced.segments.flatMap { it.inputs },
+                "${scenario.name}: improved segments do not reproduce the certified tape in order",
+            )
             checked++
             before += plain.tape.frameCount
             after += spliced.tape.frameCount

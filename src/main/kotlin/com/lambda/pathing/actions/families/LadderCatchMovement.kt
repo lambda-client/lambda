@@ -80,16 +80,18 @@ object LadderCatchMovement : Movement {
         // are still inside the ladder cell, and a slow arc arrives there already falling
         // (it hangs an instant, slides below the rung, and drops). Prefer the fastest
         // entry the run-up allows; the plank stops any overshoot.
-        val solutions = listOfNotNull(
-            LaunchSolver.best(
-                edge.from, edge.to,
-                profile = context.ballistics,
-                modes = MODES,
-                maxEntrySpeed = { reachable },
-                catch = true,
-            ),
-            edge.launch,
-        ).distinctBy { it.mode to it.launchOffset }
+        val catches = LaunchSolver.solve(
+            edge.from, edge.to,
+            profile = context.ballistics,
+            modes = MODES,
+            maxEntrySpeed = { reachable },
+            catch = true,
+        )
+        // Keep the preferred catch and coarse fallback first, but retain other gaits.
+        // Equal catch margins do not imply equal reachability from the actual body:
+        // a stopped body at the pad's front edge may need the sprint-jump impulse.
+        val solutions = (listOfNotNull(catches.firstOrNull(), edge.launch) + catches.drop(1))
+            .distinctBy { it.mode to it.launchOffset }
             .filter { context.constraints.sprintModes.contains(it.sprint) }
 
         return solutions.flatMap { solution ->

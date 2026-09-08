@@ -20,6 +20,7 @@ package com.lambda.pathing.world.snapshot
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CollisionClass
+import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
@@ -36,6 +37,19 @@ data class SnapshotBlockPhysics(
 ) {
     val collisionClass: CollisionClass =
         if (unsupportedPhysics != null) CollisionClass.FULL else CollisionClass.of(collisionShape)
+
+    // Snapshot records are immutable and interned by block state. Decompose once, not
+    // once per supporting-block query and not once per translated world position.
+    private val collisionBoxes = collisionShape.boundingBoxes
+
+    internal fun intersectsCollisionBox(query: Box, x: Int, y: Int, z: Int): Boolean =
+        collisionBoxes.any { local ->
+            // Translate the shape bounds, as VoxelShape.offset does. Translating the
+            // query backwards instead changes rounding near world-border coordinates.
+            query.minX < local.maxX + x && query.maxX > local.minX + x &&
+                query.minY < local.maxY + y && query.maxY > local.minY + y &&
+                query.minZ < local.maxZ + z && query.maxZ > local.minZ + z
+        }
 
     companion object {
         const val DEFAULT_SLIPPERINESS = 0.6

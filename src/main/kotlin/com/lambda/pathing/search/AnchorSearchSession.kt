@@ -1086,7 +1086,7 @@ internal class AnchorSearchSession(
             searchConfig.improvementBudget,
             improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS,
         )
-        val improved = improver.improve(incumbent, slice) ?: return
+        val improved = measuredImprovement { improver.improve(incumbent, slice) } ?: return
         stats.improvementSaved += incumbent.frames - improved.frames
         retain(improved)
     }
@@ -1102,9 +1102,9 @@ internal class AnchorSearchSession(
         val tip = horizon.publishedTip ?: return
         if (improver.rolloutsSpent >= searchConfig.improvementBudget) return
         val slice = minOf(searchConfig.improvementBudget, improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS)
-        val better = improver.improveTip(tip, slice, minGainFrames = SWAP_FLOOR_GAIN_TICKS.toInt()) ?: return
-        stats.improvementRollouts = improver.rolloutsSpent
-        stats.improvementDiagnosis = improver.diagnosis()
+        val better = measuredImprovement {
+            improver.improveTip(tip, slice, minGainFrames = SWAP_FLOOR_GAIN_TICKS.toInt())
+        } ?: return
         frontier.reopen(better)
         horizon.publishPrefix(better, expansions)
         if (horizon.publishedTip === better) {
@@ -1113,17 +1113,23 @@ internal class AnchorSearchSession(
         }
     }
 
+    /** Count unsuccessful slices too, without overwriting published-tip splice totals. */
+    private inline fun <T> measuredImprovement(block: () -> T): T {
+        val before = improver.splices
+        val result = block()
+        stats.improvementRollouts = improver.rolloutsSpent
+        stats.improvementSplices += improver.splices - before
+        stats.improvementDiagnosis = improver.diagnosis()
+        return result
+    }
+
     private fun improve(solution: Solution): Solution {
         if (searchConfig.improvementBudget <= 0) return solution
-        val improved = improver.improve(solution, searchConfig.improvementBudget)
-        // Recorded even when nothing was found: budget spent for nothing is the interesting case.
-        stats.improvementRollouts = improver.rolloutsSpent
-        stats.improvementSplices = improver.splices
-        stats.improvementDiagnosis = improver.diagnosis()
+        val improved = measuredImprovement { improver.improve(solution, searchConfig.improvementBudget) }
         if (improved == null) return solution
         // A shorter tape the publisher would refuse is not an improvement.
         if (!horizon.canReach(improved.anchor)) return solution
-        stats.improvementSaved = solution.frames - improved.frames
+        stats.improvementSaved += solution.frames - improved.frames
         return improved
     }
 
