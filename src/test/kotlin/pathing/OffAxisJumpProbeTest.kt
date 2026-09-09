@@ -11,9 +11,9 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.actions.LaunchTrigger
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.SegmentFollowerProgram
-import com.lambda.pathing.search.TrajectoryRollout
-import com.lambda.pathing.search.TrajectoryRolloutEngine
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
+import com.lambda.pathing.rollout.TrajectoryRollout
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.physics.MovementSimulationState
 import net.minecraft.util.math.Vec3d
 import com.lambda.pathing.actions.SimpleMoveOptions

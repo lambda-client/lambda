@@ -1,5 +1,10 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
+import com.lambda.pathing.rollout.TrajectoryRollout
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.VoxelPos
@@ -8,11 +13,6 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
-/**
- * Replays a solution's tape from the session's initial state and packages the certified
- * frames. Its published segments are `solution.planSegments`, the same decision chain
- * that produced this solution's tape (see [Solution.planSegments]).
- */
 internal class Certifier(
 	private val initialState: MovementSimulationState,
 	private val profile: PlayerPhysicsProfile,

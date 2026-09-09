@@ -21,11 +21,6 @@ import com.lambda.pathing.session.PathingSession.State
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 
-/**
- * Replays the running tape: one input per tick, one observation after it, holds at a
- * drained partial, recovery when the certified environment or the body's state diverges,
- * and the arrival. Installing and adopting tapes is [TapeAdmission]'s.
- */
 internal class ExecutionDriver(private val walk: PathingSession) {
 	private val admission get() = walk.admission
 
@@ -44,10 +39,6 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			with(admission) { adopt(improvement) }
 		}
 
-		// The remaining tape is a stationary terminal tail: the body is already at the
-		// terminal position and every remaining input is passive. A full tape may
-		// complete early; a partial one executes into its closed-cycle terminal so a
-		// held body repeats the certified frames exactly.
 		walk.cursor?.let { cursor ->
 			val running = walk.telemetry.published
 			if (running != null && !running.partial && !walk.awaitingObservation &&
@@ -59,8 +50,6 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			}
 		}
 
-		// Holding at a drained partial: keep the hold discipline until an extension is
-		// adopted (which clears the flag) or the session dies (restart from rest).
 		if (walk.holding) {
 			walk.telemetry.published?.let { enterHold(it) }
 			return
@@ -77,7 +66,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		announcePassedWaypoints(current, running.nextFrame)
 		walk.repairDeadline?.let { deadline ->
 			if (running.nextFrame >= deadline) {
-				// The cut is here and no repaired tape arrived: stop and replan, as before.
+
 				val deviation = walk.repairDeviation ?: ExecutionDeviation.Protocol("repair deadline reached")
 				return reject(running.nextFrame, deviation, observed, afterInput = false)
 			}
@@ -174,12 +163,6 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		walk.continueRoute()
 	}
 
-	/**
-	 * The published tape drained before an extension certified. The body is settled at
-	 * the tape's closed-cycle terminal; the same session keeps searching from the
-	 * trajectory frontier, and the next adopted extension resumes from this frame. If
-	 * the session died, restart one from rest -- without tearing the walk down.
-	 */
 	private fun SafeContext.enterHold(path: PublishedPath) {
 		val cursor = walk.cursor ?: return
 		if (!walk.holding) {
@@ -209,9 +192,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			if (reason != null) walk.sessionRestarts++
 			walk.cursor = null
 			walk.tickInput = null
-			// A successor planned while the body was still replaying is ready to install
-			// right now; falling through to planTrajectory would re-plan from scratch and
-			// hold for as long as that takes.
+
 			val successor = walk.successorPath
 			walk.successorPath = null
 			walk.successorSession?.cancel()
@@ -226,33 +207,24 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 
 	private fun repairUntil(path: PublishedPath): Int = walk.repairDeadline ?: path.plan.tape.frameCount
 
-	/** The body pressed past a walk-through waypoint's frame: one leg done, no stop. */
 	private fun SafeContext.announcePassedWaypoints(path: PublishedPath, frame: Int) {
-		// A tape's touches are numbered from the session's own first leg, which is not the
-		// route's first leg after a replan mid-route: match by waypoint, never by index.
+
 		val waypoints = walk.request.waypoints
-		for (touch in path.legTouches) {
-			if (touch.frame > frame) break
+		for ((touchFrame, waypoint) in path.legTouches) {
+			if (touchFrame > frame) break
 			val next = waypoints.getOrNull(walk.passedWaypoints) ?: break
-			if (touch.waypoint != next && touch.waypoint != TrajectoryPlanner.resolveGoalStance(player, next)) continue
+			if (waypoint != next && waypoint != TrajectoryPlanner.resolveGoalStance(player, next)) continue
 			walk.passedWaypoints++
 			walk.leg++
 			val remaining = walk.remainingWaypoints().size
 			info(
-				"Passed ${touch.waypoint} at frame ${touch.frame}" +
+				"Passed $waypoint at frame $touchFrame" +
 						(if (remaining > 0) ", $remaining waypoint(s) before ${path.finalGoal}." else ", heading to ${path.finalGoal}."),
 				PATHING_SOURCE,
 			)
 		}
 	}
 
-	/**
-	 * A world change under the running tape: cut at the last rejoinable junction ahead of
-	 * the body and before the first frame that read the change, keep replaying up to it,
-	 * and let the running search publish the repaired tail (it sees the same mutation and
-	 * re-roots at the same cut). Anything else, or no cut ahead, rejects as before.
-	 * See docs/decisions/publication-protocol.md (local repair).
-	 */
 	private fun SafeContext.handleDeviation(
 		path: PublishedPath,
 		frame: Int,
@@ -297,7 +269,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 	}
 
 	private companion object {
-		/** Frames the cut must sit ahead of the cursor: the search's fork margin plus a commit's worth of runway. */
+
 		const val REPAIR_MIN_LEAD_FRAMES = 8
 	}
 

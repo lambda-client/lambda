@@ -1,4 +1,4 @@
-package com.lambda.pathing.search
+package com.lambda.pathing.rollout
 
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.physics.MovementSimulationInput
@@ -66,9 +66,7 @@ object TrajectoryRolloutEngine {
 
 		for (frame in 0 until frameCount) {
 			val input = program.input(frame, current)
-			val next = simulator.stepFrom(current, input)
-			if (next == null) {
-				return TrajectoryRollout(
+			val next = simulator.stepFrom(current, input) ?: return TrajectoryRollout(
 					initialState = initialState,
 					frames = frames,
 					termination = when (val failure = checkNotNull(simulator.lastFailure)) {
@@ -78,7 +76,6 @@ object TrajectoryRolloutEngine {
 						else -> TrajectoryRolloutTermination.Rejected(frame, failure)
 					},
 				)
-			}
 			current = next
 			val simulated = SimulatedTrajectoryFrame(index = frame, input = input, state = next)
 			frames += simulated

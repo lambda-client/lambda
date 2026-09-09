@@ -3,10 +3,6 @@ package com.lambda.pathing.world
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 
-/**
- * The in-progress section: a 16 x 16 x 16 cursor (x fastest, then z, then y) writing into
- * an [ImmutableSnapshotSection.Builder]. Single-threaded (client thread).
- */
 internal class SectionCapture {
 	var activeKey: Long? = null
 		private set
@@ -27,14 +23,12 @@ internal class SectionCapture {
 		localZ = 0
 	}
 
-	/** Writes the cell under the cursor and advances it; true once all cells are written. */
 	fun writeNext(physics: SnapshotBlockPhysics): Boolean {
 		val target = checkNotNull(builder) { "SectionCapture.writeNext without begin" }
 		target.set(localX, localY, localZ, physics)
 		return advanceCursor()
 	}
 
-	/** Freezes the completed section and clears the cursor. */
 	fun build(): ImmutableSnapshotSection {
 		val frozen = checkNotNull(builder) { "SectionCapture.build without begin" }
 			.build(expectedWrites = SECTION_CELLS)

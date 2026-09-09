@@ -5,7 +5,7 @@ import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
-import com.lambda.pathing.actions.DropProgram
+import com.lambda.pathing.actions.control.DropProgram
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
@@ -66,7 +66,6 @@ object DropMovement : Movement {
 			.map { TrajectoryDecision.Drop(it.sprint, context.edge.to, it) }
 	}
 
-	/** A drop is priced by how close its landing comes to taking fall damage. */
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
 		val drop = decision as? TrajectoryDecision.Drop ?: return DecisionPrice.FREE
 		return DecisionPrice(difficulty = context.landingRisk(drop.solution))

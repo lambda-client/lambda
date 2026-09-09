@@ -1,4 +1,4 @@
-package com.lambda.pathing.search
+package com.lambda.pathing.rollout
 
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.HorizontalPoint
@@ -6,8 +6,6 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import kotlin.math.abs
 import kotlin.math.hypot
-
-internal class Evaluation(val stopFrame: Int?, val diagnostic: TrajectoryDiagnostic?)
 
 internal sealed interface RolloutVerdict {
 	data object Continue : RolloutVerdict
@@ -19,18 +17,14 @@ internal sealed interface RolloutVerdict {
 
 internal class RolloutEvaluator(
 	initialState: MovementSimulationState,
-	private val nodes: List<HorizontalPoint>,
+	nodes: List<HorizontalPoint>,
 	private val goal: HorizontalPoint,
 	private val config: MotionConstraints,
 
 	private val allowHorizontalContact: Boolean = false,
 
-	private val descentAllowance: Double = 0.0,
+	descentAllowance: Double = 0.0,
 
-	/**
-	 * Whether the body at this feet position counts as climbing; every climbing tick resets
-	 * fall distance, as in vanilla. See docs/decisions/movement-tuning.md.
-	 */
 	private val climbing: (net.minecraft.util.math.Vec3d) -> Boolean = { false },
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
@@ -79,14 +73,14 @@ internal class RolloutEvaluator(
 	}
 }
 
-internal fun evaluate(
+internal fun evaluateDiagnostic(
 	rollout: TrajectoryRollout,
 	nodes: List<HorizontalPoint>,
 	goal: HorizontalPoint,
 	config: MotionConstraints,
 	descentAllowance: Double = 0.0,
 	climbing: (net.minecraft.util.math.Vec3d) -> Boolean = { false },
-): Evaluation {
+): TrajectoryDiagnostic? {
 	val evaluator = RolloutEvaluator(
 		rollout.initialState, nodes, goal, config, descentAllowance = descentAllowance,
 		climbing = climbing,
@@ -96,40 +90,30 @@ internal fun evaluate(
 		val before = if (frame.index == 0) rollout.initialState else rollout.frames[frame.index - 1].state
 		when (val verdict = evaluator.observe(frame.index, frame.state, before)) {
 			is RolloutVerdict.Continue -> Unit
-			is RolloutVerdict.Stopped -> return Evaluation(verdict.frame, null)
-			is RolloutVerdict.Failed -> return Evaluation(null, verdict.diagnostic)
+			is RolloutVerdict.Stopped -> return null
+			is RolloutVerdict.Failed -> return verdict.diagnostic
 		}
 	}
 
-	(rollout.termination as? TrajectoryRolloutTermination.Blocked)?.let { blocked ->
-		return Evaluation(
-			null,
-			TrajectoryDiagnostic.UnknownTerrain(blocked.frame, blocked.sectionX, blocked.sectionY, blocked.sectionZ),
+	when (val termination = rollout.termination) {
+		is TrajectoryRolloutTermination.Blocked -> return TrajectoryDiagnostic.UnknownTerrain(
+			termination.frame, termination.sectionX, termination.sectionY, termination.sectionZ,
 		)
-	}
-	(rollout.termination as? TrajectoryRolloutTermination.Rejected)?.let { rejected ->
-		return Evaluation(
-			null,
-			when (val failure = rejected.failure) {
-				is SimulationSnapshotOutOfBoundsException ->
-					TrajectoryDiagnostic.OutsideSnapshot(rejected.frame, failure.pos)
-
-				else ->
-					TrajectoryDiagnostic.UnsupportedPhysics(rejected.frame, failure.message ?: "unsupported")
-			},
-		)
+		is TrajectoryRolloutTermination.Rejected -> return when (val failure = termination.failure) {
+			is SimulationSnapshotOutOfBoundsException ->
+				TrajectoryDiagnostic.OutsideSnapshot(termination.frame, failure.pos)
+			else -> TrajectoryDiagnostic.UnsupportedPhysics(termination.frame, failure.message ?: "unsupported")
+		}
+		TrajectoryRolloutTermination.Completed -> Unit
 	}
 
-	evaluator.pendingBlocker?.let { return Evaluation(null, it) }
+	evaluator.pendingBlocker?.let { return it }
 
 	val final = rollout.finalState
-	return Evaluation(
-		null,
-		TrajectoryDiagnostic.NoStop(
-			frame = rollout.frames.size,
-			goalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
-			speed = final.velocity.horizontalLength(),
-		),
+	return TrajectoryDiagnostic.NoStop(
+		frame = rollout.frames.size,
+		goalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
+		speed = final.velocity.horizontalLength(),
 	)
 }
 

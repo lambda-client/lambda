@@ -19,3 +19,17 @@ class InputTape(inputs: Iterable<MovementSimulationInput>) : ControlProgram {
 
 	fun asList(): List<MovementSimulationInput> = inputs
 }
+
+class LaunchTrigger(private val delayFrames: Int) {
+	private var groundedTicks = 0
+	private var fired = false
+
+	val hasFired: Boolean get() = fired
+
+	fun press(observed: MovementSimulationState): Boolean {
+		if (fired || !observed.onGround) return false
+		if (groundedTicks++ < delayFrames) return false
+		fired = true
+		return true
+	}
+}

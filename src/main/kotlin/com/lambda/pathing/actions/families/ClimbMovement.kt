@@ -2,7 +2,7 @@ package com.lambda.pathing.actions.families
 
 import com.lambda.pathing.actions.CellCondition
 import com.lambda.pathing.actions.CellPredicate
-import com.lambda.pathing.actions.ClimbProgram
+import com.lambda.pathing.actions.control.ClimbProgram
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext

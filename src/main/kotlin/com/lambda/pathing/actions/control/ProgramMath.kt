@@ -1,14 +1,12 @@
-package com.lambda.pathing.actions
+package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
 import kotlin.math.hypot
 
-/** How far short of a lip a one-step lookahead may trigger a launch or bounce. */
 internal const val LIP_LOOKAHEAD_MARGIN = 0.05
 
-/** Signed perpendicular distance of the body from the [takeoff]-[aim] line. */
 internal fun lateralOffset(
 	takeoff: HorizontalPoint,
 	aim: HorizontalPoint,
@@ -23,7 +21,6 @@ internal fun lateralOffset(
 	return (dx * pz - dz * px) / length
 }
 
-/** Full strafe back toward the flight line once the offset leaves [deadband]; zero inside it. */
 internal fun airborneStrafe(
 	takeoff: HorizontalPoint,
 	aim: HorizontalPoint,

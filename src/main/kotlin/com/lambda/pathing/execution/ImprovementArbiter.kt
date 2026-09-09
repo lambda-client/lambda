@@ -19,7 +19,7 @@ internal object ImprovementArbiter {
 		cursorFrame: Int?,
 		awaitingObservation: Boolean,
 		offered: PublishedPath,
-		/** The running tape is invalid from this frame on (a repair cut): any newer valid tape wins. */
+
 		runningInvalidFrom: Int? = null,
 	): Verdict {
 		if (running == null || cursorFrame == null) return Verdict.BeginFresh
@@ -35,8 +35,7 @@ internal object ImprovementArbiter {
 			return Verdict.Keep("improvement is shorter than the walk so far")
 		}
 		if (runningInvalidFrom != null) {
-			// The running tail is void; the only questions left are generation, sequence
-			// and whether the offer agrees with what the body has already pressed.
+
 			val diverges = (0 until cursorFrame).any { running.plan.tape[it] != offered.plan.tape[it] }
 			return if (diverges) Verdict.Keep("repair diverges behind the cursor") else Verdict.Adopt(cursorFrame)
 		}
@@ -46,14 +45,12 @@ internal object ImprovementArbiter {
 			return Verdict.Keep("improvement is not shorter than the running tape")
 		}
 		if (running.partial && offered.partial && offered.safeAnchorFrame <= running.safeAnchorFrame) {
-			// A backtrack swap: only the exact running tape the publication compared
-			// against (same-instant arrivals) may be displaced, and only for the swap
-			// floor. See docs/decisions/publication-protocol.md.
+
 			val comparable = offered.comparedRunningSequence == running.publicationSequence.toLong() &&
 					offered.arrivalTicksEstimate.isFinite() && offered.comparedRunningArrivalTicks.isFinite()
 			val gains = comparable &&
 					offered.arrivalTicksEstimate + SWAP_GAIN_TICKS <= offered.comparedRunningArrivalTicks
-			// Re-checked against the cursor at delivery, which has moved since the gate saw it.
+
 			val runway = offered.safeAnchorFrame - cursorFrame >= SWAP_MIN_RUNWAY_FRAMES
 			if (!gains || !runway) return Verdict.Keep("partial publication commits no new anchor")
 		}
@@ -66,9 +63,7 @@ internal object ImprovementArbiter {
 		return Verdict.Adopt(cursorFrame)
 	}
 
-	/** Adopting a swap must buy what its publication gate demanded; see docs/decisions/swap-floor.md. */
 	private const val SWAP_GAIN_TICKS = SWAP_FLOOR_GAIN_TICKS
 
-	/** A commit chunk: the certified runway a swap must still hand the body on arrival. */
 	private const val SWAP_MIN_RUNWAY_FRAMES = 20
 }

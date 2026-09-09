@@ -22,10 +22,9 @@ internal class ContinuousSyncPolicy(
 	private val start: Stance,
 	private val finalGoal: Stance,
 	private val snapshotRevision: Long,
-	private val coarseExpansionBudget: Int,
 	private val cancelled: () -> Boolean,
 	private val probe: SearchProbe,
-	/** Every non-empty batch drained here, for the legs of a compound route still ahead. */
+
 	private val onBatch: (WorldEventBatch) -> Unit = {},
 ) : (CoarseRoutePlan) -> WorldSyncResult {
 	private var lastQuietExtension = 0L
@@ -34,21 +33,18 @@ internal class ContinuousSyncPolicy(
 	private var resolveNanos = 0L
 	private var resolves = 0
 
-	/** Search-thread time spent re-resolving the route (ring grants, sweeps, D* repair). */
 	val ledger: String get() = "coarseSync=${syncNanos / 1_000_000L}ms[apply ${(syncNanos - resolveNanos) / 1_000_000L}, resolve ${resolveNanos / 1_000_000L} x$resolves]"
 
 	override fun invoke(current: CoarseRoutePlan): WorldSyncResult {
 		val batch = world.drainEvents()
 		if (!batch.isEmpty) onBatch(batch)
 		if (batch.isEmpty) {
-			// Finish a sliced resynchronisation before treating the world as quiet.
+
 			val t = System.nanoTime()
 			val more = coarseState.continueSync(SYNC_SLICE_STANCES)
 			syncNanos += System.nanoTime() - t
 			if (more) return WorldSyncResult.Woken()
-			// A horizon-truncated route never extends by itself when its terminal area
-			// is already loaded -- no world event will ever arrive. Re-resolve
-			// periodically until the route reaches the final goal.
+
 			val extending = current.goal != finalGoal
 			if (!extending) return WorldSyncResult.Quiet
 			val now = System.currentTimeMillis()
@@ -110,7 +106,6 @@ internal class ContinuousSyncPolicy(
 		return WorldSyncResult.Changed(next, mutatedSections)
 	}
 
-	/** The drawn coarse graph follows the route as it is re-resolved; paced by the channel. */
 	private fun refreshGraph(route: CoarseRoutePlan) {
 		val at = route.nodes.first()
 		PlanningDebugChannel.refreshGraph(
@@ -119,7 +114,6 @@ internal class ContinuousSyncPolicy(
 		)
 	}
 
-	/** Re-captured sections plus every section of a reloaded chunk the snapshot holds. */
 	private fun mutatedSectionSet(batch: WorldEventBatch): Set<PathingSection> {
 		if (batch.mutations.isEmpty() && batch.chunks.isEmpty()) return emptySet()
 		val out = HashSet<PathingSection>(batch.mutations)
@@ -162,18 +156,8 @@ internal class ContinuousSyncPolicy(
 	private companion object {
 		const val QUIET_EXTENSION_INTERVAL_MILLIS = 250L
 
-		/**
-		 * Graph nodes regenerated per sync call (~60 us each on rough terrain, so ~10 ms):
-		 * a full 9-chunk arrival on a field-sized graph is ~7k nodes, which blocked the
-		 * search for 300-400 ms at a time and collapsed its tempo window.
-		 */
 		const val SYNC_SLICE_STANCES = 150
 
-		/**
-		 * D* expansions one mid-walk route re-resolution may spend before handing the
-		 * thread back to the search; the incremental repair continues on the next call.
-		 * A ring grant on rough terrain otherwise labels 20k+ nodes in one go (~1 s).
-		 */
 		const val RESOLVE_SLICE_EXPANSIONS = 4_000
 		const val ROUTE_NEIGHBORHOOD_SECTIONS = 2
 	}

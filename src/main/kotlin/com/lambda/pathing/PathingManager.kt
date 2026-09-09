@@ -20,14 +20,8 @@ import com.lambda.pathing.session.Telemetry
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.world.ChunkPacketLoadContext
 
-/**
- * Manager-framework glue: takes pathing requests, owns the one [PathingSession] at a time
- * and the compound [WaypointRoute], and forwards the client events the session is driven
- * by. Everything about a walk lives in the session; `api/PathingService` is the surface
- * other code talks to.
- */
 object PathingManager : Manager<PathingRequest>(0) {
-	/** The current (or most recent) walk; kept after it ends so the renderer still has its tape. */
+
 	private var session: PathingSession? = null
 
 	@Volatile
@@ -39,11 +33,9 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 	val telemetry: Telemetry get() = session?.telemetry() ?: Telemetry.EMPTY
 
-	/** True while a leg is being walked or a further leg (or request) is still queued. */
 	val isRouting: Boolean
 		get() = session?.active == true || queuedRequest != null || waypointRoute.queuedWaypoints > 0
 
-	/** The compound route: queued waypoints, leg tracking, and the pre-warmed next leg. */
 	private val waypointRoute = WaypointRoute(PATHING_SOURCE)
 
 	fun diagnostics(): String = buildString {
@@ -66,12 +58,6 @@ object PathingManager : Manager<PathingRequest>(0) {
 		else -> session?.isFinished(request) ?: true
 	}
 
-	/**
-	 * Walks [waypoints] in order: the first leg is requested now and each arrival
-	 * submits the next. Any unrelated pathing request, a cancel, or a failed leg
-	 * drops the remainder -- continuing a route past a leg that did not arrive
-	 * would walk the tail from the wrong place.
-	 */
 	fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? =
 		waypointRoute.start(automated, waypoints, automated.pathingConfig.waypointArrival)
 
@@ -93,15 +79,11 @@ object PathingManager : Manager<PathingRequest>(0) {
 	override fun AutomatedSafeContext.handleRequest(request: PathingRequest) {
 		if (!request.fresh) return
 
-		// A request that is not this route's own next leg replaces the route.
 		if (request.goal != waypointRoute.expectedLeg) waypointRoute.drop()
 
 		val previous = session
 		var journey = previous?.takeJourney()
 
-		// Adopt the pre-warmed next-leg journey before the reuse check below, so a
-		// route continuation lands on a world already captured and a coarse state
-		// already built instead of paying the cold start at every waypoint.
 		waypointRoute.adoptWarmJourney(TrajectoryPlanner.resolveGoalStance(player, request.goal))?.let { warmed ->
 			journey?.cancel()
 			journey = warmed

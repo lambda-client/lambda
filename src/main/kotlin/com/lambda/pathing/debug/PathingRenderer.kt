@@ -22,21 +22,9 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-/**
- * Geometry only; every number lives in the Pathing HUD element.
- *
- * One line language, so the picture reads without a legend:
- *  - solid, thick, mint  : the certified tape the body will follow (grey once walked)
- *  - dashed, movement hue: the coarse skeleton (intent, not yet certified)
- *  - dotted              : optimistic (an anchor tail, an alternate branch)
- *  - thin, faint         : what the search is still weighing (open branches, rejected rollouts)
- *  - diamonds            : discrete decisions (movement changes, junctions, anchors)
- *  - rings               : places (tape end, leg goal, frontier cells)
- */
 object PathingRenderer : Loadable {
 	private val config get() = PathingService.renderConfig
 
-	/** One snapshot per frame: every read below sees the same instant of the walk. */
 	private var telemetry: Telemetry = Telemetry.EMPTY
 	private var status: State = State.Idle
 
@@ -48,7 +36,6 @@ object PathingRenderer : Loadable {
 			telemetry = PathingService.telemetry
 			status = PathingService.status
 
-			// Back to front: field, search, skeleton, plan graph, tape, body trail, goal.
 			if (config.renderGraph) renderSearchGraph()
 			if (config.renderSearchTree) renderSearchTree()
 			if (config.renderPlanning) renderLivePlanning()
@@ -63,8 +50,6 @@ object PathingRenderer : Loadable {
 		}
 	}
 
-	// ---- The coarse skeleton -------------------------------------------------------------
-
 	private fun movementColor(movement: MovementId): Color = when (movement) {
 		MovementId.WALK -> config.walkColor
 		MovementId.STEP_UP -> config.stepUpColor
@@ -76,12 +61,6 @@ object PathingRenderer : Loadable {
 		else -> config.unknownMovementColor
 	}
 
-	/**
-	 * Dashed edges in their movement colour: dashed says "intent", the hue says "how". A
-	 * diamond marks only where the movement kind changes, so the eye reads "walk, walk,
-	 * jump, walk" rather than a bead chain. A route cut at an anchor (the ring's edge,
-	 * unstreamed terrain) ends in a finer dotted tail.
-	 */
 	private fun RenderBuilder.renderCoarseRoute(route: CoarseRoutePlan) {
 		val width = px(config.coarseWidth)
 		val edges = route.edges
@@ -99,8 +78,6 @@ object PathingRenderer : Loadable {
 		}
 	}
 
-	// ---- The certified tape ---------------------------------------------------------------
-
 	private fun RenderBuilder.renderTrajectory(path: PublishedPath) {
 		val plan = path.plan
 		val points = ArrayList<Vec3d>(plan.frames.size + 1)
@@ -111,11 +88,8 @@ object PathingRenderer : Loadable {
 		val cursor = (status as? State.Executing)?.frame?.coerceIn(0, points.lastIndex) ?: 0
 		val width = px(config.trajectoryWidth)
 
-		// Behind the body: what has been walked, thinner and neutral.
 		if (cursor > 0) polyline(points.subList(0, cursor + 1), config.executedColor, px(config.trajectoryWidth / 2))
 
-		// Ahead of the body: full strength at the body, fading toward the tape's end so
-		// depth reads at a glance.
 		val ahead = points.subList(cursor, points.size)
 		val span = (ahead.size - 1).coerceAtLeast(1)
 		for (i in 0 until ahead.size - 1) {
@@ -142,8 +116,6 @@ object PathingRenderer : Loadable {
 			}
 		}
 
-		// The tape's end: a certified stop is one full ring, a partial tape's brake point a
-		// dashed double ring (the search is still extending it).
 		val end = points.last()
 		if (path.partial) {
 			ring(end, 0.42, config.partialStopColor, px(RING_WIDTH), SKELETON_DASHES)
@@ -159,7 +131,6 @@ object PathingRenderer : Loadable {
 		polyline(trail.map { it.add(0.0, TRAIL_Y, 0.0) }, config.trailColor, px(config.trailWidth))
 	}
 
-	/** The final goal: a ring on the ground and a beacon. A truncated route's cut gets a dashed ring. */
 	private fun RenderBuilder.renderGoal(path: PublishedPath?) {
 		val goal = path?.finalGoal ?: return
 		val at = goal.center(GOAL_Y)
@@ -170,8 +141,6 @@ object PathingRenderer : Loadable {
 			ring(path.route.goal.center(GOAL_Y), 0.3, config.partialStopColor.setAlpha(0.8), px(RING_WIDTH * 2 / 3), SKELETON_DASHES)
 		}
 	}
-
-	// ---- Live planning --------------------------------------------------------------------
 
 	private fun RenderBuilder.renderLivePlanning() {
 		val refining = telemetry.published != null
@@ -194,12 +163,6 @@ object PathingRenderer : Loadable {
 		}
 	}
 
-	// ---- The plan graph -------------------------------------------------------------------
-
-	/**
-	 * The certified plan as its decision graph: a diamond at every junction a repair may
-	 * cut at, and (opt-in) the spans themselves shaded by pace on top of the tape.
-	 */
 	private fun RenderBuilder.renderPlanGraph(plan: TrajectoryPlan) {
 		val graph = PlanGraph.of(plan) ?: return
 		val width = px(maxOf(config.trajectoryWidth * 2 / 3, 1))
@@ -226,8 +189,6 @@ object PathingRenderer : Loadable {
 		}
 	}
 
-	// ---- The anchor tree ------------------------------------------------------------------
-
 	private fun roleColor(role: SearchNodeRole): Color = when (role) {
 		SearchNodeRole.SPINE -> config.spineColor
 		SearchNodeRole.BEST -> config.treeBestColor
@@ -237,13 +198,6 @@ object PathingRenderer : Loadable {
 		SearchNodeRole.INTERIOR -> config.treeInteriorColor
 	}
 
-	/**
-	 * The plan DAG as the search holds it: every branch off the committed tape, drawn along
-	 * the rollout that produced it (never as a chord between anchors). Weakest claim first
-	 * so nothing buries the live options: interior scaffolding faint, spent branches thin,
-	 * parked ones dotted, open ones solid, the best rival dashed. The spine is the tape
-	 * itself and is drawn only when the tape layer is off.
-	 */
 	private fun RenderBuilder.renderSearchTree() {
 		val tree = PlanningDebugChannel.tree ?: return
 		val base = maxOf(config.searchTreeWidth, 1)
@@ -268,7 +222,7 @@ object PathingRenderer : Loadable {
 			tree.edges.forEach { edge ->
 				if (edge.role != role) return@forEach
 				if (edge.trace.isEmpty()) {
-					// No rollout behind this edge: a chord is honest only when it is short.
+
 					if (edge.from.distanceTo(edge.to) <= MAX_CHORD_BLOCKS) {
 						line(edge.from.add(0.0, TREE_Y, 0.0), edge.to.add(0.0, TREE_Y, 0.0), color.scaleAlpha(0.5), width(role), dash(role))
 					}
@@ -292,15 +246,6 @@ object PathingRenderer : Loadable {
 		}
 	}
 
-	// ---- The coarse graph -----------------------------------------------------------------
-
-	/**
-	 * The lazy graph as what it is: transitions. Every edge D* materialised is a short
-	 * stroke in its movement colour, faint; the edge the descent takes out of each cell is
-	 * bright and runs brighter toward the goal, so the flow reads. Cells are not drawn
-	 * unless asked for (a cost carpet underneath). Frontier cells (still queued) are ringed,
-	 * optimistic anchors get a diamond and a short beacon.
-	 */
 	private fun RenderBuilder.renderSearchGraph() {
 		val sample = PlanningDebugChannel.graph ?: return
 		if (sample.nodes.isEmpty()) return
@@ -322,7 +267,7 @@ object PathingRenderer : Loadable {
 			val base = maxOf(config.graphEdgeWidth, 1)
 			val faint = px(maxOf(base / 2, 1))
 			val bright = px(base)
-			// Explored transitions first, the descent on top so it is never buried.
+
 			sample.edges.forEach { edge ->
 				if (edge.policy) return@forEach
 				val color = edge.movement?.let(::movementColor) ?: config.unknownMovementColor
@@ -354,9 +299,6 @@ object PathingRenderer : Loadable {
 		}
 	}
 
-	// ---- Primitives -----------------------------------------------------------------------
-
-	/** A flat square on the ground plane. */
 	private fun RenderBuilder.tile(pos: Vec3d, size: Double, color: Color, alpha: Double) {
 		val h = size * 0.5
 		filledQuad(
@@ -366,7 +308,6 @@ object PathingRenderer : Loadable {
 		)
 	}
 
-	/** A flat diamond: the marker for a discrete decision (movement change, junction, anchor). */
 	private fun RenderBuilder.diamond(pos: Vec3d, size: Double, color: Color) {
 		val h = size * 0.5
 		filledQuad(
@@ -383,11 +324,9 @@ object PathingRenderer : Loadable {
 		)
 	}
 
-	/** A horizontal ring on the ground plane: a place. */
 	private fun RenderBuilder.ring(pos: Vec3d, radius: Double, color: Color, width: Float, dash: LineDashStyle? = null) =
 		circleLine(pos, radius, color, width, segments = 28, dashStyle = dash)
 
-	/** A short vertical stroke: an event at a point along the tape. */
 	private fun RenderBuilder.tick(pos: Vec3d, height: Double, color: Color) =
 		lineGradient(pos, color, pos.add(0.0, height, 0.0), color.setAlpha(0.15), px(RING_WIDTH * 2 / 3))
 
@@ -411,23 +350,19 @@ object PathingRenderer : Loadable {
 		SearchNodeRole.OPEN, SearchNodeRole.BEST, SearchNodeRole.SPINE,
 	)
 
-	// The dash vocabulary. Lengths are in blocks.
 	private val SKELETON_DASHES = LineDashStyle(dashLength = 0.45f, gapLength = 0.2f)
 	private val TAIL_DOTS = LineDashStyle(dashLength = 0.15f, gapLength = 0.2f)
 	private val OPTIMISTIC_DOTS = LineDashStyle(dashLength = 0.2f, gapLength = 0.2f)
 	private val RIVAL_DASHES = LineDashStyle(dashLength = 0.3f, gapLength = 0.15f)
 
-	/** Frames per block at a clean sprint, and where a span reads as wasted. */
 	private const val FRAMES_PER_BLOCK_IDEAL = 3.6
 	private const val FRAMES_PER_BLOCK_WORST = 14.0
 
-	/** How much the tape ahead fades toward its end. */
 	private const val AHEAD_FADE = 0.5
 
 	private const val TILE_ALPHA = 0.34
 	private const val EXPLORED_EDGE_ALPHA = 0.28
 
-	/** A tree edge without a rollout trace is drawn as a chord only up to this length. */
 	private const val MAX_CHORD_BLOCKS = 3.0
 
 	private const val RING_WIDTH = 14
@@ -437,7 +372,6 @@ object PathingRenderer : Loadable {
 	private const val BEACON_HEIGHT = 6.0
 	private const val ANCHOR_BEACON_HEIGHT = 1.5
 
-	// Draw heights above the ground plane, back to front.
 	private const val GRAPH_Y = 0.02
 	private const val GRAPH_EDGE_Y = 0.04
 	private const val TREE_Y = 0.06

@@ -1,5 +1,14 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
+import com.lambda.pathing.rollout.TrajectoryRollout
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.RolloutVerdict
+import com.lambda.pathing.rollout.RolloutEvaluator
+import com.lambda.pathing.rollout.evaluateDiagnostic
+
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.LaunchTrigger
@@ -7,7 +16,7 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.actions.ProgramContext
-import com.lambda.pathing.actions.PursuitTracker
+import com.lambda.pathing.actions.control.PursuitTracker
 import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
@@ -21,7 +30,7 @@ import kotlin.math.hypot
 
 internal sealed interface Outcome {
 	data class Anchored(val anchor: ValueAnchor) : Outcome
-	data class Arrived(val frames: List<SimulatedTrajectoryFrame>, val stopFrame: Int) : Outcome
+	data class Arrived(val frames: List<SimulatedTrajectoryFrame>) : Outcome
 	data class Rejected(val diagnostic: TrajectoryDiagnostic) : Outcome
 	data class Blocked(val frame: Int, val sectionX: Int, val sectionY: Int, val sectionZ: Int) : Outcome
 }
@@ -38,14 +47,13 @@ internal class AnchorRollout(
 	private val progressOf: (Stance) -> Int,
 	private val probe: SearchProbe,
 ) {
-	/** Vanilla resets fall distance every climbing tick; the evaluator mirrors it. */
+
 	private val climbingAt: (net.minecraft.util.math.Vec3d) -> Boolean = { p ->
 		field.view.medium(
 			kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
 		) == Medium.CLIMBABLE
 	}
 
-	/** Open terrain (at least two mapped neighbours) versus an isolated pad. See docs/decisions/movement-tuning.md. */
 	private fun openLanding(target: Stance): Boolean {
 		var mapped = 0
 		if (field.isMapped(Stance(target.x + 1, target.y, target.z))) mapped++
@@ -55,14 +63,6 @@ internal class AnchorRollout(
 		return mapped >= 2
 	}
 
-	/**
-	 * A rollout split into phases so a batch can run its simulations concurrently:
-	 * [prepare] on the coordinator (it reads the guide field, whose memoisation is not
-	 * thread-safe), [execute] on any worker (pure simulation over the snapshot plus
-	 * state confined to this object), [complete] back on the coordinator (probes,
-	 * field post-checks, anchor construction). [transition] is their composition and
-	 * the serial path is byte-identical to what it always did.
-	 */
 	internal class PreparedRollout(
 		val anchor: ValueAnchor,
 		val action: TrajectoryDecision,
@@ -167,10 +167,7 @@ internal class AnchorRollout(
 
 						val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed ||
 								action.leavesGround || movement.completesAirborne
-						// A body that has just climbed out stands on the thin top edge of the
-						// ladder block: physically supported, but over a column the coarse
-						// model does not map as a stance. That is transit, not arrival; the
-						// program keeps steering to its target cell. See docs/decisions/movement-tuning.md.
+
 						val onLadderTop = frame.state.onGround && !movement.completesAirborne &&
 								field.view.medium(stance.x, stance.y - 1, stance.z) == Medium.CLIMBABLE &&
 								!field.isStance(stance)
@@ -207,22 +204,21 @@ internal class AnchorRollout(
 
 		record(anchor, action, rollout, failure, stopFrame != null)
 
-		stopFrame?.let { return Outcome.Arrived(rollout.frames, it) }
+		if (stopFrame != null) return Outcome.Arrived(rollout.frames)
 		failure?.let { return Outcome.Rejected(it) }
 		(rollout.termination as? TrajectoryRolloutTermination.Blocked)?.let {
 			return Outcome.Blocked(it.frame, it.sectionX, it.sectionY, it.sectionZ)
 		}
 		val frame = eventFrame ?: return Outcome.Rejected(
-			evaluate(rollout, points, goalPoint(), config, descentAllowance, climbing = climbingAt).diagnostic
+			evaluateDiagnostic(rollout, points, goalPoint(), config, descentAllowance, climbing = climbingAt)
 				?: TrajectoryDiagnostic.NoStop(rollout.frames.size, 0.0, anchor.speed),
 		)
 
-		val frames = rollout.frames.take(frame + 1)
+		val frames = rollout.frames
 
 		var cornerCatch = 0
 		if (!field.isStance(eventStance)) {
-			// A corner catch: the support block names the real stance, priced at two
-			// collision events so a clean landing is strictly better. See docs/decisions/movement-tuning.md.
+
 			val supported = ValueFieldAnchorSearch.supportedStanceOf(frames.last().state)
 				?.takeIf { field.isStance(it) }
 			if (supported == null) {

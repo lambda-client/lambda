@@ -41,7 +41,7 @@ class LadderCatchFromRestProbeTest {
         val byStance = java.util.TreeMap<Int, IntArray>() // route index -> [expansions, anchored]
         val routeIndex = route.nodes.withIndex().associate { (i, n) -> n to i }
         val probe = object : com.lambda.pathing.search.SearchProbe {
-            override fun expansion(from: com.lambda.pathing.core.Stance, action: com.lambda.pathing.actions.TrajectoryDecision, diagnostic: com.lambda.pathing.search.TrajectoryDiagnostic?) {
+            override fun expansion(from: com.lambda.pathing.core.Stance, action: com.lambda.pathing.actions.TrajectoryDecision, diagnostic: com.lambda.pathing.rollout.TrajectoryDiagnostic?) {
                 val idx = routeIndex[from] ?: -1
                 val cell = byStance.getOrPut(idx) { IntArray(2) }
                 cell[0]++

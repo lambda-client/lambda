@@ -15,12 +15,6 @@ import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.MovementId
 
-/**
- * Ground-launched jumps. The fan lives in [JumpTemplates], solving and run-ups in
- * [JumpDecisions], the jump-key timing in [JumpLaunchDelays], the improver-only momentum
- * proposers in [MomentumProposals] and the controllers in [JumpPrograms]; this object only
- * prices and delegates.
- */
 object JumpMovement : Movement {
 	override val id = MovementId.JUMP
 
@@ -46,16 +40,6 @@ object JumpMovement : Movement {
 		return standard + JumpDecisions.runUpDecisions(context, solutions, closing)
 	}
 
-	/**
-	 * A launch is priced by how much of the feasible entry-speed band it has to hit.
-	 *
-	 * [com.lambda.pathing.launch.LaunchSolution.speedSlack] is the half-width of that band
-	 * in blocks per tick: a jump onto the middle of a wide ledge has plenty, one that has
-	 * to clear a lip and stop before the far edge has almost none, and the second is where
-	 * the rollouts get spent. A run-up pays on top of that -- it is real frames of
-	 * retreating and rebuilding speed, and it commits the body to a stretch of ground
-	 * before the jump even starts.
-	 */
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
 		val solution = when (decision) {
 			is TrajectoryDecision.Launch -> decision.solution
@@ -81,13 +65,7 @@ object JumpMovement : Movement {
 
 	override fun transitionFrames(decision: TrajectoryDecision): Int = JumpPrograms.transitionFrames(decision)
 
-	/**
-	 * Entry-speed slack, in blocks per tick, at which a launch stops being fussy: the
-	 * corpus p10 of solved-edge slack, so the ordinary jump prices at nothing.
-	 * See docs/decisions/movement-tuning.md (comfortable slack).
-	 */
 	private const val COMFORTABLE_SPEED_SLACK = 0.08
 
-	/** A run-up is never a casual option: it commits ground behind the body as well as ahead. */
 	private const val RUN_UP_DIFFICULTY = 0.75
 }

@@ -6,12 +6,6 @@ import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 
-/**
- * What the trajectory search reads of the coarse layer: the value labels descending to one
- * goal, the lazy edges, and steering chains over them. [CoarseValueField] is the one real
- * implementation; [SwitchableValueField] lets a running search change goal when a compound
- * route hands over from one leg to the next.
- */
 interface ValueField : SteeringField {
 	val view: CoarseVoxelView
 	val goal: Stance
@@ -34,11 +28,6 @@ interface ValueField : SteeringField {
 	fun reachesGoal(chain: List<Stance>): Boolean
 }
 
-/**
- * A value field whose target can be swapped under a running search: every read goes to
- * [current]. The search holds one reference for its whole life; a leg handover replaces
- * the delegate and re-roots the frontier, nothing else has to learn about legs.
- */
 class SwitchableValueField(initial: CoarseValueField) : ValueField {
 	@Volatile
 	var current: CoarseValueField = initial

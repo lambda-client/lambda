@@ -20,12 +20,6 @@ import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.player.MovementUtils.moveYaw
 import kotlin.math.abs
 
-/**
- * How a publication reaches the body: [begin] installs the first tape of a leg (after
- * alignment when the launch yaw is off), [adopt] swaps a running tape for an improvement
- * under the arbiter's verdict, and [install] hands a tape to a fresh cursor. Every path
- * first checks the certified environment still holds.
- */
 internal class TapeAdmission(private val walk: PathingSession) {
 
 	fun SafeContext.begin(path: PublishedPath) {
@@ -111,8 +105,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 
 	private fun keepRunning(rejected: PublishedPath, reason: String) {
 		walk.telemetry.countRejectedImprovement()
-		// Debug, deliberately: a healthy anytime walk rejects a partial publication
-		// about once a second, and at info that drowned every other pathing line.
+
 		LOG.debug("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
 	}
 
@@ -154,7 +147,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 	fun SafeContext.executionEnvironmentDeviation(
 		path: PublishedPath,
 		nextFrame: Int,
-		/** Frames at or past this are not going to be replayed (a repair cut), so their reads do not count. */
+
 		untilFrame: Int = path.plan.tape.frameCount,
 	): ExecutionDeviation? {
 		val liveProfile = with(walk) { liveProfile() }

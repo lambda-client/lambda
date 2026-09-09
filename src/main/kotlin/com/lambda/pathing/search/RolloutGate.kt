@@ -1,5 +1,10 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.TrajectoryRollout
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.RolloutVerdict
+import com.lambda.pathing.rollout.RolloutEvaluator
+
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.HorizontalPoint

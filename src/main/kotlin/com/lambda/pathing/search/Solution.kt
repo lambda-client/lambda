@@ -1,10 +1,11 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+
 import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.physics.MovementSimulationInput
 
-/** Frames a finished tape spent on one movement kind. */
 data class TapeSegment(val movement: MovementId, val frames: Int)
 
 internal class Solution(
@@ -16,33 +17,21 @@ internal class Solution(
 	val anchor: ValueAnchor,
 	val tailFrames: List<SimulatedTrajectoryFrame>,
 ) {
-	/**
-	 * The decisions this solution was built from; see [PlanSegment]. Lazy because solutions
-	 * are produced speculatively and few are certified. Invariant: this is the actual
-	 * certified decision chain, not a second route model; [Certifier] publishes it without
-	 * reconstructing it from graph segments.
-	 */
-	/** Collision events that began mid-air, across the chain and the terminal tail. */
+
 	val airborneCollisionEvents: Int by lazy { anchor.airborneCollisionEvents + airborneCollisionEvents(anchor.state, tailFrames) }
 
 	val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
 
-	/**
-	 * The whole tape, ancestry flattened. Lazy for the same reason: solutions are scored
-	 * and compared by the hundred and only the certified few are ever replayed.
-	 */
 	val inputs: List<MovementSimulationInput> by lazy { anchor.prefix() + tailFrames.map { it.input } }
 
-	/** Segment boundaries, the terminal's included. */
 	val boundaries: List<Int> by lazy { anchor.boundaries() + anchor.elapsed }
 
 	val score: Int get() = frames + COLLISION_FRAME_PENALTY * collisionEvents
 
-	/** Frames per movement kind; the terminal run is attributed to the last anchor's movement. */
 	fun segments(): List<TapeSegment> {
 		val out = ArrayList<TapeSegment>()
 		var node: ValueAnchor? = anchor
-		while (node != null && node.parent != null) {
+		while (node?.parent != null) {
 			out += TapeSegment(node.via ?: MovementId.WALK, node.inputs.size)
 			node = node.parent
 		}
@@ -53,13 +42,9 @@ internal class Solution(
 	}
 
 	companion object {
-		/** The score's exchange rate: frames a collision event is worth. */
+
 		internal const val COLLISION_FRAME_PENALTY = 4
 
-		/**
-		 * The decision chain behind a finished tape, root first, plus its terminal. An
-		 * anchor with no decision is a brake tail and becomes a terminal too.
-		 */
 		internal fun segmentsOf(
 			anchor: ValueAnchor,
 			tail: List<SimulatedTrajectoryFrame>,

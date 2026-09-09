@@ -23,7 +23,6 @@ internal object InterestPrimer {
 		}
 	}
 
-	/** A compound route: the corridor of every leg, waypoint neighbourhoods included. */
 	fun primeJourney(world: PathingWorld, start: Stance, goal: Stance, waypoints: List<Stance>) {
 		var from = start
 		for (waypoint in waypoints) {

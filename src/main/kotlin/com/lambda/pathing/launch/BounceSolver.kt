@@ -1,19 +1,13 @@
 package com.lambda.pathing.launch
 
-import com.lambda.pathing.launch.BounceSolver.LANDING_WINDOW
-import com.lambda.pathing.launch.BounceSolver.LAUNCH_OFFSET
-
-
 data class BounceSolution(
 	val drop: Int,
 	val rise: Int,
 	val sprint: Boolean,
 	val holdForward: Boolean,
 
-	/** Launch off the lip with the jump key rather than walking off it. */
 	val jump: Boolean = false,
 
-	/** Ticks of forward held after launch; the rest of the arc coasts. */
 	val holdTicks: Int = Int.MAX_VALUE,
 
 	val speed: Double,
@@ -25,7 +19,6 @@ data class BounceSolution(
 	val contactDistance: Double,
 	val arc: ArcSample,
 
-	/** The real fall depth to the pad's surface; [drop] is only the stance delta. */
 	val contactDepth: Double = drop.toDouble(),
 ) {
 	val airTicks: Int get() = arc.airTicks
@@ -47,16 +40,12 @@ object BounceSolver {
 		holdTicks: Int = Int.MAX_VALUE,
 		maxEntrySpeed: Double = profile.momentumSpeed(sprint),
 
-		/** Real fall depth to the pad surface (launch feet to contact feet). */
 		contactDepth: Double = drop.toDouble(),
 
-		/** Real landing height above the launch feet. */
 		riseHeight: Double = rise.toDouble(),
 
-		/** Ceiling clearance above the launch feet; see [BallisticProfile.bounce]. */
 		headroom: Double = Double.POSITIVE_INFINITY,
 
-		/** How far along the ray the body can stand at launch; see [LAUNCH_OFFSET]. */
 		launchReach: Double = LAUNCH_OFFSET,
 	): BounceSolution? {
 		if (maxEntrySpeed < 0.0) return null
@@ -92,12 +81,6 @@ object BounceSolver {
 		)
 	}
 
-	/**
-	 * A launch from REST at the lip, distance dialed in with [BounceSolution.holdTicks]:
-	 * no entry speed to reproduce (a moving entry amplifies its error ~16x over the
-	 * glide). Styles tried in preference order; hold found by binary search (distance is
-	 * monotone in it). See docs/decisions/launch-solver.md (standing starts).
-	 */
 	fun solveStanding(
 		horizontalDistance: Double,
 		drop: Int,
@@ -108,24 +91,15 @@ object BounceSolver {
 		contactDepth: Double = drop.toDouble(),
 		riseHeight: Double = rise.toDouble(),
 
-		/**
-		 * Judges the arc's CONTACT reach from the stance centre: infinity refuses the
-		 * hold, finite values rank it. Landing distance alone is not enough on a
-		 * one-block pad. See docs/decisions/launch-solver.md (contact on the slime).
-		 */
 		contactPenalty: (Double) -> Double = { 0.0 },
 
-		/** Ceiling clearance above the launch feet; see [BallisticProfile.bounce]. */
 		headroom: Double = Double.POSITIVE_INFINITY,
 
-		/** How far along the ray the body can stand at launch; see [LAUNCH_OFFSET]. */
 		launchReach: Double = LAUNCH_OFFSET,
 	): BounceSolution? {
 		val target = horizontalDistance - launchReach
 		if (target <= 0.0) return null
 
-		// Sprint needs forward held through the launch tick to be real; a walk-off
-		// from rest needs at least a tick of push to leave the lip.
 		val minHold = if (sprint) 2 else if (jump) 0 else 1
 		fun arcAt(holdTicks: Int): ArcSample? = profile.bounce(
 			0.0, contactDepth, riseHeight,
@@ -144,10 +118,6 @@ object BounceSolver {
 			if (at == null || at < target) lo = mid else hi = mid
 		}
 
-		// Every hold whose landing stays inside the support reach is a candidate;
-		// among them the contact decides. One tick of hold moves the landing about a
-		// quarter block, so the window holds a handful, and on a one-cell pad only
-		// some of them put the trough on the slime.
 		var chosenHold = -1
 		var chosenArc: ArcSample? = null
 		var chosenPenalty = Double.POSITIVE_INFINITY
@@ -184,20 +154,10 @@ object BounceSolver {
 		)
 	}
 
-	/** Holds to scan either side of the landing-exact hold for a pad-centred contact. */
 	private const val HOLD_SCAN = 3
 
-	/**
-	 * How far from the landing cell's CENTRE a standing arc may put the feet: half a cell
-	 * plus the body's half-width. The moving-entry family keeps the tighter
-	 * [LANDING_WINDOW], whose half also prices entry-speed slack.
-	 * See docs/decisions/launch-solver.md (support reach).
-	 */
 	private const val LANDING_SUPPORT_REACH = 0.8
 
-	/** (jump, sprint) standing families, gentlest drift first: the gentler the
-	 *  pre-contact glide, the closer the contact stays to the lip, and a contact
-	 *  deep in the pit is what clears the far wall on the way back up. */
 	val STANDING_STYLES = listOf(
 		true to false,
 		false to false,
@@ -205,7 +165,6 @@ object BounceSolver {
 		false to true,
 	)
 
-	/** A standing launch tolerates this much residual creep speed at the lip. */
 	const val STANDING_REST_SPEED = 0.02
 
 	private fun troughIndex(arc: ArcSample): Int {
@@ -216,10 +175,5 @@ object BounceSolver {
 
 	private const val LANDING_WINDOW = 1.0
 
-	/**
-	 * Default standable reach along the ray from the launch cell's centre: half a FULL
-	 * BLOCK plus the body's half-width. Partial supports reach less (a fence post 0.425)
-	 * and the probe passes the real reach. See docs/decisions/launch-solver.md.
-	 */
 	const val LAUNCH_OFFSET = 0.8
 }

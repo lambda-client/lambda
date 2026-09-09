@@ -55,23 +55,16 @@ data class BallisticProfile(
 		return velocity
 	}
 
-	/**
-	 * Speeds from which [target] can be reached within [ticks] of standing on the ground.
-	 * Coasting only sheds speed and holding forward only builds it, so the result is an
-	 * interval widening with [ticks]. Deliberately generous: the rollout still certifies.
-	 * See docs/decisions/movement-tuning.md (exit-speed window through the pad).
-	 */
 	fun groundReachable(
 		target: ClosedFloatingPointRange<Double>,
 		ticks: Int,
 		sprint: Boolean,
 	): ClosedFloatingPointRange<Double> {
 		require(ticks >= 0) { "a ground phase cannot be negative: $ticks" }
-		// Arriving faster than the window is fine as long as friction can shed the excess
-		// in the ticks available; each one multiplies the speed by the ground friction.
+
 		var high = target.endInclusive
 		repeat(ticks) { high /= groundFriction }
-		// Arriving slower is fine as long as forward input can build the difference back.
+
 		val low = if (runUpSpeed(0.0, ticks, sprint) >= target.start) 0.0 else target.start
 		return low..high.coerceAtMost(momentumSpeed(sprint))
 	}
@@ -107,12 +100,6 @@ data class BallisticProfile(
 		return maxTicks
 	}
 
-	/**
-	 * Fly an arc, optionally releasing forward after [holdTicks] air ticks. Acceleration
-	 * applied early is dragged for the rest of the flight while late acceleration is not,
-	 * so the hold decouples landing distance from exit speed. Default holds throughout.
-	 * See docs/decisions/launch-solver.md (partial holds).
-	 */
 	fun fly(
 		mode: LaunchMode,
 		entrySpeed: Double,
@@ -126,7 +113,7 @@ data class BallisticProfile(
 		var height = 0.0
 		var distance = 0.0
 		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
-		// Tick zero is the launch sample; successful arcs own only their used prefix.
+
 		val heights = DoubleArray(maxTicks + 1)
 		val distances = DoubleArray(maxTicks + 1)
 
@@ -157,15 +144,7 @@ data class BallisticProfile(
 				if (height < rise) return null
 
 				if (height + verticalVelocity <= rise) {
-					heights[tick] = rise
-					distances[tick] = distance
-					return ArcSample(
-						airTicks = tick,
-						distance = distance,
-						heights = heights.copyOf(tick + 1),
-						distances = distances.copyOf(tick + 1),
-						exitSpeed = velocity * HORIZONTAL_DRAG,
-					)
+					return landedSample(tick, rise, distance, velocity, heights, distances)
 				}
 			}
 
@@ -178,13 +157,6 @@ data class BallisticProfile(
 		return null
 	}
 
-	/**
-	 * A slime bounce. [drop] and [rise] are REAL heights relative to the launch feet, not
-	 * stance deltas (a carpeted pad's surface sits 0.9375 below its coarse stance).
-	 * [jump] launches with the jump key: the extra apex becomes impact speed, and it is
-	 * the only way to land less than two below the lip. [holdTicks] releases forward
-	 * partway, as [fly] does. See docs/decisions/launch-solver.md.
-	 */
 	fun bounce(
 		entrySpeed: Double,
 		drop: Double,
@@ -196,11 +168,6 @@ data class BallisticProfile(
 		bounceFactor: Double = 1.0,
 		maxTicks: Int = MAX_BOUNCE_TICKS,
 
-		/**
-		 * Highest feet height above the launch the ceiling admits. An ascent that would
-		 * cross it stops THERE with vertical speed zeroed (vanilla's rising head
-		 * collision) rather than being refused. See docs/decisions/launch-solver.md.
-		 */
 		headroom: Double = Double.POSITIVE_INFINITY,
 	): ArcSample? {
 		require(drop > 0.0) { "a bounce must fall onto something: drop=$drop" }
@@ -210,7 +177,7 @@ data class BallisticProfile(
 		var height = 0.0
 		var distance = 0.0
 		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
-		// Tick zero is the launch sample; successful arcs own only their used prefix.
+
 		val heights = DoubleArray(maxTicks + 1)
 		val distances = DoubleArray(maxTicks + 1)
 		var bounced = false
@@ -225,8 +192,6 @@ data class BallisticProfile(
 			}
 		}
 
-		// The launch tick mirrors [fly]'s: jump velocity and the sprint-jump boost
-		// land on the same tick as the last ground acceleration.
 		if (jump) {
 			verticalVelocity = jumpVelocity
 			if (sprint) velocity += SPRINT_JUMP_BOOST
@@ -270,15 +235,7 @@ data class BallisticProfile(
 			} else if (verticalVelocity < 0.0) {
 				if (height < rise) return null
 				if (height + verticalVelocity <= rise) {
-					heights[tick] = rise
-					distances[tick] = distance
-					return ArcSample(
-						airTicks = tick,
-						distance = distance,
-						heights = heights.copyOf(tick + 1),
-						distances = distances.copyOf(tick + 1),
-						exitSpeed = velocity * HORIZONTAL_DRAG,
-					)
+					return landedSample(tick, rise, distance, velocity, heights, distances)
 				}
 				height += verticalVelocity
 			} else {
@@ -293,9 +250,21 @@ data class BallisticProfile(
 		return null
 	}
 
+	private fun landedSample(
+		tick: Int,
+		rise: Double,
+		distance: Double,
+		velocity: Double,
+		heights: DoubleArray,
+		distances: DoubleArray,
+	): ArcSample {
+		heights[tick] = rise
+		distances[tick] = distance
+		return ArcSample(tick, distance, heights.copyOf(tick + 1), distances.copyOf(tick + 1), velocity * HORIZONTAL_DRAG)
+	}
+
 	companion object {
 
-		/** Jump launches add roughly a dozen ticks of apex to the deepest arcs. */
 		const val MAX_BOUNCE_TICKS = 64
 
 		const val SPRINT_JUMP_BOOST = Kinematics.SPRINT_JUMP_BOOST

@@ -9,6 +9,10 @@
 
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.*
 import com.lambda.pathing.physics.MovementSimulationInput
@@ -27,6 +31,26 @@ import kotlin.test.assertTrue
 import pathing.ProbeScenarios.PROFILE
 
 class TrajectoryRolloutTest {
+    @Test
+    fun `observer completion returns exactly its prefix without requesting more input`() {
+        val observed = ArrayList<SimulatedTrajectoryFrame>()
+        val rollout = TrajectoryRolloutEngine.rollout(
+            initialState(), PROFILE, flatEnvironment(),
+            ControlProgram { frame, _ ->
+                check(frame <= 2)
+                MovementSimulationInput(forward = 1.0)
+            },
+            frameCount = 50,
+        ) { frame ->
+            observed += frame
+            frame.index == 2
+        }
+        assertEquals(observed, rollout.frames)
+        assertEquals(3, rollout.frames.size)
+        assertEquals(2, rollout.certifiedThrough)
+        assertTrue(rollout.completed)
+    }
+
     @Test
     fun `input tape rollout equals direct simulator replay`() {
         val environment = flatEnvironment()

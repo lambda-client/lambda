@@ -156,8 +156,7 @@ object PlanDump {
 	private fun SimpleMoveOptions.dump(): String = listOf(
 		"options", allowDiagonal, allowStepUp, maxWalkOffDepth, allowJumpCandidates,
 		maxJumpSpan, maxJumpDrop, allowOffAxisJumps,
-		// Appended fields; readers default them for old dumps. Every option must be
-		// dumped, or a replay runs a different planner than the one that failed.
+
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
 		allowDeepDropJumps,
 	).joinToString(" ")

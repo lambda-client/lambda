@@ -16,15 +16,9 @@ import com.lambda.pathing.world.InterestPrimer
 import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.BlockPos
 
-/**
- * One walk: from the request landing to the body reaching the goal, failing, or being
- * cancelled. Owns every piece of per-walk state (the former `Walk` bag and the manager's
- * scattered fields), the journey it plans against, and the components that drive it.
- * Driven from the client thread; [state] and [telemetry] may be read from any thread.
- */
 class PathingSession internal constructor(
 	internal val request: PathingRequest,
-	/** The world capture and coarse state, inherited from a previous walk toward the same goal. */
+
 	internal var journey: PlanningJourney?,
 	private val waypointRoute: WaypointRoute,
 ) {
@@ -46,7 +40,6 @@ class PathingSession internal constructor(
 
 	internal val telemetry = WalkTelemetry()
 
-	/** False once the walk ended (complete, failed, cancelled, or replaced): late callbacks bail on it. */
 	internal var active = true
 		private set
 
@@ -58,7 +51,6 @@ class PathingSession internal constructor(
 
 	internal var leg = 0
 
-	/** Walk-through waypoints of [request] the body has passed; a replan starts after them. */
 	internal var passedWaypoints = 0
 
 	internal fun remainingWaypoints(): List<Stance> = request.waypoints.drop(passedWaypoints)
@@ -81,24 +73,13 @@ class PathingSession internal constructor(
 	internal var sessionRestarts = 0
 	internal var sessionFailure: String? = null
 
-	/**
-	 * DAG repair in progress: the running tape is valid only up to this frame (the cut
-	 * junction) because the world changed under its tail; the search is re-solving from
-	 * there. If no repaired tape is adopted before the cursor reaches it, the walk falls
-	 * back to stopping and replanning with [repairDeviation] as the reason.
-	 */
 	internal var repairDeadline: Int? = null
 	internal var repairDeviation: com.lambda.pathing.execution.ExecutionDeviation? = null
 	internal var repairs = 0
 
-	/**
-	 * The next leg, planned from the running tape's terminal while the body is still on it
-	 * and installed on arrival. See docs/decisions/publication-protocol.md.
-	 */
 	internal var successorSession: PlanningSession? = null
 	internal var successorPath: PublishedPath? = null
 
-	/** Frames each adoption added to the tape, and the ticks the search took to find them. */
 	private val adoptionGains = ArrayList<Int>()
 	private val adoptionMillis = ArrayList<Long>()
 	private var lastAdoptionMillis = System.currentTimeMillis()
@@ -121,14 +102,12 @@ class PathingSession internal constructor(
 	fun isFinished(request: PathingRequest): Boolean =
 		!(active && this.request === request) || state is State.Complete || state is State.Failed
 
-	/** Begins the walk: refuses an unsteerable request, otherwise settles and plans. */
 	fun SafeContext.start() {
 		assertClientThread()
 		unsteerable(request)?.let { return fail(it, request.goal) }
 		planTrajectory()
 	}
 
-	/** The per-tick body: capture, then the settle / plan / align / execute step for [state]. */
 	fun SafeContext.tick() {
 		assertClientThread()
 		if (!active) return
@@ -142,10 +121,6 @@ class PathingSession internal constructor(
 		with(execution) { tickExecution() }
 	}
 
-	/**
-	 * The input to press this tick, or null when nothing should be written (no walk, or
-	 * the certified environment changed before the input could be applied).
-	 */
 	fun SafeContext.inputForThisTick(): MovementSimulationInput? {
 		assertClientThread()
 		if (!active) {
@@ -178,7 +153,6 @@ class PathingSession internal constructor(
 		return input
 	}
 
-	/** Stops the walk, keeping the journey and the telemetry; an in-progress state becomes Idle. */
 	fun cancel() {
 		assertClientThread()
 		release()
@@ -199,7 +173,6 @@ class PathingSession internal constructor(
 		journey?.world?.onChunkEvent(chunkX, chunkZ)
 	}
 
-	/** Ends the walk without touching the journey: flight restored, planning and successor cancelled. */
 	internal fun release() {
 		flight.release()
 		cancelPlanning()
@@ -207,13 +180,11 @@ class PathingSession internal constructor(
 		active = false
 	}
 
-	/** The arrival: the walk is over, the flight permission goes back; planning was cancelled by the caller. */
 	internal fun finish() {
 		active = false
 		flight.release()
 	}
 
-	/** Hands the journey to the next walk (or to nobody), so this session no longer reaches it. */
 	internal fun takeJourney(): PlanningJourney? {
 		val taken = journey
 		journey = null
@@ -238,14 +209,11 @@ class PathingSession internal constructor(
 		InterestPrimer.primeBody(activeJourney.world, player.blockPos)
 		val configured = request.pathingConfig.snapshotCaptureBudgetMillis
 
-		// A holding body is idle: the search is waiting on world knowledge, so give
-		// capture the idle budget rather than starving the very thing the hold awaits.
 		val budget = if (cursor == null || holding) {
 			maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS)
 		} else configured
 		activeJourney.world.advance(budget)
-		// The pre-warmed next leg streams its capture alongside: the whole point of
-		// priming it is that the world is already known when the handoff comes.
+
 		waypointRoute.advanceCapture(configured)
 	}
 
@@ -278,7 +246,6 @@ class PathingSession internal constructor(
 		warn("Replanning after the certified environment changed: $reason", PATHING_SOURCE)
 	}
 
-	/** The waypoint route continues past a completed leg; a failed leg has already dropped it. */
 	internal fun continueRoute() {
 		waypointRoute.continueNext()
 	}
@@ -293,10 +260,6 @@ class PathingSession internal constructor(
 		lastAdoptionMillis = now
 	}
 
-	/**
-	 * Frames adopted against ticks spent: the body eats one frame per tick, so a deficit
-	 * here is paid at the next brake. See docs/decisions/session-loop.md.
-	 */
 	internal fun publicationCadence(): String {
 		if (adoptionGains.isEmpty()) return "no adoptions"
 		val frames = adoptionGains.sum()
@@ -337,7 +300,6 @@ class PathingSession internal constructor(
 	private var liveProfileAge = Int.MIN_VALUE
 	private var liveProfileCache: PlayerPhysicsProfile? = null
 
-	/** The player's physics profile, captured at most once per game tick (it cannot change within one). */
 	internal fun SafeContext.liveProfile(): PlayerPhysicsProfile {
 		val cached = liveProfileCache
 		if (cached != null && liveProfileAge == player.age) return cached

@@ -1,13 +1,7 @@
 package com.lambda.pathing.world
 
-/**
- * Section keys waiting for capture, one FIFO per [InterestTier], drained DEMAND first.
- * Keys whose chunk is not trusted park in [deferred] until [promoteDeferred] lifts them
- * back to DEMAND. Not thread-safe: the owner serialises calls.
- * See docs/decisions/world-capture.md.
- */
 class InterestQueue(
-	/** True for a key that is already captured and not awaiting removal; such keys are skipped. */
+
 	private val present: (Long) -> Boolean,
 ) {
 	private val queues = Array(InterestTier.entries.size) { ArrayDeque<Long>() }
@@ -29,7 +23,6 @@ class InterestQueue(
 		}
 	}
 
-	/** Re-queues every deferred key whose chunk [trusted] now accepts, at DEMAND tier. */
 	fun promoteDeferred(trusted: (Long) -> Boolean) {
 		if (deferred.isEmpty()) return
 		val promoted = deferred.filter(trusted)
@@ -39,7 +32,6 @@ class InterestQueue(
 		}
 	}
 
-	/** The next key to capture, or null when nothing capturable is queued. */
 	fun nextCapturable(trusted: (Long) -> Boolean): Long? {
 		for (queue in queues) {
 			while (queue.isNotEmpty()) {

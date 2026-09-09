@@ -1,4 +1,7 @@
-package com.lambda.pathing.actions
+package com.lambda.pathing.actions.control
+
+import com.lambda.pathing.actions.ControlProgram
+import com.lambda.pathing.actions.LaunchTrigger
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
@@ -7,19 +10,6 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
 
-class LaunchTrigger(private val delayFrames: Int) {
-	private var groundedTicks = 0
-	private var fired = false
-
-	val hasFired: Boolean get() = fired
-
-	fun press(observed: MovementSimulationState): Boolean {
-		if (fired || !observed.onGround) return false
-		if (groundedTicks++ < delayFrames) return false
-		fired = true
-		return true
-	}
-}
 
 private const val EASE_TURN_DEGREES = 50.0
 
@@ -31,31 +21,12 @@ internal class SegmentFollowerProgram(
 	private val maxYawChange: Double,
 	private val easeTurns: Boolean = false,
 
-	/**
-	 * Whether forward stays pressed once the body leaves the ground. Releasing it is the
-	 * only way a jump lands slower than it took off (see [LaunchSolution.holdForward]).
-	 */
 	private val holdForwardInFlight: Boolean = true,
 
-	/**
-	 * Air ticks to keep forward pressed after the launch before releasing it; the solved
-	 * schedule that sets landing distance and exit speed independently ([LaunchSolution.holdTicks]).
-	 */
 	private val holdTicks: Int = Int.MAX_VALUE,
 
-	/**
-	 * When present, the air phase is flown closed-loop: each airborne tick the drift
-	 * landing is predicted and the key press that best moves it onto the plan's aim
-	 * point replaces the scheduled input. Null flies the historical open schedule.
-	 */
 	private val airPlan: AirSteering.AirPlan? = null,
 
-	/**
-	 * Keep the jump key down while airborne. Vanilla re-jumps only from the ground, so in
-	 * flight this is inert -- until the feet enter a climbable cell, where a held jump
-	 * climbs at once instead of waiting for the body to press into the rungs. That is
-	 * what makes a single-block ladder catchable; see docs/decisions/movement-tuning.md.
-	 */
 	private val holdJumpInFlight: Boolean = false,
 ) : ControlProgram {
 	private var airborneTicks = 0
@@ -69,18 +40,11 @@ internal class SegmentFollowerProgram(
 		val yawError = Rotation.wrap(desiredYaw - observed.rotation.yaw)
 		val yawDelta = yawError.coerceIn(-maxYawChange, maxYawChange)
 
-		// From the launch tick onward, a released jump keeps its hands off the throttle:
-		// the ballistic model prices the launch tick's ground acceleration too, so this
-		// has to start on the same tick the jump is pressed, not the one after.
 		val flying = jump || (launch?.hasFired == true && !observed.onGround)
 		val jumpKey = jump || (holdJumpInFlight && flying)
 		if (flying) airborneTicks++ else airborneTicks = 0
 		val coasting = flying && (!holdForwardInFlight || airborneTicks > holdTicks)
 
-		// The launch tick itself moves on ground acceleration; correction begins on the
-		// first true air tick. airborneTicks counts the launch tick as 1 and the arc's
-		// air-loop tick k as k+1, whose displacement is still ahead -- so the ticks of
-		// landing authority left, this one included, are airTicks - airborneTicks + 2.
 		val steered = if (flying && !observed.onGround && airPlan != null) {
 			AirSteering.steer(
 				positionX = observed.position.x,

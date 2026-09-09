@@ -3,27 +3,17 @@ package com.lambda.pathing.graph
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList
 import it.unimi.dsi.fastutil.longs.LongArrayList
 
-/** Where an edge provider writes its edges; no map allocation per expansion. */
 interface EdgeSink {
-	/** Put semantics: an existing target keeps its position and takes the new cost. */
+
 	fun add(node: Long, cost: Double)
 
-	/** Merge-min semantics: an existing target keeps its position and the smaller cost. */
 	fun addMin(node: Long, cost: Double)
 }
 
-/** An edge provider over packed long nodes; costs are validated by the sink. */
 fun interface LongEdgeProvider {
 	fun edges(node: Long, sink: EdgeSink)
 }
 
-/**
- * Parallel target/cost arrays kept in INSERTION ORDER. The D* successor iteration and its
- * tie-breaks depend on this order being JVM-stable; see docs/decisions/determinism.md.
- * Lookups are linear: a node's adjacency is a few dozen edges at most.
- *
- * Graph callers receive live lists and must treat them as read-only.
- */
 class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 	private val targets = LongArrayList(initialCapacity)
 	private val costs = DoubleArrayList(initialCapacity)
@@ -40,13 +30,12 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 
 	fun indexOf(node: Long): Int {
 		val elements = targets.elements()
-		for (i in 0 until targets.size) if (elements[i] == node) return i
+		for (i in targets.indices) if (elements[i] == node) return i
 		return -1
 	}
 
 	operator fun contains(node: Long): Boolean = indexOf(node) >= 0
 
-	/** The stored cost, or +infinity when [node] is not a target. */
 	fun costOf(node: Long): Double {
 		val index = indexOf(node)
 		return if (index < 0) Double.POSITIVE_INFINITY else costs.getDouble(index)
@@ -73,7 +62,6 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 		}
 	}
 
-	/** Removes [node], shifting later edges down so their order is preserved. */
 	fun remove(node: Long): Boolean {
 		val index = indexOf(node)
 		if (index < 0) return false
@@ -82,10 +70,9 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 		return true
 	}
 
-	/** Drops every non-finite edge in place, preserving the order of the rest. */
 	fun dropNonFinite(): EdgeList {
 		var write = 0
-		for (read in 0 until targets.size) {
+		for (read in targets.indices) {
 			val cost = costs.getDouble(read)
 			if (!cost.isFinite()) continue
 			if (write != read) {
@@ -120,7 +107,7 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 	override fun toString(): String = (0 until size).joinToString(", ", "[", "]") { "${node(it)}=${cost(it)}" }
 
 	companion object {
-		/** Shared read-only empty list returned for unknown nodes. Never mutate. */
+
 		val EMPTY = EdgeList(0)
 
 		internal fun checkCost(cost: Double) {

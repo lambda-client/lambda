@@ -15,8 +15,8 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchProbe
-import com.lambda.pathing.search.SimulatedTrajectoryFrame
-import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds

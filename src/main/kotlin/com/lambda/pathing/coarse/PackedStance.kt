@@ -2,20 +2,6 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.core.Stance
 
-/**
- * A coarse graph node -- [Stance] times [SpeedClass] -- packed into one non-negative long.
- *
- * Layout (bit 63 is always zero):
- * ```
- *  62..53  y + 512        (10 bits, y in -512..511)
- *  52..27  x + 2^25       (26 bits, x in -2^25..2^25-1)
- *  26..1   z + 2^25       (26 bits, z in -2^25..2^25-1)
- *       0  speed ordinal  (1 bit: STOPPED = 0, MOVING = 1)
- * ```
- * The fields are offset-binary and ordered so that natural long order equals
- * `compareBy(y, x, z, speed)` -- the tie-break the descent and every canonical ordering
- * in the search rely on. See docs/decisions/determinism.md.
- */
 object PackedStance {
 	const val Y_BITS = 10
 	const val XZ_BITS = 26
@@ -63,7 +49,6 @@ object PackedStance {
 
 	fun withSpeed(node: Long, speed: SpeedClass): Long = (node and SPEED_MASK.inv()) or speed.ordinal.toLong()
 
-	/** Same stance, either speed class. */
 	fun sameStance(a: Long, b: Long): Boolean = (a ushr 1) == (b ushr 1)
 
 	fun describe(node: Long): String =

@@ -22,16 +22,9 @@ internal class PlanningSession(
 ) {
 	val cancellation = PlanningCancellation()
 
-	/** World revision when the session launched; a retry is only worth it once this has moved. */
 	@Volatile
 	var launchRevision: Long = -1L
 
-	/**
-	 * Newest publication sequence the executor has installed or adopted. The worker
-	 * may not publish past an unacknowledged tape: the acknowledgement guarantees the
-	 * running tape and the worker's published tip agree before the search speculates
-	 * beyond the published brake.
-	 */
 	@Volatile
 	var adoptedSequence: Long = 0L
 

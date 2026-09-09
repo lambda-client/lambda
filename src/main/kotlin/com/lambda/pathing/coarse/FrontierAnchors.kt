@@ -7,12 +7,6 @@ import kotlin.math.hypot
 
 object FrontierAnchors {
 
-	/**
-	 * Default `capturable` predicate: unknown cells in a chunk the client could capture
-	 * now are knowledge lag, never frontier. Claiming nothing is capturable preserves
-	 * pure-view behaviour for callers without a client world (tests, replays).
-	 * See docs/decisions/anchor-lifecycle.md.
-	 */
 	val NOTHING_CAPTURABLE: (Int, Int) -> Boolean = { _, _ -> false }
 
 	fun sweep(
@@ -26,7 +20,6 @@ object FrontierAnchors {
 		capturable: (Int, Int) -> Boolean = NOTHING_CAPTURABLE,
 		onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 
-		/** Edge source; pass the session [CoarseEdgeCache] so repeated sweeps reuse probes. */
 		edges: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
 	): Map<Stance, Double> {
 		if (from == goal || refusesOptimism(view, moves, goal)) return emptyMap()
@@ -37,13 +30,6 @@ object FrontierAnchors {
 		)
 	}
 
-	/**
-	 * The flood itself, resumable: [visited] persists across calls and [seeds] are the
-	 * stances to (re)expand. A full sweep seeds the start with an empty [visited]; an
-	 * incremental one seeds the origins whose edges may have changed since the last sweep
-	 * (see [CoarsePlanner.advanceReachableFrontier]). [incomplete] collects visited stances
-	 * that read an unknown cell -- the only ones that can gain edges from later capture.
-	 */
 	fun sweep(
 		view: CoarseVoxelView,
 		moves: SimpleMoveLibrary,
@@ -65,10 +51,6 @@ object FrontierAnchors {
 			queue += seed
 		}
 
-		// Best-first by distance to the goal, so once an anchor exists every node still
-		// queued is at least as far; past a slack of a few chunks such nodes can only
-		// yield anchors the route would never prefer, and flooding the rest of the ring
-		// (20k+ stances of first-time edge probes) is what made grant rounds cost seconds.
 		val slackTicks = moves.heuristic(goal, goal.offset(SWEEP_SLACK_BLOCKS, 0, 0))
 		var bestAnchorTicks = Double.POSITIVE_INFINITY
 		var expanded = 0
@@ -92,8 +74,8 @@ object FrontierAnchors {
 				if (moves.readsUnknown(view, node)) incomplete += node else incomplete -= node
 			}
 
-			for (edge in edges(node)) {
-				if (visited.add(edge.to)) queue += edge.to
+			for ((_, _, to) in edges(node)) {
+				if (visited.add(to)) queue += to
 			}
 		}
 		return anchors
@@ -145,7 +127,6 @@ object FrontierAnchors {
 
 	private const val SWEEP_MAX_NODES = 40_000
 
-	/** How much farther from the goal than the best anchor the flood still looks, in blocks. */
 	private const val SWEEP_SLACK_BLOCKS = 32
 
 	private const val SWEEP_MAX_ANCHORS = 256

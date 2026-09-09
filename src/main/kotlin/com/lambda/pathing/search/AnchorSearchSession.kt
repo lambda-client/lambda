@@ -1,10 +1,12 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.actions.BrakeToStopProgram
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+
+import com.lambda.pathing.actions.control.BrakeToStopProgram
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.actions.PricedDecision
-import com.lambda.pathing.actions.PursuitTracker
+import com.lambda.pathing.actions.control.PursuitTracker
 import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.CoarseRoutePlan
@@ -21,47 +23,35 @@ private const val CANDIDATE_PUBLISH_INTERVAL = 32
 
 private const val WORLD_SYNC_INTERVAL = 64
 
-/**
- * One run of the anchor-chain beam search: [ValueFieldAnchorSearch.search] constructs a
- * session per request and calls [run]. The loop body is a fixed sequence of phases --
- * cursor sync, publication window, drain recovery, maintenance, batch selection, batch
- * execution -- each a method below; the annealing, tempo and stall-recovery state they
- * share lives in [Annealing], [SearchTempo] and [StallRecovery].
- */
 internal class AnchorSearchSession(
 	private var route: CoarseRoutePlan,
 	private val catalog: MovementCatalog,
 	private val field: ValueField,
 	private val initialState: MovementSimulationState,
-	private val profile: PlayerPhysicsProfile,
+	profile: PlayerPhysicsProfile,
 	private val environment: SnapshotSimulationEnvironment,
 	private val config: MotionConstraints,
 	private val searchConfig: ValueFieldSearchConfig,
-	private val onSafePrefix: ((MotionPlanResult.Success) -> Unit)?,
+	onSafePrefix: ((MotionPlanResult.Success) -> Unit)?,
 	private val cursorFrame: (() -> Int?)?,
 	private val clock: SearchClock,
 	private val cancelled: () -> Boolean,
-	private val worldWait: ((Long) -> Boolean)?,
+	worldWait: ((Long) -> Boolean)?,
 	private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
 	private val sectionCapturable: ((Int, Int) -> Boolean)?,
-	private val expandGuide: ((Double) -> Unit)?,
-	private val adoptedSequence: (() -> Long)?,
+	expandGuide: ((Double) -> Unit)?,
+	adoptedSequence: (() -> Long)?,
 	private val finalGoal: Stance?,
 	private val probe: SearchProbe,
 	private val onExhaustion: ((SearchExhaustion) -> Unit)?,
 	private val parallelism: Int = 1,
 	private val executor: ExecutorService? = null,
-	/**
-	 * Compound routes: the leg after the current goal, or null when the current goal is
-	 * the last. Consulted when an anchor lands on the goal stance; a non-null handoff
-	 * makes that landing a leg switch instead of a finish. May block until the leg is resolved.
-	 */
+
 	private val nextLeg: ((Stance) -> LegHandoff?)? = null,
 	private val hasNextLeg: () -> Boolean = { false },
 ) {
-	private val vocabulary = ActionSet(catalog, field, config, searchConfig, corridor = { corridor() })
+	private val vocabulary = ActionSet(catalog, field, config, searchConfig)
 
-	/** Walk-through waypoints this search has passed, in tape frames. */
 	private val legTouches = ArrayList<LegTouch>()
 
 	private var goalStance = route.goal
@@ -108,7 +98,6 @@ internal class AnchorSearchSession(
 	private var finishSweeps = 0
 	private var sweepEpoch = 0
 
-	// A goal landing braked to rest: the finish of last resort, never a competitor to the finisher.
 	private var brakedFallback: Solution? = null
 	private var best: Solution? = null
 	private var expansionsSinceImprovement = 0
@@ -138,12 +127,6 @@ internal class AnchorSearchSession(
 	private var lastViewMillis = Long.MIN_VALUE
 	private var improveBucket = -1
 
-	/**
-	 * The finished tape already published to the executor, if any. Once set, the session
-	 * no longer returns at the finalize gate: it refines until the body arrives or the
-	 * frontier drains, and every exit returns the best finished tape instead of an
-	 * exhaustion. See docs/decisions/publication-protocol.md.
-	 */
 	private var finalSolution: Solution? = null
 
 	private fun finishedResult(): MotionPlanResult? {
@@ -152,10 +135,6 @@ internal class AnchorSearchSession(
 		return finish(out)
 	}
 
-	/**
-	 * Publish the finish so the session survives to refine it; returns a result only when
-	 * it cannot be published (bootstrap, unacked, dead fork) and nothing was sealed before.
-	 */
 	private fun sealFinished(solution: Solution): MotionPlanResult? {
 		if (horizon.publishFinished(solution)) {
 			finalSolution = solution
@@ -164,14 +143,12 @@ internal class AnchorSearchSession(
 		return if (finalSolution == null) finish(solution) else null
 	}
 
-	private fun corridor(): CorridorLevel = CORRIDOR
 
 	private fun revivable(): Boolean = recovery.hasSpent && annealing.canEscalate()
 
 	private fun restartable(): Boolean =
 		best == null && finalSolution == null && recovery.restartable()
 
-	/** The DAG repair (see [HorizonController.repairFor]): re-root at the cut and forget what lies beyond it. */
 	private fun repairFor(mutations: Set<com.lambda.pathing.core.PathingSection>) {
 		val cut = horizon.repairFor(mutations) ?: return
 		fun beyond(solution: Solution?) = solution != null &&
@@ -233,8 +210,7 @@ internal class AnchorSearchSession(
 
 	fun run(): MotionPlanResult {
 		if (cancelled()) return MotionPlanResult.Cancelled
-		// A body on a block's edge floors to a cell that is no stance; the coarse route
-		// starts from its supporting block, so the root does too.
+
 		val bodyStance = stanceOf(initialState)
 		val rootStance = if (field.isMapped(bodyStance)) bodyStance else {
 			ValueFieldAnchorSearch.supportedStanceOf(initialState)?.takeIf { field.isMapped(it) } ?: bodyStance
@@ -281,22 +257,15 @@ internal class AnchorSearchSession(
 		return concludeWithIncumbent()
 	}
 
-	/** "exhausted" or "budget" when the loop must stop, null while it may go on. */
 	private fun stopReason(): String? = when {
 		frontier.isExhausted && !frontier.hasBlocked && !revivable() && !restartable() -> "exhausted"
 		expansions - expansionsWindowStart >= searchConfig.maxExpansions -> "budget"
 		else -> null
 	}
 
-	/**
-	 * Fold one cursor reading into the session: measure tempo, re-root onto what the body
-	 * has pressed, drop an incumbent execution left behind, return or seal a finish the
-	 * body is about to arrive at, and keep the tape extended ahead of the runway.
-	 */
 	private fun syncWithCursor(executing: Int): MotionPlanResult? {
 		tempo.observe(executing, expansions)
-		// Execution is the only irrevocable commitment: re-root onto what the
-		// body has pressed (the settled brake anchor once the cursor enters the tail).
+
 		horizon.advanceExecutedRoot()
 		annealing.rewindOnNewRoot()
 		best?.let {
@@ -304,8 +273,7 @@ internal class AnchorSearchSession(
 				best = null
 			}
 		}
-		// A published finish is returned only once the body is nearly there;
-		// finalizing mid-course freezes the tape's quality.
+
 		finalSolution?.let { published ->
 			val arrivalTape = best?.takeIf { it.score <= published.score } ?: published
 			if (executing >= arrivalTape.frames - ARRIVAL_RETURN_FRAMES) {
@@ -317,9 +285,7 @@ internal class AnchorSearchSession(
 			val pressured = tipElapsed != null &&
 					tipElapsed - executing <= searchConfig.horizonRunwayFrames
 			if (mayFinalize() && readyToFinish(it)) {
-				// A sealed finish whose fork is dying under runway pressure is
-				// published now, tail and all; neither condition alone suffices.
-				// See docs/decisions/publication-protocol.md.
+
 				if (pressured && horizon.finalWindowClosing(it.anchor)) {
 					if (horizon.publishFinished(it)) finalSolution = it
 				}
@@ -333,17 +299,13 @@ internal class AnchorSearchSession(
 		}
 		val tip = horizon.safeAnchor ?: return null
 		val runway = tip.elapsed - executing
-		// Consulted every pass, not only under runway pressure: a branch is
-		// publishable only while its fork is ahead of the cursor. Idle passes
-		// are paced by the gate's gain floor, the work floor and the memo.
-		// See docs/decisions/publication-protocol.md.
+
 		val urgent = runway <= searchConfig.horizonCommitFrames
 		val extended = horizon.commitFromCandidates(
 			urgent = urgent,
 			along = best?.takeIf { !readyToFinish(it) }?.anchor,
 		)
-		// The body is about to outrun the tape and nothing extends it:
-		// finalize now rather than wait out the improvement window.
+
 		if (!extended && urgent) {
 			best?.let {
 				if (mayFinalize() && readyToFinish(it)) {
@@ -354,7 +316,6 @@ internal class AnchorSearchSession(
 		return null
 	}
 
-	/** Publication is progress: refresh the per-window budgets, then bootstrap a parked-only frontier. */
 	private fun refreshWindowOnPublication() {
 		if (horizon.safeAnchor !== lastPublishedTip) {
 			lastPublishedTip = horizon.safeAnchor
@@ -367,23 +328,18 @@ internal class AnchorSearchSession(
 
 	private enum class Drain { CONTINUE, BREAK }
 
-	/** The open list is empty: every way of refilling it, in order, before the loop gives up. */
 	private fun recoverFromDrain(): Drain {
-		// The starved reserve is the escape hatch for a drained open list.
+
 		if (frontier.reviveStarved { horizon.adoptable(it) }) return Drain.CONTINUE
 
 		if (recovery.waitForBlocked()) return Drain.CONTINUE
 
-		// Total exhaustion is stall evidence in itself: escalate and revive the spent anchors.
 		if (recovery.hasSpent && annealing.escalate(force = true)) return Drain.CONTINUE
 
-		// Genuinely drained: restart from the published tape's continuation before giving up.
 		if (!frontier.hasParked && !frontier.hasBlocked && restartFromTape()) return Drain.CONTINUE
 
-		// A truncated route cannot finalize; wait for it to extend instead of refusing.
 		if (!mayFinalize() && recovery.waitForRouteExtension()) return Drain.CONTINUE
 
-		// Anchors parked beyond the local horizon are work, not a dead end.
 		if (horizon.extendHorizon()) return Drain.CONTINUE
 
 		val toward = best?.takeIf { !readyToFinish(it) }?.anchor
@@ -395,7 +351,7 @@ internal class AnchorSearchSession(
 			stats.exit = "commit-refused"
 			return Drain.BREAK
 		}
-		// Publishing does not re-root, so a commit does not refill the open list.
+
 		return Drain.CONTINUE
 	}
 
@@ -411,10 +367,6 @@ internal class AnchorSearchSession(
 		}
 	}
 
-	/**
-	 * Select up to [parallelism] decisions in rank order and prepare their rollouts into
-	 * [batch]. Returns a result instead when a polled entry proves the incumbent final.
-	 */
 	private fun selectBatch(batch: MutableList<AnchorRollout.PreparedRollout>): MotionPlanResult? {
 		while (batch.size < parallelism) {
 			val entry = frontier.poll() ?: break
@@ -453,9 +405,8 @@ internal class AnchorSearchSession(
 		return null
 	}
 
-	/** Whether a polled entry is still worth a rollout; drops, starves or parks it otherwise. */
 	private fun worthExpanding(entry: Frontier.OpenEntry): Boolean {
-		// A branch whose fork the cursor has passed can never be published again.
+
 		val forkLife = horizon.forkLife(entry.anchor)
 		if (forkLife < HorizonController.PUBLISH_DIVERGENCE_MARGIN_FRAMES) {
 			stats.adoptableDrops++
@@ -478,13 +429,12 @@ internal class AnchorSearchSession(
 
 	private enum class Verdict { EXPAND, SKIP, FINISH }
 
-	/** An entry against the incumbent: expand it, prune it, or finish because nothing can beat the incumbent. */
 	private fun judgeAgainstIncumbent(entry: Frontier.OpenEntry): Verdict {
 		val incumbent = best
 		val entryScoreBound = entry.bound + Solution.COLLISION_FRAME_PENALTY * entry.anchor.collisionEvents
 		if (incumbent != null && mayFinalize() && entryScoreBound >= incumbent.score) {
 			if (readyToFinish(incumbent) && bodyNearEnd(incumbent)) return Verdict.FINISH
-			// Provably no improvement on the incumbent: the same bound admission prunes by.
+
 			return Verdict.SKIP
 		}
 		if (incumbent != null && mayFinalize() && readyToFinish(incumbent) && bodyNearEnd(incumbent) &&
@@ -495,7 +445,6 @@ internal class AnchorSearchSession(
 		return Verdict.EXPAND
 	}
 
-	/** One finish sweep from an anchor inside finish range, once per sweep epoch. */
 	private fun sweepFinish(anchor: ValueAnchor) {
 		val remaining = field.guide(anchor.stance)
 		if (anchor.sweptEpoch != sweepEpoch &&
@@ -511,7 +460,6 @@ internal class AnchorSearchSession(
 		}
 	}
 
-	/** One expansion, however it is spent: the clock and every per-expansion counter tick. */
 	private fun countExpansion() {
 		expansions++
 		clock.onExpansion()
@@ -519,10 +467,6 @@ internal class AnchorSearchSession(
 		annealing.tick()
 	}
 
-	/**
-	 * Simulate the batch (concurrently when a pool is present) and apply the outcomes in
-	 * selection order. At parallelism 1 this is exactly the serial search.
-	 */
 	private fun executeBatch(batch: List<AnchorRollout.PreparedRollout>) {
 		if (batch.size > 1 && executor != null) {
 			batch.map { prepared -> executor.submit { rollouts.execute(prepared) } }
@@ -537,11 +481,9 @@ internal class AnchorSearchSession(
 		}
 	}
 
-	/** The loop stopped without a finish: commit the incumbent as far as it goes, else fall back. */
 	private fun concludeWithIncumbent(): MotionPlanResult {
 		best?.let { solution ->
-			// Each commit must deepen the tape or the loop cannot converge.
-			// See docs/decisions/publication-protocol.md.
+
 			var committed = horizon.safeAnchor?.elapsed ?: -1
 			while (!readyToFinish(solution) &&
 				horizon.commitFromCandidates(urgent = true, along = solution.anchor)
@@ -565,10 +507,6 @@ internal class AnchorSearchSession(
 		)
 	}
 
-	/**
-	 * One decision rolled out and absorbed: admitted on success, learned from on failure.
-	 * Shared by the main loop and the spine pass so both feed the same bookkeeping.
-	 */
 	private fun rolloutDecision(anchor: ValueAnchor, action: TrajectoryDecision): Outcome =
 		applyRollout(anchor, action, rollouts.transition(anchor, action, anchor.hazardFrame))
 
@@ -601,34 +539,32 @@ internal class AnchorSearchSession(
 		when (outcome) {
 			is Outcome.Anchored -> {
 				annealing.noteGuide(outcome.anchor.stance)
-				// A moving arrival on the goal stance: with touch arrival it is the finish
-				// (brake wherever the landing rests); otherwise it may still be the only
-				// way to finish at all, kept as the fallback.
+
 				if (outcome.anchor.stance == goalStance) {
 					val handoff = if (hasNextLeg()) nextLeg?.invoke(goalStance) else null
 					if (handoff != null) {
 						switchLeg(outcome.anchor, handoff)
-						horizon.publishPrefix(outcome.anchor, expansions)
+						horizon.publishPrefix(outcome.anchor)
 						return outcome
 					}
 					if (config.touchArrival) finishByTouch(outcome.anchor)
 					else if (best == null) finishByBraking(outcome.anchor)
 				}
 				frontier.admit(outcome.anchor)
-				horizon.publishPrefix(outcome.anchor, expansions)
+				horizon.publishPrefix(outcome.anchor)
 			}
-			// A rollout that came to rest on a walk-through waypoint is not a finish.
+
 			is Outcome.Arrived -> if (!hasNextLeg()) retain(
 				Solution.of(
 					anchor,
-					outcome.frames.take(outcome.stopFrame + 1),
+					outcome.frames,
 					TerminalApproach(
 						action.sprint, PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
 						config.brakeDistances.first(), null,
 					),
 					anchor.collisionEvents + collisionEvents(
 						anchor.state,
-						outcome.frames.take(outcome.stopFrame + 1),
+						outcome.frames,
 					),
 				)
 			)
@@ -652,13 +588,6 @@ internal class AnchorSearchSession(
 		return outcome
 	}
 
-	/**
-	 * The constructive pass: descend the route greedily before the search proper, keeping
-	 * the first of each anchor's best few decisions that certifies, to the goal or the
-	 * first edge where none do. Its lineage enters the frontier normally, its arrival
-	 * seeds [best], and every rollout ticks the clock like an expansion. Publication and
-	 * commitment rules are untouched. See docs/decisions/session-loop.md.
-	 */
 	private fun constructSpine(root: ValueAnchor) {
 		var current = root
 		var spent = 0
@@ -691,7 +620,7 @@ internal class AnchorSearchSession(
 				}
 				if (advanced != null || blocked) break
 			}
-			// Streaming holes are the main loop's wait ladder to resolve, not ours.
+
 			if (blocked) break
 			current = advanced ?: break
 			stalled = null
@@ -718,8 +647,6 @@ internal class AnchorSearchSession(
 		}
 	}
 
-	// Per-anchor only: a bucket-level "peers skip this action" memo measured net-negative.
-	// See docs/decisions/beam.md.
 	private fun nextAction(anchor: ValueAnchor): PricedDecision? {
 		for (priced in actions(anchor)) {
 			val action = priced.decision
@@ -738,12 +665,6 @@ internal class AnchorSearchSession(
 		return null
 	}
 
-	/**
-	 * The price of the cheapest movement [anchor] has left, or null when it has none.
-	 *
-	 * The list is already sorted by price, but a family prefix failure can retire an
-	 * entry out of order, so this scans rather than reading the head.
-	 */
 	private fun remainingSurcharge(anchor: ValueAnchor): Double? = actions(anchor)
 		.firstOrNull { it.decision !in anchor.attempted }
 		?.let { annealing.temperature.surcharge(it.price) }
@@ -759,14 +680,12 @@ internal class AnchorSearchSession(
 		)
 		if (gated.failed) return null
 		val rollout = gated.rollout
-		// A brake terminal must be a closed physics cycle (period 1 on solid ground,
-		// period 2 on bouncy blocks), not merely slow. See docs/decisions/execution-tolerance.md.
+
 		var stable = 0
 		var stableEnd = -1
 		var previous = anchor.state
 		var twoBack: MovementSimulationState? = null
-		for (frame in rollout.frames) {
-			val state = frame.state
+		for ((index, _, state) in rollout.frames) {
 			val cycleClosed = twoBack.let {
 				it != null && state.position == it.position &&
 						state.velocity == it.velocity && state.onGround == it.onGround
@@ -777,7 +696,7 @@ internal class AnchorSearchSession(
 			twoBack = previous
 			previous = state
 			if (stable >= config.stableStopFrames && state.onGround) {
-				stableEnd = frame.index
+				stableEnd = index
 				break
 			}
 		}
@@ -794,7 +713,6 @@ internal class AnchorSearchSession(
 		) to restingState
 	}
 
-	// Braking a moving goal landing to rest is the finish when the stop stays inside the goal.
 	private fun finishByBraking(anchor: ValueAnchor) {
 		val incumbent = brakedFallback
 		if (incumbent != null && incumbent.frames <= anchor.elapsed) return
@@ -808,12 +726,6 @@ internal class AnchorSearchSession(
 		if (incumbent == null || solution.score < incumbent.score) brakedFallback = solution
 	}
 
-	/**
-	 * Touch arrival: the body entered the goal cell grounded; braking from there is a
-	 * solution proper if the rest lands on mapped ground within [MotionConstraints.touchRestRadius]
-	 * of the goal at the goal's height. It competes on score like any sealed finish, so
-	 * the horizon publishes it instead of rolling on past the goal.
-	 */
 	private fun finishByTouch(anchor: ValueAnchor) {
 		val (solution, resting) = brakeWithResting(anchor) ?: return
 		val goal = goalPoint
@@ -823,10 +735,6 @@ internal class AnchorSearchSession(
 		retain(solution)
 	}
 
-	/**
-	 * Hand the debug channel the live counters and, if something is drawing it, the
-	 * anchor tree. Wall-clock paced so the sample rate is machine-independent.
-	 */
 	private fun publishSearchView() {
 		val now = clock.elapsedMillis()
 		if (now - lastViewMillis < VIEW_INTERVAL_MILLIS) return
@@ -871,8 +779,6 @@ internal class AnchorSearchSession(
 			}
 		}
 
-		// Leaves first at their own role, then their ancestry as scaffolding, so a
-		// branch reads as one line back to where it left the spine.
 		recovery.spent.forEach { claim(it, SearchNodeRole.SPENT) }
 		frontier.parkedEntries.forEach { claim(it.anchor, SearchNodeRole.PARKED) }
 		frontier.openEntries.forEach { claim(it.anchor, SearchNodeRole.OPEN) }
@@ -910,7 +816,6 @@ internal class AnchorSearchSession(
 		)
 	}
 
-	/** Everything worth comparing between a session that dead-ends and one that does not. */
 	fun exhaustion(): SearchExhaustion {
 		return SearchExhaustion(
 			exit = stats.exit,
@@ -964,12 +869,6 @@ internal class AnchorSearchSession(
 		return result.copy(legTouches = legTouches.filter { it.frame <= solution.frames })
 	}
 
-	/**
-	 * A walk-through waypoint touched: the search keeps this anchor and its lineage (the
-	 * tape so far), swaps the field and route for the next leg, and continues expanding
-	 * from here toward the new goal. Everything ranked against the old field goes: the
-	 * rest of the frontier, the incumbent, the finish state, the annealing progress.
-	 */
 	private fun switchLeg(anchor: ValueAnchor, handoff: LegHandoff) {
 		legTouches += LegTouch(anchor.elapsed, goalStance)
 		anchor.legRoot = true
@@ -998,13 +897,11 @@ internal class AnchorSearchSession(
 	}
 
 	private fun retain(solution: Solution) {
-		// A solution diverging under frames the body already pressed can never be adopted.
+
 		if (!horizon.canReach(solution.anchor)) return
 		if (!executionCompatible(solution.anchor)) return
 		val incumbent = best
-		// Off-tape solutions must clear the swap floor the publication gate will hold
-		// them to; retaining one that wins by less wedges the session.
-		// See docs/decisions/publication-protocol.md.
+
 		val tip = horizon.safeAnchor
 		val requiredGain = if (tip != null && !solution.anchor.descendsFrom(tip)) {
 			OFF_TAPE_RETAIN_GAIN_FRAMES
@@ -1030,17 +927,11 @@ internal class AnchorSearchSession(
 		return solution.frames - committedElapsed <= searchConfig.maxFinalCommitFrames
 	}
 
-	/**
-	 * Whether the body is within [ValueFieldSearchConfig.finalizeArrivalFrames] of the
-	 * solution's end. Finalizing ends every chance of improvement, so a mid-course body
-	 * keeps refining. Without a cursor (planning before motion) this is always true.
-	 */
 	private fun bodyNearEnd(solution: Solution): Boolean {
 		val executing = cursorFrame?.invoke() ?: return true
 		return solution.frames - executing <= searchConfig.finalizeArrivalFrames
 	}
 
-	/** Spend the remaining improvement budget on the solution, then certify it. */
 	private fun finish(solution: Solution): MotionPlanResult {
 		stats.exit = "solved"
 		val best = improve(solution)
@@ -1048,29 +939,23 @@ internal class AnchorSearchSession(
 		return certify(best)
 	}
 
-	/** One improver per session, so its budget is spent across the walk. See docs/decisions/improver.md. */
 	private val improver by lazy {
 		PlanImprover(
 			rollouts = rollouts,
-			// The wider vocabulary: every candidate survives recertify and a score comparison.
-			vocabulary = ActionSet(catalog, field, config, searchConfig, corridor = ::corridor, momentum = true),
+
+			vocabulary = ActionSet(catalog, field, config, searchConfig, momentum = true),
 			finisher = finisher,
 			canReach = horizon::canReach,
 		)
 	}
 
-	/**
-	 * Shorten the incumbent in slices while the body is still walking toward it, when
-	 * most cut points are still ahead of the cursor. See docs/decisions/improver.md.
-	 */
 	private fun improveIncumbent() {
 		if (searchConfig.improvementBudget <= 0) return
 		val incumbent = best ?: return
 		if (improver.rolloutsSpent >= searchConfig.improvementBudget) return
 		val slice = minOf(searchConfig.improvementBudget, improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS)
 		val improved = measuredImprovement { improver.improve(incumbent, slice) } ?: return
-		// The improver already proved it shorter (and gated its collisions); the score
-		// comparison in retain would refuse a grounded-bump trade it deliberately accepted.
+
 		if (!horizon.canReach(improved.anchor) || !executionCompatible(improved.anchor)) return
 		stats.improvementSaved += incumbent.frames - improved.frames
 		best = improved
@@ -1089,41 +974,31 @@ internal class AnchorSearchSession(
 	private fun improve(solution: Solution): Solution {
 		if (searchConfig.improvementBudget <= 0) return solution
 		val improved = measuredImprovement { improver.improve(solution, searchConfig.improvementBudget) } ?: return solution
-		// A shorter tape the publisher would refuse is not an improvement.
+
 		if (!horizon.canReach(improved.anchor)) return solution
 		stats.improvementSaved += solution.frames - improved.frames
 		return improved
 	}
 }
 
-/** The first frame at which this decision's rollout can differ from its family's: its launch. */
 private fun divergenceFrame(action: TrajectoryDecision): Int = action.launchDelayFrames ?: Int.MAX_VALUE
 
 private const val BRAKE_TAIL_FRAMES = 64
 
-// Fixed corridor: the detour excess is priced in the frontier order rather than filtered,
-// and escalation buys heat and guide reach, never width. See docs/decisions/annealing.md.
-private val CORRIDOR = CorridorLevel(steps = 3, marginTicks = 4.0)
 
-/** Wall-clock spacing between debug-channel samples of the live search. */
 private const val VIEW_INTERVAL_MILLIS = 100L
 
-/** Anchors drawn before the tree sample gives up; the search routinely holds far more. */
 private const val MAX_TREE_NODES = 4096
 
 private const val FINAL_IMPROVEMENT_WINDOW = 256
 
-/** Expansions between improvement slices, and how many rollouts each may spend. */
 private const val IMPROVEMENT_INTERVAL = 2000
 private const val IMPROVEMENT_SLICE_ROLLOUTS = 250
 
-/** Frames before the finished tape's end at which the surviving session returns it. */
 private const val ARRIVAL_RETURN_FRAMES = 2
 
-/** Frames an off-tape solution must win by: the publication gate's swap floor. */
 private const val OFF_TAPE_RETAIN_GAIN_FRAMES = SWAP_FLOOR_GAIN_TICKS.toInt()
 
-/** Decisions the spine pass rolls per edge; must cover the walk probes that seed the hazard frame. */
 private const val SPINE_ATTEMPTS_PER_EDGE = 8
 
 private const val GOAL_BRAKE_VERTICAL_TOLERANCE = 0.05

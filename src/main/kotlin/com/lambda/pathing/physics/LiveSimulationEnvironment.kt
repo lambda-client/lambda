@@ -1,20 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.lambda.pathing.physics
 
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
@@ -28,11 +11,6 @@ import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 
-/**
- * Reads the live client world. With [entityCollisions] the collision step runs through the
- * player entity itself (entity collisions included), applying the simulated box and ground
- * flag to the player for the duration of the call; otherwise blocks only.
- */
 class LiveSimulationEnvironment(
 	private val world: World,
 	private val player: ClientPlayerEntity,
@@ -117,10 +95,6 @@ class LiveSimulationEnvironment(
 	override fun isClimbable(pos: BlockPos): Boolean =
 		world.getBlockState(pos).isIn(BlockTags.CLIMBABLE)
 
-	/**
-	 * @see net.minecraft.block.SlimeBlock.bounce
-	 * @see net.minecraft.block.BedBlock.bounceEntity
-	 */
 	override fun bounceFactor(pos: BlockPos): Double {
 		val state = world.getBlockState(pos)
 		return when {
@@ -135,7 +109,7 @@ class LiveSimulationEnvironment(
 		world.getBlockState(pos).isOf(Blocks.SLIME_BLOCK)
 
 	companion object {
-		/** @see net.minecraft.block.SlimeBlock.bounce */
+
 		const val SLIME_BOUNCE_FACTOR = 1.0
 	}
 }

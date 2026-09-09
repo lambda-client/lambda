@@ -15,7 +15,6 @@ fun horizontalDistance(from: HorizontalPoint, to: HorizontalPoint): Double =
 fun bearingBetween(from: HorizontalPoint, to: HorizontalPoint): Double =
 	Math.toDegrees(atan2(to.z - from.z, to.x - from.x)) - 90.0
 
-/** The unit vector a [bearingBetween] result points along; the inverse of that function. */
 fun headingOfBearing(bearing: Double): Pair<Double, Double> {
 	val radians = Math.toRadians(bearing + 90.0)
 	return cos(radians) to sin(radians)

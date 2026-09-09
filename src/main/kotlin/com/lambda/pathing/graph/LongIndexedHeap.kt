@@ -2,12 +2,6 @@ package com.lambda.pathing.graph
 
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
 
-/**
- * Indexed binary min-heap over long nodes keyed by a lexicographic pair `(k1, k2)` held in
- * two parallel double arrays. Comparisons use [java.lang.Double.compare] on each component,
- * exactly as the old `Key.compareTo` did, so the ordering (including infinities) is the same.
- * No key objects are allocated.
- */
 class LongIndexedHeap(initialCapacity: Int = 64) {
 	private var nodes = LongArray(initialCapacity.coerceAtLeast(1))
 	private var k1 = DoubleArray(nodes.size)
@@ -56,16 +50,12 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 		return nodes[0]
 	}
 
-	/** First key component of the top entry; +infinity when empty. */
 	fun topFirst(): Double = if (count == 0) Double.POSITIVE_INFINITY else k1[0]
 
-	/** Second key component of the top entry; +infinity when empty. */
 	fun topSecond(): Double = if (count == 0) Double.POSITIVE_INFINITY else k2[0]
 
-	/** `topKey < (first, second)` with the empty queue reading as `(+inf, +inf)`. */
 	fun topIsBelow(first: Double, second: Double): Boolean = compareKeys(topFirst(), topSecond(), first, second) < 0
 
-	/** `topKey > (first, second)` with the empty queue reading as `(+inf, +inf)`. */
 	fun topIsAbove(first: Double, second: Double): Boolean = compareKeys(topFirst(), topSecond(), first, second) > 0
 
 	operator fun contains(node: Long): Boolean = index.containsKey(node)
@@ -162,10 +152,10 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 	}
 
 	companion object {
-		/** Lexicographic `(a1, a2)` vs `(b1, b2)` with `Double.compare` semantics per component. */
+
 		fun compareKeys(a1: Double, a2: Double, b1: Double, b2: Double): Int {
-			val first = java.lang.Double.compare(a1, b1)
-			return if (first != 0) first else java.lang.Double.compare(a2, b2)
+			val first = a1.compareTo(b1)
+			return if (first != 0) first else a2.compareTo(b2)
 		}
 	}
 }

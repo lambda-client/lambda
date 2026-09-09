@@ -25,7 +25,7 @@ import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.PathingRequest
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.debug.BedrockFieldLayout
+import pathing.BedrockFieldLayout
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.threading.runSafe

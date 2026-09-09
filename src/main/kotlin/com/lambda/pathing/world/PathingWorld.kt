@@ -28,23 +28,14 @@ class WorldEventBatch(
 	val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
 }
 
-/** Chunks whose known content may have changed: reloads and re-captured (mutated) sections. */
 internal fun WorldEventBatch.mutatedChunkSet(): Set<PathingChunk> =
 	chunks + mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
 
-/** Chunks that only gained knowledge: freshly captured sections, minus anything mutated. */
 internal fun WorldEventBatch.arrivalChunkSet(): Set<PathingChunk> {
 	val mutated = mutatedChunkSet()
 	return sections.mapNotNullTo(HashSet()) { PathingChunk(it.x, it.z).takeUnless { chunk -> chunk in mutated } }
 }
 
-/**
- * The streaming world the planner reads: owns the [snapshot], captures sections from a
- * [CaptureSource] on the client thread by interest tier, and publishes changes through a
- * [RevisionLog]. New sections install immediately; a re-captured section waits in
- * [pendingReplacements] until the planner's next [drainEvents].
- * See docs/decisions/world-capture.md.
- */
 class PathingWorld(
 	val bounds: SimulationSnapshotBounds,
 	private val source: CaptureSource,
@@ -64,8 +55,6 @@ class PathingWorld(
 	private val trusted = TrustedChunks(source)
 	private val capture = SectionCapture()
 
-	// Capture throughput, for the planning-startup ledger: written on the client
-	// thread, read from the planner thread.
 	@Volatile
 	private var capturedSections = 0L
 	@Volatile

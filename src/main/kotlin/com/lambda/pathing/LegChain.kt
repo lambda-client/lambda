@@ -19,21 +19,13 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executor
 import kotlin.time.Duration
 
-/**
- * The legs of a compound route as one running search sees them. The current leg owns the
- * coarse planner the search steers by; the next leg is resolved ahead on [executor]
- * (its own D* from the waypoint it starts at, field expansion, route) while the body is
- * still on the current one, so a walk-through handoff costs the search nothing but a
- * re-root. World events drained by the current leg's sync policy are queued for the legs
- * behind it and applied when each becomes current. See docs/decisions/arrival.md.
- */
 private val LOG = LogManager.getLogger(com.lambda.Lambda.SYMBOL)
 
 internal class LegChain(
 	private val world: PathingWorld?,
-	/** The legs after the first: their coarse states, in walking order. */
+
 	private val states: List<CoarsePlanningState>,
-	/** Where each of [states] starts: the goal of the leg before it. */
+
 	private val starts: List<Stance>,
 	private val coarseExpansionBudget: Int,
 	private val snapshotRevision: Long,
@@ -60,7 +52,6 @@ internal class LegChain(
 	var switches = 0
 		private set
 
-	/** Wall time the search spent waiting on a leg that was not resolved yet, summed. */
 	var waitedMillis = 0L
 		private set
 
@@ -85,16 +76,10 @@ internal class LegChain(
 		)
 	}
 
-	/** Every batch the current leg drains is queued for the legs still ahead. */
 	fun onBatch(batch: WorldEventBatch) {
 		for (i in nextIndex until states.size) forwarded[i] += batch
 	}
 
-	/**
-	 * The search touched the current leg's goal: hand it the next leg. Blocks while that
-	 * leg is still resolving (the body has the published runway meanwhile). Null when the
-	 * next leg could not be resolved; the search then finishes at this goal instead.
-	 */
 	fun handoff(touched: Stance): LegHandoff? {
 		if (!hasNext()) return null
 		val index = nextIndex
@@ -103,8 +88,7 @@ internal class LegChain(
 		val leg = try {
 			future.get(HANDOFF_WAIT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS)
 		} catch (_: java.util.concurrent.TimeoutException) {
-			// Still resolving: the search finishes this leg at the waypoint and the walk
-			// continues from rest with the remaining waypoints. Not a failure of the leg.
+
 			LOG.warn("Route leg {} toward {} still resolving after {} ms; finishing at {} instead", index + 1, states[index].goal, HANDOFF_WAIT_MILLIS, touched)
 			waitedMillis += (System.nanoTime() - waitStarted) / 1_000_000L
 			return null
@@ -121,7 +105,6 @@ internal class LegChain(
 			return null
 		}
 
-		// World events that landed while this leg was being resolved.
 		var changed = false
 		while (true) {
 			val batch = forwarded[index].poll() ?: break
@@ -150,12 +133,6 @@ internal class LegChain(
 		pending = CompletableFuture.supplyAsync({ resolveLeg(index) }, executor)
 	}
 
-	/**
-	 * One leg's coarse work, off the search thread: D* from its start, the guide field,
-	 * the route. Resolved against the snapshot as it is now (the leg's event queue is
-	 * cleared first; anything that lands during the work is applied at the handoff). No
-	 * world waits: a route cut at the ring is extended by the leg's own sync policy later.
-	 */
 	private fun resolveLeg(index: Int): Leg? {
 		val state = states[index]
 		val start = starts[index]
@@ -175,12 +152,10 @@ internal class LegChain(
 			cancelled = cancelled,
 		)
 		val resolution = RouteResolution(state)
-		// No route yet usually means the leg's terrain is not captured: demand it, wait for
-		// capture, fold in what the current leg's policy drained meanwhile, try again.
-		// Never drains the world itself; only the current leg's policy may.
+
 		val deadline = started + LEG_RESOLVE_BUDGET_MILLIS * 1_000_000L
 		var rounds = 0
-		var route: CoarseRoutePlan? = null
+		var route: CoarseRoutePlan?
 		while (true) {
 			route = resolution.resolve(start, snapshotRevision, coarseExpansionBudget, cancelled = cancelled)
 			if (route != null || world == null || cancelled() || System.nanoTime() > deadline) break
@@ -210,7 +185,6 @@ internal class LegChain(
 				start = start,
 				finalGoal = state.goal,
 				snapshotRevision = snapshotRevision,
-				coarseExpansionBudget = coarseExpansionBudget,
 				cancelled = cancelled,
 				probe = probe,
 				onBatch = ::onBatch,
@@ -225,10 +199,9 @@ internal class LegChain(
 	}
 
 	private companion object {
-		/** How long the search waits at a touch for a leg still resolving before finishing there. */
+
 		const val HANDOFF_WAIT_MILLIS = 4_000L
 
-		/** Wall budget for resolving one leg ahead, capture waits included. */
 		const val LEG_RESOLVE_BUDGET_MILLIS = 30_000L
 
 		const val LEG_RESOLVE_WAIT_MILLIS = 250L

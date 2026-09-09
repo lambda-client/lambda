@@ -2,7 +2,6 @@ package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.launch.BounceArcProbe.solveRefined
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -11,7 +10,7 @@ import kotlin.math.floor
 import kotlin.math.hypot
 
 object BounceArcProbe {
-	/** [reads] re-runs the probe with recording on, like [JumpArcProbe.Reachable]. */
+
 	class Reachable(
 		val solution: BounceSolution,
 		readsSupplier: () -> LongOpenHashSet,
@@ -59,8 +58,6 @@ object BounceArcProbe {
 		val unitZ = dz / length
 		val padY = from.y - drop - 1
 
-		// No slime under the flight ray, no bounce: everything past this line costs
-		// dozens of arc solves per launch style. See docs/decisions/launch-solver.md.
 		var anyBouncy = false
 		var along = 1.0
 		while (along < length + 0.5) {
@@ -76,18 +73,11 @@ object BounceArcProbe {
 		}
 		if (!anyBouncy) return null
 
-		// The solver flies REAL heights relative to the launch feet, not stance
-		// deltas: a partial landing surface (and the launch's own) shifts the rise.
 		val launchOffset = launchHeight - from.y
 		reads?.add(BlockPos.asLong(from.x + dx, from.y + rise - 1, from.z + dz))
 		val landingOffset = view.surfaceOffset(from.x + dx, from.y + rise - 1, from.z + dz)
 		val riseHeight = rise + landingOffset - launchOffset
 
-		// The ceiling over the LAUNCH ASCENT only: the solver clamps the ascent there
-		// with vertical speed zeroed (vanilla's rising head collision), so a grazing
-		// jump still solves. Not the whole ray -- a lower ceiling over the descending
-		// landing would bury the launch; one the arc genuinely hits still fails the sweep.
-		// See docs/decisions/launch-solver.md (headroom).
 		var ceilingBottom = Double.POSITIVE_INFINITY
 		run {
 			val feetCell = floor(launchHeight).toInt()
@@ -109,17 +99,10 @@ object BounceArcProbe {
 		}
 		val headroom = if (ceilingBottom.isFinite()) ceilingBottom - BODY_HEIGHT - launchHeight else Double.POSITIVE_INFINITY
 
-		// How far along the ray the body can stand at launch: the support shape's
-		// own extent plus the body's half-width. A full block reaches 0.8, a fence
-		// post 0.425 -- solving (and creeping) to a full-block lip on a post is a
-		// walk straight off it into the gap.
 		val launchReach = launchReach(view, from, launchHeight, unitX, unitZ, reads)
 
 		val cache = JumpArcProbe.SweepCellCache()
 
-		// Judges a contact reach: infinite off the pad, otherwise the distance from
-		// the pad cell's centre -- on a one-block pad the solver aims the trough
-		// through the middle, leaving execution spread room on both sides.
 		fun contactPenalty(reach: Double): Double {
 			val px = from.x + 0.5 + unitX * reach
 			val pz = from.z + 0.5 + unitZ * reach
@@ -141,10 +124,6 @@ object BounceArcProbe {
 			return clearance >= 0.0
 		}
 
-		// Standing starts first: a launch from rest has no entry speed to reproduce,
-		// while a moving entry amplifies its error ~16x over the glide. Every standing
-		// style is offered to the sweep (a long hold can clip the far wall where a
-		// gentler one clears). See docs/decisions/launch-solver.md (standing starts).
 		for ((jump, sprint) in BounceSolver.STANDING_STYLES) {
 			val solution = solveRefined(view, from, dx, dz, length, drop, launchOffset, reads) { contactDepth ->
 				BounceSolver.solveStanding(
@@ -160,12 +139,12 @@ object BounceArcProbe {
 			return solution
 		}
 
-		for (combo in COMBOS) {
+		for ((jump, sprint, holdForward, holdTicks) in COMBOS) {
 			val solution = solveRefined(view, from, dx, dz, length, drop, launchOffset, reads) { contactDepth ->
 				BounceSolver.solve(
 					horizontalDistance = length, drop = drop, rise = rise, profile = profile,
-					sprint = combo.sprint, holdForward = combo.holdForward,
-					jump = combo.jump, holdTicks = combo.holdTicks,
+					sprint = sprint, holdForward = holdForward,
+					jump = jump, holdTicks = holdTicks,
 					contactDepth = contactDepth, riseHeight = riseHeight,
 					headroom = headroom,
 					launchReach = launchReach,
@@ -177,7 +156,6 @@ object BounceArcProbe {
 		return null
 	}
 
-	/** One launch style the solver may fly: jump off the lip or walk off it, sprint, hold. */
 	data class LaunchCombo(
 		val jump: Boolean,
 		val sprint: Boolean,
@@ -185,12 +163,6 @@ object BounceArcProbe {
 		val holdTicks: Int = Int.MAX_VALUE,
 	)
 
-	/**
-	 * Solve against the pad's REAL contact surface (a carpeted pad's is 0.9375 below its
-	 * coarse stance). The contact CELL depends on the solved arc, so solve, look up the
-	 * surface there, and re-solve until the assumption holds.
-	 * See docs/decisions/launch-solver.md (real heights).
-	 */
 	private inline fun solveRefined(
 		view: CoarseVoxelView,
 		from: Stance,
@@ -212,11 +184,6 @@ object BounceArcProbe {
 		return null
 	}
 
-	/**
-	 * First guess for [solveRefined]: the first standable surface the flight ray crosses
-	 * on the pad level (the integer plane fails where only the corrected depth admits a
-	 * solution). The fixed-point pass corrects any cell mismatch.
-	 */
 	private fun seedContactOffset(
 		view: CoarseVoxelView,
 		from: Stance,
@@ -256,12 +223,6 @@ object BounceArcProbe {
 		return view.surfaceOffset(x, padY, z)
 	}
 
-	/**
-	 * Whether the single cell under a contact point bounces, directly or through thin
-	 * cover (the game samples the landing block 0.2 BELOW the feet,
-	 * MovementSimulator.LANDING_Y_OFFSET). STRICT on purpose: a one-cell slack blessed
-	 * contacts on the pit floor beside the slime. See docs/decisions/launch-solver.md.
-	 */
 	private fun bouncyCell(
 		view: CoarseVoxelView,
 		x: Int,
@@ -280,12 +241,6 @@ object BounceArcProbe {
 		return false
 	}
 
-	/**
-	 * Combo order: jump launches first (the only launch landing less than two below the
-	 * lip), then walk-off; within a style longest hold, then these partial holds, then
-	 * released. (jump, sprint, hold < 2) is excluded: vanilla drops sprint the moment
-	 * forward is released. See docs/decisions/launch-solver.md (combo order).
-	 */
 	private val PARTIAL_HOLDS = intArrayOf(20, 16, 12, 8, 5, 3, 2)
 
 	private val COMBOS = buildList {
@@ -293,9 +248,7 @@ object BounceArcProbe {
 			add(LaunchCombo(jump, sprint = true, holdForward = true))
 			add(LaunchCombo(jump, sprint = false, holdForward = true))
 			for (holdTicks in PARTIAL_HOLDS) {
-				// Sprint partials keep the boost honest: holdTicks >= 2 means forward
-				// is still held on the launch tick, so vanilla is sprinting when the
-				// jump fires.
+
 				add(LaunchCombo(jump, sprint = true, holdForward = true, holdTicks = holdTicks))
 				add(LaunchCombo(jump, sprint = false, holdForward = true, holdTicks = holdTicks))
 			}
@@ -303,12 +256,6 @@ object BounceArcProbe {
 		}
 	}
 
-	/**
-	 * The standable reach along the flight ray from the launch cell's centre: the support
-	 * shape (the cell under the stance, or the one below when the surface is an intrusion
-	 * such as a fence top) counting only boxes that carry the feet, plus the body's
-	 * half-width. Falls back to the full-block reach when the view carries no shapes.
-	 */
 	private fun launchReach(
 		view: CoarseVoxelView,
 		from: Stance,
@@ -338,12 +285,10 @@ object BounceArcProbe {
 
 	private const val SUPPORT_SURFACE_EPSILON = 1.0E-4
 
-	/** Cover no taller than the game's 0.2 landing probe still bounces off what's below. */
 	private const val THIN_COVER_SURFACE = 0.2
 
 	private const val BODY_HEIGHT = Kinematics.BODY_HEIGHT
 
-	/** Blocks of ray the launch ascent spans before the arc is past its apex. */
 	private const val LAUNCH_ASCENT_REACH = 3.5
 
 	private const val CONTACT_REFINEMENTS = 3

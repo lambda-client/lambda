@@ -1,31 +1,8 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.lambda.pathing.world.snapshot
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongCollection
 
-/**
- * Immutable section table keyed by packed `ChunkSectionPos` longs.
- *
- * Reads never box the key. Mutation produces a new store ([with], [without]) so a
- * reader that captured a reference sees one consistent table for the whole read.
- */
 internal class SectionStore private constructor(
 	private val map: Long2ObjectOpenHashMap<ImmutableSnapshotSection>,
 ) {

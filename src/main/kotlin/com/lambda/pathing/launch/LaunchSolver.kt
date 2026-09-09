@@ -19,23 +19,8 @@ data class LaunchSolution(
 	val arc: ArcSample,
 	val clearance: Double = 0.0,
 
-	/**
-	 * Blocks of sideways shift, perpendicular to the gap axis (perp = (-unitZ, unitX)),
-	 * applied to the whole flight line. Zero for every solver-produced solution; set by
-	 * the arc probe when the centre line is blocked by a PARTIAL shape (a pane, a fence
-	 * post) and a parallel line inside [lateralSlack] sweeps clear. The air steering
-	 * flies the shifted aim closed-loop, and the rollout certifies whether the body can
-	 * actually curve onto that line.
-	 */
 	val lateralOffset: Double = 0.0,
 
-	/**
-	 * Air ticks to keep forward pressed before releasing it.
-	 *
-	 * The control that separates where the arc lands from how fast it is going when it
-	 * gets there. [Int.MAX_VALUE] holds throughout, which is what a jump does when nothing
-	 * downstream cares.
-	 */
 	val holdTicks: Int = Int.MAX_VALUE,
 ) {
 	val sprint: Boolean get() = mode.sprint
@@ -43,13 +28,6 @@ data class LaunchSolution(
 	val airTicks: Int get() = arc.airTicks
 	val apex: Double get() = arc.apex
 
-	/**
-	 * Blocks the body drops between the arc's apex and its landing.
-	 *
-	 * The rollout evaluator measures exactly this and refuses the trajectory when it
-	 * exceeds the safe fall distance, so the same number decides -- before any physics
-	 * is simulated -- whether the launch is worth offering at all.
-	 */
 	fun fallDistance(rise: Double): Double = (apex - rise).coerceAtLeast(0.0)
 
 	fun withClearance(clearance: Double) = copy(clearance = clearance)
@@ -76,13 +54,6 @@ data class LaunchSolution(
 		return result
 	}
 
-	/**
-	 * Whether this solution beats [other] for a caller that knows what comes next.
-	 *
-	 * Landing where the next gap can be launched from is worth more than landing
-	 * comfortably: a wide margin on an arc that arrives too fast to jump again is a
-	 * margin on a dead end. Within a verdict, the usual comfort ranking decides.
-	 */
 	internal fun outranks(
 		other: LaunchSolution,
 		exitSpeedWindow: ClosedFloatingPointRange<Double>?,
@@ -117,22 +88,8 @@ object LaunchSolver {
 
 		rise: Double = (to.y - from.y).toDouble(),
 
-		/**
-		 * Entry speeds the *following* gap can accept, if the caller knows of one.
-		 *
-		 * On a chain of pads the exit speed *is* the next gap's entry speed, so an informed
-		 * solve trims the arc to land inside this window. Null keeps the historical
-		 * behaviour exactly, including which throttle policies are considered.
-		 * See docs/decisions/movement-tuning.md (exit-speed window).
-		 */
 		exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
 
-		/**
-		 * A catch, not a landing: the body must reach the target's face while its feet
-		 * are still at or above [rise], and the face stops any overshoot. The landing
-		 * window loses its far edge and the fastest feasible entry is taken; a slow arc
-		 * arrives already descending and slides below the rung.
-		 */
 		catch: Boolean = false,
 	): List<LaunchSolution> {
 		val dx = (to.x - from.x).toDouble()
@@ -188,9 +145,6 @@ object LaunchSolver {
 
 		var best: LaunchSolution? = null
 
-		// Releasing forward in flight is the only way a jump lands slower than it took
-		// off, so the released variant is offered only when a landing speed must be
-		// satisfied; uninformed jumps hold forward. See docs/decisions/movement-tuning.md.
 		val policies =
 			if (mode.drops || exitSpeedWindow != null) listOf(true, false) else listOf(true)
 
@@ -205,10 +159,6 @@ object LaunchSolver {
 
 				fun speedFor(distance: Double) = (distance - offset - base.distance) / slope
 
-				// A rising jump that lands at the window's near edge arrives at the
-				// target height EXACTLY at the lip -- zero clearance, and any
-				// model-vs-simulation epsilon becomes a face hit. Inset the near edge
-				// so marginal entries are priced as infeasible instead of ground out.
 				val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
 				val feasibleLow = max(speedFor(nearEdge), 0.0)
 				val feasibleHigh = min(speedFor(window.endInclusive), maxEntrySpeed)
@@ -237,14 +187,6 @@ object LaunchSolver {
 		}
 	}
 
-	/**
-	 * Trim the throttle so the arc still lands, but arrives slowly enough to continue.
-	 *
-	 * Only reached when a downstream window says how fast the body may arrive and the
-	 * full-throttle arc is too fast. Exit speed rises monotonically with hold length, so
-	 * the longest fitting hold is found by bisection, and the entry speed is re-solved at
-	 * each trial. See docs/decisions/movement-tuning.md (released-hold bisection).
-	 */
 	private fun released(
 		solution: LaunchSolution,
 		rise: Double,

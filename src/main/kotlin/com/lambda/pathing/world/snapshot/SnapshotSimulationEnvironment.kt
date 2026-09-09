@@ -1,20 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.core.VoxelPos
@@ -42,17 +25,6 @@ import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.World
 import java.util.*
 
-/**
- * An immutable, palette-compressed block snapshot serving both the physics
- * ([SimulationEnvironment]) and the coarse ([CoarseVoxelView]) contracts.
- *
- * Sections live in a copy-on-write [SectionStore] behind a shared [StoreRef], so a
- * streaming owner ([com.lambda.pathing.world.PathingWorld]) can install and drop
- * sections while planner threads read a consistent table. When [sparse] is set, a key
- * absent from the store is *unavailable* (not yet captured); otherwise absent cells fall
- * back to [defaultBlock]. [missingSection] and [unavailableSectionKeys] are seams for
- * lazily generated fixtures. [edits] overlays planned block changes on top of the store.
- */
 class SnapshotSimulationEnvironment internal constructor(
 	val bounds: SimulationSnapshotBounds,
 	private val storeRef: StoreRef,
@@ -77,7 +49,6 @@ class SnapshotSimulationEnvironment internal constructor(
 		unavailableSectionKeys = unavailableSectionKeys,
 	)
 
-	/** The mutable cell of a copy-on-write table; writers serialise on the ref itself. */
 	internal class StoreRef(@Volatile var store: SectionStore) {
 		fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(this) {
 			store = store.with(key, section)
@@ -102,7 +73,6 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	internal inline fun forEachSectionKey(action: (Long) -> Unit) = store.forEach { key, _ -> action(key) }
 
-	/** This snapshot with [edits] applied on top of the shared section table. */
 	fun withEdits(edits: Map<BlockPos, SnapshotBlockPhysics>): SnapshotSimulationEnvironment {
 		val packed = Long2ObjectOpenHashMap<SnapshotBlockPhysics>(edits.size)
 		edits.forEach { (pos, physics) ->
@@ -159,11 +129,6 @@ class SnapshotSimulationEnvironment internal constructor(
 		val installed = store[key]
 		physicsIn(resolveSection(installed, key, x shr 4, y shr 4, z shr 4, exact = false), x, y, z) ?: return false
 		return !isUnavailable(key, installed)
-	}
-
-	internal fun isUnavailable(x: Int, y: Int, z: Int): Boolean {
-		val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-		return isUnavailable(key, store[key])
 	}
 
 	private fun isUnavailable(key: Long, installed: ImmutableSnapshotSection?): Boolean =
@@ -277,9 +242,6 @@ class SnapshotSimulationEnvironment internal constructor(
 	private fun isFenceLike(pos: BlockPos, observer: SnapshotReadObserver?): Boolean =
 		checkedBlockAt(pos, observer).fenceLike
 
-	/**
-	 * @see net.minecraft.world.CollisionView.findSupportingBlockPos
-	 */
 	private fun findSupportingBlockPos(
 		box: Box,
 		entityPos: Vec3d,
@@ -321,10 +283,6 @@ class SnapshotSimulationEnvironment internal constructor(
 		return best
 	}
 
-	/**
-	 * Exact reads for one collision query: resolves the section once per section the
-	 * scan crosses instead of once per cell, and throws the same way [blockAt] does.
-	 */
 	private inner class ExactReadCursor(private val store: SectionStore) {
 		private var resolved = false
 		private var key = 0L
@@ -374,7 +332,6 @@ class SnapshotSimulationEnvironment internal constructor(
 		return physicsIn(resolveSection(store[key], key, sectionX, sectionY, sectionZ, exact = false), x, y, z)
 	}
 
-	/** The installed section unless an exact read must not trust an unavailable key; else the lazy fallback. */
 	private fun resolveSection(
 		installed: ImmutableSnapshotSection?,
 		key: Long,
@@ -433,7 +390,6 @@ class SnapshotSimulationEnvironment internal constructor(
 			}
 		}
 
-		/** A streaming snapshot whose sections are installed by its owner over time. */
 		internal fun streaming(
 			bounds: SimulationSnapshotBounds,
 			onExactMiss: (Long) -> Unit,

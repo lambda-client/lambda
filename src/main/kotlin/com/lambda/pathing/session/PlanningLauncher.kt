@@ -17,15 +17,8 @@ import com.lambda.pathing.world.PathingWorld
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.player.MovementUtils.moveYaw
 
-/**
- * Starts planning sessions: the walk's own (from rest, retried from rest when it dead-ends
- * before motion) and the successor planned from the running tape's terminal. Both go
- * through one [launch]; they differ only in the cursor they expose and what they do with
- * what comes back.
- */
 internal class PlanningLauncher(private val walk: PathingSession) {
 
-	/** Captures the start, resolves the journey, and launches the walk's planning session. */
 	fun SafeContext.capturePlan() {
 		walk.tickInput = ALIGNMENT_INPUT
 
@@ -99,10 +92,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		with(walk) { advanceSnapshotCapture() }
 	}
 
-	/**
-	 * A replan from rest at a walk-through waypoint (a leg that finished there because its
-	 * successor could not be handed over) must not route back to the cell it stands on.
-	 */
 	private fun SafeContext.skipWaypointsUnderfoot() {
 		val waypoints = walk.request.waypoints
 		while (walk.passedWaypoints < waypoints.size) {
@@ -128,9 +117,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 				else with(walk.admission) { begin(completed.path) }
 			is PathPlanResult.Failed ->
 				if (walk.cursor != null) {
-					// The session died mid-walk with certified tape still to replay:
-					// plan the successor from the tape's end now, not on arrival.
-					// See docs/decisions/publication-protocol.md.
+
 					walk.sessionFailure = completed.failure.message
 					LOG.info(
 						"Planning session dead-ended mid-walk ({}); planning the successor now",
@@ -140,10 +127,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 				} else if (walk.sessionRestarts < MAX_SESSION_RESTARTS &&
 					walk.journey?.world?.revision != session.launchRevision
 				) {
-					// Dead-ended before anything was published or installed. The planner
-					// is deterministic, so a retry only makes sense when the world has
-					// learned something since the launch; on an unchanged world the
-					// answer would be the same and the failure is final.
+
 					walk.sessionRestarts++
 					walk.planningSession = null
 					LOG.info(
@@ -159,10 +143,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		}
 	}
 
-	/**
-	 * Plan the next leg from the running tape's certified terminal while the body is still
-	 * on it. Not load-bearing: a late or stale successor falls back to replanning from rest.
-	 */
 	fun SafeContext.planSuccessor() {
 		if (walk.successorSession != null || walk.successorPath != null) return
 		val running = walk.telemetry.published ?: return
@@ -194,7 +174,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 		launch(
 			session, preparation, successorJourney,
-			// Not being replayed yet: no cursor, nothing acked.
+
 			cursorFrame = { null },
 			adoptedSequence = { Long.MAX_VALUE },
 			onImprovement = { improvement ->
@@ -220,10 +200,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		)
 	}
 
-	/**
-	 * The one launch path. Publication callbacks hop to the client thread; the completion
-	 * runs there too. Every handler re-checks the walk is still the one it was armed for.
-	 */
 	private fun SafeContext.launch(
 		session: PlanningSession,
 		preparation: TrajectoryPlanningPreparation,
@@ -265,7 +241,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	}
 
 	private companion object {
-		/** Within this of a waypoint's centre the body is on it, not on its way to it. */
+
 		const val WAYPOINT_UNDERFOOT_BLOCKS = 1.5
 	}
 }

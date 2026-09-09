@@ -7,19 +7,11 @@ import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
 import kotlin.time.Duration
 
-/**
- * Turns a [CoarsePlanningState] into a route the walk can start on, waiting on the world
- * where knowledge is what is missing: the cold-start knowledge wait, the terminal grant
- * rounds and the final anchor retirement. The coarse layer underneath stays synchronous;
- * every blocking call ([PathingWorld.awaitEvents]) lives here. Constants and their
- * rationale: docs/decisions/anchor-lifecycle.md.
- */
 internal class RouteResolution(
 	private val state: CoarsePlanningState,
 ) {
 	private val planner get() = state.planner
 
-	/** Where the last resolution spent its time, phase by phase, for the startup ledger. */
 	@Volatile
 	var lastResolveReport: String = "not resolved"
 		private set
@@ -53,9 +45,7 @@ internal class RouteResolution(
 				ledger.append(", extract %d".format((System.nanoTime() - t) / 1_000_000L))
 			}
 		}
-		// Cold-start knowledge wait: no route and no frontier may mean the snapshot has
-		// not caught up with the client. Knowledge-driven, not wall-clock: stalls count
-		// timeouts only, real progress resets them, contentless wakes do neither.
+
 		if (route == null && world != null) {
 			var stalls = 0
 			var rounds = 0
@@ -65,7 +55,7 @@ internal class RouteResolution(
 			var repairNanos = 0L
 			var extractNanos = 0L
 			val waitStarted = System.nanoTime()
-			var t = 0L
+			var t: Long
 			while (route == null && !cancelled() &&
 				stalls < START_KNOWLEDGE_STALL_ROUNDS && rounds++ < START_KNOWLEDGE_MAX_ROUNDS
 			) {
@@ -78,7 +68,7 @@ internal class RouteResolution(
 				t = System.nanoTime()
 				val advanced = planner.advanceReachableFrontier(from = start)
 				sweepNanos += System.nanoTime() - t
-				// A silent round cannot produce a new route; routePlan is not free.
+
 				if (batch.isEmpty && !advanced) continue
 				stalls = 0
 				extracts++
@@ -111,16 +101,14 @@ internal class RouteResolution(
 		var grantExtractNanos = 0L
 		while (route!!.goal != goal && rounds++ < TERMINAL_GRANT_ROUNDS) {
 			if (cancelled()) return route
-			// Live only: a route to the ring's edge is walkable now; further rings are
-			// granted while moving (ContinuousSyncPolicy). Virtual-clock callers pass no
-			// world and keep the deterministic round cap alone.
+
 			if (world != null && rounds > 1 &&
 				System.nanoTime() - grantStarted > TERMINAL_GRANT_BUDGET_MILLIS * 1_000_000L
 			) break
 			val terminal = route.goal
 
 			world?.let { w ->
-				// Lag sections may lie off the terminal's radius; demand them by name too.
+
 				state.demandCaptureLag(w)
 				w.interestBlocks(
 					terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS,
@@ -190,7 +178,6 @@ internal class RouteResolution(
 
 		const val TERMINAL_GRANT_ROUNDS = 4
 
-		/** Wall budget for the startup grant rounds against a live world; see docs/decisions/startup.md. */
 		const val TERMINAL_GRANT_BUDGET_MILLIS = 1_500L
 
 		const val TERMINAL_INTEREST_BLOCKS = 32
@@ -200,10 +187,8 @@ internal class RouteResolution(
 
 		const val START_KNOWLEDGE_WAIT_MILLIS = 200L
 
-		/** Consecutive timed-out rounds before no-route is accepted as the true answer. */
 		const val START_KNOWLEDGE_STALL_ROUNDS = 5
 
-		/** Hard cap on wait rounds; contentless wakes are neither progress nor stalls. */
 		const val START_KNOWLEDGE_MAX_ROUNDS = 100
 	}
 }

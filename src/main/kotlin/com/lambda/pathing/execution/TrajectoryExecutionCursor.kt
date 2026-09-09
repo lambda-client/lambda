@@ -79,7 +79,7 @@ class TrajectoryExecutionCursor(
 		if (awaitingObservation) return rejectInput(ExecutionDeviation.Protocol("Previous input has not been observed"))
 
 		val expectedBefore = if (nextFrame == 0) plan.initialState else plan.frames[nextFrame - 1].state
-		stateDeviation(expectedBefore, observed, compareSprinting = false)?.let { return rejectInput(it) }
+		stateDeviation(expectedBefore, observed)?.let { return rejectInput(it) }
 		if (nextFrame >= plan.tape.frameCount) return ExecutionInputResult.Complete
 
 		val input = plan.tape[nextFrame]
@@ -98,7 +98,7 @@ class TrajectoryExecutionCursor(
 
 		val observedFrame = nextFrame
 
-		stateDeviation(plan.frames[observedFrame].state, observed, compareSprinting = false)
+		stateDeviation(plan.frames[observedFrame].state, observed)
 			?.let { return rejectObservation(it) }
 		nextFrame++
 		awaitingObservation = false
@@ -109,7 +109,6 @@ class TrajectoryExecutionCursor(
 	private fun stateDeviation(
 		expected: MovementSimulationState,
 		actual: MovementSimulationState,
-		compareSprinting: Boolean = true,
 	): ExecutionDeviation? {
 		val positionTolerance = tolerance.position + tolerance.positionPerFrame * nextFrame
 		componentDeviation("x", expected.position.x, actual.position.x, positionTolerance)?.let { return it }
@@ -122,11 +121,10 @@ class TrajectoryExecutionCursor(
 		componentDeviation("box.minY", expected.boundingBox.minY, actual.boundingBox.minY, positionTolerance)?.let { return it }
 		componentDeviation("box.minZ", expected.boundingBox.minZ, actual.boundingBox.minZ, positionTolerance)?.let { return it }
 		componentDeviation("box.maxX", expected.boundingBox.maxX, actual.boundingBox.maxX, positionTolerance)?.let { return it }
-		// maxY is the component an unplanned pose change moves; see docs/decisions/execution-tolerance.md.
+
 		val boxHeight = componentDeviation("box.maxY", expected.boundingBox.maxY, actual.boundingBox.maxY, positionTolerance)
 		if (boxHeight != null) {
-			// The live pose height lags the simulator by a tick on a sneak release; only
-			// that exact signature gets a short grace. An unplanned live sneak still rejects.
+
 			if (!isPoseHeightLag(expected, actual) || poseLagFrames >= MAX_POSE_LAG_FRAMES) return boxHeight
 			poseLagFrames++
 		} else {
@@ -142,9 +140,6 @@ class TrajectoryExecutionCursor(
 		flagDeviation("horizontalCollision", expected.horizontalCollision, actual.horizontalCollision)?.let { return it }
 
 		flagDeviation("verticalCollision", expected.verticalCollision, actual.verticalCollision)?.let { return it }
-		if (compareSprinting) {
-			flagDeviation("sprinting", expected.isSprinting, actual.isSprinting)?.let { return it }
-		}
 		flagDeviation("jumping", expected.isJumping, actual.isJumping)?.let { return it }
 		flagDeviation("sneaking", expected.isSneaking, actual.isSneaking)?.let { return it }
 		if (expected.jumpingCooldown != actual.jumpingCooldown) {
@@ -201,10 +196,8 @@ class TrajectoryExecutionCursor(
 	private companion object {
 		const val FORWARD_MOVEMENT_EPSILON = 1.0E-5
 
-		/** Standing box height 1.8 against the crouching pose's 1.5. */
 		const val POSE_HEIGHT_DELTA = 0.3
 
-		/** Pose catch-up is one tick seen by two comparisons; three covers it with one spare. */
 		const val MAX_POSE_LAG_FRAMES = 3
 	}
 }

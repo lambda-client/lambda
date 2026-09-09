@@ -1,5 +1,6 @@
 package com.lambda.pathing.actions
 
+
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -53,10 +54,8 @@ class DecisionContext(
 	val view: CoarseVoxelView,
 	val ballistics: BallisticProfile = BallisticProfile.VANILLA,
 
-	/** The field the rollout will steer by; null where no corridor is in play. */
 	val steering: SteeringField? = null,
 
-	/** Length of the steering chain the rollout will follow. */
 	val chainLength: Int = 1,
 )
 
@@ -77,13 +76,10 @@ class ProposalContext(
 	val steering: SteeringField,
 	val headingFanDegrees: List<Double>,
 
-	/** Remaining guide ticks per stance, NaN where no field is in play: lets a proposer price its own claim. */
 	val guideTicks: (Stance) -> Double = { Double.NaN },
 
-	/** The MOVING-class guide: what the remainder costs a body that keeps its momentum. */
 	val movingGuideTicks: (Stance) -> Double = guideTicks,
 
-	/** Whether momentum proposals (gait hops, skips across walked cells) are wanted; the improver's vocabulary only. */
 	val momentum: Boolean = false,
 )
 
@@ -104,12 +100,6 @@ class ProgramContext(
 	val constraints: MotionConstraints,
 	val launch: LaunchTrigger?,
 
-	/**
-	 * Whether the decision's landing sits in walkable surroundings rather than on an
-	 * isolated pad. Open ground rewards landing long -- momentum is free distance and
-	 * anything down-range catches the body -- while an isolated landing rewards
-	 * precision. Controllers use this to decide whether to fly the arc closed-loop.
-	 */
 	val openLanding: Boolean = false,
 )
 
@@ -126,12 +116,6 @@ class CompletionContext(
 	val headingCommitFrames: Int,
 )
 
-/**
- * How close [solution]'s landing comes to taking fall damage, as a 0..1 fraction: zero
- * until the drop is within [ARC_MODEL_ERROR_BLOCKS] of the safe limit, then steep. Bouncy
- * ground (exempt from fall damage) prices at zero. Risky launches are priced, never
- * refused here. See docs/decisions/movement-tuning.md (landing risk).
- */
 fun DecisionContext.landingRisk(solution: LaunchSolution): Double {
 	if (view.voxel(edge.to.x, edge.to.y - 1, edge.to.z).bouncy) return 0.0
 	val limit = constraints.maxSafeFallDistance
@@ -142,7 +126,6 @@ fun DecisionContext.landingRisk(solution: LaunchSolution): Double {
 	return ((fall - safe) / ARC_MODEL_ERROR_BLOCKS).coerceIn(0.0, 1.0)
 }
 
-/** Blocks from the safe fall limit inside which a landing is priced as a gamble; wider than the arc model's measured landing error. */
 private const val ARC_MODEL_ERROR_BLOCKS = 1.0
 
 interface Movement {
@@ -152,14 +135,6 @@ interface Movement {
 
 	fun decisions(context: DecisionContext): List<TrajectoryDecision>
 
-	/**
-	 * What attempting [decision] costs the search, beyond the coarse edge it serves.
-	 *
-	 * Called once per decision when an anchor's vocabulary is built, so it may read the
-	 * world but should not simulate. The default prices every movement as free, which
-	 * leaves ordering to the coarse cost alone -- correct for a movement whose variants
-	 * are genuinely interchangeable.
-	 */
 	fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice =
 		DecisionPrice.FREE
 

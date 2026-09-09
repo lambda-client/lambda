@@ -1,5 +1,7 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.PathingChunk
@@ -19,6 +21,7 @@ enum class CertifiedTerminal {
 class TrajectoryPlan private constructor(
 	val id: TrajectoryPlanId,
 	val snapshotRevision: Long,
+	@Suppress("unused")
 	val coarseRouteVersion: Long,
 	val physicsProfile: PlayerPhysicsProfile,
 	val initialState: MovementSimulationState,
@@ -27,36 +30,12 @@ class TrajectoryPlan private constructor(
 	val tape: InputTape,
 	frames: List<SimulatedTrajectoryFrame>,
 	val terminal: CertifiedTerminal,
-	/**
-	 * The decisions the [tape] was compiled from, in execution order.
-	 *
-	 * Empty for plans built before segments existed or from a source that has none; any
-	 * consumer must treat that as "cannot recompile" rather than "no segments ran".
-	 */
+
 	val segments: List<PlanSegment> = emptyList(),
 ) {
 	val frames: List<SimulatedTrajectoryFrame> = Collections.unmodifiableList(ArrayList(frames))
-	private val lastSectionReadFrame: Map<PathingSection, Int> = buildMap {
-		frameDependencies.forEachIndexed { frame, reads ->
-			reads.forEach { put(PathingSection.containing(it), frame) }
-		}
-	}
-	private val lastChunkReadFrame: Map<PathingChunk, Int> = buildMap {
-		frameDependencies.forEachIndexed { frame, reads ->
-			reads.forEach { put(PathingChunk.containing(it), frame) }
-		}
-	}
-	private val firstSectionReadFrame: Map<PathingSection, Int> = buildMap {
-		frameDependencies.forEachIndexed { frame, reads ->
-			reads.forEach { putIfAbsent(PathingSection.containing(it), frame) }
-		}
-	}
-	private val firstChunkReadFrame: Map<PathingChunk, Int> = buildMap {
-		frameDependencies.forEachIndexed { frame, reads ->
-			reads.forEach { putIfAbsent(PathingChunk.containing(it), frame) }
-		}
-	}
-	val certifiedThrough: Int get() = frames.lastIndex
+	private val sectionReads = FrameDependencyIndex(frameDependencies, PathingSection::containing)
+	private val chunkReads = FrameDependencyIndex(frameDependencies, PathingChunk::containing)
 
 	init {
 		require(frames.size == tape.frameCount) { "Every published input must have one expected frame" }
@@ -74,9 +53,7 @@ class TrajectoryPlan private constructor(
 				"Published trajectory contains a non-finite velocity at frame ${frame.index}"
 			}
 		}
-		// A terminal is either a plain grounded stop (solid ground) or a closed period-2
-		// rest cycle ending grounded (bouncy blocks: a standing micro-bounce alternates
-		// grounded and airborne frames with frozen position).
+
 		val stopFrames = frames.takeLast(REQUIRED_STABLE_STOP_FRAMES)
 		val slow = stopFrames.size == REQUIRED_STABLE_STOP_FRAMES && stopFrames.all { frame ->
 			frame.state.velocity.horizontalLength() <= TERMINAL_STOP_SPEED
@@ -90,10 +67,9 @@ class TrajectoryPlan private constructor(
 					val b = cycleFrames[i + 2].state
 					a.position == b.position && a.velocity == b.velocity && a.onGround == b.onGround
 				}
-		val terminalFrames = frames.takeLast(REQUIRED_STABLE_STOP_FRAMES)
 		require(slow && (grounded || cycleClosed)) {
 			"Published trajectory does not end in a stable grounded stop: " +
-					terminalFrames.joinToString(" | ") { frame ->
+					stopFrames.joinToString(" | ") { frame ->
 						"f=${frame.index} ground=${frame.state.onGround} " +
 								"speed=%.4f vy=%.4f pos=%s".format(
 									frame.state.velocity.horizontalLength(),
@@ -104,9 +80,6 @@ class TrajectoryPlan private constructor(
 		}
 	}
 
-	// First frame of the stationary terminal suffix: from here on every input is
-	// passive and the body no longer moves. Executing these frames is physically
-	// inert, so execution may complete once the cursor reaches this index.
 	val stationaryFrom: Int by lazy {
 		val terminal = frames.last().state.position
 		var first = frames.size
@@ -121,33 +94,27 @@ class TrajectoryPlan private constructor(
 
 	fun dependencySectionsFrom(nextFrame: Int): Set<PathingSection> {
 		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
-		return lastSectionReadFrame.filterValues { it >= nextFrame }.keys
+		return sectionReads.from(nextFrame)
 	}
 
 	fun dependencyChunksFrom(nextFrame: Int): Set<PathingChunk> {
 		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
-		return lastChunkReadFrame.filterValues { it >= nextFrame }.keys
+		return chunkReads.from(nextFrame)
 	}
 
-	/** Sections read by frames in `[nextFrame, untilFrame)`: the part of the tape still to be replayed. */
 	fun dependencySectionsBetween(nextFrame: Int, untilFrame: Int): Set<PathingSection> {
 		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
-		return lastSectionReadFrame.filter { (section, last) ->
-			last >= nextFrame && (firstSectionReadFrame[section] ?: 0) < untilFrame
-		}.keys
+		return sectionReads.between(nextFrame, untilFrame)
 	}
 
 	fun dependencyChunksBetween(nextFrame: Int, untilFrame: Int): Set<PathingChunk> {
 		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
-		return lastChunkReadFrame.filter { (chunk, last) ->
-			last >= nextFrame && (firstChunkReadFrame[chunk] ?: 0) < untilFrame
-		}.keys
+		return chunkReads.between(nextFrame, untilFrame)
 	}
 
-	/** The first frame whose rollout read what [mutation] changed, or null if the tape never did. */
 	fun firstFrameReading(mutation: com.lambda.pathing.world.WorldMutation): Int? = when (mutation) {
-		is com.lambda.pathing.world.WorldMutation.Section -> firstSectionReadFrame[mutation.section]
-		is com.lambda.pathing.world.WorldMutation.Chunk -> firstChunkReadFrame[mutation.chunk]
+		is com.lambda.pathing.world.WorldMutation.Section -> sectionReads.first(mutation.section)
+		is com.lambda.pathing.world.WorldMutation.Chunk -> chunkReads.first(mutation.chunk)
 	}
 
 	companion object {

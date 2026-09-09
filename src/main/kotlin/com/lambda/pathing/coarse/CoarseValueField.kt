@@ -13,10 +13,8 @@ class CoarseValueField(
 	private val label: (Stance) -> Double,
 	override val goal: Stance,
 
-	/** Class-conditioned labels; defaults to the blended [label] where a planner predates momentum. */
 	private val labelAt: (Stance, SpeedClass) -> Double = { stance, _ -> label(stance) },
 
-	/** Edge source; the planner passes its session edge cache so steering reads reuse probes. */
 	private val edgeProvider: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
 ) : ValueField {
 	private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
@@ -30,10 +28,10 @@ class CoarseValueField(
 	override fun invalidate(sections: Set<PathingSection>) {
 		if (sections.isEmpty()) return
 		val halo = HashSet<PathingSection>(sections.size * 27)
-		for (section in sections) {
+		for ((x, y, z) in sections) {
 			for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
 				halo += PathingSection(
-					section.x + dx, section.y + dy, section.z + dz,
+					x + dx, y + dy, z + dz,
 				)
 			}
 		}
@@ -55,14 +53,9 @@ class CoarseValueField(
 
 	override fun guide(stance: Stance): Double = guideVia(guides, stance, label)
 
-	/**
-	 * Ticks to goal for a body at [stance] in speed class [speed]: a STOPPED body's estimate
-	 * includes its acceleration, a MOVING one's does not. Same neighbour fallback as [guide].
-	 */
 	override fun guide(stance: Stance, speed: SpeedClass): Double =
 		guideVia(if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides, stance) { labelAt(it, speed) }
 
-	/** The label itself when the field reaches [stance]; otherwise the best labelled neighbour plus the edge. */
 	private inline fun guideVia(
 		cache: it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>,
 		stance: Stance,
@@ -106,15 +99,13 @@ class CoarseValueField(
 		}
 
 		byDestination.values.retainAll { isMapped(it.to) }
-		val reference = reference(stance, heading)
-		val ranked = byDestination.values.sortedWith(
-			compareBy<CoarseEdge> { floor((it.lowerBoundTicks + guide(it.to)) / TIE_TICKS) }
-				.thenByDescending { alignment(stance, it.to, reference) }
-				.thenBy { it.to.y }.thenBy { it.to.x }.thenBy { it.to.z }
-		)
-		val best = ranked.minOfOrNull { it.lowerBoundTicks + guide(it.to) } ?: return emptyList()
+		val candidates = byDestination.values
+		val best = candidates.minOfOrNull { it.lowerBoundTicks + guide(it.to) } ?: return emptyList()
+		val order = compareBy<CoarseEdge> { floor((it.lowerBoundTicks + guide(it.to)) / TIE_TICKS) }
+			.then(directionOrder(stance, heading))
+		val ranked = if (count == 1) listOfNotNull(candidates.minWithOrNull(order)) else candidates.sortedWith(order)
 
-		return ranked.takeWhile { it.lowerBoundTicks + guide(it.to) <= best + marginTicks }.take(count)
+		return ranked.asSequence().takeWhile { it.lowerBoundTicks + guide(it.to) <= best + marginTicks }.take(count).toList()
 	}
 
 	override fun chain(
@@ -151,15 +142,17 @@ class CoarseValueField(
 		visited: Set<Stance>,
 		heading: Pair<Double, Double>?,
 	): Stance? {
-		val candidates = edgesFrom(from).filter { it.to !in visited && guide(it.to).isFinite() }
+		val candidates = edgesFrom(from).filterTo(ArrayList()) { it.to !in visited && guide(it.to).isFinite() }
 		if (candidates.isEmpty()) return null
 		val best = candidates.minOf { it.lowerBoundTicks + guide(it.to) }
-		val tied = candidates.filter { it.lowerBoundTicks + guide(it.to) <= best + TIE_TICKS }
+		candidates.removeAll { !(it.lowerBoundTicks + guide(it.to) <= best + TIE_TICKS) }
+		return candidates.minWithOrNull(directionOrder(from, heading))?.to
+	}
+
+	private fun directionOrder(from: Stance, heading: Pair<Double, Double>?): Comparator<CoarseEdge> {
 		val reference = reference(from, heading)
-		return tied.minWithOrNull(
-			compareByDescending<CoarseEdge> { alignment(from, it.to, reference) }
-				.thenBy { it.to.y }.thenBy { it.to.x }.thenBy { it.to.z }
-		)?.to
+		return compareByDescending<CoarseEdge> { alignment(from, it.to, reference) }
+			.thenBy { it.to.y }.thenBy { it.to.x }.thenBy { it.to.z }
 	}
 
 	private fun reference(from: Stance, heading: Pair<Double, Double>?): Pair<Double, Double> {

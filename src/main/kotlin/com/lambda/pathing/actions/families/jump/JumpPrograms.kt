@@ -3,11 +3,11 @@ package com.lambda.pathing.actions.families.jump
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.ProgramContext
-import com.lambda.pathing.actions.PursuitTracker
-import com.lambda.pathing.actions.RunUpLaunchProgram
-import com.lambda.pathing.actions.SegmentFollowerProgram
+import com.lambda.pathing.actions.control.PursuitTracker
+import com.lambda.pathing.actions.control.RunUpLaunchProgram
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.actions.airPlanToward
+import com.lambda.pathing.actions.control.airPlanToward
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.alongEdge
@@ -15,7 +15,6 @@ import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.launch.LaunchSolution
 
-/** Controllers for jump decisions, their completion test and the run-up transition overhead. */
 internal object JumpPrograms {
 
 	fun program(context: ProgramContext): ControlProgram {
@@ -34,9 +33,7 @@ internal object JumpPrograms {
 			)
 		}
 		val solution = (decision as? TrajectoryDecision.Launch)?.solution
-		// A dodged flight line must be RUN, not just aimed at: air-steering authority
-		// develops late in the arc, so shifting the landing node makes the ground
-		// approach and launch bearing follow the swept-clear line from the start.
+
 		val step = (decision as? TrajectoryDecision.Launch)?.step
 		val nodes = if (solution != null && solution.lateralOffset != 0.0 && step != null) {
 			val from = context.body.stance.center()
@@ -59,17 +56,11 @@ internal object JumpPrograms {
 		)
 	}
 
-	/**
-	 * The solved launch as a closed-loop flight target ([airPlanToward], shifted by the
-	 * solution's lateral offset). Null (no solved launch, or a degenerate edge) flies the
-	 * historical open schedule.
-	 */
 	private fun airPlanFor(from: Stance, to: Stance?, solution: LaunchSolution?): AirSteering.AirPlan? {
 		if (solution == null || to == null || to == from) return null
 		return airPlanToward(from, to, solution, solution.lateralOffset)
 	}
 
-	/** This point shifted sideways (perp of the [from]->here axis) by [offset] blocks. */
 	private fun HorizontalPoint.laterallyShifted(
 		from: HorizontalPoint,
 		offset: Double,
