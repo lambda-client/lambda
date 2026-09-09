@@ -2,12 +2,6 @@ package com.lambda.pathing.world
 
 import kotlin.math.abs
 
-/**
- * Which chunks the client can be trusted to have fully received: loaded AND inside view
- * distance after a [CHUNK_FILTER_EDGE_MARGIN] shave. [isTrusted] reads the source live
- * (client thread); [contains] reads the set published by the last [refresh] and is safe
- * from any thread. See docs/decisions/world-capture.md.
- */
 class TrustedChunks(private val source: CaptureSource) {
 	@Volatile
 	private var published: Set<Long> = emptySet()
@@ -25,7 +19,6 @@ class TrustedChunks(private val source: CaptureSource) {
 		return dx * dx + dz * dz < viewDistance.toLong() * viewDistance
 	}
 
-	/** Once per capture tick; republishes every [TRUSTED_REFRESH_TICKS] ticks. */
 	fun tick() {
 		if (refreshTick++ % TRUSTED_REFRESH_TICKS == 0) refresh()
 	}

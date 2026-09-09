@@ -3,28 +3,23 @@ package com.lambda.pathing.session
 import com.lambda.pathing.search.PublishedPath
 import net.minecraft.util.math.Vec3d
 
-/**
- * One consistent picture of a walk for readers off the client thread (the renderer, the
- * gametest harness): a single read yields fields that belong to the same instant instead
- * of a torn read across separate volatiles.
- */
 data class Telemetry(
 	val published: PublishedPath?,
 	val maxDeviation: Double,
 	val adopted: Int,
 	val recoveries: Int,
 	val rejectedImprovements: Int,
-	/** Every tape the body walked this walk, oldest first, capped at [WalkTelemetry.MAX_RETAINED_PUBLICATIONS]. */
+
 	val executed: List<PublishedPath>,
-	/** The body's observed positions, one per executed frame, capped at [WalkTelemetry.MAX_RETAINED_TRAIL_POINTS]. */
+
 	val trail: List<Vec3d>,
-	/** Session-level counters, filled in by the session when it snapshots. */
+
 	val holds: Int = 0,
 	val repairs: Int = 0,
 	val leg: Int = 0,
 	val queuedWaypoints: Int = 0,
 	val sessionRestarts: Int = 0,
-	/** Frames adopted against ticks spent, see [com.lambda.pathing.session.PathingSession.publicationCadence]. */
+
 	val cadence: String = "",
 ) {
 	companion object {
@@ -35,10 +30,6 @@ data class Telemetry(
 	}
 }
 
-/**
- * The mutable counters behind [Telemetry]. Written on the client thread; [snapshot] may be
- * taken from any thread and is rebuilt at most once per mutation.
- */
 internal class WalkTelemetry {
 	@Volatile
 	var published: PublishedPath? = null

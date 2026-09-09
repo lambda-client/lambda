@@ -9,7 +9,6 @@ import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -57,9 +56,6 @@ class DropToAdjacentGoalTest {
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )
-        if (outcome is MotionPlanResult.NoSafeStop) {
-            println("[drop] NoSafeStop attempts=${outcome.attemptCount} nearest=${outcome.nearest}")
-        }
         assertTrue(outcome is PathPlanResult.Planned, "expected a certified tape, got $outcome")
     }
 

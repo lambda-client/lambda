@@ -1,4 +1,8 @@
-package com.lambda.pathing.actions
+package com.lambda.pathing.actions.control
+
+import com.lambda.pathing.actions.ControlProgram
+import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.actions.TerminalApproach
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.Stance

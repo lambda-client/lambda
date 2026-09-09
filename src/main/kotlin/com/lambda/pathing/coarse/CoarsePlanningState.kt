@@ -17,7 +17,6 @@ import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
-/** Measured coarse costs; the 1.0-tick overhead is deliberate, see docs/decisions/transition-overhead.md. */
 internal val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
 
 internal class PlanningHorizonView(
@@ -48,7 +47,6 @@ internal class CoarsePlanningState(
 	val horizonChunks: Int = 0,
 	frontierSweepBudget: Int = 40_000,
 
-	/** See [FrontierAnchors.NOTHING_CAPTURABLE]: capturable unknowns never anchor. */
 	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 ) {
 	private val moves = SimpleMoveLibrary.build(costs = DEFAULT_MOVE_COSTS, options = moveOptions)
@@ -59,7 +57,6 @@ internal class CoarsePlanningState(
 		if (horizonChunks <= 0) snapshot
 		else PlanningHorizonView(snapshot, grantedChunks)
 
-	/** Sections whose capture lag suppressed an anchor; demanded before every wait round. */
 	private val captureLagSections = HashSet<Long>()
 
 	private val collectCaptureLag: (Int, Int, Int) -> Unit = { x, y, z ->
@@ -70,11 +67,6 @@ internal class CoarsePlanningState(
 		grantChunksAround(start)
 	}
 
-	/**
-	 * Capturability is scoped to the horizon: a cell past the ring is unknown by design,
-	 * not by lag, so it anchors like unstreamed terrain. Without this the sweep waits
-	 * forever on chunks the world can capture but the view will never show.
-	 */
 	private val capturableInView: (Int, Int) -> Boolean =
 		if (horizonChunks <= 0) capturable
 		else { cx, cz -> PathingChunk(cx, cz) in grantedChunks && capturable(cx, cz) }
@@ -94,10 +86,6 @@ internal class CoarsePlanningState(
 		if (revealed.isNotEmpty()) planner.chunksChanged(revealed, arrivalsOnly = true)
 	}
 
-	/**
-	 * A world batch mid-walk: mutated chunks resynchronise fully, pure arrivals only where
-	 * an origin read the unknown. [maxStances] bounds the work done now, see [continueSync].
-	 */
 	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {
 		val mutated = batch.mutatedChunkSet()
 		if (mutated.isNotEmpty()) planner.chunksChanged(mutated, maxStances)
@@ -105,30 +93,22 @@ internal class CoarsePlanningState(
 		if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals, maxStances, arrivalsOnly = true)
 	}
 
-	/** Newly granted horizon chunks: the view went from unknown to known, nothing known changed. */
 	fun revealChunks(revealed: Set<PathingChunk>) {
 		if (revealed.isNotEmpty()) planner.chunksChanged(revealed, arrivalsOnly = true)
 	}
 
-	/** Resynchronises up to [maxStances] more graph nodes; true when work remains after this call. */
 	fun continueSync(maxStances: Int): Boolean {
 		if (planner.pendingSyncSize == 0) return false
 		planner.continueSync(maxStances)
 		return planner.pendingSyncSize > 0
 	}
 
-	/** Demand exactly the sections whose lag suppressed anchors, then forget them. */
 	fun demandCaptureLag(world: PathingWorld) {
 		if (captureLagSections.isEmpty()) return
 		world.interest(ArrayList(captureLagSections), InterestTier.DEMAND)
 		captureLagSections.clear()
 	}
 
-	/**
-	 * The best route the current knowledge admits, without waiting for more: a plain
-	 * extraction, then resynchronisation, then one frontier discovery. Blocking on the
-	 * world is [com.lambda.pathing.session.RouteResolution]'s job.
-	 */
 	fun routePlan(
 		snapshotRevision: Long,
 		cancelled: () -> Boolean = { false },
@@ -142,7 +122,6 @@ internal class CoarsePlanningState(
 				} else null
 			}
 
-	/** Widens the planning horizon around [start]; returns the chunks newly granted. */
 	fun grantChunksAround(start: Stance): Set<PathingChunk> {
 		if (horizonChunks <= 0) return emptySet()
 		val revealed = HashSet<PathingChunk>()

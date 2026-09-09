@@ -14,13 +14,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * The coarse layer's D* runs over [PackedStance] nodes -- stance times [SpeedClass] packed
- * into one long -- so the field can price momentum honestly; see [MomentumRules].
- * Everything public stays stance-shaped: callers never meet the class dimension, they
- * meet stance values that are the best over both classes, and routes whose brake
- * self-edges have been folded away.
- */
 class CoarsePlanner(
 
 	val view: CoarseVoxelView,
@@ -30,14 +23,11 @@ class CoarsePlanner(
 
 	private val sweepBudget: Int = 40_000,
 
-	/** See [FrontierAnchors.NOTHING_CAPTURABLE]: capturable unknowns never anchor. */
 	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 
-	/** Reported for every capturable unknown that suppressed an anchor; see [FrontierAnchors.sweep]. */
 	private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
 
-	/** The one-stance goal every caller has today: a [GoalShape.Point]. */
 	constructor(
 		view: CoarseVoxelView,
 		moves: SimpleMoveLibrary,
@@ -59,8 +49,7 @@ class CoarsePlanner(
 	private val graph = LongLazyGraph(
 		successorProvider = { node, sink ->
 			MomentumRules.successors(edgeCache, node, sink)
-			// Put semantics on purpose: an anchor's optimistic edge to the goal replaces
-			// any real edge to the goal node, as the old `base + optimistic` did.
+
 			if (anchors.isNotEmpty()) {
 				val cost = anchors[PackedStance.stance(node)]
 				if (cost != null) sink.add(goalNode, cost)
@@ -92,11 +81,6 @@ class CoarsePlanner(
 
 	val graphSize: Int get() = graph.size
 
-	/**
-	 * Visits every distinct stance the graph has adopted, once, without materialising a
-	 * set: a stance whose STOPPED node is known is visited there; a MOVING-only stance is
-	 * visited at its MOVING node.
-	 */
 	fun forEachGraphStance(action: (x: Int, y: Int, z: Int) -> Unit) {
 		val iterator = graph.nodes.iterator()
 		while (iterator.hasNext()) {
@@ -106,7 +90,6 @@ class CoarsePlanner(
 		}
 	}
 
-	/** Best-over-classes cost to goal, for observers that think in stances. */
 	fun stanceCost(stance: Stance): Double = minOf(
 		search.g(PackedStance.pack(stance, SpeedClass.MOVING)),
 		search.g(PackedStance.pack(stance, SpeedClass.STOPPED)),
@@ -116,7 +99,6 @@ class CoarsePlanner(
 		PackedStance.pack(stance, SpeedClass.MOVING) in search.queue ||
 				PackedStance.pack(stance, SpeedClass.STOPPED) in search.queue
 
-	/** The transitions the lazy graph has materialised out of [node]; empty when the cell was never expanded. */
 	fun knownEdgesOf(node: Stance): List<CoarseEdge> = edgeCache.cachedEdgesFrom(node) ?: emptyList()
 
 	fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
@@ -155,8 +137,6 @@ class CoarsePlanner(
 	fun advanceFrontier(probed: Map<Stance, Double>): Boolean {
 		var changed = false
 
-		// Retirement waits for cells to be KNOWN; creation refuses merely capturable
-		// unknowns. The asymmetry is deliberate: docs/decisions/anchor-lifecycle.md.
 		val refused = FrontierAnchors.refusesOptimism(view, moves, goalStance)
 		val retired = anchors.keys.filterTo(ArrayList()) {
 			refused || !FrontierAnchors.bordersUnknown(view, it)
@@ -186,11 +166,6 @@ class CoarsePlanner(
 		return true
 	}
 
-	/**
-	 * Mints anchors by flooding from [from] through real edges, so every anchor is
-	 * reachable by construction. Optimism is a route-terminal device, never a movement;
-	 * see docs/decisions/anchor-lifecycle.md.
-	 */
 	fun advanceReachableFrontier(
 		from: Stance = PackedStance.stance(search.start),
 		cancelled: () -> Boolean = { false },
@@ -198,10 +173,7 @@ class CoarsePlanner(
 		if (from == goalStance || FrontierAnchors.refusesOptimism(view, moves, goalStance)) {
 			return advanceFrontier(emptyMap())
 		}
-		// Resume the flood where knowledge grew. Only origins that read an unknown cell can
-		// gain edges through capture, so re-expanding those (with the interior already
-		// visited) reaches everything a fresh flood would. Mutations and a moved start
-		// invalidate that argument and force a full sweep.
+
 		val incremental = sweepFrom == from && !sweepDirty && sweptVisited.isNotEmpty()
 		val seeds: Collection<Stance> = if (incremental) ArrayList(sweptIncomplete) else {
 			if (!moves.isStance(view, from)) return advanceFrontier(emptyMap())
@@ -250,11 +222,11 @@ class CoarsePlanner(
 			maxExpansions = ROUTE_DESCENT_EXPANSIONS,
 			cancelled = cancelled,
 		) ?: return null
-		// Brake self-edges fold away: consecutive nodes sharing a stance are one visit.
+
 		val nodes = candidate.nodes
 		val stances = ArrayList<Stance>(nodes.size)
 		var previous = 0L
-		for (i in 0 until nodes.size) {
+		for (i in nodes.indices) {
 			val node = nodes.getLong(i)
 			if (i == 0 || !PackedStance.sameStance(previous, node)) stances += PackedStance.stance(node)
 			previous = node
@@ -336,10 +308,6 @@ class CoarsePlanner(
 
 	fun tailCost(node: Stance = PackedStance.stance(search.start)): TailCost = stanceTailCost(node)
 
-	/**
-	 * The better-informed of the two class nodes: exactness first, then cost. A raw min
-	 * over classes would prefer an unexplored MOVING node's bound over an exact STOPPED answer.
-	 */
 	private fun stanceTailCost(node: Stance): TailCost {
 		val moving = search.tailCost(PackedStance.pack(node, SpeedClass.MOVING))
 		val stopped = search.tailCost(PackedStance.pack(node, SpeedClass.STOPPED))
@@ -355,8 +323,7 @@ class CoarsePlanner(
 	}
 
 	private fun synchronizeStances(affected: Iterable<Stance>): LongDStarLite.SynchronizationResult {
-		// Synchronization regenerates from the live view: memoized edges go first, even
-		// for callers that arrive without a world-change notification.
+
 		edgeCache.invalidateStances(affected)
 		val lifted = LongArrayList()
 		for (stance in affected) {
@@ -397,22 +364,12 @@ class CoarsePlanner(
 		return synchronizeStances(affected)
 	}
 
-	/**
-	 * Chunk arrivals: evict the affected cache columns at once, then regenerate the
-	 * affected graph nodes' edges -- all of them, or at most [maxStances] now with the
-	 * rest left in [pendingSyncSize] for [continueSync]. Slicing keeps a streaming world
-	 * from blocking the search thread; a node not yet resynchronised simply keeps its
-	 * edges from before the arrival, which is knowledge lag, not inconsistency.
-	 */
 	fun chunksChanged(
 		chunks: Iterable<PathingChunk>,
 		maxStances: Int = Int.MAX_VALUE,
 		arrivalsOnly: Boolean = false,
 	): LongDStarLite.SynchronizationResult {
-		// Range-based cache eviction, not graph-node-filtered: the cache can hold
-		// stances the graph never adopted (steering reads, rim origins). For pure
-		// arrivals only origins that read an unknown cell can change; the rest keep
-		// both their cache entry and their graph edges.
+
 		if (!arrivalsOnly) sweepDirty = true
 		val ranges = chunks.map(moves::originColumnRanges)
 		forEachGraphStance { x, y, z ->
@@ -425,10 +382,8 @@ class CoarsePlanner(
 		return continueSync(maxStances)
 	}
 
-	/** Stances whose edges still await regeneration after a sliced [chunksChanged]. */
 	val pendingSyncSize: Int get() = pendingSync.size
 
-	/** Regenerates up to [maxStances] pending stances, lowest packed key first. */
 	fun continueSync(maxStances: Int = Int.MAX_VALUE): LongDStarLite.SynchronizationResult {
 		if (pendingSync.isEmpty()) return LongDStarLite.SynchronizationResult(0, 0, 0, 0)
 		val ordered = pendingSync.toLongArray()

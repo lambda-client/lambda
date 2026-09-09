@@ -1,0 +1,10 @@
+course-1 budget=0 partial=false frames=199 expansions=5399 sha256=e384a4cc9b63acde93b418da0e24244610742452aefa0a9cec3b3e3a9f0a3d25
+course-1 budget=128 partial=false frames=199 expansions=5399 sha256=e384a4cc9b63acde93b418da0e24244610742452aefa0a9cec3b3e3a9f0a3d25
+course-2 budget=0 partial=false frames=201 expansions=8912 sha256=3570f320db33113e51e9c4fa0538061b70bd9fc2d6a34b9794e6d421889216a1
+course-2 budget=128 partial=false frames=201 expansions=8912 sha256=3570f320db33113e51e9c4fa0538061b70bd9fc2d6a34b9794e6d421889216a1
+course-3 budget=0 partial=false frames=199 expansions=8470 sha256=dc7ff668066f62489c80f7d2e4daeb0926dfbc69cdc1fb1f5ad2d9adfaf8d895
+course-3 budget=128 partial=false frames=201 expansions=8388 sha256=463b062f137202a7bd67ba4453b13ea07e42382b5c2edb5a5d43e8d243206e0f
+course-4 budget=0 partial=false frames=222 expansions=9796 sha256=8387347a2ea20be2eb776539bdae4943ae3c20eefcee2c949e69cbea7ca5535c
+course-4 budget=128 partial=false frames=222 expansions=9796 sha256=8387347a2ea20be2eb776539bdae4943ae3c20eefcee2c949e69cbea7ca5535c
+bedrock-traverse budget=0 partial=false frames=414 expansions=28612 sha256=8e80d50b6f9aee92fefffdeb6365cbcbf2d57380836303688861725c63a316cf
+bedrock-traverse budget=128 partial=false frames=414 expansions=28612 sha256=8e80d50b6f9aee92fefffdeb6365cbcbf2d57380836303688861725c63a316cf

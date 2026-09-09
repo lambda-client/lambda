@@ -1,4 +1,4 @@
-package com.lambda.pathing.actions
+package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.AirSteering
@@ -6,13 +6,6 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchSolution
 import kotlin.math.hypot
 
-/**
- * The solved launch from [from] into [to] as a closed-loop flight target: the landing
- * cell's CENTRE (not the solver's aim -- onward solutions and delay rolls are solved from
- * a cell-centre origin, and centre has maximum margin against both lips), shifted
- * sideways by [lateralOffset] blocks along the swept-clear line, with the schedule the
- * solver certified against. Null on a degenerate (zero-length) edge.
- */
 internal fun airPlanToward(
 	from: Stance,
 	to: Stance,

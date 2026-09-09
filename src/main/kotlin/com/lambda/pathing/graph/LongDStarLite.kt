@@ -9,24 +9,10 @@ import kotlin.math.min
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-/** Admissible, consistent estimate between two packed nodes; must be finite and non-negative. */
 fun interface LongHeuristic {
 	fun estimate(from: Long, to: Long): Double
 }
 
-/**
- * D* Lite over packed long nodes: g/rhs in primitive maps, the frontier in a
- * [LongIndexedHeap] keyed by `(min(g, rhs) + h(start, node) + km, min(g, rhs))`.
- *
- * The algorithm is the generic `DStarLite<N>` it replaces (kept under
- * `src/test/kotlin/pathing/reference/` as the differential oracle), with the node
- * tie-break fixed to natural long order -- which for [com.lambda.pathing.coarse.PackedStance]
- * is exactly the old `compareBy(y, x, z, speed)`.
- *
- * One greedy descent ([descend]) serves route extraction, the route candidate and the
- * diagnostic report. The old diagnostic walker had no tie-break; the unified one uses it
- * everywhere, so the report can no longer disagree with the route it describes.
- */
 class LongDStarLite(
 	private val graph: LongLazyGraph,
 	start: Long,
@@ -73,21 +59,71 @@ class LongDStarLite(
 		require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
 
 		val startedAt = System.nanoTime()
+		var stallNode = 0L
+		var stallG = 0.0
+		var stallRhs = 0.0
+		var stallSteps = 0
+
+		return compute(timeBudget, maxExpansions, cancelled, startedAt, ::shouldCompute) {
+			if (queue.isEmpty()) {
+				return@compute "queue empty while start is inconsistent: start=${describe(start)} g=${g(start)} rhs=${rhs(start)}"
+			}
+			val top = queue.top()
+			val topG = g(top)
+			val topRhs = rhs(top)
+			if (top == stallNode && topG == stallG && topRhs == stallRhs) {
+				if (++stallSteps >= STALL_STEPS) {
+					return@compute "node ${describe(top)} re-processed $stallSteps times with g=$topG rhs=$topRhs key=(${queue.topFirst()}, ${queue.topSecond()}) km=$km"
+				}
+			} else {
+				stallNode = top
+				stallG = topG
+				stallRhs = topRhs
+				stallSteps = 0
+			}
+			null
+		}
+	}
+
+	fun expandField(
+		extraTicks: Double,
+		timeBudget: Duration = 50.milliseconds,
+		maxExpansions: Int = Int.MAX_VALUE,
+		cancelled: () -> Boolean = { false },
+	): ComputeResult {
+		require(extraTicks >= 0.0) { "extraTicks must be non-negative" }
+		require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
+
+		val startedAt = System.nanoTime()
+		val startCost = g(start)
+		if (!startCost.isFinite()) return ComputeResult(
+			0, timedOut = false, expansionLimitReached = false,
+			cancelled = cancelled(), converged = true,
+		)
+
+		val threshold = startCost + km + extraTicks
+		return compute(
+			timeBudget, maxExpansions, cancelled, startedAt,
+			keepGoing = { !queue.isEmpty() && queue.topFirst() <= threshold },
+			stallReason = { null },
+		)
+	}
+
+	private inline fun compute(
+		timeBudget: Duration,
+		maxExpansions: Int,
+		cancelled: () -> Boolean,
+		startedAt: Long,
+		keepGoing: () -> Boolean,
+		stallReason: () -> String?,
+	): ComputeResult {
 		val budgetNanos = timeBudget.inWholeNanoseconds
 		var processed = 0
 		var timedOut = false
 		var expansionLimitReached = false
 		var wasCancelled = false
 		var stall: String? = null
-		// A live session once spent a million steps in 47 ms without converging: the loop
-		// was re-processing one node whose values never settled. Detect the pattern and
-		// report the node rather than burning the budget silently.
-		var stallNode = 0L
-		var stallG = 0.0
-		var stallRhs = 0.0
-		var stallSteps = 0
-
-		while (shouldCompute()) {
+		while (keepGoing()) {
 			if ((processed and DEADLINE_CHECK_MASK) == 0 && cancelled()) {
 				wasCancelled = true
 				break
@@ -100,25 +136,8 @@ class LongDStarLite(
 				timedOut = true
 				break
 			}
-			if (queue.isEmpty()) {
-				stall = "queue empty while start is inconsistent: start=${describe(start)} g=${g(start)} rhs=${rhs(start)}"
-				break
-			}
-			val top = queue.top()
-			val topG = g(top)
-			val topRhs = rhs(top)
-			if (top == stallNode && topG == stallG && topRhs == stallRhs) {
-				if (++stallSteps >= STALL_STEPS) {
-					stall = "node ${describe(top)} re-processed $stallSteps times with g=$topG rhs=$topRhs key=(${queue.topFirst()}, ${queue.topSecond()}) km=$km"
-					break
-				}
-			} else {
-				stallNode = top
-				stallG = topG
-				stallRhs = topRhs
-				stallSteps = 0
-			}
-
+			stall = stallReason()
+			if (stall != null) break
 			step()
 			processed++
 		}
@@ -133,57 +152,6 @@ class LongDStarLite(
 		)
 	}
 
-	fun expandField(
-		extraTicks: Double,
-		timeBudget: Duration = 50.milliseconds,
-		maxExpansions: Int = Int.MAX_VALUE,
-		cancelled: () -> Boolean = { false },
-	): ComputeResult {
-		require(extraTicks >= 0.0) { "extraTicks must be non-negative" }
-		require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
-
-		val startedAt = System.nanoTime()
-		val budgetNanos = timeBudget.inWholeNanoseconds
-		var processed = 0
-		var timedOut = false
-		var expansionLimitReached = false
-		var wasCancelled = false
-
-		val startCost = g(start)
-		if (!startCost.isFinite()) return ComputeResult(
-			0, timedOut = false, expansionLimitReached = false,
-			cancelled = cancelled(), converged = true,
-		)
-
-		val threshold = startCost + km + extraTicks
-
-		while (!queue.isEmpty() && queue.topFirst() <= threshold) {
-			if ((processed and DEADLINE_CHECK_MASK) == 0 && cancelled()) {
-				wasCancelled = true
-				break
-			}
-			if (processed >= maxExpansions) {
-				expansionLimitReached = true
-				break
-			}
-			if ((processed and DEADLINE_CHECK_MASK) == 0 && System.nanoTime() - startedAt >= budgetNanos) {
-				timedOut = true
-				break
-			}
-
-			step()
-			processed++
-		}
-
-		return ComputeResult(
-			processedNodes = processed,
-			timedOut = timedOut,
-			expansionLimitReached = expansionLimitReached,
-			cancelled = wasCancelled,
-			converged = !shouldCompute(),
-		)
-	}
-
 	private fun step() {
 		val oldFirst = queue.topFirst()
 		val oldSecond = queue.topSecond()
@@ -192,21 +160,19 @@ class LongDStarLite(
 		val nodeRhs = rhs(node)
 		val minCost = min(nodeG, nodeRhs)
 		val newFirst = minCost + checkedHeuristic(start, node) + km
-		val newSecond = minCost
 
 		when {
-			LongIndexedHeap.compareKeys(oldFirst, oldSecond, newFirst, newSecond) < 0 ->
-				queue.update(node, newFirst, newSecond)
+			LongIndexedHeap.compareKeys(oldFirst, oldSecond, newFirst, minCost) < 0 ->
+				queue.update(node, newFirst, minCost)
 
 			nodeG > nodeRhs -> {
 				val predecessors = graph.predecessors(node)
-				val settledG = nodeRhs
-				setG(node, settledG)
+				setG(node, nodeRhs)
 				queue.remove(node)
 				for (i in 0 until predecessors.size) {
 					val predecessor = predecessors.node(i)
 					val cost = predecessors.cost(i)
-					if (predecessor != goal) setRhs(predecessor, min(rhs(predecessor), cost + settledG))
+					if (predecessor != goal) setRhs(predecessor, min(rhs(predecessor), cost + nodeRhs))
 					updateVertex(predecessor)
 				}
 			}
@@ -215,14 +181,13 @@ class LongDStarLite(
 				val predecessors = graph.predecessors(node)
 				for (i in 0 until predecessors.size) graph.successors(predecessors.node(i))
 				graph.successors(node)
-				val oldG = nodeG
 				setG(node, INF)
 
 				for (i in 0 until predecessors.size) {
 					val predecessor = predecessors.node(i)
 					if (predecessor != goal && sameCost(
 							rhs(predecessor),
-							graph.knownSuccessors(predecessor).costOf(node) + oldG,
+							graph.knownSuccessors(predecessor).costOf(node) + nodeG,
 						)
 					) {
 						setRhs(predecessor, minSuccessorCost(predecessor))
@@ -233,7 +198,7 @@ class LongDStarLite(
 				if (node !in predecessors) {
 					if (node != goal && sameCost(
 							rhs(node),
-							graph.knownSuccessors(node).costOf(node) + oldG,
+							graph.knownSuccessors(node).costOf(node) + nodeG,
 						)
 					) {
 						setRhs(node, minSuccessorCost(node))
@@ -255,11 +220,6 @@ class LongDStarLite(
 		routeVersion++
 	}
 
-	/**
-	 * Regenerates the adjacency of every affected node from the providers and feeds each
-	 * difference through [updateEdge]. Nodes are visited in ascending long order -- a
-	 * canonical, JVM-independent sequence (the generic version iterated a hash set).
-	 */
 	fun synchronizeAffected(affectedNodes: LongIterable): SynchronizationResult {
 		var nodesChecked = 0
 		var edgesAdded = 0
@@ -281,60 +241,47 @@ class LongDStarLite(
 			graph.markSuccessorsInitialized(node)
 			nodesChecked++
 
-			for (i in 0 until oldSuccessors.size) {
-				val removed = oldSuccessors.node(i)
-				if (removed !in newSuccessors) {
-					updateEdge(node, removed, INF)
-					edgesRemoved++
+			reconcileEdges(oldSuccessors, newSuccessors) { target, cost, change ->
+				updateEdge(node, target, cost)
+				when (change) {
+					EdgeChange.ADDED -> edgesAdded++
+					EdgeChange.REMOVED -> edgesRemoved++
+					EdgeChange.CHANGED -> edgesChanged++
 				}
 			}
-
-			for (i in 0 until newSuccessors.size) {
-				val successor = newSuccessors.node(i)
-				val newCost = newSuccessors.cost(i)
-				val oldIndex = oldSuccessors.indexOf(successor)
-				when {
-					oldIndex < 0 -> {
-						updateEdge(node, successor, newCost)
-						edgesAdded++
-					}
-					!sameCost(oldSuccessors.cost(oldIndex), newCost) -> {
-						updateEdge(node, successor, newCost)
-						edgesChanged++
-					}
-				}
-			}
-
 			val oldPredecessors = graph.knownPredecessors(node).copy()
 			val newPredecessors = graph.generatePredecessors(node)
 			graph.markPredecessorsInitialized(node)
 
-			for (i in 0 until oldPredecessors.size) {
-				val removed = oldPredecessors.node(i)
-				if (removed !in newPredecessors) {
-					updateEdge(removed, node, INF)
-					edgesRemoved++
-				}
-			}
-
-			for (i in 0 until newPredecessors.size) {
-				val predecessor = newPredecessors.node(i)
-				val newCost = newPredecessors.cost(i)
-				val oldIndex = oldPredecessors.indexOf(predecessor)
-				when {
-					oldIndex < 0 -> {
-						updateEdge(predecessor, node, newCost)
-						edgesAdded++
-					}
-					!sameCost(oldPredecessors.cost(oldIndex), newCost) -> {
-						updateEdge(predecessor, node, newCost)
-						edgesChanged++
-					}
+			reconcileEdges(oldPredecessors, newPredecessors) { source, cost, change ->
+				updateEdge(source, node, cost)
+				when (change) {
+					EdgeChange.ADDED -> edgesAdded++
+					EdgeChange.REMOVED -> edgesRemoved++
+					EdgeChange.CHANGED -> edgesChanged++
 				}
 			}
 		}
 
 		return SynchronizationResult(nodesChecked, edgesAdded, edgesRemoved, edgesChanged)
+	}
+
+	private enum class EdgeChange { ADDED, REMOVED, CHANGED }
+
+	private inline fun reconcileEdges(old: EdgeList, new: EdgeList, apply: (Long, Double, EdgeChange) -> Unit) {
+		for (i in 0 until old.size) {
+			val node = old.node(i)
+			if (node !in new) apply(node, INF, EdgeChange.REMOVED)
+		}
+		for (i in 0 until new.size) {
+			val node = new.node(i)
+			val cost = new.cost(i)
+			val oldIndex = old.indexOf(node)
+			when {
+				oldIndex < 0 -> apply(node, cost, EdgeChange.ADDED)
+				!sameCost(old.cost(oldIndex), cost) -> apply(node, cost, EdgeChange.CHANGED)
+			}
+		}
 	}
 
 	fun updateEdge(from: Long, to: Long, newCost: Double) {
@@ -411,12 +358,6 @@ class LongDStarLite(
 		return queue.topIsAbove(minCost + checkedHeuristic(start, node) + km, minCost)
 	}
 
-	/**
-	 * The one greedy walk from [start] along `argmin(edge + g(successor))`, ties to the
-	 * smaller node. [strict] is the route-extraction mode: an inconsistent node or an
-	 * infinite best cost blocks the walk so the caller can settle it; the lenient mode
-	 * (route candidate, diagnostics) walks on exactly as the old `routeCandidate` did.
-	 */
 	private fun descend(maxLength: Int, strict: Boolean, report: StringBuilder?): Descent {
 		if (start == goal) {
 			report?.append("at-goal")
@@ -585,7 +526,7 @@ class LongDStarLite(
 		val expansionLimitReached: Boolean,
 		val cancelled: Boolean,
 		val converged: Boolean,
-		/** Non-null when the loop was cut short because one node never settled; names it. */
+
 		val stall: String? = null,
 	)
 
@@ -601,7 +542,6 @@ class LongDStarLite(
 		private const val EPSILON = 1e-9
 		private const val DEADLINE_CHECK_MASK = 0x0F
 
-		/** Consecutive steps on one unchanged top node before the loop is declared stalled. */
 		private const val STALL_STEPS = 4096
 
 		private const val MAX_DESCENT_ROUNDS = 256

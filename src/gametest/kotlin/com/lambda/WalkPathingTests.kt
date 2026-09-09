@@ -26,7 +26,7 @@ import com.lambda.PathingTestHarness.EXECUTION_TOLERANCE
 import com.lambda.PathingTestHarness.assertPathingWalk
 import com.lambda.PathingTestHarness.restoreArena
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.debug.BedrockFieldLayout
+import pathing.BedrockFieldLayout
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
 import net.minecraft.util.math.Vec3d

@@ -23,45 +23,29 @@ data class PublishedPath(
 	val planningGeneration: Long = 0L,
 	val publicationSequence: Int = 0,
 
-	/** Same-instant arrival comparison against [comparedRunningSequence]; see MotionPlanResult.Success. */
 	val arrivalTicksEstimate: Double = Double.NaN,
 	val comparedRunningArrivalTicks: Double = Double.NaN,
 	val comparedRunningSequence: Long = -1,
 
-	/** How the tape's frames divide between the movements that produced them. */
 	val segments: List<TapeSegment> = emptyList(),
 
-	/** Frames at which this tape passes the route's walk-through waypoints, in order. */
 	val legTouches: List<LegTouch> = emptyList(),
 ) {
-	/**
-	 * Frames spent per frame the coarse route could not have avoided: tape length over the
-	 * admissible [com.lambda.pathing.coarse.CoarseRoutePlan.lowerBoundTicks] plus the
-	 * fixed arrival cost [TERMINAL_STOP_TICKS]. 1.0 is optimal for the route given.
-	 * See docs/decisions/session-loop.md.
-	 */
+
 	val excessRatio: Double
 		get() = (route.lowerBoundTicks + TERMINAL_STOP_TICKS).let {
 			if (it > 0.0) plan.tape.frameCount / it else Double.NaN
 		}
 
 	private companion object {
-		/** Frames a walk spends arriving (decelerate, centre, hold) rather than travelling. */
+
 		const val TERMINAL_STOP_TICKS = 16.0
 
-		/** Below this the body is standing, not merely slow. Matches the planner's stop test. */
 		const val STANDING_SPEED = 0.012
 
-		/** Shortest still run counted as a stop rather than a slow turn. */
 		const val MIN_STANDING_RUN = 4
 	}
 
-	/** Frames per movement kind, heaviest first, as `movement=frames/segments`. */
-	/**
-	 * How the tape ends at [finalGoal]: the frame it first comes within a block, the frames
-	 * spent from there to rest, the furthest it strays afterwards, and how often it leaves
-	 * the goal's neighbourhood and returns. A loop count above zero is a walk around the goal.
-	 */
 	fun approachProfile(): String {
 		val gx = finalGoal.x + 0.5
 		val gz = finalGoal.z + 0.5
@@ -86,10 +70,6 @@ data class PublishedPath(
 		.entries.sortedByDescending { it.value.first }
 		.joinToString(" ") { (movement, cost) -> "$movement=${cost.first}/${cost.second}" }
 
-	/**
-	 * Run lengths of frames the finished tape spends standing still away from the goal:
-	 * the permanent record of brakes the search failed to extend past.
-	 */
 	fun standingRunLengths(): List<Int> {
 		val frames = plan.frames
 		if (frames.isEmpty()) return emptyList()
@@ -102,7 +82,7 @@ data class PublishedPath(
 			}
 			var end = index
 			while (end < still.size && still[end]) end++
-			// The run that reaches the last frame is the arrival stop, not a stall.
+
 			if (end - index >= MIN_STANDING_RUN && end < still.size) runs += end - index
 			index = end
 		}

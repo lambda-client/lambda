@@ -17,12 +17,7 @@ import kotlin.math.max
 import kotlin.math.sqrt
 
 object JumpArcProbe {
-	/**
-	 * [reads] is derived on demand by re-running the sweep with recording enabled: only
-	 * route-plan dependency collection asks, for a handful of edges, and eager recording
-	 * on every probe was a measurable slice of graph construction.
-	 * See docs/decisions/launch-solver.md (lazy sweep recording).
-	 */
+
 	class Reachable(
 		val solution: LaunchSolution,
 		readsSupplier: () -> LongOpenHashSet,
@@ -101,16 +96,13 @@ object JumpArcProbe {
 			solve(view, from, dx, dz, rise, profile, modes, riseHeight, launchHeight, reads = null)
 				?: return null
 		return Reachable(solution) {
-			// The recording pass replays the exact sweep sequence -- failed sweeps
-			// included, since a cell that refused one arc is a dependency of the
-			// edge's cost like any other.
+
 			LongOpenHashSet().also {
 				solve(view, from, dx, dz, rise, profile, modes, riseHeight, launchHeight, reads = it)
 			}
 		}
 	}
 
-	/** Whether a failed sweep was stopped by a PARTIAL shape -- the dodgeable class. */
 	internal class SweepFailure {
 		var partial = false
 	}
@@ -143,12 +135,6 @@ object JumpArcProbe {
 			}
 			if (clearance != null) return solution.withClearance(clearance)
 
-			// The centre line is blocked by a PARTIAL shape -- a pane, a fence post:
-			// the dodgeable class. The solver already knows the lateral band of
-			// parallel lines that still take off and land on the pads
-			// ([LaunchSolution.lateralSlack]); sweep those before giving up. A
-			// full-cube wall never triggers this (half a block of sideways shift does
-			// not clear it), which keeps blocked terrain exactly as cheap as before.
 			if (!failure.partial) continue
 			val slack = solution.lateralSlack
 			if (slack < MIN_DODGE_SLACK) continue
@@ -277,15 +263,9 @@ object JumpArcProbe {
 		reads: LongOpenHashSet?,
 		cache: SweepCellCache,
 
-		/** Sideways shift of the whole flight line; see [LaunchSolution.lateralOffset]. */
 		lateralOffset: Double = 0.0,
 		failure: SweepFailure? = null,
 
-		/**
-		 * Swept body half-width: the forgiving core on the centre line (the rollout
-		 * certifies reality), the full body on a DODGE line, whose corridor is known
-		 * tight. See docs/decisions/launch-solver.md (dodge lines).
-		 */
 		halfWidth: Double = CORE_HALF_WIDTH,
 	): Double? {
 		val length = hypot(dx.toDouble(), dz.toDouble())
@@ -389,13 +369,10 @@ object JumpArcProbe {
 	private const val CLEARANCE_CAP = 0.5
 	private const val FLOOR_CONTACT_EPSILON = 1.0E-7
 
-	/** Below this much lateral slack there is no room to dodge anything. */
 	private const val MIN_DODGE_SLACK = 0.05
 
-	/** Dodge lines sweep the real body, not the forgiving core; see [sweepClearance]. */
 	private const val DODGE_HALF_WIDTH = Kinematics.BODY_HALF_WIDTH
 
-	/** Fractions of the lateral slack tried when the centre line hits a PARTIAL shape. */
 	private val DODGE_FRACTIONS = doubleArrayOf(0.5, -0.5, 1.0, -1.0)
 
 	private const val SOLUTION_CACHE_LIMIT = 100_000

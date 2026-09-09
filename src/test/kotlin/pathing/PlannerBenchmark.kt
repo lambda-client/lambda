@@ -10,12 +10,12 @@ import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.actions.LaunchTrigger
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.SegmentFollowerProgram
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.search.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import java.nio.file.Path
@@ -102,7 +102,7 @@ class PlannerBenchmark {
         /** Bytes allocated by the current thread while running [block]. */
         fun allocatedBytes(block: () -> Unit): Long {
             val bean = ManagementFactory.getThreadMXBean() as com.sun.management.ThreadMXBean
-            val id = Thread.currentThread().id
+            val id = Thread.currentThread().threadId()
             val before = bean.getThreadAllocatedBytes(id)
             block()
             return bean.getThreadAllocatedBytes(id) - before

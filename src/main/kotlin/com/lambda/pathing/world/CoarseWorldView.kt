@@ -70,10 +70,10 @@ data class CoarseVoxel(
 
 		const val UNKNOWN_INTRUSION = 1.0
 
-		val AIR = CoarseVoxel(true, true, null, 0.0, false, Medium.AIR)
-		val FULL_BLOCK = CoarseVoxel(false, false, 1.0, 0.0, false, Medium.SOLID)
-		val UNKNOWN = CoarseVoxel(false, false, null, UNKNOWN_INTRUSION, false, Medium.UNKNOWN)
-		val HAZARD = CoarseVoxel(false, false, null, 0.0, false, Medium.UNKNOWN)
+		val AIR = CoarseVoxel(fullyPassable = true, centerPassable = true, standingSurface = null)
+		val FULL_BLOCK = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = 1.0)
+		val UNKNOWN = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, intrusionHeight = UNKNOWN_INTRUSION, medium = Medium.UNKNOWN)
+		val HAZARD = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.UNKNOWN)
 
 		fun of(medium: Medium, passable: Boolean = true) = CoarseVoxel(
 			fullyPassable = passable,

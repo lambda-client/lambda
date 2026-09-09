@@ -7,8 +7,8 @@ import com.lambda.pathing.search.CandidatePath
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SearchStatsView
 import com.lambda.pathing.search.SearchTreeView
-import com.lambda.pathing.search.TrajectoryDiagnostic
-import com.lambda.pathing.search.TrajectoryRollout
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryRollout
 
 class DebugChannelProbe(
 	private val verbose: Boolean = java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures"),

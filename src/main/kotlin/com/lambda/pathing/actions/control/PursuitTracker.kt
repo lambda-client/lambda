@@ -1,4 +1,4 @@
-package com.lambda.pathing.actions
+package com.lambda.pathing.actions.control
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
@@ -34,7 +34,7 @@ internal class PursuitTracker(val nodes: List<HorizontalPoint>) {
 	}
 
 	companion object {
-		/** Default nodes of lead the pursuit target sits ahead of the tracked progress. */
+
 		internal const val DEFAULT_LOOK_AHEAD_NODES = 1
 	}
 }

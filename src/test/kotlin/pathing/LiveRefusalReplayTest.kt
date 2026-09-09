@@ -2,7 +2,7 @@ package pathing
 
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.PathPlanResult

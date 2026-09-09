@@ -28,17 +28,10 @@ class SimpleMoveLibrary private constructor(
 	private val minReadY = minOf(readOffsets.minOf(VoxelPos::y), -1)
 	private val maxReadY = maxOf(readOffsets.maxOf(VoxelPos::y), 1)
 
-	/**
-	 * Read offsets relative to each template's TARGET: the mirror of [readOffsets]
-	 * that answers which stances' INCOMING edges a changed voxel can affect. A probe
-	 * for the edge into t reads cells t - delta + r, so the affected targets of a
-	 * changed cell c are c + (delta - r). The target's own stance reads are included
-	 * because edgesTo tests the target as a stance before probing any template.
-	 */
 	private val targetReadOffsets: Set<VoxelPos> = buildSet {
 		for (template in templates) {
-			for (read in template.readOffsets) {
-				add(VoxelPos(template.dx - read.x, template.dy - read.y, template.dz - read.z))
+			for ((x, y, z) in template.readOffsets) {
+				add(VoxelPos(template.dx - x, template.dy - y, template.dz - z))
 			}
 		}
 		add(VoxelPos(0, -1, 0))
@@ -59,14 +52,8 @@ class SimpleMoveLibrary private constructor(
 		val straightTicksPerBlock: Double,
 	)
 
-	/**
-	 * True when any cell an outgoing edge of [origin] can read is unknown in [view]. An
-	 * origin whose reads are all known has edges that no later capture can change, so
-	 * arrival resynchronisation may skip it; see docs/decisions/world-capture.md.
-	 */
 	fun readsUnknown(view: CoarseVoxelView, origin: Stance): Boolean {
-		// Knowledge is section-granular in every view (captured sections, granted chunk
-		// columns), so one sample per section overlapping the read box decides it.
+
 		val x0 = origin.x + minReadX
 		val x1 = origin.x + maxReadX
 		val y0 = origin.y + minReadY
@@ -117,7 +104,6 @@ class SimpleMoveLibrary private constructor(
 
 	fun heuristic(from: Stance, to: Stance): Double = heuristic(from.x, from.y, from.z, to.x, to.y, to.z)
 
-	/** Allocation-free form for packed nodes; see [com.lambda.pathing.coarse.PackedStance]. */
 	fun heuristic(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int): Double {
 		val dx = abs(toX - fromX)
 		val dz = abs(toZ - fromZ)
@@ -160,7 +146,6 @@ class SimpleMoveLibrary private constructor(
 		return candidates.filterTo(HashSet()) { it.x in originX && it.z in originZ }
 	}
 
-	/** Column ranges of stances whose OUTGOING edges can read into [chunk]. */
 	internal fun originColumnRanges(chunk: PathingChunk): Pair<IntRange, IntRange> {
 		val chunkMinX = chunk.x shl 4
 		val chunkMinZ = chunk.z shl 4
@@ -168,7 +153,6 @@ class SimpleMoveLibrary private constructor(
 				((chunkMinZ - maxReadZ)..(chunkMinZ + 15 - minReadZ))
 	}
 
-	/** Column ranges of stances whose INCOMING edges can read into [chunk]. */
 	internal fun targetColumnRanges(chunk: PathingChunk): Pair<IntRange, IntRange> {
 		val chunkMinX = chunk.x shl 4
 		val chunkMinZ = chunk.z shl 4
@@ -204,11 +188,6 @@ class SimpleMoveLibrary private constructor(
 			.minOfOrNull { it.lowerBoundTicks }
 			?: 1.0
 
-		/**
-		 * Per-block lower bounds over the template set, so [heuristic] stays admissible:
-		 * each cap is the cheapest ticks-per-unit any template achieves along that axis,
-		 * then relaxed until every off-axis template is priced at or below its own minimum.
-		 */
 		private fun deriveCaps(templates: List<MotionTemplate>): HeuristicCaps {
 			var axis = Double.POSITIVE_INFINITY
 			var diagonal = Double.POSITIVE_INFINITY

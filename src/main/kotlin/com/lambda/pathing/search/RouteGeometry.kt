@@ -1,5 +1,8 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 
@@ -9,23 +12,22 @@ internal fun collisionEvents(
 ): Int {
 	var previous = entry.horizontalCollision
 	var events = 0
-	for (frame in frames) {
-		if (frame.state.horizontalCollision && !previous) events++
-		previous = frame.state.horizontalCollision
+	for ((_, _, state) in frames) {
+		if (state.horizontalCollision && !previous) events++
+		previous = state.horizontalCollision
 	}
 	return events
 }
 
-/** [collisionEvents] restricted to events that begin while the body is airborne: a mid-flight wall, not a grounded graze. */
 internal fun airborneCollisionEvents(
 	entry: MovementSimulationState,
 	frames: List<SimulatedTrajectoryFrame>,
 ): Int {
 	var previous = entry.horizontalCollision
 	var events = 0
-	for (frame in frames) {
-		if (frame.state.horizontalCollision && !previous && !frame.state.onGround) events++
-		previous = frame.state.horizontalCollision
+	for ((_, _, state) in frames) {
+		if (state.horizontalCollision && !previous && !state.onGround) events++
+		previous = state.horizontalCollision
 	}
 	return events
 }
@@ -36,9 +38,9 @@ internal fun inputSwitches(
 ): Int {
 	var previous = entryInput
 	var switches = 0
-	for (frame in frames) {
-		if (previous != null && previous != frame.input) switches++
-		previous = frame.input
+	for ((_, input) in frames) {
+		if (previous != null && previous != input) switches++
+		previous = input
 	}
 	return switches
 }

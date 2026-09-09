@@ -1,8 +1,11 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.actions.CorridorFollowerProgram
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.evaluateDiagnostic
+
+import com.lambda.pathing.actions.control.CorridorFollowerProgram
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.PursuitTracker
+import com.lambda.pathing.actions.control.PursuitTracker
 import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
@@ -25,13 +28,6 @@ internal class FinishPlanner(
 ) {
 	private var provenFinish: TerminalApproach? = null
 
-	/**
-	 * A denied attempt stops the parameter search, retaining any already certified best
-	 * tail. The proven parameters are tried first and, unless [exhaustive], returned as soon
-	 * as they certify: the search finishes many anchors and pays for the memo once. The
-	 * improver finishes one body that arrived faster than the spine's, so it sweeps the
-	 * whole grid: the memoised brake was tuned for a slower arrival.
-	 */
 	fun finishFrom(anchor: ValueAnchor, exhaustive: Boolean = false, canStartRollout: () -> Boolean = { true }): Solution? {
 		val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
 		if (!field.reachesGoal(chain)) return null
@@ -97,12 +93,12 @@ internal class FinishPlanner(
 			config.maxFrames,
 		)
 		val goal = goalPoint()
-		val evaluation = evaluate(gated.rollout, points, goal, config, climbing = { p ->
+		val evaluation = evaluateDiagnostic(gated.rollout, points, goal, config, climbing = { p ->
 			field.view.medium(
 				kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
 			) == Medium.CLIMBABLE
 		})
-		probe.attempt(gated.rollout, gated.stopFrame != null, evaluation.diagnostic)
+		probe.attempt(gated.rollout, gated.stopFrame != null, evaluation)
 		attempts.record(
 			PlanAttempt(
 				parameters = parameters,
@@ -112,13 +108,11 @@ internal class FinishPlanner(
 					gated.rollout.finalState.position.z - goal.z,
 				),
 				finalHorizontalSpeed = gated.rollout.finalState.velocity.horizontalLength(),
-				diagnostic = evaluation.diagnostic,
+				diagnostic = evaluation,
 				blockedProgress = progressOf(anchor.stance),
 			)
 		)
-		val stop = gated.stopFrame ?: return null
-		if (gated.failed) return null
-		return gated.rollout.frames.take(stop + 1)
+		return gated.rollout.frames.takeIf { gated.stopFrame != null && !gated.failed }
 	}
 
 	private companion object {

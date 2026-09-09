@@ -5,12 +5,6 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.longs.LongSets
 
-/**
- * Lazily materialised adjacency over packed long nodes. Adjacency lists are [EdgeList]s
- * in insertion order (the search iterates them and tie-breaks on that order; see
- * docs/decisions/determinism.md). Providers write into an [EdgeSink]; non-finite costs are
- * validated and dropped, so the stored graph only ever holds finite edges.
- */
 class LongLazyGraph(
 	private val successorProvider: LongEdgeProvider,
 	private val predecessorProvider: LongEdgeProvider = successorProvider,
@@ -28,13 +22,11 @@ class LongLazyGraph(
 	val size: Int
 		get() = knownNodes.size
 
-	/** Live, read-only view; materialises the node's successors first. */
 	fun successors(node: Long): EdgeList {
 		ensureSuccessors(node)
 		return knownSuccessors(node)
 	}
 
-	/** Live, read-only view; materialises the node's predecessors first. */
 	fun predecessors(node: Long): EdgeList {
 		ensurePredecessors(node)
 		return knownPredecessors(node)
@@ -43,7 +35,6 @@ class LongLazyGraph(
 	fun knownSuccessors(node: Long): EdgeList = successorEdges.get(node) ?: EdgeList.EMPTY
 	fun knownPredecessors(node: Long): EdgeList = predecessorEdges.get(node) ?: EdgeList.EMPTY
 
-	/** A fresh list from the provider with non-finite costs dropped; the graph is untouched. */
 	fun generateSuccessors(node: Long): EdgeList {
 		val out = EdgeList()
 		successorProvider.edges(node, out)

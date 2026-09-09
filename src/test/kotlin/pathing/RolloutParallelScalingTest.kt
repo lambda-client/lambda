@@ -9,8 +9,8 @@ import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.actions.LaunchTrigger
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.SegmentFollowerProgram
-import com.lambda.pathing.search.TrajectoryRolloutEngine
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics

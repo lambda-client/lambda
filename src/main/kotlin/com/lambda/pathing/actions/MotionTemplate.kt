@@ -32,12 +32,6 @@ class MotionTemplate internal constructor(
 		val modes: List<LaunchMode> = LaunchMode.entries,
 		val bounceDrop: Int? = null,
 
-		/**
-		 * Dynamic admission on the REAL rise (stance rise corrected by launch and landing
-		 * surface offsets), judged where the surfaces are known: a "rise 1" onto a bottom
-		 * trapdoor is a 0.19 ascent, onto a full block a true block of height with a
-		 * shorter reach. Null admits everything. See docs/decisions/movement-tuning.md.
-		 */
 		val riseAdmission: ((Double) -> Boolean)? = null,
 	)
 
@@ -134,11 +128,6 @@ class MotionTemplate internal constructor(
 		)
 	}
 
-	/**
-	 * Can a body at rest on [origin] reach an entry speed this arc accepts? Its run-up is
-	 * the launch cell itself plus one cell behind when that cell is a stance; the solver
-	 * is asked for any offset and mode within the speed that run-up yields.
-	 */
 	private fun standingStartViable(
 		view: CoarseVoxelView,
 		origin: Stance,
@@ -154,7 +143,7 @@ class MotionTemplate internal constructor(
 		val runUp = IN_CELL_RUN_UP + if (behind) 1.0 else 0.0
 		fun reach(sprint: Boolean): Double =
 			profile.runUpSpeed(0.0, profile.groundRunUpTicks(0.0, runUp, sprint, STANDING_RUN_UP_TICKS), sprint)
-		// The probe's own solution already fits when its slowest feasible entry is within reach.
+
 		if (solution.speed - solution.speedSlack <= reach(solution.mode.sprint)) return true
 		return LaunchSolver.best(
 			origin, target(origin), profile, spec.modes,
@@ -188,7 +177,7 @@ class MotionTemplate internal constructor(
 	}
 
 	private companion object {
-		/** Run-up a body at rest has inside its own launch cell, in blocks. */
+
 		const val IN_CELL_RUN_UP = 0.7
 
 		const val STANDING_RUN_UP_TICKS = 24

@@ -1,5 +1,8 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.TrajectoryRollout
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.coarse.CoarseRoutePlan
@@ -28,10 +31,6 @@ internal class AttemptAccumulator {
 	}
 }
 
-/**
- * What the search had spent, unlocked and reached when it stopped. Recorded on every exit
- * so two sessions at the same goal can be compared field by field. See docs/decisions/session-loop.md.
- */
 data class SearchExhaustion(
 	val exit: String,
 	val expansions: Int,
@@ -133,27 +132,18 @@ sealed interface MotionPlanResult {
 		val spliceFrames: List<Int> = emptyList(),
 		val launchMarginFrames: Int = 0,
 
-		/** The decisions this tape was compiled from; see [PlanSegment]. */
 		val planSegments: List<PlanSegment> = emptyList(),
 
-		/**
-		 * This tape's estimated arrival and the running tape's, computed in the same instant
-		 * against the same guide field, plus the running publication compared against. Guide
-		 * values drift, so only same-instant pairs are comparable. See docs/decisions/publication-protocol.md.
-		 */
 		val arrivalTicksEstimate: Double = Double.NaN,
 		val comparedRunningArrivalTicks: Double = Double.NaN,
 		val comparedRunningSequence: Long = -1,
 
-		/** Frames per movement kind, for comparison against the route's admissible [CoarseRoutePlan.lowerBoundTicks]. */
 		val segments: List<TapeSegment> = emptyList(),
 
-		/** Where this tape passes the walk-through waypoints of a compound route, in order. */
 		val legTouches: List<LegTouch> = emptyList(),
 	) : MotionPlanResult {
 		val lowerBoundTicks: Double get() = sourceRoute.lowerBoundTicks
 
-		/** Frames actually spent per frame the route could not have avoided. */
 		val excessRatio: Double
 			get() = if (lowerBoundTicks > 0.0) rollout.frames.size / lowerBoundTicks else Double.NaN
 

@@ -1,20 +1,3 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.physics.UnsupportedPhysics
@@ -38,14 +21,11 @@ data class SnapshotBlockPhysics(
 	val collisionClass: CollisionClass =
 		if (unsupportedPhysics != null) CollisionClass.FULL else CollisionClass.of(collisionShape)
 
-	// Snapshot records are immutable and interned by block state. Decompose once, not
-	// once per supporting-block query and not once per translated world position.
 	private val collisionBoxes = collisionShape.boundingBoxes
 
 	internal fun intersectsCollisionBox(query: Box, x: Int, y: Int, z: Int): Boolean =
 		collisionBoxes.any { local ->
-			// Translate the shape bounds, as VoxelShape.offset does. Translating the
-			// query backwards instead changes rounding near world-border coordinates.
+
 			query.minX < local.maxX + x && query.maxX > local.minX + x &&
 					query.minY < local.maxY + y && query.maxY > local.minY + y &&
 					query.minZ < local.maxZ + z && query.maxZ > local.minZ + z
@@ -70,9 +50,7 @@ data class SnapshotBlockPhysics(
 			slipperiness = slipperiness,
 			velocityMultiplier = velocityMultiplier,
 			jumpVelocityMultiplier = jumpVelocityMultiplier,
-			// Coarse-bouncy only at full reflection: the bounce solver flies factor 1.0,
-			// so a bed bounces in the SIMULATOR but mints no bounce edges.
-			// See docs/decisions/snapshot-capture.md.
+
 			coarseVoxel = BlockPhysicsCapture.coarseVoxelOf(shape, bouncy = bounceFactor >= 1.0),
 			fenceLike = fenceLike,
 			bounceFactor = bounceFactor,

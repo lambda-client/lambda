@@ -14,11 +14,6 @@ data class SimpleMoveOptions(
 
 	val allowOffAxisJumps: Boolean = true,
 
-	/**
-	 * Offer descending jump templates beyond the flat standing reach (air gap 4.0 at half
-	 * a block of real drop, 4.24 at a full block). Off by default: the wider fan costs
-	 * stalls. See docs/decisions/movement-tuning.md (deep-drop jumps).
-	 */
 	val allowDeepDropJumps: Boolean = false,
 
 	val allowSlimeBounces: Boolean = false,

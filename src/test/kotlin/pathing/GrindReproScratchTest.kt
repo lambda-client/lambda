@@ -8,7 +8,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.search.SearchProbe
-import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import java.nio.file.Path
 import kotlin.test.Test
 

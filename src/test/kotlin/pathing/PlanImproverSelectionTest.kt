@@ -11,7 +11,7 @@ import com.lambda.pathing.search.AnchorRollout
 import com.lambda.pathing.search.FinishPlanner
 import com.lambda.pathing.search.Outcome
 import com.lambda.pathing.search.PlanImprover
-import com.lambda.pathing.search.SimulatedTrajectoryFrame
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.search.Solution
 import com.lambda.pathing.search.ValueAnchor
 import io.mockk.every

@@ -8,7 +8,6 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 
-/** [CaptureSource] over the live client world; one [BlockPhysicsInterner] per source. */
 class MinecraftCaptureSource(
 	private val world: World,
 	private val player: ClientPlayerEntity,

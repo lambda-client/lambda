@@ -5,11 +5,6 @@ import com.lambda.pathing.core.PathingSection
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-/**
- * The world's revision counter and the per-section / per-chunk change record behind it.
- * Writers (capture, block and chunk events) run on the client thread; [changedSince],
- * [awaitEvents] and [drain] on the planner thread. All state is guarded by [lock].
- */
 class RevisionLog(val lock: ReentrantLock = ReentrantLock()) {
 	private val changed = lock.newCondition()
 
@@ -23,14 +18,12 @@ class RevisionLog(val lock: ReentrantLock = ReentrantLock()) {
 
 	val revision: Long get() = lock.withLock { revisionCounter }
 
-	/** A section was captured (or re-captured): bumps the revision without recording a mutation. */
 	fun recordCaptured(section: PathingSection) = lock.withLock {
 		revisionCounter++
 		pendingSections += section
 		changed.signalAll()
 	}
 
-	/** A block inside [section] changed. */
 	fun recordMutation(section: PathingSection) = lock.withLock {
 		val next = ++revisionCounter
 		sectionRevisions[section] = next
@@ -39,7 +32,6 @@ class RevisionLog(val lock: ReentrantLock = ReentrantLock()) {
 		changed.signalAll()
 	}
 
-	/** A chunk with captured content was (re)loaded or unloaded. */
 	fun recordChunkChanged(chunk: PathingChunk) = lock.withLock {
 		val next = ++revisionCounter
 		chunkRevisions[chunk] = next
@@ -47,7 +39,6 @@ class RevisionLog(val lock: ReentrantLock = ReentrantLock()) {
 		changed.signalAll()
 	}
 
-	/** Wakes waiters without changing the revision. */
 	fun signal() = lock.withLock { changed.signalAll() }
 
 	fun changedSince(
@@ -80,7 +71,6 @@ class RevisionLog(val lock: ReentrantLock = ReentrantLock()) {
 		changed.signalAll()
 	}
 
-	/** Hands the accumulated changes to the planner and clears them. */
 	fun drain(): WorldEventBatch = lock.withLock {
 		val batch = WorldEventBatch(
 			revisionCounter, HashSet(pendingSections), HashSet(pendingChunks), HashSet(pendingMutations),

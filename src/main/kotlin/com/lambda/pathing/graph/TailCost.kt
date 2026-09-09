@@ -28,7 +28,6 @@ data class CoarseRouteCandidate<N>(
 	val routeVersion: Long,
 )
 
-/** A greedy descent over packed long nodes; see [LongDStarLite.computeRouteCandidate]. */
 data class LongRouteCandidate(
 	val nodes: it.unimi.dsi.fastutil.longs.LongArrayList,
 	val ticks: Double,

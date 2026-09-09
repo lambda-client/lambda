@@ -1,27 +1,9 @@
-/*
- * Copyright 2026 Lambda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package com.lambda.pathing.physics
 
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
-import net.minecraft.client.input.Input
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.MathHelper
@@ -32,22 +14,6 @@ import kotlin.math.acos
 import kotlin.math.sign
 import kotlin.math.sqrt
 
-/**
- * Reusable Minecraft-style movement simulator based on the client's own movement code.
- *
- * World reads and player constants are injected ([com.lambda.pathing.physics.SimulationEnvironment],
- * [PlayerPhysicsProfile]); the live environment is client-thread only, the snapshot one
- * is immutable. Live-entity extras (entity collisions and the sneak ledge clamp) exist
- * only when a [livePlayer] is attached.
- *
- * Intentionally unsupported:
- * - fluids
- * - ladders / vines
- * - webs
- * - elytra
- * - exact sneak ledge clamping
- * - item-specific use-speed components
- */
 class MovementSimulator(
 	val profile: PlayerPhysicsProfile,
 	private val environment: SimulationEnvironment,
@@ -94,7 +60,6 @@ class MovementSimulator(
 			hadForwardMovement = hadForwardMovement,
 		)
 
-	/** Eye height for the current pose, for callers that render or aim from the simulated body. */
 	val eyeHeight: Double get() = poseEyeHeight()
 
 	fun reset(state: MovementSimulationState) {
@@ -118,7 +83,6 @@ class MovementSimulator(
 		forceUpdateSupportingBlockPos = state.supportingBlockPos == null
 	}
 
-	/** One vanilla movement tick; returns the resulting state. @see ClientPlayerEntity.tickMovement */
 	fun tickMovement(input: MovementSimulationInput): MovementSimulationState {
 		step(input)
 		return state
@@ -134,11 +98,6 @@ class MovementSimulator(
 		}
 	}
 
-	/**
-	 * The planning-path step: advances by one tick and returns the resulting state, or
-	 * restores [before] (which must equal the current state) and returns null after
-	 * recording the failure in [failure]. Allocates the one returned state and nothing else.
-	 */
 	fun stepFrom(before: MovementSimulationState, input: MovementSimulationInput): MovementSimulationState? {
 		lastFailure = null
 		return try {
@@ -151,7 +110,6 @@ class MovementSimulator(
 		}
 	}
 
-	/** The failure of the last [stepFrom] that returned null. */
 	var lastFailure: SimulationEnvironmentException? = null
 		private set
 
@@ -232,9 +190,6 @@ class MovementSimulator(
 		updatePose()
 	}
 
-	/**
-	 * @see net.minecraft.entity.player.PlayerEntity.updatePose
-	 */
 	private fun updatePose() {
 		val expected = if (isSneaking) profile.crouchHeight else profile.height
 		if (expected == poseHeight) return
@@ -247,7 +202,6 @@ class MovementSimulator(
 		)
 	}
 
-	/** @see net.minecraft.entity.player.PlayerEntity.canChangeIntoPose */
 	private fun poseBox(height: Double): Box {
 		val halfWidth = boundingBox.lengthX * 0.5
 		return Box(
@@ -275,7 +229,6 @@ class MovementSimulator(
 		return normalized.multiply(minOf(length * directionalMultiplier, 1.0F))
 	}
 
-	/** @see net.minecraft.entity.LivingEntity.travel */
 	private fun travel(
 		forwardSpeed: Double,
 		strafeSpeed: Double,
@@ -307,12 +260,8 @@ class MovementSimulator(
 		velocity *= Vec3d(friction, 0.98F.toDouble(), friction)
 	}
 
-	/** @see net.minecraft.entity.LivingEntity.isClimbing */
 	private fun isClimbing(): Boolean = environment.isClimbable(position.flooredBlockPos)
 
-	/**
-	 * @see net.minecraft.entity.LivingEntity.applyClimbingSpeed
-	 */
 	private fun applyClimbingSpeed(motion: Vec3d): Vec3d {
 		val holding = isSneaking && motion.y < 0.0
 		return Vec3d(
@@ -322,7 +271,6 @@ class MovementSimulator(
 		)
 	}
 
-	/** @see net.minecraft.entity.LivingEntity.applyMovementInput */
 	private fun applyMovementInput(travelVec: Vec3d, slipperiness: Double) {
 		val movementSpeed = run {
 			val slipperinessCubed = slipperiness * slipperiness * slipperiness
@@ -335,11 +283,9 @@ class MovementSimulator(
 			if (onGround) groundSpeed else airSpeed
 		}.toFloat()
 
-		/** @see net.minecraft.entity.Entity.updateVelocity */
 		velocity += movementInputToVelocity(travelVec, movementSpeed, rotation.yawF)
 	}
 
-	/** @see net.minecraft.entity.Entity.move */
 	private fun move(movementInput: Vec3d) {
 		val requested = adjustMovementForSneaking(velocity)
 		val movement = adjustMovementForCollisions(requested)
@@ -381,10 +327,6 @@ class MovementSimulator(
 		velocityAffectingPos = posWithYOffset(VELOCITY_AFFECTING_Y_OFFSET)
 	}
 
-	/**
-	 * @see net.minecraft.entity.Entity.move
-	 * @see net.minecraft.block.SlimeBlock.onEntityLand
-	 */
 	private fun onEntityLand() {
 		val bounce = if (isSneaking) 0.0 else environment.bounceFactor(posWithYOffset(LANDING_Y_OFFSET))
 		velocity = if (bounce > 0.0 && velocity.y < 0.0) {
@@ -394,9 +336,6 @@ class MovementSimulator(
 		}
 	}
 
-	/**
-	 * @see net.minecraft.block.SlimeBlock.onSteppedOn
-	 */
 	private fun tickBlockCollision() {
 		if (!onGround) return
 		val vertical = abs(velocity.y)
@@ -407,7 +346,6 @@ class MovementSimulator(
 		velocity = Vec3d(velocity.x * drag, velocity.y, velocity.z * drag)
 	}
 
-	/** @see ClientPlayerEntity.hasCollidedSoftly */
 	private fun hasCollidedSoftly(input: Vec3d, adjustedMovement: Vec3d): Boolean {
 		val yawRadians = rotation.yawF * (Math.PI / 180.0).toFloat()
 		val sin = MathHelper.sin(yawRadians.toDouble()).toDouble()
@@ -425,7 +363,6 @@ class MovementSimulator(
 		return acos(cosine) < SOFT_COLLISION_MAX_ANGLE_RADIANS
 	}
 
-	/** @see net.minecraft.entity.Entity.updateSupportingBlockPos */
 	private fun updateSupportingBlockPos(onGround: Boolean, movement: Vec3d?) {
 		if (!onGround) {
 			forceUpdateSupportingBlockPos = false
@@ -448,9 +385,6 @@ class MovementSimulator(
 		forceUpdateSupportingBlockPos = found == null
 	}
 
-	/**
-	 * @see net.minecraft.entity.Entity.getPosWithYOffset
-	 */
 	private fun posWithYOffset(offset: Double): BlockPos {
 		val supporting = supportingBlockPos
 			?: return (position + DOWN * offset).flooredBlockPos
@@ -461,42 +395,33 @@ class MovementSimulator(
 	}
 
 	private companion object {
-		/** @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking */
+
 		const val LEDGE_CLIP_STEP = 0.05
 
-		/** @see net.minecraft.entity.player.PlayerEntity.isSpaceAroundPlayerEmpty */
 		const val LEDGE_CLIP_EPSILON = 1.0E-7
 
-		/** @see net.minecraft.entity.player.PlayerEntity.canChangeIntoPose */
 		const val POSE_FIT_EPSILON = 1.0E-7
 
-		/** @see net.minecraft.entity.Entity.getLandingPos */
 		const val LANDING_Y_OFFSET = 0.2
 
-		/** @see net.minecraft.block.SlimeBlock.onSteppedOn */
 		const val STEPPING_DRAG_MAX_VERTICAL = 0.1
 		const val STEPPING_DRAG_BASE = 0.4
 		const val STEPPING_DRAG_VERTICAL_SCALE = 0.2
 
-		/** @see net.minecraft.entity.LivingEntity.applyClimbingSpeed */
 		const val CLIMB_HORIZONTAL_CAP = 0.15
 
 		const val CLIMB_FALL_CAP = 0.15
 
-		/** Re-asserted each tick a climbing body is pressed into its hold. */
 		const val CLIMB_RISE_SPEED = 0.2
 
-		/** @see net.minecraft.entity.Entity.getVelocityAffectingPos */
 		const val VELOCITY_AFFECTING_Y_OFFSET = 0.500001
 
-		/** @see Input.hasForwardMovement */
 		const val FORWARD_MOVEMENT_EPSILON = 1.0E-5F
 
 		private const val SOFT_COLLISION_MIN_SQUARED = 1.0E-5F.toDouble()
 		private const val SOFT_COLLISION_MAX_ANGLE_RADIANS = 0.13962634F.toDouble()
 	}
 
-	/** @see net.minecraft.entity.LivingEntity.jump */
 	private fun jump() {
 		val multiplier = run {
 			val f = environment.jumpVelocityMultiplier(position.flooredBlockPos)
@@ -519,7 +444,6 @@ class MovementSimulator(
 		}
 	}
 
-	/** @see net.minecraft.entity.Entity.adjustMovementForCollisions */
 	private fun adjustMovementForCollisions(movement: Vec3d): Vec3d {
 		if (movement.lengthSquared() == 0.0) {
 			return movement
@@ -532,9 +456,6 @@ class MovementSimulator(
 		)
 	}
 
-	/**
-	 * @see net.minecraft.entity.player.PlayerEntity.adjustMovementForSneaking
-	 */
 	private fun adjustMovementForSneaking(movement: Vec3d): Vec3d {
 		if (!isSneaking || !onGround || movement.y > 0.0) return movement
 
@@ -552,9 +473,6 @@ class MovementSimulator(
 		return if (dx == movement.x && dz == movement.z) movement else Vec3d(dx, movement.y, dz)
 	}
 
-	/**
-	 * @see net.minecraft.entity.player.PlayerEntity.isSpaceAroundPlayerEmpty
-	 */
 	private fun isSpaceUnderFeetEmpty(offsetX: Double, offsetZ: Double, stepHeight: Double): Boolean =
 		environment.isSpaceEmpty(
 			Box(
@@ -590,4 +508,3 @@ class MovementSimulator(
 		)
 	}
 }
-

@@ -1,5 +1,6 @@
 package com.lambda.pathing.actions.families.jump
 
+import com.lambda.pathing.actions.MAX_LAUNCH_FRAME
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.TrajectoryDecision
@@ -10,13 +11,11 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import kotlin.math.hypot
 
-/** Solved launches for a jump edge, and the run-up variants offered when none is reachable as-is. */
 internal object JumpDecisions {
 
 	fun solutionsFor(context: DecisionContext): List<LaunchSolution> {
 		val onward = onwardEntryWindow(context)
-		// `edge.launch` is solved once when the graph is built and knows nothing about
-		// what follows, so where an onward gap is known it is re-solved rather than reused.
+
 		val ideal = onward?.let { window ->
 			LaunchSolver.best(
 				context.edge.from, context.edge.to,
@@ -31,10 +30,7 @@ internal object JumpDecisions {
 			preferredEntrySpeed = { context.body.speed },
 			exitSpeedWindow = onward,
 		)
-		// A lateral offset on the certified coarse edge is geometry, not entry-speed
-		// policy: the centre line is blocked by a partial shape for EVERY solution of
-		// this edge, so re-solved solutions inherit the dodge the probe found. The
-		// rollout still certifies the shifted flight.
+
 		val dodge = context.edge.launch?.lateralOffset ?: 0.0
 		return listOfNotNull(ideal, asIs).map { solution ->
 			if (dodge != 0.0 && solution.lateralOffset == 0.0) solution.copy(lateralOffset = dodge)
@@ -42,11 +38,6 @@ internal object JumpDecisions {
 		}
 	}
 
-	/**
-	 * Entry speeds the gap after this one can accept, or null when the onward step is a
-	 * walk (the body brakes on the ground, so no window applies). This launch's exit
-	 * speed becomes that gap's entry speed with a single block in between.
-	 */
 	private fun onwardEntryWindow(context: DecisionContext): ClosedFloatingPointRange<Double>? {
 		val steering = context.steering ?: return null
 		val onward = steering
@@ -63,9 +54,7 @@ internal object JumpDecisions {
 		if (solutions.isEmpty()) return null
 		val entry = solutions.minOf { it.speed - it.speedSlack }..
 				solutions.maxOf { it.speed + it.speedSlack }
-		// Pulled back through the pad: the exit speed need not BE an entry the next gap
-		// accepts, only one the body can coast into during its ticks on the pad. See
-		// docs/decisions/movement-tuning.md (exit-speed window through the pad).
+
 		return context.ballistics.groundReachable(entry, PAD_GROUND_TICKS, sprint = true)
 	}
 
@@ -81,7 +70,6 @@ internal object JumpDecisions {
 		)
 	}
 
-	/** The body's speed along the edge, clamped at zero: what a run-up starts from. */
 	fun closingSpeed(context: DecisionContext): Double {
 		val edge = context.edge
 		val from = edge.from.center()
@@ -110,7 +98,7 @@ internal object JumpDecisions {
 			val available = (solution.launchOffset - along).coerceAtLeast(0.0)
 			val ticks = context.ballistics.groundRunUpTicks(
 				entrySpeed = closing, distance = available,
-				sprint = solution.sprint, maxTicks = JumpLaunchDelays.MAX_LAUNCH_FRAME,
+				sprint = solution.sprint, maxTicks = MAX_LAUNCH_FRAME,
 			)
 			context.ballistics.runUpSpeed(closing, ticks, solution.sprint) >=
 					solution.speed - solution.speedSlack * 0.5
@@ -131,7 +119,6 @@ internal object JumpDecisions {
 				continue
 			}
 
-			// entry beyond what ground running reaches: build it with a preparatory hop
 			val mode = if (solution.sprint) LaunchMode.SPRINT_JUMP else LaunchMode.WALK_JUMP
 			val cruise = ballistics.cruiseSpeed(solution.sprint)
 			val hop = ballistics.fly(mode, cruise, 0.0) ?: continue
@@ -188,12 +175,7 @@ internal object JumpDecisions {
 
 	private const val MAX_RUN_UP_VARIANTS = 4
 
-	/** Steering nodes fetched to find the gap after this one. */
 	private const val ONWARD_LOOKAHEAD = 2
 
-	/**
-	 * Ticks the body is assumed to stand on a one-block pad between two gaps; the
-	 * generous end on purpose, since the rollout still certifies what the solver admits.
-	 */
 	private const val PAD_GROUND_TICKS = 3
 }

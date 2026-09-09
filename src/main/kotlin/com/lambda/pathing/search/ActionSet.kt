@@ -13,46 +13,28 @@ import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 
-/**
- * The proposable successor set: how many coarse [steps] are offered from an anchor and how
- * many ticks off the best line ([marginTicks]) one may be. The excess is charged in the
- * frontier order, not filtered; see [ActionSet.actions].
- */
-internal data class CorridorLevel(
-	val steps: Int,
-	val marginTicks: Double,
-)
-
 internal class ActionSet(
 	private val catalog: MovementCatalog,
 	private val field: ValueField,
 	private val config: MotionConstraints,
 	private val searchConfig: ValueFieldSearchConfig,
-	private val corridor: () -> CorridorLevel,
-	/** Offer momentum proposals (gait hops, skips): the improver's wider vocabulary, never the search's. */
+
 	private val momentum: Boolean = false,
 ) {
-	/**
-	 * The movements offered at [anchor], cheapest first. Each decision's price is the
-	 * owning movement's plus the detour excess (ticks its coarse step is worse than the best
-	 * successor); [temperature] then withholds what is not yet affordable. Sorted by price
-	 * so [Frontier] can re-rank an anchor as its cheap options are used up.
-	 */
+
 	fun actions(anchor: ValueAnchor, temperature: Temperature): List<PricedDecision> {
 		if (anchor.parent != null && field.guide(anchor.stance) <= searchConfig.finishValueTicks) {
 			return emptyList()
 		}
 
-		val level = corridor()
 		val steps = field.steps(
-			anchor.stance, level.steps, level.marginTicks,
+			anchor.stance, CORRIDOR_STEPS, CORRIDOR_MARGIN_TICKS,
 			anchor.heading(),
 		)
 		if (steps.isEmpty()) return emptyList()
 
 		val costOf = HashMap<Stance, Double>(steps.size)
-		// Blended guide, not the edge's arrival class: the detour ranking wants the safe
-		// bound. See docs/decisions/beam.md.
+
 		steps.forEach { costOf[it.to] = it.lowerBoundTicks + field.guide(it.to) }
 		val bestCost = costOf.values.min()
 		val byDestination = steps.associateBy { it.to }
@@ -98,46 +80,42 @@ internal class ActionSet(
 		}
 
 		val launchSteps =
-			if (level.marginTicks > searchConfig.branchMarginTicks) level.steps else LAUNCH_STEPS
+			if (CORRIDOR_MARGIN_TICKS > searchConfig.branchMarginTicks) CORRIDOR_STEPS else LAUNCH_STEPS
 		for (step in steps.take(launchSteps)) {
-			movementDecisions(anchor, step).forEach(::add)
+			movementDecisions(anchor, step, ::add)
 		}
 
 		if (priced.isEmpty()) return emptyList()
 
-		// At equal surcharge an edge-spanning launch sorts ahead of a single-edge decision.
-		// Ordering only, not cost; see docs/decisions/beam.md.
 		fun spansEdges(decision: TrajectoryDecision): Boolean =
 			decision.spansEdges && decision.step !in costOf
 
-		val ordered = priced.sortedWith(
+		priced.sortWith(
 			compareBy({ temperature.surcharge(it.price) }, { if (spansEdges(it.decision)) 0 else 1 }),
 		)
-		val affordable = ordered.filter { temperature.affords(it.price) }
+		val affordable = priced.filter { temperature.affords(it.price) }
 		if (affordable.isNotEmpty()) return affordable
 
-		// Nothing affordable yet: offer the whole cheapest tier, not a single decision.
-		// See docs/decisions/annealing.md.
-		val floor = ordered.minOf { it.price.difficulty }
-		return ordered.filter { it.price.difficulty <= floor + DIFFICULTY_TIER }
+		val floor = priced.minOf { it.price.difficulty }
+		return priced.filter { it.price.difficulty <= floor + DIFFICULTY_TIER }
 	}
 
-	private fun movementDecisions(anchor: ValueAnchor, edge: CoarseEdge): List<TrajectoryDecision> {
+	private inline fun movementDecisions(anchor: ValueAnchor, edge: CoarseEdge, accept: (TrajectoryDecision) -> Unit) {
 		val owner = catalog[edge.movement]
 		val context = DecisionContext(anchor, edge, config, field.view, steering = field)
-		return buildList {
-			if (owner != null && owner.id != MovementId.WALK) addAll(owner.decisions(context))
-			catalog.movements.forEach { movement ->
-				if (movement !== owner && movement.offersFor(edge)) addAll(movement.decisions(context))
-			}
+		if (owner != null && owner.id != MovementId.WALK) owner.decisions(context).forEach(accept)
+		for (movement in catalog.movements) {
+			if (movement !== owner && movement.offersFor(edge)) movement.decisions(context).forEach(accept)
 		}
 	}
 
 	private companion object {
-		/** Coarse steps whose owner movements are asked for decisions at the normal margin. */
+
+		private const val CORRIDOR_STEPS = 3
+		private const val CORRIDOR_MARGIN_TICKS = 4.0
+
 		private const val LAUNCH_STEPS = 2
 
-		/** Width of the "equally hard" band used when nothing at all is affordable. */
 		private const val DIFFICULTY_TIER = 0.1
 	}
 }

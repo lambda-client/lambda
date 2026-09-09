@@ -1,6 +1,6 @@
 package com.lambda.pathing.actions.families
 
-import com.lambda.pathing.actions.BounceProgram
+import com.lambda.pathing.actions.control.BounceProgram
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
@@ -30,9 +30,6 @@ object SlimeBounceMovement : Movement {
 
 		for (drop in MIN_DROP..options.maxBounceDrop) {
 
-			// Physics gates the rise, not the template: the window is null wherever
-			// no launch style can deliver the landing. Jump launches reach a block
-			// below the lip; walking off never lands closer than two below it.
 			for (rise in -(drop - 1)..MAX_RISE) {
 				val window = reachWindow(profile, drop, rise) ?: continue
 
@@ -57,10 +54,6 @@ object SlimeBounceMovement : Movement {
 		val height = rise.toDouble()
 		val offset = BounceSolver.LAUNCH_OFFSET
 
-		// The solver tries every launch style, so the offer window spans them all: each
-		// jump and walk-off line contributes its floor (the GENTLEST launch: standing,
-		// forward released) and its ceiling (standing sprint-hold plus full momentum).
-		// A rise only a jump can deliver has no walk-off line to contribute.
 		var floor = Double.POSITIVE_INFINITY
 		var ceiling = Double.NEGATIVE_INFINITY
 		for (jump in listOf(true, false)) {
@@ -137,11 +130,7 @@ object SlimeBounceMovement : Movement {
 		if (!context.airborne || !context.observed.onGround) return false
 		if (context.observed.velocity.y > SETTLED_VERTICAL_SPEED) return false
 		val step = context.decision.step ?: return true
-		// The landing window is a full block wide by design and the launch carries a
-		// few tenths of execution spread, so the body may settle the cell past or
-		// beside the templated landing. Any settle at the landing HEIGHT within one
-		// cell is this bounce arriving; an undershoot into the pit settles lower and
-		// still fails.
+
 		return context.stance.y == step.y &&
 				abs(context.stance.x - step.x) <= 1 &&
 				abs(context.stance.z - step.z) <= 1
@@ -153,13 +142,7 @@ object SlimeBounceMovement : Movement {
 
 	private const val MAX_SPAN = 12
 
-	/**
-	 * The shallowest STANCE drop offered. Stance deltas are not physical heights (a real
-	 * 2.44 fall can read drop 2); the physics window and the probe judge each template,
-	 * this only bounds the fan. See docs/decisions/launch-solver.md (minimum stance drop).
-	 */
 	private const val MIN_DROP = 2
 
-	/** Landing level with the lip needs more rebound than any drop's reflection keeps. */
 	private const val MAX_RISE = 0
 }

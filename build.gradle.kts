@@ -283,6 +283,11 @@ tasks {
 }
 
 kotlin {
+    sourceSets {
+        named("test") { kotlin.srcDir("src/testSupport/kotlin") }
+        named("gametest") { kotlin.srcDir("src/testSupport/kotlin") }
+    }
+
     compilerOptions {
         freeCompilerArgs.addAll("-Xcontext-parameters", "-Xconsistent-data-class-copy-visibility", "-Xannotation-default-target=param-property")
     }

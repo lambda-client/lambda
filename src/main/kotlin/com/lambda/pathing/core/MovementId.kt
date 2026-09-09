@@ -16,7 +16,6 @@ value class MovementId(val key: String) {
 
 		val CLIMB = MovementId("climb")
 
-		/** A jump or fall whose landing is a grab into a climbable cell, not a floor. */
 		val LADDER_CATCH = MovementId("ladder_catch")
 
 		val BOUNCE = MovementId("bounce")

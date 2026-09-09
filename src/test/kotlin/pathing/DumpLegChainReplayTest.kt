@@ -8,7 +8,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.search.SearchExhaustion
 import com.lambda.pathing.search.SearchProbe
-import com.lambda.pathing.search.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.session.RouteResolution
@@ -74,7 +74,7 @@ class DumpLegChainReplayTest {
         val focus = System.getenv("PATHING_DUMP_FOCUS")?.split(',')?.map { it.trim().toInt() }?.let { (x, y, z) -> Stance(x, y, z) }
         val focusAttempts = ArrayList<String>()
         val probe = object : SearchProbe {
-            override fun attempt(rollout: com.lambda.pathing.search.TrajectoryRollout, certified: Boolean, diagnostic: TrajectoryDiagnostic?) {
+            override fun attempt(rollout: com.lambda.pathing.rollout.TrajectoryRollout, certified: Boolean, diagnostic: TrajectoryDiagnostic?) {
                 val s0 = rollout.initialState
                 if (focus == null || Stance.of(s0.position, s0.onGround) != focus || focusAttempts.size >= 6) return
                 val frames = rollout.frames

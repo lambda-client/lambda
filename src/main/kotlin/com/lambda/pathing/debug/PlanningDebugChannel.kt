@@ -5,11 +5,10 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.debug.PlanningDebugChannel.GRAPH_REFRESH_MILLIS
 import com.lambda.pathing.search.SearchStatsView
 import com.lambda.pathing.search.SearchTreeView
-import com.lambda.pathing.search.TrajectoryDiagnostic
-import com.lambda.pathing.search.TrajectoryRollout
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.world.CoarseVoxelView
 import net.minecraft.util.math.Vec3d
 
@@ -47,7 +46,8 @@ object PlanningDebugChannel {
 		val cost: Double,
 		val policy: Boolean,
 
-		val fromCost: Double,
+		@Suppress("unused")
+	val fromCost: Double,
 		val toCost: Double,
 		val movement: MovementId?,
 	)
@@ -86,22 +86,15 @@ object PlanningDebugChannel {
 	var stats: SearchStatsView? = null
 		private set
 
-	/** Set by the renderer: building the anchor tree walks every live anchor, so it opts in. */
 	@Volatile
 	var treeWanted: Boolean = false
 
-	/** Set by the renderer: the coarse graph is re-sampled during the walk only while it is drawn. */
 	@Volatile
 	var graphWanted: Boolean = false
 
 	@Volatile
 	private var lastGraphMillis = 0L
 
-	/**
-	 * Re-sample the coarse graph after the route was re-resolved, at most every
-	 * [GRAPH_REFRESH_MILLIS], and only while someone draws it. Sampling walks every stance
-	 * D* holds, so it is paced.
-	 */
 	fun refreshGraph(planner: CoarsePlanner, around: Vec3d) {
 		if (!active || !graphWanted) return
 		val now = System.currentTimeMillis()
@@ -110,11 +103,9 @@ object PlanningDebugChannel {
 		publishGraph(planner, around)
 	}
 
-	/** Set by the HUD each frame: it wants live search counters even with the world render off. */
 	@Volatile
 	var hudWanted: Boolean = false
 
-	/** The last completed search's exit report and the sync ledger that went with it. */
 	@Volatile
 	var lastExhaustion: com.lambda.pathing.search.SearchExhaustion? = null
 		private set

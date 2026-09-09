@@ -10,12 +10,6 @@ import java.util.*
 import kotlin.math.atan2
 import kotlin.math.floor
 
-/**
- * The beam's state abstraction: two anchors with the same key are the same body for the
- * purpose of deciding what happens next. Every axis of position and velocity is bucketed
- * coarsely enough that anchors actually collide; facing is one direction field (velocity
- * heading when moving, yaw when stopped). Bucket sizes: docs/decisions/beam.md.
- */
 private data class AnchorKey(
 	val stance: Stance,
 	val localX: Int,
@@ -42,7 +36,6 @@ internal class Frontier(
 ) {
 	var reachability: ReachabilityPolicy = ReachabilityPolicy { true }
 
-	/** Diagnostics only; admission outcomes are reported here. */
 	var probe: SearchProbe = SearchProbe.NONE
 
 	class OpenEntry(
@@ -51,19 +44,15 @@ internal class Frontier(
 		val anchor: ValueAnchor,
 		internal var sequence: Long = Long.MAX_VALUE,
 	) {
-		/** Revived from the starved reserve: expand it rather than re-starving it forever. */
+
 		internal var starveExempt = false
 	}
 
-	private val open = PriorityQueue<OpenEntry>(
+	private val open = PriorityQueue(
 		compareBy<OpenEntry>({ it.order }, { it.bound }, { it.anchor.elapsed }, { it.sequence })
 	)
 	private val parked = ArrayList<OpenEntry>()
 
-	/**
-	 * Fork-starved branches: not worth deepening (their subtree dies with a fork near the
-	 * cursor) but still visible to the commit pool, and revived when the open list drains.
-	 */
 	private val reserve = ArrayList<OpenEntry>()
 
 	private class BlockedAttempt(val anchor: ValueAnchor, val action: TrajectoryDecision)
@@ -82,15 +71,9 @@ internal class Frontier(
 	val openSize: Int get() = open.size
 	val blockedSize: Int get() = blocked.size
 
-	/**
-	 * Anchors refused admission because the body has already diverged from them. A high
-	 * count relative to a fresh session means the committed prefix, not the terrain, is
-	 * starving the search.
-	 */
 	var unreachableAdmissions = 0
 		private set
 
-	/** Beam outcomes per offered anchor; reported so an inert beam is visible. See docs/decisions/beam.md. */
 	var anchorsAdmitted = 0
 		private set
 	var beamDominated = 0
@@ -100,7 +83,6 @@ internal class Frontier(
 	var beamCapped = 0
 		private set
 
-
 	val beamBuckets: Int get() = buckets.size
 	val beamLargestBucket: Int get() = buckets.values.maxOfOrNull { it.size } ?: 0
 	val parkedSize: Int get() = parked.size
@@ -109,11 +91,6 @@ internal class Frontier(
 			maxOf(open.maxOfOrNull { it.anchor.elapsed } ?: 0, parked.maxOfOrNull { it.anchor.elapsed } ?: 0)
 	val openEntries: List<OpenEntry> get() = open.toList()
 
-	/**
-	 * The best-ordered live entry deeper than [floor], open list first (heap order) then
-	 * the reserve, without copying either. Ties go to the first met, exactly as
-	 * the former `(open + reserve).filter { .. }.minByOrNull { it.order }` broke them.
-	 */
 	fun bestLiveEntryDeeperThan(floor: Int): OpenEntry? {
 		var best: OpenEntry? = null
 		for (entry in open) {
@@ -140,10 +117,6 @@ internal class Frontier(
 		reserve += entry
 	}
 
-	/**
-	 * Revive the best-ordered live reserve entry -- one per drain, so the escape hatch
-	 * costs one rollout per drain. See docs/decisions/publication-protocol.md.
-	 */
 	fun reviveStarved(alive: (ValueAnchor) -> Boolean): Boolean {
 		while (reserve.isNotEmpty()) {
 			val best = reserve.minByOrNull { it.order } ?: return false
@@ -163,10 +136,6 @@ internal class Frontier(
 		enqueue(entryFor(anchor, guide))
 	}
 
-	/**
-	 * The guide the queue ranks by, conditioned on the anchor's own speed class. Pruning
-	 * never uses this; the blended minimum is the only safe lower bound.
-	 */
 	private fun orderGuide(anchor: ValueAnchor): Double =
 		field.guide(anchor.stance, SpeedClass.of(anchor.speed))
 
@@ -174,10 +143,6 @@ internal class Frontier(
 		enqueue(entry)
 	}
 
-	/**
-	 * Return an anchor to the queue after an attempt, re-scored at the price of its
-	 * cheapest remaining movement (carried in `pendingSurcharge`). See docs/decisions/beam.md.
-	 */
 	fun reoffer(anchor: ValueAnchor) {
 		val guide = orderGuide(anchor).takeIf { it.isFinite() } ?: return
 		enqueue(entryFor(anchor, guide))
@@ -192,16 +157,11 @@ internal class Frontier(
 		buckets.clear()
 	}
 
-	/**
-	 * A leg handover: only [root]'s lineage survives, parked branches included. The old
-	 * leg's frontier was ranked against a field that no longer applies.
-	 */
 	fun retainLineage(root: ValueAnchor) {
 		retainDescendants(root)
 		parked.retainAll { it.anchor.descendsFrom(root) }
 	}
 
-	/** Forget every anchor below [root] (not [root] itself): their rollouts read a world that is gone. */
 	fun dropDescendants(root: ValueAnchor) {
 		fun stale(anchor: ValueAnchor) = anchor !== root && anchor.descendsFrom(root)
 		val kept = open.filterTo(ArrayList()) { !stale(it.anchor) }
@@ -274,8 +234,7 @@ internal class Frontier(
 
 		anchorsAdmitted++
 		val bucket = buckets.getOrPut(key) { ArrayList() }
-		// Beam domination: earlier, at least as fast, no more collisions or input switches.
-		// Measured alternatives (position-aware, off): docs/decisions/beam.md.
+
 		if (bucket.any { it.preferredForBeamOver(anchor) }) {
 			beamDominated++
 			return
@@ -294,8 +253,6 @@ internal class Frontier(
 		}
 		bucket += anchor
 
-		// Pruned against the incumbent's score including the anchor's own collision
-		// penalty; collisions only accumulate, so the bound stays admissible.
 		incumbentScore()?.let {
 			val bound = anchor.elapsed + guide +
 					Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
@@ -307,8 +264,6 @@ internal class Frontier(
 
 	fun progressOf(stance: Stance): Int = routeIndex[stance] ?: deepestProgress
 
-	// The surcharge rides on `order` only; `bound` must stay a true lower bound on arrival
-	// because it licenses finalizing an incumbent.
 	private fun entryFor(anchor: ValueAnchor, guide: Double) = OpenEntry(
 		order = anchor.elapsed + momentumAdjusted(anchor, guide) + anchor.pendingSurcharge,
 		bound = anchor.elapsed +
@@ -322,11 +277,6 @@ internal class Frontier(
 				collisionEvents <= other.collisionEvents &&
 				inputSwitches <= other.inputSwitches
 
-	/**
-	 * Bumped by every [rescore]: the field's guide values are frozen between rescores
-	 * (every invalidation is followed by one), so anything derived from them can be
-	 * cached on the anchor against this epoch.
-	 */
 	private var fieldEpoch = 0
 
 	private fun momentumAdjusted(anchor: ValueAnchor, guide: Double): Double {
@@ -348,23 +298,23 @@ internal class Frontier(
 		}
 		val credit = anchor.momentumCredit
 		if (credit.isNaN()) return guide
-		// The class-conditioned guide does not subsume this credit; see docs/decisions/beam.md.
+
 		return guide - credit + anchor.momentumTurnCost
 	}
 
-	private fun sector(degrees: Double, width: Double): Int =
-		floor(((degrees % 360.0) + 360.0) % 360.0 / width).toInt()
+	private fun sector(degrees: Double): Int =
+		floor(((degrees % 360.0) + 360.0) % 360.0 / DIRECTION_SECTOR_DEGREES).toInt()
 
 	private fun localBucket(coordinate: Double): Int =
 		floor((coordinate - floor(coordinate)) / POSITION_BUCKET_BLOCKS).toInt()
 
 	private fun keyOf(anchor: ValueAnchor): AnchorKey {
 		val state = anchor.state
-		// A moving body is characterised by where it is going, a stalled one by where it points.
+
 		val direction = if (anchor.speed > DIRECTION_FROM_HEADING_SPEED) {
-			sector(Math.toDegrees(atan2(state.velocity.z, state.velocity.x)), DIRECTION_SECTOR_DEGREES)
+			sector(Math.toDegrees(atan2(state.velocity.z, state.velocity.x)))
 		} else {
-			sector(state.rotation.yaw, DIRECTION_SECTOR_DEGREES)
+			sector(state.rotation.yaw)
 		}
 		return AnchorKey(
 			stance = anchor.stance,
@@ -396,16 +346,12 @@ internal class Frontier(
 
 		const val SPEED_DOMINANCE_SLACK = 0.01
 
-		/** Position bucket on every axis; half a block collapses slow climbs. See docs/decisions/beam.md. */
 		const val POSITION_BUCKET_BLOCKS = 0.25
 
-		/** One sector per 30 degrees. */
 		const val DIRECTION_SECTOR_DEGREES = 30.0
 
-		/** Below this speed the velocity heading is noise and facing decides the direction. */
 		const val DIRECTION_FROM_HEADING_SPEED = 0.02
 
-		/** Vertical velocity bucket: separates rising, hanging and falling. */
 		const val VERTICAL_SPEED_BUCKET = 0.15
 	}
 }

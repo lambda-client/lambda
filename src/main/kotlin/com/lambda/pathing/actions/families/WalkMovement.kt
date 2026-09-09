@@ -8,14 +8,14 @@ import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
-import com.lambda.pathing.actions.HeadingFollowerProgram
+import com.lambda.pathing.actions.control.HeadingFollowerProgram
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.ProposalContext
 import com.lambda.pathing.actions.Proposals
-import com.lambda.pathing.actions.PursuitTracker
-import com.lambda.pathing.actions.SegmentFollowerProgram
+import com.lambda.pathing.actions.control.PursuitTracker
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.StanceRules.CARDINALS
 import com.lambda.pathing.actions.StanceRules.DIAGONALS
 import com.lambda.pathing.actions.StanceRules.stanceConditions
@@ -106,18 +106,10 @@ object WalkMovement : Movement {
 		val walks = ArrayList<TrajectoryDecision>()
 		val launches = ArrayList<TrajectoryDecision>()
 
-		// Walking is offered on gap and fall edges on the chance the geometry is kinder
-		// than the template (priced, not pruned). It is not offered where the ground the
-		// walk needs does not exist: across a bounce pit, onto a ladder cell, up a climb,
-		// or from a body hanging on a ladder -- those burned thousands of rollouts per
-		// stance on the field parkour dump. See docs/decisions/movement-tuning.md.
 		val climbing = context.view.medium(body.stance.x, body.stance.y, body.stance.z) == Medium.CLIMBABLE
 		for (step in steps) {
 			if (!walkable(step)) continue
-			// From a ladder the one walk that works is the exit onto the block above: the
-			// body climbs out holding forward and steps off the ladder's top edge (the
-			// rollout treats that edge as transit). Level or downward walks off a ladder
-			// burned thousands of rollouts per cell and stay out.
+
 			if (climbing && !(step.movement == MovementId.STEP_UP && step.to.y > body.stance.y)) continue
 			walks += decisions(DecisionContext(body, step, context.constraints, context.view))
 		}
@@ -127,8 +119,6 @@ object WalkMovement : Movement {
 		val target = leading.to
 		val bearing = routeBearing(context, target)
 
-		// Both of these cost a steering-chain descent, and the loops below asked for them
-		// once per sprint mode and again inside the offset fan. Neither depends on gait.
 		val turning = turnsAhead(context, target)
 		val hazardous = body.hazardFrame != null
 		val fanned = hazardous || turning
@@ -183,21 +173,13 @@ object WalkMovement : Movement {
 		return Proposals(walks, launches)
 	}
 
-	/** Edges whose target a grounded walk or a free heading can physically reach. */
 	private fun walkable(edge: CoarseEdge): Boolean = when (edge.movement) {
 		MovementId.BOUNCE, MovementId.LADDER_CATCH, MovementId.CLIMB -> false
 		else -> true
 	}
 
-	/**
-	 * A steering heading (no [TrajectoryDecision.Heading.delayFrames]) is free; a launch
-	 * heading leaves the ground on a free bearing and is priced by whether anything landable
-	 * lies along it. Priced rather than pruned: see docs/decisions/movement-tuning.md
-	 * (launch headings).
-	 */
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
-		// Walking an edge the coarse graph classified as a gap or a fall is offered on the
-		// chance the geometry is kinder than the template, not because walking will do it.
+
 		val grounded = when (context.edge.movement) {
 			MovementId.WALK, MovementId.STEP_UP, MovementId.WALK_OFF -> DecisionPrice.FREE
 			else -> DecisionPrice(difficulty = GROUNDED_ON_AIR_EDGE_DIFFICULTY)
@@ -210,15 +192,6 @@ object WalkMovement : Movement {
 		)
 	}
 
-	/**
-	 * Whether a body launching along [bearing] has a landing the corridor would accept.
-	 *
-	 * Samples the ray out to the reach of a sprint jump, between the steering chain's
-	 * lowest node and one block of jump rise, and asks only whether *some* stance exists
-	 * there -- not which one, and not that the arc lands on it. Unknown terrain answers
-	 * yes: an unstreamed section has to stay affordable so the rollout can report it
-	 * blocked and world capture can fill it in.
-	 */
 	private fun landableAlong(context: DecisionContext, bearing: Double): Boolean {
 		val (unitX, unitZ) = headingOfBearing(bearing)
 		val origin = context.body.stance
@@ -300,12 +273,7 @@ object WalkMovement : Movement {
 		return context.stance != context.body.stance
 	}
 
-	/**
-	 * Follow styles offered per coarse step, as (lookAheadNodes, easeTurns). Kept as
-	 * three; see docs/decisions/movement-tuning.md (walk styles).
-	 */
 	private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
-
 
 	private val OFF_AXIS_LAUNCH_DELAYS = listOf(0, 2, 4)
 
@@ -322,20 +290,13 @@ object WalkMovement : Movement {
 
 	private const val BEARING_LOOKAHEAD = 2
 
-	/** Reach of a sprint jump, rounded up: past this a launch heading has no landing. */
 	private const val LAUNCH_REACH_BLOCKS = 4
 
 	private const val LAUNCH_MAX_RISE = 1
 
-	/**
-	 * A launch heading onto real ground: above the cold temperature on purpose, so the
-	 * thirty-odd per anchor cannot crowd out solved jumps. They are what a stall buys.
-	 */
 	private const val LAUNCH_HEADING_DIFFICULTY = 0.45
 
-	/** A launch heading with nothing to land on: kept, but last in line. */
 	private const val BLIND_HEADING_DIFFICULTY = 0.95
 
-	/** Keeping the feet down on an edge that needs air under them. */
 	private const val GROUNDED_ON_AIR_EDGE_DIFFICULTY = 0.2
 }

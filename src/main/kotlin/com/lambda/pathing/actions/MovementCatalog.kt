@@ -21,11 +21,6 @@ class MovementCatalog private constructor(
 
 	companion object {
 
-		/**
-		 * The default provider set. Not a registry to extend: [build] takes `movements`
-		 * as a plain list, and that parameter is the injection point for a different or
-		 * additional [Movement] (see MovementCatalogTest's TeleportMovement).
-		 */
 		val REGISTERED: List<Movement> = listOf(
 			WalkMovement,
 			JumpMovement,
@@ -35,7 +30,6 @@ class MovementCatalog private constructor(
 			SlimeBounceMovement,
 		)
 
-		/** Builds the catalog from [movements]; pass a different list to inject providers. */
 		fun build(
 			costs: CoarseMoveCosts,
 			options: SimpleMoveOptions = SimpleMoveOptions(),

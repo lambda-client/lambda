@@ -40,16 +40,8 @@ object ValueFieldAnchorSearch {
 
 		probe: SearchProbe = SearchProbe.NONE,
 
-		/** Receives the [SearchExhaustion] on every exit; a callback because the mod logger cannot initialise in unit tests. */
 		onExhaustion: ((SearchExhaustion) -> Unit)? = null,
 
-		/**
-		 * Rollouts per expansion batch. At 1 the search is the exact serial search; above
-		 * it, up to this many frontier decisions are selected in rank order, simulated
-		 * concurrently on [executor], and their outcomes applied in the same order --
-		 * deterministic for a fixed setting, though a different search than serial
-		 * (batch members cannot see each other's failures until the batch lands).
-		 */
 		parallelism: Int = 1,
 		executor: ExecutorService? = null,
 		nextLeg: ((Stance) -> LegHandoff?)? = null,
@@ -74,11 +66,6 @@ object ValueFieldAnchorSearch {
 	internal fun stanceOf(state: MovementSimulationState): Stance =
 		Stance.of(state.position, state.onGround)
 
-	/**
-	 * The stance a grounded body is actually supported by when flooring its centre names a
-	 * non-stance cell (a corner catch). Fallback only: a landing whose floored cell is a real
-	 * stance keeps its name. See docs/decisions/movement-tuning.md.
-	 */
 	internal fun supportedStanceOf(state: MovementSimulationState): Stance? {
 		if (!state.onGround) return null
 		val support = state.supportingBlockPos ?: return null

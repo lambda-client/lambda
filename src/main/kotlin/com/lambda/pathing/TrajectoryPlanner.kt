@@ -2,7 +2,6 @@ package com.lambda.pathing
 
 import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
-import com.lambda.pathing.TrajectoryPlanner.journeyLegs
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
@@ -53,7 +52,6 @@ object TrajectoryPlanner {
 		Thread(task, "NeoLambda-PathPlanner").apply { isDaemon = true }
 	}
 
-	/** Resolves the further legs of a compound route while the planner thread searches the current one. */
 	private val legExecutor = Executors.newCachedThreadPool { task ->
 		Thread(task, "NeoLambda-PathPlanner-legs").apply { isDaemon = true }
 	}
@@ -64,10 +62,6 @@ object TrajectoryPlanner {
 		maxDescentBlocksPerTick = 4.0,
 	)
 
-	/**
-	 * One coarse state per leg of the route: the walk-through waypoints in order, then the
-	 * final goal. Each leg's D* targets its own goal and starts where the previous leg ends.
-	 */
 	internal fun journeyLegs(
 		preparation: TrajectoryPlanningPreparation,
 		snapshot: SnapshotSimulationEnvironment,
@@ -114,7 +108,7 @@ object TrajectoryPlanner {
 		cancellation: PlanningCancellation,
 
 		initialOverride: MovementSimulationState? = null,
-		/** Walk-through waypoints before [goal], in order; each becomes a leg of one continuous search. */
+
 		waypoints: List<Stance> = emptyList(),
 	): PlanningPreparationResult {
 		val started = System.currentTimeMillis()
@@ -221,7 +215,7 @@ object TrajectoryPlanner {
 		cancellation: PlanningCancellation,
 		planningGeneration: Long,
 		snapshotRevision: Long,
-		/** The route's legs, first leg first; see [journeyLegs]. */
+
 		legStates: List<CoarsePlanningState> =
 			journeyLegs(preparation, world.snapshot, world::chunkCapturable),
 	): CompletableFuture<PathPlanResult> {
@@ -247,7 +241,6 @@ object TrajectoryPlanner {
 				val batch = world.drainEvents()
 				val initial = preparation.initial
 
-				// A refused route and a refused walk write the same replayable dump.
 				fun dumpFailure(kind: String, note: String) {
 					val directory = dumpDirectory ?: return
 					runCatching {
@@ -315,8 +308,6 @@ object TrajectoryPlanner {
 				val routeMillis = (System.nanoTime() - routeStarted) / 1_000_000L
 				PlanningDebugChannel.publishRoute(route)
 
-				// Startup ledger: knowledge-wait is capture pacing, route covers
-				// RouteResolution's grant rounds. See docs/decisions/startup.md.
 				LOG.info(
 					"Planning startup {} -> {}: knowledge-wait={} ms, coarse={} ms, " +
 							"field={} ms, route={} ms ({}), since-request={} ms; capture so far: {}",
@@ -348,7 +339,6 @@ object TrajectoryPlanner {
 					start = start,
 					finalGoal = goal,
 					snapshotRevision = snapshotRevision,
-					coarseExpansionBudget = preparation.coarseExpansionBudget,
 					cancelled = { cancellation.isCancelled },
 					probe = probe,
 					onBatch = legs::onBatch,
@@ -371,7 +361,7 @@ object TrajectoryPlanner {
 					field = field,
 					adoptedSequence = adoptedSequenceProvider,
 					probe = probe,
-					// Logged on both outcomes so two sessions at one goal compare field by field.
+
 					onExhaustion = {
 						LOG.info("Trajectory search {} -> {}: {} {}", start, preparation.finalGoal, it, legs.ledger)
 						PlanningDebugChannel.publishExhaustion(it, legs.ledger)
@@ -441,23 +431,16 @@ object TrajectoryPlanner {
 		improvementBudget: Int = 0,
 		frontierPerKey: Int = 3,
 		branchExpansionHeadroomExpansions: Int = 1560,
-		/**
-		 * Wall-time cap on each mid-walk guide expansion. Virtual-clock harnesses must pass
-		 * [Duration.INFINITE]; the expansion-count cap still binds. See docs/decisions/determinism.md.
-		 */
+
 		fieldExpansionBudget: Duration = FIELD_EXPANSION_BUDGET,
-		/** The further legs of a compound route; null for a single goal. */
+
 		legs: LegChain? = null,
 	): PathPlanResult {
 		var published = 0
-		var last: PublishedPath? = null
 
-		// A compound route's search must be able to change goal: it reads a switchable field.
 		val searchField: com.lambda.pathing.coarse.ValueField =
 			if (legs != null && field is CoarseValueField) com.lambda.pathing.coarse.SwitchableValueField(field) else field
 
-		// Rollout workers for batch-parallel expansion. Daemon threads, owned by this
-		// walk: the coordinator selects and applies, the workers only simulate.
 		val pool = if (parallelism > 1) {
 			Executors.newFixedThreadPool(parallelism) { runnable ->
 				Thread(runnable, "PathPlanner-rollout").apply { isDaemon = true }
@@ -493,7 +476,6 @@ object TrajectoryPlanner {
 							publicationSequence = sequence,
 						)
 						publish(path, published > 0)
-						last = path
 						published++
 					}
 				},
@@ -602,15 +584,12 @@ object TrajectoryPlanner {
 
 	private const val HORIZON_CHUNK_FRAMES = 20
 
-	// Exploration window past the committed root, in commit chunks; 2 is too little.
-	// See docs/decisions/startup.md.
 	private const val HORIZON_WINDOW_CHUNKS = 3
 
 	private const val HORIZON_FINAL_COMMIT_CHUNKS = 2
 
 	private const val HORIZON_BOOTSTRAP_DELAY_MS = 200L
 
-	// Expansion budget per publication window (reset on publish and tape restart).
 	private const val PER_WINDOW_EXPANSIONS = 120_000
 
 	private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400

@@ -1,4 +1,6 @@
-package com.lambda.pathing.actions
+package com.lambda.pathing.actions.control
+
+import com.lambda.pathing.actions.ControlProgram
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
@@ -16,7 +18,6 @@ internal class ClimbProgram(
 	private val aim: HorizontalPoint? = null,
 ) : ControlProgram {
 
-	/** Entering the column over a lip from above: descend, never rise. */
 	private val overLip = holdForward && !holdWhileClimbing && !climbWithJump
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
@@ -24,9 +25,6 @@ internal class ClimbProgram(
 			Rotation.wrap(target - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
 		} ?: 0.0
 
-		// Face the column before moving: pressing forward mid-turn walks an arc, and
-		// on a one-block pillar top that arc leaves the block on the wrong side
-		// before the yaw ever reaches the ladder.
 		val aligned = targetYaw == null ||
 				kotlin.math.abs(Rotation.wrap(targetYaw - observed.rotation.yaw)) <= ALIGNMENT_DEGREES
 
@@ -34,22 +32,19 @@ internal class ClimbProgram(
 			if (overLip && !aligned) {
 				0.0
 			} else if (overLip && takeoff != null && aim != null) {
-				// Creep off the lip: a ladder caps the FALL but barely brakes the
-				// horizontal, so a full-speed walk-off coasts through a one-wide column.
-				// See docs/decisions/launch-solver.md (ladder entry).
+
 				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 				val speed = observed.velocity.horizontalLength()
 				when {
 					along + (speed + CREEP_TAP_SPEED) * COAST_RUNOUT_TICKS < LIP_ALONG -> 1.0
 					speed > CREEP_REST_SPEED -> 0.0
-					else -> 1.0 // at rest against the lip: one gentle tap over it
+					else -> 1.0
 				}
 			} else if (holdForward) 1.0 else 0.0
 		} else if (holdWhileClimbing) {
 			1.0
 		} else if (overLip && observed.velocity.horizontalLength() > DRIFT_REST_SPEED) {
-			// Brake the entry drift inside the column: even a tap's worth of entry
-			// speed integrates to a block of drift over a long descent.
+
 			-1.0
 		} else {
 			0.0
@@ -58,28 +53,22 @@ internal class ClimbProgram(
 		return MovementSimulationInput(
 			forward = forward,
 			sprint = false,
-			// Jump from the ground too: a ladder whose bottom cell hangs over a gap must
-			// be ENTERED jumping (vanilla stops counting the body as climbing once the
-			// feet cell is not climbable). On a floored base the hop costs a frame or two.
+
 			jump = climbWithJump,
 			rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
 		)
 	}
 
 	private companion object {
-		/** See BounceProgram's creep: walk-tap speed and ground-friction runout. */
+
 		const val CREEP_TAP_SPEED = 0.06
 		const val COAST_RUNOUT_TICKS = 2.2
 		const val CREEP_REST_SPEED = 0.03
 
-		/** The lip: half a cell to the boundary plus the body's half-width. */
 		const val LIP_ALONG = 0.8
 
-		/** Residual drift the in-column brake tolerates (braking below it risks
-		 *  pressing the far wall, which vanilla answers with a climb UP). */
 		const val DRIFT_REST_SPEED = 0.02
 
-		/** Close enough to the column's bearing to start the creep. */
 		const val ALIGNMENT_DEGREES = 25.0
 	}
 }

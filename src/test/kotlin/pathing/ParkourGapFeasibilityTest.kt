@@ -14,9 +14,9 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.actions.LaunchTrigger
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.SegmentFollowerProgram
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.SimpleMoveOptions
-import com.lambda.pathing.search.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
@@ -133,7 +133,7 @@ class ParkourGapFeasibilityTest {
     }
 
     private fun landingOf(
-        rollout: com.lambda.pathing.search.TrajectoryRollout,
+        rollout: com.lambda.pathing.rollout.TrajectoryRollout,
         delay: Int,
         to: Stance,
     ) = rollout.frames.firstOrNull { frame ->
@@ -172,7 +172,7 @@ class ParkourGapFeasibilityTest {
         holdForward: Boolean,
         holdTicks: Int,
         airPlan: AirSteering.AirPlan?,
-    ): com.lambda.pathing.search.TrajectoryRollout {
+    ): com.lambda.pathing.rollout.TrajectoryRollout {
         val dx = (to.x - from.x).toDouble()
         val dz = (to.z - from.z).toDouble()
         val length = hypot(dx, dz)
