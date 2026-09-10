@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure

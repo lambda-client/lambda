@@ -23,7 +23,7 @@ import com.lambda.config.blocks.EntityColorSettings
 import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.blocks.OutlineSettings
 import com.lambda.config.blocks.WorldLineSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.withEdits

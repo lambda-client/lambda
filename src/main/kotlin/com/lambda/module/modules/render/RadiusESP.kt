@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.config.Group
 import com.lambda.config.blocks.WorldLineSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.withEdits

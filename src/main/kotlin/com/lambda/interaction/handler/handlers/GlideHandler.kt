@@ -17,13 +17,12 @@
 
 package com.lambda.interaction.handler.handlers
 
-import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.mode
@@ -42,9 +41,9 @@ import net.minecraft.registry.tag.ItemTags
 
 object GlideHandler {
 	val ELYTRA_SELECTION =
-		selectStack {
+		stackSelection {
 			isItem(Items.ELYTRA)
-			custom { stack, _ -> stack.damage < stack.maxDamage }
+			predicate { stack, _ -> stack.damage < stack.maxDamage }
 			sortedWith {
 				compareByDescending<StackAndSlot<*>> {
 					it.stack.getEnchantment(Enchantments.UNBREAKING)
@@ -54,10 +53,10 @@ object GlideHandler {
 			}
 		}
 	val CHESTPLATE_SELECTION =
-		selectStack {
-			hasTag(ItemTags.CHEST_ARMOR)
-			inverted { isItem(Items.ELYTRA) }
-			custom { stack, _ -> stack.damage < stack.maxDamage }
+		stackSelection {
+			withTag(ItemTags.CHEST_ARMOR)
+			notItem(Items.ELYTRA)
+			predicate { stack, _ -> stack.damage < stack.maxDamage }
 			sortedWith {
 				compareByDescending<StackAndSlot<*>> {
 					it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
@@ -166,18 +165,19 @@ object GlideHandler {
 	}
 
 	@JvmStatic
-	context(safeContext: SafeContext, _: Automated)
+	context(safeContext: SafeContext)
 	fun canGlide(): Boolean =
 		with(safeContext) {
 			val fakeFly = ElytraFly.isEnabled && ElytraFly.fakeFly
 			val canGlideAlready = player.canGlideWithChestPiece() != fakeFly
 			if (!autoSwapChecking || canGlideAlready) return canGlideAlready
 			val selection = if (fakeFly) CHESTPLATE_SELECTION else ELYTRA_SELECTION
-			return findContainers(
-				selection,
-				ContainerSelection.HOTBAR_AND_INVENTORY
-			).toList()
-				.isNotEmpty()
+			return with(ElytraFly) {
+				findContainer(
+					containerSelection { hasStack(selection) },
+					false
+				) != null
+			}
 		}
 
 	private class PendingGlideAction(

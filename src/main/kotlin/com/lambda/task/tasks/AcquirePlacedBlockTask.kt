@@ -21,8 +21,8 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.containers.ArmorContainer.findSlot
 import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.softFail
@@ -48,15 +48,12 @@ class AcquirePlacedBlockTask @Ta5kBuilder internal constructor(
 	init {
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
-				block.item
-					.select(1)
-					.findSlots()
-					.firstOrNull()?.let { slot ->
-						PlaceContainerTask(slot, this)
-							.onSuccess { success(it) }
-							.execute(this@AcquirePlacedBlockTask)
-						return@listen
-					}
+				findSlot(block.item.select()).let { slot ->
+					PlaceContainerTask(slot, this)
+						.onSuccess { success(it) }
+						.execute(this@AcquirePlacedBlockTask)
+					return@listen
+				}
 			}
 
 			failure("No $block found in range or hotbar/inventory!")

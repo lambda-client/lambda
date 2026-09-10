@@ -20,7 +20,7 @@ package com.lambda.config.blocks
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.container.selection.StackAndSlot
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -96,14 +96,14 @@ interface EatConfig {
 
         context(c: Automated)
         fun selector() =
-            selectStack {
+            stackSelection {
                 when(this@Reason) {
-                    Hunger -> isOneOfItems(c.eatConfig.nutritiousFood)
-                    Damage -> isOneOfItems(c.eatConfig.regenerationFood)
-                    Fire -> isOneOfItems(c.eatConfig.resistanceFood)
+                    Hunger -> ofAnyItems(c.eatConfig.nutritiousFood)
+                    Damage -> ofAnyItems(c.eatConfig.regenerationFood)
+                    Fire -> ofAnyItems(c.eatConfig.resistanceFood)
 	                else -> {}
                 }
-                if (c.eatConfig.ignoreBadFood) isNoneOfItems(c.eatConfig.badFood)
+                if (c.eatConfig.ignoreBadFood) noneOfItems(c.eatConfig.badFood)
                 sortedWith(c.eatConfig.selectionPriority.comparator)
             }
     }

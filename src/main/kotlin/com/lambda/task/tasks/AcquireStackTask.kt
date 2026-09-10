@@ -21,7 +21,7 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.container.selection.select
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
@@ -46,11 +46,9 @@ class AcquireStackTask @Ta5kBuilder internal constructor(
 
     override fun SafeContext.onStart() {
         runSafeAutomated {
-            selection.findContainer()
-                ?.let { transfer(selection, it, HotbarContainer) }
-                ?.onSuccess { slot -> success(slot) }
-                ?.start()
-                ?: failure(NoContainerFound(selection)) // ToDo: Create crafting path
+            selection.transfer(toSelection = HotbarContainer.select())
+                .onSuccess { slot -> success(slot) }
+                .start()
         }
     }
 }

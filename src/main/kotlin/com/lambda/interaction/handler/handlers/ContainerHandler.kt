@@ -17,7 +17,9 @@
 
 package com.lambda.interaction.handler.handlers
 
+import com.lambda.Lambda
 import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
@@ -34,14 +36,15 @@ import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.FolderRegistry
 import com.lambda.util.ReflectionUtils.getInstances
 import com.lambda.util.extension.containerStacks
+import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
@@ -58,8 +61,6 @@ import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
-import com.lambda.Lambda
-import com.lambda.context.AutomatedSafeContext
 import java.nio.file.Files
 
 @Suppress("unused")
@@ -237,16 +238,15 @@ object ContainerHandler : Loadable {
 @ContainerMarker
 context(_: AutomatedSafeContext)
 fun StackSelection.move(
-	fromSelection: ContainerSelection = ContainerSelection.EVERYTHING,
-	toSelection: ContainerSelection = ContainerSelection.EVERYTHING,
-	toStackSelection: StackSelection = StackSelection.EVERYTHING
+	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	toSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	replaceSelection: StackSelection = StackSelection.ANYTHING
 ): Boolean {
-	val singleSelection = mutate(count.coerceAtMost(64))
 	val fromContainer =
 		findContainer(
-			singleSelection,
-			selectContainer {
+			containerSelection {
 				matches(fromSelection)
+				hasStack(mutate(count.coerceAtMost(64)))
 				isAccessed()
 			}
 		)
@@ -254,76 +254,119 @@ fun StackSelection.move(
 
 	val toContainer =
 		findContainer(
-			toStackSelection,
-			selectContainer {
+			containerSelection {
 				matches(toSelection)
+				hasStack(replaceSelection)
 				isAccessed()
 			}
 		)
 		?: return false
 
-	val (fromSlot, toSlot) = fromContainer.findMoveSlots(this, toContainer, toStackSelection)
+	val (fromSlot, toSlot) = fromContainer.findMoveSlots(this, toContainer, replaceSelection)
 	if (fromSlot == null || toSlot == null) return false
 
 	return fromContainer.swap(fromSlot, toSlot, toContainer)
 }
 
 @ContainerMarker
+context(automated: Automated)
+fun findSlot(
+	stackSelection: StackSelection = StackSelection.ANYTHING,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+) = findSlots(stackSelection, containerSelection, sorted)
+	.firstOrNull()
+
+@ContainerMarker
+context(automated: Automated)
+fun findSlots(
+	stackSelection: StackSelection = StackSelection.ANYTHING,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+) = searchContainers(containerSelection.scope)
+	.filter { containerSelection.matches(it) }
+	.let {
+		if (sorted) it.sorted()
+		else it
+	}
+	.mapNotNull { container ->
+		val slots = stackSelection.filter(container.slots)
+		if (slots.count >= stackSelection.count) slots
+		else null
+	}
+	.flatten()
+
+@ContainerMarker
+context(automated: Automated)
+fun findStack(
+	stackSelection: StackSelection = StackSelection.ANYTHING,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+) = findStacks(stackSelection, containerSelection, sorted)
+	.firstOrNull()
+
+@ContainerMarker
+context(automated: Automated)
+fun findStacks(
+	stackSelection: StackSelection = StackSelection.ANYTHING,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+) = searchContainers(containerSelection.scope)
+	.filter { containerSelection.matches(it) }
+	.let {
+		if (sorted) it.sorted()
+		else it
+	}
+	.mapNotNull { container ->
+		val stacks = stackSelection.filter(container.stacks)
+		if (stacks.count >= stackSelection.count) stacks
+		else null
+	}
+	.flatten()
+
+@ContainerMarker
 context(_: Automated)
 fun findContainer(
-	stackSelection: StackSelection = StackSelection.EVERYTHING,
-	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) = findContainers(stackSelection, containerSelection)
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+) = findContainers(containerSelection, sorted)
 	.firstOrNull()
 
 @ContainerMarker
 context(automated: Automated)
 fun findContainers(
-	stackSelection: StackSelection = StackSelection.EVERYTHING,
-	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
 ) = searchContainers(containerSelection.scope)
 	.filter { containerSelection.matches(it) }
-	.filter { stackSelection isIn it }
-	.sortedWith(automated.inventoryConfig.accessPriority.materialComparator(stackSelection))
-
-@ContainerMarker
-context(_: Automated)
-fun StackSelection.findContainerWithSpace(
-	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) = findContainersWithSpace(containerSelection)
-	.firstOrNull()
-
-@ContainerMarker
-context(automated: Automated)
-fun StackSelection.findContainersWithSpace(
-	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) = searchContainers(containerSelection.scope)
-	.filter { containerSelection.matches(it) }
-	.filter { this spaceIn it }
-	.sortedWith(automated.inventoryConfig.accessPriority.spaceComparator(this))
+	.let {
+		if (sorted) it.sorted()
+		else it
+	}
 
 @ContainerMarker
 context(_: Automated)
 fun findContainerWithDisposable(
-	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
-) = findContainersWithDisposable(containerSelection)
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+) = findContainersWithDisposable(containerSelection, sorted)
 	.firstOrNull()
 
 @ContainerMarker
 context(automated: Automated)
 fun findContainersWithDisposable(
-	containerSelection: ContainerSelection = ContainerSelection.EVERYTHING
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
 ) =
 	with(automated) {
 		findContainers(
-			containerSelection = selectContainer(containerSelection.scope) {
+			containerSelection(containerSelection.scope) {
 				matches(containerSelection)
-				matchesStacks(
-					selectStack(1) {
-						isOneOfItems(inventoryConfig.disposables)
-					}
+				hasStack(
+					stackSelection(1) { ofAnyItems(inventoryConfig.disposables) }
 				)
-			}
+			},
+			sorted
 		)
 	}
 

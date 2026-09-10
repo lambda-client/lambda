@@ -17,16 +17,17 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.container.NestedContainer
+import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.external.EnderChestContainer
-import com.lambda.interaction.handler.handlers.ContainerHandler
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.handler.handlers.findContainer
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.Task
@@ -37,7 +38,6 @@ import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 import java.util.*
-import kotlin.collections.fold
 
 @Suppress("unused")
 object InventoryTweaks : Module(
@@ -70,12 +70,12 @@ object InventoryTweaks : Module(
 
             val targetContainer =
                 if (stack.item == Items.ENDER_CHEST) EnderChestContainer
-                else {
-                    ContainerHandler.allContainers
-                        .filterIsInstance<NestedContainer>()
-                        .firstOrNull { container -> container.index == slot.index }
-                        ?: return@listen
-                }
+                else findContainer(
+                    containerSelection {
+                        ofAnyType(ContainerType.ShulkerBox)
+                        isNested()
+                    }
+                ) ?: return@listen
 
             event.cancel()
 

@@ -22,7 +22,10 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -64,7 +67,7 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 					return@listen
 				}
 
-				if (HotbarAndInventoryContainer.stacks.none { it.isEmpty }) {
+				if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) == null) {
 					val stackToThrow =
 						player.currentScreenHandler.playerSlots.firstOrNull {
 							it.stack.item in inventoryConfig.disposables

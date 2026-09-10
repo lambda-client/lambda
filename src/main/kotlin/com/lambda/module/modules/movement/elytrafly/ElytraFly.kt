@@ -31,10 +31,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.movement.elytrafly.modes.BounceElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.GeneralElytraFly
 import com.lambda.module.modules.movement.elytrafly.modes.GrimControlElytraFly
-import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.Timer

@@ -27,7 +27,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
-import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
@@ -124,11 +124,7 @@ abstract class ElytraFlyMode(
 		return inventoryRequest.done
 	}
 
-	fun findElytra(): Slot? =
-		findContainer(
-			ELYTRA_SELECTION,
-			ContainerSelection.HOTBAR_AND_INVENTORY
-		)?.findSlot(ELYTRA_SELECTION)
+	fun findElytra(): Slot? = findSlot(ELYTRA_SELECTION, ContainerSelection.HOTBAR_AND_INVENTORY)
 
 	protected fun SafeContext.startFly() {
 		player.setFlag(Entity.GLIDING_FLAG_INDEX, true)

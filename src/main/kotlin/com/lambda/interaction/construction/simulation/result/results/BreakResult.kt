@@ -32,7 +32,7 @@ import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
 import com.lambda.interaction.container.containers.HotbarContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.task.tasks.transfer
@@ -119,7 +119,7 @@ sealed class BreakResult : BuildResult() {
 
         context(_: Automated)
         override fun resolve() =
-            selectStack { inverted { isItem(badItem) } }
+            stackSelection { notItem(badItem) }
                 .transfer(toSelection = HotbarContainer.select())
 
         override fun compareResult(other: ComparableResult<Rank>) =

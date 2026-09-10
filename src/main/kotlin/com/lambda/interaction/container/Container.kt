@@ -144,12 +144,12 @@ abstract class Container(
     fun findMoveSlots(
         selection: StackSelection,
         toContainer: Container,
-        toStackSelection: StackSelection = StackSelection.EVERYTHING
+        toStackSelection: StackSelection = StackSelection.ANYTHING
     ) = Pair(findSlot(selection), toContainer.findReplaceSlot(toStackSelection))
 
     context(_: Automated)
     open fun findReplaceSlot(
-        selection: StackSelection = StackSelection.EVERYTHING
+        selection: StackSelection = StackSelection.ANYTHING
     ) = findSlots(selection)
         .sortedWith(replaceSorter)
         .firstOrNull()

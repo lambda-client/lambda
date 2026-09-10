@@ -47,10 +47,10 @@ import com.lambda.imgui.flag.ImGuiCond
 import com.lambda.imgui.flag.ImGuiHoveredFlags
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.ModuleRegistry
-import com.lambda.module.modules.client.Client
-import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
 import com.lambda.module.ModuleTag
 import com.lambda.module.ModuleTag.Companion.shownTags
+import com.lambda.module.modules.client.Client
+import com.lambda.module.modules.combat.autodisconnect.AutoDisconnectScreen
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.Describable

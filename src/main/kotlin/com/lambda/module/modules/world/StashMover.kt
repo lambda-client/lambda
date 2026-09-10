@@ -20,9 +20,9 @@ package com.lambda.module.modules.world
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
@@ -42,7 +42,13 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffHandContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findContainers
+import com.lambda.interaction.handler.handlers.findSlots
+import com.lambda.interaction.handler.handlers.findStack
+import com.lambda.interaction.handler.handlers.findStacks
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation
@@ -454,7 +460,9 @@ object StashMover : Module(
 					MoverState.DispensingPearl -> handleDispensingPearl()
 					MoverState.AwaitingPearl ->
 						checkTimerProgress(MoverState.DispensingPearl, pearlButtonTimeout) {
-							if (HotbarAndInventoryContainer.stacks.any { it.item === Items.ENDER_PEARL }) {
+							val hasPearl = findContainers(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+								.any { it.stacks.any { it.item == Items.ENDER_PEARL } }
+							if (hasPearl) {
 								pearlThrown = false
 								moverState = MoverState.ThrowingPearl
 								true
@@ -501,7 +509,7 @@ object StashMover : Module(
 				if (moverState != MoverState.AwaitingTeleport) return@listen
 				val packet = event.packet
 				if (packet !is PlayerPositionLookS2CPacket) return@listen
-				if (finished && HotbarAndInventoryContainer.stacks.all { it.isEmpty }) {
+				if (finished && findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).all { it.isEmpty }) {
 					success(finishedMessage)
 					return@listen
 				}
@@ -520,12 +528,17 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPullContainer
 				return
 			}
-			if (!moveFromContainerToContainer(screenHandler.containerSlots, HotbarAndInventoryContainer.stacks)) return
+			val move =
+				moveFromContainerToContainer(
+					screenHandler.containerSlots,
+					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList()
+				)
+			if (!move) return
 			pullContainer?.let { container ->
 				if (screenHandler.containerStacks.all { it.isEmpty }) {
 					pullContainers.remove(container)
 					pulledContainers.add(container)
-					if (HotbarAndInventoryContainer.stacks.any { it.isEmpty }) {
+					if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) != null) {
 						moverState = MoverState.OpeningPullContainer
 						return
 					}
@@ -543,7 +556,12 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPutEnderChest
 				return
 			}
-			if (moveFromContainerToContainer(HotbarAndInventoryContainer.slots, screenHandler.containerStacks)) {
+			val move =
+				moveFromContainerToContainer(
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList(),
+					screenHandler.containerStacks
+				)
+			if (move) {
 				moverState = MoverState.OpeningPullContainer
 			}
 		}
@@ -580,7 +598,7 @@ object StashMover : Module(
 				rotation(rotation)
 			}.submit()
 			if (!rotationRequest.done || rotation dist RotationManager.serverRotation > 0.001) return
-			val throwSlots = HotbarAndInventoryContainer.slots.filter { !it.stack.isEmpty }
+			val throwSlots = findSlots(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY).toList()
 			if (throwSlots.isNotEmpty()) {
 				val inventoryRequest = inventoryRequest(settleForLess = true) {
 					throwSlots.forEach { slot ->
@@ -597,12 +615,17 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPutContainer
 				return
 			}
-			if (!moveFromContainerToContainer(HotbarAndInventoryContainer.slots, screenHandler.containerStacks)) return
+			val move =
+				moveFromContainerToContainer(
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList(),
+					screenHandler.containerStacks
+				)
+			if (!move) return
 			putContainer?.let { container ->
 				if (screenHandler.containerStacks.all { !it.isEmpty }) {
 					putContainers.remove(container)
 					filledContainers.add(container)
-					if (HotbarAndInventoryContainer.stacks.any { !it.isEmpty }) {
+					if (findStack(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) != null) {
 						moverState = MoverState.OpeningPutContainer
 						return
 					}
@@ -616,7 +639,12 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPullEnderChest
 				return
 			}
-			if (moveFromContainerToContainer(screenHandler.containerSlots, HotbarAndInventoryContainer.stacks)) {
+			val move =
+				moveFromContainerToContainer(
+					screenHandler.containerSlots,
+					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList()
+				)
+			if (move) {
 				putOrThrowItems()
 			}
 		}
@@ -659,7 +687,7 @@ object StashMover : Module(
 
 			if (pearlThrown) {
 				if (!player.offHandStack.isEmpty) {
-					if (HotbarAndInventoryContainer.stacks.none { it.isEmpty }) {
+					if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) == null) {
 						failWithLog("No free slots to return the offhand stack to!", ::failure)
 						return
 					}

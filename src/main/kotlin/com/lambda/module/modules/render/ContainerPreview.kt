@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.config.Tab
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.settings.complex.Bind
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.module.Module

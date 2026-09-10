@@ -29,11 +29,11 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.ContainerType
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.handler.handlers.findContainers
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.handler.handlers.findStacks
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
@@ -138,11 +138,11 @@ class BreakSim internal constructor(simInfo: SimInfo)
 	}
 
 	private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
-		val stackSelection = selectStack {
+		val stackSelection = stackSelection {
 			if (breakConfig.efficientOnly) isEfficientForBreaking(state)
 			if (breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
-			if (breakConfig.forceSilkTouch) hasEnchantment(Enchantments.SILK_TOUCH)
-			if (breakConfig.forceFortunePickaxe) hasEnchantment(Enchantments.FORTUNE)
+			if (breakConfig.forceSilkTouch) withEnchantment(Enchantments.SILK_TOUCH)
+			if (breakConfig.forceFortunePickaxe) withEnchantment(Enchantments.FORTUNE)
 			sortedWith {
 				compareByDescending<StackAndSlot<*>> {
 					it.stack.canBreak(CachedBlockPosition(world, pos, false))
@@ -154,13 +154,11 @@ class BreakSim internal constructor(simInfo: SimInfo)
 			}
 		}
 
-		val containerSelection = selectContainer {
+		val containerSelection = containerSelection {
 			ofAnyType(ContainerType.Hotbar)
 		}
 
-		val hotbarCandidates = findContainers(stackSelection, containerSelection)
-			.flatMap { stackSelection.filter(it.stacks) }
-			.toList()
+		val hotbarCandidates = findStacks(stackSelection, containerSelection).toList()
 		if (hotbarCandidates.isEmpty()) {
 			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
 			return null

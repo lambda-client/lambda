@@ -24,11 +24,11 @@ import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.module.Module
-import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build
@@ -62,14 +62,13 @@ object Surround : Module(
 		onEnable {
 			task = tickingBlueprint {
 				val selection =
-					selectStack {
-						custom { stack, _ ->
+					stackSelection {
+						predicate { stack, _ ->
 							stack.item is BlockItem && blocks.contains(stack.item.block)
 						}
 					}
 
-				val block = findContainer(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
-					?.findStack(selection)
+				val block = findStack(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
 					?.item?.block
 					?: return@tickingBlueprint emptyMap()
 

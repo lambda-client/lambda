@@ -31,7 +31,7 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffHandContainer
 import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.move
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
@@ -51,8 +51,8 @@ import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
-import com.lambda.util.math.distSq
 import com.lambda.util.math.blockPos
+import com.lambda.util.math.distSq
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
@@ -490,17 +490,16 @@ object CrystalAura : Module(
 			) runSafeAutomated {
 				if (!swap) return@runSafe
 
-				val toContainer =
+				val toContainerSelection =
                     when (swapHand) {
 				    	Hand.MAIN_HAND -> HotbarContainer
 				    	Hand.OFF_HAND -> OffHandContainer
 				    }.select()
 
-				val crystalSlot = findContainer(selection, toContainer)
-                    ?.findSlot(selection)
+				val crystalSlot = findSlot(selection, toContainerSelection)
 
 				if (crystalSlot == null) {
-					if (!selection.move(InventoryContainer.select(), toContainer)) return@runSafe
+					if (!selection.move(InventoryContainer.select(), toContainerSelection)) return@runSafe
 				}
 
 				if (swapHand == Hand.MAIN_HAND) {

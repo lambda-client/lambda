@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hide
@@ -31,7 +31,7 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -74,8 +74,8 @@ object Scaffold : Module(
 			}
 
 		listen<TickEvent.Pre> {
-			val selection = selectStack {
-				custom { stack, _ ->
+			val selection = stackSelection {
+				predicate { stack, _ ->
 					stack.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks }
 				}
 			}

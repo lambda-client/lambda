@@ -30,9 +30,11 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.GlideHandler
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
@@ -84,9 +86,11 @@ object BetterFirework : Module(
 	private var takeoffState = TakeoffState.Idle
 
 	val ClientPlayerEntity.hasFireworks: Boolean
-		get() = Items.FIREWORK_ROCKET.select()
-			.filter(HotbarAndInventoryContainer.stacks)
-			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
+		get() =
+			findStack(
+				Items.FIREWORK_ROCKET.select(),
+				ContainerSelection.HOTBAR_AND_INVENTORY
+			) != null || offHandStack.item == Items.FIREWORK_ROCKET
 
 	context(_: SafeContext)
 	private val ClientPlayerEntity.canTakeoff: Boolean
@@ -167,7 +171,7 @@ object BetterFirework : Module(
 		if (!inventory) return
 
 		val inventoryMatch = selection.bestMatch(InventoryContainer.slots) ?: return
-		val hotbarSlot = selectStack { isEmpty() }.bestMatch(HotbarContainer.slots)?.index ?: 8
+		val hotbarSlot = stackSelection { isEmpty() }.bestMatch(HotbarContainer.slots)?.index ?: 8
 
 		inventoryRequest {
 			swapWithHotbar(inventoryMatch.id, hotbarSlot)

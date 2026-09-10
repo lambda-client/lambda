@@ -28,9 +28,9 @@ import com.lambda.threading.runGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.SpeedUnit
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
-import com.lambda.util.math.blockPos
 import com.lambda.util.math.isLoaded
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.blockResult

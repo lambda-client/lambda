@@ -28,8 +28,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.module.Module
-import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.combat.KillAura
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.util.math.Vec3d
 import java.awt.Color

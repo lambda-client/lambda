@@ -23,10 +23,11 @@ import com.lambda.interaction.handler.handlers.GlideHandler.CHESTPLATE_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.manuallySwapped
 import com.lambda.interaction.handler.handlers.GlideHandler.swapped
+import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
-import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.ModuleTag
+import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.PlayerUtils.canGlideWithChestPiece
 import net.minecraft.screen.slot.Slot
@@ -45,13 +46,14 @@ object AutoElytraSwap : Module(
 
 	fun manualSwap(elytra: Boolean): Boolean {
 		val swapSlot =
-			HotbarAndInventoryContainer.slots.let { slots ->
-				if (elytra) ELYTRA_SELECTION.filter(slots)
-				else CHESTPLATE_SELECTION.filter(slots)
-			}.minByOrNull { it.index } ?: run {
-				AutoElytraSwap.warn("The required armor piece was not found for AutoElytraSwap to work.")
-				return false
-			}
+			findSlots(
+				if (elytra) ELYTRA_SELECTION
+				else CHESTPLATE_SELECTION
+			).minByOrNull { it.index }
+				?: run {
+					AutoElytraSwap.warn("The required armor piece was not found for AutoElytraSwap to work.")
+					return false
+				}
 
 		return swapWithChestplate(swapSlot)
 	}

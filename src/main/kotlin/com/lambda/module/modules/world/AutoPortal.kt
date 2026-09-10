@@ -19,7 +19,7 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.editSetting
 import com.lambda.config.forEachSetting
@@ -36,16 +36,19 @@ import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRend
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.portalPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
-import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.build
@@ -322,12 +325,12 @@ object AutoPortal : Module(
 				return
 			}
 
-			val sel = selectStack(1) { isItem<FlintAndSteelItem>() }
+			val selection = stackSelection(1) { isItem<FlintAndSteelItem>() }
 
-			val hotbarStack = sel.filter(HotbarContainer.slots).firstOrNull()
-			if (hotbarStack != null) {
+			val hotbarSlot = findSlot(selection, HotbarContainer.select())
+			if (hotbarSlot != null) {
 				val request =
-					hotbarRequest(hotbarStack.index) {
+					hotbarRequest(hotbarSlot.index) {
 						keepTicks(0)
 					}.submit(false)
 				if (request.done) block()
@@ -335,7 +338,7 @@ object AutoPortal : Module(
 			}
 
 			val invSlot =
-				if (inventory) sel.filter(HotbarAndInventoryContainer.slots).firstOrNull()
+				if (inventory) findSlot(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
 				else null
 			if (invSlot == null) {
 				failure("No Flint and Steel!")

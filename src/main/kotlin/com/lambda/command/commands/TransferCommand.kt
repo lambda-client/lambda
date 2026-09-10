@@ -28,10 +28,9 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.selectStack
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.selectContainer
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.handler.handlers.findContainers
-import com.lambda.interaction.handler.handlers.findContainersWithSpace
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.transfer
@@ -52,11 +51,16 @@ object TransferCommand : LambdaCommand(
             required(integer("amount", 1)) { amount ->
                 required(string("from")) { from ->
                     suggests { ctx, builder ->
-                        val selection = selectStack(amount(ctx).value()) {
+                        val selection = stackSelection(amount(ctx).value()) {
                             isItem(stack(ctx).value().item)
                         }
                         AutomationConfig.DEFAULT.runSafeAutomated {
-                            val containers = findContainers(selection).toList()
+                            val containers =
+                                findContainers(
+                                    containerSelection {
+                                        hasStack(selection)
+                                    }
+                                ).toList()
                             val indexedContainers = containers.withIndex()
 
                             suggestMatching(
@@ -70,11 +74,16 @@ object TransferCommand : LambdaCommand(
                     required(string("to")) { to ->
                         suggests { ctx, builder ->
                             val selection =
-                                selectStack(amount(ctx).value()) {
+                                stackSelection(amount(ctx).value()) {
                                     isItem(stack(ctx).value().item)
                                 }
                             AutomationConfig.DEFAULT.runSafeAutomated {
-                                val containers = selection.findContainersWithSpace().toList()
+                                val containers =
+                                    findContainers(
+                                        containerSelection {
+                                            hasSpace(selection)
+                                        }
+                                    ).toList()
                                 val indexedContainers = containers.withIndex()
 
                                 suggestMatching(
@@ -88,18 +97,18 @@ object TransferCommand : LambdaCommand(
                         executeWithResult {
                             AutomationConfig.DEFAULT.runSafeAutomated {
                                 val fromSelection =
-                                    selectContainer {
-                                        custom { it.name == from().value().split(".").first().trim() }
+                                    containerSelection {
+                                        predicate { it.name == from().value().split(".").first().trim() }
                                     }
 
                                 val toSelection =
-                                    selectContainer {
-                                        custom { it.name == to().value().split(".").first().trim() }
+                                    containerSelection {
+                                        predicate { it.name == to().value().split(".").first().trim() }
                                     }
 
 	                            lastContainerTransfer =
                                     transfer(
-                                        selectStack(amount().value()) {
+                                        stackSelection(amount().value()) {
                                             isItem(stack().value().item)
                                         },
                                         fromSelection,
