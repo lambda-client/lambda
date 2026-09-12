@@ -30,6 +30,8 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.ContainerSearchScope
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
@@ -79,10 +81,10 @@ data class ShulkerBoxContainer(
     ) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
         override fun SafeContext.onStart() {
             transfer(
-                stackSelection { inIndex(index); isItem(shulkerItem) },
+                stackSelection { predicate { _, slot -> slot?.index == index }; isItem(shulkerItem) },
                 containedIn.select(),
                 HotbarContainer.select()
-            ).then { slot -> placeContainer(slot) }
+            ).then { result -> placeContainer(findSlot(result.stackSelection, result.containerSelection)) }
                 .then { pos ->
                     openContainer(pos).onSuccess {
                         success(OpenedShulkerBoxContext(pos, containedIn))
@@ -109,7 +111,7 @@ data class ShulkerBoxContainer(
                         sortedByBestContentMatch(stacks)
                     }.transfer(
                         ContainerSelection.HOTBAR_AND_INVENTORY,
-                        fromContainer.select()
+                        fromContainer.select(ContainerSearchScope.Loaded)
                     )
                 }
     }

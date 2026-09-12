@@ -121,8 +121,7 @@ abstract class Container(
 
     @Ta5kBuilder
     context(automated: Automated)
-    open fun access(): OpenContainerTask<*>? =
-        PlayerOpenContainerTask(description, ::isAccessed)
+    open fun access(): OpenContainerTask<*>? = null
 
     open fun count(selection: StackSelection) =
         slots.takeUnless { it.isEmpty() }?.let { selection.filter(it).count }
@@ -145,12 +144,12 @@ abstract class Container(
         selection: StackSelection,
         toContainer: Container,
         toStackSelection: StackSelection = StackSelection.ANYTHING
-    ) = Pair(findSlot(selection), toContainer.findReplaceSlot(toStackSelection))
+    ) = Pair(selection.filter(slots).firstOrNull(), toContainer.findReplaceSlot(toStackSelection))
 
     context(_: Automated)
     open fun findReplaceSlot(
         selection: StackSelection = StackSelection.ANYTHING
-    ) = findSlots(selection)
+    ) = selection.filter(slots)
         .sortedWith(replaceSorter)
         .firstOrNull()
 

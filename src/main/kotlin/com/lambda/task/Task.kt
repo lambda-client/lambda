@@ -33,7 +33,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 @Suppress("unused")
-abstract class Task<Result> : Nameable, Muteable {
+abstract class Task<R> : Nameable, Muteable {
     var state = State.Init
     var age = 0
 
@@ -44,7 +44,7 @@ abstract class Task<Result> : Nameable, Muteable {
 
     override val isMuted: Boolean get() = state == State.Paused || state == State.Init
 
-    private val successCallbacks = mutableListOf<SafeContext.(Result) -> Unit>()
+    private val successCallbacks = mutableListOf<SafeContext.(R) -> Unit>()
     private val completionCallbacks = mutableListOf<SafeContext.() -> Unit>()
     private val failureCallbacks = mutableListOf<SafeContext.(Throwable) -> Unit>()
 
@@ -63,6 +63,7 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     init {
+        if (this is RootTask) state = State.Running
         listen<TickEvent.Pre>({ Int.MAX_VALUE }) { age++ }
     }
 
@@ -72,6 +73,38 @@ abstract class Task<Result> : Nameable, Muteable {
      */
     @DslMarker
     annotation class Ta5kBuilder
+
+    @Ta5kBuilder
+    context(parentTask: Task<*>)
+    fun start(pauseParent: Boolean = true) =
+        this.execute(parentTask, pauseParent)
+
+    /**
+     * Executes the current task as a subtask of the specified owner task.
+     *
+     * This method adds the current task to the owner's subtasks, sets the parent relationship,
+     * logs the execution details, and invokes the necessary lifecycle hooks. Additionally,
+     * it manages the state of the parent task and starts any required listeners for execution.
+     *
+     * @param parent The parent task that will execute this task as a sub task. Must not be the same as this task.
+     * @param pauseParent Defines whether the parent task should be paused during the execution of this task. Defaults to `true`.
+     * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
+     * @throws IllegalArgumentException if the owner task is the same as the task being executed.
+     */
+    @Ta5kBuilder
+    fun execute(parent: Task<*>, pauseParent: Boolean = true): Task<R> {
+        require(parent != this) { "Cannot execute a task as a sub task of itself" }
+        parent.subTasks.add(this)
+        this@Task.parent = parent
+        if (verboseDebug) LOG.info("${parent.name} started $name")
+        if (pauseParent) {
+            if (verboseDebug) LOG.info("$name pausing parent ${parent.name}")
+            if (parent !is RootTask) parent.pause()
+        }
+        state = State.Running
+        runSafe { runCatching { onStart() }.onFailure { failure(it) } }
+        return this
+    }
 
     /**
      * Invoked when the task starts execution.
@@ -98,39 +131,7 @@ abstract class Task<Result> : Nameable, Muteable {
     protected open fun SafeContext.onCancel() {}
 
     @Ta5kBuilder
-    context(parentTask: Task<*>)
-    fun start(pauseParent: Boolean = true) =
-        this.execute(parentTask, pauseParent)
-
-    /**
-     * Executes the current task as a subtask of the specified owner task.
-     *
-     * This method adds the current task to the owner's subtasks, sets the parent relationship,
-     * logs the execution details, and invokes the necessary lifecycle hooks. Additionally,
-     * it manages the state of the parent task and starts any required listeners for execution.
-     *
-     * @param parent The parent task that will execute this task as a sub task. Must not be the same as this task.
-     * @param pauseParent Defines whether the parent task should be paused during the execution of this task. Defaults to `true`.
-     * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
-     * @throws IllegalArgumentException if the owner task is the same as the task being executed.
-     */
-    @Ta5kBuilder
-    fun execute(parent: Task<*>, pauseParent: Boolean = true): Task<Result> {
-        require(parent != this) { "Cannot execute a task as a sub task of itself" }
-        parent.subTasks.add(this)
-        this@Task.parent = parent
-        if (verboseDebug) LOG.info("${parent.name} started $name")
-        if (pauseParent) {
-            if (verboseDebug) LOG.info("$name pausing parent ${parent.name}")
-            if (parent !is RootTask) parent.pause()
-        }
-        state = State.Running
-        runSafe { runCatching { onStart() }.onFailure { failure(it) } }
-        return this
-    }
-
-    @Ta5kBuilder
-    protected fun success(result: Result) {
+    protected fun success(result: R) {
         if (state != State.Running && state != State.Paused) return
         unsubscribe()
         state = State.Completed
@@ -157,7 +158,7 @@ abstract class Task<Result> : Nameable, Muteable {
         e: Throwable,
         stacktrace: MutableList<Task<*>> = mutableListOf(),
     ) {
-        if (state != State.Running && state != State.Failed) return
+        if (state != State.Running && state != State.Paused) return
         unsubscribe()
         state = State.Failed
         cancelSubTasks()
@@ -195,11 +196,14 @@ abstract class Task<Result> : Nameable, Muteable {
     @Ta5kBuilder
     private fun internalCancel(removeFromParent: Boolean = true) {
         if (state != State.Running && state != State.Paused) return
+        cancelSubTasks()
         if (this is RootTask) return
         unsubscribe()
         state = State.Cancelled
-        cancelSubTasks()
-        runSafe { onCancel() }
+        runSafe {
+            onCancel()
+            completionCallbacks.forEach { it.invoke(this) }
+        }
 
         if (removeFromParent) parent?.subTasks?.remove(this)
         parent?.activate()
@@ -212,15 +216,15 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun activate() {
-        if (state != State.Paused) return
-        state = State.Running
-    }
-
-    @Ta5kBuilder
     fun pause() {
         if (state != State.Running) return
         state = State.Paused
+    }
+
+    @Ta5kBuilder
+    fun activate() {
+        if (state != State.Paused) return
+        state = State.Running
     }
 
     @Ta5kBuilder
@@ -242,7 +246,7 @@ abstract class Task<Result> : Nameable, Muteable {
      * Registers a callback for if the task succeeds.
      */
     @Ta5kBuilder
-    fun onSuccess(callback: SafeContext.(Result) -> Unit): Task<Result> {
+    fun onSuccess(callback: SafeContext.(R) -> Unit): Task<R> {
         successCallbacks.add(callback)
         return this
     }
@@ -253,7 +257,7 @@ abstract class Task<Result> : Nameable, Muteable {
      * This could be mistaken for [withRecovery] which is used to wrap the given task with another task that runs a recovery task if this one fails.
      */
     @Ta5kBuilder
-    fun onFailure(callback: SafeContext.(Throwable) -> Unit): Task<Result> {
+    fun onFailure(callback: SafeContext.(Throwable) -> Unit): Task<R> {
         failureCallbacks.add(callback)
         return this
     }
@@ -264,7 +268,7 @@ abstract class Task<Result> : Nameable, Muteable {
      * This is called regardless of whether the task succeeds or fails.
      */
     @Ta5kBuilder
-    fun onCompletion(callback: SafeContext.() -> Unit): Task<Result> {
+    fun onCompletion(callback: SafeContext.() -> Unit): Task<R> {
         completionCallbacks.add(callback)
         return this
     }

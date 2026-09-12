@@ -25,8 +25,10 @@ import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.ExternalContainer
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.acquireStack
 import com.lambda.task.tasks.breakAndCollect
@@ -83,7 +85,7 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 				},
 				onFailure = {
 					acquireStack(Items.ENDER_CHEST.select(1))
-						.then { placeContainer(it) }
+						.then { placeContainer(findSlot(it, HotbarContainer.select())) }
 						.then { pos ->
 							openContainer(pos).onSuccess {
 								success(OpenedEnderChestContext(pos))

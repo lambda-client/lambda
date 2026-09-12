@@ -15,15 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.interaction.container.selection
 
 import com.lambda.interaction.container.Container
-import com.lambda.interaction.container.ContainerMarker
+import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
-import com.lambda.util.player.SlotUtils.matches
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.component.ComponentType
@@ -37,16 +38,16 @@ import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import java.util.*
 
-@ContainerMarker
-fun Item.select(count: Int = 0) = stackSelection(count) { isItem(this@select) }
+@ContainerDslMarker
+fun Item.select(count: Int = 1) = stackSelection(count) { isItem(this@select) }
 
-@ContainerMarker
-fun ItemStack.select(count: Int = 0) = stackSelection(count) { isItemStack(this@select) }
+@ContainerDslMarker
+fun ItemStack.select(count: Int = 1) = stackSelection(count) { isItemStack(this@select) }
 
-class StackSelection @ContainerMarker internal constructor(
+class StackSelection @ContainerDslMarker internal constructor(
+	val count: Int = 1,
 	val whitelistedSlots: Collection<Slot> = emptyList(),
 	val blacklistedSlots: Collection<Slot> = emptyList(),
-	val count: Int = 0,
 	val item: Item? = null,
 	val itemStack: ItemStack? = null,
 	val shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.Both,
@@ -55,23 +56,33 @@ class StackSelection @ContainerMarker internal constructor(
 ) {
 	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
 
-	@ContainerMarker
+	@ContainerDslMarker
 	fun bestMatch(stacks: Iterable<ItemStack>) = filter(stacks).firstOrNull()
 
-	@ContainerMarker
+	@ContainerDslMarker
 	fun bestMatch(slots: Iterable<Slot>) = filter(slots).firstOrNull()
 
-	@ContainerMarker
-	fun matches(stack: ItemStack) =
-		shulkerBoxScope.inShulkerBox?.equals(stack.shulkerBoxStacks.any { selector(it, null) }) != false ||
-				selector(stack, null)
+	@ContainerDslMarker
+	fun matches(stack: ItemStack): Boolean {
+		val matchesSelf = selector(stack, null)
+		return when (shulkerBoxScope.inShulkerBox) {
+			true -> stack.shulkerBoxStacks.any { selector(it, null) }
+			false -> matchesSelf
+			null -> matchesSelf || stack.shulkerBoxStacks.any { selector(it, null) }
+		}
+	}
 
-	@ContainerMarker
-	fun matches(slot: Slot): Boolean =
-		shulkerBoxScope.inShulkerBox?.equals(slot.stack.shulkerBoxStacks.any { selector(it, null) }) != false ||
-				selector(slot.stack, slot)
+	@ContainerDslMarker
+	fun matches(slot: Slot): Boolean {
+		val matchesSelf = selector(slot.stack, slot)
+		return when (shulkerBoxScope.inShulkerBox) {
+			true -> slot.stack.shulkerBoxStacks.any { selector(it, null) }
+			false -> matchesSelf
+			null -> matchesSelf || slot.stack.shulkerBoxStacks.any { selector(it, null) }
+		}
+	}
 
-	@ContainerMarker
+	@ContainerDslMarker
 	@JvmName("filter1")
 	fun filter(stacks: Iterable<ItemStack>) =
 		stacks
@@ -83,7 +94,7 @@ class StackSelection @ContainerMarker internal constructor(
 			.map { it.stack }
 			.toList()
 
-	@ContainerMarker
+	@ContainerDslMarker
 	@JvmName("filter2")
 	fun filter(slots: Iterable<Slot>) =
 		slots
@@ -101,25 +112,39 @@ class StackSelection @ContainerMarker internal constructor(
 			.map { it.slot }
 			.toList()
 
-	@ContainerMarker
+	@ContainerDslMarker
 	infix fun isIn(container: Container) =
 		container.count(this) >= count
 
-	@ContainerMarker
+	@ContainerDslMarker
+	fun isIn(vararg containers: Container) =
+		containers.sumOf { it.count(this) } >= count
+
+	@ContainerDslMarker
+	infix fun isIn(containers: Iterable<Container>) =
+		containers.sumOf { it.count(this) } >= count
+
+	@ContainerDslMarker
 	infix fun spaceIn(container: Container) =
 		container.spaceLeft(this) >= count
 
-	@Suppress("unused")
+	@ContainerDslMarker
+	fun spaceIn(vararg containers: Container) =
+		containers.sumOf { it.spaceLeft(this) } >= count
+
+	@ContainerDslMarker
+	infix fun spaceIn(containers: Iterable<Container>) =
+		containers.sumOf { it.spaceLeft(this) } >= count
+
 	companion object {
-		val ANYTHING = StackSelection { _, _ -> true }
+		val ANYTHING = StackSelection(0) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
 	}
 }
 
-@Suppress("unused")
-@ContainerMarker
-class StackSelectionBuilder @ContainerMarker private constructor(
-	private var count: Int = 0
+@ContainerDslMarker
+class StackSelectionBuilder @ContainerDslMarker private constructor(
+	private var count: Int = 1
 ) {
 	private val whitelistedSlots = mutableListOf<Slot>()
 	private val blacklistedSlots = mutableListOf<Slot>()
@@ -129,7 +154,7 @@ class StackSelectionBuilder @ContainerMarker private constructor(
 	private var comparator: Comparator<StackAndSlot<*>>? = null
 	private var shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.NotInShulkerBox
 
-	@ContainerMarker
+	@ContainerDslMarker
 	private constructor(
 		selection: StackSelection,
 		count: Int = selection.count
@@ -188,11 +213,11 @@ class StackSelectionBuilder @ContainerMarker private constructor(
 		shulkerBoxScope = ShulkerBoxScope.InShulkerBox
 	}
 
-	fun ofAnyItems(items: Collection<Item>) {
+	fun ofAnyItems(items: Iterable<Item>) {
 		appendSelector { stack, _ -> items.contains(stack.item) }
 	}
 
-	fun noneOfItems(items: Collection<Item>) {
+	fun noneOfItems(items: Iterable<Item>) {
 		appendSelector { stack, _ -> !items.contains(stack.item) }
 	}
 
@@ -212,11 +237,11 @@ class StackSelectionBuilder @ContainerMarker private constructor(
 		appendSelector { stack, _ -> stack.name.string != name }
 	}
 
-	fun ofAnyStacks(stacks: Collection<ItemStack>) {
+	fun ofAnyStacks(stacks: Iterable<ItemStack>) {
 		appendSelector { stack, _ -> stacks.contains(stack) }
 	}
 
-	fun noneOfStacks(stacks: Collection<ItemStack>) {
+	fun noneOfStacks(stacks: Iterable<ItemStack>) {
 		appendSelector { stack, _ -> !stacks.contains(stack) }
 	}
 
@@ -315,37 +340,11 @@ class StackSelectionBuilder @ContainerMarker private constructor(
 	}
 
 	fun isEmpty() {
-		appendSelector { stack, _ -> stack.isEmpty}
+		appendSelector { stack, _ -> stack.isEmpty }
 	}
 
 	fun notEmpty() {
-		appendSelector { stack, _ -> !stack.isEmpty}
-	}
-
-	fun isSlot(slot: Slot) {
-		appendSelector { _, s -> s != null && s matches slot }
-	}
-
-	fun notSlot(slot: Slot) {
-		appendSelector { _, s -> s == null || !s.matches(slot) }
-	}
-
-	fun isSlotByReference(slot: Slot) {
-		whitelistedSlots.add(slot)
-		appendSelector { _, s -> s === slot }
-	}
-
-	fun notSlotByReference(slot: Slot) {
-		blacklistedSlots.add(slot)
-		appendSelector { _, s -> s !== slot }
-	}
-
-	fun inIndex(index: Int) {
-		appendSelector { _, s -> s?.index == index }
-	}
-
-	fun notInIndex(index: Int) {
-		appendSelector { _, s -> s?.index != index }
+		appendSelector { stack, _ -> !stack.isEmpty }
 	}
 
 	fun predicate(predicate: (ItemStack, Slot?) -> Boolean) {
@@ -380,16 +379,17 @@ class StackSelectionBuilder @ContainerMarker private constructor(
 
 	@PublishedApi
 	internal fun appendSelector(selector: (ItemStack, Slot?) -> Boolean) {
+		val currentSelector = this.selector
 		this.selector = { stack, slot ->
-			this.selector(stack, slot) && selector(stack, slot)
+			currentSelector(stack, slot) && selector(stack, slot)
 		}
 	}
 
 	private fun build() =
 		StackSelection(
+			count,
 			whitelistedSlots,
 			blacklistedSlots,
-			count,
 			item,
 			itemStack,
 			shulkerBoxScope,
@@ -401,7 +401,7 @@ class StackSelectionBuilder @ContainerMarker private constructor(
 		private val efficientToolCache = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
 
 		fun stackSelection(
-			count: Int = 0,
+			count: Int = 1,
 			builder: StackSelectionBuilder.() -> Unit
 		) = StackSelectionBuilder(count).apply(builder).build()
 

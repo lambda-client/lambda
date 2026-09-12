@@ -246,7 +246,7 @@ class BuildTask @Ta5kBuilder internal constructor(
             lifeMaintenance && eatTask == null && runSafeAutomated { reasonEating() }.shouldEat() -> {
                 eatTask = eat()
                     .thenAction { eatTask = null }
-                    .execute(this@BuildTask)
+                    .start()
 
                 return true
             }
@@ -360,7 +360,7 @@ class BuildTask @Ta5kBuilder internal constructor(
         if (collectDropsTask != null) return true
         collectDropsTask = collectDrops(dropsToCollect)
             .thenAction { collectDropsTask = null }
-            .execute(this@BuildTask)
+            .start()
         return true
     }
 

@@ -18,4 +18,4 @@
 package com.lambda.interaction.container
 
 @DslMarker
-annotation class ContainerMarker
+annotation class ContainerDslMarker

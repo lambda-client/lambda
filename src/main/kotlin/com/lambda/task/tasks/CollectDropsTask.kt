@@ -19,6 +19,7 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -54,36 +55,45 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 	init {
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
-				val target =
-					drops.firstOrNull() ?: run {
-						BaritoneHandler.cancel()
-						success()
-						return@listen
-					}
-
-				if (!world.entities.contains(target)) {
-					drops.remove(target)
-					BaritoneHandler.cancel()
-					return@listen
-				}
-
-				if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) == null) {
-					val stackToThrow =
-						player.currentScreenHandler.playerSlots.firstOrNull {
-							it.stack.item in inventoryConfig.disposables
-						} ?: run {
-							failure("Inventory is full and no disposable items to throw")
-							return@listen
-						}
-					inventoryRequest {
-						throwStack(stackToThrow.id)
-					}.submit()
-					return@listen
-				}
-
-				BaritoneHandler.setGoalAndPath(GoalBlock(target.blockPos))
+				do {
+					val done = pollNextItem()
+				} while (!done)
 			}
 		}
+	}
+
+	private fun AutomatedSafeContext.pollNextItem(): Boolean {
+		val target =
+			drops.firstOrNull()
+				?: run {
+					BaritoneHandler.cancel()
+					success()
+					return true
+				}
+
+		if (!world.entities.contains(target)) {
+			drops.remove(target)
+			BaritoneHandler.cancel()
+			return false
+		}
+
+		if (findStack(stackSelection(0) { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY, false) == null) {
+			val stackToThrow =
+				player.currentScreenHandler.playerSlots.firstOrNull {
+					it.stack.item in inventoryConfig.disposables
+				} ?: run {
+					failure("Inventory is full and no disposable items to throw")
+					return true
+				}
+			inventoryRequest {
+				throwStack(stackToThrow.id)
+			}.submit()
+			return true
+		}
+
+		BaritoneHandler.setGoalAndPath(GoalBlock(target.blockPos))
+
+		return true
 	}
 
 	override fun SafeContext.onCancel() {

@@ -57,6 +57,6 @@ class SequencedActionTask<R, R2> @Ta5kBuilder internal constructor(
 			.onSuccess { result ->
 				success(action(this, result))
 			}
-			.execute(this@SequencedActionTask)
+			.start()
 	}
 }

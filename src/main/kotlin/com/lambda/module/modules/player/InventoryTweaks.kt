@@ -24,6 +24,7 @@ import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
@@ -73,7 +74,9 @@ object InventoryTweaks : Module(
                 else findContainer(
                     containerSelection {
                         ofAnyType(ContainerType.ShulkerBox)
-                        isNested()
+                        predicate { container ->
+                            container is NestedContainer && container.index == slot.index
+                        }
                     }
                 ) ?: return@listen
 

@@ -52,16 +52,21 @@ object EnderChestContainerSerializer : Serializer<EnderChestContainer>(EnderChes
 }
 
 object EnderChestContainerDeserializer : Deserializer<EnderChestContainer>(EnderChestContainer::class.java) {
-    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): EnderChestContainer {
+    override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): EnderChestContainer? {
+        throw initFromJsonException("EnderChestContainer")
+    }
+
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext, intoValue: EnderChestContainer): EnderChestContainer {
         val root = p.readValueAsTree<ObjectNode>()
         val stackArray = root.get("Stacks") as? ArrayNode
-        val stacks = stackArray?.mapNotNull { element ->
-            ItemStack.CODEC
-                .parse(JsonOps.UNCOMPRESSED, element)
-                .result()
-                .orElse(null)
-        } ?: emptyList()
-        
+        val stacks =
+            stackArray?.mapNotNull { element ->
+                ItemStack.CODEC
+                    .parse(JsonOps.UNCOMPRESSED, element)
+                    .result()
+                    .orElse(null)
+            } ?: emptyList()
+
         EnderChestContainer.update(stacks)
         EnderChestContainer.scanStacksForNestedContainers()
         return EnderChestContainer

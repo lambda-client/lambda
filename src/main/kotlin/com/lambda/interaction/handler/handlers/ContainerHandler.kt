@@ -27,7 +27,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.Container
-import com.lambda.interaction.container.ContainerMarker
+import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerSerializer
 import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.external.ChestContainer
@@ -235,7 +235,7 @@ object ContainerHandler : Loadable {
 	private fun Inventory.stacks() = iterator().asSequence().toList()
 }
 
-@ContainerMarker
+@ContainerDslMarker
 context(_: AutomatedSafeContext)
 fun StackSelection.move(
 	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
@@ -268,7 +268,7 @@ fun StackSelection.move(
 	return fromContainer.swap(fromSlot, toSlot, toContainer)
 }
 
-@ContainerMarker
+@ContainerDslMarker
 context(automated: Automated)
 fun findSlot(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
@@ -277,13 +277,13 @@ fun findSlot(
 ) = findSlots(stackSelection, containerSelection, sorted)
 	.firstOrNull()
 
-@ContainerMarker
+@ContainerDslMarker
 context(automated: Automated)
 fun findSlots(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection.scope)
+) = searchContainers(containerSelection)
 	.filter { containerSelection.matches(it) }
 	.let {
 		if (sorted) it.sorted()
@@ -296,7 +296,7 @@ fun findSlots(
 	}
 	.flatten()
 
-@ContainerMarker
+@ContainerDslMarker
 context(automated: Automated)
 fun findStack(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
@@ -305,13 +305,13 @@ fun findStack(
 ) = findStacks(stackSelection, containerSelection, sorted)
 	.firstOrNull()
 
-@ContainerMarker
+@ContainerDslMarker
 context(automated: Automated)
 fun findStacks(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection.scope)
+) = searchContainers(containerSelection)
 	.filter { containerSelection.matches(it) }
 	.let {
 		if (sorted) it.sorted()
@@ -324,7 +324,7 @@ fun findStacks(
 	}
 	.flatten()
 
-@ContainerMarker
+@ContainerDslMarker
 context(_: Automated)
 fun findContainer(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
@@ -332,19 +332,19 @@ fun findContainer(
 ) = findContainers(containerSelection, sorted)
 	.firstOrNull()
 
-@ContainerMarker
+@ContainerDslMarker
 context(automated: Automated)
 fun findContainers(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection.scope)
+) = searchContainers(containerSelection)
 	.filter { containerSelection.matches(it) }
 	.let {
 		if (sorted) it.sorted()
 		else it
 	}
 
-@ContainerMarker
+@ContainerDslMarker
 context(_: Automated)
 fun findContainerWithDisposable(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
@@ -352,7 +352,7 @@ fun findContainerWithDisposable(
 ) = findContainersWithDisposable(containerSelection, sorted)
 	.firstOrNull()
 
-@ContainerMarker
+@ContainerDslMarker
 context(automated: Automated)
 fun findContainersWithDisposable(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
@@ -371,7 +371,9 @@ fun findContainersWithDisposable(
 	}
 
 context(automated: Automated)
-private fun searchContainers(scope: ContainerSearchScope): Sequence<Container> {
+private fun searchContainers(
+	selection: ContainerSelection
+): Sequence<Container> {
 	fun Container.allNested(): Sequence<Container> =
 		sequence {
 			yield(this@allNested)
@@ -384,9 +386,10 @@ private fun searchContainers(scope: ContainerSearchScope): Sequence<Container> {
 	val placedSeq = sequenceOf(ContainerHandler.accessedPlacedContainer).filterNotNull()
 
 	val baseContainers =
-		when (scope) {
+		when (selection.scope) {
 			ContainerSearchScope.Player -> compiled - EnderChestContainer
 			ContainerSearchScope.Compiled -> compiled
+			ContainerSearchScope.Loaded -> compiled + placedSeq + selection.loadedContainers
 			ContainerSearchScope.Accessed -> placedSeq + compiled.filter { it.isAccessed }
 			ContainerSearchScope.All -> compiled + placedSeq +
 					ContainerSerializer.serializedContainers.filter { diskContainer ->
@@ -400,8 +403,9 @@ private fun searchContainers(scope: ContainerSearchScope): Sequence<Container> {
 }
 
 enum class ContainerSearchScope {
-	Player,
-	Compiled,
 	Accessed,
+	Compiled,
+	Loaded,
+	Player,
 	All
 }

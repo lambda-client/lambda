@@ -18,7 +18,7 @@
 package com.lambda.interaction.container.selection
 
 import com.lambda.interaction.container.Container
-import com.lambda.interaction.container.ContainerMarker
+import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.containers.ArmorContainer
@@ -30,12 +30,17 @@ import com.lambda.interaction.container.containers.OffHandContainer
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 
-@ContainerMarker
+@ContainerDslMarker
 fun Container.select(
     scope: ContainerSearchScope = ContainerSearchScope.Accessed
 ) = containerSelection(scope) { ofAny(this@select) }
 
-@ContainerMarker
+@ContainerDslMarker
+fun Iterable<Container>.select(
+    scope: ContainerSearchScope = ContainerSearchScope.Accessed
+) = containerSelection(scope) { ofAny(this@select) }
+
+@ContainerDslMarker
 fun selectContainers(
     vararg containers: Container,
     scope: ContainerSearchScope = ContainerSearchScope.Accessed
@@ -45,21 +50,22 @@ fun selectContainers(
  * ContainerSelection is a class that holds a predicate for matching containers.
  */
 @Suppress("unused")
-class ContainerSelection @ContainerMarker internal constructor(
+class ContainerSelection @ContainerDslMarker internal constructor(
     val selector: (Container) -> Boolean,
     val scope: ContainerSearchScope = ContainerSearchScope.Accessed,
     val containersWhitelist: Collection<Container> = emptyList(),
+    val loadedContainers: Collection<Container> = emptyList(),
     val containersBlacklist: Collection<Container> = emptyList(),
     val accessScope: AccessScope = AccessScope.Both,
     val comparator: Comparator<Container> = compareBy { it.type }
 ) {
-    @ContainerMarker
+    @ContainerDslMarker
     fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
 
-    @ContainerMarker
+    @ContainerDslMarker
     fun matches(container: Container): Boolean = selector(container)
 
-    @ContainerMarker
+    @ContainerDslMarker
     fun filter(containers: Iterable<Container>) =
         run {
             containersWhitelist
@@ -89,11 +95,11 @@ class ContainerSelection @ContainerMarker internal constructor(
 }
 
 @Suppress("unused")
-@ContainerMarker
-class ContainerSelectionBuilder @ContainerMarker private constructor(
+@ContainerDslMarker
+class ContainerSelectionBuilder @ContainerDslMarker private constructor(
     private val scope: ContainerSearchScope
 ) {
-    @ContainerMarker
+    @ContainerDslMarker
     private constructor(
         selection: ContainerSelection,
         scope: ContainerSearchScope
@@ -107,12 +113,28 @@ class ContainerSelectionBuilder @ContainerMarker private constructor(
 
     private var selector: (Container) -> Boolean = { true }
     private val containersWhitelist = mutableListOf<Container>()
+    private val loadedContainers = mutableListOf<Container>()
     private val containersBlacklist = mutableListOf<Container>()
     private var accessScope: AccessScope = AccessScope.Both
     private var comparator: Comparator<Container> = compareBy { it.type }
 
+    fun withContainers(vararg containers: Container) {
+        loadedContainers.addAll(containers)
+    }
+
+    fun withContainers(containers: Iterable<Container>) {
+        loadedContainers.addAll(containers)
+    }
+
     fun ofAny(vararg containers: Container) {
         containersWhitelist.addAll(containers)
+        withContainers(*containers)
+        appendSelector { container -> container in containersWhitelist }
+    }
+
+    fun ofAny(containers: Iterable<Container>) {
+        containersWhitelist.addAll(containers)
+        withContainers(containers)
         appendSelector { container -> container in containersWhitelist }
     }
 
@@ -121,11 +143,24 @@ class ContainerSelectionBuilder @ContainerMarker private constructor(
         appendSelector { container -> container !in containersBlacklist }
     }
 
+    fun noneOf(containers: Iterable<Container>) {
+        containersBlacklist.addAll(containers)
+        appendSelector { container -> container !in containersBlacklist }
+    }
+
     fun ofAnyType(vararg types: ContainerType) {
         appendSelector { container -> types.contains(container.type) }
     }
 
+    fun ofAnyType(types: Iterable<ContainerType>) {
+        appendSelector { container -> types.contains(container.type) }
+    }
+
     fun noneOfType(vararg types: ContainerType) {
+        appendSelector { container -> !types.contains(container.type) }
+    }
+
+    fun noneOfType(types: Iterable<ContainerType>) {
         appendSelector { container -> !types.contains(container.type) }
     }
 
@@ -184,10 +219,20 @@ class ContainerSelectionBuilder @ContainerMarker private constructor(
     }
 
     private fun appendSelector(selector: (Container) -> Boolean) {
-        this.selector = { this.selector(it) && selector(it) }
+        val currentSelector = this.selector
+        this.selector = { currentSelector(it) && selector(it) }
     }
 
-    private fun build() = ContainerSelection(selector, scope, containersWhitelist, containersBlacklist, accessScope, comparator)
+    private fun build() =
+        ContainerSelection(
+            selector,
+            scope,
+            containersWhitelist,
+            loadedContainers,
+            containersBlacklist,
+            accessScope,
+            comparator
+        )
 
     companion object {
         fun containerSelection(

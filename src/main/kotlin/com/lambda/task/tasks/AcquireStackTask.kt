@@ -25,7 +25,6 @@ import com.lambda.interaction.container.selection.select
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
-import net.minecraft.screen.slot.Slot
 
 @Ta5kBuilder
 context(automated: Automated)
@@ -40,17 +39,15 @@ fun acquireStack(selection: () -> StackSelection) =
 class AcquireStackTask @Ta5kBuilder internal constructor(
     val selection: StackSelection,
     automated: Automated
-) : Task<Slot>(), Automated by automated {
+) : Task<StackSelection>(), Automated by automated {
     override val name: String
         get() = "Acquiring $selection"
 
     override fun SafeContext.onStart() {
         runSafeAutomated {
             selection.transfer(toSelection = HotbarContainer.select())
-                .onSuccess { slot -> success(slot) }
+                .onSuccess { result -> success(result.stackSelection) }
                 .start()
         }
     }
 }
-
-class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")
