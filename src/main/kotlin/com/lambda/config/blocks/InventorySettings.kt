@@ -31,7 +31,9 @@ class InventorySettings(override val c: Config) : InventoryConfig, ConfigBlock {
 
     override val tickStageMask by c.setting("Inventory Stage Mask", ALL_STAGES.toSet(), description = "The sub-tick timing at which inventory actions are performed", displayClassName = true)
     override val disposables by c.setting("Disposables", ItemUtils.DEFAULT_DISPOSABLES, description = "Items that will be ignored when checking for a free slot")
-    override val allowedContainers by c.setting("Allowed Containers", ContainerType.entries, description = "What containers are accessible")
+    override val allowedContainers by c.setting("Allowed Containers", ContainerType.entries, description = "What containers to search for items in")
+    override val accessPriority by c.setting("Access Priority", InventoryConfig.ContainerPriority.WithMinItems, description = "What container to prefer when retrieving the item from")
+    override val storePriority by c.setting("Store Priority", InventoryConfig.ContainerPriority.WithMinItems, description = "What container to prefer when storing the item to")
 
-    @Group(ENDER_CHEST_GROUP) override val enderChestSearchRadius by c.setting("Initial Search Radius", 10, 0..20, unit = " blocks", description = "Initial search radius to scan for an already placed ender chest. If one isn't found, one will be placed. If an ender chest isn't found in the inventory, it scans the rest of the loaded area to find an already placed one")
+    @Group(ENDER_CHEST_GROUP) override val enderChestSearchRadius by c.setting("Initial Search Radius", 10, 0..20, unit = " blocks", description = "The search radius for ender chests to access if one hasn't been accessed yet")
 }

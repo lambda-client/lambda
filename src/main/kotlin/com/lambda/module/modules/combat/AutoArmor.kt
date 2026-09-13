@@ -75,18 +75,19 @@ object AutoArmor : Module(
 			else 0.0
 		} else 0.0
 	}.thenByDescending {
-		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-			?.modifiers
+		val modifiers = it.stack.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+			?: it.stack.item.components.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+		modifiers?.modifiers
 			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
 			?.modifier?.value
 			?: 0.0
 	}.thenByDescending {
-		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-			?.modifiers
+		val modifiers = it.stack.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+			?: it.stack.item.components.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+		modifiers?.modifiers
 			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
 			?.modifier?.value
 			?: 0.0
-	}.thenByDescending {
 		val stack = it.stack
 		when {
 			stack.isIn(ItemTags.FOOT_ARMOR) -> stack.getEnchantment(feetProtection.enchant)

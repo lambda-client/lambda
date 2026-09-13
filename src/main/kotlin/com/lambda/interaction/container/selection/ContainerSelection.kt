@@ -46,6 +46,12 @@ fun selectContainers(
     scope: ContainerSearchScope = ContainerSearchScope.Accessed
 ) = containerSelection(scope) { ofAny(*containers) }
 
+@ContainerDslMarker
+fun selectContainer(
+    scope: ContainerSearchScope = ContainerSearchScope.Accessed,
+    builder: ContainerSelectionBuilder.() -> Unit
+) = containerSelection(scope, builder)
+
 /**
  * ContainerSelection is a class that holds a predicate for matching containers.
  */
@@ -59,28 +65,36 @@ class ContainerSelection @ContainerDslMarker internal constructor(
     val accessScope: AccessScope = AccessScope.Both,
     val comparator: Comparator<Container> = compareBy { it.type }
 ) {
+    private val whitelistSet = containersWhitelist.takeIf { it.isNotEmpty() }?.toSet()
+    private val blacklistSet = containersBlacklist.takeIf { it.isNotEmpty() }?.toSet()
+
     @ContainerDslMarker
     fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
 
     @ContainerDslMarker
-    fun matches(container: Container): Boolean = selector(container)
+    fun matches(container: Container): Boolean {
+        if (whitelistSet != null && container !in whitelistSet) return false
+        if (blacklistSet != null && container in blacklistSet) return false
+        if (accessScope.accessed != null && container.isAccessed != accessScope.accessed) return false
+        return selector(container)
+    }
 
     @ContainerDslMarker
-    fun filter(containers: Iterable<Container>) =
-        run {
-            containersWhitelist
-                .takeIf { it.isNotEmpty() }
-                ?.asSequence()
-                ?.filter { it in containers && (accessScope.accessed?.equals(it.isAccessed) != false) }
-                ?: containers.asSequence()
-        }.filter { it !in containersBlacklist }
-            .filter(selector)
+    fun filter(containers: Iterable<Container>): List<Container> =
+        containers.asSequence()
+            .filter { container ->
+                (whitelistSet == null || container in whitelistSet) &&
+                    (blacklistSet == null || container !in blacklistSet) &&
+                    (accessScope.accessed == null || container.isAccessed == accessScope.accessed) &&
+                    selector(container)
+            }
             .sortedWith(comparator)
             .toList()
 
     companion object {
-        val ACCESSED = ContainerSelection({ true })
-        val NOTHING = ContainerSelection({ false })
+        val ACCESSED = ContainerSelection({ true }, ContainerSearchScope.Accessed)
+        val EVERYTHING = ContainerSelection({ true }, ContainerSearchScope.All)
+        val NOTHING = ContainerSelection({ false }, ContainerSearchScope.Accessed)
         val HOTBAR_AND_INVENTORY = selectContainers(HotbarContainer, InventoryContainer)
         val PLAYER =
             selectContainers(
@@ -128,24 +142,18 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
 
     fun ofAny(vararg containers: Container) {
         containersWhitelist.addAll(containers)
-        withContainers(*containers)
-        appendSelector { container -> container in containersWhitelist }
     }
 
     fun ofAny(containers: Iterable<Container>) {
         containersWhitelist.addAll(containers)
-        withContainers(containers)
-        appendSelector { container -> container in containersWhitelist }
     }
 
     fun noneOf(vararg containers: Container) {
         containersBlacklist.addAll(containers)
-        appendSelector { container -> container !in containersBlacklist }
     }
 
     fun noneOf(containers: Iterable<Container>) {
         containersBlacklist.addAll(containers)
-        appendSelector { container -> container !in containersBlacklist }
     }
 
     fun ofAnyType(vararg types: ContainerType) {

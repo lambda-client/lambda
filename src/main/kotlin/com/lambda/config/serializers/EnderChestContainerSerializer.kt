@@ -53,7 +53,8 @@ object EnderChestContainerSerializer : Serializer<EnderChestContainer>(EnderChes
 
 object EnderChestContainerDeserializer : Deserializer<EnderChestContainer>(EnderChestContainer::class.java) {
     override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): EnderChestContainer? {
-        throw initFromJsonException("EnderChestContainer")
+        if (p == null || ctxt == null) return null
+        return deserialize(p, ctxt, EnderChestContainer)
     }
 
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext, intoValue: EnderChestContainer): EnderChestContainer {

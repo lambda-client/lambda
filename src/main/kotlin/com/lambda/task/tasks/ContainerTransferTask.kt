@@ -94,12 +94,12 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			findContainers(
 				containerSelection(toSelection.scope) {
 					matches(toSelection)
-					hasStack(toStack.mutate(1))
+					hasSpace(fromStack.mutate(1))
 				}
 			).toList()
-				.takeIf { toStack isIn it }
+				.takeIf { fromStack spaceIn it }
 				?: run {
-					failure("Could not find destination containers for $toStack")
+					failure("Could not find destination containers with space for $fromStack")
 					return
 				}
 
@@ -110,8 +110,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		fromStack.mutate(count = if (fromStack.count <= 0) 0 else fromStack.count - transferred)
 
 	private fun isComplete() =
-		(fromStack.count <= 0 && transferred > 0) || (fromStack.count != 0 && transferred >= fromStack.count)
-
+		fromStack.count > 0 && transferred >= fromStack.count
 	private fun buildResult() =
 		TransferResult(
 			stackSelection {
@@ -159,7 +158,9 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			if (fromContainer.count(fromStack) <= 0) fromQueue.remove(fromContainer)
 			if (!bothExternal && toContainer.spaceLeft(fromStack) <= 0) toQueue.remove(toContainer)
 			transferNextPair(fromQueue, toQueue)
-		}.start()
+		}.onFailure {
+			failure(it)
+		}.execute(this@ContainerTransferTask)
 	}
 
 	/**
@@ -205,11 +206,12 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private fun pushChain(
 		destination: Container,
 		toQueue: MutableList<Container>
-	): Task<*> =
-		taskOrNull { destination.access() }.then { destinationContext ->
+	): Task<*> {
+		val chain = taskOrNull { destination.access() }.then { destinationContext ->
 			SwapTask(ContainerSelection.HOTBAR_AND_INVENTORY, destination.select())
 				.thenOrNull { destinationContext?.close() }
-		}.onSuccess {
+		}
+		chain.onSuccess {
 			if (isComplete()) return@onSuccess
 
 			if (destination.spaceLeft(fromStack) == 0) toQueue.remove(destination)
@@ -219,8 +221,12 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			if (!playerHasItems) return@onSuccess
 
 			val nextDestination = toQueue.firstOrNull() ?: return@onSuccess
-			pushChain(nextDestination, toQueue).start()
+			pushChain(nextDestination, toQueue).execute(this@ContainerTransferTask)
+		}.onFailure {
+			failure(it)
 		}
+		return chain
+	}
 
 	/**
 	 * Swaps items between containers matching [fromSelection] and [toSelection] one slot per tick.
@@ -241,9 +247,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		init {
 			listen<TickEvent.Pre> {
 				runSafeAutomated {
-					while (true) {
-						if (swapStack()) break
-					}
+					swapStack()
 				}
 			}
 		}
@@ -278,11 +282,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			val (fromContainer, toContainer, slots) = moveSlots
 			val (fromSlot, toSlot) = slots
 			val moveCount =
-				minOf(
-					fromSlot.stack.count,
-					if (fromStack.count == 0) Int.MAX_VALUE
-					else fromStack.count - transferred
-				)
+				if (fromStack.count <= 0) fromSlot.stack.count
+				else minOf(fromSlot.stack.count, fromStack.count - transferred)
 
 			if (!fromContainer.swap(fromSlot, toSlot, toContainer)) {
 				failure("Swap failed for $fromStack")
@@ -295,7 +296,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				resultContainers.add(toContainer)
 			}
 
-			if (fromStack.count == 0 || isComplete()) {
+			if (isComplete()) {
 				success()
 				return true
 			}

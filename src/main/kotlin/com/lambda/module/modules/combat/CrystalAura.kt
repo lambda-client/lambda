@@ -62,6 +62,8 @@ import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.registry.tag.ItemTags
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
@@ -101,6 +103,9 @@ object CrystalAura : Module(
     @Tab(PLACEMENT_TAB) private val priorityMode by setting("Crystal Priority", Priority.Damage)
     @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
     @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val facePlace by setting("Face Place", true, "Places crystals at lower damage thresholds to finish weak targets or break armor")
+    @Tab(PLACEMENT_TAB) private val facePlaceHealth by setting("Face Place Health", 10.0, 1.0..36.0, 0.5, "Maximum target health to trigger Face Place") { facePlace }
+    @Tab(PLACEMENT_TAB) private val facePlaceArmor by setting("Face Place Armor", 15, 1..100, 1, "Armor durability percentage to trigger Face Place", unit = "%") { facePlace }
     @Tab(PLACEMENT_TAB) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
     @Tab(PLACEMENT_TAB) private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals")
     @Tab(PLACEMENT_TAB) private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal")
@@ -108,6 +113,7 @@ object CrystalAura : Module(
 
     @Tab(EXPLODING_TAB) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
     @Tab(EXPLODING_TAB) private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
+    @Tab(EXPLODING_TAB) private val antiWeakness by setting("Anti Weakness", true, "Swaps to a weapon before exploding when under the Weakness effect")
 
     @Tab(PREDICTION_TAB) private val prediction by setting("Prediction", PredictionMode.None)
     @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }
@@ -297,6 +303,13 @@ object CrystalAura : Module(
     }
 
     private fun SafeContext.explodeInternal(id: Int) {
+        if (antiWeakness && player.hasStatusEffect(StatusEffects.WEAKNESS)) {
+            val weaponIndex = findWeaponSlotIndex()
+            if (weaponIndex != null && weaponIndex != player.inventory.selectedSlot) {
+                hotbarRequest(weaponIndex).submit()
+            }
+        }
+
         connection.sendPacket {
             PlayerInteractEntityC2SPacket(
                 id, player.isSneaking, PlayerInteractEntityC2SPacket.ATTACK
@@ -306,9 +319,41 @@ object CrystalAura : Module(
         player.swingHand(Hand.MAIN_HAND)
     }
 
+    private fun SafeContext.findWeaponSlotIndex(): Int? {
+        for (i in 0..8) {
+            val stack = player.inventory.getStack(i)
+            if (stack.isIn(ItemTags.SWORDS) || stack.isIn(ItemTags.AXES)) {
+                return i
+            }
+        }
+        return null
+    }
+
+    private fun isArmorLow(entity: LivingEntity, thresholdPercent: Int): Boolean {
+        val armorSlots = arrayOf(
+            net.minecraft.entity.EquipmentSlot.HEAD,
+            net.minecraft.entity.EquipmentSlot.CHEST,
+            net.minecraft.entity.EquipmentSlot.LEGS,
+            net.minecraft.entity.EquipmentSlot.FEET
+        )
+        for (slot in armorSlots) {
+            val armorStack = entity.getEquippedStack(slot)
+            if (armorStack.isEmpty || !armorStack.isDamageable) continue
+            val duraPercent = (1.0 - armorStack.damage.toDouble() / armorStack.maxDamage.toDouble()) * 100.0
+            if (duraPercent <= thresholdPercent) return true
+        }
+        return false
+    }
+
     private fun SafeContext.updateBlueprint(target: LivingEntity) =
         updateTimer.runIfPassed(updateDelay.milliseconds) {
             resetBlueprint()
+
+            val isFacePlacing = facePlace && (
+                target.health <= facePlaceHealth ||
+                isArmorLow(target, facePlaceArmor)
+            )
+            val effectiveMinTargetDamage = if (isFacePlacing) 2.0 else minTargetDamage
 
             fun info(
                 pos: BlockPos,
@@ -319,8 +364,7 @@ object CrystalAura : Module(
                 val crystalPos = pos.crystalPosition
 
                 val targetDamage = crystalDamage(crystalPos, target)
-                if (targetDamage < minTargetDamage) return null
-
+                if (targetDamage < effectiveMinTargetDamage) return null
                 val selfDamage = crystalDamage(crystalPos, player)
                 if (selfDamage > maxSelfDamage ||
                     player.fullHealth - selfDamage <= minPlaceHealth ||

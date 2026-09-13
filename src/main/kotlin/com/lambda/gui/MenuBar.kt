@@ -61,6 +61,7 @@ import java.util.*
 
 object MenuBar {
     private var aboutRequested = false
+    private var shortcutsModalOpen = false
     var newConfigName = ""
     val headerLogo = upload("textures/lambda_text_color.png")
     val lambdaLogo = upload("textures/lambda.png")
@@ -79,6 +80,7 @@ object MenuBar {
             menu("Automation Configs") { buildAutomationConfigsMenu() }
             menu("Minecraft") { buildMinecraftMenu() }
             menu("Help") { buildHelpMenu() }
+            buildSearchButton()
             buildGitHubReference()
         }
 
@@ -88,6 +90,13 @@ object MenuBar {
         }
 
         aboutPopup()
+
+        if (shortcutsModalOpen) {
+            ImGui.openPopup("Keyboard Shortcuts")
+            shortcutsModalOpen = false
+        }
+
+        shortcutsPopup()
     }
 
     private fun ImGuiBuilder.lambdaMenu() {
@@ -245,10 +254,10 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildHudMenu() {
-        menuItem(if (HudGuiLayout.isLocked) "Unlock" else "Lock") {
+        menuItem(if (HudGuiLayout.isLocked) "Unlock HUD (Enable Dragging)" else "Lock HUD (Disable Dragging)") {
             HudGuiLayout.isLocked = !HudGuiLayout.isLocked
         }
-        menuItem(if (HudGuiLayout.isShownInGUI) "Hide" else "Show") {
+        menuItem(if (HudGuiLayout.isShownInGUI) "Hide HUD in GUI" else "Show HUD in GUI") {
             HudGuiLayout.isShownInGUI = !HudGuiLayout.isShownInGUI
         }
         separator()
@@ -258,9 +267,46 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildGuiMenu() {
-        buildConfigSettingsContext(ClickGuiLayout)
+        menu("Layout & Windows") {
+            menuItem("Tile Windows (Auto-Arrange)") { ClickGuiLayout.tileWindows() }
+            menuItem("Reset Window Positions") { ClickGuiLayout.resetWindowPositions() }
+            separator()
+            menuItem("Collapse All Modules") { ClickGuiLayout.collapseAllModules() }
+        }
+        menu("Theme Presets") {
+            ClickGuiLayout.ThemePreset.entries.forEach { preset ->
+                menuItem(preset.displayName, selected = ClickGuiLayout.themePreset == preset) {
+                    ClickGuiLayout.applyTheme(preset)
+                }
+            }
+            separator()
+            menuItem("Sync Theme to Accent Color") {
+                ClickGuiLayout.syncThemeToAccent(ClickGuiLayout.primaryColor)
+            }
+        }
+        separator()
+        menu("Display Options") {
+            menuItem("Show Keybind Badges", selected = ClickGuiLayout.showKeybindBadges) {
+                ClickGuiLayout.showKeybindBadges = !ClickGuiLayout.showKeybindBadges
+            }
+            menuItem("Highlight Enabled Modules", selected = ClickGuiLayout.highlightEnabledModules) {
+                ClickGuiLayout.highlightEnabledModules = !ClickGuiLayout.highlightEnabledModules
+            }
+            menuItem("Allow Window Collapse", selected = ClickGuiLayout.allowWindowCollapse) {
+                ClickGuiLayout.allowWindowCollapse = !ClickGuiLayout.allowWindowCollapse
+            }
+            menuItem("Category Window Search", selected = ClickGuiLayout.categoryWindowSearch) {
+                ClickGuiLayout.categoryWindowSearch = !ClickGuiLayout.categoryWindowSearch
+            }
+            menuItem("Show Category Counts", selected = ClickGuiLayout.showCategoryCounts) {
+                ClickGuiLayout.showCategoryCounts = !ClickGuiLayout.showCategoryCounts
+            }
+        }
+        separator()
+        menu("All GUI Settings") {
+            buildConfigSettingsContext(ClickGuiLayout)
+        }
     }
-
     private fun ImGuiBuilder.buildModulesMenu() {
         menu("Module Tag") {
             ModuleTag.defaults.forEach { tag ->
@@ -438,9 +484,13 @@ object MenuBar {
     }
 
     private fun ImGuiBuilder.buildHelpMenu() {
-        menuItem("Quick Search...", "Shift+Shift") {
+        menuItem("Quick Search...", "Ctrl+F / Shift+Shift") {
             QuickSearch.open()
         }
+        menuItem("Keyboard Shortcuts Guide") {
+            shortcutsModalOpen = true
+        }
+        separator()
         menuItem("Documentation $EXTERNAL_LINK") {
             Util.getOperatingSystem().open("$REPO_URL/wiki")
         }
@@ -528,6 +578,54 @@ object MenuBar {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun ImGuiBuilder.buildSearchButton() {
+        val label = "Search (Ctrl+F)"
+        val btnW = ImGui.calcTextSize(label).x + style.framePadding.x * 2.5f
+        val iconSize = (frameHeight - 6f).coerceAtLeast(14f)
+        val spacingPx = 8f
+        sameLine()
+        cursorPosX = windowContentRegionMaxX - iconSize - spacingPx - btnW - 8f
+        withStyleVar(ImGuiStyleVar.FramePadding, style.framePadding.x * 0.8f, 2f) {
+            smallButton(label) {
+                QuickSearch.open()
+            }
+        }
+        lambdaTooltip("Search modules, settings and commands (Ctrl+F or Double Shift)")
+    }
+
+    private fun ImGuiBuilder.shortcutsPopup() {
+        popupModal("Keyboard Shortcuts", ImGuiWindowFlags.AlwaysAutoResize) {
+            text("Lambda Client - Shortcuts & Controls")
+            separator()
+
+            val shortcuts = listOf(
+                "Ctrl + F / Double Shift" to "Open Quick Search modal",
+                "Up / Down Arrow" to "Navigate through search results",
+                "Enter" to "Toggle module or run selected search result",
+                "Tab" to "Cycle search filters (All, Modules, Settings, Commands)",
+                "Escape" to "Close Quick Search / Close GUI",
+                "Left Click (Module)" to "Toggle module on / off",
+                "Right Click (Module)" to "Expand / collapse inline settings or open popup",
+                "Small Arrow (▼ / ▶)" to "Expand or collapse module settings inline",
+                "Double Click (Header)" to "Collapse or expand category window",
+                "Drag Title Bar" to "Move category window (snaps to grid & edges)",
+                "Drag HUD Element" to "Move HUD component (when HUD is unlocked)",
+                "Right Click (Window)" to "Open window layout menu (Tile, Reset, etc.)"
+            )
+
+            shortcuts.forEach { (key, desc) ->
+                ImGui.textColored(0.9f, 0.75f, 0.2f, 1f, key)
+                sameLine(220f)
+                text(desc)
+            }
+
+            separator()
+            smallButton("Got it") {
+                closeCurrentPopup()
             }
         }
     }

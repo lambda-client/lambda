@@ -47,7 +47,7 @@ class EatTask @Ta5kBuilder internal constructor(
     private var eatStack: ItemStack? = null
     private var reason = EatConfig.Reason.None
     private var holdingUse = false
-
+    private var activeTransfer: ContainerTransferTask? = null
     override fun SafeContext.onStart() {
         reason = runSafeAutomated { reasonEating() }
     }
@@ -73,11 +73,17 @@ class EatTask @Ta5kBuilder internal constructor(
             } else {
                 if (InventoryContainer.slots.any { selection.matches(it) }) {
                     runSafeAutomated {
-                        transfer(
-                            selection,
-                            InventoryContainer.select(),
-                            HotbarContainer.select()
-                        ).start()
+                        if (activeTransfer == null || activeTransfer?.state in listOf(Task.State.Completed, Task.State.Failed, Task.State.Cancelled)) {
+                            activeTransfer = transfer(
+                                selection,
+                                InventoryContainer.select(),
+                                HotbarContainer.select()
+                            ).apply {
+                                onSuccess { activeTransfer = null }
+                                onFailure { activeTransfer = null }
+                                start()
+                            }
+                        }
                         return@listen
                     }
                 }

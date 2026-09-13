@@ -59,17 +59,17 @@ object GlideHandler {
 			predicate { stack, _ -> stack.damage < stack.maxDamage }
 			sortedWith {
 				compareByDescending<StackAndSlot<*>> {
-					it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-						?.modifiers
+					val modifiers = it.stack.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+						?: it.stack.item.components.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+					modifiers?.modifiers
 						?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
-						?.modifier?.value
-						?: 0.0
+						?.modifier?.value ?: 0.0
 				}.thenByDescending {
-					it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-						?.modifiers
+					val modifiers = it.stack.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+						?: it.stack.item.components.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+					modifiers?.modifiers
 						?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
-						?.modifier?.value
-						?: 0.0
+						?.modifier?.value ?: 0.0
 				}.thenByDescending {
 					it.stack.getEnchantment(Enchantments.UNBREAKING)
 				}.thenByDescending {

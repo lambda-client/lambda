@@ -21,6 +21,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
@@ -28,13 +29,14 @@ import net.minecraft.item.Item
 interface InventoryConfig {
 	val tickStageMask: Collection<TickEvent>
 	val disposables: Collection<Item>
+	val accessPriority: ContainerPriority
+	val storePriority: ContainerPriority
 
 	val allowedContainers: Collection<com.lambda.interaction.container.ContainerType>
 	val containerSelection: ContainerSelection
 		get() = containerSelection { ofAnyType(*allowedContainers.toTypedArray()) }
 
 	val enderChestSearchRadius: Int
-
 	@Suppress("unused")
 	enum class ContainerPriority(
 		override val displayName: String,
@@ -42,6 +44,28 @@ interface InventoryConfig {
 	) : NamedEnum, Describable {
 		WithMinItems("With Min Items", "Pick containers with the fewest matching items (or least space) first; useful for topping off or clearing leftovers."),
 		WithMaxItems("With Max Items", "Pick containers with the most matching items (or most space) first; ideal for bulk moves with fewer transfers.");
+
+		fun materialComparator(selection: StackSelection): Comparator<Container> =
+			when (this) {
+				WithMaxItems -> compareBy<Container> { it.type }
+					.thenByDescending { it.count(selection) }
+					.thenBy { it.name }
+
+				WithMinItems -> compareBy<Container> { it.type }
+					.thenBy { it.count(selection) }
+					.thenBy { it.name }
+			}
+
+		fun spaceComparator(selection: StackSelection): Comparator<Container> =
+			when (this) {
+				WithMaxItems -> compareBy<Container> { it.type }
+					.thenByDescending { it.spaceLeft(selection) }
+					.thenBy { it.name }
+
+				WithMinItems -> compareBy<Container> { it.type }
+					.thenBy { it.spaceLeft(selection) }
+					.thenBy { it.name }
+			}
 
 		fun <T> comparator(countSelector: (Container, T) -> Int) =
 			compareBy<Pair<Container, T>> { it.first.type }

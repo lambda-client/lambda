@@ -47,7 +47,8 @@ class AcquireStackTask @Ta5kBuilder internal constructor(
         runSafeAutomated {
             selection.transfer(toSelection = HotbarContainer.select())
                 .onSuccess { result -> success(result.stackSelection) }
-                .start()
+                .onFailure { failure(it) }
+                .execute(this@AcquireStackTask)
         }
     }
 }

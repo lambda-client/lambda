@@ -78,8 +78,8 @@ object PlayerTrap : Module(
 						}
 					}
 
-				val block = findStack(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
-					?.item?.block
+				val block = (findStack(selection, ContainerSelection.HOTBAR_AND_INVENTORY)?.item as? BlockItem)
+					?.block
 					?: return@tickingBlueprint emptyMap()
 
 				val targetPlayer =

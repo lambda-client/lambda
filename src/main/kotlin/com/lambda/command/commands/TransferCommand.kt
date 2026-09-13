@@ -96,16 +96,25 @@ object TransferCommand : LambdaCommand(
                         }
                         executeWithResult {
                             AutomationConfig.DEFAULT.runSafeAutomated {
+                                fun parsePredicate(raw: String): (com.lambda.interaction.container.Container) -> Boolean {
+                                    val clean = raw.trim().removeSurrounding("\"")
+                                    val indexPrefix = clean.substringBefore(". ").toIntOrNull()
+                                    val nameAfterDot = if (indexPrefix != null) clean.substringAfter(". ").trim() else clean
+                                    return { container ->
+                                        container.name.equals(clean, ignoreCase = true) ||
+                                            container.name.equals(nameAfterDot, ignoreCase = true)
+                                    }
+                                }
+
                                 val fromSelection =
                                     containerSelection {
-                                        predicate { it.name == from().value().split(".").first().trim() }
+                                        predicate(parsePredicate(from().value()))
                                     }
 
                                 val toSelection =
                                     containerSelection {
-                                        predicate { it.name == to().value().split(".").first().trim() }
+                                        predicate(parsePredicate(to().value()))
                                     }
-
 	                            lastContainerTransfer =
                                     transfer(
                                         stackSelection(amount().value()) {

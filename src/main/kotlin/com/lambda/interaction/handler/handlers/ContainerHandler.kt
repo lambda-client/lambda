@@ -48,6 +48,8 @@ import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.player.SlotUtils.typeSafe
+import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 import net.minecraft.block.ChestBlock
 import net.minecraft.block.ShulkerBoxBlock
 import net.minecraft.block.entity.BlockEntity
@@ -246,7 +248,7 @@ fun StackSelection.move(
 		findContainer(
 			containerSelection {
 				matches(fromSelection)
-				hasStack(mutate(count.coerceAtMost(64)))
+				hasStack(this@move)
 				isAccessed()
 			}
 		)
@@ -256,7 +258,7 @@ fun StackSelection.move(
 		findContainer(
 			containerSelection {
 				matches(toSelection)
-				hasStack(replaceSelection)
+				hasSpace(this@move)
 				isAccessed()
 			}
 		)
@@ -274,8 +276,7 @@ fun findSlot(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = findSlots(stackSelection, containerSelection, sorted)
-	.firstOrNull()
+) = findSlots(stackSelection, containerSelection, sorted).firstOrNull()
 
 @ContainerDslMarker
 context(automated: Automated)
@@ -283,18 +284,14 @@ fun findSlots(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection)
-	.filter { containerSelection.matches(it) }
-	.let {
-		if (sorted) it.sorted()
-		else it
-	}
-	.mapNotNull { container ->
-		val slots = stackSelection.filter(container.slots)
-		if (slots.count >= stackSelection.count) slots
-		else null
-	}
-	.flatten()
+): Sequence<Slot> =
+	findContainers(containerSelection, sorted)
+		.mapNotNull { container ->
+			val slots = stackSelection.filter(container.slots)
+			if (slots.count >= stackSelection.count) slots
+			else null
+		}
+		.flatten()
 
 @ContainerDslMarker
 context(automated: Automated)
@@ -302,8 +299,7 @@ fun findStack(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = findStacks(stackSelection, containerSelection, sorted)
-	.firstOrNull()
+) = findStacks(stackSelection, containerSelection, sorted).firstOrNull()
 
 @ContainerDslMarker
 context(automated: Automated)
@@ -311,53 +307,95 @@ fun findStacks(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection)
-	.filter { containerSelection.matches(it) }
-	.let {
-		if (sorted) it.sorted()
-		else it
-	}
-	.mapNotNull { container ->
-		val stacks = stackSelection.filter(container.stacks)
-		if (stacks.count >= stackSelection.count) stacks
-		else null
-	}
-	.flatten()
+): Sequence<ItemStack> =
+	findContainers(containerSelection, sorted)
+		.mapNotNull { container ->
+			val stacks = stackSelection.filter(container.stacks)
+			if (stacks.count >= stackSelection.count) stacks
+			else null
+		}
+		.flatten()
 
 @ContainerDslMarker
 context(_: Automated)
 fun findContainer(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = findContainers(containerSelection, sorted)
-	.firstOrNull()
+) = findContainers(containerSelection, sorted).firstOrNull()
+
+@ContainerDslMarker
+context(automated: Automated)
+fun findContainer(
+	stackSelection: StackSelection,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+): Container? = findContainers(stackSelection, containerSelection, sorted).firstOrNull()
 
 @ContainerDslMarker
 context(automated: Automated)
 fun findContainers(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection)
-	.filter { containerSelection.matches(it) }
-	.let {
-		if (sorted) it.sorted()
-		else it
+): Sequence<Container> {
+	val containers = searchContainers(containerSelection)
+	return if (sorted) {
+		containerSelection.filter(containers.asIterable()).asSequence()
+	} else {
+		containers.filter { containerSelection.matches(it) }
 	}
+}
+
+@ContainerDslMarker
+context(automated: Automated)
+fun findContainers(
+	stackSelection: StackSelection,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+): Sequence<Container> =
+	findContainers(
+		containerSelection(containerSelection.scope) {
+			matches(containerSelection)
+			hasStack(stackSelection)
+		},
+		sorted
+	)
+
+@ContainerDslMarker
+context(automated: Automated)
+fun findContainerWithSpace(
+	stackSelection: StackSelection,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+): Container? = findContainersWithSpace(stackSelection, containerSelection, sorted).firstOrNull()
+
+@ContainerDslMarker
+context(automated: Automated)
+fun findContainersWithSpace(
+	stackSelection: StackSelection,
+	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+	sorted: Boolean = true
+): Sequence<Container> =
+	findContainers(
+		containerSelection(containerSelection.scope) {
+			matches(containerSelection)
+			hasSpace(stackSelection)
+		},
+		sorted
+	)
 
 @ContainerDslMarker
 context(_: Automated)
 fun findContainerWithDisposable(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = findContainersWithDisposable(containerSelection, sorted)
-	.firstOrNull()
+) = findContainersWithDisposable(containerSelection, sorted).firstOrNull()
 
 @ContainerDslMarker
 context(automated: Automated)
 fun findContainersWithDisposable(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) =
+): Sequence<Container> =
 	with(automated) {
 		findContainers(
 			containerSelection(containerSelection.scope) {
@@ -369,7 +407,6 @@ fun findContainersWithDisposable(
 			sorted
 		)
 	}
-
 context(automated: Automated)
 private fun searchContainers(
 	selection: ContainerSelection
@@ -386,7 +423,7 @@ private fun searchContainers(
 	val placedSeq = sequenceOf(ContainerHandler.accessedPlacedContainer).filterNotNull()
 
 	val baseContainers =
-		when (selection.scope) {
+		(when (selection.scope) {
 			ContainerSearchScope.Player -> compiled - EnderChestContainer
 			ContainerSearchScope.Compiled -> compiled
 			ContainerSearchScope.Loaded -> compiled + placedSeq + selection.loadedContainers
@@ -395,7 +432,7 @@ private fun searchContainers(
 					ContainerSerializer.serializedContainers.filter { diskContainer ->
 						diskContainer.pos != ContainerHandler.accessedPlacedContainer?.pos
 					}
-		}
+		} + selection.containersWhitelist.asSequence()).distinct()
 
 	return baseContainers
 		.flatMap { it.allNested() }

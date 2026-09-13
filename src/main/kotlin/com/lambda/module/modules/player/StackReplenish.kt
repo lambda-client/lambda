@@ -65,10 +65,12 @@ object StackReplenish : Module(
 		InventoryContainer.stacks.forEach { invStack ->
 			if (!ItemStack.areItemsAndComponentsEqual(invStack, stack)) return@forEach
 			val invId = invStack.slotId
+			val targetId = stack.slotId
+			if (invId == -1 || targetId == -1) return@forEach
 			val completing = stack.count + invStack.count >= stack.maxCount
 			val tooMany = invStack.count + stack.count > stack.maxCount
 			inventoryRequest {
-				moveSlot(invId, stack.slotId)
+				moveSlot(invId, targetId)
 				if (tooMany) pickup(invId)
 			}.submit()
 			if (completing) return

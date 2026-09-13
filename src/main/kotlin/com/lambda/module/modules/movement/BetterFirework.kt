@@ -160,8 +160,14 @@ object BetterFirework : Module(
 	 * Return true if a firework has been used
 	 */
 	fun SafeContext.startFirework(inventory: Boolean) {
-		val selection = Items.FIREWORK_ROCKET.select(1)
+		if (player.offHandStack.item == Items.FIREWORK_ROCKET) {
+			interaction.interactItem(player, Hand.OFF_HAND)
+			if (clientSwing) player.swingHand(Hand.OFF_HAND)
+			else connection.sendPacket(HandSwingC2SPacket(Hand.OFF_HAND))
+			return
+		}
 
+		val selection = Items.FIREWORK_ROCKET.select(1)
 		val hotbarMatch = selection.bestMatch(HotbarContainer.slots)
 		if (hotbarMatch != null) {
 			swapAndFirework(hotbarMatch.index)

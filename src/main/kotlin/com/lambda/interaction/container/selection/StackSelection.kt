@@ -44,6 +44,12 @@ fun Item.select(count: Int = 1) = stackSelection(count) { isItem(this@select) }
 @ContainerDslMarker
 fun ItemStack.select(count: Int = 1) = stackSelection(count) { isItemStack(this@select) }
 
+@ContainerDslMarker
+fun selectStack(
+	count: Int = 1,
+	builder: StackSelectionBuilder.() -> Unit
+) = stackSelection(count, builder)
+
 class StackSelection @ContainerDslMarker internal constructor(
 	val count: Int = 1,
 	val whitelistedSlots: Collection<Slot> = emptyList(),
@@ -54,7 +60,9 @@ class StackSelection @ContainerDslMarker internal constructor(
 	val comparator: Comparator<StackAndSlot<*>> = compareBy { it.stack.count },
 	val selector: (ItemStack, Slot?) -> Boolean,
 ) {
-	val optimalStack = itemStack ?: item?.let { ItemStack(it, count) }
+	val optimalStack = itemStack ?: item?.let { ItemStack(it, count.coerceIn(1, it.maxCount)) }
+	private val whitelistSet = whitelistedSlots.takeIf { it.isNotEmpty() }?.toSet()
+	private val blacklistSet = blacklistedSlots.takeIf { it.isNotEmpty() }?.toSet()
 
 	@ContainerDslMarker
 	fun bestMatch(stacks: Iterable<ItemStack>) = filter(stacks).firstOrNull()
@@ -66,9 +74,9 @@ class StackSelection @ContainerDslMarker internal constructor(
 	fun matches(stack: ItemStack): Boolean {
 		val matchesSelf = selector(stack, null)
 		return when (shulkerBoxScope.inShulkerBox) {
-			true -> stack.shulkerBoxStacks.any { selector(it, null) }
+			true -> if (stack.item in ItemUtils.SHULKER_BOXES) stack.shulkerBoxStacks.any { selector(it, null) } else false
 			false -> matchesSelf
-			null -> matchesSelf || stack.shulkerBoxStacks.any { selector(it, null) }
+			null -> matchesSelf || (stack.item in ItemUtils.SHULKER_BOXES && stack.shulkerBoxStacks.any { selector(it, null) })
 		}
 	}
 
@@ -76,9 +84,9 @@ class StackSelection @ContainerDslMarker internal constructor(
 	fun matches(slot: Slot): Boolean {
 		val matchesSelf = selector(slot.stack, slot)
 		return when (shulkerBoxScope.inShulkerBox) {
-			true -> slot.stack.shulkerBoxStacks.any { selector(it, null) }
+			true -> if (slot.stack.item in ItemUtils.SHULKER_BOXES) slot.stack.shulkerBoxStacks.any { selector(it, null) } else false
 			false -> matchesSelf
-			null -> matchesSelf || slot.stack.shulkerBoxStacks.any { selector(it, null) }
+			null -> matchesSelf || (slot.stack.item in ItemUtils.SHULKER_BOXES && slot.stack.shulkerBoxStacks.any { selector(it, null) })
 		}
 	}
 
@@ -86,7 +94,6 @@ class StackSelection @ContainerDslMarker internal constructor(
 	@JvmName("filter1")
 	fun filter(stacks: Iterable<ItemStack>) =
 		stacks
-			.let { if (whitelistedSlots.isNotEmpty()) emptyList() else it }
 			.asSequence()
 			.filter(::matches)
 			.map { StackAndSlot<Slot?>(it, null) }
@@ -98,15 +105,12 @@ class StackSelection @ContainerDslMarker internal constructor(
 	@JvmName("filter2")
 	fun filter(slots: Iterable<Slot>) =
 		slots
-			.let { slots ->
-				if (whitelistedSlots.isNotEmpty()) {
-					whitelistedSlots
-						.asSequence()
-						.filter { it in slots }
-				} else slots.asSequence()
+			.asSequence()
+			.filter { slot ->
+				(whitelistSet == null || slot in whitelistSet) &&
+					(blacklistSet == null || slot !in blacklistSet) &&
+					matches(slot)
 			}
-			.filter { it !in blacklistedSlots }
-			.filter(::matches)
 			.map { StackAndSlot(it.stack, it) }
 			.sortedWith(comparator)
 			.map { it.slot }
@@ -114,33 +118,35 @@ class StackSelection @ContainerDslMarker internal constructor(
 
 	@ContainerDslMarker
 	infix fun isIn(container: Container) =
-		container.count(this) >= count
+		if (count <= 0) container.count(this) > 0 else container.count(this) >= count
 
 	@ContainerDslMarker
 	fun isIn(vararg containers: Container) =
-		containers.sumOf { it.count(this) } >= count
+		if (count <= 0) containers.any { it.count(this) > 0 } else containers.sumOf { it.count(this) } >= count
 
 	@ContainerDslMarker
 	infix fun isIn(containers: Iterable<Container>) =
-		containers.sumOf { it.count(this) } >= count
+		if (count <= 0) containers.any { it.count(this) > 0 } else containers.sumOf { it.count(this) } >= count
 
 	@ContainerDslMarker
 	infix fun spaceIn(container: Container) =
-		container.spaceLeft(this) >= count
+		if (count <= 0) container.spaceLeft(this) > 0 else container.spaceLeft(this) >= count
 
 	@ContainerDslMarker
 	fun spaceIn(vararg containers: Container) =
-		containers.sumOf { it.spaceLeft(this) } >= count
+		if (count <= 0) containers.any { it.spaceLeft(this) > 0 } else containers.sumOf { it.spaceLeft(this) } >= count
 
 	@ContainerDslMarker
 	infix fun spaceIn(containers: Iterable<Container>) =
-		containers.sumOf { it.spaceLeft(this) } >= count
+		if (count <= 0) containers.any { it.spaceLeft(this) > 0 } else containers.sumOf { it.spaceLeft(this) } >= count
 
 	companion object {
 		val ANYTHING = StackSelection(0) { _, _ -> true }
-		val NOTHING = StackSelection { _, _ -> false }
+		val EVERYTHING = ANYTHING
+		val NOTHING = StackSelection(0) { _, _ -> false }
 	}
 }
+
 
 @ContainerDslMarker
 class StackSelectionBuilder @ContainerDslMarker private constructor(
@@ -178,13 +184,18 @@ class StackSelectionBuilder @ContainerDslMarker private constructor(
 	}
 
 	inline fun <reified T : Item> isItem() {
-		val kClass = T::class
-		appendSelector { stack, _ -> stack::class == kClass }
+		appendSelector { stack, _ -> stack.item is T }
 	}
 
 	inline fun <reified T : Item> notItem() {
-		val kClass = T::class
-		appendSelector { stack, _ -> stack::class != kClass }
+		appendSelector { stack, _ -> stack.item !is T }
+	}
+
+	fun inverted(builder: StackSelectionBuilder.() -> Unit) {
+		val nested = StackSelectionBuilder().apply(builder).build()
+		appendSelector { stack, slot ->
+			if (slot != null) !nested.matches(slot) else !nested.matches(stack)
+		}
 	}
 
 	fun isItemStack(stack: ItemStack) {
