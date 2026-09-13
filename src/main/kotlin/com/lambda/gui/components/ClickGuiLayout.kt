@@ -46,6 +46,7 @@ import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiCond
 import com.lambda.imgui.flag.ImGuiHoveredFlags
 import com.lambda.imgui.flag.ImGuiWindowFlags
+import com.lambda.imgui.flag.ImGuiKey
 import com.lambda.imgui.type.ImString
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.ModuleTag
@@ -67,6 +68,8 @@ import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen
 import net.minecraft.client.util.Icons
+import net.minecraft.client.util.InputUtil
+import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import kotlin.math.abs
 import kotlin.math.max
@@ -179,8 +182,16 @@ object ClickGuiLayout : Loadable, Config(
 	@Tab(GENERAL_TAB) var highlightEnabledModules by setting("Highlight Enabled Modules", true, "Show visual accent bar and highlight on active modules")
 	@Tab(GENERAL_TAB) var allowWindowCollapse by setting("Allow Window Collapse", true, "Allow category windows to collapse by clicking arrow or double-clicking title bar")
 	@Tab(GENERAL_TAB) var categoryWindowSearch by setting("Category Window Search", false, "Show a search filter at the top of category windows")
-	@Tab(GENERAL_TAB) var showCategoryCounts by setting("Show Category Counts", true, "Display enabled/total module count in window titles [X/Y]")
-
+	@Tab(GENERAL_TAB) var showCategoryCounts by setting("Show Category Counts", true, "Display enabled/total module count in category window headers")
+	@Tab(GENERAL_TAB) var categoryWindowWidth by setting("Category Width", 115, 75..220, 5, "Default width for category windows in pixels", unit = "px")
+		.onValueChange { _, newWidth ->
+			val scale = currentScale
+			val w = newWidth.toFloat() * scale
+			shownTags.forEach { pendingSizes[it.name] = w to 0f }
+		}
+	@Tab(GENERAL_TAB) var maxCategoryHeight by setting("Max Category Height", 0.72f, 0.30f..0.95f, 0.02f, "Maximum height of category windows relative to screen height", unit = "%")
+	@Tab(GENERAL_TAB) val tileWindowsAction by setting("Tile Windows", { tileWindows() }, "Auto-arrange all category windows into neat columns that fit the screen")
+	@Tab(GENERAL_TAB) val resetLayoutAction by setting("Reset Windows", { resetWindowPositions() }, "Reset all category windows to default positions and sizes")
 	// Snapping
 	@Tab(SNAPPING_TAB) val snapEnabled by setting("Enable Snapping", true, "Master toggle for GUI/HUD snapping")
 	@Tab(SNAPPING_TAB) val gridSize by setting("Grid Size", 25f, 2f..128f, 1f, "Grid step in pixels") { snapEnabled }
@@ -196,7 +207,7 @@ object ClickGuiLayout : Loadable, Config(
 	// Sizing
 	@Tab(SIZING_TAB) val windowPaddingX by setting("Window Padding X", 8.0f, 0.0f..20.0f, 0.1f)
 	@Tab(SIZING_TAB) val windowPaddingY by setting("Window Padding Y", 8.0f, 0.0f..20.0f, 0.1f)
-	@Tab(SIZING_TAB) val windowMinSizeX by setting("Window Min Size X", 180.0f, 50.0f..300.0f, 1.0f)
+	@Tab(SIZING_TAB) val windowMinSizeX by setting("Window Min Size X", 90.0f, 40.0f..250.0f, 1.0f)
 	@Tab(SIZING_TAB) val windowMinSizeY by setting("Window Min Size Y", 32.0f, 0.0f..100.0f, 1.0f)
 	@Tab(SIZING_TAB) val windowTitleAlignX by setting("Window Title Align X", 0.0f, 0.0f..1.0f, 0.01f)
 	@Tab(SIZING_TAB) val windowTitleAlignY by setting("Window Title Align Y", 0.5f, 0.0f..1.0f, 0.01f)
@@ -316,20 +327,21 @@ object ClickGuiLayout : Loadable, Config(
 
 	fun tileWindows() {
 		val startX = 20f
-		val startY = MenuBar.height + 15f
-		val padding = 14f
+		val startY = MenuBar.height + 12f
 		val scale = currentScale
-		val windowWidth = 200f * scale
+		val windowWidth = categoryWindowWidth.toFloat() * scale
+		val padding = 10f * scale
 		val displayWidth = DearImGui.io.displaySize.x
-		val cols = max(1, ((displayWidth - startX * 2) / (windowWidth + padding)).toInt())
+		val cols = max(1, ((displayWidth - startX * 2 + padding) / (windowWidth + padding)).toInt())
 
 		var col = 0
 		var row = 0
 		val tags = if (developerMode) shownTags + ModuleTag.DEBUG else shownTags
 		tags.forEach { tag ->
 			val x = startX + col * (windowWidth + padding)
-			val y = startY + row * (280f * scale)
+			val y = startY + row * (260f * scale)
 			pendingPositions[tag.name] = x to y
+			pendingSizes[tag.name] = windowWidth to 0f
 			col++
 			if (col >= cols) {
 				col = 0
@@ -341,27 +353,7 @@ object ClickGuiLayout : Loadable, Config(
 	fun resetWindowPositions() {
 		pendingPositions.clear()
 		pendingSizes.clear()
-		val startX = 20f
-		val baseY = MenuBar.height + 12f
-		val padding = 14f
-		val scale = currentScale
-		val windowWidth = 200f * scale
-		val displayWidth = DearImGui.io.displaySize.x
-		val cols = max(1, ((displayWidth - startX * 2) / (windowWidth + padding)).toInt())
-
-		var col = 0
-		var row = 0
-		val tags = if (developerMode) shownTags + ModuleTag.DEBUG else shownTags
-		tags.forEach { tag ->
-			val x = startX + col * (windowWidth + padding)
-			val y = baseY + row * (280f * scale)
-			pendingPositions[tag.name] = x to y
-			col++
-			if (col >= cols) {
-				col = 0
-				row++
-			}
-		}
+		tileWindows()
 	}
 
 	fun applyTheme(preset: ThemePreset) {
@@ -651,23 +643,42 @@ object ClickGuiLayout : Loadable, Config(
 				val tags = if (developerMode) shownTags + ModuleTag.DEBUG else shownTags
 				if (tags.isEmpty()) return@buildLayout
 
+				val displayWidth = DearImGui.io.displaySize.x
+				val scale = currentScale
+				val defaultWinWidth = categoryWindowWidth.toFloat() * scale
+				val paddingX = 10f * scale
 				var nextX = 20f
-				val baseY = MenuBar.height + 10f
+				var nextY = MenuBar.height + 10f
 
 				tags.forEach { tag ->
 					val override = pendingPositions[tag.name]
 					if (override != null) {
 						ImGui.setNextWindowPos(override.first, override.second)
+						if (activeDragWindowName != tag.name) {
+							pendingPositions.remove(tag.name)
+						}
 					} else if (frameCount >= 1) {
-						ImGui.setNextWindowPos(nextX, baseY, ImGuiCond.FirstUseEver)
+						if (nextX + defaultWinWidth > displayWidth - 10f && nextX > 20f) {
+							nextX = 20f
+							nextY += 260f * scale
+						}
+						ImGui.setNextWindowPos(nextX, nextY, ImGuiCond.FirstUseEver)
 					}
 
-					val scale = currentScale
-					ImGui.setNextWindowSize(200f * scale, 0f, ImGuiCond.FirstUseEver)
-					pendingSizes[tag.name]?.let { (w, h) ->
-						ImGui.setNextWindowSizeConstraints(w, h, w, h)
-					} ?: run {
-						ImGui.setNextWindowSizeConstraints(185f * scale, 0f, 360f * scale, io.displaySize.y * 0.88f)
+					val pendingSize = pendingSizes[tag.name]
+					if (pendingSize != null) {
+						val (w, h) = pendingSize
+						if (h <= 0f) {
+							ImGui.setNextWindowSize(w, 0f)
+							pendingSizes.remove(tag.name)
+						} else {
+							ImGui.setNextWindowSizeConstraints(w, h, w, h)
+						}
+					} else {
+						val minW = windowMinSizeX.coerceAtMost(categoryWindowWidth.toFloat()) * scale
+						val maxH = io.displaySize.y * maxCategoryHeight
+						ImGui.setNextWindowSizeConstraints(minW, 0f, 320f * scale, maxH)
+						ImGui.setNextWindowSize(defaultWinWidth, 0f, ImGuiCond.FirstUseEver)
 					}
 					val windowFlags = if (allowWindowCollapse) ImGuiWindowFlags.None else ImGuiWindowFlags.NoCollapse
 
@@ -696,13 +707,6 @@ object ClickGuiLayout : Loadable, Config(
 							.filter { filterText.isEmpty() || it.name.contains(filterText, ignoreCase = true) }
 							.forEach { with(ModuleEntry(it)) { buildLayout() } }
 
-						popupContextWindow("##cat-ctx-${tag.name}") {
-							menuItem("Tile Windows (Auto-Arrange)") { tileWindows() }
-							menuItem("Reset Layout") { resetWindowPositions() }
-							separator()
-							menuItem("Expand All in ${tag.name}") { expandAllModules(tag) }
-							menuItem("Collapse All") { collapseAllModules() }
-						}
 
 						snapOverlays[tag.name]?.let { vis ->
 							drawSnapLines(vis.snapX, vis.kindX, vis.snapY, vis.kindY)
@@ -711,16 +715,28 @@ object ClickGuiLayout : Loadable, Config(
 						val rect = RectF(windowPos.x, windowPos.y, windowSize.x, windowSize.y)
 						if (mouseDown) claimInteraction(tag.name, rect)
 
+						// Clamp if window was pushed off the right of the screen
+						if (windowPos.x + 30f > displayWidth) {
+							ImGui.setWindowPos(max(10f, displayWidth - windowSize.x - 10f), windowPos.y)
+						}
+
 						SnapHandler.registerElement(tag.name, rect)
 						lastBounds[tag.name] = rect
 
-						nextX += ImGui.getWindowWidth() + 20f
+						nextX += (if (override != null) ImGui.getWindowWidth() else defaultWinWidth) + paddingX
 					}
 				}
 
 				if (frameCount++ == 1) {
 					initialLayoutComplete = true
 				}
+				// Global shortcut to open QuickSearch
+				val win = mc.window
+				val isCtrlDown = DearImGui.io.keyCtrl || (win != null && (InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_LEFT_CONTROL) || InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_RIGHT_CONTROL)))
+				if (isCtrlDown && ImGui.isKeyPressed(ImGuiKey.F, false)) {
+					if (!QuickSearch.isOpen) QuickSearch.open()
+				}
+
 
 				renderQuickSearch()
 				if (developerMode) {

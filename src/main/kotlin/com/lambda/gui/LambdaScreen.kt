@@ -83,7 +83,7 @@ object LambdaScreen : Screen(Text.of("Lambda")) {
             || (win != null && (InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_LEFT_CONTROL) || InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_RIGHT_CONTROL)))
 
         if (input.key() == GLFW.GLFW_KEY_F && isCtrl) {
-            QuickSearch.toggle()
+            if (!QuickSearch.isOpen) QuickSearch.open()
             return true
         }
 

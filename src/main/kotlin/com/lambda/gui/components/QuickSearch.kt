@@ -579,8 +579,8 @@ object QuickSearch {
         val win = mc.window
         val isCtrl = (event.modifiers and GLFW.GLFW_MOD_CONTROL != 0)
             || (win != null && (InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_LEFT_CONTROL) || InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_RIGHT_CONTROL)))
-        if (event.keyCode == GLFW.GLFW_KEY_F && isCtrl) {
-            toggle()
+        if ((event.keyCode == GLFW.GLFW_KEY_F || event.translated == KeyCode.F) && isCtrl) {
+            if (!isOpen) open() else close()
             event.cancel()
             return
         }

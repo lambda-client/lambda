@@ -106,7 +106,7 @@ object SilentEat : Module(
             }
         }
 
-        onDisable {
+        onDisableUnsafe {
             runSafe { cleanupAndReset() }
         }
     }
@@ -290,7 +290,9 @@ object SilentEat : Module(
             mc.options.useKey.isPressed = false
             holdingUse = false
         }
-        interaction.stopUsingItem(player)
+        if (player.isUsingItem) {
+            interaction.stopUsingItem(player)
+        }
 
         if (pauseKillAura) {
             KillAura.isPaused = false
