@@ -17,7 +17,7 @@
 
 package com.lambda.util
 
-import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3i
 

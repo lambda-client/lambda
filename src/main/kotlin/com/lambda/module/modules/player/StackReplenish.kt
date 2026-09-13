@@ -17,19 +17,19 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.item.ItemStackUtils.slotId
-import com.lambda.util.player.SlotUtils.hotbarStacks
-import com.lambda.util.player.SlotUtils.inventoryStacks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 
@@ -47,13 +47,13 @@ object StackReplenish : Module(
 			.withEdits {
 				hideAllExcept(::inventoryConfig)
 				inventoryConfig.apply {
-					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
+					hide(::disposables)
 				}
 			}
 
 		listen<TickEvent.Pre> {
 			if (player.currentScreenHandler.cursorStack.item !== Items.AIR) return@listen
-			player.hotbarStacks.forEach { stack -> checkReplenish(stack) }
+			HotbarContainer.stacks.forEach { stack -> checkReplenish(stack) }
 			if (offhand) checkReplenish(player.offHandStack)
 		}
 	}
@@ -62,13 +62,15 @@ object StackReplenish : Module(
 		if (stack.count.toFloat() / stack.maxCount >= (minStackPercent.toFloat() / 100)) return
 		if (!stack.isStackable) return
 
-		player.inventoryStacks.forEach { invStack ->
+		InventoryContainer.stacks.forEach { invStack ->
 			if (!ItemStack.areItemsAndComponentsEqual(invStack, stack)) return@forEach
 			val invId = invStack.slotId
+			val targetId = stack.slotId
+			if (invId == -1 || targetId == -1) return@forEach
 			val completing = stack.count + invStack.count >= stack.maxCount
 			val tooMany = invStack.count + stack.count > stack.maxCount
 			inventoryRequest {
-				moveSlot(invId, stack.slotId)
+				moveSlot(invId, targetId)
 				if (tooMany) pickup(invId)
 			}.submit()
 			if (completing) return

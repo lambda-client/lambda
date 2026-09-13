@@ -19,7 +19,7 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.editSetting
 import com.lambda.config.forEachSetting
@@ -35,20 +35,24 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.portalPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.task.wrappers.thenOrNull
+import com.lambda.task.start
+import com.lambda.task.tasks.build
+import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
@@ -59,8 +63,6 @@ import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
-import com.lambda.util.player.SlotUtils.hotbarSlots
 import net.minecraft.block.Blocks
 import net.minecraft.item.FlintAndSteelItem
 import net.minecraft.item.Items
@@ -105,7 +107,7 @@ object AutoPortal : Module(
 					else null
 				}
 				.onCompletion { buildTask = null }
-				.run()
+				.start()
 		}
 	private val corners by setting("Corners", false)
 	private val light by setting("Light", true, "Attempts to automatically light the portal after building")
@@ -323,45 +325,40 @@ object AutoPortal : Module(
 				return
 			}
 
-			val sel = selectStack(1) { isItem<FlintAndSteelItem>() }
+			val selection = stackSelection(1) { isItem<FlintAndSteelItem>() }
 
-			val hotbarStack = sel.filterSlots(player.hotbarSlots).firstOrNull()
-			if (hotbarStack != null) {
-				val request = HotbarRequest(
-					hotbarStack.index,
-					this@AutoPortal,
-					keepTicks = 0
-				).submit(queueIfMismatchedStage = false)
+			val hotbarSlot = findSlot(selection, HotbarContainer.select())
+			if (hotbarSlot != null) {
+				val request =
+					hotbarRequest(hotbarSlot.index) {
+						keepTicks(0)
+					}.submit(false)
 				if (request.done) block()
 				return
 			}
 
 			val invSlot =
-				if (inventory) sel.filterSlots(player.hotbarAndInventorySlots).firstOrNull()
+				if (inventory) findSlot(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
 				else null
 			if (invSlot == null) {
 				failure("No Flint and Steel!")
 				return
 			}
 			val hotbarSlotToSwapWith =
-				player.hotbarSlots.find { slot ->
+				HotbarContainer.slots.find { slot ->
 					slot.stack.isEmpty
 				}?.index ?: 8
 
 			inventoryRequest {
-				swap(invSlot.id, hotbarSlotToSwapWith)
+				swapWithHotbar(invSlot.id, hotbarSlotToSwapWith)
 				action {
-					val request = HotbarRequest(
-						hotbarSlotToSwapWith,
-						this@AutoPortal,
-						keepTicks = 0,
-						nowOrNothing = true
-					).submit(queueIfMismatchedStage = false)
-					if (request.done) {
-						block()
-					}
+					val request =
+						hotbarRequest(hotbarSlotToSwapWith) {
+							keepTicks(0)
+						}.submit(false)
+					if (request.done) block()
 				}
-				swap(invSlot.id, hotbarSlotToSwapWith)
+				swapWithHotbar(invSlot.id, hotbarSlotToSwapWith)
 			}.submit()
 		}
 	}

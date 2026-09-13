@@ -18,9 +18,13 @@
 package com.lambda.gui
 
 import com.lambda.gui.components.ClickGuiLayout
+import com.lambda.gui.components.QuickSearch
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
+import net.minecraft.client.input.KeyInput
+import net.minecraft.client.util.InputUtil
 import net.minecraft.text.Text
+import org.lwjgl.glfw.GLFW
 
 object LambdaScreen : Screen(Text.of("Lambda")) {
     /**
@@ -30,6 +34,12 @@ object LambdaScreen : Screen(Text.of("Lambda")) {
     var parentScreen: Screen? = null
 
     override fun shouldPause() = false
+    override fun shouldCloseOnEsc(): Boolean {
+        if (QuickSearch.isOpen || System.currentTimeMillis() - QuickSearch.lastClosedTimestamp < 200L) {
+            return false
+        }
+        return true
+    }
     override fun removed() = ClickGuiLayout.close()
     override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, deltaTicks: Float) {}
 
@@ -55,9 +65,39 @@ object LambdaScreen : Screen(Text.of("Lambda")) {
     }
 
     override fun close() {
+        if (QuickSearch.isOpen) {
+            QuickSearch.close()
+            return
+        }
+        if (System.currentTimeMillis() - QuickSearch.lastClosedTimestamp < 200L) {
+            return
+        }
         val previous = parentScreen
         parentScreen = null
         client?.setScreen(previous)
+    }
+
+    override fun keyPressed(input: KeyInput): Boolean {
+        val win = client?.window
+        val isCtrl = (input.modifiers() and GLFW.GLFW_MOD_CONTROL != 0)
+            || (win != null && (InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_LEFT_CONTROL) || InputUtil.isKeyPressed(win, GLFW.GLFW_KEY_RIGHT_CONTROL)))
+
+        if (input.key() == GLFW.GLFW_KEY_F && isCtrl) {
+            if (!QuickSearch.isOpen) QuickSearch.open()
+            return true
+        }
+
+        if (input.key() == GLFW.GLFW_KEY_ESCAPE) {
+            if (QuickSearch.isOpen) {
+                QuickSearch.close()
+                return true
+            }
+            if (System.currentTimeMillis() - QuickSearch.lastClosedTimestamp < 200L) {
+                return true
+            }
+        }
+
+        return super.keyPressed(input)
     }
 
     override fun applyBlur(context: DrawContext?) {

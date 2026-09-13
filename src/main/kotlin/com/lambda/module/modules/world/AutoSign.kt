@@ -21,7 +21,7 @@ import com.ibm.icu.util.Calendar
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.PacketUtils.sendPacket

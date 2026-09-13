@@ -17,27 +17,30 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.NestedContainer
+import com.lambda.interaction.container.OpenedContainerContext
+import com.lambda.interaction.container.containers.external.EnderChestContainer
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.handler.handlers.findContainer
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.task.tasks.OpenContainerTask
-import com.lambda.task.tasks.PlaceContainerTask
-import com.lambda.task.wrappers.then
-import com.lambda.task.wrappers.thenAction
-import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.task.start
+import com.lambda.task.tasks.wrappers.then
+import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
-import net.minecraft.util.math.BlockPos
+import java.util.*
 
+@Suppress("unused")
 object InventoryTweaks : Module(
     name = "InventoryTweaks",
     tag = ModuleTag.PLAYER,
@@ -45,10 +48,10 @@ object InventoryTweaks : Module(
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
     private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
 
-    private var placedPos: BlockPos? = null
-    private var placeAndOpen: Task<*>? = null
-    private var lastBreak: Task<*>? = null
-    private var lastOpenScreen: ScreenHandler? = null
+    private var openTask: Task<*>? = null
+    private val openContexts = LinkedList<OpenedContainerContext>()
+    var lastOpenScreen: ScreenHandler? = null
+    private var isClosing = false
 
     init {
         setDefaultAutomationConfig()
@@ -56,32 +59,64 @@ object InventoryTweaks : Module(
                 hideAllExcept(::breakConfig, ::interactConfig, ::inventoryConfig, ::hotbarConfig)
             }
 
-        listen<PlayerEvent.SlotClick> {
-            if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen
-            val slot = it.screenHandler.getSlot(it.slot)
-            if (!(instantShulker && slot.stack.item in shulkerBoxes) && !(instantEChest && slot.stack.item == Items.ENDER_CHEST)) return@listen
-            it.cancel()
-            lastOpenScreen = null
-            placeAndOpen = PlaceContainerTask(slot, this@InventoryTweaks).then { placePos ->
-                placedPos = placePos
-                OpenContainerTask(placePos, this@InventoryTweaks).thenAction { screenHandler ->
-                    lastOpenScreen = screenHandler
+        listen<PlayerEvent.SlotClick> { event ->
+            if (event.action != SlotActionType.PICKUP || event.button != 1) return@listen
+            val slot = event.screenHandler.getSlot(event.slot) ?: return@listen
+            val stack = slot.stack
+
+            when (stack.item) {
+                in SHULKER_BOXES if (!instantShulker) -> return@listen
+                Items.ENDER_CHEST if (!instantEChest) -> return@listen
+            }
+
+            val targetContainer =
+                if (stack.item == Items.ENDER_CHEST) EnderChestContainer
+                else findContainer(
+                    containerSelection {
+                        ofAnyType(ContainerType.ShulkerBox)
+                        predicate { container ->
+                            container is NestedContainer && container.index == slot.index
+                        }
+                    }
+                ) ?: return@listen
+
+            event.cancel()
+
+            openTask = targetContainer
+                .access()
+                ?.onSuccess { ctx ->
+                    openContexts.push(ctx)
+                    lastOpenScreen = player.currentScreenHandler
+                    openTask = null
                 }
-            }.run()
+            openTask?.start()
         }
 
         listen<InventoryEvent.Close> { event ->
-            if (event.screenHandler != lastOpenScreen) return@listen
-            lastOpenScreen = null
-            placedPos?.let {
-                lastBreak = breakAndCollectBlock(it).run()
-                placedPos = null
+            if (isClosing || openTask != null) return@listen
+            if (event.screenHandler != lastOpenScreen || openContexts.isEmpty()) return@listen
+
+            isClosing = true
+            val contextsToClose = mutableListOf<OpenedContainerContext>()
+            while (openContexts.isNotEmpty()) {
+                contextsToClose.add(openContexts.pop())
             }
+
+            val closeTask =
+                contextsToClose.fold<OpenedContainerContext, Task<*>?>(null) { acc, ctx ->
+                    val task = ctx.close() ?: return@fold acc
+	                acc?.then(task) ?: task
+                }
+
+            closeTask
+                ?.onCompletion { isClosing = false }
+                ?.start()
+                ?: run { isClosing = false }
         }
 
         onDisable {
-            placeAndOpen?.cancel()
-            lastBreak?.cancel()
+            openContexts.clear()
+            isClosing = false
         }
     }
 }

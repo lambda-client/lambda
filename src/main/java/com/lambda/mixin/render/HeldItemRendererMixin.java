@@ -20,6 +20,12 @@ package com.lambda.mixin.render;
 import com.google.common.base.MoreObjects;
 import com.lambda.Lambda;
 import com.lambda.module.modules.render.ViewModel;
+import com.lambda.module.modules.player.SilentEat;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemDisplayContext;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -53,7 +59,14 @@ public class HeldItemRendererMixin {
     private void injectRenderArmHoldingItem(AbstractClientPlayerEntity player, float tickProgress, float pitch, Hand hand, float swingProgress, ItemStack item, float equipProgress, MatrixStack matrices, OrderedRenderCommandQueue orderedRenderCommandQueue, int light, CallbackInfo ci) {
         if (ViewModel.INSTANCE.isEnabled()) ViewModel.INSTANCE.transform(item, hand, matrices);
     }
-
+    @WrapOperation(method = "renderFirstPersonItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/item/HeldItemRenderer;renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/item/ItemDisplayContext;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/command/OrderedRenderCommandQueue;I)V"))
+    private void wrapRenderItem(HeldItemRenderer instance, LivingEntity entity, ItemStack item, ItemDisplayContext displayContext, MatrixStack matrices, OrderedRenderCommandQueue queue, int light, Operation<Void> original, @Local(argsOnly = true) Hand hand) {
+        if (SilentEat.isUsingOffhand() && hand == Hand.OFF_HAND && SilentEat.INSTANCE.getSilentVisual()) {
+            original.call(instance, entity, SilentEat.getVisualOffhandStack(), displayContext, matrices, queue, light);
+            return;
+        }
+        original.call(instance, entity, item, displayContext, matrices, queue, light);
+    }
     @ModifyArg(method = "updateHeldItems", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/MathHelper;clamp(FFF)F", ordinal = 2), index = 0)
     private float modifyEquipProgressMainHand(float value) {
         if (client.player == null || ViewModel.INSTANCE.isDisabled()) return value;

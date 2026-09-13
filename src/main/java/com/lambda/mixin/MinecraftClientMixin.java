@@ -17,11 +17,11 @@
 
 package com.lambda.mixin;
 
+import com.lambda.interaction.handler.handlers.TimerHandler;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
 import com.lambda.gui.DearImGui;
 import com.lambda.gui.components.ClickGuiLayout;
-import com.lambda.interaction.handlers.TimerHandler;
 import com.lambda.module.modules.movement.BetterFirework;
 import com.lambda.module.modules.player.Interact;
 import com.lambda.module.modules.player.InventoryMove;
@@ -141,7 +141,7 @@ public class MinecraftClientMixin {
         }
     }
 
-    @Inject(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;removed()V", shift = At.Shift.AFTER))
+    @Inject(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;removed()V", shift = At.Shift.BEFORE))
     private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
         if (currentScreen == null) return;
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {

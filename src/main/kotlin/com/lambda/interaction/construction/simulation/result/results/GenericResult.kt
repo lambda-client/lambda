@@ -18,7 +18,7 @@
 package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalNear
-import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.Automated
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.ComparableResult
@@ -26,12 +26,11 @@ import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.handlers.ContainerHandler.transferByTask
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.containers.HotbarContainer
-import com.lambda.task.Task
-import com.lambda.task.wrappers.softFail
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.task.tasks.transfer
 import net.minecraft.client.data.TextureMap.side
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
@@ -99,10 +98,10 @@ sealed class GenericResult : BuildResult() {
         override val rank = Rank.WrongItem
         private val color = Color(3, 252, 169, 25)
 
-        context(task: Task<*>, _: AutomatedSafeContext)
-        override fun resolve() {
-            neededSelection.transferByTask(HotbarContainer)?.softFail()?.execute(task)
-        }
+        context(_: Automated)
+        override fun resolve() =
+            neededSelection
+                .transfer(toSelection = HotbarContainer.select())
 
         override fun RenderBuilder.render() {
             val center = pos.toCenterPos()

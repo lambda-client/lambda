@@ -19,7 +19,8 @@ package com.lambda.config.blocks
 
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.container.selection.StackAndSlot
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -55,17 +56,17 @@ interface EatConfig {
 
     @Suppress("unused")
     enum class SelectionPriority(
-        val comparator: Comparator<ItemStack>,
+        val comparator: Comparator<StackAndSlot<*>>,
         override val displayName: String,
         override val description: String
     ): NamedEnum, Describable {
         LeastNutritious(
-            compareBy { it.item.nutrition },
+            compareBy { it.stack.item.nutrition },
             "Least Nutritious",
             "Eats food items with the least nutritional value."
         ),
         MostNutritious(
-            compareByDescending { it.item.nutrition },
+            compareByDescending { it.stack.item.nutrition },
             "Most Nutritious",
             "Eats food items with the most nutritional value."
         )
@@ -94,14 +95,17 @@ interface EatConfig {
         } ?: false
 
         context(c: Automated)
-        fun selector() = selectStack(sorter = c.eatConfig.selectionPriority.comparator) {
-            when(this@Reason) {
-                None -> any()
-                Hunger -> isOneOfItems(c.eatConfig.nutritiousFood)
-                Damage -> isOneOfItems(c.eatConfig.regenerationFood)
-                Fire -> isOneOfItems(c.eatConfig.resistanceFood)
-            } and if (c.eatConfig.ignoreBadFood) isNoneOfItems(c.eatConfig.badFood) else any()
-        }
+        fun selector() =
+            stackSelection {
+                when(this@Reason) {
+                    Hunger -> ofAnyItems(c.eatConfig.nutritiousFood)
+                    Damage -> ofAnyItems(c.eatConfig.regenerationFood)
+                    Fire -> ofAnyItems(c.eatConfig.resistanceFood)
+	                else -> {}
+                }
+                if (c.eatConfig.ignoreBadFood) noneOfItems(c.eatConfig.badFood)
+                sortedWith(c.eatConfig.selectionPriority.comparator)
+            }
     }
 
     companion object {

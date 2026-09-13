@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.entity;
 
-import com.lambda.interaction.managers.inventory.InventoryManager;
+import com.lambda.interaction.manager.managers.inventory.InventoryManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
 import net.minecraft.screen.ScreenHandler;

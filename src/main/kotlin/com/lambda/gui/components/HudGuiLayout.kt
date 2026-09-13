@@ -134,6 +134,10 @@ object HudGuiLayout : Loadable, Config(
                 huds.forEach { hud ->
                     registerHudElement(hud)
                 }
+
+                if (ClickGuiLayout.open) {
+                    renderHudStatusBar()
+                }
             }
         }
     }
@@ -176,10 +180,17 @@ object HudGuiLayout : Loadable, Config(
                 with(hud) { buildLayout() }
 
                 if (ClickGuiLayout.open) {
+                    if (!isLocked && ImGui.isWindowHovered()) {
+                        lambdaTooltip("Drag to move ${hud.name} • Right-click for options")
+                    }
+
                     popupContextWindow("##ctx-${hud.name}") {
                         menuItem("Remove HUD Element") {
                             hud.disable()
                             SnapHandler.unregisterElement(hud.name)
+                        }
+                        menuItem(if (isLocked) "Unlock HUD" else "Lock HUD") {
+                            isLocked = !isLocked
                         }
                         separator()
                         buildConfigSettingsContext(hud)
@@ -292,5 +303,43 @@ object HudGuiLayout : Loadable, Config(
         strokeArc(brCx, brCy, 0f, HALF_PI_F)
         // BL: 0.5pi -> pi
         strokeArc(blCx, blCy, HALF_PI_F, PI_F)
+    }
+
+    private fun ImGuiBuilder.renderHudStatusBar() {
+        val statusText = if (isLocked) "HUD: Locked (Click to unlock)" else "HUD: Unlocked (Draggable • Click to lock)"
+        val textW = ImGui.calcTextSize(statusText).x
+        val padX = 14f
+        val padY = 5f
+        val pillW = textW + padX * 2f
+        val pillH = ImGui.getTextLineHeight() + padY * 2f
+        val pillX = (io.displaySize.x - pillW) * 0.5f
+        val pillY = io.displaySize.y - pillH - 12f
+
+        ImGui.setNextWindowPos(pillX, pillY)
+        ImGui.setNextWindowSize(pillW, pillH)
+        withStyleVar(ImGuiStyleVar.WindowRounding, 8f) {
+            withStyleVar(ImGuiStyleVar.WindowPadding, padX, padY) {
+                val primary = ClickGuiLayout.primaryColor
+                val bgAlpha = if (isLocked) 170 else 220
+                val pillBg = if (isLocked) Color(24, 24, 24, bgAlpha) else Color((primary.red * 0.2f).toInt(), (primary.green * 0.2f).toInt(), (primary.blue * 0.2f).toInt(), bgAlpha)
+                val borderR = if (isLocked) 0.35f else primary.red / 255f
+                val borderG = if (isLocked) 0.35f else primary.green / 255f
+                val borderB = if (isLocked) 0.35f else primary.blue / 255f
+                withStyleColor(ImGuiCol.WindowBg, pillBg.red / 255f, pillBg.green / 255f, pillBg.blue / 255f, pillBg.alpha / 255f) {
+                    withStyleColor(ImGuiCol.Border, borderR, borderG, borderB, 0.7f) {
+                        window("##hud-status-bar", flags = ImGuiWindowFlags.NoDecoration or ImGuiWindowFlags.NoMove or ImGuiWindowFlags.NoDocking) {
+                            if (isLocked) {
+                                textDisabled(statusText)
+                            } else {
+                                ImGui.textColored(primary.red / 255f, primary.green / 255f, primary.blue / 255f, 1f, statusText)
+                            }
+                            if (ImGui.isWindowHovered() && isMouseClicked()) {
+                                isLocked = !isLocked
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

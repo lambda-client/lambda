@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
@@ -25,13 +25,16 @@ import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.container.containers.ArmorContainer
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.handler.handlers.findContainers
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemUtils.armorSlot
-import com.lambda.util.player.SlotUtils.armorSlots
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.Enchantments
@@ -72,18 +75,19 @@ object AutoArmor : Module(
 			else 0.0
 		} else 0.0
 	}.thenByDescending {
-		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-			?.modifiers
+		val modifiers = it.stack.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+			?: it.stack.item.components.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+		modifiers?.modifiers
 			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
 			?.modifier?.value
 			?: 0.0
 	}.thenByDescending {
-		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-			?.modifiers
+		val modifiers = it.stack.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+			?: it.stack.item.components.get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+		modifiers?.modifiers
 			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
 			?.modifier?.value
 			?: 0.0
-	}.thenByDescending {
 		val stack = it.stack
 		when {
 			stack.isIn(ItemTags.FOOT_ARMOR) -> stack.getEnchantment(feetProtection.enchant)
@@ -119,18 +123,23 @@ object AutoArmor : Module(
 
 	fun SafeContext.tick() {
 		tickedThisTick = true
-		val armorSlots = player.armorSlots
-
-		val swappable = player.hotbarAndInventorySlots
-			.filter { it.stack.isEquipable && (!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0) }
+		val armorSlots = findContainer(containerSelection = ArmorContainer.select())?.slots ?: return
+		
+		val swappable = findContainers(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+			.flatMap { it.slots }
+			.filter {
+				it.stack.isEquipable(armorSlots) &&
+						(!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0)
+			}
 			.sortedWith(SORTER)
 			.distinctBy { it.stack.armorSlot }
 
 		val swaps = mutableListOf<Pair<Slot, Slot>>()
 		armorSlots.forEach { equipped ->
-			val new = swappable.find { new ->
-				equipped.canInsert(new.stack) && SORTER.compare(equipped, new) > 0
-			} ?: return@forEach
+			val new =
+				swappable.find { new ->
+					equipped.canInsert(new.stack) && SORTER.compare(equipped, new) > 0
+				} ?: return@forEach
 
 			swaps.add(Pair(new, equipped))
 		}
@@ -144,9 +153,8 @@ object AutoArmor : Module(
 		}.submit()
 	}
 
-	context(safeContext: SafeContext)
-	private val ItemStack.isEquipable
-		get() = safeContext.player.armorSlots.any { it.canInsert(this) }
+	context(_: SafeContext)
+	private fun ItemStack.isEquipable(armorSlots: List<Slot>) = armorSlots.any { it.canInsert(this) }
 
 	private enum class Protection(val enchant: RegistryKey<Enchantment>) {
 		Protection(Enchantments.PROTECTION),

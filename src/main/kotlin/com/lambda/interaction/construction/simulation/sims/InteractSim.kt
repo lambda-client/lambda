@@ -27,15 +27,15 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotation
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.PlaceDirection
@@ -205,17 +205,24 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 			supervisorScope.cancel()
 			return null
 		}
-		val stackSelection = item?.select()?.apply { if (item == Items.AIR) count = 0 }
-			?: StackSelection.selectStack(0, sorter = compareByDescending { it.inventoryIndex == player.inventory.selectedSlot })
-		val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.Hotbar) }
-		val container = stackSelection.findContainersWithMaterial(containerSelection).firstOrNull() ?: run {
-			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
-			return null
-		}
-		return stackSelection.filterSlots(container.slots).run {
-			firstOrNull { it.index == player.inventory.selectedSlot }
-				?: firstOrNull()
-		}
+		val stackSelection = item?.select(if (item == Items.AIR) 0 else 1)
+			?: stackSelection { sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } } }
+		val containerSelection =
+			containerSelection {
+				hasStack(stackSelection)
+				ofAnyType(ContainerType.Hotbar)
+			}
+		val container = findContainer(containerSelection)
+			?: run {
+				result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
+				return null
+			}
+		return stackSelection
+			.filter(container.slots)
+			.run {
+				firstOrNull { it.index == player.inventory.selectedSlot }
+					?: firstOrNull()
+			}
 	}
 
 	private suspend fun AutomatedSafeContext.simRotation(

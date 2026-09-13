@@ -19,14 +19,14 @@ package com.lambda.event.events
 
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.container.Container
 import net.minecraft.screen.slot.Slot
 
 sealed class ContainerEvent {
 	data class Transfer(
 		val fromSlot: Slot,
 		val toSlot: Slot,
-		val from: MaterialContainer,
-		val to: MaterialContainer
+		val from: Container,
+		val to: Container
 	) : ICancellable by Cancellable()
 }

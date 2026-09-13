@@ -42,9 +42,8 @@ import com.mojang.brigadier.arguments.LongArgumentType
  */
 @JvmName("valueBoolArg")
 @BrigadierDsl
-fun DefaultArgumentReader<BoolArgumentType>.value(): Boolean {
-    return BoolArgumentType.getBool(context, name)
-}
+fun DefaultArgumentReader<BoolArgumentType>.value(): Boolean =
+    BoolArgumentType.getBool(context, name)
 
 /**
  * Reads the boolean value from the argument in
@@ -54,9 +53,8 @@ fun DefaultArgumentReader<BoolArgumentType>.value(): Boolean {
  */
 @JvmName("valueDoubleArg")
 @BrigadierDsl
-fun DefaultArgumentReader<DoubleArgumentType>.value(): Double {
-    return DoubleArgumentType.getDouble(context, name)
-}
+fun DefaultArgumentReader<DoubleArgumentType>.value(): Double =
+    DoubleArgumentType.getDouble(context, name)
 
 /**
  * Reads the float value from the argument in
@@ -66,9 +64,8 @@ fun DefaultArgumentReader<DoubleArgumentType>.value(): Double {
  */
 @JvmName("valueFloatArg")
 @BrigadierDsl
-fun DefaultArgumentReader<FloatArgumentType>.value(): Float {
-    return FloatArgumentType.getFloat(context, name)
-}
+fun DefaultArgumentReader<FloatArgumentType>.value(): Float =
+    FloatArgumentType.getFloat(context, name)
 
 /**
  * Reads the integer value from the argument in
@@ -78,9 +75,8 @@ fun DefaultArgumentReader<FloatArgumentType>.value(): Float {
  */
 @JvmName("valueIntArg")
 @BrigadierDsl
-fun DefaultArgumentReader<IntegerArgumentType>.value(): Int {
-    return IntegerArgumentType.getInteger(context, name)
-}
+fun DefaultArgumentReader<IntegerArgumentType>.value(): Int =
+    IntegerArgumentType.getInteger(context, name)
 
 /**
  * Reads the long value from the argument in
@@ -90,9 +86,8 @@ fun DefaultArgumentReader<IntegerArgumentType>.value(): Int {
  */
 @JvmName("valueLongArg")
 @BrigadierDsl
-fun DefaultArgumentReader<LongArgumentType>.value(): Long {
-    return LongArgumentType.getLong(context, name)
-}
+fun DefaultArgumentReader<LongArgumentType>.value(): Long =
+    LongArgumentType.getLong(context, name)
 
 /**
  * Creates a boolean argument with [name] as the parameter name.
@@ -100,9 +95,8 @@ fun DefaultArgumentReader<LongArgumentType>.value(): Long {
 @BrigadierDsl
 fun <S> boolean(
     name: String,
-): DefaultArgumentConstructor<S, BoolArgumentType> {
-    return argument(name, BoolArgumentType.bool())
-}
+): DefaultArgumentConstructor<S, BoolArgumentType> =
+    argument(name, BoolArgumentType.bool())
 
 /**
  * Creates a double argument with [name] as the parameter name.
@@ -115,9 +109,8 @@ fun <S> double(
     name: String,
     min: Double = -Double.MAX_VALUE,
     max: Double = Double.MAX_VALUE,
-): DefaultArgumentConstructor<S, DoubleArgumentType> {
-    return argument(name, DoubleArgumentType.doubleArg(min, max))
-}
+): DefaultArgumentConstructor<S, DoubleArgumentType> =
+    argument(name, DoubleArgumentType.doubleArg(min, max))
 
 /**
  * Creates a float argument with [name] as the parameter name.
@@ -130,9 +123,8 @@ fun <S> float(
     name: String,
     min: Float = -Float.MAX_VALUE,
     max: Float = Float.MAX_VALUE,
-): DefaultArgumentConstructor<S, FloatArgumentType> {
-    return argument(name, FloatArgumentType.floatArg(min, max))
-}
+): DefaultArgumentConstructor<S, FloatArgumentType> =
+    argument(name, FloatArgumentType.floatArg(min, max))
 
 /**
  * Creates an integer argument with [name] as the parameter name.
@@ -145,9 +137,8 @@ fun <S> integer(
     name: String,
     min: Int = -Int.MAX_VALUE,
     max: Int = Int.MAX_VALUE,
-): DefaultArgumentConstructor<S, IntegerArgumentType> {
-    return argument(name, IntegerArgumentType.integer(min, max))
-}
+): DefaultArgumentConstructor<S, IntegerArgumentType> =
+    argument(name, IntegerArgumentType.integer(min, max))
 
 /**
  * Creates a long argument with [name] as the parameter name.
@@ -160,6 +151,5 @@ fun <S> long(
     name: String,
     min: Long = -Long.MAX_VALUE,
     max: Long = Long.MAX_VALUE,
-): DefaultArgumentConstructor<S, LongArgumentType> {
-    return argument(name, LongArgumentType.longArg(min, max))
-}
+): DefaultArgumentConstructor<S, LongArgumentType> =
+    argument(name, LongArgumentType.longArg(min, max))

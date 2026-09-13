@@ -46,9 +46,8 @@ import java.util.function.Predicate
  */
 @JvmName("valueItemPredicateArg")
 @BrigadierDsl
-fun DefaultArgumentReader<ItemPredicateArgumentType>.value(): Predicate<ItemStack> {
-    return ItemPredicateArgumentType.getItemStackPredicate(context.assumeSourceNotUsed(), name)
-}
+fun DefaultArgumentReader<ItemPredicateArgumentType>.value(): Predicate<ItemStack> =
+    ItemPredicateArgumentType.getItemStackPredicate(context.assumeSourceNotUsed(), name)
 
 /**
  * Reads the integer value from the
@@ -58,9 +57,8 @@ fun DefaultArgumentReader<ItemPredicateArgumentType>.value(): Predicate<ItemStac
  */
 @JvmName("valueItemSlotArg")
 @BrigadierDsl
-fun DefaultArgumentReader<ItemSlotArgumentType>.value(): Int {
-    return ItemSlotArgumentType.getItemSlot(context.assumeSourceNotUsed(), name)
-}
+fun DefaultArgumentReader<ItemSlotArgumentType>.value(): Int =
+    ItemSlotArgumentType.getItemSlot(context.assumeSourceNotUsed(), name)
 
 /**
  * Reads the [ItemStackArgument] value from the
@@ -70,9 +68,8 @@ fun DefaultArgumentReader<ItemSlotArgumentType>.value(): Int {
  */
 @JvmName("valueItemStackArg")
 @BrigadierDsl
-fun DefaultArgumentReader<ItemStackArgumentType>.value(): ItemStackArgument {
-    return ItemStackArgumentType.getItemStackArgument(context, name)
-}
+fun DefaultArgumentReader<ItemStackArgumentType>.value(): ItemStackArgument =
+    ItemStackArgumentType.getItemStackArgument(context, name)
 
 /**
  * Creates an item predicate argument with [name] as the parameter name.
@@ -83,9 +80,8 @@ fun DefaultArgumentReader<ItemStackArgumentType>.value(): ItemStackArgument {
 fun <S> itemPredicate(
     name: String,
     context: CommandRegistryAccess,
-): DefaultArgumentConstructor<S, ItemPredicateArgumentType> {
-    return argument(name, ItemPredicateArgumentType.itemPredicate(context))
-}
+): DefaultArgumentConstructor<S, ItemPredicateArgumentType> =
+    argument(name, ItemPredicateArgumentType.itemPredicate(context))
 
 /**
  * Creates an item slot argument with [name] as the parameter name.
@@ -93,9 +89,8 @@ fun <S> itemPredicate(
 @BrigadierDsl
 fun <S> itemSlot(
     name: String,
-): DefaultArgumentConstructor<S, ItemSlotArgumentType> {
-    return argument(name, ItemSlotArgumentType.itemSlot())
-}
+): DefaultArgumentConstructor<S, ItemSlotArgumentType> =
+    argument(name, ItemSlotArgumentType.itemSlot())
 
 /**
  * Creates an item stack argument with [name] as the parameter name.
@@ -106,6 +101,5 @@ fun <S> itemSlot(
 fun <S> itemStack(
     name: String,
     context: CommandRegistryAccess,
-): DefaultArgumentConstructor<S, ItemStackArgumentType> {
-    return argument(name, ItemStackArgumentType.itemStack(context))
-}
+): DefaultArgumentConstructor<S, ItemStackArgumentType> =
+    argument(name, ItemStackArgumentType.itemStack(context))

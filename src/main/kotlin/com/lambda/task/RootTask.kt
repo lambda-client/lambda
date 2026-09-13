@@ -17,22 +17,12 @@
 
 package com.lambda.task
 
-import com.lambda.task.wrappers.TaskSupplier
-import com.lambda.threading.runSafe
+import com.lambda.task.Task.Ta5kBuilder
 
 object RootTask : Task<Unit>() {
     override val name get() = "Root Task"
-
-    @Ta5kBuilder
-    inline fun <reified T : Task<*>> T.run(): T {
-        execute(this@RootTask)
-        return this
-    }
-
-    @Ta5kBuilder
-    fun Task<*>.run(task: TaskSupplier<Unit, Unit>) {
-        runSafe {
-            task(Unit).execute(this@run)
-        }
-    }
 }
+
+@Ta5kBuilder
+inline fun <reified T : Task<*>> T.start(): T =
+    apply { execute(RootTask) }

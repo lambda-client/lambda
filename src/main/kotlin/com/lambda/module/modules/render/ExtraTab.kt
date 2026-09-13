@@ -18,7 +18,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import java.awt.Color
 
 object ExtraTab : Module(

@@ -1,0 +1,411 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.interaction.manager.managers.interacting
+
+import com.lambda.config.blocks.InteractConfig
+import com.lambda.context.Automated
+import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.SafeContext
+import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.GuiEvent
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.construction.simulation.context.InteractContext
+import com.lambda.interaction.handler.handlers.InteractedBlockHandler
+import com.lambda.interaction.handler.handlers.InteractedBlockHandler.startPending
+import com.lambda.interaction.handler.handlers.PacketLimitHandler
+import com.lambda.interaction.handler.handlers.PacketType
+import com.lambda.interaction.manager.Manager
+import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
+import com.lambda.interaction.manager.PositionBlocking
+import com.lambda.interaction.manager.managers.breaking.BreakManager
+import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.interacting.InteractManager.activeRequest
+import com.lambda.interaction.manager.managers.interacting.InteractManager.maxInteractionsThisTick
+import com.lambda.interaction.manager.managers.interacting.InteractManager.populateFrom
+import com.lambda.interaction.manager.managers.interacting.InteractManager.potentialInteractions
+import com.lambda.interaction.manager.managers.interacting.InteractManager.processRequest
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.module.modules.world.AutoSign
+import com.lambda.threading.runConcurrent
+import com.lambda.threading.runSafeAutomated
+import com.lambda.threading.runSafeGameScheduled
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.PacketUtils.sendPacket
+import com.lambda.util.item.ItemUtils.blockItem
+import com.lambda.util.player.MovementUtils.sneaking
+import com.lambda.util.player.PlayerUtils.gamemode
+import com.lambda.util.player.PlayerUtils.isItemOnCooldown
+import com.lambda.util.player.PlayerUtils.swingHand
+import kotlinx.coroutines.delay
+import net.minecraft.block.AbstractSignBlock
+import net.minecraft.block.BlockState
+import net.minecraft.block.pattern.CachedBlockPosition
+import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.item.BlockItem
+import net.minecraft.item.ItemPlacementContext
+import net.minecraft.item.ItemStack
+import net.minecraft.item.ItemUsageContext
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
+import net.minecraft.network.packet.c2s.play.UpdateSignC2SPacket
+import net.minecraft.sound.SoundCategory
+import net.minecraft.util.ActionResult
+import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.BlockPos
+import net.minecraft.world.GameMode
+
+object InteractManager : Manager<InteractRequest>(
+	0,
+	onOpen = { activeRequest?.let { it.runSafeAutomated { processRequest(it) } } }
+), PositionBlocking {
+	private var activeRequest: InteractRequest? = null
+	private var potentialInteractions = mutableListOf<InteractContext>()
+
+	private var interactCooldown = 0
+	private var interactionsThisTick = 0
+	private var maxInteractionsThisTick = 0
+
+	private var shouldSneak = false
+	private val ClientPlayerEntity.validSneak get() = isSneaking == shouldSneak
+
+	override val blockedPositions
+		get() = InteractedBlockHandler.pendingActions.map { it.context.blockPos }
+
+	private var cancellingSignScreens = 0
+
+	override fun load(): String {
+		super.load()
+
+        listen<TickEvent.Post>({ Int.MIN_VALUE }) {
+            activeRequest = null
+            interactionsThisTick = 0
+            potentialInteractions.clear()
+	        if (interactCooldown > 0) {
+				interactCooldown--
+			}
+		}
+
+        listen<MovementEvent.InputUpdate>({ Int.MIN_VALUE }) {
+            if (shouldSneak) {
+                shouldSneak = false
+                it.input.sneaking = true
+            }
+        }
+
+	    listenUnsafe<ConnectionEvent.Connect.Pre>({ Int.MIN_VALUE }) {
+		    interactCooldown = 0
+	    }
+
+		listen<GuiEvent.SignEditorOpen> { event ->
+			if (cancellingSignScreens > 0) {
+				event.cancel()
+				cancellingSignScreens--
+			}
+		}
+
+		return "Loaded Place Manager"
+	}
+
+	/**
+	 * Accepts, and processes the request, as long as the current [activeRequest] is null, and the [com.lambda.interaction.manager.managers.breaking.BreakManager] has not
+	 * been active this tick. If nowOrNothing is true, the request is cleared after the first process.
+	 *
+	 * @see processRequest
+	 */
+	override fun AutomatedSafeContext.handleRequest(request: InteractRequest) {
+		if (activeRequest != null || request.contexts.isEmpty()) return
+		if (BreakManager.activeThisTick) return
+
+		activeRequest = request
+		processRequest(request)
+		if (request.nowOrNothing) {
+			activeRequest = null
+			potentialInteractions = mutableListOf()
+		}
+		if (interactionsThisTick > 0) activeThisTick = true
+	}
+
+	/**
+	 * Returns immediately if [BreakManager] or [InteractManager] have been active this tick.
+	 * Otherwise, for fresh requests, [populateFrom] is called to fill the [potentialInteractions] collection.
+	 * It then attempts to perform as many placements as possible from the [potentialInteractions] collection within
+	 * the [maxInteractionsThisTick] limit.
+	 *
+	 * @see populateFrom
+	 */
+	fun AutomatedSafeContext.processRequest(request: InteractRequest)  {
+		if (request.fresh) populateFrom(request)
+
+		if (potentialInteractions.isNotEmpty()) {
+			while(true) {
+				if (!canInteractThisTick()) break
+				val firstInteraction = potentialInteractions.first()
+				if (player.inventory.selectedSlot != firstInteraction.hotbarIndex) {
+					val hotbarRequest = hotbarRequest(firstInteraction.hotbarIndex).submit(false)
+					if (!hotbarRequest.done) break
+				}
+				var interactResult: InteractResult? = null
+				if (interactConfig.airPlace == InteractConfig.AirPlaceMode.Grim) {
+					val inventoryRequest = inventoryRequest {
+						swapHands()
+						action { interactResult = performInteractions(request) }
+						swapHands()
+					}.submit(queueIfMismatchedStage = false)
+					if (!inventoryRequest.done) break
+				} else interactResult = performInteractions(request)
+				if (interactResult == InteractResult.CompleteFailure || interactResult == InteractResult.Finished) break
+			}
+		}
+		if (potentialInteractions.isEmpty()) {
+			if (activeRequest != null) activeRequest = null
+		}
+	}
+
+	private fun AutomatedSafeContext.performInteractions(request: InteractRequest): InteractResult {
+		val iterator = potentialInteractions.iterator()
+		while (iterator.hasNext()) {
+			val ctx = iterator.next()
+			if (ctx.hotbarIndex != player.inventory.selectedSlot) return InteractResult.WrongSlot
+			if (!canInteractThisTick()) break
+
+			shouldSneak = ctx.sneak
+			if (!ctx.requestDependencies(request)) return InteractResult.CompleteFailure
+			if (!player.validSneak) return InteractResult.CompleteFailure
+			if (tickStage !in interactConfig.tickStageMask) return InteractResult.CompleteFailure
+
+			val hand = if (interactConfig.airPlace == InteractConfig.AirPlaceMode.Grim) Hand.OFF_HAND else Hand.MAIN_HAND
+			val actionResult =
+				if (ctx.preProcessingInfo.placing) placeBlock(ctx, request, hand)
+				else interaction.interactBlock(player, if (ctx.preProcessingInfo.item != null) hand else Hand.MAIN_HAND, ctx.hitResult)
+
+			if (actionResult.isAccepted) {
+				PacketLimitHandler.sentPackets(1, PacketType.Interaction)
+				if (interactConfig.swing) {
+					swingHand(interactConfig.swingType, Hand.MAIN_HAND)
+
+					val stackInHand = player.getStackInHand(Hand.MAIN_HAND)
+					val stackCountPre = stackInHand.count
+					if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || player.isInCreativeMode)) {
+						mc.gameRenderer.firstPersonRenderer.resetEquipProgress(Hand.MAIN_HAND)
+					}
+				}
+				val expectedState = ctx.expectedState
+				if (ctx.preProcessingInfo.placing && expectedState.block is AbstractSignBlock) {
+					cancellingSignScreens++
+					runConcurrent {
+						delay(AutoSign.signWriteDelay)
+						runSafeGameScheduled {
+							connection.sendPacket {
+								UpdateSignC2SPacket(ctx.blockPos, true, "", "", "", "")
+							}
+						}
+					}
+				}
+			}
+			val interactDelay = ctx.interactConfig.interactDelay
+			interactCooldown = if (interactDelay == 0) 0 else interactDelay + 1
+			interactionsThisTick++
+			iterator.remove()
+		}
+		return InteractResult.Finished
+	}
+
+	private fun Automated.canInteractThisTick() =
+		interactCooldown <= 0 &&
+				interactionsThisTick < maxInteractionsThisTick &&
+				PacketLimitHandler.canSendPackets(1, PacketType.Interaction)
+
+	/**
+	 * Filters the [request]'s [InteractContext]s, placing them into the [potentialInteractions] collection, and
+	 * setting other configurations.
+	 *
+	 * @see isPosBlocked
+	 */
+	private fun Automated.populateFrom(request: InteractRequest) {
+		InteractedBlockHandler.setPendingConfigs()
+		potentialInteractions = request.contexts
+			.distinctBy { it.blockPos }
+			.filter { !isPosBlocked(it.blockPos) }
+			.take(buildConfig.maxPendingActions - request.pendingInteractions.size.coerceAtLeast(0))
+			.toMutableList()
+
+		maxInteractionsThisTick = interactConfig.interactionsPerTick
+	}
+
+	/**
+	 * A modified version of the minecraft interactBlock method,
+	 * renamed to better suit its usage.
+	 *
+	 * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock
+	 */
+	private fun AutomatedSafeContext.placeBlock(interactContext: InteractContext, request: InteractRequest, hand: Hand): ActionResult {
+		interaction.syncSelectedSlot()
+		val hitResult = interactContext.hitResult
+		if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
+		if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
+		return interactBlockInternal(interactContext, request, hand, hitResult)
+	}
+
+	/**
+	 * A modified version of the minecraft interactBlockInternal method.
+	 *
+	 * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlockInternal
+	 */
+	private fun AutomatedSafeContext.interactBlockInternal(
+		interactContext: InteractContext,
+		request: InteractRequest,
+		hand: Hand,
+		hitResult: BlockHitResult
+	): ActionResult {
+		val handNotEmpty = player.getStackInHand(hand).isEmpty.not()
+		val cantInteract = player.shouldCancelInteraction() && handNotEmpty
+		if (!cantInteract) {
+			val blockState = blockState(hitResult.blockPos)
+			if (!connection.hasFeature(blockState.block.requiredFeatures)) return ActionResult.FAIL
+
+			val actionResult = blockState.onUseWithItem(player.getStackInHand(hand), world, player, hand, hitResult)
+			if (actionResult.isAccepted) return actionResult
+
+			if (actionResult is ActionResult.PassToDefaultBlockAction && hand == Hand.MAIN_HAND) {
+				val actionResult2 = blockState.onUse(world, player, hitResult)
+				if (actionResult2.isAccepted) return actionResult2
+			}
+		}
+
+		val stack = player.getStackInHand(hand)
+
+		if (!stack.isEmpty && !isItemOnCooldown(stack)) {
+			val itemUsageContext = ItemUsageContext(player, hand, hitResult)
+			return if (gamemode.isCreative) {
+				val i = stack.count
+				useOnBlock(interactContext, request, hand, hitResult, stack, itemUsageContext)
+					.also { stack.count = i }
+			} else useOnBlock(interactContext, request, hand, hitResult, stack, itemUsageContext)
+		}
+		return ActionResult.PASS
+	}
+
+	/**
+	 * A modified version of the minecraft useOnBlock method.
+	 *
+	 * @see net.minecraft.item.Item.useOnBlock
+	 */
+	private fun AutomatedSafeContext.useOnBlock(
+		interactContext: InteractContext,
+		request: InteractRequest,
+		hand: Hand,
+		hitResult: BlockHitResult,
+		itemStack: ItemStack,
+		context: ItemUsageContext
+	): ActionResult {
+		val blockPos = context.blockPos
+		return if (!player.abilities.allowModifyWorld &&
+			!itemStack.canPlaceOn(CachedBlockPosition(world, blockPos, false))
+			) {
+			ActionResult.PASS
+		} else {
+			val item = itemStack.blockItem ?: return ActionResult.FAIL
+			place(interactContext, request, hand, hitResult, item, ItemPlacementContext(context))
+		}
+	}
+
+	/**
+	 * A modified version of the minecraft place method.
+	 *
+	 * @see net.minecraft.item.BlockItem.place
+	 */
+	private fun AutomatedSafeContext.place(
+		interactContext: InteractContext,
+		request: InteractRequest,
+		hand: Hand,
+		hitResult: BlockHitResult,
+		item: BlockItem,
+		context: ItemPlacementContext
+	): ActionResult {
+		if (!item.block.isEnabled(world.enabledFeatures)) return ActionResult.FAIL
+		if (!context.canPlace()) return ActionResult.FAIL
+
+		val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
+		val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
+
+		sendInteractPacket(hand, hitResult)
+
+		if (interactConfig.interactConfirmationMode != InteractConfig.InteractConfirmationMode.None) {
+			InteractInfo(interactContext, request.pendingInteractions, request.onPlace, interactConfig).startPending()
+		}
+
+		val itemStack = itemPlacementContext.stack
+		itemStack.decrementUnlessCreative(1, player)
+
+		if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.AwaitThenPlace)
+			return ActionResult.SUCCESS
+
+		// TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
+		//  "AwaitThenPlace" confirmation setting is enabled, as the block state setting methods that validate these
+		//  rules are not called.
+		if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
+
+		val blockPos = itemPlacementContext.blockPos
+		var state = world.getBlockState(blockPos)
+		if (state.isOf(blockState.block)) {
+			state = item.placeFromNbt(blockPos, world, itemStack, state)
+			item.postPlacement(blockPos, world, player, itemStack, state)
+			state.block.onPlaced(world, blockPos, state, player, itemStack)
+		}
+
+		if (interactConfig.sounds) placeSound(state, blockPos)
+
+		if (interactConfig.interactConfirmationMode == InteractConfig.InteractConfirmationMode.None) {
+			request.onPlace?.invoke(this, interactContext.blockPos)
+		}
+
+		return ActionResult.SUCCESS
+	}
+
+	/**
+	 * sends the block placement packet using the given [hand] and [hitResult].
+	 */
+	private fun SafeContext.sendInteractPacket(hand: Hand, hitResult: BlockHitResult) =
+		interaction.sendSequencedPacket(world) { sequence: Int ->
+			PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
+		}
+
+	/**
+	 * Plays the block placement sound at a given [pos].
+	 */
+	fun SafeContext.placeSound(state: BlockState, pos: BlockPos) {
+		val blockSoundGroup = state.soundGroup
+		world.playSound(
+			player,
+			pos,
+			state.soundGroup.placeSound,
+			SoundCategory.BLOCKS,
+			(blockSoundGroup.getVolume() + 1.0f) / 2.0f,
+			blockSoundGroup.getPitch() * 0.8f
+		)
+	}
+
+	private enum class InteractResult {
+		Finished,
+		WrongSlot,
+		CompleteFailure
+	}
+}

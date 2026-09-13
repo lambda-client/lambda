@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hide
@@ -30,11 +30,11 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
@@ -74,11 +74,13 @@ object Scaffold : Module(
 			}
 
 		listen<TickEvent.Pre> {
-			val selection = selectStack {
-				{ it.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks } }
+			val selection = stackSelection {
+				predicate { stack, _ ->
+					stack.blockItem.let { blockItem -> blockItem != null && blockItem.block !in blacklistedBlocks }
+				}
 			}
-			val stack = player.mainHandStack.takeIf { selection.filterStack(it) }
-				?: selection.filterStacks(HotbarContainer.stacks).firstOrNull() ?: return@listen
+			val stack = player.mainHandStack.takeIf { selection.matches(it) }
+				?: selection.filter(HotbarContainer.stacks).firstOrNull() ?: return@listen
 			val playerSupport = player.blockPos.down()
 			val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
 			if (alreadySupported) return@listen

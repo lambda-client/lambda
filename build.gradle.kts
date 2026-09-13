@@ -286,3 +286,7 @@ publishing {
         }
     }
 }
+tasks.named<JavaCompile>("compileJava") {
+    dependsOn(tasks.named("compileKotlin"))
+    classpath += files(tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin").get().destinationDirectory)
+}

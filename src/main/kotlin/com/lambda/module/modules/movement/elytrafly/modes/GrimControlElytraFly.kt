@@ -18,14 +18,15 @@
 package com.lambda.module.modules.movement.elytrafly.modes
 
 import com.lambda.config.Config
-import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.modules.movement.BetterFirework.startFirework
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
@@ -36,8 +37,6 @@ import com.lambda.module.modules.render.Freecam
 import com.lambda.util.NamedEnum
 import com.lambda.util.TickTimer
 import com.lambda.util.math.MathUtils.toFloat
-import com.lambda.util.player.SlotUtils.hotbarStacks
-import com.lambda.util.player.SlotUtils.inventoryStacks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
@@ -141,11 +140,22 @@ class GrimControlElytraFly(
 			val rot = RotationManager.activeRotation
 			val flipFlop = rotFlipFlop.toFloat() * 0.0001f
 			rotFlipFlop = !rotFlipFlop
-			event.packet = PlayerMoveC2SPacket.Full(player.pos, rot.yawF + flipFlop, rot.pitchF, player.isOnGround, player.horizontalCollision)
+			event.packet =
+				PlayerMoveC2SPacket.Full(
+					player.pos,
+					rot.yawF + flipFlop,
+					rot.pitchF,
+					player.isOnGround,
+					player.horizontalCollision
+				)
 		}
 
 		listen<PacketEvent.Send.Pre> { event ->
-			if (event.packet !is PlayerMoveC2SPacket || !player.isGliding || flipFlopMode.isFlipFlopping(hasFirework) || moving) return@listen
+			if (event.packet !is PlayerMoveC2SPacket ||
+				!player.isGliding ||
+				flipFlopMode.isFlipFlopping(hasFirework) ||
+				moving
+				) return@listen
 			if (stillTickTimer.hasSurpassed(packetGap)) {
 				stillTickTimer.reset()
 				return@listen
@@ -154,9 +164,9 @@ class GrimControlElytraFly(
 		}
 	}
 
-	private fun SafeContext.findFirework(): ItemStack? {
+	private fun findFirework(): ItemStack? {
 		val stack = Items.FIREWORK_ROCKET.select()
-		return stack.bestItemMatch(player.hotbarStacks) ?: if (inventory) stack.bestItemMatch(player.inventoryStacks) else null
+		return stack.bestMatch(HotbarContainer.stacks) ?: if (inventory) stack.bestMatch(InventoryContainer.stacks) else null
 	}
 
 	override fun pausingMovement() = still
