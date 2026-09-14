@@ -29,7 +29,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.containers.OffHandContainer
+import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.move
@@ -485,29 +485,31 @@ object CrystalAura : Module(
 
 			val selection = Items.END_CRYSTAL.select()
 
-			if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
-				(swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
+			if ((swapHand == Hand.MAIN_HAND && !selection.matches(player.mainHandStack)) ||
+				(swapHand == Hand.OFF_HAND && !selection.matches(player.offHandStack))
 			) runSafeAutomated {
 				if (!swap) return@runSafe
 
 				val toContainerSelection =
                     when (swapHand) {
 				    	Hand.MAIN_HAND -> HotbarContainer
-				    	Hand.OFF_HAND -> OffHandContainer
+				    	Hand.OFF_HAND -> OffhandContainer
 				    }.select()
 
 				val crystalSlot = findSlot(selection, toContainerSelection)
 
-				if (crystalSlot == null) {
-					if (!selection.move(InventoryContainer.select(), toContainerSelection)) return@runSafe
-				}
+				if (crystalSlot == null &&
+                    !selection.move(InventoryContainer.select(), toContainerSelection)
+                ) {
+                    return@runSafe
+                }
 
 				if (swapHand == Hand.MAIN_HAND) {
 					val crystalSlot = selection
                         .bestMatch(HotbarContainer.slots)
                         ?.index
                         ?: return@runSafe
-					if (crystalSlot < 0 || !hotbarRequest(crystalSlot).submit().done) return@runSafe
+					if (!hotbarRequest(crystalSlot).submit().done) return@runSafe
 				}
 			}
 

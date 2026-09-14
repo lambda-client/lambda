@@ -19,11 +19,12 @@ package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.containers.ArmorContainer
+import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.handler.handlers.GlideHandler.CHESTPLATE_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.manuallySwapped
 import com.lambda.interaction.handler.handlers.GlideHandler.swapped
-import com.lambda.interaction.handler.handlers.findSlots
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -46,14 +47,14 @@ object AutoElytraSwap : Module(
 
 	fun manualSwap(elytra: Boolean): Boolean {
 		val swapSlot =
-			findSlots(
+			findSlot(
 				if (elytra) ELYTRA_SELECTION
-				else CHESTPLATE_SELECTION
-			).minByOrNull { it.index }
-				?: run {
-					AutoElytraSwap.warn("The required armor piece was not found for AutoElytraSwap to work.")
-					return false
-				}
+				else CHESTPLATE_SELECTION,
+				ContainerSelection.HOTBAR_AND_INVENTORY
+			) ?: run {
+				AutoElytraSwap.warn("The required armor piece was not found for AutoElytraSwap to work.")
+				return false
+			}
 
 		return swapWithChestplate(swapSlot)
 	}

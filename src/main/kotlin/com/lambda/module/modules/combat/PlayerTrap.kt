@@ -73,8 +73,9 @@ object PlayerTrap : Module(
 			task = tickingBlueprint {
 				val selection =
 					stackSelection {
+						isItem<BlockItem>()
 						predicate { stack, _ ->
-							stack.item is BlockItem && blocks.contains(stack.item.block)
+							blocks.contains(stack.item.block)
 						}
 					}
 
@@ -94,7 +95,11 @@ object PlayerTrap : Module(
 			}.build(finishOnDone = false)
 				.start()
 		}
-		onDisable { task?.cancel(); task = null }
+
+		onDisable {
+			task?.cancel()
+			task = null
+		}
 	}
 
 	fun SafeContext.getTrapPositions(player: PlayerEntity): Set<BlockPos> {

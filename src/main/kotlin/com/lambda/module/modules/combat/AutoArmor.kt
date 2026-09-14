@@ -20,16 +20,16 @@ package com.lambda.module.modules.combat
 import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.StackAndSlot
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.handler.handlers.findContainer
-import com.lambda.interaction.handler.handlers.findContainers
+import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -65,51 +65,50 @@ object AutoArmor : Module(
 
 	var overriddenElytraPriority: Boolean? = null
 
-	val SORTER = compareByDescending<Slot> {
-		if (it.stack.isDamageable && 1 - (it.stack.damage.toFloat() / it.stack.maxDamage) < minDurabilityPercentage.toFloat() / 100)
-			-Double.MAX_VALUE
-		else 0.0
-	}.thenByDescending {
-		if (overriddenElytraPriority ?: elytraPriority) {
-			if (it.stack.item == Items.ELYTRA) 1.0
+	val SORTER =
+		compareByDescending<StackAndSlot<*>> {
+			if (it.stack.isDamageable && 1 - (it.stack.damage.toFloat() / it.stack.maxDamage) < minDurabilityPercentage.toFloat() / 100)
+				-Double.MAX_VALUE
 			else 0.0
-		} else 0.0
-	}.thenByDescending {
-		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-			?.modifiers
-			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
-			?.modifier?.value
-			?: 0.0
-	}.thenByDescending {
-		it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
-			?.modifiers
-			?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
-			?.modifier?.value
-			?: 0.0
-	}.thenByDescending {
-		val stack = it.stack
-		when {
-			stack.isIn(ItemTags.FOOT_ARMOR) -> stack.getEnchantment(feetProtection.enchant)
-			stack.isIn(ItemTags.LEG_ARMOR) -> stack.getEnchantment(legProtection.enchant)
-			stack.isIn(ItemTags.CHEST_ARMOR) -> stack.getEnchantment(chestProtection.enchant)
-			else -> stack.getEnchantment(headProtection.enchant)
+		}.thenByDescending {
+			if (overriddenElytraPriority ?: elytraPriority) {
+				if (it.stack.item == Items.ELYTRA) 1.0
+				else 0.0
+			} else 0.0
+		}.thenByDescending {
+			it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
+				?.modifiers
+				?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR }
+				?.modifier?.value
+				?: 0.0
+		}.thenByDescending {
+			it.stack.getOrDefault(DataComponentTypes.ATTRIBUTE_MODIFIERS, null)
+				?.modifiers
+				?.find { modifier -> modifier.attribute == EntityAttributes.ARMOR_TOUGHNESS }
+				?.modifier?.value
+				?: 0.0
+		}.thenByDescending {
+			val stack = it.stack
+			when {
+				stack.isIn(ItemTags.FOOT_ARMOR) -> stack.getEnchantment(feetProtection.enchant)
+				stack.isIn(ItemTags.LEG_ARMOR) -> stack.getEnchantment(legProtection.enchant)
+				stack.isIn(ItemTags.CHEST_ARMOR) -> stack.getEnchantment(chestProtection.enchant)
+				else -> stack.getEnchantment(headProtection.enchant)
+			}
+		}.thenByDescending { stackAndSlot ->
+			Protection.entries.fold(0) { acc, protection ->
+				acc + stackAndSlot.stack.getEnchantment(protection.enchant)
+			}
+		}.thenByDescending { stackAndSlot ->
+			stackAndSlot.stack.getEnchantment(Enchantments.UNBREAKING) +
+					stackAndSlot.stack.getEnchantment(Enchantments.MENDING)
+		}.thenByDescending { stackAndSlot ->
+			stackAndSlot.slot?.index in 0..8
 		}
-	}.thenByDescending { slot ->
-		Protection.entries.fold(0) { acc, protection ->
-			acc + slot.stack.getEnchantment(protection.enchant)
-		}
-	}.thenByDescending { slot ->
-		slot.stack.getEnchantment(Enchantments.UNBREAKING) +
-				slot.stack.getEnchantment(Enchantments.MENDING)
-	}.thenByDescending { slot ->
-		slot.index in 0..8
-	}
 
 	init {
 		setDefaultAutomationConfig()
-			.withEdits {
-				hideAllExcept(::inventoryConfig)
-			}
+			.withEdits { hideAllExcept(::inventoryConfig) }
 
 		listen<TickEvent.Pre> {
 			if (!tickedThisTick) tick()
@@ -122,25 +121,33 @@ object AutoArmor : Module(
 
 	fun SafeContext.tick() {
 		tickedThisTick = true
-		val armorSlots = findContainer(containerSelection = ArmorContainer.select())?.slots ?: return
+		val armorSlots = findSlots(containerSelection = ArmorContainer.select())
+			.toList()
+			.takeUnless { it.isEmpty() }
+			?: return
 		
-		val swappable = findContainers(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
-			.flatMap { it.slots }
-			.filter {
-				it.stack.isEquipable(armorSlots) &&
-						(!ignoreBinding || it.stack.getEnchantment(Enchantments.BINDING_CURSE) <= 0)
-			}
-			.sortedWith(SORTER)
+		val swappable =
+			findSlots(
+				stackSelection {
+					predicate { stack, _ -> stack.isEquipable(armorSlots) }
+					if (ignoreBinding) withoutEnchantment(Enchantments.BINDING_CURSE)
+					sortedWith(SORTER)
+				},
+				ContainerSelection.HOTBAR_AND_INVENTORY
+			)
 			.distinctBy { it.stack.armorSlot }
 
 		val swaps = mutableListOf<Pair<Slot, Slot>>()
-		armorSlots.forEach { equipped ->
+		armorSlots
+			.map { StackAndSlot(it.stack, it) }
+			.forEach { equipped ->
 			val new =
 				swappable.find { new ->
-					equipped.canInsert(new.stack) && SORTER.compare(equipped, new) > 0
+					equipped.slot.canInsert(new.stack) &&
+							SORTER.compare(equipped, StackAndSlot(new.stack, new)) > 0
 				} ?: return@forEach
 
-			swaps.add(Pair(new, equipped))
+			swaps.add(Pair(new, equipped.slot))
 		}
 
 		if (swaps.isEmpty()) return

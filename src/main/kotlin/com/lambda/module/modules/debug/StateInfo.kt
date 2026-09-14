@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.util.BlockUtils.blockState

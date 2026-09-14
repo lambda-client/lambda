@@ -23,16 +23,16 @@ import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.hideAllExcept
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.selectContainers
 import com.lambda.interaction.handler.handlers.GlideHandler
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
@@ -61,15 +61,16 @@ object BetterFirework : Module(
 		.onPress {
 			if (mc.crosshairTarget?.type == HitResult.Type.BLOCK &&
 				!middleClickCancel &&
-				activateButton.mouse == Lambda.mc.options.pickItemKey.boundKey.code) return@onPress
+				activateButton.mouse == Lambda.mc.options.pickItemKey.boundKey.code
+			) return@onPress
 
-			if (!player.hasFireworks) {
+			if (!hasFireworks) {
 				warn("You need to have fireworks in your inventory to use this module!")
 				return@onPress
 			}
 			// Prevent using multiple times
 			if (takeoffState != TakeoffState.Idle) return@onPress
-			// If already gliding use another firework
+			// If already gliding, use another firework
 			if (player.canStartGliding || player.isGliding) takeoffState = TakeoffState.StartFlying
 			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
 		}
@@ -85,12 +86,12 @@ object BetterFirework : Module(
 
 	private var takeoffState = TakeoffState.Idle
 
-	val ClientPlayerEntity.hasFireworks: Boolean
-		get() =
-			findStack(
-				Items.FIREWORK_ROCKET.select(),
-				ContainerSelection.HOTBAR_AND_INVENTORY
-			) != null || offHandStack.item == Items.FIREWORK_ROCKET
+	val hasFireworks: Boolean
+		get() = findStack(
+			Items.FIREWORK_ROCKET.select(),
+			selectContainers(HotbarContainer, InventoryContainer, OffhandContainer),
+			sorted = false
+		) != null
 
 	context(_: SafeContext)
 	private val ClientPlayerEntity.canTakeoff: Boolean

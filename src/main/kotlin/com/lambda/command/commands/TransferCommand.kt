@@ -30,6 +30,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.task.Task
 import com.lambda.task.start
@@ -51,9 +52,7 @@ object TransferCommand : LambdaCommand(
             required(integer("amount", 1)) { amount ->
                 required(string("from")) { from ->
                     suggests { ctx, builder ->
-                        val selection = stackSelection(amount(ctx).value()) {
-                            isItem(stack(ctx).value().item)
-                        }
+                        val selection = stack(ctx).value().item.select(amount(ctx).value())
                         AutomationConfig.DEFAULT.runSafeAutomated {
                             val containers =
                                 findContainers(
@@ -73,10 +72,7 @@ object TransferCommand : LambdaCommand(
                     }
                     required(string("to")) { to ->
                         suggests { ctx, builder ->
-                            val selection =
-                                stackSelection(amount(ctx).value()) {
-                                    isItem(stack(ctx).value().item)
-                                }
+                            val selection = stack(ctx).value().item.select(amount(ctx).value())
                             AutomationConfig.DEFAULT.runSafeAutomated {
                                 val containers =
                                     findContainers(

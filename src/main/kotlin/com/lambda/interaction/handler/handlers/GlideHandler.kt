@@ -20,7 +20,7 @@ package com.lambda.interaction.handler.handlers
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.module.modules.combat.AutoArmor
@@ -49,7 +49,7 @@ object GlideHandler {
 					it.stack.getEnchantment(Enchantments.UNBREAKING)
 				}.thenByDescending {
 					it.stack.getEnchantment(Enchantments.MENDING)
-				}
+				}.thenBy { it.slot?.index }
 			}
 		}
 	val CHESTPLATE_SELECTION =
@@ -74,7 +74,7 @@ object GlideHandler {
 					it.stack.getEnchantment(Enchantments.UNBREAKING)
 				}.thenByDescending {
 					it.stack.getEnchantment(Enchantments.MENDING)
-				}
+				}.thenBy { it.slot?.index }
 			}
 		}
 
@@ -173,8 +173,9 @@ object GlideHandler {
 			if (!autoSwapChecking || canGlideAlready) return canGlideAlready
 			val selection = if (fakeFly) CHESTPLATE_SELECTION else ELYTRA_SELECTION
 			return with(ElytraFly) {
-				findContainer(
-					containerSelection { hasStack(selection) },
+				findStack(
+					selection,
+					ContainerSelection.HOTBAR_AND_INVENTORY,
 					false
 				) != null
 			}

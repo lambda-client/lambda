@@ -28,12 +28,12 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.container.ContainerType
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
-import com.lambda.interaction.handler.handlers.findStacks
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
@@ -154,29 +154,13 @@ class BreakSim internal constructor(simInfo: SimInfo)
 			}
 		}
 
-		val containerSelection = containerSelection {
-			ofAnyType(ContainerType.Hotbar)
-		}
-
-		val hotbarCandidates = findStacks(stackSelection, containerSelection).toList()
-		if (hotbarCandidates.isEmpty()) {
-			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
-			return null
-		}
-
-		var bestStack = ItemStack.EMPTY
-		var bestBreakDelta = -1f
-		hotbarCandidates.forEach { stack ->
-			val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
-			if (breakDelta > bestBreakDelta ||
-				(stack == player.mainHandStack && breakDelta >= bestBreakDelta)
-			) {
-				bestBreakDelta = breakDelta
-				bestStack = stack
+		val bestStack = findStack(stackSelection, HotbarContainer.select())
+			?: run {
+				result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
+				return null
 			}
-		}
-		return if (bestBreakDelta == -1f) null
-		else Pair(bestStack, stackSelection)
+
+		return Pair(bestStack, stackSelection)
 	}
 
 	private suspend fun AutomatedSafeContext.affectsFluids(): Boolean {

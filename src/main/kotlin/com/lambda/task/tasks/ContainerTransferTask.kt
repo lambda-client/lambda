@@ -28,7 +28,6 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.selectContainers
 import com.lambda.interaction.handler.handlers.findContainers
@@ -38,6 +37,8 @@ import com.lambda.task.tasks.wrappers.taskOrNull
 import com.lambda.task.tasks.wrappers.then
 import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.item.ItemStackUtils.equal
+import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
 @Ta5kBuilder
@@ -73,7 +74,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	override val name = "Transferring $fromStack"
 
 	private var transferred = 0
-	private val resultSlots = mutableListOf<Slot>()
+	private val resultSlots = mutableMapOf<Slot, ItemStack>()
 	private val resultContainers = mutableSetOf<Container>()
 
 	override fun SafeContext.onStart() {
@@ -107,22 +108,33 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	}
 
 	private fun remainingSelection() =
-		fromStack.mutate(count = if (fromStack.count <= 0) 0 else fromStack.count - transferred)
+		fromStack.mutate(
+			if (fromStack.count <= 0) 0
+			else fromStack.count - transferred
+		)
 
-	private fun isComplete() =
-		(fromStack.count <= 0 && transferred > 0) || (fromStack.count != 0 && transferred >= fromStack.count)
+	private fun isComplete() = transferred >= fromStack.count
 
 	private fun buildResult() =
 		TransferResult(
-			stackSelection {
-				predicate { _, slot ->
-					slot != null &&
-							resultSlots.any {
-								slot.inventory::class == it.inventory::class && slot.index == it.index
-							}
+			fromStack.mutate {
+				sortedWith {
+					compareByDescending { stackAndSlot ->
+						val slot = stackAndSlot.slot
+						slot != null &&
+							resultSlots.entries.find {
+								slot.index == it.key.index
+							}?.let { moveEntry ->
+								slot.inventory::class == moveEntry.key.inventory::class &&
+										moveEntry.key.stack.equal(moveEntry.value)
+							} == true
+					}
 				}
 			},
-			selectContainers(*resultContainers.toTypedArray())
+			selectContainers(
+				containers = resultContainers.toTypedArray(),
+				scope = toSelection.scope
+			)
 		)
 
 	/**
@@ -214,8 +226,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 			if (destination.spaceLeft(fromStack) == 0) toQueue.remove(destination)
 
-			val playerHasItems = findContainers(ContainerSelection.HOTBAR_AND_INVENTORY)
-				.any { container -> fromStack.mutate(1) isIn container }
+			val playerHasItems =
+				fromStack.mutate(1) isIn findContainers(ContainerSelection.HOTBAR_AND_INVENTORY).toList()
 			if (!playerHasItems) return@onSuccess
 
 			val nextDestination = toQueue.firstOrNull() ?: return@onSuccess
@@ -291,7 +303,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 			transferred += moveCount
 			if (trackResult) {
-				resultSlots.add(toSlot)
+				resultSlots[toSlot] = toSlot.stack
 				resultContainers.add(toContainer)
 			}
 

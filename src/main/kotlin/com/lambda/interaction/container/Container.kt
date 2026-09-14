@@ -23,7 +23,9 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
+import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
@@ -60,19 +62,20 @@ abstract class Container(
     abstract val description: Text
 
     context(automated: Automated)
-    open val replaceSorter get() = compareByDescending<Slot> {
-        it.stack.isEmpty
-    }.thenByDescending {
-        it.stack.item in automated.inventoryConfig.disposables
-    }.thenByDescending {
-        !it.stack.item.components.contains(DataComponentTypes.TOOL)
-    }.thenByDescending {
-        !it.stack.item.components.contains(DataComponentTypes.FOOD)
-    }.thenByDescending {
-        !it.stack.item.components.contains(DataComponentTypes.CONSUMABLE)
-    }.thenByDescending {
-        it.stack.isStackable
-    }
+    open val replaceSorter
+        get() = compareByDescending<StackAndSlot<*>> {
+            it.stack.isEmpty
+        }.thenByDescending {
+            it.stack.item in automated.inventoryConfig.disposables
+        }.thenByDescending {
+            !it.stack.item.components.contains(DataComponentTypes.TOOL)
+        }.thenByDescending {
+            !it.stack.item.components.contains(DataComponentTypes.FOOD)
+        }.thenByDescending {
+            !it.stack.item.components.contains(DataComponentTypes.CONSUMABLE)
+        }.thenByDescending {
+            it.stack.isStackable
+        }
 
     open val isAccessed get() = true
 
@@ -124,12 +127,14 @@ abstract class Container(
     open fun access(): OpenContainerTask<*>? = null
 
     open fun count(selection: StackSelection) =
-        slots.takeUnless { it.isEmpty() }?.let { selection.filter(it).count }
-            ?: selection.filter(stacks).count
+        slots.takeUnless { it.isEmpty() }?.let {
+            selection.filter(it, false).count
+        } ?: selection.filter(stacks, false).count
 
     open fun spaceLeft(selection: StackSelection) =
-	    slots.takeUnless { it.isEmpty() }?.let { selection.filter(it).spaceLeft + it.emptySpace }
-		    ?: (selection.filter(stacks).spaceLeft + stacks.emptySpace)
+	    slots.takeUnless { it.isEmpty() }?.let {
+            selection.filter(it, false).spaceLeft + it.emptySpace
+        } ?: (selection.filter(stacks, false).spaceLeft + stacks.emptySpace)
 
     open fun findSlots(selection: StackSelection) = selection.filter(slots)
 
@@ -144,14 +149,18 @@ abstract class Container(
         selection: StackSelection,
         toContainer: Container,
         toStackSelection: StackSelection = StackSelection.ANYTHING
-    ) = Pair(selection.filter(slots).firstOrNull(), toContainer.findReplaceSlot(toStackSelection))
+    ) =
+        Pair(
+            selection.bestMatch(slots),
+            toContainer.findReplaceSlot(toStackSelection)
+        )
 
     context(_: Automated)
     open fun findReplaceSlot(
         selection: StackSelection = StackSelection.ANYTHING
-    ) = selection.filter(slots)
-        .sortedWith(replaceSorter)
-        .firstOrNull()
+    ) = selection
+        .mutate { sortedWith(replaceSorter) }
+        .bestMatch(slots)
 
     context(automatedSafeContext: AutomatedSafeContext)
     internal fun swap(fromSlot: Slot, toSlot: Slot, toContainer: Container): Boolean {

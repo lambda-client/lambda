@@ -60,9 +60,9 @@ class OnFailTask<R> @Ta5kBuilder internal constructor(
 			.onFailure { cause ->
 				onFailTaskGenerator(cause)
 					.onSuccess { success(null) }
-					.execute(this@OnFailTask)
+					.start()
 			}
-			.execute(this@OnFailTask)
+			.start()
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
@@ -87,7 +87,7 @@ class OnFailOrNullTask<R> @Ta5kBuilder internal constructor(
 	override fun SafeContext.onStart() {
 		innerTask
 			.onSuccess { success(it) }
-			.execute(this@OnFailOrNullTask)
+			.start()
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
@@ -95,7 +95,7 @@ class OnFailOrNullTask<R> @Ta5kBuilder internal constructor(
 			runSafe {
 				onFailTaskGenerator(cause)
 					?.onSuccess { success(null) }
-					?.execute(this@OnFailOrNullTask)
+					?.start()
 					?: super.onSubTaskFailure(subTask, cause)
 			}
 		} else super.onSubTaskFailure(subTask, cause)
@@ -123,9 +123,9 @@ class RecoveryTask<R> @Ta5kBuilder internal constructor(
 			.onFailure { cause ->
 				recoveryTaskGenerator(this, cause)
 					.onSuccess { success(it) }
-					.execute(this@RecoveryTask)
+					.start()
 			}
-			.execute(this@RecoveryTask)
+			.start()
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
@@ -151,7 +151,7 @@ class OptionalRecoveryTask<R> @Ta5kBuilder internal constructor(
 	override fun SafeContext.onStart() {
 		innerTask
 			.onSuccess { success(it) }
-			.execute(this@OptionalRecoveryTask)
+			.start()
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
@@ -159,7 +159,7 @@ class OptionalRecoveryTask<R> @Ta5kBuilder internal constructor(
 			runSafe {
 				recoveryTaskGenerator(this, cause)
 					?.onSuccess { success(it) }
-					?.execute(this@OptionalRecoveryTask)
+					?.start()
 					?: super.onSubTaskFailure(subTask, cause)
 			}
 		} else super.onSubTaskFailure(subTask, cause)

@@ -22,7 +22,6 @@ import com.lambda.config.Config
 import com.lambda.config.Tab
 import com.lambda.config.categories.GuiCategory
 import com.lambda.config.entries.onValueChange
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPressUnsafe
 import com.lambda.core.Loadable
 import com.lambda.event.events.GuiEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe

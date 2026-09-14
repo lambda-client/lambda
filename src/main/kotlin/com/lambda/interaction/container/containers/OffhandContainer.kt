@@ -28,7 +28,7 @@ import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
-object OffHandContainer : Container(ContainerType.OffHand) {
+object OffhandContainer : Container(ContainerType.OffHand) {
     override val slots: List<Slot>
         get() = mc.player?.offHandSlots ?: emptyList()
     override var stacks: List<ItemStack>

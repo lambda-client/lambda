@@ -387,10 +387,10 @@ private fun searchContainers(
 
 	val baseContainers =
 		when (selection.scope) {
-			ContainerSearchScope.Player -> compiled - EnderChestContainer
-			ContainerSearchScope.Compiled -> compiled
 			ContainerSearchScope.Loaded -> compiled + placedSeq + selection.loadedContainers
 			ContainerSearchScope.Accessed -> placedSeq + compiled.filter { it.isAccessed }
+			ContainerSearchScope.Compiled -> compiled
+			ContainerSearchScope.Player -> compiled - EnderChestContainer
 			ContainerSearchScope.All -> compiled + placedSeq +
 					ContainerSerializer.serializedContainers.filter { diskContainer ->
 						diskContainer.pos != ContainerHandler.accessedPlacedContainer?.pos
@@ -403,9 +403,9 @@ private fun searchContainers(
 }
 
 enum class ContainerSearchScope {
+	Loaded,
 	Accessed,
 	Compiled,
-	Loaded,
 	Player,
 	All
 }

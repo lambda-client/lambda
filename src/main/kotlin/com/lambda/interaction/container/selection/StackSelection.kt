@@ -63,6 +63,12 @@ class StackSelection @ContainerDslMarker internal constructor(
 	fun bestMatch(slots: Iterable<Slot>) = filter(slots).firstOrNull()
 
 	@ContainerDslMarker
+	fun match(stacks: Iterable<ItemStack>) = stacks.find(::matches)
+
+	@ContainerDslMarker
+	fun match(slots: Iterable<Slot>) = slots.find(::matches)
+
+	@ContainerDslMarker
 	fun matches(stack: ItemStack): Boolean {
 		val matchesSelf = selector(stack, null)
 		return when (shulkerBoxScope.inShulkerBox) {
@@ -84,33 +90,45 @@ class StackSelection @ContainerDslMarker internal constructor(
 
 	@ContainerDslMarker
 	@JvmName("filter1")
-	fun filter(stacks: Iterable<ItemStack>) =
-		stacks
-			.let { if (whitelistedSlots.isNotEmpty()) emptyList() else it }
-			.asSequence()
-			.filter(::matches)
-			.map { StackAndSlot<Slot?>(it, null) }
-			.sortedWith(comparator)
-			.map { it.stack }
-			.toList()
+	fun filter(
+		stacks: Iterable<ItemStack>,
+		sorted: Boolean = true
+	) = stacks
+		.let { if (whitelistedSlots.isNotEmpty()) emptyList() else it }
+		.asSequence()
+		.filter(::matches)
+		.let {
+			if (sorted)
+				it.map { StackAndSlot(it, null) }
+					.sortedWith(comparator)
+					.map { it.stack }
+			else it
+		}
+		.toList()
 
 	@ContainerDslMarker
 	@JvmName("filter2")
-	fun filter(slots: Iterable<Slot>) =
-		slots
-			.let { slots ->
-				if (whitelistedSlots.isNotEmpty()) {
-					whitelistedSlots
-						.asSequence()
-						.filter { it in slots }
-				} else slots.asSequence()
-			}
-			.filter { it !in blacklistedSlots }
-			.filter(::matches)
-			.map { StackAndSlot(it.stack, it) }
-			.sortedWith(comparator)
-			.map { it.slot }
-			.toList()
+	fun filter(
+		slots: Iterable<Slot>,
+		sorted: Boolean = true
+	) = slots
+		.let { slots ->
+			if (whitelistedSlots.isNotEmpty()) {
+				whitelistedSlots
+					.asSequence()
+					.filter { it in slots }
+			} else slots.asSequence()
+		}
+		.filter { it !in blacklistedSlots }
+		.filter(::matches)
+		.let {
+			if (sorted)
+				it.map { StackAndSlot(it.stack, it) }
+					.sortedWith(comparator)
+					.map { it.slot }
+			else it
+		}
+		.toList()
 
 	@ContainerDslMarker
 	infix fun isIn(container: Container) =

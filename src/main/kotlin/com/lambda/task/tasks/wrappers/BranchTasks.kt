@@ -52,14 +52,14 @@ class BranchTask<R, R2> @Ta5kBuilder internal constructor(
 			.onSuccess { result ->
 				onSuccessGenerator(this, result)
 					.onSuccess { success(it) }
-					.execute(this@BranchTask)
+					.start()
 			}
 			.onFailure { cause ->
 				onFailureGenerator(this, cause)
 					.onSuccess { success(it) }
-					.execute(this@BranchTask)
+					.start()
 			}
-			.execute(this@BranchTask)
+			.start()
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
@@ -84,16 +84,16 @@ class OptionalBranchTask<R, R2> @Ta5kBuilder internal constructor(
 			.onSuccess { result ->
 				onSuccessGenerator(this, result)
 					?.onSuccess { success(it) }
-					?.execute(this@OptionalBranchTask)
+					?.start()
 					?: success(null)
 			}
 			.onFailure { cause ->
 				onFailureGenerator(this, cause)
 					?.onSuccess { success(it) }
-					?.execute(this@OptionalBranchTask)
+					?.start()
 					?: failure("Optional onFailure task not present for task: ${innerTask.name}")
 			}
-			.execute(this@OptionalBranchTask)
+			.start()
 	}
 
 	override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {

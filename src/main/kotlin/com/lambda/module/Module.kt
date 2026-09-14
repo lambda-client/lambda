@@ -26,8 +26,6 @@ import com.lambda.config.categories.ModuleCategory
 import com.lambda.config.entries.onValueChange
 import com.lambda.config.entries.onValueChangeUnsafe
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.updateListenerSorting

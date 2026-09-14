@@ -40,7 +40,7 @@ class SoftFailTask<R> @Ta5kBuilder internal constructor(
     override fun SafeContext.onStart() {
         innerTask
             .onSuccess { success(it) }
-            .execute(this@SoftFailTask)
+            .start()
     }
 
     override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {

@@ -18,7 +18,6 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.context.SafeContext
 import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.interaction.handler.handlers.FriendHandler.befriend

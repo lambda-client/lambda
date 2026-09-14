@@ -104,6 +104,7 @@ abstract class ElytraFlyMode(
 				}.submit()
 			if (!hotbarRequest.done) return false
 		}
+
 		fun InvRequestBuilder.swapChest() {
 			if (elytraInHotbar) {
 				interaction.interactItem(player, Hand.MAIN_HAND)

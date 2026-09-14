@@ -27,11 +27,10 @@ import com.lambda.interaction.construction.simulation.result.results.GenericResu
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.container.ContainerType
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.handler.handlers.findContainer
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.manager.managers.rotating.RotationManager
@@ -205,23 +204,17 @@ class InteractSim internal constructor(simInfo: InteractSimInfo)
 			supervisorScope.cancel()
 			return null
 		}
-		val stackSelection = item?.select(if (item == Items.AIR) 0 else 1)
-			?: stackSelection { sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } } }
-		val containerSelection =
-			containerSelection {
-				hasStack(stackSelection)
-				ofAnyType(ContainerType.Hotbar)
+
+		val stackSelection =
+			stackSelection(if (item == Items.AIR) 0 else 1) {
+				item?.let { isItem(it) }
+				sortedWith { compareByDescending { it.stack.inventoryIndex == player.inventory.selectedSlot } }
 			}
-		val container = findContainer(containerSelection)
+
+		return findSlot(stackSelection, HotbarContainer.select())
 			?: run {
 				result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
-				return null
-			}
-		return stackSelection
-			.filter(container.slots)
-			.run {
-				firstOrNull { it.index == player.inventory.selectedSlot }
-					?: firstOrNull()
+				null
 			}
 	}
 

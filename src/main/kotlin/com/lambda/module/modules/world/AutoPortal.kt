@@ -26,8 +26,6 @@ import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -36,7 +34,7 @@ import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRend
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
-import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
@@ -64,7 +62,6 @@ import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
 import net.minecraft.block.Blocks
-import net.minecraft.item.FlintAndSteelItem
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
@@ -78,7 +75,7 @@ import net.minecraft.util.math.Vec3d
 @Suppress("unused")
 object AutoPortal : Module(
 	name = "AutoPortal",
-	description = "Automatically places and lights a nether portal",
+	description = "Automatically builds a nether portal",
 	tag = ModuleTag.WORLD
 ) {
 	private const val RENDER_GROUP = "Renders"
@@ -278,7 +275,7 @@ object AutoPortal : Module(
 			}
 	}
 
-	private class LightTask(
+	private class LightTask @Ta5kBuilder constructor(
 		private val pos: BlockPos,
 		private val walkIn: Boolean
 	) : Task<Unit>() {
@@ -325,12 +322,12 @@ object AutoPortal : Module(
 				return
 			}
 
-			val selection = stackSelection(1) { isItem<FlintAndSteelItem>() }
+			val selection = Items.FLINT_AND_STEEL.select()
 
-			val hotbarSlot = findSlot(selection, HotbarContainer.select())
-			if (hotbarSlot != null) {
+			val hotbarIndex = selection.bestMatch(HotbarContainer.slots)?.index
+			if (hotbarIndex != null) {
 				val request =
-					hotbarRequest(hotbarSlot.index) {
+					hotbarRequest(hotbarIndex) {
 						keepTicks(0)
 					}.submit(false)
 				if (request.done) block()
@@ -338,16 +335,17 @@ object AutoPortal : Module(
 			}
 
 			val invSlot =
-				if (inventory) findSlot(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
+				if (inventory) findSlot(selection, InventoryContainer.select())
 				else null
 			if (invSlot == null) {
 				failure("No Flint and Steel!")
 				return
 			}
 			val hotbarSlotToSwapWith =
-				HotbarContainer.slots.find { slot ->
-					slot.stack.isEmpty
-				}?.index ?: 8
+				findSlot(
+					stackSelection(0) { isEmpty() },
+					HotbarContainer.select()
+				)?.index ?: 8
 
 			inventoryRequest {
 				swapWithHotbar(invSlot.id, hotbarSlotToSwapWith)

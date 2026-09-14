@@ -81,8 +81,15 @@ data class ShulkerBoxContainer(
     ) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
         override fun SafeContext.onStart() {
             transfer(
-                stackSelection { predicate { _, slot -> slot?.index == index }; isItem(shulkerItem) },
-                containedIn.select(),
+                stackSelection {
+                    sortedWith {
+                        compareByDescending { stackAndSlot -> stackAndSlot.slot?.index == index }
+                    }
+                    isItem(shulkerItem)
+                    withName(itemName)
+                    sortedByBestContentMatch(stacks)
+                },
+                containedIn.select(ContainerSearchScope.Loaded),
                 HotbarContainer.select()
             ).then { result -> placeContainer(findSlot(result.stackSelection, result.containerSelection)) }
                 .then { pos ->

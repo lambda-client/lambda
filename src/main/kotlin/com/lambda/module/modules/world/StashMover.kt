@@ -26,7 +26,6 @@ import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
@@ -40,12 +39,12 @@ import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.containers.OffHandContainer
+import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.handler.handlers.findStacks
@@ -460,8 +459,12 @@ object StashMover : Module(
 					MoverState.DispensingPearl -> handleDispensingPearl()
 					MoverState.AwaitingPearl ->
 						checkTimerProgress(MoverState.DispensingPearl, pearlButtonTimeout) {
-							val hasPearl = findContainers(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
-								.any { it.stacks.any { it.item == Items.ENDER_PEARL } }
+							val hasPearl =
+								findStack(
+									Items.ENDER_PEARL.select(),
+									ContainerSelection.HOTBAR_AND_INVENTORY,
+									sorted = false
+								) != null
 							if (hasPearl) {
 								pearlThrown = false
 								moverState = MoverState.ThrowingPearl
@@ -509,7 +512,13 @@ object StashMover : Module(
 				if (moverState != MoverState.AwaitingTeleport) return@listen
 				val packet = event.packet
 				if (packet !is PlayerPositionLookS2CPacket) return@listen
-				if (finished && findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).all { it.isEmpty }) {
+				val allMoved =
+					findStack(
+						stackSelection { notEmpty() },
+						ContainerSelection.HOTBAR_AND_INVENTORY,
+						sorted = false
+					) == null
+				if (finished && allMoved) {
 					success(finishedMessage)
 					return@listen
 				}
@@ -577,7 +586,7 @@ object StashMover : Module(
 					pulledContainers.clear()
 					moverState = MoverState.MessagingForPearl
 				}
-				.execute(this)
+				.start()
 		}
 
 		private fun SafeContext.handleMessagingForPearl() {
@@ -644,9 +653,7 @@ object StashMover : Module(
 					screenHandler.containerSlots,
 					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList()
 				)
-			if (move) {
-				putOrThrowItems()
-			}
+			if (move) putOrThrowItems()
 		}
 
 		private fun SafeContext.handleDispensingPearl() {
@@ -673,7 +680,7 @@ object StashMover : Module(
 					tickTimer.reset()
 					moverState = MoverState.AwaitingPearl
 				}
-				?.execute(this@MoverBot)
+				?.start()
 		}
 
 		private fun SafeContext.handleThrowingPearl() {
@@ -691,7 +698,7 @@ object StashMover : Module(
 						failWithLog("No free slots to return the offhand stack to!", ::failure)
 						return
 					}
-					val offhandSlot = OffHandContainer.slots.firstOrNull() ?: run { failWithLog("No offhand slot? This shouldn't occur.", ::failure); return }
+					val offhandSlot = OffhandContainer.slots.firstOrNull() ?: run { failWithLog("No offhand slot? This shouldn't occur.", ::failure); return }
 					inventoryRequest { quickMove(offhandSlot.id) }.submit()
 				}
 				putOrThrowItems()
@@ -775,7 +782,7 @@ object StashMover : Module(
 
 			openContainer(pos).thenAction {
 				onOpened(pos)
-			}.execute(this@MoverBot)
+			}.start()
 		}
 
 		private fun SafeContext.moveFromContainerToContainer(
@@ -848,7 +855,7 @@ object StashMover : Module(
 							?.thenAction {
 								pearlState = PearlState.Waiting
 							}
-							?.execute(this@PearlBot)
+							?.start()
 					}
 					else -> {}
 				}

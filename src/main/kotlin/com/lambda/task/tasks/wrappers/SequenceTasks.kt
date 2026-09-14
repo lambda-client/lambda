@@ -64,9 +64,9 @@ class SequencedTask<R, R2> @Ta5kBuilder internal constructor(
 			.onSuccess { result ->
 				second = nextTaskGenerator(this, result)
 					.onSuccess { success(it) }
-					.execute(this@SequencedTask)
+					.start()
 			}
-			.execute(this@SequencedTask)
+			.start()
 	}
 }
 
@@ -88,10 +88,10 @@ class OptionalSequencedTask<R, R2> @Ta5kBuilder internal constructor(
 			.onSuccess { result ->
 				nextTaskGenerator(this, result)
 					?.onSuccess { success(it) }
-					?.execute(this@OptionalSequencedTask)
+					?.start()
 					?: success(null)
 			}
-			.execute(this@OptionalSequencedTask)
+			.start()
 	}
 }
 
@@ -110,7 +110,7 @@ class TaskOrNullTask<R> @Ta5kBuilder internal constructor(
 	override fun SafeContext.onStart() {
 		taskOrNullSupplier()
 			?.onSuccess { success(it) }
-			?.execute(this@TaskOrNullTask)
+			?.start()
 			?: success(null)
 	}
 }

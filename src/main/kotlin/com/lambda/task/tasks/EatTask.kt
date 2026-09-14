@@ -71,7 +71,7 @@ class EatTask @Ta5kBuilder internal constructor(
                     }.submit()
                 if (!request.done) return@listen
             } else {
-                if (InventoryContainer.slots.any { selection.matches(it) }) {
+                if (selection isIn InventoryContainer) {
                     runSafeAutomated {
                         transfer(
                             selection,

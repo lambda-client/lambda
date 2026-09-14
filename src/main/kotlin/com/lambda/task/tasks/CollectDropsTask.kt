@@ -26,12 +26,12 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.extension.playerSlots
 import net.minecraft.entity.ItemEntity
 
 @Ta5kBuilder
@@ -78,15 +78,18 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		}
 
 		if (findStack(stackSelection(0) { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY, false) == null) {
-			val stackToThrow =
-				player.currentScreenHandler.playerSlots.firstOrNull {
-					it.stack.item in inventoryConfig.disposables
-				} ?: run {
+			val slotToThrow =
+				findSlot(
+					stackSelection { ofAnyItems(inventoryConfig.disposables) },
+					ContainerSelection.HOTBAR_AND_INVENTORY,
+					sorted = false
+				) ?: run {
 					failure("Inventory is full and no disposable items to throw")
 					return true
 				}
+
 			inventoryRequest {
-				throwStack(stackToThrow.id)
+				throwStack(slotToThrow.id)
 			}.submit()
 			return true
 		}

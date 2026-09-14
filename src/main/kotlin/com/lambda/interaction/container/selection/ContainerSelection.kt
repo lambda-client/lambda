@@ -21,29 +21,25 @@ import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.NestedContainer
-import com.lambda.interaction.container.containers.ArmorContainer
-import com.lambda.interaction.container.containers.CreativeContainer
-import com.lambda.interaction.container.containers.CursorContainer
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.containers.OffHandContainer
 import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 
 @ContainerDslMarker
 fun Container.select(
-    scope: ContainerSearchScope = ContainerSearchScope.Accessed
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded
 ) = containerSelection(scope) { ofAny(this@select) }
 
 @ContainerDslMarker
 fun Iterable<Container>.select(
-    scope: ContainerSearchScope = ContainerSearchScope.Accessed
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded
 ) = containerSelection(scope) { ofAny(this@select) }
 
 @ContainerDslMarker
 fun selectContainers(
     vararg containers: Container,
-    scope: ContainerSearchScope = ContainerSearchScope.Accessed
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded
 ) = containerSelection(scope) { ofAny(*containers) }
 
 /**
@@ -52,7 +48,7 @@ fun selectContainers(
 @Suppress("unused")
 class ContainerSelection @ContainerDslMarker internal constructor(
     val selector: (Container) -> Boolean,
-    val scope: ContainerSearchScope = ContainerSearchScope.Accessed,
+    val scope: ContainerSearchScope = ContainerSearchScope.Loaded,
     val containersWhitelist: Collection<Container> = emptyList(),
     val loadedContainers: Collection<Container> = emptyList(),
     val containersBlacklist: Collection<Container> = emptyList(),
@@ -81,16 +77,13 @@ class ContainerSelection @ContainerDslMarker internal constructor(
     companion object {
         val ACCESSED = ContainerSelection({ true })
         val NOTHING = ContainerSelection({ false })
-        val HOTBAR_AND_INVENTORY = selectContainers(HotbarContainer, InventoryContainer)
-        val PLAYER =
+        val HOTBAR_AND_INVENTORY =
             selectContainers(
                 HotbarContainer,
                 InventoryContainer,
-                OffHandContainer,
-                CursorContainer,
-                ArmorContainer,
-                CreativeContainer
+                scope = ContainerSearchScope.Player
             )
+        val PLAYER = containerSelection(scope = ContainerSearchScope.Player)
     }
 }
 
@@ -236,8 +229,8 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
 
     companion object {
         fun containerSelection(
-            scope: ContainerSearchScope = ContainerSearchScope.Accessed,
-            builder: ContainerSelectionBuilder.() -> Unit
+            scope: ContainerSearchScope = ContainerSearchScope.Loaded,
+            builder: ContainerSelectionBuilder.() -> Unit = {}
         ) = ContainerSelectionBuilder(scope).apply(builder).build()
 
         fun ContainerSelection.mutate(
