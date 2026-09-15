@@ -50,6 +50,9 @@ object StrippedStateProcessor : StateProcessor {
 		noCaching()
 
 		if (state.isReplaceable){
+			// Don't use unstripped logs if you already have stripped ones
+			if (player.carries(targetState.block.asItem())) return
+
 			val sourceItem = unstrippedVariant.asItem()
 			if (!player.carries(sourceItem)) return
 
@@ -61,7 +64,6 @@ object StrippedStateProcessor : StateProcessor {
 			setPlacing(false)
 			// InteractSim refuses to interact while sneaking, so ask for it explicitly.
 			setSneak(false)
-			return
 		}
 	}
 
