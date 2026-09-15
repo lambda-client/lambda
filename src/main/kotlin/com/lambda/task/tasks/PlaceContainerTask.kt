@@ -20,18 +20,17 @@ package com.lambda.task.tasks
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.toBlueprint
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.ManagerUtils
+import com.lambda.interaction.manager.ManagerUtils
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.math.distSq
 import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
@@ -41,13 +40,26 @@ import net.minecraft.screen.slot.Slot
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class PlaceContainerTask @Ta5kBuilder constructor(
-    val slot: Slot,
+@Ta5kBuilder
+context(automated: Automated)
+fun placeContainer(slot: Slot?) = PlaceContainerTask(slot, automated)
+
+@Ta5kBuilder
+context(automated: Automated)
+fun placeContainer(slot: () -> Slot?) = PlaceContainerTask(slot(), automated)
+
+class PlaceContainerTask @Ta5kBuilder internal constructor(
+    val slot: Slot?,
     automated: Automated
 ) : Task<BlockPos>(), Automated by automated {
-    override val name: String get() = "Placing container ${slot.stack.name.string}"
+    override val name: String get() = "Placing container ${slot?.stack?.name?.string}"
 
     override fun SafeContext.onStart() {
+        if (slot == null) {
+            failure("No slot provided")
+            return
+        }
+
         val results = runSafeAutomated {
             BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
                 .map { it.blockPos }
@@ -75,8 +87,8 @@ class PlaceContainerTask @Ta5kBuilder constructor(
             .toStructure(TargetState.Stack(slot.stack))
             .toBlueprint()
             .build(finishOnDone = true, collectDrops = false)
-            .thenAction { success(containerPosition) }
-            .execute(this@PlaceContainerTask)
+            .onSuccess { success(containerPosition) }
+            .start()
     }
 
     private fun SafeContext.canBeOpened(
@@ -87,7 +99,7 @@ class PlaceContainerTask @Ta5kBuilder constructor(
         Items.ENDER_CHEST -> {
             !ChestBlock.isChestBlocked(world, blockPos)
         }
-        in shulkerBoxes -> {
+        in SHULKER_BOXES -> {
             val box = ShulkerEntity
                 .calculateBoundingBox(0.5f, direction, 0.0f, blockPos.toBottomCenterPos())
                 .offset(blockPos)

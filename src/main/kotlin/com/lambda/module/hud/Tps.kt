@@ -20,7 +20,7 @@ package com.lambda.module.hud
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImVec2
 import com.lambda.module.HudModule
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.ServerTPSUtils
 import com.lambda.util.ServerTPSUtils.recentData

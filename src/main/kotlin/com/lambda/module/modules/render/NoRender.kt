@@ -22,7 +22,7 @@ import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.editTypedSettings
 import com.lambda.config.withEdits
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.EntityUtils.createNameMap
 import com.lambda.util.ReflectionUtils.scanResult
 import net.minecraft.block.entity.BlockEntity

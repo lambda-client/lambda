@@ -27,7 +27,7 @@ import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
-import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.item.Item

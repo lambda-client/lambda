@@ -18,9 +18,9 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -31,11 +31,11 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.RotationMode
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum

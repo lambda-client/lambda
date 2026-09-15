@@ -22,7 +22,7 @@ import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket

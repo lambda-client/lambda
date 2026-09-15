@@ -65,14 +65,8 @@ object ListPlayerArgumentDescriptor : ArgumentDescriptor<EntityArgumentType>
  */
 @JvmName("valueGameProfileArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        DefaultArgumentDescriptor<
-                GameProfileArgumentType
-                >
-        >.value(): Collection<PlayerConfigEntry> {
-    return GameProfileArgumentType.getProfileArgument(context, name)
-}
+fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<GameProfileArgumentType>>.value(): Collection<PlayerConfigEntry> =
+    GameProfileArgumentType.getProfileArgument(context, name)
 
 /**
  * Reads the [Team] value from the
@@ -82,14 +76,8 @@ fun ArgumentReader<
  */
 @JvmName("valueTeamArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        DefaultArgumentDescriptor<
-                TeamArgumentType
-                >
-        >.value(): Team {
-    return TeamArgumentType.getTeam(context, name)
-}
+fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<TeamArgumentType>>.value(): Team =
+    TeamArgumentType.getTeam(context, name)
 
 /**
  * Reads the [ServerPlayerEntity] value from the
@@ -99,12 +87,8 @@ fun ArgumentReader<
  */
 @JvmName("valuePlayerArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        SinglePlayerArgumentDescriptor
-        >.value(): ServerPlayerEntity {
-    return EntityArgumentType.getPlayer(context, name)
-}
+fun ArgumentReader<ServerCommandSource, SinglePlayerArgumentDescriptor>.value(): ServerPlayerEntity =
+    EntityArgumentType.getPlayer(context, name)
 
 /**
  * Reads the collection of players from the argument in
@@ -116,12 +100,8 @@ fun ArgumentReader<
  */
 @JvmName("requiredPlayerArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        ListPlayerArgumentDescriptor
-        >.required(): Collection<ServerPlayerEntity> {
-    return EntityArgumentType.getPlayers(context, name)
-}
+fun ArgumentReader<ServerCommandSource, ListPlayerArgumentDescriptor>.required(): Collection<ServerPlayerEntity> =
+    EntityArgumentType.getPlayers(context, name)
 
 /**
  * Reads the collection of players from the argument in
@@ -133,12 +113,8 @@ fun ArgumentReader<
  */
 @JvmName("optionalPlayerArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        ListPlayerArgumentDescriptor
-        >.optional(): Collection<ServerPlayerEntity> {
-    return EntityArgumentType.getOptionalPlayers(context, name)
-}
+fun ArgumentReader<ServerCommandSource, ListPlayerArgumentDescriptor>.optional(): Collection<ServerPlayerEntity> =
+    EntityArgumentType.getOptionalPlayers(context, name)
 
 /**
  * Creates a game profile argument with [name] as the parameter name.
@@ -146,9 +122,8 @@ fun ArgumentReader<
 @BrigadierDsl
 fun <S> gameProfile(
     name: String,
-): DefaultArgumentConstructor<S, GameProfileArgumentType> {
-    return argument(name, GameProfileArgumentType.gameProfile())
-}
+): DefaultArgumentConstructor<S, GameProfileArgumentType> =
+    argument(name, GameProfileArgumentType.gameProfile())
 
 /**
  * Creates a team argument with [name] as the parameter name.
@@ -156,9 +131,8 @@ fun <S> gameProfile(
 @BrigadierDsl
 fun <S> team(
     name: String,
-): DefaultArgumentConstructor<S, TeamArgumentType> {
-    return argument(name, TeamArgumentType.team())
-}
+): DefaultArgumentConstructor<S, TeamArgumentType> =
+    argument(name, TeamArgumentType.team())
 
 /**
  * Creates a player selector argument with [name] as the parameter name.
@@ -166,12 +140,8 @@ fun <S> team(
 @BrigadierDsl
 fun <S> player(
     name: String,
-): RequiredArgumentConstructor<
-        S,
-        SinglePlayerArgumentDescriptor
-        > {
-    return argument(name, EntityArgumentType.player(), SinglePlayerArgumentDescriptor)
-}
+): RequiredArgumentConstructor<S, SinglePlayerArgumentDescriptor> =
+    argument(name, EntityArgumentType.player(), SinglePlayerArgumentDescriptor)
 
 /**
  * Creates a multiple player selector argument with [name] as the parameter name.
@@ -179,9 +149,5 @@ fun <S> player(
 @BrigadierDsl
 fun <S> players(
     name: String,
-): RequiredArgumentConstructor<
-        S,
-        ListPlayerArgumentDescriptor
-        > {
-    return argument(name, EntityArgumentType.players(), ListPlayerArgumentDescriptor)
-}
+): RequiredArgumentConstructor<S, ListPlayerArgumentDescriptor> =
+    argument(name, EntityArgumentType.players(), ListPlayerArgumentDescriptor)

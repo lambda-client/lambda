@@ -23,7 +23,7 @@ import com.lambda.config.editSetting
 import com.lambda.config.withEdits
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.HudModule
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.FormattingUtils.format
 import com.lambda.util.extension.dimensionName

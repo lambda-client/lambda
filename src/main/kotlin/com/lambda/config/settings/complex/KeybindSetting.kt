@@ -36,7 +36,6 @@ import com.lambda.event.Muteable
 import com.lambda.event.events.ButtonEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.dsl.ImGuiBuilder
-import com.lambda.imgui.ImGui.isMouseClicked
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiHoveredFlags
 import com.lambda.imgui.flag.ImGuiMouseButton

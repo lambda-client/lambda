@@ -15,12 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.angleDifference
-import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
-import com.lambda.interaction.managers.rotating.Rotation.Companion.lerp
-import com.lambda.interaction.managers.rotating.Rotation.Companion.slerp
-import com.lambda.interaction.managers.rotating.Rotation.Companion.wrap
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.angleDifference
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.dist
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.lerp
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.slerp
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.wrap
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.test.Test

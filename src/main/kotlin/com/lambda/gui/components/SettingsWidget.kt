@@ -29,118 +29,165 @@ import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.flag.ImGuiPopupFlags
 import com.lambda.imgui.flag.ImGuiTabBarFlags
+import com.lambda.imgui.type.ImString
 import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.modules.client.AutoUpdater
 
 object SettingsWidget {
+    private val settingFilters = mutableMapOf<String, ImString>()
+
     /**
-     * Builds the settings context popup content for the given config.
+     * Builds the settings content for the given config (used in popups and inline expansion).
      */
     fun ImGuiBuilder.buildConfigSettingsContext(config: Config) {
         group {
             if (config is Module && config != AutoUpdater) {
-				button("Module Settings") {
-					ImGui.openPopup("##module-settings-popup-${config.name}")
-				}
-	            ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
-	            popupContextItem("##module-settings-popup-${config.name}", ImGuiPopupFlags.None) {
-		            with(config.keybindSetting) { buildLayout() }
-		            with(config.prioritySetting) { buildLayout() }
-		            with(config.disableOnReleaseSetting) { buildLayout() }
-		            with(config.drawSetting) { buildLayout() }
-		            if (config is HudModule) {
-			            with(config.backgroundColor) { buildLayout() }
-		            }
-		            smallButton("Reset") {
-			            config.resetSettings()
-		            }
-	            }
+                withId("##header-${config.name}") {
+                    // Row 1: Keybind setting + Reset button
+                    with(config.keybindSetting) { buildLayout() }
+
+                    sameLine()
+                    val resetText = "Reset"
+                    val resetBtnW = ImGui.calcTextSize(resetText).x + style.framePadding.x * 2.5f
+                    cursorPosX = (windowContentRegionMaxX - resetBtnW - style.windowPadding.x).coerceAtLeast(cursorPosX + 10f)
+                    smallButton("$resetText##rst-${config.name}") {
+                        config.resetSettings()
+                    }
+                    lambdaTooltip("Reset all settings for ${config.name} to their default values")
+
+                    // Row 2: Draw on HUD and Toggle on Release checkboxes
+                    checkbox("Draw on HUD##draw-${config.name}", config.drawSetting::value)
+                    lambdaTooltip(config.drawSetting.description)
+
+                    sameLine(0f, 15f)
+                    checkbox("Toggle on Release##rel-${config.name}", config.disableOnReleaseSetting::value)
+                    lambdaTooltip("Disable this module when the bound key is released")
+
+                    if (config is HudModule) {
+                        sameLine(0f, 15f)
+                        with(config.backgroundColor) { buildLayout() }
+                    }
+
+                    // Collapsible Advanced section for priority
+                    treeNode("Advanced Options##adv-${config.name}") {
+                        with(config.prioritySetting) { buildLayout() }
+                    }
+                }
             }
-            lambdaTooltip("Resets all settings for this module to their default values")
+
             if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.DEFAULT) {
-                button("Automation Config") {
+                button("Automation Config##btn-${config.name}") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
                 }
-	            if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
-		            sameLine()
-		            text("(${config.backingAutomationConfig.name})")
-	            }
+                if (config.backingAutomationConfig !== config.defaultAutomationConfig) {
+                    sameLine()
+                    text("(${config.backingAutomationConfig.name})")
+                }
                 ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
                 popupContextItem("##automation-config-popup-${config.name}", ImGuiPopupFlags.None) {
-	                combo("##LinkedConfig", preview = "Linked Config: ${config.backingAutomationConfig.name}") {
-		                val addItem: (Config) -> Unit = { item ->
-			                val selected = item === config.backingAutomationConfig
+                    combo("##LinkedConfig", preview = "Linked Config: ${config.backingAutomationConfig.name}") {
+                        val addItem: (Config) -> Unit = { item ->
+                            val selected = item === config.backingAutomationConfig
 
-			                selectable(item.name, selected) {
-				                if (!selected) {
-					                (config.backingAutomationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(config.name)
-					                (item as? UserAutomationConfig)?.linkedModules?.value?.add(config.name)
-					                config.automationConfig = item as? AutomationConfig ?: return@selectable
-				                }
-			                }
-		                }
-		                addItem(config.defaultAutomationConfig)
-						UserAutomationCategory.configs.forEach { addItem(it) }
-	                }
+                            selectable(item.name, selected) {
+                                if (!selected) {
+                                    (config.backingAutomationConfig as? UserAutomationConfig)?.linkedModules?.value?.remove(config.name)
+                                    (item as? UserAutomationConfig)?.linkedModules?.value?.add(config.name)
+                                    config.automationConfig = item as? AutomationConfig ?: return@selectable
+                                }
+                            }
+                        }
+                        addItem(config.defaultAutomationConfig)
+                        UserAutomationCategory.configs.forEach { addItem(it) }
+                    }
                     buildConfigSettingsContext(config.automationConfig)
                 }
             }
         }
 
-	    if (!hasVisibleSettings(config.settingLayers)) return
-	    separator()
-	    drawLayers(config.settingLayers, config.name)
+        if (!hasVisibleSettings(config.settingLayers)) return
+        separator()
+
+        // Setting search filter if module has 4 or more visible settings
+        val visibleCount = countVisibleSettings(config.settingLayers)
+        var filterQuery = ""
+        if (visibleCount >= 4) {
+            val filter = settingFilters.getOrPut(config.name) { ImString(64) }
+            withItemWidth(ImGui.getContentRegionAvailX()) {
+                ImGui.inputTextWithHint("##st-filter-${config.name}", "Filter ${config.name} settings...", filter)
+            }
+            filterQuery = filter.get().trim()
+            separator()
+        }
+
+        drawLayers(config.settingLayers, config.name, filterQuery)
     }
 
-    private fun ImGuiBuilder.drawLayers(root: EntryLayer.Multiple<Setting<*>>, idPrefix: String) {
-	    var tabsDrawn = false
+    private fun ImGuiBuilder.drawLayers(root: EntryLayer.Multiple<Setting<*>>, idPrefix: String, filter: String) {
+        var tabsDrawn = false
 
-	    root.layers.forEach { layer ->
-		    when (layer) {
-			    is EntryLayer.Single<Setting<*>> -> drawSetting(layer.entry)
-			    is EntryLayer.Group -> {
-				    if (hasVisibleSettings(layer)) {
-					    treeNode("${layer.name}##$idPrefix-group-${layer.name}") {
-						    drawLayers(layer, "$idPrefix-${layer.name}")
-					    }
-				    }
-			    }
-			    is EntryLayer.Tab -> {
-				    if (!tabsDrawn) {
-					    tabsDrawn = true
-					    val allTabs = root.layers
-						    .filterIsInstance<EntryLayer.Tab<Setting<*>>>()
-						    .filter { hasVisibleSettings(it) }
-					    if (allTabs.isNotEmpty()) {
-						    tabBar("##$idPrefix-tabs", ImGuiTabBarFlags.FittingPolicyResizeDown) {
-							    allTabs.forEach { tab ->
-								    tabItem(tab.name) {
-									    drawLayers(tab, "$idPrefix-${tab.name}")
-								    }
-							    }
-						    }
-					    }
-				    }
-			    }
-			    else -> {}
-		    }
-	    }
+        root.layers.forEach { layer ->
+            when (layer) {
+                is EntryLayer.Single<Setting<*>> -> {
+                    if (filter.isEmpty() || layer.entry.name.contains(filter, ignoreCase = true)) {
+                        drawSetting(layer.entry)
+                    }
+                }
+                is EntryLayer.Group -> {
+                    if (hasVisibleSettings(layer, filter)) {
+                        treeNode("${layer.name}##$idPrefix-group-${layer.name}") {
+                            drawLayers(layer, "$idPrefix-${layer.name}", filter)
+                        }
+                    }
+                }
+                is EntryLayer.Tab -> {
+                    if (!tabsDrawn) {
+                        tabsDrawn = true
+                        val allTabs = root.layers
+                            .filterIsInstance<EntryLayer.Tab<Setting<*>>>()
+                            .filter { hasVisibleSettings(it, filter) }
+                        if (allTabs.isNotEmpty()) {
+                            tabBar("##$idPrefix-tabs", ImGuiTabBarFlags.FittingPolicyResizeDown) {
+                                allTabs.forEach { tab ->
+                                    tabItem(tab.name) {
+                                        drawLayers(tab, "$idPrefix-${tab.name}", filter)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
     }
 
     private fun ImGuiBuilder.drawSetting(setting: Setting<*>) {
-	    if (!setting.visibility()) return
-	    if (setting.disabled()) ImGui.beginDisabled()
-	    with(setting) { buildLayout() }
-	    if (setting.disabled()) ImGui.endDisabled()
+        if (!setting.visibility()) return
+        if (setting.disabled()) ImGui.beginDisabled()
+        with(setting) { buildLayout() }
+        if (setting.disabled()) ImGui.endDisabled()
     }
 
-    private fun hasVisibleSettings(layer: EntryLayer.Multiple<Setting<*>>): Boolean =
-	    layer.layers.any { layer ->
-		    when (layer) {
-			    is SettingEntryLayer<*, *> -> layer.entry.visibility()
-			    is EntryLayer.Multiple<Setting<*>> -> hasVisibleSettings(layer)
-			    else -> false
-		    }
-	    }
+    private fun countVisibleSettings(layer: EntryLayer.Multiple<Setting<*>>): Int {
+        var count = 0
+        layer.layers.forEach { l ->
+            when (l) {
+                is SettingEntryLayer<*, *> -> if (l.entry.visibility()) count++
+                is EntryLayer.Multiple<Setting<*>> -> count += countVisibleSettings(l)
+                else -> {}
+            }
+        }
+        return count
+    }
+
+    private fun hasVisibleSettings(layer: EntryLayer.Multiple<Setting<*>>, filter: String = ""): Boolean =
+        layer.layers.any { l ->
+            when (l) {
+                is SettingEntryLayer<*, *> -> l.entry.visibility() && (filter.isEmpty() || l.entry.name.contains(filter, ignoreCase = true))
+                is EntryLayer.Multiple<Setting<*>> -> hasVisibleSettings(l, filter)
+                else -> false
+            }
+        }
 }

@@ -273,9 +273,8 @@ object BlockUtils {
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
     fun BlockState.matches(state: BlockState, ignoredProperties: Collection<Property<*>> = emptySet()) =
-        this.block == state.block && this.properties.all {
-            this[it] == state[it] || it in ignoredProperties
-        }
+        this.block == state.block &&
+                this.properties.all { this[it] == state[it] || it in ignoredProperties }
 
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
         val ticksNeeded = 1 / (blockState.calcBlockBreakingDelta(player, world, blockPos) / breakThreshold)

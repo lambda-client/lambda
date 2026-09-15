@@ -26,7 +26,7 @@ import com.lambda.config.blocks.ScreenTextSettings
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.blocks.WorldTextSettings
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 
 @Suppress("unused")
 object SettingsTestModule : Module(

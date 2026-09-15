@@ -18,12 +18,12 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.BreakConfig.SwingMode
 import com.lambda.config.editSetting
 import com.lambda.config.editTypedSettings
-import com.lambda.config.entries.Setting.Companion.disabled
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.disabled
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
@@ -37,9 +37,12 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.managers.breaking.BreakRequest.Companion.breakRequest
+import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder.Companion.breakRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
+import com.lambda.interaction.handler.handlers.FriendHandler
+import com.lambda.util.world.fastEntitySearch
+import net.minecraft.entity.player.PlayerEntity
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockState
@@ -66,6 +69,15 @@ object PacketMine : Module(
 	private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
 		.onValueChange { _, to -> if (!to) queuePositions.clear() }
 	private val queueOrder by  setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
+
+	private val autoCity by setting("Auto City", false, "Automatically targets and mines surround blocks of nearby enemies")
+	private val cityRange by setting("City Range", 5.0, 2.0..8.0, 0.5, "Maximum range to search for enemy players to city") { autoCity }
+	private val cityBurrow by setting("City Burrow", true, "Prioritizes burrow blocks if target is burrowed") { autoCity }
+	private val cityFriends by setting("City Friends", false, "Whether to target friends with Auto City") { autoCity }
+
+	private const val CITY_RENDERS_GROUP = "City Renders"
+	@Group(CITY_RENDERS_GROUP) private val renderCity by setting("Render City", true, "Renders the Auto City block target") { autoCity }
+	@Group(CITY_RENDERS_GROUP) private val cityColor by setting("City Color", Color(0, 255, 255, 120)) { autoCity && renderCity }
 
 	private const val REBREAK_RENDERS_GROUP = "ReBreak Renders"
 	private const val QUEUE_RENDERS_GROUP = "Queue Renders"
@@ -172,11 +184,29 @@ object PacketMine : Module(
 		}
 
 		listen<TickEvent.Input.Post> {
+			val cityTarget = findCityTarget()
+			val requestList = mutableListOf<BlockPos>()
+			breakPositions.filterNotNull().forEach { requestList.add(it) }
+			requestList.addAll(queueSorted.flatten())
+
+			if (cityTarget != null && !requestList.contains(cityTarget)) {
+				requestList.add(cityTarget)
+			}
+
 			if (!attackedThisTick) {
-				requestBreakManager((breakPositions + queueSorted.flatten()).toList())
-				if (!breakConfig.rebreak || (rebreakMode != RebreakMode.Auto /*&& rebreakMode != RebreakMode.AutoConstant*/)) return@listen
+				requestBreakManager(requestList)
+			}
+
+			if (breakConfig.rebreak && (rebreakMode == RebreakMode.Auto || rebreakMode == RebreakMode.AutoConstant)) {
 				val reBreak = rebreakPos ?: return@listen
-				requestBreakManager(listOf(reBreak), true)
+				val state = blockState(reBreak)
+				if (rebreakMode == RebreakMode.AutoConstant) {
+					if (!state.isAir && state.getHardness(world, reBreak) >= 0) {
+						requestBreakManager(listOf(reBreak), true)
+					}
+				} else if (!attackedThisTick) {
+					requestBreakManager(listOf(reBreak), true)
+				}
 			}
 		}
 
@@ -186,6 +216,16 @@ object PacketMine : Module(
 					box(pos) {
 						hideFill()
 						outlineColor(rebreakColor)
+					}
+				}
+			}
+			if (autoCity && renderCity) {
+				runSafe {
+					findCityTarget()?.let { pos ->
+						box(pos) {
+							hideFill()
+							outlineColor(cityColor)
+						}
 					}
 				}
 			}
@@ -299,6 +339,36 @@ object PacketMine : Module(
 		forEach { if (it.any(predicate)) return true }
 		return false
 	}
+	private fun SafeContext.findCityTarget(): BlockPos? {
+		if (!autoCity) return null
+		val targets = fastEntitySearch<PlayerEntity>(cityRange).filter {
+			it != player && it.isAlive && (cityFriends || !FriendHandler.isFriend(it.uuid))
+		}.sortedBy { it.squaredDistanceTo(player) }
+
+		val maxReachSq = 4.5 * 4.5
+
+		for (target in targets) {
+			val feetPos = target.blockPos
+			if (cityBurrow) {
+				val state = blockState(feetPos)
+				if (!state.isAir && state.getHardness(world, feetPos) >= 0 && feetPos.distSq(player.eyePos) <= maxReachSq) {
+					return feetPos
+				}
+			}
+
+			val surroundPositions = arrayOf(
+				feetPos.north(), feetPos.south(), feetPos.east(), feetPos.west()
+			)
+			val validSurround = surroundPositions.filter { pos ->
+				val state = blockState(pos)
+				!state.isAir && state.getHardness(world, pos) >= 0 && pos.distSq(player.eyePos) <= maxReachSq
+			}.minByOrNull { it.distSq(player.eyePos) }
+
+			if (validSurround != null) return validSurround
+		}
+		return null
+	}
+
 
 	private enum class RebreakMode(
 		override val displayName: String,
@@ -306,8 +376,7 @@ object PacketMine : Module(
 	) : NamedEnum, Describable {
 		Manual("Manual", "Re-break only when you trigger it explicitly."),
 		Auto("Auto", "Automatically re-break when it’s beneficial or required."),
-		//ToDo: Implement auto constant rebreak
-//        AutoConstant("Auto (Constant)", "Continuously re-break as soon as conditions allow; most aggressive.")
+		AutoConstant("Auto Constant", "Continuously re-break as soon as a block is placed; most aggressive civbreak.")
 	}
 
 	private enum class QueueOrder(

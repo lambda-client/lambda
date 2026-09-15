@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.simulation.result.results
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import com.lambda.context.AutomatedSafeContext
+import com.lambda.context.Automated
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.util.DirectionMask.mask
 import com.lambda.interaction.construction.simulation.context.BreakContext
@@ -31,12 +31,11 @@ import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Rank
 import com.lambda.interaction.construction.simulation.result.Resolvable
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.handlers.ContainerHandler.transferByTask
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.containers.HotbarContainer
-import com.lambda.task.Task
-import com.lambda.task.wrappers.softFail
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.task.tasks.transfer
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -118,12 +117,10 @@ sealed class BreakResult : BuildResult() {
     ) : Resolvable, BreakResult() {
         override val rank = Rank.BreakItemCantMine
 
-        context(task: Task<*>, _: AutomatedSafeContext)
-        override fun resolve() {
-            selectStack {
-                isItem(badItem).not()
-            }.transferByTask(HotbarContainer)?.softFail()?.execute(task)
-        }
+        context(_: Automated)
+        override fun resolve() =
+            stackSelection { notItem(badItem) }
+                .transfer(toSelection = HotbarContainer.select())
 
         override fun compareResult(other: ComparableResult<Rank>) =
             when (other) {

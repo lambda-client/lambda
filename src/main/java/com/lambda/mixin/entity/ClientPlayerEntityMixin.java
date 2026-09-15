@@ -19,8 +19,8 @@ package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.*;
-import com.lambda.interaction.handlers.BaritoneHandler;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.handler.handlers.BaritoneHandler;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.NoJumpCooldown;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.player.PortalGui;
@@ -56,7 +56,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Objects;
 
 import static com.lambda.Lambda.getMc;
-import static com.lambda.interaction.managers.rotating.Rotation.dist;
+import static com.lambda.interaction.manager.managers.rotating.Rotation.dist;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity {

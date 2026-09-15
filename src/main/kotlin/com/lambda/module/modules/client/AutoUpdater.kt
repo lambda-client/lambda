@@ -26,7 +26,7 @@ import com.lambda.gui.dsl.ImGuiBuilder.popupModal
 import com.lambda.imgui.ImGui
 import com.lambda.imgui.flag.ImGuiWindowFlags
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runIO
 import com.lambda.util.CommunicationUtils.debug
 import com.lambda.util.CommunicationUtils.logError
