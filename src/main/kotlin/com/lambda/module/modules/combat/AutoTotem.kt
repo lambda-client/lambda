@@ -23,11 +23,14 @@ import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.container.containers.OffhandContainer
+import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.FriendHandler
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.handler.handlers.move
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
@@ -57,27 +60,20 @@ object AutoTotem : Module(
 
     init {
 		setDefaultAutomationConfig()
-			.withEdits {
-				hideAllExcept(::inventoryConfig)
-			}
+			.withEdits { hideAllExcept(::inventoryConfig) }
 
         listen<TickEvent.Pre> {
             if (!always && Reason.entries.none { it.check(this) }) return@listen
 
-            if ((!ignoreWhenHolding || !player.isHolding(Items.TOTEM_OF_UNDYING)) && player.offHandStack.item != Items.TOTEM_OF_UNDYING) {
-                Items.TOTEM_OF_UNDYING.select()
-	                .filter(player.currentScreenHandler.slots)
-	                .takeIf { it.isNotEmpty() }
-	                ?.let { totems ->
-		                val cursor = player.currentScreenHandler.cursorStack
-		                val targetSlot = player.currentScreenHandler.slots
-			                .findLast { !cursor.isEmpty && it.canInsert(cursor) }
-
-						inventoryRequest {
-							targetSlot?.let { pickup(it.id, 0) }
-							swapWithHotbar(totems.first().id, 40)
-						}.submit()
-	                }
+            val swapWhileHolding = !ignoreWhenHolding || player.mainHandStack.item != Items.TOTEM_OF_UNDYING
+            if (swapWhileHolding && player.offHandStack.item != Items.TOTEM_OF_UNDYING) {
+                runSafeAutomated {
+                    Items.TOTEM_OF_UNDYING.select()
+                        .move(
+                            ContainerSelection.HOTBAR_AND_INVENTORY,
+                            OffhandContainer.select()
+                        )
+                }
             }
         }
     }

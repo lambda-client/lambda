@@ -25,7 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ExternalContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.mutate
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
 import com.lambda.interaction.container.selection.select
@@ -79,12 +79,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 	override fun SafeContext.onStart() {
 		val fromContainers =
-			findContainers(
-				containerSelection(fromSelection.scope) {
-					matches(fromSelection)
-					hasStack(fromStack.mutate(1))
-				}
-			).toList()
+			findContainers(fromSelection.mutate { hasStack(fromStack.mutate(1)) })
+				.toList()
 				.takeIf { fromStack isIn it }
 				?: run {
 					failure("Could not find source containers for $fromStack")
@@ -92,12 +88,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				}
 
 		val toContainers =
-			findContainers(
-				containerSelection(toSelection.scope) {
-					matches(toSelection)
-					hasStack(toStack.mutate(1))
-				}
-			).toList()
+			findContainers(toSelection.mutate { hasStack(toStack.mutate(1)) })
+				.toList()
 				.takeIf { toStack isIn it }
 				?: run {
 					failure("Could not find destination containers for $toStack")

@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
@@ -63,7 +64,7 @@ class EatTask @Ta5kBuilder internal constructor(
             }
 
             val selection = reason.selector()
-            val hotbarSlot = selection.bestMatch(HotbarContainer.slots)
+            val hotbarSlot = findSlot(selection, HotbarContainer.select())
             if (hotbarSlot != null) {
                 val request =
                     hotbarRequest(hotbarSlot.index) {

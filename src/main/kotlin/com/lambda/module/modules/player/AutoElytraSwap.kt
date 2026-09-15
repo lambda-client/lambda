@@ -19,16 +19,20 @@ package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.containers.ArmorContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.GlideHandler.CHESTPLATE_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.manuallySwapped
 import com.lambda.interaction.handler.handlers.GlideHandler.swapped
 import com.lambda.interaction.handler.handlers.findSlot
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.AutoArmor
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.PlayerUtils.canGlideWithChestPiece
 import net.minecraft.screen.slot.Slot
@@ -60,14 +64,14 @@ object AutoElytraSwap : Module(
 	}
 
 	private fun swapWithChestplate(swapSlot: Slot): Boolean {
-		val chestplateSlot = ArmorContainer.slots.getOrNull(1) ?: return false
-		return AutoElytraSwap.inventoryRequest {
-			if (swapSlot.index in 0..8) swapWithHotbar(chestplateSlot.id, swapSlot.index)
-			else {
-				moveSlot(swapSlot.id, chestplateSlot.id)
-				if (!chestplateSlot.stack.isEmpty) pickup(swapSlot.id)
-			}
-		}.submit(false).done
+		val chestplateSlot = findSlots(containerSelection = ArmorContainer.select())
+			.toList()
+			.getOrNull(1)
+			?: return false
+		val sourceContainer = if (swapSlot.index in 0..8) HotbarContainer else InventoryContainer
+		return runSafeAutomated {
+			ArmorContainer.swap(chestplateSlot, swapSlot, sourceContainer)
+		} ?: false
 	}
 
 	context(safeContext: SafeContext)

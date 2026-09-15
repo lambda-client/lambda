@@ -45,6 +45,7 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.handler.handlers.findStacks
@@ -74,7 +75,6 @@ import com.lambda.util.extension.containerStacks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.distSq
 import com.lambda.util.math.setAlpha
-import com.lambda.util.player.SlotUtils.allSlots
 import com.lambda.util.text.bold
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -711,12 +711,12 @@ object StashMover : Module(
 			}.submit()
 			if (!rotationRequest.done) return
 			if (player.mainHandStack.item != Items.ENDER_PEARL) {
-				val hotbarSlot = HotbarContainer.slots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
+				val hotbarSlot = findSlot(Items.ENDER_PEARL.select(), HotbarContainer.select())
 				if (hotbarSlot != null) {
 					val hotbarRequest = hotbarRequest(hotbarSlot.index).submit()
 					if (!hotbarRequest.done) return
 				} else {
-					val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
+					val inventorySlot = findSlot(Items.ENDER_PEARL.select(), InventoryContainer.select())
 					if (inventorySlot == null) {
 						failWithLog("No pearl in inventory!", ::failure)
 						return

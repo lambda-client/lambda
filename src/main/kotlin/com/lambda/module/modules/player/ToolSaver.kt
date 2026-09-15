@@ -25,9 +25,9 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import net.minecraft.item.ItemStack
@@ -82,14 +82,11 @@ object ToolSaver : Module(
 
 			if (swaps.isEmpty()) return@listen
 
-			inventoryRequest {
-				swaps.forEach {
-					pickup(it.first.id)
-					pickup(it.second.id)
-					if (!it.second.stack.isEmpty)
-						pickup(it.first.id)
+			runSafeAutomated {
+				swaps.forEach { (endangered, swapWith) ->
+					HotbarContainer.swap(endangered, swapWith, InventoryContainer)
 				}
-			}.submit()
+			}
 		}
 
 		listen<ContainerEvent.Transfer> { event ->

@@ -19,7 +19,8 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handler.handlers.findContainerWithDisposable
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
@@ -86,10 +87,12 @@ sealed class TargetState : StateMatcher {
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
-                findContainerWithDisposable()
-                    ?.stacks
-                    ?.firstOrNull { it.item in inventoryConfig.disposables }
-                    ?: ItemStack(Items.NETHERRACK)
+                findStack(
+                    stackSelection {
+                        ofAnyItems(inventoryConfig.disposables)
+                        predicate { stack, _ -> stack.item.block !in replace }
+                    }
+                ) ?: ItemStack(Items.NETHERRACK)
             }
 
         context(_: AutomatedSafeContext)
@@ -114,9 +117,7 @@ sealed class TargetState : StateMatcher {
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
-                findContainerWithDisposable()
-                    ?.stacks
-                    ?.firstOrNull { it.item in inventoryConfig.disposables }
+                findStack(stackSelection { ofAnyItems(inventoryConfig.disposables) })
                     ?: ItemStack(Items.NETHERRACK)
             }
 
