@@ -26,8 +26,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.ArmorContainer
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
@@ -95,7 +97,10 @@ abstract class ElytraFlyMode(
 			}
 		val elytraInHotbar = elytraSlot.index in 0..8
 
-		val chestSlot = ArmorContainer.slots.getOrNull(1) ?: return false
+		val chestSlot = findSlots(containerSelection = ArmorContainer.select())
+			.toList()
+			.getOrNull(1)
+			?: return false
 
 		if (elytraInHotbar) {
 			val hotbarRequest =

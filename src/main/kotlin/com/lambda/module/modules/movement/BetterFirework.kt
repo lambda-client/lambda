@@ -34,6 +34,7 @@ import com.lambda.interaction.container.selection.StackSelectionBuilder.Companio
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.selectContainers
 import com.lambda.interaction.handler.handlers.GlideHandler
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
@@ -171,8 +172,13 @@ object BetterFirework : Module(
 
 		if (!inventory) return
 
-		val inventoryMatch = selection.bestMatch(InventoryContainer.slots) ?: return
-		val hotbarSlot = stackSelection { isEmpty() }.bestMatch(HotbarContainer.slots)?.index ?: 8
+		val inventoryMatch = findSlot(containerSelection = InventoryContainer.select()) ?: return
+		val hotbarSlot =
+			findSlot(
+				stackSelection { isEmpty() },
+				HotbarContainer.select()
+			)?.index
+				?: 8
 
 		inventoryRequest {
 			swapWithHotbar(inventoryMatch.id, hotbarSlot)

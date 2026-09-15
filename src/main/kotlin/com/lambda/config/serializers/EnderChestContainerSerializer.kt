@@ -39,12 +39,12 @@ object EnderChestContainerSerializer : Serializer<EnderChestContainer>(EnderChes
         root.put("Type", ContainerType.EnderChest.name)
 
         val stackArray = JsonNodeFactory.instance.arrayNode()
-        for (stack in container.stacks) {
-            val encoded = ItemStack.CODEC
-                .encodeStart(JsonOps.UNCOMPRESSED, stack)
-                .result()
-            encoded.ifPresent { stackArray.add(it) }
-        }
+	    container.stacks.forEach { stack ->
+		    val encoded = ItemStack.CODEC
+			    .encodeStart(JsonOps.UNCOMPRESSED, stack)
+			    .result()
+		    encoded.ifPresent { stackArray.add(it) }
+	    }
         root.set("Stacks", stackArray)
 
         gen.writeTree(root)

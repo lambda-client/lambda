@@ -25,6 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.modules.movement.BetterFirework.startFirework
@@ -155,7 +156,7 @@ class GrimControlElytraFly(
 				!player.isGliding ||
 				flipFlopMode.isFlipFlopping(hasFirework) ||
 				moving
-				) return@listen
+			) return@listen
 			if (stillTickTimer.hasSurpassed(packetGap)) {
 				stillTickTimer.reset()
 				return@listen
@@ -165,8 +166,11 @@ class GrimControlElytraFly(
 	}
 
 	private fun findFirework(): ItemStack? {
-		val stack = Items.FIREWORK_ROCKET.select()
-		return stack.bestMatch(HotbarContainer.stacks) ?: if (inventory) stack.bestMatch(InventoryContainer.stacks) else null
+		val selection = Items.FIREWORK_ROCKET.select()
+		return findStack(selection, HotbarContainer.select(), false)
+			?: if (inventory) {
+				findStack(selection, InventoryContainer.select(), false)
+			} else null
 	}
 
 	override fun pausingMovement() = still

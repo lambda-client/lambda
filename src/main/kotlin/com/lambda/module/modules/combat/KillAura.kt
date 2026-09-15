@@ -30,6 +30,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
@@ -128,10 +130,12 @@ object KillAura : Module(
                             }
                         }
 
-                    selection.bestMatch(HotbarContainer.stacks)?.let { bestStack ->
-                        val slotId = HotbarContainer.stacks.indexOf(bestStack)
-                        if (!hotbarRequest(slotId).submit().done) return@listen
-                    }
+                    val slot =
+                        findSlot(
+                            selection,
+                            HotbarContainer.select()
+                        ) ?: return@listen
+                    if (!hotbarRequest(slot.index).submit().done) return@listen
                 }
 
                 if (!rotated) return@listen

@@ -664,7 +664,11 @@ object StashMover : Module(
 			}
 			if (BaritoneHandler.isActive) return
 			if (HotbarContainer.stacks.none { it.isEmpty }) {
-				val firstSlot = HotbarContainer.slots.getOrNull(0) ?: run { failWithLog("No first slot? This shouldn't occur.", ::failure); return }
+				val firstSlot = findSlot(containerSelection = HotbarContainer.select())
+					?: run {
+						failWithLog("No first slot? This shouldn't occur.", ::failure)
+						return
+					}
 				if (InventoryContainer.stacks.any { it.isEmpty }) {
 					inventoryRequest { quickMove(firstSlot.id) }.submit()
 					return

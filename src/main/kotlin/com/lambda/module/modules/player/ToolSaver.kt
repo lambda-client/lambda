@@ -25,6 +25,9 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -49,10 +52,15 @@ object ToolSaver : Module(
 			}
 
 		listen<TickEvent.Pre> {
-			val endangeredStacks = HotbarContainer.slots.filter { it.stack.isEndangered }
+			val endangeredSlots =
+				findSlots(
+					stackSelection { predicate { stack, _ -> stack.isEndangered } },
+					HotbarContainer.select()
+				)
 
-			val inventorySlots = InventoryContainer.slots
-			val swaps = endangeredStacks
+			val inventorySlots = findSlots(containerSelection = InventoryContainer.select())
+
+			val swaps = endangeredSlots
 				.mapNotNull { endangered ->
 					val sorter = compareByDescending<Slot> { swapSlot ->
 						if (!replace) 0
@@ -79,6 +87,7 @@ object ToolSaver : Module(
 						?: return@mapNotNull null
 					endangered to swapWith
 				}
+				.toList()
 
 			if (swaps.isEmpty()) return@listen
 

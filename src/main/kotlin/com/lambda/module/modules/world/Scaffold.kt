@@ -32,6 +32,8 @@ import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -80,7 +82,7 @@ object Scaffold : Module(
 				}
 			}
 			val stack = player.mainHandStack.takeIf { selection.matches(it) }
-				?: selection.bestMatch(HotbarContainer.stacks) ?: return@listen
+				?: findStack(containerSelection = HotbarContainer.select()) ?: return@listen
 			val playerSupport = player.blockPos.down()
 			val alreadySupported = blockState(playerSupport).hasSolidTopSurface(world, playerSupport, player)
 			if (alreadySupported) return@listen
