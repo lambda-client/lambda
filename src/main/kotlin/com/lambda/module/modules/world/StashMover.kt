@@ -99,6 +99,7 @@ import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import kotlin.math.min
 
+//ToDo: Transform to use the updated container api alongside properly implementing StashContainer and using tasks for chaining instead of a state machine.
 @Suppress("unused")
 object StashMover : Module(
 	name = "StashMover",

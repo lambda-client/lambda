@@ -30,6 +30,11 @@ import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
 import com.lambda.interaction.container.ContainerSerializer
 import com.lambda.interaction.container.PlacedContainer
+import com.lambda.interaction.container.containers.ArmorContainer
+import com.lambda.interaction.container.containers.CursorContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.containers.external.ChestContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
@@ -55,7 +60,6 @@ import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.block.enums.ChestType
-import net.minecraft.inventory.Inventory
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
@@ -142,11 +146,20 @@ object ContainerHandler : Loadable {
 	}
 
 	private fun SafeContext.onContainerUpdate(sh: ScreenHandler = player.currentScreenHandler) {
+		InventoryContainer.scanContainerContents()
+		HotbarContainer.scanContainerContents()
+		OffhandContainer.scanContainerContents()
+		CursorContainer.scanContainerContents()
 		val blockEntity = lastInteractedBlockEntity
-		if (blockEntity != null) updatePlacedContainer(sh, blockEntity)
+		if (blockEntity != null) {
+			updatePlacedContainer(sh, blockEntity)
+			return
+		}
+
+		ArmorContainer.scanContainerContents()
 	}
 
-	private fun updatePlacedContainer(
+	private fun SafeContext.updatePlacedContainer(
 		sh: ScreenHandler,
 		blockEntity: BlockEntity
 	) {
@@ -165,7 +178,7 @@ object ContainerHandler : Loadable {
 				val state = blockEntity.cachedState
 				if (state.block !is ChestBlock) return
 
-				val stacks = blockEntity.stacks()
+				val stacks = sh.containerStacks
 				val chestType = state.get(Properties.CHEST_TYPE) ?: return
 
 				if (chestType == ChestType.SINGLE) {
@@ -200,7 +213,7 @@ object ContainerHandler : Loadable {
 
 			is ShulkerBoxBlockEntity -> {
 				if (sh.typeSafe != ScreenHandlerType.SHULKER_BOX) return
-				val stacks = blockEntity.stacks()
+				val stacks = sh.containerStacks
 				(accessedPlacedContainer as? PlacedShulkerBoxContainer)
 					?.update(stacks)
 					?: run {
@@ -231,8 +244,6 @@ object ContainerHandler : Loadable {
 			} else storedContainers.remove(index)
 		}
 	}
-
-	private fun Inventory.stacks() = iterator().asSequence().toList()
 }
 
 @ContainerDslMarker

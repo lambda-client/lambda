@@ -35,7 +35,7 @@ object FolderRegistry : Loadable {
     val replay: Path = lambda.resolve("replay")
     val cache: Path = lambda.resolve("cache")
     val capes: Path = cache.resolve("capes")
-    val containers: Path = cache.resolve("containers")
+    val containers: Path = lambda.resolve("containers")
     val structure: Path = lambda.resolve("structure")
     val maps: Path = lambda.resolve("maps")
     val fonts: Path = lambda.resolve("fonts")

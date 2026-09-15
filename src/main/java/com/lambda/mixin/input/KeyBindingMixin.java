@@ -19,7 +19,6 @@ package com.lambda.mixin.input;
 
 import com.lambda.module.modules.movement.Speed;
 import com.lambda.module.modules.movement.Sprint;
-import com.lambda.module.modules.movement.TargetStrafe;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.option.KeyBinding;
 import org.spongepowered.asm.mixin.Mixin;

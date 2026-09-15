@@ -30,24 +30,23 @@ import tools.jackson.core.JsonParser
 import tools.jackson.databind.DeserializationContext
 import tools.jackson.databind.SerializationContext
 import tools.jackson.databind.node.ArrayNode
-import tools.jackson.databind.node.JsonNodeFactory
 import tools.jackson.databind.node.ObjectNode
 
 object EnderChestContainerSerializer : Serializer<EnderChestContainer>(EnderChestContainer::class.java) {
     override fun serialize(container: EnderChestContainer, gen: JsonGenerator, ctxt: SerializationContext) {
-        val root = JsonNodeFactory.instance.objectNode()
-        root.put("Type", ContainerType.EnderChest.name)
+        gen.writeStartObject()
+        gen.writeStringProperty("Type", ContainerType.EnderChest.name)
 
-        val stackArray = JsonNodeFactory.instance.arrayNode()
+	    gen.writeArrayPropertyStart("Stacks")
 	    container.stacks.forEach { stack ->
 		    val encoded = ItemStack.CODEC
 			    .encodeStart(JsonOps.UNCOMPRESSED, stack)
 			    .result()
-		    encoded.ifPresent { stackArray.add(it) }
+		    encoded.ifPresent { gen.writePOJO(it) }
 	    }
-        root.set("Stacks", stackArray)
+        gen.writeEndArray()
 
-        gen.writeTree(root)
+        gen.writeEndObject()
     }
 }
 
