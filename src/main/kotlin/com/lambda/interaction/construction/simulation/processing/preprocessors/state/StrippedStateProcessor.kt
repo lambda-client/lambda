@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation.processing.preprocessors.state
 
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfoAccumulator
 import com.lambda.interaction.construction.simulation.processing.StateProcessor
@@ -35,6 +36,9 @@ object StrippedStateProcessor : StateProcessor {
 	private val unstrippedToStripped: Map<Block, Block> by lazy {
 		AxeItem.STRIPPED_BLOCKS.entries.associate { (from, to) -> to to from }
 	}
+
+	context(automatedSafeContext: AutomatedSafeContext)
+	override fun isEnabled() = automatedSafeContext.buildConfig.stripLogs
 
 	override fun acceptsState(state: BlockState, targetState: BlockState): Boolean {
 		val unstrippedVariant = unstrippedToStripped[targetState.block] ?: return false
