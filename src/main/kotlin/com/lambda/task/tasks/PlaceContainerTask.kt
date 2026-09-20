@@ -28,6 +28,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.ManagerUtils
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.item.ItemUtils.shulkerBoxes
@@ -74,7 +75,7 @@ class PlaceContainerTask @Ta5kBuilder constructor(
             .toStructure(TargetState.Stack(slot.stack))
             .toBlueprint()
             .build(finishOnDone = true, collectDrops = false)
-            .finally { success(containerPosition) }
+            .thenAction { success(containerPosition) }
             .execute(this@PlaceContainerTask)
     }
 

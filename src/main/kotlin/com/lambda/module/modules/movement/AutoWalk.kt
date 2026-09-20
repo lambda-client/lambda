@@ -27,6 +27,7 @@ import com.lambda.interaction.managers.interacting.InteractManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.toDouble
+import com.lambda.util.player.MovementUtils.jumping
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.sneaking
@@ -49,6 +50,7 @@ object AutoWalk : Module(
 	@Group(MOVEMENT_GROUP) private val strafeRight by setting("Strafe Right", false, "Automatically strafes right")
 	@Group(MOVEMENT_GROUP) private val sneak by setting("Sneak", false, "Automatically sneaks")
 	@Group(MOVEMENT_GROUP) private val sprint by setting("Sprint", false, "Automatically sprints")
+	@Group(MOVEMENT_GROUP) private val jump by setting("Jump", false, "Automatically holds jump")
 
 	@Group(PAUSING_GROUP) private val pauseWhileMining by setting("Pause While Mining", false, "Pauses walking while breaking blocks or when breaks are queued")
 	@Group(PAUSING_GROUP) private val pauseWhilePlacing by setting("Pause While Placing", false, "Pauses walking while placing blocks or when places are queued - only works with blocks placed by a lambda module")
@@ -94,6 +96,7 @@ object AutoWalk : Module(
 			input.update(
 				forward = forward,
 				strafe = strafe,
+				jump = jump || input.jumping,
 				sneak = sneak || input.sneaking,
 				sprint = sprint || input.sprinting
 			)

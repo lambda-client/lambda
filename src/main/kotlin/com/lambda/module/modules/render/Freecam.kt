@@ -158,7 +158,7 @@ object Freecam : Module(
 			it.cancel()
 		}
 
-		listen<MovementEvent.InputUpdate> { event ->
+		listen<MovementEvent.InputUpdate>({ 1 }) { event -> // Higher priority than auto walk so it's input survives the cancel below
 			mc.options.perspective = Perspective.FIRST_PERSON
 
 			// Don't block baritone from working

@@ -48,7 +48,10 @@ class OpenContainerTask @Ta5kBuilder constructor(
     private val retryTimer = TickTimer()
 
     enum class State {
-        Pathing, Scoping, Opening, SlotLoading;
+        Pathing,
+        Scoping,
+        Opening,
+        SlotLoading;
 
         fun description() = when (this) {
             Pathing -> "Pathing closer"

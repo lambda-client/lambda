@@ -17,6 +17,7 @@
 
 package com.lambda.task
 
+import com.lambda.task.wrappers.TaskSupplier
 import com.lambda.threading.runSafe
 
 object RootTask : Task<Unit>() {
@@ -29,7 +30,7 @@ object RootTask : Task<Unit>() {
     }
 
     @Ta5kBuilder
-    fun Task<*>.run(task: TaskGenerator<Unit>) {
+    fun Task<*>.run(task: TaskSupplier<Unit, Unit>) {
         runSafe {
             task(Unit).execute(this@run)
         }
