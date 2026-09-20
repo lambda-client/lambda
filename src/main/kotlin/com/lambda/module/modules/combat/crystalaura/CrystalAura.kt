@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.combat.crystalaura
 
-import com.lambda.Lambda
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
@@ -138,7 +137,7 @@ object CrystalAura : Module(
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
     var lastHit: BlockPos? = null
-    var blockingCrystal: BlockPos? = null
+    var blockingCrystal: EndCrystalEntity? = null
     private var lastOpportunity: Opportunity? = null
     private var activeOpportunity: Opportunity? = null
     private var currentTarget: LivingEntity? = null
@@ -329,6 +328,12 @@ object CrystalAura : Module(
                 }
             }
         }
+        if (best.blocked && blockingCrystal != null) {
+            handleExplosion(blueprint[blockingCrystal?.baseBlockPos?: return]?: return)
+
+            blockingCrystal = null
+            return
+        }
         if (!best.blocked && best.crystal != null) {
             handleExplosion(best)
             return
@@ -357,13 +362,25 @@ object CrystalAura : Module(
             resetBlueprint()
 
             fun info(
-	            pos: BlockPos,
-	            target: LivingEntity,
-	            blocked: Boolean,
-	            crystal: EndCrystalEntity? = null,
-                blockingCrystal: EndCrystalEntity? = null
+                pos: BlockPos,
+                target: LivingEntity,
+                blocked: Boolean,
+                crystal: EndCrystalEntity? = null,
+                _blockingCrystal: EndCrystalEntity? = null
             ): Opportunity? {
                 val crystalPos = pos.crystalPosition
+
+                if (blockingCrystal != null && crystal == blockingCrystal) {
+                    return Opportunity(
+                        this@CrystalAura,
+                        pos.toImmutable(),
+                        Double.MAX_VALUE, // always prioritize the crystal that is blocking the placement
+                        0.0,
+                        false,
+                        crystal,
+                        null
+                    )
+                }
 
                 val targetDamage = crystalDamage(crystalPos, target)
                 if (targetDamage < minTargetDamage) return null
@@ -387,7 +404,7 @@ object CrystalAura : Module(
                     selfDamage,
                     blocked,
                     crystal,
-                    blockingCrystal
+                    _blockingCrystal
                 )
             }
 
@@ -423,9 +440,9 @@ object CrystalAura : Module(
                     it.baseBlockPos == pos
                 }
 
-                val crystalPlaceBox = pos.crystalPlaceHitBox
-                val blockingCrystal = crystals.firstOrNull {
-                    it.boundingBox.intersects(crystalPlaceBox)
+                val crystalPlaceBox = pos.up().crystalPlaceHitBox
+                blockingCrystal = crystals.firstOrNull {
+                    it.blockPos.crystalBox.intersects(crystalPlaceBox)
                 }
                 val blocked = baseCrystal == null && blockingCrystal != null
 
@@ -476,19 +493,21 @@ object CrystalAura : Module(
                 !it.blocked || lastHit == it.blockPos
             }?.maxByOrNull {
                 it.priority
-            }.also {
-                if (it?.blocked ?: false) {
-                    blocked.add(it)
-                }
             }
+
             if (activeOpportunity != null) {
                 return@runIfPassed
             }
+
+            actionMap[actionType]?.filter {
+                it.blocked
+            }?.toCollection(blocked)
+
             val best = blocked.maxByOrNull {
                 it.priority
             }
             activeOpportunity = actionMap[actionType]?.firstOrNull {
-	            it.blockingCrystal == best?.crystal
+	            it.crystal == best?.blockingCrystal
             }
         }
 
