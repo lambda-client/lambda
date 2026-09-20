@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.combat.crystalaura
 
-import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
 import com.lambda.util.PacketUtils.sendPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket

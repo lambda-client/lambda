@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.combat.crystalaura
 
+import com.lambda.Lambda
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
@@ -38,7 +39,6 @@ import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
-import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
@@ -55,7 +55,6 @@ import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -138,6 +137,8 @@ object CrystalAura : Module(
     @Tab(RENDERING_TAB) val secondaryColor by setting("Secondary Color", Color(170, 60, 170, 100), visibility = { render })
 
     private val blueprint = mutableMapOf<BlockPos, Opportunity>()
+    var lastHit: BlockPos? = null
+    var blockingCrystal: BlockPos? = null
     private var lastOpportunity: Opportunity? = null
     private var activeOpportunity: Opportunity? = null
     private var currentTarget: LivingEntity? = null
@@ -241,12 +242,16 @@ object CrystalAura : Module(
             opportunity.crystal = crystal
 
             // Run packet prediction
-            if (!prediction.isActive || opportunity.priority < minDamageAdvantage) {
+            if (!prediction.isActive || (opportunity.priority < minDamageAdvantage && opportunity.blockPos.distSq(lastPlace?.first ?: pos) > 2.5)) {
                 return@listen
             }
 
+            lastEntityId = crystal.id
+
             if (explodeOnPacket) {
-                explodeInternal(++lastEntityId)
+                repeat(packetPredictions) {
+                    explodeInternal(++lastEntityId)
+                }
             }
 
             if (!prediction.onPacket) {
@@ -290,6 +295,7 @@ object CrystalAura : Module(
 
         onEnable {
             currentTarget = null
+            lastHit = null
             resetBlueprint()
         }
     }
@@ -310,8 +316,21 @@ object CrystalAura : Module(
     }
 
     private fun tickInteraction(best: Opportunity) {
+        fun handleExplosion(opportunity: Opportunity) {
+            opportunity.explode()
+            if (prediction.onTick) {
+                explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
+                    if (waitingForCrystal) {
+                        CrystalAura.explodeInternal(++lastEntityId)
+                        waitingForCrystal = false
+                        lastHit = opportunity.blockPos
+                        explodeTimer.reset()
+                    }
+                }
+            }
+        }
         if (!best.blocked && best.crystal != null) {
-            best.explode()
+            handleExplosion(best)
             return
         }
 
@@ -326,8 +345,10 @@ object CrystalAura : Module(
             )
 
             blueprint[mutableBlockPos]
-        }.filter { it.hasCrystal }.maxByOrNull { it.priority }?.explode()
-
+        }.filter { it.hasCrystal }.maxByOrNull { it.priority }?.let {
+            handleExplosion(it)
+            return@tickInteraction
+        }
 		best.place()
 	}
 
@@ -339,7 +360,8 @@ object CrystalAura : Module(
 	            pos: BlockPos,
 	            target: LivingEntity,
 	            blocked: Boolean,
-	            crystal: EndCrystalEntity? = null
+	            crystal: EndCrystalEntity? = null,
+                blockingCrystal: EndCrystalEntity? = null
             ): Opportunity? {
                 val crystalPos = pos.crystalPosition
 
@@ -364,7 +386,8 @@ object CrystalAura : Module(
                     targetDamage,
                     selfDamage,
                     blocked,
-                    crystal
+                    crystal,
+                    blockingCrystal
                 )
             }
 
@@ -388,6 +411,7 @@ object CrystalAura : Module(
 
                 val entitiesNearby = fastEntitySearch<Entity>(3.5, pos)
                 val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
+                // why does the player get removed from this?
                 val otherEntities = entitiesNearby - crystals.toSet() + player
 
                 if (otherEntities.any {
@@ -400,15 +424,17 @@ object CrystalAura : Module(
                 }
 
                 val crystalPlaceBox = pos.crystalPlaceHitBox
-                val blocked = baseCrystal == null && crystals.any {
+                val blockingCrystal = crystals.firstOrNull {
                     it.boundingBox.intersects(crystalPlaceBox)
                 }
+                val blocked = baseCrystal == null && blockingCrystal != null
 
                 return info(
                     pos,
                     target,
                     blocked,
-                    baseCrystal
+                    baseCrystal,
+                    blockingCrystal
                 )
             }
 
@@ -419,6 +445,7 @@ object CrystalAura : Module(
             val crystalBase = BlockPos.Mutable()
             fastEntitySearch<EndCrystalEntity>(range).forEach { crystal ->
                 crystalBase.set(crystal.x, crystal.y - 0.5, crystal.z)
+                //if (crystalBase == lastHit) return@forEach
                 damage += info(crystalBase, target, false, crystal) ?: return@forEach
             }
 
@@ -442,10 +469,26 @@ object CrystalAura : Module(
                     actionType = opportunity.actionType
                 }
             }
-
+            // todo: optimize this
+            val blocked = mutableSetOf<Opportunity>()
             // Select best action
-            activeOpportunity = actionMap[actionType]?.filter { !it.blocked }?.maxByOrNull {
+            activeOpportunity = actionMap[actionType]?.filter {
+                !it.blocked || lastHit == it.blockPos
+            }?.maxByOrNull {
                 it.priority
+            }.also {
+                if (it?.blocked ?: false) {
+                    blocked.add(it)
+                }
+            }
+            if (activeOpportunity != null) {
+                return@runIfPassed
+            }
+            val best = blocked.maxByOrNull {
+                it.priority
+            }
+            activeOpportunity = actionMap[actionType]?.firstOrNull {
+	            it.blockingCrystal == best?.crystal
             }
         }
 
@@ -484,22 +527,27 @@ object CrystalAura : Module(
     }
 
     @Suppress("Unused")
-    enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean) {
+    enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean, val onTick: Boolean) {
         // Prediction disable
-        None(false, false),
+        None(false, false, false),
 
         // Predict on packet receive
-        Packet(true, false),
+        Packet(true, false, false),
 
         // Predict on place
-        Deferred(false, true),
+        Deferred(false, true, false),
 
-        Tick(false, false),
+        // Predict on tick (functionality is in tickInteraction())
+        // sends a burst of break packets every time the break cooldown has expired
+        // so it is kinda weird but may help with bypassing anticheats
+        // for grim on anarchy servers Packet is fine as BadPacketsW does not
+        // cancel the next packets even if we guess the crystal's id wrong
+        Tick(false, false, true),
 
         // Predict on both timings
-        Mixed(true, true);
+        Mixed(true, true, false);
 
-        val isActive = onPacket || onPlace
+        val isActive = onPacket || onPlace || onTick
     }
 
     enum class Priority(val factor: (targetDamage: Double, selfDamage: Double) -> Double) {

@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.combat.crystalaura
 
+import com.lambda.Lambda
 import com.lambda.context.Automated
 import com.lambda.interaction.handlers.ContainerHandler.transfer
 import com.lambda.interaction.managers.hotbar.HotbarRequest
@@ -33,6 +34,7 @@ import com.lambda.module.modules.combat.crystalaura.CrystalAura.explodeDelay
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.explodeTimer
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.lastEntityId
+import com.lambda.module.modules.combat.crystalaura.CrystalAura.lastHit
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.packetLifetime
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.placeDelay
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.placePostPause
@@ -82,7 +84,8 @@ class Opportunity(
 	val target: Double,
 	val self: Double,
 	var blocked: Boolean,
-	var crystal: EndCrystalEntity? // ToDo: packet-based update wisely
+	var crystal: EndCrystalEntity?, // ToDo: packet-based update wisely
+	var blockingCrystal: EndCrystalEntity? = null
 ) {
 	var actionType = ActionType.Normal
 	val priority = priorityMode.factor(target, self)
@@ -116,8 +119,10 @@ class Opportunity(
 	 * Places the crystal on [blockPos]
 	 */
 	fun place() = runSafe {
-		if (rotate && !automated.rotationRequest { rotation(placeRotation) }.submit().done)
+		if (rotate && !automated.rotationRequest { rotation(placeRotation) }.submit().done) {
+			Lambda.LOG.info("Not yet rotated")
 			return@runSafe
+		}
 		var crystalHand: Hand? = null
 		val selection = StackSelection.selectStack { isItem(Items.END_CRYSTAL) }
 		if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != Items.END_CRYSTAL) ||
@@ -154,17 +159,19 @@ class Opportunity(
 		if (placeTimer.timePassed(placeDelay.milliseconds) || (postPacketPlace && safeToPlaceInstantly && !placePostPause)) {
 			CrystalAura.placeInternal(this@Opportunity, crystalHand ?: swapHand) // we should not be here without a crystal in hand but ig better to check than not to
 			safeToPlaceInstantly = false
-			if (prediction.onPlace)
+			lastHit = null
+			if (prediction.onPlace) {
 				predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
 					val last = lastEntityId
 
 					repeat(placePredictions) {
 						CrystalAura.explodeInternal(++lastEntityId)
 					}
-
+					lastHit = blockPos
 					lastEntityId = last + 1
 					crystal = null
 				}
+			}
 			placeTimer.reset()
 		}
 	}
@@ -176,16 +183,11 @@ class Opportunity(
 	fun explode() {
 		if (rotate && !automated.rotationRequest { rotation(placeRotation) }.submit().done) return
 
-		if (waitingForCrystal && crystal == null && prediction == PredictionMode.Tick) {
-			runSafe {
-				CrystalAura.explodeInternal(++lastEntityId)
-				waitingForCrystal = false
-			}
-		}
-
 		explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
 			crystal?.let { crystal ->
 				CrystalAura.explodeInternal(crystal.id)
+				lastEntityId = crystal.id
+				lastHit = blockPos
 				explodeTimer.reset()
 			}
 		}
