@@ -24,7 +24,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenConcurrentlyUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runIO
 import com.lambda.util.CommunicationUtils
 import com.lambda.util.CommunicationUtils.info

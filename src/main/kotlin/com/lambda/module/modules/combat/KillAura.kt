@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.editSetting
 import com.lambda.config.hide
@@ -28,20 +28,22 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
 import com.lambda.util.player.RotationUtils.lookAtEntity
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
+import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.AxeItem
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.world.GameMode
@@ -57,6 +59,7 @@ object KillAura : Module(
 
     @Tab(GENERAL_TAB) private val rotate by setting("Rotate", true)
     @Tab(GENERAL_TAB) private val swap by setting("Swap", true, "Swap to the item with the highest damage")
+    @Tab(GENERAL_TAB) private val antiShield by setting("Anti Shield", true, "Swaps to an axe when target is blocking with a shield to disable it")
     @Tab(GENERAL_TAB) private val disableWhileGliding by setting("Disable While Gliding", false, "Disables when gliding with an elytra")
     @Tab(GENERAL_TAB) private val damageMode by setting("Damage Mode", DamageMode.Dps)
     @Tab(GENERAL_TAB) private val attackMode by setting("Attack Mode", AttackMode.Cooldown)
@@ -75,6 +78,7 @@ object KillAura : Module(
     private var lastAttackTime = 0L
     private var hitDelay = 100.0
     private var cooldownFromSwap = false
+    @JvmStatic var isPaused = false
 
     enum class AttackMode {
         Cooldown,
@@ -106,8 +110,7 @@ object KillAura : Module(
         listen<InventoryEvent.HotbarSlot.Update> { cooldownFromSwap = true }
 
         listen<TickEvent.Pre> {
-            if (disableWhileGliding && player.isGliding) return@listen
-
+            if (isPaused || (disableWhileGliding && player.isGliding)) return@listen
             target?.let { entity ->
                 // Wait until the rotation has a hit result on the entity
                 var rotated = true
@@ -119,13 +122,34 @@ object KillAura : Module(
                 }
 
                 if (swap) {
-                    val selection = selectStack().sortByDescending {
-                        damageMode.block(this, it)
-                    }
+                    val targetIsBlocking = antiShield && entity is PlayerEntity && entity.isBlocking
+                    val selection =
+                        stackSelection {
+                            if (targetIsBlocking) {
+                                isItem<AxeItem>()
+                            }
+                            sortedWith {
+                                compareByDescending {
+                                    damageMode.block(this@listen, it.stack)
+                                }
+                            }
+                        }
 
-                    selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
-                        val slotId = player.hotbarStacks.indexOf(bestStack)
-                        if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
+                    val matchedStack = selection.bestMatch(HotbarContainer.stacks)
+                        ?: if (targetIsBlocking) {
+                            // Fallback to highest damage weapon if no axe found
+                            stackSelection {
+                                sortedWith {
+                                    compareByDescending {
+                                        damageMode.block(this@listen, it.stack)
+                                    }
+                                }
+                            }.bestMatch(HotbarContainer.stacks)
+                        } else null
+
+                    matchedStack?.let { bestStack ->
+                        val slotId = HotbarContainer.stacks.indexOf(bestStack)
+                        if (slotId >= 0 && !hotbarRequest(slotId).submit().done) return@listen
                     }
                 }
 
@@ -140,9 +164,9 @@ object KillAura : Module(
                 cooldownFromSwap = false
 
                 // Attack
-                connection.sendPacket(PlayerInteractEntityC2SPacket.attack(target, player.isSneaking))
+                connection.sendPacket(PlayerInteractEntityC2SPacket.attack(entity, player.isSneaking))
                 if (interaction.gameMode != GameMode.SPECTATOR) {
-                    player.attack(target)
+                    player.attack(entity)
                     player.resetTicksSince()
                 }
                 if (interactConfig.swing) player.swingHand(Hand.MAIN_HAND)

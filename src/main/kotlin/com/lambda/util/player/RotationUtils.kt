@@ -23,9 +23,9 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingData
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.module.modules.client.Client
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.PlaceDirection

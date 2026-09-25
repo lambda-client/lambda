@@ -28,12 +28,12 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.automation.AutomationConfig
-import com.lambda.interaction.handlers.ContainerHandler
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithSpace
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.task.RootTask
+import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.task.Task
+import com.lambda.task.start
+import com.lambda.task.tasks.transfer
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
@@ -51,60 +51,78 @@ object TransferCommand : LambdaCommand(
             required(integer("amount", 1)) { amount ->
                 required(string("from")) { from ->
                     suggests { ctx, builder ->
-                        val selection = selectStack(amount(ctx).value()) {
+                        val selection = stackSelection(amount(ctx).value()) {
                             isItem(stack(ctx).value().item)
                         }
                         AutomationConfig.DEFAULT.runSafeAutomated {
-                            val containers = selection.findContainersWithMaterial()
+                            val containers =
+                                findContainers(
+                                    containerSelection {
+                                        hasStack(selection)
+                                    }
+                                ).toList()
                             val indexedContainers = containers.withIndex()
 
                             suggestMatching(
                                 indexedContainers,
                                 builder,
-                                { (index, container) ->
-                                    "\"${index + 1}. ${container.name}\""
-                                },
-                                { (_, container) ->
-                                    container.description(selection)
-                                }
+                                { (index, container) -> "\"${index + 1}. ${container.name}\"" },
+                                { (_, container) -> container.descriptionAndStock(selection) }
                             )
                         } ?: builder.buildFuture()
                     }
                     required(string("to")) { to ->
                         suggests { ctx, builder ->
-                            val selection = selectStack(amount(ctx).value()) {
-                                isItem(stack(ctx).value().item)
-                            }
+                            val selection =
+                                stackSelection(amount(ctx).value()) {
+                                    isItem(stack(ctx).value().item)
+                                }
                             AutomationConfig.DEFAULT.runSafeAutomated {
-                                val containers = selection.findContainersWithSpace()
+                                val containers =
+                                    findContainers(
+                                        containerSelection {
+                                            hasSpace(selection)
+                                        }
+                                    ).toList()
                                 val indexedContainers = containers.withIndex()
 
                                 suggestMatching(
                                     indexedContainers,
                                     builder,
-                                    { (index, container) ->
-                                        "\"${index + 1}. ${container.name}\""
-                                    },
-                                    { (_, container) ->
-                                        container.description(selection)
-                                    }
+                                    { (index, container) -> "\"${index + 1}. ${container.name}\"" },
+                                    { (_, container) -> container.descriptionAndStock(selection) }
                                 )
                             } ?: builder.buildFuture()
                         }
                         executeWithResult {
-                            val selection = selectStack(amount().value()) {
-                                isItem(stack().value().item)
-                            }
                             AutomationConfig.DEFAULT.runSafeAutomated {
-                                val fromContainer = ContainerHandler.containers().find {
-                                    it.name == from().value().split(".").last().trim()
-                                } ?: return@executeWithResult failure("From container not found")
+                                fun parsePredicate(raw: String): (com.lambda.interaction.container.Container) -> Boolean {
+                                    val clean = raw.trim().removeSurrounding("\"")
+                                    val indexPrefix = clean.substringBefore(". ").toIntOrNull()
+                                    val nameAfterDot = if (indexPrefix != null) clean.substringAfter(". ").trim() else clean
+                                    return { container ->
+                                        container.name.equals(clean, ignoreCase = true) ||
+                                            container.name.equals(nameAfterDot, ignoreCase = true)
+                                    }
+                                }
 
-                                val toContainer = ContainerHandler.containers().find {
-                                    it.name == to().value().split(".").last().trim()
-                                } ?: return@executeWithResult failure("To container not found")
+                                val fromSelection =
+                                    containerSelection {
+                                        predicate(parsePredicate(from().value()))
+                                    }
 
-	                            fromContainer.transferByTask(selection, toContainer).execute(RootTask)
+                                val toSelection =
+                                    containerSelection {
+                                        predicate(parsePredicate(to().value()))
+                                    }
+	                            lastContainerTransfer =
+                                    transfer(
+                                        stackSelection(amount().value()) {
+                                            isItem(stack().value().item)
+                                        },
+                                        fromSelection,
+                                        toSelection
+                                    ).start()
                             }
                             return@executeWithResult success()
                         }
@@ -115,9 +133,11 @@ object TransferCommand : LambdaCommand(
 
         required(literal("cancel")) {
             executeWithResult {
-                lastContainerTransfer?.cancel() ?: run {
-                    return@executeWithResult failure("No transfer to cancel")
-                }
+                lastContainerTransfer
+                    ?.cancel()
+                    ?: run {
+                        return@executeWithResult failure("No transfer to cancel")
+                    }
                 this@TransferCommand.info("$lastContainerTransfer cancelled")
                 lastContainerTransfer = null
                 success()

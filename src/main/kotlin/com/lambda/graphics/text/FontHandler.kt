@@ -20,7 +20,7 @@ package com.lambda.graphics.text
 import com.lambda.Lambda.LOG
 import com.lambda.config.Config
 import com.lambda.config.categories.FontCategory
-import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
+import com.lambda.config.entries.onValueChangeUnsafe
 import com.lambda.core.Loadable
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

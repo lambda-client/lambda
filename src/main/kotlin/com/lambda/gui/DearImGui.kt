@@ -62,6 +62,11 @@ object DearImGui : Loadable {
             addRanges(io.fonts.glyphRangesGreek)
             addChar(EXTERNAL_LINK)
             addChar(BREAD_CRUMB_SEPARATOR)
+            addChar('▼')
+            addChar('▶')
+            addChar('▲')
+            addChar('◀')
+            addChar('⚙')
         }.buildRanges()
         val fontConfig = ImFontConfig()
         val size = BASE_FONT_SCALE * scale
@@ -80,19 +85,20 @@ object DearImGui : Loadable {
         val dpi = ClickGuiLayout.deviceScaleMultiplier()
         val base = ClickGuiLayout.BASE_SCALE_MULTI * dpi
         val fontScaleSetting = ClickGuiLayout.fontScale
-        val scale = (base * userPercent * fontScaleSetting).toFloat()
+        val guiScale = (base * userPercent).toFloat()
+        val fontScale = (guiScale * fontScaleSetting).toFloat()
 
         if (lastScale == 0f) {
-            targetScale = scale
+            targetScale = fontScale
             updateScale(targetScale)
             lastScale = targetScale
         }
 
-        if (scale > 0 && abs(scale - lastScale) > 0.001f) {
-            if (abs(scale - targetScale) > 0.001f) {
+        if (fontScale > 0 && abs(fontScale - lastScale) > 0.001f) {
+            if (abs(fontScale - targetScale) > 0.001f) {
                 lastScaleChangeTimestamp = System.currentTimeMillis()
                 scaleChanged = true
-                targetScale = scale
+                targetScale = fontScale
             }
         }
 
@@ -101,7 +107,6 @@ object DearImGui : Loadable {
             lastScale = targetScale
             scaleChanged = false
         }
-
         val framebuffer = mc.framebuffer
         val prevFramebuffer = (framebuffer.getColorAttachment() as GlTexture).getOrCreateFramebuffer(
             (RenderSystem.getDevice() as GlBackend).bufferManager,
@@ -120,7 +125,7 @@ object DearImGui : Loadable {
         implGlfw.newFrame()
         implGl3.newFrame()
 
-        ClickGuiLayout.applyStyle(lastScale)
+        ClickGuiLayout.applyStyle(guiScale)
         ImGui.newFrame()
 
         GuiEvent.NewImguiFrame.post()

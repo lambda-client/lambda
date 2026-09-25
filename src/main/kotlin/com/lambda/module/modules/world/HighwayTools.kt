@@ -17,18 +17,18 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.start
+import com.lambda.task.tasks.build
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
@@ -131,7 +131,7 @@ object HighwayTools : Module(
 		        emptyStructure()
 	        }
         }.build(collectDrops = buildConfig.collectDrops, lifeMaintenance = true)
-            .run()
+            .start()
     }
 
     private fun generateSlice(): Structure {

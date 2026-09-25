@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
@@ -27,16 +27,18 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.ContainerHandler.transfer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.containers.HotbarContainer
-import com.lambda.interaction.material.container.containers.OffHandContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.containers.OffHandContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.handler.handlers.move
+import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.threading.runSafeGameScheduled
@@ -49,18 +51,19 @@ import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.distSq
-import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
 import com.lambda.util.player.RotationUtils.getVisibleSurfaces
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.entity.effect.StatusEffects
+import net.minecraft.registry.tag.ItemTags
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
@@ -100,6 +103,9 @@ object CrystalAura : Module(
     @Tab(PLACEMENT_TAB) private val priorityMode by setting("Crystal Priority", Priority.Damage)
     @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
     @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
+    @Tab(PLACEMENT_TAB) private val facePlace by setting("Face Place", true, "Places crystals at lower damage thresholds to finish weak targets or break armor")
+    @Tab(PLACEMENT_TAB) private val facePlaceHealth by setting("Face Place Health", 10.0, 1.0..36.0, 0.5, "Maximum target health to trigger Face Place") { facePlace }
+    @Tab(PLACEMENT_TAB) private val facePlaceArmor by setting("Face Place Armor", 15, 1..100, 1, "Armor durability percentage to trigger Face Place", unit = "%") { facePlace }
     @Tab(PLACEMENT_TAB) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
     @Tab(PLACEMENT_TAB) private val minPlaceHealth by setting("Min Place Health", 5.0, 0.0..36.0, 0.5, "Minimum player health to place crystals")
     @Tab(PLACEMENT_TAB) private val preventDeath by setting("Prevent Death", true, "Prevent death by crystal")
@@ -107,6 +113,7 @@ object CrystalAura : Module(
 
     @Tab(EXPLODING_TAB) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
     @Tab(EXPLODING_TAB) private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
+    @Tab(EXPLODING_TAB) private val antiWeakness by setting("Anti Weakness", true, "Swaps to a weapon before exploding when under the Weakness effect")
 
     @Tab(PREDICTION_TAB) private val prediction by setting("Prediction", PredictionMode.None)
     @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { prediction.onPacket }
@@ -296,6 +303,13 @@ object CrystalAura : Module(
     }
 
     private fun SafeContext.explodeInternal(id: Int) {
+        if (antiWeakness && player.hasStatusEffect(StatusEffects.WEAKNESS)) {
+            val weaponIndex = findWeaponSlotIndex()
+            if (weaponIndex != null && weaponIndex != player.inventory.selectedSlot) {
+                hotbarRequest(weaponIndex).submit()
+            }
+        }
+
         connection.sendPacket {
             PlayerInteractEntityC2SPacket(
                 id, player.isSneaking, PlayerInteractEntityC2SPacket.ATTACK
@@ -305,9 +319,41 @@ object CrystalAura : Module(
         player.swingHand(Hand.MAIN_HAND)
     }
 
+    private fun SafeContext.findWeaponSlotIndex(): Int? {
+        for (i in 0..8) {
+            val stack = player.inventory.getStack(i)
+            if (stack.isIn(ItemTags.SWORDS) || stack.isIn(ItemTags.AXES)) {
+                return i
+            }
+        }
+        return null
+    }
+
+    private fun isArmorLow(entity: LivingEntity, thresholdPercent: Int): Boolean {
+        val armorSlots = arrayOf(
+            net.minecraft.entity.EquipmentSlot.HEAD,
+            net.minecraft.entity.EquipmentSlot.CHEST,
+            net.minecraft.entity.EquipmentSlot.LEGS,
+            net.minecraft.entity.EquipmentSlot.FEET
+        )
+        for (slot in armorSlots) {
+            val armorStack = entity.getEquippedStack(slot)
+            if (armorStack.isEmpty || !armorStack.isDamageable) continue
+            val duraPercent = (1.0 - armorStack.damage.toDouble() / armorStack.maxDamage.toDouble()) * 100.0
+            if (duraPercent <= thresholdPercent) return true
+        }
+        return false
+    }
+
     private fun SafeContext.updateBlueprint(target: LivingEntity) =
         updateTimer.runIfPassed(updateDelay.milliseconds) {
             resetBlueprint()
+
+            val isFacePlacing = facePlace && (
+                target.health <= facePlaceHealth ||
+                isArmorLow(target, facePlaceArmor)
+            )
+            val effectiveMinTargetDamage = if (isFacePlacing) 2.0 else minTargetDamage
 
             fun info(
                 pos: BlockPos,
@@ -318,8 +364,7 @@ object CrystalAura : Module(
                 val crystalPos = pos.crystalPosition
 
                 val targetDamage = crystalDamage(crystalPos, target)
-                if (targetDamage < minTargetDamage) return null
-
+                if (targetDamage < effectiveMinTargetDamage) return null
                 val selfDamage = crystalDamage(crystalPos, player)
                 if (selfDamage > maxSelfDamage ||
                     player.fullHealth - selfDamage <= minPlaceHealth ||
@@ -361,7 +406,7 @@ object CrystalAura : Module(
 
                 val entitiesNearby = fastEntitySearch<Entity>(3.5, pos)
                 val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
-                val otherEntities = entitiesNearby - crystals + player
+                val otherEntities = entitiesNearby - crystals.toSet() + player
 
                 if (otherEntities.any {
                         it.boundingBox.intersects(crystalBox)
@@ -482,21 +527,32 @@ object CrystalAura : Module(
             if (rotate && !rotationRequest { rotation(placeRotation) }.submit().done)
                 return@runSafe
 
-			val selection = selectStack { isItem(Items.END_CRYSTAL) }
+			val selection = Items.END_CRYSTAL.select()
+
 			if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != selection.item) ||
 				(swapHand == Hand.OFF_HAND && player.offHandStack.item != selection.item)
 			) runSafeAutomated {
 				if (!swap) return@runSafe
-				var crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
-				if (crystalSlot < 0) {
-					val swapTo = when (swapHand) {
-						Hand.MAIN_HAND -> HotbarContainer
-						Hand.OFF_HAND -> OffHandContainer
-					}
-					if (!selection.transfer(swapTo)) return@runSafe
-					crystalSlot = player.hotbarStacks.indexOfFirst { selection.filterStack(it) }
+
+				val toContainerSelection =
+                    when (swapHand) {
+				    	Hand.MAIN_HAND -> HotbarContainer
+				    	Hand.OFF_HAND -> OffHandContainer
+				    }.select()
+
+				val crystalSlot = findSlot(selection, toContainerSelection)
+
+				if (crystalSlot == null) {
+					if (!selection.move(InventoryContainer.select(), toContainerSelection)) return@runSafe
 				}
-				if (!HotbarRequest(crystalSlot, this).submit().done) return@runSafe
+
+				if (swapHand == Hand.MAIN_HAND) {
+					val crystalSlot = selection
+                        .bestMatch(HotbarContainer.slots)
+                        ?.index
+                        ?: return@runSafe
+					if (crystalSlot < 0 || !hotbarRequest(crystalSlot).submit().done) return@runSafe
+				}
 			}
 
             placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
@@ -533,7 +589,7 @@ object CrystalAura : Module(
     }
 
     private val EndCrystalEntity.baseBlockPos get() =
-        (pos - Vec3d(0.0, 0.5, 0.0)).flooredBlockPos
+        (pos - Vec3d(0.0, 0.5, 0.0)).blockPos
 
     private val BlockPos.crystalPosition get() =
         this.getHitVec(Direction.UP)

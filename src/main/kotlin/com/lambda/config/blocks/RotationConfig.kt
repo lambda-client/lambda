@@ -18,8 +18,8 @@
 package com.lambda.config.blocks
 
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationMode
 
 interface RotationConfig {
     /**

@@ -19,7 +19,7 @@ package com.lambda.module.modules.debug
 
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.KeyCode

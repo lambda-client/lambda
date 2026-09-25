@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.automation.setDefaultAutomationConfig
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
@@ -26,9 +26,9 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.contains
 import com.lambda.util.extension.isElytraFlying

@@ -20,7 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import net.minecraft.util.Hand
 
 @Suppress("unused")

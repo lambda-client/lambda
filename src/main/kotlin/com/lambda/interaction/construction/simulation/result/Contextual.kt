@@ -21,8 +21,8 @@ import com.lambda.config.blocks.ActionConfig
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.context.InteractContext
-import com.lambda.interaction.managers.hotbar.HotbarManager
-import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.hotbar.HotbarManager
+import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import net.minecraft.block.Blocks

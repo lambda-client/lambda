@@ -18,7 +18,7 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.FolderRegistry
 import com.lambda.util.extension.resolveFile
 import net.minecraft.block.Block

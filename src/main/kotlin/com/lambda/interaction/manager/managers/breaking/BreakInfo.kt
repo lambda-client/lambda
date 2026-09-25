@@ -1,0 +1,167 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.interaction.manager.managers.breaking
+
+import com.lambda.config.blocks.BreakConfig
+import com.lambda.config.blocks.BreakConfig.BreakMode
+import com.lambda.context.SafeContext
+import com.lambda.interaction.construction.simulation.context.BreakContext
+import com.lambda.interaction.handler.handlers.breaking.RebreakPotential
+import com.lambda.interaction.manager.ActionInfo
+import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Primary
+import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Rebreak
+import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.RedundantSecondary
+import com.lambda.interaction.manager.managers.breaking.BreakInfo.BreakType.Secondary
+import com.lambda.interaction.manager.managers.breaking.BreakManager.calcBreakDelta
+import com.lambda.threading.runSafeAutomated
+import com.lambda.util.Describable
+import com.lambda.util.NamedEnum
+import net.minecraft.entity.ItemEntity
+import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
+import net.minecraft.util.math.BlockPos
+
+/**
+ * A data class that holds all the information required to process and continue a break.
+ */
+data class BreakInfo(
+	override var context: BreakContext,
+	var type: BreakType,
+	var request: BreakRequest
+) : ActionInfo {
+	// Delegates
+	val breakConfig get() = request.breakConfig
+	override val pendingInteractionsList get() = request.pendingInteractions
+
+	// Pre Processing
+	var shouldProgress = false
+	var rebreakPotential = RebreakPotential.None
+	var swapInfo = SwapInfo.EMPTY
+	var swapStack: ItemStack = ItemStack.EMPTY
+
+	// BreakInfo Specific
+	var updatedThisTick = true
+	var updatedPreProcessingThisTick = false
+	var progressedThisTick = false
+
+	// Processing
+	var breaking = false
+	var abandoned = false
+	var breakingTicks = 0
+	var soundsCooldown = 0f
+	var vanillaInstantBreakable = false
+	val rebreakable get() = !vanillaInstantBreakable && type == Primary
+	var bypassedDelay = breakConfig.breakMode != BreakMode.OldGrim
+
+	enum class BreakType(
+		override val displayName: String,
+		override val description: String
+	) : NamedEnum, Describable {
+		Primary("Primary", "The main block you’re breaking right now."),
+		Secondary("Secondary", "A second block broken at the same time (when double‑break is enabled)."),
+		RedundantSecondary("Redundant Secondary", "A previously started secondary break that’s now ignored/monitored only (no new actions)."),
+		Rebreak("Rebreak", "A previously broken block which new breaks in the same position can compound progression on. Often rebreaking instantly.");
+	}
+
+	// Post Processing
+	var broken = false; private set
+	private var item: ItemEntity? = null
+	val callbacksCompleted
+		get() = broken && (request.onItemDrop == null || item != null)
+
+	context(safeContext: SafeContext)
+	fun internalOnBreak() {
+		if (type != Rebreak) broken = true
+		item?.let { item ->
+			request.onItemDrop?.invoke(safeContext, item)
+		}
+	}
+
+	context(safeContext: SafeContext)
+	fun internalOnItemDrop(item: ItemEntity) {
+		if (type != Rebreak) this.item = item
+		if (broken || type == Rebreak) {
+			request.onItemDrop?.invoke(safeContext, item)
+		}
+	}
+
+	fun updateInfo(context: BreakContext, request: BreakRequest? = null) {
+		updatedThisTick = true
+		this.context = context
+		request?.let { this.request = it }
+		if (type == RedundantSecondary) type = Secondary
+	}
+
+	fun resetCallbacks() {
+		broken = false
+		item = null
+	}
+
+	fun tickChecks() {
+		updatedThisTick = false
+		updatedPreProcessingThisTick = false
+		progressedThisTick = false
+	}
+
+	context(safeContext: SafeContext)
+	fun setBreakingTextureStage(
+		stage: Int = getBreakTextureProgress()
+	) = safeContext.world.setBlockBreakingInfo(safeContext.player.id, context.blockPos, stage)
+
+	context(safeContext: SafeContext)
+	private fun getBreakTextureProgress(): Int = with(safeContext) {
+		val item =
+			if (breakConfig.swapMode.isEnabled() && breakConfig.swapMode != BreakConfig.SwapMode.Start) swapStack
+			else player.mainHandStack
+		val breakDelta = request.runSafeAutomated { calcBreakDelta(item) }
+		val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
+		return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(9) else -1
+	}
+
+	fun getBreakThreshold() =
+		when (type) {
+			Primary,
+			Rebreak-> breakConfig.breakThreshold
+			else -> 1.0f
+		}
+
+	context(_: SafeContext)
+	fun startBreakPacket(yAddition: Int = 0) = breakPacket(Action.START_DESTROY_BLOCK, yAddition)
+
+	context(_: SafeContext)
+	fun stopBreakPacket(yAddition: Int = 0) = breakPacket(Action.STOP_DESTROY_BLOCK, yAddition)
+
+	context(_: SafeContext)
+	fun abortBreakPacket(yAddition: Int = 0) = breakPacket(Action.ABORT_DESTROY_BLOCK, yAddition)
+
+	context(safeContext: SafeContext)
+	private fun breakPacket(action: Action, yAddition: Int) =
+		with(safeContext) {
+			interaction.sendSequencedPacket(world) { sequence: Int ->
+				PlayerActionC2SPacket(
+					action,
+					with(context.blockPos) { BlockPos(x, y + yAddition, z) },
+					context.hitResult.side,
+					sequence
+				)
+			}
+		}
+
+	override fun toString() = "$type, ${context.cachedState}, ${context.blockPos}"
+}
