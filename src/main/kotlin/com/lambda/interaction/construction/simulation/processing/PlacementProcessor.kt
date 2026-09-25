@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation.processing
 
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
@@ -27,6 +28,10 @@ import net.minecraft.util.math.BlockPos
  * unnecessary to scan all of them, for example.
  */
 interface StateProcessor {
+	/** Checked before [acceptsState], so a disabled processor still falls back to breaking. */
+	context(_: AutomatedSafeContext)
+	fun isEnabled(): Boolean = true
+
 	fun acceptsState(state: BlockState, targetState: BlockState): Boolean
 
 	context(safeContext: SafeContext)
