@@ -68,7 +68,7 @@ class BounceElytraFly(
 
 	private val takeoff by c.setting("Takeoff", true, "Automatically jumps and initiates gliding")
 	private val autoPitch by c.setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds")
-	private val smartPitch by c.setting("Smart", false, "Calculates the best pitch for bounce") { autoPitch }
+	private val smartPitch by c.setting("Smart", true, "Calculates the best pitch for bounce") { autoPitch }
 	private val pitch by c.setting("Pitch", 72.0, -90.0..90.0, 0.000001) { autoPitch && !smartPitch }
 	private val jump by c.setting("Jump", true, "Automatically jumps")
 	private val flagPause by c.setting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
