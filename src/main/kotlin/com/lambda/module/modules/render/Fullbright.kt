@@ -20,7 +20,7 @@ package com.lambda.module.modules.render
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listenOnce
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.entity.effect.StatusEffectInstance
@@ -31,17 +31,18 @@ object Fullbright : Module(
     description = "Makes everything brighter",
     tag = ModuleTag.RENDER,
 ) {
-    private val nightVision by setting("Night Vision", false, description = "Adds the night vision effect client-side")
-        .onValueChange { _, to -> setNightVision(to) }
+    @JvmStatic val nightVision by setting("Night Vision", false, description = "Use client-side night vision for better compatibility with shaders")
+        .onValueChange { _, to -> if (isEnabled) setNightVision(to) }
 
     private val instance = StatusEffectInstance(StatusEffects.NIGHT_VISION, -1, 1, false, false)
 
     init {
-        listenOnce<TickEvent.Pre> {
-            if (nightVision && !player.hasStatusEffect(StatusEffects.NIGHT_VISION)) setNightVision(true)
+        onDisable {
+            if (nightVision && player.hasStatusEffect(StatusEffects.NIGHT_VISION)) setNightVision(false)
+        }
 
-            // Destroy the listener
-            true
+        listen<TickEvent.Pre> {
+            if (nightVision && !player.hasStatusEffect(StatusEffects.NIGHT_VISION)) setNightVision(true)
         }
     }
 
