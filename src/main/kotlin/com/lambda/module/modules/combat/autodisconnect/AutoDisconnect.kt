@@ -28,6 +28,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.components.ClickGuiLayout
 import com.lambda.interaction.handlers.FriendHandler
 import com.lambda.module.Module
+import com.lambda.module.modules.network.AutoReconnect
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundHandler.playSound
 import com.lambda.util.CommunicationUtils
@@ -205,7 +206,11 @@ object AutoDisconnect : Module(
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false
     private val joinTimer = TickTimer()
-    var lastReconnectTarget: ReconnectTarget? = null
+    var lastReconnectTarget: ReconnectTarget?
+        get() = AutoReconnect.lastReconnectTarget
+        set(value) {
+            AutoReconnect.lastReconnectTarget = value
+        }
 
     init {
         listen<TickEvent.Pre> {
@@ -303,6 +308,9 @@ object AutoDisconnect : Module(
     private fun SafeContext.requestDisconnect(reasonText: Text, disarmedTrigger: Reason? = null): Boolean {
         if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE || disconnectInProgress) return false
         disconnectInProgress = true
+        if (AutoReconnect.isEnabled) {
+            AutoReconnect.disable()
+        }
         ScreenshotRecorder.takeScreenshot(Lambda.mc.framebuffer, 1) { image ->
             val imageIdentifier = Identifier.of("lambda", "auto_disconnect_screenshot")
             val texture = NativeImageBackedTexture({ "auto-disconnect-screenshot" }, image)
