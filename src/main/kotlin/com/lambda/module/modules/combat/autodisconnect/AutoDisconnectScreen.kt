@@ -18,6 +18,9 @@
 package com.lambda.module.modules.combat.autodisconnect
 
 import com.lambda.gui.OverlayBackgroundScreen
+import com.lambda.module.modules.network.AutoReconnect
+import com.lambda.module.modules.network.MultiplayerReconnectTarget
+import com.lambda.module.modules.network.SingleplayerReconnectTarget
 import com.lambda.util.render.CursorOverrideProvider
 import net.minecraft.client.gl.RenderPipelines
 import net.minecraft.client.gui.Click
@@ -127,7 +130,7 @@ class AutoDisconnectScreen(
 
     private fun reconnect() {
         releaseTexture()
-        when (val target = AutoDisconnect.lastReconnectTarget) {
+        when (val target = AutoReconnect.lastReconnectTarget) {
             is MultiplayerReconnectTarget -> {
                 ConnectScreen.connect(parent, client, target.address, target.info, false, target.cookieStorage)
             }
@@ -145,7 +148,7 @@ class AutoDisconnectScreen(
     private fun openWorldListScreen() {
         releaseTexture()
         client?.setScreen(
-            when (AutoDisconnect.lastReconnectTarget) {
+            when (AutoReconnect.lastReconnectTarget) {
                 is SingleplayerReconnectTarget -> SelectWorldScreen(parent)
                 else -> MultiplayerScreen(parent)
             }
@@ -249,7 +252,7 @@ class AutoDisconnectScreen(
     }
 
     private fun updateReconnectButton() {
-        reconnectButton.active = AutoDisconnect.lastReconnectTarget != null
+        reconnectButton.active = AutoReconnect.lastReconnectTarget != null
     }
 
     private fun detailToggleText() =
@@ -257,7 +260,7 @@ class AutoDisconnectScreen(
 
     private fun listButtonText() =
         Text.literal(
-            when (AutoDisconnect.lastReconnectTarget) {
+            when (AutoReconnect.lastReconnectTarget) {
                 is SingleplayerReconnectTarget -> "World List"
                 else -> "Server List"
             }

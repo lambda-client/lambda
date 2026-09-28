@@ -17,8 +17,8 @@
 
 package com.lambda.mixin.world;
 
-import com.lambda.module.modules.combat.autodisconnect.AutoDisconnect;
-import com.lambda.module.modules.combat.autodisconnect.SingleplayerReconnectTarget;
+import com.lambda.module.modules.network.AutoReconnect;
+import com.lambda.module.modules.network.SingleplayerReconnectTarget;
 import net.minecraft.server.integrated.IntegratedServerLoader;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,7 +29,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class IntegratedServerLoaderMixin {
     @Inject(method = "start(Ljava/lang/String;Ljava/lang/Runnable;)V", at = @At("HEAD"))
     private void onStart(String name, Runnable onCancel, CallbackInfo ci) {
-        AutoDisconnect.INSTANCE.setLastReconnectTarget(new SingleplayerReconnectTarget(name));
+        AutoReconnect.setLastReconnectTarget(new SingleplayerReconnectTarget(name));
     }
-
 }

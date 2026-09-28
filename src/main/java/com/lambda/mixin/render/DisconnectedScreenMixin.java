@@ -65,7 +65,7 @@ public abstract class DisconnectedScreenMixin extends Screen {
 
         lambda$reconnectButton = ButtonWidget.builder(lambda$getButtonText(), button -> {
             lambda$reconnected = true;
-            AutoReconnect.reconnect(this.parent, this.client);
+            AutoReconnect.reconnect(this.parent);
         }).width(200).build();
 
         lambda$reconnectButton.active = hasTarget;
@@ -82,7 +82,7 @@ public abstract class DisconnectedScreenMixin extends Screen {
             long remainingMillis = lambda$autoReconnectTime - System.currentTimeMillis();
             if (remainingMillis <= 0) {
                 lambda$reconnected = true;
-                AutoReconnect.reconnect(this.parent, this.client);
+                AutoReconnect.reconnect(this.parent);
             } else {
                 double remainingSeconds = remainingMillis / 1000.0;
                 lambda$reconnectButton.setMessage(Text.literal(String.format(Locale.ROOT, "Reconnect (%.1fs)", remainingSeconds)));

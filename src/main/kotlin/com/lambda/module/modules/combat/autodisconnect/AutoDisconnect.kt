@@ -195,6 +195,7 @@ object AutoDisconnect : Module(
     @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val arrow by setting("Arrow", false, "Disconnect from the server when you take arrow damage.") { damage }
     @Tab(TRIGGERS_TAB) @Group(DAMAGE_TRIGGER_GROUP) private val trident by setting("Trident", false, "Disconnect from the server when you take trident damage.") { damage }
 
+    @Tab(GENERAL_TAB) private val disableAutoReconnect by setting("Disable ${AutoReconnect.name}", false, "Disables ${AutoReconnect.name} when disconnecting")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val invalidHotbarDisconnect by setting("Select Invalid Hotbar Slot", false, "Sends an invalid hotbar selection to force the server to kick the player")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val attackSelfDisconnect by setting("Attack Self", false, "Sends an attack self packet to force the server to kick the player")
     @Tab(GENERAL_TAB) @Group(PACKET_DISCONNECT_GROUP) private val impossibleTimestampChatDisconnect by setting("Send Impossible Chat Timestamp", false, "Sends a chat message with an impossible timestamp to force the server to kick the player")
@@ -206,11 +207,6 @@ object AutoDisconnect : Module(
     private var disconnectDetails: DisconnectDetails? = null
     private var disconnectInProgress: Boolean = false
     private val joinTimer = TickTimer()
-    var lastReconnectTarget: ReconnectTarget?
-        get() = AutoReconnect.lastReconnectTarget
-        set(value) {
-            AutoReconnect.lastReconnectTarget = value
-        }
 
     init {
         listen<TickEvent.Pre> {
@@ -308,9 +304,7 @@ object AutoDisconnect : Module(
     private fun SafeContext.requestDisconnect(reasonText: Text, disarmedTrigger: Reason? = null): Boolean {
         if (player.gameMode != GameMode.SURVIVAL && player.gameMode != GameMode.ADVENTURE || disconnectInProgress) return false
         disconnectInProgress = true
-        if (AutoReconnect.isEnabled) {
-            AutoReconnect.disable()
-        }
+        if (AutoReconnect.isEnabled && disableAutoReconnect) AutoReconnect.disable()
         ScreenshotRecorder.takeScreenshot(Lambda.mc.framebuffer, 1) { image ->
             val imageIdentifier = Identifier.of("lambda", "auto_disconnect_screenshot")
             val texture = NativeImageBackedTexture({ "auto-disconnect-screenshot" }, image)
@@ -922,15 +916,3 @@ data class DisconnectDetails(
     val sections: List<DetailSection>,
     val hideDetails: Boolean
 )
-
-sealed interface ReconnectTarget
-
-data class MultiplayerReconnectTarget(
-    val address: ServerAddress,
-    val info: ServerInfo,
-    val cookieStorage: CookieStorage?
-) : ReconnectTarget
-
-data class SingleplayerReconnectTarget(
-    val levelName: String
-) : ReconnectTarget

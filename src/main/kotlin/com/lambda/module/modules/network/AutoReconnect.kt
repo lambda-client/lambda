@@ -17,16 +17,15 @@
 
 package com.lambda.module.modules.network
 
-import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.module.Module
-import com.lambda.module.modules.combat.autodisconnect.MultiplayerReconnectTarget
-import com.lambda.module.modules.combat.autodisconnect.ReconnectTarget
-import com.lambda.module.modules.combat.autodisconnect.SingleplayerReconnectTarget
 import com.lambda.module.tag.ModuleTag
-import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen
 import net.minecraft.client.gui.screen.world.SelectWorldScreen
+import net.minecraft.client.network.CookieStorage
+import net.minecraft.client.network.ServerAddress
+import net.minecraft.client.network.ServerInfo
 
 @Suppress("unused")
 object AutoReconnect : Module(
@@ -51,15 +50,15 @@ object AutoReconnect : Module(
     }
 
     @JvmStatic
-    fun reconnect(parent: Screen, client: MinecraftClient = Lambda.mc) {
+    fun reconnect(parent: Screen) {
         when (val target = lastReconnectTarget) {
             is MultiplayerReconnectTarget -> {
-                ConnectScreen.connect(parent, client, target.address, target.info, false, target.cookieStorage)
+                ConnectScreen.connect(parent, mc, target.address, target.info, false, target.cookieStorage)
             }
 
             is SingleplayerReconnectTarget -> {
-                client.createIntegratedServerLoader().start(target.levelName) {
-                    client.setScreen(SelectWorldScreen(parent))
+                mc.createIntegratedServerLoader().start(target.levelName) {
+                    mc.setScreen(SelectWorldScreen(parent))
                 }
             }
 
@@ -67,3 +66,15 @@ object AutoReconnect : Module(
         }
     }
 }
+
+sealed interface ReconnectTarget
+
+data class MultiplayerReconnectTarget(
+    val address: ServerAddress,
+    val info: ServerInfo,
+    val cookieStorage: CookieStorage?
+) : ReconnectTarget
+
+data class SingleplayerReconnectTarget(
+    val levelName: String
+) : ReconnectTarget
