@@ -18,6 +18,7 @@
 package com.lambda.module.modules.world
 
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.blocks.BreakConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.Setting.Companion.onValueChange
 import com.lambda.config.settings.complex.Bind
@@ -33,6 +34,7 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
@@ -52,12 +54,10 @@ object Nuker : Module(
 ) {
 	private val height by setting("Height", 6, 1..8, 1)
 	private val width by setting("Width", 6, 1..8, 1)
-	private val blockMode by setting("Block Mode", BlockSelectionMode.All, description = "How to decide which types of blocks to target.")
-	private val customBlocks by setting("Custom Blocks", emptyList<Block>(), description = "A custom list of blocks to target or avoid.", visibility = { this.blockMode == BlockSelectionMode.Custom } )
-	private val customBlocksMode by setting("Custom Block Behavior", CustomBlockListMode.Target, description = "Whether to target or avoid blocks in the custom list.", visibility = { this.blockMode == BlockSelectionMode.Custom })
-	private val selectAddKey by setting("Select Additional Keybind", Bind(GLFW.GLFW_KEY_LEFT_CONTROL, 0), description = "Hold down this key to add more blocks to the selective block list.", visibility = { blockMode == BlockSelectionMode.Selective})
 	private val flattenMode by setting("Flatten Mode", FlattenMode.Standard)
 	private val directionalDig by setting("Directional Dig", DigDirection.None)
+	private val selective by setting("Selective", false, description = "Click on a block to nuke that type of block")
+	private val selectAddKey by setting("Select Additional Keybind", Bind(GLFW.GLFW_KEY_LEFT_CONTROL, 0), description = "Hold down this key to add more blocks to the selective block list", visibility = { selective })
 	private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
 	private val fillFloor by setting("Fill Floor", false)
 	private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
@@ -88,12 +88,21 @@ object Nuker : Module(
 		}
 
 		listen<PlayerEvent.Attack.Block>(priority = { 69420 }) {
-			if (blockMode != BlockSelectionMode.Selective) return@listen
+			if (!selective) return@listen
 
-			val selected = world.getBlockState(it.pos).block
+			val selected = blockState(it.pos).block
+			if (breakConfig.whitelistMode == BreakConfig.WhitelistMode.Blacklist && breakConfig.blacklist.contains(selected)) {
+				it.cancel()
+				this@Nuker.info("${selected.name.string} is blacklisted in the break config!")
+				return@listen
+			} else if (breakConfig.whitelistMode == BreakConfig.WhitelistMode.Whitelist && !breakConfig.whitelist.contains(selected)) {
+				it.cancel()
+				this@Nuker.info("${selected.name.string} is not whitelisted in the break config!")
+				return@listen
+			}
 
 			if (selectAddKey.isSatisfied()) {
-				if (selectedBlocks.add(world.getBlockState(it.pos).block)) {
+				if (selectedBlocks.add(selected)) {
 					val text = (if (selectedBlocks.size > 1) "Selected blocks:" else "Selected block:") +
 								selectedBlocks.joinToString(",") { block -> " ${block.name.string}" } + "."
 
@@ -145,16 +154,8 @@ object Nuker : Module(
 		}
 	}
 
-	private fun SafeContext.isValidTarget(pos: BlockPos): Boolean {
-		return when (blockMode) {
-			BlockSelectionMode.All -> true
-			BlockSelectionMode.Selective -> selectedBlocks.contains(world.getBlockState(pos).block)
-			BlockSelectionMode.Custom -> when (customBlocksMode) {
-				CustomBlockListMode.Target -> customBlocks.contains(world.getBlockState(pos).block)
-				CustomBlockListMode.Avoid -> !customBlocks.contains(world.getBlockState(pos).block)
-			}
-		}
-	}
+	private fun SafeContext.isValidTarget(pos: BlockPos): Boolean =
+		!selective || blockState(pos).block in selectedBlocks
 
 	private enum class DigDirection {
 		None,
@@ -162,13 +163,5 @@ object Nuker : Module(
 		South,
 		West,
 		North
-	}
-
-	private enum class BlockSelectionMode {
-		All, Custom, Selective
-	}
-
-	private enum class CustomBlockListMode {
-		Target, Avoid
 	}
 }
