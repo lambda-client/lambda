@@ -96,6 +96,7 @@ class BounceElytraFly(
 		get() = !onlyOnDiagonal || diagonal
 
 	@Group(BOUNCE_OBSTACLE_PASSER_GROUP) override val passerConfig by c.configBlock(PasserSettings(c))
+
 	private var wantJump = false
 	private var prevGliding: Boolean? = null
 	private val pauseTimer = TickTimer()
@@ -215,6 +216,7 @@ class BounceElytraFly(
 				return@listen
 			}
 			if (!wantJump) return@listen
+			if (flightPaused) return@listen
 			input.jump()
 		}
 
