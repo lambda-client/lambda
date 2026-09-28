@@ -39,14 +39,7 @@ public class LightmapTextureManagerMixin {
     @Final
     private GpuTexture glTexture;
 
-    @Inject(
-            method = "update",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/gl/MappableRingBuffer;rotate()V",
-                    shift = At.Shift.AFTER
-            )
-    )
+    @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gl/MappableRingBuffer;rotate()V", shift = At.Shift.AFTER))
     private void injectUpdate(float tickProgress, CallbackInfo ci) {
         if (XRay.INSTANCE.isEnabled() || (Fullbright.INSTANCE.isEnabled() && !Fullbright.getNightVision())) {
             RenderSystem.getDevice()
