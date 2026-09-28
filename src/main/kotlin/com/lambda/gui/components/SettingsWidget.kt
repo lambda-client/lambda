@@ -43,6 +43,7 @@ object SettingsWidget {
 				button("Module Settings") {
 					ImGui.openPopup("##module-settings-popup-${config.name}")
 				}
+	            lambdaTooltip("General module settings")
 	            ImGui.setNextWindowSizeConstraints(0f, 0f, Float.MAX_VALUE, io.displaySize.y * 0.5f)
 	            popupContextItem("##module-settings-popup-${config.name}", ImGuiPopupFlags.None) {
 		            with(config.keybindSetting) { buildLayout() }
@@ -55,9 +56,9 @@ object SettingsWidget {
 		            smallButton("Reset") {
 			            config.resetSettings()
 		            }
+		            lambdaTooltip("Resets all settings for this module to their default values")
 	            }
             }
-            lambdaTooltip("Resets all settings for this module to their default values")
             if (config is IMutableAutomationConfig && config.automationConfig !== AutomationConfig.DEFAULT) {
                 button("Automation Config") {
                     ImGui.openPopup("##automation-config-popup-${config.name}")
