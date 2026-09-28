@@ -17,8 +17,6 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.forEachSetting
-import com.lambda.config.hideAllExcept
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
 import com.lambda.config.hideAllExcept
@@ -39,6 +37,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@Suppress("unused")
 object TargetStrafe : Module(
     name = "TargetStrafe",
     description = "Strafes around a target in a circle. The default settings work great for old NCP.",

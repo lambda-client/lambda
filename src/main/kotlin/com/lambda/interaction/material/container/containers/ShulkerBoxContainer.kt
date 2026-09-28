@@ -22,10 +22,10 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.handlers.ContainerHandler
 import com.lambda.interaction.material.container.ExternalContainer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.task.wrappers.TaskSupplier
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainerTask
 import com.lambda.task.tasks.PlaceContainerTask
+import com.lambda.task.wrappers.TaskSupplier
 import com.lambda.task.wrappers.thenAction
 import com.lambda.task.wrappers.thenOrNull
 import com.lambda.threading.runSafe
