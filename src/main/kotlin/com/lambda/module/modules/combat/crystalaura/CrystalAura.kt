@@ -77,8 +77,7 @@ object CrystalAura : Module(
     private const val TARGETING_TAB = "Targeting"
     private const val RENDERING_TAB = "Rendering"
 
-    @Tab(GENERAL_TAB)
-    val rotate by setting("Rotate", true)
+    @Tab(GENERAL_TAB) val rotate by setting("Rotate", true)
     @Tab(GENERAL_TAB) private val updateMode by setting("Update Mode", UpdateMode.Ticked)
     @Tab(GENERAL_TAB) private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { updateMode == UpdateMode.Async }
     @Tab(GENERAL_TAB) private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { updateMode == UpdateMode.Async }
@@ -86,14 +85,10 @@ object CrystalAura : Module(
     @Tab(GENERAL_TAB) private val debug by setting("Debug", false)
 
     @Tab(PLACEMENT_TAB) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
-    @Tab(PLACEMENT_TAB)
-    val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
-    @Tab(PLACEMENT_TAB)
-    val swap by setting("Swap", true, "Swaps to crystals")
-    @Tab(PLACEMENT_TAB)
-    val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
-    @Tab(PLACEMENT_TAB)
-    val priorityMode by setting("Crystal Priority", Priority.Damage)
+    @Tab(PLACEMENT_TAB) val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
+    @Tab(PLACEMENT_TAB) val swap by setting("Swap", true, "Swaps to crystals")
+    @Tab(PLACEMENT_TAB) val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
+    @Tab(PLACEMENT_TAB) val priorityMode by setting("Crystal Priority", Priority.Damage)
     @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
     @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")
     @Tab(PLACEMENT_TAB) private val maxSelfDamage by setting("Max Self Damage", 8.0, 0.0..36.0, 0.5, "Maximum self damage to use crystals")
@@ -102,21 +97,15 @@ object CrystalAura : Module(
     @Tab(PLACEMENT_TAB) private val oldPlace by setting("1.12 Placement", false)
 
     @Tab(EXPLODING_TAB) private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks")
-    @Tab(EXPLODING_TAB)
-    val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
+    @Tab(EXPLODING_TAB) val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms")
 
-    @Tab(PREDICTION_TAB)
-    val prediction by setting("Prediction", PredictionMode.None)
+    @Tab(PREDICTION_TAB) val prediction by setting("Prediction", PredictionMode.None)
     @Tab(PREDICTION_TAB) private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1, "Flags grim") { prediction.onPacket }
     @Tab(PREDICTION_TAB) private val explodeOnPacket by setting("Explode On Packet", false, "Explodes the received crystal on packet") { prediction != PredictionMode.None }
-    @Tab(PREDICTION_TAB)
-    val placePostPause by setting("Place Post Pause", false, "Resets the place delay timer after receiving a entity spawn packet (adds a delay)") { prediction != PredictionMode.None }
-    @Tab(PREDICTION_TAB)
-    val postPacketPlace by setting("Post Packet Place", true, "Places the crystal on the next tick from the entity spawn packet") { prediction == PredictionMode.Tick && !placePostPause }
-    @Tab(PREDICTION_TAB)
-    val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
-    @Tab(PREDICTION_TAB)
-    val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
+    @Tab(PREDICTION_TAB) val placePostPause by setting("Place Post Pause", false, "Resets the place delay timer after receiving a entity spawn packet (adds a delay)") { prediction != PredictionMode.None }
+    @Tab(PREDICTION_TAB) val postPacketPlace by setting("Post Packet Place", true, "Places the crystal on the next tick from the entity spawn packet") { prediction == PredictionMode.Tick && !placePostPause }
+    @Tab(PREDICTION_TAB) val placePredictions by setting("Place Predictions", 4, 1..20, 1) { prediction.onPlace }
+    @Tab(PREDICTION_TAB) val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { prediction.onPlace }
 
     @Tab(PREDICTION_TAB) private val targetingSettings by configBlock(TargetingSettings.CombatSettings(this, 10.0))
 
@@ -366,7 +355,7 @@ object CrystalAura : Module(
                 target: LivingEntity,
                 blocked: Boolean,
                 crystal: EndCrystalEntity? = null,
-                _blockingCrystal: EndCrystalEntity? = null
+                localBlockingCrystal: EndCrystalEntity? = null
             ): Opportunity? {
                 val crystalPos = pos.crystalPosition
 
@@ -404,7 +393,7 @@ object CrystalAura : Module(
                     selfDamage,
                     blocked,
                     crystal,
-                    _blockingCrystal
+                    localBlockingCrystal
                 )
             }
 

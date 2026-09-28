@@ -25,7 +25,6 @@ import net.minecraft.util.hit.BlockHitResult
 object CrystalAuraPlacing {
 	fun CrystalAura.placeInternal(opportunity: Opportunity, hand: Hand) = runSafe {
 		lastPlace = Pair(opportunity.blockPos, System.currentTimeMillis())
-		interaction.syncSelectedSlot() // TODO: when server only hotbar swap gets implemented, this will be removed
 		interaction.sendSequencedPacket(world) { sequence ->
 			PlayerInteractBlockC2SPacket(
 				hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), sequence
