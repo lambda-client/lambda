@@ -18,10 +18,14 @@
 package com.lambda.module.modules.world
 
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.blocks.BreakConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.settings.complex.Bind
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -30,11 +34,16 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
 import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
 import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
+import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
+import org.lwjgl.glfw.GLFW
 
 @Suppress("unused")
 object Nuker : Module(
@@ -47,6 +56,8 @@ object Nuker : Module(
 	private val width by setting("Width", 6, 1..8, 1)
 	private val flattenMode by setting("Flatten Mode", FlattenMode.Standard)
 	private val directionalDig by setting("Directional Dig", DigDirection.None)
+	private val selective by setting("Selective", false, description = "Click on a block to nuke that type of block")
+	private val selectAddKey by setting("Select Additional Keybind", Bind(GLFW.GLFW_KEY_LEFT_CONTROL, 0), description = "Hold down this key to add more blocks to the selective block list", visibility = { selective })
 	private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
 	private val fillFloor by setting("Fill Floor", false)
 	private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
@@ -56,6 +67,7 @@ object Nuker : Module(
 		.onValueChange { _, _ -> if (buildTask != null) startBuildTask() }
 
 	private var buildTask: Task<*>? = null
+	private val selectedBlocks = mutableSetOf<Block>()
 
 	init {
 		setDefaultAutomationConfig()
@@ -72,6 +84,35 @@ object Nuker : Module(
 		onDisable {
 			buildTask?.cancel()
 			buildTask = null
+			selectedBlocks.clear()
+		}
+
+		listen<PlayerEvent.Attack.Block>(priority = { 69420 }) {
+			if (!selective) return@listen
+
+			val selected = blockState(it.pos).block
+			if (breakConfig.whitelistMode == BreakConfig.WhitelistMode.Blacklist && breakConfig.blacklist.contains(selected)) {
+				it.cancel()
+				this@Nuker.info("${selected.name.string} is blacklisted in the break config!")
+				return@listen
+			} else if (breakConfig.whitelistMode == BreakConfig.WhitelistMode.Whitelist && !breakConfig.whitelist.contains(selected)) {
+				it.cancel()
+				this@Nuker.info("${selected.name.string} is not whitelisted in the break config!")
+				return@listen
+			}
+
+			if (selectAddKey.isSatisfied()) {
+				if (selectedBlocks.add(selected)) {
+					val text = (if (selectedBlocks.size > 1) "Selected blocks:" else "Selected block:") +
+								selectedBlocks.joinToString(",") { block -> " ${block.name.string}" } + "."
+
+					this@Nuker.info(text)
+				}
+			} else if (!selectedBlocks.contains(selected) || selectedBlocks.size > 1) {
+				selectedBlocks.clear()
+				selectedBlocks.add(selected)
+				this@Nuker.info("Selected block: ${selected.name.string}.")
+			}
 		}
 	}
 
@@ -87,6 +128,7 @@ object Nuker : Module(
 				.filter { !baritoneSelection || isInBaritoneSelection(it) != inverseSelection }
 				.filter { isInFlatten(it, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection) }
 				.filter { isWithinDigDirection(it) }
+				.filter { isValidTarget(it) }
 				.associateWith { if (breakConfig.fillFluids) TargetState.Air else TargetState.Empty }
 
 			if (fillFloor) {
@@ -111,6 +153,9 @@ object Nuker : Module(
 			DigDirection.South -> playerPos.z <= pos.z
 		}
 	}
+
+	private fun SafeContext.isValidTarget(pos: BlockPos): Boolean =
+		!selective || blockState(pos).block in selectedBlocks
 
 	private enum class DigDirection {
 		None,
