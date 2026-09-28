@@ -28,10 +28,8 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.containers.HotbarContainer
 import com.lambda.interaction.material.container.containers.OffHandContainer
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.ActionType
-import com.lambda.module.modules.combat.crystalaura.CrystalAura.PredictionMode
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.crystalPosition
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.explodeDelay
-import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.explodeTimer
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.lastEntityId
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.lastHit
@@ -48,7 +46,7 @@ import com.lambda.module.modules.combat.crystalaura.CrystalAura.rotate
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.safeToPlaceInstantly
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.swap
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.swapHand
-import com.lambda.module.modules.combat.crystalaura.CrystalAura.waitingForCrystal
+import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraPlacing.placeInternal
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated

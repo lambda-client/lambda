@@ -57,9 +57,6 @@ import com.lambda.util.text.literal
 import com.lambda.util.text.text
 import com.lambda.util.world.WorldUtils.isLoaded
 import com.lambda.util.world.fastEntitySearch
-import net.minecraft.client.network.CookieStorage
-import net.minecraft.client.network.ServerAddress
-import net.minecraft.client.network.ServerInfo
 import net.minecraft.client.texture.NativeImageBackedTexture
 import net.minecraft.client.util.ScreenshotRecorder
 import net.minecraft.component.DataComponentTypes
