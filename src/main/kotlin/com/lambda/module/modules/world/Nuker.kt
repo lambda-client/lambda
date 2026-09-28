@@ -20,8 +20,11 @@ package com.lambda.module.modules.world
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.settings.complex.Bind
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -30,11 +33,15 @@ import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.PlayerBuildLayerUtils.FlattenMode
 import com.lambda.util.PlayerBuildLayerUtils.isInBaritoneSelection
 import com.lambda.util.PlayerBuildLayerUtils.isInFlatten
+import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
+import org.lwjgl.glfw.GLFW
 
 @Suppress("unused")
 object Nuker : Module(
@@ -45,6 +52,10 @@ object Nuker : Module(
 ) {
 	private val height by setting("Height", 6, 1..8, 1)
 	private val width by setting("Width", 6, 1..8, 1)
+	private val blockMode by setting("Block Mode", BlockSelectionMode.All, description = "How to decide which types of blocks to target.")
+	private val customBlocks by setting("Custom Blocks", emptyList<Block>(), description = "A custom list of blocks to target or avoid.", visibility = { this.blockMode == BlockSelectionMode.Custom } )
+	private val customBlocksMode by setting("Custom Block Behavior", CustomBlockListMode.Target, description = "Whether to target or avoid blocks in the custom list.", visibility = { this.blockMode == BlockSelectionMode.Custom })
+	private val selectAddKey by setting("Select Additional Keybind", Bind(GLFW.GLFW_KEY_LEFT_CONTROL, 0), description = "Hold down this key to add more blocks to the selective block list.", visibility = { blockMode == BlockSelectionMode.Selective})
 	private val flattenMode by setting("Flatten Mode", FlattenMode.Standard)
 	private val directionalDig by setting("Directional Dig", DigDirection.None)
 	private val onGround by setting("On Ground", false, "Only break blocks when the player is standing on ground")
@@ -56,6 +67,7 @@ object Nuker : Module(
 		.onValueChange { _, _ -> if (buildTask != null) startBuildTask() }
 
 	private var buildTask: Task<*>? = null
+	private val selectedBlocks = mutableSetOf<Block>()
 
 	init {
 		setDefaultAutomationConfig()
@@ -72,6 +84,26 @@ object Nuker : Module(
 		onDisable {
 			buildTask?.cancel()
 			buildTask = null
+			selectedBlocks.clear()
+		}
+
+		listen<PlayerEvent.Attack.Block>(priority = { 69420 }) {
+			if (blockMode != BlockSelectionMode.Selective) return@listen
+
+			val selected = world.getBlockState(it.pos).block
+
+			if (selectAddKey.isSatisfied()) {
+				if (selectedBlocks.add(world.getBlockState(it.pos).block)) {
+					val text = (if (selectedBlocks.size > 1) "Selected blocks:" else "Selected block:") +
+								selectedBlocks.joinToString(",") { block -> " ${block.name.string}" } + "."
+
+					this@Nuker.info(text)
+				}
+			} else if (!selectedBlocks.contains(selected) || selectedBlocks.size > 1) {
+				selectedBlocks.clear()
+				selectedBlocks.add(selected)
+				this@Nuker.info("Selected block: ${selected.name.string}.")
+			}
 		}
 	}
 
@@ -87,6 +119,7 @@ object Nuker : Module(
 				.filter { !baritoneSelection || isInBaritoneSelection(it) != inverseSelection }
 				.filter { isInFlatten(it, flattenMode, sneakLowersFlatten, baritoneSelection, inverseSelection) }
 				.filter { isWithinDigDirection(it) }
+				.filter { isValidTarget(it) }
 				.associateWith { if (breakConfig.fillFluids) TargetState.Air else TargetState.Empty }
 
 			if (fillFloor) {
@@ -112,11 +145,30 @@ object Nuker : Module(
 		}
 	}
 
+	private fun SafeContext.isValidTarget(pos: BlockPos): Boolean {
+		return when (blockMode) {
+			BlockSelectionMode.All -> true
+			BlockSelectionMode.Selective -> selectedBlocks.contains(world.getBlockState(pos).block)
+			BlockSelectionMode.Custom -> when (customBlocksMode) {
+				CustomBlockListMode.Target -> customBlocks.contains(world.getBlockState(pos).block)
+				CustomBlockListMode.Avoid -> !customBlocks.contains(world.getBlockState(pos).block)
+			}
+		}
+	}
+
 	private enum class DigDirection {
 		None,
 		East,
 		South,
 		West,
 		North
+	}
+
+	private enum class BlockSelectionMode {
+		All, Custom, Selective
+	}
+
+	private enum class CustomBlockListMode {
+		Target, Avoid
 	}
 }
