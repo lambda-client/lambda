@@ -263,6 +263,7 @@ object ContainerPreview : Module(
         return when {
             isShulkerBox(stack) -> stack.shulkerBoxContents
             isEnderChest(stack) -> EnderChestContainer.stacks
+            isBundle(stack) -> stack.bundleContents
             else -> emptyList()
         }
     }
@@ -385,7 +386,7 @@ object ContainerPreview : Module(
     fun isEnderChest(stack: ItemStack) = stack.item == Items.ENDER_CHEST && EnderChestContainer.stacks.isNotEmpty()
 
     @JvmStatic
-    fun isPreviewableContainer(stack: ItemStack) = isShulkerBox(stack) || isEnderChest(stack)
+    fun isPreviewableContainer(stack: ItemStack) = isShulkerBox(stack) || isEnderChest(stack) || isBundle(stack)
 
     @JvmStatic
     fun isBundle(stack: ItemStack) = stack.item in bundles
