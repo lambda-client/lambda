@@ -44,7 +44,9 @@ private val UNDASHED =
  *  - name: jeb_
  */
 suspend fun getProfile(name: String) = runCatching {
-    LAMBDA_HTTP.get("https://api.mojang.com/users/profiles/minecraft/$name").body<GameProfile>()
+    LAMBDA_HTTP.get("https://api.mojang.com/users/profiles/minecraft/$name")
+        .body<BulkProfile>()
+        .let { toGameProfile(it.id, it.name) }
 }
 
 internal class BulkProfile(val id: String, val name: String)
@@ -85,5 +87,7 @@ private suspend fun requestProfiles(batch: List<String>): List<GameProfile> = ru
  *  - name: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
  */
 suspend fun getProfile(uuid: UUID) = runCatching {
-    LAMBDA_HTTP.get("https://api.minecraftservices.com/minecraft/profile/lookup/$uuid").body<GameProfile>()
+    LAMBDA_HTTP.get("https://api.minecraftservices.com/minecraft/profile/lookup/$uuid")
+        .body<BulkProfile>()
+        .let { toGameProfile(it.id, it.name) }
 }
