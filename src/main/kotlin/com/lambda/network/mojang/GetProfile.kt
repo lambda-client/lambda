@@ -21,7 +21,20 @@ import com.lambda.network.LAMBDA_HTTP
 import com.mojang.authlib.GameProfile
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.util.*
+
+private const val BULK_URL = "https://api.mojang.com/profiles/minecraft"
+private const val BULK_LIMIT = 10
+
+private val UNDASHED =
+    Regex("([0-9a-fA-F]{8})([0-9a-fA-F]{4})([0-9a-fA-F]{4})([0-9a-fA-F]{4})([0-9a-fA-F]{12})")
 
 /**
  * Gets a game profile from a username
@@ -32,6 +45,30 @@ import java.util.*
 suspend fun getProfile(name: String) = runCatching {
     LAMBDA_HTTP.get("https://api.mojang.com/users/profiles/minecraft/$name").body<GameProfile>()
 }
+
+internal class BulkProfile(val id: String, val name: String)
+
+internal fun toGameProfile(id: String, name: String): GameProfile? =
+    UNDASHED.matchEntire(id)
+        ?.groupValues
+        ?.drop(1)
+        ?.joinToString("-")
+        ?.let { GameProfile(UUID.fromString(it), name) }
+
+suspend fun getProfiles(names: List<String>): List<GameProfile> = coroutineScope {
+    val gate = Semaphore(4)
+    names.chunked(BULK_LIMIT)
+        .map { batch -> async { gate.withPermit { requestProfiles(batch) } } }
+        .awaitAll()
+        .flatten()
+}
+
+private suspend fun requestProfiles(batch: List<String>): List<GameProfile> = runCatching {
+    LAMBDA_HTTP.post(BULK_URL) {
+        contentType(ContentType.Application.Json)
+        setBody(batch)
+    }.body<List<BulkProfile>>().mapNotNull { toGameProfile(it.id, it.name) }
+}.getOrDefault(emptyList())
 
 /**
  * Gets a game profile from a [UUID]
