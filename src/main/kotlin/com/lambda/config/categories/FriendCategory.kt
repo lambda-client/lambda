@@ -18,10 +18,25 @@
 package com.lambda.config.categories
 
 import com.lambda.config.ConfigCategory
+import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.threading.runIO
 import com.lambda.util.FolderRegistry
 import java.io.File
 
 object FriendCategory : ConfigCategory() {
 	override val name get() = "friends"
 	override val primaryFile: File = FolderRegistry.config.resolve("$name.json").toFile()
+
+	override fun internalTryLoad() {
+		super.internalTryLoad()
+		runIO {
+			FriendHandler.loadNameCache()
+			FriendHandler.resolveMissing()
+		}
+	}
+
+	override fun internalTrySave(logToChat: Boolean) {
+		super.internalTrySave(logToChat)
+		FriendHandler.saveNameCache()
+	}
 }
