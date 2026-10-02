@@ -42,12 +42,20 @@ object PlacedContainerSerializer : FallbackSerializer<PlacedContainer>(PlacedCon
         }
 
         gen.writeArrayPropertyStart("Stacks")
-	    container.stacks.forEach { stack ->
-		    val encoded = ItemStack.CODEC
-			    .encodeStart(JsonOps.UNCOMPRESSED, stack)
-			    .result()
-		    encoded.ifPresent { gen.writePOJO(it) }
-	    }
+        container.stacks.forEach { stack ->
+            if (stack.isEmpty) {
+                gen.writeNull()
+            } else {
+                val encoded = ItemStack.CODEC
+                    .encodeStart(JsonOps.UNCOMPRESSED, stack)
+                    .result()
+                if (encoded.isPresent) {
+                    gen.writePOJO(encoded.get())
+                } else {
+                    gen.writeNull()
+                }
+            }
+        }
         gen.writeEndArray()
         gen.writeEndObject()
     }
@@ -60,43 +68,52 @@ object PlacedContainerDeserializer : FallbackDeserializer<PlacedContainer>(Place
         val typeName = root.get("Type")?.asString() ?: return null
         val type = ContainerType.entries.find { it.name == typeName } ?: return null
         
-        val posNode = root.get("Pos") as? ObjectNode ?: return null
+        val posNode = root.get("Pos") ?: return null
         val pos = BlockPos.CODEC.parse(JsonOps.UNCOMPRESSED, posNode)
             .result()
             .orElse(null)
             ?: return null
         
         val stackArray = root.get("Stacks") as? ArrayNode
-        val stacks =
+        val decodedStacks =
             stackArray?.mapNotNull { element ->
-                ItemStack.CODEC
-                    .parse(JsonOps.UNCOMPRESSED, element)
-                    .result()
-                    .orElse(null)
+                if (element.isNull) {
+                    ItemStack.EMPTY
+                } else {
+                    ItemStack.CODEC
+                        .parse(JsonOps.UNCOMPRESSED, element)
+                        .result()
+                        .orElse(ItemStack.EMPTY)
+                }
             } ?: emptyList()
-        
+
+        fun padStacks(expectedSize: Int): List<ItemStack> =
+            if (decodedStacks.size < expectedSize) {
+                decodedStacks + List(expectedSize - decodedStacks.size) { ItemStack.EMPTY }
+            } else decodedStacks
+
         val container =
             when (type) {
                 ContainerType.PlacedShulkerBox -> {
                     val blockId = root.get("Block")?.asString()
                     val block = blockId?.let { Registries.BLOCK.get(Identifier.of(it)) } ?: Blocks.SHULKER_BOX
-                    PlacedShulkerBoxContainer(pos, block, null, stacks)
+                    PlacedShulkerBoxContainer(pos, block, null, padStacks(27))
                 }
                 ContainerType.Chest -> {
                     if (root.get("Double")?.asBoolean() == true) {
-                        val leftPosNode = root.get("Left Pos") as? ObjectNode
+                        val leftPosNode = root.get("Left Pos") ?: return null
                         val leftPos = BlockPos.CODEC.parse(JsonOps.UNCOMPRESSED, leftPosNode)
                             .result()
                             .orElse(null)
                             ?: return null
-                        val rightPosNode = root.get("Right Pos") as? ObjectNode
+                        val rightPosNode = root.get("Right Pos") ?: return null
                         val rightPos = BlockPos.CODEC.parse(JsonOps.UNCOMPRESSED, rightPosNode)
                             .result()
                             .orElse(null)
                             ?: return null
-                        DoubleChestContainer(pos, leftPos, rightPos, stacks)
+                        DoubleChestContainer(pos, leftPos, rightPos, padStacks(54))
                     } else {
-                        ChestContainer(pos, stacks)
+                        ChestContainer(pos, padStacks(27))
                     }
                 }
                 else -> return null

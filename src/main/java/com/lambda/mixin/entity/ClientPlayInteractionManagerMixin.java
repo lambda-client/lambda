@@ -111,6 +111,12 @@ public class ClientPlayInteractionManagerMixin {
         if (EventFlow.post(click).isCanceled()) ci.cancel();
     }
 
+    @Inject(method = "clickSlot", at = @At("TAIL"))
+    public void clickSlotTail(int syncId, int slotId, int button, SlotActionType actionType, PlayerEntity player, CallbackInfo ci) {
+        if (syncId != player.currentScreenHandler.syncId) return;
+        EventFlow.post(new PlayerEvent.SlotClick.Post(syncId, slotId, button, actionType, player.currentScreenHandler));
+    }
+
     /**
      * Posts {@link InventoryEvent.HotbarSlot.Update} and returns the event value as the selected slot
      * <pre>{@code

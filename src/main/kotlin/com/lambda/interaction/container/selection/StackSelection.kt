@@ -154,6 +154,14 @@ class StackSelection @ContainerDslMarker internal constructor(
 	infix fun spaceIn(containers: Iterable<Container>) =
 		containers.sumOf { it.spaceLeft(this) } >= count
 
+	@ContainerDslMarker
+	fun canInsert(slot: Slot) =
+		optimalStack?.let { !it.isEmpty && slot.canInsert(it) } ?: true
+
+	@ContainerDslMarker
+	fun emptySpace(slots: Iterable<Slot>) =
+		slots.count { it.stack.isEmpty && canInsert(it) }
+
 	companion object {
 		val ANYTHING = StackSelection(0) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
@@ -184,6 +192,18 @@ class StackSelectionBuilder @ContainerDslMarker private constructor(
 		this.itemStack = selection.itemStack
 		this.comparator = selection.comparator
 		this.shulkerBoxScope = selection.shulkerBoxScope
+	}
+
+	fun withSelection(stackSelection: StackSelection) {
+		appendSelector(stackSelection.selector)
+		whitelistedSlots.addAll(stackSelection.whitelistedSlots)
+		blacklistedSlots.addAll(stackSelection.blacklistedSlots)
+	}
+
+	fun withoutSelection(stackSelection: StackSelection) {
+		appendSelector { stack, slot -> !stackSelection.selector(stack, slot) }
+		whitelistedSlots.addAll(stackSelection.blacklistedSlots)
+		blacklistedSlots.addAll(stackSelection.whitelistedSlots)
 	}
 
 	fun isItem(item: Item) {
@@ -369,6 +389,21 @@ class StackSelectionBuilder @ContainerDslMarker private constructor(
 		appendSelector { stack, slot -> predicate(stack, slot) }
 	}
 
+	fun canInsert(stack: ItemStack) {
+		if (!stack.isEmpty) {
+			appendSelector { _, slot -> slot == null || slot.canInsert(stack) }
+		}
+	}
+
+	fun canInsert(selection: StackSelection) {
+		selection.optimalStack?.let { canInsert(it) }
+	}
+
+	fun canInsert() {
+		val optimal = itemStack ?: item?.let { ItemStack(it, count) }
+		optimal?.let { canInsert(it) }
+	}
+
 	fun sortedWith(newComparator: Comparator<StackAndSlot<*>>) {
 		comparator = comparator?.thenComparing(newComparator) ?: newComparator
 	}
@@ -420,7 +455,7 @@ class StackSelectionBuilder @ContainerDslMarker private constructor(
 
 		fun stackSelection(
 			count: Int = 1,
-			builder: StackSelectionBuilder.() -> Unit
+			builder: StackSelectionBuilder.() -> Unit = {}
 		) = StackSelectionBuilder(count).apply(builder).build()
 
 		fun StackSelection.mutate(

@@ -36,8 +36,8 @@ interface Contextual : ComparableResult<Rank> {
     override fun compareResult(other: ComparableResult<Rank>) = runSafe {
         when (other) {
             is Contextual -> compareBy<BuildContext> {
-                if (it is InteractContext) BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
-                else BlockUtils.fluids.size - 1
+                if (it is InteractContext) BlockUtils.FLUIDS.indexOf(it.cachedState.fluidState.fluid)
+                else BlockUtils.FLUIDS.size - 1
             }.thenByDescending {
                 if (it is InteractContext && it.cachedState.fluidState.level != 0) it.blockPos.y
                 else Int.MIN_VALUE

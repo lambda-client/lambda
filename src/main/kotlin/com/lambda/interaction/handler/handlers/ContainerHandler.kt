@@ -24,6 +24,7 @@ import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.Container
@@ -71,7 +72,7 @@ import java.nio.file.Files
 object ContainerHandler : Loadable {
 	val compileContainers = getInstances<Container>()
 	var accessedPlacedContainer: PlacedContainer? = null
-		private set
+		internal set
 
 	var lastInteractedBlockEntity: BlockEntity? = null
 	var pendingInteractedBlockEntity: BlockEntity? = null
@@ -105,7 +106,7 @@ object ContainerHandler : Loadable {
 		}
 
 		listen<InventoryEvent.FullUpdate> { onContainerUpdate() }
-		listen<InventoryEvent.SlotUpdate> { onContainerUpdate() }
+		listen<PlayerEvent.SlotClick.Post> { onContainerUpdate() }
 
 		listen<WorldEvent.BlockUpdate.Client> { event ->
 			val oldBlock = event.oldState.block
@@ -198,7 +199,7 @@ object ContainerHandler : Loadable {
 					val rightPos = if (chestType == ChestType.RIGHT) pos else otherPos
 
 					val existing = accessedPlacedContainer as? DoubleChestContainer
-					if (existing != null && existing.pos == pos) {
+					if (existing != null && (existing.leftPos == leftPos || existing.rightPos == rightPos)) {
 						existing.update(stacks)
 					} else {
 						accessedPlacedContainer = DoubleChestContainer(pos, leftPos, rightPos, stacks)
@@ -208,6 +209,12 @@ object ContainerHandler : Loadable {
 				accessedPlacedContainer?.let {
 					it.scanContainerContents()
 					ContainerSerializer.saveContainer(it)
+					if (it is DoubleChestContainer) {
+						val counterpartPos = if (it.pos == it.leftPos) it.rightPos else it.leftPos
+						val counterpart = DoubleChestContainer(counterpartPos, it.leftPos, it.rightPos, it.stacks, it.stash)
+						counterpart.storedContainers.putAll(it.storedContainers)
+						ContainerSerializer.saveContainer(counterpart)
+					}
 				}
 			}
 
@@ -404,13 +411,14 @@ private fun searchContainers(
 			ContainerSearchScope.Player -> compiled - EnderChestContainer
 			ContainerSearchScope.All -> compiled + placedSeq +
 					ContainerSerializer.serializedContainers.filter { diskContainer ->
-						diskContainer.pos != ContainerHandler.accessedPlacedContainer?.pos
+						val accessed = ContainerHandler.accessedPlacedContainer
+						accessed == null || !diskContainer.haveMatchingInventories(accessed)
 					}
 		}
 
 	return baseContainers
 		.flatMap { it.allNested() }
-		.filter { automated.inventoryConfig.containerSelection.matches(it) }
+		.filter { it.isAccessible }
 }
 
 enum class ContainerSearchScope {

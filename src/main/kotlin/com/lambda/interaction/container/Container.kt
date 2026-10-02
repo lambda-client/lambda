@@ -22,12 +22,14 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ContainerEvent
+import com.lambda.interaction.container.containers.CursorContainer
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.inventory.InventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
@@ -127,14 +129,18 @@ abstract class Container(
     open fun access(): OpenContainerTask<*>? = null
 
     open fun count(selection: StackSelection) =
-        slots.takeUnless { it.isEmpty() }?.let {
-            selection.filter(it, false).count
-        } ?: selection.filter(stacks, false).count
+        slots
+            .takeUnless { it.isEmpty() }
+            ?.let {
+                selection.filter(it, false).count
+            } ?: selection.filter(stacks, false).count
 
     open fun spaceLeft(selection: StackSelection) =
-	    slots.takeUnless { it.isEmpty() }?.let {
-            selection.filter(it, false).spaceLeft + it.emptySpace
-        } ?: (selection.filter(stacks, false).spaceLeft + stacks.emptySpace)
+        slots
+            .takeUnless { it.isEmpty() }
+            ?.let {
+                selection.filter(it, false).spaceLeft + selection.emptySpace(it)
+            } ?: (selection.filter(stacks, false).spaceLeft + stacks.emptySpace)
 
     open fun findSlots(selection: StackSelection) = selection.filter(slots)
 
@@ -144,16 +150,38 @@ abstract class Container(
 
     fun findStack(selection: StackSelection) = findStacks(selection).firstOrNull()
 
+    context(automated: Automated)
+    open val isAccessible: Boolean
+        get() = type in automated.inventoryConfig.allowedContainers
+
+    open fun requiredContainers(toContainer: Container): List<Container> =
+        if (swapMethodPriority == 0 && toContainer.swapMethodPriority == 0) listOf(CursorContainer)
+        else emptyList()
+
+    context(_: Automated)
+    fun canSwapWith(toContainer: Container): Boolean =
+        requiredContainers(toContainer).all { it.isAccessible }
+
     context(_: Automated)
     fun findMoveSlots(
         selection: StackSelection,
         toContainer: Container,
         toStackSelection: StackSelection = StackSelection.ANYTHING
-    ) =
-        Pair(
-            selection.bestMatch(slots),
-            toContainer.findReplaceSlot(toStackSelection)
-        )
+    ): Pair<Slot?, Slot?> {
+        if (!canSwapWith(toContainer)) return Pair(null, null)
+        val fromSlot = selection.bestMatch(slots)
+        val toSlot =
+            fromSlot?.let {
+                toContainer.findReplaceSlot(it.stack, toStackSelection)
+            } ?: toContainer.findReplaceSlot(toStackSelection)
+        val validToSlot =
+            toSlot?.takeIf {
+                it.stack.isEmpty ||
+                        fromSlot == null ||
+                        fromSlot.canInsert(it.stack)
+            }
+        return Pair(fromSlot, validToSlot)
+    }
 
     context(_: Automated)
     open fun findReplaceSlot(
@@ -162,15 +190,26 @@ abstract class Container(
         .mutate { sortedWith(replaceSorter) }
         .bestMatch(slots)
 
+    context(_: Automated)
+    open fun findReplaceSlot(
+        incomingStack: ItemStack,
+        selection: StackSelection = StackSelection.ANYTHING
+    ) = findReplaceSlot(selection.mutate { canInsert(incomingStack) })
+
     context(automatedSafeContext: AutomatedSafeContext)
-    internal fun swap(fromSlot: Slot, toSlot: Slot, toContainer: Container): Boolean {
+    internal fun swapRequest(fromSlot: Slot, toSlot: Slot, toContainer: Container): InventoryRequest? {
+        if (!canSwapWith(toContainer)) return null
         val transferEvent = ContainerEvent.Transfer(fromSlot, toSlot, this@Container, toContainer)
-        if (transferEvent.post().isCanceled()) return false
+        if (transferEvent.post().isCanceled()) return null
         return automatedSafeContext.inventoryRequest {
             if (swapMethodPriority > toContainer.swapMethodPriority) swap(fromSlot, toSlot)
             else with(toContainer) { swap(toSlot, fromSlot) }
-        }.submit().done
+        }
     }
+
+    context(automatedSafeContext: AutomatedSafeContext)
+    internal fun swap(fromSlot: Slot, toSlot: Slot, toContainer: Container): Boolean =
+        swapRequest(fromSlot, toSlot, toContainer)?.submit()?.done ?: false
 
     context(safeContext: SafeContext)
     protected open fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
@@ -181,5 +220,14 @@ abstract class Container(
         }
     }
 
-    override fun compareTo(other: Container) = compareBy<Container> { it.type }.compare(this, other)
+    override fun compareTo(other: Container) =
+        compareBy<Container> { it.type }
+            .compare(this, other)
+
+    open fun haveMatchingInventories(other: Container) =
+        this === other ||
+                (this is PlacedContainer &&
+                        other is PlacedContainer &&
+                        this::class == other::class &&
+                        pos == other.pos)
 }

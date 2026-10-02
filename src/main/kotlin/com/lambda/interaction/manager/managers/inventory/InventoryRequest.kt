@@ -49,10 +49,11 @@ class InventoryRequest(
 ) : Request(), Automated by automated {
 	override val requestId = ++requestCount
 	override val tickStageMask get() = inventoryConfig.tickStageMask
+	var failureReason: InvRequestFailureReason = InvRequestFailureReason.None
 	override var done = false
 
 	@InvRequestDsl
-	override fun submit(queueIfMismatchedStage: Boolean) =
+	override fun submit(queueIfMismatchedStage: Boolean): InventoryRequest =
 		InventoryManager.request(this, queueIfMismatchedStage)
 
 	companion object {
@@ -175,4 +176,10 @@ class InvRequestBuilder private constructor(
 		fun Automated.inventoryRequest(settleForLess: Boolean = false, mustPerform: Boolean = false, builder: InvRequestBuilder.() -> Unit) =
 			InvRequestBuilder(settleForLess, mustPerform).apply(builder).build()
 	}
+}
+
+enum class InvRequestFailureReason {
+	None,
+	Preoccupied,
+	PacketLimit
 }

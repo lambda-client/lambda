@@ -37,13 +37,21 @@ object EnderChestContainerSerializer : Serializer<EnderChestContainer>(EnderChes
         gen.writeStartObject()
         gen.writeStringProperty("Type", ContainerType.EnderChest.name)
 
-	    gen.writeArrayPropertyStart("Stacks")
-	    container.stacks.forEach { stack ->
-		    val encoded = ItemStack.CODEC
-			    .encodeStart(JsonOps.UNCOMPRESSED, stack)
-			    .result()
-		    encoded.ifPresent { gen.writePOJO(it) }
-	    }
+        gen.writeArrayPropertyStart("Stacks")
+        container.stacks.forEach { stack ->
+            if (stack.isEmpty) {
+                gen.writeNull()
+            } else {
+                val encoded = ItemStack.CODEC
+                    .encodeStart(JsonOps.UNCOMPRESSED, stack)
+                    .result()
+                if (encoded.isPresent) {
+                    gen.writePOJO(encoded.get())
+                } else {
+                    gen.writeNull()
+                }
+            }
+        }
         gen.writeEndArray()
 
         gen.writeEndObject()
@@ -58,13 +66,22 @@ object EnderChestContainerDeserializer : Deserializer<EnderChestContainer>(Ender
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext, intoValue: EnderChestContainer): EnderChestContainer {
         val root = p.readValueAsTree<ObjectNode>()
         val stackArray = root.get("Stacks") as? ArrayNode
-        val stacks =
+        val decodedStacks =
             stackArray?.mapNotNull { element ->
-                ItemStack.CODEC
-                    .parse(JsonOps.UNCOMPRESSED, element)
-                    .result()
-                    .orElse(null)
+                if (element.isNull) {
+                    ItemStack.EMPTY
+                } else {
+                    ItemStack.CODEC
+                        .parse(JsonOps.UNCOMPRESSED, element)
+                        .result()
+                        .orElse(ItemStack.EMPTY)
+                }
             } ?: emptyList()
+
+        val stacks =
+            if (decodedStacks.size < 27) {
+                decodedStacks + List(27 - decodedStacks.size) { ItemStack.EMPTY }
+            } else decodedStacks
 
         EnderChestContainer.update(stacks)
         EnderChestContainer.scanStacksForNestedContainers()

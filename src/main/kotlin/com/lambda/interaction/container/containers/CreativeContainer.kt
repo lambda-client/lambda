@@ -32,6 +32,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.slot.Slot
 
+@Suppress("unused")
 data object CreativeContainer : Container(ContainerType.Creative) {
 	override val slots = emptyList<Slot>()
 	override var stacks = emptyList<ItemStack>()

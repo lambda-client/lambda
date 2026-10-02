@@ -47,7 +47,7 @@ object XRay : Module(
 		Blocks.ANCIENT_DEBRIS
 	)
 
-	val fluids = BlockUtils.fluids - Fluids.EMPTY
+	val fluids = BlockUtils.FLUIDS - Fluids.EMPTY
 
 	@JvmStatic val opacity by setting("Opacity", 40, 1..100, 1, "Opacity of the non x-rayed blocks, (automatically overridden as 0 when running Sodium)").onValueChange(::reload)
 	@JvmStatic val blockSelection by setting("Block Selection", defaultBlocks, Registries.BLOCK - setOf(Blocks.WATER, Blocks.LAVA), description = "Block selection that will be shown (whitelist) or hidden (blacklist)")

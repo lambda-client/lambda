@@ -37,13 +37,17 @@ internal object PacketLimitHandler {
 	}
 
 	context(automated: Automated)
-	fun canSendPackets(packetCount: Int, packetType: PacketType): Boolean {
-		val handler = packetLimitMap[packetType] ?: return false
+	fun availablePackets(packetType: PacketType): Int {
+		val handler = packetLimitMap[packetType] ?: return 0
 		handler.maxPacketsThisTimeframe = packetType.maxPacketsPerTimeframe(automated.buildConfig)
 		handler.timeframe = automated.buildConfig.limitTimeframe.milliseconds
 		handler.removeStale(TimeSource.Monotonic.markNow())
-		return handler.packetTimestamps.size + packetCount <= handler.maxPacketsThisTimeframe
+		return (handler.maxPacketsThisTimeframe - handler.packetTimestamps.size).coerceAtLeast(0)
 	}
+
+	context(automated: Automated)
+	fun canSendPackets(packetCount: Int, packetType: PacketType): Boolean =
+		availablePackets(packetType) >= packetCount
 
 	fun sentPackets(packetCount: Int, packetType: PacketType) {
 		packetLimitMap[packetType]?.let { handler ->

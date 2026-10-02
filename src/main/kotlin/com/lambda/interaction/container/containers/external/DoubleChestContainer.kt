@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.interaction.container.BasicOpenedContainerContext
+import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.PlacedContainer
@@ -92,4 +93,7 @@ data class DoubleChestContainer(
 				.start()
 		}
 	}
+
+	override fun haveMatchingInventories(other: Container) =
+		other is DoubleChestContainer && (other.leftPos == leftPos || other.rightPos == rightPos)
 }

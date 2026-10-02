@@ -98,7 +98,10 @@ object InventoryManager : Manager<InventoryRequest>(
 	 * needs to equip a totem of undying.
 	 */
 	override fun AutomatedSafeContext.handleRequest(request: InventoryRequest) {
-		if (activeRequest != null) return
+		if (activeRequest != null) {
+			request.failureReason = InvRequestFailureReason.Preoccupied
+			return
+		}
 
 		val playerActionCount = request.actions.count { it is InventoryAction.Player }
 		val inventoryActionCount = request.actions.count { it is InventoryAction.Inventory }
@@ -106,10 +109,13 @@ object InventoryManager : Manager<InventoryRequest>(
 		val canPerformAllInventoryActions = canSendPackets(inventoryActionCount, PacketType.Inventory)
 		if ((!canPerformAllPlayerActions || !canPerformAllInventoryActions) &&
 			!request.settleForLess &&
-			!request.mustPerform) return
+			!request.mustPerform
+		) {
+			request.failureReason = InvRequestFailureReason.PacketLimit
+			return
+		}
 
 		if (request.fresh) populateFrom(request)
-
 
 		processActiveRequest()
 		if (request.nowOrNothing) {
@@ -151,6 +157,8 @@ object InventoryManager : Manager<InventoryRequest>(
 				active.done = true
 				active.onComplete?.invoke(this)
 				activeRequest = null
+			} else {
+				active.failureReason = InvRequestFailureReason.PacketLimit
 			}
 
 			if (actionsThisTick > 0) activeThisTick = true

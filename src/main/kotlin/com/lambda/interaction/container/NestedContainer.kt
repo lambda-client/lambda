@@ -17,7 +17,13 @@
 
 package com.lambda.interaction.container
 
+import com.lambda.context.Automated
+
 abstract class NestedContainer(type: ContainerType) : Container(type), ExternalContainer {
 	abstract val containedIn: Container
 	abstract val index: Int
+
+	context(_: Automated)
+	override val isAccessible: Boolean
+		get() = super.isAccessible && containedIn.isAccessible
 }

@@ -18,18 +18,53 @@
 package com.lambda.interaction.container.containers
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
+import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.inventory.SingleStackInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 
 object CursorContainer : Container(ContainerType.Cursor) {
-	override val slots: List<Slot> = emptyList()
+	override val slots: List<Slot>
+		get() =
+			mc.player?.currentScreenHandler?.let {
+				listOf(CursorSlot(it))
+			} ?: emptyList()
+
 	override var stacks: List<ItemStack>
-		get() = mc.player?.currentScreenHandler?.cursorStack?.let { listOf(it) } ?: emptyList()
+		get() =
+			mc.player?.currentScreenHandler?.cursorStack?.let {
+				listOf(it)
+			} ?: emptyList()
 		set(_) {}
 
+	override val swapMethodPriority = 12
+
 	override val description = buildText { literal("Cursor") }
+
+	context(safeContext: SafeContext)
+	override fun InvRequestBuilder.swap(fromHere: Slot, toSlot: Slot) {
+		pickup(toSlot.id, 0)
+	}
+
+	class CursorSlot(val screenHandler: ScreenHandler) : Slot(
+		object : SingleStackInventory {
+			override fun getStack(): ItemStack = screenHandler.cursorStack
+			override fun setStack(stack: ItemStack?) {
+				if (stack != null) screenHandler.cursorStack = stack
+			}
+			override fun markDirty() {}
+			override fun canPlayerUse(player: PlayerEntity?) = true
+		},
+		0, 0, 0
+	) {
+		override fun canInsert(stack: ItemStack): Boolean = true
+		override fun canTakeItems(playerEntity: PlayerEntity?): Boolean = true
+	}
 }
