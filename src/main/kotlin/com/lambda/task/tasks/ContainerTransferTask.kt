@@ -226,7 +226,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					toContainers = listOf(to),
 					fromSelection = fromStack,
 					toSelection = toStack,
-					limit = remaining
 				).thenOrNull {
 					if (!canReceive(to)) {
 						toQueue.removeAll { it.haveMatchingInventories(to) }
@@ -253,7 +252,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					toContainers = listOf(InventoryContainer, HotbarContainer),
 					fromSelection = fromStack,
 					toSelection = StackSelection.ANYTHING,
-					limit = remaining,
 					allowReplace = false,
 					trackResult = false
 				).thenOrNull {
@@ -279,8 +277,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					fromContainers = listOf(InventoryContainer, HotbarContainer),
 					toContainers = listOf(to),
 					fromSelection = fromStack,
-					toSelection = toStack,
-					limit = remaining
+					toSelection = toStack
 				).thenOrNull {
 					if (!canReceive(to)) {
 						toQueue.removeAll { it.haveMatchingInventories(to) }
@@ -317,7 +314,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		private val toContainers: List<Container>,
 		private val fromSelection: StackSelection,
 		toSelection: StackSelection,
-		private val limit: Int = if (unlimited) Int.MAX_VALUE else remaining,
 		private val allowReplace: Boolean = true,
 		private val trackResult: Boolean = true
 	) : Task<Int>() {
@@ -337,8 +333,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			lastFailureReason = InvRequestFailureReason.None
 
 			val currentLimit =
-				if (limit == Int.MAX_VALUE) Int.MAX_VALUE
-				else (limit - moved).coerceAtLeast(0)
+				if (remaining == Int.MAX_VALUE) Int.MAX_VALUE
+				else (remaining - moved).coerceAtLeast(0)
 			if (currentLimit <= 0) {
 				finish()
 				return
@@ -346,7 +342,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 			val currentSelection =
 				fromSelection.mutate(
-					if (limit == Int.MAX_VALUE) 0
+					if (remaining == Int.MAX_VALUE) 0
 					else minOf(currentLimit, fromSelection.count.coerceAtLeast(1))
 				) { notEmpty() }
 
