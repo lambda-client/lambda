@@ -24,6 +24,8 @@ import com.lambda.config.Config
 import com.lambda.config.categories.FriendCategory
 import com.lambda.core.Loadable
 import com.lambda.network.mojang.getProfile
+import com.lambda.network.mojang.getProfilesByIds
+import com.lambda.util.FolderRegistry
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
@@ -33,8 +35,27 @@ import com.lambda.util.text.text
 import com.mojang.authlib.GameProfile
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.text.Text
+import tools.jackson.databind.json.JsonMapper
 import java.awt.Color
+import java.nio.file.Files
 import java.util.*
+
+private val nameCacheFile by lazy { FolderRegistry.cache.resolve("friend-names.json").toFile() }
+
+internal fun parseFriendNames(text: String, mapper: JsonMapper): Map<UUID, String> {
+    val root = runCatching { mapper.readTree(text) }.getOrNull() ?: return emptyMap()
+    if (!root.isObject) return emptyMap()
+    val names = mutableMapOf<UUID, String>()
+    for ((id, node) in root.properties()) {
+        val uuid = runCatching { UUID.fromString(id) }.getOrNull() ?: continue
+        val name = node.takeIf { it.isString }?.stringValue() ?: continue
+        names[uuid] = name
+    }
+    return names
+}
+
+internal fun writeFriendNames(names: Map<UUID, String>, mapper: JsonMapper) =
+    mapper.writeValueAsString(names)
 
 object FriendHandler : Config(
     "friends",
@@ -102,6 +123,33 @@ object FriendHandler : Config(
     }
 
     fun friendDisplayName(uuid: UUID): String = gameProfile(uuid)?.name ?: uuid.toString()
+
+    fun loadNameCache() {
+        if (!nameCacheFile.exists()) return
+        val text = runCatching { nameCacheFile.readText() }.getOrNull() ?: return
+        for ((uuid, name) in parseFriendNames(text, Lambda.mapper)) {
+            cachedProfiles[uuid] = GameProfile(uuid, name)
+        }
+    }
+
+    fun saveNameCache() {
+        val names = friends.mapNotNull { uuid -> cachedProfiles[uuid]?.name?.let { uuid to it } }.toMap()
+        val json = runCatching { writeFriendNames(names, Lambda.mapper) }.getOrNull() ?: return
+        runCatching {
+            nameCacheFile.parentFile.mkdirs()
+            Files.writeString(nameCacheFile.toPath(), json)
+        }
+    }
+
+    suspend fun resolveMissing() {
+        val missing = friends.toList()
+            .filter { gameProfile(it) == null }
+        if (missing.isEmpty()) return
+        for (profile in getProfilesByIds(missing)) {
+            cachedProfiles[profile.id] = profile
+        }
+        saveNameCache()
+    }
 
     val PlayerEntity.isFriend: Boolean
         get() = isFriend(gameProfile)

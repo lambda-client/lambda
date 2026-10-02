@@ -68,8 +68,7 @@ object FriendCommand : LambdaCommand(
                             literal("Your friends (${FriendHandler.friends.size}):\n")
 
                             FriendHandler.friends.forEachIndexed { index, uuid ->
-                                val profile = FriendHandler.latestGameProfile(uuid)
-                                val displayName = profile?.name ?: uuid.toString()
+                                val displayName = FriendHandler.friendDisplayName(uuid)
 
                                 literal("   ${index + 1}. $displayName ")
                                 styled(
@@ -91,6 +90,10 @@ object FriendCommand : LambdaCommand(
                         }
                     }
                 )
+
+                if (FriendHandler.friends.any { FriendHandler.gameProfile(it) == null }) {
+                    runIO { FriendHandler.resolveMissing() }
+                }
             }
         }
 

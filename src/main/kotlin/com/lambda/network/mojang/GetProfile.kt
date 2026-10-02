@@ -32,6 +32,7 @@ import java.util.*
 
 private const val BULK_URL = "https://api.mojang.com/profiles/minecraft"
 private const val BULK_LIMIT = 10
+private const val LOOKUP_CONCURRENCY = 4
 
 private val UNDASHED =
     Regex("([0-9a-fA-F]{8})([0-9a-fA-F]{4})([0-9a-fA-F]{4})([0-9a-fA-F]{4})([0-9a-fA-F]{12})")
@@ -56,11 +57,18 @@ internal fun toGameProfile(id: String, name: String): GameProfile? =
         ?.let { GameProfile(UUID.fromString(it), name) }
 
 suspend fun getProfiles(names: List<String>): List<GameProfile> = coroutineScope {
-    val gate = Semaphore(4)
+    val gate = Semaphore(LOOKUP_CONCURRENCY)
     names.chunked(BULK_LIMIT)
         .map { batch -> async { gate.withPermit { requestProfiles(batch) } } }
         .awaitAll()
         .flatten()
+}
+
+suspend fun getProfilesByIds(ids: List<UUID>): List<GameProfile> = coroutineScope {
+    val gate = Semaphore(LOOKUP_CONCURRENCY)
+    ids.map { id -> async { gate.withPermit { getProfile(id).getOrNull() } } }
+        .awaitAll()
+        .filterNotNull()
 }
 
 private suspend fun requestProfiles(batch: List<String>): List<GameProfile> = runCatching {
