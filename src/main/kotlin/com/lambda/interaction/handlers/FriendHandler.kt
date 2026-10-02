@@ -18,6 +18,7 @@
 package com.lambda.interaction.handlers
 
 import com.lambda.Lambda
+import com.lambda.Lambda.LOG
 import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.FriendCommand
 import com.lambda.config.Config
@@ -39,6 +40,7 @@ import tools.jackson.databind.json.JsonMapper
 import java.awt.Color
 import java.nio.file.Files
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 private val nameCacheFile by lazy { FolderRegistry.cache.resolve("friend-names.json").toFile() }
 
@@ -63,7 +65,7 @@ object FriendHandler : Config(
 ), Loadable {
     val friends by setting("friends", emptySet<UUID>(), serialize = true)
 
-    private val cachedProfiles = mutableMapOf<UUID, GameProfile>()
+    private val cachedProfiles = ConcurrentHashMap<UUID, GameProfile>()
 
     fun befriend(profile: GameProfile): Boolean {
         cachedProfiles[profile.id] = profile
@@ -122,14 +124,17 @@ object FriendHandler : Config(
         friends.clear()
     }
 
-    fun friendDisplayName(uuid: UUID): String = gameProfile(uuid)?.name ?: uuid.toString()
+    fun friendDisplayName(uuid: UUID): String =
+    gameProfile(uuid)?.name ?: uuid.toString().also { LOG.info("no cached name for friend $uuid") }
 
     fun loadNameCache() {
         if (!nameCacheFile.exists()) return
         val text = runCatching { nameCacheFile.readText() }.getOrNull() ?: return
-        for ((uuid, name) in parseFriendNames(text, Lambda.mapper)) {
+        val parsed = parseFriendNames(text, Lambda.mapper)
+        for ((uuid, name) in parsed) {
             cachedProfiles[uuid] = GameProfile(uuid, name)
         }
+        LOG.info("friend-names.json: read ${parsed.size} name(s)")
     }
 
     fun saveNameCache() {
@@ -145,10 +150,12 @@ object FriendHandler : Config(
         val missing = friends.toList()
             .filter { gameProfile(it) == null }
         if (missing.isEmpty()) return
-        for (profile in getProfilesByIds(missing)) {
+        val resolved = getProfilesByIds(missing)
+        for (profile in resolved) {
             cachedProfiles[profile.id] = profile
         }
         saveNameCache()
+        LOG.info("resolved ${resolved.size} of ${missing.size} missing friend name(s)")
     }
 
     val PlayerEntity.isFriend: Boolean
