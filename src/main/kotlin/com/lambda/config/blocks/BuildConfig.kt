@@ -34,6 +34,7 @@ interface BuildConfig {
     val collectDrops: Boolean
     val spleefEntities: Boolean
     val cautionDoubleBlocks: Boolean
+    val stripLogs: Boolean
     val maxPendingActions: Int
     val actionTimeout: Int
     val maxBuildDependencies: Int
