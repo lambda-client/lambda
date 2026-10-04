@@ -345,15 +345,29 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 	}
 
+	/** A source slot and the destination slot chosen for it, with the containers they belong to. */
+	private data class SlotPair(
+		val fromContainer: Container,
+		val fromSlot: Slot,
+		val toContainer: Container,
+		val toSlot: Slot
+	) {
+		operator fun get(target: StackMovePlanner.Target) =
+			when (target) {
+				StackMovePlanner.Target.Source -> fromSlot
+				StackMovePlanner.Target.Destination -> toSlot
+			}
+	}
+
 	/**
 	 * Moves items between already-accessed containers. Slot pairs are selected fresh each tick using
 	 * [fromSelection] and the container's own [Container.findSlot] / [Container.findReplaceSlot] APIs —
 	 * no slot references are cached across ticks.
 	 *
-	 * For partial-stack precision, moves are planned with [StackMovePlanner] which finds the shortest
-	 * sequence of vanilla `PICKUP` clicks to reach the exact item count. Whole-stack moves use the native
-	 * quick-move when vanilla is guaranteed to put the stack into one of [toContainers], and the planned clicks
-	 * otherwise. Foreign stacks are swapped out with the container's own [Container.swap] method.
+	 * A foreign stack in the chosen destination slot is swapped out with the container's own [Container.swap].
+	 * A whole stack is shift-clicked with vanilla's quick-move when that is certain to land inside [toContainers]
+	 * and the cursor is empty. Everything else is clicked through along a [StackMovePlanner] plan, which reaches
+	 * the exact item count in the exact slot and carries on from whatever the cursor still holds.
 	 *
 	 * @param allowReplace whether a foreign stack matching [toSelection] may be swapped out as a last resort.
 	 * @param trackResult whether destination slots are recorded for the [TransferResult].
@@ -399,50 +413,49 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				) { notEmpty() }
 
 			// Find the best slot pair fresh — never cached across ticks
-			val moveSlots =
+			val pair =
 				fromContainers.firstNotNullOfOrNull { fromContainer ->
 					val fromSlot = fromContainer.findSlot(currentSelection) ?: return@firstNotNullOfOrNull null
 
 					toContainers.firstNotNullOfOrNull { toContainer ->
 						if (toContainer.haveMatchingInventories(fromContainer)) return@firstNotNullOfOrNull null
 						if (!fromContainer.canSwapWith(toContainer)) return@firstNotNullOfOrNull null
-
-						// 1. Prefer topping up a partial stack of the very same item (components included)
-						val mergeSlot =
-							toContainer.findSlot(
-								stackSelection {
-									predicate { stack, _ -> !stack.isEmpty && stack.hasSpace && stack.sameItemAs(fromSlot.stack) }
-									canInsert(fromSlot.stack)
-								}
-							)
-						if (mergeSlot != null) {
-							return@firstNotNullOfOrNull Triple(fromContainer, toContainer, fromSlot to mergeSlot)
+						findDestinationSlot(fromSlot, toContainer)?.let { toSlot ->
+							SlotPair(fromContainer, fromSlot, toContainer, toSlot)
 						}
-
-						// 2. Otherwise an empty slot; the destination filter never restricts those
-						val emptySlot = toContainer.findReplaceSlot(fromSlot.stack, stackSelection { isEmpty() })
-						if (emptySlot != null) {
-							return@firstNotNullOfOrNull Triple(fromContainer, toContainer, fromSlot to emptySlot)
-						}
-
-						// 3. As a last resort a foreign stack matching the destination filter that gets swapped out
-						if (!allowReplace) return@firstNotNullOfOrNull null
-						val replaceSlot = toContainer.findReplaceSlot(fromSlot.stack, toSelection)
-						if (replaceSlot != null && fromSlot.canInsert(replaceSlot.stack)) {
-							Triple(fromContainer, toContainer, fromSlot to replaceSlot)
-						} else null
 					}
 				}
 
-			if (moveSlots == null) {
+			if (pair == null) {
 				finish()
 				return
 			}
 
-			val (fromContainer, toContainer, pair) = moveSlots
-			val (fromSlot, toSlot) = pair
+			move(pair, atMost = currentLimit)
+		}
 
-			move(fromContainer, fromSlot, toContainer, toSlot, currentLimit)
+		/**
+		 * The slot of [toContainer] that should receive the stack in [fromSlot]: a partial stack of the very same
+		 * item (components included) is topped up first, then an empty slot is used; the destination filter never
+		 * restricts those. Only as a last resort, and only when [allowReplace] permits it, a foreign stack matching
+		 * [toSelection] is chosen to be swapped out.
+		 */
+		private fun AutomatedSafeContext.findDestinationSlot(fromSlot: Slot, toContainer: Container): Slot? {
+			val stack = fromSlot.stack
+			val partialStack =
+				stackSelection {
+					predicate { candidate, _ -> !candidate.isEmpty && candidate.hasSpace && candidate.sameItemAs(stack) }
+					canInsert(stack)
+				}
+			return toContainer.findSlot(partialStack)
+				?: toContainer.findReplaceSlot(stack, stackSelection { isEmpty() })
+				?: findSwappableSlot(fromSlot, toContainer)
+		}
+
+		/** A foreign stack of [toContainer] matching [toSelection] that [fromSlot] accepts in return. */
+		private fun AutomatedSafeContext.findSwappableSlot(fromSlot: Slot, toContainer: Container): Slot? {
+			if (!allowReplace) return null
+			return toContainer.findReplaceSlot(fromSlot.stack, toSelection)?.takeIf { fromSlot.canInsert(it.stack) }
 		}
 
 		/**
@@ -465,201 +478,147 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		}
 
 		/**
-		 * Moves items from [fromSlot] to [toSlot]. Uses atomic [Container.swap] when replacing a foreign slot
-		 * (when [allowReplace] is true). Uses native quick-move (shift-click) for whole-stack moves when vanilla
-		 * is certain to land inside [toContainers]. Uses [StackMovePlanner] for everything else to reach the
-		 * exact requested count in the exact requested slot.
+		 * Moves at most [atMost] items along [pair]. A foreign stack in the destination slot can only be swapped
+		 * out whole. A whole stack takes vanilla's quick-move when that is certain to land inside [toContainers]
+		 * and nothing is on the cursor. Everything else is clicked through to the exact count.
 		 */
-		private fun AutomatedSafeContext.move(
-			fromContainer: Container,
-			fromSlot: Slot,
-			toContainer: Container,
-			toSlot: Slot,
-			currentLimit: Int
-		) {
-			val stack = fromSlot.stack
-			if (stack.isEmpty) {
+		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int) {
+			val stack = pair.fromSlot.stack
+			val count = minOf(stack.count, atMost)
+			val cursor = player.currentScreenHandler.cursorStack
+			when {
+				pair.toSlot.stack.isForeignTo(stack) -> swapOut(pair)
+				count == stack.count && cursor.isEmpty && quickMoveStaysInside(pair.fromContainer, stack) -> quickMoveWhole(pair)
+				else -> clickThrough(pair, count)
+			}
+		}
+
+		/** Swaps the whole source stack with the foreign stack in the destination slot; vanilla knows no other way into an occupied slot. */
+		private fun AutomatedSafeContext.swapOut(pair: SlotPair) {
+			val count = pair.fromSlot.stack.count
+			val request = pair.fromContainer.swapRequest(pair.fromSlot, pair.toSlot, pair.toContainer)?.submit()
+			when {
+				request == null -> finish()
+				!request.done -> finishUnlessTransient(request.failureReason)
+				else -> {
+					recordMoved(count)
+					recordDestination(pair.toSlot, pair.toContainer)
+				}
+			}
+		}
+
+		/**
+		 * Shift-clicks the whole stack and lets vanilla pick the slots, so the destination containers are diffed
+		 * afterwards to learn where the items went.
+		 */
+		private fun AutomatedSafeContext.quickMoveWhole(pair: SlotPair) {
+			if (availablePackets(PacketType.Inventory) < 1) return
+			if (ContainerEvent.Transfer(pair.fromSlot, pair.toSlot, pair.fromContainer, pair.toContainer).post().isCanceled()) return
+
+			val before = pair.fromSlot.stack.copy()
+			val destinationsBefore =
+				if (trackResult) toContainers.map { container -> container.slots.map { it.stack.copy() } }
+				else emptyList()
+			val request = inventoryRequest { quickMove(pair.fromSlot.id) }.submit()
+			if (!request.done) {
+				finishUnlessTransient(request.failureReason)
+				return
+			}
+
+			val left = pair.fromSlot.stack.takeIf { it.sameItemAs(before) }?.count ?: 0
+			val count = before.count - left
+			if (count <= 0) {
 				finish()
 				return
 			}
+			recordMoved(count)
+			if (trackResult) recordReceivingSlots(destinationsBefore)
+		}
 
-			val moveCount = minOf(stack.count, currentLimit)
-			if (moveCount <= 0) {
-				finish()
-				return
-			}
-
-			val wholeStack = moveCount == stack.count
-			val toSameItem = !toSlot.stack.isEmpty && toSlot.stack.sameItemAs(stack)
-			val toForeign = !toSlot.stack.isEmpty && !toSameItem
-
-			// 1. Foreign slot replacement (swapping the whole stack is the sole way into a foreign slot)
-			if (toForeign && allowReplace) {
-				val actualMoved = stack.count
-				val request = fromContainer
-					.swapRequest(fromSlot, toSlot, toContainer)
-					?.submit()
-				if (request == null || !request.done) {
-					if (request != null) checkFinish(request.failureReason)
-					else finish()
-					return
-				}
-
-				moved += actualMoved
-				if (trackResult) {
-					transferred += actualMoved
-					resultSlots[toSlot] = toSlot.stack.copy()
-					resultContainers.add(toContainer)
-				}
-				return
-			}
-
-			// Can't move into a foreign slot when replacement is not allowed
-			if (toForeign) {
-				finish()
-				return
-			}
-
-			// 2. Whole-stack fast-path using native quick-move (shift-click)
-			if (wholeStack && quickMoveStaysInside(fromContainer, stack)) {
-				val cursorStack = CursorContainer.stacks.firstOrNull() ?: return
-				if (!cursorStack.isEmpty) return
-
-				val packetLimit = availablePackets(PacketType.Inventory)
-				if (packetLimit < 1) {
-					checkFinish(InvRequestFailureReason.PacketLimit)
-					return
-				}
-
-				val event = ContainerEvent.Transfer(fromSlot, toSlot, fromContainer, toContainer)
-				if (event.post().isCanceled()) return
-
-				val initialStack = stack.copy()
-				val countBefore = initialStack.count
-				val slotsBefore =
-					if (trackResult) toContainers.map { container -> container.slots.map { it.stack.copy() } }
-					else null
-
-				val request =
-					inventoryRequest {
-						quickMove(fromSlot.id)
-					}.submit()
-
-				if (!request.done) {
-					checkFinish(request.failureReason)
-					return
-				}
-
-				val countAfter =
-					if (fromSlot.stack.isEmpty || !fromSlot.stack.sameItemAs(initialStack)) 0
-					else fromSlot.stack.count
-				val actualMoved = countBefore - countAfter
-				if (actualMoved <= 0) {
-					finish()
-					return
-				}
-
-				moved += actualMoved
-				if (trackResult) {
-					transferred += actualMoved
-					toContainers.forEachIndexed { containerIndex, container ->
-						container.slots.forEachIndexed { index, slot ->
-							val prev = slotsBefore?.getOrNull(containerIndex)?.getOrNull(index)
-							if (prev == null || prev.isEmpty || slot.stack.count > prev.count || !slot.stack.sameItemAs(prev)) {
-								if (!slot.stack.isEmpty) {
-									resultSlots[slot] = slot.stack.copy()
-									resultContainers.add(container)
-								}
-							}
-						}
-					}
-				}
-				return
-			}
-
-			// 3. Planned clicks — exact count into the exact slot, within the currently available packet budget
+		/**
+		 * Clicks exactly [count] items across along a [StackMovePlanner] plan that fits this tick's inventory
+		 * packet budget. When the full count does not fit, as much as the budget allows is moved now and the rest
+		 * follows on later ticks.
+		 */
+		private fun AutomatedSafeContext.clickThrough(pair: SlotPair, count: Int) {
 			if (!CursorContainer.isAccessible) {
 				finish()
 				return
 			}
-			val cursorStack = CursorContainer.stacks.firstOrNull() ?: return
-			if (!cursorStack.isEmpty && !cursorStack.sameItemAs(stack)) return
+			val stack = pair.fromSlot.stack
+			val cursor = player.currentScreenHandler.cursorStack
+			// A foreign stack on the cursor is somebody else's business; wait until it has been put away.
+			if (cursor.isForeignTo(stack)) return
 
-			val packetBudget = availablePackets(PacketType.Inventory)
-			if (packetBudget < 2) {
-				if (packetBudget >= buildConfig.inventoryLimit) finish()
+			val budget = availablePackets(PacketType.Inventory)
+			val destinationBefore = pair.toSlot.stack.count
+			val plan =
+				StackMovePlanner.planWithin(
+					state = StackMovePlanner.State(cursor.count, stack.count, destinationBefore),
+					maxCount = pair.toSlot.getMaxItemCount(stack),
+					goal = destinationBefore + count,
+					clickBudget = budget
+				)
+			if (plan == null) {
+				// Even an untouched budget cannot fit the shortest plan: this pair can never be served, give it up.
+				if (budget >= buildConfig.inventoryLimit) finish()
 				return
 			}
 
-			val toCount =
-				if (toSameItem) toSlot.stack.count
-				else 0
-			val maxCount = toSlot.getMaxItemCount(stack)
-			val goal = minOf(toCount + moveCount, maxCount)
-			if (goal <= toCount) return
-
-			val state = StackMovePlanner.State(cursorStack.count, stack.count, toCount)
-			val idealPlan = StackMovePlanner.plan(state, maxCount, goal)
-			val (stepGoal, plan) =
-				if (idealPlan != null && idealPlan.size <= packetBudget) {
-					goal to idealPlan
-				} else {
-					var foundGoal = goal
-					var foundPlan: List<StackMovePlanner.Click>? = null
-					for (g in goal downTo toCount + 1) {
-						val p = StackMovePlanner.plan(state, maxCount, g) ?: continue
-						if (p.size <= packetBudget) {
-							foundGoal = g
-							foundPlan = p
-							break
-						}
-					}
-					foundGoal to foundPlan
-				}
-
-			if (plan.isNullOrEmpty()) {
-				// A completely unused budget that still cannot fit the shortest plan never will: give this pair up.
-				if (packetBudget >= buildConfig.inventoryLimit) finish()
-				return
-			}
-
-			val actualMove = stepGoal - toCount
-			if (actualMove <= 0) return
-
-			// Post the transfer event for partial moves (swap() posts its own for whole moves)
-			val event = ContainerEvent.Transfer(fromSlot, toSlot, fromContainer, toContainer)
-			if (event.post().isCanceled()) return
-
+			if (ContainerEvent.Transfer(pair.fromSlot, pair.toSlot, pair.fromContainer, pair.toContainer).post().isCanceled()) return
 			val request =
 				inventoryRequest {
-					plan.forEach { click ->
-						val slotId =
-							if (click.target == StackMovePlanner.Target.Source) fromSlot.id
-							else toSlot.id
-						pickup(slotId, click.button)
-					}
+					plan.clicks.forEach { click -> pickup(pair[click.target].id, click.button.id) }
 				}.submit()
+			if (!request.done) {
+				finishUnlessTransient(request.failureReason)
+				return
+			}
 
-			if (!request.done) return
+			recordMoved(plan.destination - destinationBefore)
+			recordDestination(pair.toSlot, pair.toContainer)
+		}
 
-			moved += actualMove
-			if (trackResult) {
-				transferred += actualMove
-				resultSlots[toSlot] = toSlot.stack.copy()
-				resultContainers.add(toContainer)
+		/** Books every destination slot that holds more than it did [before] vanilla's quick-move. */
+		private fun recordReceivingSlots(before: List<List<ItemStack>>) {
+			toContainers.zip(before).forEach { (container, previous) ->
+				container.slots.forEachIndexed { index, slot ->
+					if (slot.stack.grewFrom(previous.getOrNull(index))) recordDestination(slot, container)
+				}
 			}
 		}
 
-		private fun checkFinish(failureReason: InvRequestFailureReason = InvRequestFailureReason.None) {
-			if (failureReason != InvRequestFailureReason.None) return
-			finish()
+		private fun recordMoved(count: Int) {
+			moved += count
+			if (trackResult) transferred += count
+		}
+
+		private fun recordDestination(slot: Slot, container: Container) {
+			if (!trackResult) return
+			resultSlots[slot] = slot.stack.copy()
+			resultContainers += container
+		}
+
+		/**
+		 * A request the manager could not take this tick is retried next tick when the cause clears up by itself
+		 * (packet limit, another request already running); any other cause will not, so the move ends here.
+		 */
+		private fun finishUnlessTransient(failureReason: InvRequestFailureReason) {
+			if (failureReason == InvRequestFailureReason.None) finish()
 		}
 
 		private fun finish() {
 			success(moved)
 		}
 
-		fun ItemStack.sameItemAs(other: ItemStack) = ItemStack.areItemsAndComponentsEqual(this, other)
+		private fun ItemStack.sameItemAs(other: ItemStack) = ItemStack.areItemsAndComponentsEqual(this, other)
+
+		/** A non-empty stack of another item, or of the same item with other components. */
+		private fun ItemStack.isForeignTo(other: ItemStack) = !isEmpty && !sameItemAs(other)
+
+		/** Whether this stack holds something [previous] did not, or more of it. */
+		private fun ItemStack.grewFrom(previous: ItemStack?) =
+			!isEmpty && (previous == null || previous.isEmpty || !sameItemAs(previous) || count > previous.count)
 	}
 
 	private fun fail(message: String) {

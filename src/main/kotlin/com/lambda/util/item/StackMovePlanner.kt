@@ -17,23 +17,19 @@
 
 package com.lambda.util.item
 
-import java.util.concurrent.ConcurrentHashMap
-
 /**
- * Plans the shortest sequence of vanilla `PICKUP` slot clicks that moves an exact number of items
- * of a single item type between two slots, using the cursor as the only intermediary.
+ * Plans the shortest sequence of vanilla `PICKUP` slot clicks that moves items of one item type from a source
+ * slot into a destination slot, with the cursor as the only intermediary.
  *
- * The model follows vanilla click semantics for a source slot, a destination slot and the cursor,
- * all holding the same item type (or being empty):
+ * The model follows vanilla click semantics for two slots and a cursor that hold the same item type or nothing:
  *  - Left click with an empty cursor picks up the whole slot.
  *  - Right click with an empty cursor picks up half the slot, rounded up.
  *  - Left click with a held stack places as much as fits into the slot.
- *  - Right click with a held stack places exactly one item.
+ *  - Right click with a held stack places a single item.
  *
- * A breadth-first search over `(cursor, source)` (the destination count follows from the invariant
- * `cursor + source + destination = total`) finds the minimal click count. Results are cached per
- * distinct `(cursor, source, destination, maxCount, destinationGoal)` since the state space is tiny
- * and transfers tend to repeat the same shapes.
+ * Every count is bounded by the stack size the destination slot allows (`maxCount`), which keeps the state space
+ * at a few thousand states at most. A breadth-first search over it yields the minimal click count cheaply enough
+ * to plan every move afresh.
  */
 object StackMovePlanner {
 	enum class Target {
@@ -41,104 +37,126 @@ object StackMovePlanner {
 		Destination
 	}
 
-	/** A single slot click: [button] `0` is a left click, `1` a right click. */
-	data class Click(val target: Target, val button: Int)
+	/** A mouse button as vanilla numbers it in `PICKUP` clicks. */
+	enum class Button(val id: Int) {
+		Left(0),
+		Right(1)
+	}
+
+	data class Click(val target: Target, val button: Button)
 
 	/** Item counts held by the cursor and both slots. */
 	data class State(val cursor: Int, val source: Int, val destination: Int) {
 		val total get() = cursor + source + destination
-	}
 
-	private data class Key(val cursor: Int, val source: Int, val destination: Int, val maxCount: Int, val goal: Int)
-
-	private val cache = ConcurrentHashMap<Key, List<Click>>()
-
-	private val actions =
-		listOf(
-			Click(Target.Source, 0),
-			Click(Target.Source, 1),
-			Click(Target.Destination, 0),
-			Click(Target.Destination, 1)
-		)
-
-	/**
-	 * Applies one [click] to [state] following vanilla `PICKUP` semantics.
-	 * Returns the same instance when the click would have no effect.
-	 */
-	fun apply(state: State, click: Click, maxCount: Int): State {
-		val slot = if (click.target == Target.Source) state.source else state.destination
-		val cursor = state.cursor
-		val (newCursor, newSlot) =
-			if (cursor == 0) {
-				if (slot == 0) return state
-				val taken = if (click.button == 0) slot else (slot + 1) / 2
-				taken to slot - taken
-			} else {
-				val room = maxCount - slot
-				if (room <= 0) return state
-				val placed = if (click.button == 0) minOf(cursor, room) else 1
-				cursor - placed to slot + placed
+		operator fun get(target: Target) =
+			when (target) {
+				Target.Source -> source
+				Target.Destination -> destination
 			}
-		return if (click.target == Target.Source) State(newCursor, newSlot, state.destination)
-		else State(newCursor, state.source, newSlot)
-	}
 
-	/**
-	 * Finds the shortest click sequence that ends with the destination holding exactly [destinationGoal]
-	 * items and an empty cursor. Returns `null` when the goal is unreachable (for example when the goal
-	 * exceeds [maxCount] or the items available).
-	 */
-	fun plan(state: State, maxCount: Int, destinationGoal: Int): List<Click>? {
-		if (maxCount <= 0 || destinationGoal < 0 || destinationGoal > maxCount) return null
-		if (destinationGoal > state.total) return null
-		if (state.cursor == 0 && state.destination == destinationGoal) return emptyList()
-		if (state.total - destinationGoal > maxCount) return null
-
-		val key = Key(state.cursor, state.source, state.destination, maxCount, destinationGoal)
-		return cache.getOrPut(key) { search(state, maxCount, destinationGoal) }
-	}
-
-	/**
-	 * Number of clicks needed for [plan], or `null` when unreachable.
-	 */
-	fun cost(state: State, maxCount: Int, destinationGoal: Int) = plan(state, maxCount, destinationGoal)?.size
-
-	private fun search(start: State, maxCount: Int, goal: Int): List<Click>? {
-		val width = maxCount + 1
-		fun index(state: State) = state.cursor * width + state.source
-
-		// parent[index] holds (parentIndex shl 2) or actionIndex; -1 marks unvisited.
-		val parent = IntArray(width * width) { -1 }
-		val queue = ArrayDeque<State>()
-		val startIndex = index(start)
-		parent[startIndex] = startIndex shl 2
-		queue.addLast(start)
-
-		while (queue.isNotEmpty()) {
-			val state = queue.removeFirst()
-			if (state.cursor == 0 && state.destination == goal) return reconstruct(parent, width, startIndex, index(state))
-
-			actions.forEachIndexed { actionIndex, click ->
-				val next = apply(state, click, maxCount)
-				if (next === state) return@forEachIndexed
-				if (next.cursor > maxCount || next.source > maxCount || next.destination > maxCount) return@forEachIndexed
-				val nextIndex = index(next)
-				if (parent[nextIndex] != -1) return@forEachIndexed
-				parent[nextIndex] = (index(state) shl 2) or actionIndex
-				queue.addLast(next)
+		fun withSlot(target: Target, count: Int) =
+			when (target) {
+				Target.Source -> copy(source = count)
+				Target.Destination -> copy(destination = count)
 			}
-		}
-		return null
+
+		/** Whether every count lies within what slots holding at most [maxCount] items can represent. */
+		fun fits(maxCount: Int) =
+			cursor in 0..maxCount && source in 0..maxCount && destination in 0..maxCount
+
+		/** The only state a finished move can end in: an empty cursor and [count] items in the destination. */
+		fun settled(count: Int) = State(cursor = 0, source = total - count, destination = count)
 	}
 
-	private fun reconstruct(parent: IntArray, width: Int, startIndex: Int, endIndex: Int): List<Click> {
-		val clicks = ArrayDeque<Click>()
-		var current = endIndex
-		while (current != startIndex) {
-			val entry = parent[current]
-			clicks.addFirst(actions[entry and 3])
-			current = entry ushr 2
+	/** The [clicks] that leave [destination] items in the destination slot and nothing on the cursor. */
+	data class Plan(val clicks: List<Click>, val destination: Int)
+
+	/** How a state was first reached during the search. */
+	private data class Step(val previous: State, val click: Click)
+
+	private val CLICKS = Target.entries.flatMap { target -> Button.entries.map { Click(target, it) } }
+
+	/** Applies one [click] to [state] following vanilla `PICKUP` semantics. */
+	fun apply(state: State, click: Click, maxCount: Int): State =
+		if (state.cursor == 0) state.pickUp(click) else state.place(click, maxCount)
+
+	/**
+	 * The shortest click sequence that ends with exactly [goal] items in the destination and an empty cursor,
+	 * or `null` when there is none: the goal exceeds [maxCount] or the items available, the source could not
+	 * hold the surplus, or [state] does not [fit][State.fits] the model.
+	 */
+	fun plan(state: State, maxCount: Int, goal: Int): List<Click>? {
+		val end = state.settled(goal)
+		if (!state.fits(maxCount) || !end.fits(maxCount)) return null
+		return explore(state, maxCount, maxClicks = Int.MAX_VALUE).pathTo(end)
+	}
+
+	/**
+	 * The plan that brings the destination as close to [goal] as [clickBudget] clicks allow without exceeding
+	 * it: the largest count in `(state.destination, goal]` whose shortest plan fits the budget. `null` when not
+	 * even a single item can be moved within the budget.
+	 */
+	fun planWithin(state: State, maxCount: Int, goal: Int, clickBudget: Int): Plan? {
+		if (!state.fits(maxCount)) return null
+		val steps = explore(state, maxCount, maxClicks = clickBudget)
+		val highest = minOf(goal, maxCount, state.total)
+		return (highest downTo state.destination + 1).firstNotNullOfOrNull { count ->
+			steps.pathTo(state.settled(count))?.let { Plan(it, count) }
 		}
-		return clicks.toList()
+	}
+
+	/** An empty cursor takes the whole slot with a left click and the larger half with a right click. */
+	private fun State.pickUp(click: Click): State {
+		val slot = this[click.target]
+		val taken =
+			when (click.button) {
+				Button.Left -> slot
+				Button.Right -> (slot + 1) / 2
+			}
+		return copy(cursor = taken).withSlot(click.target, slot - taken)
+	}
+
+	/** A held stack drops as much as fits with a left click and a single item with a right click. */
+	private fun State.place(click: Click, maxCount: Int): State {
+		val slot = this[click.target]
+		val offered =
+			when (click.button) {
+				Button.Left -> cursor
+				Button.Right -> 1
+			}
+		val placed = minOf(offered, maxCount - slot).coerceAtLeast(0)
+		return copy(cursor = cursor - placed).withSlot(click.target, slot + placed)
+	}
+
+	/**
+	 * Breadth-first search from [start]: every state reachable within [maxClicks] clicks, mapped to the step
+	 * that first reached it ([start] itself maps to `null`). Following the steps back from a state yields its
+	 * shortest plan.
+	 */
+	private fun explore(start: State, maxCount: Int, maxClicks: Int): Map<State, Step?> {
+		val steps = hashMapOf<State, Step?>(start to null)
+		var frontier = listOf(start)
+		var depth = 0
+		while (frontier.isNotEmpty() && depth < maxClicks) {
+			frontier =
+				frontier.flatMap { state ->
+					CLICKS.mapNotNull { click ->
+						apply(state, click, maxCount)
+							.takeUnless { it in steps }
+							?.also { steps[it] = Step(state, click) }
+					}
+				}
+			depth++
+		}
+		return steps
+	}
+
+	private fun Map<State, Step?>.pathTo(end: State): List<Click>? {
+		if (end !in this) return null
+		return generateSequence(this[end]) { this[it.previous] }
+			.map { it.click }
+			.toList()
+			.asReversed()
 	}
 }
