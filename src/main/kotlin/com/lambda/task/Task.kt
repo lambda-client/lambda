@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.task
 
 import com.lambda.Lambda.LOG
@@ -32,7 +34,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-@Suppress("unused")
 abstract class Task<R> : Nameable, Muteable {
     var state = State.Init
     var age = 0

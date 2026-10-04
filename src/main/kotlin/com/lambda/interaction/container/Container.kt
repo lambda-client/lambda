@@ -225,7 +225,7 @@ abstract class Container(
             .compare(this, other)
 
     open fun haveMatchingInventories(other: Container) =
-        this === other ||
+        this == other ||
                 (this is PlacedContainer &&
                         other is PlacedContainer &&
                         this::class == other::class &&

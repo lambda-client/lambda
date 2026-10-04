@@ -15,6 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.interaction.handler.handlers
 
 import com.lambda.Lambda
@@ -301,12 +303,8 @@ fun findSlots(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection)
-	.filter { containerSelection.matches(it) }
-	.let {
-		if (sorted) it.sorted()
-		else it
-	}
+) = containerSelection
+	.filter(searchContainers(containerSelection).asIterable(), sorted)
 	.mapNotNull { container ->
 		val slots = stackSelection.filter(container.slots)
 		if (slots.count >= stackSelection.count) slots
@@ -329,12 +327,8 @@ fun findStacks(
 	stackSelection: StackSelection = StackSelection.ANYTHING,
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection)
-	.filter { containerSelection.matches(it) }
-	.let {
-		if (sorted) it.sorted()
-		else it
-	}
+) = containerSelection
+	.filter(searchContainers(containerSelection).asIterable(), sorted)
 	.mapNotNull { container ->
 		val stacks = stackSelection.filter(container.stacks)
 		if (stacks.count >= stackSelection.count) stacks
@@ -355,12 +349,8 @@ context(automated: Automated)
 fun findContainers(
 	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	sorted: Boolean = true
-) = searchContainers(containerSelection)
-	.filter { containerSelection.matches(it) }
-	.let {
-		if (sorted) it.sorted()
-		else it
-	}
+) = containerSelection
+	.filter(searchContainers(containerSelection).asIterable(), sorted)
 
 @ContainerDslMarker
 context(_: Automated)
@@ -418,6 +408,7 @@ private fun searchContainers(
 
 	return baseContainers
 		.flatMap { it.allNested() }
+		.distinct()
 		.filter { it.isAccessible }
 }
 

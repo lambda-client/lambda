@@ -62,7 +62,7 @@ class ContainerSelection @ContainerDslMarker internal constructor(
     fun matches(container: Container): Boolean = selector(container)
 
     @ContainerDslMarker
-    fun filter(containers: Iterable<Container>) =
+    fun filter(containers: Iterable<Container>, sorted: Boolean = true) =
         run {
             containersWhitelist
                 .takeIf { it.isNotEmpty() }
@@ -71,7 +71,10 @@ class ContainerSelection @ContainerDslMarker internal constructor(
                 ?: containers.asSequence()
         }.filter { it !in containersBlacklist }
             .filter(selector)
-            .sortedWith(comparator)
+            .let {
+                if (sorted) it.sortedWith(comparator)
+                else it
+            }
             .toList()
 
     companion object {
@@ -99,6 +102,7 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
     ) : this(scope) {
         this.selector = selection.selector
         this.containersWhitelist.addAll(selection.containersWhitelist)
+        this.loadedContainers.addAll(selection.loadedContainers)
         this.containersBlacklist.addAll(selection.containersBlacklist)
         this.accessScope = selection.accessScope
         this.comparator = selection.comparator
@@ -109,7 +113,7 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
     private val loadedContainers = mutableListOf<Container>()
     private val containersBlacklist = mutableListOf<Container>()
     private var accessScope: AccessScope = AccessScope.Both
-    private var comparator: Comparator<Container> = compareBy { it.type }
+    private var comparator: Comparator<Container>? = null
 
     fun withContainers(vararg containers: Container) {
         loadedContainers.addAll(containers)
@@ -204,11 +208,15 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
     }
 
     fun sortedWith(comparator: Comparator<Container>) {
-        this.comparator = comparator
+        this.comparator = this.comparator
+            ?.then(comparator)
+            ?: comparator
     }
 
     fun sortedWith(comparatorSupplier: () -> Comparator<Container>) {
-        this.comparator = comparatorSupplier()
+        this.comparator = this.comparator
+            ?.then(comparatorSupplier())
+            ?: comparatorSupplier()
     }
 
     private fun appendSelector(selector: (Container) -> Boolean) {
@@ -225,6 +233,9 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
             containersBlacklist,
             accessScope,
             comparator
+                .takeUnless { it == null }
+                ?.thenBy { it.type }
+                ?: compareBy { it.type }
         )
 
     companion object {

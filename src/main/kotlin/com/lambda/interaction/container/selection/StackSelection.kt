@@ -134,13 +134,14 @@ class StackSelection @ContainerDslMarker internal constructor(
 	infix fun isIn(container: Container) =
 		container.count(this) >= count
 
+	// Container.count() reports -1 for "no matching slot", which must not eat into the other containers' totals.
 	@ContainerDslMarker
 	fun isIn(vararg containers: Container) =
-		containers.sumOf { it.count(this) } >= count
+		containers.sumOf { it.count(this).coerceAtLeast(0) } >= count
 
 	@ContainerDslMarker
 	infix fun isIn(containers: Iterable<Container>) =
-		containers.sumOf { it.count(this) } >= count
+		containers.sumOf { it.count(this).coerceAtLeast(0) } >= count
 
 	@ContainerDslMarker
 	infix fun spaceIn(container: Container) =
