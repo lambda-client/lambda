@@ -21,7 +21,6 @@ import com.lambda.network.LAMBDA_HTTP
 import com.mojang.authlib.GameProfile
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

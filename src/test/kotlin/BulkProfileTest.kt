@@ -26,15 +26,15 @@ class BulkProfileTest {
     @Test
     fun `converts undashed mojang id`() {
         val raw = "7bbc65a9067041cba331f2989479362c"
-        val profile = toGameProfile(raw, "AutoCrysta1")
+        val profile = toGameProfile(raw, "Steve")
         assertEquals(raw, profile?.id.toString().filterNot { it == '-' })
-        assertEquals("AutoCrysta1", profile?.name)
+        assertEquals("Steve", profile?.name)
     }
 
     @Test
     fun `converts uppercase undashed id`() {
         val raw = "7BBC65A9067041CBA331F2989479362C"
-        val profile = toGameProfile(raw, "AutoCrysta1")
+        val profile = toGameProfile(raw, "Steve")
         assertEquals(raw.lowercase(), profile?.id.toString().filterNot { it == '-' })
     }
 

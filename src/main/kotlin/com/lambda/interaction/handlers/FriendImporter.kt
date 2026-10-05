@@ -19,6 +19,7 @@ package com.lambda.interaction.handlers
 
 import com.lambda.Lambda
 import com.lambda.config.categories.FriendCategory
+import com.lambda.config.serializers.FriendListDeserializer
 import com.lambda.interaction.handlers.FriendHandler.befriend
 import com.lambda.interaction.handlers.FriendHandler.isFriend
 import com.lambda.network.mojang.getProfiles
@@ -26,58 +27,20 @@ import com.lambda.threading.runGameScheduled
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.CommunicationUtils.warn
+import com.lambda.util.FolderRegistry
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.util.tinyfd.TinyFileDialogs
-import tools.jackson.databind.JsonNode
-import tools.jackson.databind.json.JsonMapper
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
 private const val UNRESOLVED_LIMIT = 10
 
-class UnsupportedFriendFileException(message: String) : Exception(message)
-
-object FriendFileParser {
-    private val NAME = Regex("^[A-Za-z0-9_]{1,16}$")
-
-    fun parse(text: String, mapper: JsonMapper): List<String> {
-        val body = text.removePrefix("\uFEFF").trim()
-        val raw = if (body.startsWith("{") || body.startsWith("[")) {
-            namesIn(
-                runCatching { mapper.readTree(body) }.getOrNull()
-                    ?: throw UnsupportedFriendFileException("The file is not valid JSON.")
-            )
-        } else {
-            body.lines().map { it.substringBefore('#').trim() }
-        }
-        return raw.filter { NAME.matches(it) }
-            .distinctBy { it.lowercase() }
-            .ifEmpty { throw UnsupportedFriendFileException("No friends found in this file.") }
-    }
-
-    private fun namesIn(node: JsonNode): List<String> = when {
-        node.isString -> listOf(node.stringValue())
-        node.isArray -> node.flatMap { namesIn(it) }
-        node.isObject && node.has("name") -> {
-            val name = node.get("name").takeIf { it.isString }?.stringValue()
-            val role = node.get("role")?.takeIf { it.isString }?.stringValue()
-            if (name != null && (role == null || role.equals("friend", true))) {
-                listOf(name)
-            } else {
-                emptyList()
-            }
-        }
-        node.isObject -> node.properties().filter { it.value.isArray }.flatMap { namesIn(it.value) }
-        else -> emptyList()
-    }
-}
-
 object FriendImporter {
     fun pickFile(): Path? = MemoryStack.stackPush().use { stack ->
         TinyFileDialogs.tinyfd_openFileDialog(
             "Select a friend list file",
-            Lambda.mc.runDirectory.absolutePath,
+            FolderRegistry.minecraft.toString(),
             stack.pointers(
                 stack.ASCII("*.json"),
                 stack.ASCII("*.txt"),
@@ -97,7 +60,7 @@ object FriendImporter {
             return
         }
 
-        val names = runCatching { FriendFileParser.parse(text, Lambda.mapper) }.getOrElse { error ->
+        val names = runCatching { FriendListDeserializer.parse(text, Lambda.mapper) }.getOrElse { error ->
             logError(error.message ?: "Could not read this file.")
             return
         }

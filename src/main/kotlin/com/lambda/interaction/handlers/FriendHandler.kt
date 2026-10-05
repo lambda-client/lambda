@@ -23,6 +23,7 @@ import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.FriendCommand
 import com.lambda.config.Config
 import com.lambda.config.categories.FriendCategory
+import com.lambda.config.serializers.FriendNameSerializer
 import com.lambda.core.Loadable
 import com.lambda.network.mojang.getProfile
 import com.lambda.network.mojang.getProfilesByIds
@@ -36,28 +37,10 @@ import com.lambda.util.text.text
 import com.mojang.authlib.GameProfile
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.text.Text
-import tools.jackson.databind.json.JsonMapper
 import java.awt.Color
 import java.nio.file.Files
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-
-private val nameCacheFile by lazy { FolderRegistry.cache.resolve("friend-names.json").toFile() }
-
-internal fun parseFriendNames(text: String, mapper: JsonMapper): Map<UUID, String> {
-    val root = runCatching { mapper.readTree(text) }.getOrNull() ?: return emptyMap()
-    if (!root.isObject) return emptyMap()
-    val names = mutableMapOf<UUID, String>()
-    for ((id, node) in root.properties()) {
-        val uuid = runCatching { UUID.fromString(id) }.getOrNull() ?: continue
-        val name = node.takeIf { it.isString }?.stringValue() ?: continue
-        names[uuid] = name
-    }
-    return names
-}
-
-internal fun writeFriendNames(names: Map<UUID, String>, mapper: JsonMapper) =
-    mapper.writeValueAsString(names)
 
 object FriendHandler : Config(
     "friends",
@@ -65,6 +48,7 @@ object FriendHandler : Config(
 ), Loadable {
     val friends by setting("friends", emptySet<UUID>(), serialize = true)
 
+    private val nameCacheFile by lazy { FolderRegistry.cache.resolve("friend-names.json").toFile() }
     private val cachedProfiles = ConcurrentHashMap<UUID, GameProfile>()
 
     fun befriend(profile: GameProfile): Boolean {
@@ -130,8 +114,8 @@ object FriendHandler : Config(
     fun loadNameCache() {
         if (!nameCacheFile.exists()) return
         val text = runCatching { nameCacheFile.readText() }.getOrNull() ?: return
-        val parsed = parseFriendNames(text, Lambda.mapper)
-        for ((uuid, name) in parsed) {
+        val parsed = FriendNameSerializer.parse(text, Lambda.mapper)
+        parsed.forEach { (uuid, name) ->
             cachedProfiles[uuid] = GameProfile(uuid, name)
         }
         LOG.info("friend-names.json: read ${parsed.size} name(s)")
@@ -139,7 +123,7 @@ object FriendHandler : Config(
 
     fun saveNameCache() {
         val names = friends.mapNotNull { uuid -> cachedProfiles[uuid]?.name?.let { uuid to it } }.toMap()
-        val json = runCatching { writeFriendNames(names, Lambda.mapper) }.getOrNull() ?: return
+        val json = runCatching { FriendNameSerializer.write(names, Lambda.mapper) }.getOrNull() ?: return
         runCatching {
             nameCacheFile.parentFile.mkdirs()
             Files.writeString(nameCacheFile.toPath(), json)
@@ -151,9 +135,7 @@ object FriendHandler : Config(
             .filter { gameProfile(it) == null }
         if (missing.isEmpty()) return
         val resolved = getProfilesByIds(missing)
-        for (profile in resolved) {
-            cachedProfiles[profile.id] = profile
-        }
+        resolved.forEach { cachedProfiles[it.id] = it }
         saveNameCache()
         LOG.info("resolved ${resolved.size} of ${missing.size} missing friend name(s)")
     }

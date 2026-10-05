@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import com.lambda.interaction.handlers.FriendFileParser
-import com.lambda.interaction.handlers.UnsupportedFriendFileException
+import com.lambda.config.serializers.FriendListDeserializer
+import com.lambda.config.serializers.UnsupportedFriendFileException
 import tools.jackson.databind.json.JsonMapper
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,7 +26,7 @@ class FriendFileParserTest {
 
     private val mapper = JsonMapper.builder().build()
 
-    private fun parse(text: String) = FriendFileParser.parse(text, mapper)
+    private fun parse(text: String) = FriendListDeserializer.parse(text, mapper)
 
     @Test
     fun `parses mio socials object with friends and enemies`() {
