@@ -23,7 +23,7 @@ import com.lambda.command.CommandRegistry
 import com.lambda.command.commands.FriendCommand
 import com.lambda.config.Config
 import com.lambda.config.categories.FriendCategory
-import com.lambda.config.serializers.FriendNameSerializer
+import com.lambda.config.serializers.FriendNames
 import com.lambda.core.Loadable
 import com.lambda.network.mojang.getProfile
 import com.lambda.network.mojang.getProfilesByIds
@@ -109,12 +109,12 @@ object FriendHandler : Config(
     }
 
     fun friendDisplayName(uuid: UUID): String =
-    gameProfile(uuid)?.name ?: uuid.toString().also { LOG.info("no cached name for friend $uuid") }
+        gameProfile(uuid)?.name ?: uuid.toString().also { LOG.info("no cached name for friend $uuid") }
 
     fun loadNameCache() {
         if (!nameCacheFile.exists()) return
         val text = runCatching { nameCacheFile.readText() }.getOrNull() ?: return
-        val parsed = FriendNameSerializer.parse(text, Lambda.mapper)
+        val parsed = runCatching { Lambda.mapper.readValue(text, FriendNames::class.java) }.getOrNull()?.names ?: return
         parsed.forEach { (uuid, name) ->
             cachedProfiles[uuid] = GameProfile(uuid, name)
         }
@@ -123,7 +123,7 @@ object FriendHandler : Config(
 
     fun saveNameCache() {
         val names = friends.mapNotNull { uuid -> cachedProfiles[uuid]?.name?.let { uuid to it } }.toMap()
-        val json = runCatching { FriendNameSerializer.write(names, Lambda.mapper) }.getOrNull() ?: return
+        val json = runCatching { Lambda.mapper.writeValueAsString(FriendNames(names)) }.getOrNull() ?: return
         runCatching {
             nameCacheFile.parentFile.mkdirs()
             Files.writeString(nameCacheFile.toPath(), json)

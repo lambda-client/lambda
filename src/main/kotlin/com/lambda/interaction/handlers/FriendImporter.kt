@@ -19,7 +19,7 @@ package com.lambda.interaction.handlers
 
 import com.lambda.Lambda
 import com.lambda.config.categories.FriendCategory
-import com.lambda.config.serializers.FriendListDeserializer
+import com.lambda.config.serializers.FriendList
 import com.lambda.interaction.handlers.FriendHandler.befriend
 import com.lambda.interaction.handlers.FriendHandler.isFriend
 import com.lambda.network.mojang.getProfiles
@@ -34,9 +34,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
-private const val UNRESOLVED_LIMIT = 10
-
 object FriendImporter {
+    private const val UNRESOLVED_LIMIT = 10
+
     fun pickFile(): Path? = MemoryStack.stackPush().use { stack ->
         TinyFileDialogs.tinyfd_openFileDialog(
             "Select a friend list file",
@@ -60,7 +60,7 @@ object FriendImporter {
             return
         }
 
-        val names = runCatching { FriendListDeserializer.parse(text, Lambda.mapper) }.getOrElse { error ->
+        val names = runCatching { FriendList.parse(text, Lambda.mapper).names }.getOrElse { error ->
             logError(error.message ?: "Could not read this file.")
             return
         }

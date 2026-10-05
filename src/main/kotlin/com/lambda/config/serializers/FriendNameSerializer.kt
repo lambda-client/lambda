@@ -15,28 +15,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+@file:Suppress("unused")
+
 package com.lambda.config.serializers
 
-import tools.jackson.databind.json.JsonMapper
+import com.lambda.config.Deserializer
+import com.lambda.config.Serializer
+import tools.jackson.core.JsonGenerator
+import tools.jackson.core.JsonParser
+import tools.jackson.databind.DeserializationContext
+import tools.jackson.databind.SerializationContext
 import java.util.*
 
-/**
- * Reads and writes the friend name cache, a flat `{ uuid: name }` object.
- */
-object FriendNameSerializer {
+data class FriendNames(val names: Map<UUID, String>)
 
-    fun parse(text: String, mapper: JsonMapper): Map<UUID, String> {
-        val root = runCatching { mapper.readTree(text) }.getOrNull() ?: return emptyMap()
-        if (!root.isObject) return emptyMap()
+object FriendNameSerializer : Serializer<FriendNames>(FriendNames::class.java) {
+	override fun serialize(friendNames: FriendNames, gen: JsonGenerator, ctxt: SerializationContext) {
+		gen.writeStartObject()
+		friendNames.names.forEach { (uuid, name) ->
+			gen.writeStringProperty(uuid.toString(), name)
+		}
+		gen.writeEndObject()
+	}
+}
 
-        val names = mutableMapOf<UUID, String>()
-        root.properties().forEach { (id, node) ->
-            val uuid = runCatching { UUID.fromString(id) }.getOrNull() ?: return@forEach
-            val name = node.takeIf { it.isString }?.stringValue() ?: return@forEach
-            names[uuid] = name
-        }
-        return names
-    }
+object FriendNameDeserializer : Deserializer<FriendNames>(FriendNames::class.java) {
+	override fun deserialize(p: JsonParser, ctxt: DeserializationContext): FriendNames {
+		val root = ctxt.readTree(p)
+		if (!root.isObject) return FriendNames(emptyMap())
 
-    fun write(names: Map<UUID, String>, mapper: JsonMapper) = mapper.writeValueAsString(names)
+		val names = mutableMapOf<UUID, String>()
+		root.properties().forEach { (id, node) ->
+			val uuid = runCatching { UUID.fromString(id) }.getOrNull() ?: return@forEach
+			val name = node.takeIf { it.isString }?.stringValue() ?: return@forEach
+			names[uuid] = name
+		}
+		return FriendNames(names)
+	}
 }

@@ -16,7 +16,6 @@
  */
 
 import com.lambda.network.mojang.toGameProfile
-import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -25,7 +24,7 @@ class BulkProfileTest {
 
     @Test
     fun `converts undashed mojang id`() {
-        val raw = "7bbc65a9067041cba331f2989479362c"
+        val raw = "0123456789abcdef0123456789abcdef"
         val profile = toGameProfile(raw, "Steve")
         assertEquals(raw, profile?.id.toString().filterNot { it == '-' })
         assertEquals("Steve", profile?.name)
@@ -33,14 +32,14 @@ class BulkProfileTest {
 
     @Test
     fun `converts uppercase undashed id`() {
-        val raw = "7BBC65A9067041CBA331F2989479362C"
+        val raw = "0123456789ABCDEF0123456789ABCDEF"
         val profile = toGameProfile(raw, "Steve")
         assertEquals(raw.lowercase(), profile?.id.toString().filterNot { it == '-' })
     }
 
     @Test
     fun `rejects dashed id`() {
-        assertNull(toGameProfile("069a79f4-44e9-4726-a5be-fca90e38aaf5", "jeb_"))
+        assertNull(toGameProfile("853c80ef-3c37-49fd-aa49-938b674adae6", "jeb_"))
     }
 
     @Test
@@ -50,7 +49,7 @@ class BulkProfileTest {
 
     @Test
     fun `rejects wrong length id`() {
-        assertNull(toGameProfile("069a79f444e94726a5befca90e38aaf", "nope"))
+        assertNull(toGameProfile("853c80ef3c3749fdaa49938b674adae", "nope"))
         assertNull(toGameProfile("", "empty"))
     }
 }

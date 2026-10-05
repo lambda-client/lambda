@@ -15,18 +15,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import com.lambda.config.serializers.FriendList
 import com.lambda.config.serializers.FriendListDeserializer
+import com.lambda.config.serializers.FriendListSerializer
 import com.lambda.config.serializers.UnsupportedFriendFileException
 import tools.jackson.databind.json.JsonMapper
+import tools.jackson.databind.module.SimpleModule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class FriendFileParserTest {
 
-    private val mapper = JsonMapper.builder().build()
+    private val mapper = JsonMapper.builder()
+        .addModule(
+            SimpleModule()
+                .addSerializer(FriendList::class.java, FriendListSerializer)
+                .addDeserializer(FriendList::class.java, FriendListDeserializer)
+        )
+        .build()
 
-    private fun parse(text: String) = FriendListDeserializer.parse(text, mapper)
+    private fun parse(text: String) = FriendList.parse(text, mapper).names
+
+    @Test
+    fun `round trips through the serializer`() {
+        val original = FriendList(listOf("jeb_", "Dinner"))
+        val json = mapper.writeValueAsString(original)
+        assertEquals("""["jeb_","Dinner"]""", json)
+        assertEquals(original, mapper.readValue(json, FriendList::class.java))
+    }
 
     @Test
     fun `parses mio socials object with friends and enemies`() {
