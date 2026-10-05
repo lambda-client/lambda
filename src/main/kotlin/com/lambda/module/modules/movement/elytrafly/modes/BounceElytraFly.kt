@@ -97,7 +97,7 @@ class BounceElytraFly(
 
 	@Group(BOUNCE_OBSTACLE_PASSER_GROUP) override val passerConfig by c.configBlock(PasserSettings(c))
 
-	private var jumpThisTick = false
+	private var wantJump = false
 	private var prevGliding: Boolean? = null
 	private val pauseTimer = TickTimer()
 	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
@@ -122,6 +122,7 @@ class BounceElytraFly(
 	init {
 		listen<TickEvent.Pre> {
 			pauseTimer.tick()
+			wantJump = false
 
 			if (autoPitch) {
 				rotationRequest {
@@ -162,8 +163,10 @@ class BounceElytraFly(
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
-					if (player.canStartGliding) GlideHandler.onGlide()
-					else {
+					if (player.canStartGliding) {
+						GlideHandler.onGlide()
+						wantJump = jump
+					} else {
 						val yawRad = Math.toRadians(player.yaw.toDouble())
 						val rightX = -cos(yawRad)
 						val rightZ = -sin(yawRad)
@@ -172,14 +175,16 @@ class BounceElytraFly(
 						val sidewaysSpeed = abs(vx * rightX + vz * rightZ)
 						if (sidewaysSpeed >= 0.001) return@listen
 
-						jumpThisTick = true
+						wantJump = true
 					}
 				}
 				return@listen
 			}
 
+			if (player.isOnGround) wantJump = jump
 			if (minimizePackets && player.getFlag(Entity.GLIDING_FLAG_INDEX) && !fakeFly && !yMotion) return@listen
-			
+			if (player.isOnGround) return@listen
+
 			flyOrFakeFly()
 		}
 
@@ -210,8 +215,7 @@ class BounceElytraFly(
 				sneakRight = false
 				return@listen
 			}
-			if ((!player.isGliding || !jump) && !jumpThisTick) return@listen
-			jumpThisTick = false
+			if (!wantJump) return@listen
 			if (flightPaused) return@listen
 			input.jump()
 		}
@@ -235,7 +239,7 @@ class BounceElytraFly(
 		onFlag { pauseTimer.reset() }
 
 		onDisable {
-			jumpThisTick = false
+			wantJump = false
 			prevGliding = false
 			flushPackets()
 			sneakLeft = false
