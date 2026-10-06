@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.simulation.processing
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.interaction.construction.simulation.SimDsl
 import com.lambda.interaction.construction.verify.TargetState
@@ -144,15 +143,19 @@ object ProcessorRegistry : Loadable {
 		return PreProcessingData(preProcessingInfo, pos)
 	}
 
-	context(safeContext: SafeContext)
+	context(_: AutomatedSafeContext)
 	private fun preProcess(pos: BlockPos, state: BlockState, targetState: BlockState, itemStack: ItemStack) =
 		PreProcessingInfoAccumulator(targetState, itemStack.item).run {
 			var stateProcessing = false
 			stateProcessors.forEach { processor ->
-				if (processor.acceptsState(state, targetState)) {
-					with(processor) { preProcess(state, targetState, pos) }
-					stateProcessing = true
+				if (!processor.acceptsState(state, targetState)) return@forEach
+				if (!processor.isEnabled()) {
+					// The verdict now hinges on a setting that can be toggled at any time.
+					noCaching()
+					return@forEach
 				}
+				with(processor) { preProcess(state, targetState, pos) }
+				stateProcessing = true
 			}
 			if (!omitInteraction) {
 				if (state.block != expectedState.block) {
