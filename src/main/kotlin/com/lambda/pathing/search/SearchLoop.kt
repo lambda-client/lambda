@@ -100,10 +100,14 @@ internal class SearchLoop(
 	}
 
 	private fun stopReason(): SearchExit? = when {
-		frontier.isExhausted && !frontier.hasBlocked && !annealing.revivable && !restartable() -> SearchExit.EXHAUSTED
-		budget.exhausted -> SearchExit.BUDGET
+		frontier.isExhausted && !frontier.hasBlocked && !annealing.revivable && !restartable() && !extendable() -> SearchExit.EXHAUSTED
+		budget.exhausted && !awaitingArrival() && !restartFromTape() -> SearchExit.BUDGET
 		else -> null
 	}
+
+	private fun awaitingArrival(): Boolean = incumbent.isSealed && execution.cursorFrame() != null
+
+	private fun extendable(): Boolean = world != null && !routeReachesFinalGoal()
 
 	private fun restartable(): Boolean = !incumbent.hasSolution && recovery.restartable()
 
@@ -361,6 +365,7 @@ internal class SearchLoop(
 				publisher.forgetRefusedCommit()
 				val next = result.route
 				if (next != null && (next.nodes != route.plan.nodes || next.goal != route.plan.goal)) {
+					if (next.goal != route.plan.goal) incumbent.clear()
 					route.replace(next)
 					frontier.updateRoute(route.index)
 				} else {

@@ -61,8 +61,7 @@ internal class RouteResolution(
 			val terminal = route.goal
 			world?.let { awaitTerminalKnowledge(it, terminal, timings, cancelled) }
 			val revealed = timings.measure("sync") { state.revealAround(terminal) }
-			if (revealed.isEmpty() && world == null) break
-			sweep()
+			if (!sweep() && revealed.isEmpty() && world == null) break
 			repair()
 			route = extract() ?: return report(timings, waitRounds, stalls, grantRounds)
 			if (route.goal == terminal) break

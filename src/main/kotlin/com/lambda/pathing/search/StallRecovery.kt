@@ -25,7 +25,9 @@ internal class StallRecovery(
 	}
 
 	fun mayAwaitRouteExtension(): Boolean {
-		if (world == null || blockedWaitMillis >= MAX_BLOCKED_WAIT_MILLIS) return false
+		if (world == null) return false
+		publications.cursor()?.let { cursor -> return publications.running.let { it != null && cursor < it.brake.elapsed } }
+		if (blockedWaitMillis >= MAX_BLOCKED_WAIT_MILLIS) return false
 		blockedWaitMillis += WAIT_SLICE_MILLIS
 		return true
 	}

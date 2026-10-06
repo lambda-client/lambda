@@ -90,9 +90,9 @@ internal class CoarsePlanningState(
 	fun revealAround(stance: Stance): Set<PathingChunk> =
 		grant(stance).also { if (it.isNotEmpty()) planner.chunksChanged(it, arrivalsOnly = true) }
 
-	fun demandCaptureLag(world: PathingWorld) {
+	fun demandCaptureLag(world: PathingWorld, tier: InterestTier = InterestTier.DEMAND) {
 		if (captureLagSections.isEmpty()) return
-		world.interest(ArrayList(captureLagSections), InterestTier.DEMAND)
+		world.interest(ArrayList(captureLagSections), tier)
 		captureLagSections.clear()
 	}
 

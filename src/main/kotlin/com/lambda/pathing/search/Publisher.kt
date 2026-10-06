@@ -115,11 +115,8 @@ internal class Publisher(
 		return true
 	}
 
-	fun seal(solution: Solution): Solution? = when {
-		publishFinal(solution) -> null
-		incumbent.isSealed -> null
-		else -> solution
-	}
+	fun seal(solution: Solution): Solution? =
+		solution.takeIf { !publishFinal(solution) && !incumbent.isSealed && publications.tip == null }
 
 	private fun refuse() {
 		refusals++

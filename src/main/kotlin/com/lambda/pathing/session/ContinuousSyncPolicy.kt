@@ -91,6 +91,7 @@ internal class ContinuousSyncPolicy(
 	private fun resolve(): CoarseRoutePlan? {
 		val started = System.nanoTime()
 		return resolution.resolve(start, snapshotRevision, RESOLVE_SLICE_EXPANSIONS, cancelled = cancelled).also {
+			coarseState.demandCaptureLag(world, InterestTier.CORRIDOR)
 			resolves++
 			val elapsed = System.nanoTime() - started
 			resolveNanos += elapsed
