@@ -2,21 +2,22 @@ package com.lambda.pathing.actions
 
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
+import com.lambda.pathing.physics.Vanilla
 import kotlin.math.max
 import kotlin.math.sqrt
 
 object CoarseMoveRates {
-	const val SPRINT_BLOCKS_PER_TICK = 0.2806
+	val SPRINT_BLOCKS_PER_TICK = BallisticProfile.VANILLA.cruiseDisplacement(sprint = true)
 
 	const val SPRINT_JUMP_BLOCKS_PER_TICK = 0.3640
 
 	const val STEP_UP_BLOCKS_PER_TICK = 0.1000
 
-	const val FREE_STEP_RISE = 0.6
+	const val FREE_STEP_RISE = Vanilla.STEP_HEIGHT
 
 	const val MIN_JUMP_DISTANCE = 2.0
 
-	const val CLIMB_TICKS_PER_BLOCK = 1.0 / 0.117
+	val CLIMB_TICKS_PER_BLOCK = 1.0 / BallisticProfile.VANILLA.climbSpeed
 
 	private const val MAX_FALL_TABLE_DEPTH = 12
 

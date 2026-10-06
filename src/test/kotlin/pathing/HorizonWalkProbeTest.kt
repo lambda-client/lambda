@@ -160,7 +160,6 @@ class HorizonWalkProbeTest {
             lookahead = lookahead,
             commitFrames = commitFrames,
             clock = clock,
-            fieldExpansionBudget = kotlin.time.Duration.INFINITE,
         )
 
         // Adoption fidelity: the executor refuses a tape that disagrees with frames it has

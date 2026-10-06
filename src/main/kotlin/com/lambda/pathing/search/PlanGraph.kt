@@ -24,29 +24,7 @@ class PlanGraph private constructor(
 					junction.frame >= cursorFrame + minLeadFrames
 		}
 
-	fun improvementDepartures(beforeJunction: Int = junctions.lastIndex, maxSpan: Int = DEFAULT_MAX_SPAN): List<Int> {
-		require(beforeJunction in 0..junctions.size)
-		val scores = DoubleArray(beforeJunction) { Double.NEGATIVE_INFINITY }
-		for (start in 0 until beforeJunction) {
-			if (!junctions[start].rejoinable) continue
-			for (end in start + 1..minOf(start + maxSpan, junctions.lastIndex)) {
-				if (!junctions[end].rejoinable) continue
-				val frames = junctions[end].frame - junctions[start].frame
-				if (frames <= 0) continue
-				val displacement = junctions[start].state.position.distanceTo(junctions[end].state.position)
-				if (displacement < MIN_SPAN_BLOCKS) continue
-				val score = frames / displacement
-				if (score > scores[start]) scores[start] = score
-			}
-		}
-		return scores.indices.filter { scores[it] != Double.NEGATIVE_INFINITY }.sortedByDescending { scores[it] }
-	}
-
 	companion object {
-
-		const val DEFAULT_MAX_SPAN = 8
-
-		const val MIN_SPAN_BLOCKS = 1.0
 
 		fun rejoinable(state: MovementSimulationState): Boolean = state.onGround
 

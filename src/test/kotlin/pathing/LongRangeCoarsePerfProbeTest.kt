@@ -21,7 +21,7 @@ import pathing.ProbeScenarios.moveLibrary
  * Prints where a cold long-range coarse plan spends its work; asserts nothing.
  * Run via bedrockCorpus after touching edge generation or the D* core.
  */
-@Tag("bedrock-corpus")
+@Tag("bench")
 class LongRangeCoarsePerfProbeTest {
     private class CountingView(private val backing: CoarseVoxelView) : CoarseVoxelView {
         var voxelReads = 0L

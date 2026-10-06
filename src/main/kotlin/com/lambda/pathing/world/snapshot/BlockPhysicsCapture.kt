@@ -24,22 +24,18 @@ object BlockPhysicsCapture {
 
 	const val SUPPORT_COLUMN_CEILING = 2.0
 
+	private const val BODY_MIN = 0.5 - Vanilla.PLAYER_HALF_WIDTH + Vanilla.COLLISION_EPSILON
+
+	private const val BODY_MAX = 0.5 + Vanilla.PLAYER_HALF_WIDTH - Vanilla.COLLISION_EPSILON
+
 	private val CENTERED_PLAYER_COLUMN = VoxelShapes.cuboid(
-		0.2 + Vanilla.COLLISION_EPSILON,
-		Vanilla.COLLISION_EPSILON,
-		0.2 + Vanilla.COLLISION_EPSILON,
-		0.8 - Vanilla.COLLISION_EPSILON,
-		1.0 - Vanilla.COLLISION_EPSILON,
-		0.8 - Vanilla.COLLISION_EPSILON,
+		BODY_MIN, Vanilla.COLLISION_EPSILON, BODY_MIN,
+		BODY_MAX, 1.0 - Vanilla.COLLISION_EPSILON, BODY_MAX,
 	)
 
 	private val CENTERED_SUPPORT_COLUMN = VoxelShapes.cuboid(
-		0.2 + Vanilla.COLLISION_EPSILON,
-		0.0,
-		0.2 + Vanilla.COLLISION_EPSILON,
-		0.8 - Vanilla.COLLISION_EPSILON,
-		SUPPORT_COLUMN_CEILING,
-		0.8 - Vanilla.COLLISION_EPSILON,
+		BODY_MIN, 0.0, BODY_MIN,
+		BODY_MAX, SUPPORT_COLUMN_CEILING, BODY_MAX,
 	)
 
 	fun coarseVoxelOf(shape: VoxelShape, bouncy: Boolean = false): CoarseVoxel {

@@ -45,12 +45,6 @@ class CoarseValueField(
 
 	override fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
-	override fun clearGuideCache() {
-		guides.clear()
-		movingGuides.clear()
-		stoppedGuides.clear()
-	}
-
 	override fun guide(stance: Stance): Double = guideVia(guides, stance, label)
 
 	override fun guide(stance: Stance, speed: SpeedClass): Double =

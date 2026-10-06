@@ -24,7 +24,7 @@ internal class HorizonController(
 	private val onSafePrefix: ((MotionPlanResult.Success) -> Unit)?,
 	private val expansionCount: () -> Int,
 
-	private val incumbentAnchor: () -> ValueAnchor?,
+	private val incumbent: () -> Solution?,
 	private val brakeToStop: (ValueAnchor) -> Solution?,
 	private val certify: (Solution) -> MotionPlanResult,
 	private val probe: SearchProbe,
@@ -148,8 +148,8 @@ internal class HorizonController(
 
 		if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refused { "no-rest-continuation" }
 
-		incumbentAnchor()?.let { incumbent ->
-			if (!incumbent.descendsFrom(anchor)) return refused { "off-incumbent" }
+		incumbent()?.let { solution ->
+			if (!solution.anchor.descendsFrom(anchor)) return refused { "off-incumbent" }
 		}
 		if (running == null) {
 			if (anchor.elapsed < searchConfig.safePrefixFrames) return
@@ -292,11 +292,13 @@ internal class HorizonController(
 
 		if (tipInvalidated) return true
 		val candidateArrival = arrivalEstimate(candidate)
-		val stale = ((expansionCount() - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS)
-			.toDouble() / STALE_TIP_RAMP_EXPANSIONS).coerceIn(0.0, 1.0) * STALE_TIP_MAX_TICKS
-
-		val tipArrival = tip.elapsed + field.guide(tip.stance, SpeedClass.of(tip.speed)) + stale +
-				Solution.COLLISION_FRAME_PENALTY * tip.collisionEvents
+		val proven = incumbent()?.takeIf { it.anchor.descendsFrom(tip) }
+		val tipArrival = if (proven != null) proven.score.toDouble() else {
+			val stale = ((expansionCount() - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS)
+				.toDouble() / STALE_TIP_RAMP_EXPANSIONS).coerceIn(0.0, 1.0) * STALE_TIP_MAX_TICKS
+			tip.elapsed + field.guide(tip.stance, SpeedClass.of(tip.speed)) + stale +
+					Solution.COLLISION_FRAME_PENALTY * tip.collisionEvents
+		}
 		if (candidateArrival + REFINEMENT_GAIN_TICKS > tipArrival) {
 			lastRefusalClause = "backtrack-gain"
 			return false

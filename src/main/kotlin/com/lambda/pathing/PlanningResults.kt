@@ -49,7 +49,6 @@ internal data class TrajectoryPlanningPreparation(
 	val frontierSweepBudget: Int,
 	val bootstrapDelayMillis: Long,
 	val plannerThreads: Int,
-	val improvementBudget: Int,
 	val dumpDirectory: Path?,
 
 	val dumpAllPlans: Boolean,

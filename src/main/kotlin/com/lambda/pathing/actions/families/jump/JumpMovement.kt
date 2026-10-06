@@ -8,8 +8,6 @@ import com.lambda.pathing.actions.DecisionPrice
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
-import com.lambda.pathing.actions.ProposalContext
-import com.lambda.pathing.actions.Proposals
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.landingRisk
@@ -22,8 +20,6 @@ object JumpMovement : Movement {
 		JumpTemplates.templates(context, id)
 
 	override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y >= edge.from.y
-
-	override fun proposals(context: ProposalContext): Proposals = MomentumProposals.proposals(context)
 
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val solutions = JumpDecisions.solutionsFor(context)

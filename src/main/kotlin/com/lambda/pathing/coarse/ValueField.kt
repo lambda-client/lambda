@@ -12,7 +12,6 @@ interface ValueField : SteeringField {
 
 	fun invalidate(sections: Set<PathingSection>)
 	fun lowerBound(stance: Stance): Double
-	fun clearGuideCache()
 	fun guide(stance: Stance): Double
 	fun guide(stance: Stance, speed: SpeedClass): Double
 	fun isMapped(stance: Stance): Boolean
@@ -37,7 +36,6 @@ class SwitchableValueField(initial: CoarseValueField) : ValueField {
 
 	override fun invalidate(sections: Set<PathingSection>) = current.invalidate(sections)
 	override fun lowerBound(stance: Stance): Double = current.lowerBound(stance)
-	override fun clearGuideCache() = current.clearGuideCache()
 	override fun guide(stance: Stance): Double = current.guide(stance)
 	override fun guide(stance: Stance, speed: SpeedClass): Double = current.guide(stance, speed)
 	override fun isMapped(stance: Stance): Boolean = current.isMapped(stance)

@@ -14,7 +14,6 @@ import com.lambda.pathing.world.Medium
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
-import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -23,7 +22,6 @@ import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
-import net.minecraft.world.World
 import java.util.*
 
 class SnapshotSimulationEnvironment internal constructor(
@@ -368,27 +366,6 @@ class SnapshotSimulationEnvironment internal constructor(
 				maxZ > z && minZ < z + 1.0
 
 	companion object {
-		internal fun beginCapture(
-			world: World,
-			player: ClientPlayerEntity,
-			bounds: SimulationSnapshotBounds,
-		): SnapshotCaptureJob = SnapshotCaptureJob(world, player, bounds)
-
-		fun capture(
-			world: World,
-			player: ClientPlayerEntity,
-			bounds: SimulationSnapshotBounds,
-		): SnapshotSimulationEnvironment {
-			val capture = beginCapture(world, player, bounds)
-			while (true) {
-				when (val result = capture.advance(Int.MAX_VALUE, Long.MAX_VALUE)) {
-					is SnapshotCaptureResult.Complete -> return result.snapshot
-					is SnapshotCaptureResult.Failed -> error(result.message)
-					is SnapshotCaptureResult.Progress -> Unit
-				}
-			}
-		}
-
 		internal fun streaming(
 			bounds: SimulationSnapshotBounds,
 			onExactMiss: (Long) -> Unit,

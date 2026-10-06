@@ -33,7 +33,7 @@ import pathing.ProbeScenarios.PROFILE
  * building; if it does not, the bottleneck is allocation or memory bandwidth and the
  * parallelism story ends here. Non-gating report.
  */
-@Tag("bedrock-corpus")
+@Tag("bench")
 class RolloutParallelScalingTest {
     @Test
     fun `rollout throughput across thread counts`() {

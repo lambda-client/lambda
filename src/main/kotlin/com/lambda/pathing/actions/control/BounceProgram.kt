@@ -45,12 +45,12 @@ internal class BounceProgram(
 
 			val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 			val speed = observed.velocity.horizontalLength()
-			val runout = (speed + CREEP_TAP_SPEED) * COAST_RUNOUT_TICKS
+			val runout = (speed + CREEP_TAP_SPEED) * GROUND_COAST_PER_SPEED
 			if (along + runout < solution.launchOffset) {
 				forward = 1.0
 			} else if (speed > solution.speedSlack && !launchedStanding) {
 
-				val coast = speed * COAST_RUNOUT_TICKS
+				val coast = speed * GROUND_COAST_PER_SPEED
 				val overshoots = along + coast > solution.launchOffset + BRAKE_OVERSHOOT_BLOCKS
 				forward = if (speed > BRAKE_MIN_SPEED && overshoots) -1.0 else 0.0
 			} else {
@@ -118,8 +118,5 @@ internal class BounceProgram(
 
 		const val BRAKE_OVERSHOOT_BLOCKS = 0.15
 
-		const val CREEP_TAP_SPEED = 0.06
-
-		const val COAST_RUNOUT_TICKS = 2.2
 	}
 }

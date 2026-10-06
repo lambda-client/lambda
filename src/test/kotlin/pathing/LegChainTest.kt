@@ -91,7 +91,6 @@ class LegChainTest {
             finalGoal = goal,
             field = field,
             onExhaustion = { exhaustions += it },
-            fieldExpansionBudget = Duration.INFINITE,
             legs = chain,
         )
 

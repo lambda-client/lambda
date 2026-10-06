@@ -214,16 +214,6 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(SEARCH_GROUP)
-    override val improvementBudget by c.setting(
-        "Improvement Budget", 1500, 0..20000, 100,
-        "Rollouts a solved plan may spend replacing its most wasteful spans with " +
-            "shortcuts aimed at the plan's own junctions, re-running the decisions behind " +
-            "each splice to check the rest of the plan survives it. Runs only once a full " +
-            "solution exists, so it can only shorten the tape or waste its budget. 0 disables it.",
-        unit = " rollouts",
-    )
-
-    @Group(SEARCH_GROUP)
     override val captureRetries by c.setting(
         "Capture Retries", 4, 0..16, 1,
         "Retries while the exact world capture catches up to a body standing at the " +

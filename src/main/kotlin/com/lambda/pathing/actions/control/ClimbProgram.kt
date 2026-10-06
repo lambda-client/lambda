@@ -36,7 +36,7 @@ internal class ClimbProgram(
 				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 				val speed = observed.velocity.horizontalLength()
 				when {
-					along + (speed + CREEP_TAP_SPEED) * COAST_RUNOUT_TICKS < LIP_ALONG -> 1.0
+					along + (speed + CREEP_TAP_SPEED) * GROUND_COAST_PER_SPEED < LIP_ALONG -> 1.0
 					speed > CREEP_REST_SPEED -> 0.0
 					else -> 1.0
 				}
@@ -61,8 +61,6 @@ internal class ClimbProgram(
 
 	private companion object {
 
-		const val CREEP_TAP_SPEED = 0.06
-		const val COAST_RUNOUT_TICKS = 2.2
 		const val CREEP_REST_SPEED = 0.03
 
 		const val LIP_ALONG = 0.8

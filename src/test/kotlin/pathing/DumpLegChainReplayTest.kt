@@ -107,8 +107,7 @@ class DumpLegChainReplayTest {
             cursorFrame = { executor.cursorFrame() }, publish = { path, _ -> lastPublished = path; executor.offer(path) },
             started = System.currentTimeMillis(), clock = clock, adoptedSequence = executor::adoptedSequence,
             finalGoal = (legGoals.lastOrNull() ?: firstGoal), field = field, onExhaustion = { exhaustions += it },
-            fieldExpansionBudget = Duration.INFINITE, legs = chain, probe = probe,
-            improvementBudget = System.getenv("PATHING_DUMP_IMPROVER")?.toInt() ?: 0,
+            legs = chain, probe = probe,
         )
         perStance.entries.sortedByDescending { it.value.values.sum() }.take(14).forEach { (stance, hist) ->
             println("[legs-replay] expansions from $stance (${hist.values.sum()}): " +

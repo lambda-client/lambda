@@ -25,7 +25,7 @@ private const val WORLD_SYNC_INTERVAL = 64
 
 internal class AnchorSearchSession(
 	private var route: CoarseRoutePlan,
-	private val catalog: MovementCatalog,
+	catalog: MovementCatalog,
 	private val field: ValueField,
 	private val initialState: MovementSimulationState,
 	profile: PlayerPhysicsProfile,
@@ -39,7 +39,6 @@ internal class AnchorSearchSession(
 	worldWait: ((Long) -> Boolean)?,
 	private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)?,
 	private val sectionCapturable: ((Int, Int) -> Boolean)?,
-	expandGuide: ((Double) -> Unit)?,
 	adoptedSequence: (() -> Long)?,
 	private val finalGoal: Stance?,
 	private val probe: SearchProbe,
@@ -68,7 +67,7 @@ internal class AnchorSearchSession(
 	private val horizon: HorizonController = HorizonController(
 		searchConfig, field, frontier, clock, cursorFrame, adoptedSequence, onSafePrefix,
 		expansionCount = { expansions },
-		incumbentAnchor = { best?.anchor },
+		incumbent = { best },
 		brakeToStop = ::brakeToStop,
 		certify = ::certify,
 		probe = probe,
@@ -81,8 +80,6 @@ internal class AnchorSearchSession(
 
 	private val stats = SearchStats()
 
-	private val tempo = SearchTempo()
-
 	private val recovery = StallRecovery(
 		frontier, horizon, worldWait,
 		syncWorld = ::syncWorld,
@@ -91,7 +88,7 @@ internal class AnchorSearchSession(
 	)
 
 	private val annealing = Annealing(
-		field, frontier, horizon, recovery, expandGuide,
+		field, frontier, horizon, recovery,
 		maxTemperature = searchConfig.maxTemperature,
 	)
 
@@ -125,9 +122,11 @@ internal class AnchorSearchSession(
 	private var syncBucket = -1
 	private var publishBucket = -1
 	private var lastViewMillis = Long.MIN_VALUE
-	private var improveBucket = -1
 
 	private var finalSolution: Solution? = null
+
+	private var firstSolutionFrames = -1
+	private var solutionsFound = 0
 
 	private fun finishedResult(): MotionPlanResult? {
 		val published = finalSolution ?: return null
@@ -264,8 +263,6 @@ internal class AnchorSearchSession(
 	}
 
 	private fun syncWithCursor(executing: Int): MotionPlanResult? {
-		tempo.observe(executing, expansions)
-
 		horizon.advanceExecutedRoot()
 		annealing.rewindOnNewRoot()
 		best?.let {
@@ -301,10 +298,7 @@ internal class AnchorSearchSession(
 		val runway = tip.elapsed - executing
 
 		val urgent = runway <= searchConfig.horizonCommitFrames
-		val extended = horizon.commitFromCandidates(
-			urgent = urgent,
-			along = best?.takeIf { !readyToFinish(it) }?.anchor,
-		)
+		val extended = horizon.commitFromCandidates(urgent = urgent, along = best?.anchor)
 
 		if (!extended && urgent) {
 			best?.let {
@@ -329,8 +323,6 @@ internal class AnchorSearchSession(
 	private enum class Drain { CONTINUE, BREAK }
 
 	private fun recoverFromDrain(): Drain {
-
-		if (frontier.reviveStarved { horizon.adoptable(it) }) return Drain.CONTINUE
 
 		if (recovery.waitForBlocked()) return Drain.CONTINUE
 
@@ -389,10 +381,6 @@ internal class AnchorSearchSession(
 			countExpansion()
 			annealing.escalate(force = false)
 			annealing.refine(holdingMotion = best != null || horizon.safeAnchor != null)
-			if (expansions / IMPROVEMENT_INTERVAL != improveBucket) {
-				improveBucket = expansions / IMPROVEMENT_INTERVAL
-				improveIncumbent()
-			}
 
 			val prepared = rollouts.prepare(anchor, action)
 			if (prepared == null) {
@@ -410,11 +398,6 @@ internal class AnchorSearchSession(
 		val forkLife = horizon.forkLife(entry.anchor)
 		if (forkLife < HorizonController.PUBLISH_DIVERGENCE_MARGIN_FRAMES) {
 			stats.adoptableDrops++
-			return false
-		}
-		if (!entry.starveExempt && tempo.starved(forkLife, searchConfig.branchExpansionHeadroomExpansions)) {
-			stats.forkStarvedDrops++
-			frontier.starve(entry)
 			return false
 		}
 
@@ -745,7 +728,6 @@ internal class AnchorSearchSession(
 				expansions = expansions,
 				windowExpansions = expansions - expansionsWindowStart,
 				windowBudget = searchConfig.maxExpansions,
-				guideExpansions = annealing.guideExpansions,
 				temperature = annealing.temperature.current,
 				open = frontier.openSize,
 				parked = frontier.parkedSize,
@@ -822,11 +804,6 @@ internal class AnchorSearchSession(
 			expansions = expansions,
 			windowExpansions = expansions - expansionsWindowStart,
 			windowBudget = searchConfig.maxExpansions,
-			guideExpansions = annealing.guideExpansions,
-			improvementSplices = stats.improvementSplices,
-			improvementRollouts = stats.improvementRollouts,
-			improvementSaved = stats.improvementSaved,
-			improvementDiagnosis = stats.improvementDiagnosis,
 			temperature = annealing.temperature.current,
 			openAnchors = frontier.openSize,
 			parkedAnchors = frontier.parkedSize,
@@ -849,12 +826,13 @@ internal class AnchorSearchSession(
 			beamLargestBucket = frontier.beamLargestBucket,
 			adoptableDrops = stats.adoptableDrops,
 			legSwitches = stats.legSwitches,
-			forkStarvedDrops = stats.forkStarvedDrops,
 			commitAttempts = horizon.commitAttempts,
 			commitSuppressed = horizon.commitSuppressed,
 			publishRefusals = horizon.publishRefusals,
 			repairs = horizon.repairs,
 			junctionRestarts = horizon.junctionRestarts,
+			firstSolutionFrames = firstSolutionFrames,
+			solutionsFound = solutionsFound,
 		)
 	}
 
@@ -912,6 +890,8 @@ internal class AnchorSearchSession(
 			else -> solution.score < incumbent.score
 		}
 		if (improves) {
+			if (firstSolutionFrames < 0) firstSolutionFrames = solution.frames
+			solutionsFound++
 			best = solution
 			expansionsSinceImprovement = 0
 		}
@@ -934,51 +914,10 @@ internal class AnchorSearchSession(
 
 	private fun finish(solution: Solution): MotionPlanResult {
 		stats.exit = "solved"
-		val best = improve(solution)
 		onExhaustion?.invoke(exhaustion())
-		return certify(best)
+		return certify(solution)
 	}
 
-	private val improver by lazy {
-		PlanImprover(
-			rollouts = rollouts,
-
-			vocabulary = ActionSet(catalog, field, config, searchConfig, momentum = true),
-			finisher = finisher,
-			canReach = horizon::canReach,
-		)
-	}
-
-	private fun improveIncumbent() {
-		if (searchConfig.improvementBudget <= 0) return
-		val incumbent = best ?: return
-		if (improver.rolloutsSpent >= searchConfig.improvementBudget) return
-		val slice = minOf(searchConfig.improvementBudget, improver.rolloutsSpent + IMPROVEMENT_SLICE_ROLLOUTS)
-		val improved = measuredImprovement { improver.improve(incumbent, slice) } ?: return
-
-		if (!horizon.canReach(improved.anchor) || !executionCompatible(improved.anchor)) return
-		stats.improvementSaved += incumbent.frames - improved.frames
-		best = improved
-		expansionsSinceImprovement = 0
-	}
-
-	private inline fun <T> measuredImprovement(block: () -> T): T {
-		val before = improver.splices
-		val result = block()
-		stats.improvementRollouts = improver.rolloutsSpent
-		stats.improvementSplices += improver.splices - before
-		stats.improvementDiagnosis = improver.diagnosis()
-		return result
-	}
-
-	private fun improve(solution: Solution): Solution {
-		if (searchConfig.improvementBudget <= 0) return solution
-		val improved = measuredImprovement { improver.improve(solution, searchConfig.improvementBudget) } ?: return solution
-
-		if (!horizon.canReach(improved.anchor)) return solution
-		stats.improvementSaved += solution.frames - improved.frames
-		return improved
-	}
 }
 
 private fun divergenceFrame(action: TrajectoryDecision): Int = action.launchDelayFrames ?: Int.MAX_VALUE
@@ -991,9 +930,6 @@ private const val VIEW_INTERVAL_MILLIS = 100L
 private const val MAX_TREE_NODES = 4096
 
 private const val FINAL_IMPROVEMENT_WINDOW = 256
-
-private const val IMPROVEMENT_INTERVAL = 2000
-private const val IMPROVEMENT_SLICE_ROLLOUTS = 250
 
 private const val ARRIVAL_RETURN_FRAMES = 2
 

@@ -172,12 +172,6 @@ interface PathingConfig {
      */
     val plannerThreads: Int get() = 1
 
-    /**
-     * Rollouts a solved plan may spend having its worst spans shortcut before it is
-     * certified. 0 publishes the search's answer unchanged.
-     */
-    val improvementBudget: Int get() = 1500
-
     /** Retries while the exact world capture catches up to a body at the streamed frontier. */
     val captureRetries: Int get() = 4
 

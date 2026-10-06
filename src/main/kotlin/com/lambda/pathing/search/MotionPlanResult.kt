@@ -36,11 +36,6 @@ data class SearchExhaustion(
 	val expansions: Int,
 	val windowExpansions: Int,
 	val windowBudget: Int,
-	val guideExpansions: Int,
-	val improvementSplices: Int = 0,
-	val improvementRollouts: Int = 0,
-	val improvementSaved: Int = 0,
-	val improvementDiagnosis: String = "",
 	val temperature: Double,
 	val openAnchors: Int,
 	val parkedAnchors: Int,
@@ -63,24 +58,18 @@ data class SearchExhaustion(
 	val beamLargestBucket: Int,
 	val adoptableDrops: Int = 0,
 	val legSwitches: Int = 0,
-	val forkStarvedDrops: Int = 0,
 	val commitAttempts: Int = 0,
 	val commitSuppressed: Int = 0,
 	val publishRefusals: Int = 0,
 	val repairs: Int = 0,
 	val junctionRestarts: Int = 0,
+	val firstSolutionFrames: Int = -1,
+	val solutionsFound: Int = 0,
 ) {
 	override fun toString(): String = buildString {
 		append("exit=").append(exit)
 		append(" expansions=").append(expansions)
 		append(" window=").append(windowExpansions).append('/').append(windowBudget)
-		append(" guide=").append(guideExpansions)
-		if (improvementRollouts > 0) {
-			append(" spliced=").append(improvementSplices)
-			append("/-").append(improvementSaved).append("f")
-			append("/").append(improvementRollouts).append("r")
-			if (improvementDiagnosis.isNotEmpty()) append(" [").append(improvementDiagnosis).append("]")
-		}
 		append(" temp=%.2f".format(temperature))
 		append(" open=").append(openAnchors)
 		append(" parked=").append(parkedAnchors)
@@ -101,13 +90,13 @@ data class SearchExhaustion(
 		if (commitAttempts + commitSuppressed + publishRefusals > 0) {
 			append(" drops=").append(adoptableDrops)
 			if (legSwitches > 0) append(" legs=").append(legSwitches)
-			append(" starved=").append(forkStarvedDrops)
 			append(" commits=").append(commitAttempts)
 			append(" suppressed=").append(commitSuppressed)
 			append(" refusals=").append(publishRefusals)
 		}
 		if (repairs > 0) append(" repairs=").append(repairs)
 		if (junctionRestarts > 0) append(" junctionRestarts=").append(junctionRestarts)
+		if (solutionsFound > 0) append(" first=").append(firstSolutionFrames).append(" solutions=").append(solutionsFound)
 	}
 }
 

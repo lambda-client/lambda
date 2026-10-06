@@ -44,6 +44,12 @@ data class BallisticProfile(
 
 	fun fallStep(fallSpeed: Double): Double = (fallSpeed + gravity) * VERTICAL_DRAG
 
+	val coastDistancePerSpeed: Double get() = 1.0 / (1.0 - groundFriction)
+
+	val climbSpeed: Double get() = (Vanilla.CLIMB_RISE_SPEED - gravity) * VERTICAL_DRAG
+
+	fun cruiseDisplacement(sprint: Boolean): Double = groundAcceleration(sprint) / (1.0 - groundFriction)
+
 	fun groundAcceleration(sprint: Boolean): Double =
 		if (sprint) sprintGroundAcceleration else walkGroundAcceleration
 

@@ -1,11 +1,16 @@
 package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
 import kotlin.math.hypot
 
 internal const val LIP_LOOKAHEAD_MARGIN = 0.05
+
+internal const val CREEP_TAP_SPEED = 0.06
+
+internal val GROUND_COAST_PER_SPEED = BallisticProfile.VANILLA.coastDistancePerSpeed
 
 internal fun lateralOffset(
 	takeoff: HorizontalPoint,

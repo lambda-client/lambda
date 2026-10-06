@@ -67,7 +67,7 @@ internal class CorridorFollowerProgram(
 			return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
 		}
 
-		val coastStop = observed.velocity.horizontalLength() * TERMINAL_COAST_PER_SPEED +
+		val coastStop = observed.velocity.horizontalLength() * GROUND_COAST_PER_SPEED +
 				BRAKE_SHORT_BIAS_BLOCKS
 		if (!risePending &&
 			remainingPathDistance(observed) <= maxOf(parameters.brakeDistance, coastStop)
@@ -97,7 +97,7 @@ internal class CorridorFollowerProgram(
 
 		val speedTowardGoal = if (distance <= 1e-9) 0.0
 		else (observed.velocity.x * dx + observed.velocity.z * dz) / distance
-		val coast = speedTowardGoal * TERMINAL_COAST_PER_SPEED
+		val coast = speedTowardGoal * GROUND_COAST_PER_SPEED
 
 		if (terminalReleased || distance <= config.goalRadius || coast >= distance) {
 			terminalReleased = true
@@ -143,6 +143,5 @@ internal class CorridorFollowerProgram(
 
 		const val BRAKE_SHORT_BIAS_BLOCKS = 0.08
 
-		const val TERMINAL_COAST_PER_SPEED = 2.2
 	}
 }

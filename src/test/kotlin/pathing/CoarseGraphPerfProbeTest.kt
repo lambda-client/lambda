@@ -13,6 +13,7 @@ import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import org.junit.jupiter.api.Test
 import kotlin.time.measureTime
+import org.junit.jupiter.api.Tag
 
 /**
  * Prints coarse-graph construction costs; asserts nothing.
@@ -22,6 +23,7 @@ import kotlin.time.measureTime
  * optimization pass took edgesFrom on flat ground from 1041us/node and 16,100 collision
  * shape reads to 243us/node and none.
  */
+@Tag("bench")
 class CoarseGraphPerfProbeTest {
     private class CountingFlatWorld(private val floorY: Int = 64) : CoarseVoxelView {
         var voxelReads = 0L

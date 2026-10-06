@@ -215,7 +215,7 @@ dependencies {
 tasks {
     test {
         useJUnitPlatform {
-            excludeTags("bedrock-corpus", "bench")
+            excludeTags("bedrock-corpus", "bench", "field-dumps")
         }
         maxHeapSize = "4g"
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
@@ -231,6 +231,21 @@ tasks {
         }
         maxHeapSize = "4g"
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        testLogging { showStandardStreams = true }
+        outputs.upToDateWhen { false }
+    }
+
+    register<Test>("fieldDumps") {
+        description = "Replays the newest captured dump of every field case at production tempo."
+        group = "verification"
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        useJUnitPlatform {
+            includeTags("field-dumps")
+        }
+        maxHeapSize = "8g"
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+        workingDir = rootDir
         testLogging { showStandardStreams = true }
         outputs.upToDateWhen { false }
     }

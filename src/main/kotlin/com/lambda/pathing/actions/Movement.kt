@@ -75,12 +75,6 @@ class ProposalContext(
 	val view: CoarseVoxelView,
 	val steering: SteeringField,
 	val headingFanDegrees: List<Double>,
-
-	val guideTicks: (Stance) -> Double = { Double.NaN },
-
-	val movingGuideTicks: (Stance) -> Double = guideTicks,
-
-	val momentum: Boolean = false,
 )
 
 class Proposals(

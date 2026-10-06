@@ -23,11 +23,8 @@ data class ValueFieldSearchConfig(
 	val maxFinishSweeps: Int = 64,
 	val frontierPerKey: Int = 3,
 
-	val branchExpansionHeadroomExpansions: Int = 1560,
 	val speedBucketBlocks: Double = 0.075,
 	val maxTemperature: Double = 1.0,
-
-	val improvementBudget: Int = 0,
 ) {
 	init {
 		require(maxExpansions > 0)
@@ -43,10 +40,8 @@ data class ValueFieldSearchConfig(
 		require(finishValueTicks >= 0.0)
 		require(maxFinishSweeps >= 0)
 		require(frontierPerKey > 0)
-		require(branchExpansionHeadroomExpansions >= 0)
 		require(speedBucketBlocks > 0.0)
 		require(maxTemperature > 0.0 && maxTemperature <= 1.0)
-		require(improvementBudget >= 0)
 	}
 }
 

@@ -191,7 +191,6 @@ object PathingHud : HudModule(
             )
             line(
                 "temp" to "%.2f".format(stats.temperature),
-                "guide" to compact(stats.guideExpansions),
                 "best" to (stats.bestScore?.toString() ?: "-"),
             )
             line(
@@ -235,18 +234,8 @@ object PathingHud : HudModule(
             line(
                 "commits" to report.commitAttempts.toString(),
                 "refused" to compact(report.publishRefusals),
-                "starved" to report.forkStarvedDrops.toString(),
-            )
-            line(
-                "splices" to report.improvementSplices.toString(),
-                "saved" to "${report.improvementSaved}f",
                 "sync" to PlanningDebugChannel.lastExhaustionLedger.substringAfter("coarseSync=", "-").substringBefore("["),
             )
-            if (report.improvementDiagnosis.isNotEmpty()) {
-                ImGui.pushTextWrapPos(ImGui.getCursorPosX() + panelWidth)
-                textDisabled(report.improvementDiagnosis)
-                ImGui.popTextWrapPos()
-            }
         }
     }
 

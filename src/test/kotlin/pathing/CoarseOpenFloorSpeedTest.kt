@@ -53,7 +53,7 @@ class CoarseOpenFloorSpeedTest {
             assertNotNull(route)
             // Pinned against the pre-refactor planner on this exact floor: same expansions, same bound.
             assertEquals(5342, coarse.processedNodes, "coarse expansions on the open floor")
-            assertEquals(378.47077731779956, route.lowerBoundTicks, 1e-6, "route lower bound on the open floor")
+            assertEquals(378.46867952253905, route.lowerBoundTicks, 1e-6, "route lower bound on the open floor")
         }
     }
 }

@@ -68,14 +68,6 @@ internal class LegChain(
 
 	fun sync(route: CoarseRoutePlan): WorldSyncResult = current.sync?.invoke(route) ?: WorldSyncResult.Quiet
 
-	fun expandGuide(marginTicks: Double) {
-		planner.expandField(
-			extraTicks = fieldExpansionTicks + marginTicks,
-			timeBudget = fieldExpansionBudget,
-			maxExpansions = fieldExpansionNodes,
-		)
-	}
-
 	fun onBatch(batch: WorldEventBatch) {
 		for (i in nextIndex until states.size) forwarded[i] += batch
 	}

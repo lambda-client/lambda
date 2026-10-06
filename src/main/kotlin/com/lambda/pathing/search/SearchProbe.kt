@@ -41,7 +41,6 @@ class SearchStatsView(
 	val expansions: Int,
 	val windowExpansions: Int,
 	val windowBudget: Int,
-	val guideExpansions: Int,
 	val temperature: Double,
 	val open: Int,
 	val parked: Int,

@@ -8,7 +8,6 @@ import com.lambda.pathing.PathPlanResult
 import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.ParkourCourseLayout
@@ -47,7 +46,6 @@ internal object ProbeScenarios {
         /** Kept so a probe can drive the real search machinery over the same world. */
         val planner: CoarsePlanner,
         val route: CoarseRoutePlan,
-        val catalog: MovementCatalog,
     )
 
     fun all(): List<Scenario> = buildList {
@@ -101,9 +99,7 @@ internal object ProbeScenarios {
         microsPerExpansion: Long = 640L,
         transitionOverheadTicks: Double = 1.0,
         maxTemperature: Double = 1.0,
-        improvementBudget: Int = 0,
         frontierPerKey: Int = 3,
-        branchExpansionHeadroomExpansions: Int = 1560,
         probe: com.lambda.pathing.search.SearchProbe = com.lambda.pathing.search.SearchProbe.NONE,
         constraints: MotionConstraints = MotionConstraints(),
     ): Outcome {
@@ -139,13 +135,10 @@ internal object ProbeScenarios {
             parallelism = parallelism,
             onExhaustion = { exhaustions += it },
             maxTemperature = maxTemperature,
-            improvementBudget = improvementBudget,
             frontierPerKey = frontierPerKey,
-            branchExpansionHeadroomExpansions = branchExpansionHeadroomExpansions,
             probe = probe,
-            fieldExpansionBudget = Duration.INFINITE,
         )
-        return Outcome(result, exhaustions, planner, route, moves.catalog)
+        return Outcome(result, exhaustions, planner, route)
     }
 
     private fun courseEnvironment(course: ParkourCourseLayout.Course): SnapshotSimulationEnvironment =

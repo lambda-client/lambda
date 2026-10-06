@@ -197,7 +197,6 @@ object TrajectoryPlanner {
 				frontierSweepBudget = config.frontierSweepBudget,
 				bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
 				plannerThreads = config.plannerThreads,
-				improvementBudget = config.improvementBudget,
 				dumpDirectory = dumpDirectory,
 				dumpAllPlans = config.dumpAllPlans,
 				startedMillis = started,
@@ -368,7 +367,6 @@ object TrajectoryPlanner {
 					},
 					legs = legs,
 					parallelism = preparation.plannerThreads,
-					improvementBudget = preparation.improvementBudget,
 				)
 
 				if (outcome is PathPlanResult.Failed) {
@@ -428,11 +426,7 @@ object TrajectoryPlanner {
 		onExhaustion: ((SearchExhaustion) -> Unit)? = null,
 		parallelism: Int = 1,
 		maxTemperature: Double = 1.0,
-		improvementBudget: Int = 0,
 		frontierPerKey: Int = 3,
-		branchExpansionHeadroomExpansions: Int = 1560,
-
-		fieldExpansionBudget: Duration = FIELD_EXPANSION_BUDGET,
 
 		legs: LegChain? = null,
 	): PathPlanResult {
@@ -461,9 +455,7 @@ object TrajectoryPlanner {
 					minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
 					maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
 					maxTemperature = maxTemperature,
-					improvementBudget = improvementBudget,
 					frontierPerKey = frontierPerKey,
-					branchExpansionHeadroomExpansions = branchExpansionHeadroomExpansions,
 				),
 				onSafePrefix = { step ->
 					if (!cancelled()) {
@@ -485,14 +477,7 @@ object TrajectoryPlanner {
 				worldWait = worldWait,
 				worldSync = if (legs != null) { current -> legs.sync(current) } else worldSync,
 				sectionCapturable = sectionCapturable,
-				expandGuide = { marginTicks ->
-					if (legs != null) legs.expandGuide(marginTicks)
-					else planner.expandField(
-						extraTicks = FIELD_EXPANSION_TICKS + marginTicks,
-						timeBudget = fieldExpansionBudget,
-						maxExpansions = FIELD_EXPANSION_NODES,
-					)
-				},
+
 				adoptedSequence = adoptedSequence,
 				finalGoal = finalGoal,
 				probe = probe,

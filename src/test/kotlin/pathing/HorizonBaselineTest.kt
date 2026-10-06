@@ -194,7 +194,6 @@ class HorizonBaselineTest {
             clock = clock,
             adoptedSequence = executor::adoptedSequence,
             probe = attribution,
-            fieldExpansionBudget = kotlin.time.Duration.INFINITE,
         )
 
         val path = (outcome as? PathPlanResult.Planned)?.path

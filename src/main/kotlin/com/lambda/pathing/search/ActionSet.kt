@@ -8,7 +8,6 @@ import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.actions.PricedDecision
 import com.lambda.pathing.actions.ProposalContext
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -18,8 +17,6 @@ internal class ActionSet(
 	private val field: ValueField,
 	private val config: MotionConstraints,
 	private val searchConfig: ValueFieldSearchConfig,
-
-	private val momentum: Boolean = false,
 ) {
 
 	fun actions(anchor: ValueAnchor, temperature: Temperature): List<PricedDecision> {
@@ -69,9 +66,6 @@ internal class ActionSet(
 			view = field.view,
 			steering = field,
 			headingFanDegrees = searchConfig.headingFanDegrees,
-			guideTicks = { field.guide(it) },
-			movingGuideTicks = { field.guide(it, SpeedClass.MOVING) },
-			momentum = momentum,
 		)
 		for (movement in catalog.movements) {
 			val proposals = movement.proposals(proposalContext)

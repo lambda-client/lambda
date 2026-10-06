@@ -43,17 +43,12 @@ internal class Frontier(
 		val bound: Double,
 		val anchor: ValueAnchor,
 		internal var sequence: Long = Long.MAX_VALUE,
-	) {
-
-		internal var starveExempt = false
-	}
+	)
 
 	private val open = PriorityQueue(
 		compareBy<OpenEntry>({ it.order }, { it.bound }, { it.anchor.elapsed }, { it.sequence })
 	)
 	private val parked = ArrayList<OpenEntry>()
-
-	private val reserve = ArrayList<OpenEntry>()
 
 	private class BlockedAttempt(val anchor: ValueAnchor, val action: TrajectoryDecision)
 
@@ -97,10 +92,6 @@ internal class Frontier(
 			if (entry.anchor.elapsed <= floor) continue
 			if (best == null || best.order.compareTo(entry.order) > 0) best = entry
 		}
-		for (entry in reserve) {
-			if (entry.anchor.elapsed <= floor) continue
-			if (best == null || best.order.compareTo(entry.order) > 0) best = entry
-		}
 		return best
 	}
 
@@ -111,22 +102,6 @@ internal class Frontier(
 
 	fun park(entry: OpenEntry) {
 		parked += entry
-	}
-
-	fun starve(entry: OpenEntry) {
-		reserve += entry
-	}
-
-	fun reviveStarved(alive: (ValueAnchor) -> Boolean): Boolean {
-		while (reserve.isNotEmpty()) {
-			val best = reserve.minByOrNull { it.order } ?: return false
-			reserve.remove(best)
-			if (!alive(best.anchor)) continue
-			best.starveExempt = true
-			open += best
-			return true
-		}
-		return false
 	}
 
 	fun reopen(anchor: ValueAnchor) {
@@ -153,7 +128,6 @@ internal class Frontier(
 		open.clear()
 		open.addAll(retained)
 		blocked.retainAll { it.anchor.descendsFrom(root) }
-		reserve.retainAll { it.anchor.descendsFrom(root) }
 		buckets.clear()
 	}
 
@@ -168,7 +142,6 @@ internal class Frontier(
 		open.clear()
 		open.addAll(kept)
 		parked.removeAll { stale(it.anchor) }
-		reserve.removeAll { stale(it.anchor) }
 		blocked.removeAll { stale(it.anchor) }
 		rebuildBeamBuckets()
 	}

@@ -32,8 +32,6 @@ object ValueFieldAnchorSearch {
 
 		sectionCapturable: ((Int, Int) -> Boolean)? = null,
 
-		expandGuide: ((Double) -> Unit)? = null,
-
 		adoptedSequence: (() -> Long)? = null,
 
 		finalGoal: Stance? = null,
@@ -55,7 +53,7 @@ object ValueFieldAnchorSearch {
 		return AnchorSearchSession(
 			route, catalog, field, initialState, profile, environment, config, searchConfig,
 			onSafePrefix, cursorFrame, clock, cancelled, worldWait, worldSync, sectionCapturable,
-			expandGuide, adoptedSequence, finalGoal, probe, onExhaustion,
+			adoptedSequence, finalGoal, probe, onExhaustion,
 			parallelism = if (executor != null) parallelism.coerceAtLeast(1) else 1,
 			executor = executor,
 			nextLeg = nextLeg,
