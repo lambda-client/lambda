@@ -5,10 +5,8 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.execution.FlightPermissionHold
-import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
 import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.BlockPos
@@ -40,11 +38,7 @@ class PathingSession internal constructor(
 	internal var active = true
 		private set
 
-	internal var planningGeneration = 0L
-
 	internal val flight = FlightPermissionHold()
-
-	internal var planningSession: PlanningSession? = null
 
 	internal var leg = 0
 
@@ -52,35 +46,9 @@ class PathingSession internal constructor(
 
 	internal fun remainingWaypoints(): List<Stance> = request.waypoints.drop(passedWaypoints)
 
-	internal var planningYaw: Double? = null
-
-	internal var pendingPath: PublishedPath? = null
-	internal var alignmentTicks = 0
-	internal var settleTicks = 0
-	internal var cursor: TrajectoryExecutionCursor? = null
+	internal var replay: Replay? = null
 
 	internal var tickInput: MovementSimulationInput? = null
-	internal var awaitingObservation = false
-
-	internal var pendingImprovement: PublishedPath? = null
-
-	internal var holding = false
-	internal var holds = 0
-
-	internal var sessionRestarts = 0
-	internal var sessionFailure: String? = null
-
-	internal var repairDeadline: Int? = null
-	internal var repairDeviation: com.lambda.pathing.execution.ExecutionDeviation? = null
-	internal var repairs = 0
-
-	internal var successorSession: PlanningSession? = null
-	internal var successorPath: PublishedPath? = null
-
-	private val adoptionGains = ArrayList<Int>()
-	private val adoptionMillis = ArrayList<Long>()
-	private var lastAdoptionMillis = System.currentTimeMillis()
-	private var lastAdoptedFrames = 0
 
 	internal val alignment = AlignmentController(this)
 	internal val launcher = PlanningLauncher(this)
@@ -88,12 +56,9 @@ class PathingSession internal constructor(
 	internal val execution = ExecutionDriver(this)
 
 	fun telemetry(): Telemetry = telemetry.snapshot().copy(
-		holds = holds,
-		repairs = repairs,
 		leg = leg,
 		queuedWaypoints = remainingWaypoints().size + waypointRoute.queuedWaypoints,
-		sessionRestarts = sessionRestarts,
-		cadence = publicationCadence(),
+		sessionRestarts = launcher.restarts,
 	)
 
 	fun isFinished(request: PathingRequest): Boolean =
@@ -114,7 +79,7 @@ class PathingSession internal constructor(
 		if (state is State.Planning) return
 		if (state is State.Aligning) return with(alignment) { align() }
 
-		waypointRoute.primeNextLeg(player, request, replaying = cursor != null, published = telemetry.published)
+		waypointRoute.primeNextLeg(player, request, replaying = replay != null, published = telemetry.published)
 		with(execution) { tickExecution() }
 	}
 
@@ -130,15 +95,13 @@ class PathingSession internal constructor(
 		}
 		flight.hold()
 
-		if (awaitingObservation) {
+		val replay = replay
+		if (replay != null && replay.awaitingObservation) {
 			val path = telemetry.published ?: run {
 				fail("lost the certified plan before input application")
 				return null
 			}
-			val active = cursor ?: run {
-				fail("lost the execution cursor before input application")
-				return null
-			}
+			val active = replay.cursor
 			with(admission) { executionEnvironmentDeviation(path, nextFrame = active.nextFrame) }?.let { deviation ->
 				with(execution) {
 					val observed = observe(path.plan, active.nextFrame)
@@ -172,8 +135,7 @@ class PathingSession internal constructor(
 
 	internal fun release() {
 		flight.release()
-		cancelPlanning()
-		cancelSuccessor()
+		launcher.cancel()
 		active = false
 	}
 
@@ -190,7 +152,7 @@ class PathingSession internal constructor(
 
 	internal fun SafeContext.planTrajectory() {
 		if (player.velocity.horizontalLength() > SETTLED_SPEED) {
-			settleTicks = 0
+			alignment.beginSettling()
 			tickInput = ALIGNMENT_INPUT
 			state = State.Settling(goalLabel())
 			return
@@ -206,7 +168,8 @@ class PathingSession internal constructor(
 		InterestPrimer.primeBody(activeJourney.world, player.blockPos)
 		val configured = request.pathingConfig.snapshotCaptureBudgetMillis
 
-		val budget = if (cursor == null || holding) {
+		val replay = replay
+		val budget = if (replay == null || replay.holding) {
 			maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS)
 		} else configured
 		activeJourney.world.advance(budget)
@@ -249,49 +212,10 @@ class PathingSession internal constructor(
 
 	internal fun goalLabel(): String = request.goal.let { "(${it.x}, ${it.y}, ${it.z})" }
 
-	internal fun recordAdoption(tapeFrames: Int) {
-		val now = System.currentTimeMillis()
-		adoptionGains += (tapeFrames - lastAdoptedFrames).coerceAtLeast(0)
-		adoptionMillis += (now - lastAdoptionMillis).coerceAtLeast(0)
-		lastAdoptedFrames = tapeFrames
-		lastAdoptionMillis = now
-	}
-
-	internal fun publicationCadence(): String {
-		if (adoptionGains.isEmpty()) return "no adoptions"
-		val frames = adoptionGains.sum()
-		val millis = adoptionMillis.sum().coerceAtLeast(1L)
-		return "%d adoption(s) added %d frames over %d ms (%.1f frames/s produced vs %d consumed)"
-			.format(adoptionGains.size, frames, millis, frames * 1000.0 / millis, TICKS_PER_SECOND)
-	}
-
-	internal fun cancelPlanning() {
-		val planning = planningSession
-		planningSession = null
-		planning?.cancel()
-	}
-
-	internal fun cancelSuccessor() {
-		val successor = successorSession
-		successorSession = null
-		successorPath = null
-		successor?.cancel()
-	}
-
 	internal fun resetForReplan() {
-		cancelPlanning()
-		cancelSuccessor()
-		cursor = null
-		awaitingObservation = false
-		pendingPath = null
-		pendingImprovement = null
-		holding = false
-		sessionFailure = null
-		repairDeadline = null
-		repairDeviation = null
-		planningYaw = null
-		alignmentTicks = 0
-		settleTicks = 0
+		launcher.reset()
+		replay = null
+		alignment.reset()
 	}
 
 	private var liveProfileAge = Int.MIN_VALUE
@@ -324,12 +248,8 @@ class PathingSession internal constructor(
 
 		const val MAX_STATE_RECOVERIES = 8
 
-		const val MAX_SESSION_RESTARTS = 3
-
 		const val PATHING_SOURCE = "Pathing"
 
 		val ALIGNMENT_INPUT = MovementSimulationInput()
-
-		private const val TICKS_PER_SECOND = 20
 	}
 }

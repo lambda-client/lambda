@@ -55,8 +55,6 @@ class DecisionContext(
 	val ballistics: BallisticProfile = BallisticProfile.VANILLA,
 
 	val steering: SteeringField? = null,
-
-	val chainLength: Int = 1,
 )
 
 interface SteeringField {
@@ -66,6 +64,10 @@ interface SteeringField {
 		length: Int,
 		heading: Pair<Double, Double>? = null,
 	): List<Stance>
+
+	companion object {
+		const val PURSUIT_CHAIN_LENGTH = 6
+	}
 }
 
 class ProposalContext(
@@ -74,7 +76,6 @@ class ProposalContext(
 	val constraints: MotionConstraints,
 	val view: CoarseVoxelView,
 	val steering: SteeringField,
-	val headingFanDegrees: List<Double>,
 )
 
 class ProgramContext(
@@ -98,7 +99,6 @@ class CompletionContext(
 
 	val airborne: Boolean,
 	val launch: LaunchTrigger?,
-	val headingCommitFrames: Int,
 )
 
 fun DecisionContext.landingRisk(solution: LaunchSolution): Double {

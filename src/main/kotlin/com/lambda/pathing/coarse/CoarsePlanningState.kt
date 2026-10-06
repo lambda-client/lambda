@@ -4,7 +4,6 @@ import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
@@ -77,13 +76,9 @@ internal class CoarsePlanningState(
 		onCaptureLag = collectCaptureLag,
 	)
 
-	fun repairFrom(start: Stance, changed: Set<VoxelPos>, changedChunks: Set<PathingChunk>) {
+	fun repairFrom(start: Stance) {
 		planner.updateStart(start)
-
-		val revealed = grantChunksAround(start)
-		if (changed.isNotEmpty()) planner.worldChanged(changed)
-		if (changedChunks.isNotEmpty()) planner.chunksChanged(changedChunks)
-		if (revealed.isNotEmpty()) planner.chunksChanged(revealed, arrivalsOnly = true)
+		revealChunks(grantChunksAround(start))
 	}
 
 	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {

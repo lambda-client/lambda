@@ -1,5 +1,6 @@
 package com.lambda.pathing.session
 
+import com.lambda.pathing.search.ExecutionFeedback
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -17,14 +18,14 @@ internal class PlanningCancellation {
 internal class PlanningSession(
 	val generation: Long,
 	val request: PathingRequest,
-) {
+) : ExecutionFeedback {
 	val cancellation = PlanningCancellation()
 
 	@Volatile
 	var launchRevision: Long = -1L
 
 	@Volatile
-	var adoptedSequence: Long = 0L
+	private var adopted: Long = 0L
 
 	private val executionFrame = AtomicInteger(NOT_EXECUTING)
 
@@ -40,7 +41,14 @@ internal class PlanningSession(
 		executionFrame.set(frame ?: NOT_EXECUTING)
 	}
 
-	fun executionFrame(): Int? = executionFrame.get().takeUnless { it == NOT_EXECUTING }
+	fun adopt(frame: Int, sequence: Long) {
+		updateExecutionFrame(frame)
+		adopted = sequence
+	}
+
+	override fun cursorFrame(): Int? = executionFrame.get().takeUnless { it == NOT_EXECUTING }
+
+	override fun adoptedSequence(): Long = adopted
 
 	fun cancel() {
 		cancellation.cancel()

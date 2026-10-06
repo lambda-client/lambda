@@ -32,7 +32,7 @@ class HorizonRingAdvanceTest {
         val state = CoarsePlanningState(
             environment, SimpleMoveOptions(maxJumpDrop = 2), start, goal, horizonChunks = 4,
         )
-        state.repairFrom(start, emptySet(), emptySet())
+        state.repairFrom(start)
         state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         val first = assertNotNull(
             RouteResolution(state).resolve(start, 1L, 1_000_000), "the first leg must route",
@@ -49,7 +49,7 @@ class HorizonRingAdvanceTest {
         // The walk ends where the first route did (at or near the ring's edge); the
         // ring then re-grants around it, revealing the rest of the field and the goal.
         val second = first.goal
-        state.repairFrom(second, emptySet(), emptySet())
+        state.repairFrom(second)
         val repair = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         println("[ring] second repair expansions=${repair.processedNodes} nodes=${state.planner.graphSize} converged=${repair.converged}")
         val route = RouteResolution(state).resolve(second, 2L, 1_000_000)

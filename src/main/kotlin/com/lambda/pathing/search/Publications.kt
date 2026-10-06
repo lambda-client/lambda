@@ -11,8 +11,7 @@ internal class Publication(
 
 internal class Publications(
 	private val clock: SearchClock,
-	private val cursorFrame: (() -> Int?)?,
-	private val adoptedSequence: (() -> Long)?,
+	private val execution: ExecutionFeedback,
 ) {
 	private val published = ArrayDeque<Publication>()
 	private var sequence = 0L
@@ -29,9 +28,9 @@ internal class Publications(
 
 	val upToDate: Boolean get() = newest.let { it == null || adopted() >= it.sequence }
 
-	fun adopted(): Long = adoptedSequence?.invoke() ?: Long.MAX_VALUE
+	fun adopted(): Long = execution.adoptedSequence()
 
-	fun cursor(): Int? = cursorFrame?.invoke()?.also { observedCursor = it }
+	fun cursor(): Int? = execution.cursorFrame()?.also { observedCursor = it }
 
 	fun record(anchor: ValueAnchor, brake: ValueAnchor, plan: MotionPlanResult.Success) {
 		running?.let { current -> published.removeAll { it.sequence < current.sequence } }

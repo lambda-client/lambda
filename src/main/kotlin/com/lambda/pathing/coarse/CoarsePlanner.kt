@@ -212,6 +212,9 @@ class CoarsePlanner(
 		cancelled: () -> Boolean = { false },
 	): LongDStarLite.ComputeResult = search.expandField(extraTicks, timeBudget, maxExpansions, cancelled)
 
+	fun expandSearchField(timeBudget: Duration = Duration.INFINITE, cancelled: () -> Boolean = { false }) =
+		expandField(SEARCH_FIELD_TICKS, timeBudget, SEARCH_FIELD_EXPANSIONS, cancelled)
+
 	fun route(
 		maxLength: Int = 10_000,
 		cancelled: () -> Boolean = { false },
@@ -309,6 +312,10 @@ class CoarsePlanner(
 		const val ROUTE_RESYNCHRONIZATION_ROUNDS = 64
 
 		const val ROUTE_DESCENT_EXPANSIONS = 200_000
+
+		const val SEARCH_FIELD_TICKS = 36.0
+
+		const val SEARCH_FIELD_EXPANSIONS = 20_000
 	}
 
 	fun valueField(): CoarseValueField = CoarseValueField(

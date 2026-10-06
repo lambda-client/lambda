@@ -11,16 +11,18 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.SearchExhaustion
 import com.lambda.pathing.search.VirtualSearchClock
+import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.search.WorldSyncResult
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
@@ -69,7 +71,7 @@ class DagRepairTest {
         val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L))
 
         val initial = MovementSimulationState.synthetic(
@@ -87,9 +89,9 @@ class DagRepairTest {
         var exhaustion: SearchExhaustion? = null
         val wallSection = PathingSection(wallX shr 4, 0, 0)
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
-            cursorFrame = { clock.cursorFrame() },
+            execution = clock,
             publish = { path, _ ->
                 if (firstTape == null) firstTape = path.plan.tape.asList()
                 lastTape = path.plan.tape.asList()
@@ -97,15 +99,20 @@ class DagRepairTest {
             },
             started = System.currentTimeMillis(),
             clock = clock,
-            worldSync = {
+            world = object : WorldLink {
+                override fun await(timeoutMillis: Long) = false
+
+                override fun capturable(sectionX: Int, sectionZ: Int) = true
+
                 // Once the body is under way and the tape reaches past the wall, drop it.
-                if (!mutated && clock.cursorFrame() >= 10 && publishedFrames >= 70) {
-                    mutated = true
-                    environment.install(ChunkSectionPos.asLong(wallX shr 4, 0, 0), floorSection(wallX shr 4, withWall = true))
-                    planner.worldChanged(listOf(VoxelPos(wallX, 4, 0), VoxelPos(wallX, 5, 0)))
-                    planner.repair(Duration.INFINITE)
-                    WorldSyncResult.Changed(planner.routePlan(1L), setOf(wallSection))
-                } else WorldSyncResult.Quiet
+                override fun sync(route: CoarseRoutePlan): WorldSyncResult =
+                    if (!mutated && clock.cursorFrame() >= 10 && publishedFrames >= 70) {
+                        mutated = true
+                        environment.install(ChunkSectionPos.asLong(wallX shr 4, 0, 0), floorSection(wallX shr 4, withWall = true))
+                        planner.worldChanged(listOf(VoxelPos(wallX, 4, 0), VoxelPos(wallX, 5, 0)))
+                        planner.repair(Duration.INFINITE)
+                        WorldSyncResult.Changed(planner.routePlan(1L), setOf(wallSection))
+                    } else WorldSyncResult.Quiet
             },
             onExhaustion = { exhaustion = it },
         )

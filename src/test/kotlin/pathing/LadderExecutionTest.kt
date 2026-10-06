@@ -5,7 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
@@ -53,7 +53,7 @@ class LadderExecutionTest {
             "the only way up is the ladder: ${route.edges.map { it.movement }}",
         )
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -63,7 +63,6 @@ class LadderExecutionTest {
                 onGround = true,
             ),
             PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )
@@ -116,7 +115,7 @@ class LadderExecutionTest {
         planner.expandField(extraTicks = 60.0, maxExpansions = 40_000)
         val route = assertNotNull(planner.routePlan(0L), "a descent route must publish")
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -126,7 +125,6 @@ class LadderExecutionTest {
                 onGround = true,
             ),
             PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )
@@ -175,7 +173,7 @@ class LadderExecutionTest {
             "the only way up is the vine: ${route.edges.map { it.movement }}",
         )
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -185,7 +183,6 @@ class LadderExecutionTest {
                 onGround = true,
             ),
             PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )
@@ -230,7 +227,7 @@ class LadderExecutionTest {
         planner.expandField(extraTicks = 400.0, maxExpansions = 200_000)
         val route = assertNotNull(planner.routePlan(0L), "a tall ladder route must publish")
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -240,7 +237,6 @@ class LadderExecutionTest {
                 onGround = true,
             ),
             PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )
@@ -283,7 +279,7 @@ class LadderExecutionTest {
             "the shaft is the only way down: ${route.edges.map { it.movement }}",
         )
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -293,7 +289,6 @@ class LadderExecutionTest {
                 onGround = true,
             ),
             PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )

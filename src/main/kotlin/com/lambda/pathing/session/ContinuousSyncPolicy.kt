@@ -20,12 +20,10 @@ internal class ContinuousSyncPolicy(
 	private val resolution: RouteResolution,
 	private val field: ValueField,
 	private val start: Stance,
-	private val finalGoal: Stance,
 	private val snapshotRevision: Long,
 	private val cancelled: () -> Boolean,
 	private val probe: SearchProbe,
-
-	private val onBatch: (WorldEventBatch) -> Unit = {},
+	private val onBatch: (WorldEventBatch) -> Unit,
 ) : (CoarseRoutePlan) -> WorldSyncResult {
 	private var lastQuietExtension = 0L
 
@@ -39,35 +37,24 @@ internal class ContinuousSyncPolicy(
 		val batch = world.drainEvents()
 		if (!batch.isEmpty) onBatch(batch)
 		if (batch.isEmpty) {
-
-			val t = System.nanoTime()
-			val more = coarseState.continueSync(SYNC_SLICE_STANCES)
-			syncNanos += System.nanoTime() - t
+			val more = timedSync { coarseState.continueSync(SYNC_SLICE_STANCES) }
 			if (more) return WorldSyncResult.Woken()
 
-			val extending = current.goal != finalGoal
+			val extending = current.goal != coarseState.goal
 			if (!extending) return WorldSyncResult.Quiet
 			val now = System.currentTimeMillis()
 			if (now - lastQuietExtension < QUIET_EXTENSION_INTERVAL_MILLIS) {
 				return WorldSyncResult.Quiet
 			}
 			lastQuietExtension = now
-			val resolveStarted = System.nanoTime()
-			val next = resolution.resolve(
-				start, snapshotRevision, RESOLVE_SLICE_EXPANSIONS,
-			) { cancelled() }
-			resolves++
-			resolveNanos += System.nanoTime() - resolveStarted
-			syncNanos += System.nanoTime() - resolveStarted
+			val next = resolve()
 			refreshGraph(next ?: current)
 			if (next == null || next.nodes == current.nodes) return WorldSyncResult.Quiet
 			return WorldSyncResult.Changed(next)
 		}
 
-		val t = System.nanoTime()
-		coarseState.applyEvents(batch, SYNC_SLICE_STANCES)
-		syncNanos += System.nanoTime() - t
-		val extending = current.goal != finalGoal
+		timedSync { coarseState.applyEvents(batch, SYNC_SLICE_STANCES) }
+		val extending = current.goal != coarseState.goal
 		val mutated = batch.mutations.isNotEmpty() || batch.chunks.isNotEmpty()
 
 		val mutatedSections = mutatedSectionSet(batch)
@@ -86,24 +73,27 @@ internal class ContinuousSyncPolicy(
 			batch.sections.size, batch.mutations.size, batch.chunks.size,
 			routeAffected, extending,
 		)
-		val resolveStarted = System.nanoTime()
-		val next = if (routeAffected) {
-			resolves++
-			resolution.resolve(
-				start, snapshotRevision, RESOLVE_SLICE_EXPANSIONS,
-			) { cancelled() }
-		} else null
-		resolveNanos += System.nanoTime() - resolveStarted
-		syncNanos += System.nanoTime() - resolveStarted
-		if (next != null) refreshGraph(next)
-		next?.goal?.let { terminal ->
-			world.interestBlocks(
-				terminal.x - 32, terminal.y - 16, terminal.z - 32,
-				terminal.x + 32, terminal.y + 16, terminal.z + 32,
-				InterestTier.CORRIDOR,
-			)
+		val next = if (routeAffected) resolve() else null
+		if (next != null) {
+			refreshGraph(next)
+			world.interestAround(next.goal, InterestTier.CORRIDOR)
 		}
 		return WorldSyncResult.Changed(next, mutatedSections)
+	}
+
+	private fun <T> timedSync(block: () -> T): T {
+		val started = System.nanoTime()
+		return block().also { syncNanos += System.nanoTime() - started }
+	}
+
+	private fun resolve(): CoarseRoutePlan? {
+		val started = System.nanoTime()
+		return resolution.resolve(start, snapshotRevision, RESOLVE_SLICE_EXPANSIONS) { cancelled() }.also {
+			resolves++
+			val elapsed = System.nanoTime() - started
+			resolveNanos += elapsed
+			syncNanos += elapsed
+		}
 	}
 
 	private fun refreshGraph(route: CoarseRoutePlan) {

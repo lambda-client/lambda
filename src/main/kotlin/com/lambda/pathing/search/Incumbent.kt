@@ -4,14 +4,16 @@ internal class Incumbent(
 	private val publications: Publications,
 	private val horizon: Horizon,
 	private val publisher: Publisher,
-	private val config: ValueFieldSearchConfig,
-	private val cursorFrame: (() -> Int?)?,
+	private val config: SearchConfig,
+	private val execution: ExecutionFeedback,
 ) {
 	var best: Solution? = null
 		private set
 
 	var fallback: Solution? = null
 		private set
+
+	private var expansionsSinceImprovement = 0
 
 	var firstFrames = -1
 		private set
@@ -23,8 +25,14 @@ internal class Incumbent(
 
 	val hasSolution: Boolean get() = best != null || sealed != null
 
+	val stalled: Boolean get() = expansionsSinceImprovement >= STALL_EXPANSIONS
+
 	val arrival: Solution?
 		get() = sealed?.let { published -> best?.takeIf { it.score <= published.score } ?: published }
+
+	fun tick() {
+		expansionsSinceImprovement++
+	}
 
 	fun offer(solution: Solution) {
 		if (!horizon.canReach(solution.anchor) || !publications.adoptable(solution.anchor)) return
@@ -40,6 +48,7 @@ internal class Incumbent(
 		if (firstFrames < 0) firstFrames = solution.frames
 		found++
 		best = solution
+		expansionsSinceImprovement = 0
 	}
 
 	fun fallbackCovers(elapsed: Int): Boolean = fallback?.let { it.frames <= elapsed } == true
@@ -65,6 +74,7 @@ internal class Incumbent(
 		best = null
 		sealed = null
 		fallback = null
+		expansionsSinceImprovement = 0
 	}
 
 	fun ready(solution: Solution): Boolean {
@@ -74,8 +84,8 @@ internal class Incumbent(
 	}
 
 	fun nearEnd(solution: Solution): Boolean {
-		val executing = cursorFrame?.invoke() ?: return true
-		return solution.frames - executing <= config.finalizeArrivalFrames
+		val executing = execution.cursorFrame() ?: return true
+		return solution.frames - executing <= FINALIZE_ARRIVAL_FRAMES
 	}
 
 	fun publishFinal(solution: Solution): Boolean =
@@ -89,5 +99,7 @@ internal class Incumbent(
 
 	private companion object {
 		const val OFF_TAPE_GAIN_FRAMES = SWAP_FLOOR_GAIN_TICKS.toInt()
+		const val STALL_EXPANSIONS = 3000
+		const val FINALIZE_ARRIVAL_FRAMES = 10
 	}
 }

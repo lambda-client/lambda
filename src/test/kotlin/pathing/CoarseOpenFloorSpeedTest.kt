@@ -44,7 +44,7 @@ class CoarseOpenFloorSpeedTest {
         val goal = Stance(-164, 4 + height(-164, -13), -13)
         repeat(3) { round ->
             val state = CoarsePlanningState(environment, SimpleMoveOptions(), start, goal, horizonChunks = 0)
-            state.repairFrom(start, emptySet(), emptySet())
+            state.repairFrom(start)
             val t0 = System.nanoTime()
             val coarse = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
             val ms = (System.nanoTime() - t0) / 1e6

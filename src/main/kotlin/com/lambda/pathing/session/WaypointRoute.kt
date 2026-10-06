@@ -5,7 +5,6 @@ import com.lambda.context.Automated
 import com.lambda.pathing.core.ArrivalMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.PublishedPath
-import com.lambda.pathing.world.PathingWorld
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.client.network.ClientPlayerEntity
 
@@ -73,39 +72,21 @@ internal class WaypointRoute(private val source: String) {
 		val running = published ?: return
 		if (running.partial) return
 		val terminal = running.plan.frames.lastOrNull()?.state ?: return
-		val resolved = TrajectoryPlanner.resolveGoalStance(player, next.goal)
+		val resolved = resolveGoalStance(player, next.goal)
 		if (nextJourney?.goal == resolved) return
 		nextJourney?.cancel()
 		nextJourney = null
 
 		val cancellation = PlanningCancellation()
 		val preparation = when (
-			val prepared = TrajectoryPlanner.prepare(
-				player = player,
-				goal = next.goal,
-				config = request.pathingConfig,
-				turnSpeed = request.rotationConfig.turnSpeed,
-				cancellation = cancellation,
-				initialOverride = terminal,
-				waypoints = next.through,
+			val prepared = preparePlanning(
+				player, request, next.goal, next.through, cancellation, initialOverride = terminal,
 			)
 		) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
 			else -> return
 		}
-		val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
-		InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal, preparation.waypoints)
-		nextJourney = PlanningJourney(
-			goal = preparation.finalGoal,
-			waypoints = preparation.waypoints,
-			moveOptions = preparation.moveOptions,
-			profile = preparation.profile,
-			cancellation = cancellation,
-			world = pathingWorld,
-			legs = TrajectoryPlanner.journeyLegs(
-				preparation, pathingWorld.snapshot, pathingWorld::chunkCapturable,
-			),
-		)
+		nextJourney = PlanningJourney.open(preparation, player, cancellation)
 		LOG.info("Pre-warming the next route leg toward {}", preparation.finalGoal)
 	}
 

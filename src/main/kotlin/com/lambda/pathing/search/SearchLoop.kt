@@ -14,6 +14,7 @@ import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 internal class SearchLoop(
 	initialRoute: CoarseRoutePlan,
@@ -23,33 +24,31 @@ internal class SearchLoop(
 	profile: PlayerPhysicsProfile,
 	environment: SnapshotSimulationEnvironment,
 	private val config: MotionConstraints = MotionConstraints(),
-	private val searchConfig: ValueFieldSearchConfig = ValueFieldSearchConfig(),
+	private val searchConfig: SearchConfig = SearchConfig(),
 	onSafePrefix: ((MotionPlanResult.Success) -> Unit)? = null,
-	private val cursorFrame: (() -> Int?)? = null,
+	private val execution: ExecutionFeedback = ExecutionFeedback.DETACHED,
 	private val clock: SearchClock = SystemSearchClock(),
 	private val cancelled: () -> Boolean = { false },
-	worldWait: ((Long) -> Boolean)? = null,
-	private val worldSync: ((CoarseRoutePlan) -> WorldSyncResult)? = null,
-	private val sectionCapturable: ((Int, Int) -> Boolean)? = null,
-	adoptedSequence: (() -> Long)? = null,
+	private val world: WorldLink? = null,
 	private val finalGoal: Stance? = null,
 	private val probe: SearchProbe = SearchProbe.NONE,
 	private val onExhaustion: ((SearchExhaustion) -> Unit)? = null,
 	parallelism: Int = 1,
-	private val executor: ExecutorService? = null,
-	private val nextLeg: ((Stance) -> LegHandoff?)? = null,
-	private val hasNextLeg: () -> Boolean = { false },
+	private val legs: LegSource? = null,
 ) {
-	private val parallelism = if (executor != null) parallelism.coerceAtLeast(1) else 1
+	private val parallelism = parallelism.coerceAtLeast(1)
+	private val pool: ExecutorService? = if (parallelism > 1) {
+		Executors.newFixedThreadPool(parallelism) { runnable -> Thread(runnable, "PathPlanner-rollout").apply { isDaemon = true } }
+	} else null
 	private val unsupported = initialRoute.edges.mapTo(HashSet()) { it.movement }.filterTo(HashSet()) { !catalog.supports(it) }
-	private val vocabulary: ActionSet = ActionSet(catalog, field, config, searchConfig)
+	private val vocabulary: ActionSet = ActionSet(catalog, field, config)
 	private val route: RouteState = RouteState(initialRoute, environment)
 	private val attempts: AttemptAccumulator = AttemptAccumulator()
 	private val legTouches = ArrayList<LegTouch>()
 
 	private val frontier: Frontier = Frontier(field, config, searchConfig, route.index, incumbentScore = { incumbent.best?.score })
 
-	private val publications: Publications = Publications(clock, cursorFrame, adoptedSequence)
+	private val publications: Publications = Publications(clock, execution)
 
 	private val horizon: Horizon = Horizon(searchConfig.localHorizonFrames, frontier)
 
@@ -67,10 +66,10 @@ internal class SearchLoop(
 		frontier.probe = probe
 	}
 
-	private val incumbent: Incumbent = Incumbent(publications, horizon, publisher, searchConfig, cursorFrame)
+	private val incumbent: Incumbent = Incumbent(publications, horizon, publisher, searchConfig, execution)
 
 	private val recovery: StallRecovery = StallRecovery(
-		frontier, publications, worldWait,
+		frontier, publications, world,
 		syncWorld = ::syncWorld,
 	)
 
@@ -81,7 +80,7 @@ internal class SearchLoop(
 	)
 
 	private val rollouts: AnchorRollout = AnchorRollout(
-		catalog, field, config, searchConfig, environment, profile, { route.goalPoint },
+		catalog, field, config, environment, profile, { route.goalPoint },
 		attempts, probe,
 	)
 
@@ -105,7 +104,13 @@ internal class SearchLoop(
 	private var lastPublishedTip: ValueAnchor? = null
 	private var exit = SearchExit.BUDGET
 
-	fun run(): MotionPlanResult {
+	fun run(): MotionPlanResult = try {
+		search()
+	} finally {
+		pool?.shutdownNow()
+	}
+
+	private fun search(): MotionPlanResult {
 		if (cancelled()) return MotionPlanResult.Cancelled
 		if (unsupported.isNotEmpty()) return MotionPlanResult.UnsupportedRoute(unsupported)
 		val root = plantRoot()
@@ -118,7 +123,7 @@ internal class SearchLoop(
 				break
 			}
 			if (cancelled()) return MotionPlanResult.Cancelled
-			cursorFrame?.invoke()?.let { executing -> syncWithCursor(executing)?.let { return it } }
+			execution.cursorFrame()?.let { executing -> syncWithCursor(executing)?.let { return it } }
 			refreshWindowOnPublication()
 			if (!frontier.hasOpen) {
 				when (recoverFromDrain()) {
@@ -260,7 +265,7 @@ internal class SearchLoop(
 
 	private fun worthExpanding(entry: Frontier.OpenEntry): Boolean {
 		if (!publications.adoptable(entry.anchor)) return false
-		if (entry.anchor.elapsed >= horizon.end && field.guide(entry.anchor.stance) > searchConfig.finishValueTicks) {
+		if (entry.anchor.elapsed >= horizon.end && field.guide(entry.anchor.stance) > FINISH_VALUE_TICKS) {
 			frontier.park(entry)
 			return false
 		}
@@ -272,17 +277,18 @@ internal class SearchLoop(
 	private fun judgeAgainstIncumbent(entry: Frontier.OpenEntry): Verdict {
 		val best = incumbent.best ?: return Verdict.EXPAND
 		if (!finalLeg()) return Verdict.EXPAND
+		val finishable = incumbent.ready(best) && incumbent.nearEnd(best)
 		val bound = entry.bound + Solution.COLLISION_FRAME_PENALTY * entry.anchor.collisionEvents
-		if (bound < best.score) return Verdict.EXPAND
-		return if (incumbent.ready(best) && incumbent.nearEnd(best)) Verdict.FINISH else Verdict.SKIP
+		if (bound >= best.score) return if (finishable) Verdict.FINISH else Verdict.SKIP
+		return if (finishable && incumbent.stalled) Verdict.FINISH else Verdict.EXPAND
 	}
 
 	private fun sweepFinish(anchor: ValueAnchor) {
 		val remaining = field.guide(anchor.stance)
 		if (anchor.sweptEpoch != sweepEpoch &&
 			!hasNextLeg() &&
-			remaining <= searchConfig.finishValueTicks &&
-			finishSweeps < searchConfig.maxFinishSweeps &&
+			remaining <= FINISH_VALUE_TICKS &&
+			finishSweeps < MAX_FINISH_SWEEPS &&
 			horizon.canReach(anchor) &&
 			incumbent.best.let { it == null || anchor.elapsed + remaining < it.frames }
 		) {
@@ -295,12 +301,13 @@ internal class SearchLoop(
 	private fun countExpansion() {
 		expansions++
 		clock.onExpansion()
+		incumbent.tick()
 		annealing.tick()
 	}
 
 	private fun executeBatch(batch: List<AnchorRollout.PreparedRollout>) {
-		if (batch.size > 1 && executor != null) {
-			batch.map { prepared -> executor.submit { rollouts.execute(prepared) } }.forEach { it.get() }
+		if (batch.size > 1 && pool != null) {
+			batch.map { prepared -> pool.submit { rollouts.execute(prepared) } }.forEach { it.get() }
 		} else {
 			batch.forEach { rollouts.execute(it) }
 		}
@@ -344,7 +351,7 @@ internal class SearchLoop(
 	private fun applyRollout(anchor: ValueAnchor, action: TrajectoryDecision, raw: Outcome): Outcome {
 		val outcome = if (raw is Outcome.Blocked) {
 			frontier.parkBlocked(anchor, action)
-			val capturable = sectionCapturable?.invoke(raw.sectionX, raw.sectionZ) ?: true
+			val capturable = world?.capturable(raw.sectionX, raw.sectionZ) ?: true
 			probe.blocked(raw.frame, raw.sectionX, raw.sectionY, raw.sectionZ, capturable, anchor.stance, action.movement)
 			if (capturable) {
 				Outcome.Rejected(TrajectoryDiagnostic.UnknownTerrain(raw.frame, raw.sectionX, raw.sectionY, raw.sectionZ))
@@ -357,7 +364,7 @@ internal class SearchLoop(
 				val landed = outcome.anchor
 				annealing.noteGuide(landed.stance)
 				if (landed.stance == route.goal) {
-					val handoff = if (hasNextLeg()) nextLeg?.invoke(route.goal) else null
+					val handoff = legs?.takeIf { it.hasNext() }?.handoff(route.goal)
 					if (handoff != null) {
 						switchLeg(landed, handoff)
 						publisher.publishPrefix(landed)
@@ -403,8 +410,8 @@ internal class SearchLoop(
 		while (spent < budget && !cancelled()) {
 			val remaining = field.guide(current.stance)
 			if (!remaining.isFinite()) break
-			if (remaining <= searchConfig.finishValueTicks) {
-				if (!hasNextLeg() && current.sweptEpoch != sweepEpoch && finishSweeps < searchConfig.maxFinishSweeps) {
+			if (remaining <= FINISH_VALUE_TICKS) {
+				if (!hasNextLeg() && current.sweptEpoch != sweepEpoch && finishSweeps < MAX_FINISH_SWEEPS) {
 					current.sweptEpoch = sweepEpoch
 					finishSweeps++
 					finisher.finishFrom(current)?.let(incumbent::offer)
@@ -437,7 +444,7 @@ internal class SearchLoop(
 		vocabulary.nextSurcharge(anchor, annealing.temperature, annealing.actionsEpoch)
 
 	private fun syncWorld() {
-		val result = worldSync?.invoke(route.plan) ?: return
+		val result = world?.sync(route.plan) ?: return
 		repairFor(result.mutations)
 		when (result) {
 			WorldSyncResult.Quiet -> return
@@ -510,6 +517,8 @@ internal class SearchLoop(
 	}
 
 	private fun finalLeg(): Boolean = finalGoal == null || route.goal == finalGoal
+
+	private fun hasNextLeg(): Boolean = legs?.hasNext() == true
 
 	private fun finish(solution: Solution): MotionPlanResult {
 		exit = SearchExit.SOLVED
@@ -593,5 +602,6 @@ internal class SearchLoop(
 		const val VIEW_INTERVAL_MILLIS = 100L
 		const val ARRIVAL_RETURN_FRAMES = 2
 		const val SPINE_ATTEMPTS_PER_EDGE = 8
+		const val MAX_FINISH_SWEEPS = 64
 	}
 }

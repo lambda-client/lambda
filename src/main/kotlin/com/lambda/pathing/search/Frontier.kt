@@ -30,7 +30,7 @@ internal fun interface ReachabilityPolicy {
 internal class Frontier(
 	private val field: ValueField,
 	private val config: MotionConstraints,
-	private val searchConfig: ValueFieldSearchConfig,
+	private val searchConfig: SearchConfig,
 	private var routeIndex: Map<Stance, Int>,
 	private val incumbentScore: () -> Int?,
 ) {
@@ -283,7 +283,7 @@ internal class Frontier(
 			localX = localBucket(state.position.x),
 			localY = localBucket(state.position.y),
 			localZ = localBucket(state.position.z),
-			speed = floor(anchor.speed / searchConfig.speedBucketBlocks).toInt(),
+			speed = floor(anchor.speed / SPEED_BUCKET_BLOCKS).toInt(),
 			verticalSpeed = floor(state.velocity.y / VERTICAL_SPEED_BUCKET).toInt(),
 			direction = direction,
 			airborne = !state.onGround,
@@ -309,6 +309,8 @@ internal class Frontier(
 		const val SPEED_DOMINANCE_SLACK = 0.01
 
 		const val POSITION_BUCKET_BLOCKS = 0.25
+
+		const val SPEED_BUCKET_BLOCKS = 0.075
 
 		const val DIRECTION_SECTOR_DEGREES = 30.0
 

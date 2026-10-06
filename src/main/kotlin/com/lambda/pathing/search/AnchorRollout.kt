@@ -16,6 +16,7 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.actions.ProgramContext
+import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
@@ -37,7 +38,6 @@ internal class AnchorRollout(
 	private val movements: MovementCatalog,
 	private val field: ValueField,
 	private val config: MotionConstraints,
-	private val searchConfig: ValueFieldSearchConfig,
 	private val environment: SnapshotSimulationEnvironment,
 	private val profile: PlayerPhysicsProfile,
 	private val goalPoint: () -> HorizontalPoint,
@@ -80,7 +80,7 @@ internal class AnchorRollout(
 
 	fun prepare(anchor: ValueAnchor, action: TrajectoryDecision): PreparedRollout? {
 		val chain = field.chain(
-			anchor.stance, action.step, searchConfig.chainLength, anchor.heading(),
+			anchor.stance, action.step, SteeringField.PURSUIT_CHAIN_LENGTH, anchor.heading(),
 		)
 		val points = chain.map { it.center(environment) }
 		val movement = movements[action.movement] ?: return null
@@ -110,7 +110,7 @@ internal class AnchorRollout(
 				climbing = climbingAt,
 			),
 			descentAllowance = descentAllowance,
-			frameCount = maxOf(searchConfig.maxTransitionFrames, movement.transitionFrames(action)),
+			frameCount = maxOf(TRANSITION_FRAMES, movement.transitionFrames(action)),
 			launch = launch,
 		)
 	}
@@ -158,7 +158,6 @@ internal class AnchorRollout(
 								stance = stance,
 								airborne = airborne,
 								launch = prepared.launch,
-								headingCommitFrames = searchConfig.headingCommitFrames,
 							)
 						)
 
@@ -270,4 +269,7 @@ internal class AnchorRollout(
 		)
 	}
 
+	private companion object {
+		const val TRANSITION_FRAMES = 40
+	}
 }

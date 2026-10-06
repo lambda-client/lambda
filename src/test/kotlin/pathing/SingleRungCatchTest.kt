@@ -11,7 +11,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
@@ -73,7 +73,7 @@ class SingleRungCatchTest {
         val moves = moveLibrary(SimpleMoveOptions(allowClimbing = true))
         val planner = CoarsePlanner(environment, moves, Stance(0, 69, 0), Stance(0, 71, -6))
         assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(
             route.edges.any { it.movement == MovementId.LADDER_CATCH },
@@ -87,9 +87,8 @@ class SingleRungCatchTest {
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
         )
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )

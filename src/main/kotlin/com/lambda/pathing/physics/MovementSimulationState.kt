@@ -70,29 +70,6 @@ data class MovementSimulationState(
 			hadForwardMovement = hadForwardMovement,
 		)
 
-		fun at(
-			player: ClientPlayerEntity,
-			position: Vec3d,
-			rotation: Rotation = Rotation(player.moveYaw.toDouble(), player.pitch.toDouble()),
-			velocity: Vec3d = Vec3d.ZERO,
-			onGround: Boolean = true,
-			isSprinting: Boolean = false,
-			isSneaking: Boolean = false,
-			jumpingCooldown: Int = 0,
-		) = from(
-			player = player,
-			position = position,
-			rotation = rotation,
-			velocity = velocity,
-			onGround = onGround,
-			isSprinting = isSprinting,
-			isSneaking = isSneaking,
-			jumpingCooldown = jumpingCooldown,
-			horizontalCollision = false,
-			collidedSoftly = false,
-			verticalCollision = false,
-		)
-
 		fun synthetic(
 			profile: PlayerPhysicsProfile,
 			position: Vec3d,
@@ -117,7 +94,7 @@ data class MovementSimulationState(
 				isSprinting = isSprinting,
 				isSneaking = isSneaking,
 				jumpingCooldown = jumpingCooldown,
-				velocityAffectingPos = (position + DOWN * 0.500001F.toDouble()).flooredBlockPos,
+				velocityAffectingPos = (position + DOWN * Vanilla.VELOCITY_AFFECTING_POS_OFFSET.toDouble()).flooredBlockPos,
 				horizontalCollision = false,
 				collidedSoftly = false,
 				verticalCollision = false,

@@ -5,7 +5,7 @@ package pathing
 // over hundreds of attempts but never certifying a stable stop.
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
@@ -38,11 +38,11 @@ class DropToAdjacentGoalTest {
         val goal = Stance(9, 97, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { "no coarse route" }
         println("[drop] route=${route.nodes.map { "${it.x},${it.y},${it.z}" }}")
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -52,7 +52,6 @@ class DropToAdjacentGoalTest {
                 onGround = true,
             ),
             PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )

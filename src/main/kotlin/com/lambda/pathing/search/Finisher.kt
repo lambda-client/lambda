@@ -17,6 +17,8 @@ import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.hypot
 
+internal const val FINISH_VALUE_TICKS = 11.0
+
 internal class Finisher(
 	private val field: ValueField,
 	private val environment: SnapshotSimulationEnvironment,

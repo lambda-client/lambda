@@ -2,7 +2,7 @@ package pathing
 
 import com.lambda.pathing.session.LegChain
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
@@ -48,21 +48,20 @@ class DumpLegChainReplayTest {
             onGround = true,
         )
         val first = CoarsePlanningState(environment, options, start, firstGoal)
-        first.repairFrom(start, emptySet(), emptySet())
+        first.repairFrom(start)
         check(first.planner.repair(Duration.INFINITE).converged)
-        first.planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        first.planner.expandSearchField()
         val route = checkNotNull(first.planner.routePlan(0L))
-        val field = first.planner.valueField()
 
         val legStarts = listOf(firstGoal) + legGoals.dropLast(1)
         val states = legGoals.indices.map { CoarsePlanningState(environment, options, legStarts[it], legGoals[it]) }
         val chain = LegChain(
-            world = null, states = states, starts = legStarts,
+            world = null, states = listOf(first) + states, starts = listOf(start) + legStarts,
             coarseExpansionBudget = 1_000_000, snapshotRevision = 0L, cancelled = { false },
             probe = SearchProbe.NONE, executor = Executor { it.run() },
-            fieldExpansionTicks = 36.0, fieldExpansionBudget = Duration.INFINITE, fieldExpansionNodes = 20_000,
+            fieldExpansionBudget = Duration.INFINITE,
         )
-        chain.begin(LegChain.Leg(first, route, field, RouteResolution(first), null))
+        val field = chain.begin(route, RouteResolution(first))
 
         val tempo = System.getenv("PATHING_DUMP_TEMPO")?.toLong() ?: 83L
         val clock = VirtualSearchClock(microsPerExpansion = tempo)
@@ -95,10 +94,10 @@ class DumpLegChainReplayTest {
                 perStance.getOrPut(stance) { HashMap() }.merge("BLOCKED/$movement/section($sectionX,$sectionY,$sectionZ)", 1, Int::plus)
             }
         }
-        val result = TrajectoryPlanner.walkHorizon(
+        val result = walkHorizon(
             route, first.planner, initial, loaded.profile, environment, loaded.searchConfig,
-            cursorFrame = { executor.cursorFrame() }, publish = { path, _ -> lastPublished = path; executor.offer(path) },
-            started = System.currentTimeMillis(), clock = clock, adoptedSequence = executor::adoptedSequence,
+            execution = executor, publish = { path, _ -> lastPublished = path; executor.offer(path) },
+            started = System.currentTimeMillis(), clock = clock,
             finalGoal = (legGoals.lastOrNull() ?: firstGoal), field = field, onExhaustion = { exhaustions += it },
             legs = chain, probe = probe,
         )

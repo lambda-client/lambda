@@ -1,11 +1,11 @@
 package com.lambda.pathing.session
 
-import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.LegHandoff
+import com.lambda.pathing.search.LegSource
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.WorldSyncResult
 import com.lambda.pathing.world.PathingWorld
@@ -29,11 +29,9 @@ internal class LegChain(
 	private val cancelled: () -> Boolean,
 	private val probe: SearchProbe,
 	private val executor: Executor,
-	private val fieldExpansionTicks: Double,
 	private val fieldExpansionBudget: Duration,
-	private val fieldExpansionNodes: Int,
-) {
-	class Leg(
+) : LegSource {
+	private class Leg(
 		val state: CoarsePlanningState,
 		val route: CoarseRoutePlan,
 		val field: CoarseValueField,
@@ -49,19 +47,16 @@ internal class LegChain(
 	var switches = 0
 		private set
 
-	var waitedMillis = 0L
-		private set
-
-	val planner: CoarsePlanner get() = current.state.planner
-
 	val ledger: String get() = current.sync?.ledger ?: "coarseSync=n/a"
 
-	fun begin(first: Leg) {
-		current = first
+	fun begin(route: CoarseRoutePlan, resolution: RouteResolution): CoarseValueField {
+		current = leg(0, route, resolution)
+		nextIndex = 1
 		prepareNext()
+		return current.field
 	}
 
-	fun hasNext(): Boolean = nextIndex < states.size
+	override fun hasNext(): Boolean = nextIndex < states.size
 
 	fun sync(route: CoarseRoutePlan): WorldSyncResult = current.sync?.invoke(route) ?: WorldSyncResult.Quiet
 
@@ -69,7 +64,7 @@ internal class LegChain(
 		for (i in nextIndex until states.size) forwarded[i] += batch
 	}
 
-	fun handoff(touched: Stance): LegHandoff? {
+	override fun handoff(touched: Stance): LegHandoff? {
 		if (!hasNext()) return null
 		val index = nextIndex
 		val future = pending ?: CompletableFuture.supplyAsync({ resolveLeg(index) }, executor).also { pending = it }
@@ -78,18 +73,16 @@ internal class LegChain(
 			future.get(HANDOFF_WAIT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS)
 		} catch (_: java.util.concurrent.TimeoutException) {
 
-			LOG.warn("Route leg {} toward {} still resolving after {} ms; finishing at {} instead", index + 1, states[index].goal, HANDOFF_WAIT_MILLIS, touched)
-			waitedMillis += (System.nanoTime() - waitStarted) / 1_000_000L
+			LOG.warn("Route leg {} toward {} still resolving after {} ms; finishing at {} instead", index, states[index].goal, HANDOFF_WAIT_MILLIS, touched)
 			return null
 		} catch (failure: RuntimeException) {
-			LOG.warn("Resolving route leg {} failed", index + 1, failure)
+			LOG.warn("Resolving route leg {} failed", index, failure)
 			null
 		}
 		val waited = (System.nanoTime() - waitStarted) / 1_000_000L
-		waitedMillis += waited
 		pending = null
 		if (leg == null) {
-			LOG.warn("Route leg {} toward {} did not resolve; finishing at {} instead", index + 1, states[index].goal, touched)
+			LOG.warn("Route leg {} toward {} did not resolve; finishing at {} instead", index, states[index].goal, touched)
 			nextIndex = states.size
 			return null
 		}
@@ -127,19 +120,14 @@ internal class LegChain(
 		val start = starts[index]
 		forwarded[index].clear()
 		val started = System.nanoTime()
-		state.repairFrom(start, emptySet(), emptySet())
+		state.repairFrom(start)
 		val planner = state.planner
 		val coarse = planner.repair(timeBudget = Duration.INFINITE, maxExpansions = coarseExpansionBudget, cancelled = cancelled)
 		if (!coarse.converged || coarse.cancelled || cancelled()) {
-			if (!coarse.converged && !coarse.cancelled) LOG.warn("Route leg {} coarse search did not converge ({} expansions){}", index + 1, coarse.processedNodes, coarse.stall?.let { "; stalled: $it" } ?: "")
+			if (!coarse.converged && !coarse.cancelled) LOG.warn("Route leg {} coarse search did not converge ({} expansions){}", index, coarse.processedNodes, coarse.stall?.let { "; stalled: $it" } ?: "")
 			return null
 		}
-		planner.expandField(
-			extraTicks = fieldExpansionTicks,
-			timeBudget = fieldExpansionBudget,
-			maxExpansions = fieldExpansionNodes,
-			cancelled = cancelled,
-		)
+		planner.expandSearchField(fieldExpansionBudget, cancelled)
 		val resolution = RouteResolution(state)
 
 		val deadline = started + LEG_RESOLVE_BUDGET_MILLIS * 1_000_000L
@@ -160,30 +148,34 @@ internal class LegChain(
 		if (route == null) {
 			LOG.warn(
 				"Route leg {} ahead: no coarse route {} -> {} after {} capture rounds ({} ms): {}",
-				index + 1, start, state.goal, rounds, (System.nanoTime() - started) / 1_000_000L, planner.routeFailureReport(),
+				index, start, state.goal, rounds, (System.nanoTime() - started) / 1_000_000L, planner.routeFailureReport(),
 			)
 			return null
 		}
-		val field = planner.valueField()
+		LOG.info(
+			"Resolved route leg {} ahead: {} -> {}, {} expansions, {} route nodes, {} capture rounds, {} ms",
+			index, start, state.goal, coarse.processedNodes, route.nodes.size, rounds,
+			(System.nanoTime() - started) / 1_000_000L,
+		)
+		return leg(index, route, resolution)
+	}
+
+	private fun leg(index: Int, route: CoarseRoutePlan, resolution: RouteResolution): Leg {
+		val state = states[index]
+		val field = state.planner.valueField()
 		val sync = world?.let {
 			ContinuousSyncPolicy(
 				world = it,
 				coarseState = state,
 				resolution = resolution,
 				field = field,
-				start = start,
-				finalGoal = state.goal,
+				start = starts[index],
 				snapshotRevision = snapshotRevision,
 				cancelled = cancelled,
 				probe = probe,
 				onBatch = ::onBatch,
 			)
 		}
-		LOG.info(
-			"Resolved route leg {} ahead: {} -> {}, {} expansions, {} route nodes, {} capture rounds, {} ms",
-			index + 1, start, state.goal, coarse.processedNodes, route.nodes.size, rounds,
-			(System.nanoTime() - started) / 1_000_000L,
-		)
 		return Leg(state, route, field, resolution, sync)
 	}
 

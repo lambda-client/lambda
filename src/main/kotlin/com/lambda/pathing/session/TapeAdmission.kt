@@ -22,7 +22,7 @@ import kotlin.math.abs
 internal class TapeAdmission(private val walk: PathingSession) {
 
 	fun SafeContext.begin(path: PublishedPath) {
-		walk.planningSession?.let { session ->
+		walk.launcher.current?.let { session ->
 			if (path.planningGeneration != session.generation) {
 				return keepRunning(path, "publication belongs to stale planning generation ${path.planningGeneration}")
 			}
@@ -36,7 +36,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 
 		val drift = player.pos.distanceTo(path.plan.initialState.position)
 		if (drift > START_DRIFT_TOLERANCE) {
-			if (walk.planningSession?.generation != path.planningGeneration) {
+			if (walk.launcher.current?.generation != path.planningGeneration) {
 				return keepRunning(path, "publication was certified from a stance the walk has left")
 			}
 			return with(walk) { fail("moved %.2f blocks while planning".format(drift)) }
@@ -45,8 +45,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		val yawDrift = abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
 		if (yawDrift > FIRST_FRAME_YAW_EPSILON) {
 			walk.telemetry.published = path
-			walk.pendingPath = path
-			walk.alignmentTicks = 0
+			walk.alignment.beginAligning(path)
 			walk.tickInput = ALIGNMENT_INPUT
 			walk.state = State.Aligning(walk.leg + 1, yawDrift)
 			info(
@@ -62,16 +61,16 @@ internal class TapeAdmission(private val walk: PathingSession) {
 	fun SafeContext.adopt(path: PublishedPath) {
 		when (val verdict = ImprovementArbiter.judge(
 			running = walk.telemetry.published,
-			cursorFrame = walk.cursor?.nextFrame,
-			awaitingObservation = walk.awaitingObservation,
+			cursorFrame = walk.replay?.cursor?.nextFrame,
+			awaitingObservation = walk.replay?.awaitingObservation == true,
 			offered = path,
-			runningInvalidFrom = walk.repairDeadline,
+			runningInvalidFrom = walk.replay?.repairDeadline,
 		)) {
 			ImprovementArbiter.Verdict.BeginFresh -> begin(path)
 
 			is ImprovementArbiter.Verdict.Keep -> keepRunning(path, verdict.reason)
 
-			ImprovementArbiter.Verdict.DeferForObservation -> walk.pendingImprovement = path
+			ImprovementArbiter.Verdict.DeferForObservation -> walk.replay?.pendingImprovement = path
 
 			is ImprovementArbiter.Verdict.Adopt -> {
 				val frame = verdict.frame
@@ -80,23 +79,21 @@ internal class TapeAdmission(private val walk: PathingSession) {
 				}
 				walk.telemetry.published = path
 				walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
-				walk.cursor = TrajectoryExecutionCursor(
-					path.plan, with(walk) { liveProfile() },
-					tolerance = ExecutionStateTolerance(),
-				).apply { resumeAt(frame) }
-				walk.planningSession?.updateExecutionFrame(frame)
-				walk.planningSession?.adoptedSequence = path.publicationSequence.toLong()
-				walk.recordAdoption(path.plan.tape.frameCount)
-				walk.holding = false
-				walk.sessionRestarts = 0
-				if (walk.repairDeadline != null) {
-					walk.repairs++
-					LOG.info("Adopted the repaired tape at frame {} (cut was frame {})", frame, walk.repairDeadline)
+				val repairCut = walk.replay?.repairDeadline
+				walk.replay = Replay(
+					TrajectoryExecutionCursor(
+						path.plan, with(walk) { liveProfile() },
+						tolerance = ExecutionStateTolerance(),
+					).apply { resumeAt(frame) },
+				)
+				walk.launcher.current?.adopt(frame, path.publicationSequence.toLong())
+				walk.launcher.progressed()
+				if (repairCut != null) {
+					walk.telemetry.countRepair()
+					LOG.info("Adopted the repaired tape at frame {} (cut was frame {})", frame, repairCut)
 				}
-				walk.repairDeadline = null
-				walk.repairDeviation = null
 				walk.state = State.Executing(frame, path.plan.tape.frameCount, walk.leg)
-				walk.telemetry.countAdoption()
+				walk.telemetry.countAdoption(path.plan.tape.frameCount)
 			}
 		}
 	}
@@ -115,20 +112,15 @@ internal class TapeAdmission(private val walk: PathingSession) {
 			rotationRequest { yaw(path.plan.initialState.rotation.yaw) }.submit()
 		}
 		walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
-		walk.planningYaw = null
-		walk.pendingPath = null
-		walk.alignmentTicks = 0
+		walk.alignment.installed()
 		walk.telemetry.published = path
-		walk.cursor = TrajectoryExecutionCursor(
-			path.plan, with(walk) { liveProfile() },
-			tolerance = ExecutionStateTolerance(),
+		walk.replay = Replay(
+			TrajectoryExecutionCursor(
+				path.plan, with(walk) { liveProfile() },
+				tolerance = ExecutionStateTolerance(),
+			),
 		)
-		walk.planningSession?.updateExecutionFrame(0)
-		walk.planningSession?.adoptedSequence = path.publicationSequence.toLong()
-		walk.awaitingObservation = false
-		walk.holding = false
-		walk.repairDeadline = null
-		walk.repairDeviation = null
+		walk.launcher.current?.adopt(0, path.publicationSequence.toLong())
 		walk.leg++
 		walk.state = State.Executing(0, path.plan.tape.frameCount, walk.leg)
 		info(

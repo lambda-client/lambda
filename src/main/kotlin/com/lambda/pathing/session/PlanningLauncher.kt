@@ -3,28 +3,61 @@ package com.lambda.pathing.session
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
-import com.lambda.pathing.session.PathingSession.Companion.MAX_SESSION_RESTARTS
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.pathing.world.PathingWorld
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.player.MovementUtils.moveYaw
 
 internal class PlanningLauncher(private val walk: PathingSession) {
+	private var generation = 0L
+
+	var current: PlanningSession? = null
+		private set
+
+	var restarts = 0
+		private set
+
+	private var deadEnd: String? = null
+	private var successor: PlanningSession? = null
+	private var successorPath: PublishedPath? = null
+
+	fun cancel() {
+		val planning = current
+		current = null
+		planning?.cancel()
+		dropSuccessor()
+	}
+
+	private fun dropSuccessor(): PublishedPath? {
+		val planning = successor
+		val planned = successorPath
+		successor = null
+		successorPath = null
+		planning?.cancel()
+		return planned
+	}
+
+	fun reset() {
+		cancel()
+		deadEnd = null
+	}
+
+	fun progressed() {
+		restarts = 0
+	}
 
 	fun SafeContext.capturePlan() {
 		walk.tickInput = ALIGNMENT_INPUT
 
-		walk.cancelPlanning()
-		walk.cancelSuccessor()
-		walk.holding = false
+		cancel()
 		val request = walk.request
-		val session = PlanningSession(++walk.planningGeneration, request)
-		walk.planningSession = session
+		val session = PlanningSession(++generation, request)
+		current = session
 
-		walk.planningYaw = player.moveYaw.toDouble()
+		walk.alignment.planningYaw = player.moveYaw.toDouble()
 		skipWaypointsUnderfoot()
 		walk.state = State.Planning(walk.goalLabel())
 		PlanningDebugChannel.begin(
@@ -37,13 +70,8 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			),
 		)
 
-		val preparation = when (val prepared = TrajectoryPlanner.prepare(
-			player = player,
-			goal = request.goal,
-			config = request.pathingConfig,
-			turnSpeed = request.rotationConfig.turnSpeed,
-			cancellation = session.cancellation,
-			waypoints = walk.remainingWaypoints(),
+		val preparation = when (val prepared = preparePlanning(
+			player, request, request.goal, walk.remainingWaypoints(), session.cancellation,
 		)) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
 			is PlanningPreparationResult.Failed -> return with(walk) { fail(prepared.failure.message) }
@@ -51,32 +79,19 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		}
 		val currentJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: run {
 			walk.journey?.cancel()
-			val pathingWorld = PathingWorld(preparation.bounds, player.entityWorld, player)
-			InterestPrimer.primeJourney(pathingWorld, preparation.start, preparation.finalGoal, preparation.waypoints)
-			PlanningJourney(
-				goal = preparation.finalGoal,
-				waypoints = preparation.waypoints,
-				moveOptions = preparation.moveOptions,
-				profile = preparation.profile,
-				cancellation = PlanningCancellation(),
-				world = pathingWorld,
-				legs = TrajectoryPlanner.journeyLegs(
-					preparation, pathingWorld.snapshot, pathingWorld::chunkCapturable,
-				),
-			).also { walk.journey = it }
+			PlanningJourney.open(preparation, player, PlanningCancellation()).also { walk.journey = it }
 		}
 		launch(
 			session, preparation, currentJourney,
-			cursorFrame = session::executionFrame,
-			adoptedSequence = { session.adoptedSequence },
+			execution = session,
 			onImprovement = { improvement ->
-				if (walk.active && walk.planningSession === session) {
-					if (walk.cursor != null) with(walk.admission) { adopt(improvement) }
+				if (walk.active && current === session) {
+					if (walk.replay != null) with(walk.admission) { adopt(improvement) }
 				}
 			},
 			onSafePrefix = { prefix ->
-				if (walk.active && walk.planningSession === session) {
-					if (walk.cursor == null && walk.pendingPath == null) with(walk.admission) { begin(prefix) }
+				if (walk.active && current === session) {
+					if (walk.replay == null && walk.alignment.pendingPath == null) with(walk.admission) { begin(prefix) }
 				}
 			},
 			onLaunchFailure = { failure ->
@@ -90,7 +105,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	private fun SafeContext.skipWaypointsUnderfoot() {
 		val waypoints = walk.request.waypoints
 		while (walk.passedWaypoints < waypoints.size) {
-			val waypoint = TrajectoryPlanner.resolveGoalStance(player, waypoints[walk.passedWaypoints])
+			val waypoint = resolveGoalStance(player, waypoints[walk.passedWaypoints])
 			val horizontal = kotlin.math.hypot(player.pos.x - (waypoint.x + 0.5), player.pos.z - (waypoint.z + 0.5))
 			if (horizontal > WAYPOINT_UNDERFOOT_BLOCKS || kotlin.math.abs(player.pos.y - waypoint.y) > 1.0) break
 			walk.passedWaypoints++
@@ -100,7 +115,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	}
 
 	private fun SafeContext.completePlanning(session: PlanningSession, result: PathPlanResult?, failure: Throwable?) {
-		if (!walk.active || walk.planningSession !== session) return
+		if (!walk.active || current !== session) return
 		if (failure != null) {
 			LOG.error("Pathing worker failed while expanding the trajectory", failure)
 			with(walk) { fail("trajectory expansion crashed: ${failure.rootMessage()}") }
@@ -108,52 +123,61 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		}
 		when (val completed = checkNotNull(result)) {
 			is PathPlanResult.Planned ->
-				if (walk.cursor != null) with(walk.admission) { adopt(completed.path) }
+				if (walk.replay != null) with(walk.admission) { adopt(completed.path) }
 				else with(walk.admission) { begin(completed.path) }
 			is PathPlanResult.Failed ->
-				if (walk.cursor != null) {
+				if (walk.replay != null) {
 
-					walk.sessionFailure = completed.failure.message
+					deadEnd = completed.failure.message
 					LOG.info(
 						"Planning session dead-ended mid-walk ({}); planning the successor now",
 						completed.failure.message,
 					)
 					planSuccessor()
-				} else if (walk.sessionRestarts < MAX_SESSION_RESTARTS &&
+				} else if (restarts < MAX_SESSION_RESTARTS &&
 					walk.journey?.world?.revision != session.launchRevision
 				) {
 
-					walk.sessionRestarts++
-					walk.planningSession = null
+					restarts++
+					current = null
 					LOG.info(
 						"Planning dead-ended before motion ({}); retrying ({}/{})",
-						completed.failure.message, walk.sessionRestarts, MAX_SESSION_RESTARTS,
+						completed.failure.message, restarts, MAX_SESSION_RESTARTS,
 					)
 					with(walk) { planTrajectory() }
 				} else with(walk) { fail(completed.failure.message) }
 			PathPlanResult.Cancelled -> with(walk) { fail("planning was cancelled") }
 		}
-		if (walk.planningSession === session) {
-			walk.planningSession = null
+		if (current === session) {
+			current = null
 		}
 	}
 
+	fun SafeContext.resumeAfterHold() {
+		val reason = deadEnd
+		deadEnd = null
+		if (reason != null && restarts >= MAX_SESSION_RESTARTS) {
+			return with(walk) { fail("planning kept dead-ending: $reason") }
+		}
+		if (reason != null) restarts++
+		walk.replay = null
+		walk.tickInput = null
+
+		val planned = dropSuccessor() ?: return with(walk) { planTrajectory() }
+		LOG.info("Installing the successor tape planned during replay")
+		with(walk.admission) { begin(planned) }
+	}
+
 	fun SafeContext.planSuccessor() {
-		if (walk.successorSession != null || walk.successorPath != null) return
+		if (successor != null || successorPath != null) return
 		val running = walk.telemetry.published ?: return
 		val terminal = running.plan.frames.lastOrNull()?.state ?: return
 		val request = walk.request
-		val session = PlanningSession(++walk.planningGeneration, request)
+		val session = PlanningSession(++generation, request)
 
 		val preparation = when (
-			val prepared = TrajectoryPlanner.prepare(
-				player = player,
-				goal = request.goal,
-				config = request.pathingConfig,
-				turnSpeed = request.rotationConfig.turnSpeed,
-				cancellation = session.cancellation,
-				initialOverride = terminal,
-				waypoints = walk.remainingWaypoints(),
+			val prepared = preparePlanning(
+				player, request, request.goal, walk.remainingWaypoints(), session.cancellation, initialOverride = terminal,
 			)
 		) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
@@ -165,31 +189,30 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		}
 
 		val successorJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: return
-		walk.successorSession = session
+		successor = session
 
 		launch(
 			session, preparation, successorJourney,
 
-			cursorFrame = { null },
-			adoptedSequence = { Long.MAX_VALUE },
+			execution = ExecutionFeedback.DETACHED,
 			onImprovement = { improvement ->
-				if (walk.active && walk.successorSession === session) {
-					walk.successorPath = improvement
+				if (walk.active && successor === session) {
+					successorPath = improvement
 				}
 			},
 			onSafePrefix = { prefix ->
-				if (walk.active && walk.successorSession === session) {
-					if (walk.successorPath == null) walk.successorPath = prefix
+				if (walk.active && successor === session) {
+					if (successorPath == null) successorPath = prefix
 				}
 			},
 			onLaunchFailure = { failure ->
 				LOG.info("Could not start successor planning: {}", failure.message)
-				walk.successorSession = null
+				successor = null
 			},
 			onComplete = { result, failure ->
-				if (!walk.active || walk.successorSession !== session) return@launch
+				if (!walk.active || successor !== session) return@launch
 				if (failure == null && result is PathPlanResult.Planned) {
-					walk.successorPath = result.path
+					successorPath = result.path
 				}
 			},
 		)
@@ -197,28 +220,26 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 	private fun SafeContext.launch(
 		session: PlanningSession,
-		preparation: TrajectoryPlanningPreparation,
+		preparation: PlanningPreparation,
 		journey: PlanningJourney,
-		cursorFrame: () -> Int?,
-		adoptedSequence: () -> Long,
+		execution: ExecutionFeedback,
 		onImprovement: (PublishedPath) -> Unit,
 		onSafePrefix: (PublishedPath) -> Unit,
 		onLaunchFailure: (Exception) -> Unit,
 		onComplete: (PathPlanResult?, Throwable?) -> Unit,
 	) {
 		val planning = try {
-			TrajectoryPlanner.planAsync(
+			PlanningJob(
 				preparation = preparation,
 				world = journey.world,
-				cursorFrame = cursorFrame,
-				adoptedSequenceProvider = adoptedSequence,
-				onImprovement = { improvement -> mc.execute { onImprovement(improvement) } },
-				onSafePrefix = { prefix -> mc.execute { onSafePrefix(prefix) } },
+				legStates = journey.legsFor(preparation),
 				cancellation = session.cancellation,
 				planningGeneration = session.generation,
 				snapshotRevision = journey.world.revision,
-				legStates = journey.legsFor(preparation),
-			)
+				execution = execution,
+				onSafePrefix = { prefix -> mc.execute { onSafePrefix(prefix) } },
+				onImprovement = { improvement -> mc.execute { onImprovement(improvement) } },
+			).start()
 		} catch (failure: Exception) {
 			onLaunchFailure(failure)
 			return
@@ -238,5 +259,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	private companion object {
 
 		const val WAYPOINT_UNDERFOOT_BLOCKS = 1.5
+
+		const val MAX_SESSION_RESTARTS = 3
 	}
 }

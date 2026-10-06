@@ -13,13 +13,40 @@ import com.lambda.util.player.MovementUtils.moveYaw
 import kotlin.math.abs
 
 internal class AlignmentController(private val walk: PathingSession) {
+	var pendingPath: PublishedPath? = null
+		private set
+
+	var planningYaw: Double? = null
+
+	private var settleTicks = 0
+	private var alignmentTicks = 0
+
+	fun beginSettling() {
+		settleTicks = 0
+	}
+
+	fun beginAligning(path: PublishedPath) {
+		pendingPath = path
+		alignmentTicks = 0
+	}
+
+	fun installed() {
+		planningYaw = null
+		pendingPath = null
+		alignmentTicks = 0
+	}
+
+	fun reset() {
+		installed()
+		settleTicks = 0
+	}
 
 	fun SafeContext.settle() {
 		walk.tickInput = ALIGNMENT_INPUT
 		if (player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround) {
 			return with(walk.launcher) { capturePlan() }
 		}
-		if (++walk.settleTicks > MAX_SETTLE_TICKS) {
+		if (++settleTicks > MAX_SETTLE_TICKS) {
 			with(walk) {
 				fail(
 					"could not settle to a stable start (%.3f b/t after %d ticks)".format(
@@ -31,12 +58,12 @@ internal class AlignmentController(private val walk: PathingSession) {
 	}
 
 	fun holdPlanningYaw() {
-		val yaw = walk.planningYaw ?: return
+		val yaw = planningYaw ?: return
 		walk.request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
 	}
 
 	fun SafeContext.align() {
-		val path = walk.pendingPath ?: return with(walk) { fail("lost the certified plan while aligning") }
+		val path = pendingPath ?: return with(walk) { fail("lost the certified plan while aligning") }
 		val positionDrift = player.pos.distanceTo(path.plan.initialState.position)
 		if (positionDrift > START_DRIFT_TOLERANCE) {
 			return with(walk) { fail("moved %.2f blocks while aligning to the plan".format(positionDrift)) }
@@ -53,7 +80,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 		}
 
 		walk.state = State.Aligning(walk.leg + 1, yawDrift)
-		if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
+		if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
 
 			warn(
 				"Installing with %.2f° of launch yaw error; the rotation could not settle exactly."
@@ -67,10 +94,10 @@ internal class AlignmentController(private val walk: PathingSession) {
 	fun SafeContext.realignBeforeLaunch(current: PublishedPath): Boolean {
 		val targetYaw = current.plan.initialState.rotation.yaw
 		val yawError = abs(Rotation.wrap(player.moveYaw - targetYaw))
-		if (yawError > FIRST_FRAME_YAW_EPSILON && walk.alignmentTicks <= MAX_ALIGNMENT_TICKS) {
+		if (yawError > FIRST_FRAME_YAW_EPSILON && alignmentTicks <= MAX_ALIGNMENT_TICKS) {
 			walk.request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
 			walk.tickInput = ALIGNMENT_INPUT
-			if (++walk.alignmentTicks > MAX_ALIGNMENT_TICKS) {
+			if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
 				warn(
 					"Replaying with %.2f° of launch yaw error; the rotation could not settle exactly."
 						.format(yawError),

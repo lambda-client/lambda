@@ -5,7 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.*
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.*
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.SimpleMoveOptions
@@ -72,7 +72,7 @@ class HorizonWalkProbeTest {
             val goal = Stance(endpoints.second.x, endpoints.second.y, endpoints.second.z)
             val planner = CoarsePlanner(environment, moves, start, goal)
             if (!planner.repair(Duration.INFINITE).converged) continue
-            planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+            planner.expandSearchField()
             val route = planner.routePlan(index.toLong()) ?: continue
             val dx = (goal.x - start.x).toDouble()
             val dz = (goal.z - start.z).toDouble()
@@ -86,9 +86,9 @@ class HorizonWalkProbeTest {
             val clock = VirtualSearchClock()
             val sizes = ArrayList<Int>()
             var previous = 0
-            val outcome = TrajectoryPlanner.walkHorizon(
+            val outcome = walkHorizon(
                 route, planner, initial, PROFILE, environment, config,
-                cursorFrame = { clock.cursorFrame() },
+                execution = clock,
                 publish = { path, _ ->
                     sizes += path.plan.tape.frameCount - previous
                     previous = path.plan.tape.frameCount
@@ -139,7 +139,7 @@ class HorizonWalkProbeTest {
 
         val planner = CoarsePlanner(environment, moves, start, goal)
         check(planner.repair(Duration.INFINITE).converged) { "no coarse route across the field" }
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val dx = (goal.x - start.x).toDouble()
         val dz = (goal.z - start.z).toDouble()
         val initial = MovementSimulationState.synthetic(
@@ -152,9 +152,9 @@ class HorizonWalkProbeTest {
 
         val clock = VirtualSearchClock(microsPerExpansion = microsPerExpansion)
         val publications = ArrayList<Pair<Long, PublishedPath>>()
-        val result = TrajectoryPlanner.walkHorizon(
+        val result = walkHorizon(
             route, planner, initial, PROFILE, environment, config,
-            cursorFrame = { clock.cursorFrame() },
+            execution = clock,
             publish = { path, _ -> publications += clock.elapsedMillis() to path },
             started = System.currentTimeMillis(),
             lookahead = lookahead,

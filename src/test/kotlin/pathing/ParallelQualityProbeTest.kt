@@ -5,7 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.ParkourCourseLayout
@@ -69,14 +69,14 @@ class ParallelQualityProbeTest {
                 val moves = moveLibrary(options)
                 val planner = CoarsePlanner(environment, moves, start, goal)
                 check(planner.repair(Duration.INFINITE).converged)
-                planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+                planner.expandSearchField()
                 val route = checkNotNull(planner.routePlan(0L))
 
                 val dx = (goal.x - start.x).toDouble()
                 val dz = (goal.z - start.z).toDouble()
                 val clock = VirtualSearchClock(microsPerExpansion = micros)
                 val executor = VirtualExecutor(clock)
-                val outcome = TrajectoryPlanner.walkHorizon(
+                val outcome = walkHorizon(
                     route, planner,
                     MovementSimulationState.synthetic(
                         profile = PROFILE,
@@ -86,11 +86,10 @@ class ParallelQualityProbeTest {
                         onGround = true,
                     ),
                     PROFILE, environment, MotionConstraints(),
-                    cursorFrame = { executor.cursorFrame() },
+                    execution = executor,
                     publish = { path, _ -> executor.offer(path) },
                     started = System.currentTimeMillis(),
                     clock = clock,
-                    adoptedSequence = executor::adoptedSequence,
                     parallelism = parallelism,
                 )
                 val path = (outcome as? PathPlanResult.Planned)?.path

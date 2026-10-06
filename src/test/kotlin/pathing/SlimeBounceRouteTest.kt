@@ -11,7 +11,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -361,9 +361,8 @@ class SlimeBounceRouteTest {
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
         )
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )

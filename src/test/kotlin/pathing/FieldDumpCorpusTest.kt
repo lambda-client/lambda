@@ -1,7 +1,7 @@
 package pathing
 
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.search.SearchExhaustion
@@ -63,11 +63,10 @@ class FieldDumpCorpusTest {
         val clock = VirtualSearchClock(microsPerExpansion = FIELD_MICROS_PER_EXPANSION)
         val executor = VirtualExecutor(clock)
         val exhaustions = ArrayList<SearchExhaustion>()
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner, loaded.initialState, loaded.profile, environment, loaded.searchConfig,
-            cursorFrame = executor::cursorFrame,
+            execution = executor,
             publish = { path, _ -> executor.offer(path) },
-            adoptedSequence = executor::adoptedSequence,
             clock = clock,
             started = System.currentTimeMillis(),
             onExhaustion = { exhaustions += it },

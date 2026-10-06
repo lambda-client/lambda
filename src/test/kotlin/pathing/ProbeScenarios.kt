@@ -5,7 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -109,7 +109,7 @@ internal object ProbeScenarios {
         )
         val planner = CoarsePlanner(scenario.environment, moves, scenario.start, scenario.goal)
         check(planner.repair(Duration.INFINITE).converged) { "${scenario.name}: coarse search did not converge" }
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { "${scenario.name}: no coarse route" }
 
         val dx = (scenario.goal.x - scenario.start.x).toDouble()
@@ -117,7 +117,7 @@ internal object ProbeScenarios {
         val clock = VirtualSearchClock(microsPerExpansion = microsPerExpansion)
         val executor = VirtualExecutor(clock)
         val exhaustions = ArrayList<SearchExhaustion>()
-        val result = TrajectoryPlanner.walkHorizon(
+        val result = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -127,11 +127,10 @@ internal object ProbeScenarios {
                 onGround = true,
             ),
             PROFILE, scenario.environment, constraints,
-            cursorFrame = { executor.cursorFrame() },
+            execution = executor,
             publish = { path, _ -> executor.offer(path) },
             started = System.currentTimeMillis(),
             clock = clock,
-            adoptedSequence = executor::adoptedSequence,
             parallelism = parallelism,
             onExhaustion = { exhaustions += it },
             maxTemperature = maxTemperature,

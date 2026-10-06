@@ -48,7 +48,17 @@ internal class WalkTelemetry {
 	var rejectedImprovements: Int = 0
 		private set
 
+	var holds: Int = 0
+		private set
+
+	var repairs: Int = 0
+		private set
+
 	private val trail = ArrayDeque<Vec3d>()
+	private var adoptedFrames = 0
+	private var adoptionMillis = 0L
+	private var lastAdoptedFrames = 0
+	private var lastAdoptionMillis = System.currentTimeMillis()
 
 	@Volatile
 	private var cached: Telemetry? = null
@@ -66,8 +76,23 @@ internal class WalkTelemetry {
 		invalidate()
 	}
 
-	fun countAdoption() = synchronized(lock) {
+	fun countAdoption(tapeFrames: Int) = synchronized(lock) {
+		val now = System.currentTimeMillis()
+		adoptedFrames += (tapeFrames - lastAdoptedFrames).coerceAtLeast(0)
+		adoptionMillis += (now - lastAdoptionMillis).coerceAtLeast(0)
+		lastAdoptedFrames = tapeFrames
+		lastAdoptionMillis = now
 		adopted++
+		invalidate()
+	}
+
+	fun countHold() = synchronized(lock) {
+		holds++
+		invalidate()
+	}
+
+	fun countRepair() = synchronized(lock) {
+		repairs++
 		invalidate()
 	}
 
@@ -91,11 +116,23 @@ internal class WalkTelemetry {
 				recoveries = recoveries,
 				rejectedImprovements = rejectedImprovements,
 				trail = ArrayList(trail),
+				holds = holds,
+				repairs = repairs,
+				cadence = cadence(),
 			).also { cached = it }
 		}
 	}
 
+	fun cadence(): String = synchronized(lock) {
+		if (adopted == 0) return "no adoptions"
+		val millis = adoptionMillis.coerceAtLeast(1L)
+		"%d adoption(s) added %d frames over %d ms (%.1f frames/s produced vs %d consumed)"
+			.format(adopted, adoptedFrames, millis, adoptedFrames * 1000.0 / millis, TICKS_PER_SECOND)
+	}
+
 	companion object {
 		const val MAX_RETAINED_TRAIL_POINTS = 4_096
+
+		private const val TICKS_PER_SECOND = 20
 	}
 }

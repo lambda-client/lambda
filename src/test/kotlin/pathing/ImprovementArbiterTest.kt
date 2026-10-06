@@ -205,7 +205,7 @@ class ImprovementArbiterTest {
             )
             val planner = CoarsePlanner(environment, moves, start, goal)
             check(planner.repair(Duration.INFINITE).converged)
-            planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+            planner.expandSearchField()
             val route = requireNotNull(planner.routePlan(planId))
             val seed = SearchLoop(
                 route, moves.catalog, planner.valueField(), initial, PROFILE, environment,

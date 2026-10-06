@@ -8,6 +8,7 @@ import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
+import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.control.HeadingFollowerProgram
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
@@ -125,8 +126,7 @@ object WalkMovement : Movement {
 		for (sprint in context.constraints.sprintModes) {
 			proposals += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = null)
 			if (fanned) {
-				for (offset in context.headingFanDegrees) {
-					if (offset == 0.0) continue
+				for (offset in HEADING_FAN_DEGREES) {
 					proposals += TrajectoryDecision.Heading(
 						sprint, target, bearing + offset, delayFrames = null,
 					)
@@ -147,8 +147,7 @@ object WalkMovement : Movement {
 				proposals += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = delay)
 			}
 			if (fanned) {
-				for (offset in context.headingFanDegrees) {
-					if (offset == 0.0) continue
+				for (offset in HEADING_FAN_DEGREES) {
 					for (delay in OFF_AXIS_LAUNCH_DELAYS) {
 						proposals += TrajectoryDecision.Heading(
 							sprint, target, bearing + offset, delayFrames = delay,
@@ -196,7 +195,7 @@ object WalkMovement : Movement {
 		val origin = context.body.stance
 		val view = context.view
 		val corridorFloor = context.steering
-			?.chain(origin, context.edge.to, context.chainLength, context.body.heading())
+			?.chain(origin, context.edge.to, SteeringField.PURSUIT_CHAIN_LENGTH, context.body.heading())
 			?.minOf { it.y }
 			?: origin.y
 		val lowest = minOf(corridorFloor, origin.y)
@@ -264,12 +263,16 @@ object WalkMovement : Movement {
 		val decision = context.decision
 		if (context.launch != null) return context.launch.hasFired && context.airborne
 		if (decision is TrajectoryDecision.Heading) {
-			return context.frameIndex + 1 >= context.headingCommitFrames
+			return context.frameIndex + 1 >= HEADING_COMMIT_FRAMES
 		}
 		return context.stance != context.body.stance
 	}
 
 	private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
+
+	private val HEADING_FAN_DEGREES = listOf(-12.0, 12.0)
+
+	private const val HEADING_COMMIT_FRAMES = 12
 
 	private val OFF_AXIS_LAUNCH_DELAYS = listOf(0, 2, 4)
 

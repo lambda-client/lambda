@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-class VirtualSearchClock(private val microsPerExpansion: Long = DEFAULT_MICROS_PER_EXPANSION) : SearchClock {
+class VirtualSearchClock(private val microsPerExpansion: Long = DEFAULT_MICROS_PER_EXPANSION) : SearchClock, ExecutionFeedback {
     private var expansions = 0L
 
     override fun elapsedMillis(): Long = expansions * microsPerExpansion / 1_000
@@ -9,7 +9,9 @@ class VirtualSearchClock(private val microsPerExpansion: Long = DEFAULT_MICROS_P
         expansions++
     }
 
-    fun cursorFrame(): Int = (elapsedMillis() / MILLIS_PER_TICK).toInt()
+    override fun cursorFrame(): Int = (elapsedMillis() / MILLIS_PER_TICK).toInt()
+
+    override fun adoptedSequence(): Long = Long.MAX_VALUE
 
     companion object {
         const val DEFAULT_MICROS_PER_EXPANSION = 640L

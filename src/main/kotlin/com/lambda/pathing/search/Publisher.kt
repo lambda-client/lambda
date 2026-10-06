@@ -5,7 +5,7 @@ import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.search.Publications.Companion.DIVERGENCE_MARGIN_FRAMES
 
 internal class Publisher(
-	private val searchConfig: ValueFieldSearchConfig,
+	private val searchConfig: SearchConfig,
 	private val field: ValueField,
 	private val frontier: Frontier,
 	private val clock: SearchClock,
@@ -52,16 +52,17 @@ internal class Publisher(
 	fun publishPrefix(anchor: ValueAnchor) {
 		if (sink == null) return
 		val remaining = field.guide(anchor.stance)
-		if (!remaining.isFinite() || remaining <= searchConfig.finishValueTicks) return
+		if (!remaining.isFinite() || remaining <= FINISH_VALUE_TICKS) return
 		val cursor = publications.cursor()
 		val tip = publications.tip
 		if (anchor.elapsed > publicationCap(cursor ?: -1)) return refuse()
 		if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refuse()
 		if (incumbent()?.anchor?.descendsFrom(anchor) == false) return refuse()
 		if (tip == null) {
-			if (anchor.elapsed < searchConfig.safePrefixFrames) return
+			if (anchor.elapsed < searchConfig.horizonCommitFrames) return
 			if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
 			if (expansions() < searchConfig.minCommitExpansions) return
+			if (remaining <= FIRST_PUBLISH_MIN_REMAINING_TICKS) return
 		} else {
 			if (!publications.upToDate) return refuse()
 			if (anchor.elapsed < tip.elapsed + searchConfig.horizonCommitFrames) return refuse()
@@ -91,7 +92,7 @@ internal class Publisher(
 		val cap = publicationCap(executing)
 		val (withinCap, beyondCap) = lineFrom(horizon.root, target).filter { it.elapsed > floor }.partition { it.elapsed <= cap }
 		for (candidate in withinCap.asReversed() + beyondCap) {
-			if (tip == null && field.guide(candidate.stance) <= searchConfig.finishValueTicks) continue
+			if (tip == null && field.guide(candidate.stance) <= FINISH_VALUE_TICKS) continue
 			if (tip != null && !publishableOver(tip, candidate, executing)) {
 				refusals++
 				continue
@@ -199,6 +200,8 @@ internal class Publisher(
 		const val STALE_TIP_RAMP_EXPANSIONS = 4000
 
 		const val STALE_TIP_MAX_TICKS = 30.0
+
+		const val FIRST_PUBLISH_MIN_REMAINING_TICKS = 30.0
 
 		const val PUBLISH_RUNWAY_CHUNKS = 3
 	}

@@ -5,7 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
@@ -152,7 +152,7 @@ class HorizonBaselineTest {
             scenario.environment, moves, start, goal,
         )
         if (!planner.repair(Duration.INFINITE).converged) return noRoute(scenario.name)
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = planner.routePlan(0L) ?: return noRoute(scenario.name)
 
         val dx = (goal.x - start.x).toDouble()
@@ -179,9 +179,9 @@ class HorizonBaselineTest {
         // this tells them apart while the status stays `short`.
         var deepestReach = 0
         val attribution = EdgeAttributionProbe(route.nodes)
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner, initial, PROFILE, scenario.environment, CONFIG,
-            cursorFrame = { executor.cursorFrame() },
+            execution = executor,
             publish = { path, _ ->
                 publications++
                 if (firstPublishFrame < 0) firstPublishFrame = clock.cursorFrame()
@@ -192,7 +192,6 @@ class HorizonBaselineTest {
             },
             started = System.currentTimeMillis(),
             clock = clock,
-            adoptedSequence = executor::adoptedSequence,
             probe = attribution,
         )
 

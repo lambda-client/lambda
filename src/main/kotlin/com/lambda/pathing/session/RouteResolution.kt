@@ -78,11 +78,7 @@ internal class RouteResolution(
 
 	private fun awaitTerminalKnowledge(world: PathingWorld, terminal: Stance, timings: PhaseTimings, cancelled: () -> Boolean) {
 		state.demandCaptureLag(world)
-		world.interestBlocks(
-			terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS, terminal.z - TERMINAL_INTEREST_BLOCKS,
-			terminal.x + TERMINAL_INTEREST_BLOCKS, terminal.y + TERMINAL_INTEREST_Y_BLOCKS, terminal.z + TERMINAL_INTEREST_BLOCKS,
-			InterestTier.DEMAND,
-		)
+		world.interestAround(terminal, InterestTier.DEMAND)
 		timings.measure("wait") {
 			var waited = 0L
 			while (waited < TERMINAL_KNOWLEDGE_WAIT_MILLIS && !cancelled() && world.pendingDemand > 0) {
@@ -99,33 +95,11 @@ internal class RouteResolution(
 		return null
 	}
 
-	private class PhaseTimings {
-		private val started = System.nanoTime()
-		private val nanos = LinkedHashMap<String, Long>()
-
-		fun <T> measure(phase: String, block: () -> T): T {
-			val begin = System.nanoTime()
-			try {
-				return block()
-			} finally {
-				nanos.merge(phase, System.nanoTime() - begin, Long::plus)
-			}
-		}
-
-		override fun toString(): String =
-			nanos.entries.joinToString(", ", postfix = "; total ${(System.nanoTime() - started) / 1_000_000L} ms") { (phase, nanos) ->
-				"$phase ${nanos / 1_000_000L} ms"
-			}
-	}
-
 	private companion object {
 
 		const val TERMINAL_GRANT_ROUNDS = 4
 
 		const val TERMINAL_GRANT_BUDGET_MILLIS = 1_500L
-
-		const val TERMINAL_INTEREST_BLOCKS = 32
-		const val TERMINAL_INTEREST_Y_BLOCKS = 16
 
 		const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
 

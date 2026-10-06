@@ -6,7 +6,7 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.LegChain
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
@@ -48,32 +48,29 @@ class LegChainTest {
         val goal = Stance(0, 64, 90)
 
         val first = CoarsePlanningState(environment, options, start, waypoint)
-        first.repairFrom(start, emptySet(), emptySet())
+        first.repairFrom(start)
         check(first.planner.repair(Duration.INFINITE).converged)
-        first.planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        first.planner.expandSearchField()
         val route = checkNotNull(first.planner.routePlan(0L))
-        val field = first.planner.valueField()
 
         val second = CoarsePlanningState(environment, options, waypoint, goal)
         val chain = LegChain(
             world = null,
-            states = listOf(second),
-            starts = listOf(waypoint),
+            states = listOf(first, second),
+            starts = listOf(start, waypoint),
             coarseExpansionBudget = 200_000,
             snapshotRevision = 0L,
             cancelled = { false },
             probe = SearchProbe.NONE,
             executor = Executor { it.run() },
-            fieldExpansionTicks = 36.0,
             fieldExpansionBudget = Duration.INFINITE,
-            fieldExpansionNodes = 20_000,
         )
-        chain.begin(LegChain.Leg(first, route, field, RouteResolution(first), null))
+        val field = chain.begin(route, RouteResolution(first))
 
         val clock = VirtualSearchClock(microsPerExpansion = 640L)
         val executor = VirtualExecutor(clock)
         val exhaustions = ArrayList<SearchExhaustion>()
-        val result = TrajectoryPlanner.walkHorizon(
+        val result = walkHorizon(
             route, first.planner,
             MovementSimulationState.synthetic(
                 profile = ProbeScenarios.PROFILE,
@@ -83,11 +80,10 @@ class LegChainTest {
                 onGround = true,
             ),
             ProbeScenarios.PROFILE, environment, MotionConstraints(),
-            cursorFrame = { executor.cursorFrame() },
+            execution = executor,
             publish = { path, _ -> executor.offer(path) },
             started = System.currentTimeMillis(),
             clock = clock,
-            adoptedSequence = executor::adoptedSequence,
             finalGoal = goal,
             field = field,
             onExhaustion = { exhaustions += it },

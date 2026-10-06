@@ -5,7 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
@@ -115,10 +115,10 @@ class BlockShapeStanceTest {
 
         val planner = CoarsePlanner(environment, library(), Stance(0, 65, 0), Stance(5, 65, 0))
         assertTrue(planner.repair(Duration.INFINITE).converged, "a slab floor must converge")
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = assertNotNull(planner.routePlan(0L), "a slab floor must publish a route")
 
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
@@ -128,7 +128,6 @@ class BlockShapeStanceTest {
                 onGround = true,
             ),
             PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )

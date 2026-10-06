@@ -101,25 +101,7 @@ sealed interface MotionPlanResult {
 		val segments: List<TapeSegment> = emptyList(),
 
 		val legTouches: List<LegTouch> = emptyList(),
-	) : MotionPlanResult {
-		val lowerBoundTicks: Double get() = sourceRoute.lowerBoundTicks
-
-		val excessRatio: Double
-			get() = if (lowerBoundTicks > 0.0) rollout.frames.size / lowerBoundTicks else Double.NaN
-
-		fun profile(): String = buildString {
-			append("frames=").append(rollout.frames.size)
-			append(" bound=%.0f".format(lowerBoundTicks))
-			append(" ratio=%.2fx".format(excessRatio))
-			segments.groupBy { it.movement }
-				.mapValues { (_, v) -> v.sumOf { it.frames } to v.size }
-				.entries.sortedByDescending { it.value.first }
-				.forEach { (movement, cost) ->
-					append(' ').append(movement).append('=').append(cost.first)
-					append('/').append(cost.second)
-				}
-		}
-	}
+	) : MotionPlanResult
 
 	data class UnsupportedRoute(val movements: Set<MovementId>) : MotionPlanResult
 

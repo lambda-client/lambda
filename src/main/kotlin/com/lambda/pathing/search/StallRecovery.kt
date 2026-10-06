@@ -3,7 +3,7 @@ package com.lambda.pathing.search
 internal class StallRecovery(
 	private val frontier: Frontier,
 	private val publications: Publications,
-	private val worldWait: ((Long) -> Boolean)?,
+	private val world: WorldLink?,
 	private val syncWorld: () -> Unit,
 ) {
 	private var blockedWaitMillis = 0L
@@ -15,10 +15,10 @@ internal class StallRecovery(
 	}
 
 	fun waitForBlocked(): Boolean {
-		if (frontier.hasParked || !frontier.hasBlocked || worldWait == null) return false
+		if (frontier.hasParked || !frontier.hasBlocked || world == null) return false
 		if (blockedWaitMillis >= MAX_BLOCKED_WAIT_MILLIS || fruitlessWakes >= MAX_FRUITLESS_WAKES) return false
 		blockedWaitMillis += BLOCKED_WAIT_SLICE_MILLIS
-		if (worldWait.invoke(BLOCKED_WAIT_SLICE_MILLIS)) {
+		if (world.await(BLOCKED_WAIT_SLICE_MILLIS)) {
 			syncWorld()
 			frontier.wakeBlocked()
 
@@ -28,9 +28,9 @@ internal class StallRecovery(
 	}
 
 	fun waitForRouteExtension(): Boolean {
-		if (worldWait == null || blockedWaitMillis >= MAX_BLOCKED_WAIT_MILLIS) return false
+		if (world == null || blockedWaitMillis >= MAX_BLOCKED_WAIT_MILLIS) return false
 		blockedWaitMillis += BLOCKED_WAIT_SLICE_MILLIS
-		worldWait.invoke(BLOCKED_WAIT_SLICE_MILLIS)
+		world.await(BLOCKED_WAIT_SLICE_MILLIS)
 		syncWorld()
 		frontier.wakeBlocked()
 		return true

@@ -16,11 +16,10 @@ internal class ActionSet(
 	private val catalog: MovementCatalog,
 	private val field: ValueField,
 	private val config: MotionConstraints,
-	private val searchConfig: ValueFieldSearchConfig,
 ) {
 
 	fun actions(anchor: ValueAnchor, temperature: Temperature): List<PricedDecision> {
-		if (anchor.parent != null && field.guide(anchor.stance) <= searchConfig.finishValueTicks) {
+		if (anchor.parent != null && field.guide(anchor.stance) <= FINISH_VALUE_TICKS) {
 			return emptyList()
 		}
 
@@ -44,7 +43,6 @@ internal class ActionSet(
 				constraints = config,
 				view = field.view,
 				steering = field,
-				chainLength = searchConfig.chainLength,
 			)
 		}
 
@@ -65,7 +63,6 @@ internal class ActionSet(
 			constraints = config,
 			view = field.view,
 			steering = field,
-			headingFanDegrees = searchConfig.headingFanDegrees,
 		)
 		for (movement in catalog.movements) {
 			movement.proposals(proposalContext).forEach(::add)

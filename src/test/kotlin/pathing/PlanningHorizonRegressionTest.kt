@@ -60,7 +60,7 @@ class PlanningHorizonRegressionTest {
             goal = goal,
             horizonChunks = horizonChunks,
         )
-        state.repairFrom(start, emptySet(), emptySet())
+        state.repairFrom(start)
         val result = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         println("horizon=$horizonChunks expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
         val route = state.planner.routePlan(snapshotRevision = 1L)
@@ -128,12 +128,12 @@ class RetainedJourneyReplanTest {
             unavailableSectionKeys = unavailableKeys,
         )
         val state = CoarsePlanningState(snapshot, SimpleMoveOptions(), firstStart, goal, horizonChunks = 4)
-        state.repairFrom(firstStart, emptySet(), emptySet())
+        state.repairFrom(firstStart)
         state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         assertNotNull(state.planner.routePlan(snapshotRevision = 1L), "the near leg must route")
 
         // The player reaches the goal, then teleports away and asks again.
-        state.repairFrom(teleportedStart, emptySet(), emptySet())
+        state.repairFrom(teleportedStart)
         val result = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         println("replan expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
         val route = state.planner.routePlan(snapshotRevision = 2L)

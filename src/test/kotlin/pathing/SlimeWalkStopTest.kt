@@ -11,7 +11,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
@@ -55,7 +55,7 @@ class SlimeWalkStopTest {
         val moves = moveLibrary()
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair(Duration.INFINITE).converged, "coarse search must converge")
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) {
             "no coarse route over the slime: ${planner.routeFailureReport()}"
         }
@@ -69,9 +69,9 @@ class SlimeWalkStopTest {
         )
 
         val clock = VirtualSearchClock()
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
-            cursorFrame = { clock.cursorFrame() },
+            execution = clock,
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
             clock = clock,

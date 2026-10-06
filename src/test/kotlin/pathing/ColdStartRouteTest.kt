@@ -26,7 +26,7 @@ import kotlin.time.Duration
 /**
  * The in-game cold start, end to end below the session layer: a [PathingWorld] fed by a
  * [FakeCaptureSource] on a "client thread", and the planner thread doing exactly what
- * `TrajectoryPlanner.planAsync` does before the trajectory search -- knowledge wait,
+ * `PlanningJob` does before the trajectory search -- knowledge wait,
  * coarse repair, route resolution. Far goals at negative coordinates, the case the
  * bedrock corpus (all near the origin, all pre-captured) never exercises.
  */
@@ -91,7 +91,7 @@ class ColdStartRouteTest {
             horizonChunks = horizon, capturable = world::chunkCapturable,
         )
 
-        // awaitStartKnowledge, as planAsync does it.
+        // awaitStartKnowledge, as PlanningJob does it.
         val bodyDeadline = System.nanoTime() + 1_500_000_000L
         while (System.nanoTime() < bodyDeadline && !world.snapshot.isKnown(start.x, start.y - 1, start.z)) {
             if (!world.awaitEvents(world.revision, 50)) break
@@ -102,7 +102,7 @@ class ColdStartRouteTest {
         }
 
         val batch = world.drainEvents()
-        state.repairFrom(start, emptySet(), emptySet())
+        state.repairFrom(start)
         state.applyEvents(batch)
         val planner = state.planner
         val coarseStarted = System.nanoTime()
@@ -155,7 +155,7 @@ class ColdStartRouteTest {
         val state = CoarsePlanningState(
             environment, SimpleMoveOptions(), start, goal, horizonChunks = 4, capturable = { _, _ -> true },
         )
-        state.repairFrom(start, emptySet(), emptySet())
+        state.repairFrom(start)
         state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
         val route = RouteResolution(state).resolve(start, 1L, 1_000_000, world = null)
         println("[ring] route=${route?.nodes?.size} to ${route?.goal}")

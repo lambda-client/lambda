@@ -82,12 +82,12 @@ object PathingManager : Manager<PathingRequest>(0) {
 		val previous = session
 		var journey = previous?.takeJourney()
 
-		waypointRoute.adoptWarmJourney(TrajectoryPlanner.resolveGoalStance(player, request.goal))?.let { warmed ->
+		waypointRoute.adoptWarmJourney(resolveGoalStance(player, request.goal))?.let { warmed ->
 			journey?.cancel()
 			journey = warmed
 		}
 
-		val sameGoal = journey?.goal == TrajectoryPlanner.resolveGoalStance(player, request.goal)
+		val sameGoal = journey?.goal == resolveGoalStance(player, request.goal)
 		previous?.release()
 		if (!sameGoal) {
 			journey?.cancel()

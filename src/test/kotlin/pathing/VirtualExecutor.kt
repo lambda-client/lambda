@@ -1,14 +1,15 @@
 package pathing
 
 import com.lambda.pathing.execution.ImprovementArbiter
+import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.VirtualSearchClock
 
 /**
  * The half of the walk the corpus harness was missing: a body that can refuse a tape.
  *
- * [com.lambda.pathing.session.TrajectoryPlanner.walkHorizon] defaults `adoptedSequence` to
- * `Long.MAX_VALUE`, so every fixture built on it modelled an executor that accepts every
+ * [com.lambda.pathing.session.walkHorizon] defaults `execution` to
+ * [ExecutionFeedback.DETACHED], so every fixture built on it modelled an executor that accepts every
  * publication, instantly, and never refuses one. Real walks do not behave that way -- a
  * logged parkour run published seven tapes and adopted five -- and the difference is not
  * cosmetic. An unacknowledged publication blocks `publishPrefix` and
@@ -25,7 +26,7 @@ import com.lambda.pathing.search.VirtualSearchClock
 internal class VirtualExecutor(
     private val clock: VirtualSearchClock,
     private val latencyTicks: Int = ADOPTION_LATENCY_TICKS,
-) {
+) : ExecutionFeedback {
     private class Offer(val visibleAt: Int, val path: PublishedPath)
 
     private val queued = ArrayDeque<Offer>()
@@ -49,7 +50,7 @@ internal class VirtualExecutor(
         queued += Offer(clock.cursorFrame() + latencyTicks, path)
     }
 
-    fun adoptedSequence(): Long = acked
+    override fun adoptedSequence(): Long = acked
 
     /**
      * The frame the body is replaying.
@@ -59,7 +60,7 @@ internal class VirtualExecutor(
      * before any existed. Replay starts from zero at the moment of installation, so the
      * planning time before it costs the body nothing.
      */
-    fun cursorFrame(): Int? {
+    override fun cursorFrame(): Int? {
         val now = clock.cursorFrame()
         while (queued.isNotEmpty() && queued.first().visibleAt <= now) {
             deliver(queued.removeFirst().path, now)

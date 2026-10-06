@@ -10,7 +10,7 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.session.TrajectoryPlanner
+import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -77,7 +77,7 @@ class LadderCatchTest {
         val environment = environment()
         val planner = CoarsePlanner(environment, moves(), Stance(0, 10, 0), Stance(0, 14, 3))
         assertTrue(planner.repair(Duration.INFINITE).converged)
-        planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
+        planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 
         val initial = MovementSimulationState.synthetic(
@@ -87,9 +87,8 @@ class LadderCatchTest {
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
         )
-        val outcome = TrajectoryPlanner.walkHorizon(
+        val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
-            cursorFrame = { null },
             publish = { _, _ -> },
             started = System.currentTimeMillis(),
         )
