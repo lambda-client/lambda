@@ -141,54 +141,7 @@ data class BallisticProfile(
 		holdForward: Boolean = true,
 		maxTicks: Int = MAX_ARC_TICKS,
 		holdTicks: Int = Int.MAX_VALUE,
-	): ArcSample? {
-		var velocity = entrySpeed
-		var verticalVelocity = 0.0
-		var height = 0.0
-		var distance = 0.0
-		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
-
-		val heights = DoubleArray(maxTicks + 1)
-		val distances = DoubleArray(maxTicks + 1)
-
-		if (mode.jumps) {
-			verticalVelocity = jumpVelocity
-			if (mode.sprint) velocity += SPRINT_JUMP_BOOST
-		}
-
-		if (holdForward && holdTicks > 0) velocity += groundAcceleration(mode.sprint)
-		distance += velocity
-		height += verticalVelocity
-		verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
-		velocity *= groundFriction
-		heights[0] = height
-		distances[0] = distance
-
-		val airAcceleration = when {
-			!holdForward -> 0.0
-			mode.sprint -> SPRINT_AIR_ACCELERATION
-			else -> WALK_AIR_ACCELERATION
-		}
-		for (tick in 1..maxTicks) {
-			if (tick < holdTicks) velocity += airAcceleration
-			distance += velocity
-
-			if (verticalVelocity < 0.0) {
-				if (height < rise) return null
-
-				if (height + verticalVelocity <= rise) {
-					return landedSample(tick, rise, distance, velocity, heights, distances)
-				}
-			}
-
-			height += verticalVelocity
-			verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
-			velocity *= HORIZONTAL_DRAG
-			heights[tick] = height
-			distances[tick] = distance
-		}
-		return null
-	}
+	): ArcSample? = arc(entrySpeed, rise, holdForward, mode.sprint, mode.jumps, holdTicks, maxTicks)
 
 	fun bounce(
 		entrySpeed: Double,
@@ -203,26 +156,30 @@ data class BallisticProfile(
 		headroom: Double = Double.POSITIVE_INFINITY,
 	): ArcSample? {
 		require(drop > 0.0) { "a bounce must fall onto something: drop=$drop" }
+		return arc(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
+	}
 
+	private fun arc(
+		entrySpeed: Double,
+		rise: Double,
+		holdForward: Boolean,
+		sprint: Boolean,
+		jump: Boolean,
+		holdTicks: Int,
+		maxTicks: Int,
+		drop: Double = Double.NaN,
+		bounceFactor: Double = 1.0,
+		headroom: Double = Double.POSITIVE_INFINITY,
+	): ArcSample? {
+		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
+		val heights = DoubleArray(maxTicks + 1)
+		val distances = DoubleArray(maxTicks + 1)
 		var velocity = entrySpeed
 		var verticalVelocity = 0.0
 		var height = 0.0
 		var distance = 0.0
-		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
-
-		val heights = DoubleArray(maxTicks + 1)
-		val distances = DoubleArray(maxTicks + 1)
-		var bounced = false
-		var groundedLastTick = false
-
-		fun ascend() {
-			if (verticalVelocity > 0.0 && height + verticalVelocity > headroom) {
-				height = headroom
-				verticalVelocity = 0.0
-			} else {
-				height += verticalVelocity
-			}
-		}
+		var floor = -drop
+		var grounded = false
 
 		if (jump) {
 			verticalVelocity = jumpVelocity
@@ -230,7 +187,12 @@ data class BallisticProfile(
 		}
 		if (holdForward && holdTicks > 0) velocity += groundAcceleration(sprint)
 		distance += velocity
-		ascend()
+		if (verticalVelocity > 0.0 && height + verticalVelocity > headroom) {
+			height = headroom
+			verticalVelocity = 0.0
+		} else {
+			height += verticalVelocity
+		}
 		verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
 		velocity *= groundFriction
 		heights[0] = height
@@ -241,39 +203,36 @@ data class BallisticProfile(
 			sprint -> SPRINT_AIR_ACCELERATION
 			else -> WALK_AIR_ACCELERATION
 		}
-
 		for (tick in 1..maxTicks) {
-			val grounded = groundedLastTick
-			groundedLastTick = false
-			val holding = holdForward && tick < holdTicks
-			velocity += when {
-				grounded && holding -> groundAcceleration(sprint)
-				holding -> airAcceleration
-				else -> 0.0
+			val wasGrounded = grounded
+			grounded = false
+			when {
+				wasGrounded && holdForward && tick < holdTicks -> velocity += groundAcceleration(sprint)
+				tick < holdTicks -> velocity += airAcceleration
+				!drop.isNaN() -> velocity += 0.0
 			}
 			distance += velocity
 
-			if (!bounced) {
-				if (height + verticalVelocity <= -drop) {
-					height = -drop
-					verticalVelocity = -verticalVelocity * bounceFactor
-					bounced = true
-					groundedLastTick = true
-				} else {
-					ascend()
-				}
-			} else if (verticalVelocity < 0.0) {
-				if (height < rise) return null
-				if (height + verticalVelocity <= rise) {
-					return landedSample(tick, rise, distance, velocity, heights, distances)
-				}
-				height += verticalVelocity
+			if (height + verticalVelocity <= floor) {
+				height = floor
+				verticalVelocity = -verticalVelocity * bounceFactor
+				floor = Double.NaN
+				grounded = true
 			} else {
-				ascend()
+				if (floor.isNaN() && verticalVelocity < 0.0) {
+					if (height < rise) return null
+					if (height + verticalVelocity <= rise) return landedSample(tick, rise, distance, velocity, heights, distances)
+				}
+				if (verticalVelocity > 0.0 && height + verticalVelocity > headroom) {
+					height = headroom
+					verticalVelocity = 0.0
+				} else {
+					height += verticalVelocity
+				}
 			}
 
 			verticalVelocity = (verticalVelocity - gravity) * VERTICAL_DRAG
-			velocity *= if (grounded) groundFriction else HORIZONTAL_DRAG
+			velocity *= if (wasGrounded) groundFriction else HORIZONTAL_DRAG
 			heights[tick] = height
 			distances[tick] = distance
 		}

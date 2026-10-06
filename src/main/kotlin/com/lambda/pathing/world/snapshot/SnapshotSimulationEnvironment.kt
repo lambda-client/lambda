@@ -35,23 +35,19 @@ class SnapshotSimulationEnvironment internal constructor(
 		defaultBlock: SnapshotBlockPhysics?,
 	) : this(bounds, StoreRef(SectionStore.of(sections)), defaultBlock)
 
-	internal class StoreRef(@Volatile var store: SectionStore) {
-		fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(this) {
-			store = store.with(key, section)
-		}
-
-		fun remove(keys: LongArrayList) = synchronized(this) {
-			store = store.without(keys)
-		}
-	}
+	internal class StoreRef(@Volatile var store: SectionStore)
 
 	private val store: SectionStore get() = storeRef.store
 
 	internal fun hasSection(key: Long): Boolean = store.contains(key)
 
-	internal fun install(key: Long, section: ImmutableSnapshotSection) = storeRef.install(key, section)
+	internal fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(storeRef) {
+		storeRef.store = storeRef.store.with(key, section)
+	}
 
-	internal fun removeSections(keys: LongArrayList) = storeRef.remove(keys)
+	internal fun removeSections(keys: LongArrayList) = synchronized(storeRef) {
+		storeRef.store = storeRef.store.without(keys)
+	}
 
 	internal inline fun forEachSectionKey(action: (Long) -> Unit) = store.forEach { key, _ -> action(key) }
 
@@ -66,7 +62,7 @@ class SnapshotSimulationEnvironment internal constructor(
 				val x = (sectionX shl 4) + localX
 				val y = (sectionY shl 4) + localY
 				val z = (sectionZ shl 4) + localZ
-				if (inBounds(x, y, z)) action(BlockPos.asLong(x, y, z), section[x, y, z])
+				if (bounds.contains(x, y, z)) action(BlockPos.asLong(x, y, z), section[x, y, z])
 			}
 		}
 	}
@@ -172,27 +168,24 @@ class SnapshotSimulationEnvironment internal constructor(
 		sectionAt(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4))?.get(x, y, z) ?: defaultBlock
 
 	private inline fun isKnownIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
-		inBounds(x, y, z) && blockIn(x, y, z, sectionAt) != null
+		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt) != null
 
 	private inline fun voxelIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CoarseVoxel {
-		if (!inBounds(x, y, z)) return CoarseVoxel.UNKNOWN
+		if (!bounds.contains(x, y, z)) return CoarseVoxel.UNKNOWN
 		val block = blockIn(x, y, z, sectionAt) ?: return CoarseVoxel.UNKNOWN
 		return if (block.unsupportedPhysics == null) block.coarseVoxel else CoarseVoxel.HAZARD
 	}
 
 	private inline fun collisionShapeIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): VoxelShape {
-		if (!inBounds(x, y, z)) return VoxelShapes.fullCube()
+		if (!bounds.contains(x, y, z)) return VoxelShapes.fullCube()
 		val block = blockIn(x, y, z, sectionAt) ?: return VoxelShapes.empty()
 		return if (block.unsupportedPhysics == null) block.collisionShape else VoxelShapes.fullCube()
 	}
 
 	private inline fun collisionClassIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CollisionClass {
-		if (!inBounds(x, y, z)) return CollisionClass.FULL
+		if (!bounds.contains(x, y, z)) return CollisionClass.FULL
 		return blockIn(x, y, z, sectionAt)?.collisionClass ?: CollisionClass.EMPTY
 	}
-
-	private fun inBounds(x: Int, y: Int, z: Int): Boolean =
-		x in bounds.minX..bounds.maxX && y in bounds.minY..bounds.maxY && z in bounds.minZ..bounds.maxZ
 
 	private fun Box.intersectsUnitBlock(x: Int, y: Int, z: Int): Boolean =
 		maxX > x && minX < x + 1.0 &&

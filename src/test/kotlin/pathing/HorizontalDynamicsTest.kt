@@ -128,13 +128,7 @@ class HorizontalDynamicsTest {
         )
     }
 
-    private fun rest() = MovementSimulationState.synthetic(
-        profile = PROFILE,
-        position = Vec3d(0.5, 100.0, 0.5),
-        rotation = Rotation(YAW, 0.0),
-        velocity = Vec3d(0.0, -0.0784, 0.0),
-        onGround = true,
-    )
+    private fun rest() = resting(Vec3d(0.5, 100.0, 0.5), YAW)
 
     private companion object {
         const val YAW = -90.0

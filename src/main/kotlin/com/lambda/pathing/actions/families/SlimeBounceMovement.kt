@@ -12,7 +12,6 @@ import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.BounceSolver
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -69,16 +68,8 @@ object SlimeBounceMovement : Movement {
 	override fun transitionFrames(decision: TrajectoryDecision): Int =
 		(decision as TrajectoryDecision.Bounce).solution.airTicks + TRANSITION_MARGIN_FRAMES
 
-	override fun program(context: ProgramContext): ControlProgram {
-		val decision = context.decision as TrajectoryDecision.Bounce
-		val from = context.body.stance.center()
-		return BounceProgram(
-			takeoff = from,
-			aim = decision.step.center(),
-			solution = decision.solution,
-			maxYawChange = context.constraints.maxYawDegreesPerFrame,
-		)
-	}
+	override fun program(context: ProgramContext): ControlProgram =
+		BounceProgram(context.decision as TrajectoryDecision.Bounce, context)
 
 	override fun completed(context: CompletionContext): Boolean {
 		if (!context.airborne || !context.observed.onGround) return false

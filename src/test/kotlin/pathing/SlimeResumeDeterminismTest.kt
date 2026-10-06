@@ -2,7 +2,6 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.physics.MovementSimulationInput
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -40,13 +39,7 @@ class SlimeResumeDeterminismTest {
             repeat(20) { add(MovementSimulationInput(forward = 1.0, sprint = true, rotation = Rotation(0.0, 0.0))) }
             repeat(30) { add(MovementSimulationInput(rotation = Rotation(0.0, 0.0))) }
         }
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(0.5, 100.0, 0.5),
-            rotation = Rotation(0.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
+        val initial = resting(Vec3d(0.5, 100.0, 0.5))
         val continuous = MovementSimulator(PROFILE, environment, initial)
         val states = inputs.map { continuous.tickMovement(it) }
 

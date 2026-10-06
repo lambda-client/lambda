@@ -13,7 +13,6 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.managers.Manager
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
-import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.world.ChunkPacketLoadContext
@@ -23,9 +22,8 @@ object PathingManager : Manager<PathingRequest>(0) {
 	private var session: PathingSession? = null
 
 	@Volatile
-	private var lastRenderConfig: PathingRenderConfig = AutomationConfig.DEFAULT.pathingRenderConfig
-
-	val renderConfig: PathingRenderConfig get() = lastRenderConfig
+	var renderConfig: PathingRenderConfig = AutomationConfig.DEFAULT.pathingRenderConfig
+		private set
 
 	val status: State get() = session?.state ?: State.Idle
 
@@ -34,7 +32,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 	val isRouting: Boolean
 		get() = session?.active == true || queuedRequest != null || waypointRoute.queuedWaypoints > 0
 
-	private val waypointRoute = WaypointRoute(PATHING_SOURCE)
+	private val waypointRoute = WaypointRoute()
 
 	fun diagnostics(): String = buildString {
 		append("status=").append(status)
@@ -51,13 +49,10 @@ object PathingManager : Manager<PathingRequest>(0) {
 		}
 	}
 
-	fun isFinished(request: PathingRequest): Boolean = when {
-		queuedRequest === request -> false
-		else -> session?.isFinished(request) ?: true
-	}
+	fun isFinished(request: PathingRequest): Boolean = queuedRequest !== request && session?.isFinished(request) ?: true
 
 	fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? =
-		waypointRoute.start(automated, waypoints, automated.pathingConfig.waypointArrival)
+		waypointRoute.start(automated, waypoints)
 
 	fun cancel() {
 		waypointRoute.drop()
@@ -88,9 +83,8 @@ object PathingManager : Manager<PathingRequest>(0) {
 			journey = warmed
 		}
 
-		val sameGoal = journey?.goal == goal
 		previous?.release()
-		if (!sameGoal) {
+		if (journey?.goal != goal) {
 			journey?.cancel()
 			journey = null
 		}
@@ -98,7 +92,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 		val walk = PathingSession(request, journey, waypointRoute)
 		session = walk
-		lastRenderConfig = request.pathingRenderConfig
+		renderConfig = request.pathingRenderConfig
 
 		with(walk) { start() }
 	}

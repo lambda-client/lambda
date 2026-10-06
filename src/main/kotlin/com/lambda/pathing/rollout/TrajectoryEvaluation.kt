@@ -65,53 +65,27 @@ internal class RolloutEvaluator(
 
 		val atGoal = hypot(state.position.x - goal.x, state.position.z - goal.z) <= config.goalRadius &&
 				abs(state.position.y - goal.y) <= VERTICAL_GOAL_TOLERANCE
-		val stopped = state.velocity.horizontalLength() <= config.stoppedSpeed
+		val stopped = state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED
 		stable = if (atGoal && stopped && state.onGround) stable + 1 else 0
 		if (stable >= config.stableStopFrames) return RolloutVerdict.Stopped(index)
 
 		return RolloutVerdict.Continue
 	}
-}
 
-internal fun evaluateDiagnostic(
-	rollout: TrajectoryRollout,
-	nodes: List<HorizontalPoint>,
-	goal: HorizontalPoint,
-	config: MotionConstraints,
-	descentAllowance: Double = 0.0,
-	climbing: (Vec3d) -> Boolean,
-): TrajectoryDiagnostic? {
-	val evaluator = RolloutEvaluator(
-		rollout.initialState, nodes, goal, config, descentAllowance = descentAllowance,
-		climbing = climbing,
-	)
-
-	rollout.frames.forEach { frame ->
-		when (val verdict = evaluator.observe(frame.index, frame.state)) {
-			is RolloutVerdict.Continue -> Unit
-			is RolloutVerdict.Stopped -> return null
-			is RolloutVerdict.Failed -> return verdict.diagnostic
-		}
-	}
-
-	when (val termination = rollout.termination) {
-		is TrajectoryRolloutTermination.Blocked -> return TrajectoryDiagnostic.UnknownTerrain(termination.frame, termination.section)
-		is TrajectoryRolloutTermination.Rejected -> return when (val failure = termination.failure) {
-			is SimulationSnapshotOutOfBoundsException ->
-				TrajectoryDiagnostic.OutsideSnapshot(termination.frame, failure.pos)
+	fun terminalDiagnostic(rollout: TrajectoryRollout): TrajectoryDiagnostic = when (val termination = rollout.termination) {
+		is TrajectoryRolloutTermination.Blocked -> TrajectoryDiagnostic.UnknownTerrain(termination.frame, termination.section)
+		is TrajectoryRolloutTermination.Rejected -> when (val failure = termination.failure) {
+			is SimulationSnapshotOutOfBoundsException -> TrajectoryDiagnostic.OutsideSnapshot(termination.frame, failure.pos)
 			else -> TrajectoryDiagnostic.UnsupportedPhysics(termination.frame, failure.message ?: "unsupported")
 		}
-		TrajectoryRolloutTermination.Completed -> Unit
+		TrajectoryRolloutTermination.Completed -> pendingBlocker ?: rollout.finalState.let { final ->
+			TrajectoryDiagnostic.NoStop(
+				frame = rollout.frames.size,
+				goalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
+				speed = final.velocity.horizontalLength(),
+			)
+		}
 	}
-
-	evaluator.pendingBlocker?.let { return it }
-
-	val final = rollout.finalState
-	return TrajectoryDiagnostic.NoStop(
-		frame = rollout.frames.size,
-		goalError = hypot(final.position.x - goal.x, final.position.z - goal.z),
-		speed = final.velocity.horizontalLength(),
-	)
 }
 
 internal const val VERTICAL_GOAL_TOLERANCE = 0.05

@@ -7,10 +7,10 @@ import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
-import com.lambda.pathing.search.PlanGraph
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchNodeRole
 import com.lambda.pathing.search.TrajectoryPlan
@@ -51,23 +51,12 @@ object PathingRenderer : Loadable {
 		}
 	}
 
-	private fun movementColor(movement: MovementId): Color = when (movement) {
-		MovementId.WALK -> config.walkColor
-		MovementId.STEP_UP -> config.stepUpColor
-		MovementId.WALK_OFF -> config.walkOffColor
-		MovementId.DROP -> config.dropColor
-		MovementId.JUMP -> config.jumpColor
-		MovementId.BOUNCE -> config.bounceColor
-		MovementId.CLIMB, MovementId.LADDER_CATCH -> config.climbColor
-		else -> config.unknownMovementColor
-	}
-
 	private fun RenderBuilder.renderCoarseRoute(route: CoarseRoutePlan) {
 		val width = px(config.coarseWidth)
 		val edges = route.edges
 		val truncated = route.goal != telemetry.published?.finalGoal
 		edges.forEachIndexed { index, edge ->
-			val color = movementColor(edge.movement)
+			val color = config.movementColor(edge.movement)
 			val from = edge.from.center(COARSE_Y)
 			val to = edge.to.center(COARSE_Y)
 			val tail = truncated && index == edges.lastIndex
@@ -165,11 +154,11 @@ object PathingRenderer : Loadable {
 	}
 
 	private fun RenderBuilder.renderPlanGraph(plan: TrajectoryPlan) {
-		val graph = PlanGraph.of(plan) ?: return
+		if (plan.segments.isEmpty()) return
 		val width = px(maxOf(config.trajectoryWidth * 2 / 3, 1))
 
 		if (config.renderPlanGraphPace) {
-			graph.spine.forEach { segment ->
+			plan.segments.forEach { segment ->
 				val points = ArrayList<Vec3d>(segment.frameCount + 1)
 				points += segment.entry.position.add(0.0, PLAN_GRAPH_Y, 0.0)
 				for (frame in segment.startFrame until segment.endFrame) {
@@ -183,11 +172,14 @@ object PathingRenderer : Loadable {
 			}
 		}
 
-		graph.junctions.forEach { junction ->
-			val color = if (junction.settled) config.junctionColor else config.unsettledJunctionColor
-			val size = if (junction.settled) config.junctionSize else config.junctionSize * 0.7
-			diamond(junction.state.position.add(0.0, PLAN_GRAPH_Y, 0.0), size, color)
-		}
+		junction(plan.initialState.position, settled = true)
+		plan.segments.forEach { junction(it.exit.position, it.settledExit) }
+	}
+
+	private fun RenderBuilder.junction(position: Vec3d, settled: Boolean) {
+		val color = if (settled) config.junctionColor else config.unsettledJunctionColor
+		val size = if (settled) config.junctionSize else config.junctionSize * 0.7
+		diamond(position.add(0.0, PLAN_GRAPH_Y, 0.0), size, color)
 	}
 
 	private fun roleColor(role: SearchNodeRole): Color = when (role) {
@@ -270,7 +262,7 @@ object PathingRenderer : Loadable {
 
 			sample.edges.forEach { edge ->
 				if (edge.policy) return@forEach
-				val color = edge.movement?.let(::movementColor) ?: config.unknownMovementColor
+				val color = edge.movement?.let { config.movementColor(it) } ?: config.unknownMovementColor
 				line(
 					edge.from.add(0.0, GRAPH_EDGE_Y, 0.0), edge.to.add(0.0, GRAPH_EDGE_Y, 0.0),
 					color.setAlpha(EXPLORED_EDGE_ALPHA), faint,
@@ -278,7 +270,7 @@ object PathingRenderer : Loadable {
 			}
 			sample.edges.forEach { edge ->
 				if (!edge.policy) return@forEach
-				val color = edge.movement?.let(::movementColor) ?: config.unknownMovementColor
+				val color = edge.movement?.let { config.movementColor(it) } ?: config.unknownMovementColor
 				lineGradient(
 					edge.from.add(0.0, GRAPH_EDGE_Y + 0.01, 0.0), color.setAlpha(0.35),
 					edge.to.add(0.0, GRAPH_EDGE_Y + 0.01, 0.0), color,
@@ -381,4 +373,15 @@ object PathingRenderer : Loadable {
 	private const val TAPE_Y = 0.11
 	private const val TRAIL_Y = 0.13
 	private const val GOAL_Y = 0.03
+}
+
+internal fun PathingRenderConfig.movementColor(movement: MovementId): Color = when (movement) {
+	MovementId.WALK -> walkColor
+	MovementId.STEP_UP -> stepUpColor
+	MovementId.WALK_OFF -> walkOffColor
+	MovementId.DROP -> dropColor
+	MovementId.JUMP -> jumpColor
+	MovementId.BOUNCE -> bounceColor
+	MovementId.CLIMB, MovementId.LADDER_CATCH -> climbColor
+	else -> unknownMovementColor
 }

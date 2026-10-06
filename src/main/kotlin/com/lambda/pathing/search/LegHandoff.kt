@@ -1,18 +1,12 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.core.Stance
 
 interface LegSource {
 	fun hasNext(): Boolean
 
-	fun handoff(touched: Stance): LegHandoff?
+	fun handoff(touched: Stance): CoarseRoutePlan?
 }
-
-class LegHandoff(
-	val route: CoarseRoutePlan,
-	val field: CoarseValueField,
-)
 
 data class LegTouch(val frame: Int, val waypoint: Stance)

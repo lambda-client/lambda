@@ -4,7 +4,7 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.launch.AirSteering
+import com.lambda.pathing.launch.AirPlan
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -34,16 +34,7 @@ class AirSteeringTest {
         val drift = flight.last()
         var state = flight.first()
         for (tick in 0 until 12) {
-            val keys = AirSteering.steer(
-                positionX = state.position.x, positionZ = state.position.z,
-                velocityX = state.velocity.x, velocityZ = state.velocity.z,
-                yawDegrees = YAW,
-                aimX = drift.position.x, aimZ = drift.position.z,
-                unitX = 0.0, unitZ = 1.0,
-                remainingTicks = 12 - tick,
-                plannedHoldTicks = 0,
-                sprintAcceleration = AIR_ACCELERATION,
-            )
+            val keys = plan(drift.position.x, drift.position.z, ticks = 12, holdTicks = 0).steer(state, YAW, tick + 1)
             assertNull(keys, "tick $tick: an on-course coast must not be corrected")
             state = tick(state, forward = 0.0, strafe = 0.0)
         }
@@ -55,16 +46,8 @@ class AirSteeringTest {
         for ((dx, dz) in offsets) {
             var state = launchState()
             for (tick in 0 until 12) {
-                val keys = AirSteering.steer(
-                    positionX = state.position.x, positionZ = state.position.z,
-                    velocityX = state.velocity.x, velocityZ = state.velocity.z,
-                    yawDegrees = YAW,
-                    aimX = state.position.x + dx, aimZ = state.position.z + 2.0 + dz,
-                    unitX = 0.0, unitZ = 1.0,
-                    remainingTicks = 12 - tick,
-                    plannedHoldTicks = 0,
-                    sprintAcceleration = AIR_ACCELERATION,
-                )
+                val keys = plan(state.position.x + dx, state.position.z + 2.0 + dz, ticks = 12, holdTicks = 0)
+                    .steer(state, YAW, tick + 1)
                 if (keys != null) {
                     assertTrue(
                         keys.forward in LEGAL && keys.strafe in LEGAL,
@@ -105,16 +88,7 @@ class AirSteeringTest {
         val aim = fly(ticks, steerTo = null).last()
         var state = launchState()
         repeat(ticks) { tick ->
-            val keys = AirSteering.steer(
-                positionX = state.position.x, positionZ = state.position.z,
-                velocityX = state.velocity.x, velocityZ = state.velocity.z,
-                yawDegrees = YAW,
-                aimX = aim.position.x, aimZ = aim.position.z,
-                unitX = 0.0, unitZ = 1.0,
-                remainingTicks = ticks - tick,
-                plannedHoldTicks = ticks - tick,
-                sprintAcceleration = AIR_ACCELERATION,
-            )
+            val keys = plan(aim.position.x, aim.position.z, ticks, holdTicks = ticks).steer(state, YAW, tick + 1)
             state = tick(state, keys?.forward ?: 1.0, keys?.strafe ?: 0.0)
         }
         val miss = hypot(state.position.x - aim.position.x, state.position.z - aim.position.z)
@@ -124,24 +98,16 @@ class AirSteeringTest {
         )
     }
 
+    private fun plan(aimX: Double, aimZ: Double, ticks: Int, holdTicks: Int) =
+        AirPlan(aimX, aimZ, unitX = 0.0, unitZ = 1.0, airTicks = ticks - 1, holdTicks = holdTicks, holdAcceleration = AIR_ACCELERATION)
+
     /** [ticks] of free flight; with an aim the controller flies it, without it coasts. */
     private fun fly(ticks: Int, steerTo: Pair<Double, Double>?): List<MovementSimulationState> {
         var state = launchState()
         val states = ArrayList<MovementSimulationState>(ticks + 1)
         states += state
         repeat(ticks) { tick ->
-            val keys = steerTo?.let { (aimX, aimZ) ->
-                AirSteering.steer(
-                    positionX = state.position.x, positionZ = state.position.z,
-                    velocityX = state.velocity.x, velocityZ = state.velocity.z,
-                    yawDegrees = YAW,
-                    aimX = aimX, aimZ = aimZ,
-                    unitX = 0.0, unitZ = 1.0,
-                    remainingTicks = ticks - tick,
-                    plannedHoldTicks = 0,
-                    sprintAcceleration = AIR_ACCELERATION,
-                )
-            }
+            val keys = steerTo?.let { (aimX, aimZ) -> plan(aimX, aimZ, ticks, holdTicks = 0).steer(state, YAW, tick + 1) }
             state = tick(state, keys?.forward ?: 0.0, keys?.strafe ?: 0.0)
             states += state
         }

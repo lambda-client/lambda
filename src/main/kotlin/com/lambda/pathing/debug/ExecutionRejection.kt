@@ -9,25 +9,21 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 
 internal fun executionRejectionReport(
-	path: PublishedPath?,
+	path: PublishedPath,
 	frame: Int,
 	deviation: ExecutionDeviation,
 	observed: MovementSimulationState,
 	afterInput: Boolean,
 ): String {
-	val splice = path?.spliceFrames?.let { boundaries ->
-		when {
-			frame in boundaries -> " at predicted splice"
-			frame + 1 in boundaries -> " immediately before predicted splice"
-			else -> ""
-		}
-	}.orEmpty()
-	val tape = path?.plan?.tape?.asList()
-	val input = tape?.getOrNull(frame)
-	val before = path?.plan?.let { plan ->
-		if (frame == 0) plan.initialState else plan.frames.getOrNull(frame - 1)?.state
+	val splice = when {
+		frame in path.spliceFrames -> " at predicted splice"
+		frame + 1 in path.spliceFrames -> " immediately before predicted splice"
+		else -> ""
 	}
-	val expected = if (afterInput) path?.plan?.frames?.getOrNull(frame)?.state else before
+	val tape = path.plan.tape.asList()
+	val input = tape.getOrNull(frame)
+	val before = if (frame == 0) path.plan.initialState else path.plan.frames.getOrNull(frame - 1)?.state
+	val expected = if (afterInput) path.plan.frames.getOrNull(frame)?.state else before
 	val phase = if (afterInput) "after input" else "before input"
 	val inputDetail = input?.let {
 		"; input f=%.1f s=%.1f jump=%s sprintKey=%s sneakKey=%s yaw=%s".format(
@@ -55,7 +51,7 @@ internal fun executionRejectionReport(
 		if (expected?.horizontalCollision == true && !observed.horizontalCollision && before != null) {
 			liveLedgeProbe(before.boundingBox, observed.velocity)
 		} else ""
-	val previousInputDetail = tape?.getOrNull(frame - 1)?.let {
+	val previousInputDetail = tape.getOrNull(frame - 1)?.let {
 		"; previous input f=%.1f jump=%s sprintKey=%s sneakKey=%s".format(
 			it.forward, it.jump, it.sprint, it.sneak,
 		)

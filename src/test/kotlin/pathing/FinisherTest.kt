@@ -3,7 +3,7 @@ package pathing
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.coarse.ValueField
-import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -11,6 +11,7 @@ import com.lambda.pathing.search.AttemptAccumulator
 import com.lambda.pathing.search.Finisher
 import com.lambda.pathing.search.GatedRollout
 import com.lambda.pathing.search.RolloutGate
+import com.lambda.pathing.search.RouteState
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryRollout
@@ -39,7 +40,7 @@ class FinisherTest {
     private val anchor = ValueAnchor(state, Stance(0, 100, 0), 0, 0, 0, null, emptyList())
     private val frames = listOf(SimulatedTrajectoryFrame(0, MovementSimulationInput(), state))
     private val successful = GatedRollout(
-        TrajectoryRollout(state, frames, TrajectoryRolloutTermination.Completed), 0, false,
+        TrajectoryRollout(state, frames, TrajectoryRolloutTermination.Completed), 0, false, null,
     )
 
     init {
@@ -62,7 +63,7 @@ class FinisherTest {
         val config = MotionConstraints(stableStopFrames = 1, brakeDistances = brakes)
         val cached = Finisher(
             field, environment, config, gate, attempts,
-            goalPoint = { HorizontalPoint(0.5, 100.0, 0.5) },
+            RouteState(CoarseRoutePlan(0L, listOf(anchor.stance), emptyList(), 0.0, emptySet()), environment),
         )
         reads = 0
         assertNotNull(cached.finishFrom(anchor))

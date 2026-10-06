@@ -69,7 +69,7 @@ class FieldDumpCorpusTest {
             publish = { path, _ -> executor.offer(path) },
             clock = clock,
             started = System.currentTimeMillis(),
-            onExhaustion = { exhaustions += it },
+            onConcluded = { exhaustions += it },
             parallelism = FIELD_PARALLELISM,
         )
         val path = (outcome as? PathPlanResult.Planned)?.path

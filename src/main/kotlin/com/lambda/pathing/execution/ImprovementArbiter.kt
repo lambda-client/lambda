@@ -19,7 +19,7 @@ internal object ImprovementArbiter {
 		cursorFrame: Int?,
 		awaitingObservation: Boolean,
 		offered: PublishedPath,
-		runningInvalidFrom: Int? = null,
+		runningInvalid: Boolean = false,
 	): Verdict {
 		if (running == null || cursorFrame == null) return Verdict.BeginFresh
 		if (offered.planningGeneration != running.planningGeneration) {
@@ -33,7 +33,7 @@ internal object ImprovementArbiter {
 		if (cursorFrame > offered.plan.tape.frameCount) {
 			return Verdict.Keep("improvement is shorter than the walk so far")
 		}
-		if (runningInvalidFrom != null) {
+		if (runningInvalid) {
 			return if (divergesBehind(running, offered, cursorFrame)) Verdict.Keep("repair diverges behind the cursor")
 			else Verdict.Adopt(cursorFrame)
 		}

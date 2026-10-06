@@ -1,16 +1,20 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 
 internal class Annealing(
 	private val field: ValueField,
 	private val frontier: Frontier,
-	private val horizon: Horizon,
-	private val surcharge: (ValueAnchor) -> Double?,
-	maxTemperature: Double,
+	private val vocabulary: ActionSet,
+	private val budget: ExpansionBudget,
+	private val maxTemperature: Double,
 ) {
-	val temperature = Temperature(ceiling = maxTemperature)
+	var temperature = INITIAL_TEMPERATURE
+		private set
+
+	private val exhausted: Boolean get() = temperature >= maxTemperature
 
 	var actionsEpoch = 0
 		private set
@@ -19,40 +23,49 @@ internal class Annealing(
 
 	val spent: List<ValueAnchor> get() = spentAnchors
 
-	val hasSpent: Boolean get() = spentAnchors.isNotEmpty()
+	val revivable: Boolean get() = spentAnchors.isNotEmpty() && !exhausted
 
 	private var progressBaseline = Double.POSITIVE_INFINITY
 	private var bestGuideSeen = Double.POSITIVE_INFINITY
-	private var expansionsSinceHeat = 0
+	private var heatedAt = 0
 	private var escalationRoot: ValueAnchor? = null
 
-	fun tick() {
-		expansionsSinceHeat++
-	}
+	fun next(anchor: ValueAnchor): TrajectoryDecision? = vocabulary.next(anchor, temperature, actionsEpoch)
+
+	fun surcharge(anchor: ValueAnchor): Double? = vocabulary.nextSurcharge(anchor, temperature, actionsEpoch)
 
 	fun noteGuide(stance: Stance) {
 		val guide = field.guide(stance)
 		if (guide < bestGuideSeen) bestGuideSeen = guide
 		if (bestGuideSeen <= progressBaseline - GUIDE_PROGRESS_HYSTERESIS_TICKS) {
 			progressBaseline = bestGuideSeen
-			if (temperature.cool()) actionsEpoch++
+			if (cool()) actionsEpoch++
 		}
 	}
 
 	fun spend(anchor: ValueAnchor) {
-		if (canEscalate()) spentAnchors += anchor
+		if (!exhausted) spentAnchors += anchor
 	}
 
 	fun clearSpent() {
 		spentAnchors.clear()
 	}
 
-	fun escalate(force: Boolean): Boolean {
-		spentAnchors.retainAll { horizon.canReach(it) }
-		if (!force && frontier.hasBlocked) return false
-		if (!force && expansionsSinceHeat < HEAT_EXPANSIONS) return false
-		expansionsSinceHeat = 0
-		if (!temperature.raise()) return false
+	fun heat() {
+		spentAnchors.retainAll { frontier.canReach(it) }
+		if (frontier.hasBlocked || budget.count - heatedAt < HEAT_EXPANSIONS) return
+		escalate()
+	}
+
+	fun revive(): Boolean {
+		if (spentAnchors.isEmpty()) return false
+		spentAnchors.retainAll { frontier.canReach(it) }
+		return escalate()
+	}
+
+	private fun escalate(): Boolean {
+		heatedAt = budget.count
+		if (!raise()) return false
 		actionsEpoch++
 		spentAnchors.forEach { anchor ->
 			surcharge(anchor)?.let { anchor.pendingSurcharge = it }
@@ -63,18 +76,30 @@ internal class Annealing(
 	}
 
 	fun rewindOnNewRoot() {
-		val root = horizon.root ?: return
+		val root = frontier.root ?: return
 		if (root === escalationRoot) return
 		escalationRoot = root
-		expansionsSinceHeat = 0
-		if (temperature.cool()) actionsEpoch++
+		heatedAt = budget.count
+		if (cool()) actionsEpoch++
 		restartProgress(root.stance)
 	}
 
 	fun rewindForRestart(seed: Stance) {
-		temperature.cool()
+		cool()
 		actionsEpoch++
 		restartProgress(seed)
+	}
+
+	private fun raise(): Boolean {
+		if (exhausted) return false
+		temperature = (temperature * GROWTH).coerceAtMost(maxTemperature)
+		return true
+	}
+
+	private fun cool(): Boolean {
+		if (temperature <= INITIAL_TEMPERATURE) return false
+		temperature = (temperature / GROWTH).coerceAtLeast(INITIAL_TEMPERATURE)
+		return true
 	}
 
 	private fun restartProgress(from: Stance) {
@@ -83,9 +108,10 @@ internal class Annealing(
 		noteGuide(from)
 	}
 
-	fun canEscalate(): Boolean = !temperature.exhausted
-
 	private companion object {
+		const val INITIAL_TEMPERATURE = 0.3
+
+		const val GROWTH = 1.6
 
 		const val HEAT_EXPANSIONS = 120
 

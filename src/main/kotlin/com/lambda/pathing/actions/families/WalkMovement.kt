@@ -22,7 +22,7 @@ import com.lambda.pathing.actions.StanceRules.DIAGONALS
 import com.lambda.pathing.actions.StanceRules.stanceConditions
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.actions.control.yawTowards
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.MovementKeys
 import com.lambda.pathing.core.Stance
@@ -191,9 +191,7 @@ object WalkMovement : Movement {
 	}
 
 	private fun routeBearing(body: BodyState, chain: List<Stance>): Double {
-		val aim = chain[minOf(chain.lastIndex, BEARING_LOOKAHEAD)].center()
-		val position = body.state.position
-		return bearingBetween(HorizontalPoint(position.x, position.y, position.z), aim)
+		return yawTowards(chain[minOf(chain.lastIndex, BEARING_LOOKAHEAD)].center(), body.state)
 	}
 
 	override fun program(context: ProgramContext): ControlProgram {

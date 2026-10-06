@@ -63,7 +63,7 @@ internal class CoarsePlanningState(
 	private val captureLagSections = HashSet<Long>()
 
 	init {
-		grantChunksAround(start)
+		grant(start)
 	}
 
 	val planner = CoarsePlanner(
@@ -75,7 +75,7 @@ internal class CoarsePlanningState(
 
 	fun repairFrom(start: Stance) {
 		planner.updateStart(start)
-		revealChunks(grantChunksAround(start))
+		revealAround(start)
 	}
 
 	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {
@@ -85,11 +85,8 @@ internal class CoarsePlanningState(
 		if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals, maxStances, arrivalsOnly = true)
 	}
 
-	fun revealChunks(revealed: Set<PathingChunk>) {
-		if (revealed.isNotEmpty()) planner.chunksChanged(revealed, arrivalsOnly = true)
-	}
-
-	fun continueSync(maxStances: Int): Boolean = planner.continueSync(maxStances)
+	fun revealAround(stance: Stance): Set<PathingChunk> =
+		grant(stance).also { if (it.isNotEmpty()) planner.chunksChanged(it, arrivalsOnly = true) }
 
 	fun demandCaptureLag(world: PathingWorld) {
 		if (captureLagSections.isEmpty()) return
@@ -97,11 +94,7 @@ internal class CoarsePlanningState(
 		captureLagSections.clear()
 	}
 
-	fun routePlan(
-		snapshotRevision: Long,
-		cancelled: () -> Boolean = { false },
-		maxExpansions: Int = Int.MAX_VALUE,
-	): CoarseRoutePlan? =
+	fun routePlan(snapshotRevision: Long, cancelled: () -> Boolean, maxExpansions: Int): CoarseRoutePlan? =
 		planner.routePlan(snapshotRevision, cancelled = cancelled)
 			?: planner.resynchronizedRoutePlan(snapshotRevision, cancelled = cancelled, maxExpansions = maxExpansions)
 			?: run {
@@ -110,7 +103,7 @@ internal class CoarsePlanningState(
 				} else null
 			}
 
-	fun grantChunksAround(start: Stance): Set<PathingChunk> {
+	private fun grant(start: Stance): Set<PathingChunk> {
 		if (horizonChunks <= 0) return emptySet()
 		val revealed = HashSet<PathingChunk>()
 		val centerX = start.x shr 4

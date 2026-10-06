@@ -3,13 +3,9 @@ package pathing
 // The refusal signature from live gametests: a successor leg rooted on a ledge that
 // must drop ~3 blocks to a goal adjacent to the landing, reaching within centimeters
 // over hundreds of attempts but never certifying a stable stop.
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -17,7 +13,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.test.Test
 import kotlin.test.assertTrue
-import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
 class DropToAdjacentGoalTest {
@@ -41,19 +36,7 @@ class DropToAdjacentGoalTest {
         val route = checkNotNull(planner.routePlan(0L)) { "no coarse route" }
         println("[drop] route=${route.nodes.map { "${it.x},${it.y},${it.z}" }}")
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(8.5, 100.0, -0.5),
-                rotation = Rotation(-100.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(8.5, 100.0, -0.5), -100.0), environment)
         assertTrue(outcome is PathPlanResult.Planned, "expected a certified tape, got $outcome")
     }
 

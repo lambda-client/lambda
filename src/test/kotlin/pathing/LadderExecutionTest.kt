@@ -3,20 +3,15 @@
  */
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.world.Medium
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -25,7 +20,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -52,19 +46,7 @@ class LadderExecutionTest {
             "the only way up is the ladder: ${route.edges.map { it.movement }}",
         )
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(-1.5, BOTTOM_STANCE.toDouble(), 0.5),
-                rotation = Rotation(-90.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, BOTTOM_STANCE.toDouble(), 0.5), -90.0), environment)
 
         val path = assertNotNull(
             (outcome as? PathPlanResult.Planned)?.path,
@@ -114,19 +96,7 @@ class LadderExecutionTest {
         planner.expandField(extraTicks = 60.0, maxExpansions = 40_000)
         val route = assertNotNull(planner.routePlan(0L), "a descent route must publish")
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(-1.5, TOP_STANCE.toDouble(), 0.5),
-                rotation = Rotation(-90.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, TOP_STANCE.toDouble(), 0.5), -90.0), environment)
 
         val path = assertNotNull(
             (outcome as? PathPlanResult.Planned)?.path,
@@ -172,19 +142,7 @@ class LadderExecutionTest {
             "the only way up is the vine: ${route.edges.map { it.movement }}",
         )
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(-1.5, 63.0, 0.5),
-                rotation = Rotation(-90.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 63.0, 0.5), -90.0), environment)
 
         val path = assertNotNull(
             (outcome as? PathPlanResult.Planned)?.path,
@@ -226,19 +184,7 @@ class LadderExecutionTest {
         planner.expandField(extraTicks = 400.0, maxExpansions = 200_000)
         val route = assertNotNull(planner.routePlan(0L), "a tall ladder route must publish")
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(-1.5, BOTTOM_STANCE.toDouble(), 0.5),
-                rotation = Rotation(-90.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, BOTTOM_STANCE.toDouble(), 0.5), -90.0), environment)
 
         val path = assertNotNull(
             (outcome as? PathPlanResult.Planned)?.path,
@@ -278,19 +224,7 @@ class LadderExecutionTest {
             "the shaft is the only way down: ${route.edges.map { it.movement }}",
         )
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(-1.5, DECK_STANCE.toDouble(), 0.5),
-                rotation = Rotation(-90.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, DECK_STANCE.toDouble(), 0.5), -90.0), environment)
 
         val path = assertNotNull(
             (outcome as? PathPlanResult.Planned)?.path,
@@ -365,7 +299,7 @@ class LadderExecutionTest {
 
         val LADDER = SnapshotBlockPhysics(
 	        collisionShape = VoxelShapes.empty(),
-	        coarseVoxel = CoarseVoxel.of(Medium.CLIMBABLE),
+	        coarseVoxel = CoarseVoxel.CLIMBABLE,
         )
 
     }

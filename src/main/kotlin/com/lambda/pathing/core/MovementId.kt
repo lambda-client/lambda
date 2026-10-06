@@ -7,17 +7,11 @@ value class MovementId(val key: String) {
 	companion object {
 		val WALK = MovementId("walk")
 		val STEP_UP = MovementId("step_up")
-
 		val WALK_OFF = MovementId("walk_off")
-
 		val DROP = MovementId("drop")
-
 		val JUMP = MovementId("jump")
-
 		val CLIMB = MovementId("climb")
-
 		val LADDER_CATCH = MovementId("ladder_catch")
-
 		val BOUNCE = MovementId("bounce")
 	}
 }

@@ -9,7 +9,6 @@
 
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
@@ -22,7 +21,6 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
@@ -154,13 +152,7 @@ class FenceJumpTest {
         )
 
         val startFeet = start.y + environment.surfaceOffset(start.x, start.y - 1, start.z)
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(start.x + 0.5, startFeet, start.z + 0.5),
-            rotation = Rotation(0.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
+        val initial = resting(Vec3d(start.x + 0.5, startFeet, start.z + 0.5))
         val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
             publish = { _, _ -> },
@@ -229,13 +221,7 @@ class FenceJumpTest {
         val dx = (to.x - from.x).toDouble()
         val dz = (to.z - from.z).toDouble()
         val yaw = Math.toDegrees(Math.atan2(-dx, dz))
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(from.x + 0.5, launchFeet, from.z + 0.5),
-            rotation = Rotation(yaw, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
+        val initial = resting(Vec3d(from.x + 0.5, launchFeet, from.z + 0.5), yaw)
         val program = SegmentFollowerProgram(
             nodes = listOf(from, to).map { it.center() },
             sprint = solution.sprint,

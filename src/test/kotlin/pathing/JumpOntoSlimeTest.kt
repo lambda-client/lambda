@@ -2,7 +2,6 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.physics.MovementSimulationInput
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -32,13 +31,7 @@ class JumpOntoSlimeTest {
         val sim = MovementSimulator(
             profile = PROFILE,
             environment = environment,
-            initialState = MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(0.5, 100.0, 0.5),
-                rotation = Rotation(0.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
+            initialState = resting(Vec3d(0.5, 100.0, 0.5)),
         )
         var reflected = false
         repeat(16) { frame ->

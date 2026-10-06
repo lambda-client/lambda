@@ -2,7 +2,6 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
@@ -30,8 +29,7 @@ internal class Frontier(
 	private val config: MotionConstraints,
 	private val searchConfig: SearchConfig,
 	private var routeIndex: Map<Stance, Int>,
-	private val incumbentScore: () -> Int?,
-	private val canReach: (ValueAnchor) -> Boolean,
+	private val window: Int,
 ) {
 	class OpenEntry(
 		val order: Double,
@@ -69,17 +67,50 @@ internal class Frontier(
 	val parkedSize: Int get() = parked.size
 	val openEntries: List<OpenEntry> get() = open.toList()
 
-	fun bestLiveEntryDeeperThan(floor: Int): OpenEntry? {
-		var best: OpenEntry? = null
-		for (entry in open) {
-			if (entry.anchor.elapsed <= floor) continue
-			if (best == null || best.order.compareTo(entry.order) > 0) best = entry
-		}
-		return best
-	}
+	fun bestLiveEntryDeeperThan(floor: Int): OpenEntry? =
+		open.asSequence().filter { it.anchor.elapsed > floor }.minByOrNull { it.order }
 
 	var deepestProgress = 0
 		private set
+
+	var root: ValueAnchor? = null
+		private set
+
+	var end = if (window > 0) window else Int.MAX_VALUE
+		private set
+
+	fun canReach(anchor: ValueAnchor): Boolean = root?.let { anchor.descendsFrom(it) } ?: true
+
+	fun follow(publications: Publications) {
+		val cursor = publications.cursor() ?: return
+		publications.expireUnadopted()
+		val running = publications.running ?: return
+		val executing = cursor.coerceAtMost(running.brake.elapsed)
+		if (executing > running.anchor.elapsed) {
+			if (root !== running.brake) reRoot(running.brake)
+			return
+		}
+		val reached = running.anchor.ancestorAtOrBefore(executing) ?: return
+		val current = root
+		if (current == null || (reached !== current && reached.descendsFrom(current))) reRoot(reached)
+	}
+
+	fun reRoot(anchor: ValueAnchor) {
+		root = anchor
+		retainDescendants(anchor)
+		reopen(anchor)
+		if (window > 0) end = anchor.elapsed + window
+		repartition(anchor, end)
+	}
+
+	fun extend(): Boolean {
+		if (window <= 0 || parked.isEmpty()) return false
+		val root = root ?: return false
+		val before = open.size
+		end += window
+		repartition(root, end)
+		return open.size > before
+	}
 
 	fun poll(): OpenEntry? = open.poll()
 
@@ -93,25 +124,23 @@ internal class Frontier(
 		reoffer(anchor)
 	}
 
-	private fun orderGuide(anchor: ValueAnchor): Double =
-		field.guide(anchor.stance, SpeedClass.of(anchor.speed))
-
 	fun reoffer(anchor: ValueAnchor) {
-		val guide = orderGuide(anchor).takeIf { it.isFinite() } ?: return
+		val guide = field.guideFor(anchor).takeIf { it.isFinite() } ?: return
 		open += entryFor(anchor, guide)
 	}
 
-	fun retainDescendants(root: ValueAnchor) {
+	private fun retainDescendants(root: ValueAnchor) {
 		val retained = open.filterTo(ArrayList()) { it.anchor.descendsFrom(root) }
 		open.clear()
 		open.addAll(retained)
 		blocked.retainAll { it.anchor.descendsFrom(root) }
-		buckets.clear()
 	}
 
-	fun retainLineage(root: ValueAnchor) {
-		retainDescendants(root)
-		parked.retainAll { it.anchor.descendsFrom(root) }
+	fun clear() {
+		open.clear()
+		parked.clear()
+		blocked.clear()
+		buckets.clear()
 	}
 
 	fun dropDescendants(root: ValueAnchor) {
@@ -141,7 +170,7 @@ internal class Frontier(
 		val entries = open.toList()
 		open.clear()
 		entries.forEach { entry ->
-			val guide = orderGuide(entry.anchor)
+			val guide = field.guideFor(entry.anchor)
 			if (guide.isFinite()) open += entryFor(entry.anchor, guide, entry.sequence)
 		}
 		rebuildBeamBuckets()
@@ -158,7 +187,7 @@ internal class Frontier(
 		woken.keys.forEach { reopen(it) }
 	}
 
-	fun repartition(root: ValueAnchor, horizonEnd: Int) {
+	private fun repartition(root: ValueAnchor, horizonEnd: Int) {
 		val surviving = parked.filter { it.anchor.descendsFrom(root) }
 		parked.clear()
 		surviving.forEach { entry ->
@@ -167,8 +196,8 @@ internal class Frontier(
 		rebuildBeamBuckets()
 	}
 
-	fun admit(anchor: ValueAnchor) {
-		val guide = orderGuide(anchor)
+	fun admit(anchor: ValueAnchor, incumbentScore: Int?) {
+		val guide = field.guideFor(anchor)
 			.takeIf { it.isFinite() }
 			?: if (anchor.parent == null) field.lowerBound(anchor.stance) else return
 		deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
@@ -187,17 +216,15 @@ internal class Frontier(
 		bucket.removeAll { anchor.preferredForBeamOver(it) }
 		beamMerged += before - bucket.size
 		if (bucket.size >= searchConfig.frontierPerKey) {
-			val worst = bucket.maxByOrNull { it.elapsed } ?: return
+			val worst = bucket.maxBy { it.elapsed }
 			beamMerged++
 			if (worst.elapsed <= anchor.elapsed) return
 			bucket.remove(worst)
 		}
 		bucket += anchor
 
-		incumbentScore()?.let {
-			val bound = anchor.elapsed + guide +
-					Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
-			if (bound >= it) return
+		incumbentScore?.let {
+			if (anchor.arrivalEstimate(guide) >= it) return
 		}
 
 		open += entryFor(anchor, guide)

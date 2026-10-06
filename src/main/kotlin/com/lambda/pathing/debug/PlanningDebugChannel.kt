@@ -1,18 +1,22 @@
 package com.lambda.pathing.debug
 
+import com.lambda.Lambda.LOG
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.CandidatePath
+import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchTreeView
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.world.CoarseVoxelView
 import net.minecraft.util.math.Vec3d
 
-object PlanningDebugChannel {
+object PlanningDebugChannel : SearchProbe {
 	class Attempt(val points: List<Vec3d>, val certified: Boolean)
 
 	@Volatile
@@ -62,7 +66,11 @@ object PlanningDebugChannel {
 	var candidateLines: List<CandidatePath> = emptyList()
 		private set
 
-	fun publishCandidates(lines: List<CandidatePath>) {
+	override val candidatesEnabled: Boolean get() = isActive
+
+	override val treeEnabled: Boolean get() = isActive && treeWanted
+
+	override fun candidates(lines: List<CandidatePath>) {
 		if (isActive) candidateLines = lines
 	}
 
@@ -105,12 +113,26 @@ object PlanningDebugChannel {
 		lastExhaustionLedger = ledger
 	}
 
-	fun publishTree(view: SearchTreeView) {
+	override fun tree(view: SearchTreeView) {
 		if (isActive) tree = view
 	}
 
-	fun publishStats(view: SearchStats) {
+	override fun stats(view: SearchStats) {
 		if (isActive) stats = view
+	}
+
+	override fun blocked(frame: Int, section: PathingSection, capturable: Boolean, stance: Stance, movement: MovementId) {
+		if (verbose) LOG.info(
+			"[blocked] section ({}, {}, {}) capturable={} frame={} anchor={} action={}",
+			section.x, section.y, section.z, capturable, frame, stance, movement,
+		)
+	}
+
+	override fun sync(sections: Int, mutations: Int, chunks: Int, routeAffected: Boolean, extending: Boolean) {
+		if (verbose) LOG.info(
+			"[sync] sections={} mutations={} chunks={} routeAffected={} extending={}",
+			sections, mutations, chunks, routeAffected, extending,
+		)
 	}
 
 	@Volatile
@@ -222,7 +244,7 @@ object PlanningDebugChannel {
 		if (isActive) coarseRoute = route
 	}
 
-	fun publishAttempt(rollout: TrajectoryRollout, certified: Boolean) {
+	override fun attempt(rollout: TrajectoryRollout, certified: Boolean, diagnostic: TrajectoryDiagnostic?) {
 		if (!isActive) return
 		val points = ArrayList<Vec3d>(rollout.frames.size / DECIMATION + 2)
 		points += rollout.initialState.position
@@ -256,6 +278,8 @@ object PlanningDebugChannel {
 		tree = null
 		stats = null
 	}
+
+	private val verbose = java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")
 
 	private const val MAX_ATTEMPTS = 32
 

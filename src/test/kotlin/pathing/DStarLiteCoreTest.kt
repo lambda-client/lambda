@@ -155,7 +155,7 @@ class DStarLiteCoreTest {
         planner.computeShortestPath()
         val repairedPath = planner.path()
 
-        assertTrue(sync.nodesChecked > 0)
+        assertTrue(sync)
         assertTrue(blockedNode !in repairedPath)
         assertEquals(start, repairedPath.getLong(0))
         assertEquals(goal, repairedPath.getLong(repairedPath.size - 1))
@@ -209,8 +209,7 @@ class DStarLiteCoreTest {
         val sync = planner.synchronizeAffected(Nodes.of(start))
         planner.computeShortestPath()
 
-        assertEquals(1, sync.nodesChecked)
-        assertEquals(1, sync.edgesAdded)
+        assertTrue(sync)
         assertEquals(Nodes.of(start, goal), planner.path())
     }
 
@@ -287,7 +286,7 @@ class DStarLiteCoreTest {
         val sync = planner.synchronizeAffected(affected(node(100, 0, 100), N6))
         planner.computeShortestPath()
 
-        assertEquals(0, sync.nodesChecked)
+        assertFalse(sync)
         assertEquals(beforeKm, planner.km)
         assertEquals(path, planner.path())
     }

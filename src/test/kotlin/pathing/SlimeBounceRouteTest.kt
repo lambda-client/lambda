@@ -9,7 +9,6 @@
 
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
@@ -18,7 +17,6 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.math.BlockPos
@@ -354,13 +352,7 @@ class SlimeBounceRouteTest {
         // Feet sit on the real surfaces: a carpeted start or goal is 0.9375 below its stance.
         val startFeet = start.y + environment.surfaceOffset(start.x, start.y - 1, start.z)
         val goalFeet = goal.y + environment.surfaceOffset(goal.x, goal.y - 1, goal.z)
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(start.x + 0.5, startFeet, start.z + 0.5),
-            rotation = Rotation(0.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
+        val initial = resting(Vec3d(start.x + 0.5, startFeet, start.z + 0.5))
         val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
             publish = { _, _ -> },

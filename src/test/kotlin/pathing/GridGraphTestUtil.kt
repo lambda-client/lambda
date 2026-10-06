@@ -19,7 +19,7 @@ package pathing
 
 import com.lambda.pathing.coarse.PackedStance
 import com.lambda.pathing.coarse.SpeedClass
-import com.lambda.pathing.graph.EdgeSink
+import com.lambda.pathing.graph.EdgeList
 import com.lambda.pathing.graph.LongDStarLite
 import com.lambda.pathing.graph.LongLazyGraph
 import it.unimi.dsi.fastutil.longs.LongArrayList
@@ -112,10 +112,12 @@ object GridGraphTestUtil {
     fun longs(vararg nodes: Long): List<Long> = nodes.toList()
 
     /** Adapts a map-shaped provider to the sink shape, preserving iteration order. */
-    fun EdgeSink.addAll(edges: Map<Long, Double>) {
+    fun EdgeList.addAll(edges: Map<Long, Double>) {
         for ((node, cost) in edges) add(node, cost)
     }
 }
 
 /** The greedy descent as a bare node list; the production planner consumes [LongDStarLite.routeCandidate]. */
 fun LongDStarLite.path(): LongArrayList = routeCandidate()?.nodes ?: LongArrayList()
+
+fun EdgeList.toMap(): Map<Long, Double> = (0 until size).associate { node(it) to cost(it) }

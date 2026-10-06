@@ -47,7 +47,7 @@ class TrajectoryRolloutTest {
         }
         assertEquals(observed, rollout.frames)
         assertEquals(3, rollout.frames.size)
-        assertEquals(2, rollout.certifiedThrough)
+        assertEquals(2, rollout.frames.lastIndex)
         assertTrue(rollout.completed)
     }
 
@@ -76,7 +76,7 @@ class TrajectoryRolloutTest {
         assertTrue(rollout.completed)
         assertEquals(directStates, rollout.frames.map { it.state })
         assertEquals(directStates.last(), rollout.finalState)
-        assertEquals(tape.frameCount - 1, rollout.certifiedThrough)
+        assertEquals(tape.frameCount - 1, rollout.frames.lastIndex)
     }
 
     @Test
@@ -121,7 +121,7 @@ class TrajectoryRolloutTest {
         assertIs<SimulationSnapshotOutOfBoundsException>(rejected.failure)
         assertTrue(rollout.frames.isEmpty())
         assertEquals(initial, rollout.finalState)
-        assertEquals(-1, rollout.certifiedThrough)
+        assertEquals(-1, rollout.frames.lastIndex)
     }
 
     @Test

@@ -41,7 +41,6 @@ sealed interface ExecutionObservationResult {
 
 class TrajectoryExecutionCursor(
 	val plan: TrajectoryPlan,
-	activePhysicsProfile: PlayerPhysicsProfile,
 	startFrame: Int = 0,
 ) {
 	var nextFrame: Int = startFrame
@@ -49,13 +48,10 @@ class TrajectoryExecutionCursor(
 
 	private val poseHeightDelta = plan.physicsProfile.height - plan.physicsProfile.crouchHeight
 
-	private var awaitingObservation = false
+	var awaitingObservation = false
+		private set
 	private var poseLagFrames = 0
-	private var rejection: ExecutionDeviation? = if (!activePhysicsProfile.isCompatibleWith(plan.physicsProfile)) {
-		ExecutionDeviation.PhysicsProfile(plan.physicsProfile, activePhysicsProfile)
-	} else {
-		null
-	}
+	private var rejection: ExecutionDeviation? = null
 
 	init {
 		require(startFrame in 0..plan.tape.frameCount) { "Cannot resume outside the tape" }

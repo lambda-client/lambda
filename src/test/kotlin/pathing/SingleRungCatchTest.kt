@@ -20,7 +20,6 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -95,7 +94,7 @@ class SingleRungCatchTest {
         val simulator = MovementSimulator(PROFILE, environment, initial)
         for (input in path.plan.tape.asList()) simulator.tickMovement(input)
         val terminal = simulator.state.position
-        assertTrue(simulator.state.onGround && simulator.state.velocity.horizontalLength() <= MotionConstraints().stoppedSpeed)
+        assertTrue(simulator.state.onGround && simulator.state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED)
         println("[single-rung] start=$position certified=${path.plan.tape.frameCount}")
         assertTrue(terminal.y > 70.5 && terminal.z < -3.5, "the tape must end on the deck, ended at $terminal")
     }
@@ -104,7 +103,7 @@ class SingleRungCatchTest {
         /** A vanilla ladder hung on the -z face of its cell: a 3/16 plank the body collides with. */
         val RUNG = SnapshotBlockPhysics(
             collisionShape = VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 1.0, 0.1875),
-            coarseVoxel = CoarseVoxel.of(Medium.CLIMBABLE),
+            coarseVoxel = CoarseVoxel.CLIMBABLE,
         )
     }
 }

@@ -132,7 +132,7 @@ internal object ProbeScenarios {
             started = System.currentTimeMillis(),
             clock = clock,
             parallelism = parallelism,
-            onExhaustion = { exhaustions += it },
+            onConcluded = { exhaustions += it },
             searchConfig = SearchConfig.horizon().copy(maxTemperature = maxTemperature, frontierPerKey = frontierPerKey),
             probe = probe,
         )
@@ -168,3 +168,22 @@ internal object ProbeScenarios {
         },
     )
 }
+
+internal fun resting(position: Vec3d, yaw: Double = 0.0): MovementSimulationState = MovementSimulationState.synthetic(
+    profile = ProbeScenarios.PROFILE,
+    position = position,
+    rotation = Rotation(yaw, 0.0),
+    velocity = Vec3d(0.0, -0.0784, 0.0),
+    onGround = true,
+)
+
+internal fun walkFrom(
+    route: CoarseRoutePlan,
+    planner: CoarsePlanner,
+    start: MovementSimulationState,
+    environment: SnapshotSimulationEnvironment,
+): PathPlanResult = walkHorizon(
+    route, planner, start, ProbeScenarios.PROFILE, environment, MotionConstraints(),
+    publish = { _, _ -> },
+    started = System.currentTimeMillis(),
+)

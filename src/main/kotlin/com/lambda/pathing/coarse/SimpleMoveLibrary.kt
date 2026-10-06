@@ -1,6 +1,5 @@
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.families.MovementCatalog
@@ -82,11 +81,6 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 				view.voxel(stance.x, stance.y, stance.z).centerPassable &&
 				view.voxel(stance.x, stance.y + 1, stance.z).centerPassable
 		return stands || catalog.movements.any { it.occupies(view, stance) }
-	}
-
-	fun edgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> {
-		if (!isStance(view, origin)) return emptyList()
-		return templates(view).mapNotNull { it.edge(view, origin) }
 	}
 
 	fun templates(view: CoarseVoxelView): List<MotionTemplate> = if (view.mayBounce()) templates else templatesWithoutBounces

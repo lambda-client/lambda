@@ -63,13 +63,7 @@ data class CoarseVoxel(
 		val FULL_BLOCK = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = 1.0)
 		val UNKNOWN = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, intrusionHeight = UNKNOWN_INTRUSION, medium = Medium.UNKNOWN)
 		val HAZARD = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.UNKNOWN)
-
-		fun of(medium: Medium, passable: Boolean = true) = CoarseVoxel(
-			fullyPassable = passable,
-			centerPassable = passable,
-			standingSurface = null,
-			medium = medium,
-		)
+		val CLIMBABLE = CoarseVoxel(fullyPassable = true, centerPassable = true, standingSurface = null, medium = Medium.CLIMBABLE)
 	}
 }
 

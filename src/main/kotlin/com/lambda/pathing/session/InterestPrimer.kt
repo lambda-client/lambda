@@ -56,7 +56,7 @@ internal object InterestPrimer {
 	private const val ROUTE_INTEREST_Y_BLOCKS = 8
 }
 
-internal fun PathingWorld.interestAround(x: Int, y: Int, z: Int, horizontal: Int, vertical: Int, tier: InterestTier) =
+private fun PathingWorld.interestAround(x: Int, y: Int, z: Int, horizontal: Int, vertical: Int, tier: InterestTier) =
 	interestBlocks(x - horizontal, y - vertical, z - horizontal, x + horizontal, y + vertical, z + horizontal, tier)
 
 internal fun PathingWorld.interestAround(terminal: Stance, tier: InterestTier) =

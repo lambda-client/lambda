@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.rollout.RolloutVerdict
@@ -17,13 +18,14 @@ internal class GatedRollout(
 	val rollout: TrajectoryRollout,
 	val stopFrame: Int?,
 	val failed: Boolean,
+	val diagnostic: TrajectoryDiagnostic?,
 )
 
 internal class RolloutGate(
 	private val profile: PlayerPhysicsProfile,
 	private val environment: SnapshotSimulationEnvironment,
 	private val config: MotionConstraints,
-	private val goalPoint: () -> HorizontalPoint,
+	private val route: RouteState,
 ) {
 	fun run(
 		from: MovementSimulationState,
@@ -31,9 +33,9 @@ internal class RolloutGate(
 		program: ControlProgram,
 		frameCount: Int,
 	): GatedRollout {
-		val evaluator = RolloutEvaluator(from, points, goalPoint(), config, climbing = { environment.climbableAt(it) })
+		val evaluator = RolloutEvaluator(from, points, route.goalPoint, config, climbing = { environment.climbableAt(it) })
 		var stopFrame: Int? = null
-		var failed = false
+		var failure: TrajectoryDiagnostic? = null
 		val rollout = TrajectoryRolloutEngine.rollout(
 			initialState = from,
 			profile = profile,
@@ -46,11 +48,12 @@ internal class RolloutGate(
 					stopFrame = verdict.frame; true
 				}
 				is RolloutVerdict.Failed -> {
-					failed = true; true
+					failure = verdict.diagnostic; true
 				}
 				is RolloutVerdict.Continue -> false
 			}
 		}
-		return GatedRollout(rollout, stopFrame, failed)
+		val diagnostic = if (stopFrame != null) null else failure ?: evaluator.terminalDiagnostic(rollout)
+		return GatedRollout(rollout, stopFrame, failure != null, diagnostic)
 	}
 }

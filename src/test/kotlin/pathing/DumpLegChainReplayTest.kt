@@ -98,7 +98,7 @@ class DumpLegChainReplayTest {
             route, first.planner, initial, loaded.profile, environment, loaded.searchConfig,
             execution = executor, publish = { path, _ -> lastPublished = path; executor.offer(path) },
             started = System.currentTimeMillis(), clock = clock,
-            finalGoal = (legGoals.lastOrNull() ?: firstGoal), field = field, onExhaustion = { exhaustions += it },
+            finalGoal = (legGoals.lastOrNull() ?: firstGoal), field = field, onConcluded = { exhaustions += it },
             legs = chain, probe = probe,
         )
         perStance.entries.sortedByDescending { it.value.values.sum() }.take(14).forEach { (stance, hist) ->
@@ -184,7 +184,7 @@ class DumpLegChainReplayTest {
             is PathPlanResult.Failed -> "FAILED ${result.reason}"
             else -> result::class.simpleName ?: "?"
         }
-        println("[legs-replay] $file tempo=$tempo switches=${chain.switches} ledger=${chain.ledger}")
+        println("[legs-replay] $file tempo=$tempo ledger=${chain.ledger}")
         println("[legs-replay] $detail")
         println("[legs-replay] last exhaustion: ${exhaustions.lastOrNull()}")
     }

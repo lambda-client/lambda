@@ -59,7 +59,6 @@ data class MovementSimulationState(
 			onGround: Boolean = true,
 			isSprinting: Boolean = false,
 			isSneaking: Boolean = false,
-			jumpingCooldown: Int = 0,
 		): MovementSimulationState {
 			val halfWidth = profile.width * 0.5
 			return MovementSimulationState(
@@ -74,7 +73,7 @@ data class MovementSimulationState(
 				isJumping = false,
 				isSprinting = isSprinting,
 				isSneaking = isSneaking,
-				jumpingCooldown = jumpingCooldown,
+				jumpingCooldown = 0,
 				velocityAffectingPos = (position + DOWN * Vanilla.VELOCITY_AFFECTING_POS_OFFSET.toDouble()).flooredBlockPos,
 				horizontalCollision = false,
 				collidedSoftly = false,

@@ -327,7 +327,7 @@ class MovementCatalogTest {
         }
 
         fun climbable(x: Int, y: Int, z: Int) {
-            cells[VoxelPos(x, y, z)] = CoarseVoxel.of(Medium.CLIMBABLE)
+            cells[VoxelPos(x, y, z)] = CoarseVoxel.CLIMBABLE
         }
 
         override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel =

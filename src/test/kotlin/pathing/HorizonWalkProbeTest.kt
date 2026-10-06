@@ -180,7 +180,7 @@ class HorizonWalkProbeTest {
             walkedTo = ((millis * 1_000_000L) / 50_000_000L).toInt()
 
             val last = path.plan.frames.last().state
-            check(last.onGround && last.velocity.horizontalLength() <= config.stoppedSpeed) {
+            check(last.onGround && last.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED) {
                 "tape published at $millis ms does not end stopped: " +
                     "ground=${last.onGround} speed=${last.velocity.horizontalLength()}"
             }

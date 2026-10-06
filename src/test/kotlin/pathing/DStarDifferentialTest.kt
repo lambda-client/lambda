@@ -222,13 +222,10 @@ class DStarDifferentialTest {
                 if (cell == pair.goal || cell == pair.reference.start) return@repeat
                 if (!pair.blocked.remove(cell)) pair.blocked += cell
                 val affected = affectedNodes(cell, pair.connectivity)
-                // The diff counts are visiting-order dependent for the same reason the
-                // adjacency is (see assertLabelsEqual); only "did anything change" is stable.
                 val a = pair.reference.synchronizeAffected(affected)
                 val b = pair.packed.synchronizeAffected(LongArrayList(affected))
                 assertEquals(
-                    a.edgesAdded + a.edgesRemoved + a.edgesChanged > 0,
-                    b.edgesAdded + b.edgesRemoved + b.edgesChanged > 0,
+                    a.edgesAdded + a.edgesRemoved + a.edgesChanged > 0, b,
                     "synchronisation changed anything $context",
                 )
 

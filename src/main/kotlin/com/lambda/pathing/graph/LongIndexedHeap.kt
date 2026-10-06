@@ -17,10 +17,7 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 		}
 		ensureCapacity(count + 1)
 		val newIndex = count++
-		nodes[newIndex] = node
-		k1[newIndex] = first
-		k2[newIndex] = second
-		index.put(node, newIndex)
+		place(newIndex, node, first, second)
 		siftUp(newIndex)
 	}
 
@@ -67,23 +64,19 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 	}
 
 	private fun removeAt(position: Int) {
-		val lastIndex = count - 1
-		if (position == lastIndex) {
-			count--
-			return
-		}
-		val movedNode = nodes[lastIndex]
-		val movedFirst = k1[lastIndex]
-		val movedSecond = k2[lastIndex]
-		count--
-		nodes[position] = movedNode
-		k1[position] = movedFirst
-		k2[position] = movedSecond
-		index.put(movedNode, position)
-
+		val lastIndex = --count
+		if (position == lastIndex) return
+		place(position, nodes[lastIndex], k1[lastIndex], k2[lastIndex])
 		val parent = (position - 1) ushr 1
-		if (position > 0 && compareKeys(movedFirst, movedSecond, k1[parent], k2[parent]) < 0) siftUp(position)
+		if (position > 0 && compareKeys(k1[position], k2[position], k1[parent], k2[parent]) < 0) siftUp(position)
 		else siftDown(position)
+	}
+
+	private fun place(position: Int, node: Long, first: Double, second: Double) {
+		nodes[position] = node
+		k1[position] = first
+		k2[position] = second
+		index.put(node, position)
 	}
 
 	private fun siftUp(start: Int) {
@@ -94,16 +87,10 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 		while (position > 0) {
 			val parent = (position - 1) ushr 1
 			if (compareKeys(first, second, k1[parent], k2[parent]) >= 0) break
-			nodes[position] = nodes[parent]
-			k1[position] = k1[parent]
-			k2[position] = k2[parent]
-			index.put(nodes[position], position)
+			place(position, nodes[parent], k1[parent], k2[parent])
 			position = parent
 		}
-		nodes[position] = node
-		k1[position] = first
-		k2[position] = second
-		index.put(node, position)
+		place(position, node, first, second)
 	}
 
 	private fun siftDown(start: Int) {
@@ -120,16 +107,10 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 				child = right
 			}
 			if (compareKeys(first, second, k1[child], k2[child]) <= 0) break
-			nodes[position] = nodes[child]
-			k1[position] = k1[child]
-			k2[position] = k2[child]
-			index.put(nodes[position], position)
+			place(position, nodes[child], k1[child], k2[child])
 			position = child
 		}
-		nodes[position] = node
-		k1[position] = first
-		k2[position] = second
-		index.put(node, position)
+		place(position, node, first, second)
 	}
 
 	companion object {

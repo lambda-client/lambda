@@ -300,7 +300,7 @@ class HorizonBaselineTest {
      */
     private fun stalled(frames: List<SimulatedTrajectoryFrame>): Int {
         if (frames.isEmpty()) return 0
-        val stopped = MotionConstraints().stoppedSpeed
+        val stopped = MotionConstraints.STOPPED_SPEED
         val still = frames.map { it.state.velocity.horizontalLength() <= stopped }
         var total = 0
         var index = 0

@@ -14,8 +14,9 @@ data class SimulationSnapshotBounds(
 		require(minX <= maxX && minY <= maxY && minZ <= maxZ) { "Invalid snapshot bounds: $this" }
 	}
 
-	operator fun contains(pos: BlockPos): Boolean =
-		pos.x in minX..maxX && pos.y in minY..maxY && pos.z in minZ..maxZ
+	operator fun contains(pos: BlockPos): Boolean = contains(pos.x, pos.y, pos.z)
+
+	fun contains(x: Int, y: Int, z: Int): Boolean = x in minX..maxX && y in minY..maxY && z in minZ..maxZ
 
 	val simulableStanceY: IntRange get() = (minY + FLOOR_REACH)..(maxY - CEILING_REACH)
 

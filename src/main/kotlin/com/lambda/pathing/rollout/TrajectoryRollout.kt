@@ -32,13 +32,8 @@ data class TrajectoryRollout(
 	val frames: List<SimulatedTrajectoryFrame>,
 	val termination: TrajectoryRolloutTermination,
 ) {
-	val certifiedThrough: Int get() = frames.lastIndex
 	val finalState: MovementSimulationState get() = frames.lastOrNull()?.state ?: initialState
 	val completed: Boolean get() = termination === TrajectoryRolloutTermination.Completed
-}
-
-fun interface RolloutObserver {
-	fun onFrame(frame: SimulatedTrajectoryFrame): Boolean
 }
 
 object TrajectoryRolloutEngine {
@@ -48,7 +43,7 @@ object TrajectoryRolloutEngine {
 		environment: SimulationEnvironment,
 		program: ControlProgram,
 		frameCount: Int,
-		observer: RolloutObserver? = null,
+		observer: ((SimulatedTrajectoryFrame) -> Boolean)? = null,
 	): TrajectoryRollout {
 		require(frameCount >= 0) { "frameCount must be non-negative" }
 
@@ -79,7 +74,7 @@ object TrajectoryRolloutEngine {
 			current = next
 			val simulated = SimulatedTrajectoryFrame(index = frame, input = input, state = next)
 			frames += simulated
-			if (observer?.onFrame(simulated) == true) break
+			if (observer?.invoke(simulated) == true) break
 		}
 
 		return TrajectoryRollout(

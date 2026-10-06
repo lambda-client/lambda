@@ -60,9 +60,8 @@ internal class RouteResolution(
 			if (world != null && grantRounds > 1 && System.nanoTime() - grantStarted > TERMINAL_GRANT_BUDGET_MILLIS * 1_000_000L) break
 			val terminal = route.goal
 			world?.let { awaitTerminalKnowledge(it, terminal, timings, cancelled) }
-			val revealed = state.grantChunksAround(terminal)
+			val revealed = timings.measure("sync") { state.revealAround(terminal) }
 			if (revealed.isEmpty() && world == null) break
-			timings.measure("sync") { state.revealChunks(revealed) }
 			sweep()
 			repair()
 			route = extract() ?: return report(timings, waitRounds, stalls, grantRounds)

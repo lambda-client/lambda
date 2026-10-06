@@ -78,8 +78,7 @@ internal class CoarseEdgeCache(
 		}
 	}
 
-	fun invalidateChunks(chunks: Iterable<PathingChunk>, arrivalsOnly: Boolean) {
-		val originRanges = chunks.map(moves::originColumnRanges)
+	fun invalidateChunks(chunks: Iterable<PathingChunk>, originRanges: List<Pair<IntRange, IntRange>>, arrivalsOnly: Boolean) {
 		if (originRanges.isEmpty()) return
 		val targetRanges = chunks.map(moves::targetColumnRanges)
 		removeColumns(outgoing.keys, originRanges, keep = if (arrivalsOnly) completeOrigins else null)
@@ -94,13 +93,17 @@ internal class CoarseEdgeCache(
 		while (iterator.hasNext()) {
 			val k = iterator.nextLong()
 			if (keep != null && keep.contains(k)) continue
-			val x = PackedStance.unpackX(k)
-			val z = PackedStance.unpackZ(k)
-			if (ranges.any { (xs, zs) -> x in xs && z in zs }) iterator.remove()
+			if (covers(ranges, k)) iterator.remove()
 		}
 	}
 
-	private companion object {
-		fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
+	companion object {
+		private fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
+
+		fun covers(ranges: List<Pair<IntRange, IntRange>>, key: Long): Boolean {
+			val x = PackedStance.unpackX(key)
+			val z = PackedStance.unpackZ(key)
+			return ranges.any { (xs, zs) -> x in xs && z in zs }
+		}
 	}
 }

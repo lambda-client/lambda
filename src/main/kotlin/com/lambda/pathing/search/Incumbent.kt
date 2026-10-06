@@ -2,10 +2,10 @@ package com.lambda.pathing.search
 
 internal class Incumbent(
 	private val publications: Publications,
-	private val horizon: Horizon,
-	private val publisher: Publisher,
+	private val frontier: Frontier,
 	private val config: SearchConfig,
 	private val execution: ExecutionFeedback,
+	private val budget: ExpansionBudget,
 ) {
 	var best: Solution? = null
 		private set
@@ -13,7 +13,7 @@ internal class Incumbent(
 	var fallback: Solution? = null
 		private set
 
-	private var expansionsSinceImprovement = 0
+	private var improvedAt = 0
 
 	var firstFrames = -1
 		private set
@@ -25,17 +25,13 @@ internal class Incumbent(
 
 	val hasSolution: Boolean get() = best != null || sealed != null
 
-	val stalled: Boolean get() = expansionsSinceImprovement >= STALL_EXPANSIONS
+	val stalled: Boolean get() = budget.count - improvedAt >= STALL_EXPANSIONS
 
 	val arrival: Solution?
 		get() = sealed?.let { published -> best?.takeIf { it.score <= published.score } ?: published }
 
-	fun tick() {
-		expansionsSinceImprovement++
-	}
-
 	fun offer(solution: Solution) {
-		if (!horizon.canReach(solution.anchor) || !publications.adoptable(solution.anchor)) return
+		if (!viable(solution)) return
 		val incumbent = best
 		val tip = publications.tip
 		val requiredGain = if (tip != null && !solution.anchor.descendsFrom(tip)) OFF_TAPE_GAIN_FRAMES else 0
@@ -48,7 +44,7 @@ internal class Incumbent(
 		if (firstFrames < 0) firstFrames = solution.frames
 		found++
 		best = solution
-		expansionsSinceImprovement = 0
+		improvedAt = budget.count
 	}
 
 	fun fallbackCovers(elapsed: Int): Boolean = fallback?.let { it.frames <= elapsed } == true
@@ -60,8 +56,11 @@ internal class Incumbent(
 
 	fun dropUnadoptable() {
 		val current = best ?: return
-		if (!horizon.canReach(current.anchor) || !publications.adoptable(current.anchor)) best = null
+		if (!viable(current)) best = null
 	}
+
+	private fun viable(solution: Solution): Boolean =
+		frontier.canReach(solution.anchor) && publications.adoptable(solution.anchor)
 
 	fun dropBeyond(cut: ValueAnchor) {
 		fun beyond(solution: Solution?) = solution != null && solution.anchor !== cut && solution.anchor.descendsFrom(cut)
@@ -74,7 +73,7 @@ internal class Incumbent(
 		best = null
 		sealed = null
 		fallback = null
-		expansionsSinceImprovement = 0
+		improvedAt = budget.count
 	}
 
 	fun ready(solution: Solution): Boolean {
@@ -88,13 +87,10 @@ internal class Incumbent(
 		return solution.frames - executing <= FINALIZE_ARRIVAL_FRAMES
 	}
 
-	fun publishFinal(solution: Solution): Boolean =
-		publisher.publishFinal(solution).also { if (it) sealed = solution }
+	val isSealed: Boolean get() = sealed != null
 
-	fun seal(solution: Solution): Solution? = when {
-		publishFinal(solution) -> null
-		sealed == null -> solution
-		else -> null
+	fun seal(solution: Solution) {
+		sealed = solution
 	}
 
 	private companion object {

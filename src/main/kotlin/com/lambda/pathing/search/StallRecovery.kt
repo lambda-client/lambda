@@ -4,7 +4,6 @@ internal class StallRecovery(
 	private val frontier: Frontier,
 	private val publications: Publications,
 	private val world: WorldLink?,
-	private val syncWorld: () -> Unit,
 ) {
 	private var blockedWaitMillis = 0L
 	private var fruitlessWakes = 0
@@ -14,25 +13,20 @@ internal class StallRecovery(
 		fruitlessWakes = 0
 	}
 
-	fun waitForBlocked(): Boolean {
+	fun mayAwaitBlocked(): Boolean {
 		if (frontier.hasParked || !frontier.hasBlocked || world == null) return false
 		if (blockedWaitMillis >= MAX_BLOCKED_WAIT_MILLIS || fruitlessWakes >= MAX_FRUITLESS_WAKES) return false
-		blockedWaitMillis += BLOCKED_WAIT_SLICE_MILLIS
-		if (world.await(BLOCKED_WAIT_SLICE_MILLIS)) {
-			syncWorld()
-			frontier.wakeBlocked()
-
-			if (frontier.hasOpen) fruitlessWakes = 0 else fruitlessWakes++
-		}
+		blockedWaitMillis += WAIT_SLICE_MILLIS
 		return true
 	}
 
-	fun waitForRouteExtension(): Boolean {
+	fun noteWake(productive: Boolean) {
+		if (productive) fruitlessWakes = 0 else fruitlessWakes++
+	}
+
+	fun mayAwaitRouteExtension(): Boolean {
 		if (world == null || blockedWaitMillis >= MAX_BLOCKED_WAIT_MILLIS) return false
-		blockedWaitMillis += BLOCKED_WAIT_SLICE_MILLIS
-		world.await(BLOCKED_WAIT_SLICE_MILLIS)
-		syncWorld()
-		frontier.wakeBlocked()
+		blockedWaitMillis += WAIT_SLICE_MILLIS
 		return true
 	}
 
@@ -57,10 +51,10 @@ internal class StallRecovery(
 		return seed
 	}
 
-	private companion object {
-		const val BLOCKED_WAIT_SLICE_MILLIS = 200L
-		const val MAX_BLOCKED_WAIT_MILLIS = 4_000L
-		const val MAX_FRUITLESS_WAKES = 2
-		const val MAX_TAPE_RESTARTS = 5
+	companion object {
+		const val WAIT_SLICE_MILLIS = 200L
+		private const val MAX_BLOCKED_WAIT_MILLIS = 4_000L
+		private const val MAX_FRUITLESS_WAKES = 2
+		private const val MAX_TAPE_RESTARTS = 5
 	}
 }

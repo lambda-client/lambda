@@ -12,6 +12,14 @@ import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.actions.control.PursuitTracker
+import com.lambda.pathing.actions.control.RunUpLaunchProgram
+import com.lambda.pathing.actions.control.SegmentFollowerProgram
+import com.lambda.pathing.launch.AirPlan
+import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.alongEdge
+import com.lambda.pathing.core.center
+import com.lambda.pathing.core.unitBetween
 
 object JumpMovement : Movement {
 	override val id = MovementId.JUMP
@@ -28,7 +36,7 @@ object JumpMovement : Movement {
 			.sortedByDescending { it.margin }
 
 		val standard = solutions.flatMap { solution ->
-			JumpLaunchDelays.launchDelays(context, solution).map { delay ->
+			JumpDecisions.launchDelays(context, solution).map { delay ->
 				TrajectoryDecision.Launch(context.edge.to, delay, solution)
 			}
 		}
@@ -50,11 +58,74 @@ object JumpMovement : Movement {
 		)
 	}
 
-	override fun program(context: ProgramContext): ControlProgram = JumpPrograms.program(context)
+	override fun program(context: ProgramContext): ControlProgram {
+		val decision = context.decision
+		if (decision is TrajectoryDecision.RunUpLaunch) {
+			val from = context.body.stance.center()
+			val to = decision.step.center().laterallyShifted(from, decision.solution.lateralOffset)
+			return RunUpLaunchProgram(
+				takeoff = from,
+				aim = to,
+				solution = decision.solution,
+				retreatAlong = decision.retreatAlong,
+				hopAlong = decision.hopAlong,
+				maxYawChange = context.constraints.maxYawDegreesPerFrame,
+			)
+		}
+		val launch = decision as TrajectoryDecision.Launch
+		val solution = launch.solution
+		val step = launch.step
+		val nodes = if (solution.lateralOffset != 0.0) {
+			val from = context.body.stance.center()
+			context.nodes.map { node ->
+				if (node.x == step.x + 0.5 && node.z == step.z + 0.5) {
+					node.laterallyShifted(from, solution.lateralOffset)
+				} else node
+			}
+		} else context.nodes
+		return SegmentFollowerProgram(
+			nodes = nodes,
+			sprint = solution.sprint,
+			lookAheadNodes = PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
+			launch = context.launch,
+			maxYawChange = context.constraints.maxYawDegreesPerFrame,
+			holdTicks = solution.heldForwardTicks,
+			airPlan = if (context.openLanding) null else AirPlan.toward(context.body.stance, step, solution, solution.lateralOffset),
+		)
+	}
 
-	override fun completed(context: CompletionContext): Boolean = JumpPrograms.completed(context)
+	private fun HorizontalPoint.laterallyShifted(
+		from: HorizontalPoint,
+		offset: Double,
+	): HorizontalPoint {
+		if (offset == 0.0) return this
+		val (unitX, unitZ) = unitBetween(from, this) ?: return this
+		return copy(x = x - unitZ * offset, z = z + unitX * offset)
+	}
 
-	override fun transitionFrames(decision: TrajectoryDecision): Int = JumpPrograms.transitionFrames(decision)
+	override fun completed(context: CompletionContext): Boolean {
+		val decision = context.decision
+		if (decision is TrajectoryDecision.RunUpLaunch) {
+			if (!context.airborne) return false
+			val from = context.body.stance.center()
+			val to = decision.step.center()
+			val along = alongEdge(from, to, context.observed.position.x, context.observed.position.z)
+			return along > decision.solution.launchOffset + POST_LAUNCH_MARGIN_BLOCKS
+		}
+		return context.launch?.hasFired == true && context.airborne
+	}
+
+	override fun transitionFrames(decision: TrajectoryDecision): Int {
+		val runUp = decision as? TrajectoryDecision.RunUpLaunch ?: return 0
+		val retreatFrames = (-runUp.retreatAlong).coerceAtLeast(0.0) * RETREAT_FRAMES_PER_BLOCK
+		return RUN_UP_TRANSITION_FRAMES + retreatFrames.toInt() + runUp.solution.airTicks
+	}
+
+	private const val RUN_UP_TRANSITION_FRAMES = 50
+
+	private const val RETREAT_FRAMES_PER_BLOCK = 10
+
+	private const val POST_LAUNCH_MARGIN_BLOCKS = 1.0
 
 	private const val COMFORTABLE_SPEED_SLACK = 0.08
 

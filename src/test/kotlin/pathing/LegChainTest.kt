@@ -3,7 +3,6 @@
  */
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.LegChain
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
@@ -11,7 +10,6 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.VirtualSearchClock
@@ -72,13 +70,7 @@ class LegChainTest {
         val exhaustions = ArrayList<SearchStats>()
         val result = walkHorizon(
             route, first.planner,
-            MovementSimulationState.synthetic(
-                profile = ProbeScenarios.PROFILE,
-                position = Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5),
-                rotation = Rotation(0.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
+            resting(Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5)),
             ProbeScenarios.PROFILE, environment, MotionConstraints(),
             execution = executor,
             publish = { path, _ -> executor.offer(path) },
@@ -86,14 +78,13 @@ class LegChainTest {
             clock = clock,
             finalGoal = goal,
             field = field,
-            onExhaustion = { exhaustions += it },
+            onConcluded = { exhaustions += it },
             legs = chain,
         )
 
         val path = (result as? PathPlanResult.Planned)?.path
             ?: error("the two-leg walk did not plan: ${exhaustions.lastOrNull()}")
         assertTrue(!path.partial, "the tape must end at the final goal")
-        assertEquals(1, chain.switches, "exactly one leg handoff")
         assertEquals(1, path.legTouches.size, "one waypoint touch on the tape")
 
         val touch = path.legTouches.single()
@@ -124,7 +115,7 @@ class LegChainTest {
             "the tape ends at $end, not at rest on the final goal",
         )
         println(
-            "[legs] frames=${frames.size} touch@${touch.frame} executed=${executor.executedFrames} adoptions=${executor.adoptions} switches=${chain.switches} ${path.movementProfile()} ${exhaustions.lastOrNull()}",
+            "[legs] frames=${frames.size} touch@${touch.frame} executed=${executor.executedFrames} adoptions=${executor.adoptions} ${path.movementProfile()} ${exhaustions.lastOrNull()}",
         )
     }
 }

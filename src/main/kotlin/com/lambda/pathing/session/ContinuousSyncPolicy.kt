@@ -25,7 +25,7 @@ internal class ContinuousSyncPolicy(
 	private val cancelled: () -> Boolean,
 	private val probe: SearchProbe,
 	private val onBatch: (WorldEventBatch) -> Unit,
-) : (CoarseRoutePlan) -> WorldSyncResult {
+) {
 	private var lastQuietExtension = 0L
 
 	private var syncNanos = 0L
@@ -34,7 +34,7 @@ internal class ContinuousSyncPolicy(
 
 	val ledger: String get() = "coarseSync=${syncNanos / 1_000_000L}ms[apply ${(syncNanos - resolveNanos) / 1_000_000L}, resolve ${resolveNanos / 1_000_000L} x$resolves]"
 
-	override fun invoke(current: CoarseRoutePlan): WorldSyncResult {
+	fun sync(current: CoarseRoutePlan): WorldSyncResult {
 		val batch = world.drainEvents()
 		if (batch.isEmpty) return quiet(current)
 		onBatch(batch)
@@ -42,7 +42,7 @@ internal class ContinuousSyncPolicy(
 	}
 
 	private fun quiet(current: CoarseRoutePlan): WorldSyncResult {
-		val more = timedSync { coarseState.continueSync(SYNC_SLICE_STANCES) }
+		val more = timedSync { coarseState.planner.continueSync(SYNC_SLICE_STANCES) }
 		if (more) return WorldSyncResult.Woken()
 		if (current.goal == coarseState.goal) return WorldSyncResult.Quiet
 		val now = System.currentTimeMillis()
@@ -90,7 +90,7 @@ internal class ContinuousSyncPolicy(
 
 	private fun resolve(): CoarseRoutePlan? {
 		val started = System.nanoTime()
-		return resolution.resolve(start, snapshotRevision, RESOLVE_SLICE_EXPANSIONS) { cancelled() }.also {
+		return resolution.resolve(start, snapshotRevision, RESOLVE_SLICE_EXPANSIONS, cancelled = cancelled).also {
 			resolves++
 			val elapsed = System.nanoTime() - started
 			resolveNanos += elapsed

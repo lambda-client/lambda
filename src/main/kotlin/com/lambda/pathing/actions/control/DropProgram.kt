@@ -1,20 +1,21 @@
 package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.actions.ControlProgram
+import com.lambda.pathing.actions.ProgramContext
+import com.lambda.pathing.actions.TrajectoryDecision
 
-import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
+import com.lambda.pathing.core.center
 import com.lambda.pathing.core.horizontalDistance
-import com.lambda.pathing.launch.LaunchSolution
+import com.lambda.pathing.core.interpolate
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 
-internal class DropProgram(
-	private val takeoff: HorizontalPoint,
-	private val aim: HorizontalPoint,
-	private val solution: LaunchSolution,
-	private val maxYawChange: Double,
-) : ControlProgram {
+internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramContext) : ControlProgram {
+	private val solution = decision.solution
+	private val takeoff = interpolate(context.body.stance.center(), decision.step.center(), solution.launchOffset)
+	private val aim = interpolate(context.body.stance.center(), decision.step.center(), solution.aimDistance)
+	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
 	private val flightLength = horizontalDistance(takeoff, aim)
 
 	private var airborne = false

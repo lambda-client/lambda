@@ -5,32 +5,20 @@ import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchSolution
 
-internal fun nominalLaunchFrame(context: DecisionContext, solution: LaunchSolution): Int {
-	val edge = context.edge
-	val from = edge.from.center()
-	val to = edge.to.center()
-	val body = context.body.state
-	val remaining = solution.launchOffset - alongEdge(from, to, body.position.x, body.position.z)
-	if (remaining <= 0.0) return 0
-	return BallisticProfile.VANILLA.groundRunUpTicks(
+internal fun nominalLaunchFrame(context: DecisionContext, solution: LaunchSolution): Int =
+	BallisticProfile.VANILLA.groundRunUpTicks(
 		entrySpeed = closingSpeed(context),
-		distance = remaining,
+		distance = solution.launchOffset - context.along(context.body.state.position.x, context.body.state.position.z),
 		sprint = solution.sprint,
 		maxTicks = MAX_LAUNCH_FRAME,
 	)
-}
 
 internal fun closingSpeed(context: DecisionContext): Double {
-	val edge = context.edge
-	val from = edge.from.center()
-	val to = edge.to.center()
-	val body = context.body.state
-	return alongEdge(
-		from, to,
-		from.x + body.velocity.x,
-		from.z + body.velocity.z,
-	).coerceAtLeast(0.0)
+	val velocity = context.body.state.velocity
+	return context.along(context.edge.from.x + 0.5 + velocity.x, context.edge.from.z + 0.5 + velocity.z).coerceAtLeast(0.0)
 }
+
+private fun DecisionContext.along(x: Double, z: Double): Double = alongEdge(edge.from.center(), edge.to.center(), x, z)
 
 internal fun reachableEntrySpeed(context: DecisionContext): Double =
 	maxOf(context.body.speed, BallisticProfile.VANILLA.cruiseSpeed(sprint = true))

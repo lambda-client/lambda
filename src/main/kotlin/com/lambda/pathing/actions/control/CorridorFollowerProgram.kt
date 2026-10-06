@@ -59,7 +59,7 @@ internal class CorridorFollowerProgram(
 
 		if (braking) {
 			val stoppedShort = observed.onGround &&
-					observed.velocity.horizontalLength() <= config.stoppedSpeed &&
+					observed.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED &&
 					hypot(
 						nodes.last().x - observed.position.x,
 						nodes.last().z - observed.position.z,

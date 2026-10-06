@@ -12,14 +12,14 @@ import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.streaming.WorldMutation
 import java.util.*
 
-class TrajectoryPlan private constructor(
+class TrajectoryPlan internal constructor(
 	val snapshotRevision: Long,
 	val physicsProfile: PlayerPhysicsProfile,
 	val initialState: MovementSimulationState,
 	frameDependencies: List<Set<VoxelPos>>,
 	val tape: InputTape,
 	frames: List<SimulatedTrajectoryFrame>,
-	val segments: List<PlanSegment> = emptyList(),
+	val segments: List<PlanSegment>,
 ) {
 	val frames: List<SimulatedTrajectoryFrame> = Collections.unmodifiableList(ArrayList(frames))
 	private val sectionReads = FrameDependencyIndex(frameDependencies, PathingSection::containing)
@@ -90,6 +90,8 @@ class TrajectoryPlan private constructor(
 		return chunkReads.between(nextFrame, untilFrame)
 	}
 
+	fun firstFrameReading(sections: Set<PathingSection>): Int? = sections.mapNotNull { sectionReads.first(it) }.minOrNull()
+
 	fun firstFrameReading(mutation: WorldMutation): Int? = when (mutation) {
 		is WorldMutation.Section -> sectionReads.first(mutation.section)
 		is WorldMutation.Chunk -> chunkReads.first(mutation.chunk)
@@ -97,19 +99,6 @@ class TrajectoryPlan private constructor(
 
 	companion object {
 		private const val REQUIRED_STABLE_STOP_FRAMES = 3
-		private const val TERMINAL_STOP_SPEED = MotionConstraints.DEFAULT_STOPPED_SPEED + 1.0E-9
-
-		fun fromWalkingSeed(
-			seed: MotionPlanResult.Success,
-			physicsProfile: PlayerPhysicsProfile,
-		): TrajectoryPlan = TrajectoryPlan(
-			snapshotRevision = seed.sourceRoute.snapshotRevision,
-			physicsProfile = physicsProfile,
-			initialState = seed.rollout.initialState,
-			frameDependencies = seed.frameDependencies,
-			tape = seed.tape,
-			frames = seed.rollout.frames,
-			segments = seed.planSegments,
-		)
+		private const val TERMINAL_STOP_SPEED = MotionConstraints.STOPPED_SPEED + 1.0E-9
 	}
 }

@@ -1,12 +1,9 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
-import com.lambda.pathing.rollout.TrajectoryRolloutTermination
-import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 
 import com.lambda.pathing.actions.InputTape
-import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -17,15 +14,13 @@ internal class Certifier(
 	private val profile: PlayerPhysicsProfile,
 	private val environment: SnapshotSimulationEnvironment,
 	private val cancelled: () -> Boolean,
+	private val route: RouteState,
+	private val attempts: AttemptAccumulator,
 ) {
 	private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
 	private var certifiedDependencies: List<Set<VoxelPos>> = emptyList()
 
-	fun certify(
-		solution: Solution,
-		route: CoarseRoutePlan,
-		attemptCount: Int,
-	): MotionPlanResult {
+	fun certify(solution: Solution): MotionPlanResult {
 		if (cancelled()) return MotionPlanResult.Cancelled
 		val inputs = solution.inputs
 		val tape = InputTape(inputs)
@@ -67,14 +62,20 @@ internal class Certifier(
 
 		if (cancelled()) return MotionPlanResult.Cancelled
 		return MotionPlanResult.Success(
-			sourceRoute = route,
-			tape = tape,
-			rollout = TrajectoryRollout(initialState, frames, TrajectoryRolloutTermination.Completed),
+			sourceRoute = route.plan,
+			plan = TrajectoryPlan(
+				snapshotRevision = route.plan.snapshotRevision,
+				physicsProfile = profile,
+				initialState = initialState,
+				frameDependencies = frameDependencies,
+				tape = tape,
+				frames = frames,
+				segments = solution.planSegments,
+			),
 			safeAnchorStance = solution.anchor.stance,
 			safeAnchorFrame = solution.anchor.elapsed,
-			frameDependencies = frameDependencies,
-			attemptCount = attemptCount,
-			planSegments = solution.planSegments,
+			attemptCount = attempts.count,
+			legTouches = route.touches.filter { it.frame <= solution.frames },
 		)
 	}
 }

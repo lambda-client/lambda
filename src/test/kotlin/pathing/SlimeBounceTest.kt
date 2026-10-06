@@ -352,7 +352,7 @@ class SlimeBounceTest {
         val aim = 7.0
 
         val solution = assertNotNull(
-            BounceSolver.solve(horizontalDistance = aim, drop = drop, rise = rise),
+            BounceSolver.solve(horizontalDistance = aim, contactDepth = drop.toDouble(), riseHeight = rise.toDouble()),
             "a seven-block bounce out of a five-deep pit must be solvable",
         )
         assertTrue(solution.speed > 0.0, "the bounce must need real speed, got ${solution.speed}")
@@ -423,7 +423,7 @@ class SlimeBounceTest {
             "ten blocks out and six down is beyond every jump and drop",
         )
         assertNotNull(
-            BounceSolver.solve(horizontalDistance = 10.0, drop = 8, rise = -6),
+            BounceSolver.solve(horizontalDistance = 10.0, contactDepth = 8.0, riseHeight = -6.0),
             "but a bounce off slime eight below covers it",
         )
 
@@ -431,8 +431,8 @@ class SlimeBounceTest {
         // property that makes a bounce a distinct primitive rather than a long jump.
         // Six blocks is inside the reach of both, which is what makes the two comparable at
         // all -- a distance only the deep one covers proves nothing about speed.
-        val shallow = assertNotNull(BounceSolver.solve(6.0, drop = 3, rise = -2))
-        val deep = assertNotNull(BounceSolver.solve(6.0, drop = 6, rise = -2))
+        val shallow = assertNotNull(BounceSolver.solve(6.0, contactDepth = 3.0, riseHeight = -2.0))
+        val deep = assertNotNull(BounceSolver.solve(6.0, contactDepth = 6.0, riseHeight = -2.0))
         assertTrue(
             deep.speed < shallow.speed,
             "a deeper fall must need less run-up for the same reach " +
@@ -474,7 +474,7 @@ class SlimeBounceTest {
                 edges.filter { it.movement == MovementId.BOUNCE }.map { "${it.to}" },
         )
         val solution = assertNotNull(bounce.bounce, "a bounce edge must carry its solved fall")
-        assertEquals(6, solution.drop, "the fall is to the slime floor")
+        assertEquals(6.0, solution.contactDepth, "the fall is to the slime floor")
         val rebound = solution.arc.heights.last() - solution.arc.heights.min()
         assertTrue(
             rebound > 2.0,

@@ -10,9 +10,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.VERTICAL_GOAL_TOLERANCE
-import com.lambda.pathing.rollout.evaluateDiagnostic
 import com.lambda.pathing.world.center
-import com.lambda.pathing.world.climbableAt
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -25,16 +23,30 @@ internal class Finisher(
 	private val config: MotionConstraints,
 	private val gate: RolloutGate,
 	private val attempts: AttemptAccumulator,
-	private val goalPoint: () -> HorizontalPoint,
+	private val route: RouteState,
 ) {
 	private var provenApproach: TerminalApproach? = null
+	private var sweepEpoch = 0
+	private var sweeps = 0
+
+	fun resetSweeps() {
+		sweepEpoch++
+		sweeps = 0
+	}
+
+	fun sweep(anchor: ValueAnchor): Solution? {
+		if (anchor.sweptEpoch == sweepEpoch || sweeps >= MAX_FINISH_SWEEPS) return null
+		anchor.sweptEpoch = sweepEpoch
+		sweeps++
+		return finishFrom(anchor)
+	}
 
 	fun finishFrom(anchor: ValueAnchor): Solution? {
 		val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
 		if (!field.reachesGoal(chain)) return null
 		val points = chain.map { it.center(environment) }
 		val leads: List<Double?> = if (chain.asSequence().zipWithNext().any { (from, to) -> to.y > from.y }) {
-			config.stepUpJumpLeadDistances
+			STEP_UP_JUMP_LEADS
 		} else {
 			listOf(null)
 		}
@@ -55,18 +67,18 @@ internal class Finisher(
 				collisions = anchor.collisionEvents + collisionEvents(anchor.state, frames),
 				switches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), frames),
 			)
-			if (approach == provenApproach) return Solution(anchor, frames, candidate.collisions)
+			if (approach == provenApproach) return Solution(anchor, frames)
 			if (best == null || candidate.beats(best)) best = candidate
 		}
 		val chosen = best ?: return null
 		provenApproach = chosen.approach
-		return Solution(anchor, chosen.frames, chosen.collisions)
+		return Solution(anchor, chosen.frames)
 	}
 
 	fun brakeNearGoal(anchor: ValueAnchor, radius: Double): Solution? {
 		val solution = brakeToStop(anchor) ?: return null
 		val resting = solution.tailFrames.last().state
-		val goal = goalPoint()
+		val goal = route.goalPoint
 		if (hypot(resting.position.x - goal.x, resting.position.z - goal.z) > radius) return null
 		if (abs(resting.position.y - goal.y) > VERTICAL_GOAL_TOLERANCE) return null
 		return solution
@@ -101,7 +113,7 @@ internal class Finisher(
 				it != null && state.position == it.position &&
 						state.velocity == it.velocity && state.onGround == it.onGround
 			}
-			stable = if (cycleClosed && state.velocity.horizontalLength() <= config.stoppedSpeed) stable + 1 else 0
+			stable = if (cycleClosed && state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED) stable + 1 else 0
 			twoBack = previous
 			previous = state
 			if (stable >= config.stableStopFrames && state.onGround) {
@@ -113,7 +125,7 @@ internal class Finisher(
 		val frames = gated.rollout.frames.take(stableEnd + 1)
 		val resting = stanceOf(frames.last().state)
 		if (!field.isStance(resting) || !field.isMapped(resting)) return null
-		return Solution(anchor, frames, anchor.collisionEvents + collisionEvents(anchor.state, frames))
+		return Solution(anchor, frames)
 	}
 
 	private fun terminalRun(
@@ -123,13 +135,13 @@ internal class Finisher(
 		approach: TerminalApproach,
 	): List<SimulatedTrajectoryFrame>? {
 		val gated = gate.run(anchor.state, points, CorridorFollowerProgram(chain, approach, config), config.maxFrames)
-		val goal = goalPoint()
-		val evaluation = evaluateDiagnostic(gated.rollout, points, goal, config, climbing = { field.view.climbableAt(it) })
-		attempts.record(gated.rollout, gated.stopFrame != null, goal, evaluation)
+		attempts.record(gated.rollout, gated.stopFrame != null, route.goalPoint, gated.diagnostic)
 		return gated.rollout.frames.takeIf { gated.stopFrame != null && !gated.failed }
 	}
 
 	private companion object {
+		const val MAX_FINISH_SWEEPS = 64
+		val STEP_UP_JUMP_LEADS = listOf(0.30, 0.55, 0.80, 1.05)
 		const val FINISH_CHAIN_LENGTH = 24
 
 		const val BRAKE_TAIL_FRAMES = 64

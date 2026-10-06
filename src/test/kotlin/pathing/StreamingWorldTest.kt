@@ -19,6 +19,7 @@ import com.lambda.pathing.core.PathingChunk
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import pathing.ProbeScenarios.moveLibrary
 
@@ -193,8 +194,8 @@ class StreamingWorldTest {
         val after = advanced.values.min()
         assertTrue(after < before, "the optimistic remainder must shrink: $before -> $after")
         firstAnchors.keys.filterNot { it in advanced }.forEach { retired ->
-            assertEquals(
-                Double.POSITIVE_INFINITY, walk.planner.optimisticEdgeCost(retired),
+            assertNull(
+                walk.planner.knownSuccessorsOf(retired)[walk.planner.goalStance],
                 "a retired anchor must not keep its optimistic edge",
             )
         }

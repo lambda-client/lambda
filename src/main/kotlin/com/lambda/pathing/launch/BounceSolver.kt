@@ -3,7 +3,6 @@ package com.lambda.pathing.launch
 import kotlin.math.abs
 
 data class BounceSolution(
-	val drop: Int,
 	val sprint: Boolean,
 	val holdForward: Boolean,
 	val jump: Boolean,
@@ -11,11 +10,12 @@ data class BounceSolution(
 	val speed: Double,
 	val speedSlack: Double,
 	val launchOffset: Double,
-	val contactDistance: Double,
 	val arc: ArcSample,
 	val contactDepth: Double,
 ) {
 	val airTicks: Int get() = arc.airTicks
+
+	val contactDistance: Double get() = arc.distances[arc.troughIndex()]
 }
 
 object BounceSolver {
@@ -23,14 +23,12 @@ object BounceSolver {
 
 	fun solve(
 		horizontalDistance: Double,
-		drop: Int,
-		rise: Int,
+		contactDepth: Double,
+		riseHeight: Double,
 		sprint: Boolean = true,
 		holdForward: Boolean = true,
 		jump: Boolean = false,
 		holdTicks: Int = Int.MAX_VALUE,
-		contactDepth: Double = drop.toDouble(),
-		riseHeight: Double = rise.toDouble(),
 		headroom: Double = Double.POSITIVE_INFINITY,
 		launchReach: Double = LAUNCH_OFFSET,
 	): BounceSolution? {
@@ -50,7 +48,6 @@ object BounceSolver {
 		val slack = (LANDING_WINDOW / 2.0) / slope
 
 		return BounceSolution(
-			drop = drop,
 			sprint = sprint,
 			holdForward = holdForward,
 			jump = jump,
@@ -58,7 +55,6 @@ object BounceSolver {
 			speed = speed,
 			speedSlack = minOf(slack, speed),
 			launchOffset = launchReach,
-			contactDistance = arc.distances[troughIndex(arc)],
 			arc = arc,
 			contactDepth = contactDepth,
 		)
@@ -66,7 +62,6 @@ object BounceSolver {
 
 	fun solveStanding(
 		horizontalDistance: Double,
-		drop: Int,
 		jump: Boolean,
 		sprint: Boolean,
 		contactDepth: Double,
@@ -105,7 +100,7 @@ object BounceSolver {
 			val arc = arcAt(hold) ?: continue
 			val error = abs(arc.distance - target)
 			if (error > LANDING_SUPPORT_REACH) continue
-			val penalty = contactPenalty(launchReach + arc.distances[troughIndex(arc)])
+			val penalty = contactPenalty(launchReach + arc.distances[arc.troughIndex()])
 			if (!penalty.isFinite()) continue
 			if (penalty < chosenPenalty || (penalty == chosenPenalty && error < chosenError)) {
 				chosenHold = hold
@@ -117,7 +112,6 @@ object BounceSolver {
 		val arc = chosenArc ?: return null
 
 		return BounceSolution(
-			drop = drop,
 			sprint = sprint,
 			holdForward = chosenHold > 0,
 			jump = jump,
@@ -125,7 +119,6 @@ object BounceSolver {
 			speed = 0.0,
 			speedSlack = STANDING_REST_SPEED,
 			launchOffset = launchReach,
-			contactDistance = arc.distances[troughIndex(arc)],
 			arc = arc,
 			contactDepth = contactDepth,
 		)
@@ -154,13 +147,13 @@ object BounceSolver {
 
 	const val STANDING_REST_SPEED = 0.02
 
-	private fun troughIndex(arc: ArcSample): Int {
-		var index = 0
-		for (i in arc.heights.indices) if (arc.heights[i] < arc.heights[index]) index = i
-		return index
-	}
-
 	private const val LANDING_WINDOW = 1.0
 
 	const val LAUNCH_OFFSET = 0.8
+}
+
+private fun ArcSample.troughIndex(): Int {
+	var index = 0
+	for (i in heights.indices) if (heights[i] < heights[index]) index = i
+	return index
 }

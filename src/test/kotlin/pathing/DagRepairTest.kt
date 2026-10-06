@@ -9,7 +9,6 @@
 
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.actions.MotionConstraints
@@ -19,7 +18,6 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.PathingChunk
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.search.WorldLink
@@ -73,13 +71,7 @@ class DagRepairTest {
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L))
 
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5),
-            rotation = Rotation(-90.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
+        val initial = resting(Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5), -90.0)
         val clock = VirtualSearchClock()
         var firstTape: List<com.lambda.pathing.physics.MovementSimulationInput>? = null
         var lastTape: List<com.lambda.pathing.physics.MovementSimulationInput>? = null
@@ -113,7 +105,7 @@ class DagRepairTest {
                         WorldSyncResult.Changed(planner.routePlan(1L), setOf(wallSection))
                     } else WorldSyncResult.Quiet
             },
-            onExhaustion = { exhaustion = it },
+            onConcluded = { exhaustion = it },
         )
 
         val planned = assertNotNull((outcome as? PathPlanResult.Planned)?.path, "no plan: $outcome")

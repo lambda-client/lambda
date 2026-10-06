@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.physics.MovementSimulationInput
@@ -18,8 +19,8 @@ sealed interface PlanSegment {
 
 	val endFrame: Int get() = startFrame + inputs.size
 
-	fun settledExit(stoppedSpeed: Double): Boolean =
-		exit.onGround && exit.velocity.horizontalLength() > stoppedSpeed
+	val settledExit: Boolean
+		get() = exit.onGround && exit.velocity.horizontalLength() > MotionConstraints.STOPPED_SPEED
 
 	class Move(
 		val decision: TrajectoryDecision,
@@ -40,3 +41,6 @@ sealed interface PlanSegment {
 		override val movement: MovementId get() = MovementId.WALK
 	}
 }
+
+internal fun List<PlanSegment>.repairFrame(firstAffectedFrame: Int, cursorFrame: Int, minLeadFrames: Int): Int? =
+	lastOrNull { it.exit.onGround && it.endFrame < firstAffectedFrame && it.endFrame >= cursorFrame + minLeadFrames }?.endFrame

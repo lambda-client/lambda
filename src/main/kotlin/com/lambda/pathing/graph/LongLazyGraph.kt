@@ -33,17 +33,12 @@ class LongLazyGraph(
 	fun knownSuccessors(node: Long): EdgeList = successorEdges.get(node) ?: EdgeList.EMPTY
 	fun knownPredecessors(node: Long): EdgeList = predecessorEdges.get(node) ?: EdgeList.EMPTY
 
-	fun generateSuccessors(node: Long): EdgeList {
-		val out = EdgeList()
-		successorProvider.edges(node, out)
-		return out.dropNonFinite()
-	}
+	fun generateSuccessors(node: Long): EdgeList = generate(successorProvider, node)
 
-	fun generatePredecessors(node: Long): EdgeList {
-		val out = EdgeList()
-		predecessorProvider.edges(node, out)
-		return out.dropNonFinite()
-	}
+	fun generatePredecessors(node: Long): EdgeList = generate(predecessorProvider, node)
+
+	private fun generate(provider: LongEdgeProvider, node: Long): EdgeList =
+		EdgeList().also { provider.edges(node, it) }.dropNonFinite()
 
 	fun markSuccessorsInitialized(node: Long) {
 		initializedSuccessors.add(node)

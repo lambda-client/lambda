@@ -2,44 +2,38 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
 import com.lambda.pathing.execution.ExecutionObservationResult
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.search.PlanGraph
+import com.lambda.pathing.search.repairFrame
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
-import com.lambda.pathing.session.PathingSession.Companion.MAX_STATE_RECOVERIES
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 
 internal class ExecutionDriver(private val walk: PathingSession) {
-	private val admission get() = walk.admission
-
 	fun SafeContext.tickExecution() {
 		val active = walk.replay ?: return
-		val path = walk.telemetry.published ?: return
 
 		walk.launcher.current?.updateExecutionFrame(active.cursor.nextFrame)
-		if (active.awaitingObservation && !finishObservedTick(active, path, active.cursor.nextFrame)) return
+		if (active.cursor.awaitingObservation && !finishObservedTick(active)) return
 
 		active.pendingImprovement?.let { improvement ->
 			active.pendingImprovement = null
-			with(admission) { adopt(improvement) }
+			with(walk.admission) { adopt(improvement) }
 		}
 
 		val replay = walk.replay ?: return
-		val current = walk.telemetry.published ?: return
+		val current = replay.path
 		val running = replay.cursor
-		if (!current.partial && !replay.awaitingObservation &&
-			running.nextFrame >= current.plan.stationaryFrom && running.nextFrame < current.plan.tape.frameCount
-		) return finishTrajectory(current)
-		if (replay.holding) return enterHold(current)
+		if (!current.partial && running.nextFrame >= current.plan.stationaryFrom && running.nextFrame < current.plan.tape.frameCount) {
+			return finishTrajectory(replay)
+		}
+		if (replay.holding) return enterHold(replay)
 
 		if (running.nextFrame == 0 && with(walk.alignment) { realignBeforeLaunch(current) }) return
 
@@ -48,51 +42,42 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		replay.repairDeadline?.let { deadline ->
 			if (running.nextFrame >= deadline) {
 				val deviation = replay.repairDeviation ?: ExecutionDeviation.Protocol("repair deadline reached")
-				return reject(running.nextFrame, deviation, observed, afterInput = false)
+				return reject(current, running.nextFrame, deviation, observed, afterInput = false)
 			}
 		}
-		with(admission) {
-			executionEnvironmentDeviation(current, nextFrame = running.nextFrame, untilFrame = repairUntil(current))
+		with(walk.admission) {
+			executionEnvironmentDeviation(current, nextFrame = running.nextFrame, untilFrame = repairUntil(replay))
 		}?.let { deviation ->
-			return handleDeviation(current, running.nextFrame, deviation, observed, afterInput = false)
+			return handleDeviation(replay, running.nextFrame, deviation, observed, afterInput = false)
 		}
 		when (val next = running.nextInput(observed)) {
 			is ExecutionInputResult.Apply -> {
 				walk.tickInput = next.input
-				replay.awaitingObservation = true
 				walk.state = State.Executing(next.frame, current.plan.tape.frameCount, walk.leg)
-
-				next.input.rotation?.let { rotation ->
-					walk.request.runSafeAutomated { rotationRequest { yaw(rotation.yaw) }.submit() }
-				}
+				next.input.rotation?.let { rotation -> walk.face(rotation.yaw) }
 			}
 
-			ExecutionInputResult.Complete -> finishTrajectory(current)
+			ExecutionInputResult.Complete -> finishTrajectory(replay)
 
-			is ExecutionInputResult.Rejected -> reject(
-				next.frame, next.deviation, observed, afterInput = false,
-			)
+			is ExecutionInputResult.Rejected -> reject(current, next.frame, next.deviation, observed, afterInput = false)
 		}
 	}
 
-	private fun SafeContext.finishObservedTick(
-		active: Replay,
-		path: PublishedPath,
-		frame: Int,
-	): Boolean {
+	private fun SafeContext.finishObservedTick(replay: Replay): Boolean {
+		val path = replay.path
+		val frame = replay.cursor.nextFrame
 		val observed = observe(path.plan, frame + 1)
-		with(admission) {
-			executionEnvironmentDeviation(path, nextFrame = frame, untilFrame = repairUntil(path))
+		with(walk.admission) {
+			executionEnvironmentDeviation(path, nextFrame = frame, untilFrame = repairUntil(replay))
 		}?.let { deviation ->
-			handleDeviation(path, frame, deviation, observed, afterInput = true)
+			handleDeviation(replay, frame, deviation, observed, afterInput = true)
 			return false
 		}
-		val result = active.cursor.observeAfterTick(observed)
+		val result = replay.cursor.observeAfterTick(observed)
 		if (result is ExecutionObservationResult.Rejected) {
-			reject(result.frame, result.deviation, observed, afterInput = true)
+			reject(path, result.frame, result.deviation, observed, afterInput = true)
 			return false
 		}
-		active.awaitingObservation = false
 
 		if (frame < path.plan.frames.size) {
 			val predicted = path.plan.frames[frame].state.position
@@ -100,24 +85,19 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		}
 
 		if (result === ExecutionObservationResult.Complete) {
-			finishTrajectory(path)
+			finishTrajectory(replay)
 			return false
 		}
 		return true
 	}
 
-	private fun SafeContext.finishTrajectory(path: PublishedPath) {
-		if (path.partial) {
-			enterHold(path)
-			return
-		}
+	private fun SafeContext.finishTrajectory(replay: Replay) {
+		val path = replay.path
+		if (path.partial) return enterHold(replay)
 		walk.replay = null
-		walk.launcher.current?.updateExecutionFrame(null)
 		walk.tickInput = null
-		walk.launcher.cancel()
-
 		walk.state = State.Complete(path.plan.tape.frameCount, walk.leg)
-		walk.finish()
+		walk.release()
 		val telemetry = walk.telemetry
 		info(
 			"Reached ${path.finalGoal}: ${path.plan.tape.frameCount} frames, " +
@@ -141,8 +121,8 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		walk.continueRoute()
 	}
 
-	private fun SafeContext.enterHold(path: PublishedPath) {
-		val replay = walk.replay ?: return
+	private fun SafeContext.enterHold(replay: Replay) {
+		val path = replay.path
 		if (!replay.holding) {
 			replay.holding = true
 			walk.telemetry.countHold()
@@ -153,11 +133,8 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			)
 		}
 		walk.tickInput = ALIGNMENT_INPUT
-		replay.awaitingObservation = false
 		walk.launcher.current?.updateExecutionFrame(replay.cursor.nextFrame)
-		walk.request.runSafeAutomated {
-			rotationRequest { yaw(path.plan.frames.last().state.rotation.yaw) }.submit()
-		}
+		walk.face(path.plan.frames.last().state.rotation.yaw)
 		walk.state = State.Executing(replay.cursor.nextFrame, path.plan.tape.frameCount, walk.leg)
 
 		if (walk.launcher.current == null) {
@@ -166,7 +143,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		}
 	}
 
-	private fun repairUntil(path: PublishedPath): Int = walk.replay?.repairDeadline ?: path.plan.tape.frameCount
+	private fun repairUntil(replay: Replay): Int = replay.repairDeadline ?: replay.path.plan.tape.frameCount
 
 	private fun SafeContext.announcePassedWaypoints(path: PublishedPath, frame: Int) {
 		val waypoints = walk.request.waypoints
@@ -186,37 +163,37 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 	}
 
 	private fun SafeContext.handleDeviation(
+		replay: Replay,
+		frame: Int,
+		deviation: ExecutionDeviation,
+		observed: MovementSimulationState,
+		afterInput: Boolean,
+	) {
+		val path = replay.path
+		if (deviation is ExecutionDeviation.WorldChanged && walk.launcher.current != null) {
+			val first = path.plan.firstFrameReading(deviation.mutation)
+			val junction = first?.let { path.plan.segments.repairFrame(it, frame, REPAIR_MIN_LEAD_FRAMES) }
+			if (junction != null && (replay.repairDeadline?.let { junction < it } != false)) {
+				replay.repairDeadline = junction
+				replay.repairDeviation = deviation
+				LOG.info(
+					"World changed under frame {} of the running tape; replaying to junction frame {} while the search repairs the tail",
+					first, junction,
+				)
+				return
+			}
+		}
+		reject(path, frame, deviation, observed, afterInput)
+	}
+
+	fun SafeContext.reject(
 		path: PublishedPath,
 		frame: Int,
 		deviation: ExecutionDeviation,
 		observed: MovementSimulationState,
 		afterInput: Boolean,
 	) {
-		if (deviation is ExecutionDeviation.WorldChanged && walk.launcher.current != null) {
-			val first = path.plan.firstFrameReading(deviation.mutation)
-			val graph = first?.let { PlanGraph.of(path.plan) }
-			val junction = graph?.repairJunction(first, frame, REPAIR_MIN_LEAD_FRAMES)
-			val replay = walk.replay
-			if (junction != null && replay != null && (replay.repairDeadline?.let { junction.frame < it } != false)) {
-				replay.repairDeadline = junction.frame
-				replay.repairDeviation = deviation
-				LOG.info(
-					"World changed under frame {} of the running tape; replaying to junction frame {} while the search repairs the tail",
-					first, junction.frame,
-				)
-				return
-			}
-		}
-		reject(frame, deviation, observed, afterInput)
-	}
-
-	fun SafeContext.reject(
-		frame: Int,
-		deviation: ExecutionDeviation,
-		observed: MovementSimulationState,
-		afterInput: Boolean,
-	) {
-		val report = executionRejectionReport(walk.telemetry.published, frame, deviation, observed, afterInput)
+		val report = executionRejectionReport(path, frame, deviation, observed, afterInput)
 		with(walk) {
 			when (deviation) {
 				is ExecutionDeviation.WorldChanged -> recover(report, reuseCoarseState = true)
@@ -229,11 +206,12 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		}
 	}
 
+	fun SafeContext.observe(plan: TrajectoryPlan, frame: Int) =
+		MovementSimulationState.from(player, isJumping = frame > 0 && frame <= plan.tape.frameCount && plan.tape[frame - 1].jump)
+
 	private companion object {
+		const val MAX_STATE_RECOVERIES = 8
 
 		const val REPAIR_MIN_LEAD_FRAMES = 8
 	}
-
-	fun SafeContext.observe(plan: TrajectoryPlan, frame: Int) =
-		MovementSimulationState.from(player, isJumping = frame > 0 && frame <= plan.tape.frameCount && plan.tape[frame - 1].jump)
 }

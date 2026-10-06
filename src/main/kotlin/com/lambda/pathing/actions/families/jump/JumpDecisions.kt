@@ -15,6 +15,13 @@ import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.canStandAt
 import kotlin.math.floor
 import kotlin.math.hypot
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.actions.MAX_LAUNCH_FRAME
+import com.lambda.pathing.core.alongEdge
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 internal object JumpDecisions {
 
@@ -74,8 +81,69 @@ internal object JumpDecisions {
 		).firstOrNull()
 	}
 
+	fun launchDelays(context: DecisionContext, solution: LaunchSolution): List<Int> {
+		val edge = context.edge
+		val from = edge.from.center()
+		val to = edge.to.center()
+		val (unitX, unitZ) = unitBetween(from, to) ?: return emptyList()
+
+		val ballistics = BallisticProfile.VANILLA
+		val acceleration = ballistics.groundAcceleration(solution.sprint)
+		val friction = ballistics.groundFriction
+		val body = context.body.state
+		var velocityX = body.velocity.x
+		var velocityZ = body.velocity.z
+		var along = alongEdge(from, to, body.position.x, body.position.z)
+
+		val bearing = Math.toDegrees(atan2(-(to.x - from.x), to.z - from.z))
+		var yaw = body.rotation.yaw
+
+		class Fit(val delay: Int, val cost: Double, val misplacement: Double, val speedError: Double)
+
+		val standableAlong = 0.5 * (abs(unitX) + abs(unitZ)) + FOOTPRINT_OVERHANG
+
+		val fitting = ArrayList<Fit>()
+		for (delay in 0..MAX_LAUNCH_FRAME) {
+			if (along > standableAlong) break
+			val speed = velocityX * unitX + velocityZ * unitZ
+			if (abs(speed - solution.speed) <= solution.speedSlack) {
+				val misplacement = abs(along - solution.launchOffset)
+				fitting += Fit(
+					delay,
+					delay + misplacement / ballistics.cruiseSpeed(solution.sprint),
+					misplacement,
+					abs(speed - solution.speed),
+				)
+			}
+
+			val yawError = Rotation.wrap(bearing - yaw)
+			yaw += yawError.coerceIn(-context.constraints.maxYawDegreesPerFrame, context.constraints.maxYawDegreesPerFrame)
+			val radians = Math.toRadians(yaw)
+			val forwardX = -sin(radians)
+			val forwardZ = cos(radians)
+			velocityX = (velocityX + acceleration * forwardX) * friction
+			velocityZ = (velocityZ + acceleration * forwardZ) * friction
+			along += (velocityX * unitX + velocityZ * unitZ) / friction
+		}
+
+		if (fitting.isEmpty()) {
+			val nominal = nominalLaunchFrame(context, solution)
+			val needed = (solution.speed - solution.speedSlack)..(solution.speed + solution.speedSlack)
+			return LAUNCH_BRACKET.map { (nominal + it).coerceAtLeast(0) }
+				.distinct()
+				.filterNot { delay ->
+					val reach = ballistics.groundSpeedReach(body.velocity.x, body.velocity.z, unitX, unitZ, delay, solution.sprint)
+					reach.endInclusive < needed.start || reach.start > needed.endInclusive
+				}
+		}
+
+		val cheapest = fitting.sortedBy { it.cost }.map { it.delay }
+		val truest = fitting.sortedBy { it.misplacement }.map { it.delay }
+		val fastest = fitting.sortedBy { it.speedError }.map { it.delay }
+		return (cheapest.take(2) + truest.take(2) + fastest.take(2)).distinct()
+	}
+
 	fun runUpDecisions(context: DecisionContext, solutions: List<LaunchSolution>): List<TrajectoryDecision> {
-		if (solutions.isEmpty()) return emptyList()
 		val edge = context.edge
 		val closing = closingSpeed(context)
 		val anyReachable = solutions.any { solution ->
@@ -144,4 +212,8 @@ internal object JumpDecisions {
 	private const val ONWARD_LOOKAHEAD = 2
 
 	private const val PAD_GROUND_TICKS = 3
+
+	private val LAUNCH_BRACKET = listOf(0, -1, 1)
+
+	private const val FOOTPRINT_OVERHANG = 0.3
 }

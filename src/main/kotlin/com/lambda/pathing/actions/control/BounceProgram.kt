@@ -1,21 +1,21 @@
 package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.actions.ControlProgram
+import com.lambda.pathing.actions.ProgramContext
+import com.lambda.pathing.actions.TrajectoryDecision
 
-import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
-import com.lambda.pathing.launch.BounceSolution
+import com.lambda.pathing.core.center
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
 
-internal class BounceProgram(
-	private val takeoff: HorizontalPoint,
-	private val aim: HorizontalPoint,
-	private val solution: BounceSolution,
-	private val maxYawChange: Double,
-) : ControlProgram {
+internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: ProgramContext) : ControlProgram {
+	private val takeoff = context.body.stance.center()
+	private val aim = decision.step.center()
+	private val solution = decision.solution
+	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
 	private val standingStart = solution.speed <= BounceSolver.STANDING_REST_SPEED
 	private var airborne = false
 	private var landed = false

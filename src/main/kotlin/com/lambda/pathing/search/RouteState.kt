@@ -21,6 +21,15 @@ internal class RouteState(
 	var index: Map<Stance, Int> = indexOf(initial)
 		private set
 
+	private val touchedLegs = ArrayList<LegTouch>()
+
+	val touches: List<LegTouch> get() = touchedLegs
+
+	fun switchLeg(next: CoarseRoutePlan, frame: Int) {
+		touchedLegs += LegTouch(frame, goal)
+		replace(next)
+	}
+
 	fun replace(next: CoarseRoutePlan) {
 		plan = next
 		goalPoint = goal.center(environment)

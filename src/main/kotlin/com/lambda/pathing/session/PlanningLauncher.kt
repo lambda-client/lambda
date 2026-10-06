@@ -94,9 +94,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 					}
 				}
 			},
-			onLaunchFailure = { failure ->
-				with(walk) { fail("could not start trajectory planning: ${failure.message}") }
-			},
 			onComplete = { result, failure -> completePlanning(session, result, failure) },
 		)
 		with(walk) { advanceSnapshotCapture() }
@@ -166,7 +163,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 	fun SafeContext.planSuccessor() {
 		if (successor != null || successorPath != null) return
-		val running = walk.telemetry.published ?: return
+		val running = walk.replay?.path ?: return
 		val terminal = running.plan.frames.lastOrNull()?.state ?: return
 		val request = walk.request
 		val session = PlanningSession(++generation)
@@ -192,10 +189,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			onPublish = { path, _ ->
 				if (walk.active && successor === session) successorPath = path
 			},
-			onLaunchFailure = { failure ->
-				LOG.info("Could not start successor planning: {}", failure.message)
-				successor = null
-			},
 			onComplete = { result, failure ->
 				if (!walk.active || successor !== session) return@launch
 				if (failure == null && result is PathPlanResult.Planned) {
@@ -211,28 +204,19 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		journey: PlanningJourney,
 		execution: ExecutionFeedback,
 		onPublish: (PublishedPath, Boolean) -> Unit,
-		onLaunchFailure: (Exception) -> Unit,
 		onComplete: (PathPlanResult?, Throwable?) -> Unit,
 	) {
-		val planning = try {
-			PlanningJob(
-				preparation = preparation,
-				world = journey.world,
-				legStates = journey.legsFor(preparation),
-				cancellation = session.cancellation,
-				planningGeneration = session.generation,
-				snapshotRevision = journey.world.revision,
-				execution = execution,
-				publish = { path, running -> mc.execute { onPublish(path, running) } },
-			).start()
-		} catch (failure: Exception) {
-			onLaunchFailure(failure)
-			return
-		}
 		session.launchRevision = journey.world.revision
-		session.attach(planning)
-
-		planning.whenCompleteAsync({ result, failure -> onComplete(result, failure) }, mc)
+		PlanningJob(
+			preparation = preparation,
+			world = journey.world,
+			legStates = journey.legsFor(preparation),
+			cancelled = { session.isCancelled },
+			planningGeneration = session.generation,
+			snapshotRevision = session.launchRevision,
+			execution = execution,
+			publish = { path, running -> mc.execute { onPublish(path, running) } },
+		).start().whenCompleteAsync({ result, failure -> onComplete(result, failure) }, mc)
 	}
 
 	private fun Throwable.rootMessage(): String {

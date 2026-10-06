@@ -7,8 +7,9 @@ import com.lambda.pathing.physics.MovementSimulationInput
 internal class Solution(
 	val anchor: ValueAnchor,
 	val tailFrames: List<SimulatedTrajectoryFrame>,
-	val collisionEvents: Int,
 ) {
+	val collisionEvents: Int = anchor.collisionEvents + collisionEvents(anchor.state, tailFrames)
+
 	val frames: Int get() = anchor.elapsed + tailFrames.size
 
 	val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames) }

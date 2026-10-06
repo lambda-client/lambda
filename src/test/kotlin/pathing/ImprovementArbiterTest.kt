@@ -1,6 +1,5 @@
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.execution.ImprovementArbiter
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
@@ -12,7 +11,6 @@ import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.search.SearchLoop
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -194,13 +192,7 @@ class ImprovementArbiterTest {
 
         private fun certify(goal: Stance, planId: Long): Certified {
             val start = Stance(0, 0, 0)
-            val initial = MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(0.5, 0.0, 0.5),
-                rotation = Rotation(-90.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            )
+            val initial = resting(Vec3d(0.5, 0.0, 0.5), -90.0)
             val planner = CoarsePlanner(environment, moves, start, goal)
             check(planner.repair().converged)
             planner.expandSearchField()
@@ -210,7 +202,7 @@ class ImprovementArbiterTest {
                 MotionConstraints(),
             ).run()
             check(seed is MotionPlanResult.Success) { "fixture search must certify: $seed" }
-            return Certified(route, TrajectoryPlan.fromWalkingSeed(seed, PROFILE))
+            return Certified(route, seed.plan)
         }
     }
 }

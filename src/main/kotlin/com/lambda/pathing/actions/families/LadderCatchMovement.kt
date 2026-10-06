@@ -13,7 +13,7 @@ import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.launch.AirSteering
+import com.lambda.pathing.launch.AirPlan
 import com.lambda.pathing.actions.nominalLaunchFrame
 import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.MovementId
@@ -77,7 +77,7 @@ object LadderCatchMovement : Movement {
 
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision as TrajectoryDecision.Launch
-		val airPlan = AirSteering.AirPlan.toward(context.body.stance, decision.step, decision.solution, lateralOffset = 0.0)
+		val airPlan = AirPlan.toward(context.body.stance, decision.step, decision.solution, lateralOffset = 0.0)
 
 		return SegmentFollowerProgram(
 			nodes = context.nodes,

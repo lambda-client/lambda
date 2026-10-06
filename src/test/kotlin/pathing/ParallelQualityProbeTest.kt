@@ -114,7 +114,7 @@ class ParallelQualityProbeTest {
     }
 
     private fun stalledFrames(speeds: List<Double>): Int {
-        val stopped = MotionConstraints().stoppedSpeed
+        val stopped = MotionConstraints.STOPPED_SPEED
         var total = 0
         var run = 0
         speeds.forEachIndexed { index, speed ->

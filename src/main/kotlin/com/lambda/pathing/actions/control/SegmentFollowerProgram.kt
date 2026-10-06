@@ -5,7 +5,7 @@ import com.lambda.pathing.actions.LaunchTrigger
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
-import com.lambda.pathing.launch.AirSteering
+import com.lambda.pathing.launch.AirPlan
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
@@ -20,7 +20,7 @@ internal class SegmentFollowerProgram(
 	private val maxYawChange: Double,
 	private val easeTurns: Boolean = false,
 	private val holdTicks: Int = Int.MAX_VALUE,
-	private val airPlan: AirSteering.AirPlan? = null,
+	private val airPlan: AirPlan? = null,
 	private val holdJumpInFlight: Boolean = false,
 ) : ControlProgram {
 	private var airborneTicks = 0
@@ -39,22 +39,7 @@ internal class SegmentFollowerProgram(
 		if (flying) airborneTicks++ else airborneTicks = 0
 		val coasting = flying && airborneTicks > holdTicks
 
-		val steered = if (flying && !observed.onGround && airPlan != null) {
-			AirSteering.steer(
-				positionX = observed.position.x,
-				positionZ = observed.position.z,
-				velocityX = observed.velocity.x,
-				velocityZ = observed.velocity.z,
-				yawDegrees = observed.rotation.yaw + yawDelta,
-				aimX = airPlan.aimX,
-				aimZ = airPlan.aimZ,
-				unitX = airPlan.unitX,
-				unitZ = airPlan.unitZ,
-				remainingTicks = airPlan.airTicks - airborneTicks + 2,
-				plannedHoldTicks = (airPlan.holdTicks - airborneTicks + 1).coerceAtLeast(0),
-				sprintAcceleration = airPlan.sprintAcceleration,
-			)
-		} else null
+		val steered = if (flying && !observed.onGround) airPlan?.steer(observed, observed.rotation.yaw + yawDelta, airborneTicks) else null
 
 		return MovementSimulationInput(
 			forward = when {

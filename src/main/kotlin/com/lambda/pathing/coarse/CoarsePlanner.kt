@@ -107,10 +107,6 @@ class CoarsePlanner(
 
 	val optimisticAnchors: Map<Stance, Double> get() = HashMap(anchors)
 
-	fun optimisticEdgeCost(from: Stance): Double = SpeedClass.entries.minOf {
-		graph.knownSuccessors(PackedStance.pack(from, it)).costOf(goalNode)
-	}
-
 	private fun updateAnchorEdges(anchor: Stance, cost: Double) {
 		search.updateEdge(PackedStance.pack(anchor, SpeedClass.MOVING), goalNode, cost)
 		search.updateEdge(PackedStance.pack(anchor, SpeedClass.STOPPED), goalNode, cost)
@@ -232,17 +228,14 @@ class CoarsePlanner(
 		repeat(ROUTE_RESYNCHRONIZATION_ROUNDS) {
 			if (cancelled()) return null
 			val stale = route()?.nodes ?: return null
-			val synchronized = synchronizeStances(stale)
-			if (synchronized.edgesRemoved + synchronized.edgesChanged + synchronized.edgesAdded == 0) {
-				return null
-			}
+			if (!synchronizeStances(stale)) return null
 			repair(maxExpansions = maxExpansions, cancelled = cancelled)
 			routePlan(snapshotRevision)?.let { return it }
 		}
 		return null
 	}
 
-	private fun synchronizeStances(affected: Iterable<Stance>): LongDStarLite.SynchronizationResult {
+	private fun synchronizeStances(affected: Iterable<Stance>): Boolean {
 		edgeCache.invalidateStances(affected)
 		val lifted = LongArrayList()
 		for (stance in affected) {
@@ -286,13 +279,11 @@ class CoarsePlanner(
 		val iterator = graph.nodes.iterator()
 		while (iterator.hasNext()) {
 			val key = PackedStance.stanceKey(iterator.nextLong())
-			val x = PackedStance.unpackX(key)
-			val z = PackedStance.unpackZ(key)
-			if (ranges.none { (xs, zs) -> x in xs && z in zs }) continue
+			if (!CoarseEdgeCache.covers(ranges, key)) continue
 			if (arrivalsOnly && edgeCache.isComplete(key)) continue
 			pendingSync.add(key)
 		}
-		edgeCache.invalidateChunks(chunks, arrivalsOnly)
+		edgeCache.invalidateChunks(chunks, ranges, arrivalsOnly)
 		continueSync(maxStances)
 	}
 

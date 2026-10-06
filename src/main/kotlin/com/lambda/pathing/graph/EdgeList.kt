@@ -3,18 +3,11 @@ package com.lambda.pathing.graph
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList
 import it.unimi.dsi.fastutil.longs.LongArrayList
 
-interface EdgeSink {
-
-	fun add(node: Long, cost: Double)
-
-	fun addMin(node: Long, cost: Double)
-}
-
 fun interface LongEdgeProvider {
-	fun edges(node: Long, sink: EdgeSink)
+	fun edges(node: Long, sink: EdgeList)
 }
 
-class EdgeList(initialCapacity: Int = 16) : EdgeSink {
+class EdgeList(initialCapacity: Int = 16) {
 	private val targets = LongArrayList(initialCapacity)
 	private val costs = DoubleArrayList(initialCapacity)
 
@@ -39,9 +32,9 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 		return if (index < 0) Double.POSITIVE_INFINITY else costs.getDouble(index)
 	}
 
-	override fun add(node: Long, cost: Double) = put(node, cost, keepLower = false)
+	fun add(node: Long, cost: Double) = put(node, cost, keepLower = false)
 
-	override fun addMin(node: Long, cost: Double) = put(node, cost, keepLower = true)
+	fun addMin(node: Long, cost: Double) = put(node, cost, keepLower = true)
 
 	private fun put(node: Long, cost: Double, keepLower: Boolean) {
 		checkCost(cost)
@@ -84,14 +77,6 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 		out.costs.addAll(costs)
 		return out
 	}
-
-	fun toMap(): Map<Long, Double> {
-		val out = LinkedHashMap<Long, Double>(size * 2)
-		for (i in 0 until size) out[node(i)] = cost(i)
-		return out
-	}
-
-	override fun toString(): String = (0 until size).joinToString(", ", "[", "]") { "${node(it)}=${cost(it)}" }
 
 	companion object {
 

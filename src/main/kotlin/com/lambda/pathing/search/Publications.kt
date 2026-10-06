@@ -90,13 +90,10 @@ internal class Publications(
 	fun repairCut(mutations: Set<PathingSection>): ValueAnchor? {
 		if (mutations.isEmpty()) return null
 		val newest = newest ?: return null
-		val first = newest.plan.frameDependencies.indexOfFirst { reads ->
-			reads.any { PathingSection.containing(it) in mutations }
-		}
-		if (first < 0) return null
-		val graph = PlanGraph.of(newest.plan.planSegments, newest.plan.rollout.initialState) ?: return null
-		val junction = graph.repairJunction(first, maxOf(observedCursor, 0), DIVERGENCE_MARGIN_FRAMES) ?: return null
-		return newest.anchor.ancestorAt(junction.frame)
+		val plan = newest.plan.plan
+		val first = plan.firstFrameReading(mutations) ?: return null
+		val frame = plan.segments.repairFrame(first, maxOf(observedCursor, 0), DIVERGENCE_MARGIN_FRAMES) ?: return null
+		return newest.anchor.ancestorAt(frame)
 	}
 
 	companion object {

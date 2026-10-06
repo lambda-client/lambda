@@ -15,8 +15,6 @@ import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.core.center
-import com.lambda.pathing.core.interpolate
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
@@ -68,17 +66,8 @@ object DropMovement : Movement {
 		return DecisionPrice(difficulty = context.landingRisk(drop.solution))
 	}
 
-	override fun program(context: ProgramContext): ControlProgram {
-		val decision = context.decision as TrajectoryDecision.Drop
-		val from = context.body.stance.center()
-		val to = decision.step.center()
-		return DropProgram(
-			takeoff = interpolate(from, to, decision.solution.launchOffset),
-			aim = interpolate(from, to, decision.solution.aimDistance).copy(y = to.y),
-			solution = decision.solution,
-			maxYawChange = context.constraints.maxYawDegreesPerFrame,
-		)
-	}
+	override fun program(context: ProgramContext): ControlProgram =
+		DropProgram(context.decision as TrajectoryDecision.Drop, context)
 
 	override fun completed(context: CompletionContext): Boolean = context.airborne
 

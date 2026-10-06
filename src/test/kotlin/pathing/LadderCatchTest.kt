@@ -9,7 +9,6 @@
 
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.MovementId
@@ -17,12 +16,10 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.world.Medium
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -79,13 +76,7 @@ class LadderCatchTest {
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(0.5, 10.0, 0.5),
-            rotation = Rotation(0.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
+        val initial = resting(Vec3d(0.5, 10.0, 0.5))
         val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
             publish = { _, _ -> },
@@ -103,7 +94,7 @@ class LadderCatchTest {
     private companion object {
         val LADDER = SnapshotBlockPhysics(
             collisionShape = VoxelShapes.empty(),
-            coarseVoxel = CoarseVoxel.of(Medium.CLIMBABLE),
+            coarseVoxel = CoarseVoxel.CLIMBABLE,
         )
 
     }

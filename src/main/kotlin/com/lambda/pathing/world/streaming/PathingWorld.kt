@@ -6,10 +6,8 @@ import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import it.unimi.dsi.fastutil.longs.LongArrayList
-import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.world.World
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -18,12 +16,6 @@ class PathingWorld(
 	val bounds: SimulationSnapshotBounds,
 	private val source: CaptureSource,
 ) {
-	constructor(
-		bounds: SimulationSnapshotBounds,
-		world: World,
-		player: ClientPlayerEntity,
-	) : this(bounds, MinecraftCaptureSource(world, player))
-
 	private val pendingReplacements = ConcurrentHashMap<Long, ImmutableSnapshotSection>()
 	private val pendingRemovals = ConcurrentHashMap.newKeySet<Long>()
 

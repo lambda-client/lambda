@@ -10,12 +10,11 @@ internal class Publisher(
 	private val frontier: Frontier,
 	private val clock: SearchClock,
 	private val publications: Publications,
-	private val horizon: Horizon,
 	private val sink: ((MotionPlanResult.Success) -> Unit)?,
-	private val expansions: () -> Int,
-	private val incumbent: () -> Solution?,
-	private val brakeToStop: (ValueAnchor) -> Solution?,
-	private val certify: (Solution) -> MotionPlanResult,
+	private val budget: ExpansionBudget,
+	private val incumbent: Incumbent,
+	private val finisher: Finisher,
+	private val certifier: Certifier,
 	private val probe: SearchProbe,
 ) {
 	val enabled: Boolean get() = sink != null
@@ -57,16 +56,16 @@ internal class Publisher(
 		val tip = publications.tip
 		if (anchor.elapsed > publicationCap(cursor ?: -1)) return refuse()
 		if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refuse()
-		if (incumbent()?.anchor?.descendsFrom(anchor) == false) return refuse()
+		if (incumbent.best?.anchor?.descendsFrom(anchor) == false) return refuse()
 		if (tip == null) {
 			if (anchor.elapsed < searchConfig.horizonCommitFrames) return
 			if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
-			if (expansions() < searchConfig.minCommitExpansions) return
+			if (budget.count < searchConfig.minCommitExpansions) return
 			if (remaining <= FIRST_PUBLISH_MIN_REMAINING_TICKS) return
 		} else {
 			if (!publications.upToDate) return refuse()
 			if (anchor.elapsed < tip.elapsed + searchConfig.horizonCommitFrames) return refuse()
-			if (expansions() - expansionsAtPublish < searchConfig.minCommitExpansions) return refuse()
+			if (budget.count - expansionsAtPublish < searchConfig.minCommitExpansions) return refuse()
 			val executing = cursor ?: return
 			if (tip.elapsed - executing > searchConfig.horizonRunwayFrames) return
 			if (!publishableOver(tip, anchor, executing)) return refuse()
@@ -77,20 +76,20 @@ internal class Publisher(
 	fun commit(urgent: Boolean, along: ValueAnchor? = null): Boolean {
 		if (sink == null) return false
 		val tip = publications.tip
-		if (!urgent && expansions() - expansionsAtPublish < searchConfig.minCommitExpansions) return false
-		if (tip != null && !publications.upToDate) return false
+		if (!urgent && budget.count - expansionsAtPublish < searchConfig.minCommitExpansions) return false
+		if (!publications.upToDate) return false
 		val executing = publications.cursor() ?: -1
-		val floor = maxOf(horizon.root?.elapsed ?: 0, executing)
+		val floor = maxOf(frontier.root?.elapsed ?: 0, executing)
 		val leaf = along?.takeIf { it.elapsed > floor }
 		val target = leaf
 			?: (if (frontier.hasParked) frontier.parkedEntries.minByOrNull { it.order } else frontier.bestLiveEntryDeeperThan(floor))?.anchor
 			?: return false
-		val inputs = CommitInputs(tip, horizon.root, publications.adopted(), leaf, target)
+		val inputs = CommitInputs(tip, frontier.root, publications.adopted(), leaf, target)
 		if (inputs == refusedCommit) return false
 		commitAttempts++
-		if (tip != null && guideOf(tip) - guideOf(target) < MIN_COMMIT_PROGRESS_TICKS) return refuseCommit(inputs)
+		if (tip != null && field.guideFor(tip) - field.guideFor(target) < MIN_COMMIT_PROGRESS_TICKS) return refuseCommit(inputs)
 		val cap = publicationCap(executing)
-		val (withinCap, beyondCap) = target.lineFrom(horizon.root).filter { it.elapsed > floor }.partition { it.elapsed <= cap }
+		val (withinCap, beyondCap) = target.lineFrom(frontier.root).filter { it.elapsed > floor }.partition { it.elapsed <= cap }
 		for (candidate in withinCap.asReversed() + beyondCap) {
 			if (tip == null && field.guide(candidate.stance) <= FINISH_VALUE_TICKS) continue
 			if (tip != null && !publishableOver(tip, candidate, executing)) {
@@ -108,11 +107,18 @@ internal class Publisher(
 		if (solution.score >= finalScore) return false
 		if (!publications.adoptable(solution.anchor)) return false
 		if (!publications.upToDate) return false
-		val certified = certify(solution) as? MotionPlanResult.Success ?: return false
+		val certified = certifier.certify(solution) as? MotionPlanResult.Success ?: return false
 		val terminal = tailAnchor(solution.anchor, certified, solution.collisionEvents)
 		finalScore = solution.score
 		publish(terminal, terminal, certified)
+		incumbent.seal(solution)
 		return true
+	}
+
+	fun seal(solution: Solution): Solution? = when {
+		publishFinal(solution) -> null
+		incumbent.isSealed -> null
+		else -> solution
 	}
 
 	private fun refuse() {
@@ -135,25 +141,23 @@ internal class Publisher(
 		if (executing >= 0 && candidate.elapsed < executing + searchConfig.horizonCommitFrames) return false
 		if (tipAbandoned) return true
 		val candidateArrival = arrivalEstimate(candidate)
-		val proven = incumbent()?.takeIf { it.anchor.descendsFrom(tip) }
+		val proven = incumbent.best?.takeIf { it.anchor.descendsFrom(tip) }
 		val tipArrival = proven?.score?.toDouble() ?: arrivalEstimate(tip, staleAllowance())
 		return candidateArrival + SWAP_FLOOR_GAIN_TICKS <= tipArrival
 	}
 
 	private fun staleAllowance(): Double =
-		((expansions() - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS).toDouble() / STALE_TIP_RAMP_EXPANSIONS)
+		((budget.count - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS).toDouble() / STALE_TIP_RAMP_EXPANSIONS)
 			.coerceIn(0.0, 1.0) * STALE_TIP_MAX_TICKS
 
-	private fun guideOf(anchor: ValueAnchor): Double = field.guide(anchor.stance, SpeedClass.of(anchor.speed))
-
 	private fun arrivalEstimate(anchor: ValueAnchor, allowance: Double = 0.0): Double =
-		anchor.elapsed + guideOf(anchor) + allowance + Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
+		anchor.arrivalEstimate(field.guideFor(anchor), allowance)
 
 	private fun publishBraked(anchor: ValueAnchor): Boolean {
-		val braked = brakeToStop(anchor) ?: return false
-		var certified = certify(braked) as? MotionPlanResult.Success ?: return false
-		publications.newest?.let { running ->
-			certified = certified.copy(swap = SwapComparison(arrivalEstimate(anchor), arrivalEstimate(running.anchor), running.sequence))
+		val braked = finisher.brakeToStop(anchor) ?: return false
+		var certified = certifier.certify(braked) as? MotionPlanResult.Success ?: return false
+		publications.newest?.let { newest ->
+			certified = certified.copy(swap = SwapComparison(arrivalEstimate(anchor), arrivalEstimate(newest.anchor), newest.sequence))
 		}
 		publish(anchor, tailAnchor(anchor, certified, anchor.collisionEvents), certified)
 		return true
@@ -161,14 +165,14 @@ internal class Publisher(
 
 	private fun publish(anchor: ValueAnchor, brake: ValueAnchor, certified: MotionPlanResult.Success) {
 		publications.record(anchor, brake, certified)
-		expansionsAtPublish = expansions()
+		expansionsAtPublish = budget.count
 		refusedCommit = null
 		tipAbandoned = false
 		sink?.invoke(certified)
 	}
 
 	private fun tailAnchor(parent: ValueAnchor, certified: MotionPlanResult.Success, collisionEvents: Int): ValueAnchor {
-		val frames = certified.rollout.frames
+		val frames = certified.plan.frames
 		val tail = frames.drop(parent.elapsed)
 		val terminal = frames.last().state
 		return ValueAnchor(
@@ -179,7 +183,7 @@ internal class Publisher(
 			inputSwitches = parent.inputSwitches,
 			parent = parent,
 			inputs = tail.map { it.input },
-			trace = if (probe.treeEnabled || probe.candidatesEnabled) ValueAnchor.traceOf(tail) else emptyList(),
+			trace = probe.traceOf(tail),
 		)
 	}
 

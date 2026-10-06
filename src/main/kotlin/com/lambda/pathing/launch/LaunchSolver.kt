@@ -14,7 +14,6 @@ data class LaunchSolution(
 	val speedSlack: Double,
 	val landingSlack: Double,
 	val headroom: Double,
-	val aimDistance: Double,
 	val lateralSlack: Double,
 	val holdForward: Boolean,
 	val arc: ArcSample,
@@ -25,6 +24,7 @@ data class LaunchSolution(
 	val jumps: Boolean get() = mode.jumps
 	val airTicks: Int get() = arc.airTicks
 	val heldForwardTicks: Int get() = if (holdForward) holdTicks else 0
+	val aimDistance: Double get() = launchOffset + arc.distance
 
 	fun fallDistance(rise: Double): Double = (arc.apex - rise).coerceAtLeast(0.0)
 
@@ -93,7 +93,6 @@ object LaunchSolver {
 		val unitZ = dz / length
 
 		val lateral = lateralSlack(unitX, unitZ)
-		if (lateral < 0.0) return emptyList()
 		val landing = landingWindow(from, to, unitX, unitZ) ?: return emptyList()
 		val window = if (catch) landing.start..Double.POSITIVE_INFINITY else landing
 		val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
@@ -114,7 +113,6 @@ object LaunchSolver {
 		private val exitSpeedWindow: ClosedFloatingPointRange<Double>?,
 	) {
 		fun solve(catch: Boolean): LaunchSolution? {
-			if (maxEntrySpeed < 0.0) return null
 			var best: LaunchSolution? = null
 			val policies = if (mode.drops || exitSpeedWindow != null) listOf(true, false) else listOf(true)
 			for (holdForward in policies) {
@@ -141,7 +139,6 @@ object LaunchSolver {
 				speedSlack = slack,
 				landingSlack = slack * line.slope,
 				headroom = if (maxEntrySpeed > 0.0) (maxEntrySpeed - speed) / maxEntrySpeed else 0.0,
-				aimDistance = offset + arc.distance,
 				lateralSlack = lateral,
 				holdForward = holdForward,
 				arc = arc,

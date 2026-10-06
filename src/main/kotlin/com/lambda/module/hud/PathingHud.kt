@@ -28,6 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.render.movementColor
 import com.lambda.pathing.search.SearchExit
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.session.PathingSession.State
@@ -312,7 +313,7 @@ object PathingHud : HudModule(
         var x = x0
         ordered.forEach { (movement, frames) ->
             val w = width * frames / total
-            draw.addRectFilled(x, y0, x + w, y0 + BAR_HEIGHT, im(movementColor(movement)), 1.5f)
+            draw.addRectFilled(x, y0, x + w, y0 + BAR_HEIGHT, im(PathingService.renderConfig.movementColor(movement)), 1.5f)
             x += w
         }
         ImGui.dummy(width, BAR_HEIGHT + 2f)
@@ -321,20 +322,6 @@ object PathingHud : HudModule(
             "${movement.key} ${100 * frames / total}%"
         }
         textDisabled(legend)
-    }
-
-    private fun movementColor(movement: MovementId): Color {
-        val config = PathingService.renderConfig
-        return when (movement) {
-            MovementId.WALK -> config.walkColor
-            MovementId.STEP_UP -> config.stepUpColor
-            MovementId.WALK_OFF -> config.walkOffColor
-            MovementId.DROP -> config.dropColor
-            MovementId.JUMP -> config.jumpColor
-            MovementId.BOUNCE -> config.bounceColor
-            MovementId.CLIMB, MovementId.LADDER_CATCH -> config.climbColor
-            else -> config.unknownMovementColor
-        }
     }
 
     private fun badge(status: State, telemetry: Telemetry): Pair<String, Color> = when (status) {

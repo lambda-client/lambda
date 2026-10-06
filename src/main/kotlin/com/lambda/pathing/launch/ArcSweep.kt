@@ -1,7 +1,6 @@
 package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
@@ -14,18 +13,7 @@ import net.minecraft.util.math.MathHelper
 import net.minecraft.util.shape.VoxelShape
 import kotlin.math.hypot
 
-class Probed<S>(val solution: S, readsSupplier: () -> LongOpenHashSet) {
-	val reads: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-		val packed = readsSupplier()
-		val result = HashSet<VoxelPos>(packed.size * 2)
-		val iterator = packed.iterator()
-		while (iterator.hasNext()) {
-			val key = iterator.nextLong()
-			result += VoxelPos(BlockPos.unpackLongX(key), BlockPos.unpackLongY(key), BlockPos.unpackLongZ(key))
-		}
-		result
-	}
-}
+class Probed<S>(val solution: S, val reads: () -> LongOpenHashSet)
 
 internal inline fun <S : Any> probed(crossinline solve: (LongOpenHashSet?) -> S?): Probed<S>? {
 	val solution = solve(null) ?: return null

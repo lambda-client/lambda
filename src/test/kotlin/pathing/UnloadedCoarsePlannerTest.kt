@@ -157,7 +157,7 @@ class UnloadedCoarsePlannerTest {
 
         assertTrue(after.values.min() < before.values.min(), "the optimistic remainder must shrink")
         (before.keys - after.keys).forEach {
-            assertEquals(Double.POSITIVE_INFINITY, planner.optimisticEdgeCost(it))
+            assertNull(planner.knownSuccessorsOf(it)[planner.goalStance])
         }
         val route = assertNotNull(planner.routePlan(snapshotRevision = 2L))
         assertTrue(route.goal.x > 32, "the graph must advance with the world, ended at ${route.goal}")

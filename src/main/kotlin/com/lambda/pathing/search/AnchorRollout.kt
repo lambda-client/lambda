@@ -8,7 +8,6 @@ import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.RolloutVerdict
 import com.lambda.pathing.rollout.RolloutEvaluator
-import com.lambda.pathing.rollout.evaluateDiagnostic
 
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
@@ -20,7 +19,6 @@ import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
-import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.Medium
@@ -42,7 +40,7 @@ internal class AnchorRollout(
 	private val config: MotionConstraints,
 	private val environment: SnapshotSimulationEnvironment,
 	private val profile: PlayerPhysicsProfile,
-	private val goalPoint: () -> HorizontalPoint,
+	private val route: RouteState,
 	private val attempts: AttemptAccumulator,
 	private val probe: SearchProbe,
 ) {
@@ -61,10 +59,8 @@ internal class AnchorRollout(
 		val anchor: ValueAnchor,
 		val action: TrajectoryDecision,
 		internal val movement: Movement,
-		internal val points: List<HorizontalPoint>,
 		internal val program: ControlProgram,
 		internal val evaluator: RolloutEvaluator,
-		internal val descentAllowance: Double,
 		internal val frameCount: Int,
 		internal val launch: LaunchTrigger?,
 	) {
@@ -93,20 +89,17 @@ internal class AnchorRollout(
 				openLanding = openLanding(action.step),
 			)
 		)
-		val descentAllowance = movement.descentAllowance(action)
 		return PreparedRollout(
 			anchor = anchor,
 			action = action,
 			movement = movement,
-			points = points,
 			program = program,
 			evaluator = RolloutEvaluator(
-				anchor.state, points, goalPoint(), config,
+				anchor.state, points, route.goalPoint, config,
 				allowHorizontalContact = movement.climbs,
-				descentAllowance = descentAllowance,
+				descentAllowance = movement.descentAllowance(action),
 				climbing = climbingAt,
 			),
-			descentAllowance = descentAllowance,
 			frameCount = maxOf(TRANSITION_FRAMES, movement.transitionFrames(action)),
 			launch = launch,
 		)
@@ -155,7 +148,7 @@ internal class AnchorRollout(
 							)
 						)
 
-						val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed ||
+						val moving = frame.state.velocity.horizontalLength() > MotionConstraints.STOPPED_SPEED ||
 								action.leavesGround || movement.climbs
 
 						val onLadderTop = frame.state.onGround && !movement.climbs &&
@@ -184,25 +177,20 @@ internal class AnchorRollout(
 	fun complete(prepared: PreparedRollout): Outcome {
 		val anchor = prepared.anchor
 		val action = prepared.action
-		val points = prepared.points
-		val descentAllowance = prepared.descentAllowance
 		val rollout = checkNotNull(prepared.raw) { "complete() before execute()" }
 		val failure = prepared.failure
 		val stopFrame = prepared.stopFrame
 		val eventFrame = prepared.eventFrame
 		var eventStance = prepared.eventStance
 
-		attempts.record(rollout, stopFrame != null, goalPoint(), failure)
+		attempts.record(rollout, stopFrame != null, route.goalPoint, failure)
 
 		if (stopFrame != null) return Outcome.Arrived(rollout.frames)
 		failure?.let { return Outcome.Rejected(it) }
 		(rollout.termination as? TrajectoryRolloutTermination.Blocked)?.let {
 			return Outcome.Blocked(it.frame, it.section)
 		}
-		val frame = eventFrame ?: return Outcome.Rejected(
-			evaluateDiagnostic(rollout, points, goalPoint(), config, descentAllowance, climbing = climbingAt)
-				?: TrajectoryDiagnostic.NoStop(rollout.frames.size, 0.0, anchor.speed),
-		)
+		val frame = eventFrame ?: return Outcome.Rejected(prepared.evaluator.terminalDiagnostic(rollout))
 
 		val frames = rollout.frames
 
@@ -241,7 +229,7 @@ internal class AnchorRollout(
 				parent = anchor,
 				inputs = frames.map { it.input },
 				decision = action,
-				trace = if (probe.treeEnabled || probe.candidatesEnabled) ValueAnchor.traceOf(frames) else emptyList(),
+				trace = probe.traceOf(frames),
 			),
 		)
 	}

@@ -12,6 +12,8 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.canStandAt
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -59,14 +61,14 @@ class MotionTemplate internal constructor(
 		spec.bounceDrop?.let { drop ->
 			val probed = BounceArcProbe.probe(view, origin, dx, dz, drop, dy, launchHeight = origin.y + launchOffset)
 				?: return null
-			return edgeOf(origin, lowerBoundTicks, { probed.reads }, bounce = probed.solution)
+			return edgeOf(origin, lowerBoundTicks, probed.reads, bounce = probed.solution)
 		}
 		val riseHeight = realRise(view, origin)
 		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
 		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset)
 			?: return null
 		return edgeOf(
-			origin, lowerBoundTicks, { probed.reads },
+			origin, lowerBoundTicks, probed.reads,
 			launch = probed.solution,
 			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, riseHeight),
 		)
@@ -78,7 +80,7 @@ class MotionTemplate internal constructor(
 	private fun edgeOf(
 		origin: Stance,
 		ticks: Double,
-		probeReads: (() -> Set<VoxelPos>)?,
+		probeReads: (() -> LongOpenHashSet)?,
 		launch: LaunchSolution? = null,
 		bounce: BounceSolution? = null,
 		standingStart: Boolean = true,
@@ -91,7 +93,13 @@ class MotionTemplate internal constructor(
 		readSet = LazyReadSet {
 			buildSet {
 				readOffsets.forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
-				probeReads?.let { addAll(it()) }
+				probeReads?.let { reads ->
+					val iterator = reads().iterator()
+					while (iterator.hasNext()) {
+						val key = iterator.nextLong()
+						add(VoxelPos(BlockPos.unpackLongX(key), BlockPos.unpackLongY(key), BlockPos.unpackLongZ(key)))
+					}
+				}
 			}
 		},
 		launch = launch,

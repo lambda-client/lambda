@@ -2,11 +2,13 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda
 import com.lambda.context.SafeContext
+import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.BlockPos
 
@@ -59,12 +61,16 @@ class PathingSession internal constructor(
 		sessionRestarts = launcher.restarts,
 	)
 
-	fun isFinished(request: PathingRequest): Boolean =
-		!(active && this.request === request) || state is State.Complete || state is State.Failed
+	fun isFinished(request: PathingRequest): Boolean = !(active && this.request === request)
 
 	fun SafeContext.start() {
 		assertClientThread()
-		unsteerable(request)?.let { return fail(it, request.goal) }
+		if (request.rotationConfig.rotationMode == RotationMode.Silent) {
+			return fail(
+				"rotation mode Silent cannot steer movement: it nulls movementYaw, " +
+						"so the body would follow the camera instead of the plan. Use Sync or Lock.",
+			)
+		}
 		planTrajectory()
 	}
 
@@ -77,34 +83,24 @@ class PathingSession internal constructor(
 		if (state is State.Planning) return
 		if (state is State.Aligning) return with(alignment) { align() }
 
-		waypointRoute.primeNextLeg(player, request, replaying = replay != null, published = telemetry.published)
+		waypointRoute.primeNextLeg(player, request, replay?.path)
 		with(execution) { tickExecution() }
 	}
 
 	fun SafeContext.inputForThisTick(): MovementSimulationInput? {
 		assertClientThread()
-		if (!active) {
-			flight.release()
-			return null
-		}
-		val input = tickInput ?: run {
+		val input = tickInput?.takeIf { active } ?: run {
 			flight.release()
 			return null
 		}
 		flight.hold()
 
 		val replay = replay
-		if (replay != null && replay.awaitingObservation) {
-			val path = telemetry.published ?: run {
-				fail("lost the certified plan before input application")
-				return null
-			}
-			val active = replay.cursor
-			with(admission) { executionEnvironmentDeviation(path, nextFrame = active.nextFrame) }?.let { deviation ->
-				with(execution) {
-					val observed = observe(path.plan, active.nextFrame)
-					reject(active.nextFrame, deviation, observed, afterInput = false)
-				}
+		if (replay != null && replay.cursor.awaitingObservation) {
+			val path = replay.path
+			val frame = replay.cursor.nextFrame
+			with(admission) { executionEnvironmentDeviation(path, nextFrame = frame) }?.let { deviation ->
+				with(execution) { reject(path, frame, deviation, observe(path.plan, frame), afterInput = false) }
 				return null
 			}
 		}
@@ -114,11 +110,7 @@ class PathingSession internal constructor(
 	fun cancel() {
 		assertClientThread()
 		release()
-		if (state is State.Settling || state is State.Planning ||
-			state is State.Aligning || state is State.Executing
-		) {
-			state = State.Idle
-		}
+		if (state !is State.Complete && state !is State.Failed) state = State.Idle
 	}
 
 	fun onBlockChanged(pos: BlockPos) {
@@ -137,16 +129,11 @@ class PathingSession internal constructor(
 		active = false
 	}
 
-	internal fun finish() {
-		active = false
-		flight.release()
+	internal fun face(target: Double) {
+		request.runSafeAutomated { rotationRequest { yaw(target) }.submit() }
 	}
 
-	internal fun takeJourney(): PlanningJourney? {
-		val taken = journey
-		journey = null
-		return taken
-	}
+	internal fun takeJourney(): PlanningJourney? = journey.also { journey = null }
 
 	internal fun SafeContext.planTrajectory() {
 		if (player.velocity.horizontalLength() > SETTLED_SPEED) {
@@ -175,11 +162,9 @@ class PathingSession internal constructor(
 		waypointRoute.advanceCapture(configured)
 	}
 
-	internal fun SafeContext.fail(
-		reason: String,
-		goal: Stance? = if (active) request.goal else telemetry.published?.finalGoal,
-	) {
-		val position = player.blockPos?.let { "(${it.x}, ${it.y}, ${it.z})" } ?: "unknown position"
+	internal fun SafeContext.fail(reason: String) {
+		val goal = if (active) request.goal else telemetry.published?.finalGoal
+		val position = player.blockPos.let { "(${it.x}, ${it.y}, ${it.z})" }
 		val destination = goal?.let { " toward $it" } ?: ""
 		val walked = if (active) leg else 0
 		if (waypointRoute.queuedWaypoints > 0) {
@@ -191,13 +176,15 @@ class PathingSession internal constructor(
 		warn("Stopped ${if (walked == 0) "before" else "during"} continuous replay at $position$destination: $reason", PATHING_SOURCE)
 	}
 
-	internal fun SafeContext.recover(reason: String, reuseCoarseState: Boolean = true) {
+	internal fun SafeContext.recover(reason: String, reuseCoarseState: Boolean) {
 		if (!active) return fail(reason)
 		if (!reuseCoarseState) {
 			journey?.cancel()
 			journey = null
 		}
-		resetForReplan()
+		launcher.reset()
+		replay = null
+		alignment.reset()
 		tickInput = ALIGNMENT_INPUT
 		telemetry.countRecovery()
 		state = State.Settling(goalLabel())
@@ -208,13 +195,7 @@ class PathingSession internal constructor(
 		waypointRoute.continueNext()
 	}
 
-	internal fun goalLabel(): String = request.goal.let { "(${it.x}, ${it.y}, ${it.z})" }
-
-	internal fun resetForReplan() {
-		launcher.reset()
-		replay = null
-		alignment.reset()
-	}
+	internal fun goalLabel(): String = request.goal.toString()
 
 	private var liveProfileAge = Int.MIN_VALUE
 	private var liveProfileCache: PlayerPhysicsProfile? = null
@@ -228,23 +209,12 @@ class PathingSession internal constructor(
 		}
 	}
 
-	private fun unsteerable(request: PathingRequest): String? {
-		val config = request.rotationConfig
-		if (config.rotationMode == RotationMode.Silent) {
-			return "rotation mode Silent cannot steer movement: it nulls movementYaw, " +
-					"so the body would follow the camera instead of the plan. Use Sync or Lock."
-		}
-		return null
-	}
-
 	private fun assertClientThread() {
 		check(Lambda.mc.isOnThread) { "PathingSession must be driven from the client thread" }
 	}
 
 	internal companion object {
 		const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
-
-		const val MAX_STATE_RECOVERIES = 8
 
 		const val PATHING_SOURCE = "Pathing"
 

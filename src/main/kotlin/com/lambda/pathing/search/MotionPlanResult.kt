@@ -3,12 +3,10 @@ package com.lambda.pathing.search
 import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 
-import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
 import kotlin.math.hypot
 
 data class PlanAttempt(
@@ -94,13 +92,10 @@ sealed interface MotionPlanResult {
 
 	data class Success(
 		val sourceRoute: CoarseRoutePlan,
-		val tape: InputTape,
-		val rollout: TrajectoryRollout,
+		val plan: TrajectoryPlan,
 		val safeAnchorStance: Stance,
 		val safeAnchorFrame: Int,
-		val frameDependencies: List<Set<VoxelPos>>,
 		val attemptCount: Int,
-		val planSegments: List<PlanSegment> = emptyList(),
 		val swap: SwapComparison? = null,
 		val legTouches: List<LegTouch> = emptyList(),
 	) : MotionPlanResult

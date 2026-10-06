@@ -1,13 +1,11 @@
 package com.lambda.pathing.session
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.MovementUtils.moveYaw
 import kotlin.math.abs
@@ -42,8 +40,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.settle() {
-		walk.tickInput = ALIGNMENT_INPUT
-		if (player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround) {
+		if (settled()) {
 			return with(walk.launcher) { capturePlan() }
 		}
 		if (++settleTicks > MAX_SETTLE_TICKS) {
@@ -58,23 +55,19 @@ internal class AlignmentController(private val walk: PathingSession) {
 	}
 
 	fun holdPlanningYaw() {
-		val yaw = planningYaw ?: return
-		walk.request.runSafeAutomated { rotationRequest { yaw(yaw) }.submit() }
+		walk.face(planningYaw ?: return)
 	}
 
 	fun SafeContext.align() {
 		val path = pendingPath ?: return with(walk) { fail("lost the certified plan while aligning") }
-		val positionDrift = player.pos.distanceTo(path.plan.initialState.position)
+		val positionDrift = startDrift(path)
 		if (positionDrift > START_DRIFT_TOLERANCE) {
 			return with(walk) { fail("moved %.2f blocks while aligning to the plan".format(positionDrift)) }
 		}
 
-		val targetYaw = path.plan.initialState.rotation.yaw
-		walk.request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
-		val yawDrift = abs(Rotation.wrap(player.moveYaw - targetYaw))
-
-		val settled = player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround
-		if (yawDrift <= FIRST_FRAME_YAW_EPSILON && settled) {
+		walk.face(path.plan.initialState.rotation.yaw)
+		val yawDrift = launchYawError(path)
+		if (yawDrift <= FIRST_FRAME_YAW_EPSILON && settled()) {
 			with(walk.admission) { install(path) }
 			return
 		}
@@ -91,10 +84,9 @@ internal class AlignmentController(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.realignBeforeLaunch(current: PublishedPath): Boolean {
-		val targetYaw = current.plan.initialState.rotation.yaw
-		val yawError = abs(Rotation.wrap(player.moveYaw - targetYaw))
+		val yawError = launchYawError(current)
 		if (yawError > FIRST_FRAME_YAW_EPSILON && alignmentTicks <= MAX_ALIGNMENT_TICKS) {
-			walk.request.runSafeAutomated { rotationRequest { yaw(targetYaw) }.submit() }
+			walk.face(current.plan.initialState.rotation.yaw)
 			walk.tickInput = ALIGNMENT_INPUT
 			if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
 				warn(
@@ -108,15 +100,22 @@ internal class AlignmentController(private val walk: PathingSession) {
 		return false
 	}
 
+	fun SafeContext.startDrift(path: PublishedPath): Double = player.pos.distanceTo(path.plan.initialState.position)
+
+	fun SafeContext.launchYawError(path: PublishedPath): Double =
+		abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
+
+	private fun SafeContext.settled(): Boolean = player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround
+
 	companion object {
 		const val START_DRIFT_TOLERANCE = 0.35
 
 		const val FIRST_FRAME_YAW_EPSILON = 2.5e-4
 
-		const val MAX_ALIGNMENT_TICKS = 40
-
 		const val SETTLED_SPEED = 1e-6
 
-		const val MAX_SETTLE_TICKS = 40
+		private const val MAX_ALIGNMENT_TICKS = 40
+
+		private const val MAX_SETTLE_TICKS = 40
 	}
 }

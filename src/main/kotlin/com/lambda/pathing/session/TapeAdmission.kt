@@ -2,8 +2,6 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ImprovementArbiter
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
@@ -13,31 +11,24 @@ import com.lambda.pathing.session.AlignmentController.Companion.START_DRIFT_TOLE
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
-import com.lambda.util.player.MovementUtils.moveYaw
-import kotlin.math.abs
 
 internal class TapeAdmission(private val walk: PathingSession) {
 
 	fun SafeContext.begin(path: PublishedPath) {
-		val current = walk.launcher.current
-		if (current != null && path.planningGeneration != current.generation) {
-			return keepRunning(path, "publication belongs to stale planning generation ${path.planningGeneration}")
-		}
 		executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
 			return with(walk) { fail("certified plan became stale before execution: $deviation") }
 		}
 
-		val drift = player.pos.distanceTo(path.plan.initialState.position)
+		val drift = with(walk.alignment) { startDrift(path) }
 		if (drift > START_DRIFT_TOLERANCE) {
-			if (current?.generation != path.planningGeneration) {
+			if (walk.launcher.current == null) {
 				return keepRunning(path, "publication was certified from a stance the walk has left")
 			}
 			return with(walk) { fail("moved %.2f blocks while planning".format(drift)) }
 		}
 
-		val yawDrift = abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
+		val yawDrift = with(walk.alignment) { launchYawError(path) }
 		if (yawDrift > FIRST_FRAME_YAW_EPSILON) {
 			walk.telemetry.published = path
 			walk.alignment.beginAligning(path)
@@ -54,25 +45,26 @@ internal class TapeAdmission(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.adopt(path: PublishedPath) {
+		val replay = walk.replay
 		when (val verdict = ImprovementArbiter.judge(
-			running = walk.telemetry.published,
-			cursorFrame = walk.replay?.cursor?.nextFrame,
-			awaitingObservation = walk.replay?.awaitingObservation == true,
+			running = replay?.path,
+			cursorFrame = replay?.cursor?.nextFrame,
+			awaitingObservation = replay?.cursor?.awaitingObservation == true,
 			offered = path,
-			runningInvalidFrom = walk.replay?.repairDeadline,
+			runningInvalid = replay?.repairDeadline != null,
 		)) {
 			ImprovementArbiter.Verdict.BeginFresh -> begin(path)
 
 			is ImprovementArbiter.Verdict.Keep -> keepRunning(path, verdict.reason)
 
-			ImprovementArbiter.Verdict.DeferForObservation -> walk.replay?.pendingImprovement = path
+			ImprovementArbiter.Verdict.DeferForObservation -> replay?.pendingImprovement = path
 
 			is ImprovementArbiter.Verdict.Adopt -> {
 				val frame = verdict.frame
 				executionEnvironmentDeviation(path, nextFrame = frame)?.let { deviation ->
 					return keepRunning(path, "publication environment changed: $deviation")
 				}
-				val repairCut = walk.replay?.repairDeadline
+				val repairCut = replay?.repairDeadline
 				replay(path, frame)
 				walk.launcher.progressed()
 				if (repairCut != null) {
@@ -95,9 +87,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
 			return with(walk) { fail("certified plan became stale before execution: $deviation") }
 		}
-		walk.request.runSafeAutomated {
-			rotationRequest { yaw(path.plan.initialState.rotation.yaw) }.submit()
-		}
+		walk.face(path.plan.initialState.rotation.yaw)
 		walk.alignment.installed()
 		replay(path, frame = 0)
 		walk.leg++
@@ -112,10 +102,10 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		)
 	}
 
-	private fun SafeContext.replay(path: PublishedPath, frame: Int) {
+	private fun replay(path: PublishedPath, frame: Int) {
 		walk.telemetry.published = path
 		walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
-		walk.replay = Replay(TrajectoryExecutionCursor(path.plan, with(walk) { liveProfile() }, frame))
+		walk.replay = Replay(path, TrajectoryExecutionCursor(path.plan, frame))
 		walk.launcher.current?.adopt(frame, path.publicationSequence.toLong())
 	}
 

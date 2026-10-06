@@ -1,58 +1,34 @@
 package com.lambda.pathing.session
 
 import com.lambda.pathing.search.ExecutionFeedback
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-
-internal class PlanningCancellation {
-	private val cancelled = AtomicBoolean()
-
-	val isCancelled: Boolean get() = cancelled.get()
-
-	fun cancel() {
-		cancelled.set(true)
-	}
-}
 
 internal class PlanningSession(val generation: Long) : ExecutionFeedback {
-	val cancellation = PlanningCancellation()
+	@Volatile
+	var isCancelled = false
+		private set
+
+	var launchRevision: Long = -1L
 
 	@Volatile
-	var launchRevision: Long = -1L
+	private var executionFrame: Int? = null
 
 	@Volatile
 	private var adopted: Long = 0L
 
-	private val executionFrame = AtomicInteger(NOT_EXECUTING)
-
-	@Volatile
-	private var future: CompletableFuture<PathPlanResult>? = null
-
-	fun attach(future: CompletableFuture<PathPlanResult>) {
-		this.future = future
-		if (cancellation.isCancelled) future.cancel(true)
-	}
-
 	fun updateExecutionFrame(frame: Int?) {
-		executionFrame.set(frame ?: NOT_EXECUTING)
+		executionFrame = frame
 	}
 
 	fun adopt(frame: Int, sequence: Long) {
-		updateExecutionFrame(frame)
+		executionFrame = frame
 		adopted = sequence
 	}
 
-	override fun cursorFrame(): Int? = executionFrame.get().takeUnless { it == NOT_EXECUTING }
+	override fun cursorFrame(): Int? = executionFrame
 
 	override fun adoptedSequence(): Long = adopted
 
 	fun cancel() {
-		cancellation.cancel()
-		future?.cancel(true)
-	}
-
-	private companion object {
-		const val NOT_EXECUTING = -1
+		isCancelled = true
 	}
 }

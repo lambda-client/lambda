@@ -11,14 +11,11 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.physics.MovementSimulationInput
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
@@ -61,13 +58,7 @@ class BedBounceTest {
     private fun simulator(environment: SnapshotSimulationEnvironment) = MovementSimulator(
         profile = PROFILE,
         environment = environment,
-        initialState = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(0.5, 100.0, 0.5),
-            rotation = Rotation(0.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        ),
+        initialState = resting(Vec3d(0.5, 100.0, 0.5)),
     )
 
     @Test
@@ -172,19 +163,7 @@ class BedBounceTest {
         planner.expandField(extraTicks = 60.0, timeBudget = Duration.INFINITE, maxExpansions = 40_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(0.5, 9.5625, 0.5),
-                rotation = Rotation(0.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(0.5, 9.5625, 0.5)), environment)
         val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
         assertTrue(!path.partial, "the walk must arrive on the far bed platform")
         val terminal = path.plan.frames.last().state.position

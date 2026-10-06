@@ -5,11 +5,12 @@ import com.lambda.context.Automated
 import com.lambda.pathing.core.ArrivalMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 
-internal class WaypointRoute(private val source: String) {
+internal class WaypointRoute {
 
 	private class Group(val through: List<Stance>, val goal: Stance) {
 		val size: Int get() = through.size + 1
@@ -25,20 +26,14 @@ internal class WaypointRoute(private val source: String) {
 
 	val queuedWaypoints: Int get() = queue.sumOf { it.size }
 
-	fun start(automated: Automated, waypoints: List<Stance>, intermediate: ArrivalMode): PathingRequest? {
+	fun start(automated: Automated, waypoints: List<Stance>): PathingRequest? {
 		drop()
 		if (waypoints.isEmpty()) return null
 		this.automated = automated
-		val groups = ArrayList<Group>()
-		val through = ArrayList<Stance>()
-		waypoints.forEachIndexed { index, waypoint ->
-			val last = index == waypoints.lastIndex
-			if (!last && intermediate == ArrivalMode.WALK_THROUGH) {
-				through += waypoint
-			} else {
-				groups += Group(through.toList(), waypoint)
-				through.clear()
-			}
+		val groups = if (automated.pathingConfig.waypointArrival == ArrivalMode.WALK_THROUGH) {
+			listOf(Group(waypoints.dropLast(1), waypoints.last()))
+		} else {
+			waypoints.map { Group(emptyList(), it) }
 		}
 		val first = groups.first()
 		queue.addAll(groups.drop(1))
@@ -60,18 +55,9 @@ internal class WaypointRoute(private val source: String) {
 		return warmed
 	}
 
-	fun primeNextLeg(
-		player: ClientPlayerEntity,
-		request: PathingRequest,
-		replaying: Boolean,
-		published: PublishedPath?,
-	) {
-		if (automated == null) return
+	fun primeNextLeg(player: ClientPlayerEntity, request: PathingRequest, running: PublishedPath?) {
 		val next = queue.firstOrNull() ?: return
-
-		if (!replaying) return
-		val running = published ?: return
-		if (running.partial) return
+		if (running == null || running.partial) return
 		val terminal = running.plan.frames.lastOrNull()?.state ?: return
 		val resolved = resolveGoalStance(player, next.goal)
 		if (nextJourney?.goal == resolved) return
@@ -88,18 +74,17 @@ internal class WaypointRoute(private val source: String) {
 		LOG.info("Pre-warming the next route leg toward {}", preparation.finalGoal)
 	}
 
-	fun continueNext(): Boolean {
-		val automated = automated ?: return false
-		val next = queue.removeFirstOrNull() ?: run { drop(); return false }
+	fun continueNext() {
+		val automated = automated ?: return
+		val next = queue.removeFirstOrNull() ?: return drop()
 		expectedLeg = next.goal
 		info(
-			"Route: continuing to (${next.goal.x}, ${next.goal.y}, ${next.goal.z})" +
+			"Route: continuing to ${next.goal}" +
 					(next.through.size.takeIf { it > 0 }?.let { " through $it waypoint(s)" } ?: "") +
 					(queuedWaypoints.takeIf { it > 0 }?.let { ", $it more after it" } ?: "") + ".",
-			source,
+			PATHING_SOURCE,
 		)
 		PathingRequest(automated, next.goal, next.through).submit()
-		return true
 	}
 
 	fun advanceCapture(budgetMillis: Double) {

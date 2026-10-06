@@ -1,7 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.graph.EdgeSink
+import com.lambda.pathing.graph.EdgeList
 
 enum class SpeedClass {
 	STOPPED, MOVING;
@@ -37,7 +37,7 @@ internal object MomentumRules {
 	private fun stoppedCost(movement: MovementId, ticks: Double): Double =
 		if (departsStoppedOnly(movement)) ticks else ticks + STARTUP_TICKS
 
-	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeSink) {
+	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.MOVING) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.STOPPED), BRAKE_TICKS)
@@ -53,7 +53,7 @@ internal object MomentumRules {
 		}
 	}
 
-	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeSink) {
+	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeList) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.STOPPED) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.MOVING), BRAKE_TICKS)

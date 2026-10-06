@@ -49,6 +49,9 @@ class PlanSegmentIntegrityTest {
                 plan.tape.asList(), segments.flatMap { it.inputs },
                 "${scenario.name}: concatenated segment inputs are not the tape",
             )
+            if (segments.last() is PlanSegment.Terminal) {
+                assertTrue(!segments.last().settledExit, "${scenario.name}: the resting terminal was offered as a rejoin point")
+            }
 
             for (segment in segments) {
                 val entry = if (segment.startFrame == 0) plan.initialState
@@ -75,7 +78,7 @@ class PlanSegmentIntegrityTest {
             val plan = path.plan
             val moves = plan.segments.count { it is PlanSegment.Move }
             val terminals = plan.segments.count { it is PlanSegment.Terminal }
-            val settled = plan.segments.count { it.settledExit(STOPPED_SPEED) }
+            val settled = plan.segments.count { it.settledExit }
             println(
                 "[segments] %-18s frames=%-4d segments=%-3d (move %d, terminal %d)  settled rejoins=%d  median=%d frames".format(
                     scenario.name, plan.tape.frameCount, plan.segments.size, moves, terminals, settled,
@@ -83,9 +86,5 @@ class PlanSegmentIntegrityTest {
                 ),
             )
         }
-    }
-
-    private companion object {
-        const val STOPPED_SPEED = 0.01
     }
 }

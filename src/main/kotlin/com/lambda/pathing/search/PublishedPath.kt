@@ -13,9 +13,9 @@ data class PublishedPath(
 	val attempts: Int,
 	val planMillis: Long,
 	val finalGoal: Stance,
-	val partial: Boolean = false,
-	val planningGeneration: Long = 0L,
-	val publicationSequence: Int = 0,
+	val partial: Boolean,
+	val planningGeneration: Long,
+	val publicationSequence: Int,
 	val swap: SwapComparison? = null,
 	val legTouches: List<LegTouch> = emptyList(),
 ) {
@@ -60,7 +60,7 @@ data class PublishedPath(
 		.joinToString(" ") { (movement, cost) -> "$movement=${cost.first}/${cost.second}" }
 
 	private val standingRunLengths: List<Int> by lazy {
-		val still = plan.frames.map { it.state.velocity.horizontalLength() <= MotionConstraints.DEFAULT_STOPPED_SPEED }
+		val still = plan.frames.map { it.state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED }
 		val runs = ArrayList<Int>()
 		var index = 0
 		while (index < still.size) {

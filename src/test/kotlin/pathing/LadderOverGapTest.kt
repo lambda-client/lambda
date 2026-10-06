@@ -9,19 +9,14 @@
 
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.world.Medium
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -29,7 +24,6 @@ import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.time.Duration
-import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -68,19 +62,7 @@ class LadderOverGapTest {
         assertTrue(planner.repair().converged)
         planner.expandField(extraTicks = 60.0, timeBudget = Duration.INFINITE, maxExpansions = 40_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(start.x + 0.5, startFeet, start.z + 0.5),
-                rotation = Rotation(0.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(start.x + 0.5, startFeet, start.z + 0.5)), environment)
         val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
         assertTrue(!path.partial, "the walk must arrive")
         return path.plan.frames.last().state.position
@@ -107,7 +89,7 @@ class LadderOverGapTest {
     private companion object {
         val LADDER = SnapshotBlockPhysics(
             collisionShape = VoxelShapes.empty(),
-            coarseVoxel = CoarseVoxel.of(Medium.CLIMBABLE),
+            coarseVoxel = CoarseVoxel.CLIMBABLE,
         )
 
     }

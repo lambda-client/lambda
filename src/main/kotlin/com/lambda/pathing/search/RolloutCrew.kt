@@ -3,7 +3,7 @@ package com.lambda.pathing.search
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.LockSupport
 
-internal class RolloutCrew(workers: Int, private val execute: (AnchorRollout.PreparedRollout) -> Unit) {
+internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
 	private class Round(val batch: List<AnchorRollout.PreparedRollout>) {
 		val next = AtomicInteger()
 		val unfinished = AtomicInteger(batch.size)
@@ -54,7 +54,7 @@ internal class RolloutCrew(workers: Int, private val execute: (AnchorRollout.Pre
 			val index = current.next.getAndIncrement()
 			if (index >= current.batch.size) return
 			try {
-				execute(current.batch[index])
+				rollouts.execute(current.batch[index])
 			} finally {
 				current.unfinished.decrementAndGet()
 			}

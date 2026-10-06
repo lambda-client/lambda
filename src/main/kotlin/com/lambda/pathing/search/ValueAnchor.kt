@@ -5,6 +5,8 @@ import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.actions.PricedDecision
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.coarse.SpeedClass
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -24,18 +26,6 @@ internal class ValueAnchor(
 	override val speed: Double = state.velocity.horizontalLength()
 
 	var legRoot: Boolean = false
-
-	companion object {
-
-		fun traceOf(frames: List<SimulatedTrajectoryFrame>): List<Vec3d> {
-			if (frames.size <= TRACE_STRIDE + 1) return emptyList()
-			val trace = ArrayList<Vec3d>(frames.size / TRACE_STRIDE + 1)
-			for (i in TRACE_STRIDE until frames.size - 1 step TRACE_STRIDE) trace += frames[i].state.position
-			return trace
-		}
-
-		private const val TRACE_STRIDE = 3
-	}
 
 	var actions: List<PricedDecision>? = null
 
@@ -93,3 +83,17 @@ internal class ValueAnchor(
 		return false
 	}
 }
+
+internal fun ValueAnchor.arrivalEstimate(guide: Double, allowance: Double = 0.0): Double =
+	elapsed + guide + allowance + Solution.COLLISION_FRAME_PENALTY * collisionEvents
+
+internal fun ValueField.guideFor(anchor: ValueAnchor): Double = guide(anchor.stance, SpeedClass.of(anchor.speed))
+
+internal fun SearchProbe.traceOf(frames: List<SimulatedTrajectoryFrame>): List<Vec3d> {
+	if (!treeEnabled && !candidatesEnabled || frames.size <= TRACE_STRIDE + 1) return emptyList()
+	val trace = ArrayList<Vec3d>(frames.size / TRACE_STRIDE + 1)
+	for (i in TRACE_STRIDE until frames.size - 1 step TRACE_STRIDE) trace += frames[i].state.position
+	return trace
+}
+
+private const val TRACE_STRIDE = 3

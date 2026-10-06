@@ -4,7 +4,6 @@ import com.lambda.Lambda.LOG
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
-import com.lambda.pathing.debug.DebugChannelProbe
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.graph.LongDStarLite
@@ -12,7 +11,6 @@ import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.world.streaming.PathingWorld
-import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -22,7 +20,7 @@ internal class PlanningJob(
 	private val preparation: PlanningPreparation,
 	private val world: PathingWorld,
 	private val legStates: List<CoarsePlanningState>,
-	private val cancellation: PlanningCancellation,
+	private val cancelled: () -> Boolean,
 	private val planningGeneration: Long,
 	private val snapshotRevision: Long,
 	private val execution: ExecutionFeedback,
@@ -35,17 +33,10 @@ internal class PlanningJob(
 	private val goal = coarseState.goal
 	private val resolution = RouteResolution(coarseState)
 	private val timings = PhaseTimings()
-	private val cancelled: () -> Boolean = { cancellation.isCancelled }
 
-	fun start(): CompletableFuture<PathPlanResult> =
-		if (cancellation.isCancelled) CompletableFuture.completedFuture(PathPlanResult.Cancelled)
-		else CompletableFuture.supplyAsync(::run, PLANNER)
+	fun start(): CompletableFuture<PathPlanResult> = CompletableFuture.supplyAsync(::run, PLANNER)
 
-	private fun run(): PathPlanResult = try {
-		if (cancellation.isCancelled) PathPlanResult.Cancelled else plan()
-	} catch (_: CancellationException) {
-		PathPlanResult.Cancelled
-	}
+	private fun run(): PathPlanResult = if (cancelled()) PathPlanResult.Cancelled else plan()
 
 	private fun plan(): PathPlanResult {
 		timings.measure("knowledge-wait") { awaitStartKnowledge() }
@@ -59,7 +50,7 @@ internal class PlanningJob(
 			"Coarse D* {} -> {}: {} expansions, {} graph nodes, {} snapshot sections, converged={}",
 			start, goal, coarse.processedNodes, planner.graphSize, snapshot.sectionCount, coarse.converged,
 		)
-		if (coarse.cancelled || cancellation.isCancelled) return PathPlanResult.Cancelled
+		if (coarse.cancelled || cancelled()) return PathPlanResult.Cancelled
 		if (!coarse.converged) {
 			return PathPlanResult.Failed(
 				"coarse search did not converge within ${preparation.coarseExpansionBudget} expansions" +
@@ -67,7 +58,7 @@ internal class PlanningJob(
 			)
 		}
 		timings.measure("field") { planner.expandSearchField(FIELD_EXPANSION_BUDGET, cancelled) }
-		if (cancellation.isCancelled) return PathPlanResult.Cancelled
+		if (cancelled()) return PathPlanResult.Cancelled
 
 		PlanningDebugChannel.publishGraph(planner, preparation.initial.position)
 		val route = timings.measure("route") {
@@ -83,17 +74,15 @@ internal class PlanningJob(
 	}
 
 	private fun noRoute(coarse: LongDStarLite.ComputeResult): PathPlanResult {
-		if (cancellation.isCancelled) return PathPlanResult.Cancelled
-		LOG.warn(
-			"No coarse route {} -> {} after {} expansions: {}",
-			start, goal, coarse.processedNodes, planner.routeFailureReport(),
-		)
-		dump("no-route", "no coarse route; ${planner.routeFailureReport()}")
+		if (cancelled()) return PathPlanResult.Cancelled
+		val report = planner.routeFailureReport()
+		LOG.warn("No coarse route {} -> {} after {} expansions: {}", start, goal, coarse.processedNodes, report)
+		dump("no-route", "no coarse route; $report")
 		return PathPlanResult.Failed("no coarse route to the goal")
 	}
 
 	private fun walk(route: CoarseRoutePlan): PathPlanResult {
-		val probe = DebugChannelProbe()
+		val probe = PlanningDebugChannel
 		val legs = LegChain(
 			world = world,
 			states = legStates,
@@ -117,7 +106,7 @@ internal class PlanningJob(
 			world = link(legs),
 			field = field,
 			probe = probe,
-			onExhaustion = {
+			onConcluded = {
 				LOG.info("Trajectory search {} -> {}: {} {}", start, preparation.finalGoal, it, legs.ledger)
 				PlanningDebugChannel.publishExhaustion(it, legs.ledger)
 			},
@@ -177,7 +166,7 @@ internal class PlanningJob(
 
 	private inline fun awaitWhile(millis: Long, pending: () -> Boolean) {
 		val deadline = System.nanoTime() + millis * 1_000_000L
-		while (!cancellation.isCancelled && System.nanoTime() < deadline && pending()) {
+		while (!cancelled() && System.nanoTime() < deadline && pending()) {
 			if (!world.awaitEvents(world.revision, EVENT_POLL_MILLIS)) break
 		}
 	}

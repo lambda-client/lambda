@@ -16,7 +16,7 @@ internal class ActionSet(
 	private val field: ValueField,
 	private val config: MotionConstraints,
 ) {
-	private fun actions(anchor: ValueAnchor, temperature: Temperature): List<PricedDecision> {
+	private fun actions(anchor: ValueAnchor, temperature: Double): List<PricedDecision> {
 		if (anchor.parent != null && field.guide(anchor.stance) <= FINISH_VALUE_TICKS) {
 			return emptyList()
 		}
@@ -66,35 +66,31 @@ internal class ActionSet(
 		}
 
 		for (step in steps.take(LAUNCH_STEPS)) {
-			movementDecisions(anchor, step, ::add)
+			val context = contextFor(step)
+			val owner = catalog[step.movement]
+			owner?.decisions(context)?.forEach(::add)
+			for (movement in catalog.movements) {
+				if (movement !== owner && movement.offersFor(step)) movement.decisions(context).forEach(::add)
+			}
 		}
 
 		if (priced.isEmpty()) return emptyList()
 
-		priced.sortWith(compareBy { temperature.surcharge(it.price) })
-		val affordable = priced.filter { temperature.affords(it.price) }
+		priced.sortWith(compareBy { it.price.surcharge })
+		val affordable = priced.filter { it.price.difficulty <= temperature }
 		if (affordable.isNotEmpty()) return affordable
 
 		val floor = priced.minOf { it.price.difficulty }
 		return priced.filter { it.price.difficulty <= floor + DIFFICULTY_TIER }
 	}
 
-	fun next(anchor: ValueAnchor, temperature: Temperature, epoch: Int): PricedDecision? {
-		for (priced in cached(anchor, temperature, epoch)) {
-			val action = priced.decision
-			if (action in anchor.attempted) continue
-			anchor.attempted += action
-			return priced
-		}
-		return null
-	}
+	fun next(anchor: ValueAnchor, temperature: Double, epoch: Int): TrajectoryDecision? =
+		cached(anchor, temperature, epoch).firstOrNull { anchor.attempted.add(it.decision) }?.decision
 
-	fun nextSurcharge(anchor: ValueAnchor, temperature: Temperature, epoch: Int): Double? =
-		cached(anchor, temperature, epoch)
-			.firstOrNull { it.decision !in anchor.attempted }
-			?.let { temperature.surcharge(it.price) }
+	fun nextSurcharge(anchor: ValueAnchor, temperature: Double, epoch: Int): Double? =
+		cached(anchor, temperature, epoch).firstOrNull { it.decision !in anchor.attempted }?.price?.surcharge
 
-	private fun cached(anchor: ValueAnchor, temperature: Temperature, epoch: Int): List<PricedDecision> {
+	private fun cached(anchor: ValueAnchor, temperature: Double, epoch: Int): List<PricedDecision> {
 		val hazard = anchor.hazardFrame
 		val cached = anchor.actions
 		if (cached != null && anchor.actionsHazardFrame == hazard && anchor.actionsEpoch == epoch) return cached
@@ -105,16 +101,10 @@ internal class ActionSet(
 		}
 	}
 
-	private inline fun movementDecisions(anchor: ValueAnchor, edge: CoarseEdge, accept: (TrajectoryDecision) -> Unit) {
-		val owner = catalog[edge.movement]
-		val context = DecisionContext(anchor, edge, config, field.view, steering = field)
-		owner?.decisions(context)?.forEach(accept)
-		for (movement in catalog.movements) {
-			if (movement !== owner && movement.offersFor(edge)) movement.decisions(context).forEach(accept)
-		}
-	}
+	private val DecisionPrice.surcharge: Double get() = ticks + RISK_WEIGHT * difficulty
 
 	private companion object {
+		const val RISK_WEIGHT = 4.0
 
 		private const val CORRIDOR_STEPS = 3
 		private const val CORRIDOR_MARGIN_TICKS = 4.0

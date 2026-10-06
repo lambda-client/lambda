@@ -4,8 +4,8 @@ import com.lambda.Lambda
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
+import com.lambda.pathing.coarse.SwitchableValueField
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.search.LegHandoff
 import com.lambda.pathing.search.LegSource
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.WorldSyncResult
@@ -33,7 +33,6 @@ internal class LegChain(
 	private val fieldExpansionBudget: Duration,
 ) : LegSource {
 	private class Leg(
-		val state: CoarsePlanningState,
 		val route: CoarseRoutePlan,
 		val field: CoarseValueField,
 		val resolution: RouteResolution,
@@ -41,34 +40,33 @@ internal class LegChain(
 	)
 
 	private lateinit var current: Leg
+	private lateinit var field: SwitchableValueField
 	private var nextIndex = 0
 	private var pending: CompletableFuture<Leg?>? = null
 	private val forwarded = Array(states.size) { ConcurrentLinkedQueue<WorldEventBatch>() }
 
-	var switches = 0
-		private set
-
 	val ledger: String get() = current.sync?.ledger ?: "coarseSync=n/a"
 
-	fun begin(route: CoarseRoutePlan, resolution: RouteResolution): CoarseValueField {
+	fun begin(route: CoarseRoutePlan, resolution: RouteResolution): SwitchableValueField {
 		current = leg(0, route, resolution)
+		field = SwitchableValueField(current.field)
 		nextIndex = 1
 		prepareNext()
-		return current.field
+		return field
 	}
 
 	override fun hasNext(): Boolean = nextIndex < states.size
 
-	fun sync(route: CoarseRoutePlan): WorldSyncResult = current.sync?.invoke(route) ?: WorldSyncResult.Quiet
+	fun sync(route: CoarseRoutePlan): WorldSyncResult = current.sync?.sync(route) ?: WorldSyncResult.Quiet
 
-	fun onBatch(batch: WorldEventBatch) {
+	private fun onBatch(batch: WorldEventBatch) {
 		for (i in nextIndex until states.size) forwarded[i] += batch
 	}
 
-	override fun handoff(touched: Stance): LegHandoff? {
+	override fun handoff(touched: Stance): CoarseRoutePlan? {
 		if (!hasNext()) return null
 		val index = nextIndex
-		val future = pending ?: CompletableFuture.supplyAsync({ resolveLeg(index) }, executor).also { pending = it }
+		val future = pendingLeg(index)
 		val waitStarted = System.nanoTime()
 		val leg = try {
 			future.get(HANDOFF_WAIT_MILLIS, TimeUnit.MILLISECONDS)
@@ -87,32 +85,37 @@ internal class LegChain(
 			return null
 		}
 
-		var changed = false
-		while (true) {
-			val batch = forwarded[index].poll() ?: break
-			if (batch.isEmpty) continue
-			leg.state.applyEvents(batch)
-			changed = true
-		}
-		val route = if (changed) {
+		val route = if (drainForwarded(index)) {
 			leg.resolution.resolve(starts[index], snapshotRevision, coarseExpansionBudget, cancelled = cancelled) ?: leg.route
 		} else leg.route
 
 		current = leg
+		field.current = leg.field
 		nextIndex = index + 1
-		switches++
 		LOG.info(
 			"Leg handoff at {}: next goal {}, route {} nodes, waited {} ms",
-			touched, leg.state.goal, route.nodes.size, waited,
+			touched, states[index].goal, route.nodes.size, waited,
 		)
 		prepareNext()
-		return LegHandoff(route, leg.field)
+		return route
 	}
 
 	private fun prepareNext() {
-		if (!hasNext() || pending != null) return
-		val index = nextIndex
-		pending = CompletableFuture.supplyAsync({ resolveLeg(index) }, executor)
+		if (hasNext()) pendingLeg(nextIndex)
+	}
+
+	private fun pendingLeg(index: Int): CompletableFuture<Leg?> =
+		pending ?: CompletableFuture.supplyAsync({ resolveLeg(index) }, executor).also { pending = it }
+
+	private fun drainForwarded(index: Int): Boolean {
+		var changed = false
+		while (true) {
+			val batch = forwarded[index].poll() ?: break
+			if (batch.isEmpty) continue
+			states[index].applyEvents(batch)
+			changed = true
+		}
+		return changed
 	}
 
 	private fun resolveLeg(index: Int): Leg? {
@@ -140,10 +143,7 @@ internal class LegChain(
 			state.demandCaptureLag(world)
 			if (rounds == 1) InterestPrimer.primeJourney(world, start, state.goal)
 			world.awaitEvents(world.revision, LEG_RESOLVE_WAIT_MILLIS)
-			while (true) {
-				val batch = forwarded[index].poll() ?: break
-				if (!batch.isEmpty) state.applyEvents(batch)
-			}
+			drainForwarded(index)
 		}
 		if (route == null) {
 			LOG.warn(
@@ -176,7 +176,7 @@ internal class LegChain(
 				onBatch = ::onBatch,
 			)
 		}
-		return Leg(state, route, field, resolution, sync)
+		return Leg(route, field, resolution, sync)
 	}
 
 	private companion object {

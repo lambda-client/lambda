@@ -3,8 +3,6 @@ package com.lambda.pathing.session
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.CoarseValueField
-import com.lambda.pathing.coarse.SwitchableValueField
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
@@ -19,7 +17,6 @@ import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SystemSearchClock
-import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
@@ -41,7 +38,7 @@ internal fun walkHorizon(
 	finalGoal: Stance = route.goal,
 	field: ValueField = planner.valueField(),
 	probe: SearchProbe = SearchProbe.NONE,
-	onExhaustion: ((SearchStats) -> Unit)? = null,
+	onConcluded: ((SearchStats) -> Unit)? = null,
 	parallelism: Int = 1,
 	legs: LegSource? = null,
 ): PathPlanResult {
@@ -51,7 +48,7 @@ internal fun walkHorizon(
 		val planMillis = System.currentTimeMillis() - started
 		return PublishedPath(
 			route = seed.sourceRoute,
-			plan = TrajectoryPlan.fromWalkingSeed(seed, profile),
+			plan = seed.plan,
 			safeAnchorStance = seed.safeAnchorStance,
 			safeAnchorFrame = seed.safeAnchorFrame,
 			attempts = seed.attemptCount,
@@ -65,11 +62,8 @@ internal fun walkHorizon(
 		)
 	}
 
-	val searchField: ValueField =
-		if (legs != null && field is CoarseValueField) SwitchableValueField(field) else field
-
 	val result = SearchLoop(
-		route, planner.moves.catalog, searchField, initial, profile, snapshot, seedConfig, searchConfig,
+		route, planner.moves.catalog, field, initial, profile, snapshot, seedConfig, searchConfig,
 		onSafePrefix = { step ->
 			if (!cancelled()) {
 				publish(stamp(step, partial = true, sequence = published + 1), published > 0)
@@ -82,7 +76,7 @@ internal fun walkHorizon(
 		world = world,
 		finalGoal = finalGoal,
 		probe = probe,
-		onExhaustion = onExhaustion,
+		onConcluded = onConcluded,
 		parallelism = parallelism,
 		legs = legs,
 	).run()

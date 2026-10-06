@@ -48,7 +48,7 @@ internal class FrontierSweep(
 			expanded++
 			if (node != goal) {
 				var frontier = false
-				forEachUnknownNeighbor(node) { x, y, z ->
+				view.forEachUnknownNeighbor(node) { x, y, z ->
 					if (capturable(x shr 4, z shr 4)) onCaptureLag(x, y, z)
 					else frontier = true
 				}
@@ -64,13 +64,6 @@ internal class FrontierSweep(
 			}
 		}
 		return anchors
-	}
-
-	private inline fun forEachUnknownNeighbor(stance: Stance, action: (Int, Int, Int) -> Unit) {
-		if (!view.isKnown(stance.x + 1, stance.y, stance.z)) action(stance.x + 1, stance.y, stance.z)
-		if (!view.isKnown(stance.x - 1, stance.y, stance.z)) action(stance.x - 1, stance.y, stance.z)
-		if (!view.isKnown(stance.x, stance.y, stance.z + 1)) action(stance.x, stance.y, stance.z + 1)
-		if (!view.isKnown(stance.x, stance.y, stance.z - 1)) action(stance.x, stance.y, stance.z - 1)
 	}
 
 	private fun optimisticCost(anchor: Stance): Double {
@@ -91,11 +84,10 @@ object FrontierAnchors {
 
 	val NOTHING_CAPTURABLE: (Int, Int) -> Boolean = { _, _ -> false }
 
-	fun bordersUnknown(view: CoarseVoxelView, stance: Stance): Boolean =
-		!view.isKnown(stance.x + 1, stance.y, stance.z) ||
-				!view.isKnown(stance.x - 1, stance.y, stance.z) ||
-				!view.isKnown(stance.x, stance.y, stance.z + 1) ||
-				!view.isKnown(stance.x, stance.y, stance.z - 1)
+	fun bordersUnknown(view: CoarseVoxelView, stance: Stance): Boolean {
+		view.forEachUnknownNeighbor(stance) { _, _, _ -> return true }
+		return false
+	}
 
 	fun goalResolved(view: CoarseVoxelView, goal: Stance): Boolean =
 		view.isKnown(goal.x, goal.y - 1, goal.z) &&
@@ -106,4 +98,11 @@ object FrontierAnchors {
 		goalResolved(view, goal) && !moves.isStance(view, goal)
 
 	internal const val SWEEP_MAX_NODES = 40_000
+}
+
+private inline fun CoarseVoxelView.forEachUnknownNeighbor(stance: Stance, action: (Int, Int, Int) -> Unit) {
+	if (!isKnown(stance.x + 1, stance.y, stance.z)) action(stance.x + 1, stance.y, stance.z)
+	if (!isKnown(stance.x - 1, stance.y, stance.z)) action(stance.x - 1, stance.y, stance.z)
+	if (!isKnown(stance.x, stance.y, stance.z + 1)) action(stance.x, stance.y, stance.z + 1)
+	if (!isKnown(stance.x, stance.y, stance.z - 1)) action(stance.x, stance.y, stance.z - 1)
 }

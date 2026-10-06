@@ -1,5 +1,6 @@
 package pathing
 
+import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.coarse.FrontierAnchors
 import com.lambda.pathing.coarse.FrontierSweep
 import com.lambda.pathing.coarse.SimpleMoveLibrary
@@ -48,3 +49,6 @@ internal fun FrontierAnchors.sweep(
 ): Map<Stance, Double> =
     FrontierSweep(view, moves, goal, { moves.edgesFrom(view, it) }, capturable = capturable, onCaptureLag = onCaptureLag)
         .anchorsFrom(from)
+
+internal fun SimpleMoveLibrary.edgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> =
+    if (!isStance(view, origin)) emptyList() else templates(view).mapNotNull { it.edge(view, origin) }

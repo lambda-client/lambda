@@ -5,7 +5,6 @@ import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.bounceFactor
 import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.world.Medium
 import com.lambda.util.BlockUtils.isFenceLike
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -56,7 +55,7 @@ object BlockPhysicsCapture {
 		val unsupported = unsupportedPhysics(state)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
 		val coarseVoxel = when {
-			state.fluidState.isEmpty && state.isIn(BlockTags.CLIMBABLE) -> CoarseVoxel.of(Medium.CLIMBABLE)
+			state.fluidState.isEmpty && state.isIn(BlockTags.CLIMBABLE) -> CoarseVoxel.CLIMBABLE
 			unsupported != null -> CoarseVoxel.UNKNOWN
 			else -> coarseVoxelOf(shape, bouncy = slime)
 		}

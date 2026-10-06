@@ -9,15 +9,11 @@
 
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
-import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.math.BlockPos
@@ -28,7 +24,6 @@ import kotlin.test.Test
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
-import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -71,19 +66,7 @@ class TrapdoorStepTest {
         planner.expandField(extraTicks = 40.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(0.5, 10.0, 1.5),
-                rotation = Rotation(0.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(0.5, 10.0, 1.5)), environment)
         val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
         assertTrue(!path.partial, "the walk must arrive on the trapdoors")
         val terminal = path.plan.frames.last().state.position
@@ -126,19 +109,7 @@ class TrapdoorStepTest {
         planner.expandField(extraTicks = 40.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 
-        val outcome = walkHorizon(
-            route, planner,
-            MovementSimulationState.synthetic(
-                profile = PROFILE,
-                position = Vec3d(0.5, 10.5, 1.5),
-                rotation = Rotation(0.0, 0.0),
-                velocity = Vec3d(0.0, -0.0784, 0.0),
-                onGround = true,
-            ),
-            PROFILE, environment, MotionConstraints(),
-            publish = { _, _ -> },
-            started = System.currentTimeMillis(),
-        )
+        val outcome = walkFrom(route, planner, resting(Vec3d(0.5, 10.5, 1.5)), environment)
         val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
         assertTrue(!path.partial, "the walk must arrive on the far blocks")
         val terminal = path.plan.frames.last().state.position

@@ -59,7 +59,7 @@ object BounceArcProbe {
 			for ((jump, sprint) in STANDING_STYLES) {
 				refined(seed) { contactDepth ->
 					BounceSolver.solveStanding(
-						horizontalDistance = length, drop = drop,
+						horizontalDistance = length,
 						jump = jump, sprint = sprint,
 						contactDepth = contactDepth, riseHeight = riseHeight,
 						contactPenalty = ::contactPenalty,
@@ -72,7 +72,7 @@ object BounceArcProbe {
 			for ((jump, sprint, holdForward, holdTicks) in COMBOS) {
 				refined(seed) { contactDepth ->
 					BounceSolver.solve(
-						horizontalDistance = length, drop = drop, rise = rise,
+						horizontalDistance = length,
 						sprint = sprint, holdForward = holdForward,
 						jump = jump, holdTicks = holdTicks,
 						contactDepth = contactDepth, riseHeight = riseHeight,
@@ -95,10 +95,9 @@ object BounceArcProbe {
 			return null
 		}
 
-		private fun admissible(solution: BounceSolution, arcs: ArcSweep): Boolean {
-			if (!contactPenalty(solution.launchOffset + solution.contactDistance).isFinite()) return false
-			return arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.CLEAR
-		}
+		private fun admissible(solution: BounceSolution, arcs: ArcSweep): Boolean =
+			contactPenalty(solution.launchOffset + solution.contactDistance).isFinite() &&
+					arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.CLEAR
 
 		private fun crossesPad(): Boolean {
 			var along = 1.0

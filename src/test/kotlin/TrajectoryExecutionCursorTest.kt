@@ -26,6 +26,7 @@ import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import net.minecraft.util.math.BlockPos
@@ -37,7 +38,7 @@ class TrajectoryExecutionCursorTest {
     @Test
     fun `cursor replays certified inputs without making movement decisions`() {
         val fixture = fixture()
-        val cursor = TrajectoryExecutionCursor(fixture.plan, PROFILE)
+        val cursor = TrajectoryExecutionCursor(fixture.plan)
         val simulator = MovementSimulator(PROFILE, fixture.environment, fixture.initial)
 
         repeat(fixture.plan.tape.frameCount) { frame ->
@@ -56,7 +57,7 @@ class TrajectoryExecutionCursorTest {
     @Test
     fun `cursor rejects state drift and remains rejected`() {
         val fixture = fixture()
-        val cursor = TrajectoryExecutionCursor(fixture.plan, PROFILE)
+        val cursor = TrajectoryExecutionCursor(fixture.plan)
         val shifted = fixture.initial.copy(position = fixture.initial.position.add(0.1, 0.0, 0.0))
 
         val first = assertIs<ExecutionInputResult.Rejected>(cursor.nextInput(shifted))
@@ -67,31 +68,26 @@ class TrajectoryExecutionCursorTest {
     @Test
     fun `cursor rejects invalid call ordering and profile changes`() {
         val fixture = fixture()
-        val protocolCursor = TrajectoryExecutionCursor(fixture.plan, PROFILE)
+        val protocolCursor = TrajectoryExecutionCursor(fixture.plan)
         assertIs<ExecutionInputResult.Apply>(protocolCursor.nextInput(fixture.initial))
         assertIs<ExecutionDeviation.Protocol>(
             assertIs<ExecutionInputResult.Rejected>(protocolCursor.nextInput(fixture.initial)).deviation,
         )
 
-        val profileCursor = TrajectoryExecutionCursor(fixture.plan, PROFILE.copy(gravity = 0.1))
-        assertIs<ExecutionDeviation.PhysicsProfile>(
-            assertIs<ExecutionInputResult.Rejected>(profileCursor.nextInput(fixture.initial)).deviation,
-        )
+        assertFalse(PROFILE.copy(gravity = 0.1).isCompatibleWith(fixture.plan.physicsProfile))
     }
 
     @Test
     fun `cursor accepts float round trip noise in the physics profile`() {
         val fixture = fixture()
         val sprintRoundTrip = PROFILE.copy(movementSpeed = PROFILE.movementSpeed + 7e-9)
-        val cursor = TrajectoryExecutionCursor(fixture.plan, sprintRoundTrip)
-
-        assertIs<ExecutionInputResult.Apply>(cursor.nextInput(fixture.initial))
+        assertTrue(sprintRoundTrip.isCompatibleWith(fixture.plan.physicsProfile))
     }
 
     @Test
     fun `cursor defers a transient sprint bit mismatch when the next key press converges it`() {
         val fixture = fixture()
-        val cursor = TrajectoryExecutionCursor(fixture.plan, PROFILE)
+        val cursor = TrajectoryExecutionCursor(fixture.plan)
         val simulator = MovementSimulator(PROFILE, fixture.environment, fixture.initial)
 
         val first = assertIs<ExecutionInputResult.Apply>(cursor.nextInput(simulator.state))
@@ -109,7 +105,7 @@ class TrajectoryExecutionCursorTest {
     @Test
     fun `cursor rejects a sprint mismatch when forward coasting cannot converge it`() {
         val fixture = fixture(initialSprinting = true, sprintModes = listOf(false))
-        val cursor = TrajectoryExecutionCursor(fixture.plan, PROFILE)
+        val cursor = TrajectoryExecutionCursor(fixture.plan)
         val observed = fixture.initial.copy(isSprinting = false)
 
         val rejected = assertIs<ExecutionInputResult.Rejected>(
@@ -165,7 +161,7 @@ class TrajectoryExecutionCursorTest {
                 MotionConstraints(sprintModes = sprintModes),
             ).run(),
         )
-        return Fixture(environment, initial, TrajectoryPlan.fromWalkingSeed(seed, PROFILE))
+        return Fixture(environment, initial, seed.plan)
     }
 
     private fun flatEnvironment(minX: Int = -3, maxX: Int = 7): SnapshotSimulationEnvironment {

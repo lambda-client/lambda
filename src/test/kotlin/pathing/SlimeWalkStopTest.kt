@@ -9,14 +9,12 @@
 
 package pathing
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.search.VirtualSearchClock
-import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -59,13 +57,7 @@ class SlimeWalkStopTest {
             "no coarse route over the slime: ${planner.routeFailureReport()}"
         }
 
-        val initial = MovementSimulationState.synthetic(
-            profile = PROFILE,
-            position = Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5),
-            rotation = Rotation(0.0, 0.0),
-            velocity = Vec3d(0.0, -0.0784, 0.0),
-            onGround = true,
-        )
+        val initial = resting(Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5))
 
         val clock = VirtualSearchClock()
         val outcome = walkHorizon(

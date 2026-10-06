@@ -186,69 +186,50 @@ class LongDStarLite(
 		updateVertex(newStart)
 	}
 
-	fun synchronizeAffected(affectedNodes: LongIterable): SynchronizationResult {
-		var nodesChecked = 0
-		val changes = IntArray(EdgeChange.entries.size)
-
+	fun synchronizeAffected(affectedNodes: LongIterable): Boolean {
 		val unique = LongOpenHashSet()
 		val iterator = affectedNodes.iterator()
 		while (iterator.hasNext()) unique.add(iterator.nextLong())
 		val ordered = unique.toLongArray()
 		ordered.sort()
 
+		var changed = false
 		for (node in ordered) {
-			val knownView = graph.knownSuccessors(node)
-			if (node !in graph && knownView.isEmpty()) continue
-
-			val oldSuccessors = if (knownView.isEmpty()) EdgeList.EMPTY else knownView.copy()
+			if (node !in graph) continue
+			val oldSuccessors = graph.knownSuccessors(node).copy()
 			val newSuccessors = graph.generateSuccessors(node)
 			graph.markSuccessorsInitialized(node)
-			nodesChecked++
+			if (reconcileEdges(oldSuccessors, newSuccessors) { target, cost -> updateEdge(node, target, cost) }) changed = true
 
-			reconcileEdges(oldSuccessors, newSuccessors, changes) { target, cost -> updateEdge(node, target, cost) }
 			val oldPredecessors = graph.knownPredecessors(node).copy()
 			val newPredecessors = graph.generatePredecessors(node)
 			graph.markPredecessorsInitialized(node)
-
-			reconcileEdges(oldPredecessors, newPredecessors, changes) { source, cost -> updateEdge(source, node, cost) }
+			if (reconcileEdges(oldPredecessors, newPredecessors) { source, cost -> updateEdge(source, node, cost) }) changed = true
 		}
-
-		return SynchronizationResult(
-			nodesChecked,
-			changes[EdgeChange.ADDED.ordinal],
-			changes[EdgeChange.REMOVED.ordinal],
-			changes[EdgeChange.CHANGED.ordinal],
-		)
+		return changed
 	}
 
-	private enum class EdgeChange { ADDED, REMOVED, CHANGED }
-
-	private inline fun reconcileEdges(old: EdgeList, new: EdgeList, changes: IntArray, apply: (Long, Double) -> Unit) {
+	private inline fun reconcileEdges(old: EdgeList, new: EdgeList, apply: (Long, Double) -> Unit): Boolean {
+		var changed = false
 		for (i in 0 until old.size) {
 			val node = old.node(i)
 			if (node in new) continue
 			apply(node, INF)
-			changes[EdgeChange.REMOVED.ordinal]++
+			changed = true
 		}
 		for (i in 0 until new.size) {
 			val node = new.node(i)
 			val cost = new.cost(i)
 			val oldIndex = old.indexOf(node)
-			val change = when {
-				oldIndex < 0 -> EdgeChange.ADDED
-				!sameCost(old.cost(oldIndex), cost) -> EdgeChange.CHANGED
-				else -> continue
-			}
+			if (oldIndex >= 0 && sameCost(old.cost(oldIndex), cost)) continue
 			apply(node, cost)
-			changes[change.ordinal]++
+			changed = true
 		}
+		return changed
 	}
 
 	fun updateEdge(from: Long, to: Long, newCost: Double) {
-		require(!newCost.isNaN() && newCost >= 0.0) {
-			"D* Lite edge costs must be non-negative or +infinity: $newCost"
-		}
-
+		EdgeList.checkCost(newCost)
 		val oldCost = graph.knownSuccessors(from).costOf(to)
 		if (sameCost(oldCost, newCost)) return
 		graph.setCost(from, to, newCost)
@@ -288,16 +269,11 @@ class LongDStarLite(
 		data object Unreachable : Descent
 	}
 
-	private fun settle(node: Long, maxExpansions: Int, cancelled: () -> Boolean): Int {
-		var processed = 0
-		while (!queue.isEmpty() && processed < maxExpansions) {
-			if (!shouldCompute() && isSettled(node)) break
-			if ((processed and DEADLINE_CHECK_MASK) == 0 && cancelled()) break
-			step()
-			processed++
-		}
-		return processed
-	}
+	private fun settle(node: Long, maxExpansions: Int, cancelled: () -> Boolean): Int = compute(
+		Duration.INFINITE, maxExpansions, cancelled,
+		keepGoing = { !queue.isEmpty() && (shouldCompute() || !isSettled(node)) },
+		stallReason = { null },
+	).processedNodes
 
 	private fun isSettled(node: Long): Boolean {
 		if (!sameCost(g(node), rhs(node))) return false
@@ -341,26 +317,18 @@ class LongDStarLite(
 				report?.append("no-successors-at-${describe(current)}-after-$step")
 				return Descent.Unreachable
 			}
-			var next = 0L
-			var bestCost = INF
-			var bestEdge = INF
-			var found = false
-			for (i in 0 until successors.size) {
+			var next = successors.node(0)
+			var bestEdge = successors.cost(0)
+			var bestCost = bestEdge + g(next)
+			for (i in 1 until successors.size) {
 				val successor = successors.node(i)
 				val edgeCost = successors.cost(i)
 				val candidateCost = edgeCost + g(successor)
-				val better = candidateCost < bestCost ||
-						(candidateCost.compareTo(bestCost) == 0 && successor < next)
-				if (!found || better) {
+				if (candidateCost < bestCost || (candidateCost.compareTo(bestCost) == 0 && successor < next)) {
 					next = successor
 					bestCost = candidateCost
 					bestEdge = edgeCost
-					found = true
 				}
-			}
-			if (!bestEdge.isFinite()) {
-				report?.append("infinite-edge-at-${describe(current)}-after-$step")
-				return if (strict) Descent.Blocked(current) else Descent.Unreachable
 			}
 			if (strict && !bestCost.isFinite()) {
 				report?.append("infinite-cost-at-${describe(current)}-after-$step")
@@ -466,13 +434,6 @@ class LongDStarLite(
 		val cancelled: Boolean,
 		val converged: Boolean,
 		val stall: String? = null,
-	)
-
-	data class SynchronizationResult(
-		val nodesChecked: Int,
-		val edgesAdded: Int,
-		val edgesRemoved: Int,
-		val edgesChanged: Int,
 	)
 
 	companion object {

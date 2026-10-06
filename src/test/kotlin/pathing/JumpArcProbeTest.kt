@@ -38,7 +38,7 @@ class JumpArcProbeTest {
             "an open span-4 flat jump must be proposed",
         )
         assertTrue(result.solution.sprint, "span 4 is beyond any walking reach; the hint must say sprint")
-        assertTrue(result.reads.isNotEmpty(), "the sweep must publish its shape reads")
+        assertTrue(result.reads().isNotEmpty(), "the sweep must publish its shape reads")
     }
 
     @Test
