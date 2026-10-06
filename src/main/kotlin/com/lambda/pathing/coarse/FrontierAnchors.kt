@@ -126,7 +126,7 @@ object FrontierAnchors {
 		return maxOf(moves.heuristic(anchor, goal), realistic)
 	}
 
-	private const val SWEEP_MAX_NODES = 40_000
+	internal const val SWEEP_MAX_NODES = 40_000
 
 	private const val SWEEP_SLACK_BLOCKS = 32
 

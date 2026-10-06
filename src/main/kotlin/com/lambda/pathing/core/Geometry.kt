@@ -46,5 +46,3 @@ fun interpolate(from: HorizontalPoint, to: HorizontalPoint, distance: Double): H
 		from.z + (to.z - from.z) * scale,
 	)
 }
-
-internal const val MAX_PROGRESS_ADVANCE = 2

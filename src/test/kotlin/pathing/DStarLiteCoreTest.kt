@@ -227,8 +227,6 @@ class DStarLiteCoreTest {
         // Initialized node 1 remains planner knowledge; endpoint 2 was only
         // known through the removed edge and is pruned.
         assertEquals(setOf(1L), graph.nodes.toSet())
-        graph.clear()
-        assertTrue(graph.nodes.isEmpty())
     }
 
     @Test

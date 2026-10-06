@@ -118,4 +118,4 @@ object GridGraphTestUtil {
 }
 
 /** The greedy descent as a bare node list; the production planner consumes [LongDStarLite.routeCandidate]. */
-fun LongDStarLite.path(maxLength: Int = 10_000): LongArrayList = routeCandidate(maxLength)?.nodes ?: LongArrayList()
+fun LongDStarLite.path(): LongArrayList = routeCandidate()?.nodes ?: LongArrayList()

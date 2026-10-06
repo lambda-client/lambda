@@ -28,14 +28,6 @@ class WorldEventBatch(
 	val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
 }
 
-internal fun WorldEventBatch.mutatedChunkSet(): Set<PathingChunk> =
-	chunks + mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
-
-internal fun WorldEventBatch.arrivalChunkSet(): Set<PathingChunk> {
-	val mutated = mutatedChunkSet()
-	return sections.mapNotNullTo(HashSet()) { PathingChunk(it.x, it.z).takeUnless { chunk -> chunk in mutated } }
-}
-
 class PathingWorld(
 	val bounds: SimulationSnapshotBounds,
 	private val source: CaptureSource,
@@ -104,7 +96,7 @@ class PathingWorld(
 	}
 
 	fun onBlockChanged(pos: BlockPos) {
-		invalidateSection(ChunkSectionPos.asLong(pos.x shr 4, pos.y shr 4, pos.z shr 4), mutation = true)
+		invalidateSection(ChunkSectionPos.toLong(pos), mutation = true)
 	}
 
 	fun onChunkEvent(chunkX: Int, chunkZ: Int) {

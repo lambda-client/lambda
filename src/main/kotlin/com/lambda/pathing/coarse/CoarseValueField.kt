@@ -12,13 +12,12 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap
 class CoarseValueField(
 	override val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
-	private val label: (Stance) -> Double,
 	override val goal: Stance,
-
-	private val labelAt: (Stance, SpeedClass) -> Double = { stance, _ -> label(stance) },
-
-	private val edgeProvider: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
+	private val labelAt: (Stance, SpeedClass) -> Double,
+	private val edgeProvider: (Stance) -> List<CoarseEdge>,
 ) : ValueField {
+	private val label: (Stance) -> Double = { minOf(labelAt(it, SpeedClass.MOVING), labelAt(it, SpeedClass.STOPPED)) }
+
 	private val guides = Object2DoubleOpenHashMap<Stance>()
 		.apply { defaultReturnValue(Double.NaN) }
 	private val movingGuides = Object2DoubleOpenHashMap<Stance>()
@@ -152,7 +151,7 @@ class CoarseValueField(
 	}
 
 	private fun reference(from: Stance, heading: Pair<Double, Double>?): Pair<Double, Double> {
-		if (heading != null && hypot(heading.first, heading.second) > 1e-6) return heading
+		if (heading != null && hypot(heading.first, heading.second) > MIN_HEADING_LENGTH) return heading
 		return Pair((goal.x - from.x).toDouble(), (goal.z - from.z).toDouble())
 	}
 
@@ -171,5 +170,6 @@ class CoarseValueField(
 
 	private companion object {
 		const val TIE_TICKS = 0.5
+		const val MIN_HEADING_LENGTH = 1e-6
 	}
 }

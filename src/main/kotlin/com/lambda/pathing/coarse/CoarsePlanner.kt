@@ -18,28 +18,15 @@ class CoarsePlanner(
 	val view: CoarseVoxelView,
 	val moves: SimpleMoveLibrary,
 	start: Stance,
-	val goal: GoalShape,
+	val goalStance: Stance,
 
-	private val sweepBudget: Int = 40_000,
+	private val sweepBudget: Int = FrontierAnchors.SWEEP_MAX_NODES,
 
 	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 
 	private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
-
-	constructor(
-		view: CoarseVoxelView,
-		moves: SimpleMoveLibrary,
-		start: Stance,
-		goal: Stance,
-		sweepBudget: Int = 40_000,
-		capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
-		onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
-	) : this(view, moves, start, GoalShape.Point(goal, moves), sweepBudget, capturable, onCaptureLag)
-
 	private val anchors = HashMap<Stance, Double>()
-
-	val goalStance: Stance = goal.anchorStance
 
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
@@ -84,7 +71,7 @@ class CoarsePlanner(
 		val iterator = graph.nodes.iterator()
 		while (iterator.hasNext()) {
 			val node = iterator.nextLong()
-			if (PackedStance.speedBit(node) != 0 && graph.contains(PackedStance.withSpeed(node, SpeedClass.STOPPED))) continue
+			if (PackedStance.speed(node) == SpeedClass.MOVING && graph.contains(PackedStance.withSpeed(node, SpeedClass.STOPPED))) continue
 			action(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))
 		}
 	}
@@ -215,12 +202,8 @@ class CoarsePlanner(
 	fun expandSearchField(timeBudget: Duration = Duration.INFINITE, cancelled: () -> Boolean = { false }) =
 		expandField(SEARCH_FIELD_TICKS, timeBudget, SEARCH_FIELD_EXPANSIONS, cancelled)
 
-	fun route(
-		maxLength: Int = 10_000,
-		cancelled: () -> Boolean = { false },
-	): CoarseRouteCandidate<Stance>? {
+	fun route(cancelled: () -> Boolean = { false }): CoarseRouteCandidate<Stance>? {
 		val candidate = search.computeRouteCandidate(
-			maxLength = maxLength,
 			maxExpansions = ROUTE_DESCENT_EXPANSIONS,
 			cancelled = cancelled,
 		) ?: return null
@@ -237,19 +220,17 @@ class CoarsePlanner(
 			nodes = stances,
 			ticks = candidate.ticks,
 			exactFromStart = candidate.exactFromStart,
-			routeVersion = candidate.routeVersion,
 		)
 	}
 
 	fun routePlan(
 		snapshotRevision: Long,
-		maxLength: Int = 10_000,
 		cancelled: () -> Boolean = { false },
 	): CoarseRoutePlan? {
-		val candidate = route(maxLength, cancelled) ?: return null
+		val candidate = route(cancelled) ?: return null
 
 		val nodes =
-			if (candidate.nodes.size >= 2 && goal.satisfied(candidate.nodes.last()) &&
+			if (candidate.nodes.size >= 2 && candidate.nodes.last() == goalStance &&
 				candidate.nodes[candidate.nodes.size - 2] in anchors
 			) candidate.nodes.dropLast(1) else candidate.nodes
 		val edges = nodes.zipWithNext { from, to -> liveEdge(from, to) ?: return null }
@@ -279,19 +260,17 @@ class CoarsePlanner(
 	fun resynchronizedRoutePlan(
 		snapshotRevision: Long,
 		cancelled: () -> Boolean = { false },
-		maxLength: Int = 10_000,
-		maxRounds: Int = ROUTE_RESYNCHRONIZATION_ROUNDS,
 		maxExpansions: Int = Int.MAX_VALUE,
 	): CoarseRoutePlan? {
-		repeat(maxRounds) {
+		repeat(ROUTE_RESYNCHRONIZATION_ROUNDS) {
 			if (cancelled()) return null
-			val stale = route(maxLength)?.nodes ?: return null
+			val stale = route()?.nodes ?: return null
 			val synchronized = synchronizeStances(stale)
 			if (synchronized.edgesRemoved + synchronized.edgesChanged + synchronized.edgesAdded == 0) {
 				return null
 			}
 			repair(timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled)
-			routePlan(snapshotRevision, maxLength)?.let { return it }
+			routePlan(snapshotRevision)?.let { return it }
 		}
 		return null
 	}
@@ -321,9 +300,6 @@ class CoarsePlanner(
 	fun valueField(): CoarseValueField = CoarseValueField(
 		view = view,
 		moves = moves,
-		label = { stance ->
-			minOf(nodeLabel(stance, SpeedClass.MOVING), nodeLabel(stance, SpeedClass.STOPPED))
-		},
 		goal = goalStance,
 		labelAt = ::nodeLabel,
 		edgeProvider = edgeCache::edgesFrom,

@@ -21,7 +21,7 @@ internal class CoarseEdgeCache(
 	private val completeOrigins = LongOpenHashSet()
 
 	fun edgesFrom(node: Long): List<CoarseEdge> {
-		val key = stanceKey(node)
+		val key = PackedStance.stanceKey(node)
 		return outgoing.get(key) ?: run {
 			val stance = PackedStance.stance(key)
 			val edges = computeEdgesFrom(stance)
@@ -34,7 +34,7 @@ internal class CoarseEdgeCache(
 	fun isComplete(stance: Stance): Boolean = completeOrigins.contains(key(stance))
 
 	fun edgesTo(node: Long): List<CoarseEdge> {
-		val key = stanceKey(node)
+		val key = PackedStance.stanceKey(node)
 		return incoming.get(key) ?: computeEdgesTo(PackedStance.stance(key)).also { incoming.put(key, it) }
 	}
 
@@ -113,10 +113,6 @@ internal class CoarseEdgeCache(
 	}
 
 	private companion object {
-		private const val SPEED_BIT = 1L
-
-		fun stanceKey(node: Long): Long = node and SPEED_BIT.inv()
-
 		fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
 	}
 }

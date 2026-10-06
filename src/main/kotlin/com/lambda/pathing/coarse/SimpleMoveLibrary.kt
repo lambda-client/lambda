@@ -3,24 +3,21 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.MotionTemplate
-import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.abs
 import kotlin.math.hypot
 
-class SimpleMoveLibrary private constructor(
-	val catalog: MovementCatalog,
-	val templates: List<MotionTemplate>,
-	private val readOffsets: Set<VoxelPos>,
-	val heuristicCaps: HeuristicCaps,
-	val sustainedTicksPerBlock: Double,
-) {
+class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
+	val templates: List<MotionTemplate> = catalog.templates
+	private val readOffsets: Set<VoxelPos> = templates.flatMapTo(HashSet()) { it.readOffsets }
+	private val heuristicCaps: HeuristicCaps = deriveCaps(templates)
+	val sustainedTicksPerBlock: Double = sustainedRate(templates)
+
 	private val minReadX = readOffsets.minOf(VoxelPos::x)
 	private val maxReadX = readOffsets.maxOf(VoxelPos::x)
 	private val minReadZ = readOffsets.minOf(VoxelPos::z)
@@ -91,17 +88,6 @@ class SimpleMoveLibrary private constructor(
 		return templates.mapNotNull { it.edge(view, origin) }
 	}
 
-	fun edgesTo(view: CoarseVoxelView, target: Stance): List<CoarseEdge> {
-		if (!isStance(view, target)) return emptyList()
-		return templates.mapNotNull { template ->
-			val origin = target.offset(-template.dx, -template.dy, -template.dz)
-			if (isStance(view, origin)) template.edge(view, origin) else null
-		}
-	}
-
-	fun successorCosts(view: CoarseVoxelView, origin: Stance): Map<Stance, Double> =
-		edgesFrom(view, origin).minimumCostsBy { it.to }
-
 	fun heuristic(from: Stance, to: Stance): Double = heuristic(from.x, from.y, from.z, to.x, to.y, to.z)
 
 	fun heuristic(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int): Double {
@@ -136,52 +122,22 @@ class SimpleMoveLibrary private constructor(
 		}
 	}
 
-	fun affectedOrigins(chunk: PathingChunk, candidates: Iterable<Stance>): Set<Stance> {
-		val chunkMinX = chunk.x shl 4
-		val chunkMaxX = chunkMinX + 15
-		val chunkMinZ = chunk.z shl 4
-		val chunkMaxZ = chunkMinZ + 15
-		val originX = (chunkMinX - maxReadX)..(chunkMaxX - minReadX)
-		val originZ = (chunkMinZ - maxReadZ)..(chunkMaxZ - minReadZ)
-		return candidates.filterTo(HashSet()) { it.x in originX && it.z in originZ }
-	}
+	internal fun originColumnRanges(chunk: PathingChunk) = columnRanges(chunk, -maxReadX, -minReadX, -maxReadZ, -minReadZ)
 
-	internal fun originColumnRanges(chunk: PathingChunk): Pair<IntRange, IntRange> {
+	internal fun targetColumnRanges(chunk: PathingChunk) = columnRanges(chunk, minTargetX, maxTargetX, minTargetZ, maxTargetZ)
+
+	private fun columnRanges(chunk: PathingChunk, lowX: Int, highX: Int, lowZ: Int, highZ: Int): Pair<IntRange, IntRange> {
 		val chunkMinX = chunk.x shl 4
 		val chunkMinZ = chunk.z shl 4
-		return ((chunkMinX - maxReadX)..(chunkMinX + 15 - minReadX)) to
-				((chunkMinZ - maxReadZ)..(chunkMinZ + 15 - minReadZ))
-	}
-
-	internal fun targetColumnRanges(chunk: PathingChunk): Pair<IntRange, IntRange> {
-		val chunkMinX = chunk.x shl 4
-		val chunkMinZ = chunk.z shl 4
-		return ((chunkMinX + minTargetX)..(chunkMinX + 15 + maxTargetX)) to
-				((chunkMinZ + minTargetZ)..(chunkMinZ + 15 + maxTargetZ))
-	}
-
-	private fun List<CoarseEdge>.minimumCostsBy(node: (CoarseEdge) -> Stance): Map<Stance, Double> {
-		val result = HashMap<Stance, Double>(size)
-		for (edge in this) result.merge(node(edge), edge.lowerBoundTicks, ::minOf)
-		return result
+		return ((chunkMinX + lowX)..(chunkMinX + 15 + highX)) to ((chunkMinZ + lowZ)..(chunkMinZ + 15 + highZ))
 	}
 
 	private fun Double.finiteOrZero() = if (isFinite()) this else 0.0
 
 	companion object {
 
-		fun build(
-			costs: CoarseMoveCosts,
-			options: SimpleMoveOptions = SimpleMoveOptions(),
-			ballistics: BallisticProfile = BallisticProfile.VANILLA,
-			movements: List<Movement> = MovementCatalog.REGISTERED,
-		): SimpleMoveLibrary = of(MovementCatalog.build(costs, options, ballistics, movements))
-
-		fun of(catalog: MovementCatalog): SimpleMoveLibrary {
-			val templates = catalog.templates
-			val offsets = templates.flatMapTo(HashSet()) { it.readOffsets }
-			return SimpleMoveLibrary(catalog, templates, offsets, deriveCaps(templates), sustainedRate(templates))
-		}
+		fun build(costs: CoarseMoveCosts, options: SimpleMoveOptions = SimpleMoveOptions()): SimpleMoveLibrary =
+			SimpleMoveLibrary(MovementCatalog.build(costs, options))
 
 		private fun sustainedRate(templates: List<MotionTemplate>): Double = templates
 			.filter { it.dy == 0 && abs(it.dx) + abs(it.dz) == 1 }

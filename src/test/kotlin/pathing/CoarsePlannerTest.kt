@@ -11,8 +11,11 @@ package pathing
 
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.CoarseMoveRates
+import com.lambda.pathing.coarse.CoarseEdgeCache
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.PackedStance
 import com.lambda.pathing.coarse.SimpleMoveLibrary
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.MovementId
@@ -318,8 +321,9 @@ class CoarsePlannerTest {
         for (edge in moves.edgesFrom(world, origin)) {
             for (read in edge.readSet) {
                 assertTrue(origin in moves.affectedOrigins(read), "${edge.movement} did not invert read $read")
+                val (xs, zs) = moves.originColumnRanges(PathingChunk.containing(read))
                 assertTrue(
-                    origin in moves.affectedOrigins(PathingChunk.containing(read), listOf(origin)),
+                    origin.x in xs && origin.z in zs,
                     "${edge.movement} did not overlap the refreshed chunk containing $read",
                 )
             }
@@ -344,6 +348,9 @@ class CoarsePlannerTest {
         }
     }
 
+
+    private fun SimpleMoveLibrary.edgesTo(view: CoarseVoxelView, target: Stance) =
+        CoarseEdgeCache(view, this).edgesTo(PackedStance.pack(target, SpeedClass.STOPPED))
 
     private fun library(options: SimpleMoveOptions = SimpleMoveOptions()) = SimpleMoveLibrary.build(
         costs = CoarseMoveCosts(

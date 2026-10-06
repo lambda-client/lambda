@@ -22,8 +22,6 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 
 	fun isEmpty(): Boolean = targets.isEmpty
 
-	fun isNotEmpty(): Boolean = !targets.isEmpty
-
 	fun node(index: Int): Long = targets.getLong(index)
 
 	fun cost(index: Int): Double = costs.getDouble(index)
@@ -41,24 +39,18 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 		return if (index < 0) Double.POSITIVE_INFINITY else costs.getDouble(index)
 	}
 
-	override fun add(node: Long, cost: Double) {
-		checkCost(cost)
-		val index = indexOf(node)
-		if (index >= 0) costs.set(index, cost)
-		else {
-			targets.add(node)
-			costs.add(cost)
-		}
-	}
+	override fun add(node: Long, cost: Double) = put(node, cost, keepLower = false)
 
-	override fun addMin(node: Long, cost: Double) {
+	override fun addMin(node: Long, cost: Double) = put(node, cost, keepLower = true)
+
+	private fun put(node: Long, cost: Double, keepLower: Boolean) {
 		checkCost(cost)
 		val index = indexOf(node)
-		if (index >= 0) {
-			if (cost < costs.getDouble(index)) costs.set(index, cost)
-		} else {
+		if (index < 0) {
 			targets.add(node)
 			costs.add(cost)
+		} else if (!keepLower || cost < costs.getDouble(index)) {
+			costs.set(index, cost)
 		}
 	}
 
@@ -91,11 +83,6 @@ class EdgeList(initialCapacity: Int = 16) : EdgeSink {
 		out.targets.addAll(targets)
 		out.costs.addAll(costs)
 		return out
-	}
-
-	fun clear() {
-		targets.clear()
-		costs.clear()
 	}
 
 	fun toMap(): Map<Long, Double> {

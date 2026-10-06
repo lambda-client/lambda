@@ -334,7 +334,7 @@ class SnapshotSimulationEnvironment internal constructor(
 			val builders = HashMap<Long, ImmutableSnapshotSection.Builder>()
 			blocks.forEach { (pos, physics) ->
 				require(pos in bounds) { "Synthetic block $pos lies outside $bounds" }
-				val sectionKey = ChunkSectionPos.asLong(pos.x shr 4, pos.y shr 4, pos.z shr 4)
+				val sectionKey = ChunkSectionPos.toLong(pos)
 				builders.getOrPut(sectionKey, ImmutableSnapshotSection::Builder)
 					.set(pos.x, pos.y, pos.z, physics)
 			}
@@ -349,15 +349,8 @@ class SnapshotSimulationEnvironment internal constructor(
 	class TrackedSnapshotSimulationEnvironment internal constructor(
 		private val snapshot: SnapshotSimulationEnvironment,
 	) : SimulationEnvironment {
-		private val reads = HashSet<VoxelPos>()
 		private val pendingFrameReads = HashSet<VoxelPos>()
-		private val observer = SnapshotReadObserver { pos ->
-			val voxel = VoxelPos(pos.x, pos.y, pos.z)
-			reads += voxel
-			pendingFrameReads += voxel
-		}
-
-		fun dependencies(): Set<VoxelPos> = Collections.unmodifiableSet(HashSet(reads))
+		private val observer = SnapshotReadObserver { pos -> pendingFrameReads += VoxelPos(pos.x, pos.y, pos.z) }
 
 		fun takeFrameDependencies(): Set<VoxelPos> =
 			Collections.unmodifiableSet(HashSet(pendingFrameReads)).also { pendingFrameReads.clear() }

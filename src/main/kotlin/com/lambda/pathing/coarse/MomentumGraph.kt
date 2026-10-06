@@ -23,6 +23,8 @@ internal object MomentumRules {
 
 	const val CHAIN_TAX_TICKS = 1.0
 
+	private const val MIN_CHAINED_COST_FRACTION = 0.5
+
 	fun departsStoppedOnly(movement: MovementId): Boolean = movement == MovementId.CLIMB
 
 	fun arrivesStopped(movement: MovementId): Boolean =
@@ -31,7 +33,7 @@ internal object MomentumRules {
 				movement == MovementId.LADDER_CATCH
 
 	private fun movingCost(ticks: Double): Double =
-		(ticks - CHAIN_TAX_TICKS).coerceAtLeast(ticks * 0.5)
+		(ticks - CHAIN_TAX_TICKS).coerceAtLeast(ticks * MIN_CHAINED_COST_FRACTION)
 
 	private fun stoppedCost(movement: MovementId, ticks: Double): Double =
 		if (departsStoppedOnly(movement)) ticks else ticks + STARTUP_TICKS

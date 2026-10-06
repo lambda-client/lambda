@@ -33,9 +33,6 @@ class DStarLite<N>(
     var km = 0.0
         private set
 
-    var routeVersion = 0L
-        private set
-
     init {
         initialize()
     }
@@ -46,7 +43,6 @@ class DStarLite<N>(
         gValues.clear()
         rhsValues.clear()
         if (clearGraph) graph.clear()
-        routeVersion++
 
         setRhs(goal, 0.0)
         queue.insert(goal, Key(checkedHeuristic(start, goal), 0.0))
@@ -209,7 +205,6 @@ class DStarLite<N>(
 
         if (newStart != goal) setRhs(newStart, minSuccessorCost(newStart))
         updateVertex(newStart)
-        routeVersion++
     }
 
     fun synchronizeAffected(affectedNodes: Iterable<N>): SynchronizationResult {
@@ -286,7 +281,6 @@ class DStarLite<N>(
         val oldCost = graph.knownSuccessors(from)[to] ?: INF
         if (sameCost(oldCost, newCost)) return
         graph.setCost(from, to, newCost)
-        routeVersion++
 
         when {
             oldCost > newCost -> if (from != goal) setRhs(from, min(rhs(from), newCost + g(to)))
@@ -355,7 +349,7 @@ class DStarLite<N>(
     private fun descend(maxLength: Int): Descent<N> {
         if (start == goal) {
             return Descent.Reached(
-                CoarseRouteCandidate(listOf(start), 0.0, exactFromStart = true, routeVersion = routeVersion)
+                CoarseRouteCandidate(listOf(start), 0.0, exactFromStart = true)
             )
         }
         if (rhs(start) == INF && g(start) == INF) return Descent.Unreachable
@@ -370,7 +364,7 @@ class DStarLite<N>(
 
         repeat(maxLength) {
             if (current == goal) {
-                return Descent.Reached(CoarseRouteCandidate(path, actualCost, isStartCostExact(), routeVersion))
+                return Descent.Reached(CoarseRouteCandidate(path, actualCost, isStartCostExact()))
             }
 
             if (!sameCost(g(current), rhs(current))) return Descent.Blocked(current)
@@ -405,7 +399,7 @@ class DStarLite<N>(
     fun routeCandidate(maxLength: Int = 10_000): CoarseRouteCandidate<N>? {
         require(maxLength >= 0) { "maxLength must be non-negative" }
         if (start == goal) {
-            return CoarseRouteCandidate(listOf(start), 0.0, exactFromStart = true, routeVersion = routeVersion)
+            return CoarseRouteCandidate(listOf(start), 0.0, exactFromStart = true)
         }
         if (rhs(start) == INF && g(start) == INF) return null
 
@@ -419,7 +413,7 @@ class DStarLite<N>(
 
         repeat(maxLength) {
             if (current == goal) {
-                return CoarseRouteCandidate(path, actualCost, isStartCostExact(), routeVersion)
+                return CoarseRouteCandidate(path, actualCost, isStartCostExact())
             }
             val successors = graph.successors(current)
             if (successors.isEmpty()) return null
@@ -479,16 +473,16 @@ class DStarLite<N>(
     }
 
     fun tailCost(node: N = start): TailCost {
-        if (node == goal) return TailCost.Exact(0.0, routeVersion)
+        if (node == goal) return TailCost.Exact(0.0)
         val lower = checkedHeuristic(node, goal)
         if (node == start && isStartCostExact()) {
             val exact = g(start)
-            return if (exact.isFinite()) TailCost.Exact(exact, routeVersion)
-            else TailCost.Unreachable(routeVersion)
+            return if (exact.isFinite()) TailCost.Exact(exact)
+            else TailCost.Unreachable
         }
 
         val upper = if (node == start) routeCandidate()?.ticks else null
-        return TailCost.Bounds(lowerBound = lower, upperBound = upper, routeVersion = routeVersion)
+        return TailCost.Bounds(lowerBound = lower, upperBound = upper)
     }
 
     fun isStartCostExact(): Boolean = start == goal || !shouldCompute() && sameCost(g(start), rhs(start))

@@ -7,26 +7,22 @@ internal class SectionCapture {
 	var activeKey: Long? = null
 		private set
 	private var builder: ImmutableSnapshotSection.Builder? = null
+	private var cursor = 0
 
-	var localX = 0
-		private set
-	var localY = 0
-		private set
-	var localZ = 0
-		private set
+	val localX: Int get() = cursor and 15
+	val localY: Int get() = cursor shr 8
+	val localZ: Int get() = (cursor shr 4) and 15
 
 	fun begin(key: Long) {
 		activeKey = key
 		builder = ImmutableSnapshotSection.Builder()
-		localX = 0
-		localY = 0
-		localZ = 0
+		cursor = 0
 	}
 
 	fun writeNext(physics: SnapshotBlockPhysics): Boolean {
 		val target = checkNotNull(builder) { "SectionCapture.writeNext without begin" }
 		target.set(localX, localY, localZ, physics)
-		return advanceCursor()
+		return ++cursor == SECTION_CELLS
 	}
 
 	fun build(): ImmutableSnapshotSection {
@@ -39,27 +35,7 @@ internal class SectionCapture {
 	fun abandon() {
 		activeKey = null
 		builder = null
-		localX = 0
-		localY = 0
-		localZ = 0
-	}
-
-	private fun advanceCursor(): Boolean {
-		if (localX < 15) {
-			localX++
-			return false
-		}
-		localX = 0
-		if (localZ < 15) {
-			localZ++
-			return false
-		}
-		localZ = 0
-		if (localY < 15) {
-			localY++
-			return false
-		}
-		return true
+		cursor = 0
 	}
 
 	companion object {

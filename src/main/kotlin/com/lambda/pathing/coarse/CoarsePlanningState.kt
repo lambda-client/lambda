@@ -10,16 +10,14 @@ import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.WorldEventBatch
-import com.lambda.pathing.world.arrivalChunkSet
-import com.lambda.pathing.world.mutatedChunkSet
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
-internal val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
+private val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
 
-internal class PlanningHorizonView(
+private class PlanningHorizonView(
 	private val backing: CoarseVoxelView,
 	private val granted: Set<PathingChunk>,
 ) : CoarseVoxelView {
@@ -40,12 +38,12 @@ internal class PlanningHorizonView(
 }
 
 internal class CoarsePlanningState(
-	val snapshot: SnapshotSimulationEnvironment,
+	snapshot: SnapshotSimulationEnvironment,
 	moveOptions: SimpleMoveOptions,
 	start: Stance,
 	val goal: Stance,
 	val horizonChunks: Int = 0,
-	frontierSweepBudget: Int = 40_000,
+	frontierSweepBudget: Int = FrontierAnchors.SWEEP_MAX_NODES,
 
 	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 ) {
@@ -83,9 +81,9 @@ internal class CoarsePlanningState(
 	}
 
 	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {
-		val mutated = batch.mutatedChunkSet()
+		val mutated = batch.chunks + batch.mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
 		if (mutated.isNotEmpty()) planner.chunksChanged(mutated, maxStances)
-		val arrivals = batch.arrivalChunkSet()
+		val arrivals = batch.sections.mapNotNullTo(HashSet()) { PathingChunk(it.x, it.z).takeUnless { chunk -> chunk in mutated } }
 		if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals, maxStances, arrivalsOnly = true)
 	}
 

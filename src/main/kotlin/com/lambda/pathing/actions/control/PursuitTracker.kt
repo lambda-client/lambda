@@ -2,7 +2,6 @@ package com.lambda.pathing.actions.control
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
-import com.lambda.pathing.core.MAX_PROGRESS_ADVANCE
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.atan2
 
@@ -51,3 +50,5 @@ internal fun yawStepTowards(
 	observed: MovementSimulationState,
 	maxYawChange: Double,
 ): Double = Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
+
+private const val MAX_PROGRESS_ADVANCE = 2

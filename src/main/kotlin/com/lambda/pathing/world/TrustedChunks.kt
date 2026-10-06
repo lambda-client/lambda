@@ -28,8 +28,9 @@ class TrustedChunks(private val source: CaptureSource) {
 		val centerZ = source.playerChunkZ
 		val view = source.viewDistance
 		val fresh = HashSet<Long>()
-		for (cx in (centerX - view - 2)..(centerX + view + 2)) {
-			for (cz in (centerZ - view - 2)..(centerZ + view + 2)) {
+		val reach = view + CHUNK_FILTER_EDGE_MARGIN
+		for (cx in (centerX - reach)..(centerX + reach)) {
+			for (cz in (centerZ - reach)..(centerZ + reach)) {
 				if (isTrusted(cx, cz)) fresh += chunkKey(cx, cz)
 			}
 		}

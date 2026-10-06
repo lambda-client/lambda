@@ -63,30 +63,20 @@ class LongLazyGraph(
 		else removeEdge(from, to)
 	}
 
-	fun clear() {
-		successorEdges.clear()
-		predecessorEdges.clear()
-		initializedSuccessors.clear()
-		initializedPredecessors.clear()
-		knownNodes.clear()
-	}
-
 	operator fun contains(node: Long): Boolean = knownNodes.contains(node)
 
 	private fun ensureSuccessors(node: Long) {
 		if (initializedSuccessors.contains(node)) return
 		val generated = generateSuccessors(node)
 		for (i in 0 until generated.size) putEdge(node, generated.node(i), generated.cost(i))
-		initializedSuccessors.add(node)
-		knownNodes.add(node)
+		markSuccessorsInitialized(node)
 	}
 
 	private fun ensurePredecessors(node: Long) {
 		if (initializedPredecessors.contains(node)) return
 		val generated = generatePredecessors(node)
 		for (i in 0 until generated.size) putEdge(generated.node(i), node, generated.cost(i))
-		initializedPredecessors.add(node)
-		knownNodes.add(node)
+		markPredecessorsInitialized(node)
 	}
 
 	private fun putEdge(from: Long, to: Long, cost: Double) {

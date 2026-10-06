@@ -41,7 +41,7 @@ class HorizonRingAdvanceTest {
         // Resolving the terminal's fiction must keep the route off one-way pockets: the
         // raw extraction used to end at (79, 63, 0), a dead end the reveal exposes.
         kotlin.test.assertTrue(
-            state.planner.moves.successorCosts(state.planner.view, first.goal).isNotEmpty() &&
+            state.planner.moves.edgesFrom(state.planner.view, first.goal).isNotEmpty() &&
                 state.planner.stanceCost(first.goal).isFinite(),
             "the resolved terminal ${first.goal} must be routable onward",
         )

@@ -31,21 +31,7 @@ class LongDStarLite(
 	var km = 0.0
 		private set
 
-	var routeVersion = 0L
-		private set
-
 	init {
-		initialize()
-	}
-
-	fun initialize(clearGraph: Boolean = true) {
-		queue.clear()
-		km = 0.0
-		gValues.clear()
-		rhsValues.clear()
-		if (clearGraph) graph.clear()
-		routeVersion++
-
 		setRhs(goal, 0.0)
 		queue.insert(goal, checkedHeuristic(start, goal), 0.0)
 	}
@@ -159,7 +145,7 @@ class LongDStarLite(
 		val nodeG = g(node)
 		val nodeRhs = rhs(node)
 		val minCost = min(nodeG, nodeRhs)
-		val newFirst = minCost + checkedHeuristic(start, node) + km
+		val newFirst = firstKey(node, minCost)
 
 		when {
 			LongIndexedHeap.compareKeys(oldFirst, oldSecond, newFirst, minCost) < 0 ->
@@ -183,28 +169,14 @@ class LongDStarLite(
 				graph.successors(node)
 				setG(node, INF)
 
-				for (i in 0 until predecessors.size) {
-					val predecessor = predecessors.node(i)
-					if (predecessor != goal && sameCost(
-							rhs(predecessor),
-							graph.knownSuccessors(predecessor).costOf(node) + nodeG,
-						)
-					) {
-						setRhs(predecessor, minSuccessorCost(predecessor))
+				fun refresh(vertex: Long) {
+					if (vertex != goal && sameCost(rhs(vertex), graph.knownSuccessors(vertex).costOf(node) + nodeG)) {
+						setRhs(vertex, minSuccessorCost(vertex))
 					}
-					updateVertex(predecessor)
+					updateVertex(vertex)
 				}
-
-				if (node !in predecessors) {
-					if (node != goal && sameCost(
-							rhs(node),
-							graph.knownSuccessors(node).costOf(node) + nodeG,
-						)
-					) {
-						setRhs(node, minSuccessorCost(node))
-					}
-					updateVertex(node)
-				}
+				for (i in 0 until predecessors.size) refresh(predecessors.node(i))
+				if (node !in predecessors) refresh(node)
 			}
 		}
 	}
@@ -217,14 +189,11 @@ class LongDStarLite(
 
 		if (newStart != goal) setRhs(newStart, minSuccessorCost(newStart))
 		updateVertex(newStart)
-		routeVersion++
 	}
 
 	fun synchronizeAffected(affectedNodes: LongIterable): SynchronizationResult {
 		var nodesChecked = 0
-		var edgesAdded = 0
-		var edgesRemoved = 0
-		var edgesChanged = 0
+		val changes = IntArray(EdgeChange.entries.size)
 
 		val unique = LongOpenHashSet()
 		val iterator = affectedNodes.iterator()
@@ -241,46 +210,42 @@ class LongDStarLite(
 			graph.markSuccessorsInitialized(node)
 			nodesChecked++
 
-			reconcileEdges(oldSuccessors, newSuccessors) { target, cost, change ->
-				updateEdge(node, target, cost)
-				when (change) {
-					EdgeChange.ADDED -> edgesAdded++
-					EdgeChange.REMOVED -> edgesRemoved++
-					EdgeChange.CHANGED -> edgesChanged++
-				}
-			}
+			reconcileEdges(oldSuccessors, newSuccessors, changes) { target, cost -> updateEdge(node, target, cost) }
 			val oldPredecessors = graph.knownPredecessors(node).copy()
 			val newPredecessors = graph.generatePredecessors(node)
 			graph.markPredecessorsInitialized(node)
 
-			reconcileEdges(oldPredecessors, newPredecessors) { source, cost, change ->
-				updateEdge(source, node, cost)
-				when (change) {
-					EdgeChange.ADDED -> edgesAdded++
-					EdgeChange.REMOVED -> edgesRemoved++
-					EdgeChange.CHANGED -> edgesChanged++
-				}
-			}
+			reconcileEdges(oldPredecessors, newPredecessors, changes) { source, cost -> updateEdge(source, node, cost) }
 		}
 
-		return SynchronizationResult(nodesChecked, edgesAdded, edgesRemoved, edgesChanged)
+		return SynchronizationResult(
+			nodesChecked,
+			changes[EdgeChange.ADDED.ordinal],
+			changes[EdgeChange.REMOVED.ordinal],
+			changes[EdgeChange.CHANGED.ordinal],
+		)
 	}
 
 	private enum class EdgeChange { ADDED, REMOVED, CHANGED }
 
-	private inline fun reconcileEdges(old: EdgeList, new: EdgeList, apply: (Long, Double, EdgeChange) -> Unit) {
+	private inline fun reconcileEdges(old: EdgeList, new: EdgeList, changes: IntArray, apply: (Long, Double) -> Unit) {
 		for (i in 0 until old.size) {
 			val node = old.node(i)
-			if (node !in new) apply(node, INF, EdgeChange.REMOVED)
+			if (node in new) continue
+			apply(node, INF)
+			changes[EdgeChange.REMOVED.ordinal]++
 		}
 		for (i in 0 until new.size) {
 			val node = new.node(i)
 			val cost = new.cost(i)
 			val oldIndex = old.indexOf(node)
-			when {
-				oldIndex < 0 -> apply(node, cost, EdgeChange.ADDED)
-				!sameCost(old.cost(oldIndex), cost) -> apply(node, cost, EdgeChange.CHANGED)
+			val change = when {
+				oldIndex < 0 -> EdgeChange.ADDED
+				!sameCost(old.cost(oldIndex), cost) -> EdgeChange.CHANGED
+				else -> continue
 			}
+			apply(node, cost)
+			changes[change.ordinal]++
 		}
 	}
 
@@ -292,7 +257,6 @@ class LongDStarLite(
 		val oldCost = graph.knownSuccessors(from).costOf(to)
 		if (sameCost(oldCost, newCost)) return
 		graph.setCost(from, to, newCost)
-		routeVersion++
 
 		when {
 			oldCost > newCost -> if (from != goal) setRhs(from, min(rhs(from), newCost + g(to)))
@@ -303,20 +267,18 @@ class LongDStarLite(
 	}
 
 	fun computeRouteCandidate(
-		maxLength: Int = 10_000,
-		timeBudget: Duration = Duration.INFINITE,
 		maxExpansions: Int = Int.MAX_VALUE,
 		cancelled: () -> Boolean = { false },
 	): LongRouteCandidate? {
 		var budget = maxExpansions
 		repeat(MAX_DESCENT_ROUNDS) {
 			if (cancelled()) return null
-			when (val outcome = descend(maxLength, strict = true, report = null)) {
+			when (val outcome = descend(strict = true, report = null)) {
 				is Descent.Reached -> return outcome.candidate
 				Descent.Unreachable -> return null
 				is Descent.Blocked -> {
 					if (budget <= 0) return null
-					val settled = settle(outcome.node, timeBudget, budget, cancelled)
+					val settled = settle(outcome.node, budget, cancelled)
 					if (settled == 0) return null
 					budget -= settled
 				}
@@ -331,21 +293,11 @@ class LongDStarLite(
 		data object Unreachable : Descent
 	}
 
-	private fun settle(
-		node: Long,
-		timeBudget: Duration,
-		maxExpansions: Int,
-		cancelled: () -> Boolean,
-	): Int {
-		val startedAt = System.nanoTime()
-		val budgetNanos = timeBudget.inWholeNanoseconds
+	private fun settle(node: Long, maxExpansions: Int, cancelled: () -> Boolean): Int {
 		var processed = 0
 		while (!queue.isEmpty() && processed < maxExpansions) {
 			if (!shouldCompute() && isSettled(node)) break
-			if ((processed and DEADLINE_CHECK_MASK) == 0) {
-				if (cancelled()) break
-				if (System.nanoTime() - startedAt >= budgetNanos) break
-			}
+			if ((processed and DEADLINE_CHECK_MASK) == 0 && cancelled()) break
 			step()
 			processed++
 		}
@@ -355,14 +307,14 @@ class LongDStarLite(
 	private fun isSettled(node: Long): Boolean {
 		if (!sameCost(g(node), rhs(node))) return false
 		val minCost = min(g(node), rhs(node))
-		return queue.topIsAbove(minCost + checkedHeuristic(start, node) + km, minCost)
+		return queue.topIsAbove(firstKey(node, minCost), minCost)
 	}
 
-	private fun descend(maxLength: Int, strict: Boolean, report: StringBuilder?): Descent {
+	private fun descend(strict: Boolean, report: StringBuilder?): Descent {
 		if (start == goal) {
 			report?.append("at-goal")
 			return Descent.Reached(
-				LongRouteCandidate(LongArrayList.of(start), 0.0, exactFromStart = true, routeVersion = routeVersion)
+				LongRouteCandidate(LongArrayList.of(start), 0.0, exactFromStart = true)
 			)
 		}
 		if (rhs(start) == INF && g(start) == INF) {
@@ -378,10 +330,10 @@ class LongDStarLite(
 		path.add(current)
 		seen.add(current)
 
-		for (step in 0 until maxLength) {
+		for (step in 0 until MAX_ROUTE_NODES) {
 			if (current == goal) {
 				report?.append("reaches-goal-in-$step")
-				return Descent.Reached(LongRouteCandidate(path, actualCost, isStartCostExact(), routeVersion))
+				return Descent.Reached(LongRouteCandidate(path, actualCost, isStartCostExact()))
 			}
 
 			if (strict && !sameCost(g(current), rhs(current))) {
@@ -432,32 +384,30 @@ class LongDStarLite(
 			current = next
 		}
 
-		report?.append("exceeds-$maxLength-nodes")
+		report?.append("exceeds-$MAX_ROUTE_NODES-nodes")
 		return Descent.Blocked(current)
 	}
 
-	fun routeCandidate(maxLength: Int = 10_000): LongRouteCandidate? {
-		require(maxLength >= 0) { "maxLength must be non-negative" }
-		return (descend(maxLength, strict = false, report = null) as? Descent.Reached)?.candidate
-	}
+	fun routeCandidate(): LongRouteCandidate? =
+		(descend(strict = false, report = null) as? Descent.Reached)?.candidate
 
-	fun routeDescentReport(maxLength: Int = 10_000): String {
+	fun routeDescentReport(): String {
 		val report = StringBuilder()
-		descend(maxLength, strict = false, report = report)
+		descend(strict = false, report = report)
 		return report.toString()
 	}
 
 	fun tailCost(node: Long = start): TailCost {
-		if (node == goal) return TailCost.Exact(0.0, routeVersion)
+		if (node == goal) return TailCost.Exact(0.0)
 		val lower = checkedHeuristic(node, goal)
 		if (node == start && isStartCostExact()) {
 			val exact = g(start)
-			return if (exact.isFinite()) TailCost.Exact(exact, routeVersion)
-			else TailCost.Unreachable(routeVersion)
+			return if (exact.isFinite()) TailCost.Exact(exact)
+			else TailCost.Unreachable
 		}
 
 		val upper = if (node == start) routeCandidate()?.ticks else null
-		return TailCost.Bounds(lowerBound = lower, upperBound = upper, routeVersion = routeVersion)
+		return TailCost.Bounds(lowerBound = lower, upperBound = upper)
 	}
 
 	fun isStartCostExact(): Boolean = start == goal || !shouldCompute() && sameCost(g(start), rhs(start))
@@ -466,30 +416,24 @@ class LongDStarLite(
 
 	fun rhs(node: Long): Double = rhsValues.get(node)
 
-	fun updateVertex(node: Long) {
-		val inQueue = node in queue
+	private fun updateVertex(node: Long) {
 		val nodeG = g(node)
 		val nodeRhs = rhs(node)
-		val inconsistent = !sameCost(nodeG, nodeRhs)
-
-		when {
-			inconsistent && inQueue -> {
-				val minCost = min(nodeG, nodeRhs)
-				queue.update(node, minCost + checkedHeuristic(start, node) + km, minCost)
-			}
-			inconsistent && !inQueue -> {
-				val minCost = min(nodeG, nodeRhs)
-				queue.insert(node, minCost + checkedHeuristic(start, node) + km, minCost)
-			}
-			!inconsistent && inQueue -> queue.remove(node)
+		if (sameCost(nodeG, nodeRhs)) {
+			queue.remove(node)
+			return
 		}
+		val minCost = min(nodeG, nodeRhs)
+		queue.insert(node, firstKey(node, minCost), minCost)
 	}
+
+	private fun firstKey(node: Long, minCost: Double): Double = minCost + checkedHeuristic(start, node) + km
 
 	private fun shouldCompute(): Boolean {
 		val startG = g(start)
 		val startRhs = rhs(start)
 		val minCost = min(startG, startRhs)
-		return queue.topIsBelow(minCost + checkedHeuristic(start, start) + km, minCost) || !sameCost(startRhs, startG)
+		return queue.topIsBelow(firstKey(start, minCost), minCost) || !sameCost(startRhs, startG)
 	}
 
 	private fun minSuccessorCost(node: Long): Double {
@@ -545,6 +489,8 @@ class LongDStarLite(
 		private const val STALL_STEPS = 4096
 
 		private const val MAX_DESCENT_ROUNDS = 256
+
+		private const val MAX_ROUTE_NODES = 10_000
 
 		private fun sameCost(a: Double, b: Double, tolerance: Double = EPSILON): Boolean = when {
 			a.isInfinite() || b.isInfinite() -> a == b

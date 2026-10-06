@@ -56,7 +56,6 @@ class PackedStanceTest {
             assertEquals(y, PackedStance.unpackY(packed))
             assertEquals(z, PackedStance.unpackZ(packed))
             assertEquals(speed, PackedStance.speed(packed))
-            assertEquals(speed.ordinal, PackedStance.speedBit(packed))
             assertEquals(Stance(x, y, z), PackedStance.stance(packed))
         }
 

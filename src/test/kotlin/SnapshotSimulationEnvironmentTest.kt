@@ -110,7 +110,7 @@ class SnapshotSimulationEnvironmentTest {
 
         tracked.slipperiness(BlockPos(0, 0, 0))
         tracked.velocityMultiplier(BlockPos(1, 0, 0))
-        val published = tracked.dependencies()
+        val published = tracked.takeFrameDependencies()
         tracked.jumpVelocityMultiplier(BlockPos(0, 1, 0))
 
         assertEquals(
@@ -120,7 +120,7 @@ class SnapshotSimulationEnvironmentTest {
             ),
             published,
         )
-        assertEquals(3, tracked.dependencies().size)
+        assertEquals(setOf(com.lambda.pathing.core.VoxelPos(0, 1, 0)), tracked.takeFrameDependencies())
         assertFailsWith<UnsupportedOperationException> {
             @Suppress("UNCHECKED_CAST")
             (published as MutableSet<com.lambda.pathing.core.VoxelPos>) += com.lambda.pathing.core.VoxelPos(2, 0, 0)
