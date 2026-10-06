@@ -72,7 +72,7 @@ import com.lambda.interaction.manager.managers.breaking.BreakManager.updateBreak
 import com.lambda.interaction.manager.managers.breaking.BreakManager.updatePreProcessing
 import com.lambda.interaction.manager.managers.breaking.SwapInfo.Companion.getSwapInfo
 import com.lambda.interaction.manager.managers.hotbar.HotbarRequest
-import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.interacting.InteractManager
 import com.lambda.interaction.manager.managers.rotating.RotationRequest
 import com.lambda.threading.runGameScheduled

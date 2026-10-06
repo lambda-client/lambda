@@ -29,7 +29,7 @@ import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.findSlots
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import net.minecraft.item.ItemStack

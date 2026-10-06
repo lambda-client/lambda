@@ -25,12 +25,15 @@ import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.manager.Request
-import com.lambda.interaction.manager.managers.interacting.PlaceRequestBuilder.Companion.interactRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
+@DslMarker
+annotation class InteractRequestMarker
+
+@InteractRequestMarker
 @JvmName("interactRequest1")
 context(automated: Automated)
 fun Collection<BuildResult>.interactRequest(
@@ -40,6 +43,7 @@ fun Collection<BuildResult>.interactRequest(
 ) = asSequence()
 	.interactRequest(pendingInteractions, nowOrNothing, builder)
 
+@InteractRequestMarker
 @JvmName("interactRequest2")
 context(automated: Automated)
 fun Sequence<BuildResult>.interactRequest(
@@ -53,6 +57,20 @@ fun Sequence<BuildResult>.interactRequest(
 	.toSet()
 	.takeIf { it.isNotEmpty() }
 	?.let { automated.interactRequest(it, pendingInteractions, nowOrNothing, builder) }
+
+@InteractRequestMarker
+@JvmName("interactRequest3")
+fun Automated.interactRequest(
+	contexts: Collection<InteractContext>,
+	pendingInteractions: MutableCollection<BuildContext>,
+	nowOrNothing: Boolean = false,
+	builder: (PlaceRequestBuilder.() -> Unit)? = null
+) = PlaceRequestBuilder(
+	contexts,
+	pendingInteractions,
+	nowOrNothing,
+	this
+).apply { builder?.invoke(this) }.build()
 
 data class InteractRequest(
 	val contexts: Collection<InteractContext>,
@@ -79,11 +97,8 @@ data class InteractRequest(
 	}
 }
 
-@DslMarker
-annotation class InteractRequestMarker
-
 @InteractRequestMarker
-class PlaceRequestBuilder private constructor(
+class PlaceRequestBuilder internal constructor(
 	private val contexts: Collection<InteractContext>,
 	private val pendingInteractions: MutableCollection<BuildContext>,
 	private val nowOrNothing: Boolean,
@@ -95,7 +110,7 @@ class PlaceRequestBuilder private constructor(
 		onPlace = callback
 	}
 
-	private fun build() =
+	internal fun build() =
 		InteractRequest(
 			contexts,
 			pendingInteractions,
@@ -103,19 +118,4 @@ class PlaceRequestBuilder private constructor(
 			automated,
 			onPlace
 		)
-
-	companion object {
-		@JvmName("interactRequest3")
-		fun Automated.interactRequest(
-			contexts: Collection<InteractContext>,
-			pendingInteractions: MutableCollection<BuildContext>,
-			nowOrNothing: Boolean = false,
-			builder: (PlaceRequestBuilder.() -> Unit)? = null
-		) = PlaceRequestBuilder(
-			contexts,
-			pendingInteractions,
-			nowOrNothing,
-			this
-		).apply { builder?.invoke(this) }.build()
-	}
 }

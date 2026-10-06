@@ -36,13 +36,13 @@ import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.ManagerUtils.isPosBlocked
 import com.lambda.interaction.manager.PositionBlocking
 import com.lambda.interaction.manager.managers.breaking.BreakManager
-import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.interacting.InteractManager.activeRequest
 import com.lambda.interaction.manager.managers.interacting.InteractManager.maxInteractionsThisTick
 import com.lambda.interaction.manager.managers.interacting.InteractManager.populateFrom
 import com.lambda.interaction.manager.managers.interacting.InteractManager.potentialInteractions
 import com.lambda.interaction.manager.managers.interacting.InteractManager.processRequest
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.modules.world.AutoSign
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafeAutomated

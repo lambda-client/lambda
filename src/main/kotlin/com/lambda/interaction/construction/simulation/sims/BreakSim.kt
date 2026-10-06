@@ -36,7 +36,7 @@ import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager
 import com.lambda.interaction.manager.managers.rotating.RotationManager
-import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable

@@ -36,8 +36,8 @@ import com.lambda.interaction.container.selection.selectContainers
 import com.lambda.interaction.handler.handlers.GlideHandler
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findStack
-import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe

@@ -20,6 +20,13 @@ package com.lambda.interaction.manager.managers.hotbar
 import com.lambda.context.Automated
 import com.lambda.interaction.manager.Request
 
+@DslMarker
+private annotation class HotbarRequestMarker
+
+@HotbarRequestMarker
+fun Automated.hotbarRequest(slot: Int, nowOrNothing: Boolean = false, builder: (HotbarRequestBuilder.() -> Unit)? = null) =
+	HotbarRequestBuilder(slot, nowOrNothing, this).apply { builder?.invoke(this) }.build()
+
 /**
  * A request to change the hotbar slot.
  * If you are having an issue with the slot not changing, try setting [nowOrNothing] to false.
@@ -58,12 +65,9 @@ class HotbarRequest(
 	}
 }
 
-@DslMarker
-private annotation class HotbarRequestMarker
-
 @Suppress("unused")
 @HotbarRequestMarker
-class HotbarRequestBuilder private constructor(
+class HotbarRequestBuilder internal constructor(
 	private val slot: Int,
 	private val nowOrNothing: Boolean,
 	private val automated: Automated,
@@ -79,10 +83,5 @@ class HotbarRequestBuilder private constructor(
 		this.swapPause = swapPause
 	}
 
-	private fun build() = HotbarRequest(slot, keepTicks, swapPause, nowOrNothing, automated)
-
-	companion object {
-		fun Automated.hotbarRequest(slot: Int, nowOrNothing: Boolean = false, builder: (HotbarRequestBuilder.() -> Unit)? = null) =
-			HotbarRequestBuilder(slot, nowOrNothing, this).apply { builder?.invoke(this) }.build()
-	}
+	internal fun build() = HotbarRequest(slot, keepTicks, swapPause, nowOrNothing, automated)
 }

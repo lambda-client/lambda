@@ -28,13 +28,16 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.manager.Request
-import com.lambda.interaction.manager.managers.breaking.BreakRequestBuilder.Companion.breakRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
+@DslMarker
+annotation class BreakRequestMarker
+
+@BreakRequestMarker
 @JvmName("breakRequest1")
 fun AutomatedSafeContext.breakRequest(
 	positions: Collection<BlockPos>,
@@ -46,6 +49,7 @@ fun AutomatedSafeContext.breakRequest(
 	.sim()
 	.breakRequest(pendingInteractions, nowOrNothing, builder)
 
+@BreakRequestMarker
 @JvmName("breakRequest2")
 context(automated: Automated)
 fun Collection<BuildResult>.breakRequest(
@@ -55,6 +59,7 @@ fun Collection<BuildResult>.breakRequest(
 ) = asSequence()
 	.breakRequest(pendingInteractions, nowOrNothing, builder)
 
+@BreakRequestMarker
 @JvmName("breakRequest3")
 context(automated: Automated)
 fun Sequence<BuildResult>.breakRequest(
@@ -68,6 +73,17 @@ fun Sequence<BuildResult>.breakRequest(
 	.toSet()
 	.takeIf { it.isNotEmpty() }
 	?.let { automated.breakRequest(it, pendingInteractions, nowOrNothing, builder) }
+
+@BreakRequestMarker
+@JvmName("breakRequest4")
+fun Automated.breakRequest(
+	contexts: Collection<BreakContext>,
+	pendingInteractions: MutableCollection<BuildContext>,
+	nowOrNothing: Boolean = false,
+	builder: (BreakRequestBuilder.() -> Unit)? = null
+) = BreakRequestBuilder(
+	contexts, pendingInteractions, nowOrNothing, this
+).apply { builder?.invoke(this) }.build()
 
 /**
  * Contains the information necessary for initializing and continuing breaks within the [BreakManager].
@@ -111,11 +127,8 @@ data class BreakRequest(
 	}
 }
 
-@DslMarker
-annotation class BreakRequestMarker
-
 @BreakRequestMarker
-class BreakRequestBuilder private constructor(
+class BreakRequestBuilder internal constructor(
 	private val contexts: Collection<BreakContext>,
 	private val pendingInteractions: MutableCollection<BuildContext>,
 	private val nowOrNothing: Boolean,
@@ -157,7 +170,7 @@ class BreakRequestBuilder private constructor(
 		onReBreak = callback
 	}
 
-	private fun build() =
+	internal fun build() =
 		BreakRequest(
 			contexts,
 			pendingInteractions,
@@ -171,16 +184,4 @@ class BreakRequestBuilder private constructor(
 			onReBreakStart,
 			onReBreak
 		)
-
-	companion object {
-		@JvmName("breakRequest4")
-		fun Automated.breakRequest(
-			contexts: Collection<BreakContext>,
-			pendingInteractions: MutableCollection<BuildContext>,
-			nowOrNothing: Boolean = false,
-			builder: (BreakRequestBuilder.() -> Unit)? = null
-		) = BreakRequestBuilder(
-			contexts, pendingInteractions, nowOrNothing, this
-		).apply { builder?.invoke(this) }.build()
-	}
 }

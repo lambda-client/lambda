@@ -28,7 +28,7 @@ import com.lambda.interaction.container.selection.StackSelectionBuilder.Companio
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findStack
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated

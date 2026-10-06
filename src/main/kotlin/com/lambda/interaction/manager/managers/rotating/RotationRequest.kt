@@ -33,6 +33,13 @@ import com.lambda.util.collections.updatableLazy
 import kotlin.math.abs
 import kotlin.math.hypot
 
+@DslMarker
+annotation class RotationRequestMarker
+
+@RotationRequestMarker
+fun Automated.rotationRequest(builder: RotationRequestBuilder.() -> Unit) =
+	RotationRequestBuilder().apply(builder).build()
+
 abstract class RotationRequest(automated: Automated) : Request(), Automated by automated {
 	override val requestId = requestCount++
 	override val tickStageMask = automated.rotationConfig.tickStageMask
@@ -49,9 +56,6 @@ abstract class RotationRequest(automated: Automated) : Request(), Automated by a
 			private set
 	}
 }
-
-@DslMarker
-annotation class RotationRequestMarker
 
 interface IRotationRequest : Automated {
 	var keepTicks: Int
@@ -151,7 +155,7 @@ interface IRotationRequest : Automated {
 }
 
 @RotationRequestMarker
-class RotationRequestBuilder private constructor() {
+class RotationRequestBuilder internal constructor() {
 	private var pitchBuilder: (SafeContext.() -> Double)? = null
 	private var yawBuilder: (SafeContext.() -> Double)? = null
 	private var rotationBuilder: (SafeContext.() -> Rotation)? = null
@@ -185,7 +189,7 @@ class RotationRequestBuilder private constructor() {
 	fun rotation(rotation: Rotation) { rotationBuilder = { rotation } }
 
 	context(automated: Automated)
-	private fun build(): RotationRequest {
+	internal fun build(): RotationRequest {
 		val yawBuilder = yawBuilder
 		val pitchBuilder = pitchBuilder
 		val rotationBuilder = rotationBuilder
@@ -196,10 +200,5 @@ class RotationRequestBuilder private constructor() {
 			pitchBuilder != null -> Pitch(automated, pitchBuilder)
 			else -> throw IllegalArgumentException("Must specify at least one rotation value to build a rotation request")
 		}
-	}
-
-	companion object {
-		fun Automated.rotationRequest(builder: RotationRequestBuilder.() -> Unit) =
-			RotationRequestBuilder().apply(builder).build()
 	}
 }

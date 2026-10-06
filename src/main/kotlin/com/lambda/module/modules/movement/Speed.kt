@@ -26,7 +26,7 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.util.NamedEnum

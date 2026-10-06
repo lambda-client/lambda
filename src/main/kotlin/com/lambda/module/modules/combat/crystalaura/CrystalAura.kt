@@ -87,7 +87,7 @@ object CrystalAura : Module(
     @Tab(PLACEMENT_TAB) private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks")
     @Tab(PLACEMENT_TAB) val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms")
     @Tab(PLACEMENT_TAB) val swap by setting("Swap", true, "Swaps to crystals")
-    @Tab(PLACEMENT_TAB) val swapHand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
+    @Tab(PLACEMENT_TAB) val swapHand: Hand by setting("Swap Hand", Hand.MAIN_HAND, "Which hand to swap the crystal to") { swap }
     @Tab(PLACEMENT_TAB) val priorityMode by setting("Crystal Priority", Priority.Damage)
     @Tab(PLACEMENT_TAB) private val minDamageAdvantage by setting("Min Damage Advantage", 4.0, 1.0..10.0, 0.5) { priorityMode == Priority.Advantage }
     @Tab(PLACEMENT_TAB) private val minTargetDamage by setting("Min Target Damage", 8.0, 0.0..20.0, 0.5, "Minimum target damage to use crystals")

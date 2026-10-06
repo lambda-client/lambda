@@ -28,8 +28,8 @@ import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.interaction.manager.managers.inventory.InventoryRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count

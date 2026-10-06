@@ -49,12 +49,12 @@ import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.handler.handlers.findStacks
-import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.dist
 import com.lambda.interaction.manager.managers.rotating.RotationManager
-import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.Task

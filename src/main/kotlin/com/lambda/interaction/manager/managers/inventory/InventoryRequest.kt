@@ -32,6 +32,16 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
+@DslMarker
+annotation class InvRequestDsl
+
+@InvRequestDsl
+fun Automated.inventoryRequest(
+	settleForLess: Boolean = false,
+	mustPerform: Boolean = false,
+	builder: InvRequestBuilder.() -> Unit
+) = InvRequestBuilder(settleForLess, mustPerform).apply(builder).build()
+
 /**
  * A private constructor is used to enforce use of the [InvRequestDsl] builder.
  *
@@ -62,12 +72,9 @@ class InventoryRequest(
 	}
 }
 
-@DslMarker
-annotation class InvRequestDsl
-
 @Suppress("unused")
 @InvRequestDsl
-class InvRequestBuilder private constructor(
+class InvRequestBuilder internal constructor(
 	private val settleForLess: Boolean,
 	private val mustPerform: Boolean
 ) {
@@ -170,12 +177,7 @@ class InvRequestBuilder private constructor(
 	}
 
 	context(automated: Automated)
-	private fun build() = InventoryRequest(actions, settleForLess, mustPerform, automated, onComplete = onComplete)
-
-	companion object {
-		fun Automated.inventoryRequest(settleForLess: Boolean = false, mustPerform: Boolean = false, builder: InvRequestBuilder.() -> Unit) =
-			InvRequestBuilder(settleForLess, mustPerform).apply(builder).build()
-	}
+	internal fun build() = InventoryRequest(actions, settleForLess, mustPerform, automated, onComplete = onComplete)
 }
 
 enum class InvRequestFailureReason {

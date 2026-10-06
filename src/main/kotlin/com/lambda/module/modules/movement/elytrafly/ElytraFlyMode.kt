@@ -30,10 +30,10 @@ import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findSlots
-import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
-import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder.Companion.inventoryRequest
 import com.lambda.interaction.manager.managers.inventory.InventoryManager
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
 import com.lambda.threading.runSafe

@@ -34,7 +34,7 @@ import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation
 import com.lambda.interaction.manager.managers.rotating.RotationManager
-import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.EntityUtils.getPositionsWithinHitboxXZ
 import com.lambda.util.PlaceDirection

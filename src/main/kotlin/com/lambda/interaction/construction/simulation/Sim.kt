@@ -84,7 +84,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         dependencyStack.pop()
     }
 
-    protected abstract suspend fun AutomatedSafeContext.sim()
+    abstract suspend fun AutomatedSafeContext.sim()
 
     /**
      * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].

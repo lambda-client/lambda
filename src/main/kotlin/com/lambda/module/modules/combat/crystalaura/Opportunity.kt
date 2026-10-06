@@ -21,15 +21,13 @@ import com.lambda.Lambda
 import com.lambda.context.Automated
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.OffhandContainer
-import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.move
-import com.lambda.interaction.manager.managers.hotbar.HotbarRequest
-import com.lambda.interaction.manager.managers.hotbar.HotbarRequestBuilder.Companion.hotbarRequest
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.manager.managers.rotating.RotationManager
-import com.lambda.interaction.manager.managers.rotating.RotationRequestBuilder.Companion.rotationRequest
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.ActionType
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.crystalPosition
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.explodeDelay
@@ -51,7 +49,6 @@ import com.lambda.module.modules.combat.crystalaura.CrystalAura.swap
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.swapHand
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraPlacing.placeInternal
-import com.lambda.task.tasks.transfer
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.math.distSq
@@ -68,7 +65,6 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.milliseconds
-
 
 /**
  * Represents the damage information resulting from placing an end crystal on a given [blockPos]
