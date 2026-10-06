@@ -6,15 +6,15 @@ internal class ImmutableSnapshotSection private constructor(
 	private val shortIndices: ShortArray?,
 ) {
 	val paletteSize: Int get() = palette.size
+	val bouncy: Boolean = palette.any { it.coarseVoxel.bouncy }
 	val indexStorageBytes: Int get() = byteIndices?.size ?: shortIndices?.size?.times(Short.SIZE_BYTES) ?: 0
 
 	operator fun get(x: Int, y: Int, z: Int): SnapshotBlockPhysics {
 		if (palette.size == 1) return palette[0]
 		val localIndex = localIndex(x, y, z)
-		val paletteIndex = byteIndices?.get(localIndex)?.toInt()?.and(0xff)
-			?: shortIndices?.get(localIndex)?.toInt()?.and(0xffff)
-			?: error("Non-uniform snapshot section has no indices")
-		return palette[paletteIndex]
+		byteIndices?.let { return palette[it[localIndex].toInt() and 0xff] }
+		val shorts = shortIndices ?: error("Non-uniform snapshot section has no indices")
+		return palette[shorts[localIndex].toInt() and 0xffff]
 	}
 
 	class Builder {

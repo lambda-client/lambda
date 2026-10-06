@@ -25,9 +25,11 @@ class CoarseValueField(
 	private val stoppedGuides = Object2DoubleOpenHashMap<Stance>()
 		.apply { defaultReturnValue(Double.NaN) }
 	private val edges = HashMap<Stance, List<CoarseEdge>>()
+	private val chains = HashMap<ChainKey, List<Stance>>()
 
 	override fun invalidate(sections: Set<PathingSection>) {
 		if (sections.isEmpty()) return
+		chains.clear()
 		val halo = HashSet<PathingSection>(sections.size * 27)
 		for ((x, y, z) in sections) {
 			for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
@@ -110,6 +112,8 @@ class CoarseValueField(
 		heading: Pair<Double, Double>?,
 	): List<Stance> {
 		require(length > 0) { "A steering chain needs at least one node" }
+		val key = ChainKey(stance, firstStep, length, heading)
+		chains[key]?.let { return it }
 		val chain = ArrayList<Stance>(length + 1)
 		chain += stance
 		val visited = HashSet<Stance>()
@@ -129,19 +133,55 @@ class CoarseValueField(
 			chain += next
 			visited += next
 		}
+		if (chains.size >= MAX_CHAINS) chains.clear()
+		chains[key] = chain
 		return chain
 	}
+
+	private data class ChainKey(
+		val stance: Stance,
+		val firstStep: Stance?,
+		val length: Int,
+		val heading: Pair<Double, Double>?,
+	)
 
 	private fun descend(
 		from: Stance,
 		visited: Set<Stance>,
 		heading: Pair<Double, Double>?,
 	): Stance? {
-		val candidates = edgesFrom(from).filterTo(ArrayList()) { it.to !in visited && guide(it.to).isFinite() }
-		if (candidates.isEmpty()) return null
-		val best = candidates.minOf { it.lowerBoundTicks + guide(it.to) }
-		candidates.removeAll { !(it.lowerBoundTicks + guide(it.to) <= best + TIE_TICKS) }
-		return candidates.minWithOrNull(directionOrder(from, heading))?.to
+		val edges = edgesFrom(from)
+		val costs = DoubleArray(edges.size) { index ->
+			val to = edges[index].to
+			if (to in visited) Double.NaN
+			else guide(to).let { if (it.isFinite()) edges[index].lowerBoundTicks + it else Double.NaN }
+		}
+		var best = Double.NaN
+		for (cost in costs) if (!cost.isNaN()) best = if (best.isNaN()) cost else minOf(best, cost)
+		if (best.isNaN()) return null
+
+		val reference = reference(from, heading)
+		var chosen: Stance? = null
+		var chosenAlignment = 0.0
+		for (index in edges.indices) {
+			val cost = costs[index]
+			if (cost.isNaN() || !(cost <= best + TIE_TICKS)) continue
+			val to = edges[index].to
+			val alignment = alignment(from, to, reference)
+			if (chosen == null || outranks(alignment, to, chosenAlignment, chosen)) {
+				chosen = to
+				chosenAlignment = alignment
+			}
+		}
+		return chosen
+	}
+
+	private fun outranks(alignment: Double, to: Stance, incumbentAlignment: Double, incumbent: Stance): Boolean {
+		val byAlignment = alignment.compareTo(incumbentAlignment)
+		if (byAlignment != 0) return byAlignment > 0
+		if (to.y != incumbent.y) return to.y < incumbent.y
+		if (to.x != incumbent.x) return to.x < incumbent.x
+		return to.z < incumbent.z
 	}
 
 	private fun directionOrder(from: Stance, heading: Pair<Double, Double>?): Comparator<CoarseEdge> {
@@ -171,5 +211,6 @@ class CoarseValueField(
 	private companion object {
 		const val TIE_TICKS = 0.5
 		const val MIN_HEADING_LENGTH = 1e-6
+		const val MAX_CHAINS = 4096
 	}
 }

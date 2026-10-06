@@ -20,6 +20,8 @@ internal class CoarseEdgeCache(
 
 	private val completeOrigins = LongOpenHashSet()
 
+	private val standable = StanceMemo()
+
 	fun edgesFrom(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
 		return outgoing.get(key) ?: run {
@@ -43,8 +45,8 @@ internal class CoarseEdgeCache(
 	fun cachedEdgesFrom(origin: Stance): List<CoarseEdge>? = outgoing.get(key(origin))
 
 	private fun computeEdgesFrom(origin: Stance): List<CoarseEdge> {
-		if (!moves.isStance(view, origin)) return emptyList()
-		return moves.templates.mapNotNull { template ->
+		if (!isStance(origin)) return emptyList()
+		return moves.templates(view).mapNotNull { template ->
 			val target = origin.offset(template.dx, template.dy, template.dz)
 			val targetKey = key(target)
 			val known = if (nonStanceTargets.contains(targetKey)) null else incoming.get(targetKey)
@@ -54,16 +56,24 @@ internal class CoarseEdgeCache(
 	}
 
 	private fun computeEdgesTo(target: Stance): List<CoarseEdge> {
-		if (!moves.isStance(view, target)) {
+		if (!isStance(target)) {
 			nonStanceTargets.add(key(target))
 			return emptyList()
 		}
-		return moves.templates.mapNotNull { template ->
+		return moves.templates(view).mapNotNull { template ->
 			val origin = target.offset(-template.dx, -template.dy, -template.dz)
+			if (!isStance(origin)) return@mapNotNull null
 			val known = outgoing.get(key(origin))
 			if (known != null) known.firstOrNull { it.id.template == template.id }
-			else if (moves.isStance(view, origin)) template.edge(view, origin) else null
+			else template.edge(view, origin)
 		}
+	}
+
+	private fun isStance(stance: Stance): Boolean {
+		standable.get(stance)?.let { return it }
+		val stands = moves.isStance(view, stance)
+		standable.put(stance, stands)
+		return stands
 	}
 
 	fun invalidateStances(stances: Iterable<Stance>) {
@@ -73,11 +83,13 @@ internal class CoarseEdgeCache(
 			completeOrigins.remove(k)
 			incoming.remove(k)
 			nonStanceTargets.remove(k)
+			standable.remove(stance)
 		}
 	}
 
 	fun invalidateVoxels(changed: Iterable<VoxelPos>) {
 		for (voxel in changed) {
+			for (y in voxel.y - 1..voxel.y + 2) standable.remove(Stance(voxel.x, y, voxel.z))
 			for (origin in moves.affectedOrigins(voxel)) {
 				val k = key(origin)
 				outgoing.remove(k)
@@ -99,6 +111,7 @@ internal class CoarseEdgeCache(
 		if (!arrivalsOnly) removeColumns(completeOrigins, originRanges)
 		removeColumns(incoming.keys, targetRanges)
 		removeColumns(nonStanceTargets, targetRanges)
+		standable.removeColumns(targetRanges)
 	}
 
 	private fun removeColumns(keys: LongSet, ranges: List<Pair<IntRange, IntRange>>, keep: LongSet? = null) {

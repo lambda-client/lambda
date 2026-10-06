@@ -5,6 +5,7 @@ import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
@@ -14,6 +15,7 @@ import kotlin.math.hypot
 
 class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	val templates: List<MotionTemplate> = catalog.templates
+	private val templatesWithoutBounces = templates.filter { it.movement != MovementId.BOUNCE }
 	private val readOffsets: Set<VoxelPos> = templates.flatMapTo(HashSet()) { it.readOffsets }
 	private val heuristicCaps: HeuristicCaps = deriveCaps(templates)
 	val sustainedTicksPerBlock: Double = sustainedRate(templates)
@@ -85,8 +87,10 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 
 	fun edgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> {
 		if (!isStance(view, origin)) return emptyList()
-		return templates.mapNotNull { it.edge(view, origin) }
+		return templates(view).mapNotNull { it.edge(view, origin) }
 	}
+
+	fun templates(view: CoarseVoxelView): List<MotionTemplate> = if (view.mayBounce()) templates else templatesWithoutBounces
 
 	fun heuristic(from: Stance, to: Stance): Double = heuristic(from.x, from.y, from.z, to.x, to.y, to.z)
 

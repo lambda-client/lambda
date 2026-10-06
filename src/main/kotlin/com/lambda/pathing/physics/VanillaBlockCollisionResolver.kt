@@ -3,8 +3,6 @@ package com.lambda.pathing.physics
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.shape.VoxelShape
-import net.minecraft.util.shape.VoxelShapes
 
 internal object VanillaBlockCollisionResolver {
 	fun adjust(
@@ -12,7 +10,7 @@ internal object VanillaBlockCollisionResolver {
 		boundingBox: Box,
 		onGround: Boolean,
 		stepHeight: Double,
-		collisionShapes: (Box) -> List<VoxelShape>,
+		collisionShapes: (Box) -> BlockCollisions,
 	): Vec3d {
 		if (movement.lengthSquared() == 0.0) return movement
 
@@ -35,7 +33,7 @@ internal object VanillaBlockCollisionResolver {
 
 		val stepShapes = collisionShapes(stepQuery)
 		val baseVerticalOffset = normal.y.toFloat()
-		for (candidateHeight in collectStepHeights(stepBase, stepShapes, stepHeight.toFloat(), baseVerticalOffset)) {
+		for (candidateHeight in stepShapes.stepHeights(stepBase.minY, stepHeight.toFloat(), baseVerticalOffset)) {
 			val candidate = clip(
 				movement = Vec3d(movement.x, candidateHeight.toDouble(), movement.z),
 				boundingBox = stepBase,
@@ -53,42 +51,17 @@ internal object VanillaBlockCollisionResolver {
 	private fun clip(
 		movement: Vec3d,
 		boundingBox: Box,
-		collisions: List<VoxelShape>,
+		collisions: BlockCollisions,
 	): Vec3d {
-		if (collisions.isEmpty()) return movement
+		if (collisions.isEmpty) return movement
 
 		var adjusted = Vec3d.ZERO
 		for (axis in Direction.getCollisionOrder(movement)) {
 			val component = movement.getComponentAlongAxis(axis)
 			if (component == 0.0) continue
-			val offset = VoxelShapes.calculateMaxOffset(
-				axis,
-				boundingBox.offset(adjusted),
-				collisions,
-				component,
-			)
+			val offset = collisions.maxOffset(axis, boundingBox.offset(adjusted), component)
 			adjusted = adjusted.withAxis(axis, offset)
 		}
 		return adjusted
-	}
-
-	private fun collectStepHeights(
-		collisionBox: Box,
-		collisions: List<VoxelShape>,
-		maximumStepHeight: Float,
-		baseVerticalOffset: Float,
-	): FloatArray {
-		val heights = HashSet<Float>(4)
-		for (shape in collisions) {
-			val points = shape.getPointPositions(Direction.Axis.Y)
-			for (index in points.indices) {
-				val point = points.getDouble(index)
-				val height = (point - collisionBox.minY).toFloat()
-				if (height < 0.0F || height == baseVerticalOffset) continue
-				if (height > maximumStepHeight) break
-				heights += height
-			}
-		}
-		return heights.sorted().toFloatArray()
 	}
 }

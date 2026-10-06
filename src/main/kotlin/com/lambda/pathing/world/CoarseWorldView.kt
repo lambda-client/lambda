@@ -108,6 +108,10 @@ interface CoarseVoxelView {
 	}
 
 	fun surfaceOffset(x: Int, y: Int, z: Int): Double = (standingSurface(x, y, z) ?: 1.0) - 1.0
+
+	fun cursor(): CoarseVoxelView = this
+
+	fun mayBounce(): Boolean = true
 }
 
 fun CoarseVoxelView.climbableAt(position: Vec3d): Boolean =

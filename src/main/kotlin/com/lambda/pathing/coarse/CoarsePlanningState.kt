@@ -35,6 +35,10 @@ private class PlanningHorizonView(
 
 	override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass =
 		if (grantedAt(x, z)) backing.collisionClass(x, y, z) else CollisionClass.FULL
+
+	override fun cursor(): CoarseVoxelView = PlanningHorizonView(backing.cursor(), granted)
+
+	override fun mayBounce(): Boolean = backing.mayBounce()
 }
 
 internal class CoarsePlanningState(

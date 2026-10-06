@@ -1,6 +1,7 @@
 package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.physics.BlockCollisions
 import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
@@ -102,7 +103,7 @@ class SnapshotSimulationEnvironment internal constructor(
 			}
 		} else {
 			for (y in bounds.minY..bounds.maxY) for (z in bounds.minZ..bounds.maxZ) for (x in bounds.minX..bounds.maxX) {
-				val physics = blockInside(x, y, z) ?: error("Incomplete snapshot at ($x,$y,$z)")
+				val physics = blockInside(liveSections, x, y, z) ?: error("Incomplete snapshot at ($x,$y,$z)")
 				action(BlockPos.asLong(x, y, z), physics)
 			}
 		}
@@ -113,10 +114,12 @@ class SnapshotSimulationEnvironment internal constructor(
 	private fun inBounds(x: Int, y: Int, z: Int): Boolean =
 		x in bounds.minX..bounds.maxX && y in bounds.minY..bounds.maxY && z in bounds.minZ..bounds.maxZ
 
-	override fun isKnown(x: Int, y: Int, z: Int): Boolean {
+	override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnown(liveSections, x, y, z)
+
+	private fun isKnown(sections: SectionSource, x: Int, y: Int, z: Int): Boolean {
 		if (!inBounds(x, y, z)) return false
 		val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-		val installed = store[key]
+		val installed = sections.at(key)
 		physicsIn(resolveSection(installed, key, x shr 4, y shr 4, z shr 4, exact = false), x, y, z) ?: return false
 		return !isUnavailable(key, installed)
 	}
@@ -130,26 +133,32 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun jumpVelocityMultiplier(pos: BlockPos): Double = checkedBlockAt(pos, null).jumpVelocityMultiplier
 
-	override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel {
+	override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxel(liveSections, x, y, z)
+
+	private fun voxel(sections: SectionSource, x: Int, y: Int, z: Int): CoarseVoxel {
 		if (!inBounds(x, y, z)) return CoarseVoxel.UNKNOWN
-		val block = blockInside(x, y, z) ?: return CoarseVoxel.UNKNOWN
+		val block = blockInside(sections, x, y, z) ?: return CoarseVoxel.UNKNOWN
 		return if (block.unsupportedPhysics == null) block.coarseVoxel else CoarseVoxel.HAZARD
 	}
 
-	override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape {
+	override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShape(liveSections, x, y, z)
+
+	private fun collisionShape(sections: SectionSource, x: Int, y: Int, z: Int): VoxelShape {
 		if (!inBounds(x, y, z)) return VoxelShapes.fullCube()
 		val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-		val installed = store[key]
+		val installed = sections.at(key)
 		if (isUnavailable(key, installed)) return VoxelShapes.empty()
 		val block = physicsIn(resolveSection(installed, key, x shr 4, y shr 4, z shr 4, exact = false), x, y, z)
 			?: return VoxelShapes.fullCube()
 		return if (block.unsupportedPhysics == null) block.collisionShape else VoxelShapes.fullCube()
 	}
 
-	override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass {
+	override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClass(liveSections, x, y, z)
+
+	private fun collisionClass(sections: SectionSource, x: Int, y: Int, z: Int): CollisionClass {
 		if (!inBounds(x, y, z)) return CollisionClass.FULL
 		val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-		val installed = store[key]
+		val installed = sections.at(key)
 		if (isUnavailable(key, installed)) return CollisionClass.EMPTY
 		val block = physicsIn(resolveSection(installed, key, x shr 4, y shr 4, z shr 4, exact = false), x, y, z)
 			?: return CollisionClass.FULL
@@ -174,11 +183,26 @@ class SnapshotSimulationEnvironment internal constructor(
 		boundingBox = boundingBox,
 		onGround = onGround,
 		stepHeight = stepHeight,
-		collisionShapes = { collectBlockShapes(it, observer) },
+		collisionShapes = { query ->
+			BlockCollisions().also { collisions ->
+				forEachCollisionShape(query, observer) { pos, shape -> collisions.add(pos.x, pos.y, pos.z, shape) }
+			}
+		},
 	)
 
 	private fun collectBlockShapes(query: Box, observer: SnapshotReadObserver?): List<VoxelShape> {
-		var result: ArrayList<VoxelShape>? = null
+		val shapes = ArrayList<VoxelShape>()
+		forEachCollisionShape(query, observer) { pos, shape ->
+			shapes += shape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+		}
+		return shapes
+	}
+
+	private inline fun forEachCollisionShape(
+		query: Box,
+		observer: SnapshotReadObserver?,
+		action: (BlockPos, VoxelShape) -> Unit,
+	) {
 		val cursor = ExactReadCursor(store)
 		forEachCollisionCandidate(query) { pos ->
 			observer?.onRead(pos)
@@ -187,11 +211,8 @@ class SnapshotSimulationEnvironment internal constructor(
 			if (unsupported != null && query.intersectsUnitBlock(pos.x, pos.y, pos.z)) {
 				throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
 			}
-			if (block.collisionShape.isEmpty) return@forEachCollisionCandidate
-			(result ?: ArrayList<VoxelShape>().also { result = it }) +=
-				block.collisionShape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+			if (!block.collisionShape.isEmpty) action(pos, block.collisionShape)
 		}
-		return result ?: emptyList()
 	}
 
 	override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
@@ -209,7 +230,7 @@ class SnapshotSimulationEnvironment internal constructor(
 	}
 
 	override fun isClimbable(pos: BlockPos): Boolean =
-		blockInside(pos.x, pos.y, pos.z)?.coarseVoxel?.medium == Medium.CLIMBABLE
+		blockInside(liveSections, pos.x, pos.y, pos.z)?.coarseVoxel?.medium == Medium.CLIMBABLE
 
 	override fun bounceFactor(pos: BlockPos): Double = checkedBlockAt(pos, null).bounceFactor
 
@@ -273,12 +294,59 @@ class SnapshotSimulationEnvironment internal constructor(
 		throw IllegalStateException("Incomplete production snapshot at $pos")
 	}
 
-	private fun blockInside(x: Int, y: Int, z: Int): SnapshotBlockPhysics? {
+	private fun blockInside(sections: SectionSource, x: Int, y: Int, z: Int): SnapshotBlockPhysics? {
 		val sectionX = x shr 4
 		val sectionY = y shr 4
 		val sectionZ = z shr 4
 		val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
-		return physicsIn(resolveSection(store[key], key, sectionX, sectionY, sectionZ, exact = false), x, y, z)
+		return physicsIn(resolveSection(sections.at(key), key, sectionX, sectionY, sectionZ, exact = false), x, y, z)
+	}
+
+	private fun interface SectionSource {
+		fun at(key: Long): ImmutableSnapshotSection?
+	}
+
+	private val liveSections = SectionSource { store[it] }
+
+	override fun cursor(): CoarseVoxelView = SectionCursor()
+
+	override fun mayBounce(): Boolean = store.bouncySections > 0 || bouncyOutsideStore
+
+	private val bouncyOutsideStore: Boolean =
+		missingSection != null || defaultBlock?.coarseVoxel?.bouncy == true || edits?.values?.any { it.coarseVoxel.bouncy } == true
+
+	private inner class SectionCursor : CoarseVoxelView, SectionSource {
+		private var cached: SectionStore? = null
+		private var filled = 0L
+		private val keys = LongArray(CURSOR_SLOTS)
+		private val sections = arrayOfNulls<ImmutableSnapshotSection>(CURSOR_SLOTS)
+
+		override val simulableStanceY: IntRange get() = this@SnapshotSimulationEnvironment.simulableStanceY
+
+		override fun at(key: Long): ImmutableSnapshotSection? {
+			val current = store
+			if (current !== cached) {
+				cached = current
+				filled = 0L
+			}
+			val slot = (((key ushr 42).toInt() and 3) shl 4) or ((key.toInt() and 3) shl 2) or ((key ushr 20).toInt() and 3)
+			if (filled and (1L shl slot) != 0L && keys[slot] == key) return sections[slot]
+			val section = current[key]
+			keys[slot] = key
+			sections[slot] = section
+			filled = filled or (1L shl slot)
+			return section
+		}
+
+		override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxel(this, x, y, z)
+
+		override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShape(this, x, y, z)
+
+		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClass(this, x, y, z)
+
+		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnown(this, x, y, z)
+
+		override fun mayBounce(): Boolean = this@SnapshotSimulationEnvironment.mayBounce()
 	}
 
 	private fun resolveSection(
@@ -316,6 +384,8 @@ class SnapshotSimulationEnvironment internal constructor(
 				maxZ > z && minZ < z + 1.0
 
 	companion object {
+		private const val CURSOR_SLOTS = 64
+
 		internal fun streaming(
 			bounds: SimulationSnapshotBounds,
 			onExactMiss: (Long) -> Unit,

@@ -30,7 +30,7 @@ class CoarsePlanner(
 
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
-	private val edgeCache = CoarseEdgeCache(view, moves)
+	private val edgeCache = CoarseEdgeCache(view.cursor(), moves)
 
 	private val graph = LongLazyGraph(
 		successorProvider = { node, sink ->

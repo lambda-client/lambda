@@ -19,25 +19,31 @@ object JumpArcProbe {
 		val modes: List<LaunchMode>,
 	)
 
-	private val solutionCache = ConcurrentHashMap<SolveKey, List<LaunchSolution>>()
+	private class Candidate(val solution: LaunchSolution, dx: Int, dz: Int) {
+		val plan: SweepPlan by lazy(LazyThreadSafetyMode.PUBLICATION) {
+			buildPlan(dx, dz, solution.arc, solution.launchOffset)
+		}
+	}
 
-	private fun solutions(
+	private val solutionCache = ConcurrentHashMap<SolveKey, List<Candidate>>()
+
+	private fun candidates(
 		from: Stance,
 		to: Stance,
 		dx: Int,
 		dz: Int,
 		modes: List<LaunchMode>,
 		riseHeight: Double,
-	): List<LaunchSolution> {
+	): List<Candidate> {
+		val key = SolveKey(dx, dz, riseHeight.toRawBits(), modes)
+		solutionCache[key]?.let { return it }
 		if (solutionCache.size > SOLUTION_CACHE_LIMIT) solutionCache.clear()
-		return solutionCache.computeIfAbsent(
-			SolveKey(dx, dz, riseHeight.toRawBits(), modes)
-		) { LaunchSolver.solve(from, to, modes, rise = riseHeight) }
+		return solutionCache.computeIfAbsent(key) {
+			LaunchSolver.solve(from, to, modes, rise = riseHeight).map { Candidate(it, dx, dz) }
+		}
 	}
 
 	private class SweepPlan(val cells: LongArray, val intersectsFull: BooleanArray)
-
-	private val planCache = ConcurrentHashMap<ArcSample, SweepPlan>()
 
 	fun probe(
 		view: CoarseVoxelView,
@@ -66,9 +72,10 @@ object JumpArcProbe {
 		val cache = lazy(LazyThreadSafetyMode.NONE) { SweepCellCache() }
 		val planar = launchHeight == from.y.toDouble()
 
-		for (solution in solutions(from, to, dx, dz, modes, riseHeight)) {
+		for (candidate in candidates(from, to, dx, dz, modes, riseHeight)) {
+			val solution = candidate.solution
 			val sweep = if (planar) {
-				sweepByPlan(view, from, dx, dz, solution, reads, cache)
+				sweepByPlan(view, from, dx, dz, candidate.plan, solution, reads, cache)
 			} else {
 				sweepArc(view, from, dx, dz, solution.arc, solution.launchOffset, launchHeight, reads, cache.value)
 			}
@@ -94,14 +101,11 @@ object JumpArcProbe {
 		from: Stance,
 		dx: Int,
 		dz: Int,
+		plan: SweepPlan,
 		solution: LaunchSolution,
 		reads: LongOpenHashSet?,
 		cache: Lazy<SweepCellCache>,
 	): Sweep {
-		if (planCache.size > PLAN_CACHE_LIMIT) planCache.clear()
-		val plan = planCache.computeIfAbsent(solution.arc) {
-			buildPlan(dx, dz, solution.arc, solution.launchOffset)
-		}
 
 		for (index in plan.cells.indices) {
 			val offset = plan.cells[index]
@@ -177,5 +181,4 @@ object JumpArcProbe {
 	private val DODGE_FRACTIONS = doubleArrayOf(0.5, -0.5, 1.0, -1.0)
 
 	private const val SOLUTION_CACHE_LIMIT = 100_000
-	private const val PLAN_CACHE_LIMIT = 100_000
 }
