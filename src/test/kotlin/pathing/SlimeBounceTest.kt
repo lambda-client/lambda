@@ -78,10 +78,8 @@ class SlimeBounceTest {
      */
     @Test
     fun `a bounce carries horizontal momentum straight through`() {
-        val bouncing = simulator(slimeAt(63), from = Vec3d(0.5, 68.0, 0.5))
-        val landing = simulator(stoneAt(63), from = Vec3d(0.5, 68.0, 0.5))
-        bouncing.reset(bouncing.state.copy(velocity = Vec3d(0.25, 0.0, 0.0)))
-        landing.reset(landing.state.copy(velocity = Vec3d(0.25, 0.0, 0.0)))
+        val bouncing = simulator(slimeAt(63), from = Vec3d(0.5, 68.0, 0.5), velocity = Vec3d(0.25, 0.0, 0.0))
+        val landing = simulator(stoneAt(63), from = Vec3d(0.5, 68.0, 0.5), velocity = Vec3d(0.25, 0.0, 0.0))
 
         var compared = false
         repeat(30) {
@@ -421,7 +419,7 @@ class SlimeBounceTest {
         // Nine blocks out and six down: past every jump and every drop, because a drop
         // gives up all its height and a jump has only its own impulse.
         assertNull(
-            LaunchSolver.best(Stance(0, 68, 0), Stance(0, 62, 10)),
+            LaunchSolver.solve(Stance(0, 68, 0), Stance(0, 62, 10)).firstOrNull(),
             "ten blocks out and six down is beyond every jump and drop",
         )
         assertNotNull(
@@ -477,9 +475,10 @@ class SlimeBounceTest {
         )
         val solution = assertNotNull(bounce.bounce, "a bounce edge must carry its solved fall")
         assertEquals(6, solution.drop, "the fall is to the slime floor")
+        val rebound = solution.arc.heights.last() - solution.arc.heights.min()
         assertTrue(
-            solution.rebound > 2.0,
-            "the rebound must lift the body clear of the pit, got ${solution.rebound}",
+            rebound > 2.0,
+            "the rebound must lift the body clear of the pit, got $rebound",
         )
         assertTrue(
             bounce.to.y > floor,
@@ -532,7 +531,7 @@ class SlimeBounceTest {
         dampensSteppingSpeed = true,
     )
 
-    private fun simulator(blocks: Map<BlockPos, SnapshotBlockPhysics>, from: Vec3d) = MovementSimulator(
+    private fun simulator(blocks: Map<BlockPos, SnapshotBlockPhysics>, from: Vec3d, velocity: Vec3d = Vec3d.ZERO) = MovementSimulator(
         profile = PROFILE,
         environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-16, 55, -16, 16, 90, 16), blocks,
@@ -541,7 +540,7 @@ class SlimeBounceTest {
             profile = PROFILE,
             position = from,
             rotation = Rotation(-90.0, 0.0),
-            velocity = Vec3d(0.0, 0.0, 0.0),
+            velocity = velocity,
             onGround = false,
         ),
     )

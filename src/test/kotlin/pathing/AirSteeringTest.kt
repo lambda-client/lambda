@@ -8,7 +8,6 @@ import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -162,16 +161,13 @@ class AirSteeringTest {
         forward: Double,
         strafe: Double,
     ): MovementSimulationState {
-        val simulator = MovementSimulator(PROFILE, AIR, from)
-        val result = simulator.tryTickMovement(
+        return MovementSimulator(PROFILE, AIR, from).tickMovement(
             MovementSimulationInput(
                 forward = forward,
                 strafe = strafe,
                 rotation = Rotation(YAW, 0.0),
             ),
         )
-        check(result is MovementSimulationStepResult.Advanced) { "the empty fixture must never block" }
-        return simulator.state
     }
 
     private companion object {

@@ -14,10 +14,8 @@ class LongLazyGraph(
 	private val initializedSuccessors = LongOpenHashSet()
 	private val initializedPredecessors = LongOpenHashSet()
 	private val knownNodes = LongOpenHashSet()
-	private val knownNodesView: LongSet = LongSets.unmodifiable(knownNodes)
 
-	val nodes: LongSet
-		get() = knownNodesView
+	val nodes: LongSet = LongSets.unmodifiable(knownNodes)
 
 	val size: Int
 		get() = knownNodes.size
@@ -86,26 +84,20 @@ class LongLazyGraph(
 		edgesOf(predecessorEdges, to).add(from, cost)
 	}
 
-	private fun edgesOf(map: Long2ObjectOpenHashMap<EdgeList>, node: Long): EdgeList {
-		var list = map.get(node)
-		if (list == null) {
-			list = EdgeList()
-			map.put(node, list)
-		}
-		return list
-	}
+	private fun edgesOf(map: Long2ObjectOpenHashMap<EdgeList>, node: Long): EdgeList =
+		map.get(node) ?: EdgeList().also { map.put(node, it) }
 
 	private fun removeEdge(from: Long, to: Long) {
-		successorEdges.get(from)?.let { edges ->
-			edges.remove(to)
-			if (edges.isEmpty()) successorEdges.remove(from)
-		}
-		predecessorEdges.get(to)?.let { edges ->
-			edges.remove(from)
-			if (edges.isEmpty()) predecessorEdges.remove(to)
-		}
+		detach(successorEdges, from, to)
+		detach(predecessorEdges, to, from)
 		refreshKnownNode(from)
 		refreshKnownNode(to)
+	}
+
+	private fun detach(map: Long2ObjectOpenHashMap<EdgeList>, owner: Long, other: Long) {
+		val edges = map.get(owner) ?: return
+		edges.remove(other)
+		if (edges.isEmpty()) map.remove(owner)
 	}
 
 	private fun refreshKnownNode(node: Long) {

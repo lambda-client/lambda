@@ -76,7 +76,7 @@ class SlimeBounceRouteTest {
     @Test
     fun `a slime pit is crossed by a bounce edge`() {
         val planner = planner(world(slime))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(
             route.edges.any { it.movement == MovementId.BOUNCE },
@@ -87,7 +87,7 @@ class SlimeBounceRouteTest {
     @Test
     fun `a carpet over the slime still routes the bounce`() {
         val planner = planner(world(slime, cover = carpet))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         val route = checkNotNull(planner.routePlan(0L)) {
             "carpet over slime must still bounce: ${planner.routeFailureReport()}"
         }
@@ -119,7 +119,7 @@ class SlimeBounceRouteTest {
         )
         val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true))
         val planner = CoarsePlanner(environment, moves, Stance(0, 10, 0), Stance(0, 8, 7))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(
             route.edges.any { it.movement == MovementId.BOUNCE },
@@ -130,7 +130,7 @@ class SlimeBounceRouteTest {
     @Test
     fun `a carpet over stone does not invent a bounce`() {
         val planner = planner(world(SnapshotBlockPhysics.FULL_CUBE, cover = carpet))
-        planner.repair(Duration.INFINITE)
+        planner.repair()
         assertNull(planner.routePlan(0L), "stone under carpet must not bounce")
     }
 
@@ -343,7 +343,7 @@ class SlimeBounceRouteTest {
     ) {
         val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true))
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandField(extraTicks = 60.0, timeBudget = Duration.INFINITE, maxExpansions = 40_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(

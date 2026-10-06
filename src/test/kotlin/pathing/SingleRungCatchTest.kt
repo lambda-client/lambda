@@ -18,7 +18,6 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulator
-import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
@@ -30,7 +29,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
@@ -72,7 +70,7 @@ class SingleRungCatchTest {
         val environment = environment()
         val moves = moveLibrary(SimpleMoveOptions(allowClimbing = true))
         val planner = CoarsePlanner(environment, moves, Stance(0, 69, 0), Stance(0, 71, -6))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(
@@ -95,9 +93,7 @@ class SingleRungCatchTest {
         val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
         assertTrue(!path.partial, "must complete the climb")
         val simulator = MovementSimulator(PROFILE, environment, initial)
-        for (input in path.plan.tape.asList()) {
-            assertTrue(simulator.tryTickMovement(input) is MovementSimulationStepResult.Advanced)
-        }
+        for (input in path.plan.tape.asList()) simulator.tickMovement(input)
         val terminal = simulator.state.position
         assertTrue(simulator.state.onGround && simulator.state.velocity.horizontalLength() <= MotionConstraints().stoppedSpeed)
         println("[single-rung] start=$position certified=${path.plan.tape.frameCount}")

@@ -22,8 +22,7 @@ class ValueAnchorContinuationTest {
             position = Vec3d(0.5, 1.0, 0.5), rotation = Rotation(0.0, 0.0), onGround = true,
         )
         val parent = ValueAnchor(state, Stance(0, 1, 0), 0, 0, 0, null, emptyList())
-        val anchor = ValueAnchor(state, parent.stance, 12, 2, 4, parent, emptyList()).apply {
-            trace = listOf(state.position)
+        val anchor = ValueAnchor(state, parent.stance, 12, 2, 4, parent, emptyList(), trace = listOf(state.position)).apply {
             actionsEpoch = 7
             hazardFrame = 8
             pendingSurcharge = 9.0

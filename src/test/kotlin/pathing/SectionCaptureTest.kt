@@ -9,8 +9,9 @@
 
 package pathing
 
+import com.lambda.pathing.world.snapshot.SECTION_CELLS
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.world.SectionCapture
+import com.lambda.pathing.world.streaming.SectionCapture
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,7 +33,7 @@ class SectionCaptureTest {
             completed = capture.writeNext(SnapshotBlockPhysics.AIR)
             writes++
         }
-        assertEquals(SectionCapture.SECTION_CELLS, writes)
+        assertEquals(SECTION_CELLS, writes)
         val expected = ArrayList<Triple<Int, Int, Int>>()
         for (y in 0..15) for (z in 0..15) for (x in 0..15) expected += Triple(x, y, z)
         assertEquals(expected, visited)
@@ -44,12 +45,12 @@ class SectionCaptureTest {
         val marker = SnapshotBlockPhysics(VoxelShapes.fullCube(), slipperiness = 0.42)
         capture.begin(7L)
         assertEquals(7L, capture.activeKey)
-        repeat(SectionCapture.SECTION_CELLS) { index ->
+        repeat(SECTION_CELLS) { index ->
             val x = index and 15
             val z = (index shr 4) and 15
             val y = index shr 8
             val completed = capture.writeNext(if (x == 3 && y == 5 && z == 9) marker else SnapshotBlockPhysics.AIR)
-            assertEquals(index == SectionCapture.SECTION_CELLS - 1, completed)
+            assertEquals(index == SECTION_CELLS - 1, completed)
         }
         val section = capture.build()
         assertNull(capture.activeKey)

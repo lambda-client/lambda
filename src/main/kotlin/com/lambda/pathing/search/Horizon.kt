@@ -7,12 +7,8 @@ internal class Horizon(
 	var root: ValueAnchor? = null
 		private set
 
-	var end = Int.MAX_VALUE
+	var end = if (window > 0) window else Int.MAX_VALUE
 		private set
-
-	fun begin() {
-		if (window > 0) end = window
-	}
 
 	fun canReach(anchor: ValueAnchor): Boolean = root?.let { anchor.descendsFrom(it) } ?: true
 

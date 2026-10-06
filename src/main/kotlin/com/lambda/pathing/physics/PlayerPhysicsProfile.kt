@@ -19,9 +19,7 @@ data class PlayerPhysicsProfile(
 	val slowFalling: Boolean,
 	val width: Double,
 	val height: Double,
-	val eyeHeight: Double,
 	val crouchHeight: Double = Vanilla.CROUCH_HEIGHT.toDouble(),
-	val crouchEyeHeight: Double = Vanilla.CROUCH_EYE_HEIGHT.toDouble(),
 	val sprintWindowTicks: Int = Vanilla.SPRINT_WINDOW_TICKS,
 ) {
 	fun isCompatibleWith(other: PlayerPhysicsProfile): Boolean =
@@ -34,9 +32,7 @@ data class PlayerPhysicsProfile(
 				slowFalling == other.slowFalling &&
 				width.closeTo(other.width) &&
 				height.closeTo(other.height) &&
-				eyeHeight.closeTo(other.eyeHeight) &&
 				crouchHeight.closeTo(other.crouchHeight) &&
-				crouchEyeHeight.closeTo(other.crouchEyeHeight) &&
 				sprintWindowTicks == other.sprintWindowTicks
 
 	private fun Double.closeTo(other: Double): Boolean =
@@ -57,7 +53,6 @@ data class PlayerPhysicsProfile(
 			slowFalling = false,
 			width = Vanilla.PLAYER_WIDTH.toDouble(),
 			height = Vanilla.PLAYER_HEIGHT.toDouble(),
-			eyeHeight = Vanilla.PLAYER_EYE_HEIGHT.toDouble(),
 		)
 
 		fun capture(player: ClientPlayerEntity): PlayerPhysicsProfile {
@@ -75,9 +70,7 @@ data class PlayerPhysicsProfile(
 				slowFalling = player.hasStatusEffect(StatusEffects.SLOW_FALLING),
 				width = standingDimensions.width.toDouble(),
 				height = standingDimensions.height.toDouble(),
-				eyeHeight = player.getEyeHeight(EntityPose.STANDING).toDouble(),
 				crouchHeight = player.getDimensions(EntityPose.CROUCHING).height.toDouble(),
-				crouchEyeHeight = player.getEyeHeight(EntityPose.CROUCHING).toDouble(),
 				sprintWindowTicks = MinecraftClient.getInstance().options.sprintWindow.value,
 			)
 		}

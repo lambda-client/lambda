@@ -10,11 +10,8 @@ import net.minecraft.util.shape.VoxelShapes
 enum class CollisionClass {
 
 	EMPTY,
-
 	FULL,
-
 	PARTIAL,
-
 	UNKNOWN,
 	;
 
@@ -41,10 +38,6 @@ enum class CollisionClass {
 
 enum class Medium {
 	AIR,
-	WATER,
-	LAVA,
-	POWDER_SNOW,
-	COBWEB,
 	CLIMBABLE,
 	SOLID,
 	UNKNOWN,
@@ -53,18 +46,12 @@ enum class Medium {
 data class CoarseVoxel(
 	val fullyPassable: Boolean,
 	val centerPassable: Boolean,
-
 	val standingSurface: Double?,
-
 	val intrusionHeight: Double = 0.0,
-
 	val bouncy: Boolean = false,
 	val medium: Medium = if (fullyPassable) Medium.AIR else Medium.SOLID,
 ) {
-
 	val surfaceOffset: Double get() = (standingSurface ?: 1.0) - 1.0
-
-	val standable: Boolean get() = standingSurface != null
 
 	val intrudesAbove: Boolean get() = intrusionHeight > 0.0
 

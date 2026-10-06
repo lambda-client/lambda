@@ -10,7 +10,6 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
 
-
 private const val EASE_TURN_DEGREES = 50.0
 
 internal class SegmentFollowerProgram(
@@ -20,11 +19,8 @@ internal class SegmentFollowerProgram(
 	private val launch: LaunchTrigger?,
 	private val maxYawChange: Double,
 	private val easeTurns: Boolean = false,
-
 	private val holdTicks: Int = Int.MAX_VALUE,
-
 	private val airPlan: AirSteering.AirPlan? = null,
-
 	private val holdJumpInFlight: Boolean = false,
 ) : ControlProgram {
 	private var airborneTicks = 0
@@ -73,5 +69,4 @@ internal class SegmentFollowerProgram(
 			rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
 		)
 	}
-
 }

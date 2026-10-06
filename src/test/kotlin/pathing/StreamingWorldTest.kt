@@ -20,7 +20,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -86,7 +85,7 @@ class StreamingWorldTest {
             if (arrived.isNotEmpty()) planner.chunksChanged(arrived)
             planner.advanceFrontier(FrontierAnchors.sweep(world.view, moves, position, goal))
 
-            val repair = planner.repair(Duration.INFINITE, maxExpansions = 200_000)
+            val repair = planner.repair(maxExpansions = 200_000)
             expansions += repair.processedNodes
             assertTrue(repair.converged, "the repair must converge")
 
@@ -232,7 +231,7 @@ class StreamingWorldTest {
         walk.planner.advanceFrontier(
             FrontierAnchors.sweep(world.view, walk.moves, start, goal),
         )
-        walk.planner.repair(Duration.INFINITE, maxExpansions = 50_000)
+        walk.planner.repair(maxExpansions = 50_000)
 
         assertTrue(
             walk.planner.routePlan(1L)?.nodes?.last() != goal,
@@ -280,7 +279,7 @@ class StreamingWorldTest {
             planner.updateStart(position)
             if (delivered.isNotEmpty()) planner.chunksChanged(delivered)
             planner.advanceFrontier(FrontierAnchors.sweep(view, moves, position, goal))
-            planner.repair(Duration.INFINITE, maxExpansions = 500_000)
+            planner.repair(maxExpansions = 500_000)
 
             val route = planner.routePlan(++revision) ?: planner.resynchronizedRoutePlan(revision)
             val plan = assertNotNull(route, "stranded with no route at $position on cycle $cycle")

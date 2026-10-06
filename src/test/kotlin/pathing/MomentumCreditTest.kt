@@ -16,7 +16,6 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulator
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -93,7 +92,7 @@ class MomentumCreditTest {
         )
         var ticks = 0
         while (simulator.state.position.z - 0.5 < distance && ticks < 400) {
-            if (simulator.tryTickMovement(input) !is MovementSimulationStepResult.Advanced) break
+            simulator.tickMovement(input)
             ticks++
         }
         return ticks

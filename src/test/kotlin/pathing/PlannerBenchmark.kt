@@ -21,7 +21,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.time.Duration
 import kotlin.time.measureTime
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -62,10 +61,10 @@ class PlannerBenchmark {
         val scenario = ProbeScenarios.all().first { it.name == "bedrock-traverse" }
         val library = ProbeScenarios.moveLibrary(scenario.options)
         // Warm the arc-probe caches and the JIT on a throwaway planner.
-        CoarsePlanner(scenario.environment, library, scenario.start, scenario.goal).repair(Duration.INFINITE)
+        CoarsePlanner(scenario.environment, library, scenario.start, scenario.goal).repair()
 
         val planner = CoarsePlanner(scenario.environment, library, scenario.start, scenario.goal)
-        val time = measureTime { planner.repair(Duration.INFINITE) }
+        val time = measureTime { planner.repair() }
         val nodes = planner.graphSize
         return "coarse     nodes=%-6d total=%-8s us/node=%.1f".format(
             nodes, time.inWholeMilliseconds.toString() + "ms", time.inWholeMicroseconds.toDouble() / nodes,

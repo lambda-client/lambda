@@ -11,12 +11,11 @@ import com.lambda.pathing.graph.LongDStarLite
 import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.WorldLink
-import com.lambda.pathing.world.PathingWorld
+import com.lambda.pathing.world.streaming.PathingWorld
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class PlanningJob(
@@ -54,7 +53,7 @@ internal class PlanningJob(
 		coarseState.repairFrom(start)
 		coarseState.applyEvents(batch)
 		val coarse = timings.measure("coarse") {
-			planner.repair(timeBudget = Duration.INFINITE, maxExpansions = preparation.coarseExpansionBudget, cancelled = cancelled)
+			planner.repair(maxExpansions = preparation.coarseExpansionBudget, cancelled = cancelled)
 		}
 		LOG.info(
 			"Coarse D* {} -> {}: {} expansions, {} graph nodes, {} snapshot sections, converged={}",
@@ -63,10 +62,8 @@ internal class PlanningJob(
 		if (coarse.cancelled || cancellation.isCancelled) return PathPlanResult.Cancelled
 		if (!coarse.converged) {
 			return PathPlanResult.Failed(
-				PlanningFailure.ResourceLimit(
-					"coarse search did not converge within ${preparation.coarseExpansionBudget} expansions" +
-							(coarse.stall?.let { "; stalled: $it" } ?: "")
-				)
+				"coarse search did not converge within ${preparation.coarseExpansionBudget} expansions" +
+						(coarse.stall?.let { "; stalled: $it" } ?: "")
 			)
 		}
 		timings.measure("field") { planner.expandSearchField(FIELD_EXPANSION_BUDGET, cancelled) }
@@ -92,7 +89,7 @@ internal class PlanningJob(
 			start, goal, coarse.processedNodes, planner.routeFailureReport(),
 		)
 		dump("no-route", "no coarse route; ${planner.routeFailureReport()}")
-		return PathPlanResult.Failed(PlanningFailure.NoRoute("no coarse route to the goal"))
+		return PathPlanResult.Failed("no coarse route to the goal")
 	}
 
 	private fun walk(route: CoarseRoutePlan): PathPlanResult {
@@ -140,7 +137,7 @@ internal class PlanningJob(
 	private fun dumpOutcome(outcome: PathPlanResult, route: CoarseRoutePlan) {
 		if (outcome is PathPlanResult.Failed) {
 			val note = buildString {
-				append(outcome.failure.message)
+				append(outcome.reason)
 				append("; route ").append(route.nodes.joinToString(" "))
 				val anchors = planner.optimisticAnchors
 				if (anchors.isNotEmpty()) {

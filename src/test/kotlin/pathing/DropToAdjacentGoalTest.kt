@@ -17,7 +17,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.test.Test
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
@@ -37,7 +36,7 @@ class DropToAdjacentGoalTest {
         val start = Stance(8, 100, -1)
         val goal = Stance(9, 97, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { "no coarse route" }
         println("[drop] route=${route.nodes.map { "${it.x},${it.y},${it.z}" }}")

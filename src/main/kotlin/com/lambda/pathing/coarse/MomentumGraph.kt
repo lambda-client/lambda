@@ -8,7 +8,7 @@ enum class SpeedClass {
 
 	companion object {
 
-		const val MOVING_THRESHOLD_BLOCKS_PER_TICK = 0.15
+		private const val MOVING_THRESHOLD_BLOCKS_PER_TICK = 0.15
 
 		fun of(speed: Double): SpeedClass =
 			if (speed >= MOVING_THRESHOLD_BLOCKS_PER_TICK) MOVING else STOPPED
@@ -17,20 +17,19 @@ enum class SpeedClass {
 
 internal object MomentumRules {
 
-	const val STARTUP_TICKS = 2.0
+	private const val STARTUP_TICKS = 2.0
 
-	const val BRAKE_TICKS = 4.0
+	private const val BRAKE_TICKS = 4.0
 
-	const val CHAIN_TAX_TICKS = 1.0
+	private const val CHAIN_TAX_TICKS = 1.0
 
 	private const val MIN_CHAINED_COST_FRACTION = 0.5
 
-	fun departsStoppedOnly(movement: MovementId): Boolean = movement == MovementId.CLIMB
+	private fun departsStoppedOnly(movement: MovementId): Boolean = movement == MovementId.CLIMB
 
-	fun arrivesStopped(movement: MovementId): Boolean =
-		movement == MovementId.CLIMB || movement == MovementId.STEP_UP ||
-
-				movement == MovementId.LADDER_CATCH
+	private fun arrival(movement: MovementId): SpeedClass =
+		if (movement == MovementId.CLIMB || movement == MovementId.STEP_UP || movement == MovementId.LADDER_CATCH) SpeedClass.STOPPED
+		else SpeedClass.MOVING
 
 	private fun movingCost(ticks: Double): Double =
 		(ticks - CHAIN_TAX_TICKS).coerceAtLeast(ticks * MIN_CHAINED_COST_FRACTION)
@@ -43,15 +42,14 @@ internal object MomentumRules {
 		if (speed == SpeedClass.MOVING) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.STOPPED), BRAKE_TICKS)
 		}
-		for ((_, _, to, movement, lowerBoundTicks, _, _, _, standingStart) in edges.edgesFrom(node)) {
-			if (speed == SpeedClass.MOVING && departsStoppedOnly(movement)) continue
-			if (speed == SpeedClass.STOPPED && !standingStart) continue
-			val arrive = if (arrivesStopped(movement)) SpeedClass.STOPPED else SpeedClass.MOVING
+		for (edge in edges.edgesFrom(node)) {
+			if (speed == SpeedClass.MOVING && departsStoppedOnly(edge.movement)) continue
+			if (speed == SpeedClass.STOPPED && !edge.standingStart) continue
 			val cost = when (speed) {
-				SpeedClass.MOVING -> movingCost(lowerBoundTicks)
-				SpeedClass.STOPPED -> stoppedCost(movement, lowerBoundTicks)
+				SpeedClass.MOVING -> movingCost(edge.lowerBoundTicks)
+				SpeedClass.STOPPED -> stoppedCost(edge.movement, edge.lowerBoundTicks)
 			}
-			out.addMin(PackedStance.pack(to, arrive), cost)
+			out.addMin(PackedStance.pack(edge.to, arrival(edge.movement)), cost)
 		}
 	}
 
@@ -60,14 +58,13 @@ internal object MomentumRules {
 		if (speed == SpeedClass.STOPPED) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.MOVING), BRAKE_TICKS)
 		}
-		for ((_, from, _, movement, lowerBoundTicks, _, _, _, standingStart) in edges.edgesTo(node)) {
-			val arrive = if (arrivesStopped(movement)) SpeedClass.STOPPED else SpeedClass.MOVING
-			if (arrive != speed) continue
-			if (!departsStoppedOnly(movement)) {
-				out.addMin(PackedStance.pack(from, SpeedClass.MOVING), movingCost(lowerBoundTicks))
+		for (edge in edges.edgesTo(node)) {
+			if (arrival(edge.movement) != speed) continue
+			if (!departsStoppedOnly(edge.movement)) {
+				out.addMin(PackedStance.pack(edge.from, SpeedClass.MOVING), movingCost(edge.lowerBoundTicks))
 			}
-			if (standingStart) {
-				out.addMin(PackedStance.pack(from, SpeedClass.STOPPED), stoppedCost(movement, lowerBoundTicks))
+			if (edge.standingStart) {
+				out.addMin(PackedStance.pack(edge.from, SpeedClass.STOPPED), stoppedCost(edge.movement, edge.lowerBoundTicks))
 			}
 		}
 	}

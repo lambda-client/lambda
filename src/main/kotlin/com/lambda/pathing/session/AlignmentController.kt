@@ -81,7 +81,6 @@ internal class AlignmentController(private val walk: PathingSession) {
 
 		walk.state = State.Aligning(walk.leg + 1, yawDrift)
 		if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
-
 			warn(
 				"Installing with %.2f° of launch yaw error; the rotation could not settle exactly."
 					.format(yawDrift),

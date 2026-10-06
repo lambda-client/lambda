@@ -16,11 +16,7 @@ data class PublishedPath(
 	val partial: Boolean = false,
 	val planningGeneration: Long = 0L,
 	val publicationSequence: Int = 0,
-
-	val arrivalTicksEstimate: Double = Double.NaN,
-	val comparedRunningArrivalTicks: Double = Double.NaN,
-	val comparedRunningSequence: Long = -1,
-
+	val swap: SwapComparison? = null,
 	val legTouches: List<LegTouch> = emptyList(),
 ) {
 	val controlSegments: Int get() = plan.segments.size
@@ -63,10 +59,8 @@ data class PublishedPath(
 		.entries.sortedByDescending { it.value.first }
 		.joinToString(" ") { (movement, cost) -> "$movement=${cost.first}/${cost.second}" }
 
-	fun standingRunLengths(): List<Int> {
-		val frames = plan.frames
-		if (frames.isEmpty()) return emptyList()
-		val still = frames.map { it.state.velocity.horizontalLength() <= MotionConstraints.DEFAULT_STOPPED_SPEED }
+	private val standingRunLengths: List<Int> by lazy {
+		val still = plan.frames.map { it.state.velocity.horizontalLength() <= MotionConstraints.DEFAULT_STOPPED_SPEED }
 		val runs = ArrayList<Int>()
 		var index = 0
 		while (index < still.size) {
@@ -75,16 +69,15 @@ data class PublishedPath(
 			}
 			var end = index
 			while (end < still.size && still[end]) end++
-
 			if (end - index >= MIN_STANDING_RUN && end < still.size) runs += end - index
 			index = end
 		}
-		return runs
+		runs
 	}
 
-	fun standingFrames(): Int = standingRunLengths().sum()
+	fun standingFrames(): Int = standingRunLengths.sum()
 
-	fun standingRuns(): Int = standingRunLengths().size
+	fun standingRuns(): Int = standingRunLengths.size
 
 	fun standingPercent(): Int {
 		val total = plan.tape.frameCount

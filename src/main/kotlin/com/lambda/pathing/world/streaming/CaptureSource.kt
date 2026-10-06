@@ -1,4 +1,4 @@
-package com.lambda.pathing.world
+package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 

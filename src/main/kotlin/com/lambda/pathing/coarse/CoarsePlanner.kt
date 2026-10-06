@@ -3,7 +3,6 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.graph.CoarseRouteCandidate
 import com.lambda.pathing.graph.LongDStarLite
 import com.lambda.pathing.graph.LongLazyGraph
@@ -14,23 +13,21 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 class CoarsePlanner(
-
 	val view: CoarseVoxelView,
 	val moves: SimpleMoveLibrary,
 	start: Stance,
 	val goalStance: Stance,
-
-	private val sweepBudget: Int = FrontierAnchors.SWEEP_MAX_NODES,
-
-	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
-
-	private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
+	sweepBudget: Int = FrontierAnchors.SWEEP_MAX_NODES,
+	capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
+	onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
 	private val anchors = HashMap<Stance, Double>()
 
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
 	private val edgeCache = CoarseEdgeCache(view.cursor(), moves)
+
+	private val frontier = FrontierSweep(view, moves, goalStance, edgeCache::edgesFrom, sweepBudget, capturable, onCaptureLag)
 
 	private val graph = LongLazyGraph(
 		successorProvider = { node, sink ->
@@ -52,7 +49,7 @@ class CoarsePlanner(
 		},
 	)
 
-	val search = LongDStarLite(
+	private val search = LongDStarLite(
 		graph = graph,
 		start = PackedStance.pack(start, SpeedClass.STOPPED),
 		goal = goalNode,
@@ -102,10 +99,9 @@ class CoarsePlanner(
 	}
 
 	fun repair(
-		timeBudget: Duration = 5.milliseconds,
 		maxExpansions: Int = Int.MAX_VALUE,
 		cancelled: () -> Boolean = { false },
-	): LongDStarLite.ComputeResult = search.computeShortestPath(timeBudget, maxExpansions, cancelled)
+	): LongDStarLite.ComputeResult = search.computeShortestPath(Duration.INFINITE, maxExpansions, cancelled)
 
 	fun updateStart(start: Stance) = search.updateStart(PackedStance.pack(start, SpeedClass.STOPPED))
 
@@ -121,17 +117,12 @@ class CoarsePlanner(
 	}
 
 	fun advanceFrontier(probed: Map<Stance, Double>): Boolean {
-		var changed = false
-
 		val refused = FrontierAnchors.refusesOptimism(view, moves, goalStance)
 		val retired = anchors.keys.filterTo(ArrayList()) {
 			refused || !FrontierAnchors.bordersUnknown(view, it)
 		}
-		retired.forEach {
-			anchors.remove(it)
-			updateAnchorEdges(it, Double.POSITIVE_INFINITY)
-			changed = true
-		}
+		retired.forEach(::retire)
+		var changed = retired.isNotEmpty()
 
 		probed.forEach { (anchor, cost) ->
 			if (anchor != goalStance && anchors[anchor] != cost) {
@@ -145,50 +136,26 @@ class CoarsePlanner(
 
 	fun retireAllAnchors(): Boolean {
 		if (anchors.isEmpty()) return false
-		anchors.keys.toList().forEach { anchor ->
-			anchors.remove(anchor)
-			updateAnchorEdges(anchor, Double.POSITIVE_INFINITY)
-		}
+		anchors.keys.toList().forEach(::retire)
 		return true
+	}
+
+	private fun retire(anchor: Stance) {
+		anchors.remove(anchor)
+		updateAnchorEdges(anchor, Double.POSITIVE_INFINITY)
 	}
 
 	fun advanceReachableFrontier(
 		from: Stance = PackedStance.stance(search.start),
 		cancelled: () -> Boolean = { false },
-	): Boolean {
-		if (from == goalStance || FrontierAnchors.refusesOptimism(view, moves, goalStance)) {
-			return advanceFrontier(emptyMap())
-		}
-
-		val incremental = sweepFrom == from && !sweepDirty && sweptVisited.isNotEmpty()
-		val seeds: Collection<Stance> = if (incremental) ArrayList(sweptIncomplete) else {
-			if (!moves.isStance(view, from)) return advanceFrontier(emptyMap())
-			sweptVisited.clear()
-			sweptIncomplete.clear()
-			sweepFrom = from
-			sweepDirty = false
-			listOf(from)
-		}
-		val probed = FrontierAnchors.sweep(
-			view, moves, seeds, goalStance, sweptVisited, sweptIncomplete,
-			maxNodes = sweepBudget, cancelled = cancelled,
-			capturable = capturable, onCaptureLag = onCaptureLag,
-			edges = edgeCache::edgesFrom,
-		)
-		return advanceFrontier(probed)
-	}
-
-	private val sweptVisited = HashSet<Stance>()
-	private val sweptIncomplete = HashSet<Stance>()
-	private var sweepFrom: Stance? = null
-	private var sweepDirty = false
+	): Boolean = advanceFrontier(frontier.anchorsFrom(from, cancelled))
 
 	fun discoverReachableFrontier(
 		cancelled: () -> Boolean = { false },
 		maxExpansions: Int = Int.MAX_VALUE,
 	): Boolean {
 		val changed = advanceReachableFrontier(cancelled = cancelled)
-		if (changed) repair(timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled)
+		if (changed) repair(maxExpansions = maxExpansions, cancelled = cancelled)
 		return changed
 	}
 
@@ -236,7 +203,7 @@ class CoarsePlanner(
 		val edges = nodes.zipWithNext { from, to -> liveEdge(from, to) ?: return null }
 		return CoarseRoutePlan(
 			snapshotRevision = snapshotRevision,
-			nodes = nodes.toList(),
+			nodes = nodes,
 			edges = edges,
 			lowerBoundTicks = candidate.ticks,
 			dependencies = edges.flatMapTo(HashSet()) { it.readSet },
@@ -247,7 +214,7 @@ class CoarsePlanner(
 		edgeCache.edgesFrom(from)
 			.asSequence()
 			.filter { it.to == to }
-			.minWithOrNull(compareBy({ it.lowerBoundTicks }, { it.id.template.value }))
+			.minWithOrNull(compareBy({ it.lowerBoundTicks }, { it.template.value }))
 
 	fun routeFailureReport(): String = buildString {
 		append("start=").append(PackedStance.stance(search.start))
@@ -269,14 +236,13 @@ class CoarsePlanner(
 			if (synchronized.edgesRemoved + synchronized.edgesChanged + synchronized.edgesAdded == 0) {
 				return null
 			}
-			repair(timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled)
+			repair(maxExpansions = maxExpansions, cancelled = cancelled)
 			routePlan(snapshotRevision)?.let { return it }
 		}
 		return null
 	}
 
 	private fun synchronizeStances(affected: Iterable<Stance>): LongDStarLite.SynchronizationResult {
-
 		edgeCache.invalidateStances(affected)
 		val lifted = LongArrayList()
 		for (stance in affected) {
@@ -310,36 +276,28 @@ class CoarsePlanner(
 		return minOf(search.g(node), search.rhs(node))
 	}
 
-	fun worldChanged(changed: Iterable<VoxelPos>): LongDStarLite.SynchronizationResult {
-		sweepDirty = true
-		edgeCache.invalidateVoxels(changed)
-		val affected = HashSet<Stance>()
-		changed.forEach { affected += moves.affectedOrigins(it) }
-		return synchronizeStances(affected)
-	}
-
 	fun chunksChanged(
 		chunks: Iterable<PathingChunk>,
 		maxStances: Int = Int.MAX_VALUE,
 		arrivalsOnly: Boolean = false,
-	): LongDStarLite.SynchronizationResult {
-
-		if (!arrivalsOnly) sweepDirty = true
+	) {
+		if (!arrivalsOnly) frontier.dirty = true
 		val ranges = chunks.map(moves::originColumnRanges)
-		forEachGraphStance { x, y, z ->
-			if (ranges.any { (xs, zs) -> x in xs && z in zs }) {
-				if (arrivalsOnly && edgeCache.isComplete(Stance(x, y, z))) return@forEachGraphStance
-				pendingSync.add(PackedStance.pack(x, y, z, SpeedClass.STOPPED))
-			}
+		val iterator = graph.nodes.iterator()
+		while (iterator.hasNext()) {
+			val key = PackedStance.stanceKey(iterator.nextLong())
+			val x = PackedStance.unpackX(key)
+			val z = PackedStance.unpackZ(key)
+			if (ranges.none { (xs, zs) -> x in xs && z in zs }) continue
+			if (arrivalsOnly && edgeCache.isComplete(key)) continue
+			pendingSync.add(key)
 		}
 		edgeCache.invalidateChunks(chunks, arrivalsOnly)
-		return continueSync(maxStances)
+		continueSync(maxStances)
 	}
 
-	val pendingSyncSize: Int get() = pendingSync.size
-
-	fun continueSync(maxStances: Int = Int.MAX_VALUE): LongDStarLite.SynchronizationResult {
-		if (pendingSync.isEmpty()) return LongDStarLite.SynchronizationResult(0, 0, 0, 0)
+	fun continueSync(maxStances: Int = Int.MAX_VALUE): Boolean {
+		if (pendingSync.isEmpty()) return false
 		val ordered = pendingSync.toLongArray()
 		ordered.sort()
 		val count = minOf(maxStances, ordered.size)
@@ -350,7 +308,8 @@ class CoarsePlanner(
 			lifted.add(PackedStance.withSpeed(key, SpeedClass.MOVING))
 			lifted.add(key)
 		}
-		return search.synchronizeAffected(lifted)
+		search.synchronizeAffected(lifted)
+		return pendingSync.isNotEmpty()
 	}
 
 	private val pendingSync = LongOpenHashSet()

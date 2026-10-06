@@ -53,20 +53,20 @@ object BounceArcProbe {
 			val riseHeight = rise + landingOffset - launchOffset
 			val headroom = headroom()
 			val launchReach = launchReach()
-			val cache = SweepCellCache()
+			val arcs = ArcSweep(view, from, dx, dz, reads)
 			val seed = seedContactOffset()
 
 			for ((jump, sprint) in STANDING_STYLES) {
 				refined(seed) { contactDepth ->
 					BounceSolver.solveStanding(
-						horizontalDistance = length, drop = drop, rise = rise,
+						horizontalDistance = length, drop = drop,
 						jump = jump, sprint = sprint,
 						contactDepth = contactDepth, riseHeight = riseHeight,
 						contactPenalty = ::contactPenalty,
 						headroom = headroom,
 						launchReach = launchReach,
 					)
-				}?.takeIf { admissible(it, cache) }?.let { return it }
+				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
 
 			for ((jump, sprint, holdForward, holdTicks) in COMBOS) {
@@ -79,7 +79,7 @@ object BounceArcProbe {
 						headroom = headroom,
 						launchReach = launchReach,
 					)
-				}?.takeIf { admissible(it, cache) }?.let { return it }
+				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
 			return null
 		}
@@ -95,15 +95,9 @@ object BounceArcProbe {
 			return null
 		}
 
-		private fun admissible(solution: BounceSolution, cache: SweepCellCache): Boolean {
+		private fun admissible(solution: BounceSolution, arcs: ArcSweep): Boolean {
 			if (!contactPenalty(solution.launchOffset + solution.contactDistance).isFinite()) return false
-			return sweepArc(
-				view, from, dx, dz, solution.arc,
-				launchOffset = solution.launchOffset,
-				launchHeight = launchHeight,
-				reads = reads,
-				cache = cache,
-			) == Sweep.CLEAR
+			return arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.CLEAR
 		}
 
 		private fun crossesPad(): Boolean {
@@ -216,7 +210,6 @@ object BounceArcProbe {
 			add(LaunchCombo(jump, sprint = true, holdForward = true))
 			add(LaunchCombo(jump, sprint = false, holdForward = true))
 			for (holdTicks in PARTIAL_HOLDS) {
-
 				add(LaunchCombo(jump, sprint = true, holdForward = true, holdTicks = holdTicks))
 				add(LaunchCombo(jump, sprint = false, holdForward = true, holdTicks = holdTicks))
 			}

@@ -1,6 +1,7 @@
-package com.lambda.pathing.world
+package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
+import com.lambda.pathing.world.snapshot.SECTION_CELLS
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 
 internal class SectionCapture {
@@ -36,9 +37,5 @@ internal class SectionCapture {
 		activeKey = null
 		builder = null
 		cursor = 0
-	}
-
-	companion object {
-		const val SECTION_CELLS = 16 * 16 * 16
 	}
 }

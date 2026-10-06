@@ -4,18 +4,13 @@ data class SimpleMoveOptions(
 	val allowDiagonal: Boolean = true,
 	val allowStepUp: Boolean = true,
 	val maxWalkOffDepth: Int = 3,
-
 	val maxDropSpan: Int = 2,
-
 	val allowClimbing: Boolean = false,
 	val allowJumpCandidates: Boolean = true,
 	val maxJumpSpan: Int = 5,
 	val maxJumpDrop: Int = 1,
-
 	val allowOffAxisJumps: Boolean = true,
-
 	val allowDeepDropJumps: Boolean = false,
-
 	val allowSlimeBounces: Boolean = false,
 	val maxBounceDrop: Int = 8,
 ) {

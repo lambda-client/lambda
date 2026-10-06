@@ -17,7 +17,6 @@ import com.lambda.pathing.world.CoarseVoxel
 import kotlin.test.Test
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -60,7 +59,7 @@ class StandingStartJumpTest {
     private fun assertNoRoute(environment: SnapshotSimulationEnvironment, goal: Stance) {
         val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, Stance(0, 1, 0), goal)
-        val converged = planner.repair(Duration.INFINITE).converged
+        val converged = planner.repair().converged
         val route = if (converged) planner.routePlan(0L) else null
         assertTrue(route == null, "a momentum-only jump must not be promised: ${route?.nodes}")
     }
@@ -113,7 +112,7 @@ class StandingStartJumpTest {
         val goal = Stance(5, 1, 0)
         val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandSearchField()
         val route = requireNotNull(planner.routePlan(1L))
         assertTrue(
@@ -186,7 +185,7 @@ class StandingStartJumpTest {
         val start = Stance(0, 1, 0)
         val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "coarse search must converge")
+        assertTrue(planner.repair().converged, "coarse search must converge")
         planner.expandSearchField()
         val route = requireNotNull(planner.routePlan(1L)) { "coarse route must exist" }
         assertTrue(

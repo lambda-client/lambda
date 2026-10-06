@@ -19,7 +19,6 @@ import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.math.atan2
 import kotlin.test.Test
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
@@ -68,7 +67,7 @@ class ParallelQualityProbeTest {
                     else SimpleMoveOptions(maxJumpDrop = 2)
                 val moves = moveLibrary(options)
                 val planner = CoarsePlanner(environment, moves, start, goal)
-                check(planner.repair(Duration.INFINITE).converged)
+                check(planner.repair().converged)
                 planner.expandSearchField()
                 val route = checkNotNull(planner.routePlan(0L))
 

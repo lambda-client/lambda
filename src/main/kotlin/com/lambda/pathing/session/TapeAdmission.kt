@@ -21,21 +21,17 @@ import kotlin.math.abs
 internal class TapeAdmission(private val walk: PathingSession) {
 
 	fun SafeContext.begin(path: PublishedPath) {
-		walk.launcher.current?.let { session ->
-			if (path.planningGeneration != session.generation) {
-				return keepRunning(path, "publication belongs to stale planning generation ${path.planningGeneration}")
-			}
+		val current = walk.launcher.current
+		if (current != null && path.planningGeneration != current.generation) {
+			return keepRunning(path, "publication belongs to stale planning generation ${path.planningGeneration}")
 		}
 		executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
 			return with(walk) { fail("certified plan became stale before execution: $deviation") }
 		}
-		if (!path.partial && path.route.goal != path.finalGoal) {
-			return with(walk) { fail("planner attempted to publish a partial route ending at ${path.route.goal}") }
-		}
 
 		val drift = player.pos.distanceTo(path.plan.initialState.position)
 		if (drift > START_DRIFT_TOLERANCE) {
-			if (walk.launcher.current?.generation != path.planningGeneration) {
+			if (current?.generation != path.planningGeneration) {
 				return keepRunning(path, "publication was certified from a stance the walk has left")
 			}
 			return with(walk) { fail("moved %.2f blocks while planning".format(drift)) }
@@ -119,14 +115,13 @@ internal class TapeAdmission(private val walk: PathingSession) {
 	private fun SafeContext.replay(path: PublishedPath, frame: Int) {
 		walk.telemetry.published = path
 		walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
-		walk.replay = Replay(TrajectoryExecutionCursor(path.plan, with(walk) { liveProfile() }).apply { resumeAt(frame) })
+		walk.replay = Replay(TrajectoryExecutionCursor(path.plan, with(walk) { liveProfile() }, frame))
 		walk.launcher.current?.adopt(frame, path.publicationSequence.toLong())
 	}
 
 	fun SafeContext.executionEnvironmentDeviation(
 		path: PublishedPath,
 		nextFrame: Int,
-
 		untilFrame: Int = path.plan.tape.frameCount,
 	): ExecutionDeviation? {
 		val liveProfile = with(walk) { liveProfile() }

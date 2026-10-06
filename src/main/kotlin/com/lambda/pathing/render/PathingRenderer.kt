@@ -223,7 +223,6 @@ object PathingRenderer : Loadable {
 			tree.edges.forEach { edge ->
 				if (edge.role != role) return@forEach
 				if (edge.trace.isEmpty()) {
-
 					if (edge.from.distanceTo(edge.to) <= MAX_CHORD_BLOCKS) {
 						line(edge.from.add(0.0, TREE_Y, 0.0), edge.to.add(0.0, TREE_Y, 0.0), color.scaleAlpha(0.5), width(role), dash(role))
 					}

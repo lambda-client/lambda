@@ -11,8 +11,8 @@ package pathing
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
-import com.lambda.pathing.world.RevisionLog
-import com.lambda.pathing.world.WorldMutation
+import com.lambda.pathing.world.streaming.RevisionLog
+import com.lambda.pathing.world.streaming.WorldMutation
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread

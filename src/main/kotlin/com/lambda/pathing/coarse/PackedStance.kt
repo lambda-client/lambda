@@ -3,15 +3,15 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.core.Stance
 
 object PackedStance {
-	const val Y_BITS = 10
-	const val XZ_BITS = 26
+	private const val Y_BITS = 10
+	private const val XZ_BITS = 26
 
-	const val Y_SHIFT = 53
-	const val X_SHIFT = 27
-	const val Z_SHIFT = 1
+	private const val Z_SHIFT = 1
+	private const val X_SHIFT = Z_SHIFT + XZ_BITS
+	private const val Y_SHIFT = X_SHIFT + XZ_BITS
 
-	const val Y_BIAS = 1 shl (Y_BITS - 1)
-	const val XZ_BIAS = 1 shl (XZ_BITS - 1)
+	private const val Y_BIAS = 1 shl (Y_BITS - 1)
+	private const val XZ_BIAS = 1 shl (XZ_BITS - 1)
 
 	val Y_RANGE: IntRange = -Y_BIAS until Y_BIAS
 	val XZ_RANGE: IntRange = -XZ_BIAS until XZ_BIAS

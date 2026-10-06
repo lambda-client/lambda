@@ -79,7 +79,7 @@ class LongRangeCoarsePerfProbeTest {
             val planner = CoarsePlanner(view, library, start, goal)
 
             val converge = measureTime {
-                check(planner.repair(timeBudget = kotlin.time.Duration.INFINITE).converged)
+                check(planner.repair().converged)
             }
             val convergeReads = Triple(view.voxelReads, view.shapeReads, view.classReads)
             view.reset()

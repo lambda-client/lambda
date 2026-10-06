@@ -1,10 +1,8 @@
 package com.lambda.pathing.actions
 
-
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.CoarseVoxelView
 
@@ -15,7 +13,7 @@ interface BodyState {
 
 	val hazardFrame: Int?
 
-	val speed: Double get() = state.velocity.horizontalLength()
+	val speed: Double
 
 	fun heading(): Pair<Double, Double>? =
 		if (speed <= HEADING_EPSILON) null else state.velocity.x to state.velocity.z
@@ -33,7 +31,6 @@ data class TemplateSpec(
 	val cost: Double,
 	val conditions: List<CellCondition>,
 	val arc: MotionTemplate.ArcSpec? = null,
-
 	val strideCost: Double? = null,
 ) {
 	internal fun toTemplate(id: MotionTemplateId) =
@@ -50,14 +47,13 @@ class DecisionContext(
 	val edge: CoarseEdge,
 	val constraints: MotionConstraints,
 	val view: CoarseVoxelView,
-
-	val steering: SteeringField? = null,
+	val steering: SteeringField,
 )
 
 interface SteeringField {
 	fun chain(
 		stance: Stance,
-		firstStep: Stance? = null,
+		firstStep: Stance?,
 		length: Int,
 		heading: Pair<Double, Double>? = null,
 	): List<Stance>
@@ -78,12 +74,10 @@ class ProposalContext(
 class ProgramContext(
 	val decision: TrajectoryDecision,
 	val body: BodyState,
-
 	val nodes: List<HorizontalPoint>,
 	val constraints: MotionConstraints,
 	val launch: LaunchTrigger?,
-
-	val openLanding: Boolean = false,
+	val openLanding: Boolean,
 )
 
 class CompletionContext(
@@ -91,31 +85,17 @@ class CompletionContext(
 	val body: BodyState,
 	val frameIndex: Int,
 	val observed: MovementSimulationState,
-
 	val stance: Stance,
-
 	val airborne: Boolean,
 	val launch: LaunchTrigger?,
 )
-
-fun DecisionContext.landingRisk(solution: LaunchSolution): Double {
-	if (view.voxel(edge.to.x, edge.to.y - 1, edge.to.z).bouncy) return 0.0
-	val limit = constraints.maxSafeFallDistance
-	if (limit <= 0.0) return 1.0
-	val rise = (edge.to.y - edge.from.y).toDouble()
-	val fall = solution.fallDistance(rise)
-	val safe = limit - ARC_MODEL_ERROR_BLOCKS
-	return ((fall - safe) / ARC_MODEL_ERROR_BLOCKS).coerceIn(0.0, 1.0)
-}
-
-private const val ARC_MODEL_ERROR_BLOCKS = 1.0
 
 interface Movement {
 	val id: MovementId
 
 	fun templates(context: MovementContext): List<TemplateSpec>
 
-	fun decisions(context: DecisionContext): List<TrajectoryDecision>
+	fun decisions(context: DecisionContext): List<TrajectoryDecision> = emptyList()
 
 	fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice =
 		DecisionPrice.FREE
@@ -126,9 +106,7 @@ interface Movement {
 
 	fun occupies(view: CoarseVoxelView, stance: Stance): Boolean = false
 
-	val completesAirborne: Boolean get() = false
-
-	val pressesIntoTerrain: Boolean get() = false
+	val climbs: Boolean get() = false
 
 	fun descentAllowance(decision: TrajectoryDecision): Double = 0.0
 

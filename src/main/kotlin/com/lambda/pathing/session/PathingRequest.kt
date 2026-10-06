@@ -6,9 +6,7 @@ import com.lambda.pathing.core.Stance
 
 class PathingRequest(
 	automated: Automated,
-
 	val goal: Stance,
-
 	val waypoints: List<Stance> = emptyList(),
 ) : Request(), Automated by automated {
 	override val requestId = requestCount++

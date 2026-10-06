@@ -10,7 +10,6 @@ data class MotionConstraints(
 	val brakeDistances: List<Double> = listOf(0.25, 0.35, 0.45, 0.55, 0.70, 0.90, 1.15),
 	val stepUpJumpLeadDistances: List<Double> = listOf(0.30, 0.55, 0.80, 1.05),
 	val sprintModes: List<Boolean> = listOf(true, false),
-
 	val touchArrival: Boolean = false,
 	val touchRestRadius: Double = 1.6,
 ) {
@@ -32,8 +31,3 @@ data class MotionConstraints(
 	}
 }
 
-data class TerminalApproach(
-	val sprint: Boolean,
-	val brakeDistance: Double,
-	val stepUpJumpLeadDistance: Double?,
-)

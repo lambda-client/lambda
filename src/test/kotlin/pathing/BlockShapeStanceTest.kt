@@ -21,7 +21,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
@@ -85,7 +84,7 @@ class BlockShapeStanceTest {
 
         val environment = SnapshotSimulationEnvironment.synthetic(bounds(), blocks)
         val planner = CoarsePlanner(environment, library(), Stance(0, 64, 0), Stance(4, 66, 0))
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the slab ramp must converge")
+        assertTrue(planner.repair().converged, "the slab ramp must converge")
         val route = assertNotNull(planner.routePlan(0L), "a slab ramp must publish a route")
 
         assertEquals(Stance(4, 66, 0), route.nodes.last(), "the route must reach the top of the ramp")
@@ -114,7 +113,7 @@ class BlockShapeStanceTest {
         val environment = SnapshotSimulationEnvironment.synthetic(bounds(), blocks)
 
         val planner = CoarsePlanner(environment, library(), Stance(0, 65, 0), Stance(5, 65, 0))
-        assertTrue(planner.repair(Duration.INFINITE).converged, "a slab floor must converge")
+        assertTrue(planner.repair().converged, "a slab floor must converge")
         planner.expandSearchField()
         val route = assertNotNull(planner.routePlan(0L), "a slab floor must publish a route")
 
@@ -343,7 +342,7 @@ class BlockShapeStanceTest {
 
         // And a fence line is walkable end to end.
         val planner = CoarsePlanner(environment, moves, Stance(0, 66, 0), Stance(3, 66, 0))
-        assertTrue(planner.repair(Duration.INFINITE).converged, "a fence line must converge")
+        assertTrue(planner.repair().converged, "a fence line must converge")
         val route = assertNotNull(planner.routePlan(0L), "a fence line must publish a route")
         assertEquals(Stance(3, 66, 0), route.nodes.last(), "the route must run along the fence")
     }

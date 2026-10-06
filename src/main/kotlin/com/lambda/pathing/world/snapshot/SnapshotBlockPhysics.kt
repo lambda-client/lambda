@@ -37,27 +37,5 @@ data class SnapshotBlockPhysics(
 
 		val AIR = SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.AIR)
 		val FULL_CUBE = SnapshotBlockPhysics(VoxelShapes.fullCube(), coarseVoxel = CoarseVoxel.FULL_BLOCK)
-
-		fun of(
-			shape: VoxelShape,
-			slipperiness: Double = DEFAULT_SLIPPERINESS,
-			velocityMultiplier: Double = 1.0,
-			jumpVelocityMultiplier: Double = 1.0,
-			fenceLike: Boolean = false,
-			bounceFactor: Double = 0.0,
-			dampensSteppingSpeed: Boolean = false,
-		) = SnapshotBlockPhysics(
-			collisionShape = shape,
-			slipperiness = slipperiness,
-			velocityMultiplier = velocityMultiplier,
-			jumpVelocityMultiplier = jumpVelocityMultiplier,
-
-			coarseVoxel = BlockPhysicsCapture.coarseVoxelOf(shape, bouncy = bounceFactor >= 1.0),
-			fenceLike = fenceLike,
-			bounceFactor = bounceFactor,
-			dampensSteppingSpeed = dampensSteppingSpeed,
-		)
-
-		val UNAVAILABLE = SnapshotBlockPhysics(VoxelShapes.fullCube(), coarseVoxel = CoarseVoxel.UNKNOWN)
 	}
 }

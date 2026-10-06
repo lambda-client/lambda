@@ -1,5 +1,9 @@
 package com.lambda.pathing.physics
 
+import net.minecraft.block.BedBlock
+import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
+
 object Vanilla {
 	const val GRAVITY = 0.08
 	const val SLOW_FALLING_MAX_GRAVITY = 0.01
@@ -53,7 +57,11 @@ object Vanilla {
 	const val PLAYER_WIDTH = 0.6F
 	const val PLAYER_HALF_WIDTH = PLAYER_WIDTH / 2.0F
 	const val PLAYER_HEIGHT = 1.8F
-	const val PLAYER_EYE_HEIGHT = 1.62F
 	const val CROUCH_HEIGHT = 1.5F
-	const val CROUCH_EYE_HEIGHT = 1.27F
+}
+
+internal fun BlockState.bounceFactor(): Double = when {
+	isOf(Blocks.SLIME_BLOCK) -> Vanilla.SLIME_BOUNCE_FACTOR
+	block is BedBlock -> Vanilla.BED_BOUNCE_FACTOR.toDouble()
+	else -> 0.0
 }

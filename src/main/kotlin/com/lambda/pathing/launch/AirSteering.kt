@@ -5,6 +5,7 @@ import kotlin.math.hypot
 import kotlin.math.sin
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.MovementKeys
+import com.lambda.pathing.core.Stance
 
 object AirSteering {
 	data class AirPlan(
@@ -15,7 +16,28 @@ object AirSteering {
 		val airTicks: Int,
 		val holdTicks: Int,
 		val sprintAcceleration: Double,
-	)
+	) {
+		companion object {
+			fun toward(from: Stance, to: Stance, solution: LaunchSolution, lateralOffset: Double): AirPlan? {
+				val dx = (to.x - from.x).toDouble()
+				val dz = (to.z - from.z).toDouble()
+				val length = hypot(dx, dz)
+				if (length <= DEGENERATE_LENGTH) return null
+				val unitX = dx / length
+				val unitZ = dz / length
+				return AirPlan(
+					aimX = to.x + 0.5 - unitZ * lateralOffset,
+					aimZ = to.z + 0.5 + unitX * lateralOffset,
+					unitX = unitX,
+					unitZ = unitZ,
+					airTicks = solution.airTicks,
+					holdTicks = solution.heldForwardTicks,
+					sprintAcceleration = if (solution.sprint) BallisticProfile.SPRINT_AIR_ACCELERATION
+					else BallisticProfile.WALK_AIR_ACCELERATION,
+				)
+			}
+		}
+	}
 
 	fun steer(
 		positionX: Double,
@@ -57,7 +79,6 @@ object AirSteering {
 		var improved = false
 		for (forward in COMPONENTS) {
 			for (strafe in COMPONENTS) {
-
 				var directionX = strafe * cos - forward * sin
 				var directionZ = forward * cos + strafe * sin
 				val length = hypot(directionX, directionZ)

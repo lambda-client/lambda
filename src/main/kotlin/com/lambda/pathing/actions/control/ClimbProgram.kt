@@ -3,26 +3,22 @@ package com.lambda.pathing.actions.control
 import com.lambda.pathing.actions.ControlProgram
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.actions.ProgramContext
+import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.alongEdge
+import com.lambda.pathing.core.center
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
 
-internal class ClimbProgram(
-	private val targetYaw: Double?,
-	private val holdForward: Boolean,
-	private val holdWhileClimbing: Boolean,
-	private val climbWithJump: Boolean,
-	private val maxYawChange: Double,
-	private val takeoff: HorizontalPoint,
-	private val aim: HorizontalPoint,
-) : ControlProgram {
-
-	private val overLip = holdForward && !holdWhileClimbing && !climbWithJump
+internal class ClimbProgram(private val decision: TrajectoryDecision.Climb, context: ProgramContext) : ControlProgram {
+	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val takeoff = context.body.stance.center()
+	private val aim = decision.step.center()
+	private val overLip = decision.holdForward && !decision.holdWhileClimbing && !decision.climbWithJump
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
-		val yawError = targetYaw?.let { Rotation.wrap(it - observed.rotation.yaw) }
+		val yawError = decision.yaw?.let { Rotation.wrap(it - observed.rotation.yaw) }
 		val yawDelta = yawError?.coerceIn(-maxYawChange, maxYawChange) ?: 0.0
 		val aligned = yawError == null || abs(yawError) <= ALIGNMENT_DEGREES
 
@@ -30,7 +26,6 @@ internal class ClimbProgram(
 			if (overLip && !aligned) {
 				0.0
 			} else if (overLip) {
-
 				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 				val speed = observed.velocity.horizontalLength()
 				when {
@@ -38,11 +33,10 @@ internal class ClimbProgram(
 					speed > CREEP_REST_SPEED -> 0.0
 					else -> 1.0
 				}
-			} else if (holdForward) 1.0 else 0.0
-		} else if (holdWhileClimbing) {
+			} else if (decision.holdForward) 1.0 else 0.0
+		} else if (decision.holdWhileClimbing) {
 			1.0
 		} else if (overLip && observed.velocity.horizontalLength() > DRIFT_REST_SPEED) {
-
 			-1.0
 		} else {
 			0.0
@@ -50,7 +44,7 @@ internal class ClimbProgram(
 
 		return MovementSimulationInput(
 			forward = forward,
-			jump = climbWithJump,
+			jump = decision.climbWithJump,
 			rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
 		)
 	}

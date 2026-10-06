@@ -1,9 +1,9 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -20,8 +20,7 @@ internal class CoarseEdgeCache(
 
 	private val completeOrigins = LongOpenHashSet()
 
-	private val standable = StanceMemo()
-	private var standableRevision: Any? = view.revision
+	private val standable = StanceMemo(view, moves)
 
 	fun edgesFrom(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
@@ -34,7 +33,7 @@ internal class CoarseEdgeCache(
 		}
 	}
 
-	fun isComplete(stance: Stance): Boolean = completeOrigins.contains(key(stance))
+	fun isComplete(node: Long): Boolean = completeOrigins.contains(PackedStance.stanceKey(node))
 
 	fun edgesTo(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
@@ -46,41 +45,27 @@ internal class CoarseEdgeCache(
 	fun cachedEdgesFrom(origin: Stance): List<CoarseEdge>? = outgoing.get(key(origin))
 
 	private fun computeEdgesFrom(origin: Stance): List<CoarseEdge> {
-		if (!isStance(origin)) return emptyList()
+		if (!standable.isStance(origin)) return emptyList()
 		return moves.templates(view).mapNotNull { template ->
-			val target = origin.offset(template.dx, template.dy, template.dz)
-			val targetKey = key(target)
-			val known = if (nonStanceTargets.contains(targetKey)) null else incoming.get(targetKey)
-			if (known != null) known.firstOrNull { it.id.template == template.id }
-			else template.edge(view, origin)
+			val targetKey = key(origin.offset(template.dx, template.dy, template.dz))
+			edgeVia(if (nonStanceTargets.contains(targetKey)) null else incoming.get(targetKey), template, origin)
 		}
 	}
 
 	private fun computeEdgesTo(target: Stance): List<CoarseEdge> {
-		if (!isStance(target)) {
+		if (!standable.isStance(target)) {
 			nonStanceTargets.add(key(target))
 			return emptyList()
 		}
 		return moves.templates(view).mapNotNull { template ->
 			val origin = target.offset(-template.dx, -template.dy, -template.dz)
-			if (!isStance(origin)) return@mapNotNull null
-			val known = outgoing.get(key(origin))
-			if (known != null) known.firstOrNull { it.id.template == template.id }
-			else template.edge(view, origin)
+			if (!standable.isStance(origin)) return@mapNotNull null
+			edgeVia(outgoing.get(key(origin)), template, origin)
 		}
 	}
 
-	private fun isStance(stance: Stance): Boolean {
-		val revision = view.revision
-		if (revision !== standableRevision) {
-			standable.clear()
-			standableRevision = revision
-		}
-		standable.get(stance)?.let { return it }
-		val stands = moves.isStance(view, stance)
-		standable.put(stance, stands)
-		return stands
-	}
+	private fun edgeVia(known: List<CoarseEdge>?, template: MotionTemplate, origin: Stance): CoarseEdge? =
+		if (known != null) known.firstOrNull { it.template == template.id } else template.edge(view, origin)
 
 	fun invalidateStances(stances: Iterable<Stance>) {
 		for (stance in stances) {
@@ -93,23 +78,7 @@ internal class CoarseEdgeCache(
 		}
 	}
 
-	fun invalidateVoxels(changed: Iterable<VoxelPos>) {
-		for (voxel in changed) {
-			for (y in voxel.y - 1..voxel.y + 2) standable.remove(Stance(voxel.x, y, voxel.z))
-			for (origin in moves.affectedOrigins(voxel)) {
-				val k = key(origin)
-				outgoing.remove(k)
-				completeOrigins.remove(k)
-			}
-			for (target in moves.affectedTargets(voxel)) {
-				val k = key(target)
-				incoming.remove(k)
-				nonStanceTargets.remove(k)
-			}
-		}
-	}
-
-	fun invalidateChunks(chunks: Iterable<PathingChunk>, arrivalsOnly: Boolean = false) {
+	fun invalidateChunks(chunks: Iterable<PathingChunk>, arrivalsOnly: Boolean) {
 		val originRanges = chunks.map(moves::originColumnRanges)
 		if (originRanges.isEmpty()) return
 		val targetRanges = chunks.map(moves::targetColumnRanges)

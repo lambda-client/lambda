@@ -31,7 +31,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
@@ -100,7 +99,7 @@ class DropPrimitiveTest {
         val start = Stance(0, 66, 0)
         val goal = Stance(4, 63, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the ledge route must converge")
+        assertTrue(planner.repair().converged, "the ledge route must converge")
         planner.expandSearchField()
         val route = assertNotNull(planner.routePlan(0L), "a route down the ledge must publish")
 
@@ -161,7 +160,7 @@ class DropPrimitiveTest {
         val start = Stance(-1, 71, 0)
         val goal = Stance(9, 64, 0)
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
+        assertTrue(planner.repair().converged, "the staircase must converge")
         planner.expandSearchField()
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
 
@@ -233,7 +232,7 @@ class DropPrimitiveTest {
         val start = Stance(-1, 71, 0)
         val goal = Stance(6, 63, 0)
         val planner = CoarsePlanner(environment, library(), start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
+        assertTrue(planner.repair().converged, "the staircase must converge")
         planner.expandSearchField()
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
         assertTrue(
@@ -304,7 +303,7 @@ class DropPrimitiveTest {
         val start = Stance(0, 17, 0)
         val goal = Stance(-5, 11, 0)
         val planner = CoarsePlanner(environment, library(), start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
+        assertTrue(planner.repair().converged, "the staircase must converge")
         planner.expandSearchField()
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
 
@@ -372,7 +371,7 @@ class DropPrimitiveTest {
 	        SimulationSnapshotBounds(-12, 0, -8, 8, 40, 8), blocks,
         )
         val planner = CoarsePlanner(environment, library(), Stance(0, 17, 0), Stance(-5, 11, 0))
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the staircase must converge")
+        assertTrue(planner.repair().converged, "the staircase must converge")
         planner.expandSearchField()
         val route = assertNotNull(planner.routePlan(0L), "a staircase route must publish")
 

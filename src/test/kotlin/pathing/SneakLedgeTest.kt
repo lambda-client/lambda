@@ -56,7 +56,7 @@ class SneakLedgeTest {
         val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
         for (x in -4..3) for (z in -2..2) blocks[BlockPos(x, 62, z)] = SnapshotBlockPhysics.FULL_CUBE
         val environment = SnapshotSimulationEnvironment.synthetic(
-	        SimulationSnapshotBounds(-10, 50, -8, 12, 80, 8), blocks,
+	        SimulationSnapshotBounds(-10, -64, -8, 40, 80, 8), blocks,
         )
         val simulator = MovementSimulator(
 	        profile = PROFILE,
@@ -70,7 +70,7 @@ class SneakLedgeTest {
         )
 
         repeat(TICKS) {
-            simulator.tryTickMovement(
+            simulator.tickMovement(
 	            MovementSimulationInput(forward = 1.0, sneak = sneak, rotation = FACING_EAST),
             )
         }

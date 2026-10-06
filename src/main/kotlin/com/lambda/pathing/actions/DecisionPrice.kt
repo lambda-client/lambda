@@ -1,9 +1,7 @@
 package com.lambda.pathing.actions
 
 data class DecisionPrice(
-
 	val ticks: Double = 0.0,
-
 	val difficulty: Double = 0.0,
 ) {
 	init {

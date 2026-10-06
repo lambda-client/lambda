@@ -17,7 +17,6 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.TrajectoryPlan
-import com.lambda.pathing.search.TrajectoryPlanId
 import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.physics.MovementSimulationState
@@ -29,7 +28,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import pathing.CoarseKinematicEnvelope
@@ -158,7 +156,7 @@ class TrajectoryExecutionCursorTest {
             ),
         )
         val planner = CoarsePlanner(environment, moves, Stance(startX, 0, 0), Stance(goalX, 0, 0))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandSearchField()
         val route = requireNotNull(planner.routePlan(REVISION))
         val seed = assertIs<MotionPlanResult.Success>(
@@ -167,7 +165,7 @@ class TrajectoryExecutionCursorTest {
                 MotionConstraints(sprintModes = sprintModes),
             ).run(),
         )
-        return Fixture(environment, initial, TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(1), seed, PROFILE))
+        return Fixture(environment, initial, TrajectoryPlan.fromWalkingSeed(seed, PROFILE))
     }
 
     private fun flatEnvironment(minX: Int = -3, maxX: Int = 7): SnapshotSimulationEnvironment {

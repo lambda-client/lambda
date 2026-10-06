@@ -7,7 +7,7 @@ import com.lambda.pathing.actions.control.PursuitTracker
 import com.lambda.pathing.actions.control.RunUpLaunchProgram
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.actions.control.airPlanToward
+import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
@@ -42,12 +42,12 @@ internal object JumpPrograms {
 		} else context.nodes
 		return SegmentFollowerProgram(
 			nodes = nodes,
-			sprint = launch.sprint,
+			sprint = solution.sprint,
 			lookAheadNodes = PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
 			launch = context.launch,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
 			holdTicks = solution.heldForwardTicks,
-			airPlan = if (context.openLanding) null else airPlanToward(context.body.stance, step, solution, solution.lateralOffset),
+			airPlan = if (context.openLanding) null else AirSteering.AirPlan.toward(context.body.stance, step, solution, solution.lateralOffset),
 		)
 	}
 

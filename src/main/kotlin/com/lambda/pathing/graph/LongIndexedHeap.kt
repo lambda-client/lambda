@@ -24,25 +24,11 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 		siftUp(newIndex)
 	}
 
-	fun update(node: Long, first: Double, second: Double) {
-		val position = index.get(node)
-		if (position < 0) throw NoSuchElementException("Node not found in priority queue")
-		updateAt(position, first, second)
-	}
-
 	fun remove(node: Long): Boolean {
 		val position = index.remove(node)
 		if (position < 0) return false
 		removeAt(position)
 		return true
-	}
-
-	fun pop(): Long {
-		if (count == 0) throw NoSuchElementException("Priority queue is empty")
-		val top = nodes[0]
-		index.remove(top)
-		removeAt(0)
-		return top
 	}
 
 	fun top(): Long {
@@ -63,11 +49,6 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 	fun isEmpty(): Boolean = count == 0
 
 	fun size(): Int = count
-
-	fun clear() {
-		count = 0
-		index.clear()
-	}
 
 	private fun ensureCapacity(needed: Int) {
 		if (needed <= nodes.size) return

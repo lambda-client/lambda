@@ -56,7 +56,6 @@ internal object JumpTemplates {
 			conditions = StanceRules.stanceConditions(dx, rise, dz),
 			arc = MotionTemplate.ArcSpec(
 				MODES,
-
 				riseAdmission = { realRise ->
 					when {
 						gap <= RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true

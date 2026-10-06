@@ -9,15 +9,12 @@ data class Telemetry(
 	val adopted: Int,
 	val recoveries: Int,
 	val rejectedImprovements: Int,
-
 	val trail: List<Vec3d>,
-
 	val holds: Int = 0,
 	val repairs: Int = 0,
 	val leg: Int = 0,
 	val queuedWaypoints: Int = 0,
 	val sessionRestarts: Int = 0,
-
 	val cadence: String = "",
 ) {
 	companion object {
@@ -33,7 +30,7 @@ internal class WalkTelemetry {
 	var published: PublishedPath? = null
 		set(value) {
 			field = value
-			invalidate()
+			cached = null
 		}
 
 	var maxDeviation: Double = 0.0
@@ -65,46 +62,33 @@ internal class WalkTelemetry {
 
 	private val lock = Any()
 
-	private fun invalidate() {
+	private inline fun update(change: () -> Unit) = synchronized(lock) {
+		change()
 		cached = null
 	}
 
-	fun recordTrail(position: Vec3d, deviation: Double) = synchronized(lock) {
+	fun recordTrail(position: Vec3d, deviation: Double) = update {
 		if (trail.size == MAX_RETAINED_TRAIL_POINTS) trail.removeFirst()
 		trail.addLast(position)
 		maxDeviation = maxOf(maxDeviation, deviation)
-		invalidate()
 	}
 
-	fun countAdoption(tapeFrames: Int) = synchronized(lock) {
+	fun countAdoption(tapeFrames: Int) = update {
 		val now = System.currentTimeMillis()
 		adoptedFrames += (tapeFrames - lastAdoptedFrames).coerceAtLeast(0)
 		adoptionMillis += (now - lastAdoptionMillis).coerceAtLeast(0)
 		lastAdoptedFrames = tapeFrames
 		lastAdoptionMillis = now
 		adopted++
-		invalidate()
 	}
 
-	fun countHold() = synchronized(lock) {
-		holds++
-		invalidate()
-	}
+	fun countHold() = update { holds++ }
 
-	fun countRepair() = synchronized(lock) {
-		repairs++
-		invalidate()
-	}
+	fun countRepair() = update { repairs++ }
 
-	fun countRecovery() = synchronized(lock) {
-		recoveries++
-		invalidate()
-	}
+	fun countRecovery() = update { recoveries++ }
 
-	fun countRejectedImprovement() = synchronized(lock) {
-		rejectedImprovements++
-		invalidate()
-	}
+	fun countRejectedImprovement() = update { rejectedImprovements++ }
 
 	fun snapshot(): Telemetry {
 		cached?.let { return it }

@@ -9,6 +9,7 @@ import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.control.HeadingFollowerProgram
 import com.lambda.pathing.actions.Movement
@@ -28,6 +29,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.bearingBetween
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.headingOfBearing
+import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.canStandAt
 import kotlin.math.abs
@@ -67,7 +69,6 @@ object WalkMovement : Movement {
 
 		if (options.allowDiagonal) {
 			for ((dx, dz) in DIAGONALS) {
-
 				add(
 					spec(
 						dx, 0, dz, costs.diagonalWalk,
@@ -93,10 +94,10 @@ object WalkMovement : Movement {
 		strideCost: Double? = null,
 	) = TemplateSpec(dx, dy, dz, movement, cost, conditions, strideCost = strideCost)
 
-	override fun decisions(context: DecisionContext): List<TrajectoryDecision> = buildList {
-		for (sprint in context.constraints.sprintModes) {
+	private fun walks(step: Stance, constraints: MotionConstraints): List<TrajectoryDecision> = buildList {
+		for (sprint in constraints.sprintModes) {
 			for ((lookAhead, ease) in WALK_STYLES) {
-				add(TrajectoryDecision.Walk(sprint, context.edge.to, lookAhead, ease))
+				add(TrajectoryDecision.Walk(sprint, step, lookAhead, ease))
 			}
 		}
 	}
@@ -111,7 +112,7 @@ object WalkMovement : Movement {
 			if (!walkable(step)) continue
 
 			if (climbing && !(step.movement == MovementId.STEP_UP && step.to.y > body.stance.y)) continue
-			proposals += decisions(DecisionContext(body, step, context.constraints, context.view))
+			proposals += walks(step.to, context.constraints)
 		}
 
 		val leading = steps.first()
@@ -124,48 +125,20 @@ object WalkMovement : Movement {
 		val hazardous = body.hazardFrame != null
 		val fanned = hazardous || turning
 
-		for (sprint in context.constraints.sprintModes) {
-			proposals += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = null)
-			if (fanned) {
-				for (offset in HEADING_FAN_DEGREES) {
-					proposals += TrajectoryDecision.Heading(
-						sprint, target, bearing + offset, delayFrames = null,
-					)
-				}
-			}
-			if (turning) {
-				for ((keys, facingOffset) in DECOUPLED_FACINGS) {
-					proposals += TrajectoryDecision.Heading(
-						sprint, target, bearing + facingOffset, delayFrames = null, keys = keys,
-					)
-				}
-			}
+		fun heading(sprint: Boolean, yaw: Double, delay: Int?, keys: MovementKeys = MovementKeys.FORWARD, air: MovementKeys = keys) {
+			proposals += TrajectoryDecision.Heading(sprint, target, yaw, delay, keys, air)
 		}
 
 		for (sprint in context.constraints.sprintModes) {
-			for (delay in OFF_AXIS_LAUNCH_DELAYS) {
-				if (delay != 0 && !hazardous) continue
-				proposals += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = delay)
-			}
-			if (fanned) {
-				for (offset in HEADING_FAN_DEGREES) {
-					for (delay in OFF_AXIS_LAUNCH_DELAYS) {
-						proposals += TrajectoryDecision.Heading(
-							sprint, target, bearing + offset, delayFrames = delay,
-						)
-					}
-				}
-			}
+			heading(sprint, bearing, null)
+			if (fanned) for (offset in HEADING_FAN_DEGREES) heading(sprint, bearing + offset, null)
+			if (turning) for ((keys, facingOffset) in DECOUPLED_FACINGS) heading(sprint, bearing + facingOffset, null, keys)
+		}
 
-			if (hazardous) {
-				for (delay in OFF_AXIS_LAUNCH_DELAYS) {
-					for (air in AIRBORNE_STRAFE_KEYS) {
-						proposals += TrajectoryDecision.Heading(
-							sprint, target, bearing, delayFrames = delay, airborneKeys = air,
-						)
-					}
-				}
-			}
+		for (sprint in context.constraints.sprintModes) {
+			for (delay in OFF_AXIS_LAUNCH_DELAYS) if (delay == 0 || hazardous) heading(sprint, bearing, delay)
+			if (fanned) for (offset in HEADING_FAN_DEGREES) for (delay in OFF_AXIS_LAUNCH_DELAYS) heading(sprint, bearing + offset, delay)
+			if (hazardous) for (delay in OFF_AXIS_LAUNCH_DELAYS) for (air in AIRBORNE_STRAFE_KEYS) heading(sprint, bearing, delay, air = air)
 		}
 
 		return proposals
@@ -177,7 +150,6 @@ object WalkMovement : Movement {
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
-
 		val grounded = when (context.edge.movement) {
 			MovementId.WALK, MovementId.STEP_UP, MovementId.WALK_OFF -> DecisionPrice.FREE
 			else -> DecisionPrice(difficulty = GROUNDED_ON_AIR_EDGE_DIFFICULTY)
@@ -195,11 +167,10 @@ object WalkMovement : Movement {
 		val origin = context.body.stance
 		val view = context.view
 		val corridorFloor = context.steering
-			?.chain(origin, context.edge.to, SteeringField.PURSUIT_CHAIN_LENGTH, context.body.heading())
-			?.minOf { it.y }
-			?: origin.y
+			.chain(origin, context.edge.to, SteeringField.PURSUIT_CHAIN_LENGTH, context.body.heading())
+			.minOf { it.y }
 		val lowest = minOf(corridorFloor, origin.y)
-		val highest = origin.y + LAUNCH_MAX_RISE
+		val highest = origin.y + LaunchMode.MAX_JUMP_RISE
 		if (highest < lowest) return true
 		for (distance in 1..LAUNCH_REACH_BLOCKS) {
 			val x = floor(origin.x + 0.5 + unitX * distance).toInt()
@@ -227,16 +198,7 @@ object WalkMovement : Movement {
 
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision
-		if (decision is TrajectoryDecision.Heading) {
-			return HeadingFollowerProgram(
-				targetYaw = decision.yaw,
-				sprint = decision.sprint && decision.keys.sustainsSprint,
-				maxYawChange = context.constraints.maxYawDegreesPerFrame,
-				launch = context.launch,
-				keys = decision.keys,
-				airborneKeys = decision.airborneKeys,
-			)
-		}
+		if (decision is TrajectoryDecision.Heading) return HeadingFollowerProgram(decision, context)
 		val walk = decision as TrajectoryDecision.Walk
 		return SegmentFollowerProgram(
 			nodes = context.nodes,
@@ -278,7 +240,6 @@ object WalkMovement : Movement {
 
 	private const val LAUNCH_REACH_BLOCKS = 4
 
-	private const val LAUNCH_MAX_RISE = 1
 
 	private const val LAUNCH_HEADING_DIFFICULTY = 0.45
 

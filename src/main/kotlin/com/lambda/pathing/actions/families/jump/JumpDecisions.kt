@@ -24,18 +24,18 @@ internal object JumpDecisions {
 		val onward = onwardEntryWindow(context)
 
 		val ideal = onward?.let { window ->
-			LaunchSolver.best(
+			LaunchSolver.solve(
 				context.edge.from, context.edge.to,
 				modes = JumpTemplates.MODES, exitSpeedWindow = window,
-			)
+			).firstOrNull()
 		} ?: context.edge.launch ?: hopOver(context)
-		val asIs = LaunchSolver.best(
+		val asIs = LaunchSolver.solve(
 			context.edge.from, context.edge.to,
 			modes = JumpTemplates.MODES,
 			maxEntrySpeed = { context.body.speed },
 			preferredEntrySpeed = { context.body.speed },
 			exitSpeedWindow = onward,
-		)
+		).firstOrNull()
 
 		val dodge = context.edge.launch?.lateralOffset ?: 0.0
 		return listOfNotNull(ideal, asIs).map { solution ->
@@ -45,8 +45,7 @@ internal object JumpDecisions {
 	}
 
 	private fun onwardEntryWindow(context: DecisionContext): ClosedFloatingPointRange<Double>? {
-		val steering = context.steering ?: return null
-		val onward = steering
+		val onward = context.steering
 			.chain(context.edge.to, null, ONWARD_LOOKAHEAD, null)
 			.getOrNull(1)
 			?: return null
@@ -68,11 +67,11 @@ internal object JumpDecisions {
 		val edge = context.edge
 		if (edge.to.y < edge.from.y) return null
 		val reachable = reachableEntrySpeed(context)
-		return LaunchSolver.best(
+		return LaunchSolver.solve(
 			edge.from, edge.to,
 			modes = JumpTemplates.MODES,
 			maxEntrySpeed = { reachable },
-		)
+		).firstOrNull()
 	}
 
 	fun runUpDecisions(context: DecisionContext, solutions: List<LaunchSolution>): List<TrajectoryDecision> {
@@ -90,9 +89,7 @@ internal object JumpDecisions {
 			if (groundNeeded != null) {
 				val retreatAlong = solution.launchOffset - (groundNeeded + RUN_UP_MARGIN_BLOCKS)
 				if (clearBehind(context, -retreatAlong)) {
-					decisions += TrajectoryDecision.RunUpLaunch(
-						solution.sprint, edge.to, solution, retreatAlong, hopAlong = null,
-					)
+					decisions += TrajectoryDecision.RunUpLaunch(edge.to, solution, retreatAlong, hopAlong = null)
 				}
 				continue
 			}
@@ -107,9 +104,7 @@ internal object JumpDecisions {
 				val hopAlong = solution.launchOffset - hop.distance - gap
 				val retreatAlong = hopAlong - groundToCruise - RUN_UP_MARGIN_BLOCKS
 				if (!clearBehind(context, -retreatAlong)) continue
-				decisions += TrajectoryDecision.RunUpLaunch(
-					solution.sprint, edge.to, solution, retreatAlong, hopAlong,
-				)
+				decisions += TrajectoryDecision.RunUpLaunch(edge.to, solution, retreatAlong, hopAlong)
 			}
 		}
 		return decisions.take(MAX_RUN_UP_VARIANTS)

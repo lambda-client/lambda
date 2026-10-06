@@ -49,7 +49,7 @@ class DumpLegChainReplayTest {
         )
         val first = CoarsePlanningState(environment, options, start, firstGoal)
         first.repairFrom(start)
-        check(first.planner.repair(Duration.INFINITE).converged)
+        check(first.planner.repair().converged)
         first.planner.expandSearchField()
         val route = checkNotNull(first.planner.routePlan(0L))
 
@@ -87,7 +87,7 @@ class DumpLegChainReplayTest {
                     diagnostic ?: (if (certified) "stopped" else "completed"), frames.size, trace)
             }
             override fun expansion(from: Stance, action: TrajectoryDecision, diagnostic: TrajectoryDiagnostic?) {
-                val key = "${action.movement}/${action::class.simpleName}/sprint=${action.sprint} -> ${diagnostic?.let { it::class.simpleName } ?: "ok"}"
+                val key = "${action.movement}/${action::class.simpleName} -> ${diagnostic?.let { it::class.simpleName } ?: "ok"}"
                 perStance.getOrPut(from) { HashMap() }.merge(key, 1, Int::plus)
             }
             override fun blocked(frame: Int, section: com.lambda.pathing.core.PathingSection, capturable: Boolean, stance: Stance, movement: com.lambda.pathing.core.MovementId) {
@@ -181,7 +181,7 @@ class DumpLegChainReplayTest {
         }
         val detail = when (result) {
             is PathPlanResult.Planned -> "PLANNED partial=${result.path.partial} frames=${result.path.plan.frames.size} touches=${result.path.legTouches.map { it.waypoint to it.frame }}"
-            is PathPlanResult.Failed -> "FAILED ${result.failure.message}"
+            is PathPlanResult.Failed -> "FAILED ${result.reason}"
             else -> result::class.simpleName ?: "?"
         }
         println("[legs-replay] $file tempo=$tempo switches=${chain.switches} ledger=${chain.ledger}")

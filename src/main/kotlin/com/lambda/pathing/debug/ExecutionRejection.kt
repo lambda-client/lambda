@@ -22,11 +22,12 @@ internal fun executionRejectionReport(
 			else -> ""
 		}
 	}.orEmpty()
-	val input = path?.plan?.tape?.asList()?.getOrNull(frame)
-	val expected = path?.plan?.let { plan ->
-		if (afterInput) plan.frames.getOrNull(frame)?.state
-		else if (frame == 0) plan.initialState else plan.frames.getOrNull(frame - 1)?.state
+	val tape = path?.plan?.tape?.asList()
+	val input = tape?.getOrNull(frame)
+	val before = path?.plan?.let { plan ->
+		if (frame == 0) plan.initialState else plan.frames.getOrNull(frame - 1)?.state
 	}
+	val expected = if (afterInput) path?.plan?.frames?.getOrNull(frame)?.state else before
 	val phase = if (afterInput) "after input" else "before input"
 	val inputDetail = input?.let {
 		"; input f=%.1f s=%.1f jump=%s sprintKey=%s sneakKey=%s yaw=%s".format(
@@ -40,7 +41,6 @@ internal fun executionRejectionReport(
 				"position %s/%s, velocity %s/%s").format(
 			it.rotation.yaw, observed.rotation.yaw,
 			it.isSprinting, observed.isSprinting,
-
 			it.isSneaking, observed.isSneaking,
 			it.onGround, observed.onGround,
 			it.horizontalCollision, observed.horizontalCollision,
@@ -51,14 +51,11 @@ internal fun executionRejectionReport(
 			it.velocity.short(), observed.velocity.short(),
 		)
 	}.orEmpty()
-	val before = path?.plan?.let { plan ->
-		if (frame == 0) plan.initialState else plan.frames.getOrNull(frame - 1)?.state
-	}
 	val ledgeDetail =
 		if (expected?.horizontalCollision == true && !observed.horizontalCollision && before != null) {
 			liveLedgeProbe(before.boundingBox, observed.velocity)
 		} else ""
-	val previousInputDetail = path?.plan?.tape?.asList()?.getOrNull(frame - 1)?.let {
+	val previousInputDetail = tape?.getOrNull(frame - 1)?.let {
 		"; previous input f=%.1f jump=%s sprintKey=%s sneakKey=%s".format(
 			it.forward, it.jump, it.sprint, it.sneak,
 		)
@@ -88,7 +85,6 @@ private fun liveLedgeProbe(box: Box, movement: Vec3d): String {
 		player.isSneaking,
 	)
 }
-
 
 private fun Box.short() =
 	"[%.3f,%.3f,%.3f -> %.3f,%.3f,%.3f]".format(minX, minY, minZ, maxX, maxY, maxZ)

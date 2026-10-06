@@ -16,9 +16,8 @@ object PlanningDebugChannel {
 	class Attempt(val points: List<Vec3d>, val certified: Boolean)
 
 	@Volatile
-	private var active = false
-
-	val isActive: Boolean get() = active
+	var isActive = false
+		private set
 
 	@Volatile
 	var coarseRoute: CoarseRoutePlan? = null
@@ -32,7 +31,6 @@ object PlanningDebugChannel {
 		val pos: Vec3d,
 		val cost: Double,
 		val frontier: Boolean,
-
 		val anchor: Boolean,
 	)
 
@@ -51,7 +49,6 @@ object PlanningDebugChannel {
 		val cheapest: Double,
 		val dearest: Double,
 		val total: Int,
-
 		val totalEdges: Int,
 	)
 
@@ -66,7 +63,7 @@ object PlanningDebugChannel {
 		private set
 
 	fun publishCandidates(lines: List<CandidatePath>) {
-		if (active) candidateLines = lines
+		if (isActive) candidateLines = lines
 	}
 
 	@Volatile
@@ -87,10 +84,8 @@ object PlanningDebugChannel {
 	private var lastGraphMillis = 0L
 
 	fun refreshGraph(planner: CoarsePlanner, around: Vec3d) {
-		if (!active || !graphWanted) return
-		val now = System.currentTimeMillis()
-		if (now - lastGraphMillis < GRAPH_REFRESH_MILLIS) return
-		lastGraphMillis = now
+		if (!isActive || !graphWanted) return
+		if (System.currentTimeMillis() - lastGraphMillis < GRAPH_REFRESH_MILLIS) return
 		publishGraph(planner, around)
 	}
 
@@ -111,11 +106,11 @@ object PlanningDebugChannel {
 	}
 
 	fun publishTree(view: SearchTreeView) {
-		if (active) tree = view
+		if (isActive) tree = view
 	}
 
 	fun publishStats(view: SearchStats) {
-		if (active) stats = view
+		if (isActive) stats = view
 	}
 
 	@Volatile
@@ -123,11 +118,10 @@ object PlanningDebugChannel {
 		private set
 
 	@Volatile
-	var graphLimits: GraphViewLimits = GraphViewLimits()
-		private set
+	private var graphLimits: GraphViewLimits = GraphViewLimits()
 
 	fun publishGraph(planner: CoarsePlanner, around: Vec3d) {
-		if (!active) return
+		if (!isActive) return
 		lastGraphMillis = System.currentTimeMillis()
 		val anchors = planner.optimisticAnchors
 		val goal = planner.goalStance
@@ -221,15 +215,15 @@ object PlanningDebugChannel {
 	fun begin(enabled: Boolean, limits: GraphViewLimits = GraphViewLimits()) {
 		graphLimits = limits
 		clearSearchViews()
-		active = enabled
+		isActive = enabled
 	}
 
 	fun publishRoute(route: CoarseRoutePlan) {
-		if (active) coarseRoute = route
+		if (isActive) coarseRoute = route
 	}
 
 	fun publishAttempt(rollout: TrajectoryRollout, certified: Boolean) {
-		if (!active) return
+		if (!isActive) return
 		val points = ArrayList<Vec3d>(rollout.frames.size / DECIMATION + 2)
 		points += rollout.initialState.position
 		for (index in rollout.frames.indices step DECIMATION) {
@@ -247,7 +241,7 @@ object PlanningDebugChannel {
 	}
 
 	fun reset() {
-		active = false
+		isActive = false
 		coarseRoute = null
 		lastExhaustion = null
 		lastExhaustionLedger = ""

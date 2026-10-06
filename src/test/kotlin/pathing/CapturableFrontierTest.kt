@@ -19,12 +19,10 @@ import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.ChunkSectionPos
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -41,26 +39,12 @@ class CapturableFrontierTest {
     private val allCapturable: (Int, Int) -> Boolean = { _, _ -> true }
 
     private fun streamedIsland(): SnapshotSimulationEnvironment {
-        val unavailableKeys = ConcurrentHashMap.newKeySet<Long>()
-        val unavailableSection = ImmutableSnapshotSection.Builder().apply {
-            fill(SnapshotBlockPhysics.UNAVAILABLE)
-        }.build(expectedWrites = 4096)
         val floor = ImmutableSnapshotSection.Builder().apply {
             for (x in 0..15) for (z in 0..15) for (y in 0..15) {
                 set(x, y, z, if (y <= 4) SnapshotBlockPhysics.FULL_CUBE else SnapshotBlockPhysics.AIR)
             }
         }.build(expectedWrites = 4096)
-        return SnapshotSimulationEnvironment(
-            bounds = SimulationSnapshotBounds(0, 0, 0, 255, 15, 255),
-            sections = mapOf(ChunkSectionPos.asLong(0, 0, 0) to floor),
-            defaultBlock = null,
-            missingSection = { sectionX, sectionY, sectionZ, exact ->
-                check(!exact) { "exact simulation must never consume unstreamed terrain" }
-                unavailableKeys += ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
-                unavailableSection
-            },
-            unavailableSectionKeys = unavailableKeys,
-        )
+        return streamedSnapshot(SimulationSnapshotBounds(0, 0, 0, 255, 15, 255), mapOf(ChunkSectionPos.asLong(0, 0, 0) to floor))
     }
 
     private fun moves() = moveLibrary()
@@ -91,7 +75,7 @@ class CapturableFrontierTest {
         val planner = CoarsePlanner(snapshot, moves, start, goal, capturable = allCapturable)
 
         assertFalse(planner.discoverReachableFrontier(), "capture lag must not sweep anchors")
-        planner.repair(Duration.INFINITE, maxExpansions = 100_000)
+        planner.repair(maxExpansions = 100_000)
         assertTrue(planner.optimisticAnchors.isEmpty())
         assertNull(
             planner.routePlan(snapshotRevision = 1L),
@@ -173,13 +157,5 @@ class CapturableFrontierTest {
         )
         assertTrue(sweepLag.isNotEmpty(), "the sweep must name the cells it refused to anchor on")
         assertTrue(sweepLag.all { !snapshot.isKnown(it.first, it.second, it.third) })
-    }
-
-    @Test
-    fun `bordersUnknown distinguishes lag from frontier`() {
-        val snapshot = streamedIsland()
-        val edge = Stance(15, 5, 1)
-        assertTrue(FrontierAnchors.bordersUnknown(snapshot, edge))
-        assertFalse(FrontierAnchors.bordersUnknown(snapshot, edge, allCapturable))
     }
 }

@@ -34,90 +34,89 @@ internal inline fun <S : Any> probed(crossinline solve: (LongOpenHashSet?) -> S?
 
 internal enum class Sweep { CLEAR, BLOCKED, PARTIAL }
 
-internal class SweepCellCache {
-	val classes: Long2ByteOpenHashMap = Long2ByteOpenHashMap().apply { defaultReturnValue(UNVISITED) }
-	var shapes: Long2ObjectOpenHashMap<VoxelShape>? = null
-
-	companion object {
-		const val UNVISITED: Byte = -1
-	}
-}
-
-internal fun sweepArc(
-	view: CoarseVoxelView,
-	from: Stance,
+internal class ArcSweep(
+	private val view: CoarseVoxelView,
+	private val from: Stance,
 	dx: Int,
 	dz: Int,
-	arc: ArcSample,
-	launchOffset: Double,
-	launchHeight: Double,
-	reads: LongOpenHashSet?,
-	cache: SweepCellCache,
+	private val reads: LongOpenHashSet?,
+) {
+	private val length = hypot(dx.toDouble(), dz.toDouble())
+	private val unitX = dx / length
+	private val unitZ = dz / length
+	private val classes = Long2ByteOpenHashMap().apply { defaultReturnValue(UNVISITED) }
+	private var shapes: Long2ObjectOpenHashMap<VoxelShape>? = null
 
-	lateralOffset: Double = 0.0,
-	halfWidth: Double = CORE_HALF_WIDTH,
-): Sweep {
-	val length = hypot(dx.toDouble(), dz.toDouble())
-	if (length <= 0.0) return Sweep.BLOCKED
-	val unitX = dx / length
-	val unitZ = dz / length
-	val launchX = from.x + 0.5 + unitX * launchOffset - unitZ * lateralOffset
-	val launchZ = from.z + 0.5 + unitZ * launchOffset + unitX * lateralOffset
+	fun sweep(
+		arc: ArcSample,
+		launchOffset: Double,
+		launchHeight: Double,
+		lateralOffset: Double = 0.0,
+		halfWidth: Double = CORE_HALF_WIDTH,
+	): Sweep {
+		val launchX = from.x + 0.5 + unitX * launchOffset - unitZ * lateralOffset
+		val launchZ = from.z + 0.5 + unitZ * launchOffset + unitX * lateralOffset
+		forEachSweptCell(arc, launchX, launchHeight, launchZ, unitX, unitZ, halfWidth) { x, y, z, swept ->
+			val key = BlockPos.asLong(x, y, z)
+			reads?.add(key)
 
-	val heights = arc.heights
-	val distances = arc.distances
-
-	var previous = coreBox(launchX, launchHeight, launchZ, halfWidth)
-	for (index in heights.indices) {
-		val along = distances[index]
-		val box = coreBox(
-			launchX + unitX * along,
-			launchHeight + heights[index],
-			launchZ + unitZ * along,
-			halfWidth,
-		)
-		val swept = previous.union(box)
-		previous = box
-
-		val margin = swept.expand(SWEEP_MARGIN)
-		for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
-			for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
-				for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) {
-					val key = BlockPos.asLong(x, y, z)
-					reads?.add(key)
-
-					val known = cache.classes.get(key)
-					val cellClass = if (known == SweepCellCache.UNVISITED) {
-						view.collisionClass(x, y, z).also { cache.classes.put(key, it.ordinal.toByte()) }
-					} else {
-						COLLISION_CLASSES[known.toInt()]
+			val known = classes.get(key)
+			val cellClass = if (known == UNVISITED) {
+				view.collisionClass(x, y, z).also { classes.put(key, it.ordinal.toByte()) }
+			} else {
+				COLLISION_CLASSES[known.toInt()]
+			}
+			when (cellClass) {
+				CollisionClass.EMPTY -> {}
+				CollisionClass.UNKNOWN -> return Sweep.BLOCKED
+				CollisionClass.FULL ->
+					if (swept.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)) {
+						return Sweep.BLOCKED
 					}
-					when (cellClass) {
-						CollisionClass.EMPTY -> {}
-
-						CollisionClass.UNKNOWN -> return Sweep.BLOCKED
-
-						CollisionClass.FULL ->
-							if (swept.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)) {
-								return Sweep.BLOCKED
-							}
-
-						CollisionClass.PARTIAL -> {
-							val shapes = cache.shapes
-								?: Long2ObjectOpenHashMap<VoxelShape>().also { cache.shapes = it }
-							val shape = shapes.get(key)
-								?: view.collisionShape(x, y, z)?.also { shapes.put(key, it) }
-								?: return Sweep.BLOCKED
-							for (bounds in shape.boundingBoxes) {
-								if (bounds.offset(x.toDouble(), y.toDouble(), z.toDouble()).intersects(swept)) return Sweep.PARTIAL
-							}
-						}
+				CollisionClass.PARTIAL -> {
+					val cached = shapes ?: Long2ObjectOpenHashMap<VoxelShape>().also { shapes = it }
+					val shape = cached.get(key)
+						?: view.collisionShape(x, y, z)?.also { cached.put(key, it) }
+						?: return Sweep.BLOCKED
+					for (bounds in shape.boundingBoxes) {
+						if (bounds.offset(x.toDouble(), y.toDouble(), z.toDouble()).intersects(swept)) return Sweep.PARTIAL
 					}
 				}
 			}
 		}
+		return Sweep.CLEAR
 	}
-	return Sweep.CLEAR
+
+	private companion object {
+		const val UNVISITED: Byte = -1
+	}
+}
+
+internal inline fun forEachSweptCell(
+	arc: ArcSample,
+	launchX: Double,
+	launchHeight: Double,
+	launchZ: Double,
+	unitX: Double,
+	unitZ: Double,
+	halfWidth: Double,
+	visit: (x: Int, y: Int, z: Int, swept: Box) -> Unit,
+) {
+	val heights = arc.heights
+	val distances = arc.distances
+	var previous = coreBox(launchX, launchHeight, launchZ, halfWidth)
+	for (index in heights.indices) {
+		val along = distances[index]
+		val box = coreBox(launchX + unitX * along, launchHeight + heights[index], launchZ + unitZ * along, halfWidth)
+		val swept = previous.union(box)
+		previous = box
+		val margin = swept.expand(SWEEP_MARGIN)
+		for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
+			for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
+				for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) visit(x, y, z, swept)
+			}
+		}
+	}
 }
 
 internal fun coreBox(x: Double, y: Double, z: Double, halfWidth: Double = CORE_HALF_WIDTH) = Box(

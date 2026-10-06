@@ -20,7 +20,6 @@ import net.minecraft.util.math.BlockPos
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.time.Duration
 
 /**
  * Rough open terrain, the field case the corridor corpus never covers (68 edges per stance).
@@ -46,7 +45,7 @@ class CoarseOpenFloorSpeedTest {
             val state = CoarsePlanningState(environment, SimpleMoveOptions(), start, goal, horizonChunks = 0)
             state.repairFrom(start)
             val t0 = System.nanoTime()
-            val coarse = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
+            val coarse = state.planner.repair(maxExpansions = 1_000_000)
             val ms = (System.nanoTime() - t0) / 1e6
             val route = RouteResolution(state).resolve(start, 1L, 1_000_000, world = null)
             println("[speed] round=$round expansions=${coarse.processedNodes} nodes=${state.planner.graphSize} ms=%.1f us/exp=%.1f route=${route?.nodes?.size} ticks=${route?.lowerBoundTicks}".format(ms, ms * 1000.0 / coarse.processedNodes))

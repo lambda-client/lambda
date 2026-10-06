@@ -1,12 +1,15 @@
 package com.lambda.pathing.actions.control
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.launch.BallisticProfile
+import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.hypot
 
 internal const val LIP_LOOKAHEAD_MARGIN = 0.05
@@ -40,6 +43,15 @@ internal fun airborneStrafe(
 	if (abs(offset) < AIRBORNE_STRAFE_DEADBAND) return 0.0
 	return if (offset > 0.0) 1.0 else -1.0
 }
+
+internal fun yawTowards(target: HorizontalPoint, observed: MovementSimulationState): Double =
+	Math.toDegrees(atan2(target.z - observed.position.z, target.x - observed.position.x)) - 90.0
+
+internal fun yawStepTowards(desiredYaw: Double, observed: MovementSimulationState, maxYawChange: Double): Double =
+	Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
+
+internal fun brakeToStop(heldYaw: Double) =
+	ControlProgram { _, observed -> MovementSimulationInput(rotation = Rotation(heldYaw, observed.rotation.pitch)) }
 
 internal fun rotationToward(aim: HorizontalPoint, observed: MovementSimulationState, maxYawChange: Double): Rotation {
 	val yawDelta = yawStepTowards(yawTowards(aim, observed), observed, maxYawChange)

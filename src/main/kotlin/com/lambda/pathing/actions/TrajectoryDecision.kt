@@ -10,18 +10,16 @@ interface TrajectoryDecision {
 
 	val movement: MovementId
 
-	val sprint: Boolean
-
 	val step: Stance
 
-	val launchDelayFrames: Int? get() = null
+	val delayFrames: Int? get() = null
 
 	val seedsHazardOnFailure: Boolean get() = false
 
 	val leavesGround: Boolean get() = false
 
 	data class Walk(
-		override val sprint: Boolean,
+		val sprint: Boolean,
 		override val step: Stance,
 		val lookAheadNodes: Int,
 		val easeTurns: Boolean,
@@ -31,17 +29,13 @@ interface TrajectoryDecision {
 	}
 
 	data class Launch(
-		override val sprint: Boolean,
 		override val step: Stance,
-		val delayFrames: Int,
+		override val delayFrames: Int,
 		val solution: LaunchSolution,
 		override val movement: MovementId = MovementId.JUMP,
-	) : TrajectoryDecision {
-		override val launchDelayFrames: Int get() = delayFrames
-	}
+	) : TrajectoryDecision
 
 	data class Drop(
-		override val sprint: Boolean,
 		override val step: Stance,
 		val solution: LaunchSolution,
 		override val movement: MovementId = MovementId.DROP,
@@ -51,32 +45,24 @@ interface TrajectoryDecision {
 
 	data class Climb(
 		override val step: Stance,
-
 		val holdForward: Boolean,
-
 		val holdWhileClimbing: Boolean,
-
 		val climbWithJump: Boolean,
-
 		val yaw: Double?,
-		override val sprint: Boolean = false,
 		override val movement: MovementId = MovementId.CLIMB,
 	) : TrajectoryDecision
 
 	data class Heading(
-		override val sprint: Boolean,
+		val sprint: Boolean,
 		override val step: Stance,
 		val yaw: Double,
-		val delayFrames: Int?,
+		override val delayFrames: Int?,
 		val keys: MovementKeys = MovementKeys.FORWARD,
 		val airborneKeys: MovementKeys = keys,
 		override val movement: MovementId = MovementId.WALK,
-	) : TrajectoryDecision {
-		override val launchDelayFrames: Int? get() = delayFrames
-	}
+	) : TrajectoryDecision
 
 	data class RunUpLaunch(
-		override val sprint: Boolean,
 		override val step: Stance,
 		val solution: LaunchSolution,
 		val retreatAlong: Double,
@@ -85,7 +71,6 @@ interface TrajectoryDecision {
 	) : TrajectoryDecision
 
 	data class Bounce(
-		override val sprint: Boolean,
 		override val step: Stance,
 		val solution: BounceSolution,
 		override val movement: MovementId = MovementId.BOUNCE,

@@ -56,7 +56,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 		cancel()
 		val request = walk.request
-		val session = PlanningSession(++generation, request)
+		val session = PlanningSession(++generation)
 		current = session
 
 		walk.alignment.planningYaw = player.moveYaw.toDouble()
@@ -73,15 +73,14 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		)
 
 		val preparation = when (val prepared = preparePlanning(
-			player, request, request.goal, walk.remainingWaypoints(), session.cancellation,
+			player, request, request.goal, walk.remainingWaypoints(),
 		)) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
-			is PlanningPreparationResult.Failed -> return with(walk) { fail(prepared.failure.message) }
-			PlanningPreparationResult.Cancelled -> return with(walk) { fail("planning was cancelled") }
+			is PlanningPreparationResult.Failed -> return with(walk) { fail(prepared.reason) }
 		}
 		val currentJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: run {
 			walk.journey?.cancel()
-			PlanningJourney.open(preparation, player, PlanningCancellation()).also { walk.journey = it }
+			PlanningJourney.open(preparation, player).also { walk.journey = it }
 		}
 		launch(
 			session, preparation, currentJourney,
@@ -123,30 +122,26 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			return
 		}
 		when (val completed = checkNotNull(result)) {
-			is PathPlanResult.Planned ->
-				if (walk.replay != null) with(walk.admission) { adopt(completed.path) }
-				else with(walk.admission) { begin(completed.path) }
+			is PathPlanResult.Planned -> with(walk.admission) { adopt(completed.path) }
 			is PathPlanResult.Failed ->
 				if (walk.replay != null) {
-
-					deadEnd = completed.failure.message
+					deadEnd = completed.reason
 					LOG.info(
 						"Planning session dead-ended mid-walk ({}); planning the successor now",
-						completed.failure.message,
+						completed.reason,
 					)
 					planSuccessor()
 				} else if (restarts < MAX_SESSION_RESTARTS &&
 					walk.journey?.world?.revision != session.launchRevision
 				) {
-
 					restarts++
 					current = null
 					LOG.info(
 						"Planning dead-ended before motion ({}); retrying ({}/{})",
-						completed.failure.message, restarts, MAX_SESSION_RESTARTS,
+						completed.reason, restarts, MAX_SESSION_RESTARTS,
 					)
 					with(walk) { planTrajectory() }
-				} else with(walk) { fail(completed.failure.message) }
+				} else with(walk) { fail(completed.reason) }
 			PathPlanResult.Cancelled -> with(walk) { fail("planning was cancelled") }
 		}
 		if (current === session) {
@@ -174,19 +169,18 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		val running = walk.telemetry.published ?: return
 		val terminal = running.plan.frames.lastOrNull()?.state ?: return
 		val request = walk.request
-		val session = PlanningSession(++generation, request)
+		val session = PlanningSession(++generation)
 
 		val preparation = when (
 			val prepared = preparePlanning(
-				player, request, request.goal, walk.remainingWaypoints(), session.cancellation, initialOverride = terminal,
+				player, request, request.goal, walk.remainingWaypoints(), initialOverride = terminal,
 			)
 		) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
 			is PlanningPreparationResult.Failed -> {
-				LOG.info("Successor planning declined: {}", prepared.failure.message)
+				LOG.info("Successor planning declined: {}", prepared.reason)
 				return
 			}
-			PlanningPreparationResult.Cancelled -> return
 		}
 
 		val successorJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: return

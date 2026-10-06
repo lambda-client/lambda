@@ -8,7 +8,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
-import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.core.PathingChunk
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import org.junit.jupiter.api.Test
@@ -74,7 +74,7 @@ class CoarseGraphPerfProbeTest {
             val world2 = CountingFlatWorld()
             val planner = CoarsePlanner(world2, library, Stance(0, 64, 0), Stance(100, 64, 0))
             val searchTime = measureTime {
-                planner.repair(timeBudget = kotlin.time.Duration.INFINITE)
+                planner.repair()
             }
             val route = planner.route()
             println(
@@ -86,8 +86,8 @@ class CoarseGraphPerfProbeTest {
 
             world2.voxelReads = 0; world2.shapeReads = 0; world2.classReads = 0
             val repairTime = measureTime {
-                planner.worldChanged(listOf(VoxelPos(50, 64, 0)))
-                planner.repair(timeBudget = kotlin.time.Duration.INFINITE)
+                planner.chunksChanged(listOf(PathingChunk(50 shr 4, 0)))
+                planner.repair()
             }
             println(
                 "one-block repair: $repairTime, voxelReads=${world2.voxelReads}, " +

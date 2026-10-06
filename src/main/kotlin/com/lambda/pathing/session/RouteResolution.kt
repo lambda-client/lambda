@@ -3,9 +3,8 @@ package com.lambda.pathing.session
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.world.InterestTier
-import com.lambda.pathing.world.PathingWorld
-import kotlin.time.Duration
+import com.lambda.pathing.world.streaming.InterestTier
+import com.lambda.pathing.world.streaming.PathingWorld
 
 internal class RouteResolution(
 	private val state: CoarsePlanningState,
@@ -27,7 +26,7 @@ internal class RouteResolution(
 		fun extract() = timings.measure("extract") { state.routePlan(snapshotRevision, cancelled, maxExpansions) }
 		fun sweep() = timings.measure("sweep") { planner.advanceReachableFrontier(from = start) }
 		fun repair() = timings.measure("repair") {
-			planner.repair(timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled)
+			planner.repair(maxExpansions = maxExpansions, cancelled = cancelled)
 		}
 
 		var route = extract()

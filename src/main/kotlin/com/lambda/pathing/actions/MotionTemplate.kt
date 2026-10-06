@@ -23,14 +23,12 @@ class MotionTemplate internal constructor(
 	val movement: MovementId,
 	val lowerBoundTicks: Double,
 	private val conditions: List<CellCondition>,
-	private val arc: ArcSpec? = null,
-	private val strideCost: Double? = null,
+	private val arc: ArcSpec?,
+	private val strideCost: Double?,
 ) {
-
 	data class ArcSpec(
 		val modes: List<LaunchMode> = LaunchMode.entries,
 		val bounceDrop: Int? = null,
-
 		val riseAdmission: ((Double) -> Boolean)? = null,
 	)
 
@@ -41,7 +39,7 @@ class MotionTemplate internal constructor(
 		}
 	}
 
-	fun target(origin: Stance): Stance = origin.offset(dx, dy, dz)
+	private fun target(origin: Stance): Stance = origin.offset(dx, dy, dz)
 
 	internal val minimumTicks: Double = minOf(lowerBoundTicks, strideCost ?: lowerBoundTicks)
 
@@ -51,7 +49,7 @@ class MotionTemplate internal constructor(
 	private fun realRise(view: CoarseVoxelView, origin: Stance): Double =
 		dy + surfaceOffset(view, target(origin)) - surfaceOffset(view, origin)
 
-	internal fun matches(view: CoarseVoxelView, origin: Stance): Boolean =
+	private fun matches(view: CoarseVoxelView, origin: Stance): Boolean =
 		conditions.all { it.matches(view, origin.x, origin.y, origin.z) }
 
 	internal fun edge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
@@ -63,15 +61,12 @@ class MotionTemplate internal constructor(
 				?: return null
 			return edgeOf(origin, lowerBoundTicks, { probed.reads }, bounce = probed.solution)
 		}
-		val riseHeight = dy + surfaceOffset(view, target(origin)) - launchOffset
+		val riseHeight = realRise(view, origin)
 		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
-		val probed = JumpArcProbe.probe(
-			view, origin, dx, dz, dy, modes = spec.modes,
-			riseHeight = riseHeight,
-			launchHeight = origin.y + launchOffset,
-		) ?: return null
+		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset)
+			?: return null
 		return edgeOf(
-			origin, ticks(view, origin), { probed.reads },
+			origin, lowerBoundTicks, { probed.reads },
 			launch = probed.solution,
 			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, riseHeight),
 		)
@@ -88,7 +83,7 @@ class MotionTemplate internal constructor(
 		bounce: BounceSolution? = null,
 		standingStart: Boolean = true,
 	) = CoarseEdge(
-		id = CoarseEdgeId(id, origin),
+		template = id,
 		from = origin,
 		to = target(origin),
 		movement = movement,
@@ -120,7 +115,7 @@ class MotionTemplate internal constructor(
 			profile.runUpSpeed(0.0, profile.groundRunUpTicks(0.0, runUp, sprint, STANDING_RUN_UP_TICKS), sprint)
 
 		if (solution.speed - solution.speedSlack <= reach(solution.mode.sprint)) return true
-		return LaunchSolver.best(origin, target(origin), modes, maxEntrySpeed = { reach(it.sprint) }, rise = rise) != null
+		return LaunchSolver.solve(origin, target(origin), modes, maxEntrySpeed = { reach(it.sprint) }, rise = rise).isNotEmpty()
 	}
 
 	internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {

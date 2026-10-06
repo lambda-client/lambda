@@ -15,11 +15,10 @@ import kotlin.math.sign
 import kotlin.math.sqrt
 
 class MovementSimulator(
-	val profile: PlayerPhysicsProfile,
+	private val profile: PlayerPhysicsProfile,
 	private val environment: SimulationEnvironment,
 	initialState: MovementSimulationState,
 ) {
-
 	private var position = initialState.position
 	private var velocity = initialState.velocity
 	private var boundingBox = initialState.boundingBox
@@ -60,43 +59,7 @@ class MovementSimulator(
 			hadForwardMovement = hadForwardMovement,
 		)
 
-	fun reset(state: MovementSimulationState) {
-		position = state.position
-		velocity = state.velocity
-		boundingBox = state.boundingBox
-		poseHeight = state.boundingBox.lengthY
-		rotation = state.rotation
-		onGround = state.onGround
-		isJumping = state.isJumping
-		isSprinting = state.isSprinting
-		isSneaking = state.isSneaking
-		jumpingCooldown = state.jumpingCooldown
-		velocityAffectingPos = state.velocityAffectingPos
-		horizontalCollision = state.horizontalCollision
-		collidedSoftly = state.collidedSoftly
-		verticalCollision = state.verticalCollision
-		supportingBlockPos = state.supportingBlockPos
-		doubleTapSprintTicks = state.doubleTapSprintTicks
-		hadForwardMovement = state.hadForwardMovement
-		forceUpdateSupportingBlockPos = state.supportingBlockPos == null
-	}
-
 	fun tickMovement(input: MovementSimulationInput): MovementSimulationState {
-		step(input)
-		return state
-	}
-
-	fun tryTickMovement(input: MovementSimulationInput): MovementSimulationStepResult {
-		val before = state
-		return try {
-			MovementSimulationStepResult.Advanced(tickMovement(input))
-		} catch (failure: SimulationEnvironmentException) {
-			reset(before)
-			MovementSimulationStepResult.Rejected(failure)
-		}
-	}
-
-	private fun step(input: MovementSimulationInput) {
 		if (doubleTapSprintTicks > 0) doubleTapSprintTicks--
 		val hadForward = hadForwardMovement
 		val inSneakingPose = isSneaking
@@ -171,12 +134,13 @@ class MovementSimulator(
 
 		tickBlockCollision()
 		updatePose()
+		return state
 	}
 
 	private fun updatePose() {
 		val expected = if (isSneaking) profile.crouchHeight else profile.height
 		if (expected == poseHeight) return
-		if (expected > poseHeight && environment.isSpaceEmpty(poseBox(expected)) == false) return
+		if (expected > poseHeight && !environment.isSpaceEmpty(poseBox(expected))) return
 
 		poseHeight = expected
 		boundingBox = Box(
@@ -404,13 +368,12 @@ class MovementSimulator(
 	private fun adjustMovementForSneaking(movement: Vec3d): Vec3d {
 		if (!isSneaking || !onGround || movement.y > 0.0) return movement
 
-		val step = profile.stepHeight
 		var dx = movement.x
 		var dz = movement.z
 
-		while (dx != 0.0 && isSpaceUnderFeetEmpty(dx, 0.0, step)) dx = shrinkTowardsZero(dx)
-		while (dz != 0.0 && isSpaceUnderFeetEmpty(0.0, dz, step)) dz = shrinkTowardsZero(dz)
-		while (dx != 0.0 && dz != 0.0 && isSpaceUnderFeetEmpty(dx, dz, step)) {
+		while (dx != 0.0 && isSpaceUnderFeetEmpty(dx, 0.0)) dx = shrinkTowardsZero(dx)
+		while (dz != 0.0 && isSpaceUnderFeetEmpty(0.0, dz)) dz = shrinkTowardsZero(dz)
+		while (dx != 0.0 && dz != 0.0 && isSpaceUnderFeetEmpty(dx, dz)) {
 			dx = shrinkTowardsZero(dx)
 			dz = shrinkTowardsZero(dz)
 		}
@@ -418,17 +381,17 @@ class MovementSimulator(
 		return if (dx == movement.x && dz == movement.z) movement else Vec3d(dx, movement.y, dz)
 	}
 
-	private fun isSpaceUnderFeetEmpty(offsetX: Double, offsetZ: Double, stepHeight: Double): Boolean =
+	private fun isSpaceUnderFeetEmpty(offsetX: Double, offsetZ: Double): Boolean =
 		environment.isSpaceEmpty(
 			Box(
 				boundingBox.minX + Vanilla.COLLISION_EPSILON + offsetX,
-				boundingBox.minY - stepHeight - Vanilla.COLLISION_EPSILON,
+				boundingBox.minY - profile.stepHeight - Vanilla.COLLISION_EPSILON,
 				boundingBox.minZ + Vanilla.COLLISION_EPSILON + offsetZ,
 				boundingBox.maxX - Vanilla.COLLISION_EPSILON + offsetX,
 				boundingBox.minY,
 				boundingBox.maxZ - Vanilla.COLLISION_EPSILON + offsetZ,
 			)
-		) == true
+		)
 
 	private fun shrinkTowardsZero(delta: Double): Double =
 		if (abs(delta) <= Vanilla.LEDGE_CLIP_STEP) 0.0

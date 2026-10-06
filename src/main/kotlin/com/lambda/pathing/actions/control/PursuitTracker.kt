@@ -1,9 +1,7 @@
 package com.lambda.pathing.actions.control
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.physics.MovementSimulationState
-import kotlin.math.atan2
 
 internal class PursuitTracker(val nodes: List<HorizontalPoint>) {
 	var progressIndex = 0
@@ -37,18 +35,5 @@ internal class PursuitTracker(val nodes: List<HorizontalPoint>) {
 		internal const val DEFAULT_LOOK_AHEAD_NODES = 1
 	}
 }
-
-internal fun yawTowards(
-	target: HorizontalPoint,
-	observed: MovementSimulationState,
-): Double = Math.toDegrees(
-	atan2(target.z - observed.position.z, target.x - observed.position.x)
-) - 90.0
-
-internal fun yawStepTowards(
-	desiredYaw: Double,
-	observed: MovementSimulationState,
-	maxYawChange: Double,
-): Double = Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
 
 private const val MAX_PROGRESS_ADVANCE = 2

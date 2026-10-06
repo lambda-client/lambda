@@ -90,7 +90,7 @@ internal class Publisher(
 		commitAttempts++
 		if (tip != null && guideOf(tip) - guideOf(target) < MIN_COMMIT_PROGRESS_TICKS) return refuseCommit(inputs)
 		val cap = publicationCap(executing)
-		val (withinCap, beyondCap) = lineFrom(horizon.root, target).filter { it.elapsed > floor }.partition { it.elapsed <= cap }
+		val (withinCap, beyondCap) = target.lineFrom(horizon.root).filter { it.elapsed > floor }.partition { it.elapsed <= cap }
 		for (candidate in withinCap.asReversed() + beyondCap) {
 			if (tip == null && field.guide(candidate.stance) <= FINISH_VALUE_TICKS) continue
 			if (tip != null && !publishableOver(tip, candidate, executing)) {
@@ -153,11 +153,7 @@ internal class Publisher(
 		val braked = brakeToStop(anchor) ?: return false
 		var certified = certify(braked) as? MotionPlanResult.Success ?: return false
 		publications.newest?.let { running ->
-			certified = certified.copy(
-				arrivalTicksEstimate = arrivalEstimate(anchor),
-				comparedRunningArrivalTicks = arrivalEstimate(running.anchor),
-				comparedRunningSequence = running.sequence,
-			)
+			certified = certified.copy(swap = SwapComparison(arrivalEstimate(anchor), arrivalEstimate(running.anchor), running.sequence))
 		}
 		publish(anchor, tailAnchor(anchor, certified, anchor.collisionEvents), certified)
 		return true
@@ -183,14 +179,9 @@ internal class Publisher(
 			inputSwitches = parent.inputSwitches,
 			parent = parent,
 			inputs = tail.map { it.input },
-		).also { if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(tail) }
+			trace = if (probe.treeEnabled || probe.candidatesEnabled) ValueAnchor.traceOf(tail) else emptyList(),
+		)
 	}
-
-	private fun lineFrom(root: ValueAnchor?, leaf: ValueAnchor): List<ValueAnchor> =
-		generateSequence(leaf) { it.parent }
-			.takeWhile { it !== root && it.parent != null }
-			.toList()
-			.asReversed()
 
 	private companion object {
 		const val MIN_COMMIT_PROGRESS_TICKS = 1.0

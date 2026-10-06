@@ -65,9 +65,9 @@ internal class ImmutableSnapshotSection private constructor(
 	}
 
 	private companion object {
-		const val SECTION_CELLS = 16 * 16 * 16
-
 		fun localIndex(x: Int, y: Int, z: Int): Int =
 			((y and 15) shl 8) or ((z and 15) shl 4) or (x and 15)
 	}
 }
+
+internal const val SECTION_CELLS = 16 * 16 * 16

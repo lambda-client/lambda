@@ -9,9 +9,9 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.WorldSyncResult
-import com.lambda.pathing.world.InterestTier
-import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.world.WorldEventBatch
+import com.lambda.pathing.world.streaming.InterestTier
+import com.lambda.pathing.world.streaming.PathingWorld
+import com.lambda.pathing.world.streaming.WorldEventBatch
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 

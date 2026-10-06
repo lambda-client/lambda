@@ -15,10 +15,8 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
-import com.lambda.pathing.launch.momentumSpeed
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -85,7 +83,7 @@ class LaunchSolverTest {
     fun `a solved flat jump lands where it says it will`() {
         for (span in 2..4) {
             val solution = assertNotNull(
-                LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, span), modes = JUMPS),
+                LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 64, span), modes = JUMPS).firstOrNull(),
                 "a span-$span flat jump must be solvable",
             )
             assertLands(solution, span = span, rise = 0)
@@ -96,7 +94,7 @@ class LaunchSolverTest {
     fun `a solved rising jump lands where it says it will`() {
         for (span in 2..3) {
             val solution = assertNotNull(
-                LaunchSolver.best(Stance(0, 64, 0), Stance(0, 65, span), modes = JUMPS),
+                LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 65, span), modes = JUMPS).firstOrNull(),
                 "a span-$span rise-1 jump must be solvable",
             )
             assertLands(solution, span = span, rise = 1)
@@ -112,8 +110,8 @@ class LaunchSolverTest {
      */
     @Test
     fun `a short gap selects a walking jump and a long one selects a sprint`() {
-        val short = assertNotNull(LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 2), modes = JUMPS))
-        val long = assertNotNull(LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 4), modes = JUMPS))
+        val short = assertNotNull(LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 64, 2), modes = JUMPS).firstOrNull())
+        val long = assertNotNull(LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 64, 4), modes = JUMPS).firstOrNull())
         assertEquals(LaunchMode.WALK_JUMP, short.mode, "a span-2 gap must not be sprint-jumped")
         assertEquals(LaunchMode.SPRINT_JUMP, long.mode, "a span-4 gap is beyond any walking jump")
     }
@@ -121,17 +119,17 @@ class LaunchSolverTest {
     /** A jump cannot reach past its own apex, whatever it is doing horizontally. */
     @Test
     fun `nothing is offered onto a landing two blocks up`() {
-        assertNull(LaunchSolver.best(Stance(0, 64, 0), Stance(0, 66, 2)))
+        assertNull(LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 66, 2)).firstOrNull())
     }
 
     @Test
     fun `a solved drop lands where it says it will, without ever pressing jump`() {
         for (depth in 1..3) {
             for (span in 1..2) {
-                val solution = LaunchSolver.best(
+                val solution = LaunchSolver.solve(
                     Stance(0, 64, 0), Stance(0, 64 - depth, span),
                     modes = listOf(LaunchMode.WALK_DROP, LaunchMode.SPRINT_DROP),
-                ) ?: continue
+                ).firstOrNull() ?: continue
                 assertTrue(solution.mode.drops, "a drop solution must not jump")
                 assertLands(solution, span = span, rise = -depth)
             }
@@ -152,10 +150,10 @@ class LaunchSolverTest {
         assertTrue(sprintReach > 1.0, "a sprint walk-off must overshoot the adjacent pad ($sprintReach)")
 
         val solution = assertNotNull(
-            LaunchSolver.best(
+            LaunchSolver.solve(
                 Stance(0, 64, 0), Stance(0, 63, 1),
                 modes = listOf(LaunchMode.WALK_DROP, LaunchMode.SPRINT_DROP),
-            ),
+            ).firstOrNull(),
             "a one-block step down must be solvable",
         )
         assertTrue(
@@ -168,7 +166,7 @@ class LaunchSolverTest {
     @Test
     fun `an unreachable span is refused rather than guessed at`() {
         assertNull(
-            LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 7)),
+            LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 64, 7)).firstOrNull(),
             "seven blocks is beyond every launch mode",
         )
     }
@@ -194,15 +192,15 @@ class LaunchSolverTest {
      */
     @Test
     fun `a jump at the edge of reach reports far less margin than a comfortable one`() {
-        val comfortable = assertNotNull(LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 3)))
-        val desperate = assertNotNull(LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 5)))
+        val comfortable = assertNotNull(LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 64, 3)).firstOrNull())
+        val desperate = assertNotNull(LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 64, 5)).firstOrNull())
         assertTrue(
             comfortable.margin > desperate.margin,
             "a span-3 jump (${comfortable.margin}) must out-rank " +
                 "a span-5 jump (${desperate.margin})",
         )
         assertNull(
-            LaunchSolver.best(Stance(0, 64, 0), Stance(0, 64, 6), modes = listOf(LaunchMode.SPRINT_JUMP)),
+            LaunchSolver.solve(Stance(0, 64, 0), Stance(0, 64, 6), modes = listOf(LaunchMode.SPRINT_JUMP)).firstOrNull(),
             "a span-6 jump is beyond the body's reach at any entry speed",
         )
     }
@@ -250,7 +248,7 @@ class LaunchSolverTest {
                 jump = solution.jumps && tick == 0,
                 rotation = Rotation(0.0, 0.0),
             )
-            if (simulator.tryTickMovement(input) !is MovementSimulationStepResult.Advanced) break
+            simulator.tickMovement(input)
             if (!simulator.state.onGround) {
                 airborne = true
             } else if (airborne) {

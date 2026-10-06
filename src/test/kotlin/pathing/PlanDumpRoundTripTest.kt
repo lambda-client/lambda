@@ -68,7 +68,7 @@ class PlanDumpRoundTripTest {
         val profile = PlayerPhysicsProfile(
             movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
             stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false,
-            width = 0.6, height = 1.8, eyeHeight = 1.62,
+            width = 0.6, height = 1.8,
         )
         val initial = MovementSimulationState.synthetic(
             profile = profile,

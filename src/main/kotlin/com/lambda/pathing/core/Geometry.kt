@@ -46,3 +46,10 @@ fun interpolate(from: HorizontalPoint, to: HorizontalPoint, distance: Double): H
 		from.z + (to.z - from.z) * scale,
 	)
 }
+
+fun headingAlignment(headingX: Double, headingZ: Double, towardX: Double, towardZ: Double): Double {
+	val headingLength = hypot(headingX, headingZ)
+	val distance = hypot(towardX, towardZ)
+	if (headingLength <= DEGENERATE_LENGTH || distance <= DEGENERATE_LENGTH) return 0.0
+	return (headingX * towardX + headingZ * towardZ) / (headingLength * distance)
+}

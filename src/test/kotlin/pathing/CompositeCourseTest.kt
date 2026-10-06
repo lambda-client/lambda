@@ -11,7 +11,6 @@ import com.lambda.pathing.physics.Vanilla
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
-import kotlin.time.Duration
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -53,7 +52,7 @@ class CompositeCourseTest {
             Triple(Stance(0, 10, 11), Stance(0, 8, 21), "second half (pit)"),
         )) {
             val planner = CoarsePlanner(environment, moves, start, goal)
-            planner.repair(Duration.INFINITE)
+            planner.repair()
             val route = checkNotNull(planner.routePlan(0L)) {
                 "$label must route: ${planner.routeFailureReport()}"
             }

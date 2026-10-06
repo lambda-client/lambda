@@ -21,11 +21,8 @@ internal class RolloutEvaluator(
 	nodes: List<HorizontalPoint>,
 	private val goal: HorizontalPoint,
 	private val config: MotionConstraints,
-
 	private val allowHorizontalContact: Boolean = false,
-
 	descentAllowance: Double = 0.0,
-
 	private val climbing: (Vec3d) -> Boolean,
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
@@ -42,7 +39,6 @@ internal class RolloutEvaluator(
 		previous = state
 		if (climbing(state.position)) apex = state.position.y
 		if (state.onGround) {
-
 			val rebounded = state.velocity.y > 0.0
 			val fallDistance = apex - state.position.y
 			if (!rebounded && fallDistance > config.maxSafeFallDistance) {

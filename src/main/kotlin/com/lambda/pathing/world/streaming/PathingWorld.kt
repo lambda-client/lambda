@@ -1,4 +1,4 @@
-package com.lambda.pathing.world
+package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
@@ -11,22 +11,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.world.World
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-
-enum class InterestTier {
-	DEMAND,
-	BODY,
-	CORRIDOR,
-}
-
-class WorldEventBatch(
-	val revision: Long,
-	val sections: Set<PathingSection>,
-	val chunks: Set<PathingChunk>,
-	val mutations: Set<PathingSection>,
-) {
-	val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
-}
 
 class PathingWorld(
 	val bounds: SimulationSnapshotBounds,
@@ -41,8 +27,8 @@ class PathingWorld(
 	private val pendingReplacements = ConcurrentHashMap<Long, ImmutableSnapshotSection>()
 	private val pendingRemovals = ConcurrentHashMap.newKeySet<Long>()
 
-	private val revisions = RevisionLog()
-	private val lock = revisions.lock
+	private val lock = ReentrantLock()
+	private val revisions = RevisionLog(lock)
 	private val interestQueue = InterestQueue(present = { key -> snapshot.hasSection(key) && key !in pendingRemovals })
 	private val trusted = TrustedChunks(source)
 	private val capture = SectionCapture()

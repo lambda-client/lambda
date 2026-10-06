@@ -1,7 +1,6 @@
 package com.lambda.pathing.actions.families
 
 import com.lambda.pathing.actions.control.BounceProgram
-import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
@@ -14,9 +13,7 @@ import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.center
-import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceSolver
-import com.lambda.pathing.launch.momentumSpeed
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -28,45 +25,19 @@ object SlimeBounceMovement : Movement {
 		if (!options.allowSlimeBounces) return@buildList
 
 		for (drop in MIN_DROP..options.maxBounceDrop) {
-
 			for (rise in -(drop - 1)..MAX_RISE) {
-				val window = reachWindow(drop, rise) ?: continue
+				val window = BounceSolver.reach(drop, rise) ?: continue
 
 				for ((dx, dz) in StanceRules.CARDINALS + StanceRules.DIAGONALS) {
 					val perStep = hypot(dx.toDouble(), dz.toDouble())
 					for (span in 1..MAX_SPAN) {
 						val distance = span * perStep
-						if (distance < window.first || distance > window.second) continue
+						if (distance !in window) continue
 						add(spec(dx, dz, span, drop, rise, context))
 					}
 				}
 			}
 		}
-	}
-
-	private fun reachWindow(drop: Int, rise: Int): Pair<Double, Double>? {
-		val profile = BallisticProfile.VANILLA
-		val depth = drop.toDouble()
-		val height = rise.toDouble()
-		val offset = BounceSolver.LAUNCH_OFFSET
-
-		var floor = Double.POSITIVE_INFINITY
-		var ceiling = Double.NEGATIVE_INFINITY
-		for (jump in listOf(true, false)) {
-			val standing =
-				profile.bounce(0.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
-			val unit =
-				profile.bounce(1.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
-			val slope = unit.distance - standing.distance
-			if (slope <= 0.0) continue
-			val gentle = profile.bounce(0.0, depth, height, holdForward = false, sprint = false, jump = jump)
-			floor = minOf(floor, (gentle ?: standing).distance + offset)
-			ceiling = maxOf(
-				ceiling,
-				standing.distance + offset + slope * profile.momentumSpeed(sprint = true),
-			)
-		}
-		return if (floor <= ceiling) floor to ceiling else null
 	}
 
 	private fun spec(
@@ -86,13 +57,10 @@ object SlimeBounceMovement : Movement {
 		arc = MotionTemplate.ArcSpec(bounceDrop = drop),
 	)
 
-	override fun offersFor(edge: CoarseEdge): Boolean =
-		edge.bounce != null || edge.to.y < edge.from.y - 1
-
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val solution = context.edge.bounce ?: return emptyList()
 		if (!context.constraints.sprintModes.contains(solution.sprint)) return emptyList()
-		return listOf(TrajectoryDecision.Bounce(solution.sprint, context.edge.to, solution))
+		return listOf(TrajectoryDecision.Bounce(context.edge.to, solution))
 	}
 
 	override fun descentAllowance(decision: TrajectoryDecision): Double =

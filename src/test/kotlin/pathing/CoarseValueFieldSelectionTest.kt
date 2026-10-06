@@ -1,7 +1,6 @@
 package pathing
 
 import com.lambda.pathing.actions.CoarseEdge
-import com.lambda.pathing.actions.CoarseEdgeId
 import com.lambda.pathing.actions.MotionTemplateId
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.core.MovementId
@@ -27,7 +26,7 @@ class CoarseValueFieldSelectionTest {
         repeat(150) {
             val edges = List(random.nextInt(0, 40)) { index ->
                 CoarseEdge(
-                    CoarseEdgeId(MotionTemplateId(index), from), from,
+                    MotionTemplateId(index), from,
                     Stance(random.nextInt(-3, 4), random.nextInt(0, 3), random.nextInt(-3, 4)),
                     MovementId.WALK, random.nextInt(0, 8) * 0.25, emptySet(),
                 )

@@ -4,7 +4,6 @@ import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.execution.FlightPermissionHold
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
@@ -13,7 +12,6 @@ import net.minecraft.util.math.BlockPos
 
 class PathingSession internal constructor(
 	internal val request: PathingRequest,
-
 	internal var journey: PlanningJourney?,
 	private val waypointRoute: WaypointRoute,
 ) {

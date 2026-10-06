@@ -1,9 +1,9 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.TerminalApproach
-import com.lambda.pathing.actions.control.BrakeToStopProgram
 import com.lambda.pathing.actions.control.CorridorFollowerProgram
+import com.lambda.pathing.actions.control.TerminalApproach
+import com.lambda.pathing.actions.control.brakeToStop
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
@@ -25,7 +25,6 @@ internal class Finisher(
 	private val config: MotionConstraints,
 	private val gate: RolloutGate,
 	private val attempts: AttemptAccumulator,
-	private val probe: SearchProbe,
 	private val goalPoint: () -> HorizontalPoint,
 ) {
 	private var provenApproach: TerminalApproach? = null
@@ -56,18 +55,17 @@ internal class Finisher(
 				collisions = anchor.collisionEvents + collisionEvents(anchor.state, frames),
 				switches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), frames),
 			)
-			if (approach == provenApproach) return Solution.of(anchor, frames, candidate.collisions)
+			if (approach == provenApproach) return Solution(anchor, frames, candidate.collisions)
 			if (best == null || candidate.beats(best)) best = candidate
 		}
 		val chosen = best ?: return null
 		provenApproach = chosen.approach
-		return Solution.of(anchor, chosen.frames, chosen.collisions)
+		return Solution(anchor, chosen.frames, chosen.collisions)
 	}
 
-	fun brakeToStop(anchor: ValueAnchor): Solution? = brakeWithResting(anchor)?.first
-
 	fun brakeNearGoal(anchor: ValueAnchor, radius: Double): Solution? {
-		val (solution, resting) = brakeWithResting(anchor) ?: return null
+		val solution = brakeToStop(anchor) ?: return null
+		val resting = solution.tailFrames.last().state
 		val goal = goalPoint()
 		if (hypot(resting.position.x - goal.x, resting.position.z - goal.z) > radius) return null
 		if (abs(resting.position.y - goal.y) > VERTICAL_GOAL_TOLERANCE) return null
@@ -87,10 +85,10 @@ internal class Finisher(
 		}
 	}
 
-	private fun brakeWithResting(anchor: ValueAnchor): Pair<Solution, MovementSimulationState>? {
+	fun brakeToStop(anchor: ValueAnchor): Solution? {
 		val gated = gate.run(
 			anchor.state, listOf(anchor.stance.center(environment)),
-			BrakeToStopProgram(anchor.state.rotation.yaw),
+			brakeToStop(anchor.state.rotation.yaw),
 			BRAKE_TAIL_FRAMES,
 		)
 		if (gated.failed) return null
@@ -113,13 +111,9 @@ internal class Finisher(
 		}
 		if (stableEnd < 0) return null
 		val frames = gated.rollout.frames.take(stableEnd + 1)
-		val restingState = frames.last().state
-		val resting = stanceOf(restingState)
+		val resting = stanceOf(frames.last().state)
 		if (!field.isStance(resting) || !field.isMapped(resting)) return null
-		return Solution.of(
-			anchor, frames,
-			anchor.collisionEvents + collisionEvents(anchor.state, frames),
-		) to restingState
+		return Solution(anchor, frames, anchor.collisionEvents + collisionEvents(anchor.state, frames))
 	}
 
 	private fun terminalRun(
@@ -131,8 +125,7 @@ internal class Finisher(
 		val gated = gate.run(anchor.state, points, CorridorFollowerProgram(chain, approach, config), config.maxFrames)
 		val goal = goalPoint()
 		val evaluation = evaluateDiagnostic(gated.rollout, points, goal, config, climbing = { field.view.climbableAt(it) })
-		probe.attempt(gated.rollout, gated.stopFrame != null, evaluation)
-		attempts.record(gated.rollout, goal, evaluation)
+		attempts.record(gated.rollout, gated.stopFrame != null, goal, evaluation)
 		return gated.rollout.frames.takeIf { gated.stopFrame != null && !gated.failed }
 	}
 

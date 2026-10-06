@@ -24,7 +24,6 @@ import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.world.CoarseVoxel
 import kotlin.math.atan2
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
@@ -109,7 +108,7 @@ internal object ProbeScenarios {
             options = scenario.options,
         )
         val planner = CoarsePlanner(scenario.environment, moves, scenario.start, scenario.goal)
-        check(planner.repair(Duration.INFINITE).converged) { "${scenario.name}: coarse search did not converge" }
+        check(planner.repair().converged) { "${scenario.name}: coarse search did not converge" }
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { "${scenario.name}: no coarse route" }
 

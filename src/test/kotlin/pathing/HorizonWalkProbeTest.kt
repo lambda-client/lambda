@@ -18,7 +18,6 @@ import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
 import kotlin.math.atan2
 import kotlin.test.Test
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.bedrockEnvironment
 import pathing.ProbeScenarios.moveLibrary
@@ -72,7 +71,7 @@ class HorizonWalkProbeTest {
             val start = Stance(endpoints.first.x, endpoints.first.y, endpoints.first.z)
             val goal = Stance(endpoints.second.x, endpoints.second.y, endpoints.second.z)
             val planner = CoarsePlanner(environment, moves, start, goal)
-            if (!planner.repair(Duration.INFINITE).converged) continue
+            if (!planner.repair().converged) continue
             planner.expandSearchField()
             val route = planner.routePlan(index.toLong()) ?: continue
             val dx = (goal.x - start.x).toDouble()
@@ -139,7 +138,7 @@ class HorizonWalkProbeTest {
         val goal = Stance(tail.x, tail.y, tail.z)
 
         val planner = CoarsePlanner(environment, moves, start, goal)
-        check(planner.repair(Duration.INFINITE).converged) { "no coarse route across the field" }
+        check(planner.repair().converged) { "no coarse route across the field" }
         planner.expandSearchField()
         val dx = (goal.x - start.x).toDouble()
         val dz = (goal.z - start.z).toDouble()

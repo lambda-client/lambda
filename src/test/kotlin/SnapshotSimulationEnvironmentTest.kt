@@ -11,10 +11,8 @@ package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.physics.Vanilla
-import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
@@ -35,31 +33,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import pathing.ProbeScenarios.PROFILE
 
 class SnapshotSimulationEnvironmentTest {
     @Test
-    fun `an unstreamed section carries no terrain and no exact reads`() {
-        val key = ChunkSectionPos.asLong(0, 0, 0)
-        val unavailable = ImmutableSnapshotSection.Builder().apply {
-            fill(SnapshotBlockPhysics.UNAVAILABLE)
-        }.build(expectedWrites = 4096)
-        val exact = ImmutableSnapshotSection.Builder().apply {
-            fill(SnapshotBlockPhysics.AIR)
-        }.build(expectedWrites = 4096)
-        var exactRequests = 0
-        val environment = SnapshotSimulationEnvironment(
-            bounds = SimulationSnapshotBounds(0, 0, 0, 15, 15, 15),
-            sections = mapOf(key to unavailable),
-            defaultBlock = null,
-            missingSection = { _, _, _, exactRead ->
-                assertTrue(exactRead)
-                exactRequests++
-                exact
-            },
-            unavailableSectionKeys = setOf(key),
-        )
+    fun `an unstreamed section carries no terrain and rejects exact reads`() {
+        val misses = ArrayList<Long>()
+        val environment = SnapshotSimulationEnvironment.streaming(SimulationSnapshotBounds(0, 0, 0, 15, 15, 15)) { misses += it }
 
         // The coarse layer must not invent terrain here: an unstreamed cell is unknown,
         // which carries no stance and therefore no edge. What crosses it is the
@@ -67,26 +49,13 @@ class SnapshotSimulationEnvironmentTest {
         assertEquals(CoarseVoxel.UNKNOWN, environment.voxel(4, 4, 4))
         assertFalse(environment.isKnown(4, 4, 4))
         assertTrue(environment.collisionShape(4, 4, 4).isEmpty)
-        assertEquals(SnapshotBlockPhysics.DEFAULT_SLIPPERINESS, environment.slipperiness(BlockPos(4, 4, 4)))
-        assertEquals(1, exactRequests)
+        assertFailsWith<SnapshotSectionUnavailableException> { environment.slipperiness(BlockPos(4, 4, 4)) }
+        assertEquals(listOf(ChunkSectionPos.asLong(0, 0, 0)), misses)
     }
 
     @Test
     fun `an exact read of the streaming frontier rejects the step instead of parking it`() {
-        val key = ChunkSectionPos.asLong(0, 0, 0)
-        val unavailable = ImmutableSnapshotSection.Builder().apply {
-            fill(SnapshotBlockPhysics.UNAVAILABLE)
-        }.build(expectedWrites = 4096)
-        val environment = SnapshotSimulationEnvironment(
-            bounds = SimulationSnapshotBounds(0, 0, 0, 15, 15, 15),
-            sections = mapOf(key to unavailable),
-            defaultBlock = null,
-            missingSection = { sectionX, sectionY, sectionZ, exactRead ->
-                assertTrue(exactRead)
-                throw SnapshotSectionUnavailableException(sectionX, sectionY, sectionZ)
-            },
-            unavailableSectionKeys = setOf(key),
-        )
+        val environment = SnapshotSimulationEnvironment.streaming(SimulationSnapshotBounds(0, 0, 0, 15, 15, 15)) {}
         val initial = MovementSimulationState.synthetic(
             profile = PROFILE,
             position = Vec3d(4.5, 5.0, 4.5),
@@ -95,11 +64,7 @@ class SnapshotSimulationEnvironmentTest {
         )
         val simulator = MovementSimulator(PROFILE, environment, initial)
 
-        val result = simulator.tryTickMovement(MovementSimulationInput(forward = 1.0))
-
-        assertTrue(result is MovementSimulationStepResult.Rejected)
-        assertTrue(result.failure is SnapshotSectionUnavailableException)
-        assertEquals(initial, simulator.state)
+        assertFailsWith<SnapshotSectionUnavailableException> { simulator.tickMovement(MovementSimulationInput(forward = 1.0)) }
         assertEquals(CoarseVoxel.UNKNOWN, environment.voxel(4, 3, 4))
     }
 
@@ -149,7 +114,7 @@ class SnapshotSimulationEnvironmentTest {
         // clear a lava pool unroutable.
         assertEquals(CoarseVoxel.HAZARD, environment.voxel(1, 0, 0))
         assertFalse(environment.voxel(1, 0, 0).centerPassable)
-        assertFalse(environment.voxel(1, 0, 0).standable)
+        assertNull(environment.voxel(1, 0, 0).standingSurface)
         assertFalse(environment.voxel(1, 0, 0).intrudesAbove)
 
         // Genuinely unknown: outside the snapshot. Pessimistic on every axis.
@@ -289,7 +254,7 @@ class SnapshotSimulationEnvironmentTest {
     }
 
     @Test
-    fun `rejected snapshot step rolls simulator state back transactionally`() {
+    fun `a step leaving the snapshot bounds is rejected`() {
         val tinyEnvironment = SnapshotSimulationEnvironment.synthetic(
             bounds = SimulationSnapshotBounds(0, 0, 0, 0, 0, 0),
             blocks = emptyMap(),
@@ -302,13 +267,9 @@ class SnapshotSimulationEnvironmentTest {
         )
         val simulator = MovementSimulator(PROFILE, tinyEnvironment, initial)
 
-        val result = simulator.tryTickMovement(
-            MovementSimulationInput(forward = 1.0, sprint = true, jump = true),
-        )
-
-        assertTrue(result is MovementSimulationStepResult.Rejected)
-        assertTrue(result.failure is SimulationSnapshotOutOfBoundsException)
-        assertEquals(initial, simulator.state)
+        assertFailsWith<SimulationSnapshotOutOfBoundsException> {
+            simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true, jump = true))
+        }
     }
 
     private fun environment(blocks: Map<BlockPos, SnapshotBlockPhysics>) =

@@ -8,11 +8,9 @@ import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.ChunkSectionPos
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 
 /**
  * Live-shaped repro: player far from an unstreamed goal on a large flat surface,
@@ -20,10 +18,6 @@ import kotlin.time.Duration
  */
 class PlanningHorizonRegressionTest {
     private fun snapshot(streamedChunkRadius: Int, center: Stance): SnapshotSimulationEnvironment {
-        val unavailableKeys = ConcurrentHashMap.newKeySet<Long>()
-        val unavailable = ImmutableSnapshotSection.Builder().apply {
-            fill(SnapshotBlockPhysics.UNAVAILABLE)
-        }.build(expectedWrites = 4096)
         val floor = ImmutableSnapshotSection.Builder().apply {
             for (x in 0..15) for (z in 0..15) for (y in 0..15) {
                 set(x, y, z, if (y <= 4) SnapshotBlockPhysics.FULL_CUBE else SnapshotBlockPhysics.AIR)
@@ -37,17 +31,7 @@ class PlanningHorizonRegressionTest {
                 sections[ChunkSectionPos.asLong(cx, 0, cz)] = floor
             }
         }
-        return SnapshotSimulationEnvironment(
-            bounds = SimulationSnapshotBounds(-10_000, 0, -10_000, 10_000, 15, 10_000),
-            sections = sections,
-            defaultBlock = null,
-            missingSection = { sx, sy, sz, exact ->
-                check(!exact) { "exact simulation must never consume unstreamed terrain" }
-                unavailableKeys += ChunkSectionPos.asLong(sx, sy, sz)
-                unavailable
-            },
-            unavailableSectionKeys = unavailableKeys,
-        )
+        return streamedSnapshot(SimulationSnapshotBounds(-10_000, 0, -10_000, 10_000, 15, 10_000), sections)
     }
 
     private fun plan(horizonChunks: Int): Pair<CoarsePlanningState, com.lambda.pathing.coarse.CoarseRoutePlan?> {
@@ -61,7 +45,7 @@ class PlanningHorizonRegressionTest {
             horizonChunks = horizonChunks,
         )
         state.repairFrom(start)
-        val result = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
+        val result = state.planner.repair(maxExpansions = 1_000_000)
         println("horizon=$horizonChunks expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
         val route = state.planner.routePlan(snapshotRevision = 1L)
             ?: state.planner.resynchronizedRoutePlan(snapshotRevision = 1L)
@@ -94,10 +78,6 @@ class PlanningHorizonRegressionTest {
 class RetainedJourneyReplanTest {
     @Test
     fun `re-planning a retained journey from outside streamed range still routes`() {
-        val unavailableKeys = ConcurrentHashMap.newKeySet<Long>()
-        val unavailable = ImmutableSnapshotSection.Builder().apply {
-            fill(SnapshotBlockPhysics.UNAVAILABLE)
-        }.build(expectedWrites = 4096)
         val floor = ImmutableSnapshotSection.Builder().apply {
             for (x in 0..15) for (z in 0..15) for (y in 0..15) {
                 set(x, y, z, if (y <= 4) SnapshotBlockPhysics.FULL_CUBE else SnapshotBlockPhysics.AIR)
@@ -116,25 +96,15 @@ class RetainedJourneyReplanTest {
                 sections[ChunkSectionPos.asLong(cx, 0, cz)] = floor
             }
         }
-        val snapshot = SnapshotSimulationEnvironment(
-            bounds = SimulationSnapshotBounds(-10_000, 0, -10_000, 10_000, 15, 10_000),
-            sections = sections,
-            defaultBlock = null,
-            missingSection = { sx, sy, sz, exact ->
-                check(!exact) { "exact simulation must never consume unstreamed terrain" }
-                unavailableKeys += ChunkSectionPos.asLong(sx, sy, sz)
-                unavailable
-            },
-            unavailableSectionKeys = unavailableKeys,
-        )
+        val snapshot = streamedSnapshot(SimulationSnapshotBounds(-10_000, 0, -10_000, 10_000, 15, 10_000), sections)
         val state = CoarsePlanningState(snapshot, SimpleMoveOptions(), firstStart, goal, horizonChunks = 4)
         state.repairFrom(firstStart)
-        state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
+        state.planner.repair(maxExpansions = 1_000_000)
         assertNotNull(state.planner.routePlan(snapshotRevision = 1L), "the near leg must route")
 
         // The player reaches the goal, then teleports away and asks again.
         state.repairFrom(teleportedStart)
-        val result = state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
+        val result = state.planner.repair(maxExpansions = 1_000_000)
         println("replan expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
         val route = state.planner.routePlan(snapshotRevision = 2L)
             ?: state.planner.resynchronizedRoutePlan(snapshotRevision = 2L)

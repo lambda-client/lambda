@@ -18,6 +18,7 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.*
 import com.lambda.pathing.actions.StanceRules
+import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.families.WalkMovement
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxel
@@ -26,7 +27,6 @@ import com.lambda.pathing.world.Medium
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.physics.SimulationEnvironment
 import net.minecraft.util.math.BlockPos
@@ -36,7 +36,6 @@ import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.math.floor
 import kotlin.test.Test
-import kotlin.time.Duration
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -178,10 +177,7 @@ class MovementCatalogTest {
 
         val start = simulator.state.position.y
         repeat(CLIMB_TICKS) {
-            val advanced = simulator.tryTickMovement(
-                MovementSimulationInput(forward = 1.0, rotation = Rotation(0.0, 0.0)),
-            )
-            assertTrue(advanced is MovementSimulationStepResult.Advanced)
+            simulator.tickMovement(MovementSimulationInput(forward = 1.0, rotation = Rotation(0.0, 0.0)))
         }
         val risen = simulator.state.position.y - start
 
@@ -220,9 +216,7 @@ class MovementCatalogTest {
         var leftColumn = false
         repeat(CLIMB_TICKS * 3) {
             if (leftColumn) return@repeat
-            simulator.tryTickMovement(
-                MovementSimulationInput(forward = 1.0, rotation = Rotation(0.0, 0.0)),
-            )
+            simulator.tickMovement(MovementSimulationInput(forward = 1.0, rotation = Rotation(0.0, 0.0)))
             if (floor(simulator.state.position.y).toInt() > topRung) leftColumn = true
         }
         assertTrue(leftColumn, "the body must climb clear of the ladder to test anything")
@@ -256,7 +250,7 @@ class MovementCatalogTest {
         var worst = 0.0
         repeat(20) {
             val before = simulator.state.position.y
-            simulator.tryTickMovement(MovementSimulationInput(rotation = Rotation(0.0, 0.0)))
+            simulator.tickMovement(MovementSimulationInput(rotation = Rotation(0.0, 0.0)))
             worst = maxOf(worst, before - simulator.state.position.y)
         }
         assertTrue(
@@ -286,7 +280,7 @@ class MovementCatalogTest {
         val start = Stance(-2, 1, 0)
         val goal = Stance(-2, 7, 0)
         val planner = CoarsePlanner(world, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the ladder search must converge")
+        assertTrue(planner.repair().converged, "the ladder search must converge")
 
         val route = assertNotNull(planner.routePlan(0L), "a ladder route must publish")
         assertEquals(goal, route.nodes.last())
@@ -350,6 +344,7 @@ class MovementCatalogTest {
         override fun jumpVelocityMultiplier(pos: BlockPos) = 1.0
         override fun isFenceLike(pos: BlockPos) = false
         override fun isClimbable(pos: BlockPos) = pos in climbable
+        override fun isSpaceEmpty(box: Box) = box.minY >= 0.0 && box.maxZ <= WALL_Z
 
         override fun adjustMovementForCollisions(
             movement: Vec3d,

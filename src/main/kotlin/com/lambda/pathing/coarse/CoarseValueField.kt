@@ -1,7 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
-import com.lambda.pathing.core.DEGENERATE_LENGTH
+import com.lambda.pathing.core.headingAlignment
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
@@ -12,12 +12,10 @@ import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap
 class CoarseValueField(
 	override val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
-	override val goal: Stance,
+	val goal: Stance,
 	private val labelAt: (Stance, SpeedClass) -> Double,
 	private val edgeProvider: (Stance) -> List<CoarseEdge>,
 ) : ValueField {
-	private val label: (Stance) -> Double = { minOf(labelAt(it, SpeedClass.MOVING), labelAt(it, SpeedClass.STOPPED)) }
-
 	private val guides = Object2DoubleOpenHashMap<Stance>()
 		.apply { defaultReturnValue(Double.NaN) }
 	private val movingGuides = Object2DoubleOpenHashMap<Stance>()
@@ -48,7 +46,8 @@ class CoarseValueField(
 
 	override fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
-	override fun guide(stance: Stance): Double = guideVia(guides, stance, label)
+	override fun guide(stance: Stance): Double =
+		guideVia(guides, stance) { minOf(labelAt(it, SpeedClass.MOVING), labelAt(it, SpeedClass.STOPPED)) }
 
 	override fun guide(stance: Stance, speed: SpeedClass): Double =
 		guideVia(if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides, stance) { labelAt(it, speed) }
@@ -76,7 +75,7 @@ class CoarseValueField(
 
 	override fun isMapped(stance: Stance): Boolean = guide(stance).isFinite()
 
-	override fun edgesFrom(stance: Stance): List<CoarseEdge> =
+	fun edgesFrom(stance: Stance): List<CoarseEdge> =
 		edges.getOrPut(stance) { edgeProvider(stance) }
 
 	override fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
@@ -189,22 +188,13 @@ class CoarseValueField(
 		return chosen
 	}
 
-
 	private fun reference(from: Stance, heading: Pair<Double, Double>?): Pair<Double, Double> {
 		if (heading != null && hypot(heading.first, heading.second) > MIN_HEADING_LENGTH) return heading
 		return Pair((goal.x - from.x).toDouble(), (goal.z - from.z).toDouble())
 	}
 
-	private fun alignment(from: Stance, to: Stance, heading: Pair<Double, Double>?): Double {
-		val (hx, hz) = heading ?: return 0.0
-		val headingLength = hypot(hx, hz)
-		if (headingLength <= DEGENERATE_LENGTH) return 0.0
-		val dx = (to.x - from.x).toDouble()
-		val dz = (to.z - from.z).toDouble()
-		val stepLength = hypot(dx, dz)
-		if (stepLength <= DEGENERATE_LENGTH) return 0.0
-		return (hx * dx + hz * dz) / (headingLength * stepLength)
-	}
+	private fun alignment(from: Stance, to: Stance, heading: Pair<Double, Double>): Double =
+		headingAlignment(heading.first, heading.second, (to.x - from.x).toDouble(), (to.z - from.z).toDouble())
 
 	override fun reachesGoal(chain: List<Stance>): Boolean = chain.lastOrNull() == goal
 

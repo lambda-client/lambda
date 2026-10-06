@@ -17,13 +17,14 @@ data class PlanAttempt(
 	val diagnostic: TrajectoryDiagnostic?,
 )
 
-internal class AttemptAccumulator {
+internal class AttemptAccumulator(private val probe: SearchProbe) {
 	var count: Int = 0
 		private set
 	var nearest: PlanAttempt? = null
 		private set
 
-	fun record(rollout: TrajectoryRollout, goal: HorizontalPoint, diagnostic: TrajectoryDiagnostic?) {
+	fun record(rollout: TrajectoryRollout, stopped: Boolean, goal: HorizontalPoint, diagnostic: TrajectoryDiagnostic?) {
+		probe.attempt(rollout, stopped, diagnostic)
 		val final = rollout.finalState.position
 		val attempt = PlanAttempt(rollout.frames.size, hypot(final.x - goal.x, final.z - goal.z), diagnostic)
 		count++
@@ -86,6 +87,8 @@ data class SearchStats(
 	}
 }
 
+data class SwapComparison(val arrivalTicks: Double, val runningArrivalTicks: Double, val runningSequence: Long)
+
 sealed interface MotionPlanResult {
 	data object Cancelled : MotionPlanResult
 
@@ -93,19 +96,12 @@ sealed interface MotionPlanResult {
 		val sourceRoute: CoarseRoutePlan,
 		val tape: InputTape,
 		val rollout: TrajectoryRollout,
-
 		val safeAnchorStance: Stance,
 		val safeAnchorFrame: Int,
-
 		val frameDependencies: List<Set<VoxelPos>>,
-
 		val attemptCount: Int,
 		val planSegments: List<PlanSegment> = emptyList(),
-
-		val arrivalTicksEstimate: Double = Double.NaN,
-		val comparedRunningArrivalTicks: Double = Double.NaN,
-		val comparedRunningSequence: Long = -1,
-
+		val swap: SwapComparison? = null,
 		val legTouches: List<LegTouch> = emptyList(),
 	) : MotionPlanResult
 

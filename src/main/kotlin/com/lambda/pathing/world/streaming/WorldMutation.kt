@@ -1,4 +1,4 @@
-package com.lambda.pathing.world
+package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection

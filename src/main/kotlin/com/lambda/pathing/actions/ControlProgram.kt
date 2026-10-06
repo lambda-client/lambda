@@ -22,14 +22,14 @@ class InputTape(inputs: Iterable<MovementSimulationInput>) : ControlProgram {
 
 class LaunchTrigger(private val delayFrames: Int) {
 	private var groundedTicks = 0
-	private var fired = false
 
-	val hasFired: Boolean get() = fired
+	var hasFired = false
+		private set
 
 	fun press(observed: MovementSimulationState): Boolean {
-		if (fired || !observed.onGround) return false
+		if (hasFired || !observed.onGround) return false
 		if (groundedTicks++ < delayFrames) return false
-		fired = true
+		hasFired = true
 		return true
 	}
 }

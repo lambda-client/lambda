@@ -1,10 +1,12 @@
-package com.lambda.pathing.actions
+package com.lambda.pathing.actions.families
 
-import com.lambda.pathing.actions.families.ClimbMovement
-import com.lambda.pathing.actions.families.DropMovement
-import com.lambda.pathing.actions.families.LadderCatchMovement
-import com.lambda.pathing.actions.families.SlimeBounceMovement
-import com.lambda.pathing.actions.families.WalkMovement
+import com.lambda.pathing.actions.CoarseMoveCosts
+import com.lambda.pathing.actions.MotionTemplate
+import com.lambda.pathing.actions.MotionTemplateId
+import com.lambda.pathing.actions.Movement
+import com.lambda.pathing.actions.MovementContext
+import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.families.jump.JumpMovement
 import com.lambda.pathing.core.MovementId
 
@@ -13,7 +15,6 @@ class MovementCatalog private constructor(
 	val templates: List<MotionTemplate>,
 	private val byId: Map<MovementId, Movement>,
 ) {
-
 	operator fun get(id: MovementId): Movement? = byId[id]
 
 	fun supports(id: MovementId): Boolean = id in byId
@@ -31,7 +32,7 @@ class MovementCatalog private constructor(
 
 		fun build(
 			costs: CoarseMoveCosts,
-			options: SimpleMoveOptions = SimpleMoveOptions(),
+			options: SimpleMoveOptions,
 			movements: List<Movement> = REGISTERED,
 		): MovementCatalog {
 			val context = MovementContext(options, costs)

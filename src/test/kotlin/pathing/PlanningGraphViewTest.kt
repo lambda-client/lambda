@@ -17,7 +17,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -35,7 +34,7 @@ class PlanningGraphViewTest {
     fun `the graph view samples around the body and reports what it left out`() {
         PlanningDebugChannel.begin(true)
         val planner = plannerOverFlatGround()
-        planner.repair(Duration.INFINITE)
+        planner.repair()
         planner.expandField(extraTicks = 200.0, maxExpansions = 60_000)
 
         PlanningDebugChannel.publishGraph(planner, Vec3d(0.5, 64.0, 0.5))
@@ -70,7 +69,7 @@ class PlanningGraphViewTest {
     fun `the graph view publishes the edges between the cells it drew`() {
         PlanningDebugChannel.begin(true)
         val planner = plannerOverFlatGround()
-        planner.repair(Duration.INFINITE)
+        planner.repair()
         planner.expandField(extraTicks = 200.0, maxExpansions = 60_000)
 
         PlanningDebugChannel.publishGraph(planner, Vec3d(0.5, 64.0, 0.5))
@@ -105,7 +104,7 @@ class PlanningGraphViewTest {
     fun `each cell picks its cheapest way onward exactly once`() {
         PlanningDebugChannel.begin(true)
         val planner = plannerOverFlatGround()
-        planner.repair(Duration.INFINITE)
+        planner.repair()
         planner.expandField(extraTicks = 200.0, maxExpansions = 60_000)
 
         PlanningDebugChannel.publishGraph(planner, Vec3d(0.5, 64.0, 0.5))
@@ -144,7 +143,7 @@ class PlanningGraphViewTest {
         val limits = PlanningDebugChannel.GraphViewLimits(radius = 6.0, cells = 12, edges = 5)
         PlanningDebugChannel.begin(true, limits)
         val planner = plannerOverFlatGround()
-        planner.repair(Duration.INFINITE)
+        planner.repair()
         planner.expandField(extraTicks = 200.0, maxExpansions = 60_000)
 
         val around = Vec3d(0.5, 64.0, 0.5)
@@ -168,7 +167,7 @@ class PlanningGraphViewTest {
     fun `an inactive channel publishes no graph`() {
         PlanningDebugChannel.begin(false)
         val planner = plannerOverFlatGround()
-        planner.repair(Duration.INFINITE)
+        planner.repair()
 
         PlanningDebugChannel.publishGraph(planner, Vec3d(0.5, 64.0, 0.5))
         assertEquals(null, PlanningDebugChannel.graph)

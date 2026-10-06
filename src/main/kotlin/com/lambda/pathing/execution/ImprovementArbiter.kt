@@ -19,7 +19,6 @@ internal object ImprovementArbiter {
 		cursorFrame: Int?,
 		awaitingObservation: Boolean,
 		offered: PublishedPath,
-
 		runningInvalidFrom: Int? = null,
 	): Verdict {
 		if (running == null || cursorFrame == null) return Verdict.BeginFresh
@@ -44,11 +43,10 @@ internal object ImprovementArbiter {
 			return Verdict.Keep("improvement is not shorter than the running tape")
 		}
 		if (running.partial && offered.partial && offered.safeAnchorFrame <= running.safeAnchorFrame) {
-
-			val comparable = offered.comparedRunningSequence == running.publicationSequence.toLong() &&
-					offered.arrivalTicksEstimate.isFinite() && offered.comparedRunningArrivalTicks.isFinite()
-			val gains = comparable &&
-					offered.arrivalTicksEstimate + SWAP_FLOOR_GAIN_TICKS <= offered.comparedRunningArrivalTicks
+			val swap = offered.swap
+			val gains = swap != null && swap.runningSequence == running.publicationSequence.toLong() &&
+					swap.arrivalTicks.isFinite() && swap.runningArrivalTicks.isFinite() &&
+					swap.arrivalTicks + SWAP_FLOOR_GAIN_TICKS <= swap.runningArrivalTicks
 
 			val runway = offered.safeAnchorFrame - cursorFrame >= SWAP_MIN_RUNWAY_FRAMES
 			if (!gains || !runway) return Verdict.Keep("partial publication commits no new anchor")

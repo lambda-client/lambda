@@ -22,7 +22,6 @@ import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.test.Test
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -54,7 +53,7 @@ class SlimeWalkStopTest {
         val goal = Stance(0, 100, 5)
         val moves = moveLibrary()
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "coarse search must converge")
+        assertTrue(planner.repair().converged, "coarse search must converge")
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) {
             "no coarse route over the slime: ${planner.routeFailureReport()}"
@@ -111,7 +110,7 @@ class SlimeWalkStopTest {
         planner.advanceFrontier(
             com.lambda.pathing.coarse.FrontierAnchors.sweep(environment, moves, start, carpetCellGoal),
         )
-        planner.repair(Duration.INFINITE)
+        planner.repair()
 
         assertTrue(
             planner.routePlan(0L) == null && planner.optimisticAnchors.isEmpty(),

@@ -9,19 +9,14 @@ import com.lambda.pathing.launch.LaunchSolution
 @JvmInline
 value class MotionTemplateId(val value: Int)
 
-data class CoarseEdgeId(val template: MotionTemplateId, val from: Stance)
-
 data class CoarseEdge(
-	val id: CoarseEdgeId,
+	val template: MotionTemplateId,
 	val from: Stance,
 	val to: Stance,
 	val movement: MovementId,
 	val lowerBoundTicks: Double,
 	val readSet: Set<VoxelPos>,
-
 	val launch: LaunchSolution? = null,
-
 	val bounce: BounceSolution? = null,
-
 	val standingStart: Boolean = true,
 )

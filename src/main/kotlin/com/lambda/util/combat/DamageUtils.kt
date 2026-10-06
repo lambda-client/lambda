@@ -22,7 +22,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.minus
-import com.lambda.pathing.physics.buildPlayerPrediction
+import com.lambda.pathing.physics.predictPlayerUntil
 import net.minecraft.block.BedBlock
 import net.minecraft.block.CobwebBlock
 import net.minecraft.block.HayBlock
@@ -70,8 +70,7 @@ object DamageUtils {
      * landing position.
      */
     fun SafeContext.fallDamage(): Double {
-        val prediction = buildPlayerPrediction()
-            .skipUntil(60) { it.onGround }
+        val prediction = predictPlayerUntil(60) { it.onGround }
 
         val predictedPos = prediction.position
         val fallDistance = player.y - predictedPos.y + player.fallDistance

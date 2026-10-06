@@ -2,7 +2,6 @@ package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.TerminalApproach
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.DEGENERATE_LENGTH
@@ -13,6 +12,12 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
 import kotlin.math.hypot
+
+data class TerminalApproach(
+	val sprint: Boolean,
+	val brakeDistance: Double,
+	val stepUpJumpLeadDistance: Double?,
+)
 
 internal class CorridorFollowerProgram(
 	stanceNodes: List<Stance>,
@@ -142,6 +147,5 @@ internal class CorridorFollowerProgram(
 		const val TERMINAL_PIVOT_YAW_DEGREES = 45.0
 
 		const val BRAKE_SHORT_BIAS_BLOCKS = 0.08
-
 	}
 }

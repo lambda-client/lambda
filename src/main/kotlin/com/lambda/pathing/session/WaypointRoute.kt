@@ -78,16 +78,13 @@ internal class WaypointRoute(private val source: String) {
 		nextJourney?.cancel()
 		nextJourney = null
 
-		val cancellation = PlanningCancellation()
 		val preparation = when (
-			val prepared = preparePlanning(
-				player, request, next.goal, next.through, cancellation, initialOverride = terminal,
-			)
+			val prepared = preparePlanning(player, request, next.goal, next.through, initialOverride = terminal)
 		) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
 			else -> return
 		}
-		nextJourney = PlanningJourney.open(preparation, player, cancellation)
+		nextJourney = PlanningJourney.open(preparation, player)
 		LOG.info("Pre-warming the next route leg toward {}", preparation.finalGoal)
 	}
 

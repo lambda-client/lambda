@@ -58,8 +58,8 @@ object PlanDump {
 
 		val palette = LinkedHashMap<SnapshotBlockPhysics, Int>()
 		val cells = ArrayList<Pair<BlockPos, Int>>()
-		environment.forEachSnapshotBlock { packed, physics ->
-			if (physics == SnapshotBlockPhysics.AIR) return@forEachSnapshotBlock
+		environment.forEachInstalledBlock { packed, physics ->
+			if (physics == SnapshotBlockPhysics.AIR) return@forEachInstalledBlock
 			val index = palette.getOrPut(physics) { palette.size }
 			cells += BlockPos.fromLong(packed) to index
 		}
@@ -137,7 +137,7 @@ object PlanDump {
 
 	private fun PlayerPhysicsProfile.dump(): String = listOf(
 		"profile", movementSpeed, sneakSpeedModifier, gravity, jumpStrength, stepHeight,
-		jumpBoostVelocityModifier, slowFalling, width, height, eyeHeight,
+		jumpBoostVelocityModifier, slowFalling, width, height,
 	).joinToString(" ")
 
 	private fun readProfile(parts: List<String>) = PlayerPhysicsProfile(
@@ -150,13 +150,11 @@ object PlanDump {
 		slowFalling = parts[7].toBoolean(),
 		width = parts[8].toDouble(),
 		height = parts[9].toDouble(),
-		eyeHeight = parts[10].toDouble(),
 	)
 
 	private fun SimpleMoveOptions.dump(): String = listOf(
 		"options", allowDiagonal, allowStepUp, maxWalkOffDepth, allowJumpCandidates,
 		maxJumpSpan, maxJumpDrop, allowOffAxisJumps,
-
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
 		allowDeepDropJumps,
 	).joinToString(" ")

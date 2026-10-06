@@ -3,7 +3,7 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.MotionTemplate
-import com.lambda.pathing.actions.MovementCatalog
+import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.PathingChunk
@@ -43,7 +43,7 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	private val minTargetZ = targetReadOffsets.minOf(VoxelPos::z)
 	private val maxTargetZ = targetReadOffsets.maxOf(VoxelPos::z)
 
-	data class HeuristicCaps(
+	private data class HeuristicCaps(
 		val axisTicksPerBlock: Double,
 		val diagonalTicksPerPair: Double,
 		val ascentTicksPerBlock: Double,
@@ -52,7 +52,6 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	)
 
 	fun readsUnknown(view: CoarseVoxelView, origin: Stance): Boolean {
-
 		val x0 = origin.x + minReadX
 		val x1 = origin.x + maxReadX
 		val y0 = origin.y + minReadY
@@ -100,30 +99,16 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 		val paired = minOf(dx, dz)
 		val straight = maxOf(dx, dz) - paired
 
-		val octile = paired * heuristicCaps.diagonalTicksPerPair.finiteOrZero() +
-				straight * heuristicCaps.axisTicksPerBlock.finiteOrZero()
-		val straightLine = hypot(dx.toDouble(), dz.toDouble()) *
-				heuristicCaps.straightTicksPerBlock.finiteOrZero()
+		val octile = paired * heuristicCaps.diagonalTicksPerPair + straight * heuristicCaps.axisTicksPerBlock
+		val straightLine = hypot(dx.toDouble(), dz.toDouble()) * heuristicCaps.straightTicksPerBlock
 		val horizontal = maxOf(octile, straightLine)
 		val dy = toY - fromY
 		val vertical = when {
-			dy > 0 -> dy * heuristicCaps.ascentTicksPerBlock.finiteOrZero()
-			dy < 0 -> -dy * heuristicCaps.descentTicksPerBlock.finiteOrZero()
+			dy > 0 -> dy * heuristicCaps.ascentTicksPerBlock
+			dy < 0 -> -dy * heuristicCaps.descentTicksPerBlock
 			else -> 0.0
 		}
 		return maxOf(horizontal, vertical)
-	}
-
-	fun affectedOrigins(changed: VoxelPos): Set<Stance> = buildSet(readOffsets.size) {
-		for ((x, y, z) in readOffsets) {
-			add(Stance(changed.x - x, changed.y - y, changed.z - z))
-		}
-	}
-
-	fun affectedTargets(changed: VoxelPos): Set<Stance> = buildSet(targetReadOffsets.size) {
-		for ((x, y, z) in targetReadOffsets) {
-			add(Stance(changed.x + x, changed.y + y, changed.z + z))
-		}
 	}
 
 	internal fun originColumnRanges(chunk: PathingChunk) = columnRanges(chunk, -maxReadX, -minReadX, -maxReadZ, -minReadZ)
@@ -135,8 +120,6 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 		val chunkMinZ = chunk.z shl 4
 		return ((chunkMinX + lowX)..(chunkMinX + 15 + highX)) to ((chunkMinZ + lowZ)..(chunkMinZ + 15 + highZ))
 	}
-
-	private fun Double.finiteOrZero() = if (isFinite()) this else 0.0
 
 	companion object {
 
@@ -192,7 +175,9 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 				}
 			}
 
-			return HeuristicCaps(axis, diagonal, ascent, descent, straight)
+			return HeuristicCaps(axis.finiteOrZero(), diagonal.finiteOrZero(), ascent.finiteOrZero(), descent.finiteOrZero(), straight.finiteOrZero())
 		}
+
+		private fun Double.finiteOrZero() = if (isFinite()) this else 0.0
 	}
 }

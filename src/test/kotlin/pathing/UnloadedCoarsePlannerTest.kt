@@ -18,15 +18,12 @@ import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.ChunkSectionPos
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.moveLibrary
 
 /**
@@ -39,34 +36,20 @@ import pathing.ProbeScenarios.moveLibrary
 class UnloadedCoarsePlannerTest {
     @Test
     fun `a goal in unstreamed terrain is reached only through the optimistic edge`() {
-        val unavailableKeys = ConcurrentHashMap.newKeySet<Long>()
-        val unavailableSection = ImmutableSnapshotSection.Builder().apply {
-            fill(SnapshotBlockPhysics.UNAVAILABLE)
-        }.build(expectedWrites = 4096)
         val floor = ImmutableSnapshotSection.Builder().apply {
             for (x in 0..15) for (z in 0..15) for (y in 0..15) {
                 set(x, y, z, if (y <= 4) SnapshotBlockPhysics.FULL_CUBE else SnapshotBlockPhysics.AIR)
             }
         }.build(expectedWrites = 4096)
         val streamed = ChunkSectionPos.asLong(0, 0, 0)
-        val snapshot = SnapshotSimulationEnvironment(
-            bounds = SimulationSnapshotBounds(0, 0, 0, 255, 15, 255),
-            sections = mapOf(streamed to floor),
-            defaultBlock = null,
-            missingSection = { sectionX, sectionY, sectionZ, exact ->
-                check(!exact) { "exact simulation must never consume unstreamed terrain" }
-                unavailableKeys += ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
-                unavailableSection
-            },
-            unavailableSectionKeys = unavailableKeys,
-        )
+        val snapshot = streamedSnapshot(SimulationSnapshotBounds(0, 0, 0, 255, 15, 255), mapOf(streamed to floor))
         val start = Stance(1, 5, 1)
         val goal = Stance(200, 5, 1)
         val moves = moveLibrary()
         val planner = CoarsePlanner(snapshot, moves, start, goal)
 
         planner.advanceFrontier(FrontierAnchors.sweep(snapshot, moves, start, goal))
-        val result = planner.repair(Duration.INFINITE, maxExpansions = 100_000)
+        val result = planner.repair(maxExpansions = 100_000)
         val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
 
         assertTrue(result.converged)
@@ -98,7 +81,7 @@ class UnloadedCoarsePlannerTest {
             Stance(0, 3, 0),
             Stance(0, 3, 40),
         )
-        planner.repair(Duration.INFINITE, maxExpansions = 100_000)
+        planner.repair(maxExpansions = 100_000)
 
         // Streamed terrain is not optimism: what it says is blocked is blocked, and no
         // amount of further searching turns that into a route.
@@ -126,7 +109,7 @@ class UnloadedCoarsePlannerTest {
             Stance(0, 3, 0),
             Stance(0, 3, 40),
         )
-        assertTrue(planner.repair(Duration.INFINITE, maxExpansions = 100_000).converged)
+        assertTrue(planner.repair(maxExpansions = 100_000).converged)
         val straight = assertNotNull(planner.routePlan(snapshotRevision = 1L))
         assertTrue(straight.nodes.any { it.x == 0 && it.z == 20 })
 
@@ -162,14 +145,14 @@ class UnloadedCoarsePlannerTest {
         val planner = CoarsePlanner(view, moves, start, goal)
 
         planner.advanceFrontier(FrontierAnchors.sweep(view, moves, start, goal))
-        planner.repair(Duration.INFINITE, maxExpansions = 100_000)
+        planner.repair(maxExpansions = 100_000)
         val before = planner.optimisticAnchors
         assertTrue(before.isNotEmpty())
 
         for (z in -1..1) world += PathingChunk(2, z)
         planner.chunksChanged((-1..1).map { PathingChunk(2, it) })
         planner.advanceFrontier(FrontierAnchors.sweep(view, moves, start, goal))
-        planner.repair(Duration.INFINITE, maxExpansions = 100_000)
+        planner.repair(maxExpansions = 100_000)
         val after = planner.optimisticAnchors
 
         assertTrue(after.values.min() < before.values.min(), "the optimistic remainder must shrink")

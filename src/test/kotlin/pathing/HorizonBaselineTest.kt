@@ -27,7 +27,6 @@ import java.nio.file.Path
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.test.Test
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.junit.jupiter.api.Tag
@@ -151,7 +150,7 @@ class HorizonBaselineTest {
         val planner = CoarsePlanner(
             scenario.environment, moves, start, goal,
         )
-        if (!planner.repair(Duration.INFINITE).converged) return noRoute(scenario.name)
+        if (!planner.repair().converged) return noRoute(scenario.name)
         planner.expandSearchField()
         val route = planner.routePlan(0L) ?: return noRoute(scenario.name)
 

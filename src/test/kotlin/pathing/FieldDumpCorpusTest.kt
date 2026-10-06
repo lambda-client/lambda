@@ -57,7 +57,7 @@ class FieldDumpCorpusTest {
         val loaded = PlanDump.read(dump)
         val environment = loaded.environment()
         val planner = CoarsePlanner(environment, moveLibrary(loaded.moveOptions), loaded.start, loaded.goal)
-        if (!planner.repair(Duration.INFINITE, maxExpansions = COARSE_EXPANSIONS).converged) return Replay.NoRoute
+        if (!planner.repair(maxExpansions = COARSE_EXPANSIONS).converged) return Replay.NoRoute
         planner.expandField(extraTicks = FIELD_TICKS, timeBudget = Duration.INFINITE, maxExpansions = FIELD_NODES)
         val route = planner.routePlan(0L) ?: return Replay.NoRoute
         val clock = VirtualSearchClock(microsPerExpansion = FIELD_MICROS_PER_EXPANSION)
@@ -75,7 +75,7 @@ class FieldDumpCorpusTest {
         val path = (outcome as? PathPlanResult.Planned)?.path
         val last = exhaustions.lastOrNull()
         if (path == null || path.partial) {
-            return Replay.Unfinished((outcome as? PathPlanResult.Failed)?.failure?.message ?: "partial")
+            return Replay.Unfinished((outcome as? PathPlanResult.Failed)?.reason ?: "partial")
         }
         return Replay.Arrived(
             frames = path.plan.frames.size,

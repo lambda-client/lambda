@@ -21,26 +21,36 @@ enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 }
 
 class ArcSample(
-	val airTicks: Int,
-	val distance: Double,
 	val heights: DoubleArray,
-
 	val distances: DoubleArray,
-
 	val exitSpeed: Double,
 ) {
-	val apex: Double get() = heights.maxOrNull() ?: 0.0
+	val airTicks: Int get() = heights.size - 1
+
+	val distance: Double get() = distances[distances.size - 1]
+
+	val apex: Double get() = heights.max()
 }
 
 data class BallisticProfile(
 	val gravity: Double,
 	val jumpVelocity: Double,
-
 	val walkGroundAcceleration: Double,
 	val sprintGroundAcceleration: Double,
 	val slipperiness: Double,
 ) {
 	val groundFriction: Double = (slipperiness.toFloat() * Vanilla.HORIZONTAL_DRAG).toDouble()
+
+	private val walkMomentumSpeed = momentumOf(sprint = false)
+	private val sprintMomentumSpeed = momentumOf(sprint = true)
+
+	fun momentumSpeed(sprint: Boolean): Double = if (sprint) sprintMomentumSpeed else walkMomentumSpeed
+
+	private fun momentumOf(sprint: Boolean): Double {
+		val cruise = cruiseSpeed(sprint)
+		val landing = fly(if (sprint) LaunchMode.SPRINT_JUMP else LaunchMode.WALK_JUMP, cruise, 0.0) ?: return cruise
+		return maxOf(cruise, landing.exitSpeed)
+	}
 
 	fun fallStep(fallSpeed: Double): Double = (fallSpeed + gravity) * VERTICAL_DRAG
 
@@ -56,6 +66,21 @@ data class BallisticProfile(
 	fun cruiseSpeed(sprint: Boolean): Double {
 		val acceleration = groundAcceleration(sprint)
 		return groundFriction * acceleration / (1.0 - groundFriction)
+	}
+
+	fun groundSpeedReach(
+		velocityX: Double,
+		velocityZ: Double,
+		unitX: Double,
+		unitZ: Double,
+		ticks: Int,
+		sprint: Boolean,
+	): ClosedFloatingPointRange<Double> {
+		var decay = 1.0
+		repeat(ticks) { decay *= groundFriction }
+		val centre = velocityX * decay * unitX + velocityZ * decay * unitZ
+		val radius = groundAcceleration(sprint) * (if (ticks <= 0) 0.0 else groundFriction * (1.0 - decay) / (1.0 - groundFriction))
+		return (centre - radius)..(centre + radius)
 	}
 
 	fun runUpSpeed(entrySpeed: Double, ticks: Int, sprint: Boolean): Double {
@@ -149,7 +174,6 @@ data class BallisticProfile(
 			distance += velocity
 
 			if (verticalVelocity < 0.0) {
-
 				if (height < rise) return null
 
 				if (height + verticalVelocity <= rise) {
@@ -176,7 +200,6 @@ data class BallisticProfile(
 		holdTicks: Int = Int.MAX_VALUE,
 		bounceFactor: Double = 1.0,
 		maxTicks: Int = MAX_BOUNCE_TICKS,
-
 		headroom: Double = Double.POSITIVE_INFINITY,
 	): ArcSample? {
 		require(drop > 0.0) { "a bounce must fall onto something: drop=$drop" }
@@ -220,7 +243,6 @@ data class BallisticProfile(
 		}
 
 		for (tick in 1..maxTicks) {
-
 			val grounded = groundedLastTick
 			groundedLastTick = false
 			val holding = holdForward && tick < holdTicks
@@ -233,7 +255,6 @@ data class BallisticProfile(
 
 			if (!bounced) {
 				if (height + verticalVelocity <= -drop) {
-
 					height = -drop
 					verticalVelocity = -verticalVelocity * bounceFactor
 					bounced = true
@@ -269,18 +290,18 @@ data class BallisticProfile(
 	): ArcSample {
 		heights[tick] = rise
 		distances[tick] = distance
-		return ArcSample(tick, distance, heights.copyOf(tick + 1), distances.copyOf(tick + 1), velocity * HORIZONTAL_DRAG)
+		return ArcSample(heights.copyOf(tick + 1), distances.copyOf(tick + 1), velocity * HORIZONTAL_DRAG)
 	}
 
 	companion object {
 
 		const val MAX_BOUNCE_TICKS = 64
 
-		const val MAX_ARC_TICKS = 24
+		private const val MAX_ARC_TICKS = 24
 
-		const val SPRINT_JUMP_BOOST = Vanilla.SPRINT_JUMP_BOOST
+		private const val SPRINT_JUMP_BOOST = Vanilla.SPRINT_JUMP_BOOST
 
-		const val VERTICAL_DRAG = Vanilla.VERTICAL_DRAG.toDouble()
+		private const val VERTICAL_DRAG = Vanilla.VERTICAL_DRAG.toDouble()
 		const val HORIZONTAL_DRAG = Vanilla.HORIZONTAL_DRAG.toDouble()
 
 		private const val INPUT_DAMPING = Vanilla.INPUT_DAMPING.toDouble()
@@ -290,35 +311,16 @@ data class BallisticProfile(
 
 		private const val DEFAULT_SLIPPERINESS = Vanilla.DEFAULT_SLIPPERINESS.toDouble()
 
-		val VANILLA = of(PlayerPhysicsProfile.VANILLA)
-
-		fun of(
-			profile: PlayerPhysicsProfile,
-			slipperiness: Double = DEFAULT_SLIPPERINESS,
-		): BallisticProfile = of(
-			movementSpeed = profile.movementSpeed,
-			gravity = profile.gravity,
-			jumpStrength = profile.jumpStrength,
-			jumpBoostVelocityModifier = profile.jumpBoostVelocityModifier,
-			slipperiness = slipperiness,
-		)
-
-		fun of(
-			movementSpeed: Double,
-			gravity: Double,
-			jumpStrength: Double,
-			jumpBoostVelocityModifier: Double,
-			slipperiness: Double,
-		): BallisticProfile {
-			val slip = slipperiness.toFloat()
+		val VANILLA: BallisticProfile = PlayerPhysicsProfile.VANILLA.let { profile ->
+			val slip = DEFAULT_SLIPPERINESS.toFloat()
 			val scale = Vanilla.GROUND_ACCELERATION_SCALE / (slip * slip * slip)
 			fun acceleration(speed: Double): Double = INPUT_DAMPING * (speed.toFloat() * scale)
-			return BallisticProfile(
-				gravity = gravity,
-				jumpVelocity = (jumpStrength.toFloat() + jumpBoostVelocityModifier.toFloat()).toDouble(),
-				walkGroundAcceleration = acceleration(movementSpeed),
-				sprintGroundAcceleration = acceleration(movementSpeed * Vanilla.SPRINT_SPEED_MULTIPLIER),
-				slipperiness = slipperiness,
+			BallisticProfile(
+				gravity = profile.gravity,
+				jumpVelocity = (profile.jumpStrength.toFloat() + profile.jumpBoostVelocityModifier.toFloat()).toDouble(),
+				walkGroundAcceleration = acceleration(profile.movementSpeed),
+				sprintGroundAcceleration = acceleration(profile.movementSpeed * Vanilla.SPRINT_SPEED_MULTIPLIER),
+				slipperiness = DEFAULT_SLIPPERINESS,
 			)
 		}
 	}

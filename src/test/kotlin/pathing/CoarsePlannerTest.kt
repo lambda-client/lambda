@@ -29,7 +29,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import pathing.ProbeScenarios.moveLibrary
@@ -57,7 +56,7 @@ class CoarsePlannerTest {
         val world = SyntheticView().apply { fillGround(-8..8, -8..8, y = 0) }
         val planner = CoarsePlanner(world, library(), Stance(0, 1, 0), Stance(5, 1, 0))
 
-        val result = planner.repair(timeBudget = Duration.INFINITE)
+        val result = planner.repair()
         val route = assertNotNull(planner.route())
 
         assertTrue(result.converged)
@@ -168,7 +167,7 @@ class CoarsePlannerTest {
             this[VoxelPos(2, 1, 0)] = CoarseVoxel.FULL_BLOCK // the bump (top at y=2)
         }
         val planner = CoarsePlanner(world, moves, Stance(0, 1, 0), Stance(4, 1, 0))
-        planner.repair(timeBudget = Duration.INFINITE)
+        planner.repair()
         val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
         assertTrue(
             route.edges.any { it.movement == MovementId.JUMP },
@@ -188,7 +187,7 @@ class CoarsePlannerTest {
             for (x in listOf(0, 2, 3, 4, 5)) this[VoxelPos(x, 0, 0)] = CoarseVoxel.FULL_BLOCK
         }
         val planner = CoarsePlanner(world, moves, Stance(0, 1, 0), Stance(3, 1, 0))
-        planner.repair(timeBudget = Duration.INFINITE)
+        planner.repair()
 
         val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
         assertEquals(
@@ -249,7 +248,7 @@ class CoarsePlannerTest {
             for ((x, z) in listOf(0 to 0, 2 to 2, 4 to 4, 6 to 6)) this[VoxelPos(x, 0, z)] = CoarseVoxel.FULL_BLOCK
         }
         val planner = CoarsePlanner(world, library(), Stance(0, 1, 0), Stance(6, 1, 6))
-        planner.repair(timeBudget = Duration.INFINITE)
+        planner.repair()
 
         val route = assertNotNull(planner.route(), "diagonal platforms must be reachable by diagonal jumps")
         assertEquals(listOf(Stance(0, 1, 0), Stance(2, 1, 2), Stance(4, 1, 4), Stance(6, 1, 6)), route.nodes)
@@ -258,33 +257,6 @@ class CoarsePlannerTest {
             plan.edges.all { it.movement == MovementId.JUMP && it.from.x != it.to.x && it.from.z != it.to.z },
             "every leg must be a diagonal jump: ${plan.edges.map { it.movement }}",
         )
-    }
-
-    @Test
-    fun `world change repairs only derived affected origins and reroutes`() {
-        val world = SyntheticView().apply { fillGround(-8..8, -8..8, y = 0) }
-        val start = Stance(0, 1, 0)
-        val goal = Stance(4, 1, 0)
-        val planner = CoarsePlanner(
-            world,
-            library(SimpleMoveOptions(allowDiagonal = false, allowStepUp = false, maxWalkOffDepth = 0, allowJumpCandidates = false)),
-            start,
-            goal,
-        )
-        planner.repair(timeBudget = Duration.INFINITE)
-        assertTrue(Stance(1, 1, 0) in assertNotNull(planner.route()).nodes)
-
-        val changed = VoxelPos(1, 1, 0)
-        world[changed] = CoarseVoxel.FULL_BLOCK
-        val sync = planner.worldChanged(listOf(changed))
-        val repaired = planner.repair(timeBudget = Duration.INFINITE)
-        val route = assertNotNull(planner.route())
-
-        assertTrue(sync.nodesChecked > 0)
-        assertTrue(repaired.converged)
-        assertFalse(Stance(1, 1, 0) in route.nodes)
-        assertEquals(start, route.nodes.first())
-        assertEquals(goal, route.nodes.last())
     }
 
     @Test
@@ -298,29 +270,27 @@ class CoarsePlannerTest {
             start,
             goal,
         )
-        planner.repair(timeBudget = Duration.INFINITE)
+        planner.repair()
         val graphSize = planner.graphSize
 
         world[VoxelPos(1, 1, 0)] = CoarseVoxel.FULL_BLOCK
-        val sync = planner.chunksChanged(listOf(PathingChunk(0, 0)))
-        val repaired = planner.repair(timeBudget = Duration.INFINITE)
+        planner.chunksChanged(listOf(PathingChunk(0, 0)))
+        val repaired = planner.repair()
         val route = assertNotNull(planner.route())
 
-        assertTrue(sync.nodesChecked > 0)
         assertTrue(repaired.converged)
         assertFalse(Stance(1, 1, 0) in route.nodes)
         assertTrue(planner.graphSize >= graphSize, "the retained graph must not be cleared")
     }
 
     @Test
-    fun `derived invalidation includes the origin of every edge read`() {
+    fun `chunk invalidation covers the origin of every edge read`() {
         val world = SyntheticView().apply { fillGround(-5..5, -5..5, y = 0) }
         val moves = library()
         val origin = Stance(0, 1, 0)
 
         for (edge in moves.edgesFrom(world, origin)) {
             for (read in edge.readSet) {
-                assertTrue(origin in moves.affectedOrigins(read), "${edge.movement} did not invert read $read")
                 val (xs, zs) = moves.originColumnRanges(PathingChunk.containing(read))
                 assertTrue(
                     origin.x in xs && origin.z in zs,

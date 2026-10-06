@@ -27,7 +27,6 @@ object DropMovement : Movement {
 	override fun templates(context: MovementContext): List<TemplateSpec> = buildList {
 		val options = context.options
 		for ((dx, dz) in StanceRules.CARDINALS) {
-
 			for (depth in 2..options.maxWalkOffDepth) {
 				add(spec(dx, dz, span = 1, depth = depth, cost = context.costs.dropCost(1, depth)))
 			}
@@ -44,7 +43,6 @@ object DropMovement : Movement {
 		movement = id,
 		cost = cost,
 		conditions = StanceRules.stanceConditions(span * dx, -depth, span * dz),
-
 		arc = MotionTemplate.ArcSpec(MODES),
 	)
 
@@ -52,17 +50,17 @@ object DropMovement : Movement {
 
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val ideal = context.edge.launch
-		val asIs = LaunchSolver.best(
+		val asIs = LaunchSolver.solve(
 			context.edge.from, context.edge.to,
 			modes = MODES,
 			maxEntrySpeed = { context.body.speed },
 			preferredEntrySpeed = { context.body.speed },
-		)
+		).firstOrNull()
 		return listOfNotNull(ideal, asIs)
 			.filter { context.constraints.sprintModes.contains(it.sprint) }
 			.distinctBy { it.mode to it.holdForward }
 			.sortedWith(LaunchSolution.BEST_FIRST)
-			.map { TrajectoryDecision.Drop(it.sprint, context.edge.to, it) }
+			.map { TrajectoryDecision.Drop(context.edge.to, it) }
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {

@@ -9,8 +9,8 @@ import com.lambda.pathing.search.LegHandoff
 import com.lambda.pathing.search.LegSource
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.WorldSyncResult
-import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.world.WorldEventBatch
+import com.lambda.pathing.world.streaming.PathingWorld
+import com.lambda.pathing.world.streaming.WorldEventBatch
 import org.apache.logging.log4j.LogManager
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -23,9 +23,7 @@ private val LOG = LogManager.getLogger(Lambda.SYMBOL)
 
 internal class LegChain(
 	private val world: PathingWorld?,
-
 	private val states: List<CoarsePlanningState>,
-
 	private val starts: List<Stance>,
 	private val coarseExpansionBudget: Int,
 	private val snapshotRevision: Long,
@@ -75,7 +73,6 @@ internal class LegChain(
 		val leg = try {
 			future.get(HANDOFF_WAIT_MILLIS, TimeUnit.MILLISECONDS)
 		} catch (_: TimeoutException) {
-
 			LOG.warn("Route leg {} toward {} still resolving after {} ms; finishing at {} instead", index, states[index].goal, HANDOFF_WAIT_MILLIS, touched)
 			return null
 		} catch (failure: RuntimeException) {
@@ -109,7 +106,7 @@ internal class LegChain(
 			touched, leg.state.goal, route.nodes.size, waited,
 		)
 		prepareNext()
-		return LegHandoff(route, leg.field, touched)
+		return LegHandoff(route, leg.field)
 	}
 
 	private fun prepareNext() {
@@ -125,7 +122,7 @@ internal class LegChain(
 		val started = System.nanoTime()
 		state.repairFrom(start)
 		val planner = state.planner
-		val coarse = planner.repair(timeBudget = Duration.INFINITE, maxExpansions = coarseExpansionBudget, cancelled = cancelled)
+		val coarse = planner.repair(maxExpansions = coarseExpansionBudget, cancelled = cancelled)
 		if (!coarse.converged || coarse.cancelled || cancelled()) {
 			if (!coarse.converged && !coarse.cancelled) LOG.warn("Route leg {} coarse search did not converge ({} expansions){}", index, coarse.processedNodes, coarse.stall?.let { "; stalled: $it" } ?: "")
 			return null

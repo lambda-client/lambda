@@ -1,7 +1,12 @@
-package com.lambda.pathing.world
+package com.lambda.pathing.world.streaming
+
+enum class InterestTier {
+	DEMAND,
+	BODY,
+	CORRIDOR,
+}
 
 class InterestQueue(
-
 	private val present: (Long) -> Boolean,
 ) {
 	private val queues = Array(InterestTier.entries.size) { ArrayDeque<Long>() }
@@ -11,8 +16,6 @@ class InterestQueue(
 	val size: Int get() = queues.sumOf { it.size }
 
 	val demandSize: Int get() = queues[InterestTier.DEMAND.ordinal].size
-
-	val deferredSize: Int get() = deferred.size
 
 	fun add(sectionKeys: Iterable<Long>, tier: InterestTier) {
 		val queue = queues[tier.ordinal]

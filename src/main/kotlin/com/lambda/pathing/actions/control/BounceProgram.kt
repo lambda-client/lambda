@@ -16,12 +16,13 @@ internal class BounceProgram(
 	private val solution: BounceSolution,
 	private val maxYawChange: Double,
 ) : ControlProgram {
+	private val standingStart = solution.speed <= BounceSolver.STANDING_REST_SPEED
 	private var airborne = false
 	private var landed = false
+	private var launchedStanding = false
 	private var flightTicks = 0
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
-
 		if (!observed.onGround) {
 			airborne = true
 			flightTicks++
@@ -36,35 +37,31 @@ internal class BounceProgram(
 		if (landed) {
 			forward = 0.0
 		} else if (airborne) {
-
 			forward = if (solution.holdForward && flightTicks < solution.holdTicks) 1.0 else 0.0
 		} else if (standingStart) {
-
 			val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 			val speed = observed.velocity.horizontalLength()
 			val runout = (speed + CREEP_TAP_SPEED) * GROUND_COAST_PER_SPEED
 			if (along + runout < solution.launchOffset) {
 				forward = 1.0
 			} else if (speed > solution.speedSlack && !launchedStanding) {
-
 				val coast = speed * GROUND_COAST_PER_SPEED
 				val overshoots = along + coast > solution.launchOffset + BRAKE_OVERSHOOT_BLOCKS
 				forward = if (speed > BRAKE_MIN_SPEED && overshoots) -1.0 else 0.0
 			} else {
-
 				launchedStanding = true
 				jump = solution.jump
 				forward = if (solution.holdForward) 1.0 else 0.0
 			}
 		} else {
-
 			if (solution.jump) {
 				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 				if (reachesLip(takeoff, aim, observed, along, solution.launchOffset)) jump = true
 			}
 			forward = when {
 				jump -> if (solution.holdForward) 1.0 else 0.0
-				else -> approachForward(observed)
+				observed.velocity.horizontalLength() >= solution.speed + solution.speedSlack -> 0.0
+				else -> 1.0
 			}
 		}
 
@@ -85,13 +82,6 @@ internal class BounceProgram(
 		)
 	}
 
-	private val standingStart get() = solution.speed <= BounceSolver.STANDING_REST_SPEED
-
-	private var launchedStanding = false
-
-	private fun approachForward(observed: MovementSimulationState): Double =
-		if (observed.velocity.horizontalLength() >= solution.speed + solution.speedSlack) 0.0 else 1.0
-
 	private companion object {
 
 		const val REBOUND_SPEED = 0.1
@@ -105,6 +95,5 @@ internal class BounceProgram(
 		const val BRAKE_MIN_SPEED = 0.12
 
 		const val BRAKE_OVERSHOOT_BLOCKS = 0.15
-
 	}
 }

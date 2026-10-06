@@ -13,11 +13,10 @@ import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.actions.control.airPlanToward
+import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.actions.nominalLaunchFrame
 import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 
@@ -41,7 +40,7 @@ object LadderCatchMovement : Movement {
 								CellCondition(dx * span, rise, dz * span, CellPredicate.CLIMBABLE),
 								CellCondition(dx * span, rise + 1, dz * span, CellPredicate.CENTER_HEAD),
 							),
-							arc = MotionTemplate.ArcSpec(MODES),
+							arc = MotionTemplate.ArcSpec(),
 						)
 					)
 				}
@@ -55,7 +54,6 @@ object LadderCatchMovement : Movement {
 
 		val catches = LaunchSolver.solve(
 			edge.from, edge.to,
-			modes = MODES,
 			maxEntrySpeed = { reachable },
 			catch = true,
 		)
@@ -66,7 +64,7 @@ object LadderCatchMovement : Movement {
 
 		return solutions.flatMap { solution ->
 			delays(context, solution).map { delay ->
-				TrajectoryDecision.Launch(solution.sprint, edge.to, delay, solution, movement = id)
+				TrajectoryDecision.Launch(edge.to, delay, solution, movement = id)
 			}
 		}
 	}
@@ -74,16 +72,16 @@ object LadderCatchMovement : Movement {
 	private fun delays(context: DecisionContext, solution: LaunchSolution): List<Int> {
 		val nominal = nominalLaunchFrame(context, solution)
 		if (nominal == 0) return listOf(0)
-		return listOf(nominal, (nominal - 1).coerceAtLeast(0), nominal + 1).distinct()
+		return listOf(nominal, nominal - 1, nominal + 1)
 	}
 
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision as TrajectoryDecision.Launch
-		val airPlan = airPlanToward(context.body.stance, decision.step, decision.solution, lateralOffset = 0.0)
+		val airPlan = AirSteering.AirPlan.toward(context.body.stance, decision.step, decision.solution, lateralOffset = 0.0)
 
 		return SegmentFollowerProgram(
 			nodes = context.nodes,
-			sprint = decision.sprint,
+			sprint = decision.solution.sprint,
 			lookAheadNodes = 1,
 			launch = context.launch,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
@@ -95,13 +93,9 @@ object LadderCatchMovement : Movement {
 	override fun completed(context: CompletionContext): Boolean =
 		context.launch?.hasFired != false && context.stance == context.decision.step
 
-	override val completesAirborne: Boolean get() = true
-
-	override val pressesIntoTerrain: Boolean get() = true
+	override val climbs: Boolean get() = true
 
 	override fun descentAllowance(decision: TrajectoryDecision): Double = 1.0
-
-	private val MODES = LaunchMode.entries
 
 	private const val MIN_SPAN = 2
 
@@ -112,5 +106,4 @@ object LadderCatchMovement : Movement {
 	private const val MAX_RISE = 1
 
 	private const val CATCH_SETTLE_TICKS = 6.0
-
 }

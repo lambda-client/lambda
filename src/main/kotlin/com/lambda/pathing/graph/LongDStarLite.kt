@@ -16,7 +16,7 @@ fun interface LongHeuristic {
 class LongDStarLite(
 	private val graph: LongLazyGraph,
 	start: Long,
-	val goal: Long,
+	private val goal: Long,
 	private val heuristic: LongHeuristic,
 	private val describe: (Long) -> String = { it.toString() },
 ) {
@@ -44,13 +44,12 @@ class LongDStarLite(
 		require(!timeBudget.isNegative()) { "timeBudget must be non-negative" }
 		require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
 
-		val startedAt = System.nanoTime()
 		var stallNode = 0L
 		var stallG = 0.0
 		var stallRhs = 0.0
 		var stallSteps = 0
 
-		return compute(timeBudget, maxExpansions, cancelled, startedAt, ::shouldCompute) {
+		return compute(timeBudget, maxExpansions, cancelled, ::shouldCompute) {
 			if (queue.isEmpty()) {
 				return@compute "queue empty while start is inconsistent: start=${describe(start)} g=${g(start)} rhs=${rhs(start)}"
 			}
@@ -80,7 +79,6 @@ class LongDStarLite(
 		require(extraTicks >= 0.0) { "extraTicks must be non-negative" }
 		require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
 
-		val startedAt = System.nanoTime()
 		val startCost = g(start)
 		if (!startCost.isFinite()) return ComputeResult(
 			0, timedOut = false, expansionLimitReached = false,
@@ -89,7 +87,7 @@ class LongDStarLite(
 
 		val threshold = startCost + km + extraTicks
 		return compute(
-			timeBudget, maxExpansions, cancelled, startedAt,
+			timeBudget, maxExpansions, cancelled,
 			keepGoing = { !queue.isEmpty() && queue.topFirst() <= threshold },
 			stallReason = { null },
 		)
@@ -99,10 +97,10 @@ class LongDStarLite(
 		timeBudget: Duration,
 		maxExpansions: Int,
 		cancelled: () -> Boolean,
-		startedAt: Long,
 		keepGoing: () -> Boolean,
 		stallReason: () -> String?,
 	): ComputeResult {
+		val startedAt = System.nanoTime()
 		val budgetNanos = timeBudget.inWholeNanoseconds
 		var processed = 0
 		var timedOut = false
@@ -139,8 +137,6 @@ class LongDStarLite(
 	}
 
 	private fun step() {
-		val oldFirst = queue.topFirst()
-		val oldSecond = queue.topSecond()
 		val node = queue.top()
 		val nodeG = g(node)
 		val nodeRhs = rhs(node)
@@ -148,8 +144,7 @@ class LongDStarLite(
 		val newFirst = firstKey(node, minCost)
 
 		when {
-			LongIndexedHeap.compareKeys(oldFirst, oldSecond, newFirst, minCost) < 0 ->
-				queue.update(node, newFirst, minCost)
+			queue.topIsBelow(newFirst, minCost) -> queue.insert(node, newFirst, minCost)
 
 			nodeG > nodeRhs -> {
 				val predecessors = graph.predecessors(node)
@@ -355,7 +350,7 @@ class LongDStarLite(
 				val edgeCost = successors.cost(i)
 				val candidateCost = edgeCost + g(successor)
 				val better = candidateCost < bestCost ||
-						(candidateCost.compareTo(bestCost) == 0 && found && successor < next)
+						(candidateCost.compareTo(bestCost) == 0 && successor < next)
 				if (!found || better) {
 					next = successor
 					bestCost = candidateCost
@@ -470,7 +465,6 @@ class LongDStarLite(
 		val expansionLimitReached: Boolean,
 		val cancelled: Boolean,
 		val converged: Boolean,
-
 		val stall: String? = null,
 	)
 

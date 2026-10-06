@@ -42,6 +42,8 @@ class LongIndexedHeapTest {
 
     private fun LongIndexedHeap.insert(node: Long, key: Int) = insert(node, key.toDouble(), 0.0)
 
+    private fun LongIndexedHeap.pop(): Long = top().also { remove(it) }
+
     @Test
     fun `empty queue reports infinity top key and throws on top or pop`() {
         assertTrue(queue.isEmpty())
@@ -51,7 +53,6 @@ class LongIndexedHeapTest {
         assertTrue(queue.topIsAbove(1e300, 1e300))
         assertFailsWith<NoSuchElementException> { queue.top() }
         assertFailsWith<NoSuchElementException> { queue.pop() }
-        assertFailsWith<NoSuchElementException> { queue.update(a, 1.0, 1.0) }
     }
 
     @Test
@@ -69,15 +70,15 @@ class LongIndexedHeapTest {
     }
 
     @Test
-    fun `update changes ordering`() {
+    fun `reinserting changes ordering`() {
         queue.insert(a, 10)
         queue.insert(b, 5)
         queue.insert(c, 15)
 
-        queue.update(c, 1.0, 0.0)
+        queue.insert(c, 1.0, 0.0)
         assertEquals(c, queue.top())
 
-        queue.update(c, 20.0, 0.0)
+        queue.insert(c, 20.0, 0.0)
         assertEquals(b, queue.top())
     }
 

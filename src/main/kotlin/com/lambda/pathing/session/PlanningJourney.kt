@@ -4,18 +4,15 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.world.PathingWorld
+import com.lambda.pathing.world.streaming.PathingWorld
 import net.minecraft.client.network.ClientPlayerEntity
 
 internal class PlanningJourney(
 	val goal: Stance,
-
 	val waypoints: List<Stance>,
 	val moveOptions: SimpleMoveOptions,
 	val profile: PlayerPhysicsProfile,
-	val cancellation: PlanningCancellation,
 	val world: PathingWorld,
-
 	val legs: List<CoarsePlanningState>,
 ) {
 	init {
@@ -24,10 +21,7 @@ internal class PlanningJourney(
 
 	val coarseState: CoarsePlanningState get() = legs.first()
 
-	fun cancel() {
-		cancellation.cancel()
-		world.close()
-	}
+	fun cancel() = world.close()
 
 	fun compatibleWith(preparation: PlanningPreparation): Boolean =
 		goal == preparation.finalGoal && moveOptions == preparation.moveOptions &&
@@ -56,7 +50,6 @@ internal class PlanningJourney(
 		fun open(
 			preparation: PlanningPreparation,
 			player: ClientPlayerEntity,
-			cancellation: PlanningCancellation,
 		): PlanningJourney {
 			val world = PathingWorld(preparation.bounds, player.entityWorld, player)
 			InterestPrimer.primeJourney(world, preparation.start, preparation.finalGoal, preparation.waypoints)
@@ -65,7 +58,6 @@ internal class PlanningJourney(
 				waypoints = preparation.waypoints,
 				moveOptions = preparation.moveOptions,
 				profile = preparation.profile,
-				cancellation = cancellation,
 				world = world,
 				legs = legs(preparation, world),
 			)

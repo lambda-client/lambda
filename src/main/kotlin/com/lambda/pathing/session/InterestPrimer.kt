@@ -2,8 +2,8 @@ package com.lambda.pathing.session
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.world.InterestTier
-import com.lambda.pathing.world.PathingWorld
+import com.lambda.pathing.world.streaming.InterestTier
+import com.lambda.pathing.world.streaming.PathingWorld
 import kotlin.math.abs
 import net.minecraft.util.math.BlockPos
 

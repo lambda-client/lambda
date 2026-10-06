@@ -66,19 +66,21 @@ internal class Annealing(
 		val root = horizon.root ?: return
 		if (root === escalationRoot) return
 		escalationRoot = root
-		progressBaseline = Double.POSITIVE_INFINITY
-		bestGuideSeen = Double.POSITIVE_INFINITY
 		expansionsSinceHeat = 0
 		if (temperature.cool()) actionsEpoch++
-		noteGuide(root.stance)
+		restartProgress(root.stance)
 	}
 
 	fun rewindForRestart(seed: Stance) {
 		temperature.cool()
 		actionsEpoch++
+		restartProgress(seed)
+	}
+
+	private fun restartProgress(from: Stance) {
 		progressBaseline = Double.POSITIVE_INFINITY
 		bestGuideSeen = Double.POSITIVE_INFINITY
-		noteGuide(seed)
+		noteGuide(from)
 	}
 
 	fun canEscalate(): Boolean = !temperature.exhausted

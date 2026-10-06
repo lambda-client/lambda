@@ -13,7 +13,6 @@ import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.test.Test
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -51,7 +50,7 @@ class SlimeJumpTapeTest {
         val goal = Stance(0, 101, 7)
         val moves = moveLibrary()
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 

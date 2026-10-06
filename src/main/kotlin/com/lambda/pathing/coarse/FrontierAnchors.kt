@@ -6,45 +6,31 @@ import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.hypot
 import java.util.PriorityQueue
 
-object FrontierAnchors {
+internal class FrontierSweep(
+	private val view: CoarseVoxelView,
+	private val moves: SimpleMoveLibrary,
+	private val goal: Stance,
+	private val edges: (Stance) -> List<CoarseEdge>,
+	private val maxNodes: Int = FrontierAnchors.SWEEP_MAX_NODES,
+	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
+	private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
+) {
+	private val visited = HashSet<Stance>()
+	private val incomplete = HashSet<Stance>()
+	private var origin: Stance? = null
+	var dirty = false
 
-	val NOTHING_CAPTURABLE: (Int, Int) -> Boolean = { _, _ -> false }
+	fun anchorsFrom(from: Stance, cancelled: () -> Boolean = { false }): Map<Stance, Double> {
+		if (from == goal || FrontierAnchors.refusesOptimism(view, moves, goal)) return emptyMap()
+		val seeds: Collection<Stance> = if (origin == from && !dirty && visited.isNotEmpty()) ArrayList(incomplete) else {
+			if (!moves.isStance(view, from)) return emptyMap()
+			visited.clear()
+			incomplete.clear()
+			origin = from
+			dirty = false
+			listOf(from)
+		}
 
-	fun sweep(
-		view: CoarseVoxelView,
-		moves: SimpleMoveLibrary,
-		from: Stance,
-		goal: Stance,
-		maxNodes: Int = SWEEP_MAX_NODES,
-		maxAnchors: Int = SWEEP_MAX_ANCHORS,
-		cancelled: () -> Boolean = { false },
-		capturable: (Int, Int) -> Boolean = NOTHING_CAPTURABLE,
-		onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
-
-		edges: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
-	): Map<Stance, Double> {
-		if (from == goal || refusesOptimism(view, moves, goal)) return emptyMap()
-		if (!moves.isStance(view, from)) return emptyMap()
-		return sweep(
-			view, moves, listOf(from), goal, HashSet(), null, maxNodes, maxAnchors,
-			cancelled, capturable, onCaptureLag, edges,
-		)
-	}
-
-	fun sweep(
-		view: CoarseVoxelView,
-		moves: SimpleMoveLibrary,
-		seeds: Collection<Stance>,
-		goal: Stance,
-		visited: MutableSet<Stance>,
-		incomplete: MutableSet<Stance>?,
-		maxNodes: Int = SWEEP_MAX_NODES,
-		maxAnchors: Int = SWEEP_MAX_ANCHORS,
-		cancelled: () -> Boolean = { false },
-		capturable: (Int, Int) -> Boolean = NOTHING_CAPTURABLE,
-		onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
-		edges: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
-	): Map<Stance, Double> {
 		val anchors = HashMap<Stance, Double>()
 		val queue = PriorityQueue<Stance>(compareBy { moves.heuristic(it, goal) })
 		for (seed in seeds) {
@@ -55,25 +41,23 @@ object FrontierAnchors {
 		val slackTicks = moves.heuristic(goal, goal.offset(SWEEP_SLACK_BLOCKS, 0, 0))
 		var bestAnchorTicks = Double.POSITIVE_INFINITY
 		var expanded = 0
-		while (queue.isNotEmpty() && expanded < maxNodes && anchors.size < maxAnchors) {
+		while (queue.isNotEmpty() && expanded < maxNodes && anchors.size < SWEEP_MAX_ANCHORS) {
 			if (cancelled()) break
 			val node = queue.poll()
 			if (moves.heuristic(node, goal) > bestAnchorTicks + slackTicks) break
 			expanded++
 			if (node != goal) {
 				var frontier = false
-				forEachUnknownNeighbor(view, node) { x, y, z ->
+				forEachUnknownNeighbor(node) { x, y, z ->
 					if (capturable(x shr 4, z shr 4)) onCaptureLag(x, y, z)
 					else frontier = true
 				}
 				if (frontier) {
-					anchors[node] = optimisticCost(moves, node, goal)
+					anchors[node] = optimisticCost(node)
 					bestAnchorTicks = minOf(bestAnchorTicks, moves.heuristic(node, goal))
 				}
 			}
-			if (incomplete != null) {
-				if (moves.readsUnknown(view, node)) incomplete += node else incomplete -= node
-			}
+			if (moves.readsUnknown(view, node)) incomplete += node else incomplete -= node
 
 			for ((_, _, to) in edges(node)) {
 				if (visited.add(to)) queue += to
@@ -82,34 +66,36 @@ object FrontierAnchors {
 		return anchors
 	}
 
-	private inline fun forEachUnknownNeighbor(
-		view: CoarseVoxelView,
-		stance: Stance,
-		action: (Int, Int, Int) -> Unit,
-	) {
+	private inline fun forEachUnknownNeighbor(stance: Stance, action: (Int, Int, Int) -> Unit) {
 		if (!view.isKnown(stance.x + 1, stance.y, stance.z)) action(stance.x + 1, stance.y, stance.z)
 		if (!view.isKnown(stance.x - 1, stance.y, stance.z)) action(stance.x - 1, stance.y, stance.z)
 		if (!view.isKnown(stance.x, stance.y, stance.z + 1)) action(stance.x, stance.y, stance.z + 1)
 		if (!view.isKnown(stance.x, stance.y, stance.z - 1)) action(stance.x, stance.y, stance.z - 1)
 	}
 
-	fun bordersUnknown(
-		view: CoarseVoxelView,
-		stance: Stance,
-		capturable: (Int, Int) -> Boolean = NOTHING_CAPTURABLE,
-	): Boolean =
-		frontierAt(view, capturable, stance.x + 1, stance.y, stance.z) ||
-				frontierAt(view, capturable, stance.x - 1, stance.y, stance.z) ||
-				frontierAt(view, capturable, stance.x, stance.y, stance.z + 1) ||
-				frontierAt(view, capturable, stance.x, stance.y, stance.z - 1)
+	private fun optimisticCost(anchor: Stance): Double {
+		val dx = (goal.x - anchor.x).toDouble()
+		val dz = (goal.z - anchor.z).toDouble()
+		val realistic = hypot(dx, dz) * moves.sustainedTicksPerBlock
+		return maxOf(moves.heuristic(anchor, goal), realistic)
+	}
 
-	private fun frontierAt(
-		view: CoarseVoxelView,
-		capturable: (Int, Int) -> Boolean,
-		x: Int,
-		y: Int,
-		z: Int,
-	): Boolean = !view.isKnown(x, y, z) && !capturable(x shr 4, z shr 4)
+	private companion object {
+		const val SWEEP_SLACK_BLOCKS = 32
+
+		const val SWEEP_MAX_ANCHORS = 256
+	}
+}
+
+object FrontierAnchors {
+
+	val NOTHING_CAPTURABLE: (Int, Int) -> Boolean = { _, _ -> false }
+
+	fun bordersUnknown(view: CoarseVoxelView, stance: Stance): Boolean =
+		!view.isKnown(stance.x + 1, stance.y, stance.z) ||
+				!view.isKnown(stance.x - 1, stance.y, stance.z) ||
+				!view.isKnown(stance.x, stance.y, stance.z + 1) ||
+				!view.isKnown(stance.x, stance.y, stance.z - 1)
 
 	fun goalResolved(view: CoarseVoxelView, goal: Stance): Boolean =
 		view.isKnown(goal.x, goal.y - 1, goal.z) &&
@@ -119,16 +105,5 @@ object FrontierAnchors {
 	fun refusesOptimism(view: CoarseVoxelView, moves: SimpleMoveLibrary, goal: Stance): Boolean =
 		goalResolved(view, goal) && !moves.isStance(view, goal)
 
-	internal fun optimisticCost(moves: SimpleMoveLibrary, anchor: Stance, goal: Stance): Double {
-		val dx = (goal.x - anchor.x).toDouble()
-		val dz = (goal.z - anchor.z).toDouble()
-		val realistic = hypot(dx, dz) * moves.sustainedTicksPerBlock
-		return maxOf(moves.heuristic(anchor, goal), realistic)
-	}
-
 	internal const val SWEEP_MAX_NODES = 40_000
-
-	private const val SWEEP_SLACK_BLOCKS = 32
-
-	private const val SWEEP_MAX_ANCHORS = 256
 }

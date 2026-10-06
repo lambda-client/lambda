@@ -1,34 +1,24 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.CoarseMoveRates
-import com.lambda.pathing.core.DEGENERATE_LENGTH
-import kotlin.math.abs
-import kotlin.math.hypot
 
-fun momentumCredit(speed: Double, alignment: Double): Double {
+internal fun momentumCredit(speed: Double, alignment: Double): Double {
 	val aligned = speed * alignment.coerceIn(-1.0, 1.0)
 	if (aligned <= 0.0) return 0.0
 	return aligned * MOMENTUM_CREDIT_TICKS_PER_BLOCK_PER_TICK
 }
 
-fun momentumTurnCost(speed: Double, headingErrorDegrees: Double, maxYawDegreesPerFrame: Double): Double {
+internal fun momentumTurnCost(speed: Double, headingErrorDegrees: Double, maxYawDegreesPerFrame: Double): Double {
 	if (maxYawDegreesPerFrame <= 0.0) return 0.0
-	val ticksToTurn = abs(headingErrorDegrees) / maxYawDegreesPerFrame
+	val ticksToTurn = headingErrorDegrees / maxYawDegreesPerFrame
 	val committed = (speed / SPRINT_TOP_SPEED).coerceIn(0.0, 1.0)
 	return ticksToTurn * committed * TURN_COST_WEIGHT
 }
 
-fun headingAlignment(velocityX: Double, velocityZ: Double, towardX: Double, towardZ: Double): Double {
-	val speed = hypot(velocityX, velocityZ)
-	val distance = hypot(towardX, towardZ)
-	if (speed <= DEGENERATE_LENGTH || distance <= DEGENERATE_LENGTH) return 0.0
-	return (velocityX * towardX + velocityZ * towardZ) / (speed * distance)
-}
+private const val MOMENTUM_CREDIT_TICKS_PER_BLOCK_PER_TICK = 10.7
 
-const val MOMENTUM_CREDIT_TICKS_PER_BLOCK_PER_TICK = 10.7
+private val SPRINT_TOP_SPEED = CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
 
-val SPRINT_TOP_SPEED = CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
-
-val MOMENTUM_CREDIT_MAX_TICKS = SPRINT_TOP_SPEED * MOMENTUM_CREDIT_TICKS_PER_BLOCK_PER_TICK
+internal val MOMENTUM_CREDIT_MAX_TICKS = SPRINT_TOP_SPEED * MOMENTUM_CREDIT_TICKS_PER_BLOCK_PER_TICK
 
 private const val TURN_COST_WEIGHT = 0.6

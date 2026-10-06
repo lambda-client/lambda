@@ -169,7 +169,6 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 	private fun repairUntil(path: PublishedPath): Int = walk.replay?.repairDeadline ?: path.plan.tape.frameCount
 
 	private fun SafeContext.announcePassedWaypoints(path: PublishedPath, frame: Int) {
-
 		val waypoints = walk.request.waypoints
 		for ((touchFrame, waypoint) in path.legTouches) {
 			if (touchFrame > frame) break

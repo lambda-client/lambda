@@ -6,6 +6,7 @@ import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
+import com.lambda.pathing.core.headingAlignment
 import java.util.*
 import kotlin.math.acos
 import kotlin.math.atan2
@@ -24,26 +25,19 @@ private data class AnchorKey(
 	val hazardKnown: Boolean,
 )
 
-internal fun interface ReachabilityPolicy {
-	fun canReach(anchor: ValueAnchor): Boolean
-}
-
 internal class Frontier(
 	private val field: ValueField,
 	private val config: MotionConstraints,
 	private val searchConfig: SearchConfig,
 	private var routeIndex: Map<Stance, Int>,
 	private val incumbentScore: () -> Int?,
+	private val canReach: (ValueAnchor) -> Boolean,
 ) {
-	var reachability: ReachabilityPolicy = ReachabilityPolicy { true }
-
-	var probe: SearchProbe = SearchProbe.NONE
-
 	class OpenEntry(
 		val order: Double,
 		val bound: Double,
 		val anchor: ValueAnchor,
-		internal var sequence: Long = Long.MAX_VALUE,
+		val sequence: Long,
 	)
 
 	private val open = PriorityQueue(
@@ -69,11 +63,7 @@ internal class Frontier(
 
 	var anchorsAdmitted = 0
 		private set
-	var beamDominated = 0
-		private set
-	var beamEvicted = 0
-		private set
-	var beamCapped = 0
+	var beamMerged = 0
 		private set
 
 	val parkedSize: Int get() = parked.size
@@ -98,22 +88,17 @@ internal class Frontier(
 	}
 
 	fun reopen(anchor: ValueAnchor) {
-		if (!reachability.canReach(anchor)) return
+		if (!canReach(anchor)) return
 		if (open.any { it.anchor === anchor }) return
-		val guide = orderGuide(anchor).takeIf { it.isFinite() } ?: return
-		enqueue(entryFor(anchor, guide))
+		reoffer(anchor)
 	}
 
 	private fun orderGuide(anchor: ValueAnchor): Double =
 		field.guide(anchor.stance, SpeedClass.of(anchor.speed))
 
-	fun offer(entry: OpenEntry) {
-		enqueue(entry)
-	}
-
 	fun reoffer(anchor: ValueAnchor) {
 		val guide = orderGuide(anchor).takeIf { it.isFinite() } ?: return
-		enqueue(entryFor(anchor, guide))
+		open += entryFor(anchor, guide)
 	}
 
 	fun retainDescendants(root: ValueAnchor) {
@@ -157,11 +142,7 @@ internal class Frontier(
 		open.clear()
 		entries.forEach { entry ->
 			val guide = orderGuide(entry.anchor)
-			if (guide.isFinite()) {
-				val fresh = entryFor(entry.anchor, guide)
-				fresh.sequence = entry.sequence
-				open += fresh
-			}
+			if (guide.isFinite()) open += entryFor(entry.anchor, guide, entry.sequence)
 		}
 		rebuildBeamBuckets()
 	}
@@ -192,27 +173,24 @@ internal class Frontier(
 			?: if (anchor.parent == null) field.lowerBound(anchor.stance) else return
 		deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
 
-		if (!reachability.canReach(anchor)) return
+		if (!canReach(anchor)) return
 		val key = keyOf(anchor)
 
 		anchorsAdmitted++
 		val bucket = buckets.getOrPut(key) { ArrayList() }
 
 		if (bucket.any { it.preferredForBeamOver(anchor) }) {
-			beamDominated++
+			beamMerged++
 			return
 		}
 		val before = bucket.size
 		bucket.removeAll { anchor.preferredForBeamOver(it) }
-		beamEvicted += before - bucket.size
+		beamMerged += before - bucket.size
 		if (bucket.size >= searchConfig.frontierPerKey) {
 			val worst = bucket.maxByOrNull { it.elapsed } ?: return
-			if (worst.elapsed <= anchor.elapsed) {
-				beamCapped++
-				return
-			}
+			beamMerged++
+			if (worst.elapsed <= anchor.elapsed) return
 			bucket.remove(worst)
-			beamEvicted++
 		}
 		bucket += anchor
 
@@ -222,16 +200,17 @@ internal class Frontier(
 			if (bound >= it) return
 		}
 
-		enqueue(entryFor(anchor, guide))
+		open += entryFor(anchor, guide)
 	}
 
-	fun progressOf(stance: Stance): Int = routeIndex[stance] ?: deepestProgress
+	private fun progressOf(stance: Stance): Int = routeIndex[stance] ?: deepestProgress
 
-	private fun entryFor(anchor: ValueAnchor, guide: Double) = OpenEntry(
+	private fun entryFor(anchor: ValueAnchor, guide: Double, sequence: Long = insertionSequence++) = OpenEntry(
 		order = anchor.elapsed + momentumAdjusted(anchor, guide) + anchor.pendingSurcharge,
 		bound = anchor.elapsed +
 				(field.lowerBound(anchor.stance) - MOMENTUM_CREDIT_MAX_TICKS).coerceAtLeast(0.0),
 		anchor = anchor,
+		sequence = sequence,
 	)
 
 	private fun ValueAnchor.preferredForBeamOver(other: ValueAnchor): Boolean =
@@ -291,11 +270,6 @@ internal class Frontier(
 			sprinting = state.isSprinting,
 			hazardKnown = anchor.hazardFrame != null,
 		)
-	}
-
-	private fun enqueue(entry: OpenEntry) {
-		if (entry.sequence == Long.MAX_VALUE) entry.sequence = insertionSequence++
-		open += entry
 	}
 
 	private fun rebuildBeamBuckets() {

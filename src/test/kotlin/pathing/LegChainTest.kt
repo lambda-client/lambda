@@ -49,7 +49,7 @@ class LegChainTest {
 
         val first = CoarsePlanningState(environment, options, start, waypoint)
         first.repairFrom(start)
-        check(first.planner.repair(Duration.INFINITE).converged)
+        check(first.planner.repair().converged)
         first.planner.expandSearchField()
         val route = checkNotNull(first.planner.routePlan(0L))
 

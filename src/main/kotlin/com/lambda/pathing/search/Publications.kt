@@ -54,14 +54,11 @@ internal class Publications(
 		while (published.lastOrNull()?.let { it.sequence > adopted } == true) published.removeLast()
 	}
 
-	fun forkLife(anchor: ValueAnchor): Int {
-		val executing = cursor() ?: return Int.MAX_VALUE
+	fun adoptable(anchor: ValueAnchor): Boolean {
+		val executing = cursor() ?: return true
 		val divergence = divergence(anchor)
-		if (divergence >= anchor.elapsed) return Int.MAX_VALUE
-		return divergence - executing
+		return divergence >= anchor.elapsed || divergence - executing >= DIVERGENCE_MARGIN_FRAMES
 	}
-
-	fun adoptable(anchor: ValueAnchor): Boolean = forkLife(anchor) >= DIVERGENCE_MARGIN_FRAMES
 
 	fun finalWindowClosing(anchor: ValueAnchor): Boolean {
 		val executing = cursor() ?: return false

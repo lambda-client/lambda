@@ -3,25 +3,24 @@ package com.lambda.pathing.search
 import com.lambda.pathing.actions.DecisionPrice
 
 internal class Temperature(private val ceiling: Double) {
-	private var level = INITIAL
+	var current = INITIAL
+		private set
 
-	val current: Double get() = level
+	val exhausted: Boolean get() = current >= ceiling
 
-	val exhausted: Boolean get() = level >= ceiling
-
-	fun affords(price: DecisionPrice): Boolean = price.difficulty <= level
+	fun affords(price: DecisionPrice): Boolean = price.difficulty <= current
 
 	fun surcharge(price: DecisionPrice): Double = price.ticks + RISK_WEIGHT * price.difficulty
 
 	fun raise(): Boolean {
 		if (exhausted) return false
-		level = (level * GROWTH).coerceAtMost(ceiling)
+		current = (current * GROWTH).coerceAtMost(ceiling)
 		return true
 	}
 
 	fun cool(): Boolean {
-		if (level <= INITIAL) return false
-		level = (level / GROWTH).coerceAtLeast(INITIAL)
+		if (current <= INITIAL) return false
+		current = (current / GROWTH).coerceAtLeast(INITIAL)
 		return true
 	}
 

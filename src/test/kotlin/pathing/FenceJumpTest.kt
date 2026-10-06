@@ -145,7 +145,7 @@ class FenceJumpTest {
         val goal = Stance(5, 100, 0)
         val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandField(extraTicks = 60.0, timeBudget = Duration.INFINITE, maxExpansions = 40_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(

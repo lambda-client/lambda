@@ -10,11 +10,14 @@ internal object VanillaBlockCollisionResolver {
 		boundingBox: Box,
 		onGround: Boolean,
 		stepHeight: Double,
-		collisionShapes: (Box) -> BlockCollisions,
+		collect: (Box, BlockCollisions) -> Unit,
 	): Vec3d {
 		if (movement.lengthSquared() == 0.0) return movement
 
-		val normalShapes = collisionShapes(boundingBox.stretch(movement))
+		val buffer = BUFFERS.get()
+		fun collisionsIn(query: Box): BlockCollisions = buffer.also { it.clear(); collect(query, it) }
+
+		val normalShapes = collisionsIn(boundingBox.stretch(movement))
 		val normal = clip(movement, boundingBox, normalShapes)
 		val xBlocked = movement.x != normal.x
 		val yBlocked = movement.y != normal.y
@@ -31,7 +34,7 @@ internal object VanillaBlockCollisionResolver {
 			stepQuery = stepQuery.stretch(0.0, (-Vanilla.STEP_PROBE_DEPTH).toDouble(), 0.0)
 		}
 
-		val stepShapes = collisionShapes(stepQuery)
+		val stepShapes = collisionsIn(stepQuery)
 		val baseVerticalOffset = normal.y.toFloat()
 		for (candidateHeight in stepShapes.stepHeights(stepBase.minY, stepHeight.toFloat(), baseVerticalOffset)) {
 			val candidate = clip(
@@ -64,4 +67,6 @@ internal object VanillaBlockCollisionResolver {
 		}
 		return adjusted
 	}
+
+	private val BUFFERS: ThreadLocal<BlockCollisions> = ThreadLocal.withInitial(::BlockCollisions)
 }

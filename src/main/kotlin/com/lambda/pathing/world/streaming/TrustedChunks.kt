@@ -1,10 +1,11 @@
-package com.lambda.pathing.world
+package com.lambda.pathing.world.streaming
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlin.math.abs
 
 class TrustedChunks(private val source: CaptureSource) {
 	@Volatile
-	private var published: Set<Long> = emptySet()
+	private var published = LongOpenHashSet()
 	private var refreshTick = 0
 
 	fun contains(chunkX: Int, chunkZ: Int): Boolean = chunkKey(chunkX, chunkZ) in published
@@ -23,11 +24,11 @@ class TrustedChunks(private val source: CaptureSource) {
 		if (refreshTick++ % TRUSTED_REFRESH_TICKS == 0) refresh()
 	}
 
-	fun refresh() {
+	private fun refresh() {
 		val centerX = source.playerChunkX
 		val centerZ = source.playerChunkZ
 		val view = source.viewDistance
-		val fresh = HashSet<Long>()
+		val fresh = LongOpenHashSet()
 		val reach = view + CHUNK_FILTER_EDGE_MARGIN
 		for (cx in (centerX - reach)..(centerX + reach)) {
 			for (cz in (centerZ - reach)..(centerZ + reach)) {

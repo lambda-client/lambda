@@ -18,7 +18,7 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualSearchClock
@@ -36,7 +36,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
@@ -70,7 +69,7 @@ class DagRepairTest {
         val goal = Stance(45, 4, 0)
         val moves = moveLibrary(SimpleMoveOptions())
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L))
 
@@ -109,8 +108,8 @@ class DagRepairTest {
                     if (!mutated && clock.cursorFrame() >= 10 && publishedFrames >= 70) {
                         mutated = true
                         environment.install(ChunkSectionPos.asLong(wallX shr 4, 0, 0), floorSection(wallX shr 4, withWall = true))
-                        planner.worldChanged(listOf(VoxelPos(wallX, 4, 0), VoxelPos(wallX, 5, 0)))
-                        planner.repair(Duration.INFINITE)
+                        planner.chunksChanged(listOf(PathingChunk(wallX shr 4, 0)))
+                        planner.repair()
                         WorldSyncResult.Changed(planner.routePlan(1L), setOf(wallSection))
                     } else WorldSyncResult.Quiet
             },

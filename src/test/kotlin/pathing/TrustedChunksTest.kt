@@ -9,7 +9,7 @@
 
 package pathing
 
-import com.lambda.pathing.world.TrustedChunks
+import com.lambda.pathing.world.streaming.TrustedChunks
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

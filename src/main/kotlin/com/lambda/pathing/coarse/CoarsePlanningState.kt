@@ -7,9 +7,9 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
-import com.lambda.pathing.world.InterestTier
-import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.world.WorldEventBatch
+import com.lambda.pathing.world.streaming.InterestTier
+import com.lambda.pathing.world.streaming.PathingWorld
+import com.lambda.pathing.world.streaming.WorldEventBatch
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.shape.VoxelShape
@@ -50,8 +50,7 @@ internal class CoarsePlanningState(
 	val goal: Stance,
 	val horizonChunks: Int = 0,
 	frontierSweepBudget: Int = FrontierAnchors.SWEEP_MAX_NODES,
-
-	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
+	capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 ) {
 	private val moves = SimpleMoveLibrary.build(costs = DEFAULT_MOVE_COSTS, options = moveOptions)
 
@@ -63,22 +62,15 @@ internal class CoarsePlanningState(
 
 	private val captureLagSections = HashSet<Long>()
 
-	private val collectCaptureLag: (Int, Int, Int) -> Unit = { x, y, z ->
-		captureLagSections += ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
-	}
-
 	init {
 		grantChunksAround(start)
 	}
 
-	private val capturableInView: (Int, Int) -> Boolean =
-		if (horizonChunks <= 0) capturable
-		else { cx, cz -> PathingChunk(cx, cz) in grantedChunks && capturable(cx, cz) }
-
 	val planner = CoarsePlanner(
 		view, moves, start, goal,
-		sweepBudget = frontierSweepBudget, capturable = capturableInView,
-		onCaptureLag = collectCaptureLag,
+		sweepBudget = frontierSweepBudget,
+		capturable = if (horizonChunks <= 0) capturable else { cx, cz -> PathingChunk(cx, cz) in grantedChunks && capturable(cx, cz) },
+		onCaptureLag = { x, y, z -> captureLagSections += ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4) },
 	)
 
 	fun repairFrom(start: Stance) {
@@ -97,11 +89,7 @@ internal class CoarsePlanningState(
 		if (revealed.isNotEmpty()) planner.chunksChanged(revealed, arrivalsOnly = true)
 	}
 
-	fun continueSync(maxStances: Int): Boolean {
-		if (planner.pendingSyncSize == 0) return false
-		planner.continueSync(maxStances)
-		return planner.pendingSyncSize > 0
-	}
+	fun continueSync(maxStances: Int): Boolean = planner.continueSync(maxStances)
 
 	fun demandCaptureLag(world: PathingWorld) {
 		if (captureLagSections.isEmpty()) return

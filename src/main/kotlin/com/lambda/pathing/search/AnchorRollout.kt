@@ -15,7 +15,7 @@ import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.LaunchTrigger
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.Movement
-import com.lambda.pathing.actions.MovementCatalog
+import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.TrajectoryDecision
@@ -46,7 +46,6 @@ internal class AnchorRollout(
 	private val attempts: AttemptAccumulator,
 	private val probe: SearchProbe,
 ) {
-
 	private val climbingAt: (Vec3d) -> Boolean = { field.view.climbableAt(it) }
 
 	private fun openLanding(target: Stance): Boolean {
@@ -83,7 +82,7 @@ internal class AnchorRollout(
 		val points = chain.map { it.center(environment) }
 		val movement = movements[action.movement] ?: return null
 
-		val launch = action.launchDelayFrames?.let { LaunchTrigger(it) }
+		val launch = action.delayFrames?.let { LaunchTrigger(it) }
 		val program = movement.program(
 			ProgramContext(
 				decision = action,
@@ -103,7 +102,7 @@ internal class AnchorRollout(
 			program = program,
 			evaluator = RolloutEvaluator(
 				anchor.state, points, goalPoint(), config,
-				allowHorizontalContact = movement.pressesIntoTerrain,
+				allowHorizontalContact = movement.climbs,
 				descentAllowance = descentAllowance,
 				climbing = climbingAt,
 			),
@@ -140,7 +139,7 @@ internal class AnchorRollout(
 				is RolloutVerdict.Continue -> {
 					if (!frame.state.onGround) airborne = true
 
-					if (!frame.state.onGround && !movement.completesAirborne) {
+					if (!frame.state.onGround && !movement.climbs) {
 						false
 					} else {
 						val stance = stanceOf(frame.state)
@@ -157,9 +156,9 @@ internal class AnchorRollout(
 						)
 
 						val moving = frame.state.velocity.horizontalLength() > config.stoppedSpeed ||
-								action.leavesGround || movement.completesAirborne
+								action.leavesGround || movement.climbs
 
-						val onLadderTop = frame.state.onGround && !movement.completesAirborne &&
+						val onLadderTop = frame.state.onGround && !movement.climbs &&
 								field.view.medium(stance.x, stance.y - 1, stance.z) == Medium.CLIMBABLE &&
 								!field.isStance(stance)
 						if (done && moving && stance != anchor.stance && !onLadderTop) {
@@ -193,7 +192,7 @@ internal class AnchorRollout(
 		val eventFrame = prepared.eventFrame
 		var eventStance = prepared.eventStance
 
-		record(rollout, failure, stopFrame != null)
+		attempts.record(rollout, stopFrame != null, goalPoint(), failure)
 
 		if (stopFrame != null) return Outcome.Arrived(rollout.frames)
 		failure?.let { return Outcome.Rejected(it) }
@@ -209,7 +208,6 @@ internal class AnchorRollout(
 
 		var cornerCatch = 0
 		if (!field.isStance(eventStance)) {
-
 			val supported = supportedStanceOf(frames.last().state)
 				?.takeIf { field.isStance(it) }
 			if (supported == null) {
@@ -221,7 +219,6 @@ internal class AnchorRollout(
 			cornerCatch = CORNER_CATCH_COLLISIONS
 		}
 		if (!field.isMapped(eventStance)) {
-
 			return if (!field.view.isKnown(eventStance.x, eventStance.y - 1, eventStance.z)) {
 				Outcome.Blocked(frame, PathingSection(eventStance.x shr 4, (eventStance.y - 1) shr 4, eventStance.z shr 4))
 			} else {
@@ -243,16 +240,10 @@ internal class AnchorRollout(
 				inputSwitches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), frames),
 				parent = anchor,
 				inputs = frames.map { it.input },
-			).also {
-				it.decision = action
-				if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(frames)
-			},
+				decision = action,
+				trace = if (probe.treeEnabled || probe.candidatesEnabled) ValueAnchor.traceOf(frames) else emptyList(),
+			),
 		)
-	}
-
-	private fun record(rollout: TrajectoryRollout, failure: TrajectoryDiagnostic?, stopped: Boolean) {
-		probe.attempt(rollout, stopped, failure)
-		attempts.record(rollout, goalPoint(), failure)
 	}
 
 	private companion object {

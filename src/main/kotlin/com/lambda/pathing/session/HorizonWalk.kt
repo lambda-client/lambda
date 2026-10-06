@@ -20,12 +20,8 @@ import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SystemSearchClock
 import com.lambda.pathing.search.TrajectoryPlan
-import com.lambda.pathing.search.TrajectoryPlanId
 import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import java.util.concurrent.atomic.AtomicLong
-
-private val planIds = AtomicLong()
 
 internal fun walkHorizon(
 	route: CoarseRoutePlan,
@@ -51,6 +47,24 @@ internal fun walkHorizon(
 ): PathPlanResult {
 	var published = 0
 
+	fun stamp(seed: MotionPlanResult.Success, partial: Boolean, sequence: Int): PublishedPath {
+		val planMillis = System.currentTimeMillis() - started
+		return PublishedPath(
+			route = seed.sourceRoute,
+			plan = TrajectoryPlan.fromWalkingSeed(seed, profile),
+			safeAnchorStance = seed.safeAnchorStance,
+			safeAnchorFrame = seed.safeAnchorFrame,
+			attempts = seed.attemptCount,
+			planMillis = planMillis,
+			finalGoal = finalGoal,
+			partial = partial || seed.sourceRoute.goal != finalGoal,
+			planningGeneration = planningGeneration,
+			publicationSequence = sequence,
+			swap = seed.swap,
+			legTouches = seed.legTouches,
+		)
+	}
+
 	val searchField: ValueField =
 		if (legs != null && field is CoarseValueField) SwitchableValueField(field) else field
 
@@ -58,15 +72,7 @@ internal fun walkHorizon(
 		route, planner.moves.catalog, searchField, initial, profile, snapshot, seedConfig, searchConfig,
 		onSafePrefix = { step ->
 			if (!cancelled()) {
-				val sequence = published + 1
-				val path = publishedPath(
-					step, step.sourceRoute, profile, planIds.incrementAndGet(),
-					System.currentTimeMillis() - started, partial = true,
-					finalGoal = finalGoal,
-					planningGeneration = planningGeneration,
-					publicationSequence = sequence,
-				)
-				publish(path, published > 0)
+				publish(stamp(step, partial = true, sequence = published + 1), published > 0)
 				published++
 			}
 		},
@@ -83,21 +89,9 @@ internal fun walkHorizon(
 
 	return when (result) {
 		MotionPlanResult.Cancelled -> PathPlanResult.Cancelled
-		is MotionPlanResult.Success -> PathPlanResult.Planned(
-			publishedPath(
-				result, result.sourceRoute, profile, planIds.incrementAndGet(),
-				System.currentTimeMillis() - started, partial = false,
-				finalGoal = finalGoal,
-				planningGeneration = planningGeneration,
-				publicationSequence = published + 1,
-			)
-		)
+		is MotionPlanResult.Success -> PathPlanResult.Planned(stamp(result, partial = false, sequence = published + 1))
 
-		else -> PathPlanResult.Failed(
-			PlanningFailure.NoCertifiedMotion(
-				"the search dead-ended (${describeRefusal(result)})",
-			)
-		)
+		else -> PathPlanResult.Failed("the search dead-ended (${describeRefusal(result)})")
 	}
 }
 
@@ -119,30 +113,3 @@ private fun describeRefusal(result: MotionPlanResult): String = when (result) {
 	is MotionPlanResult.UnsupportedRoute -> "unsupported movements ${result.movements}"
 	else -> result::class.simpleName ?: "unknown"
 }
-
-private fun publishedPath(
-	seed: MotionPlanResult.Success,
-	route: CoarseRoutePlan,
-	profile: PlayerPhysicsProfile,
-	id: Long,
-	planMillis: Long,
-	partial: Boolean,
-	finalGoal: Stance,
-	planningGeneration: Long,
-	publicationSequence: Int,
-) = PublishedPath(
-	route = route,
-	plan = TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(id), seed, profile),
-	safeAnchorStance = seed.safeAnchorStance,
-	safeAnchorFrame = seed.safeAnchorFrame,
-	attempts = seed.attemptCount,
-	planMillis = planMillis,
-	finalGoal = finalGoal,
-	partial = partial || route.goal != finalGoal,
-	planningGeneration = planningGeneration,
-	publicationSequence = publicationSequence,
-	arrivalTicksEstimate = seed.arrivalTicksEstimate,
-	comparedRunningArrivalTicks = seed.comparedRunningArrivalTicks,
-	comparedRunningSequence = seed.comparedRunningSequence,
-	legTouches = seed.legTouches,
-)

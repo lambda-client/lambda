@@ -25,7 +25,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
@@ -45,7 +44,7 @@ class LadderExecutionTest {
         val goal = Stance(-2, TOP_STANCE, 0)
 
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the ladder route must converge")
+        assertTrue(planner.repair().converged, "the ladder route must converge")
         planner.expandField(extraTicks = 60.0, maxExpansions = 40_000)
         val route = assertNotNull(planner.routePlan(0L), "a ladder route must publish")
         assertTrue(
@@ -111,7 +110,7 @@ class LadderExecutionTest {
         val goal = Stance(-2, BOTTOM_STANCE, 0)
 
         val planner = CoarsePlanner(environment, moves, start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the descent must converge")
+        assertTrue(planner.repair().converged, "the descent must converge")
         planner.expandField(extraTicks = 60.0, maxExpansions = 40_000)
         val route = assertNotNull(planner.routePlan(0L), "a descent route must publish")
 
@@ -165,7 +164,7 @@ class LadderExecutionTest {
         val goal = Stance(-2, 70, 0)
 
         val planner = CoarsePlanner(environment, library(), start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the vine route must converge")
+        assertTrue(planner.repair().converged, "the vine route must converge")
         planner.expandField(extraTicks = 60.0, maxExpansions = 40_000)
         val route = assertNotNull(planner.routePlan(0L), "a vine route must publish")
         assertTrue(
@@ -223,7 +222,7 @@ class LadderExecutionTest {
         val goal = Stance(-2, top, 0)
 
         val planner = CoarsePlanner(environment, library(), start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the tall shaft must converge")
+        assertTrue(planner.repair().converged, "the tall shaft must converge")
         planner.expandField(extraTicks = 400.0, maxExpansions = 200_000)
         val route = assertNotNull(planner.routePlan(0L), "a tall ladder route must publish")
 
@@ -271,7 +270,7 @@ class LadderExecutionTest {
         val goal = Stance(-2, BOTTOM_STANCE, 0)
 
         val planner = CoarsePlanner(environment, library(), start, goal)
-        assertTrue(planner.repair(Duration.INFINITE).converged, "the descent must converge")
+        assertTrue(planner.repair().converged, "the descent must converge")
         planner.expandField(extraTicks = 200.0, maxExpansions = 80_000)
         val route = assertNotNull(planner.routePlan(0L), "a descent route must publish")
         assertTrue(

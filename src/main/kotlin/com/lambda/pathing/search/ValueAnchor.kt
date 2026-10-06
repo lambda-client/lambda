@@ -18,15 +18,12 @@ internal class ValueAnchor(
 	val inputSwitches: Int,
 	val parent: ValueAnchor?,
 	val inputs: List<MovementSimulationInput>,
+	val decision: TrajectoryDecision? = null,
+	val trace: List<Vec3d> = emptyList(),
 ) : BodyState {
-
 	override val speed: Double = state.velocity.horizontalLength()
 
-	var decision: TrajectoryDecision? = null
-
 	var legRoot: Boolean = false
-
-	var trace: List<Vec3d> = emptyList()
 
 	companion object {
 
@@ -61,12 +58,13 @@ internal class ValueAnchor(
 	var momentumCredit: Double = Double.NaN
 	var momentumTurnCost: Double = 0.0
 
-	fun continuation() = ValueAnchor(
-		state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs,
-	).also {
-		it.decision = decision
-		it.trace = trace
-	}
+	fun continuation() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs, decision, trace)
+
+	fun lineFrom(root: ValueAnchor?): List<ValueAnchor> =
+		generateSequence(this) { it.parent }
+			.takeWhile { it !== root && it.parent != null }
+			.toList()
+			.asReversed()
 
 	fun descendsFrom(other: ValueAnchor): Boolean {
 		var node: ValueAnchor? = this

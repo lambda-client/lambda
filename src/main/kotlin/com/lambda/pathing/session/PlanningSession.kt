@@ -15,10 +15,7 @@ internal class PlanningCancellation {
 	}
 }
 
-internal class PlanningSession(
-	val generation: Long,
-	val request: PathingRequest,
-) : ExecutionFeedback {
+internal class PlanningSession(val generation: Long) : ExecutionFeedback {
 	val cancellation = PlanningCancellation()
 
 	@Volatile

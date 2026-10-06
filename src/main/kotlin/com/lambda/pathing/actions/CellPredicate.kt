@@ -27,9 +27,7 @@ fun interface CellPredicate {
 
 		val FULL_HEAD = CellPredicate { view, x, y, z -> view.voxel(x, y, z).fullyPassable }
 
-		fun mediumIs(medium: Medium) = CellPredicate { view, x, y, z -> view.medium(x, y, z) == medium }
-
-		val CLIMBABLE = mediumIs(Medium.CLIMBABLE)
+		val CLIMBABLE = CellPredicate { view, x, y, z -> view.medium(x, y, z) == Medium.CLIMBABLE }
 
 		private fun below(test: CellPredicate) = object : CellPredicate {
 			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int) = test.matches(view, x, y, z)
@@ -38,17 +36,14 @@ fun interface CellPredicate {
 	}
 }
 
-data class CellCondition(val offset: VoxelPos, val predicate: CellPredicate) {
-	constructor(dx: Int, dy: Int, dz: Int, predicate: CellPredicate) :
-			this(VoxelPos(dx, dy, dz), predicate)
-
+data class CellCondition(val dx: Int, val dy: Int, val dz: Int, val predicate: CellPredicate) {
 	fun matches(view: CoarseVoxelView, originX: Int, originY: Int, originZ: Int): Boolean =
-		predicate.matches(view, originX + offset.x, originY + offset.y, originZ + offset.z)
+		predicate.matches(view, originX + dx, originY + dy, originZ + dz)
 
 	fun reads(): List<VoxelPos> = buildList {
-		add(offset)
+		add(VoxelPos(dx, dy, dz))
 		predicate.extraReads.forEach {
-			add(VoxelPos(offset.x + it.x, offset.y + it.y, offset.z + it.z))
+			add(VoxelPos(dx + it.x, dy + it.y, dz + it.z))
 		}
 	}
 }

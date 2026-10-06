@@ -14,9 +14,9 @@ import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.world.InterestTier
-import com.lambda.pathing.world.PathingWorld
-import com.lambda.pathing.world.WorldMutation
+import com.lambda.pathing.world.streaming.InterestTier
+import com.lambda.pathing.world.streaming.PathingWorld
+import com.lambda.pathing.world.streaming.WorldMutation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import kotlin.test.Test

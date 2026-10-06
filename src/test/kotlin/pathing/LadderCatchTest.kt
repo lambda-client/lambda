@@ -29,7 +29,6 @@ import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import pathing.ProbeScenarios.PROFILE
 import pathing.ProbeScenarios.moveLibrary
 
@@ -60,7 +59,7 @@ class LadderCatchTest {
     fun `a gap onto a ladder routes as a catch and climbs out on top`() {
         val environment = environment()
         val planner = CoarsePlanner(environment, moves(), Stance(0, 10, 0), Stance(0, 14, 3))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(
             route.edges.any { it.movement == MovementId.LADDER_CATCH },
@@ -76,7 +75,7 @@ class LadderCatchTest {
     fun `the catch is certified end to end`() {
         val environment = environment()
         val planner = CoarsePlanner(environment, moves(), Stance(0, 10, 0), Stance(0, 14, 3))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandSearchField()
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 

@@ -13,8 +13,6 @@ interface LegSource {
 class LegHandoff(
 	val route: CoarseRoutePlan,
 	val field: CoarseValueField,
-
-	val waypoint: Stance,
 )
 
 data class LegTouch(val frame: Int, val waypoint: Stance)

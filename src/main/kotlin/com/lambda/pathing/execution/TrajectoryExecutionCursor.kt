@@ -6,7 +6,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.search.TrajectoryPlan
-import com.lambda.pathing.world.WorldMutation
+import com.lambda.pathing.world.streaming.WorldMutation
 import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 
@@ -34,7 +34,7 @@ sealed interface ExecutionInputResult {
 }
 
 sealed interface ExecutionObservationResult {
-	data class Accepted(val frame: Int) : ExecutionObservationResult
+	data object Accepted : ExecutionObservationResult
 	data object Complete : ExecutionObservationResult
 	data class Rejected(val frame: Int, val deviation: ExecutionDeviation) : ExecutionObservationResult
 }
@@ -42,8 +42,9 @@ sealed interface ExecutionObservationResult {
 class TrajectoryExecutionCursor(
 	val plan: TrajectoryPlan,
 	activePhysicsProfile: PlayerPhysicsProfile,
+	startFrame: Int = 0,
 ) {
-	var nextFrame: Int = 0
+	var nextFrame: Int = startFrame
 		private set
 
 	private val poseHeightDelta = plan.physicsProfile.height - plan.physicsProfile.crouchHeight
@@ -56,10 +57,8 @@ class TrajectoryExecutionCursor(
 		null
 	}
 
-	fun resumeAt(frame: Int) {
-		require(frame in 0..plan.tape.frameCount) { "Cannot resume outside the tape" }
-		check(!awaitingObservation) { "Cannot resume while an input is awaiting observation" }
-		nextFrame = frame
+	init {
+		require(startFrame in 0..plan.tape.frameCount) { "Cannot resume outside the tape" }
 	}
 
 	fun nextInput(observed: MovementSimulationState): ExecutionInputResult {
@@ -84,14 +83,12 @@ class TrajectoryExecutionCursor(
 		rejection?.let { return ExecutionObservationResult.Rejected(nextFrame, it) }
 		if (!awaitingObservation) return rejectObservation(ExecutionDeviation.Protocol("No input is awaiting observation"))
 
-		val observedFrame = nextFrame
-
-		stateDeviation(plan.frames[observedFrame].state, observed)
+		stateDeviation(plan.frames[nextFrame].state, observed)
 			?.let { return rejectObservation(it) }
 		nextFrame++
 		awaitingObservation = false
 		return if (nextFrame == plan.tape.frameCount) ExecutionObservationResult.Complete
-		else ExecutionObservationResult.Accepted(observedFrame)
+		else ExecutionObservationResult.Accepted
 	}
 
 	private fun stateDeviation(
@@ -112,7 +109,6 @@ class TrajectoryExecutionCursor(
 
 		val boxHeight = componentDeviation("box.maxY", expected.boundingBox.maxY, actual.boundingBox.maxY, positionTolerance)
 		if (boxHeight != null) {
-
 			if (!isPoseHeightLag(expected, actual) || poseLagFrames >= MAX_POSE_LAG_FRAMES) return boxHeight
 			poseLagFrames++
 		} else {

@@ -1,11 +1,11 @@
-package com.lambda.pathing.world
+package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
-class RevisionLog(val lock: ReentrantLock = ReentrantLock()) {
+class RevisionLog(private val lock: ReentrantLock = ReentrantLock()) {
 	private val changed = lock.newCondition()
 
 	private var revisionCounter = 0L
@@ -80,4 +80,13 @@ class RevisionLog(val lock: ReentrantLock = ReentrantLock()) {
 		pendingMutations.clear()
 		batch
 	}
+}
+
+class WorldEventBatch(
+	val revision: Long,
+	val sections: Set<PathingSection>,
+	val chunks: Set<PathingChunk>,
+	val mutations: Set<PathingSection>,
+) {
+	val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
 }

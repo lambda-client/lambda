@@ -9,8 +9,8 @@
 
 package pathing
 
-import com.lambda.pathing.world.InterestQueue
-import com.lambda.pathing.world.InterestTier
+import com.lambda.pathing.world.streaming.InterestQueue
+import com.lambda.pathing.world.streaming.InterestTier
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -60,13 +60,11 @@ class InterestQueueTest {
         queue.add(listOf(5L), InterestTier.CORRIDOR)
         assertNull(queue.nextCapturable(never))
         assertEquals(0, queue.size)
-        assertEquals(1, queue.deferredSize)
 
         queue.promoteDeferred(never)
-        assertEquals(1, queue.deferredSize)
+        assertEquals(0, queue.size)
 
         queue.promoteDeferred(always)
-        assertEquals(0, queue.deferredSize)
         assertEquals(1, queue.demandSize)
         assertEquals(5L, queue.nextCapturable(always))
     }

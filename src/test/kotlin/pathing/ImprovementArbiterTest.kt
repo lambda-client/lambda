@@ -11,7 +11,6 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
-import com.lambda.pathing.search.TrajectoryPlanId
 import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
@@ -21,7 +20,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import pathing.ProbeScenarios.PROFILE
@@ -204,7 +202,7 @@ class ImprovementArbiterTest {
                 onGround = true,
             )
             val planner = CoarsePlanner(environment, moves, start, goal)
-            check(planner.repair(Duration.INFINITE).converged)
+            check(planner.repair().converged)
             planner.expandSearchField()
             val route = requireNotNull(planner.routePlan(planId))
             val seed = SearchLoop(
@@ -212,7 +210,7 @@ class ImprovementArbiterTest {
                 MotionConstraints(),
             ).run()
             check(seed is MotionPlanResult.Success) { "fixture search must certify: $seed" }
-            return Certified(route, TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(planId), seed, PROFILE))
+            return Certified(route, TrajectoryPlan.fromWalkingSeed(seed, PROFILE))
         }
     }
 }

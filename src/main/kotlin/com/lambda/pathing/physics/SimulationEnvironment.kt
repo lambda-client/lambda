@@ -22,7 +22,7 @@ interface SimulationEnvironment {
 
 	fun isClimbable(pos: BlockPos): Boolean = false
 
-	fun isSpaceEmpty(box: Box): Boolean? = null
+	fun isSpaceEmpty(box: Box): Boolean
 
 	fun bounceFactor(pos: BlockPos): Double = 0.0
 

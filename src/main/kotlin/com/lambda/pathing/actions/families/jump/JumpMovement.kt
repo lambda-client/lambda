@@ -29,7 +29,7 @@ object JumpMovement : Movement {
 
 		val standard = solutions.flatMap { solution ->
 			JumpLaunchDelays.launchDelays(context, solution).map { delay ->
-				TrajectoryDecision.Launch(solution.sprint, context.edge.to, delay, solution)
+				TrajectoryDecision.Launch(context.edge.to, delay, solution)
 			}
 		}
 		return standard + JumpDecisions.runUpDecisions(context, solutions)

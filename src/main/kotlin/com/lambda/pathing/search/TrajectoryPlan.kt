@@ -9,14 +9,10 @@ import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.world.WorldMutation
+import com.lambda.pathing.world.streaming.WorldMutation
 import java.util.*
 
-@JvmInline
-value class TrajectoryPlanId(val value: Long)
-
 class TrajectoryPlan private constructor(
-	val id: TrajectoryPlanId,
 	val snapshotRevision: Long,
 	val physicsProfile: PlayerPhysicsProfile,
 	val initialState: MovementSimulationState,
@@ -104,11 +100,9 @@ class TrajectoryPlan private constructor(
 		private const val TERMINAL_STOP_SPEED = MotionConstraints.DEFAULT_STOPPED_SPEED + 1.0E-9
 
 		fun fromWalkingSeed(
-			id: TrajectoryPlanId,
 			seed: MotionPlanResult.Success,
 			physicsProfile: PlayerPhysicsProfile,
 		): TrajectoryPlan = TrajectoryPlan(
-			id = id,
 			snapshotRevision = seed.sourceRoute.snapshotRevision,
 			physicsProfile = physicsProfile,
 			initialState = seed.rollout.initialState,

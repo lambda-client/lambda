@@ -4,12 +4,11 @@ import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
 import com.lambda.pathing.actions.MotionConstraints
-import com.lambda.pathing.actions.MovementCatalog
+import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.PricedDecision
 import com.lambda.pathing.actions.ProposalContext
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 
 internal class ActionSet(
@@ -17,8 +16,7 @@ internal class ActionSet(
 	private val field: ValueField,
 	private val config: MotionConstraints,
 ) {
-
-	fun actions(anchor: ValueAnchor, temperature: Temperature): List<PricedDecision> {
+	private fun actions(anchor: ValueAnchor, temperature: Temperature): List<PricedDecision> {
 		if (anchor.parent != null && field.guide(anchor.stance) <= FINISH_VALUE_TICKS) {
 			return emptyList()
 		}
@@ -46,12 +44,11 @@ internal class ActionSet(
 			)
 		}
 
-		val leading = steps.first()
 		val priced = ArrayList<PricedDecision>()
 
 		fun add(decision: TrajectoryDecision) {
-			val edge = byDestination[decision.step] ?: leading
-			val excess = (costOf[edge.to] ?: bestCost) - bestCost
+			val edge = byDestination.getValue(decision.step)
+			val excess = costOf.getValue(edge.to) - bestCost
 			val owner = catalog[decision.movement]
 			val movementPrice = owner?.price(decision, contextFor(edge)) ?: DecisionPrice.FREE
 			priced += PricedDecision(decision, movementPrice + DecisionPrice(ticks = excess))
@@ -111,7 +108,7 @@ internal class ActionSet(
 	private inline fun movementDecisions(anchor: ValueAnchor, edge: CoarseEdge, accept: (TrajectoryDecision) -> Unit) {
 		val owner = catalog[edge.movement]
 		val context = DecisionContext(anchor, edge, config, field.view, steering = field)
-		if (owner != null && owner.id != MovementId.WALK) owner.decisions(context).forEach(accept)
+		owner?.decisions(context)?.forEach(accept)
 		for (movement in catalog.movements) {
 			if (movement !== owner && movement.offersFor(edge)) movement.decisions(context).forEach(accept)
 		}

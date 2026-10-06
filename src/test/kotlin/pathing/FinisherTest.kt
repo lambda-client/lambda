@@ -31,7 +31,7 @@ class FinisherTest {
     )
     private val field = mockk<ValueField>()
     private val gate = mockk<RolloutGate>()
-    private val attempts = AttemptAccumulator()
+    private val attempts = AttemptAccumulator(SearchProbe.NONE)
     private val state = MovementSimulationState.synthetic(
         profile = ProbeScenarios.PROFILE, position = Vec3d(0.5, 100.0, 0.5),
         rotation = Rotation(0.0, 0.0), velocity = Vec3d.ZERO, onGround = true,
@@ -61,7 +61,7 @@ class FinisherTest {
         }
         val config = MotionConstraints(stableStopFrames = 1, brakeDistances = brakes)
         val cached = Finisher(
-            field, environment, config, gate, attempts, SearchProbe.NONE,
+            field, environment, config, gate, attempts,
             goalPoint = { HorizontalPoint(0.5, 100.0, 0.5) },
         )
         reads = 0

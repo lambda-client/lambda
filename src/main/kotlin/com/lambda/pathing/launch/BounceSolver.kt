@@ -4,30 +4,18 @@ import kotlin.math.abs
 
 data class BounceSolution(
 	val drop: Int,
-	val rise: Int,
 	val sprint: Boolean,
 	val holdForward: Boolean,
-
-	val jump: Boolean = false,
-
-	val holdTicks: Int = Int.MAX_VALUE,
-
+	val jump: Boolean,
+	val holdTicks: Int,
 	val speed: Double,
-
 	val speedSlack: Double,
-
 	val launchOffset: Double,
-
 	val contactDistance: Double,
 	val arc: ArcSample,
-
-	val contactDepth: Double = drop.toDouble(),
+	val contactDepth: Double,
 ) {
 	val airTicks: Int get() = arc.airTicks
-
-	val distance: Double get() = arc.distance
-
-	val rebound: Double get() = arc.heights.last() - arc.heights.min()
 }
 
 object BounceSolver {
@@ -41,18 +29,11 @@ object BounceSolver {
 		holdForward: Boolean = true,
 		jump: Boolean = false,
 		holdTicks: Int = Int.MAX_VALUE,
-		maxEntrySpeed: Double = ballistics.momentumSpeed(sprint),
-
 		contactDepth: Double = drop.toDouble(),
-
 		riseHeight: Double = rise.toDouble(),
-
 		headroom: Double = Double.POSITIVE_INFINITY,
-
 		launchReach: Double = LAUNCH_OFFSET,
 	): BounceSolution? {
-		if (maxEntrySpeed < 0.0) return null
-
 		val flight = horizontalDistance - launchReach
 		if (flight <= 0.0) return null
 
@@ -62,7 +43,7 @@ object BounceSolver {
 		if (slope <= 0.0) return null
 
 		val speed = (flight - base.distance) / slope
-		if (speed < 0.0 || speed > maxEntrySpeed) return null
+		if (speed < 0.0 || speed > ballistics.momentumSpeed(sprint)) return null
 
 		val arc = ballistics.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
 
@@ -70,7 +51,6 @@ object BounceSolver {
 
 		return BounceSolution(
 			drop = drop,
-			rise = rise,
 			sprint = sprint,
 			holdForward = holdForward,
 			jump = jump,
@@ -87,17 +67,13 @@ object BounceSolver {
 	fun solveStanding(
 		horizontalDistance: Double,
 		drop: Int,
-		rise: Int,
 		jump: Boolean,
 		sprint: Boolean,
-		contactDepth: Double = drop.toDouble(),
-		riseHeight: Double = rise.toDouble(),
-
-		contactPenalty: (Double) -> Double = { 0.0 },
-
-		headroom: Double = Double.POSITIVE_INFINITY,
-
-		launchReach: Double = LAUNCH_OFFSET,
+		contactDepth: Double,
+		riseHeight: Double,
+		contactPenalty: (Double) -> Double,
+		headroom: Double,
+		launchReach: Double,
 	): BounceSolution? {
 		val target = horizontalDistance - launchReach
 		if (target <= 0.0) return null
@@ -142,7 +118,6 @@ object BounceSolver {
 
 		return BounceSolution(
 			drop = drop,
-			rise = rise,
 			sprint = sprint,
 			holdForward = chosenHold > 0,
 			jump = jump,
@@ -154,6 +129,23 @@ object BounceSolver {
 			arc = arc,
 			contactDepth = contactDepth,
 		)
+	}
+
+	fun reach(drop: Int, rise: Int): ClosedFloatingPointRange<Double>? {
+		val depth = drop.toDouble()
+		val height = rise.toDouble()
+		var floor = Double.POSITIVE_INFINITY
+		var ceiling = Double.NEGATIVE_INFINITY
+		for (jump in listOf(true, false)) {
+			val standing = ballistics.bounce(0.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
+			val unit = ballistics.bounce(1.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
+			val slope = unit.distance - standing.distance
+			if (slope <= 0.0) continue
+			val gentle = ballistics.bounce(0.0, depth, height, holdForward = false, sprint = false, jump = jump)
+			floor = minOf(floor, (gentle ?: standing).distance + LAUNCH_OFFSET)
+			ceiling = maxOf(ceiling, standing.distance + LAUNCH_OFFSET + slope * ballistics.momentumSpeed(sprint = true))
+		}
+		return if (floor <= ceiling) floor..ceiling else null
 	}
 
 	private const val HOLD_SCAN = 3

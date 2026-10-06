@@ -18,8 +18,6 @@
 package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.physics.LivePrediction
-import com.lambda.pathing.physics.MovementInputProvider
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
@@ -40,9 +38,8 @@ import pathing.ProbeScenarios.PROFILE
 
 class MovementSimulatorTest {
     @Test
-    fun `reset replays an explicit input tape exactly`() {
+    fun `a fresh simulator replays an explicit input tape exactly`() {
         val initial = groundedState()
-        val simulator = simulator(initial)
         val tape = buildList {
             repeat(5) { add(MovementSimulationInput(forward = 1.0)) }
             add(MovementSimulationInput(forward = 1.0, sprint = true, jump = true))
@@ -50,33 +47,11 @@ class MovementSimulatorTest {
             repeat(6) { add(MovementSimulationInput()) }
         }
 
-        val first = tape.map { simulator.tickMovement(it) }
-        simulator.reset(initial)
-        val replay = tape.map { simulator.tickMovement(it) }
+        val first = simulator(initial).let { simulator -> tape.map { simulator.tickMovement(it) } }
+        val replay = simulator(initial).let { simulator -> tape.map { simulator.tickMovement(it) } }
 
         first.zip(replay).forEachIndexed { index, (expected, actual) ->
             assertStateEquals(expected, actual, "frame $index")
-        }
-    }
-
-    @Test
-    fun `input provider and explicit inputs use the same simulation path`() {
-        val initial = groundedState()
-        val tape = listOf(
-	        MovementSimulationInput(forward = 1.0),
-	        MovementSimulationInput(forward = 1.0, strafe = 0.5),
-	        MovementSimulationInput(forward = 1.0, sprint = true),
-	        MovementSimulationInput(forward = 1.0, sprint = true, jump = true),
-	        MovementSimulationInput(forward = 0.5, strafe = -0.5, sprint = true),
-        )
-        var cursor = 0
-        val provided = LivePrediction(simulator(initial), MovementInputProvider { tape[cursor++] })
-        val explicit = simulator(initial)
-
-        tape.forEachIndexed { index, input ->
-            val expected = explicit.tickMovement(input)
-            provided.advance()
-            assertStateEquals(expected, provided.state, "frame $index")
         }
     }
 
@@ -364,6 +339,8 @@ class MovementSimulatorTest {
             }
 
         override fun isFenceLike(pos: BlockPos) = false
+
+        override fun isSpaceEmpty(box: Box) = box.minY >= FLOOR_Y
     }
 
     private companion object {

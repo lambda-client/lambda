@@ -19,13 +19,11 @@ import java.nio.file.Path
 
 internal sealed interface PlanningPreparationResult {
 	data class Ready(val preparation: PlanningPreparation) : PlanningPreparationResult
-	data class Failed(val failure: PlanningFailure) : PlanningPreparationResult
-	data object Cancelled : PlanningPreparationResult
+	data class Failed(val reason: String) : PlanningPreparationResult
 }
 
 internal data class PlanningPreparation(
 	val finalGoal: Stance,
-
 	val waypoints: List<Stance>,
 	val bounds: SimulationSnapshotBounds,
 	val moveOptions: SimpleMoveOptions,
@@ -39,7 +37,6 @@ internal data class PlanningPreparation(
 	val frontierSweepBudget: Int,
 	val plannerThreads: Int,
 	val dumpDirectory: Path?,
-
 	val dumpAllPlans: Boolean,
 	val startedMillis: Long,
 )
@@ -61,7 +58,6 @@ internal fun preparePlanning(
 	request: PathingRequest,
 	goal: Stance,
 	waypoints: List<Stance>,
-	cancellation: PlanningCancellation,
 	initialOverride: MovementSimulationState? = null,
 ): PlanningPreparationResult {
 	val started = System.currentTimeMillis()
@@ -97,21 +93,14 @@ internal fun preparePlanning(
 	val profile = PlayerPhysicsProfile.capture(player)
 	val start = supportedStanceOf(initial) ?: stanceOf(initial)
 
-	if (cancellation.isCancelled) return PlanningPreparationResult.Cancelled
-
 	if (!plannableEntry(initial.velocity)) {
 		return PlanningPreparationResult.Failed(
-			PlanningFailure.InvalidRequest(
-				"entry velocity %.3f b/t is outside what the planner simulates"
-					.format(initial.velocity.horizontalLength())
-			)
+			"entry velocity %.3f b/t is outside what the planner simulates".format(initial.velocity.horizontalLength())
 		)
 	}
 
 	if (!player.entityWorld.worldBorder.contains(BlockPos(goal.x, goal.y, goal.z))) {
-		return PlanningPreparationResult.Failed(
-			PlanningFailure.InvalidRequest("destination is outside the world border")
-		)
+		return PlanningPreparationResult.Failed("destination is outside the world border")
 	}
 
 	val world = player.entityWorld
@@ -124,9 +113,7 @@ internal fun preparePlanning(
 		maxZ = Int.MAX_VALUE,
 	)
 	if (goal.y !in bounds.simulableStanceY) {
-		return PlanningPreparationResult.Failed(
-			PlanningFailure.InvalidRequest("destination is outside the simulable build height")
-		)
+		return PlanningPreparationResult.Failed("destination is outside the simulable build height")
 	}
 
 	val dumpDirectory = if (config.dumpFailedPlans || config.dumpAllPlans || java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")) {

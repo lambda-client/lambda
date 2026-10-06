@@ -2,10 +2,8 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.launch.BallisticProfile
-import com.lambda.pathing.launch.HorizontalDynamics
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.MovementSimulationStepResult
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -28,11 +26,11 @@ class HorizontalDynamicsTest {
 
     @Test
     fun `the reachable radius is exactly what the simulator accelerates to`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
+        val dynamics = BallisticProfile.VANILLA
         val simulated = accelerateFromRest(ticks = 12, sprint = true)
 
         simulated.forEachIndexed { index, speed ->
-            val predicted = dynamics.reachable(0.0, 0.0, index + 1).radius
+            val predicted = dynamics.groundSpeedReach(0.0, 0.0, 1.0, 0.0, index + 1, sprint = true).endInclusive
             assertTrue(
                 abs(predicted - speed) < 1e-6,
                 "tick ${index + 1}: model says %.6f, simulator says %.6f".format(predicted, speed),
@@ -42,22 +40,22 @@ class HorizontalDynamicsTest {
 
     @Test
     fun `cruise is the limit of the reachable radius and the speed the body settles at`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
+        val dynamics = BallisticProfile.VANILLA
         val settled = accelerateFromRest(ticks = 60, sprint = true).last()
 
         assertTrue(
-            abs(dynamics.cruise - settled) < 1e-6,
-            "cruise %.6f should be the settled speed %.6f".format(dynamics.cruise, settled),
+            abs(dynamics.cruiseSpeed(sprint = true) - settled) < 1e-6,
+            "cruise %.6f should be the settled speed %.6f".format(dynamics.cruiseSpeed(sprint = true), settled),
         )
         assertTrue(
-            dynamics.reachable(0.0, 0.0, 64).radius <= dynamics.cruise + 1e-9,
+            dynamics.groundSpeedReach(0.0, 0.0, 1.0, 0.0, 64, sprint = true).endInclusive <= dynamics.cruiseSpeed(sprint = true) + 1e-9,
             "the reachable radius must never exceed cruise",
         )
     }
 
     @Test
     fun `the projection bounds the speeds the simulator can produce along a direction`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
+        val dynamics = BallisticProfile.VANILLA
         val entry = accelerateState(ticks = 6, sprint = true)
         val from = entry.velocity
         val radians = Math.toRadians(40.0)
@@ -65,7 +63,7 @@ class HorizontalDynamicsTest {
         val unitZ = kotlin.math.cos(radians)
 
         for (ticks in 1..4) {
-            val range = dynamics.reachable(from.x, from.z, ticks).projectOnto(unitX, unitZ)
+            val range = dynamics.groundSpeedReach(from.x, from.z, unitX, unitZ, ticks, sprint = true)
             // Drive hard along the direction, and hard against it, and the simulator must
             // land inside the bounds the projection promises.
             listOf(40.0, 220.0, 130.0).forEach { yaw ->
@@ -85,13 +83,13 @@ class HorizontalDynamicsTest {
 
     @Test
     fun `coasting sheds speed at the rate the simulator does`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
+        val dynamics = BallisticProfile.VANILLA
         var state = accelerateState(ticks = 12, sprint = true)
         var predicted = state.velocity.horizontalLength()
 
         repeat(5) {
             state = tick(state, state.rotation.yaw, throttle = 0.0, sprint = false)
-            predicted *= dynamics.friction
+            predicted *= dynamics.groundFriction
             assertTrue(
                 abs(predicted - state.velocity.horizontalLength()) < 1e-6,
                 "coasting: model %.6f, simulator %.6f".format(
@@ -121,16 +119,13 @@ class HorizontalDynamicsTest {
         throttle: Double,
         sprint: Boolean,
     ): MovementSimulationState {
-        val simulator = MovementSimulator(PROFILE, GROUND, from)
-        val result = simulator.tryTickMovement(
+        return MovementSimulator(PROFILE, GROUND, from).tickMovement(
             MovementSimulationInput(
                 forward = throttle,
                 sprint = sprint && throttle > 0.0,
                 rotation = Rotation(yaw, 0.0),
             ),
         )
-        check(result is MovementSimulationStepResult.Advanced) { "the flat fixture must never block" }
-        return simulator.state
     }
 
     private fun rest() = MovementSimulationState.synthetic(

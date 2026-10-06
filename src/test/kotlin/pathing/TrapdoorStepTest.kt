@@ -67,7 +67,7 @@ class TrapdoorStepTest {
     fun `a three-gap jump onto a bottom trapdoor routes and certifies`() {
         val environment = world(trapdoor, landingCellY = 10)
         val planner = planner(environment, goal = Stance(0, 11, 6))
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandField(extraTicks = 40.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 
@@ -122,7 +122,7 @@ class TrapdoorStepTest {
             Stance(0, 11, 1),
             Stance(0, 11, 6),
         )
-        assertTrue(planner.repair(Duration.INFINITE).converged)
+        assertTrue(planner.repair().converged)
         planner.expandField(extraTicks = 40.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
 
@@ -152,7 +152,7 @@ class TrapdoorStepTest {
     @Test
     fun `the same jump onto full blocks stays impossible`() {
         val planner = planner(world(SnapshotBlockPhysics.FULL_CUBE, landingCellY = 10), goal = Stance(0, 11, 6))
-        planner.repair(Duration.INFINITE)
+        planner.repair()
         assertNull(planner.routePlan(0L), "span 4 rise 1 onto full blocks must not route")
     }
 

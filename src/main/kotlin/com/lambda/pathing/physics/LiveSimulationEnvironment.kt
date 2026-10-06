@@ -1,7 +1,6 @@
 package com.lambda.pathing.physics
 
 import com.lambda.util.BlockUtils.isFenceLike
-import net.minecraft.block.BedBlock
 import net.minecraft.block.Blocks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.tag.BlockTags
@@ -14,7 +13,6 @@ class LiveSimulationEnvironment(
 	private val world: World,
 	private val player: ClientPlayerEntity,
 ) : SimulationEnvironment {
-
 	override fun slipperiness(pos: BlockPos): Double =
 		world.getBlockState(pos).block.slipperiness.toDouble()
 
@@ -57,15 +55,7 @@ class LiveSimulationEnvironment(
 	override fun isClimbable(pos: BlockPos): Boolean =
 		world.getBlockState(pos).isIn(BlockTags.CLIMBABLE)
 
-	override fun bounceFactor(pos: BlockPos): Double {
-		val state = world.getBlockState(pos)
-		return when {
-			state.isOf(Blocks.SLIME_BLOCK) -> Vanilla.SLIME_BOUNCE_FACTOR
-			state.block is BedBlock ->
-				Vanilla.BED_BOUNCE_FACTOR.toDouble()
-			else -> 0.0
-		}
-	}
+	override fun bounceFactor(pos: BlockPos): Double = world.getBlockState(pos).bounceFactor()
 
 	override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
 		world.getBlockState(pos).isOf(Blocks.SLIME_BLOCK)

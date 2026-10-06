@@ -14,14 +14,13 @@ import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.RouteResolution
 import com.lambda.pathing.session.InterestPrimer
-import com.lambda.pathing.world.PathingWorld
+import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertNotNull
-import kotlin.time.Duration
 
 /**
  * The in-game cold start, end to end below the session layer: a [PathingWorld] fed by a
@@ -106,7 +105,7 @@ class ColdStartRouteTest {
         state.applyEvents(batch)
         val planner = state.planner
         val coarseStarted = System.nanoTime()
-        val coarse = planner.repair(Duration.INFINITE, maxExpansions = 200_000)
+        val coarse = planner.repair(maxExpansions = 200_000)
         val coarseMillis = (System.nanoTime() - coarseStarted) / 1_000_000
         val sections = world.snapshot.sectionCount
         println("[cold] coarse: ${coarse.processedNodes} expansions, ${planner.graphSize} nodes, $sections sections, $coarseMillis ms, converged=${coarse.converged}")
@@ -156,7 +155,7 @@ class ColdStartRouteTest {
             environment, SimpleMoveOptions(), start, goal, horizonChunks = 4, capturable = { _, _ -> true },
         )
         state.repairFrom(start)
-        state.planner.repair(Duration.INFINITE, maxExpansions = 1_000_000)
+        state.planner.repair(maxExpansions = 1_000_000)
         val route = RouteResolution(state).resolve(start, 1L, 1_000_000, world = null)
         println("[ring] route=${route?.nodes?.size} to ${route?.goal}")
         assertNotNull(route, "the ring edge must anchor: ${state.planner.routeFailureReport()}")

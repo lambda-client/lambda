@@ -60,7 +60,6 @@ object ClimbMovement : Movement {
 		val vertical = edge.from.x == edge.to.x && edge.from.z == edge.to.z
 
 		if (!vertical) {
-
 			val enteringOverLip = edge.to.y < edge.from.y
 			val yaw = bearingBetween(edge.from.center(), edge.to.center())
 			return listOf(
@@ -79,12 +78,9 @@ object ClimbMovement : Movement {
 		return listOf(
 			TrajectoryDecision.Climb(
 				step = edge.to,
-
 				holdForward = ascending && hold != null,
 				holdWhileClimbing = ascending && hold != null,
-
 				climbWithJump = ascending,
-
 				yaw = hold,
 			)
 		)
@@ -103,23 +99,10 @@ object ClimbMovement : Movement {
 		return bearingBetween(from.center(), from.offset(dx, 0, dz).center())
 	}
 
-	override fun program(context: ProgramContext): ControlProgram {
-		val decision = context.decision as TrajectoryDecision.Climb
-		return ClimbProgram(
-			targetYaw = decision.yaw,
-			holdForward = decision.holdForward,
-			holdWhileClimbing = decision.holdWhileClimbing,
-			climbWithJump = decision.climbWithJump,
-			maxYawChange = context.constraints.maxYawDegreesPerFrame,
-			takeoff = context.body.stance.center(),
-			aim = decision.step.center(),
-		)
-	}
+	override fun program(context: ProgramContext): ControlProgram =
+		ClimbProgram(context.decision as TrajectoryDecision.Climb, context)
 
 	override fun completed(context: CompletionContext): Boolean = context.stance == context.decision.step
 
-	override val completesAirborne: Boolean get() = true
-
-	override val pressesIntoTerrain: Boolean get() = true
-
+	override val climbs: Boolean get() = true
 }

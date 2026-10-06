@@ -3,16 +3,15 @@ package com.lambda.pathing.world.snapshot
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
+import com.lambda.pathing.physics.bounceFactor
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
 import com.lambda.util.BlockUtils.isFenceLike
-import net.minecraft.block.BedBlock
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.ShapeContext
 import net.minecraft.registry.Registries
 import net.minecraft.registry.tag.BlockTags
-import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -55,16 +54,11 @@ object BlockPhysicsCapture {
 	fun capture(state: BlockState, world: World, pos: BlockPos, shapeContext: ShapeContext): SnapshotBlockPhysics {
 		val shape = state.getCollisionShape(world, pos, shapeContext)
 		val unsupported = unsupportedPhysics(state)
-		val medium = mediumOf(state)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
-		val bed = state.block is BedBlock
-		val coarseVoxel = if (medium == Medium.CLIMBABLE) {
-			CoarseVoxel.of(Medium.CLIMBABLE)
-		} else if (unsupported != null) {
-			CoarseVoxel.UNKNOWN
-		} else {
-
-			coarseVoxelOf(shape, bouncy = slime)
+		val coarseVoxel = when {
+			state.fluidState.isEmpty && state.isIn(BlockTags.CLIMBABLE) -> CoarseVoxel.of(Medium.CLIMBABLE)
+			unsupported != null -> CoarseVoxel.UNKNOWN
+			else -> coarseVoxelOf(shape, bouncy = slime)
 		}
 		return SnapshotBlockPhysics(
 			collisionShape = shape,
@@ -74,18 +68,9 @@ object BlockPhysicsCapture {
 			unsupportedPhysics = unsupported,
 			coarseVoxel = coarseVoxel,
 			fenceLike = state.isFenceLike(),
-			bounceFactor = if (slime) Vanilla.SLIME_BOUNCE_FACTOR else if (bed) Vanilla.BED_BOUNCE_FACTOR.toDouble() else 0.0,
+			bounceFactor = state.bounceFactor(),
 			dampensSteppingSpeed = slime,
 		)
-	}
-
-	fun mediumOf(state: BlockState): Medium = when {
-		!state.fluidState.isEmpty ->
-			if (state.fluidState.isIn(FluidTags.LAVA)) Medium.LAVA else Medium.WATER
-		state.isIn(BlockTags.CLIMBABLE) -> Medium.CLIMBABLE
-		state.isOf(Blocks.COBWEB) -> Medium.COBWEB
-		state.isOf(Blocks.POWDER_SNOW) -> Medium.POWDER_SNOW
-		else -> Medium.SOLID
 	}
 
 	private fun unsupportedPhysics(state: BlockState): UnsupportedPhysics? = when {

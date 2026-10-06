@@ -45,7 +45,6 @@ class CoarseMoveCosts(
 	val diagonalWalk: Double,
 	val stepUp: Double,
 	val walkOff: (depth: Int) -> Double,
-
 	val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
 	val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
 ) {
