@@ -1,6 +1,6 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.coarse.ValueField
+import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 
@@ -15,44 +15,18 @@ class CandidatePath(val points: List<Vec3d>, val best: Boolean)
 
 enum class SearchNodeRole { SPINE, BEST, OPEN, PARKED, SPENT, INTERIOR }
 
-class SearchTreeNode(
-	val position: Vec3d,
-	val elapsed: Int,
-	val guide: Double,
-	val role: SearchNodeRole,
-)
+class SearchTreeNode(val position: Vec3d, val role: SearchNodeRole)
 
 class SearchTreeEdge(
 	val from: Vec3d,
 	val to: Vec3d,
 	val role: SearchNodeRole,
-	val via: MovementId?,
-
-	val trace: List<Vec3d> = emptyList(),
+	val trace: List<Vec3d>,
 )
 
 class SearchTreeView(
 	val nodes: List<SearchTreeNode>,
 	val edges: List<SearchTreeEdge>,
-)
-
-class SearchStatsView(
-	val expansions: Int,
-	val windowExpansions: Int,
-	val windowBudget: Int,
-	val temperature: Double,
-	val open: Int,
-	val parked: Int,
-	val blocked: Int,
-	val spent: Int,
-	val admitted: Int,
-	val merged: Int,
-	val restarts: Int,
-	val rootFrame: Int,
-	val publishedFrame: Int,
-	val horizonEnd: Int,
-	val cursorFrame: Int,
-	val bestScore: Int?,
 )
 
 interface SearchProbe {
@@ -62,7 +36,7 @@ interface SearchProbe {
 
 	fun tree(view: SearchTreeView) {}
 
-	fun stats(view: SearchStatsView) {}
+	fun stats(view: SearchStats) {}
 
 	fun expansion(from: Stance, action: TrajectoryDecision, diagnostic: TrajectoryDiagnostic?) {}
 
@@ -70,9 +44,7 @@ interface SearchProbe {
 
 	fun blocked(
 		frame: Int,
-		sectionX: Int,
-		sectionY: Int,
-		sectionZ: Int,
+		section: PathingSection,
 		capturable: Boolean,
 		stance: Stance,
 		movement: MovementId,
@@ -89,7 +61,6 @@ interface SearchProbe {
 }
 
 internal fun searchTree(
-	field: ValueField,
 	spent: List<ValueAnchor>,
 	parked: List<Frontier.OpenEntry>,
 	open: List<Frontier.OpenEntry>,
@@ -120,10 +91,10 @@ internal fun searchTree(
 	val nodes = ArrayList<SearchTreeNode>(roles.size)
 	val edges = ArrayList<SearchTreeEdge>(roles.size)
 	roles.forEach { (anchor, role) ->
-		nodes += SearchTreeNode(anchor.state.position, anchor.elapsed, field.guide(anchor.stance), role)
+		nodes += SearchTreeNode(anchor.state.position, role)
 		val parent = anchor.parent ?: return@forEach
 		if (parent !in roles) return@forEach
-		edges += SearchTreeEdge(parent.state.position, anchor.state.position, role, anchor.via, anchor.trace)
+		edges += SearchTreeEdge(parent.state.position, anchor.state.position, role, anchor.trace)
 	}
 	return SearchTreeView(nodes, edges)
 }

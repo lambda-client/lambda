@@ -26,17 +26,20 @@ internal class RolloutEvaluator(
 
 	descentAllowance: Double = 0.0,
 
-	private val climbing: (Vec3d) -> Boolean = { false },
+	private val climbing: (Vec3d) -> Boolean,
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
 
+	private var previous = initialState
 	private var apex = initialState.position.y
 	private var stable = 0
 
 	var pendingBlocker: TrajectoryDiagnostic? = null
 		private set
 
-	fun observe(index: Int, state: MovementSimulationState, before: MovementSimulationState): RolloutVerdict {
+	fun observe(index: Int, state: MovementSimulationState): RolloutVerdict {
+		val before = previous
+		previous = state
 		if (climbing(state.position)) apex = state.position.y
 		if (state.onGround) {
 
@@ -80,7 +83,7 @@ internal fun evaluateDiagnostic(
 	goal: HorizontalPoint,
 	config: MotionConstraints,
 	descentAllowance: Double = 0.0,
-	climbing: (Vec3d) -> Boolean = { false },
+	climbing: (Vec3d) -> Boolean,
 ): TrajectoryDiagnostic? {
 	val evaluator = RolloutEvaluator(
 		rollout.initialState, nodes, goal, config, descentAllowance = descentAllowance,
@@ -88,8 +91,7 @@ internal fun evaluateDiagnostic(
 	)
 
 	rollout.frames.forEach { frame ->
-		val before = if (frame.index == 0) rollout.initialState else rollout.frames[frame.index - 1].state
-		when (val verdict = evaluator.observe(frame.index, frame.state, before)) {
+		when (val verdict = evaluator.observe(frame.index, frame.state)) {
 			is RolloutVerdict.Continue -> Unit
 			is RolloutVerdict.Stopped -> return null
 			is RolloutVerdict.Failed -> return verdict.diagnostic
@@ -97,9 +99,7 @@ internal fun evaluateDiagnostic(
 	}
 
 	when (val termination = rollout.termination) {
-		is TrajectoryRolloutTermination.Blocked -> return TrajectoryDiagnostic.UnknownTerrain(
-			termination.frame, termination.sectionX, termination.sectionY, termination.sectionZ,
-		)
+		is TrajectoryRolloutTermination.Blocked -> return TrajectoryDiagnostic.UnknownTerrain(termination.frame, termination.section)
 		is TrajectoryRolloutTermination.Rejected -> return when (val failure = termination.failure) {
 			is SimulationSnapshotOutOfBoundsException ->
 				TrajectoryDiagnostic.OutsideSnapshot(termination.frame, failure.pos)
@@ -118,6 +118,6 @@ internal fun evaluateDiagnostic(
 	)
 }
 
-private const val VERTICAL_GOAL_TOLERANCE = 0.05
+internal const val VERTICAL_GOAL_TOLERANCE = 0.05
 
 private const val FALL_TOLERANCE = 0.6

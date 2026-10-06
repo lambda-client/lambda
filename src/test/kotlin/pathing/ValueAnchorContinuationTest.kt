@@ -1,7 +1,6 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -24,7 +23,6 @@ class ValueAnchorContinuationTest {
         )
         val parent = ValueAnchor(state, Stance(0, 1, 0), 0, 0, 0, null, emptyList())
         val anchor = ValueAnchor(state, parent.stance, 12, 2, 4, parent, emptyList()).apply {
-            via = MovementId.WALK
             trace = listOf(state.position)
             actionsEpoch = 7
             hazardFrame = 8
@@ -39,12 +37,10 @@ class ValueAnchorContinuationTest {
         assertSame(anchor.parent, copy.parent)
         assertSame(anchor.inputs, copy.inputs)
         assertSame(anchor.trace, copy.trace)
-        assertSame(anchor.points, copy.points)
         assertEquals(anchor.stance, copy.stance)
         assertEquals(anchor.elapsed, copy.elapsed)
         assertEquals(anchor.collisionEvents, copy.collisionEvents)
         assertEquals(anchor.inputSwitches, copy.inputSwitches)
-        assertEquals(anchor.via, copy.via)
         assertEquals(anchor.decision, copy.decision)
         assertEquals(-1, copy.actionsEpoch)
         assertNull(copy.hazardFrame)

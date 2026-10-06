@@ -10,9 +10,8 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.world.Medium
+import com.lambda.pathing.world.climbableAt
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import kotlin.math.floor
 
 internal class GatedRollout(
 	val rollout: TrajectoryRollout,
@@ -32,12 +31,7 @@ internal class RolloutGate(
 		program: ControlProgram,
 		frameCount: Int,
 	): GatedRollout {
-		val evaluator = RolloutEvaluator(from, points, goalPoint(), config, climbing = { p ->
-			environment.medium(
-				floor(p.x).toInt(), floor(p.y).toInt(), floor(p.z).toInt(),
-			) == Medium.CLIMBABLE
-		})
-		var previous = from
+		val evaluator = RolloutEvaluator(from, points, goalPoint(), config, climbing = { environment.climbableAt(it) })
 		var stopFrame: Int? = null
 		var failed = false
 		val rollout = TrajectoryRolloutEngine.rollout(
@@ -47,9 +41,7 @@ internal class RolloutGate(
 			program = program,
 			frameCount = frameCount,
 		) { frame ->
-			val verdict = evaluator.observe(frame.index, frame.state, previous)
-			previous = frame.state
-			when (verdict) {
+			when (val verdict = evaluator.observe(frame.index, frame.state)) {
 				is RolloutVerdict.Stopped -> {
 					stopFrame = verdict.frame; true
 				}

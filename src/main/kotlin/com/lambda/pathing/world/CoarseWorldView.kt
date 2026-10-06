@@ -2,6 +2,8 @@ package com.lambda.pathing.world
 
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
+import kotlin.math.floor
+import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
@@ -107,6 +109,9 @@ interface CoarseVoxelView {
 
 	fun surfaceOffset(x: Int, y: Int, z: Int): Double = (standingSurface(x, y, z) ?: 1.0) - 1.0
 }
+
+fun CoarseVoxelView.climbableAt(position: Vec3d): Boolean =
+	medium(floor(position.x).toInt(), floor(position.y).toInt(), floor(position.z).toInt()) == Medium.CLIMBABLE
 
 fun CoarseVoxelView.canStandAt(x: Int, y: Int, z: Int): Boolean =
 	standingSurface(x, y - 1, z) != null && voxel(x, y, z).centerPassable && voxel(x, y + 1, z).centerPassable

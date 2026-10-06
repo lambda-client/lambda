@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import kotlin.math.hypot
@@ -12,8 +13,6 @@ data class PublishedPath(
 	val attempts: Int,
 	val planMillis: Long,
 	val finalGoal: Stance,
-	val controlSegments: Int = 1,
-	val spliceFrames: List<Int> = emptyList(),
 	val partial: Boolean = false,
 	val planningGeneration: Long = 0L,
 	val publicationSequence: Int = 0,
@@ -22,10 +21,11 @@ data class PublishedPath(
 	val comparedRunningArrivalTicks: Double = Double.NaN,
 	val comparedRunningSequence: Long = -1,
 
-	val segments: List<TapeSegment> = emptyList(),
-
 	val legTouches: List<LegTouch> = emptyList(),
 ) {
+	val controlSegments: Int get() = plan.segments.size
+
+	val spliceFrames: List<Int> by lazy { plan.segments.map { it.endFrame }.filter { it in 1 until plan.tape.frameCount } }
 
 	val excessRatio: Double
 		get() = (route.lowerBoundTicks + TERMINAL_STOP_TICKS).let {
@@ -35,8 +35,6 @@ data class PublishedPath(
 	private companion object {
 
 		const val TERMINAL_STOP_TICKS = 16.0
-
-		const val STANDING_SPEED = 0.012
 
 		const val MIN_STANDING_RUN = 4
 	}
@@ -59,16 +57,16 @@ data class PublishedPath(
 		return "approach: near@%d tail=%d stray=%.2f loops=%d final=%.2f".format(near, tail.size, tail.max(), loops, distances.last())
 	}
 
-	fun movementProfile(): String = segments
+	fun movementProfile(): String = plan.segments
 		.groupBy { it.movement }
-		.mapValues { (_, parts) -> parts.sumOf { it.frames } to parts.size }
+		.mapValues { (_, parts) -> parts.sumOf { it.frameCount } to parts.size }
 		.entries.sortedByDescending { it.value.first }
 		.joinToString(" ") { (movement, cost) -> "$movement=${cost.first}/${cost.second}" }
 
 	fun standingRunLengths(): List<Int> {
 		val frames = plan.frames
 		if (frames.isEmpty()) return emptyList()
-		val still = frames.map { it.state.velocity.horizontalLength() <= STANDING_SPEED }
+		val still = frames.map { it.state.velocity.horizontalLength() <= MotionConstraints.DEFAULT_STOPPED_SPEED }
 		val runs = ArrayList<Int>()
 		var index = 0
 		while (index < still.size) {

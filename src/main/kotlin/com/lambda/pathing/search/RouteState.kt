@@ -13,8 +13,7 @@ internal class RouteState(
 	var plan: CoarseRoutePlan = initial
 		private set
 
-	var goal: Stance = initial.goal
-		private set
+	val goal: Stance get() = plan.goal
 
 	var goalPoint: HorizontalPoint = goal.center(environment)
 		private set
@@ -24,7 +23,6 @@ internal class RouteState(
 
 	fun replace(next: CoarseRoutePlan) {
 		plan = next
-		goal = next.goal
 		goalPoint = goal.center(environment)
 		index = indexOf(next)
 	}

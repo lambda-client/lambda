@@ -2,51 +2,26 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 
-import com.lambda.pathing.actions.TerminalApproach
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.physics.MovementSimulationInput
 
-data class TapeSegment(val movement: MovementId, val frames: Int)
-
 internal class Solution(
-	val segments: Int,
-	val parameters: TerminalApproach,
 	val frames: Int,
 	val collisionEvents: Int,
 	val anchor: ValueAnchor,
 	val tailFrames: List<SimulatedTrajectoryFrame>,
 ) {
 
-	val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
+	val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames) }
 
-	val inputs: List<MovementSimulationInput> by lazy { anchor.prefix() + tailFrames.map { it.input } }
-
-	val boundaries: List<Int> by lazy { anchor.boundaries() + anchor.elapsed }
+	val inputs: List<MovementSimulationInput> by lazy { planSegments.flatMap { it.inputs } }
 
 	val score: Int get() = frames + COLLISION_FRAME_PENALTY * collisionEvents
-
-	fun segments(): List<TapeSegment> {
-		val out = ArrayList<TapeSegment>()
-		var node: ValueAnchor? = anchor
-		while (node?.parent != null) {
-			out += TapeSegment(node.via ?: MovementId.WALK, node.inputs.size)
-			node = node.parent
-		}
-		out.reverse()
-		val tail = frames - out.sumOf { it.frames }
-		if (tail > 0) out += TapeSegment(MovementId.WALK, tail)
-		return out
-	}
 
 	companion object {
 
 		internal const val COLLISION_FRAME_PENALTY = 4
 
-		internal fun segmentsOf(
-			anchor: ValueAnchor,
-			tail: List<SimulatedTrajectoryFrame>,
-			parameters: TerminalApproach,
-		): List<PlanSegment> {
+		private fun segmentsOf(anchor: ValueAnchor, tail: List<SimulatedTrajectoryFrame>): List<PlanSegment> {
 			val chain = ArrayList<ValueAnchor>()
 			var node: ValueAnchor? = anchor
 			while (node?.parent != null) {
@@ -60,48 +35,18 @@ internal class Solution(
 				val parent = child.parent ?: return@forEach
 				val decision = child.decision
 				segments += if (decision != null) {
-					PlanSegment.Move(
-						decision = decision,
-						points = child.points,
-						entry = parent.state,
-						exit = child.state,
-						inputs = child.inputs,
-						startFrame = parent.elapsed,
-					)
+					PlanSegment.Move(decision, parent.state, child.state, child.inputs, parent.elapsed)
 				} else {
-					PlanSegment.Terminal(
-						approach = parameters,
-						entry = parent.state,
-						exit = child.state,
-						inputs = child.inputs,
-						startFrame = parent.elapsed,
-					)
+					PlanSegment.Terminal(parent.state, child.state, child.inputs, parent.elapsed)
 				}
 			}
 			if (tail.isNotEmpty()) {
-				segments += PlanSegment.Terminal(
-					approach = parameters,
-					entry = anchor.state,
-					exit = tail.last().state,
-					inputs = tail.map { it.input },
-					startFrame = anchor.elapsed,
-				)
+				segments += PlanSegment.Terminal(anchor.state, tail.last().state, tail.map { it.input }, anchor.elapsed)
 			}
 			return segments
 		}
 
-		fun of(
-			anchor: ValueAnchor,
-			tail: List<SimulatedTrajectoryFrame>,
-			parameters: TerminalApproach,
-			collisionEvents: Int,
-		): Solution = Solution(
-			segments = anchor.depth() + 1,
-			parameters = parameters,
-			frames = anchor.elapsed + tail.size,
-			collisionEvents = collisionEvents,
-			anchor = anchor,
-			tailFrames = tail,
-		)
+		fun of(anchor: ValueAnchor, tail: List<SimulatedTrajectoryFrame>, collisionEvents: Int): Solution =
+			Solution(anchor.elapsed + tail.size, collisionEvents, anchor, tail)
 	}
 }

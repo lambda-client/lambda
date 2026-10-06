@@ -35,9 +35,8 @@ internal object ImprovementArbiter {
 			return Verdict.Keep("improvement is shorter than the walk so far")
 		}
 		if (runningInvalidFrom != null) {
-
-			val diverges = (0 until cursorFrame).any { running.plan.tape[it] != offered.plan.tape[it] }
-			return if (diverges) Verdict.Keep("repair diverges behind the cursor") else Verdict.Adopt(cursorFrame)
+			return if (divergesBehind(running, offered, cursorFrame)) Verdict.Keep("repair diverges behind the cursor")
+			else Verdict.Adopt(cursorFrame)
 		}
 		if (!running.partial && !offered.partial &&
 			offered.plan.tape.frameCount >= running.plan.tape.frameCount
@@ -49,7 +48,7 @@ internal object ImprovementArbiter {
 			val comparable = offered.comparedRunningSequence == running.publicationSequence.toLong() &&
 					offered.arrivalTicksEstimate.isFinite() && offered.comparedRunningArrivalTicks.isFinite()
 			val gains = comparable &&
-					offered.arrivalTicksEstimate + SWAP_GAIN_TICKS <= offered.comparedRunningArrivalTicks
+					offered.arrivalTicksEstimate + SWAP_FLOOR_GAIN_TICKS <= offered.comparedRunningArrivalTicks
 
 			val runway = offered.safeAnchorFrame - cursorFrame >= SWAP_MIN_RUNWAY_FRAMES
 			if (!gains || !runway) return Verdict.Keep("partial publication commits no new anchor")
@@ -57,13 +56,13 @@ internal object ImprovementArbiter {
 		if (offered.partial && offered.safeAnchorFrame <= cursorFrame) {
 			return Verdict.Keep("partial publication has no unexecuted progress anchor")
 		}
-		val diverges = (0 until cursorFrame).any { running.plan.tape[it] != offered.plan.tape[it] }
-		if (diverges) return Verdict.Keep("improvement diverges behind the cursor")
+		if (divergesBehind(running, offered, cursorFrame)) return Verdict.Keep("improvement diverges behind the cursor")
 
 		return Verdict.Adopt(cursorFrame)
 	}
 
-	private const val SWAP_GAIN_TICKS = SWAP_FLOOR_GAIN_TICKS
+	private fun divergesBehind(running: PublishedPath, offered: PublishedPath, cursorFrame: Int): Boolean =
+		(0 until cursorFrame).any { running.plan.tape[it] != offered.plan.tape[it] }
 
 	private const val SWAP_MIN_RUNWAY_FRAMES = 20
 }

@@ -6,7 +6,7 @@ import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
-import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.actions.TrajectoryDecision
@@ -66,7 +66,7 @@ class DumpLegChainReplayTest {
         val tempo = System.getenv("PATHING_DUMP_TEMPO")?.toLong() ?: 83L
         val clock = VirtualSearchClock(microsPerExpansion = tempo)
         val executor = VirtualExecutor(clock)
-        val exhaustions = ArrayList<SearchExhaustion>()
+        val exhaustions = ArrayList<SearchStats>()
         var lastPublished: com.lambda.pathing.search.PublishedPath? = null
         val perStance = HashMap<Stance, HashMap<String, Int>>()
         val focus = System.getenv("PATHING_DUMP_FOCUS")?.split(',')?.map { it.trim().toInt() }?.let { (x, y, z) -> Stance(x, y, z) }
@@ -90,8 +90,8 @@ class DumpLegChainReplayTest {
                 val key = "${action.movement}/${action::class.simpleName}/sprint=${action.sprint} -> ${diagnostic?.let { it::class.simpleName } ?: "ok"}"
                 perStance.getOrPut(from) { HashMap() }.merge(key, 1, Int::plus)
             }
-            override fun blocked(frame: Int, sectionX: Int, sectionY: Int, sectionZ: Int, capturable: Boolean, stance: Stance, movement: com.lambda.pathing.core.MovementId) {
-                perStance.getOrPut(stance) { HashMap() }.merge("BLOCKED/$movement/section($sectionX,$sectionY,$sectionZ)", 1, Int::plus)
+            override fun blocked(frame: Int, section: com.lambda.pathing.core.PathingSection, capturable: Boolean, stance: Stance, movement: com.lambda.pathing.core.MovementId) {
+                perStance.getOrPut(stance) { HashMap() }.merge("BLOCKED/$movement/section(${section.x},${section.y},${section.z})", 1, Int::plus)
             }
         }
         val result = walkHorizon(

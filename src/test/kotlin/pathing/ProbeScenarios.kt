@@ -20,7 +20,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
-import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.world.CoarseVoxel
 import kotlin.math.atan2
@@ -43,7 +43,7 @@ internal object ProbeScenarios {
 
     class Outcome(
         val result: PathPlanResult,
-        val exhaustions: List<SearchExhaustion>,
+        val exhaustions: List<SearchStats>,
         /** Kept so a probe can drive the real search machinery over the same world. */
         val planner: CoarsePlanner,
         val route: CoarseRoutePlan,
@@ -117,7 +117,7 @@ internal object ProbeScenarios {
         val dz = (scenario.goal.z - scenario.start.z).toDouble()
         val clock = VirtualSearchClock(microsPerExpansion = microsPerExpansion)
         val executor = VirtualExecutor(clock)
-        val exhaustions = ArrayList<SearchExhaustion>()
+        val exhaustions = ArrayList<SearchStats>()
         val result = walkHorizon(
             route, planner,
             MovementSimulationState.synthetic(

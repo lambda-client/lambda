@@ -4,7 +4,7 @@ import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.debug.PlanDump
-import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualSearchClock
 import org.junit.jupiter.api.Tag
 import pathing.ProbeScenarios.moveLibrary
@@ -62,7 +62,7 @@ class FieldDumpCorpusTest {
         val route = planner.routePlan(0L) ?: return Replay.NoRoute
         val clock = VirtualSearchClock(microsPerExpansion = FIELD_MICROS_PER_EXPANSION)
         val executor = VirtualExecutor(clock)
-        val exhaustions = ArrayList<SearchExhaustion>()
+        val exhaustions = ArrayList<SearchStats>()
         val outcome = walkHorizon(
             route, planner, loaded.initialState, loaded.profile, environment, loaded.searchConfig,
             execution = executor,

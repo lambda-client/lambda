@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 import com.lambda.pathing.rollout.TrajectoryRollout
@@ -24,16 +25,15 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.center
+import com.lambda.pathing.world.climbableAt
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import kotlin.math.floor
-import kotlin.math.hypot
 import net.minecraft.util.math.Vec3d
 
 internal sealed interface Outcome {
 	data class Anchored(val anchor: ValueAnchor) : Outcome
 	data class Arrived(val frames: List<SimulatedTrajectoryFrame>) : Outcome
 	data class Rejected(val diagnostic: TrajectoryDiagnostic) : Outcome
-	data class Blocked(val frame: Int, val sectionX: Int, val sectionY: Int, val sectionZ: Int) : Outcome
+	data class Blocked(val frame: Int, val section: PathingSection) : Outcome
 }
 
 internal class AnchorRollout(
@@ -47,11 +47,7 @@ internal class AnchorRollout(
 	private val probe: SearchProbe,
 ) {
 
-	private val climbingAt: (Vec3d) -> Boolean = { p ->
-		field.view.medium(
-			floor(p.x).toInt(), floor(p.y).toInt(), floor(p.z).toInt(),
-		) == Medium.CLIMBABLE
-	}
+	private val climbingAt: (Vec3d) -> Boolean = { field.view.climbableAt(it) }
 
 	private fun openLanding(target: Stance): Boolean {
 		var mapped = 0
@@ -59,7 +55,7 @@ internal class AnchorRollout(
 		if (field.isMapped(Stance(target.x - 1, target.y, target.z))) mapped++
 		if (field.isMapped(Stance(target.x, target.y, target.z + 1))) mapped++
 		if (field.isMapped(Stance(target.x, target.y, target.z - 1))) mapped++
-		return mapped >= 2
+		return mapped >= OPEN_LANDING_NEIGHBORS
 	}
 
 	internal class PreparedRollout(
@@ -121,7 +117,6 @@ internal class AnchorRollout(
 		val anchor = prepared.anchor
 		val action = prepared.action
 		val movement = prepared.movement
-		var previous = anchor.state
 		var airborne = false
 
 		prepared.raw = TrajectoryRolloutEngine.rollout(
@@ -131,9 +126,7 @@ internal class AnchorRollout(
 			program = prepared.program,
 			frameCount = prepared.frameCount,
 		) { frame ->
-			val verdict = prepared.evaluator.observe(frame.index, frame.state, previous)
-			previous = frame.state
-			when (verdict) {
+			when (val verdict = prepared.evaluator.observe(frame.index, frame.state)) {
 				is RolloutVerdict.Failed -> {
 					prepared.failure = verdict.diagnostic
 					true
@@ -205,7 +198,7 @@ internal class AnchorRollout(
 		if (stopFrame != null) return Outcome.Arrived(rollout.frames)
 		failure?.let { return Outcome.Rejected(it) }
 		(rollout.termination as? TrajectoryRolloutTermination.Blocked)?.let {
-			return Outcome.Blocked(it.frame, it.sectionX, it.sectionY, it.sectionZ)
+			return Outcome.Blocked(it.frame, it.section)
 		}
 		val frame = eventFrame ?: return Outcome.Rejected(
 			evaluateDiagnostic(rollout, points, goalPoint(), config, descentAllowance, climbing = climbingAt)
@@ -225,12 +218,12 @@ internal class AnchorRollout(
 				)
 			}
 			eventStance = supported
-			cornerCatch = 2
+			cornerCatch = CORNER_CATCH_COLLISIONS
 		}
 		if (!field.isMapped(eventStance)) {
 
 			return if (!field.view.isKnown(eventStance.x, eventStance.y - 1, eventStance.z)) {
-				Outcome.Blocked(frame, eventStance.x shr 4, (eventStance.y - 1) shr 4, eventStance.z shr 4)
+				Outcome.Blocked(frame, PathingSection(eventStance.x shr 4, (eventStance.y - 1) shr 4, eventStance.z shr 4))
 			} else {
 				Outcome.Rejected(TrajectoryDiagnostic.FellBelowRoute(frame, 0.0))
 			}
@@ -251,9 +244,7 @@ internal class AnchorRollout(
 				parent = anchor,
 				inputs = frames.map { it.input },
 			).also {
-				it.via = action.movement
 				it.decision = action
-				it.points = points
 				if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(frames)
 			},
 		)
@@ -261,17 +252,12 @@ internal class AnchorRollout(
 
 	private fun record(rollout: TrajectoryRollout, failure: TrajectoryDiagnostic?, stopped: Boolean) {
 		probe.attempt(rollout, stopped, failure)
-		val goal = goalPoint()
-		attempts.record(
-			PlanAttempt(
-				simulatedFrames = rollout.frames.size,
-				finalGoalError = hypot(rollout.finalState.position.x - goal.x, rollout.finalState.position.z - goal.z),
-				diagnostic = failure,
-			)
-		)
+		attempts.record(rollout, goalPoint(), failure)
 	}
 
 	private companion object {
 		const val TRANSITION_FRAMES = 40
+		const val OPEN_LANDING_NEIGHBORS = 2
+		const val CORNER_CATCH_COLLISIONS = 2
 	}
 }

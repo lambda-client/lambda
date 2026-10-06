@@ -5,20 +5,15 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.search.SearchExhaustion
-import com.lambda.pathing.search.SearchStatsView
+import com.lambda.pathing.search.CandidatePath
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchTreeView
-import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.world.CoarseVoxelView
 import net.minecraft.util.math.Vec3d
 
 object PlanningDebugChannel {
-	class Attempt(
-		val points: List<Vec3d>,
-		val certified: Boolean,
-		val diagnostic: String?,
-	)
+	class Attempt(val points: List<Vec3d>, val certified: Boolean)
 
 	@Volatile
 	private var active = false
@@ -46,9 +41,6 @@ object PlanningDebugChannel {
 		val to: Vec3d,
 		val cost: Double,
 		val policy: Boolean,
-
-		@Suppress("unused")
-	val fromCost: Double,
 		val toCost: Double,
 		val movement: MovementId?,
 	)
@@ -69,13 +61,11 @@ object PlanningDebugChannel {
 		val edges: Int = 12_288,
 	)
 
-	class CandidateLine(val points: List<Vec3d>, val best: Boolean)
-
 	@Volatile
-	var candidateLines: List<CandidateLine> = emptyList()
+	var candidateLines: List<CandidatePath> = emptyList()
 		private set
 
-	fun publishCandidates(lines: List<CandidateLine>) {
+	fun publishCandidates(lines: List<CandidatePath>) {
 		if (active) candidateLines = lines
 	}
 
@@ -84,7 +74,7 @@ object PlanningDebugChannel {
 		private set
 
 	@Volatile
-	var stats: SearchStatsView? = null
+	var stats: SearchStats? = null
 		private set
 
 	@Volatile
@@ -108,14 +98,14 @@ object PlanningDebugChannel {
 	var hudWanted: Boolean = false
 
 	@Volatile
-	var lastExhaustion: SearchExhaustion? = null
+	var lastExhaustion: SearchStats? = null
 		private set
 
 	@Volatile
 	var lastExhaustionLedger: String = ""
 		private set
 
-	fun publishExhaustion(report: SearchExhaustion, ledger: String) {
+	fun publishExhaustion(report: SearchStats, ledger: String) {
 		lastExhaustion = report
 		lastExhaustionLedger = ledger
 	}
@@ -124,7 +114,7 @@ object PlanningDebugChannel {
 		if (active) tree = view
 	}
 
-	fun publishStats(view: SearchStatsView) {
+	fun publishStats(view: SearchStats) {
 		if (active) stats = view
 	}
 
@@ -188,7 +178,6 @@ object PlanningDebugChannel {
 
 			knownEdges += real.size
 			if (edges.size >= limits.edges) return@forEach
-			val fromCost = planner.stanceCost(from)
 			real.forEach { (to, cost) ->
 				if (edges.size < limits.edges) {
 					edges += GraphEdge(
@@ -196,7 +185,6 @@ object PlanningDebugChannel {
 						to = center(view, to),
 						cost = cost,
 						policy = to == best,
-						fromCost = fromCost,
 						toCost = planner.stanceCost(to),
 						movement = cheapest[to]?.movement,
 					)
@@ -232,12 +220,7 @@ object PlanningDebugChannel {
 
 	fun begin(enabled: Boolean, limits: GraphViewLimits = GraphViewLimits()) {
 		graphLimits = limits
-		synchronized(ring) { ring.clear() }
-		attempts = emptyList()
-		candidateLines = emptyList()
-		tree = null
-		stats = null
-
+		clearSearchViews()
 		active = enabled
 	}
 
@@ -245,7 +228,7 @@ object PlanningDebugChannel {
 		if (active) coarseRoute = route
 	}
 
-	fun publishAttempt(rollout: TrajectoryRollout, certified: Boolean, diagnostic: TrajectoryDiagnostic?) {
+	fun publishAttempt(rollout: TrajectoryRollout, certified: Boolean) {
 		if (!active) return
 		val points = ArrayList<Vec3d>(rollout.frames.size / DECIMATION + 2)
 		points += rollout.initialState.position
@@ -255,7 +238,7 @@ object PlanningDebugChannel {
 		rollout.frames.lastOrNull()?.let { last ->
 			if ((rollout.frames.size - 1) % DECIMATION != 0) points += last.state.position
 		}
-		val attempt = Attempt(points, certified, diagnostic?.let { it::class.simpleName })
+		val attempt = Attempt(points, certified)
 		synchronized(ring) {
 			ring += attempt
 			while (ring.size > MAX_ATTEMPTS) ring.removeFirst()
@@ -268,12 +251,16 @@ object PlanningDebugChannel {
 		coarseRoute = null
 		lastExhaustion = null
 		lastExhaustionLedger = ""
+		graph = null
+		clearSearchViews()
+	}
+
+	private fun clearSearchViews() {
+		synchronized(ring) { ring.clear() }
 		attempts = emptyList()
 		candidateLines = emptyList()
 		tree = null
 		stats = null
-		graph = null
-		synchronized(ring) { ring.clear() }
 	}
 
 	private const val MAX_ATTEMPTS = 32

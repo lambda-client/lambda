@@ -308,7 +308,9 @@ internal object PathingTestHarness {
             // and replanned ends on a short final leg, and asking that leg whether the
             // trip pressed jump answers about the last few blocks instead.
             val walked = walkedPaths.ifEmpty { listOf(path) }
-            check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
+            check(path.plan.dependencySectionsBetween(0, path.plan.tape.frameCount).isNotEmpty()) {
+                "$scenario: no voxel dependencies published"
+            }
             println(
                 "[pathing-diag] $scenario: " +
                     "frames=${path.plan.tape.frameCount} attempts=${path.attempts} " +
@@ -436,8 +438,6 @@ internal object PathingTestHarness {
         }
     }
 
-    private fun PublishedPath.dependencies() = plan.dependencies
-
     fun assertMovementReplay(
         context: ClientGameTestContext,
         scenario: String,
@@ -469,7 +469,7 @@ internal object PathingTestHarness {
 
             val liveSimulator = MovementSimulator(
                 PlayerPhysicsProfile.capture(player),
-                LiveSimulationEnvironment(player.entityWorld, player, entityCollisions = true),
+                LiveSimulationEnvironment(player.entityWorld, player),
                 initial,
             )
             val liveExpected = tape.map { liveSimulator.tickMovement(it) }

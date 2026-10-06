@@ -20,7 +20,7 @@ import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.search.WorldSyncResult
@@ -86,7 +86,7 @@ class DagRepairTest {
         var lastTape: List<com.lambda.pathing.physics.MovementSimulationInput>? = null
         var publishedFrames = 0
         var mutated = false
-        var exhaustion: SearchExhaustion? = null
+        var exhaustion: SearchStats? = null
         val wallSection = PathingSection(wallX shr 4, 0, 0)
 
         val outcome = walkHorizon(

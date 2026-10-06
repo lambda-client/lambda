@@ -8,7 +8,6 @@ import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -19,7 +18,6 @@ internal class Certifier(
 	private val environment: SnapshotSimulationEnvironment,
 	private val cancelled: () -> Boolean,
 ) {
-	private var certifiedInputs: List<MovementSimulationInput> = emptyList()
 	private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
 	private var certifiedDependencies: List<Set<VoxelPos>> = emptyList()
 
@@ -33,8 +31,8 @@ internal class Certifier(
 		val tape = InputTape(inputs)
 
 		var shared = 0
-		val maxShared = minOf(inputs.size, certifiedInputs.size, certifiedFrames.size)
-		while (shared < maxShared && inputs[shared] == certifiedInputs[shared]) shared++
+		val maxShared = minOf(inputs.size, certifiedFrames.size)
+		while (shared < maxShared && inputs[shared] == certifiedFrames[shared].input) shared++
 
 		val frames = ArrayList<SimulatedTrajectoryFrame>(inputs.size)
 		frames += certifiedFrames.subList(0, shared)
@@ -64,10 +62,6 @@ internal class Certifier(
 		check(frameDependencies.size == inputs.size) {
 			"Every certified input must publish its world-read dependencies"
 		}
-		val dependencies = HashSet<VoxelPos>()
-		frameDependencies.forEach(dependencies::addAll)
-
-		certifiedInputs = inputs
 		certifiedFrames = frames
 		certifiedDependencies = frameDependencies
 
@@ -79,12 +73,7 @@ internal class Certifier(
 			safeAnchorStance = solution.anchor.stance,
 			safeAnchorFrame = solution.anchor.elapsed,
 			frameDependencies = frameDependencies,
-
-			dependencies = dependencies,
 			attemptCount = attemptCount,
-			controlSegments = solution.segments,
-			spliceFrames = solution.boundaries.filter { it in 1 until tape.frameCount },
-			segments = solution.segments(),
 			planSegments = solution.planSegments,
 		)
 	}

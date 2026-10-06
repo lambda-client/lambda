@@ -30,14 +30,12 @@ class PlanGraph private constructor(
 
 		fun of(
 			plan: TrajectoryPlan,
-			constraints: MotionConstraints = MotionConstraints(),
 			rejoinable: (MovementSimulationState) -> Boolean = ::rejoinable,
-		): PlanGraph? = of(plan.segments, plan.initialState, constraints, rejoinable)
+		): PlanGraph? = of(plan.segments, plan.initialState, rejoinable)
 
 		fun of(
 			spine: List<PlanSegment>,
 			initialState: MovementSimulationState,
-			constraints: MotionConstraints = MotionConstraints(),
 			rejoinable: (MovementSimulationState) -> Boolean = ::rejoinable,
 		): PlanGraph? {
 			if (spine.isEmpty()) return null
@@ -49,7 +47,7 @@ class PlanGraph private constructor(
 					index = index + 1,
 					frame = segment.endFrame,
 					state = segment.exit,
-					settled = segment.settledExit(constraints.stoppedSpeed),
+					settled = segment.settledExit(MotionConstraints.DEFAULT_STOPPED_SPEED),
 					rejoinable = rejoinable(segment.exit),
 				)
 			}

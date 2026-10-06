@@ -1,5 +1,6 @@
 package com.lambda.pathing.rollout
 
+import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -24,12 +25,7 @@ sealed interface TrajectoryDiagnostic {
 
 	data class RepeatedCoarseStance(override val frame: Int, val stance: Stance) : TrajectoryDiagnostic
 
-	data class UnknownTerrain(
-		override val frame: Int,
-		val sectionX: Int,
-		val sectionY: Int,
-		val sectionZ: Int,
-	) : TrajectoryDiagnostic
+	data class UnknownTerrain(override val frame: Int, val section: PathingSection) : TrajectoryDiagnostic
 
 	data class HarmfulFall(
 		override val frame: Int,

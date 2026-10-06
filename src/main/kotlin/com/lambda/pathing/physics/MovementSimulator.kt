@@ -60,8 +60,6 @@ class MovementSimulator(
 			hadForwardMovement = hadForwardMovement,
 		)
 
-	val eyeHeight: Double get() = poseEyeHeight()
-
 	fun reset(state: MovementSimulationState) {
 		position = state.position
 		velocity = state.velocity
@@ -97,21 +95,6 @@ class MovementSimulator(
 			MovementSimulationStepResult.Rejected(failure)
 		}
 	}
-
-	fun stepFrom(before: MovementSimulationState, input: MovementSimulationInput): MovementSimulationState? {
-		lastFailure = null
-		return try {
-			step(input)
-			state
-		} catch (failure: SimulationEnvironmentException) {
-			reset(before)
-			lastFailure = failure
-			null
-		}
-	}
-
-	var lastFailure: SimulationEnvironmentException? = null
-		private set
 
 	private fun step(input: MovementSimulationInput) {
 		if (doubleTapSprintTicks > 0) doubleTapSprintTicks--
@@ -214,9 +197,6 @@ class MovementSimulator(
 		)
 	}
 
-	private fun poseEyeHeight(): Double =
-		if (poseHeight < profile.height) profile.crouchEyeHeight else profile.eyeHeight
-
 	private fun applyDirectionalMovementSpeedFactors(input: Vec2f): Vec2f {
 		val length = input.length()
 		if (length <= 0.0F) return input
@@ -285,7 +265,7 @@ class MovementSimulator(
 		val requested = adjustMovementForSneaking(velocity)
 		val movement = adjustMovementForCollisions(requested)
 
-		if (movement.lengthSquared() > 1.0E-7) {
+		if (movement.lengthSquared() > Vanilla.MIN_MOVEMENT_SQUARED) {
 			position += movement
 		}
 
@@ -307,15 +287,11 @@ class MovementSimulator(
 		}
 
 		boundingBox = normalizedBoundingBox().offset(position)
-		updateSupportingBlockPos(onGround, movement)
+		updateSupportingBlockPos(movement)
 
 		if (verticalCollision) onEntityLand()
 
-		val velocityMultiplier = run {
-			val f = environment.velocityMultiplier(position.flooredBlockPos)
-			val g = environment.velocityMultiplier(velocityAffectingPos)
-			if (f == 1.0) g else f
-		}
+		val velocityMultiplier = blockMultiplier(environment::velocityMultiplier)
 
 		velocity *= Vec3d(velocityMultiplier, 1.0, velocityMultiplier)
 
@@ -342,7 +318,7 @@ class MovementSimulator(
 	}
 
 	private fun hasCollidedSoftly(input: Vec3d, adjustedMovement: Vec3d): Boolean {
-		val yawRadians = rotation.yawF * (Math.PI / 180.0).toFloat()
+		val yawRadians = rotation.yawF * MathHelper.RADIANS_PER_DEGREE
 		val sin = MathHelper.sin(yawRadians.toDouble()).toDouble()
 		val cos = MathHelper.cos(yawRadians.toDouble()).toDouble()
 		val intendedX = input.x * cos - input.z * sin
@@ -358,7 +334,7 @@ class MovementSimulator(
 		return acos(cosine) < Vanilla.SOFT_COLLISION_MAX_ANGLE
 	}
 
-	private fun updateSupportingBlockPos(onGround: Boolean, movement: Vec3d?) {
+	private fun updateSupportingBlockPos(movement: Vec3d) {
 		if (!onGround) {
 			forceUpdateSupportingBlockPos = false
 			supportingBlockPos = null
@@ -372,12 +348,18 @@ class MovementSimulator(
 		var found = environment.findSupportingBlockPos(probe, position)
 		if (found != null || forceUpdateSupportingBlockPos) {
 			supportingBlockPos = found
-		} else if (movement != null) {
+		} else {
 			val rewound = probe.offset(-movement.x, 0.0, -movement.z)
 			found = environment.findSupportingBlockPos(rewound, position)
 			supportingBlockPos = found
 		}
 		forceUpdateSupportingBlockPos = found == null
+	}
+
+	private inline fun blockMultiplier(read: (BlockPos) -> Double): Double {
+		val underfoot = read(position.flooredBlockPos)
+		val affecting = read(velocityAffectingPos)
+		return if (underfoot == 1.0) affecting else underfoot
 	}
 
 	private fun posWithYOffset(offset: Double): BlockPos {
@@ -390,11 +372,7 @@ class MovementSimulator(
 	}
 
 	private fun jump() {
-		val multiplier = run {
-			val f = environment.jumpVelocityMultiplier(position.flooredBlockPos)
-			val g = environment.jumpVelocityMultiplier(velocityAffectingPos)
-			if (f == 1.0) g else f
-		}.toFloat()
+		val multiplier = blockMultiplier(environment::jumpVelocityMultiplier).toFloat()
 		val jumpVelocity = profile.jumpStrength.toFloat() * multiplier +
 				profile.jumpBoostVelocityModifier.toFloat()
 		if (jumpVelocity <= Vanilla.MIN_JUMP_VELOCITY) return
@@ -402,7 +380,7 @@ class MovementSimulator(
 		velocity = Vec3d(velocity.x, maxOf(jumpVelocity.toDouble(), velocity.y), velocity.z)
 
 		if (isSprinting) {
-			val yawRad = rotation.yawF * (Math.PI / 180.0).toFloat()
+			val yawRad = rotation.yawF * MathHelper.RADIANS_PER_DEGREE
 			velocity += Vec3d(
 				-MathHelper.sin(yawRad.toDouble()).toDouble() * Vanilla.SPRINT_JUMP_BOOST,
 				0.0,
@@ -465,7 +443,7 @@ class MovementSimulator(
 		if (lengthSquared < Vanilla.MIN_INPUT_LENGTH_SQUARED) return Vec3d.ZERO
 
 		val scaled = (if (lengthSquared > 1.0) input.normalize() else input).multiply(speed.toDouble())
-		val radians = yaw * (Math.PI / 180.0).toFloat()
+		val radians = yaw * MathHelper.RADIANS_PER_DEGREE
 		val sin = MathHelper.sin(radians.toDouble())
 		val cos = MathHelper.cos(radians.toDouble())
 		return Vec3d(

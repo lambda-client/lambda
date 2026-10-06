@@ -29,7 +29,7 @@ import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.SearchExit
-import com.lambda.pathing.search.SearchStatsView
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.Telemetry
 import java.awt.Color
@@ -153,7 +153,7 @@ object PathingHud : HudModule(
                 textDisabled(telemetry.cadence.substringAfter("(").substringBefore(")"))
             }
         }
-        movementBar(path.segments.map { it.movement to it.frames })
+        movementBar(path.plan.segments.map { it.movement to it.frameCount })
     }
 
     private fun ImGuiBuilder.search(status: State) {
@@ -179,16 +179,16 @@ object PathingHud : HudModule(
             valueColors = mapOf("runway" to runwayColor),
         )
         line(
-            "open" to stats.open.toString(),
-            "parked" to stats.parked.toString(),
-            "spent" to stats.spent.toString(),
+            "open" to stats.openAnchors.toString(),
+            "parked" to stats.parkedAnchors.toString(),
+            "spent" to stats.spentAnchors.toString(),
         )
         if (detailed) {
             val mergeRate = if (stats.admitted > 0) 100.0 * stats.merged / stats.admitted else 0.0
             line(
-                "blocked" to stats.blocked.toString(),
+                "blocked" to stats.blockedAttempts.toString(),
                 "merged" to "%.0f%%".format(mergeRate),
-                "restarts" to stats.restarts.toString(),
+                "restarts" to stats.tapeRestarts.toString(),
             )
             line(
                 "temp" to "%.2f".format(stats.temperature),
@@ -354,7 +354,7 @@ object PathingHud : HudModule(
     }
 
     /** One sample per HUD frame while a search publishes. */
-    private fun sample(stats: SearchStatsView) {
+    private fun sample(stats: SearchStats) {
         if (stats.expansions == lastSampledExpansions) return
         lastSampledExpansions = stats.expansions
         val runway = if (stats.publishedFrame >= 0 && stats.cursorFrame >= 0) (stats.publishedFrame - stats.cursorFrame).toFloat() else 0f

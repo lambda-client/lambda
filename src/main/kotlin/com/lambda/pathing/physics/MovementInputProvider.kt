@@ -1,7 +1,11 @@
 package com.lambda.pathing.physics
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.util.player.MovementUtils.forward
+import com.lambda.util.player.MovementUtils.jumping
 import com.lambda.util.player.MovementUtils.moveYaw
+import com.lambda.util.player.MovementUtils.sneaking
+import com.lambda.util.player.MovementUtils.strafe
 import net.minecraft.client.network.ClientPlayerEntity
 
 fun interface MovementInputProvider {
@@ -9,13 +13,15 @@ fun interface MovementInputProvider {
 
 	companion object {
 		fun live(player: ClientPlayerEntity) = MovementInputProvider { _ ->
-			MovementSimulationInput.from(
-				input = player.input,
-				rotation = Rotation(player.moveYaw, player.pitch),
+			MovementSimulationInput(
+				forward = player.input.forward.toDouble(),
+				strafe = player.input.strafe.toDouble(),
+				jump = player.input.jumping,
+				sneak = player.input.sneaking,
+				sprint = player.isSprinting,
 				useItemSlowdown = player.isUsingItem,
-			).copy(sprint = player.isSprinting)
+				rotation = Rotation(player.moveYaw, player.pitch),
+			)
 		}
-
-		fun none() = MovementInputProvider { _ -> MovementSimulationInput() }
 	}
 }

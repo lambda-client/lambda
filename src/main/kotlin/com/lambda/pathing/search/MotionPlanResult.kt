@@ -5,9 +5,11 @@ import com.lambda.pathing.rollout.TrajectoryDiagnostic
 
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
+import kotlin.math.hypot
 
 data class PlanAttempt(
 	val simulatedFrames: Int,
@@ -21,9 +23,12 @@ internal class AttemptAccumulator {
 	var nearest: PlanAttempt? = null
 		private set
 
-	fun record(attempt: PlanAttempt) {
+	fun record(rollout: TrajectoryRollout, goal: HorizontalPoint, diagnostic: TrajectoryDiagnostic?) {
+		val final = rollout.finalState.position
+		val attempt = PlanAttempt(rollout.frames.size, hypot(final.x - goal.x, final.z - goal.z), diagnostic)
 		count++
-		if (nearest == null || attempt.finalGoalError < nearest!!.finalGoalError) nearest = attempt
+		val current = nearest
+		if (current == null || attempt.finalGoalError < current.finalGoalError) nearest = attempt
 	}
 }
 
@@ -37,7 +42,7 @@ enum class SearchExit(private val label: String) {
 	override fun toString(): String = label
 }
 
-data class SearchExhaustion(
+data class SearchStats(
 	val exit: SearchExit,
 	val expansions: Int,
 	val windowExpansions: Int,
@@ -50,11 +55,18 @@ data class SearchExhaustion(
 	val tapeRestarts: Int,
 	val routeNodes: Int,
 	val deepestRouteIndex: Int,
-	val commitAttempts: Int = 0,
-	val publishRefusals: Int = 0,
-	val repairs: Int = 0,
-	val firstSolutionFrames: Int = -1,
-	val solutionsFound: Int = 0,
+	val commitAttempts: Int,
+	val publishRefusals: Int,
+	val repairs: Int,
+	val firstSolutionFrames: Int,
+	val solutionsFound: Int,
+	val admitted: Int,
+	val merged: Int,
+	val rootFrame: Int,
+	val publishedFrame: Int,
+	val horizonEnd: Int,
+	val cursorFrame: Int,
+	val bestScore: Int?,
 ) {
 	override fun toString(): String = buildString {
 		append("exit=").append(exit)
@@ -87,18 +99,12 @@ sealed interface MotionPlanResult {
 
 		val frameDependencies: List<Set<VoxelPos>>,
 
-		val dependencies: Set<VoxelPos>,
 		val attemptCount: Int,
-		val controlSegments: Int = 1,
-		val spliceFrames: List<Int> = emptyList(),
-
 		val planSegments: List<PlanSegment> = emptyList(),
 
 		val arrivalTicksEstimate: Double = Double.NaN,
 		val comparedRunningArrivalTicks: Double = Double.NaN,
 		val comparedRunningSequence: Long = -1,
-
-		val segments: List<TapeSegment> = emptyList(),
 
 		val legTouches: List<LegTouch> = emptyList(),
 	) : MotionPlanResult
@@ -108,9 +114,8 @@ sealed interface MotionPlanResult {
 	data class NoSafeStop(
 		val attemptCount: Int,
 		val nearest: PlanAttempt?,
-		val remainingStart: Stance? = null,
-		val blockedProgress: Int? = null,
-		val exhaustion: SearchExhaustion? = null,
+		val remainingStart: Stance?,
+		val exhaustion: SearchStats,
 	) : MotionPlanResult
 
 	data class UnstableReplay(val reason: String) : MotionPlanResult

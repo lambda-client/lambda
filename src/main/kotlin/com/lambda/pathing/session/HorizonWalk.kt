@@ -15,7 +15,7 @@ import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchClock
 import com.lambda.pathing.search.SearchConfig
-import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SystemSearchClock
@@ -45,7 +45,7 @@ internal fun walkHorizon(
 	finalGoal: Stance = route.goal,
 	field: ValueField = planner.valueField(),
 	probe: SearchProbe = SearchProbe.NONE,
-	onExhaustion: ((SearchExhaustion) -> Unit)? = null,
+	onExhaustion: ((SearchStats) -> Unit)? = null,
 	parallelism: Int = 1,
 	legs: LegSource? = null,
 ): PathPlanResult {
@@ -104,7 +104,7 @@ internal fun walkHorizon(
 private fun describeRefusal(result: MotionPlanResult): String = when (result) {
 	is MotionPlanResult.NoSafeStop -> buildString {
 		append(result.attemptCount).append(" attempts")
-		result.blockedProgress?.let { append(", deepest route index ").append(it) }
+		append(", deepest route index ").append(result.exhaustion.deepestRouteIndex)
 		result.remainingStart?.let { append(", stalled at ").append(it) }
 		result.nearest?.let { nearest ->
 			append(
@@ -113,7 +113,7 @@ private fun describeRefusal(result: MotionPlanResult): String = when (result) {
 			)
 			nearest.diagnostic?.let { append(" (").append(it).append(")") }
 		}
-		result.exhaustion?.let { append("; ").append(it) }
+		append("; ").append(result.exhaustion)
 	}
 	is MotionPlanResult.UnstableReplay -> "unstable replay: ${result.reason}"
 	is MotionPlanResult.UnsupportedRoute -> "unsupported movements ${result.movements}"
@@ -138,12 +138,9 @@ private fun publishedPath(
 	attempts = seed.attemptCount,
 	planMillis = planMillis,
 	finalGoal = finalGoal,
-	controlSegments = seed.controlSegments,
-	spliceFrames = seed.spliceFrames,
 	partial = partial || route.goal != finalGoal,
 	planningGeneration = planningGeneration,
 	publicationSequence = publicationSequence,
-	segments = seed.segments,
 	arrivalTicksEstimate = seed.arrivalTicksEstimate,
 	comparedRunningArrivalTicks = seed.comparedRunningArrivalTicks,
 	comparedRunningSequence = seed.comparedRunningSequence,

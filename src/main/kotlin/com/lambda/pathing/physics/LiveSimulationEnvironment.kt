@@ -13,7 +13,6 @@ import net.minecraft.world.World
 class LiveSimulationEnvironment(
 	private val world: World,
 	private val player: ClientPlayerEntity,
-	private val entityCollisions: Boolean = false,
 ) : SimulationEnvironment {
 
 	override fun slipperiness(pos: BlockPos): Double =
@@ -31,13 +30,6 @@ class LiveSimulationEnvironment(
 		onGround: Boolean,
 		stepHeight: Double,
 	): Vec3d {
-		if (!entityCollisions) return VanillaBlockCollisionResolver.adjust(
-			movement = movement,
-			boundingBox = boundingBox,
-			onGround = onGround,
-			stepHeight = stepHeight,
-			collisionShapes = { box -> world.getBlockCollisions(player, box).toList() },
-		)
 		val prevBox = player.boundingBox
 		val prevOnGround = player.isOnGround
 		player.boundingBox = boundingBox

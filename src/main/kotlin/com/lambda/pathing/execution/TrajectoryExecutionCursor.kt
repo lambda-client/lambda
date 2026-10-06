@@ -10,20 +10,6 @@ import com.lambda.pathing.world.WorldMutation
 import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 
-data class ExecutionStateTolerance(
-	val position: Double = 2e-6,
-	val positionPerFrame: Double = 8e-8,
-	val velocity: Double = 1e-5,
-	val rotationDegrees: Double = 1e-3,
-) {
-	init {
-		require(position >= 0.0 && position.isFinite())
-		require(positionPerFrame >= 0.0 && positionPerFrame.isFinite())
-		require(velocity >= 0.0 && velocity.isFinite())
-		require(rotationDegrees >= 0.0 && rotationDegrees.isFinite())
-	}
-}
-
 sealed interface ExecutionDeviation {
 	data class WorldChanged(val snapshotRevision: Long, val mutation: WorldMutation) : ExecutionDeviation
 	data class Position(val axis: String, val expected: Double, val actual: Double) : ExecutionDeviation
@@ -56,7 +42,6 @@ sealed interface ExecutionObservationResult {
 class TrajectoryExecutionCursor(
 	val plan: TrajectoryPlan,
 	activePhysicsProfile: PlayerPhysicsProfile,
-	private val tolerance: ExecutionStateTolerance = ExecutionStateTolerance(),
 ) {
 	var nextFrame: Int = 0
 		private set
@@ -113,7 +98,7 @@ class TrajectoryExecutionCursor(
 		expected: MovementSimulationState,
 		actual: MovementSimulationState,
 	): ExecutionDeviation? {
-		val positionTolerance = tolerance.position + tolerance.positionPerFrame * nextFrame
+		val positionTolerance = POSITION_TOLERANCE + POSITION_TOLERANCE_PER_FRAME * nextFrame
 		componentDeviation("x", expected.position.x, actual.position.x, positionTolerance)?.let { return it }
 		componentDeviation("y", expected.position.y, actual.position.y, positionTolerance)?.let { return it }
 		componentDeviation("z", expected.position.z, actual.position.z, positionTolerance)?.let { return it }
@@ -135,7 +120,7 @@ class TrajectoryExecutionCursor(
 		}
 		componentDeviation("box.maxZ", expected.boundingBox.maxZ, actual.boundingBox.maxZ, positionTolerance)?.let { return it }
 
-		if (abs(Rotation.wrap(expected.rotation.yaw - actual.rotation.yaw)) > tolerance.rotationDegrees) {
+		if (abs(Rotation.wrap(expected.rotation.yaw - actual.rotation.yaw)) > ROTATION_TOLERANCE_DEGREES) {
 			return ExecutionDeviation.Rotation("yaw", expected.rotation.yaw, actual.rotation.yaw)
 		}
 
@@ -171,7 +156,7 @@ class TrajectoryExecutionCursor(
 		if (abs(expected - actual) <= allowed) null else ExecutionDeviation.Position(axis, expected, actual)
 
 	private fun velocityDeviation(axis: String, expected: Double, actual: Double): ExecutionDeviation? =
-		if (abs(expected - actual) <= tolerance.velocity) null else ExecutionDeviation.Velocity(axis, expected, actual)
+		if (abs(expected - actual) <= VELOCITY_TOLERANCE) null else ExecutionDeviation.Velocity(axis, expected, actual)
 
 	private fun flagDeviation(name: String, expected: Boolean, actual: Boolean): ExecutionDeviation? =
 		if (expected == actual) null else ExecutionDeviation.Flag(name, expected, actual)
@@ -193,10 +178,15 @@ class TrajectoryExecutionCursor(
 		if (expected.isSneaking != actual.isSneaking) return false
 		val expectedHeight = expected.boundingBox.maxY - expected.boundingBox.minY
 		val actualHeight = actual.boundingBox.maxY - actual.boundingBox.minY
-		return abs(abs(expectedHeight - actualHeight) - poseHeightDelta) < 1e-6
+		return abs(abs(expectedHeight - actualHeight) - poseHeightDelta) < POSE_HEIGHT_TOLERANCE
 	}
 
 	private companion object {
+		const val POSITION_TOLERANCE = 2e-6
+		const val POSITION_TOLERANCE_PER_FRAME = 8e-8
+		const val VELOCITY_TOLERANCE = 1e-5
+		const val ROTATION_TOLERANCE_DEGREES = 1e-3
+		const val POSE_HEIGHT_TOLERANCE = 1e-6
 		const val MAX_POSE_LAG_FRAMES = 3
 	}
 }

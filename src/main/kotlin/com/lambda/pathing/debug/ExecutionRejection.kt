@@ -3,6 +3,7 @@ package com.lambda.pathing.debug
 import com.lambda.Lambda.mc
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.search.PublishedPath
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -77,8 +78,8 @@ private fun liveLedgeProbe(box: Box, movement: Vec3d): String {
 	val world = mc.world ?: return ""
 	val step = player.stepHeight.toDouble()
 	val probe = Box(
-		box.minX + LEDGE_EPSILON + movement.x, box.minY - step - LEDGE_EPSILON, box.minZ + LEDGE_EPSILON + movement.z,
-		box.maxX - LEDGE_EPSILON + movement.x, box.minY, box.maxZ - LEDGE_EPSILON + movement.z,
+		box.minX + Vanilla.COLLISION_EPSILON + movement.x, box.minY - step - Vanilla.COLLISION_EPSILON, box.minZ + Vanilla.COLLISION_EPSILON + movement.z,
+		box.maxX - Vanilla.COLLISION_EPSILON + movement.x, box.minY, box.maxZ - Vanilla.COLLISION_EPSILON + movement.z,
 	)
 	return "; live ledge probe %s dx=%.4f dz=%.4f step=%.2f worldEmpty=%s blocksEmpty=%s clipAtLedge=%s".format(
 		probe.short(), movement.x, movement.z, step,
@@ -88,7 +89,6 @@ private fun liveLedgeProbe(box: Box, movement: Vec3d): String {
 	)
 }
 
-private const val LEDGE_EPSILON = 1.0E-7
 
 private fun Box.short() =
 	"[%.3f,%.3f,%.3f -> %.3f,%.3f,%.3f]".format(minX, minY, minZ, maxX, maxY, maxZ)

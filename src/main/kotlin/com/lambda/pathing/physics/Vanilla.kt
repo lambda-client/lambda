@@ -38,6 +38,7 @@ object Vanilla {
 	const val SUPPORTING_BLOCK_PROBE_DEPTH = 1.0E-6
 
 	const val COLLISION_EPSILON = 1.0E-7
+	const val MIN_MOVEMENT_SQUARED = 1.0E-7
 	const val STEP_PROBE_DEPTH = 1.0E-5F
 	const val LEDGE_CLIP_STEP = 0.05
 	const val SOFT_COLLISION_MIN_SQUARED = 1.0E-5F

@@ -2,7 +2,6 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.MovementCatalog
-import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SwitchableValueField
@@ -32,7 +31,7 @@ internal class SearchLoop(
 	private val world: WorldLink? = null,
 	private val finalGoal: Stance? = null,
 	private val probe: SearchProbe = SearchProbe.NONE,
-	private val onExhaustion: ((SearchExhaustion) -> Unit)? = null,
+	private val onExhaustion: ((SearchStats) -> Unit)? = null,
 	parallelism: Int = 1,
 	private val legs: LegSource? = null,
 ) {
@@ -332,9 +331,8 @@ internal class SearchLoop(
 		return MotionPlanResult.NoSafeStop(
 			attemptCount = attempts.count,
 			nearest = attempts.nearest,
-			blockedProgress = frontier.deepestProgress,
 			remainingStart = route.plan.nodes.getOrNull(frontier.deepestProgress),
-			exhaustion = exhaustion().also { onExhaustion?.invoke(it) },
+			exhaustion = stats().also { onExhaustion?.invoke(it) },
 		)
 	}
 
@@ -351,10 +349,10 @@ internal class SearchLoop(
 	private fun applyRollout(anchor: ValueAnchor, action: TrajectoryDecision, raw: Outcome): Outcome {
 		val outcome = if (raw is Outcome.Blocked) {
 			frontier.parkBlocked(anchor, action)
-			val capturable = world?.capturable(raw.sectionX, raw.sectionZ) ?: true
-			probe.blocked(raw.frame, raw.sectionX, raw.sectionY, raw.sectionZ, capturable, anchor.stance, action.movement)
+			val capturable = world?.capturable(raw.section.x, raw.section.z) ?: true
+			probe.blocked(raw.frame, raw.section, capturable, anchor.stance, action.movement)
 			if (capturable) {
-				Outcome.Rejected(TrajectoryDiagnostic.UnknownTerrain(raw.frame, raw.sectionX, raw.sectionY, raw.sectionZ))
+				Outcome.Rejected(TrajectoryDiagnostic.UnknownTerrain(raw.frame, raw.section))
 			} else raw
 		} else raw
 		val rejection = (outcome as? Outcome.Rejected)?.diagnostic
@@ -379,7 +377,6 @@ internal class SearchLoop(
 			is Outcome.Arrived -> if (!hasNextLeg()) incumbent.offer(
 				Solution.of(
 					anchor, outcome.frames,
-					TerminalApproach(action.sprint, config.brakeDistances.first(), null),
 					anchor.collisionEvents + collisionEvents(anchor.state, outcome.frames),
 				)
 			)
@@ -521,7 +518,7 @@ internal class SearchLoop(
 
 	private fun finish(solution: Solution): MotionPlanResult {
 		exit = SearchExit.SOLVED
-		onExhaustion?.invoke(exhaustion())
+		onExhaustion?.invoke(stats())
 		return certify(solution)
 	}
 
@@ -545,37 +542,18 @@ internal class SearchLoop(
 		val now = clock.elapsedMillis()
 		if (now - lastViewMillis < VIEW_INTERVAL_MILLIS) return
 		lastViewMillis = now
-		probe.stats(
-			SearchStatsView(
-				expansions = expansions,
-				windowExpansions = expansions - expansionsWindowStart,
-				windowBudget = searchConfig.maxExpansions,
-				temperature = annealing.temperature.current,
-				open = frontier.openSize,
-				parked = frontier.parkedSize,
-				blocked = frontier.blockedSize,
-				spent = annealing.spent.size,
-				admitted = frontier.anchorsAdmitted,
-				merged = frontier.beamDominated + frontier.beamEvicted + frontier.beamCapped,
-				restarts = recovery.tapeRestarts,
-				rootFrame = horizon.root?.elapsed ?: -1,
-				publishedFrame = publications.tip?.elapsed ?: -1,
-				horizonEnd = horizon.end,
-				cursorFrame = publications.observedCursor,
-				bestScore = incumbent.best?.score,
-			),
-		)
+		probe.stats(stats())
 		if (probe.treeEnabled) {
 			probe.tree(
 				searchTree(
-					field, annealing.spent, frontier.parkedEntries, frontier.openEntries,
+					annealing.spent, frontier.parkedEntries, frontier.openEntries,
 					incumbent.best?.anchor, publications.tip,
 				),
 			)
 		}
 	}
 
-	fun exhaustion(): SearchExhaustion = SearchExhaustion(
+	private fun stats(): SearchStats = SearchStats(
 		exit = exit,
 		expansions = expansions,
 		windowExpansions = expansions - expansionsWindowStart,
@@ -593,6 +571,13 @@ internal class SearchLoop(
 		repairs = repairs,
 		firstSolutionFrames = incumbent.firstFrames,
 		solutionsFound = incumbent.found,
+		admitted = frontier.anchorsAdmitted,
+		merged = frontier.beamDominated + frontier.beamEvicted + frontier.beamCapped,
+		rootFrame = horizon.root?.elapsed ?: -1,
+		publishedFrame = publications.tip?.elapsed ?: -1,
+		horizonEnd = horizon.end,
+		cursorFrame = publications.observedCursor,
+		bestScore = incumbent.best?.score,
 	)
 
 	private companion object {

@@ -2,10 +2,9 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.DecisionPrice
 
-internal class Temperature(
-	private var level: Double = INITIAL,
-	private val ceiling: Double = 1.0,
-) {
+internal class Temperature(private val ceiling: Double) {
+	private var level = INITIAL
+
 	val current: Double get() = level
 
 	val exhausted: Boolean get() = level >= ceiling

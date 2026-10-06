@@ -5,8 +5,6 @@ import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.actions.PricedDecision
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.core.HorizontalPoint
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -24,11 +22,7 @@ internal class ValueAnchor(
 
 	override val speed: Double = state.velocity.horizontalLength()
 
-	var via: MovementId? = null
-
 	var decision: TrajectoryDecision? = null
-
-	var points: List<HorizontalPoint> = emptyList()
 
 	var legRoot: Boolean = false
 
@@ -70,41 +64,8 @@ internal class ValueAnchor(
 	fun continuation() = ValueAnchor(
 		state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs,
 	).also {
-		it.via = via
 		it.decision = decision
-		it.points = points
 		it.trace = trace
-	}
-
-	fun prefix(): List<MovementSimulationInput> {
-		val chain = ArrayList<List<MovementSimulationInput>>()
-		var node: ValueAnchor? = this
-		while (node != null) {
-			if (node.inputs.isNotEmpty()) chain += node.inputs
-			node = node.parent
-		}
-		chain.reverse()
-		return chain.flatten()
-	}
-
-	fun boundaries(): List<Int> {
-		val frames = ArrayList<Int>()
-		var node: ValueAnchor? = this
-		while (node?.parent != null) {
-			frames += node.elapsed
-			node = node.parent
-		}
-		return frames.asReversed().dropLast(1)
-	}
-
-	fun depth(): Int {
-		var depth = 0
-		var node: ValueAnchor? = this
-		while (node?.parent != null) {
-			depth++
-			node = node.parent
-		}
-		return depth
 	}
 
 	fun descendsFrom(other: ValueAnchor): Boolean {

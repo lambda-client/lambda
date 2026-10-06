@@ -12,7 +12,7 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.search.SearchExhaustion
+import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.VirtualSearchClock
 import com.lambda.pathing.session.RouteResolution
@@ -69,7 +69,7 @@ class LegChainTest {
 
         val clock = VirtualSearchClock(microsPerExpansion = 640L)
         val executor = VirtualExecutor(clock)
-        val exhaustions = ArrayList<SearchExhaustion>()
+        val exhaustions = ArrayList<SearchStats>()
         val result = walkHorizon(
             route, first.planner,
             MovementSimulationState.synthetic(
