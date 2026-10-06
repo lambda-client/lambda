@@ -39,6 +39,8 @@ private class PlanningHorizonView(
 	override fun cursor(): CoarseVoxelView = PlanningHorizonView(backing.cursor(), granted)
 
 	override fun mayBounce(): Boolean = backing.mayBounce()
+
+	override val revision: Any? get() = backing.revision
 }
 
 internal class CoarsePlanningState(

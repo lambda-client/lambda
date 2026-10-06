@@ -21,6 +21,7 @@ internal class CoarseEdgeCache(
 	private val completeOrigins = LongOpenHashSet()
 
 	private val standable = StanceMemo()
+	private var standableRevision: Any? = view.revision
 
 	fun edgesFrom(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
@@ -70,6 +71,11 @@ internal class CoarseEdgeCache(
 	}
 
 	private fun isStance(stance: Stance): Boolean {
+		val revision = view.revision
+		if (revision !== standableRevision) {
+			standable.clear()
+			standableRevision = revision
+		}
 		standable.get(stance)?.let { return it }
 		val stands = moves.isStance(view, stance)
 		standable.put(stance, stands)

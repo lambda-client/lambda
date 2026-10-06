@@ -184,7 +184,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		onGround = onGround,
 		stepHeight = stepHeight,
 		collisionShapes = { query ->
-			BlockCollisions().also { collisions ->
+			COLLISIONS.get().also { collisions ->
+				collisions.clear()
 				forEachCollisionShape(query, observer) { pos, shape -> collisions.add(pos.x, pos.y, pos.z, shape) }
 			}
 		},
@@ -312,6 +313,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun mayBounce(): Boolean = store.bouncySections > 0 || bouncyOutsideStore
 
+	override val revision: Any get() = store
+
 	private val bouncyOutsideStore: Boolean =
 		missingSection != null || defaultBlock?.coarseVoxel?.bouncy == true || edits?.values?.any { it.coarseVoxel.bouncy } == true
 
@@ -347,6 +350,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnown(this, x, y, z)
 
 		override fun mayBounce(): Boolean = this@SnapshotSimulationEnvironment.mayBounce()
+
+		override val revision: Any get() = store
 	}
 
 	private fun resolveSection(
@@ -385,6 +390,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	companion object {
 		private const val CURSOR_SLOTS = 64
+
+		private val COLLISIONS: ThreadLocal<BlockCollisions> = ThreadLocal.withInitial(::BlockCollisions)
 
 		internal fun streaming(
 			bounds: SimulationSnapshotBounds,

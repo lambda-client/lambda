@@ -111,6 +111,8 @@ interface CoarseVoxelView {
 
 	fun cursor(): CoarseVoxelView = this
 
+	val revision: Any? get() = null
+
 	fun mayBounce(): Boolean = true
 }
 

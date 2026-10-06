@@ -26,6 +26,11 @@ internal class StanceMemo {
 		bits[WORDS + word] = if (stands) bits[WORDS + word] or mask else bits[WORDS + word] and mask.inv()
 	}
 
+	fun clear() {
+		sections.clear()
+		last = null
+	}
+
 	fun remove(stance: Stance) {
 		val bits = section(stance, create = false) ?: return
 		val index = index(stance)

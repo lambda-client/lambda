@@ -95,14 +95,27 @@ class CoarseValueField(
 			}
 		}
 
-		byDestination.values.retainAll { isMapped(it.to) }
-		val candidates = byDestination.values
-		val best = candidates.minOfOrNull { it.lowerBoundTicks + guide(it.to) } ?: return emptyList()
-		val order = compareBy<CoarseEdge> { floor((it.lowerBoundTicks + guide(it.to)) / TIE_TICKS) }
-			.then(directionOrder(stance, heading))
-		val ranked = if (count == 1) listOfNotNull(candidates.minWithOrNull(order)) else candidates.sortedWith(order)
+		val reference = reference(stance, heading)
+		val ranked = ArrayList<RankedStep>(byDestination.size)
+		for (edge in byDestination.values) {
+			val guide = guide(edge.to)
+			if (!guide.isFinite()) continue
+			val cost = edge.lowerBoundTicks + guide
+			ranked += RankedStep(edge, cost, floor(cost / TIE_TICKS), alignment(stance, edge.to, reference))
+		}
+		if (ranked.isEmpty()) return emptyList()
+		val best = ranked.minOf { it.cost }
+		val ordered = if (count == 1) listOfNotNull(ranked.minOrNull()) else ranked.sorted()
+		return ordered.asSequence().takeWhile { it.cost <= best + marginTicks }.take(count).map { it.edge }.toList()
+	}
 
-		return ranked.asSequence().takeWhile { it.lowerBoundTicks + guide(it.to) <= best + marginTicks }.take(count).toList()
+	private class RankedStep(val edge: CoarseEdge, val cost: Double, val tier: Double, val alignment: Double) :
+		Comparable<RankedStep> {
+		override fun compareTo(other: RankedStep): Int {
+			val byTier = tier.compareTo(other.tier)
+			if (byTier != 0) return byTier
+			return compareDirections(alignment, edge.to, other.alignment, other.edge.to)
+		}
 	}
 
 	override fun chain(
@@ -168,7 +181,7 @@ class CoarseValueField(
 			if (cost.isNaN() || !(cost <= best + TIE_TICKS)) continue
 			val to = edges[index].to
 			val alignment = alignment(from, to, reference)
-			if (chosen == null || outranks(alignment, to, chosenAlignment, chosen)) {
+			if (chosen == null || compareDirections(alignment, to, chosenAlignment, chosen) < 0) {
 				chosen = to
 				chosenAlignment = alignment
 			}
@@ -176,19 +189,6 @@ class CoarseValueField(
 		return chosen
 	}
 
-	private fun outranks(alignment: Double, to: Stance, incumbentAlignment: Double, incumbent: Stance): Boolean {
-		val byAlignment = alignment.compareTo(incumbentAlignment)
-		if (byAlignment != 0) return byAlignment > 0
-		if (to.y != incumbent.y) return to.y < incumbent.y
-		if (to.x != incumbent.x) return to.x < incumbent.x
-		return to.z < incumbent.z
-	}
-
-	private fun directionOrder(from: Stance, heading: Pair<Double, Double>?): Comparator<CoarseEdge> {
-		val reference = reference(from, heading)
-		return compareByDescending<CoarseEdge> { alignment(from, it.to, reference) }
-			.thenBy { it.to.y }.thenBy { it.to.x }.thenBy { it.to.z }
-	}
 
 	private fun reference(from: Stance, heading: Pair<Double, Double>?): Pair<Double, Double> {
 		if (heading != null && hypot(heading.first, heading.second) > MIN_HEADING_LENGTH) return heading
@@ -209,6 +209,14 @@ class CoarseValueField(
 	override fun reachesGoal(chain: List<Stance>): Boolean = chain.lastOrNull() == goal
 
 	private companion object {
+		fun compareDirections(alignment: Double, to: Stance, otherAlignment: Double, other: Stance): Int {
+			val byAlignment = otherAlignment.compareTo(alignment)
+			if (byAlignment != 0) return byAlignment
+			if (to.y != other.y) return to.y.compareTo(other.y)
+			if (to.x != other.x) return to.x.compareTo(other.x)
+			return to.z.compareTo(other.z)
+		}
+
 		const val TIE_TICKS = 0.5
 		const val MIN_HEADING_LENGTH = 1e-6
 		const val MAX_CHAINS = 4096

@@ -15,6 +15,11 @@ internal class BlockCollisions {
 
 	val isEmpty: Boolean get() = size == 0
 
+	fun clear() {
+		for (index in 0 until size) shapes[index] = null
+		size = 0
+	}
+
 	fun add(x: Int, y: Int, z: Int, shape: VoxelShape) {
 		if (size == shapes.size) {
 			shapes = shapes.copyOf(size * 2)

@@ -12,8 +12,6 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 internal class SearchLoop(
 	initialRoute: CoarseRoutePlan,
@@ -36,9 +34,7 @@ internal class SearchLoop(
 	private val legs: LegSource? = null,
 ) {
 	private val parallelism = parallelism.coerceAtLeast(1)
-	private val pool: ExecutorService? = if (parallelism > 1) {
-		Executors.newFixedThreadPool(parallelism) { runnable -> Thread(runnable, "PathPlanner-rollout").apply { isDaemon = true } }
-	} else null
+	private val crew: RolloutCrew? = if (parallelism > 1) RolloutCrew(parallelism - 1) { rollouts.execute(it) } else null
 	private val unsupported = initialRoute.edges.mapTo(HashSet()) { it.movement }.filterTo(HashSet()) { !catalog.supports(it) }
 	private val vocabulary: ActionSet = ActionSet(catalog, field, config)
 	private val route: RouteState = RouteState(initialRoute, environment)
@@ -106,7 +102,7 @@ internal class SearchLoop(
 	fun run(): MotionPlanResult = try {
 		search()
 	} finally {
-		pool?.shutdownNow()
+		crew?.close()
 	}
 
 	private fun search(): MotionPlanResult {
@@ -305,11 +301,7 @@ internal class SearchLoop(
 	}
 
 	private fun executeBatch(batch: List<AnchorRollout.PreparedRollout>) {
-		if (batch.size > 1 && pool != null) {
-			batch.map { prepared -> pool.submit { rollouts.execute(prepared) } }.forEach { it.get() }
-		} else {
-			batch.forEach { rollouts.execute(it) }
-		}
+		if (batch.size > 1 && crew != null) crew.run(batch) else batch.forEach { rollouts.execute(it) }
 		for (prepared in batch) {
 			val outcome = rollouts.complete(prepared)
 			applyRollout(prepared.anchor, prepared.action, outcome)
