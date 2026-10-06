@@ -49,7 +49,6 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 import net.minecraft.text.Text
 
-// ToDo: Make jsonable to persistently store them
 abstract class Container(
     val type: ContainerType
 ) : Nameable, Comparable<Container> {

@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat.crystalaura
 
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.forEachSetting
@@ -31,9 +31,9 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraExploding.explodeInternal
 import com.lambda.module.modules.combat.crystalaura.CrystalAuraPlacing.placeInternal
-import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
@@ -44,8 +44,8 @@ import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.distSq
-import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.getHitVec
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus

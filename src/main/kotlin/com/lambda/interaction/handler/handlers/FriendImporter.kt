@@ -20,8 +20,8 @@ package com.lambda.interaction.handlers
 import com.lambda.Lambda
 import com.lambda.config.categories.FriendCategory
 import com.lambda.config.serializers.FriendList
-import com.lambda.interaction.handlers.FriendHandler.befriend
-import com.lambda.interaction.handlers.FriendHandler.isFriend
+import com.lambda.interaction.handler.handlers.FriendHandler.befriend
+import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
 import com.lambda.network.mojang.getProfiles
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.CommunicationUtils.info

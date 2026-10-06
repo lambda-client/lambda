@@ -32,7 +32,7 @@ import com.lambda.brigadier.required
 import com.lambda.command.CommandRegistry.prefix
 import com.lambda.command.LambdaCommand
 import com.lambda.config.categories.FriendCategory
-import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.handler.handlers.FriendHandler
 import com.lambda.interaction.handlers.FriendImporter
 import com.lambda.network.mojang.getProfile
 import com.lambda.threading.runIO
