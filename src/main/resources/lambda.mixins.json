@@ -46,6 +46,7 @@
     "render.ChunkBorderDebugRendererMixin",
     "render.ChunkOcclusionDataBuilderMixin",
     "render.ConnectScreenMixin",
+    "render.DisconnectedScreenMixin",
     "render.DrawContextMixin",
     "render.ElytraFeatureRendererMixin",
     "render.EntityRendererMixin",

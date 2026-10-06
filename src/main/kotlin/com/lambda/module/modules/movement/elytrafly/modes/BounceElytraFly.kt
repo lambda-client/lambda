@@ -68,7 +68,8 @@ class BounceElytraFly(
 
 	private val takeoff by c.setting("Takeoff", true, "Automatically jumps and initiates gliding")
 	private val autoPitch by c.setting("Auto Pitch", true, "Automatically pitches the players rotation down to bounce at faster speeds")
-	private val pitch by c.setting("Pitch", 72.0, -90.0..90.0, 0.000001) { autoPitch }
+	private val smartPitch by c.setting("Smart", true, "Calculates the best pitch for bounce") { autoPitch }
+	private val pitch by c.setting("Pitch", 72.0, -90.0..90.0, 0.000001) { autoPitch && !smartPitch }
 	private val jump by c.setting("Jump", true, "Automatically jumps")
 	private val flagPause by c.setting("FlagPause Pause", 5, 0..100, 1, "How long to pause if the server flags you for a movement check", "ticks")
 	private val minimizePackets by c.setting("Minimize Packets", true, "Shrinks the amount of start fly packets sent to the server as much as possible")
@@ -96,7 +97,7 @@ class BounceElytraFly(
 
 	@Group(BOUNCE_OBSTACLE_PASSER_GROUP) override val passerConfig by c.configBlock(PasserSettings(c))
 
-	private var jumpThisTick = false
+	private var wantJump = false
 	private var prevGliding: Boolean? = null
 	private val pauseTimer = TickTimer()
 	private val pingPackets = ConcurrentLinkedQueue<CommonPingS2CPacket>()
@@ -121,8 +122,17 @@ class BounceElytraFly(
 	init {
 		listen<TickEvent.Pre> {
 			pauseTimer.tick()
+			wantJump = false
 
-			if (autoPitch) rotationRequest { pitch(pitch) }.submit()
+			if (autoPitch) {
+				rotationRequest {
+					when {
+						!smartPitch -> pitch(pitch)
+						player.velocity.y > -0.2 -> pitch(90.0)
+						else -> pitch(4.0)
+					}
+				}.submit()
+			}
 
 			if (handlePassingObstacles()) return@listen
 
@@ -153,8 +163,10 @@ class BounceElytraFly(
 
 			if (!player.isGliding) {
 				if (takeoff && player.canTakeoff) {
-					if (player.canStartGliding) GlideHandler.onGlide()
-					else {
+					if (player.canStartGliding) {
+						GlideHandler.onGlide()
+						wantJump = jump
+					} else {
 						val yawRad = Math.toRadians(player.yaw.toDouble())
 						val rightX = -cos(yawRad)
 						val rightZ = -sin(yawRad)
@@ -163,14 +175,16 @@ class BounceElytraFly(
 						val sidewaysSpeed = abs(vx * rightX + vz * rightZ)
 						if (sidewaysSpeed >= 0.001) return@listen
 
-						jumpThisTick = true
+						wantJump = true
 					}
 				}
 				return@listen
 			}
 
+			if (player.isOnGround) wantJump = jump
 			if (minimizePackets && player.getFlag(Entity.GLIDING_FLAG_INDEX) && !fakeFly && !yMotion) return@listen
-			
+			if (player.isOnGround) return@listen
+
 			flyOrFakeFly()
 		}
 
@@ -201,8 +215,7 @@ class BounceElytraFly(
 				sneakRight = false
 				return@listen
 			}
-			if ((!player.isGliding || !jump) && !jumpThisTick) return@listen
-			jumpThisTick = false
+			if (!wantJump) return@listen
 			if (flightPaused) return@listen
 			input.jump()
 		}
@@ -226,7 +239,7 @@ class BounceElytraFly(
 		onFlag { pauseTimer.reset() }
 
 		onDisable {
-			jumpThisTick = false
+			wantJump = false
 			prevGliding = false
 			flushPackets()
 			sneakLeft = false

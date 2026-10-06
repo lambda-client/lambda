@@ -20,19 +20,25 @@ package com.lambda.command.commands
 import com.lambda.Lambda.mc
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.uuid
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
+import com.lambda.command.CommandRegistry.prefix
 import com.lambda.command.LambdaCommand
 import com.lambda.config.categories.FriendCategory
-import com.lambda.interaction.handler.handlers.FriendHandler
+import com.lambda.interaction.handlers.FriendHandler
+import com.lambda.interaction.handlers.FriendImporter
 import com.lambda.network.mojang.getProfile
 import com.lambda.threading.runIO
 import com.lambda.util.CommunicationUtils.info
+import com.lambda.util.CommunicationUtils.logError
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
@@ -41,13 +47,15 @@ import com.lambda.util.text.styled
 import kotlinx.coroutines.runBlocking
 import net.minecraft.command.CommandSource.suggestMatching
 import java.awt.Color
+import java.io.File
 import java.util.*
 
 @Suppress("unused")
 object FriendCommand : LambdaCommand(
     name = "friends",
-    usage = "friends <add <name> | add-uuid <uuid> | remove <name> | remove-uuid <uuid>>",
-    description = "Add or remove a friend"
+    usage = "friends <add <name> | add-uuid <uuid> | remove <name> | remove-uuid <uuid> | import [path]>",
+    description = "Add, remove or import friends",
+    examples = listOf("friends import", "friends import <path>")
 ) {
     override fun CommandBuilder.create() {
         execute {
@@ -60,8 +68,7 @@ object FriendCommand : LambdaCommand(
                             literal("Your friends (${FriendHandler.friends.size}):\n")
 
                             FriendHandler.friends.forEachIndexed { index, uuid ->
-                                val profile = FriendHandler.latestGameProfile(uuid)
-                                val displayName = profile?.name ?: uuid.toString()
+                                val displayName = FriendHandler.friendDisplayName(uuid)
 
                                 literal("   ${index + 1}. $displayName ")
                                 styled(
@@ -83,6 +90,10 @@ object FriendCommand : LambdaCommand(
                         }
                     }
                 )
+
+                if (FriendHandler.friends.any { FriendHandler.gameProfile(it) == null }) {
+                    runIO { FriendHandler.resolveMissing() }
+                }
             }
         }
 
@@ -200,6 +211,27 @@ object FriendCommand : LambdaCommand(
 
                     info(FriendHandler.unfriendedText(displayName))
                     success()
+                }
+            }
+        }
+
+        required(literal("import")) {
+            optional(greedyString("path")) { file ->
+                execute {
+                    runIO {
+                        val target = file?.let { File(it().value().trim().removeSurrounding("\"")) }
+                            ?.toPath()
+                            ?: runCatching { FriendImporter.pickFile() }.getOrElse {
+                                this@FriendCommand.logError("The file picker could not be opened. Try $prefix$name import <path>.")
+                                return@runIO
+                            }
+                            ?: run {
+                                this@FriendCommand.warn("Import cancelled.")
+                                return@runIO
+                            }
+
+                        FriendImporter.importFile(target)
+                    }
                 }
             }
         }

@@ -15,28 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.categories
+package com.lambda.module.modules.combat.crystalaura
 
-import com.lambda.config.ConfigCategory
-import com.lambda.interaction.handlers.FriendHandler
-import com.lambda.threading.runIO
-import com.lambda.util.FolderRegistry
-import java.io.File
+import com.lambda.threading.runSafe
+import com.lambda.util.PacketUtils.sendPacket
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
+import net.minecraft.util.Hand
 
-object FriendCategory : ConfigCategory() {
-	override val name get() = "friends"
-	override val primaryFile: File = FolderRegistry.config.resolve("$name.json").toFile()
-
-	override fun internalTryLoad() {
-		super.internalTryLoad()
-		runIO {
-			FriendHandler.loadNameCache()
-			FriendHandler.resolveMissing()
+object CrystalAuraExploding {
+	fun CrystalAura.explodeInternal(id: Int) = runSafe {
+		connection.sendPacket {
+			PlayerInteractEntityC2SPacket(
+				id, player.isSneaking, PlayerInteractEntityC2SPacket.ATTACK
+			)
 		}
-	}
 
-	override fun internalTrySave(logToChat: Boolean) {
-		super.internalTrySave(logToChat)
-		FriendHandler.saveNameCache()
+		player.swingHand(Hand.MAIN_HAND)
 	}
 }

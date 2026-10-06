@@ -37,6 +37,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@Suppress("unused")
 object TargetStrafe : Module(
     name = "TargetStrafe",
     description = "Strafes around a target in a circle. The default settings work great for old NCP.",

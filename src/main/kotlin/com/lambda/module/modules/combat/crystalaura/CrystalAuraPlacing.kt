@@ -15,28 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.categories
+package com.lambda.module.modules.combat.crystalaura
 
-import com.lambda.config.ConfigCategory
-import com.lambda.interaction.handlers.FriendHandler
-import com.lambda.threading.runIO
-import com.lambda.util.FolderRegistry
-import java.io.File
+import com.lambda.threading.runSafe
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
+import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
 
-object FriendCategory : ConfigCategory() {
-	override val name get() = "friends"
-	override val primaryFile: File = FolderRegistry.config.resolve("$name.json").toFile()
-
-	override fun internalTryLoad() {
-		super.internalTryLoad()
-		runIO {
-			FriendHandler.loadNameCache()
-			FriendHandler.resolveMissing()
+object CrystalAuraPlacing {
+	fun CrystalAura.placeInternal(opportunity: Opportunity, hand: Hand) = runSafe {
+		lastPlace = Pair(opportunity.blockPos, System.currentTimeMillis())
+		interaction.sendSequencedPacket(world) { sequence ->
+			PlayerInteractBlockC2SPacket(
+				hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), sequence
+			)
 		}
-	}
 
-	override fun internalTrySave(logToChat: Boolean) {
-		super.internalTrySave(logToChat)
-		FriendHandler.saveNameCache()
+		player.swingHand(hand)
+		waitingForCrystal = true
 	}
 }
