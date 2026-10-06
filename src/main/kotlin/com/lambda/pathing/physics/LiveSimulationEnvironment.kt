@@ -1,6 +1,7 @@
 package com.lambda.pathing.physics
 
 import com.lambda.util.BlockUtils.isFenceLike
+import net.minecraft.block.BedBlock
 import net.minecraft.block.Blocks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.tag.BlockTags
@@ -68,7 +69,7 @@ class LiveSimulationEnvironment(
 		val state = world.getBlockState(pos)
 		return when {
 			state.isOf(Blocks.SLIME_BLOCK) -> Vanilla.SLIME_BOUNCE_FACTOR
-			state.block is net.minecraft.block.BedBlock ->
+			state.block is BedBlock ->
 				Vanilla.BED_BOUNCE_FACTOR.toDouble()
 			else -> 0.0
 		}

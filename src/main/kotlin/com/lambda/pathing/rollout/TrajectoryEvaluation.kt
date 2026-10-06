@@ -6,6 +6,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import kotlin.math.abs
 import kotlin.math.hypot
+import net.minecraft.util.math.Vec3d
 
 internal sealed interface RolloutVerdict {
 	data object Continue : RolloutVerdict
@@ -25,7 +26,7 @@ internal class RolloutEvaluator(
 
 	descentAllowance: Double = 0.0,
 
-	private val climbing: (net.minecraft.util.math.Vec3d) -> Boolean = { false },
+	private val climbing: (Vec3d) -> Boolean = { false },
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
 
@@ -79,7 +80,7 @@ internal fun evaluateDiagnostic(
 	goal: HorizontalPoint,
 	config: MotionConstraints,
 	descentAllowance: Double = 0.0,
-	climbing: (net.minecraft.util.math.Vec3d) -> Boolean = { false },
+	climbing: (Vec3d) -> Boolean = { false },
 ): TrajectoryDiagnostic? {
 	val evaluator = RolloutEvaluator(
 		rollout.initialState, nodes, goal, config, descentAllowance = descentAllowance,

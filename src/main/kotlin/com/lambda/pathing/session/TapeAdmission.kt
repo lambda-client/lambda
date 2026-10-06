@@ -5,7 +5,6 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.execution.ExecutionDeviation
-import com.lambda.pathing.execution.ExecutionStateTolerance
 import com.lambda.pathing.execution.ImprovementArbiter
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.search.PublishedPath
@@ -77,16 +76,8 @@ internal class TapeAdmission(private val walk: PathingSession) {
 				executionEnvironmentDeviation(path, nextFrame = frame)?.let { deviation ->
 					return keepRunning(path, "publication environment changed: $deviation")
 				}
-				walk.telemetry.published = path
-				walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
 				val repairCut = walk.replay?.repairDeadline
-				walk.replay = Replay(
-					TrajectoryExecutionCursor(
-						path.plan, with(walk) { liveProfile() },
-						tolerance = ExecutionStateTolerance(),
-					).apply { resumeAt(frame) },
-				)
-				walk.launcher.current?.adopt(frame, path.publicationSequence.toLong())
+				replay(path, frame)
 				walk.launcher.progressed()
 				if (repairCut != null) {
 					walk.telemetry.countRepair()
@@ -111,16 +102,8 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		walk.request.runSafeAutomated {
 			rotationRequest { yaw(path.plan.initialState.rotation.yaw) }.submit()
 		}
-		walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
 		walk.alignment.installed()
-		walk.telemetry.published = path
-		walk.replay = Replay(
-			TrajectoryExecutionCursor(
-				path.plan, with(walk) { liveProfile() },
-				tolerance = ExecutionStateTolerance(),
-			),
-		)
-		walk.launcher.current?.adopt(0, path.publicationSequence.toLong())
+		replay(path, frame = 0)
 		walk.leg++
 		walk.state = State.Executing(0, path.plan.tape.frameCount, walk.leg)
 		info(
@@ -131,6 +114,13 @@ internal class TapeAdmission(private val walk: PathingSession) {
 						?.let { ", predicted splice frames ${it.joinToString()}" }.orEmpty(),
 			PATHING_SOURCE,
 		)
+	}
+
+	private fun SafeContext.replay(path: PublishedPath, frame: Int) {
+		walk.telemetry.published = path
+		walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
+		walk.replay = Replay(TrajectoryExecutionCursor(path.plan, with(walk) { liveProfile() }).apply { resumeAt(frame) })
+		walk.launcher.current?.adopt(frame, path.publicationSequence.toLong())
 	}
 
 	fun SafeContext.executionEnvironmentDeviation(

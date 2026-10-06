@@ -11,6 +11,7 @@ import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.canStandAt
+import kotlin.math.floor
 import kotlin.math.hypot
 
 internal object JumpDecisions {
@@ -140,8 +141,8 @@ internal object JumpDecisions {
 		val view = context.view
 		var sampled = 1.0
 		while (sampled <= distance + 1.0) {
-			val x = kotlin.math.floor(from.x - unitX * sampled).toInt()
-			val z = kotlin.math.floor(from.z - unitZ * sampled).toInt()
+			val x = floor(from.x - unitX * sampled).toInt()
+			val z = floor(from.z - unitZ * sampled).toInt()
 			if (!view.canStandAt(x, edge.from.y, z)) return false
 			sampled += 1.0
 		}

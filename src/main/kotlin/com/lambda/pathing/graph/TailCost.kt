@@ -1,5 +1,7 @@
 package com.lambda.pathing.graph
 
+import it.unimi.dsi.fastutil.longs.LongArrayList
+
 sealed interface TailCost {
 	val lowerBound: Double
 
@@ -29,7 +31,7 @@ data class CoarseRouteCandidate<N>(
 )
 
 data class LongRouteCandidate(
-	val nodes: it.unimi.dsi.fastutil.longs.LongArrayList,
+	val nodes: LongArrayList,
 	val ticks: Double,
 	val exactFromStart: Boolean,
 	val routeVersion: Long,

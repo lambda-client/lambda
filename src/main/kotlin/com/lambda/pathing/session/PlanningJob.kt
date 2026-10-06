@@ -27,8 +27,7 @@ internal class PlanningJob(
 	private val planningGeneration: Long,
 	private val snapshotRevision: Long,
 	private val execution: ExecutionFeedback,
-	private val onSafePrefix: (PublishedPath) -> Unit,
-	private val onImprovement: (PublishedPath) -> Unit,
+	private val publish: (PublishedPath, Boolean) -> Unit,
 ) {
 	private val coarseState = legStates.first()
 	private val planner = coarseState.planner
@@ -112,12 +111,9 @@ internal class PlanningJob(
 		val field = legs.begin(route, resolution)
 		return walkHorizon(
 			route, planner, preparation.initial, preparation.profile, snapshot, preparation.seedConfig, execution,
-			publish = { path, running -> if (running) onImprovement(path) else onSafePrefix(path) },
+			publish = publish,
 			started = preparation.startedMillis,
-			lookahead = preparation.horizonRunwayFrames,
-			commitFrames = preparation.horizonCommitFrames,
-			maxExpansions = preparation.trajectoryExpansionBudget,
-			bootstrapDelayMillis = preparation.bootstrapDelayMillis,
+			searchConfig = preparation.searchConfig,
 			cancelled = cancelled,
 			planningGeneration = planningGeneration,
 			finalGoal = preparation.finalGoal,

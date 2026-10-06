@@ -50,7 +50,7 @@ internal class SearchLoop(
 
 	private val publications: Publications = Publications(clock, execution)
 
-	private val horizon: Horizon = Horizon(searchConfig.localHorizonFrames, frontier)
+	private val horizon: Horizon = Horizon(searchConfig.localHorizon(initialRoute), frontier)
 
 	private val publisher: Publisher = Publisher(
 		searchConfig, field, frontier, clock, publications, horizon, onSafePrefix,
@@ -450,14 +450,12 @@ internal class SearchLoop(
 			WorldSyncResult.Quiet -> return
 
 			is WorldSyncResult.Woken -> if (frontier.hasBlocked) {
-				sweepEpoch++
-				finishSweeps = 0
+				resweep()
 				frontier.wakeBlocked()
 			}
 
 			is WorldSyncResult.Changed -> {
-				sweepEpoch++
-				finishSweeps = 0
+				resweep()
 				publisher.forgetRefusedCommit()
 				val next = result.route
 				if (next != null && (next.nodes != route.plan.nodes || next.goal != route.plan.goal)) {
@@ -478,10 +476,7 @@ internal class SearchLoop(
 		publisher.abandonTip()
 		repairs++
 		incumbent.dropBeyond(cut)
-		finishSweeps = 0
-		sweepEpoch++
-		expansionsWindowStart = expansions
-		annealing.rewindForRestart(cut.stance)
+		restartWindow(cut.stance)
 		frontier.updateRoute(route.index)
 	}
 
@@ -489,10 +484,7 @@ internal class SearchLoop(
 		if (incumbent.best != null) return false
 		val seed = recovery.restartSeed() ?: return false
 		annealing.clearSpent()
-		finishSweeps = 0
-		sweepEpoch++
-		expansionsWindowStart = expansions
-		annealing.rewindForRestart(seed.stance)
+		restartWindow(seed.stance)
 		horizon.reRoot(seed)
 		return true
 	}
@@ -503,17 +495,24 @@ internal class SearchLoop(
 		(field as? SwitchableValueField)?.current = handoff.field
 		route.replace(handoff.route)
 		incumbent.clear()
-		finishSweeps = 0
-		sweepEpoch++
-		expansionsWindowStart = expansions
+		annealing.clearSpent()
+		restartWindow(anchor.stance)
 		frontier.retainLineage(anchor)
 		frontier.updateRoute(route.index)
 		horizon.reRoot(anchor)
 		recovery.beginLeg()
-		annealing.clearSpent()
-		annealing.rewindForRestart(anchor.stance)
-		annealing.noteGuide(anchor.stance)
 		publisher.forgetRefusedCommit()
+	}
+
+	private fun resweep() {
+		sweepEpoch++
+		finishSweeps = 0
+	}
+
+	private fun restartWindow(seed: Stance) {
+		resweep()
+		expansionsWindowStart = expansions
+		annealing.rewindForRestart(seed)
 	}
 
 	private fun finalLeg(): Boolean = finalGoal == null || route.goal == finalGoal

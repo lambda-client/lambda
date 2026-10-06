@@ -9,6 +9,7 @@ import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.WorldMutation
 import java.util.*
 
 @JvmInline
@@ -94,9 +95,9 @@ class TrajectoryPlan private constructor(
 		return chunkReads.between(nextFrame, untilFrame)
 	}
 
-	fun firstFrameReading(mutation: com.lambda.pathing.world.WorldMutation): Int? = when (mutation) {
-		is com.lambda.pathing.world.WorldMutation.Section -> sectionReads.first(mutation.section)
-		is com.lambda.pathing.world.WorldMutation.Chunk -> chunkReads.first(mutation.chunk)
+	fun firstFrameReading(mutation: WorldMutation): Int? = when (mutation) {
+		is WorldMutation.Section -> sectionReads.first(mutation.section)
+		is WorldMutation.Chunk -> chunkReads.first(mutation.chunk)
 	}
 
 	companion object {

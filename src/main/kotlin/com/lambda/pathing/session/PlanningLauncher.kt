@@ -10,6 +10,8 @@ import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.player.MovementUtils.moveYaw
+import kotlin.math.abs
+import kotlin.math.hypot
 
 internal class PlanningLauncher(private val walk: PathingSession) {
 	private var generation = 0L
@@ -84,14 +86,13 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		launch(
 			session, preparation, currentJourney,
 			execution = session,
-			onImprovement = { improvement ->
+			onPublish = { path, running ->
 				if (walk.active && current === session) {
-					if (walk.replay != null) with(walk.admission) { adopt(improvement) }
-				}
-			},
-			onSafePrefix = { prefix ->
-				if (walk.active && current === session) {
-					if (walk.replay == null && walk.alignment.pendingPath == null) with(walk.admission) { begin(prefix) }
+					if (running) {
+						if (walk.replay != null) with(walk.admission) { adopt(path) }
+					} else if (walk.replay == null && walk.alignment.pendingPath == null) {
+						with(walk.admission) { begin(path) }
+					}
 				}
 			},
 			onLaunchFailure = { failure ->
@@ -106,8 +107,8 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		val waypoints = walk.request.waypoints
 		while (walk.passedWaypoints < waypoints.size) {
 			val waypoint = resolveGoalStance(player, waypoints[walk.passedWaypoints])
-			val horizontal = kotlin.math.hypot(player.pos.x - (waypoint.x + 0.5), player.pos.z - (waypoint.z + 0.5))
-			if (horizontal > WAYPOINT_UNDERFOOT_BLOCKS || kotlin.math.abs(player.pos.y - waypoint.y) > 1.0) break
+			val horizontal = hypot(player.pos.x - (waypoint.x + 0.5), player.pos.z - (waypoint.z + 0.5))
+			if (horizontal > WAYPOINT_UNDERFOOT_BLOCKS || abs(player.pos.y - waypoint.y) > 1.0) break
 			walk.passedWaypoints++
 			walk.leg++
 			info("Standing at waypoint $waypoint; continuing past it.", PATHING_SOURCE)
@@ -193,17 +194,9 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 		launch(
 			session, preparation, successorJourney,
-
 			execution = ExecutionFeedback.DETACHED,
-			onImprovement = { improvement ->
-				if (walk.active && successor === session) {
-					successorPath = improvement
-				}
-			},
-			onSafePrefix = { prefix ->
-				if (walk.active && successor === session) {
-					if (successorPath == null) successorPath = prefix
-				}
+			onPublish = { path, _ ->
+				if (walk.active && successor === session) successorPath = path
 			},
 			onLaunchFailure = { failure ->
 				LOG.info("Could not start successor planning: {}", failure.message)
@@ -223,8 +216,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		preparation: PlanningPreparation,
 		journey: PlanningJourney,
 		execution: ExecutionFeedback,
-		onImprovement: (PublishedPath) -> Unit,
-		onSafePrefix: (PublishedPath) -> Unit,
+		onPublish: (PublishedPath, Boolean) -> Unit,
 		onLaunchFailure: (Exception) -> Unit,
 		onComplete: (PathPlanResult?, Throwable?) -> Unit,
 	) {
@@ -237,8 +229,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 				planningGeneration = session.generation,
 				snapshotRevision = journey.world.revision,
 				execution = execution,
-				onSafePrefix = { prefix -> mc.execute { onSafePrefix(prefix) } },
-				onImprovement = { improvement -> mc.execute { onImprovement(improvement) } },
+				publish = { path, running -> mc.execute { onPublish(path, running) } },
 			).start()
 		} catch (failure: Exception) {
 			onLaunchFailure(failure)

@@ -7,6 +7,7 @@ import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import kotlin.math.abs
 
 internal class ClimbProgram(
 	private val targetYaw: Double?,
@@ -26,7 +27,7 @@ internal class ClimbProgram(
 		} ?: 0.0
 
 		val aligned = targetYaw == null ||
-				kotlin.math.abs(Rotation.wrap(targetYaw - observed.rotation.yaw)) <= ALIGNMENT_DEGREES
+				abs(Rotation.wrap(targetYaw - observed.rotation.yaw)) <= ALIGNMENT_DEGREES
 
 		val forward = if (observed.onGround) {
 			if (overLip && !aligned) {

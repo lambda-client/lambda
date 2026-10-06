@@ -1,5 +1,7 @@
 package com.lambda.pathing.launch
 
+import kotlin.math.abs
+
 data class BounceSolution(
 	val drop: Int,
 	val rise: Int,
@@ -125,7 +127,7 @@ object BounceSolver {
 		for (hold in (lo - HOLD_SCAN)..(hi + HOLD_SCAN)) {
 			if (hold < minHold || hold > BallisticProfile.MAX_BOUNCE_TICKS) continue
 			val arc = arcAt(hold) ?: continue
-			val error = kotlin.math.abs(arc.distance - target)
+			val error = abs(arc.distance - target)
 			if (error > LANDING_SUPPORT_REACH) continue
 			val penalty = contactPenalty(launchReach + arc.distances[troughIndex(arc)])
 			if (!penalty.isFinite()) continue

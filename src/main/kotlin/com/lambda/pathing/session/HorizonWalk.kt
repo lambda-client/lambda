@@ -6,7 +6,6 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.coarse.SwitchableValueField
 import com.lambda.pathing.coarse.ValueField
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -38,10 +37,7 @@ internal fun walkHorizon(
 	execution: ExecutionFeedback = ExecutionFeedback.DETACHED,
 	publish: (PublishedPath, Boolean) -> Unit,
 	started: Long,
-	lookahead: Int = HORIZON_FRAMES,
-	commitFrames: Int = HORIZON_CHUNK_FRAMES,
-	maxExpansions: Int = HORIZON_EXPANSIONS,
-	bootstrapDelayMillis: Long = HORIZON_BOOTSTRAP_DELAY_MS,
+	searchConfig: SearchConfig = SearchConfig.horizon(),
 	world: WorldLink? = null,
 	clock: SearchClock = SystemSearchClock(),
 	cancelled: () -> Boolean = { false },
@@ -51,9 +47,6 @@ internal fun walkHorizon(
 	probe: SearchProbe = SearchProbe.NONE,
 	onExhaustion: ((SearchExhaustion) -> Unit)? = null,
 	parallelism: Int = 1,
-	maxTemperature: Double = 1.0,
-	frontierPerKey: Int = 3,
-
 	legs: LegSource? = null,
 ): PathPlanResult {
 	var published = 0
@@ -62,19 +55,7 @@ internal fun walkHorizon(
 		if (legs != null && field is CoarseValueField) SwitchableValueField(field) else field
 
 	val result = SearchLoop(
-		route, planner.moves.catalog, searchField, initial, profile, snapshot, seedConfig,
-		SearchConfig(
-			safePrefixDelayMillis = bootstrapDelayMillis,
-			horizonCommitFrames = commitFrames,
-			horizonRunwayFrames = lookahead,
-			localHorizonFrames = lookahead + commitFrames * HORIZON_WINDOW_CHUNKS +
-					climbHorizonFrames(route),
-			maxExpansions = minOf(maxExpansions, PER_WINDOW_EXPANSIONS),
-			minCommitExpansions = HORIZON_MIN_COMMIT_EXPANSIONS,
-			maxFinalCommitFrames = commitFrames * HORIZON_FINAL_COMMIT_CHUNKS,
-			maxTemperature = maxTemperature,
-			frontierPerKey = frontierPerKey,
-		),
+		route, planner.moves.catalog, searchField, initial, profile, snapshot, seedConfig, searchConfig,
 		onSafePrefix = { step ->
 			if (!cancelled()) {
 				val sequence = published + 1
@@ -168,24 +149,3 @@ private fun publishedPath(
 	comparedRunningSequence = seed.comparedRunningSequence,
 	legTouches = seed.legTouches,
 )
-
-private const val HORIZON_FRAMES = 20
-
-private const val HORIZON_CHUNK_FRAMES = 20
-
-private const val HORIZON_WINDOW_CHUNKS = 3
-
-private const val HORIZON_FINAL_COMMIT_CHUNKS = 2
-
-private const val HORIZON_BOOTSTRAP_DELAY_MS = 200L
-
-private const val PER_WINDOW_EXPANSIONS = 120_000
-
-private const val HORIZON_MIN_COMMIT_EXPANSIONS = 400
-
-private const val HORIZON_EXPANSIONS = 2_000_000
-
-private fun climbHorizonFrames(route: CoarseRoutePlan): Int =
-	route.edges.count { it.movement == MovementId.CLIMB } * CLIMB_HORIZON_FRAMES_PER_EDGE
-
-private const val CLIMB_HORIZON_FRAMES_PER_EDGE = 10

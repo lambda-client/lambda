@@ -26,45 +26,27 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		val path = walk.telemetry.published ?: return
 
 		walk.launcher.current?.updateExecutionFrame(active.cursor.nextFrame)
-
-		val frame = active.cursor.nextFrame
-
-		if (active.awaitingObservation && !finishObservedTick(active, path, frame)) return
+		if (active.awaitingObservation && !finishObservedTick(active, path, active.cursor.nextFrame)) return
 
 		active.pendingImprovement?.let { improvement ->
 			active.pendingImprovement = null
 			with(admission) { adopt(improvement) }
 		}
 
-		walk.replay?.let { replay ->
-			val running = walk.telemetry.published
-			if (running != null && !running.partial && !replay.awaitingObservation &&
-				replay.cursor.nextFrame >= running.plan.stationaryFrom &&
-				replay.cursor.nextFrame < running.plan.tape.frameCount
-			) {
-				finishTrajectory(running)
-				return
-			}
-		}
-
-		if (walk.replay?.holding == true) {
-			walk.telemetry.published?.let { enterHold(it) }
-			return
-		}
-
-		val current = walk.telemetry.published ?: return
 		val replay = walk.replay ?: return
+		val current = walk.telemetry.published ?: return
 		val running = replay.cursor
+		if (!current.partial && !replay.awaitingObservation &&
+			running.nextFrame >= current.plan.stationaryFrom && running.nextFrame < current.plan.tape.frameCount
+		) return finishTrajectory(current)
+		if (replay.holding) return enterHold(current)
 
-		if (running.nextFrame == 0) {
-			if (with(walk.alignment) { realignBeforeLaunch(current) }) return
-		}
+		if (running.nextFrame == 0 && with(walk.alignment) { realignBeforeLaunch(current) }) return
 
 		val observed = observe(current.plan, running.nextFrame)
 		announcePassedWaypoints(current, running.nextFrame)
 		replay.repairDeadline?.let { deadline ->
 			if (running.nextFrame >= deadline) {
-
 				val deviation = replay.repairDeviation ?: ExecutionDeviation.Protocol("repair deadline reached")
 				return reject(running.nextFrame, deviation, observed, afterInput = false)
 			}

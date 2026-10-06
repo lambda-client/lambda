@@ -8,6 +8,7 @@ import com.lambda.pathing.launch.BounceSolution
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import kotlin.math.abs
 
 internal class BounceProgram(
 	private val takeoff: HorizontalPoint,
@@ -73,7 +74,7 @@ internal class BounceProgram(
 		val strafe = if (airborne && !landed) {
 			val proportional = (lateralOffset(takeoff, aim, observed) / LATERAL_FULL_OFFSET).coerceIn(-1.0, 1.0)
 			val limit = if (forward > 0.0) HELD_FORWARD_MAX_STRAFE else 1.0
-			if (kotlin.math.abs(proportional) < LATERAL_DEADBAND / LATERAL_FULL_OFFSET) 0.0 else proportional.coerceIn(-limit, limit)
+			if (abs(proportional) < LATERAL_DEADBAND / LATERAL_FULL_OFFSET) 0.0 else proportional.coerceIn(-limit, limit)
 		} else 0.0
 		return MovementSimulationInput(
 			forward = forward,

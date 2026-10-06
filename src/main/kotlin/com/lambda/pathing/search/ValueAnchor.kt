@@ -10,6 +10,7 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import net.minecraft.util.math.Vec3d
 
 internal class ValueAnchor(
 	override val state: MovementSimulationState,
@@ -31,13 +32,13 @@ internal class ValueAnchor(
 
 	var legRoot: Boolean = false
 
-	var trace: List<net.minecraft.util.math.Vec3d> = emptyList()
+	var trace: List<Vec3d> = emptyList()
 
 	companion object {
 
-		fun traceOf(frames: List<SimulatedTrajectoryFrame>): List<net.minecraft.util.math.Vec3d> {
+		fun traceOf(frames: List<SimulatedTrajectoryFrame>): List<Vec3d> {
 			if (frames.size <= TRACE_STRIDE + 1) return emptyList()
-			val trace = ArrayList<net.minecraft.util.math.Vec3d>(frames.size / TRACE_STRIDE + 1)
+			val trace = ArrayList<Vec3d>(frames.size / TRACE_STRIDE + 1)
 			for (i in TRACE_STRIDE until frames.size - 1 step TRACE_STRIDE) trace += frames[i].state.position
 			return trace
 		}

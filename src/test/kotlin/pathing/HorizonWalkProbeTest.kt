@@ -5,6 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.*
+import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.*
 import com.lambda.pathing.core.Stance
@@ -157,8 +158,7 @@ class HorizonWalkProbeTest {
             execution = clock,
             publish = { path, _ -> publications += clock.elapsedMillis() to path },
             started = System.currentTimeMillis(),
-            lookahead = lookahead,
-            commitFrames = commitFrames,
+            searchConfig = SearchConfig.horizon(runwayFrames = lookahead, commitFrames = commitFrames),
             clock = clock,
         )
 

@@ -13,6 +13,7 @@ import com.lambda.pathing.world.WorldEventBatch
 import com.lambda.pathing.world.arrivalChunkSet
 import com.lambda.pathing.world.mutatedChunkSet
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 
@@ -59,7 +60,7 @@ internal class CoarsePlanningState(
 	private val captureLagSections = HashSet<Long>()
 
 	private val collectCaptureLag: (Int, Int, Int) -> Unit = { x, y, z ->
-		captureLagSections += net.minecraft.util.math.ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
+		captureLagSections += ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
 	}
 
 	init {

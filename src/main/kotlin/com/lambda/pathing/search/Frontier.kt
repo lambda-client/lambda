@@ -7,6 +7,7 @@ import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
 import java.util.*
+import kotlin.math.acos
 import kotlin.math.atan2
 import kotlin.math.floor
 
@@ -253,7 +254,7 @@ internal class Frontier(
 					anchor.state.velocity.x, anchor.state.velocity.z,
 					next.x - anchor.state.position.x, next.z - anchor.state.position.z,
 				)
-				val headingError = Math.toDegrees(kotlin.math.acos(alignment.coerceIn(-1.0, 1.0)))
+				val headingError = Math.toDegrees(acos(alignment.coerceIn(-1.0, 1.0)))
 				anchor.momentumCredit = momentumCredit(anchor.speed, alignment)
 				anchor.momentumTurnCost = momentumTurnCost(anchor.speed, headingError, config.maxYawDegreesPerFrame)
 			}

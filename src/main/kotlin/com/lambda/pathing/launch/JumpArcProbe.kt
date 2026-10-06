@@ -6,7 +6,9 @@ import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -204,9 +206,9 @@ object JumpArcProbe {
 		val heights = arc.heights
 		val distances = arc.distances
 
-		val order = it.unimi.dsi.fastutil.longs.LongArrayList()
+		val order = LongArrayList()
 		val seen = LongOpenHashSet()
-		val gaps = it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap()
+		val gaps = Long2DoubleOpenHashMap()
 		gaps.defaultReturnValue(CLEARANCE_CAP)
 		val intersecting = LongOpenHashSet()
 

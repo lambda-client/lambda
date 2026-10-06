@@ -6,12 +6,14 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.supportedStanceOf
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.nio.file.Path
 
@@ -32,12 +34,9 @@ internal data class PlanningPreparation(
 	val profile: PlayerPhysicsProfile,
 	val start: Stance,
 	val planningHorizonChunks: Int,
-	val horizonRunwayFrames: Int,
-	val horizonCommitFrames: Int,
+	val searchConfig: SearchConfig,
 	val coarseExpansionBudget: Int,
-	val trajectoryExpansionBudget: Int,
 	val frontierSweepBudget: Int,
-	val bootstrapDelayMillis: Long,
 	val plannerThreads: Int,
 	val dumpDirectory: Path?,
 
@@ -51,7 +50,7 @@ internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance
 	val pos = BlockPos(goal.x, goal.y, goal.z)
 	val shape = world.getBlockState(pos).getCollisionShape(world, pos)
 	if (shape.isEmpty) return goal
-	val surface = shape.getMax(net.minecraft.util.math.Direction.Axis.Y)
+	val surface = shape.getMax(Direction.Axis.Y)
 	return if (surface > 0.0 && surface <= CoarseMoveRates.FREE_STEP_RISE) {
 		goal.offset(0, 1, 0)
 	} else goal
@@ -146,12 +145,14 @@ internal fun preparePlanning(
 			profile = profile,
 			start = start,
 			planningHorizonChunks = config.planningHorizonChunks,
-			horizonRunwayFrames = config.horizonRunwayFrames,
-			horizonCommitFrames = config.horizonCommitFrames,
+			searchConfig = SearchConfig.horizon(
+				runwayFrames = config.horizonRunwayFrames,
+				commitFrames = config.horizonCommitFrames,
+				maxExpansions = config.trajectoryExpansionBudget,
+				bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
+			),
 			coarseExpansionBudget = config.coarseExpansionBudget,
-			trajectoryExpansionBudget = config.trajectoryExpansionBudget,
 			frontierSweepBudget = config.frontierSweepBudget,
-			bootstrapDelayMillis = config.bootstrapDelayMillis.toLong(),
 			plannerThreads = config.plannerThreads,
 			dumpDirectory = dumpDirectory,
 			dumpAllPlans = config.dumpAllPlans,

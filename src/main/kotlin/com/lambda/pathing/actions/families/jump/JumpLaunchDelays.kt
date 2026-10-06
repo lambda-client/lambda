@@ -9,6 +9,10 @@ import com.lambda.pathing.core.center
 import com.lambda.pathing.core.unitBetween
 import com.lambda.pathing.launch.HorizontalDynamics
 import com.lambda.pathing.launch.LaunchSolution
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 internal object JumpLaunchDelays {
 
@@ -24,33 +28,33 @@ internal object JumpLaunchDelays {
 		var velocityZ = body.velocity.z
 		var along = alongEdge(from, to, body.position.x, body.position.z)
 
-		val bearing = Math.toDegrees(kotlin.math.atan2(-(to.x - from.x), to.z - from.z))
+		val bearing = Math.toDegrees(atan2(-(to.x - from.x), to.z - from.z))
 		var yaw = body.rotation.yaw
 
 		class Fit(val delay: Int, val cost: Double, val misplacement: Double, val speedError: Double)
 
-		val standableAlong = 0.5 * (kotlin.math.abs(unitX) + kotlin.math.abs(unitZ)) + 0.3
+		val standableAlong = 0.5 * (abs(unitX) + abs(unitZ)) + 0.3
 
 		val fitting = ArrayList<Fit>()
 		for (delay in 0..MAX_LAUNCH_FRAME) {
 			if (along > standableAlong) break
 			val speed = velocityX * unitX + velocityZ * unitZ
-			if (kotlin.math.abs(speed - solution.speed) <= solution.speedSlack) {
+			if (abs(speed - solution.speed) <= solution.speedSlack) {
 
-				val misplacement = kotlin.math.abs(along - solution.launchOffset)
+				val misplacement = abs(along - solution.launchOffset)
 				fitting += Fit(
 					delay,
 					delay + misplacement / dynamics.cruise,
 					misplacement,
-					kotlin.math.abs(speed - solution.speed),
+					abs(speed - solution.speed),
 				)
 			}
 
 			val yawError = Rotation.wrap(bearing - yaw)
 			yaw += yawError.coerceIn(-context.constraints.maxYawDegreesPerFrame, context.constraints.maxYawDegreesPerFrame)
 			val radians = Math.toRadians(yaw)
-			val forwardX = -kotlin.math.sin(radians)
-			val forwardZ = kotlin.math.cos(radians)
+			val forwardX = -sin(radians)
+			val forwardZ = cos(radians)
 			velocityX = (velocityX + dynamics.acceleration * forwardX) * dynamics.friction
 			velocityZ = (velocityZ + dynamics.acceleration * forwardZ) * dynamics.friction
 			along += (velocityX * unitX + velocityZ * unitZ) / dynamics.friction

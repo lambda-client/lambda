@@ -6,6 +6,7 @@ import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.hypot
@@ -90,7 +91,7 @@ object BounceArcProbe {
 					reads?.add(BlockPos.asLong(x, y, z))
 					val v = view.voxel(x, y, z)
 					if (!v.fullyPassable) {
-						val bottom = y + (view.collisionShape(x, y, z)?.getMin(net.minecraft.util.math.Direction.Axis.Y) ?: 0.0)
+						val bottom = y + (view.collisionShape(x, y, z)?.getMin(Direction.Axis.Y) ?: 0.0)
 						if (bottom < ceilingBottom) ceilingBottom = bottom
 						break
 					}

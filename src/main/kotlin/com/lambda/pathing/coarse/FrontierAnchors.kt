@@ -4,6 +4,7 @@ import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.hypot
+import java.util.PriorityQueue
 
 object FrontierAnchors {
 
@@ -45,7 +46,7 @@ object FrontierAnchors {
 		edges: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
 	): Map<Stance, Double> {
 		val anchors = HashMap<Stance, Double>()
-		val queue = java.util.PriorityQueue<Stance>(compareBy { moves.heuristic(it, goal) })
+		val queue = PriorityQueue<Stance>(compareBy { moves.heuristic(it, goal) })
 		for (seed in seeds) {
 			visited += seed
 			queue += seed

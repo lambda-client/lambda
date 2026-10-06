@@ -5,6 +5,7 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.search.SearchExhaustion
 import com.lambda.pathing.search.SearchStatsView
 import com.lambda.pathing.search.SearchTreeView
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
@@ -107,14 +108,14 @@ object PlanningDebugChannel {
 	var hudWanted: Boolean = false
 
 	@Volatile
-	var lastExhaustion: com.lambda.pathing.search.SearchExhaustion? = null
+	var lastExhaustion: SearchExhaustion? = null
 		private set
 
 	@Volatile
 	var lastExhaustionLedger: String = ""
 		private set
 
-	fun publishExhaustion(report: com.lambda.pathing.search.SearchExhaustion, ledger: String) {
+	fun publishExhaustion(report: SearchExhaustion, ledger: String) {
 		lastExhaustion = report
 		lastExhaustionLedger = ledger
 	}

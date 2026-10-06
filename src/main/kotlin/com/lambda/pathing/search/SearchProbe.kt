@@ -1,11 +1,14 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import java.util.Collections
+import java.util.IdentityHashMap
 import net.minecraft.util.math.Vec3d
 
 class CandidatePath(val points: List<Vec3d>, val best: Boolean)
@@ -86,7 +89,7 @@ interface SearchProbe {
 }
 
 internal fun searchTree(
-	field: com.lambda.pathing.coarse.ValueField,
+	field: ValueField,
 	spent: List<ValueAnchor>,
 	parked: List<Frontier.OpenEntry>,
 	open: List<Frontier.OpenEntry>,
@@ -129,7 +132,7 @@ private const val MAX_TREE_NODES = 4096
 
 internal fun candidatePaths(pool: List<Frontier.OpenEntry>, tip: ValueAnchor?): List<CandidatePath> {
 	val best = pool.minByOrNull { it.order }
-	val spine = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<ValueAnchor, Boolean>())
+	val spine = Collections.newSetFromMap(IdentityHashMap<ValueAnchor, Boolean>())
 	generateSequence(tip) { it.parent }.forEach { spine += it }
 	return pool.sortedBy { it.order }.take(MAX_SHOWN_CANDIDATES).map { entry ->
 		val lineage = generateSequence(entry.anchor) { it.parent }

@@ -7,6 +7,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
 import kotlin.math.hypot
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap
 
 class CoarseValueField(
 	override val view: CoarseVoxelView,
@@ -18,11 +19,11 @@ class CoarseValueField(
 
 	private val edgeProvider: (Stance) -> List<CoarseEdge> = { moves.edgesFrom(view, it) },
 ) : ValueField {
-	private val guides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
+	private val guides = Object2DoubleOpenHashMap<Stance>()
 		.apply { defaultReturnValue(Double.NaN) }
-	private val movingGuides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
+	private val movingGuides = Object2DoubleOpenHashMap<Stance>()
 		.apply { defaultReturnValue(Double.NaN) }
-	private val stoppedGuides = it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>()
+	private val stoppedGuides = Object2DoubleOpenHashMap<Stance>()
 		.apply { defaultReturnValue(Double.NaN) }
 	private val edges = HashMap<Stance, List<CoarseEdge>>()
 
@@ -52,7 +53,7 @@ class CoarseValueField(
 		guideVia(if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides, stance) { labelAt(it, speed) }
 
 	private inline fun guideVia(
-		cache: it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<Stance>,
+		cache: Object2DoubleOpenHashMap<Stance>,
 		stance: Stance,
 		labelOf: (Stance) -> Double,
 	): Double {

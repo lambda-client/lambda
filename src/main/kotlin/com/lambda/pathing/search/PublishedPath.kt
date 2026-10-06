@@ -2,6 +2,7 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
+import kotlin.math.hypot
 
 data class PublishedPath(
 	val route: CoarseRoutePlan,
@@ -43,7 +44,7 @@ data class PublishedPath(
 	fun approachProfile(): String {
 		val gx = finalGoal.x + 0.5
 		val gz = finalGoal.z + 0.5
-		val distances = plan.frames.map { kotlin.math.hypot(it.state.position.x - gx, it.state.position.z - gz) }
+		val distances = plan.frames.map { hypot(it.state.position.x - gx, it.state.position.z - gz) }
 		val near = distances.indexOfFirst { it <= 1.0 }
 		if (near < 0) return "approach: never within a block of the goal (final %.2f)".format(distances.lastOrNull() ?: Double.NaN)
 		val tail = distances.subList(near, distances.size)

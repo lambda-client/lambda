@@ -4,6 +4,7 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
+import kotlin.math.abs
 import net.minecraft.util.math.BlockPos
 
 internal object InterestPrimer {
@@ -31,7 +32,7 @@ internal object InterestPrimer {
 		val dx = goal.x - start.x
 		val dy = goal.y - start.y
 		val dz = goal.z - start.z
-		val length = maxOf(kotlin.math.abs(dx), kotlin.math.abs(dz), 1)
+		val length = maxOf(abs(dx), abs(dz), 1)
 		var step = CORRIDOR_SAMPLE_BLOCKS
 		while (step < length) {
 			world.interestAround(

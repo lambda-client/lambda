@@ -4,6 +4,7 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
@@ -133,8 +134,7 @@ internal object ProbeScenarios {
             clock = clock,
             parallelism = parallelism,
             onExhaustion = { exhaustions += it },
-            maxTemperature = maxTemperature,
-            frontierPerKey = frontierPerKey,
+            searchConfig = SearchConfig.horizon().copy(maxTemperature = maxTemperature, frontierPerKey = frontierPerKey),
             probe = probe,
         )
         return Outcome(result, exhaustions, planner, route)

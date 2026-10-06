@@ -25,7 +25,9 @@ import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.center
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import kotlin.math.floor
 import kotlin.math.hypot
+import net.minecraft.util.math.Vec3d
 
 internal sealed interface Outcome {
 	data class Anchored(val anchor: ValueAnchor) : Outcome
@@ -45,9 +47,9 @@ internal class AnchorRollout(
 	private val probe: SearchProbe,
 ) {
 
-	private val climbingAt: (net.minecraft.util.math.Vec3d) -> Boolean = { p ->
+	private val climbingAt: (Vec3d) -> Boolean = { p ->
 		field.view.medium(
-			kotlin.math.floor(p.x).toInt(), kotlin.math.floor(p.y).toInt(), kotlin.math.floor(p.z).toInt(),
+			floor(p.x).toInt(), floor(p.y).toInt(), floor(p.z).toInt(),
 		) == Medium.CLIMBABLE
 	}
 

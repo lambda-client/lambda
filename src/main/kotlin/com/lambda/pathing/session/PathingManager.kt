@@ -79,15 +79,16 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 		if (request.goal != waypointRoute.expectedLeg) waypointRoute.drop()
 
+		val goal = resolveGoalStance(player, request.goal)
 		val previous = session
 		var journey = previous?.takeJourney()
 
-		waypointRoute.adoptWarmJourney(resolveGoalStance(player, request.goal))?.let { warmed ->
+		waypointRoute.adoptWarmJourney(goal)?.let { warmed ->
 			journey?.cancel()
 			journey = warmed
 		}
 
-		val sameGoal = journey?.goal == resolveGoalStance(player, request.goal)
+		val sameGoal = journey?.goal == goal
 		previous?.release()
 		if (!sameGoal) {
 			journey?.cancel()

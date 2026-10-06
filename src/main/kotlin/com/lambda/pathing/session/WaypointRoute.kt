@@ -7,6 +7,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.util.math.BlockPos
 
 internal class WaypointRoute(private val source: String) {
 
@@ -108,7 +109,7 @@ internal class WaypointRoute(private val source: String) {
 		nextJourney?.world?.advance(budgetMillis)
 	}
 
-	fun onBlockChanged(pos: net.minecraft.util.math.BlockPos) {
+	fun onBlockChanged(pos: BlockPos) {
 		nextJourney?.world?.onBlockChanged(pos)
 	}
 

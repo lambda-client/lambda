@@ -1,5 +1,6 @@
 package com.lambda.pathing.session
 
+import com.lambda.Lambda
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
@@ -14,9 +15,11 @@ import org.apache.logging.log4j.LogManager
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlin.time.Duration
 
-private val LOG = LogManager.getLogger(com.lambda.Lambda.SYMBOL)
+private val LOG = LogManager.getLogger(Lambda.SYMBOL)
 
 internal class LegChain(
 	private val world: PathingWorld?,
@@ -70,8 +73,8 @@ internal class LegChain(
 		val future = pending ?: CompletableFuture.supplyAsync({ resolveLeg(index) }, executor).also { pending = it }
 		val waitStarted = System.nanoTime()
 		val leg = try {
-			future.get(HANDOFF_WAIT_MILLIS, java.util.concurrent.TimeUnit.MILLISECONDS)
-		} catch (_: java.util.concurrent.TimeoutException) {
+			future.get(HANDOFF_WAIT_MILLIS, TimeUnit.MILLISECONDS)
+		} catch (_: TimeoutException) {
 
 			LOG.warn("Route leg {} toward {} still resolving after {} ms; finishing at {} instead", index, states[index].goal, HANDOFF_WAIT_MILLIS, touched)
 			return null

@@ -12,6 +12,7 @@ import com.lambda.pathing.search.WorldSyncResult
 import com.lambda.pathing.world.InterestTier
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.WorldEventBatch
+import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 
 internal class ContinuousSyncPolicy(
@@ -35,24 +36,25 @@ internal class ContinuousSyncPolicy(
 
 	override fun invoke(current: CoarseRoutePlan): WorldSyncResult {
 		val batch = world.drainEvents()
-		if (!batch.isEmpty) onBatch(batch)
-		if (batch.isEmpty) {
-			val more = timedSync { coarseState.continueSync(SYNC_SLICE_STANCES) }
-			if (more) return WorldSyncResult.Woken()
+		if (batch.isEmpty) return quiet(current)
+		onBatch(batch)
+		return apply(batch, current)
+	}
 
-			val extending = current.goal != coarseState.goal
-			if (!extending) return WorldSyncResult.Quiet
-			val now = System.currentTimeMillis()
-			if (now - lastQuietExtension < QUIET_EXTENSION_INTERVAL_MILLIS) {
-				return WorldSyncResult.Quiet
-			}
-			lastQuietExtension = now
-			val next = resolve()
-			refreshGraph(next ?: current)
-			if (next == null || next.nodes == current.nodes) return WorldSyncResult.Quiet
-			return WorldSyncResult.Changed(next)
-		}
+	private fun quiet(current: CoarseRoutePlan): WorldSyncResult {
+		val more = timedSync { coarseState.continueSync(SYNC_SLICE_STANCES) }
+		if (more) return WorldSyncResult.Woken()
+		if (current.goal == coarseState.goal) return WorldSyncResult.Quiet
+		val now = System.currentTimeMillis()
+		if (now - lastQuietExtension < QUIET_EXTENSION_INTERVAL_MILLIS) return WorldSyncResult.Quiet
+		lastQuietExtension = now
+		val next = resolve()
+		refreshGraph(next ?: current)
+		if (next == null || next.nodes == current.nodes) return WorldSyncResult.Quiet
+		return WorldSyncResult.Changed(next)
+	}
 
+	private fun apply(batch: WorldEventBatch, current: CoarseRoutePlan): WorldSyncResult {
 		timedSync { coarseState.applyEvents(batch, SYNC_SLICE_STANCES) }
 		val extending = current.goal != coarseState.goal
 		val mutated = batch.mutations.isNotEmpty() || batch.chunks.isNotEmpty()
@@ -110,10 +112,10 @@ internal class ContinuousSyncPolicy(
 		if (batch.chunks.isNotEmpty()) {
 			val chunks = batch.chunks
 			world.snapshot.forEachSectionKey { key ->
-				val x = net.minecraft.util.math.ChunkSectionPos.unpackX(key)
-				val z = net.minecraft.util.math.ChunkSectionPos.unpackZ(key)
+				val x = ChunkSectionPos.unpackX(key)
+				val z = ChunkSectionPos.unpackZ(key)
 				if (PathingChunk(x, z) in chunks) {
-					out += PathingSection(x, net.minecraft.util.math.ChunkSectionPos.unpackY(key), z)
+					out += PathingSection(x, ChunkSectionPos.unpackY(key), z)
 				}
 			}
 		}
