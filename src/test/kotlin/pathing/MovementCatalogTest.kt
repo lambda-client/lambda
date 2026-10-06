@@ -19,6 +19,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.*
 import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.families.WalkMovement
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
@@ -259,7 +260,7 @@ class MovementCatalogTest {
             worst = maxOf(worst, before - simulator.state.position.y)
         }
         assertTrue(
-            worst <= 0.15 + 1e-9,
+            worst <= Vanilla.CLIMB_SPEED_CAP + 1e-9,
             "a climbing fall covers at most 0.15 blocks per tick, got $worst",
         )
     }

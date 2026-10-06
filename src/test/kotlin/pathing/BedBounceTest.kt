@@ -17,10 +17,10 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.math.BlockPos
@@ -43,7 +43,7 @@ import pathing.ProbeScenarios.moveLibrary
 class BedBounceTest {
     private val bed = SnapshotBlockPhysics.of(
         VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.5625, 1.0),
-        bounceFactor = BlockPhysicsCapture.BED_BOUNCE_FACTOR,
+        bounceFactor = Vanilla.BED_BOUNCE_FACTOR.toDouble(),
     )
 
     private fun bedFloor(): SnapshotSimulationEnvironment {
@@ -91,7 +91,7 @@ class BedBounceTest {
         // The reflection happens mid-tick, so the observed velocity carries the same
         // tick's gravity and drag: ((-impact * 0.66) - g) * 0.98. The field log's
         // observed rebound (0.2542683097376668) matches this to the last digit.
-        val expected = ((-impact) * BlockPhysicsCapture.BED_BOUNCE_FACTOR - PROFILE.gravity) * 0.98
+        val expected = ((-impact) * Vanilla.BED_BOUNCE_FACTOR.toDouble() - PROFILE.gravity) * 0.98
         // 1e-6, not tighter: vanilla mixes float32 into the drag chain, and the
         // scalar recomputation here differs in association order at the ninth digit.
         assertTrue(

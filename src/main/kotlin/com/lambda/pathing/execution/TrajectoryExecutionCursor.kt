@@ -4,6 +4,7 @@ import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.world.WorldMutation
 import net.minecraft.util.math.BlockPos
@@ -158,7 +159,7 @@ class TrajectoryExecutionCursor(
 		input: MovementSimulationInput,
 		state: MovementSimulationState,
 	): Boolean {
-		val hasForwardMovement = input.forward > FORWARD_MOVEMENT_EPSILON
+		val hasForwardMovement = input.forward > Vanilla.FORWARD_INPUT_EPSILON
 		val forcedStop = !hasForwardMovement || state.horizontalCollision && !state.collidedSoftly
 		val forcedStart = input.sprint && hasForwardMovement && !input.sneak
 		return forcedStop || forcedStart
@@ -194,8 +195,6 @@ class TrajectoryExecutionCursor(
 	}
 
 	private companion object {
-		const val FORWARD_MOVEMENT_EPSILON = 1.0E-5
-
 		const val POSE_HEIGHT_DELTA = 0.3
 
 		const val MAX_POSE_LAG_FRAMES = 3

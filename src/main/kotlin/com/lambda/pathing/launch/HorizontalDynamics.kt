@@ -80,17 +80,13 @@ class HorizontalDynamics(
 
 	companion object {
 
-		const val DEFAULT_SLIPPERINESS = Kinematics.DEFAULT_SLIPPERINESS
-
-		const val AIR_DRAG = Kinematics.HORIZONTAL_DRAG
-
 		fun ground(profile: BallisticProfile, sprint: Boolean) = HorizontalDynamics(
-			friction = AIR_DRAG * DEFAULT_SLIPPERINESS,
+			friction = profile.groundFriction,
 			acceleration = profile.groundAcceleration(sprint),
 		)
 
 		fun air(sprint: Boolean) = HorizontalDynamics(
-			friction = AIR_DRAG,
+			friction = BallisticProfile.HORIZONTAL_DRAG,
 			acceleration = if (sprint) {
 				BallisticProfile.SPRINT_AIR_ACCELERATION
 			} else {

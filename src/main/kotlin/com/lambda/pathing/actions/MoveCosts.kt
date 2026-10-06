@@ -1,7 +1,6 @@
 package com.lambda.pathing.actions
 
 import com.lambda.pathing.launch.BallisticProfile
-import com.lambda.pathing.launch.Kinematics
 import com.lambda.pathing.launch.LaunchMode
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -28,7 +27,7 @@ object CoarseMoveRates {
 		var depth = 1
 		while (depth <= MAX_FALL_TABLE_DEPTH) {
 			tick++
-			velocity = Kinematics.fallStep(velocity)
+			velocity = BallisticProfile.VANILLA.fallStep(velocity)
 			fallen += velocity
 			while (depth <= MAX_FALL_TABLE_DEPTH && fallen >= depth) {
 				table[depth] = tick.toDouble()

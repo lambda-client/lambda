@@ -10,6 +10,7 @@
 package com.lambda.util.player.prediction
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -169,7 +170,7 @@ class SnapshotSimulationEnvironmentTest {
         assertClose(0.98, environment.slipperiness(BlockPos.ORIGIN))
         assertClose(0.4, environment.velocityMultiplier(BlockPos.ORIGIN))
         assertClose(0.5, environment.jumpVelocityMultiplier(BlockPos.ORIGIN))
-        assertClose(0.6, environment.slipperiness(BlockPos(1, 0, 0)))
+        assertClose(Vanilla.DEFAULT_SLIPPERINESS.toDouble(), environment.slipperiness(BlockPos(1, 0, 0)))
     }
 
     @Test

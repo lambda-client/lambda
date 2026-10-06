@@ -3,34 +3,18 @@
  */
 package pathing
 
-import com.lambda.pathing.launch.BallisticProfile
-import com.lambda.pathing.launch.HorizontalDynamics
-import com.lambda.pathing.launch.Kinematics
 import com.lambda.pathing.actions.CoarseMoveRates
+import com.lambda.pathing.launch.BallisticProfile
+import com.lambda.pathing.physics.Vanilla
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class KinematicsTest {
     @Test
-    fun `constants match vanilla and their former per-file copies`() {
-        assertEquals(0.08, Kinematics.GRAVITY)
-        assertEquals(0.98, Kinematics.VERTICAL_DRAG)
-        assertEquals(0.91, Kinematics.HORIZONTAL_DRAG)
-        assertEquals(0.6, Kinematics.DEFAULT_SLIPPERINESS)
-        assertEquals(0.42, Kinematics.JUMP_VELOCITY)
-        assertEquals(0.91 * 0.6, Kinematics.DEFAULT_GROUND_FRICTION)
-        assertEquals(Kinematics.HORIZONTAL_DRAG, HorizontalDynamics.AIR_DRAG)
-        assertEquals(Kinematics.HORIZONTAL_DRAG, BallisticProfile.HORIZONTAL_DRAG)
-        assertEquals(Kinematics.VERTICAL_DRAG, BallisticProfile.VERTICAL_DRAG)
-        assertEquals(Kinematics.GRAVITY, BallisticProfile.VANILLA.gravity)
-        assertEquals(Kinematics.JUMP_VELOCITY, BallisticProfile.VANILLA.jumpVelocity)
-    }
-
-    @Test
-    fun `fall step is gravity then drag, and the coarse fall table is built from it`() {
-        assertEquals((0.0 + 0.08) * 0.98, Kinematics.fallStep(0.0))
-        assertEquals((-0.5 + 0.08) * 0.98, Kinematics.fallStep(-0.5))
-        // Ticks to fall 1..12 blocks from rest, as the table had them before consolidation.
+    fun `fall step is gravity then vanilla drag, and the coarse fall table is built from it`() {
+        val drag = Vanilla.VERTICAL_DRAG.toDouble()
+        assertEquals((0.0 + Vanilla.GRAVITY) * drag, BallisticProfile.VANILLA.fallStep(0.0))
+        assertEquals((-0.5 + Vanilla.GRAVITY) * drag, BallisticProfile.VANILLA.fallStep(-0.5))
         var velocity = 0.0
         var fallen = 0.0
         var tick = 0
@@ -38,7 +22,7 @@ class KinematicsTest {
         val expected = DoubleArray(13)
         while (depth <= 12) {
             tick++
-            velocity = (velocity + 0.08) * 0.98
+            velocity = (velocity + Vanilla.GRAVITY) * drag
             fallen += velocity
             while (depth <= 12 && fallen >= depth) {
                 expected[depth] = tick.toDouble()

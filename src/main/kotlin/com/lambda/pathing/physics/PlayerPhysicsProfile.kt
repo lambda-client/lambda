@@ -20,9 +20,9 @@ data class PlayerPhysicsProfile(
 	val width: Double,
 	val height: Double,
 	val eyeHeight: Double,
-	val crouchHeight: Double = VANILLA_CROUCH_HEIGHT,
-	val crouchEyeHeight: Double = VANILLA_CROUCH_EYE_HEIGHT,
-	val sprintWindowTicks: Int = DEFAULT_SPRINT_WINDOW_TICKS,
+	val crouchHeight: Double = Vanilla.CROUCH_HEIGHT.toDouble(),
+	val crouchEyeHeight: Double = Vanilla.CROUCH_EYE_HEIGHT.toDouble(),
+	val sprintWindowTicks: Int = Vanilla.SPRINT_WINDOW_TICKS,
 ) {
 	fun isCompatibleWith(other: PlayerPhysicsProfile): Boolean =
 		movementSpeed.closeTo(other.movementSpeed) &&
@@ -43,24 +43,30 @@ data class PlayerPhysicsProfile(
 		abs(this - other) <= PROFILE_EPSILON * max(1.0, max(abs(this), abs(other)))
 
 	companion object {
-		const val SPRINT_SPEED_MULTIPLIER = 1.3
-
 		private const val PROFILE_EPSILON = 1e-7
-
-		const val DEFAULT_SPRINT_WINDOW_TICKS = 7
-
-		const val VANILLA_CROUCH_HEIGHT = 1.5
-		const val VANILLA_CROUCH_EYE_HEIGHT = 1.27
 
 		private val SPRINTING_SPEED_MODIFIER_ID = Identifier.ofVanilla("sprinting")
 
+		val VANILLA = PlayerPhysicsProfile(
+			movementSpeed = Vanilla.MOVEMENT_SPEED.toDouble(),
+			sneakSpeedModifier = Vanilla.SNEAKING_SPEED,
+			gravity = Vanilla.GRAVITY,
+			jumpStrength = Vanilla.JUMP_STRENGTH.toDouble(),
+			stepHeight = Vanilla.STEP_HEIGHT.toFloat().toDouble(),
+			jumpBoostVelocityModifier = 0.0,
+			slowFalling = false,
+			width = Vanilla.PLAYER_WIDTH.toDouble(),
+			height = Vanilla.PLAYER_HEIGHT.toDouble(),
+			eyeHeight = Vanilla.PLAYER_EYE_HEIGHT.toDouble(),
+		)
+
 		fun capture(player: ClientPlayerEntity): PlayerPhysicsProfile {
-			val liveSpeed = player.movementSpeed.toDouble()
+			val liveSpeed = player.getAttributeValue(EntityAttributes.MOVEMENT_SPEED)
 			val sprintBoosted = player.getAttributeInstance(EntityAttributes.MOVEMENT_SPEED)
 				?.hasModifier(SPRINTING_SPEED_MODIFIER_ID) == true
 			val standingDimensions = player.getDimensions(EntityPose.STANDING)
 			return PlayerPhysicsProfile(
-				movementSpeed = if (sprintBoosted) liveSpeed / SPRINT_SPEED_MULTIPLIER else liveSpeed,
+				movementSpeed = if (sprintBoosted) liveSpeed / Vanilla.SPRINT_SPEED_MULTIPLIER else liveSpeed,
 				sneakSpeedModifier = player.getAttributeValue(EntityAttributes.SNEAKING_SPEED),
 				gravity = player.getAttributeValue(EntityAttributes.GRAVITY),
 				jumpStrength = player.getAttributeValue(EntityAttributes.JUMP_STRENGTH),

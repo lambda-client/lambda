@@ -23,8 +23,8 @@ import com.lambda.pathing.physics.MovementInputProvider
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
-import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.SimulationEnvironment
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -135,7 +135,7 @@ class MovementSimulatorTest {
 
         assertTrue(sprinting.position.z > walking.position.z)
         assertClose(
-            walking.position.z * PlayerPhysicsProfile.SPRINT_SPEED_MULTIPLIER,
+            walking.position.z * Vanilla.SPRINT_SPEED_MULTIPLIER,
             sprinting.position.z,
             "sprint ground acceleration",
         )

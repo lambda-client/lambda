@@ -92,7 +92,7 @@ object AirSteering {
 		var factor = 1.0
 		repeat(ticks) {
 			sum += factor
-			factor *= HorizontalDynamics.AIR_DRAG
+			factor *= BallisticProfile.HORIZONTAL_DRAG
 		}
 		return sum
 	}

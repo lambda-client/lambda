@@ -29,7 +29,7 @@ class BallisticBufferParityTest {
                 }
             }
         }
-        assertEquals("b4e28f4a2106658090da67c84e4b9fc67cb2192d463de41d8e85016cdb85a151", fingerprint.hex())
+        assertEquals("34b8474495494007ad4300f1450a839a21f1fa73026d58f6161c7c862346fd2f", fingerprint.hex())
     }
 
     @Test
@@ -47,7 +47,7 @@ class BallisticBufferParityTest {
                 headroom = listOf(0.4, 1.0, Double.POSITIVE_INFINITY).random(random),
             ))
         }
-        assertEquals("edf43bd1d48d335fca8b3359f54397913dda9a782c3c9c18ef2ce81ab781a317", fingerprint.hex())
+        assertEquals("01e6824ec094d29a84bfe955280fefefa1d88d40241eae6444ed002c28fa58e3", fingerprint.hex())
     }
 
     @Test

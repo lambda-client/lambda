@@ -2,6 +2,7 @@ package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
 import com.lambda.util.BlockUtils.isFenceLike
@@ -21,35 +22,31 @@ import net.minecraft.world.World
 
 object BlockPhysicsCapture {
 
-	const val BED_BOUNCE_FACTOR = 0.6600000262260437
-
 	const val SUPPORT_COLUMN_CEILING = 2.0
 
-	private const val COLLISION_EPSILON = 1.0E-7
-
 	private val CENTERED_PLAYER_COLUMN = VoxelShapes.cuboid(
-		0.2 + COLLISION_EPSILON,
-		COLLISION_EPSILON,
-		0.2 + COLLISION_EPSILON,
-		0.8 - COLLISION_EPSILON,
-		1.0 - COLLISION_EPSILON,
-		0.8 - COLLISION_EPSILON,
+		0.2 + Vanilla.COLLISION_EPSILON,
+		Vanilla.COLLISION_EPSILON,
+		0.2 + Vanilla.COLLISION_EPSILON,
+		0.8 - Vanilla.COLLISION_EPSILON,
+		1.0 - Vanilla.COLLISION_EPSILON,
+		0.8 - Vanilla.COLLISION_EPSILON,
 	)
 
 	private val CENTERED_SUPPORT_COLUMN = VoxelShapes.cuboid(
-		0.2 + COLLISION_EPSILON,
+		0.2 + Vanilla.COLLISION_EPSILON,
 		0.0,
-		0.2 + COLLISION_EPSILON,
-		0.8 - COLLISION_EPSILON,
+		0.2 + Vanilla.COLLISION_EPSILON,
+		0.8 - Vanilla.COLLISION_EPSILON,
 		SUPPORT_COLUMN_CEILING,
-		0.8 - COLLISION_EPSILON,
+		0.8 - Vanilla.COLLISION_EPSILON,
 	)
 
 	fun coarseVoxelOf(shape: VoxelShape, bouncy: Boolean = false): CoarseVoxel {
 		if (shape.isEmpty) return CoarseVoxel.AIR
 		val underBody = VoxelShapes.combineAndSimplify(shape, CENTERED_SUPPORT_COLUMN, BooleanBiFunction.AND)
 		val top = if (underBody.isEmpty) 0.0 else underBody.getMax(Direction.Axis.Y)
-		val standsProud = top > 1.0 + COLLISION_EPSILON
+		val standsProud = top > 1.0 + Vanilla.COLLISION_EPSILON
 		return CoarseVoxel(
 			fullyPassable = false,
 			centerPassable = !VoxelShapes.matchesAnywhere(shape, CENTERED_PLAYER_COLUMN, BooleanBiFunction.AND),
@@ -81,7 +78,7 @@ object BlockPhysicsCapture {
 			unsupportedPhysics = unsupported,
 			coarseVoxel = coarseVoxel,
 			fenceLike = state.isFenceLike(),
-			bounceFactor = if (slime) 1.0 else if (bed) BED_BOUNCE_FACTOR else 0.0,
+			bounceFactor = if (slime) Vanilla.SLIME_BOUNCE_FACTOR else if (bed) Vanilla.BED_BOUNCE_FACTOR.toDouble() else 0.0,
 			dampensSteppingSpeed = slime,
 		)
 	}

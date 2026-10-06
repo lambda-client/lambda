@@ -1,6 +1,7 @@
 package com.lambda.pathing.launch
 
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.Vanilla
 
 enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 	SPRINT_JUMP(sprint = true, jumps = true),
@@ -39,7 +40,9 @@ data class BallisticProfile(
 	val sprintGroundAcceleration: Double,
 	val slipperiness: Double,
 ) {
-	private val groundFriction = HORIZONTAL_DRAG * slipperiness
+	val groundFriction: Double = (slipperiness.toFloat() * Vanilla.HORIZONTAL_DRAG).toDouble()
+
+	fun fallStep(fallSpeed: Double): Double = (fallSpeed + gravity) * VERTICAL_DRAG
 
 	fun groundAcceleration(sprint: Boolean): Double =
 		if (sprint) sprintGroundAcceleration else walkGroundAcceleration
@@ -267,28 +270,21 @@ data class BallisticProfile(
 
 		const val MAX_BOUNCE_TICKS = 64
 
-		const val SPRINT_JUMP_BOOST = Kinematics.SPRINT_JUMP_BOOST
-
-		const val INPUT_DAMPING = Kinematics.INPUT_DAMPING
-
-		const val VERTICAL_DRAG = Kinematics.VERTICAL_DRAG
-		const val HORIZONTAL_DRAG = Kinematics.HORIZONTAL_DRAG
-
-		const val WALK_AIR_ACCELERATION = INPUT_DAMPING * 0.02
-		const val SPRINT_AIR_ACCELERATION = INPUT_DAMPING * 0.026
-
 		const val MAX_ARC_TICKS = 24
 
-		private const val DEFAULT_MOVEMENT_SPEED = Kinematics.DEFAULT_MOVEMENT_SPEED
-		private const val DEFAULT_SLIPPERINESS = Kinematics.DEFAULT_SLIPPERINESS
+		const val SPRINT_JUMP_BOOST = Vanilla.SPRINT_JUMP_BOOST
 
-		val VANILLA = of(
-			movementSpeed = DEFAULT_MOVEMENT_SPEED,
-			gravity = Kinematics.GRAVITY,
-			jumpStrength = Kinematics.JUMP_VELOCITY,
-			jumpBoostVelocityModifier = 0.0,
-			slipperiness = DEFAULT_SLIPPERINESS,
-		)
+		const val VERTICAL_DRAG = Vanilla.VERTICAL_DRAG.toDouble()
+		const val HORIZONTAL_DRAG = Vanilla.HORIZONTAL_DRAG.toDouble()
+
+		private const val INPUT_DAMPING = Vanilla.INPUT_DAMPING.toDouble()
+
+		const val WALK_AIR_ACCELERATION = INPUT_DAMPING * Vanilla.AIR_ACCELERATION
+		const val SPRINT_AIR_ACCELERATION = INPUT_DAMPING * Vanilla.SPRINT_AIR_ACCELERATION
+
+		private const val DEFAULT_SLIPPERINESS = Vanilla.DEFAULT_SLIPPERINESS.toDouble()
+
+		val VANILLA = of(PlayerPhysicsProfile.VANILLA)
 
 		fun of(
 			profile: PlayerPhysicsProfile,
@@ -308,15 +304,14 @@ data class BallisticProfile(
 			jumpBoostVelocityModifier: Double,
 			slipperiness: Double,
 		): BallisticProfile {
-
-			val slipperinessCubed = slipperiness * slipperiness * slipperiness
-			val walk = movementSpeed * (0.21600002 / slipperinessCubed)
-			val sprint = walk * PlayerPhysicsProfile.SPRINT_SPEED_MULTIPLIER
+			val slip = slipperiness.toFloat()
+			val scale = Vanilla.GROUND_ACCELERATION_SCALE / (slip * slip * slip)
+			fun acceleration(speed: Double): Double = INPUT_DAMPING * (speed.toFloat() * scale)
 			return BallisticProfile(
 				gravity = gravity,
-				jumpVelocity = jumpStrength + jumpBoostVelocityModifier,
-				walkGroundAcceleration = INPUT_DAMPING * walk,
-				sprintGroundAcceleration = INPUT_DAMPING * sprint,
+				jumpVelocity = (jumpStrength.toFloat() + jumpBoostVelocityModifier.toFloat()).toDouble(),
+				walkGroundAcceleration = acceleration(movementSpeed),
+				sprintGroundAcceleration = acceleration(movementSpeed * Vanilla.SPRINT_SPEED_MULTIPLIER),
 				slipperiness = slipperiness,
 			)
 		}

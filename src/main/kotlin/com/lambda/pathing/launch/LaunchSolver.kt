@@ -1,6 +1,7 @@
 package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -290,7 +291,7 @@ object LaunchSolver {
 
 	private val DROP_OFFSETS = listOf(0.5 + BODY_HALF_WIDTH)
 
-	private const val BODY_HALF_WIDTH = Kinematics.BODY_HALF_WIDTH
+	private const val BODY_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
 
 	private const val LANDING_SAFETY_BLOCKS = 0.2
 

@@ -19,7 +19,7 @@ class ValueAnchorContinuationTest {
     @Test
     fun `continuation shares trajectory but resets search bookkeeping`() {
         val state = MovementSimulationState.synthetic(
-            profile = PlayerPhysicsProfile(0.1, 0.3, 0.08, 0.42, 0.6, 0.0, false, 0.6, 1.8, 1.62),
+            profile = PlayerPhysicsProfile.VANILLA,
             position = Vec3d(0.5, 1.0, 0.5), rotation = Rotation(0.0, 0.0), onGround = true,
         )
         val parent = ValueAnchor(state, Stance(0, 1, 0), 0, 0, 0, 0, null, emptyList(), 0)

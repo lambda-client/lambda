@@ -2,6 +2,7 @@ package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -281,13 +282,13 @@ object BounceArcProbe {
 		return (extent + BODY_HALF_WIDTH).coerceIn(BODY_HALF_WIDTH, BounceSolver.LAUNCH_OFFSET)
 	}
 
-	private const val BODY_HALF_WIDTH = Kinematics.BODY_HALF_WIDTH
+	private const val BODY_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
 
 	private const val SUPPORT_SURFACE_EPSILON = 1.0E-4
 
 	private const val THIN_COVER_SURFACE = 0.2
 
-	private const val BODY_HEIGHT = Kinematics.BODY_HEIGHT
+	private const val BODY_HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
 
 	private const val LAUNCH_ASCENT_REACH = 3.5
 

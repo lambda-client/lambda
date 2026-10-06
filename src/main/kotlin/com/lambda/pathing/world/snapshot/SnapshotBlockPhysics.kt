@@ -1,6 +1,7 @@
 package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.physics.UnsupportedPhysics
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CollisionClass
 import net.minecraft.util.math.Box
@@ -32,7 +33,7 @@ data class SnapshotBlockPhysics(
 		}
 
 	companion object {
-		const val DEFAULT_SLIPPERINESS = 0.6
+		const val DEFAULT_SLIPPERINESS = Vanilla.DEFAULT_SLIPPERINESS.toDouble()
 
 		val AIR = SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.AIR)
 		val FULL_CUBE = SnapshotBlockPhysics(VoxelShapes.fullCube(), coarseVoxel = CoarseVoxel.FULL_BLOCK)

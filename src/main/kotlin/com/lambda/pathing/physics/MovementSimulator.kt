@@ -126,7 +126,7 @@ class MovementSimulator(
 			input.forward.coerceIn(-1.0, 1.0).toFloat(),
 		).normalize()
 
-		val hasForwardMovement = movementInput.y > FORWARD_MOVEMENT_EPSILON
+		val hasForwardMovement = movementInput.y > Vanilla.FORWARD_INPUT_EPSILON
 		if (inSneakingPose || input.forward < 0.0) doubleTapSprintTicks = 0
 
 		if (!isSprinting && hasForwardMovement && !inSneakingPose) {
@@ -142,10 +142,10 @@ class MovementSimulator(
 		hadForwardMovement = hasForwardMovement
 
 		if (movementInput.lengthSquared() != 0.0F) {
-			movementInput = movementInput.multiply(0.98F)
+			movementInput = movementInput.multiply(Vanilla.INPUT_DAMPING)
 
 			if (input.useItemSlowdown) {
-				movementInput = movementInput.multiply(0.2F)
+				movementInput = movementInput.multiply(Vanilla.USING_ITEM_SPEED_FACTOR)
 			}
 
 			if (inSneakingPose) {
@@ -159,8 +159,8 @@ class MovementSimulator(
 			--jumpingCooldown
 		}
 
-		val reduceHorizontal = velocity.horizontalLengthSquared() < 9.0E-6
-		val reduceY = abs(velocity.y) < 0.003
+		val reduceHorizontal = velocity.horizontalLengthSquared() < Vanilla.MIN_PLAYER_HORIZONTAL_SPEED_SQUARED
+		val reduceY = abs(velocity.y) < Vanilla.MIN_VERTICAL_SPEED
 
 		if (reduceHorizontal || reduceY) {
 			velocity = Vec3d(
@@ -174,7 +174,7 @@ class MovementSimulator(
 
 		if (isJumping) {
 			if (onGround && jumpingCooldown == 0) {
-				jumpingCooldown = 10
+				jumpingCooldown = Vanilla.JUMP_COOLDOWN_TICKS
 				jump()
 			}
 		} else {
@@ -205,12 +205,12 @@ class MovementSimulator(
 	private fun poseBox(height: Double): Box {
 		val halfWidth = boundingBox.lengthX * 0.5
 		return Box(
-			position.x - halfWidth + POSE_FIT_EPSILON,
-			position.y + POSE_FIT_EPSILON,
-			position.z - halfWidth + POSE_FIT_EPSILON,
-			position.x + halfWidth - POSE_FIT_EPSILON,
-			position.y + height - POSE_FIT_EPSILON,
-			position.z + halfWidth - POSE_FIT_EPSILON,
+			position.x - halfWidth + Vanilla.COLLISION_EPSILON,
+			position.y + Vanilla.COLLISION_EPSILON,
+			position.z - halfWidth + Vanilla.COLLISION_EPSILON,
+			position.x + halfWidth - Vanilla.COLLISION_EPSILON,
+			position.y + height - Vanilla.COLLISION_EPSILON,
+			position.z + halfWidth - Vanilla.COLLISION_EPSILON,
 		)
 	}
 
@@ -236,16 +236,12 @@ class MovementSimulator(
 		val travelVec = Vec3d(strafeSpeed, 0.0, forwardSpeed)
 
 		val gravity = when {
-			velocity.y <= 0.0 && profile.slowFalling -> minOf(profile.gravity, 0.01)
+			velocity.y <= 0.0 && profile.slowFalling -> minOf(profile.gravity, Vanilla.SLOW_FALLING_MAX_GRAVITY)
 			else -> profile.gravity
 		}
 
-		val slipperiness = environment.slipperiness(velocityAffectingPos)
-		var friction = 0.91F.toDouble()
-
-		if (onGround) {
-			friction *= slipperiness
-		}
+		val slipperiness = environment.slipperiness(velocityAffectingPos).toFloat()
+		val friction = ((if (onGround) slipperiness else 1.0F) * Vanilla.HORIZONTAL_DRAG).toDouble()
 
 		applyMovementInput(travelVec, slipperiness)
 		if (isClimbing()) velocity = applyClimbingSpeed(velocity)
@@ -253,38 +249,37 @@ class MovementSimulator(
 		move(travelVec)
 
 		if (isClimbing() && (horizontalCollision || isJumping)) {
-			velocity = Vec3d(velocity.x, CLIMB_RISE_SPEED, velocity.z)
+			velocity = Vec3d(velocity.x, Vanilla.CLIMB_RISE_SPEED, velocity.z)
 		}
 
 		velocity += DOWN * gravity
-		velocity *= Vec3d(friction, 0.98F.toDouble(), friction)
+		velocity *= Vec3d(friction, Vanilla.VERTICAL_DRAG.toDouble(), friction)
 	}
 
 	private fun isClimbing(): Boolean = environment.isClimbable(position.flooredBlockPos)
 
 	private fun applyClimbingSpeed(motion: Vec3d): Vec3d {
+		val cap = Vanilla.CLIMB_SPEED_CAP.toDouble()
 		val holding = isSneaking && motion.y < 0.0
 		return Vec3d(
-			motion.x.coerceIn(-CLIMB_HORIZONTAL_CAP, CLIMB_HORIZONTAL_CAP),
-			if (holding) 0.0 else maxOf(motion.y, -CLIMB_FALL_CAP),
-			motion.z.coerceIn(-CLIMB_HORIZONTAL_CAP, CLIMB_HORIZONTAL_CAP),
+			motion.x.coerceIn(-cap, cap),
+			if (holding) 0.0 else maxOf(motion.y, -cap),
+			motion.z.coerceIn(-cap, cap),
 		)
 	}
 
-	private fun applyMovementInput(travelVec: Vec3d, slipperiness: Double) {
-		val movementSpeed = run {
-			val slipperinessCubed = slipperiness * slipperiness * slipperiness
-			val movementSpeed = profile.movementSpeed *
-					(if (isSprinting) PlayerPhysicsProfile.SPRINT_SPEED_MULTIPLIER else 1.0)
-
-			val groundSpeed = movementSpeed * (0.21600002F / slipperinessCubed)
-			val airSpeed = if (isSprinting) 0.026 else 0.02
-
-			if (onGround) groundSpeed else airSpeed
-		}.toFloat()
-
-		velocity += movementInputToVelocity(travelVec, movementSpeed, rotation.yawF)
+	private fun applyMovementInput(travelVec: Vec3d, slipperiness: Float) {
+		val speed = when {
+			onGround -> movementSpeed() *
+					(Vanilla.GROUND_ACCELERATION_SCALE / (slipperiness * slipperiness * slipperiness))
+			isSprinting -> Vanilla.SPRINT_AIR_ACCELERATION
+			else -> Vanilla.AIR_ACCELERATION
+		}
+		velocity += movementInputToVelocity(travelVec, speed, rotation.yawF)
 	}
+
+	private fun movementSpeed(): Float =
+		(if (isSprinting) profile.movementSpeed * Vanilla.SPRINT_SPEED_MULTIPLIER else profile.movementSpeed).toFloat()
 
 	private fun move(movementInput: Vec3d) {
 		val requested = adjustMovementForSneaking(velocity)
@@ -324,11 +319,11 @@ class MovementSimulator(
 
 		velocity *= Vec3d(velocityMultiplier, 1.0, velocityMultiplier)
 
-		velocityAffectingPos = posWithYOffset(VELOCITY_AFFECTING_Y_OFFSET)
+		velocityAffectingPos = posWithYOffset(Vanilla.VELOCITY_AFFECTING_POS_OFFSET.toDouble())
 	}
 
 	private fun onEntityLand() {
-		val bounce = if (isSneaking) 0.0 else environment.bounceFactor(posWithYOffset(LANDING_Y_OFFSET))
+		val bounce = if (isSneaking) 0.0 else environment.bounceFactor(posWithYOffset(Vanilla.LANDING_POS_OFFSET.toDouble()))
 		velocity = if (bounce > 0.0 && velocity.y < 0.0) {
 			Vec3d(velocity.x, -velocity.y * bounce, velocity.z)
 		} else {
@@ -339,10 +334,10 @@ class MovementSimulator(
 	private fun tickBlockCollision() {
 		if (!onGround) return
 		val vertical = abs(velocity.y)
-		if (vertical >= STEPPING_DRAG_MAX_VERTICAL) return
-		if (!environment.dampensSteppingSpeed(posWithYOffset(LANDING_Y_OFFSET))) return
+		if (vertical >= Vanilla.SLIME_STEP_MAX_VERTICAL_SPEED) return
+		if (!environment.dampensSteppingSpeed(posWithYOffset(Vanilla.LANDING_POS_OFFSET.toDouble()))) return
 
-		val drag = STEPPING_DRAG_BASE + vertical * STEPPING_DRAG_VERTICAL_SCALE
+		val drag = Vanilla.SLIME_STEP_DRAG + vertical * Vanilla.SLIME_STEP_DRAG_PER_VERTICAL_SPEED
 		velocity = Vec3d(velocity.x * drag, velocity.y, velocity.z * drag)
 	}
 
@@ -354,13 +349,13 @@ class MovementSimulator(
 		val intendedZ = input.z * cos + input.x * sin
 		val intendedSquared = intendedX * intendedX + intendedZ * intendedZ
 		val adjustedSquared = adjustedMovement.x * adjustedMovement.x + adjustedMovement.z * adjustedMovement.z
-		if (intendedSquared < SOFT_COLLISION_MIN_SQUARED || adjustedSquared < SOFT_COLLISION_MIN_SQUARED) {
+		if (intendedSquared < Vanilla.SOFT_COLLISION_MIN_SQUARED || adjustedSquared < Vanilla.SOFT_COLLISION_MIN_SQUARED) {
 			return false
 		}
 
 		val dot = intendedX * adjustedMovement.x + intendedZ * adjustedMovement.z
 		val cosine = dot / sqrt(intendedSquared * adjustedSquared)
-		return acos(cosine) < SOFT_COLLISION_MAX_ANGLE_RADIANS
+		return acos(cosine) < Vanilla.SOFT_COLLISION_MAX_ANGLE
 	}
 
 	private fun updateSupportingBlockPos(onGround: Boolean, movement: Vec3d?) {
@@ -371,7 +366,7 @@ class MovementSimulator(
 		}
 
 		val probe = Box(
-			boundingBox.minX, boundingBox.minY - 1.0E-6, boundingBox.minZ,
+			boundingBox.minX, boundingBox.minY - Vanilla.SUPPORTING_BLOCK_PROBE_DEPTH, boundingBox.minZ,
 			boundingBox.maxX, boundingBox.minY, boundingBox.maxZ,
 		)
 		var found = environment.findSupportingBlockPos(probe, position)
@@ -389,37 +384,9 @@ class MovementSimulator(
 		val supporting = supportingBlockPos
 			?: return (position + DOWN * offset).flooredBlockPos
 
-		if (offset <= 1.0E-5) return supporting
+		if (offset <= Vanilla.MIN_POS_OFFSET) return supporting
 		if (environment.isFenceLike(supporting)) return supporting
 		return supporting.withY(MathHelper.floor(position.y - offset))
-	}
-
-	private companion object {
-
-		const val LEDGE_CLIP_STEP = 0.05
-
-		const val LEDGE_CLIP_EPSILON = 1.0E-7
-
-		const val POSE_FIT_EPSILON = 1.0E-7
-
-		const val LANDING_Y_OFFSET = 0.2
-
-		const val STEPPING_DRAG_MAX_VERTICAL = 0.1
-		const val STEPPING_DRAG_BASE = 0.4
-		const val STEPPING_DRAG_VERTICAL_SCALE = 0.2
-
-		const val CLIMB_HORIZONTAL_CAP = 0.15
-
-		const val CLIMB_FALL_CAP = 0.15
-
-		const val CLIMB_RISE_SPEED = 0.2
-
-		const val VELOCITY_AFFECTING_Y_OFFSET = 0.500001
-
-		const val FORWARD_MOVEMENT_EPSILON = 1.0E-5F
-
-		private const val SOFT_COLLISION_MIN_SQUARED = 1.0E-5F.toDouble()
-		private const val SOFT_COLLISION_MAX_ANGLE_RADIANS = 0.13962634F.toDouble()
 	}
 
 	private fun jump() {
@@ -430,16 +397,16 @@ class MovementSimulator(
 		}.toFloat()
 		val jumpVelocity = profile.jumpStrength.toFloat() * multiplier +
 				profile.jumpBoostVelocityModifier.toFloat()
-		if (jumpVelocity <= 1.0E-5F) return
+		if (jumpVelocity <= Vanilla.MIN_JUMP_VELOCITY) return
 
 		velocity = Vec3d(velocity.x, maxOf(jumpVelocity.toDouble(), velocity.y), velocity.z)
 
 		if (isSprinting) {
 			val yawRad = rotation.yawF * (Math.PI / 180.0).toFloat()
 			velocity += Vec3d(
-				-MathHelper.sin(yawRad.toDouble()).toDouble() * 0.2,
+				-MathHelper.sin(yawRad.toDouble()).toDouble() * Vanilla.SPRINT_JUMP_BOOST,
 				0.0,
-				MathHelper.cos(yawRad.toDouble()).toDouble() * 0.2,
+				MathHelper.cos(yawRad.toDouble()).toDouble() * Vanilla.SPRINT_JUMP_BOOST,
 			)
 		}
 	}
@@ -476,18 +443,18 @@ class MovementSimulator(
 	private fun isSpaceUnderFeetEmpty(offsetX: Double, offsetZ: Double, stepHeight: Double): Boolean =
 		environment.isSpaceEmpty(
 			Box(
-				boundingBox.minX + LEDGE_CLIP_EPSILON + offsetX,
-				boundingBox.minY - stepHeight - LEDGE_CLIP_EPSILON,
-				boundingBox.minZ + LEDGE_CLIP_EPSILON + offsetZ,
-				boundingBox.maxX - LEDGE_CLIP_EPSILON + offsetX,
+				boundingBox.minX + Vanilla.COLLISION_EPSILON + offsetX,
+				boundingBox.minY - stepHeight - Vanilla.COLLISION_EPSILON,
+				boundingBox.minZ + Vanilla.COLLISION_EPSILON + offsetZ,
+				boundingBox.maxX - Vanilla.COLLISION_EPSILON + offsetX,
 				boundingBox.minY,
-				boundingBox.maxZ - LEDGE_CLIP_EPSILON + offsetZ,
+				boundingBox.maxZ - Vanilla.COLLISION_EPSILON + offsetZ,
 			)
 		) == true
 
 	private fun shrinkTowardsZero(delta: Double): Double =
-		if (abs(delta) <= LEDGE_CLIP_STEP) 0.0
-		else delta - sign(delta) * LEDGE_CLIP_STEP
+		if (abs(delta) <= Vanilla.LEDGE_CLIP_STEP) 0.0
+		else delta - sign(delta) * Vanilla.LEDGE_CLIP_STEP
 
 	private fun normalizedBoundingBox(): Box =
 		boundingBox.offset(-boundingBox.minX, -boundingBox.minY, -boundingBox.minZ)
@@ -495,7 +462,7 @@ class MovementSimulator(
 
 	private fun movementInputToVelocity(input: Vec3d, speed: Float, yaw: Float): Vec3d {
 		val lengthSquared = input.lengthSquared()
-		if (lengthSquared < 1.0E-7) return Vec3d.ZERO
+		if (lengthSquared < Vanilla.MIN_INPUT_LENGTH_SQUARED) return Vec3d.ZERO
 
 		val scaled = (if (lengthSquared > 1.0) input.normalize() else input).multiply(speed.toDouble())
 		val radians = yaw * (Math.PI / 180.0).toFloat()

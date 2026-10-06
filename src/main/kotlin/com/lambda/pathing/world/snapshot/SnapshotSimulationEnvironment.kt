@@ -5,6 +5,7 @@ import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
 import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -188,12 +189,12 @@ class SnapshotSimulationEnvironment internal constructor(
 	)
 
 	private fun collectBlockShapes(query: Box, observer: SnapshotReadObserver?): List<VoxelShape> {
-		val minX = MathHelper.floor(query.minX - COLLISION_EPSILON) - 1
-		val maxX = MathHelper.floor(query.maxX + COLLISION_EPSILON) + 1
-		val minY = MathHelper.floor(query.minY - COLLISION_EPSILON) - 1
-		val maxY = MathHelper.floor(query.maxY + COLLISION_EPSILON) + 1
-		val minZ = MathHelper.floor(query.minZ - COLLISION_EPSILON) - 1
-		val maxZ = MathHelper.floor(query.maxZ + COLLISION_EPSILON) + 1
+		val minX = MathHelper.floor(query.minX - Vanilla.COLLISION_EPSILON) - 1
+		val maxX = MathHelper.floor(query.maxX + Vanilla.COLLISION_EPSILON) + 1
+		val minY = MathHelper.floor(query.minY - Vanilla.COLLISION_EPSILON) - 1
+		val maxY = MathHelper.floor(query.maxY + Vanilla.COLLISION_EPSILON) + 1
+		val minZ = MathHelper.floor(query.minZ - Vanilla.COLLISION_EPSILON) - 1
+		val maxZ = MathHelper.floor(query.maxZ + Vanilla.COLLISION_EPSILON) + 1
 
 		var result: ArrayList<VoxelShape>? = null
 		val mutable = BlockPos.Mutable()
@@ -247,12 +248,12 @@ class SnapshotSimulationEnvironment internal constructor(
 		entityPos: Vec3d,
 		observer: SnapshotReadObserver?,
 	): BlockPos? {
-		val minX = MathHelper.floor(box.minX - COLLISION_EPSILON) - 1
-		val maxX = MathHelper.floor(box.maxX + COLLISION_EPSILON) + 1
-		val minY = MathHelper.floor(box.minY - COLLISION_EPSILON) - 1
-		val maxY = MathHelper.floor(box.maxY + COLLISION_EPSILON) + 1
-		val minZ = MathHelper.floor(box.minZ - COLLISION_EPSILON) - 1
-		val maxZ = MathHelper.floor(box.maxZ + COLLISION_EPSILON) + 1
+		val minX = MathHelper.floor(box.minX - Vanilla.COLLISION_EPSILON) - 1
+		val maxX = MathHelper.floor(box.maxX + Vanilla.COLLISION_EPSILON) + 1
+		val minY = MathHelper.floor(box.minY - Vanilla.COLLISION_EPSILON) - 1
+		val maxY = MathHelper.floor(box.maxY + Vanilla.COLLISION_EPSILON) + 1
+		val minZ = MathHelper.floor(box.minZ - Vanilla.COLLISION_EPSILON) - 1
+		val maxZ = MathHelper.floor(box.maxZ + Vanilla.COLLISION_EPSILON) + 1
 
 		var best: BlockPos? = null
 		var bestDistance = Double.MAX_VALUE
@@ -367,8 +368,6 @@ class SnapshotSimulationEnvironment internal constructor(
 				maxZ > z && minZ < z + 1.0
 
 	companion object {
-		private const val COLLISION_EPSILON = 1.0E-7
-
 		internal fun beginCapture(
 			world: World,
 			player: ClientPlayerEntity,

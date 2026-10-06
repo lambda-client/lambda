@@ -2,6 +2,7 @@ package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
@@ -365,13 +366,13 @@ object JumpArcProbe {
 	}
 
 	internal const val CORE_HALF_WIDTH = 0.2
-	private const val BODY_HEIGHT = Kinematics.BODY_HEIGHT
+	private const val BODY_HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
 	private const val CLEARANCE_CAP = 0.5
 	private const val FLOOR_CONTACT_EPSILON = 1.0E-7
 
 	private const val MIN_DODGE_SLACK = 0.05
 
-	private const val DODGE_HALF_WIDTH = Kinematics.BODY_HALF_WIDTH
+	private const val DODGE_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
 
 	private val DODGE_FRACTIONS = doubleArrayOf(0.5, -0.5, 1.0, -1.0)
 
