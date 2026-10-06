@@ -76,26 +76,6 @@ class TransferResult internal constructor(
 	val containerSelection: ContainerSelection
 )
 
-/**
- * Moves items matching [fromStack] out of containers matching [fromSelection] into containers matching
- * [toSelection].
- *
- * Counting semantics: [StackSelection.count] of [fromStack] is the exact number of items to move. A count
- * of `0` or less moves everything that matches. Individual moves are planned to the exact item count using
- * left and right clicks (see [StackMovePlanner]); a whole stack is only moved past the requested count when
- * the sole way into the destination is swapping out a foreign stack.
- *
- * Destination slots are chosen in this order: a partial stack of the very same item, an empty slot, then (only
- * when nothing else is possible) a foreign stack matching [toStack] that gets swapped into the source slot.
- * [toStack] only ever selects the foreign stacks that may be swapped out; empty slots are always allowed.
- *
- * When both containers are external (chests, shulker boxes, ender chest) items travel through the player's
- * hotbar and inventory: a trip pulls as much as fits (or as much as still needs moving) into free player
- * slots, closes the source, opens the destination and pushes exactly the staged items back out. Trips repeat
- * until the request is satisfied, so sources larger than the player inventory work too. Items the player
- * already carried are never pushed, and anything staged that no destination can take is returned to the source
- * before the task settles.
- */
 class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private val fromStack: StackSelection,
 	private val fromSelection: ContainerSelection,
@@ -105,7 +85,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 ) : Task<TransferResult>(), Automated by automated {
 	override val name = "Transferring $fromStack"
 
-	/** `true` when [fromStack] carries no count: everything matching gets moved. */
 	private val unlimited = fromStack.count <= 0
 
 	private var transferred = 0
@@ -116,10 +95,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private val isComplete
 		get() = !unlimited && remaining <= 0
 
-	/** Items pulled out of an external source that are still waiting in the player inventory to be pushed. */
 	private var staged = 0
 
-	/** The source the most recent step used; staged leftovers go back there. */
 	private var lastSource: Container? = null
 
 	private val progressText
@@ -131,18 +108,15 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private val fromQueue = mutableListOf<Container>()
 	private val toQueue = mutableListOf<Container>()
 
-	/** The player containers trips may stage items in, honouring the allowed container config. */
 	private val stagingContainers: List<Container>
 		get() = listOf(InventoryContainer, HotbarContainer)
 			.filter { it.isAccessible }
 
-	/** How much a trip may still pull: what is left to move minus what is already waiting in the player inventory. */
 	private val pullLimit
 		get() =
 			if (unlimited) Int.MAX_VALUE
 			else (remaining - staged).coerceAtLeast(0)
 
-	/** How much a push may move: only staged items, and never more than the request still needs. */
 	private val pushLimit
 		get() =
 			if (unlimited) staged
@@ -169,11 +143,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		nextStep()
 	}
 
-	/**
-	 * Picks the next source and destination pair and runs one transfer step between them. A step either moves
-	 * items directly (at most one side external) or performs a pull/push trip through the player inventory
-	 * (both sides external). Repeats until the requested count is reached or a queue runs dry.
-	 */
 	private fun SafeContext.nextStep() {
 		if (isComplete) {
 			success(buildResult())
@@ -216,10 +185,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			.start()
 	}
 
-	/**
-	 * A destination can receive when it has room for the item (a partial stack or an empty slot) or holds a
-	 * stack matching [toStack] that may be swapped out.
-	 */
 	private fun canReceive(container: Container) =
 		container.spaceLeft(fromStack.mutate(1)) > 0 ||
 			container.count(toStack.mutate { notEmpty(); withoutSelection(fromStack) }) > 0
@@ -246,13 +211,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			)
 		)
 
-	/**
-	 * Moves directly between [from] and [to]. At most one of them is external, so at most one screen has to be
-	 * opened; screens this task opened are closed again afterwards.
-	 */
 	private fun directChain(from: Container, to: Container): Task<*> {
-		// Every queued player-side destination travels along with [to]: a request for "hotbar and inventory" is
-		// one destination as far as vanilla's quick-move is concerned, and the move may use whichever has room.
 		val toContainers =
 			if (to is ExternalContainer) listOf(to)
 			else listOf(to) +
@@ -286,10 +245,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		}
 	}
 
-	/**
-	 * One trip for two external containers: pull from [from] into free player slots, close it, then push the
-	 * staged items into the destination queue. Loops are driven naturally by [nextStep].
-	 */
 	private fun tripChain(from: Container): Task<*> =
 		taskOrNull { from.access() }
 			.then { fromContext ->
@@ -311,10 +266,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 			.then { pushChain(from) }
 
-	/**
-	 * Pushes staged items from the player inventory into the first available destination. If a destination
-	 * fills up (or takes nothing) while items are still staged, advances [toQueue] and pushes to the next one.
-	 */
 	private fun pushChain(from: Container): Task<*> {
 		val to = toQueue.firstOrNull { !it.haveMatchingInventories(from) }
 			?: return taskOrNull<Unit> { null }
@@ -330,7 +281,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					limit = pushLimit
 				).thenOrNull { pushed ->
 					staged = (staged - pushed).coerceAtLeast(0)
-					// A destination that took nothing is done for, whatever canReceive() thinks of it.
 					if (pushed <= 0 || !canReceive(to)) {
 						toQueue.removeAll { it.haveMatchingInventories(to) }
 					}
@@ -345,7 +295,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 	}
 
-	/** A source slot and the destination slot chosen for it, with the containers they belong to. */
 	private data class SlotPair(
 		val fromContainer: Container,
 		val fromSlot: Slot,
@@ -359,19 +308,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 	}
 
-	/**
-	 * Moves items between already-accessed containers. Slot pairs are selected fresh each tick using
-	 * [fromSelection] and the container's own [Container.findSlot] / [Container.findReplaceSlot] APIs —
-	 * no slot references are cached across ticks.
-	 *
-	 * A foreign stack in the chosen destination slot is swapped out with the container's own [Container.swap].
-	 * A whole stack is shift-clicked with vanilla's quick-move when that is certain to land inside [toContainers]
-	 * and the cursor is empty. Everything else is clicked through along a [StackMovePlanner] plan, which reaches
-	 * the exact item count in the exact slot and carries on from whatever the cursor still holds.
-	 *
-	 * @param allowReplace whether a foreign stack matching [toSelection] may be swapped out as a last resort.
-	 * @param trackResult whether destination slots are recorded for the [TransferResult].
-	 */
 	private inner class MoveTask @Ta5kBuilder constructor(
 		private val fromContainers: List<Container>,
 		private val toContainers: List<Container>,
@@ -384,7 +320,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		override val name get() = "Moving ${this@MoveTask.fromSelection}"
 		private var moved = 0
 
-		/** Foreign stacks that may be swapped out: the destination filter minus anything the source filter matches. */
 		private val toSelection =
 			toSelection.mutate {
 				notEmpty()
@@ -420,7 +355,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					toContainers.firstNotNullOfOrNull { toContainer ->
 						if (toContainer.haveMatchingInventories(fromContainer)) return@firstNotNullOfOrNull null
 						if (!fromContainer.canSwapWith(toContainer)) return@firstNotNullOfOrNull null
-						findDestinationSlot(fromSlot, toContainer)?.let { toSlot ->
+						findToSlot(fromSlot, toContainer)?.let { toSlot ->
 							SlotPair(fromContainer, fromSlot, toContainer, toSlot)
 						}
 					}
@@ -434,13 +369,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			move(pair, atMost = currentLimit)
 		}
 
-		/**
-		 * The slot of [toContainer] that should receive the stack in [fromSlot]: a partial stack of the very same
-		 * item (components included) is topped up first, then an empty slot is used; the destination filter never
-		 * restricts those. Only as a last resort, and only when [allowReplace] permits it, a foreign stack matching
-		 * [toSelection] is chosen to be swapped out.
-		 */
-		private fun AutomatedSafeContext.findDestinationSlot(fromSlot: Slot, toContainer: Container): Slot? {
+		private fun AutomatedSafeContext.findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
 			val stack = fromSlot.stack
 			val partialStack =
 				stackSelection {
@@ -452,40 +381,15 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				?: findSwappableSlot(fromSlot, toContainer)
 		}
 
-		/** A foreign stack of [toContainer] matching [toSelection] that [fromSlot] accepts in return. */
 		private fun AutomatedSafeContext.findSwappableSlot(fromSlot: Slot, toContainer: Container): Slot? {
 			if (!allowReplace) return null
 			return toContainer.findReplaceSlot(fromSlot.stack, toSelection)?.takeIf { fromSlot.canInsert(it.stack) }
 		}
 
-		/**
-		 * Vanilla's quick-move (shift-click) picks the target slot itself: from a container screen it fills the
-		 * whole player inventory (hotbar first), from the player inventory it fills the open container, and
-		 * inside the player's own screen it moves between hotbar and main inventory, equipping armour on the
-		 * way. It may only be used when every slot it could pick belongs to one of [toContainers].
-		 */
-		private fun AutomatedSafeContext.quickMoveStaysInside(fromContainer: Container, stack: ItemStack): Boolean {
-			if (stack.components.contains(DataComponentTypes.EQUIPPABLE)) return false
-			val playerScreen = player.currentScreenHandler === player.playerScreenHandler
-			fun covers(container: Container) = toContainers.any { it.haveMatchingInventories(container) }
-			fun coversOpenContainer() = toContainers.any { it is ExternalContainer && it.isAccessed }
-			return when {
-				fromContainer is ExternalContainer -> covers(InventoryContainer) && covers(HotbarContainer)
-				fromContainer === InventoryContainer -> if (playerScreen) covers(HotbarContainer) else coversOpenContainer()
-				fromContainer === HotbarContainer -> if (playerScreen) covers(InventoryContainer) else coversOpenContainer()
-				else -> false
-			}
-		}
-
-		/**
-		 * Moves at most [atMost] items along [pair]. A foreign stack in the destination slot can only be swapped
-		 * out whole. A whole stack takes vanilla's quick-move when that is certain to land inside [toContainers]
-		 * and nothing is on the cursor. Everything else is clicked through to the exact count.
-		 */
 		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int) {
 			val stack = pair.fromSlot.stack
 			val count = minOf(stack.count, atMost)
-			val cursor = player.currentScreenHandler.cursorStack
+			val cursor = CursorContainer.stacks.firstOrNull() ?: ItemStack.EMPTY
 			when {
 				pair.toSlot.stack.isForeignTo(stack) -> swapOut(pair)
 				count == stack.count && cursor.isEmpty && quickMoveStaysInside(pair.fromContainer, stack) -> quickMoveWhole(pair)
@@ -493,7 +397,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 		}
 
-		/** Swaps the whole source stack with the foreign stack in the destination slot; vanilla knows no other way into an occupied slot. */
 		private fun AutomatedSafeContext.swapOut(pair: SlotPair) {
 			val count = pair.fromSlot.stack.count
 			val request = pair.fromContainer.swapRequest(pair.fromSlot, pair.toSlot, pair.toContainer)?.submit()
@@ -507,10 +410,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 		}
 
-		/**
-		 * Shift-clicks the whole stack and lets vanilla pick the slots, so the destination containers are diffed
-		 * afterwards to learn where the items went.
-		 */
 		private fun AutomatedSafeContext.quickMoveWhole(pair: SlotPair) {
 			if (availablePackets(PacketType.Inventory) < 1) return
 			if (ContainerEvent.Transfer(pair.fromSlot, pair.toSlot, pair.fromContainer, pair.toContainer).post().isCanceled()) return
@@ -535,28 +434,26 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			if (trackResult) recordReceivingSlots(destinationsBefore)
 		}
 
-		/**
-		 * Clicks exactly [count] items across along a [StackMovePlanner] plan that fits this tick's inventory
-		 * packet budget. When the full count does not fit, as much as the budget allows is moved now and the rest
-		 * follows on later ticks.
-		 */
 		private fun AutomatedSafeContext.clickThrough(pair: SlotPair, count: Int) {
 			if (!CursorContainer.isAccessible) {
 				finish()
 				return
 			}
 			val stack = pair.fromSlot.stack
-			val cursor = player.currentScreenHandler.cursorStack
+			val cursor = CursorContainer.stacks.firstOrNull() ?: return
 			// A foreign stack on the cursor is somebody else's business; wait until it has been put away.
-			if (cursor.isForeignTo(stack)) return
+			if (cursor.isForeignTo(stack)) {
+				finish()
+				return
+			}
 
 			val budget = availablePackets(PacketType.Inventory)
-			val destinationBefore = pair.toSlot.stack.count
+			val beforeTo = pair.toSlot.stack.count
 			val plan =
 				StackMovePlanner.planWithin(
-					state = StackMovePlanner.State(cursor.count, stack.count, destinationBefore),
+					state = StackMovePlanner.State(cursor.count, stack.count, beforeTo),
 					maxCount = pair.toSlot.getMaxItemCount(stack),
-					goal = destinationBefore + count,
+					goal = beforeTo + count,
 					clickBudget = budget
 				)
 			if (plan == null) {
@@ -565,7 +462,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				return
 			}
 
-			if (ContainerEvent.Transfer(pair.fromSlot, pair.toSlot, pair.fromContainer, pair.toContainer).post().isCanceled()) return
+			val transferEvent = ContainerEvent.Transfer(pair.fromSlot, pair.toSlot, pair.fromContainer, pair.toContainer)
+			if (transferEvent.post().isCanceled()) return
 			val request =
 				inventoryRequest {
 					plan.clicks.forEach { click -> pickup(pair[click.target].id, click.button.id) }
@@ -575,11 +473,23 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				return
 			}
 
-			recordMoved(plan.destination - destinationBefore)
+			recordMoved(plan.destination - beforeTo)
 			recordDestination(pair.toSlot, pair.toContainer)
 		}
 
-		/** Books every destination slot that holds more than it did [before] vanilla's quick-move. */
+		private fun AutomatedSafeContext.quickMoveStaysInside(fromContainer: Container, stack: ItemStack): Boolean {
+			if (stack.components.contains(DataComponentTypes.EQUIPPABLE)) return false
+			val playerScreen = player.currentScreenHandler.syncId == 0
+			fun covers(container: Container) = toContainers.any { it.haveMatchingInventories(container) }
+			fun coversOpenContainer() = toContainers.any { it is ExternalContainer && it.isAccessed }
+			return when {
+				fromContainer is ExternalContainer -> covers(InventoryContainer) && covers(HotbarContainer)
+				fromContainer === InventoryContainer -> if (playerScreen) covers(HotbarContainer) else coversOpenContainer()
+				fromContainer === HotbarContainer -> if (playerScreen) covers(InventoryContainer) else coversOpenContainer()
+				else -> false
+			}
+		}
+
 		private fun recordReceivingSlots(before: List<List<ItemStack>>) {
 			toContainers.zip(before).forEach { (container, previous) ->
 				container.slots.forEachIndexed { index, slot ->
@@ -599,10 +509,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			resultContainers += container
 		}
 
-		/**
-		 * A request the manager could not take this tick is retried next tick when the cause clears up by itself
-		 * (packet limit, another request already running); any other cause will not, so the move ends here.
-		 */
 		private fun finishUnlessTransient(failureReason: InvRequestFailureReason) {
 			if (failureReason == InvRequestFailureReason.None) finish()
 		}
@@ -613,10 +519,8 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 		private fun ItemStack.sameItemAs(other: ItemStack) = ItemStack.areItemsAndComponentsEqual(this, other)
 
-		/** A non-empty stack of another item, or of the same item with other components. */
 		private fun ItemStack.isForeignTo(other: ItemStack) = !isEmpty && !sameItemAs(other)
 
-		/** Whether this stack holds something [previous] did not, or more of it. */
 		private fun ItemStack.grewFrom(previous: ItemStack?) =
 			!isEmpty && (previous == null || previous.isEmpty || !sameItemAs(previous) || count > previous.count)
 	}
