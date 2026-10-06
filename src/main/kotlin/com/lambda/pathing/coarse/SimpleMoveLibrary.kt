@@ -15,6 +15,8 @@ import kotlin.math.hypot
 class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	val templates: List<MotionTemplate> = catalog.templates
 	private val templatesWithoutBounces = templates.filter { it.movement != MovementId.BOUNCE }
+	private val bounceReach = templates.maxOfOrNull { if (it.bounceDrop == null) 0 else 2 * maxOf(abs(it.dx), abs(it.dz)) + 1 } ?: 0
+	private val bounceDepth = templates.maxOfOrNull { it.bounceDrop?.plus(2) ?: 0 } ?: 0
 	private val readOffsets: Set<VoxelPos> = templates.flatMapTo(HashSet()) { it.readOffsets }
 	private val heuristicCaps: HeuristicCaps = deriveCaps(templates)
 	val sustainedTicksPerBlock: Double = sustainedRate(templates)
@@ -83,7 +85,9 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 		return stands || catalog.movements.any { it.occupies(view, stance) }
 	}
 
-	fun templates(view: CoarseVoxelView): List<MotionTemplate> = if (view.mayBounce()) templates else templatesWithoutBounces
+	fun templates(view: CoarseVoxelView, at: Stance): List<MotionTemplate> =
+		if (bounceDepth > 0 && view.mayBounceWithin(at.x - bounceReach, at.y - bounceDepth, at.z - bounceReach, at.x + bounceReach, at.y, at.z + bounceReach)) templates
+		else templatesWithoutBounces
 
 	fun heuristic(from: Stance, to: Stance): Double = heuristic(from.x, from.y, from.z, to.x, to.y, to.z)
 

@@ -71,7 +71,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override val revision: Any get() = store
 
-	override fun mayBounce(): Boolean = store.bouncySections > 0
+	override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
 	override fun cursor(): CoarseVoxelView = SectionCursor()
 
@@ -217,7 +218,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override val revision: Any get() = store
 
-		override fun mayBounce(): Boolean = this@SnapshotSimulationEnvironment.mayBounce()
+		override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
 		override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z, ::at)
 

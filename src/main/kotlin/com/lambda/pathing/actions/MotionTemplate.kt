@@ -45,6 +45,8 @@ class MotionTemplate internal constructor(
 
 	internal val minimumTicks: Double = minOf(lowerBoundTicks, strideCost ?: lowerBoundTicks)
 
+	internal val bounceDrop: Int? get() = arc?.bounceDrop
+
 	private fun surfaceOffset(view: CoarseVoxelView, stance: Stance): Double =
 		view.surfaceOffset(stance.x, stance.y - 1, stance.z)
 

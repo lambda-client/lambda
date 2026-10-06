@@ -1,5 +1,6 @@
 package com.lambda.pathing.world.streaming
 
+import com.lambda.pathing.core.PathingChunk
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlin.math.abs
 
@@ -8,7 +9,7 @@ class TrustedChunks(private val source: CaptureSource) {
 	private var published = LongOpenHashSet()
 	private var refreshTick = 0
 
-	fun contains(chunkX: Int, chunkZ: Int): Boolean = chunkKey(chunkX, chunkZ) in published
+	fun contains(chunkX: Int, chunkZ: Int): Boolean = PathingChunk.key(chunkX, chunkZ) in published
 
 	fun isTrusted(chunkX: Int, chunkZ: Int): Boolean {
 		if (!source.isChunkLoaded(chunkX, chunkZ)) return false
@@ -32,14 +33,11 @@ class TrustedChunks(private val source: CaptureSource) {
 		val reach = view + CHUNK_FILTER_EDGE_MARGIN
 		for (cx in (centerX - reach)..(centerX + reach)) {
 			for (cz in (centerZ - reach)..(centerZ + reach)) {
-				if (isTrusted(cx, cz)) fresh += chunkKey(cx, cz)
+				if (isTrusted(cx, cz)) fresh += PathingChunk.key(cx, cz)
 			}
 		}
 		published = fresh
 	}
-
-	private fun chunkKey(chunkX: Int, chunkZ: Int): Long =
-		(chunkX.toLong() and 0xFFFFFFFFL) or ((chunkZ.toLong() and 0xFFFFFFFFL) shl 32)
 
 	companion object {
 		const val CHUNK_FILTER_EDGE_MARGIN = 2

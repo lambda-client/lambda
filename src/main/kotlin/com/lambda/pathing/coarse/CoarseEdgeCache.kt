@@ -16,8 +16,6 @@ internal class CoarseEdgeCache(
 	private val outgoing = Long2ObjectOpenHashMap<List<CoarseEdge>>()
 	private val incoming = Long2ObjectOpenHashMap<List<CoarseEdge>>()
 
-	private val nonStanceTargets = LongOpenHashSet()
-
 	private val completeOrigins = LongOpenHashSet()
 
 	private val standable = StanceMemo(view, moves)
@@ -26,14 +24,17 @@ internal class CoarseEdgeCache(
 		val key = PackedStance.stanceKey(node)
 		return outgoing.get(key) ?: run {
 			val stance = PackedStance.stance(key)
+			val complete = !moves.readsUnknown(view, stance)
 			val edges = computeEdgesFrom(stance)
 			outgoing.put(key, edges)
-			if (!moves.readsUnknown(view, stance)) completeOrigins.add(key)
+			if (complete) completeOrigins.add(key)
 			edges
 		}
 	}
 
 	fun isComplete(node: Long): Boolean = completeOrigins.contains(PackedStance.stanceKey(node))
+
+	fun isComplete(origin: Stance): Boolean = completeOrigins.contains(key(origin))
 
 	fun edgesTo(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
@@ -46,18 +47,15 @@ internal class CoarseEdgeCache(
 
 	private fun computeEdgesFrom(origin: Stance): List<CoarseEdge> {
 		if (!standable.isStance(origin)) return emptyList()
-		return moves.templates(view).mapNotNull { template ->
-			val targetKey = key(origin.offset(template.dx, template.dy, template.dz))
-			edgeVia(if (nonStanceTargets.contains(targetKey)) null else incoming.get(targetKey), template, origin)
+		return moves.templates(view, origin).mapNotNull { template ->
+			val known = incoming.get(key(origin.offset(template.dx, template.dy, template.dz)))
+			edgeVia(known.takeUnless { it === NON_STANCE }, template, origin)
 		}
 	}
 
 	private fun computeEdgesTo(target: Stance): List<CoarseEdge> {
-		if (!standable.isStance(target)) {
-			nonStanceTargets.add(key(target))
-			return emptyList()
-		}
-		return moves.templates(view).mapNotNull { template ->
+		if (!standable.isStance(target)) return NON_STANCE
+		return moves.templates(view, target).mapNotNull { template ->
 			val origin = target.offset(-template.dx, -template.dy, -template.dz)
 			if (!standable.isStance(origin)) return@mapNotNull null
 			edgeVia(outgoing.get(key(origin)), template, origin)
@@ -73,7 +71,6 @@ internal class CoarseEdgeCache(
 			outgoing.remove(k)
 			completeOrigins.remove(k)
 			incoming.remove(k)
-			nonStanceTargets.remove(k)
 			standable.remove(stance)
 		}
 	}
@@ -84,7 +81,6 @@ internal class CoarseEdgeCache(
 		removeColumns(outgoing.keys, originRanges, keep = if (arrivalsOnly) completeOrigins else null)
 		if (!arrivalsOnly) removeColumns(completeOrigins, originRanges)
 		removeColumns(incoming.keys, targetRanges)
-		removeColumns(nonStanceTargets, targetRanges)
 		standable.removeColumns(targetRanges)
 	}
 
@@ -98,6 +94,8 @@ internal class CoarseEdgeCache(
 	}
 
 	companion object {
+		private val NON_STANCE: List<CoarseEdge> = ArrayList(0)
+
 		private fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
 
 		fun covers(ranges: List<Pair<IntRange, IntRange>>, key: Long): Boolean {

@@ -11,6 +11,7 @@ import com.lambda.pathing.world.streaming.InterestTier
 import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.streaming.WorldEventBatch
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
@@ -19,9 +20,9 @@ private val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(trans
 
 private class PlanningHorizonView(
 	private val backing: CoarseVoxelView,
-	private val granted: Set<PathingChunk>,
+	private val granted: LongOpenHashSet,
 ) : CoarseVoxelView {
-	private fun grantedAt(x: Int, z: Int): Boolean = PathingChunk(x shr 4, z shr 4) in granted
+	private fun grantedAt(x: Int, z: Int): Boolean = granted.contains(PathingChunk.key(x shr 4, z shr 4))
 
 	override val simulableStanceY: IntRange get() = backing.simulableStanceY
 
@@ -38,7 +39,8 @@ private class PlanningHorizonView(
 
 	override fun cursor(): CoarseVoxelView = PlanningHorizonView(backing.cursor(), granted)
 
-	override fun mayBounce(): Boolean = backing.mayBounce()
+	override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		backing.mayBounceWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
 	override val revision: Any? get() = backing.revision
 }
@@ -54,7 +56,7 @@ internal class CoarsePlanningState(
 ) {
 	private val moves = SimpleMoveLibrary.build(costs = DEFAULT_MOVE_COSTS, options = moveOptions)
 
-	private val grantedChunks = HashSet<PathingChunk>()
+	private val grantedChunks = LongOpenHashSet()
 
 	private val view: CoarseVoxelView =
 		if (horizonChunks <= 0) snapshot
@@ -69,7 +71,7 @@ internal class CoarsePlanningState(
 	val planner = CoarsePlanner(
 		view, moves, start, goal,
 		sweepBudget = frontierSweepBudget,
-		capturable = if (horizonChunks <= 0) capturable else { cx, cz -> PathingChunk(cx, cz) in grantedChunks && capturable(cx, cz) },
+		capturable = if (horizonChunks <= 0) capturable else { cx, cz -> grantedChunks.contains(PathingChunk.key(cx, cz)) && capturable(cx, cz) },
 		onCaptureLag = { x, y, z -> captureLagSections += ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4) },
 	)
 
@@ -110,8 +112,7 @@ internal class CoarsePlanningState(
 		val centerZ = start.z shr 4
 		for (dx in -horizonChunks..horizonChunks) {
 			for (dz in -horizonChunks..horizonChunks) {
-				val chunk = PathingChunk(centerX + dx, centerZ + dz)
-				if (grantedChunks.add(chunk)) revealed += chunk
+				if (grantedChunks.add(PathingChunk.key(centerX + dx, centerZ + dz))) revealed += PathingChunk(centerX + dx, centerZ + dz)
 			}
 		}
 		return revealed

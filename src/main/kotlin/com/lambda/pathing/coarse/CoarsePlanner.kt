@@ -27,7 +27,7 @@ class CoarsePlanner(
 
 	private val edgeCache = CoarseEdgeCache(view.cursor(), moves)
 
-	private val frontier = FrontierSweep(view, moves, goalStance, edgeCache::edgesFrom, sweepBudget, capturable, onCaptureLag)
+	private val frontier = FrontierSweep(view, moves, goalStance, edgeCache, sweepBudget, capturable, onCaptureLag)
 
 	private val graph = LongLazyGraph(
 		successorProvider = { node, sink ->

@@ -1,6 +1,5 @@
 package com.lambda.pathing.coarse
 
-import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.hypot
@@ -10,7 +9,7 @@ internal class FrontierSweep(
 	private val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
 	private val goal: Stance,
-	private val edges: (Stance) -> List<CoarseEdge>,
+	private val edges: CoarseEdgeCache,
 	private val maxNodes: Int = FrontierAnchors.SWEEP_MAX_NODES,
 	private val capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 	private val onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
@@ -57,9 +56,10 @@ internal class FrontierSweep(
 					bestAnchorTicks = minOf(bestAnchorTicks, moves.heuristic(node, goal))
 				}
 			}
-			if (moves.readsUnknown(view, node)) incomplete += node else incomplete -= node
+			val successors = edges.edgesFrom(node)
+			if (edges.isComplete(node)) incomplete -= node else incomplete += node
 
-			for ((_, _, to) in edges(node)) {
+			for ((_, _, to) in successors) {
 				if (visited.add(to)) queue += to
 			}
 		}

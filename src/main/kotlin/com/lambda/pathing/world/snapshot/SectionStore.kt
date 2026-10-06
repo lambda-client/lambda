@@ -2,6 +2,7 @@ package com.lambda.pathing.world.snapshot
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongCollection
+import net.minecraft.util.math.ChunkSectionPos
 
 internal class SectionStore private constructor(
 	private val map: Long2ObjectOpenHashMap<ImmutableSnapshotSection>,
@@ -12,6 +13,14 @@ internal class SectionStore private constructor(
 	operator fun get(key: Long): ImmutableSnapshotSection? = map.get(key)
 
 	fun contains(key: Long): Boolean = map.containsKey(key)
+
+	fun bouncyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean {
+		if (bouncySections == 0) return false
+		for (x in (minX shr 4)..(maxX shr 4)) for (z in (minZ shr 4)..(maxZ shr 4)) for (y in (minY shr 4)..(maxY shr 4)) {
+			if (map.get(ChunkSectionPos.asLong(x, y, z))?.bouncy == true) return true
+		}
+		return false
+	}
 
 	fun with(key: Long, section: ImmutableSnapshotSection): SectionStore {
 		val copy = Long2ObjectOpenHashMap(map)

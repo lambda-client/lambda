@@ -94,7 +94,7 @@ interface CoarseVoxelView {
 
 	val revision: Any? get() = null
 
-	fun mayBounce(): Boolean = true
+	fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
 }
 
 fun CoarseVoxelView.climbableAt(position: Vec3d): Boolean =
