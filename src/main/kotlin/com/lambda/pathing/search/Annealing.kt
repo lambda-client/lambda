@@ -6,14 +6,20 @@ import com.lambda.pathing.core.Stance
 internal class Annealing(
 	private val field: ValueField,
 	private val frontier: Frontier,
-	private val horizon: HorizonController,
-	private val recovery: StallRecovery,
+	private val horizon: Horizon,
+	private val surcharge: (ValueAnchor) -> Double?,
 	maxTemperature: Double,
 ) {
 	val temperature = Temperature(ceiling = maxTemperature)
 
 	var actionsEpoch = 0
 		private set
+
+	private val spentAnchors = ArrayList<ValueAnchor>()
+
+	val spent: List<ValueAnchor> get() = spentAnchors
+
+	val hasSpent: Boolean get() = spentAnchors.isNotEmpty()
 
 	private var progressBaseline = Double.POSITIVE_INFINITY
 	private var bestGuideSeen = Double.POSITIVE_INFINITY
@@ -33,26 +39,31 @@ internal class Annealing(
 		}
 	}
 
+	fun spend(anchor: ValueAnchor) {
+		if (canEscalate()) spentAnchors += anchor
+	}
+
+	fun clearSpent() {
+		spentAnchors.clear()
+	}
+
 	fun escalate(force: Boolean): Boolean {
-		recovery.retainReachable()
+		spentAnchors.retainAll { horizon.canReach(it) }
 		if (!force && frontier.hasBlocked) return false
 		if (!force && expansionsSinceHeat < HEAT_EXPANSIONS) return false
 		expansionsSinceHeat = 0
 		if (!temperature.raise()) return false
 		actionsEpoch++
-		recovery.revive()
+		spentAnchors.forEach { anchor ->
+			surcharge(anchor)?.let { anchor.pendingSurcharge = it }
+			frontier.reopen(anchor)
+		}
+		spentAnchors.clear()
 		return true
 	}
 
-	fun refine(holdingMotion: Boolean) {
-		if (!holdingMotion) return
-		if (expansionsSinceHeat < REFINEMENT_HEAT_EXPANSIONS) return
-		expansionsSinceHeat = 0
-		if (temperature.raise()) actionsEpoch++
-	}
-
 	fun rewindOnNewRoot() {
-		val root = horizon.reachableRoot ?: return
+		val root = horizon.root ?: return
 		if (root === escalationRoot) return
 		escalationRoot = root
 		progressBaseline = Double.POSITIVE_INFINITY
@@ -75,8 +86,6 @@ internal class Annealing(
 	private companion object {
 
 		const val HEAT_EXPANSIONS = 120
-
-		const val REFINEMENT_HEAT_EXPANSIONS = 600
 
 		const val GUIDE_PROGRESS_HYSTERESIS_TICKS = 2.0
 	}

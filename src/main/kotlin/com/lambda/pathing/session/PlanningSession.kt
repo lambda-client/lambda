@@ -1,7 +1,5 @@
 package com.lambda.pathing.session
 
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.PathingRequest
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger

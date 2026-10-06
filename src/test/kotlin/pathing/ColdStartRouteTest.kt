@@ -13,7 +13,7 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.RouteResolution
-import com.lambda.pathing.world.InterestPrimer
+import com.lambda.pathing.session.InterestPrimer
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import net.minecraft.util.math.BlockPos
@@ -108,7 +108,7 @@ class ColdStartRouteTest {
         val coarseStarted = System.nanoTime()
         val coarse = planner.repair(Duration.INFINITE, maxExpansions = 200_000)
         val coarseMillis = (System.nanoTime() - coarseStarted) / 1_000_000
-        val sections = world.snapshot.storageStats().sections
+        val sections = world.snapshot.sectionCount
         println("[cold] coarse: ${coarse.processedNodes} expansions, ${planner.graphSize} nodes, $sections sections, $coarseMillis ms, converged=${coarse.converged}")
 
         val resolution = RouteResolution(state)
@@ -116,7 +116,7 @@ class ColdStartRouteTest {
         val route = resolution.resolve(start, world.revision, 200_000, world)
         val routeMillis = (System.nanoTime() - routeStarted) / 1_000_000
         val report = "route=${route?.nodes?.size} nodes to ${route?.goal} in $routeMillis ms; ${resolution.lastResolveReport}; " +
-            "sections=${world.snapshot.storageStats().sections} capture=${world.captureLedger()}; " +
+            "sections=${world.snapshot.sectionCount} capture=${world.captureLedger()}; " +
             "failure=${if (route == null) planner.routeFailureReport() else "-"}"
         println("[cold] $report")
         if (route == null) {

@@ -91,7 +91,7 @@ class PlannerBenchmark {
         var outcome: ProbeScenarios.Outcome
         val time = measureTime { outcome = ProbeScenarios.plan(scenario) }
         val expansions = outcome.exhaustions.lastOrNull()?.expansions ?: 0
-        val frames = (outcome.result as? com.lambda.pathing.PathPlanResult.Planned)?.path?.plan?.frames?.size ?: 0
+        val frames = (outcome.result as? com.lambda.pathing.session.PathPlanResult.Planned)?.path?.plan?.frames?.size ?: 0
         val perExpansion = if (expansions > 0) time.inWholeMicroseconds.toDouble() / expansions else Double.NaN
         return "search     %-18s wall=%-7s expansions=%-7d us/expansion=%.1f frames=%d".format(
             scenario.name, time.inWholeMilliseconds.toString() + "ms", expansions, perExpansion, frames,

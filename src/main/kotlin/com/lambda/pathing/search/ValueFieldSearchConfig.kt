@@ -4,9 +4,7 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 
 data class ValueFieldSearchConfig(
 	val maxExpansions: Int = 8000,
-	val stallExpansions: Int = 3000,
 	val maxTransitionFrames: Int = 40,
-	val branchMarginTicks: Double = 4.0,
 	val headingFanDegrees: List<Double> = listOf(0.0, -12.0, 12.0),
 	val headingCommitFrames: Int = 12,
 	val safePrefixFrames: Int = 20,
@@ -28,7 +26,6 @@ data class ValueFieldSearchConfig(
 ) {
 	init {
 		require(maxExpansions > 0)
-		require(stallExpansions > 0)
 		require(maxTransitionFrames > 0)
 		require(chainLength > 0)
 		require(safePrefixFrames > 0)

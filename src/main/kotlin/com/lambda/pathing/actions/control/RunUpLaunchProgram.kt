@@ -2,7 +2,6 @@ package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.actions.ControlProgram
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.launch.LaunchSolution
@@ -27,9 +26,7 @@ internal class RunUpLaunchProgram(
 		val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 		if (launched && observed.onGround && along > solution.launchOffset) landedAfterLaunch = true
 
-		val desiredYaw = yawTowards(aim, observed)
-		val yawDelta = yawStepTowards(desiredYaw, observed, maxYawChange)
-		val rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch)
+		val rotation = rotationToward(aim, observed, maxYawChange)
 
 		if (landedAfterLaunch) return MovementSimulationInput(rotation = rotation)
 		if (launched && !observed.onGround) {
@@ -50,13 +47,7 @@ internal class RunUpLaunchProgram(
 
 		var jump = false
 		if (observed.onGround && jumpTargets.isNotEmpty()) {
-			val nextAlong = alongEdge(
-				takeoff, aim,
-				observed.position.x + observed.velocity.x,
-				observed.position.z + observed.velocity.z,
-			)
-			val reach = (nextAlong - along).coerceAtLeast(0.0)
-			if (jumpTargets.first() - along <= reach + LIP_MARGIN) {
+			if (reachesLip(takeoff, aim, observed, along, jumpTargets.first())) {
 				jump = true
 				if (jumpTargets.size == 1) launched = true
 				jumpTargets.removeFirst()
@@ -71,8 +62,6 @@ internal class RunUpLaunchProgram(
 	}
 
 	private companion object {
-		const val LIP_MARGIN = LIP_LOOKAHEAD_MARGIN
-
 		const val LATERAL_DEADBAND = 0.08
 	}
 }

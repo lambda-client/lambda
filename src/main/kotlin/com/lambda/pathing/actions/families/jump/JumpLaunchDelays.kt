@@ -6,6 +6,7 @@ import com.lambda.pathing.actions.MAX_LAUNCH_FRAME
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
+import com.lambda.pathing.core.unitBetween
 import com.lambda.pathing.launch.HorizontalDynamics
 import com.lambda.pathing.launch.LaunchSolution
 
@@ -15,10 +16,7 @@ internal object JumpLaunchDelays {
 		val edge = context.edge
 		val from = edge.from.center()
 		val to = edge.to.center()
-		val length = kotlin.math.hypot(to.x - from.x, to.z - from.z)
-		if (length <= 1e-9) return emptyList()
-		val unitX = (to.x - from.x) / length
-		val unitZ = (to.z - from.z) / length
+		val (unitX, unitZ) = unitBetween(from, to) ?: return emptyList()
 
 		val dynamics = HorizontalDynamics.ground(context.ballistics, solution.sprint)
 		val body = context.body.state
@@ -81,10 +79,7 @@ internal object JumpLaunchDelays {
 		val edge = context.edge
 		val from = edge.from.center()
 		val to = edge.to.center()
-		val length = kotlin.math.hypot(to.x - from.x, to.z - from.z)
-		if (length <= 1e-9) return false
-		val unitX = (to.x - from.x) / length
-		val unitZ = (to.z - from.z) / length
+		val (unitX, unitZ) = unitBetween(from, to) ?: return false
 		val velocity = context.body.state.velocity
 		val along = HorizontalDynamics.ground(context.ballistics, solution.sprint)
 			.reachable(velocity.x, velocity.z, delay)

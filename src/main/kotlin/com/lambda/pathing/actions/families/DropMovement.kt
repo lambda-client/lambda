@@ -45,7 +45,7 @@ object DropMovement : Movement {
 		cost = cost,
 		conditions = StanceRules.stanceConditions(span * dx, -depth, span * dz),
 
-		arc = MotionTemplate.ArcSpec(span * dx, span * dz, -depth, MODES),
+		arc = MotionTemplate.ArcSpec(MODES),
 	)
 
 	override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y < edge.from.y
@@ -74,7 +74,7 @@ object DropMovement : Movement {
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision as TrajectoryDecision.Drop
 		val from = context.body.stance.center()
-		val to = (decision.step ?: context.body.stance).center()
+		val to = decision.step.center()
 		return DropProgram(
 			takeoff = interpolate(from, to, decision.solution.launchOffset),
 			aim = interpolate(from, to, decision.solution.aimDistance).copy(y = to.y),

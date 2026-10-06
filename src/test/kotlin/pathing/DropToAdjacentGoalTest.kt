@@ -4,8 +4,8 @@ package pathing
 // must drop ~3 blocks to a goal adjacent to the landing, reaching within centimeters
 // over hundreds of attempts but never certifying a stable stop.
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints

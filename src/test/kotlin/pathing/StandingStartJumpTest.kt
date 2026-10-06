@@ -1,14 +1,14 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.search.MotionPlanResult
-import com.lambda.pathing.search.ValueFieldAnchorSearch
+import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -204,10 +204,10 @@ class StandingStartJumpTest {
             velocity = Vec3d(0.0, -0.0784, 0.0),
             onGround = true,
         )
-        val result = ValueFieldAnchorSearch.search(
+        val result = SearchLoop(
             route, moves.catalog, planner.valueField(), initial, PROFILE, environment,
             MotionConstraints(),
-        )
+        ).run()
         return assertIs<MotionPlanResult.Success>(
             result,
             "a standing start at the lip must certify the gap",

@@ -10,8 +10,6 @@ data class Telemetry(
 	val recoveries: Int,
 	val rejectedImprovements: Int,
 
-	val executed: List<PublishedPath>,
-
 	val trail: List<Vec3d>,
 
 	val holds: Int = 0,
@@ -25,7 +23,7 @@ data class Telemetry(
 	companion object {
 		val EMPTY = Telemetry(
 			published = null, maxDeviation = 0.0, adopted = 0, recoveries = 0,
-			rejectedImprovements = 0, executed = emptyList(), trail = emptyList(),
+			rejectedImprovements = 0, trail = emptyList(),
 		)
 	}
 }
@@ -50,7 +48,6 @@ internal class WalkTelemetry {
 	var rejectedImprovements: Int = 0
 		private set
 
-	private val executedPaths = ArrayDeque<PublishedPath>()
 	private val trail = ArrayDeque<Vec3d>()
 
 	@Volatile
@@ -60,12 +57,6 @@ internal class WalkTelemetry {
 
 	private fun invalidate() {
 		cached = null
-	}
-
-	fun recordExecuted(path: PublishedPath) = synchronized(lock) {
-		if (executedPaths.size == MAX_RETAINED_PUBLICATIONS) executedPaths.removeFirst()
-		executedPaths.addLast(path)
-		invalidate()
 	}
 
 	fun recordTrail(position: Vec3d, deviation: Double) = synchronized(lock) {
@@ -99,14 +90,12 @@ internal class WalkTelemetry {
 				adopted = adopted,
 				recoveries = recoveries,
 				rejectedImprovements = rejectedImprovements,
-				executed = ArrayList(executedPaths),
 				trail = ArrayList(trail),
 			).also { cached = it }
 		}
 	}
 
 	companion object {
-		const val MAX_RETAINED_PUBLICATIONS = 256
 		const val MAX_RETAINED_TRAIL_POINTS = 4_096
 	}
 }

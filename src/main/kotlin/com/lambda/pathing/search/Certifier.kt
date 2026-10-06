@@ -26,7 +26,6 @@ internal class Certifier(
 	fun certify(
 		solution: Solution,
 		route: CoarseRoutePlan,
-		remainingGuideTicks: Double,
 		attemptCount: Int,
 	): MotionPlanResult {
 		if (cancelled()) return MotionPlanResult.Cancelled
@@ -77,17 +76,14 @@ internal class Certifier(
 			sourceRoute = route,
 			tape = tape,
 			rollout = TrajectoryRollout(initialState, frames, TrajectoryRolloutTermination.Completed),
-			parameters = solution.parameters,
 			safeAnchorStance = solution.anchor.stance,
 			safeAnchorFrame = solution.anchor.elapsed,
-			remainingGuideTicks = remainingGuideTicks,
 			frameDependencies = frameDependencies,
 
 			dependencies = dependencies,
 			attemptCount = attemptCount,
 			controlSegments = solution.segments,
 			spliceFrames = solution.boundaries.filter { it in 1 until tape.frameCount },
-			launchMarginFrames = solution.launchMargin,
 			segments = solution.segments(),
 			planSegments = solution.planSegments,
 		)

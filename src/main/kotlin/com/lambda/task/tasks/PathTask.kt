@@ -21,7 +21,7 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.pathing.PathingRequest
+import com.lambda.pathing.session.PathingRequest
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.PathingSession.State as PathState

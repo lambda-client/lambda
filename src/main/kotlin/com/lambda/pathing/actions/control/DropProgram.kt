@@ -2,7 +2,6 @@ package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.actions.ControlProgram
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.horizontalDistance
@@ -29,9 +28,7 @@ internal class DropProgram(
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		if (!observed.onGround) airborne = true else if (airborne) landed = true
 
-		val desiredYaw = yawTowards(aim, observed)
-		val yawDelta = yawStepTowards(desiredYaw, observed, maxYawChange)
-		val rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch)
+		val rotation = rotationToward(aim, observed, maxYawChange)
 
 		val approaching = !airborne && !landed
 		val sneak = approaching && pinningToLip(observed)

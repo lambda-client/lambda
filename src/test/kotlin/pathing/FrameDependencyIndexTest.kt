@@ -32,9 +32,9 @@ class FrameDependencyIndexTest {
         assertEquals(setOf(section), index.between(1, 2))
         assertEquals(0, index.first(section))
         assertEquals(null, index.first(PathingSection(0, 0, 0)))
-        assertEquals(emptySet(), index.from(3))
-        (index.from(0) as MutableSet).clear()
-        assertEquals(setOf(section), index.from(0))
+        assertEquals(emptySet(), index.between(3, 3))
+        (index.between(0, 3) as MutableSet).clear()
+        assertEquals(setOf(section), index.between(0, 3))
     }
 
     private fun <K : Any> verify(frames: List<Set<VoxelPos>>, keyOf: (VoxelPos) -> K) {
@@ -49,7 +49,6 @@ class FrameDependencyIndexTest {
         val index = FrameDependencyIndex(frames, keyOf)
         first.forEach { (key, frame) -> assertEquals(frame, index.first(key)) }
         for (next in 0..frames.size) {
-            assertEquals(last.filterValues { it >= next }.keys.toList(), index.from(next).toList())
             for (until in -1..frames.size + 1) {
                 val expected = last.filter { (key, frame) -> frame >= next && first.getValue(key) < until }.keys
                 assertEquals(expected.toList(), index.between(next, until).toList())

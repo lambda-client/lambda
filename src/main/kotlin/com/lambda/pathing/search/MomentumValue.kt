@@ -1,6 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.actions.CoarseMoveRates
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -20,7 +21,7 @@ fun momentumTurnCost(speed: Double, headingErrorDegrees: Double, maxYawDegreesPe
 fun headingAlignment(velocityX: Double, velocityZ: Double, towardX: Double, towardZ: Double): Double {
 	val speed = hypot(velocityX, velocityZ)
 	val distance = hypot(towardX, towardZ)
-	if (speed <= 1e-9 || distance <= 1e-9) return 0.0
+	if (speed <= DEGENERATE_LENGTH || distance <= DEGENERATE_LENGTH) return 0.0
 	return (velocityX * towardX + velocityZ * towardZ) / (speed * distance)
 }
 

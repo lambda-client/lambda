@@ -23,7 +23,7 @@ import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.pathing.PathingRequest
+import com.lambda.pathing.session.PathingRequest
 import com.lambda.pathing.core.Stance
 import pathing.BedrockFieldLayout
 import com.lambda.pathing.core.MovementId
@@ -35,12 +35,17 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.LiveSimulationEnvironment
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
+import net.minecraft.block.ShapeContext
 import net.minecraft.client.input.Input
+import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.World
 import java.util.concurrent.CompletableFuture
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
@@ -245,8 +250,12 @@ internal object PathingTestHarness {
         var lastObserved: Pair<String, Int> = "" to -1
         var stillTicks = 0
         var stuckReported = false
+        val walkedPaths = ArrayList<PublishedPath>()
         while (ticks++ < maxPathingTicks) {
             context.waitTick()
+            PathingService.telemetry.published?.let { published ->
+                if (walkedPaths.none { it === published }) walkedPaths += published
+            }
             val status = PathingService.status
             if (status is State.Complete || status is State.Failed) break
             // Progress watch: an Executing frame that does not advance, or any
@@ -279,7 +288,6 @@ internal object PathingTestHarness {
                         scenario, success = false, completionTicks = ticks,
                         trajectoryFrames = published?.plan?.frames?.size ?: 0,
                         collisionFrames = 0, bumps = 0,
-                        launchMarginFrames = published?.launchMarginFrames ?: 0,
                         planLatencyMs = published?.planMillis ?: 0L,
                         maxReplayDeviation = PathingService.telemetry.maxDeviation,
                     ),
@@ -299,10 +307,10 @@ internal object PathingTestHarness {
             // Every plan the body walked, not just the last one. A journey that stopped
             // and replanned ends on a short final leg, and asking that leg whether the
             // trip pressed jump answers about the last few blocks instead.
-            val walked = PathingService.telemetry.executed.ifEmpty { listOf(path) }
+            val walked = walkedPaths.ifEmpty { listOf(path) }
             check(path.dependencies().isNotEmpty()) { "$scenario: no voxel dependencies published" }
             println(
-                "[pathing-diag] $scenario: sprint=${path.parameters.sprint} " +
+                "[pathing-diag] $scenario: " +
                     "frames=${path.plan.tape.frameCount} attempts=${path.attempts} " +
                     "edges=${path.route.edges.groupingBy { it.movement }.eachCount()} " +
                     "collisions=${path.plan.frames.filter { it.state.horizontalCollision }.map { frame ->
@@ -415,7 +423,6 @@ internal object PathingTestHarness {
                     finalFrames = frames.size,
                     collisionFrames = planned.count { it.state.horizontalCollision },
                     bumps = plannedBumps,
-                    launchMarginFrames = path.launchMarginFrames,
                     // Time to the *first* published tape: how long the body stood still.
                     // The last tape's own age is not latency at all under a receding
                     // horizon -- the arriving publication is made at the end of the walk,
@@ -447,7 +454,7 @@ internal object PathingTestHarness {
             val initial = MovementSimulationState.from(player)
             val profile = PlayerPhysicsProfile.capture(player)
             val center = player.blockPos
-            val snapshot = SnapshotSimulationEnvironment.capture(
+            val snapshot = captureSnapshot(
                 world = player.entityWorld,
                 player = player,
                 bounds = SimulationSnapshotBounds(
@@ -584,4 +591,19 @@ internal object PathingTestHarness {
     const val BEDROCK_FIELD_LENGTH = 40
     const val BEDROCK_FIELD_HALF_WIDTH = BedrockFieldLayout.HALF_WIDTH
     const val BEDROCK_FIELD_SEED = BedrockFieldLayout.SEED
+}
+
+private fun captureSnapshot(
+    world: World,
+    player: ClientPlayerEntity,
+    bounds: SimulationSnapshotBounds,
+): SnapshotSimulationEnvironment {
+    val shapeContext = ShapeContext.of(player)
+    val blocks = buildMap {
+        for (x in bounds.minX..bounds.maxX) for (y in bounds.minY..bounds.maxY) for (z in bounds.minZ..bounds.maxZ) {
+            val pos = BlockPos(x, y, z)
+            put(pos, BlockPhysicsCapture.capture(world.getBlockState(pos), world, pos, shapeContext))
+        }
+    }
+    return SnapshotSimulationEnvironment.synthetic(bounds, blocks)
 }

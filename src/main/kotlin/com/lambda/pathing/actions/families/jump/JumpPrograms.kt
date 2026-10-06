@@ -12,6 +12,7 @@ import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
+import com.lambda.pathing.core.unitBetween
 import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.launch.LaunchSolution
 
@@ -21,8 +22,7 @@ internal object JumpPrograms {
 		val decision = context.decision
 		if (decision is TrajectoryDecision.RunUpLaunch) {
 			val from = context.body.stance.center()
-			val to = (decision.step ?: context.body.stance).center()
-				.laterallyShifted(from, decision.solution.lateralOffset)
+			val to = decision.step.center().laterallyShifted(from, decision.solution.lateralOffset)
 			return RunUpLaunchProgram(
 				takeoff = from,
 				aim = to,
@@ -66,10 +66,7 @@ internal object JumpPrograms {
 		offset: Double,
 	): HorizontalPoint {
 		if (offset == 0.0) return this
-		val length = kotlin.math.hypot(x - from.x, z - from.z)
-		if (length <= 1e-9) return this
-		val unitX = (x - from.x) / length
-		val unitZ = (z - from.z) / length
+		val (unitX, unitZ) = unitBetween(from, this) ?: return this
 		return copy(x = x - unitZ * offset, z = z + unitX * offset)
 	}
 
@@ -78,7 +75,7 @@ internal object JumpPrograms {
 		if (decision is TrajectoryDecision.RunUpLaunch) {
 			if (!context.airborne) return false
 			val from = context.body.stance.center()
-			val to = (decision.step ?: context.body.stance).center()
+			val to = decision.step.center()
 			val along = alongEdge(from, to, context.observed.position.x, context.observed.position.z)
 			return along > decision.solution.launchOffset + POST_LAUNCH_MARGIN_BLOCKS
 		}

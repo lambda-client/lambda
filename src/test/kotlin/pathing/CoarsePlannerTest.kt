@@ -9,14 +9,12 @@
 
 package pathing
 
-import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.graph.TailCost
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -26,18 +24,16 @@ import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
-import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import pathing.ProbeScenarios.moveLibrary
 
 class CoarsePlannerTest {
     @Test
-    fun `kinematic envelope derives optimistic costs and rejects velocity outside its proof scope`() {
+    fun `kinematic envelope derives optimistic costs`() {
         val envelope = CoarseKinematicEnvelope(
             maxHorizontalBlocksPerTick = 0.5,
             maxAscentBlocksPerTick = 0.4,
@@ -51,9 +47,6 @@ class CoarsePlannerTest {
         assertEquals(4.0, costs.jumpCandidateCost(2.0, 0), 1e-9)
         assertEquals(6.0, costs.jumpCandidateCost(3.0, 0), 1e-9)
         assertEquals(2.0, costs.walkOffCost(4), 1e-9)
-        assertTrue(envelope.contains(Vec3d(0.3, 0.2, 0.4)))
-        assertFalse(envelope.contains(Vec3d(0.4, 0.0, 0.4)))
-        assertFalse(envelope.contains(Vec3d(0.0, -2.1, 0.0)))
     }
 
     @Test
@@ -68,21 +61,15 @@ class CoarsePlannerTest {
         assertTrue(route.exactFromStart)
         assertEquals(Stance(0, 1, 0), route.nodes.first())
         assertEquals(Stance(5, 1, 0), route.nodes.last())
-        assertIs<TailCost.Exact>(planner.tailCost())
 
         val published = assertNotNull(planner.routePlan(snapshotRevision = 71L))
         assertEquals(71L, published.snapshotRevision)
-        assertEquals(route.routeVersion, published.routeVersion)
         assertEquals(route.nodes, published.nodes)
         // Momentum pricing decouples the route bound from the flat per-edge sum: a
         // chained stretch sheds the transition tax below it, and a short rest-to-rest
         // hop pays its startup and brake above it. Either side is honest; equality is
         // the one thing that no longer holds.
         assertTrue(route.ticks.isFinite() && route.ticks > 0.0)
-        assertEquals(published.nodes.size, published.tailCosts.size)
-        assertIs<TailCost.Exact>(published.tailCosts.first())
-        assertTrue(published.tailCosts.all { it !is TailCost.Unreachable })
-        assertIs<TailCost.Exact>(published.tailCosts.last())
         assertTrue(published.dependencies.isNotEmpty())
     }
 

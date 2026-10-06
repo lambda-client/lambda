@@ -1,4 +1,4 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
 import com.lambda.context.Automated
 import com.lambda.interaction.managers.Request

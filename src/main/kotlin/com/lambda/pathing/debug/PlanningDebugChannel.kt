@@ -114,14 +114,9 @@ object PlanningDebugChannel {
 	var lastExhaustionLedger: String = ""
 		private set
 
-	@Volatile
-	var lastExhaustionMillis: Long = 0L
-		private set
-
 	fun publishExhaustion(report: com.lambda.pathing.search.SearchExhaustion, ledger: String) {
 		lastExhaustion = report
 		lastExhaustionLedger = ledger
-		lastExhaustionMillis = System.currentTimeMillis()
 	}
 
 	fun publishTree(view: SearchTreeView) {

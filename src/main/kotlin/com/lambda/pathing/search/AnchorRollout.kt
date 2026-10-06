@@ -16,8 +16,6 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementCatalog
 import com.lambda.pathing.actions.ProgramContext
-import com.lambda.pathing.actions.control.PursuitTracker
-import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
@@ -44,7 +42,6 @@ internal class AnchorRollout(
 	private val profile: PlayerPhysicsProfile,
 	private val goalPoint: () -> HorizontalPoint,
 	private val attempts: AttemptAccumulator,
-	private val progressOf: (Stance) -> Int,
 	private val probe: SearchProbe,
 ) {
 
@@ -96,7 +93,7 @@ internal class AnchorRollout(
 				nodes = points,
 				constraints = config,
 				launch = launch,
-				openLanding = action.step?.let { openLanding(it) } ?: false,
+				openLanding = openLanding(action.step),
 			)
 		)
 		val descentAllowance = movement.descentAllowance(action)
@@ -151,7 +148,7 @@ internal class AnchorRollout(
 					if (!frame.state.onGround && !movement.completesAirborne) {
 						false
 					} else {
-						val stance = ValueFieldAnchorSearch.stanceOf(frame.state)
+						val stance = stanceOf(frame.state)
 						val done = movement.completed(
 							CompletionContext(
 								decision = action,
@@ -184,14 +181,14 @@ internal class AnchorRollout(
 		}
 	}
 
-	fun transition(anchor: ValueAnchor, action: TrajectoryDecision, hazardFrame: Int?): Outcome {
+	fun transition(anchor: ValueAnchor, action: TrajectoryDecision): Outcome {
 		val prepared = prepare(anchor, action)
 			?: return Outcome.Rejected(TrajectoryDiagnostic.NoStop(0, 0.0, anchor.speed))
 		execute(prepared)
-		return complete(prepared, hazardFrame)
+		return complete(prepared)
 	}
 
-	fun complete(prepared: PreparedRollout, hazardFrame: Int?): Outcome {
+	fun complete(prepared: PreparedRollout): Outcome {
 		val anchor = prepared.anchor
 		val action = prepared.action
 		val points = prepared.points
@@ -202,7 +199,7 @@ internal class AnchorRollout(
 		val eventFrame = prepared.eventFrame
 		var eventStance = prepared.eventStance
 
-		record(anchor, action, rollout, failure, stopFrame != null)
+		record(rollout, failure, stopFrame != null)
 
 		if (stopFrame != null) return Outcome.Arrived(rollout.frames)
 		failure?.let { return Outcome.Rejected(it) }
@@ -219,7 +216,7 @@ internal class AnchorRollout(
 		var cornerCatch = 0
 		if (!field.isStance(eventStance)) {
 
-			val supported = ValueFieldAnchorSearch.supportedStanceOf(frames.last().state)
+			val supported = supportedStanceOf(frames.last().state)
 				?.takeIf { field.isStance(it) }
 			if (supported == null) {
 				return Outcome.Rejected(
@@ -249,14 +246,11 @@ internal class AnchorRollout(
 				stance = eventStance,
 				elapsed = anchor.elapsed + frames.size,
 				collisionEvents = anchor.collisionEvents + collisionEvents(anchor.state, frames) + cornerCatch,
-				launchMargin = anchor.launchMargin + launchMargin(frames, hazardFrame),
 				inputSwitches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), frames),
 				parent = anchor,
 				inputs = frames.map { it.input },
-				boundary = anchor.elapsed + frames.size,
 			).also {
 				it.via = action.movement
-				it.airborneCollisionEvents = anchor.airborneCollisionEvents + airborneCollisionEvents(anchor.state, frames)
 				it.decision = action
 				it.points = points
 				if (probe.treeEnabled || probe.candidatesEnabled) it.trace = ValueAnchor.traceOf(frames)
@@ -264,31 +258,14 @@ internal class AnchorRollout(
 		)
 	}
 
-	private fun record(
-		anchor: ValueAnchor,
-		action: TrajectoryDecision,
-		rollout: TrajectoryRollout,
-		failure: TrajectoryDiagnostic?,
-		stopped: Boolean,
-	) {
+	private fun record(rollout: TrajectoryRollout, failure: TrajectoryDiagnostic?, stopped: Boolean) {
 		probe.attempt(rollout, stopped, failure)
 		val goal = goalPoint()
 		attempts.record(
 			PlanAttempt(
-				parameters = TerminalApproach(
-					sprint = action.sprint,
-					lookAheadNodes = action.followLookAheadNodes ?: PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
-					brakeDistance = config.brakeDistances.first(),
-					stepUpJumpLeadDistance = null,
-				),
 				simulatedFrames = rollout.frames.size,
-				finalGoalError = hypot(
-					rollout.finalState.position.x - goal.x,
-					rollout.finalState.position.z - goal.z,
-				),
-				finalHorizontalSpeed = rollout.finalState.velocity.horizontalLength(),
+				finalGoalError = hypot(rollout.finalState.position.x - goal.x, rollout.finalState.position.z - goal.z),
 				diagnostic = failure,
-				blockedProgress = progressOf(anchor.stance),
 			)
 		)
 	}

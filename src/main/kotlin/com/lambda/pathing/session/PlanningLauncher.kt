@@ -2,17 +2,12 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.PlanningPreparationResult
-import com.lambda.pathing.TrajectoryPlanner
-import com.lambda.pathing.TrajectoryPlanningPreparation
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.MAX_SESSION_RESTARTS
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.pathing.world.InterestPrimer
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.player.MovementUtils.moveYaw

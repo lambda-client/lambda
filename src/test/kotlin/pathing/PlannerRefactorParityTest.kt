@@ -1,6 +1,6 @@
 package pathing
 
-import com.lambda.pathing.PathPlanResult
+import com.lambda.pathing.session.PathPlanResult
 import java.security.MessageDigest
 import org.junit.jupiter.api.Tag
 import kotlin.test.Test

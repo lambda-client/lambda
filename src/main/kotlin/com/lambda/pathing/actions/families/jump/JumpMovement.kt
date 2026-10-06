@@ -10,6 +10,7 @@ import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.actions.closingSpeed
 import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.MovementId
 
@@ -27,7 +28,7 @@ object JumpMovement : Movement {
 			.distinctBy { it.mode to it.launchOffset }
 			.sortedByDescending { it.margin }
 
-		val closing = JumpDecisions.closingSpeed(context)
+		val closing = closingSpeed(context)
 		val standard = solutions.flatMap { solution ->
 			JumpLaunchDelays.launchDelays(context, solution).map { delay ->
 				TrajectoryDecision.Launch(solution.sprint, context.edge.to, delay, solution)

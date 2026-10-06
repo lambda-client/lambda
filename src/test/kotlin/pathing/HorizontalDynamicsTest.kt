@@ -13,10 +13,7 @@ import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
-import kotlin.math.hypot
 import kotlin.test.Test
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import pathing.ProbeScenarios.PROFILE
 
@@ -59,100 +56,13 @@ class HorizontalDynamicsTest {
     }
 
     @Test
-    fun `an inverted directive lands the body on the velocity it was solved for`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
-        // Start with real momentum, then ask for a spread of achievable next velocities.
-        val entry = accelerateState(ticks = 8, sprint = true)
-        val from = entry.velocity
-
-        val disc = dynamics.reachable(from.x, from.z, 1)
-        val targets = listOf(0.0, 45.0, 90.0, 150.0, 225.0, 300.0).map { degrees ->
-            val (ux, uz) = HorizontalDynamics.heading(degrees)
-            disc.fastestAlong(ux, uz)
-        }
-
-        targets.forEach { (targetX, targetZ) ->
-            val directive = assertNotNull(
-                dynamics.directiveFor(from.x, from.z, targetX, targetZ),
-                "a velocity on the reachable boundary must be achievable",
-            )
-            val after = tick(entry, directive.yawDegrees, directive.throttle, sprint = true)
-            val error = hypot(after.velocity.x - targetX, after.velocity.z - targetZ)
-            assertTrue(
-                error < 2e-3,
-                ("solved for (%.5f, %.5f) with yaw %.1f throttle %.3f, " +
-                    "simulator produced (%.5f, %.5f); error %.5f").format(
-                    targetX, targetZ, directive.yawDegrees, directive.throttle,
-                    after.velocity.x, after.velocity.z, error,
-                ),
-            )
-        }
-    }
-
-    @Test
-    fun `a velocity outside the reachable disc has no directive`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
-        val disc = dynamics.reachable(0.0, 0.0, 1)
-
-        assertNotNull(dynamics.directiveFor(0.0, 0.0, disc.radius * 0.99, 0.0))
-        assertNull(
-            dynamics.directiveFor(0.0, 0.0, disc.radius * 1.05, 0.0),
-            "asking for more than one tick of input must be refused, not clamped",
-        )
-    }
-
-    @Test
-    fun `the turn budget is the exact speed at which a turn stops being free`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
-
-        for (degrees in listOf(15.0, 30.0, 45.0, 90.0)) {
-            for (ticks in 1..3) {
-                val radians = Math.toRadians(degrees)
-                val limit = dynamics.maxTurnSpeed(radians, ticks)
-
-                assertTrue(
-                    dynamics.canReach(limit, 0.0, rotatedX(limit, radians), rotatedZ(limit, radians), ticks, 1e-6),
-                    "at the budget speed the turn must be reachable ($degrees deg, $ticks ticks)",
-                )
-                val over = limit * 1.02
-                assertTrue(
-                    !dynamics.canReach(over, 0.0, rotatedX(over, radians), rotatedZ(over, radians), ticks, 0.0),
-                    "two percent above the budget the same turn must not be ($degrees deg, $ticks ticks)",
-                )
-            }
-        }
-    }
-
-    @Test
-    fun `a sharper turn is never cheaper and more ticks are never worse`() {
-        val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
-
-        val angles = listOf(0.0, 15.0, 30.0, 45.0, 60.0, 90.0, 135.0, 180.0).map(Math::toRadians)
-        angles.zipWithNext().forEach { (gentle, sharp) ->
-            assertTrue(
-                dynamics.maxTurnSpeed(gentle, 1) >= dynamics.maxTurnSpeed(sharp, 1) - 1e-12,
-                "a sharper turn cannot allow more speed",
-            )
-        }
-        (1..7).zipWithNext().forEach { (fewer, more) ->
-            assertTrue(
-                dynamics.maxTurnSpeed(Math.toRadians(90.0), more) >=
-                    dynamics.maxTurnSpeed(Math.toRadians(90.0), fewer) - 1e-12,
-                "spending another tick on a turn cannot make it harder",
-            )
-        }
-        assertTrue(
-            abs(dynamics.maxTurnSpeed(Math.toRadians(180.0), 64) - dynamics.cruise) < 1e-6,
-            "given enough ticks any turn is free up to cruise",
-        )
-    }
-
-    @Test
     fun `the projection bounds the speeds the simulator can produce along a direction`() {
         val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, sprint = true)
         val entry = accelerateState(ticks = 6, sprint = true)
         val from = entry.velocity
-        val (unitX, unitZ) = HorizontalDynamics.heading(40.0)
+        val radians = Math.toRadians(40.0)
+        val unitX = -kotlin.math.sin(radians)
+        val unitZ = kotlin.math.cos(radians)
 
         for (ticks in 1..4) {
             val range = dynamics.reachable(from.x, from.z, ticks).projectOnto(unitX, unitZ)
@@ -190,10 +100,6 @@ class HorizontalDynamicsTest {
             )
         }
     }
-
-    private fun rotatedX(speed: Double, radians: Double) = speed * kotlin.math.cos(radians)
-
-    private fun rotatedZ(speed: Double, radians: Double) = speed * kotlin.math.sin(radians)
 
     private fun accelerateFromRest(ticks: Int, sprint: Boolean): List<Double> {
         var state = rest()

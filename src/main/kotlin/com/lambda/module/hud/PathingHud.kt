@@ -28,6 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.search.SearchExit
 import com.lambda.pathing.search.SearchStatsView
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.Telemetry
@@ -215,12 +216,12 @@ object PathingHud : HudModule(
         val report = PlanningDebugChannel.lastExhaustion ?: return
         section("Last Session")
         val exitColor = when (report.exit) {
-            "solved" -> Palette.OK
-            "budget" -> Palette.WARNING
+            SearchExit.SOLVED -> Palette.OK
+            SearchExit.BUDGET -> Palette.WARNING
             else -> Palette.DANGER
         }
         line(
-            "exit" to report.exit,
+            "exit" to report.exit.toString(),
             "exp" to compact(report.expansions),
             "route" to "${report.deepestRouteIndex}/${report.routeNodes}",
             valueColors = mapOf("exit" to exitColor),
@@ -228,7 +229,6 @@ object PathingHud : HudModule(
         if (detailed) {
             line(
                 "restarts" to report.tapeRestarts.toString(),
-                "junction" to report.junctionRestarts.toString(),
                 "repairs" to report.repairs.toString(),
             )
             line(

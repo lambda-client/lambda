@@ -23,155 +23,99 @@ internal class RouteResolution(
 		world: PathingWorld? = null,
 		cancelled: () -> Boolean = { false },
 	): CoarseRoutePlan? {
-		val goal = state.goal
-		val resolveStarted = System.nanoTime()
-		val ledger = StringBuilder()
-
-		var t = System.nanoTime()
-		var route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
-		ledger.append("extract %d".format((System.nanoTime() - t) / 1_000_000L))
-		if (route == null) {
-			t = System.nanoTime()
-			val advanced = planner.advanceReachableFrontier(from = start)
-			ledger.append(", sweep %d".format((System.nanoTime() - t) / 1_000_000L))
-			if (advanced) {
-				t = System.nanoTime()
-				planner.repair(
-					timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-				)
-				ledger.append(", repair %d".format((System.nanoTime() - t) / 1_000_000L))
-				t = System.nanoTime()
-				route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
-				ledger.append(", extract %d".format((System.nanoTime() - t) / 1_000_000L))
-			}
+		val timings = PhaseTimings()
+		fun extract() = timings.measure("extract") { state.routePlan(snapshotRevision, cancelled, maxExpansions) }
+		fun sweep() = timings.measure("sweep") { planner.advanceReachableFrontier(from = start) }
+		fun repair() = timings.measure("repair") {
+			planner.repair(timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled)
 		}
 
+		var route = extract()
+		if (route == null && sweep()) {
+			repair()
+			route = extract()
+		}
+
+		var waitRounds = 0
+		var stalls = 0
 		if (route == null && world != null) {
-			var stalls = 0
-			var rounds = 0
-			var extracts = 0
-			var syncNanos = 0L
-			var sweepNanos = 0L
-			var repairNanos = 0L
-			var extractNanos = 0L
-			val waitStarted = System.nanoTime()
-			var t: Long
-			while (route == null && !cancelled() &&
-				stalls < START_KNOWLEDGE_STALL_ROUNDS && rounds++ < START_KNOWLEDGE_MAX_ROUNDS
-			) {
+			while (route == null && !cancelled() && stalls < START_KNOWLEDGE_STALL_ROUNDS && waitRounds++ < START_KNOWLEDGE_MAX_ROUNDS) {
 				state.demandCaptureLag(world)
 				if (!world.awaitEvents(world.revision, START_KNOWLEDGE_WAIT_MILLIS)) stalls++
 				val batch = world.drainEvents()
-				t = System.nanoTime()
-				if (!batch.isEmpty) state.applyEvents(batch)
-				syncNanos += System.nanoTime() - t
-				t = System.nanoTime()
-				val advanced = planner.advanceReachableFrontier(from = start)
-				sweepNanos += System.nanoTime() - t
-
+				timings.measure("sync") { if (!batch.isEmpty) state.applyEvents(batch) }
+				val advanced = sweep()
 				if (batch.isEmpty && !advanced) continue
 				stalls = 0
-				extracts++
-				t = System.nanoTime()
-				planner.repair(
-					timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-				)
-				repairNanos += System.nanoTime() - t
-				t = System.nanoTime()
-				route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
-				extractNanos += System.nanoTime() - t
+				repair()
+				route = extract()
 			}
-			ledger.append(
-				"; wait %d rounds (%d extracts, %d stalls) %d ms [sync %d, sweep %d, repair %d, extract %d]".format(
-					rounds, extracts, stalls, (System.nanoTime() - waitStarted) / 1_000_000L,
-					syncNanos / 1_000_000L, sweepNanos / 1_000_000L, repairNanos / 1_000_000L, extractNanos / 1_000_000L,
-				),
-			)
 		}
-		if (route == null) {
-			lastResolveReport = ledger.toString()
-			return null
-		}
-		var rounds = 0
+		if (route == null) return report(timings, waitRounds, stalls, 0)
+
+		val goal = state.goal
+		var grantRounds = 0
 		val grantStarted = System.nanoTime()
-		var grantWaitNanos = 0L
-		var grantSyncNanos = 0L
-		var grantSweepNanos = 0L
-		var grantRepairNanos = 0L
-		var grantExtractNanos = 0L
-		while (route!!.goal != goal && rounds++ < TERMINAL_GRANT_ROUNDS) {
+		while (route!!.goal != goal && grantRounds++ < TERMINAL_GRANT_ROUNDS) {
 			if (cancelled()) return route
-
-			if (world != null && rounds > 1 &&
-				System.nanoTime() - grantStarted > TERMINAL_GRANT_BUDGET_MILLIS * 1_000_000L
-			) break
+			if (world != null && grantRounds > 1 && System.nanoTime() - grantStarted > TERMINAL_GRANT_BUDGET_MILLIS * 1_000_000L) break
 			val terminal = route.goal
-
-			world?.let { w ->
-
-				state.demandCaptureLag(w)
-				w.interestBlocks(
-					terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS,
-					terminal.z - TERMINAL_INTEREST_BLOCKS,
-					terminal.x + TERMINAL_INTEREST_BLOCKS, terminal.y + TERMINAL_INTEREST_Y_BLOCKS,
-					terminal.z + TERMINAL_INTEREST_BLOCKS,
-					InterestTier.DEMAND,
-				)
-				var waited = 0L
-				val waitStarted = System.nanoTime()
-				while (waited < TERMINAL_KNOWLEDGE_WAIT_MILLIS && !cancelled() && w.pendingDemand > 0) {
-					if (!w.awaitEvents(w.revision, 50)) break
-					waited += 50
-				}
-				grantWaitNanos += System.nanoTime() - waitStarted
-				val batch = w.drainEvents()
-				val syncStarted = System.nanoTime()
-				if (!batch.isEmpty) state.applyEvents(batch)
-				grantSyncNanos += System.nanoTime() - syncStarted
-			}
+			world?.let { awaitTerminalKnowledge(it, terminal, timings, cancelled) }
 			val revealed = state.grantChunksAround(terminal)
 			if (revealed.isEmpty() && world == null) break
-			var t = System.nanoTime()
-			state.revealChunks(revealed)
-			grantSyncNanos += System.nanoTime() - t
-			t = System.nanoTime()
-			planner.advanceReachableFrontier(from = start)
-			grantSweepNanos += System.nanoTime() - t
-			t = System.nanoTime()
-			planner.repair(
-				timeBudget = Duration.INFINITE,
-				maxExpansions = maxExpansions,
-				cancelled = cancelled,
-			)
-			grantRepairNanos += System.nanoTime() - t
-			t = System.nanoTime()
-			route = state.routePlan(snapshotRevision, cancelled, maxExpansions)
-			grantExtractNanos += System.nanoTime() - t
-			if (route == null) {
-				lastResolveReport = ledger.toString()
-				return null
-			}
+			timings.measure("sync") { state.revealChunks(revealed) }
+			sweep()
+			repair()
+			route = extract() ?: return report(timings, waitRounds, stalls, grantRounds)
 			if (route.goal == terminal) break
 		}
-		if (rounds > 0) {
-			ledger.append(
-				"; grant %d rounds %d ms [wait %d, sync %d, sweep %d, repair %d, extract %d]".format(
-					rounds, (System.nanoTime() - grantStarted) / 1_000_000L,
-					grantWaitNanos / 1_000_000L, grantSyncNanos / 1_000_000L, grantSweepNanos / 1_000_000L,
-					grantRepairNanos / 1_000_000L, grantExtractNanos / 1_000_000L,
-				),
-			)
-		}
 		if (route.goal == goal && planner.retireAllAnchors()) {
-			planner.repair(
-				timeBudget = Duration.INFINITE, maxExpansions = maxExpansions, cancelled = cancelled,
-			)
-
-			route = state.routePlan(snapshotRevision, cancelled, maxExpansions) ?: route
+			repair()
+			route = extract() ?: route
 		}
-		ledger.append("; total %d ms".format((System.nanoTime() - resolveStarted) / 1_000_000L))
-		lastResolveReport = ledger.toString()
-		return route
+		return route.also { report(timings, waitRounds, stalls, grantRounds) }
+	}
+
+	private fun awaitTerminalKnowledge(world: PathingWorld, terminal: Stance, timings: PhaseTimings, cancelled: () -> Boolean) {
+		state.demandCaptureLag(world)
+		world.interestBlocks(
+			terminal.x - TERMINAL_INTEREST_BLOCKS, terminal.y - TERMINAL_INTEREST_Y_BLOCKS, terminal.z - TERMINAL_INTEREST_BLOCKS,
+			terminal.x + TERMINAL_INTEREST_BLOCKS, terminal.y + TERMINAL_INTEREST_Y_BLOCKS, terminal.z + TERMINAL_INTEREST_BLOCKS,
+			InterestTier.DEMAND,
+		)
+		timings.measure("wait") {
+			var waited = 0L
+			while (waited < TERMINAL_KNOWLEDGE_WAIT_MILLIS && !cancelled() && world.pendingDemand > 0) {
+				if (!world.awaitEvents(world.revision, DEMAND_POLL_MILLIS)) break
+				waited += DEMAND_POLL_MILLIS
+			}
+		}
+		val batch = world.drainEvents()
+		timings.measure("sync") { if (!batch.isEmpty) state.applyEvents(batch) }
+	}
+
+	private fun report(timings: PhaseTimings, waitRounds: Int, stalls: Int, grantRounds: Int): CoarseRoutePlan? {
+		lastResolveReport = "wait $waitRounds rounds ($stalls stalls), grant $grantRounds rounds; $timings"
+		return null
+	}
+
+	private class PhaseTimings {
+		private val started = System.nanoTime()
+		private val nanos = LinkedHashMap<String, Long>()
+
+		fun <T> measure(phase: String, block: () -> T): T {
+			val begin = System.nanoTime()
+			try {
+				return block()
+			} finally {
+				nanos.merge(phase, System.nanoTime() - begin, Long::plus)
+			}
+		}
+
+		override fun toString(): String =
+			nanos.entries.joinToString(", ", postfix = "; total ${(System.nanoTime() - started) / 1_000_000L} ms") { (phase, nanos) ->
+				"$phase ${nanos / 1_000_000L} ms"
+			}
 	}
 
 	private companion object {
@@ -184,6 +128,8 @@ internal class RouteResolution(
 		const val TERMINAL_INTEREST_Y_BLOCKS = 16
 
 		const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
+
+		const val DEMAND_POLL_MILLIS = 50L
 
 		const val START_KNOWLEDGE_WAIT_MILLIS = 200L
 

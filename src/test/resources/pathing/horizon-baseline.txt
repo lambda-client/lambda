@@ -1,5 +1,5 @@
 # Characterisation of the shipping horizon planner: PathingManager -> planAsync
-# -> walkHorizon -> ValueFieldAnchorSearch, driven by a VirtualSearchClock so the
+# -> walkHorizon -> SearchLoop, driven by a VirtualSearchClock so the
 # search-versus-body race resolves identically on every machine.
 #
 # These numbers are a record of current behaviour, not a statement that it is good.
@@ -10,14 +10,14 @@ bedrock-01             arrived  reach=15/15   frames=179  excess=-10% collisions
 bedrock-02             arrived  reach=22/22   frames=242  excess=-8%  collisions=0   jumps=18  pubs=11  adopt=10  refuse=1   firstPub=5    maxCommit=67  turn=312  stalled=0
 bedrock-03             arrived  reach=20/20   frames=214  excess=-11% collisions=0   jumps=16  pubs=12  adopt=12  refuse=0   firstPub=5    maxCommit=61  turn=470  stalled=0
 bedrock-04             arrived  reach=16/17   frames=200  excess=-9%  collisions=0   jumps=14  pubs=15  adopt=15  refuse=0   firstPub=5    maxCommit=63  turn=415  stalled=0
-bedrock-05             arrived  reach=14/14   frames=145  excess=-11% collisions=0   jumps=11  pubs=7   adopt=7   refuse=0   firstPub=5    maxCommit=65  turn=236  stalled=0
+bedrock-05             arrived  reach=14/14   frames=145  excess=-11% collisions=0   jumps=11  pubs=7   adopt=7   refuse=0   firstPub=5    maxCommit=64  turn=236  stalled=0
 bedrock-06             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
-bedrock-07             arrived  reach=19/19   frames=202  excess=-9%  collisions=0   jumps=13  pubs=12  adopt=10  refuse=1   firstPub=5    maxCommit=64  turn=569  stalled=0
+bedrock-07             arrived  reach=19/19   frames=195  excess=-12% collisions=0   jumps=14  pubs=11  adopt=11  refuse=0   firstPub=5    maxCommit=64  turn=381  stalled=0
 bedrock-08             arrived  reach=33/33   frames=360  excess=-7%  collisions=0   jumps=26  pubs=27  adopt=27  refuse=0   firstPub=5    maxCommit=66  turn=566  stalled=0
 bedrock-09             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 bedrock-10             arrived  reach=23/24   frames=248  excess=-7%  collisions=6   jumps=17  pubs=17  adopt=17  refuse=0   firstPub=5    maxCommit=65  turn=708  stalled=0
 bedrock-11             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
-bedrock-traverse       arrived  reach=37/37   frames=406  excess=-6%  collisions=0   jumps=31  pubs=26  adopt=26  refuse=0   firstPub=5    maxCommit=73  turn=1007 stalled=0
+bedrock-traverse       arrived  reach=37/37   frames=400  excess=-7%  collisions=0   jumps=30  pubs=28  adopt=28  refuse=0   firstPub=5    maxCommit=73  turn=1135 stalled=0
 flat-straight          arrived  reach=0/5     frames=52   excess=-23% collisions=0   jumps=2   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 flat-diagonal          arrived  reach=0/4     frames=50   excess=-23% collisions=0   jumps=3   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 flat-shallow           arrived  reach=0/5     frames=53   excess=-22% collisions=0   jumps=3   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=49   stalled=0

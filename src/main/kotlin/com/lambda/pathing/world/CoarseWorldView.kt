@@ -108,6 +108,9 @@ interface CoarseVoxelView {
 	fun surfaceOffset(x: Int, y: Int, z: Int): Double = (standingSurface(x, y, z) ?: 1.0) - 1.0
 }
 
+fun CoarseVoxelView.canStandAt(x: Int, y: Int, z: Int): Boolean =
+	standingSurface(x, y - 1, z) != null && voxel(x, y, z).centerPassable && voxel(x, y + 1, z).centerPassable
+
 fun Stance.center(view: CoarseVoxelView) = HorizontalPoint(
 	x + 0.5,
 	y + view.surfaceOffset(x, y - 1, z),

@@ -5,7 +5,7 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.*
-import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.session.TrajectoryPlanner
 import com.lambda.pathing.coarse.*
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.SimpleMoveOptions
@@ -96,7 +96,7 @@ class HorizonWalkProbeTest {
                 started = System.currentTimeMillis(),
                 clock = clock,
             )
-            val planned = (outcome as? com.lambda.pathing.PathPlanResult.Planned)?.path
+            val planned = (outcome as? com.lambda.pathing.session.PathPlanResult.Planned)?.path
             if (planned != null && !planned.partial) {
                 arrived++
                 total += planned.plan.tape.frameCount
@@ -189,7 +189,7 @@ class HorizonWalkProbeTest {
         val commits = publications.map { it.second.plan.tape.frameCount }
         val steps = commits.zipWithNext { a, b -> b - a }
         println("[horizon] final tape %d frames".format(
-            (result as? com.lambda.pathing.PathPlanResult.Planned)?.path?.plan?.tape?.frameCount ?: 0))
+            (result as? com.lambda.pathing.session.PathPlanResult.Planned)?.path?.plan?.tape?.frameCount ?: 0))
         println("[horizon] largest commitment %d, median %d".format(
             steps.maxOrNull() ?: 0, steps.sorted().getOrElse(steps.size / 2) { 0 }))
         println("[horizon] %d publications, result %s, commit sizes %s".format(
@@ -209,7 +209,7 @@ class HorizonWalkProbeTest {
         // back as the *result* -- the callback only ever carries the partials handed over
         // while walking -- so both have to be considered.
         check(publications.isNotEmpty()) { "nothing was ever published" }
-        val last = (result as? com.lambda.pathing.PathPlanResult.Planned)?.path
+        val last = (result as? com.lambda.pathing.session.PathPlanResult.Planned)?.path
             ?: publications.last().second
         check(!last.partial) { "walk ended on a partial tape, never reached $goal" }
         val end = last.plan.frames.last().state

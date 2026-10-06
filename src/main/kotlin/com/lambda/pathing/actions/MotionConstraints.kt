@@ -34,7 +34,6 @@ data class MotionConstraints(
 
 data class TerminalApproach(
 	val sprint: Boolean,
-	val lookAheadNodes: Int,
 	val brakeDistance: Double,
 	val stepUpJumpLeadDistance: Double?,
 )

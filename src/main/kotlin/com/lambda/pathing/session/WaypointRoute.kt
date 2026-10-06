@@ -1,13 +1,10 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.Automated
 import com.lambda.pathing.core.ArrivalMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.PublishedPath
-import com.lambda.pathing.session.PlanningCancellation
-import com.lambda.pathing.session.PlanningJourney
-import com.lambda.pathing.world.InterestPrimer
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.util.CommunicationUtils.info
 import net.minecraft.client.network.ClientPlayerEntity

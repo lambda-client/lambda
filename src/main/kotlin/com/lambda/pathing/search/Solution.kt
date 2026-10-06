@@ -10,15 +10,12 @@ data class TapeSegment(val movement: MovementId, val frames: Int)
 
 internal class Solution(
 	val segments: Int,
-	val launchMargin: Int,
 	val parameters: TerminalApproach,
 	val frames: Int,
 	val collisionEvents: Int,
 	val anchor: ValueAnchor,
 	val tailFrames: List<SimulatedTrajectoryFrame>,
 ) {
-
-	val airborneCollisionEvents: Int by lazy { anchor.airborneCollisionEvents + airborneCollisionEvents(anchor.state, tailFrames) }
 
 	val planSegments: List<PlanSegment> by lazy { segmentsOf(anchor, tailFrames, parameters) }
 
@@ -100,7 +97,6 @@ internal class Solution(
 			collisionEvents: Int,
 		): Solution = Solution(
 			segments = anchor.depth() + 1,
-			launchMargin = anchor.launchMargin,
 			parameters = parameters,
 			frames = anchor.elapsed + tail.size,
 			collisionEvents = collisionEvents,

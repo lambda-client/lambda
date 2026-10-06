@@ -14,7 +14,6 @@ import com.lambda.pathing.session.AlignmentController.Companion.START_DRIFT_TOLE
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.pathing.world.InterestPrimer
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.player.MovementUtils.moveYaw
@@ -80,7 +79,6 @@ internal class TapeAdmission(private val walk: PathingSession) {
 					return keepRunning(path, "publication environment changed: $deviation")
 				}
 				walk.telemetry.published = path
-				walk.telemetry.recordExecuted(path)
 				walk.journey?.world?.let { InterestPrimer.primeRoute(it, path.route) }
 				walk.cursor = TrajectoryExecutionCursor(
 					path.plan, with(walk) { liveProfile() },
@@ -121,7 +119,6 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		walk.pendingPath = null
 		walk.alignmentTicks = 0
 		walk.telemetry.published = path
-		walk.telemetry.recordExecuted(path)
 		walk.cursor = TrajectoryExecutionCursor(
 			path.plan, with(walk) { liveProfile() },
 			tolerance = ExecutionStateTolerance(),
@@ -151,8 +148,8 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		untilFrame: Int = path.plan.tape.frameCount,
 	): ExecutionDeviation? {
 		val liveProfile = with(walk) { liveProfile() }
-		if (!liveProfile.isCompatibleWith(path.profile)) {
-			return ExecutionDeviation.PhysicsProfile(path.profile, liveProfile)
+		if (!liveProfile.isCompatibleWith(path.plan.physicsProfile)) {
+			return ExecutionDeviation.PhysicsProfile(path.plan.physicsProfile, liveProfile)
 		}
 		val world = walk.journey?.world ?: return null
 		if (world.revision <= path.plan.snapshotRevision) return null

@@ -3,8 +3,8 @@ package pathing
 // A search must be able to BEGIN inside finishing range of the goal: a partial tape
 // legally stops within a few blocks of it, and the successor leg roots there.
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints

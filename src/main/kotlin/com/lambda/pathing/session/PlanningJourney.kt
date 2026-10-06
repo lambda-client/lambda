@@ -1,6 +1,5 @@
 package com.lambda.pathing.session
 
-import com.lambda.pathing.TrajectoryPlanningPreparation
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance

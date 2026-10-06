@@ -2,6 +2,7 @@ package com.lambda.pathing.actions.families
 
 import com.lambda.pathing.actions.CellCondition
 import com.lambda.pathing.actions.CellPredicate
+import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.control.ClimbProgram
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
@@ -30,7 +31,7 @@ object ClimbMovement : Movement {
 				TemplateSpec(
 					dx = 0, dy = 1, dz = 0,
 					movement = id,
-					cost = context.costs.climbCost(1),
+					cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
 					conditions = listOf(
 						CellCondition(0, 0, 0, CellPredicate.CLIMBABLE),
 						CellCondition(0, 1, 0, CellPredicate.CLIMBABLE),
@@ -42,7 +43,7 @@ object ClimbMovement : Movement {
 				TemplateSpec(
 					dx = 0, dy = -1, dz = 0,
 					movement = id,
-					cost = context.costs.climbCost(1),
+					cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
 					conditions = listOf(
 						CellCondition(0, 0, 0, CellPredicate.CLIMBABLE),
 						CellCondition(0, -1, 0, CellPredicate.CLIMBABLE),
@@ -55,7 +56,7 @@ object ClimbMovement : Movement {
 					TemplateSpec(
 						dx = dx, dy = -1, dz = dz,
 						movement = id,
-						cost = context.costs.climbCost(1),
+						cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
 						conditions = listOf(
 							CellCondition(dx, -1, dz, CellPredicate.CLIMBABLE),
 
@@ -70,7 +71,7 @@ object ClimbMovement : Movement {
 					TemplateSpec(
 						dx = dx, dy = 0, dz = dz,
 						movement = id,
-						cost = context.costs.climbCost(1),
+						cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
 						conditions = listOf(
 							CellCondition(dx, 0, dz, CellPredicate.CLIMBABLE),
 							CellCondition(dx, 1, dz, CellPredicate.CENTER_HEAD),
@@ -81,7 +82,7 @@ object ClimbMovement : Movement {
 					TemplateSpec(
 						dx = dx, dy = 0, dz = dz,
 						movement = id,
-						cost = context.costs.climbCost(1),
+						cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
 						conditions = listOf(
 							CellCondition(0, 0, 0, CellPredicate.CLIMBABLE),
 						) + StanceRules.stanceConditions(dx, 0, dz),
@@ -151,7 +152,7 @@ object ClimbMovement : Movement {
 			climbWithJump = decision.climbWithJump,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
 			takeoff = context.body.stance.center(),
-			aim = (decision.step ?: context.body.stance).center(),
+			aim = decision.step.center(),
 		)
 	}
 

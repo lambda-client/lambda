@@ -1,5 +1,6 @@
 package com.lambda.pathing.actions.control
 
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.AirSteering
 import com.lambda.pathing.launch.BallisticProfile
@@ -15,7 +16,7 @@ internal fun airPlanToward(
 	val dx = (to.x - from.x).toDouble()
 	val dz = (to.z - from.z).toDouble()
 	val length = hypot(dx, dz)
-	if (length <= 1e-9) return null
+	if (length <= DEGENERATE_LENGTH) return null
 	val unitX = dx / length
 	val unitZ = dz / length
 	return AirSteering.AirPlan(

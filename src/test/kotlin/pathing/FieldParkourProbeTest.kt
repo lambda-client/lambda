@@ -3,7 +3,7 @@
  */
 package pathing
 
-import com.lambda.pathing.PathPlanResult
+import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.ParkourCourseLayout
 import com.lambda.pathing.actions.SimpleMoveOptions

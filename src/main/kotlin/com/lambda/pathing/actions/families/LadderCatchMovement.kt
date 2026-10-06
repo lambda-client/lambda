@@ -40,7 +40,7 @@ object LadderCatchMovement : Movement {
 								CellCondition(dx * span, rise, dz * span, CellPredicate.CLIMBABLE),
 								CellCondition(dx * span, rise + 1, dz * span, CellPredicate.CENTER_HEAD),
 							),
-							arc = MotionTemplate.ArcSpec(dx * span, dz * span, rise, MODES),
+							arc = MotionTemplate.ArcSpec(MODES),
 						)
 					)
 				}
@@ -79,12 +79,7 @@ object LadderCatchMovement : Movement {
 
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision as TrajectoryDecision.Launch
-		val solution = decision.solution
-		val step = decision.step
-
-		val airPlan = if (solution != null && step != null) {
-			airPlanToward(context.body.stance, step, solution, lateralOffset = 0.0)
-		} else null
+		val airPlan = airPlanToward(context.body.stance, decision.step, decision.solution, lateralOffset = 0.0)
 
 		return SegmentFollowerProgram(
 			nodes = context.nodes,

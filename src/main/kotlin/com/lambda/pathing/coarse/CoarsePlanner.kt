@@ -7,7 +7,6 @@ import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.graph.CoarseRouteCandidate
 import com.lambda.pathing.graph.LongDStarLite
 import com.lambda.pathing.graph.LongLazyGraph
-import com.lambda.pathing.graph.TailCost
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -251,7 +250,13 @@ class CoarsePlanner(
 				candidate.nodes[candidate.nodes.size - 2] in anchors
 			) candidate.nodes.dropLast(1) else candidate.nodes
 		val edges = nodes.zipWithNext { from, to -> liveEdge(from, to) ?: return null }
-		return plan(snapshotRevision, nodes, edges, candidate.ticks, candidate.exactFromStart)
+		return CoarseRoutePlan(
+			snapshotRevision = snapshotRevision,
+			nodes = nodes.toList(),
+			edges = edges,
+			lowerBoundTicks = candidate.ticks,
+			dependencies = edges.flatMapTo(HashSet()) { it.readSet },
+		)
 	}
 
 	private fun liveEdge(from: Stance, to: Stance): CoarseEdge? =
@@ -267,24 +272,6 @@ class CoarsePlanner(
 		append(" queue=").append(search.queue.size())
 		append(" descent=").append(search.routeDescentReport())
 	}
-
-	private fun plan(
-		snapshotRevision: Long,
-		nodes: List<Stance>,
-		edges: List<CoarseEdge>,
-		ticks: Double,
-		exactFromStart: Boolean,
-	) = CoarseRoutePlan(
-		snapshotRevision = snapshotRevision,
-		routeVersion = search.routeVersion,
-		nodes = nodes.toList(),
-		edges = edges.toList(),
-		lowerBoundTicks = ticks,
-		exactFromStart = exactFromStart,
-		dependencies = edges.flatMapTo(HashSet()) { it.readSet },
-		tailCosts = nodes.map { stanceTailCost(it) },
-		heuristicCaps = moves.heuristicCaps,
-	)
 
 	fun resynchronizedRoutePlan(
 		snapshotRevision: Long,
@@ -304,22 +291,6 @@ class CoarsePlanner(
 			routePlan(snapshotRevision, maxLength)?.let { return it }
 		}
 		return null
-	}
-
-	fun tailCost(node: Stance = PackedStance.stance(search.start)): TailCost = stanceTailCost(node)
-
-	private fun stanceTailCost(node: Stance): TailCost {
-		val moving = search.tailCost(PackedStance.pack(node, SpeedClass.MOVING))
-		val stopped = search.tailCost(PackedStance.pack(node, SpeedClass.STOPPED))
-		return when {
-			moving is TailCost.Exact && stopped is TailCost.Exact ->
-				if (moving.ticks <= stopped.ticks) moving else stopped
-			moving is TailCost.Exact -> moving
-			stopped is TailCost.Exact -> stopped
-			moving is TailCost.Unreachable -> stopped
-			stopped is TailCost.Unreachable -> moving
-			else -> if (moving.lowerBound <= stopped.lowerBound) moving else stopped
-		}
 	}
 
 	private fun synchronizeStances(affected: Iterable<Stance>): LongDStarLite.SynchronizationResult {

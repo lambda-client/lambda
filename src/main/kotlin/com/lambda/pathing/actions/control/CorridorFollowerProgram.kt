@@ -5,6 +5,7 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.TerminalApproach
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.horizontalDistance
@@ -76,7 +77,7 @@ internal class CorridorFollowerProgram(
 			return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
 		}
 
-		val desiredYaw = yawTowards(pursuit.target(parameters.lookAheadNodes), observed)
+		val desiredYaw = yawTowards(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed)
 		val yawDelta = yawStepTowards(desiredYaw, observed, maxYawChange)
 		return MovementSimulationInput(
 			forward = 1.0,
@@ -95,7 +96,7 @@ internal class CorridorFollowerProgram(
 		val dz = goal.z - observed.position.z
 		val distance = hypot(dx, dz)
 
-		val speedTowardGoal = if (distance <= 1e-9) 0.0
+		val speedTowardGoal = if (distance <= DEGENERATE_LENGTH) 0.0
 		else (observed.velocity.x * dx + observed.velocity.z * dz) / distance
 		val coast = speedTowardGoal * GROUND_COAST_PER_SPEED
 

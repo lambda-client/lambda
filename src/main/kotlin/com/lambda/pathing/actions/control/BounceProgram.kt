@@ -2,7 +2,6 @@ package com.lambda.pathing.actions.control
 
 import com.lambda.pathing.actions.ControlProgram
 
-import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.launch.BounceSolution
@@ -18,7 +17,6 @@ internal class BounceProgram(
 ) : ControlProgram {
 	private var airborne = false
 	private var landed = false
-	private var bounced = false
 	private var flightTicks = 0
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
@@ -27,12 +25,10 @@ internal class BounceProgram(
 			airborne = true
 			flightTicks++
 		} else if (airborne) {
-			if (observed.velocity.y > REBOUND_SPEED) bounced = true else landed = true
+			if (observed.velocity.y <= REBOUND_SPEED) landed = true
 		}
 
-		val desiredYaw = yawTowards(aim, observed)
-		val yawDelta = yawStepTowards(desiredYaw, observed, maxYawChange)
-		val rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch)
+		val rotation = rotationToward(aim, observed, maxYawChange)
 
 		var jump = false
 		val forward: Double
@@ -63,13 +59,7 @@ internal class BounceProgram(
 
 			if (solution.jump) {
 				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
-				val nextAlong = alongEdge(
-					takeoff, aim,
-					observed.position.x + observed.velocity.x,
-					observed.position.z + observed.velocity.z,
-				)
-				val reach = (nextAlong - along).coerceAtLeast(0.0)
-				if (solution.launchOffset - along <= reach + LIP_MARGIN) jump = true
+				if (reachesLip(takeoff, aim, observed, along, solution.launchOffset)) jump = true
 			}
 			forward = when {
 				jump -> if (solution.holdForward) 1.0 else 0.0
@@ -111,8 +101,6 @@ internal class BounceProgram(
 		const val LATERAL_FULL_OFFSET = 0.5
 
 		const val HELD_FORWARD_MAX_STRAFE = 0.33
-
-		const val LIP_MARGIN = LIP_LOOKAHEAD_MARGIN
 
 		const val BRAKE_MIN_SPEED = 0.12
 

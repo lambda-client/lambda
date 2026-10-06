@@ -4,19 +4,15 @@ import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 
 import com.lambda.pathing.actions.InputTape
-import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 
 data class PlanAttempt(
-	val parameters: TerminalApproach,
 	val simulatedFrames: Int,
 	val finalGoalError: Double,
-	val finalHorizontalSpeed: Double,
 	val diagnostic: TrajectoryDiagnostic?,
-	val blockedProgress: Int = 0,
 )
 
 internal class AttemptAccumulator {
@@ -31,8 +27,18 @@ internal class AttemptAccumulator {
 	}
 }
 
+enum class SearchExit(private val label: String) {
+	SOLVED("solved"),
+	BUDGET("budget"),
+	EXHAUSTED("exhausted"),
+	DRAINED("drained"),
+	COMMIT_REFUSED("commit-refused");
+
+	override fun toString(): String = label
+}
+
 data class SearchExhaustion(
-	val exit: String,
+	val exit: SearchExit,
 	val expansions: Int,
 	val windowExpansions: Int,
 	val windowBudget: Int,
@@ -41,28 +47,12 @@ data class SearchExhaustion(
 	val parkedAnchors: Int,
 	val blockedAttempts: Int,
 	val spentAnchors: Int,
-	val deepestAnchorFrame: Int,
-	val unreachableAdmissions: Int,
 	val tapeRestarts: Int,
 	val routeNodes: Int,
 	val deepestRouteIndex: Int,
-	val committed: Boolean,
-	val rootFrame: Int,
-	val publishedFrame: Int,
-	val horizonEnd: Int,
-	val anchorsAdmitted: Int,
-	val beamDominated: Int,
-	val beamEvicted: Int,
-	val beamCapped: Int,
-	val beamBuckets: Int,
-	val beamLargestBucket: Int,
-	val adoptableDrops: Int = 0,
-	val legSwitches: Int = 0,
 	val commitAttempts: Int = 0,
-	val commitSuppressed: Int = 0,
 	val publishRefusals: Int = 0,
 	val repairs: Int = 0,
-	val junctionRestarts: Int = 0,
 	val firstSolutionFrames: Int = -1,
 	val solutionsFound: Int = 0,
 ) {
@@ -75,27 +65,11 @@ data class SearchExhaustion(
 		append(" parked=").append(parkedAnchors)
 		append(" blocked=").append(blockedAttempts)
 		append(" spent=").append(spentAnchors)
-		append(" deepestFrame=").append(deepestAnchorFrame)
-		append(" unreachable=").append(unreachableAdmissions)
 		append(" restarts=").append(tapeRestarts)
 		append(" route=").append(deepestRouteIndex).append('/').append(routeNodes)
-		append(" committed=").append(committed)
-		append(" root=").append(rootFrame)
-		append(" published=").append(publishedFrame)
-		append(" horizonEnd=").append(horizonEnd)
-		append(" admitted=").append(anchorsAdmitted)
-		append(" merged=").append(beamDominated + beamEvicted + beamCapped)
-		append(" buckets=").append(beamBuckets)
-		append(" maxBucket=").append(beamLargestBucket)
-		if (commitAttempts + commitSuppressed + publishRefusals > 0) {
-			append(" drops=").append(adoptableDrops)
-			if (legSwitches > 0) append(" legs=").append(legSwitches)
-			append(" commits=").append(commitAttempts)
-			append(" suppressed=").append(commitSuppressed)
-			append(" refusals=").append(publishRefusals)
-		}
+		append(" commits=").append(commitAttempts)
+		append(" refusals=").append(publishRefusals)
 		if (repairs > 0) append(" repairs=").append(repairs)
-		if (junctionRestarts > 0) append(" junctionRestarts=").append(junctionRestarts)
 		if (solutionsFound > 0) append(" first=").append(firstSolutionFrames).append(" solutions=").append(solutionsFound)
 	}
 }
@@ -107,11 +81,9 @@ sealed interface MotionPlanResult {
 		val sourceRoute: CoarseRoutePlan,
 		val tape: InputTape,
 		val rollout: TrajectoryRollout,
-		val parameters: TerminalApproach,
 
 		val safeAnchorStance: Stance,
 		val safeAnchorFrame: Int,
-		val remainingGuideTicks: Double,
 
 		val frameDependencies: List<Set<VoxelPos>>,
 
@@ -119,7 +91,6 @@ sealed interface MotionPlanResult {
 		val attemptCount: Int,
 		val controlSegments: Int = 1,
 		val spliceFrames: List<Int> = emptyList(),
-		val launchMarginFrames: Int = 0,
 
 		val planSegments: List<PlanSegment> = emptyList(),
 
@@ -156,7 +127,6 @@ sealed interface MotionPlanResult {
 		val attemptCount: Int,
 		val nearest: PlanAttempt?,
 		val remainingStart: Stance? = null,
-		val remainingGoal: Stance? = null,
 		val blockedProgress: Int? = null,
 		val exhaustion: SearchExhaustion? = null,
 	) : MotionPlanResult

@@ -3,7 +3,6 @@ package com.lambda.pathing.session
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.pathing.TrajectoryPlanner
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult

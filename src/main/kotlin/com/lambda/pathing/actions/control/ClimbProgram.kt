@@ -14,8 +14,8 @@ internal class ClimbProgram(
 	private val holdWhileClimbing: Boolean,
 	private val climbWithJump: Boolean,
 	private val maxYawChange: Double,
-	private val takeoff: HorizontalPoint? = null,
-	private val aim: HorizontalPoint? = null,
+	private val takeoff: HorizontalPoint,
+	private val aim: HorizontalPoint,
 ) : ControlProgram {
 
 	private val overLip = holdForward && !holdWhileClimbing && !climbWithJump
@@ -31,7 +31,7 @@ internal class ClimbProgram(
 		val forward = if (observed.onGround) {
 			if (overLip && !aligned) {
 				0.0
-			} else if (overLip && takeoff != null && aim != null) {
+			} else if (overLip) {
 
 				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 				val speed = observed.velocity.horizontalLength()

@@ -14,23 +14,15 @@ import java.util.*
 @JvmInline
 value class TrajectoryPlanId(val value: Long)
 
-enum class CertifiedTerminal {
-	STABLE_GROUNDED_STOP,
-}
-
 class TrajectoryPlan private constructor(
 	val id: TrajectoryPlanId,
 	val snapshotRevision: Long,
-	@Suppress("unused")
-	val coarseRouteVersion: Long,
 	val physicsProfile: PlayerPhysicsProfile,
 	val initialState: MovementSimulationState,
 	val dependencies: Set<VoxelPos>,
 	frameDependencies: List<Set<VoxelPos>>,
 	val tape: InputTape,
 	frames: List<SimulatedTrajectoryFrame>,
-	val terminal: CertifiedTerminal,
-
 	val segments: List<PlanSegment> = emptyList(),
 ) {
 	val frames: List<SimulatedTrajectoryFrame> = Collections.unmodifiableList(ArrayList(frames))
@@ -92,16 +84,6 @@ class TrajectoryPlan private constructor(
 		first
 	}
 
-	fun dependencySectionsFrom(nextFrame: Int): Set<PathingSection> {
-		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
-		return sectionReads.from(nextFrame)
-	}
-
-	fun dependencyChunksFrom(nextFrame: Int): Set<PathingChunk> {
-		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
-		return chunkReads.from(nextFrame)
-	}
-
 	fun dependencySectionsBetween(nextFrame: Int, untilFrame: Int): Set<PathingSection> {
 		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
 		return sectionReads.between(nextFrame, untilFrame)
@@ -128,14 +110,12 @@ class TrajectoryPlan private constructor(
 		): TrajectoryPlan = TrajectoryPlan(
 			id = id,
 			snapshotRevision = seed.sourceRoute.snapshotRevision,
-			coarseRouteVersion = seed.sourceRoute.routeVersion,
 			physicsProfile = physicsProfile,
 			initialState = seed.rollout.initialState,
 			dependencies = Collections.unmodifiableSet(HashSet(seed.dependencies)),
 			frameDependencies = seed.frameDependencies.map { Collections.unmodifiableSet(HashSet(it)) },
 			tape = InputTape(seed.tape.asList()),
 			frames = seed.rollout.frames,
-			terminal = CertifiedTerminal.STABLE_GROUNDED_STOP,
 			segments = seed.planSegments,
 		)
 	}

@@ -10,6 +10,7 @@ import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.canStandAt
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -26,9 +27,6 @@ class MotionTemplate internal constructor(
 ) {
 
 	data class ArcSpec(
-		val dx: Int,
-		val dz: Int,
-		val rise: Int,
 		val modes: List<LaunchMode> = LaunchMode.entries,
 		val bounceDrop: Int? = null,
 
@@ -49,12 +47,11 @@ class MotionTemplate internal constructor(
 	private fun bounceEdge(
 		view: CoarseVoxelView,
 		origin: Stance,
-		spec: ArcSpec,
 		drop: Int,
 		launchOffset: Double,
 	): CoarseEdge? {
 		val probed = BounceArcProbe.probe(
-			view, origin, spec.dx, spec.dz, drop, spec.rise,
+			view, origin, dx, dz, drop, dy,
 			launchHeight = origin.y + launchOffset,
 		) ?: return null
 
@@ -90,12 +87,12 @@ class MotionTemplate internal constructor(
 			val launchOffset = surfaceOffset(view, origin)
 			val landingOffset = surfaceOffset(view, target(origin))
 			spec.bounceDrop?.let { drop ->
-				return bounceEdge(view, origin, spec, drop, launchOffset)
+				return bounceEdge(view, origin, drop, launchOffset)
 			}
-			val riseHeight = spec.rise + landingOffset - launchOffset
+			val riseHeight = dy + landingOffset - launchOffset
 			spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
 			JumpArcProbe.probe(
-				view, origin, spec.dx, spec.dz, spec.rise, modes = spec.modes,
+				view, origin, dx, dz, dy, modes = spec.modes,
 				riseHeight = riseHeight,
 				launchHeight = origin.y + launchOffset,
 			) ?: return null
@@ -135,11 +132,9 @@ class MotionTemplate internal constructor(
 		solution: LaunchSolution,
 	): Boolean {
 		val profile = BallisticProfile.VANILLA
-		val behindX = origin.x - Integer.signum(spec.dx)
-		val behindZ = origin.z - Integer.signum(spec.dz)
-		val behind = view.standingSurface(behindX, origin.y - 1, behindZ) != null &&
-				view.voxel(behindX, origin.y, behindZ).centerPassable &&
-				view.voxel(behindX, origin.y + 1, behindZ).centerPassable
+		val behindX = origin.x - Integer.signum(dx)
+		val behindZ = origin.z - Integer.signum(dz)
+		val behind = view.canStandAt(behindX, origin.y, behindZ)
 		val runUp = IN_CELL_RUN_UP + if (behind) 1.0 else 0.0
 		fun reach(sprint: Boolean): Double =
 			profile.runUpSpeed(0.0, profile.groundRunUpTicks(0.0, runUp, sprint, STANDING_RUN_UP_TICKS), sprint)
@@ -148,7 +143,7 @@ class MotionTemplate internal constructor(
 		return LaunchSolver.best(
 			origin, target(origin), profile, spec.modes,
 			maxEntrySpeed = { reach(it.sprint) },
-			rise = spec.rise + surfaceOffset(view, target(origin)) - surfaceOffset(view, origin),
+			rise = realRise(view, origin),
 		) != null
 	}
 
@@ -159,11 +154,11 @@ class MotionTemplate internal constructor(
 
 			arc?.let { spec ->
 
-				val steps = maxOf(abs(spec.dx), abs(spec.dz))
+				val steps = maxOf(abs(dx), abs(dz))
 				for (step in 0..steps) {
-					val alongX = if (steps == 0) 0 else (spec.dx.toDouble() * step / steps).roundToInt()
-					val alongZ = if (steps == 0) 0 else (spec.dz.toDouble() * step / steps).roundToInt()
-					val floorReach = minOf(spec.rise, -(spec.bounceDrop ?: 0), 0) - 2
+					val alongX = if (steps == 0) 0 else (dx.toDouble() * step / steps).roundToInt()
+					val alongZ = if (steps == 0) 0 else (dz.toDouble() * step / steps).roundToInt()
+					val floorReach = minOf(dy, -(spec.bounceDrop ?: 0), 0) - 2
 					for (y in floorReach..ARC_READ_CEILING) {
 						for (ox in -1..1) {
 							for (oz in -1..1) {

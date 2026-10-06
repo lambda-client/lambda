@@ -7,12 +7,12 @@ import com.lambda.pathing.search.VirtualSearchClock
 /**
  * The half of the walk the corpus harness was missing: a body that can refuse a tape.
  *
- * [com.lambda.pathing.TrajectoryPlanner.walkHorizon] defaults `adoptedSequence` to
+ * [com.lambda.pathing.session.TrajectoryPlanner.walkHorizon] defaults `adoptedSequence` to
  * `Long.MAX_VALUE`, so every fixture built on it modelled an executor that accepts every
  * publication, instantly, and never refuses one. Real walks do not behave that way -- a
  * logged parkour run published seven tapes and adopted five -- and the difference is not
  * cosmetic. An unacknowledged publication blocks `publishPrefix` and
- * `commitFromCandidates` behind `ackedUpToDate()` until the rollback timer fires, and the
+ * `commit` behind `Publications.upToDate` until the rollback timer fires, and the
  * body keeps eating frames throughout. With the refusal path absent the corpus scored a
  * 3% stall rate against roughly 75% in game, which made it useless for exactly the
  * failure it was being asked about.

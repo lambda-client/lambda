@@ -22,7 +22,6 @@ object PathingMetricSink {
         val trajectoryFrames: Int,
         val collisionFrames: Int,
         val bumps: Int,
-        val launchMarginFrames: Int,
         val planLatencyMs: Long,
         val maxReplayDeviation: Double,
         /** Frames of the final published tape; informational, never gated. */
@@ -146,17 +145,6 @@ object PathingMetricSink {
         check(run.bumps <= expected.bumps + bumpSlack) {
             "${run.scenario}: bumps regressed ${expected.bumps} -> ${run.bumps}"
         }
-        // Launch margin accumulates over every jump in the tape, so on the
-        // timing-variant scenarios it moves with the wall-clock-dependent route the
-        // walk happened to assemble (measured 8..20 on the long bedrock field across
-        // green-intent runs). Variant scenarios get a halving allowance; deterministic
-        // ones stay strict.
-        val marginFloor =
-            if (run.scenario in TIMING_VARIANT_SCENARIOS) expected.launchMarginFrames / 2
-            else expected.launchMarginFrames
-        check(run.launchMarginFrames >= marginFloor) {
-            "${run.scenario}: launch margin regressed ${expected.launchMarginFrames} -> ${run.launchMarginFrames}"
-        }
         check(run.planLatencyMs <= maxOf(MAX_PLAN_LATENCY_MS, expected.planLatencyMs * 3)) {
             "${run.scenario}: plan latency regressed ${expected.planLatencyMs} -> ${run.planLatencyMs} ms"
         }
@@ -179,7 +167,6 @@ object PathingMetricSink {
         append("\"finalFrames\":").append(finalFrames).append(',')
         append("\"collisionFrames\":").append(collisionFrames).append(',')
         append("\"bumps\":").append(bumps).append(',')
-        append("\"launchMarginFrames\":").append(launchMarginFrames).append(',')
         append("\"planLatencyMs\":").append(planLatencyMs).append(',')
         append("\"maxReplayDeviation\":").append(maxReplayDeviation)
         append('}')
@@ -200,7 +187,6 @@ object PathingMetricSink {
             finalFrames = runCatching { number("finalFrames").toInt() }.getOrDefault(0),
             collisionFrames = number("collisionFrames").toInt(),
             bumps = number("bumps").toInt(),
-            launchMarginFrames = number("launchMarginFrames").toInt(),
             planLatencyMs = number("planLatencyMs").toLong(),
             maxReplayDeviation = number("maxReplayDeviation").toDouble(),
         )

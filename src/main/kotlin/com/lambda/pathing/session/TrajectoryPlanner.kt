@@ -1,11 +1,10 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.PathingConfig
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
-import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
@@ -26,18 +25,18 @@ import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SystemSearchClock
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.search.TrajectoryPlanId
-import com.lambda.pathing.search.ValueFieldAnchorSearch
+import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.search.ValueFieldSearchConfig
 import com.lambda.pathing.search.WorldSyncResult
-import com.lambda.pathing.session.ContinuousSyncPolicy
-import com.lambda.pathing.session.PlanningCancellation
-import com.lambda.pathing.session.RouteResolution
+import com.lambda.pathing.search.supportedStanceOf
+import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
@@ -56,12 +55,6 @@ object TrajectoryPlanner {
 		Thread(task, "NeoLambda-PathPlanner-legs").apply { isDaemon = true }
 	}
 
-	val envelope = CoarseKinematicEnvelope(
-		maxHorizontalBlocksPerTick = 0.6,
-		maxAscentBlocksPerTick = 0.5,
-		maxDescentBlocksPerTick = 4.0,
-	)
-
 	internal fun journeyLegs(
 		preparation: TrajectoryPlanningPreparation,
 		snapshot: SnapshotSimulationEnvironment,
@@ -79,14 +72,8 @@ object TrajectoryPlanner {
 		}
 	}
 
-	internal fun resolveStartStance(initial: MovementSimulationState): Stance {
-		val base = Stance.of(initial.position, initial.onGround)
-		if (!initial.onGround) return base
-		val support = initial.supportingBlockPos ?: return base
-		return if (support.x != base.x || support.z != base.z) {
-			Stance(support.x, support.y + 1, support.z)
-		} else base
-	}
+	internal fun resolveStartStance(initial: MovementSimulationState): Stance =
+		supportedStanceOf(initial) ?: stanceOf(initial)
 
 	internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance {
 		val world = player.entityWorld
@@ -144,10 +131,10 @@ object TrajectoryPlanner {
 
 		if (cancellation.isCancelled) return PlanningPreparationResult.Cancelled
 
-		if (!envelope.contains(initial.velocity)) {
+		if (!plannableEntry(initial.velocity)) {
 			return PlanningPreparationResult.Failed(
 				PlanningFailure.InvalidRequest(
-					"entry velocity %.3f b/t is outside the coarse kinematic envelope"
+					"entry velocity %.3f b/t is outside what the planner simulates"
 						.format(initial.velocity.horizontalLength())
 				)
 			)
@@ -261,10 +248,9 @@ object TrajectoryPlanner {
 					cancelled = { cancellation.isCancelled },
 				)
 				val coarseMillis = (System.nanoTime() - coarseStarted) / 1_000_000L
-				val snapshotStats = snapshot.storageStats()
 				LOG.info(
 					"Coarse D* {} -> {}: {} expansions, {} graph nodes, {} snapshot sections, {} ms, converged={}",
-					start, goal, coarse.processedNodes, planner.graphSize, snapshotStats.sections,
+					start, goal, coarse.processedNodes, planner.graphSize, snapshot.sectionCount,
 					coarseMillis, coarse.converged,
 				)
 				if (coarse.cancelled || cancellation.isCancelled) return@supplyAsync PathPlanResult.Cancelled
@@ -442,7 +428,7 @@ object TrajectoryPlanner {
 		} else null
 		try {
 
-			val result = ValueFieldAnchorSearch.search(
+			val result = SearchLoop(
 				route, planner.moves.catalog, searchField, initial, profile, snapshot, seedConfig,
 				ValueFieldSearchConfig(
 					safePrefixFrames = commitFrames,
@@ -486,7 +472,7 @@ object TrajectoryPlanner {
 				executor = pool,
 				nextLeg = legs?.let { chain -> { touched -> chain.handoff(touched) } },
 				hasNextLeg = { legs?.hasNext() ?: false },
-			)
+			).run()
 
 			return when (result) {
 				MotionPlanResult.Cancelled -> PathPlanResult.Cancelled
@@ -544,17 +530,13 @@ object TrajectoryPlanner {
 	) = PublishedPath(
 		route = route,
 		plan = TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(id), seed, profile),
-		profile = profile,
-		parameters = seed.parameters,
 		safeAnchorStance = seed.safeAnchorStance,
 		safeAnchorFrame = seed.safeAnchorFrame,
-		remainingGuideTicks = seed.remainingGuideTicks,
 		attempts = seed.attemptCount,
 		planMillis = planMillis,
 		finalGoal = finalGoal,
 		controlSegments = seed.controlSegments,
 		spliceFrames = seed.spliceFrames,
-		launchMarginFrames = seed.launchMarginFrames,
 		partial = partial || route.goal != finalGoal,
 		planningGeneration = planningGeneration,
 		publicationSequence = publicationSequence,
@@ -617,6 +599,16 @@ object TrajectoryPlanner {
 	private const val COLD_START_GOAL_WAIT_MILLIS = 500L
 
 	private const val COLD_START_INTEREST_WAIT_MILLIS = 1_500L
+
+	private fun plannableEntry(velocity: Vec3d): Boolean =
+		velocity.horizontalLength() <= MAX_ENTRY_HORIZONTAL_SPEED &&
+				velocity.y in -MAX_ENTRY_DESCENT_SPEED..MAX_ENTRY_ASCENT_SPEED
+
+	private const val MAX_ENTRY_HORIZONTAL_SPEED = 0.6
+
+	private const val MAX_ENTRY_ASCENT_SPEED = 0.5
+
+	private const val MAX_ENTRY_DESCENT_SPEED = 4.0
 
 	private fun climbHorizonFrames(route: CoarseRoutePlan): Int =
 		route.edges.count { it.movement == MovementId.CLIMB } * CLIMB_HORIZON_FRAMES_PER_EDGE

@@ -6,9 +6,11 @@ import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
+import com.lambda.pathing.core.unitBetween
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
+import com.lambda.pathing.world.canStandAt
 import kotlin.math.hypot
 
 internal object JumpDecisions {
@@ -68,18 +70,6 @@ internal object JumpDecisions {
 			modes = JumpTemplates.MODES,
 			maxEntrySpeed = { reachable },
 		)
-	}
-
-	fun closingSpeed(context: DecisionContext): Double {
-		val edge = context.edge
-		val from = edge.from.center()
-		val to = edge.to.center()
-		val body = context.body.state
-		return alongEdge(
-			from, to,
-			from.x + body.velocity.x,
-			from.z + body.velocity.z,
-		).coerceAtLeast(0.0)
 	}
 
 	fun runUpDecisions(
@@ -146,20 +136,13 @@ internal object JumpDecisions {
 		val edge = context.edge
 		val from = edge.from.center()
 		val to = edge.to.center()
-		val length = hypot(to.x - from.x, to.z - from.z)
-		if (length <= 1e-9) return false
-		val unitX = (to.x - from.x) / length
-		val unitZ = (to.z - from.z) / length
+		val (unitX, unitZ) = unitBetween(from, to) ?: return false
 		val view = context.view
 		var sampled = 1.0
 		while (sampled <= distance + 1.0) {
 			val x = kotlin.math.floor(from.x - unitX * sampled).toInt()
 			val z = kotlin.math.floor(from.z - unitZ * sampled).toInt()
-			val y = edge.from.y
-			val standable = view.standingSurface(x, y - 1, z) != null &&
-					view.voxel(x, y, z).centerPassable &&
-					view.voxel(x, y + 1, z).centerPassable
-			if (!standable) return false
+			if (!view.canStandAt(x, edge.from.y, z)) return false
 			sampled += 1.0
 		}
 		return true

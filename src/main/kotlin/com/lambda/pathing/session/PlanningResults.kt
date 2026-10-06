@@ -1,4 +1,4 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions

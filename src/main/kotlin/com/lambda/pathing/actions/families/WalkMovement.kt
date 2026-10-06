@@ -13,7 +13,6 @@ import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.ProposalContext
-import com.lambda.pathing.actions.Proposals
 import com.lambda.pathing.actions.control.PursuitTracker
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.StanceRules.CARDINALS
@@ -29,6 +28,7 @@ import com.lambda.pathing.core.bearingBetween
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.headingOfBearing
 import com.lambda.pathing.world.Medium
+import com.lambda.pathing.world.canStandAt
 import kotlin.math.abs
 import kotlin.math.floor
 
@@ -100,22 +100,21 @@ object WalkMovement : Movement {
 		}
 	}
 
-	override fun proposals(context: ProposalContext): Proposals {
+	override fun proposals(context: ProposalContext): List<TrajectoryDecision> {
 		val steps = context.steps
 		val body = context.body
-		val walks = ArrayList<TrajectoryDecision>()
-		val launches = ArrayList<TrajectoryDecision>()
+		val proposals = ArrayList<TrajectoryDecision>()
 
 		val climbing = context.view.medium(body.stance.x, body.stance.y, body.stance.z) == Medium.CLIMBABLE
 		for (step in steps) {
 			if (!walkable(step)) continue
 
 			if (climbing && !(step.movement == MovementId.STEP_UP && step.to.y > body.stance.y)) continue
-			walks += decisions(DecisionContext(body, step, context.constraints, context.view))
+			proposals += decisions(DecisionContext(body, step, context.constraints, context.view))
 		}
 
 		val leading = steps.first()
-		if (climbing || !walkable(leading)) return Proposals(walks, launches)
+		if (climbing || !walkable(leading)) return proposals
 		val target = leading.to
 		val bearing = routeBearing(context, target)
 
@@ -124,18 +123,18 @@ object WalkMovement : Movement {
 		val fanned = hazardous || turning
 
 		for (sprint in context.constraints.sprintModes) {
-			walks += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = null)
+			proposals += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = null)
 			if (fanned) {
 				for (offset in context.headingFanDegrees) {
 					if (offset == 0.0) continue
-					walks += TrajectoryDecision.Heading(
+					proposals += TrajectoryDecision.Heading(
 						sprint, target, bearing + offset, delayFrames = null,
 					)
 				}
 			}
 			if (turning) {
 				for ((keys, facingOffset) in DECOUPLED_FACINGS) {
-					walks += TrajectoryDecision.Heading(
+					proposals += TrajectoryDecision.Heading(
 						sprint, target, bearing + facingOffset, delayFrames = null, keys = keys,
 					)
 				}
@@ -145,13 +144,13 @@ object WalkMovement : Movement {
 		for (sprint in context.constraints.sprintModes) {
 			for (delay in OFF_AXIS_LAUNCH_DELAYS) {
 				if (delay != 0 && !hazardous) continue
-				launches += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = delay)
+				proposals += TrajectoryDecision.Heading(sprint, target, bearing, delayFrames = delay)
 			}
 			if (fanned) {
 				for (offset in context.headingFanDegrees) {
 					if (offset == 0.0) continue
 					for (delay in OFF_AXIS_LAUNCH_DELAYS) {
-						launches += TrajectoryDecision.Heading(
+						proposals += TrajectoryDecision.Heading(
 							sprint, target, bearing + offset, delayFrames = delay,
 						)
 					}
@@ -161,7 +160,7 @@ object WalkMovement : Movement {
 			if (hazardous) {
 				for (delay in OFF_AXIS_LAUNCH_DELAYS) {
 					for (air in AIRBORNE_KEYS.drop(1)) {
-						launches += TrajectoryDecision.Heading(
+						proposals += TrajectoryDecision.Heading(
 							sprint, target, bearing, delayFrames = delay,
 							keys = MovementKeys.FORWARD, airborneKeys = air,
 						)
@@ -170,7 +169,7 @@ object WalkMovement : Movement {
 			}
 		}
 
-		return Proposals(walks, launches)
+		return proposals
 	}
 
 	private fun walkable(edge: CoarseEdge): Boolean = when (edge.movement) {
@@ -208,10 +207,7 @@ object WalkMovement : Movement {
 			val z = floor(origin.z + 0.5 + unitZ * distance).toInt()
 			for (y in highest downTo lowest) {
 				if (!view.isKnown(x, y, z) || !view.isKnown(x, y - 1, z)) return true
-				if (view.standingSurface(x, y - 1, z) != null &&
-					view.voxel(x, y, z).centerPassable &&
-					view.voxel(x, y + 1, z).centerPassable
-				) return true
+				if (view.canStandAt(x, y, z)) return true
 			}
 		}
 		return false

@@ -48,11 +48,6 @@ class CoarseMoveCosts(
 
 	val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
 	val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
-	val climb: (blocks: Int) -> Double = { blocks -> blocks * CoarseMoveRates.CLIMB_TICKS_PER_BLOCK },
-
-	val bounce: (span: Int, drop: Int, rise: Int) -> Double = { _, drop, rise ->
-		CoarseMoveRates.fallTicks(drop) + CoarseMoveRates.fallTicks(drop + rise) + 2.0
-	},
 ) {
 	init {
 		validate("cardinalWalk", cardinalWalk)
@@ -74,14 +69,9 @@ class CoarseMoveCosts(
 		return walkOff(depth).also { validate("walkOff($depth)", it) }
 	}
 
-	fun bounceCost(span: Int, drop: Int, rise: Int): Double {
+	fun bounceCost(drop: Int, rise: Int): Double {
 		require(drop > 0) { "a bounce must fall onto something: $drop" }
-		return bounce(span, drop, rise).also { validate("bounce($span, $drop, $rise)", it) }
-	}
-
-	fun climbCost(blocks: Int): Double {
-		require(blocks > 0) { "a climb must cover at least one block" }
-		return climb(blocks).also { validate("climb($blocks)", it) }
+		return CoarseMoveRates.fallTicks(drop) + CoarseMoveRates.fallTicks(drop + rise) + BOUNCE_SETTLE_TICKS
 	}
 
 	fun dropCost(span: Int, depth: Int): Double {
@@ -99,6 +89,8 @@ class CoarseMoveCosts(
 		private const val UNREACHABLE_BALLISTIC_TICKS = 1000.0
 
 		private const val DROP_SETTLE_TICKS = 2.0
+
+		private const val BOUNCE_SETTLE_TICKS = 2.0
 
 		private const val JUMP_SETTLE_TICKS = 0.5
 

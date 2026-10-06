@@ -66,9 +66,6 @@ internal class Frontier(
 	val openSize: Int get() = open.size
 	val blockedSize: Int get() = blocked.size
 
-	var unreachableAdmissions = 0
-		private set
-
 	var anchorsAdmitted = 0
 		private set
 	var beamDominated = 0
@@ -78,12 +75,7 @@ internal class Frontier(
 	var beamCapped = 0
 		private set
 
-	val beamBuckets: Int get() = buckets.size
-	val beamLargestBucket: Int get() = buckets.values.maxOfOrNull { it.size } ?: 0
 	val parkedSize: Int get() = parked.size
-	val deepestElapsed: Int
-		get() =
-			maxOf(open.maxOfOrNull { it.anchor.elapsed } ?: 0, parked.maxOfOrNull { it.anchor.elapsed } ?: 0)
 	val openEntries: List<OpenEntry> get() = open.toList()
 
 	fun bestLiveEntryDeeperThan(floor: Int): OpenEntry? {
@@ -199,11 +191,8 @@ internal class Frontier(
 			?: if (anchor.parent == null) field.lowerBound(anchor.stance) else return
 		deepestProgress = maxOf(deepestProgress, progressOf(anchor.stance))
 
+		if (!reachability.canReach(anchor)) return
 		val key = keyOf(anchor)
-		if (!reachability.canReach(anchor)) {
-			unreachableAdmissions++
-			return
-		}
 
 		anchorsAdmitted++
 		val bucket = buckets.getOrPut(key) { ArrayList() }

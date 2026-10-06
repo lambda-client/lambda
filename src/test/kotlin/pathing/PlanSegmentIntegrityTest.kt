@@ -3,7 +3,7 @@
  */
 package pathing
 
-import com.lambda.pathing.PathPlanResult
+import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.search.PlanSegment
 import kotlin.test.Test
 import kotlin.test.assertEquals

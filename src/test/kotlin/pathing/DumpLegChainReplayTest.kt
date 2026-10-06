@@ -1,8 +1,8 @@
 package pathing
 
-import com.lambda.pathing.LegChain
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.session.LegChain
+import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
@@ -70,7 +70,6 @@ class DumpLegChainReplayTest {
         val exhaustions = ArrayList<SearchExhaustion>()
         var lastPublished: com.lambda.pathing.search.PublishedPath? = null
         val perStance = HashMap<Stance, HashMap<String, Int>>()
-        val restarts = ArrayList<String>()
         val focus = System.getenv("PATHING_DUMP_FOCUS")?.split(',')?.map { it.trim().toInt() }?.let { (x, y, z) -> Stance(x, y, z) }
         val focusAttempts = ArrayList<String>()
         val probe = object : SearchProbe {
@@ -95,12 +94,6 @@ class DumpLegChainReplayTest {
             override fun blocked(frame: Int, sectionX: Int, sectionY: Int, sectionZ: Int, capturable: Boolean, stance: Stance, movement: com.lambda.pathing.core.MovementId) {
                 perStance.getOrPut(stance) { HashMap() }.merge("BLOCKED/$movement/section($sectionX,$sectionY,$sectionZ)", 1, Int::plus)
             }
-            override fun restarted(moving: Boolean, seedElapsed: Int, executing: Int, expansions: Int, drops: Int, spent: Int) {
-                restarts += "restart(moving=$moving seed=$seedElapsed exec=$executing exp=$expansions)"
-            }
-            override fun braked(tipElapsed: Int, executing: Int, open: Int, parked: Int, deepestElapsed: Int) {
-                restarts += "braked(tip=$tipElapsed exec=$executing open=$open parked=$parked deepest=$deepestElapsed)"
-            }
         }
         val result = TrajectoryPlanner.walkHorizon(
             route, first.planner, initial, loaded.profile, environment, loaded.searchConfig,
@@ -113,7 +106,6 @@ class DumpLegChainReplayTest {
             println("[legs-replay] expansions from $stance (${hist.values.sum()}): " +
                 hist.entries.sortedByDescending { it.value }.take(8).joinToString("  ") { "${it.key}=${it.value}" })
         }
-        println("[legs-replay] restarts/brakes: ${restarts.takeLast(12)}")
         lastPublished?.let { path ->
             val end = path.plan.frames.last().state
             println("[legs-replay] last published: frames=${path.plan.frames.size} end=${end.position} touches=${path.legTouches.map { it.waypoint to it.frame }} profile=${path.movementProfile()}")

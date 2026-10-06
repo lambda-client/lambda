@@ -5,8 +5,9 @@ import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
 import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
-import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
+import com.lambda.pathing.physics.closestSupportingBlock
+import com.lambda.pathing.physics.forEachCollisionCandidate
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
@@ -18,7 +19,6 @@ import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
@@ -83,16 +83,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		)
 	}
 
-	internal fun storageStats(): SnapshotStorageStats {
-		var palette = 0
-		var bytes = 0
-		val store = store
-		store.forEach { _, section ->
-			palette += section.paletteSize
-			bytes += section.indexStorageBytes
-		}
-		return SnapshotStorageStats(sections = store.size, paletteEntries = palette, indexBytes = bytes)
-	}
+	internal val sectionCount: Int get() = store.size
 
 	internal fun forEachSnapshotBlock(action: (Long, SnapshotBlockPhysics) -> Unit) {
 		if (sparse) {
@@ -187,31 +178,18 @@ class SnapshotSimulationEnvironment internal constructor(
 	)
 
 	private fun collectBlockShapes(query: Box, observer: SnapshotReadObserver?): List<VoxelShape> {
-		val minX = MathHelper.floor(query.minX - Vanilla.COLLISION_EPSILON) - 1
-		val maxX = MathHelper.floor(query.maxX + Vanilla.COLLISION_EPSILON) + 1
-		val minY = MathHelper.floor(query.minY - Vanilla.COLLISION_EPSILON) - 1
-		val maxY = MathHelper.floor(query.maxY + Vanilla.COLLISION_EPSILON) + 1
-		val minZ = MathHelper.floor(query.minZ - Vanilla.COLLISION_EPSILON) - 1
-		val maxZ = MathHelper.floor(query.maxZ + Vanilla.COLLISION_EPSILON) + 1
-
 		var result: ArrayList<VoxelShape>? = null
-		val mutable = BlockPos.Mutable()
 		val cursor = ExactReadCursor(store)
-		for (y in minY..maxY) {
-			for (z in minZ..maxZ) {
-				for (x in minX..maxX) {
-					val pos = mutable.set(x, y, z)
-					observer?.onRead(pos)
-					val block = cursor.blockAt(pos)
-					val unsupported = block.unsupportedPhysics
-					if (unsupported != null && query.intersectsUnitBlock(x, y, z)) {
-						throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
-					}
-					if (block.collisionShape.isEmpty) continue
-					(result ?: ArrayList<VoxelShape>().also { result = it }) +=
-						block.collisionShape.offset(x.toDouble(), y.toDouble(), z.toDouble())
-				}
+		forEachCollisionCandidate(query) { pos ->
+			observer?.onRead(pos)
+			val block = cursor.blockAt(pos)
+			val unsupported = block.unsupportedPhysics
+			if (unsupported != null && query.intersectsUnitBlock(pos.x, pos.y, pos.z)) {
+				throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
 			}
+			if (block.collisionShape.isEmpty) return@forEachCollisionCandidate
+			(result ?: ArrayList<VoxelShape>().also { result = it }) +=
+				block.collisionShape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 		}
 		return result ?: emptyList()
 	}
@@ -246,40 +224,12 @@ class SnapshotSimulationEnvironment internal constructor(
 		entityPos: Vec3d,
 		observer: SnapshotReadObserver?,
 	): BlockPos? {
-		val minX = MathHelper.floor(box.minX - Vanilla.COLLISION_EPSILON) - 1
-		val maxX = MathHelper.floor(box.maxX + Vanilla.COLLISION_EPSILON) + 1
-		val minY = MathHelper.floor(box.minY - Vanilla.COLLISION_EPSILON) - 1
-		val maxY = MathHelper.floor(box.maxY + Vanilla.COLLISION_EPSILON) + 1
-		val minZ = MathHelper.floor(box.minZ - Vanilla.COLLISION_EPSILON) - 1
-		val maxZ = MathHelper.floor(box.maxZ + Vanilla.COLLISION_EPSILON) + 1
-
-		var best: BlockPos? = null
-		var bestDistance = Double.MAX_VALUE
-		val mutable = BlockPos.Mutable()
 		val cursor = ExactReadCursor(store)
-
-		for (y in minY..maxY) {
-			for (z in minZ..maxZ) {
-				for (x in minX..maxX) {
-					val pos = mutable.set(x, y, z)
-					observer?.onRead(pos)
-					val block = cursor.blockAt(pos)
-					if (block.collisionShape.isEmpty) continue
-
-					if (!block.intersectsCollisionBox(box, x, y, z)) continue
-
-					val candidate = pos.toImmutable()
-					val distance = candidate.getSquaredDistance(entityPos)
-					if (distance < bestDistance ||
-						(distance == bestDistance && (best == null || best < candidate))
-					) {
-						best = candidate
-						bestDistance = distance
-					}
-				}
-			}
+		return closestSupportingBlock(box, entityPos) { pos ->
+			observer?.onRead(pos)
+			val block = cursor.blockAt(pos)
+			!block.collisionShape.isEmpty && block.intersectsCollisionBox(box, pos.x, pos.y, pos.z)
 		}
-		return best
 	}
 
 	private inner class ExactReadCursor(private val store: SectionStore) {

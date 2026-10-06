@@ -2,6 +2,7 @@ package com.lambda.pathing.physics
 
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 
 interface SimulationEnvironment {
@@ -26,4 +27,34 @@ interface SimulationEnvironment {
 	fun bounceFactor(pos: BlockPos): Double = 0.0
 
 	fun dampensSteppingSpeed(pos: BlockPos): Boolean = false
+}
+
+internal inline fun forEachCollisionCandidate(box: Box, action: (BlockPos) -> Unit) {
+	val minX = MathHelper.floor(box.minX - Vanilla.COLLISION_EPSILON) - 1
+	val maxX = MathHelper.floor(box.maxX + Vanilla.COLLISION_EPSILON) + 1
+	val minY = MathHelper.floor(box.minY - Vanilla.COLLISION_EPSILON) - 1
+	val maxY = MathHelper.floor(box.maxY + Vanilla.COLLISION_EPSILON) + 1
+	val minZ = MathHelper.floor(box.minZ - Vanilla.COLLISION_EPSILON) - 1
+	val maxZ = MathHelper.floor(box.maxZ + Vanilla.COLLISION_EPSILON) + 1
+	val mutable = BlockPos.Mutable()
+	for (y in minY..maxY) {
+		for (z in minZ..maxZ) {
+			for (x in minX..maxX) action(mutable.set(x, y, z))
+		}
+	}
+}
+
+internal inline fun closestSupportingBlock(box: Box, entityPos: Vec3d, supports: (BlockPos) -> Boolean): BlockPos? {
+	var best: BlockPos? = null
+	var bestDistance = Double.MAX_VALUE
+	forEachCollisionCandidate(box) { pos ->
+		if (!supports(pos)) return@forEachCollisionCandidate
+		val candidate = pos.toImmutable()
+		val distance = candidate.getSquaredDistance(entityPos)
+		if (distance < bestDistance || (distance == bestDistance && (best == null || best < candidate))) {
+			best = candidate
+			bestDistance = distance
+		}
+	}
+	return best
 }

@@ -16,8 +16,6 @@ data class MovementSimulationInput(
 	val sprint: Boolean = false,
 	val useItemSlowdown: Boolean = false,
 	val rotation: Rotation? = null,
-
-	val interaction: Interaction? = null,
 ) {
 	companion object {
 		fun from(

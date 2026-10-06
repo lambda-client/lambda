@@ -187,7 +187,7 @@ class SnapshotSimulationEnvironmentTest {
         )
 
         values.forEach { (pos, physics) -> assertClose(physics.slipperiness, environment.slipperiness(pos)) }
-        assertEquals(3, environment.storageStats().sections)
+        assertEquals(3, environment.sectionCount)
     }
 
     @Test

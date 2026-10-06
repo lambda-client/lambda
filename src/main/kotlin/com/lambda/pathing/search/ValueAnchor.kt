@@ -16,11 +16,9 @@ internal class ValueAnchor(
 	override val stance: Stance,
 	val elapsed: Int,
 	val collisionEvents: Int,
-	val launchMargin: Int,
 	val inputSwitches: Int,
 	val parent: ValueAnchor?,
 	val inputs: List<MovementSimulationInput>,
-	val boundary: Int,
 ) : BodyState {
 
 	override val speed: Double = state.velocity.horizontalLength()
@@ -30,8 +28,6 @@ internal class ValueAnchor(
 	var decision: TrajectoryDecision? = null
 
 	var points: List<HorizontalPoint> = emptyList()
-
-	var airborneCollisionEvents: Int = 0
 
 	var legRoot: Boolean = false
 
@@ -59,8 +55,6 @@ internal class ValueAnchor(
 
 	val attempted: MutableSet<TrajectoryDecision> = HashSet()
 
-	val familyPrefixFailures: MutableMap<Any, Int> = HashMap()
-
 	override var hazardFrame: Int? = null
 
 	var sweptEpoch: Int = -1
@@ -73,7 +67,7 @@ internal class ValueAnchor(
 	var momentumTurnCost: Double = 0.0
 
 	fun continuation() = ValueAnchor(
-		state, stance, elapsed, collisionEvents, launchMargin, inputSwitches, parent, inputs, boundary,
+		state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs,
 	).also {
 		it.via = via
 		it.decision = decision
@@ -96,7 +90,7 @@ internal class ValueAnchor(
 		val frames = ArrayList<Int>()
 		var node: ValueAnchor? = this
 		while (node?.parent != null) {
-			frames += node.boundary
+			frames += node.elapsed
 			node = node.parent
 		}
 		return frames.asReversed().dropLast(1)
@@ -120,6 +114,14 @@ internal class ValueAnchor(
 		}
 		return false
 	}
+
+	fun ancestorAtOrBefore(frame: Int): ValueAnchor? {
+		var node: ValueAnchor? = this
+		while (node != null && node.elapsed > frame) node = node.parent
+		return node
+	}
+
+	fun ancestorAt(frame: Int): ValueAnchor? = ancestorAtOrBefore(frame)?.takeIf { it.elapsed == frame }
 
 	fun hasVisited(visited: Stance): Boolean {
 		var node: ValueAnchor? = this

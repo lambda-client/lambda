@@ -77,15 +77,6 @@ class ProposalContext(
 	val headingFanDegrees: List<Double>,
 )
 
-class Proposals(
-	val walks: List<TrajectoryDecision> = emptyList(),
-	val launches: List<TrajectoryDecision> = emptyList(),
-) {
-	companion object {
-		val EMPTY = Proposals()
-	}
-}
-
 class ProgramContext(
 	val decision: TrajectoryDecision,
 	val body: BodyState,
@@ -132,7 +123,7 @@ interface Movement {
 	fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice =
 		DecisionPrice.FREE
 
-	fun proposals(context: ProposalContext): Proposals = Proposals.EMPTY
+	fun proposals(context: ProposalContext): List<TrajectoryDecision> = emptyList()
 
 	fun offersFor(edge: CoarseEdge): Boolean = false
 

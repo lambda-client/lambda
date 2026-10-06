@@ -3,8 +3,6 @@ package com.lambda.pathing.session
 import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.RotationMode
-import com.lambda.pathing.PathingRequest
-import com.lambda.pathing.WaypointRoute
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.execution.FlightPermissionHold
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
@@ -12,7 +10,6 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
-import com.lambda.pathing.world.InterestPrimer
 import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.BlockPos
 

@@ -1,4 +1,4 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarsePlanningState
@@ -8,9 +8,6 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.LegHandoff
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.WorldSyncResult
-import com.lambda.pathing.session.ContinuousSyncPolicy
-import com.lambda.pathing.session.RouteResolution
-import com.lambda.pathing.world.InterestPrimer
 import com.lambda.pathing.world.PathingWorld
 import com.lambda.pathing.world.WorldEventBatch
 import org.apache.logging.log4j.LogManager

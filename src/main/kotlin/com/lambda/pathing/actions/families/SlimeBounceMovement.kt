@@ -85,14 +85,9 @@ object SlimeBounceMovement : Movement {
 		dy = rise,
 		dz = span * dz,
 		movement = id,
-		cost = context.costs.bounceCost(span, drop, rise),
+		cost = context.costs.bounceCost(drop, rise),
 		conditions = StanceRules.stanceConditions(span * dx, rise, span * dz),
-		arc = MotionTemplate.ArcSpec(
-			dx = span * dx,
-			dz = span * dz,
-			rise = rise,
-			bounceDrop = drop,
-		),
+		arc = MotionTemplate.ArcSpec(bounceDrop = drop),
 	)
 
 	override fun offersFor(edge: CoarseEdge): Boolean =
@@ -117,10 +112,9 @@ object SlimeBounceMovement : Movement {
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision as TrajectoryDecision.Bounce
 		val from = context.body.stance.center()
-		val to = (decision.step ?: context.body.stance).center()
 		return BounceProgram(
 			takeoff = from,
-			aim = to.copy(y = to.y),
+			aim = decision.step.center(),
 			solution = decision.solution,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
 		)
@@ -129,7 +123,7 @@ object SlimeBounceMovement : Movement {
 	override fun completed(context: CompletionContext): Boolean {
 		if (!context.airborne || !context.observed.onGround) return false
 		if (context.observed.velocity.y > SETTLED_VERTICAL_SPEED) return false
-		val step = context.decision.step ?: return true
+		val step = context.decision.step
 
 		return context.stance.y == step.y &&
 				abs(context.stance.x - step.x) <= 1 &&

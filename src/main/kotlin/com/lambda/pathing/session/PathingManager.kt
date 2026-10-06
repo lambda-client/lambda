@@ -1,4 +1,4 @@
-package com.lambda.pathing
+package com.lambda.pathing.session
 
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
@@ -13,10 +13,8 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.managers.Manager
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
-import com.lambda.pathing.session.PathingSession
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.pathing.session.Telemetry
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.world.ChunkPacketLoadContext
 

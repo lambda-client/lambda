@@ -2,8 +2,8 @@ package com.lambda.pathing.api
 
 import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.context.Automated
-import com.lambda.pathing.PathingManager
-import com.lambda.pathing.PathingRequest
+import com.lambda.pathing.session.PathingManager
+import com.lambda.pathing.session.PathingRequest
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.Telemetry

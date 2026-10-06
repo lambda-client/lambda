@@ -1,5 +1,6 @@
 package com.lambda.pathing.launch
 
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
@@ -96,7 +97,7 @@ object LaunchSolver {
 		val dx = (to.x - from.x).toDouble()
 		val dz = (to.z - from.z).toDouble()
 		val length = hypot(dx, dz)
-		if (length <= 1e-9) return emptyList()
+		if (length <= DEGENERATE_LENGTH) return emptyList()
 		val unitX = dx / length
 		val unitZ = dz / length
 

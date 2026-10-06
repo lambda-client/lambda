@@ -1,4 +1,4 @@
-package com.lambda.pathing.debug
+package com.lambda.pathing.render
 
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
@@ -9,6 +9,7 @@ import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.PlanGraph
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchNodeRole

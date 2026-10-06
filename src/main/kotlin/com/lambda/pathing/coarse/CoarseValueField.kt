@@ -1,6 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
@@ -157,11 +158,11 @@ class CoarseValueField(
 	private fun alignment(from: Stance, to: Stance, heading: Pair<Double, Double>?): Double {
 		val (hx, hz) = heading ?: return 0.0
 		val headingLength = hypot(hx, hz)
-		if (headingLength <= 1e-9) return 0.0
+		if (headingLength <= DEGENERATE_LENGTH) return 0.0
 		val dx = (to.x - from.x).toDouble()
 		val dz = (to.z - from.z).toDouble()
 		val stepLength = hypot(dx, dz)
-		if (stepLength <= 1e-9) return 0.0
+		if (stepLength <= DEGENERATE_LENGTH) return 0.0
 		return (hx * dx + hz * dz) / (headingLength * stepLength)
 	}
 

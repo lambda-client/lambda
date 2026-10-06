@@ -4,8 +4,8 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary

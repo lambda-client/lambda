@@ -25,7 +25,7 @@ import com.lambda.PathingTestHarness.scenarioSelected
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.session.PathingSession.State
-import com.lambda.pathing.PathingRequest
+import com.lambda.pathing.session.PathingRequest
 import com.lambda.pathing.core.Stance
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext

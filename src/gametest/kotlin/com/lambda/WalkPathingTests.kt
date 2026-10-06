@@ -33,7 +33,7 @@ import net.minecraft.util.math.Vec3d
 
 /**
  * End-to-end walk scenarios: the planner's own tapes, walked live by
- * [com.lambda.pathing.PathingManager] over terrain a walk (or fall) can cross
+ * [com.lambda.pathing.session.PathingManager] over terrain a walk (or fall) can cross
  * without a certified gap launch.
  */
 @Suppress("UnstableApiUsage")
@@ -316,7 +316,7 @@ internal object WalkPathingTests {
             val goal = com.lambda.pathing.core.Stance(0, 100, 5)
             context.runOnClient<IllegalStateException> {
                 PathingService.clear()
-                com.lambda.pathing.PathingRequest(
+                com.lambda.pathing.session.PathingRequest(
                     com.lambda.config.automation.AutomationConfig.DEFAULT, goal,
                 ).submit()
             }
@@ -327,7 +327,7 @@ internal object WalkPathingTests {
             server.runCommand("/tp Steve 0.5 100 192.5 180 0")
             repeat(40) { context.waitTick() }
             context.runOnClient<IllegalStateException> {
-                com.lambda.pathing.PathingRequest(
+                com.lambda.pathing.session.PathingRequest(
                     com.lambda.config.automation.AutomationConfig.DEFAULT, goal,
                 ).submit()
             }

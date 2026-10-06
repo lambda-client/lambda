@@ -2,19 +2,17 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.execution.ImprovementArbiter
-import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
-import com.lambda.pathing.actions.TerminalApproach
 import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.search.TrajectoryPlanId
-import com.lambda.pathing.search.ValueFieldAnchorSearch
+import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -156,13 +154,8 @@ class ImprovementArbiterTest {
     ) = PublishedPath(
         route = certified.route,
         plan = certified.plan,
-        profile = PROFILE,
-        parameters = TerminalApproach(
-            sprint = true, lookAheadNodes = 1, brakeDistance = 0.25, stepUpJumpLeadDistance = null,
-        ),
         safeAnchorStance = certified.route.goal,
         safeAnchorFrame = safeAnchorFrame,
-        remainingGuideTicks = 0.0,
         attempts = 1,
         planMillis = 0,
         finalGoal = certified.route.goal,
@@ -214,10 +207,10 @@ class ImprovementArbiterTest {
             check(planner.repair(Duration.INFINITE).converged)
             planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
             val route = requireNotNull(planner.routePlan(planId))
-            val seed = ValueFieldAnchorSearch.search(
+            val seed = SearchLoop(
                 route, moves.catalog, planner.valueField(), initial, PROFILE, environment,
                 MotionConstraints(),
-            )
+            ).run()
             check(seed is MotionPlanResult.Success) { "fixture search must certify: $seed" }
             return Certified(route, TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(planId), seed, PROFILE))
         }

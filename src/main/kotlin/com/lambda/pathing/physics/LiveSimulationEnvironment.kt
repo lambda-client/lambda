@@ -1,13 +1,11 @@
 package com.lambda.pathing.physics
 
-import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.util.BlockUtils.isFenceLike
 import net.minecraft.block.Blocks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 
@@ -51,42 +49,13 @@ class LiveSimulationEnvironment(
 		}
 	}
 
-	override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? {
-		val minX = MathHelper.floor(box.minX - 1.0E-7) - 1
-		val maxX = MathHelper.floor(box.maxX + 1.0E-7) + 1
-		val minY = MathHelper.floor(box.minY - 1.0E-7) - 1
-		val maxY = MathHelper.floor(box.maxY + 1.0E-7) + 1
-		val minZ = MathHelper.floor(box.minZ - 1.0E-7) - 1
-		val maxZ = MathHelper.floor(box.maxZ + 1.0E-7) + 1
-
-		var best: BlockPos? = null
-		var bestDistance = Double.MAX_VALUE
-		val mutable = BlockPos.Mutable()
-		for (y in minY..maxY) {
-			for (z in minZ..maxZ) {
-				for (x in minX..maxX) {
-					val pos = mutable.set(x, y, z)
-					val shape = world.getBlockState(pos).getCollisionShape(world, pos)
-					if (shape.isEmpty) continue
-					val collides = shape
-						.offset(x.toDouble(), y.toDouble(), z.toDouble())
-						.boundingBoxes
-						.any { it.intersects(box) }
-					if (!collides) continue
-
-					val candidate = pos.toImmutable()
-					val distance = candidate.getSquaredDistance(entityPos)
-					if (distance < bestDistance ||
-						(distance == bestDistance && (best == null || best < candidate))
-					) {
-						best = candidate
-						bestDistance = distance
-					}
-				}
-			}
+	override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? =
+		closestSupportingBlock(box, entityPos) { pos ->
+			val shape = world.getBlockState(pos).getCollisionShape(world, pos)
+			!shape.isEmpty && shape.offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+				.boundingBoxes
+				.any { it.intersects(box) }
 		}
-		return best
-	}
 
 	override fun isSpaceEmpty(box: Box): Boolean = world.isSpaceEmpty(player, box)
 

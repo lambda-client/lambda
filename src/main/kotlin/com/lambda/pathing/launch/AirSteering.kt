@@ -3,6 +3,7 @@ package com.lambda.pathing.launch
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 
 object AirSteering {
 	data class Keys(val forward: Double, val strafe: Double)
@@ -63,13 +64,13 @@ object AirSteering {
 				var directionX = strafe * cos - forward * sin
 				var directionZ = forward * cos + strafe * sin
 				val length = hypot(directionX, directionZ)
-				if (length > 1e-9) {
+				if (length > DEGENERATE_LENGTH) {
 					directionX /= length
 					directionZ /= length
 				}
 
 				val acceleration = when {
-					length <= 1e-9 -> 0.0
+					length <= DEGENERATE_LENGTH -> 0.0
 					forward > 0.0 -> sprintAcceleration
 					else -> walkAcceleration
 				}

@@ -10,7 +10,6 @@
 package com.lambda.pathing.execution
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.coarse.CoarseKinematicEnvelope
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.actions.SimpleMoveOptions
@@ -19,7 +18,7 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.search.TrajectoryPlanId
-import com.lambda.pathing.search.ValueFieldAnchorSearch
+import com.lambda.pathing.search.SearchLoop
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
@@ -33,6 +32,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import pathing.CoarseKinematicEnvelope
 import pathing.ProbeScenarios.PROFILE
 
 class TrajectoryExecutionCursorTest {
@@ -126,13 +126,13 @@ class TrajectoryExecutionCursorTest {
         val fixture = fixture(startX = 14, goalX = 20)
         val plan = fixture.plan
         val oldChunk = PathingChunk(0, 0)
-        assertTrue(oldChunk in plan.dependencyChunksFrom(0))
+        assertTrue(oldChunk in plan.dependencyChunksBetween(0, plan.tape.frameCount))
 
         val safelyPastOldChunk = plan.frames.indexOfFirst { it.state.position.x > 18.0 }
         assertTrue(safelyPastOldChunk > 0, "fixture must cross into the next chunk")
-        assertTrue(oldChunk !in plan.dependencyChunksFrom(safelyPastOldChunk))
-        assertTrue(plan.dependencySectionsFrom(plan.tape.frameCount).isEmpty())
-        assertTrue(plan.dependencyChunksFrom(plan.tape.frameCount).isEmpty())
+        assertTrue(oldChunk !in plan.dependencyChunksBetween(safelyPastOldChunk, plan.tape.frameCount))
+        assertTrue(plan.dependencySectionsBetween(plan.tape.frameCount, plan.tape.frameCount).isEmpty())
+        assertTrue(plan.dependencyChunksBetween(plan.tape.frameCount, plan.tape.frameCount).isEmpty())
     }
 
     private fun fixture(
@@ -162,10 +162,10 @@ class TrajectoryExecutionCursorTest {
         planner.expandField(extraTicks = 36.0, timeBudget = Duration.INFINITE, maxExpansions = 20_000)
         val route = requireNotNull(planner.routePlan(REVISION))
         val seed = assertIs<MotionPlanResult.Success>(
-            ValueFieldAnchorSearch.search(
+            SearchLoop(
                 route, moves.catalog, planner.valueField(), initial, PROFILE, environment,
                 MotionConstraints(sprintModes = sprintModes),
-            ),
+            ).run(),
         )
         return Fixture(environment, initial, TrajectoryPlan.fromWalkingSeed(TrajectoryPlanId(1), seed, PROFILE))
     }

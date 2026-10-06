@@ -4,8 +4,8 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.pathing.PathPlanResult
-import com.lambda.pathing.TrajectoryPlanner
+import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.TrajectoryPlanner
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
@@ -215,7 +215,6 @@ class HorizonBaselineTest {
             excessPercent = excess(path),
             routeReach = "$deepestReach/${route.nodes.lastIndex}",
         )
-        attribution.spineLines.forEach { println("[spine] ${scenario.name}: $it") }
         if (scenario.name.startsWith("parkour-course") || scenario.name.startsWith("parkour-holdout") ||
             !record.arrived
         ) {
@@ -242,36 +241,6 @@ class HorizonBaselineTest {
         }
 
         private val edges = HashMap<Int, EdgeStats>()
-
-        val spineLines = ArrayList<String>()
-
-        override fun spine(
-            reachedElapsed: Int,
-            rollouts: Int,
-            stalledAt: Stance?,
-            diagnostic: TrajectoryDiagnostic?,
-        ) {
-            val at = stalledAt?.let { indexByNode[it]?.toString() ?: "(${it.x},${it.y},${it.z})" } ?: "finish"
-            spineLines += "spine reached=${reachedElapsed}f rollouts=$rollouts stalled=$at" +
-                (diagnostic?.let { " $it" } ?: "")
-        }
-
-        override fun braked(
-            tipElapsed: Int,
-            executing: Int,
-            open: Int,
-            parked: Int,
-            deepestElapsed: Int,
-        ) {
-            spineLines += "braked tip=$tipElapsed executing=$executing open=$open parked=$parked deepest=$deepestElapsed refusals=$refusals"
-            refusals.clear()
-        }
-
-        private val refusals = HashMap<String, Int>()
-
-        override fun publishRefused(reason: () -> String, anchorElapsed: Int, tipElapsed: Int, executing: Int) {
-            refusals.merge(reason(), 1, Int::plus)
-        }
 
         override fun expansion(
             from: Stance,
@@ -481,7 +450,7 @@ class HorizonBaselineTest {
 
         val HEADER = """
             # Characterisation of the shipping horizon planner: PathingManager -> planAsync
-            # -> walkHorizon -> ValueFieldAnchorSearch, driven by a VirtualSearchClock so the
+            # -> walkHorizon -> SearchLoop, driven by a VirtualSearchClock so the
             # search-versus-body race resolves identically on every machine.
             #
             # These numbers are a record of current behaviour, not a statement that it is good.

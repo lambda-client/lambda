@@ -56,7 +56,7 @@ internal object JumpTemplates {
 			cost = cost,
 			conditions = StanceRules.stanceConditions(dx, rise, dz),
 			arc = MotionTemplate.ArcSpec(
-				dx, dz, rise, MODES,
+				MODES,
 
 				riseAdmission = { realRise ->
 					when {
