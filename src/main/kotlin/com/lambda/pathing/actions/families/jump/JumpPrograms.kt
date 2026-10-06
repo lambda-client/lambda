@@ -9,12 +9,9 @@ import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.control.airPlanToward
 import com.lambda.pathing.core.HorizontalPoint
-import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.unitBetween
-import com.lambda.pathing.launch.AirSteering
-import com.lambda.pathing.launch.LaunchSolution
 
 internal object JumpPrograms {
 
@@ -32,10 +29,10 @@ internal object JumpPrograms {
 				maxYawChange = context.constraints.maxYawDegreesPerFrame,
 			)
 		}
-		val solution = (decision as? TrajectoryDecision.Launch)?.solution
-
-		val step = (decision as? TrajectoryDecision.Launch)?.step
-		val nodes = if (solution != null && solution.lateralOffset != 0.0 && step != null) {
+		val launch = decision as TrajectoryDecision.Launch
+		val solution = launch.solution
+		val step = launch.step
+		val nodes = if (solution.lateralOffset != 0.0) {
 			val from = context.body.stance.center()
 			context.nodes.map { node ->
 				if (node.x == step.x + 0.5 && node.z == step.z + 0.5) {
@@ -45,20 +42,13 @@ internal object JumpPrograms {
 		} else context.nodes
 		return SegmentFollowerProgram(
 			nodes = nodes,
-			sprint = context.decision.sprint,
+			sprint = launch.sprint,
 			lookAheadNodes = PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
 			launch = context.launch,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
-			holdForwardInFlight = solution?.holdForward ?: true,
-			holdTicks = solution?.holdTicks ?: Int.MAX_VALUE,
-			airPlan = if (context.openLanding) null
-			else airPlanFor(context.body.stance, (decision as? TrajectoryDecision.Launch)?.step, solution),
+			holdTicks = solution.heldForwardTicks,
+			airPlan = if (context.openLanding) null else airPlanToward(context.body.stance, step, solution, solution.lateralOffset),
 		)
-	}
-
-	private fun airPlanFor(from: Stance, to: Stance?, solution: LaunchSolution?): AirSteering.AirPlan? {
-		if (solution == null || to == null || to == from) return null
-		return airPlanToward(from, to, solution, solution.lateralOffset)
 	}
 
 	private fun HorizontalPoint.laterallyShifted(
@@ -79,8 +69,7 @@ internal object JumpPrograms {
 			val along = alongEdge(from, to, context.observed.position.x, context.observed.position.z)
 			return along > decision.solution.launchOffset + POST_LAUNCH_MARGIN_BLOCKS
 		}
-		val launch = context.launch ?: return context.stance != context.body.stance
-		return launch.hasFired && context.airborne
+		return context.launch?.hasFired == true && context.airborne
 	}
 
 	fun transitionFrames(decision: TrajectoryDecision): Int {

@@ -1,8 +1,6 @@
 package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
-import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -13,16 +11,6 @@ import kotlin.math.hypot
 
 object BounceArcProbe {
 
-	class Reachable(
-		val solution: BounceSolution,
-		readsSupplier: () -> LongOpenHashSet,
-	) {
-
-		val reads: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-			JumpArcProbe.unpackReads(readsSupplier())
-		}
-	}
-
 	fun probe(
 		view: CoarseVoxelView,
 		from: Stance,
@@ -30,67 +18,114 @@ object BounceArcProbe {
 		dz: Int,
 		drop: Int,
 		rise: Int,
-		profile: BallisticProfile = BallisticProfile.VANILLA,
-		launchHeight: Double = from.y.toDouble(),
-	): Reachable? {
-		val solution = solve(view, from, dx, dz, drop, rise, profile, launchHeight, reads = null)
-			?: return null
-		return Reachable(solution) {
-			LongOpenHashSet().also {
-				solve(view, from, dx, dz, drop, rise, profile, launchHeight, reads = it)
-			}
-		}
-	}
-
-	private fun solve(
-		view: CoarseVoxelView,
-		from: Stance,
-		dx: Int,
-		dz: Int,
-		drop: Int,
-		rise: Int,
-		profile: BallisticProfile,
 		launchHeight: Double,
-		reads: LongOpenHashSet?,
-	): BounceSolution? {
+	): Probed<BounceSolution>? {
 		val length = hypot(dx.toDouble(), dz.toDouble())
 		if (length <= 0.0) return null
+		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, reads).solve() }
+	}
 
-		val unitX = dx / length
-		val unitZ = dz / length
-		val padY = from.y - drop - 1
+	private class BounceLine(
+		private val view: CoarseVoxelView,
+		private val from: Stance,
+		private val dx: Int,
+		private val dz: Int,
+		private val length: Double,
+		private val drop: Int,
+		private val rise: Int,
+		private val launchHeight: Double,
+		private val reads: LongOpenHashSet?,
+	) {
+		private val unitX = dx / length
+		private val unitZ = dz / length
+		private val padY = from.y - drop - 1
+		private val launchOffset = launchHeight - from.y
 
-		var anyBouncy = false
-		var along = 1.0
-		while (along < length + 0.5) {
-			if (bouncyCell(
-					view, floor(from.x + 0.5 + unitX * along).toInt(), padY,
-					floor(from.z + 0.5 + unitZ * along).toInt(), reads
-				)
-			) {
-				anyBouncy = true
-				break
+		private fun cellX(along: Double) = floor(from.x + 0.5 + unitX * along).toInt()
+
+		private fun cellZ(along: Double) = floor(from.z + 0.5 + unitZ * along).toInt()
+
+		fun solve(): BounceSolution? {
+			if (!crossesPad()) return null
+
+			reads?.add(BlockPos.asLong(from.x + dx, from.y + rise - 1, from.z + dz))
+			val landingOffset = view.surfaceOffset(from.x + dx, from.y + rise - 1, from.z + dz)
+			val riseHeight = rise + landingOffset - launchOffset
+			val headroom = headroom()
+			val launchReach = launchReach()
+			val cache = SweepCellCache()
+			val seed = seedContactOffset()
+
+			for ((jump, sprint) in STANDING_STYLES) {
+				refined(seed) { contactDepth ->
+					BounceSolver.solveStanding(
+						horizontalDistance = length, drop = drop, rise = rise,
+						jump = jump, sprint = sprint,
+						contactDepth = contactDepth, riseHeight = riseHeight,
+						contactPenalty = ::contactPenalty,
+						headroom = headroom,
+						launchReach = launchReach,
+					)
+				}?.takeIf { admissible(it, cache) }?.let { return it }
 			}
-			along += 1.0
+
+			for ((jump, sprint, holdForward, holdTicks) in COMBOS) {
+				refined(seed) { contactDepth ->
+					BounceSolver.solve(
+						horizontalDistance = length, drop = drop, rise = rise,
+						sprint = sprint, holdForward = holdForward,
+						jump = jump, holdTicks = holdTicks,
+						contactDepth = contactDepth, riseHeight = riseHeight,
+						headroom = headroom,
+						launchReach = launchReach,
+					)
+				}?.takeIf { admissible(it, cache) }?.let { return it }
+			}
+			return null
 		}
-		if (!anyBouncy) return null
 
-		val launchOffset = launchHeight - from.y
-		reads?.add(BlockPos.asLong(from.x + dx, from.y + rise - 1, from.z + dz))
-		val landingOffset = view.surfaceOffset(from.x + dx, from.y + rise - 1, from.z + dz)
-		val riseHeight = rise + landingOffset - launchOffset
+		private inline fun refined(seed: Double, solveAtDepth: (Double) -> BounceSolution?): BounceSolution? {
+			var contactOffset = seed
+			repeat(CONTACT_REFINEMENTS) {
+				val solution = solveAtDepth(drop + launchOffset - contactOffset) ?: return null
+				val observed = padSurfaceOffset(solution.launchOffset + solution.contactDistance)
+				if (abs(observed - contactOffset) < CONTACT_CONVERGENCE) return solution
+				contactOffset = observed
+			}
+			return null
+		}
 
-		var ceilingBottom = Double.POSITIVE_INFINITY
-		run {
+		private fun admissible(solution: BounceSolution, cache: SweepCellCache): Boolean {
+			if (!contactPenalty(solution.launchOffset + solution.contactDistance).isFinite()) return false
+			return sweepArc(
+				view, from, dx, dz, solution.arc,
+				launchOffset = solution.launchOffset,
+				launchHeight = launchHeight,
+				reads = reads,
+				cache = cache,
+			) == Sweep.CLEAR
+		}
+
+		private fun crossesPad(): Boolean {
+			var along = 1.0
+			while (along < length + 0.5) {
+				if (bouncyCell(cellX(along), cellZ(along))) return true
+				along += 1.0
+			}
+			return false
+		}
+
+		private fun headroom(): Double {
 			val feetCell = floor(launchHeight).toInt()
+			val reach = minOf(length, LAUNCH_ASCENT_REACH)
+			var ceilingBottom = Double.POSITIVE_INFINITY
 			var along = 0.0
-			while (along <= minOf(length, LAUNCH_ASCENT_REACH)) {
-				val x = floor(from.x + 0.5 + unitX * along).toInt()
-				val z = floor(from.z + 0.5 + unitZ * along).toInt()
+			while (along <= reach) {
+				val x = cellX(along)
+				val z = cellZ(along)
 				for (y in feetCell + 2..feetCell + 4) {
 					reads?.add(BlockPos.asLong(x, y, z))
-					val v = view.voxel(x, y, z)
-					if (!v.fullyPassable) {
+					if (!view.voxel(x, y, z).fullyPassable) {
 						val bottom = y + (view.collisionShape(x, y, z)?.getMin(Direction.Axis.Y) ?: 0.0)
 						if (bottom < ceilingBottom) ceilingBottom = bottom
 						break
@@ -98,150 +133,81 @@ object BounceArcProbe {
 				}
 				along += 1.0
 			}
+			return ceilingBottom - BODY_HEIGHT - launchHeight
 		}
-		val headroom = if (ceilingBottom.isFinite()) ceilingBottom - BODY_HEIGHT - launchHeight else Double.POSITIVE_INFINITY
 
-		val launchReach = launchReach(view, from, launchHeight, unitX, unitZ, reads)
+		private fun seedContactOffset(): Double {
+			var along = 1.0
+			while (along < length) {
+				val x = cellX(along)
+				val z = cellZ(along)
+				reads?.add(BlockPos.asLong(x, padY, z))
+				if (view.voxel(x, padY, z).standingSurface != null) return view.surfaceOffset(x, padY, z)
+				along += 1.0
+			}
+			return 0.0
+		}
 
-		val cache = JumpArcProbe.SweepCellCache()
+		private fun padSurfaceOffset(along: Double): Double {
+			val x = cellX(along)
+			val z = cellZ(along)
+			reads?.add(BlockPos.asLong(x, padY, z))
+			return view.surfaceOffset(x, padY, z)
+		}
 
-		fun contactPenalty(reach: Double): Double {
+		private fun contactPenalty(reach: Double): Double {
 			val px = from.x + 0.5 + unitX * reach
 			val pz = from.z + 0.5 + unitZ * reach
 			val x = floor(px).toInt()
 			val z = floor(pz).toInt()
-			if (!bouncyCell(view, x, padY, z, reads)) return Double.POSITIVE_INFINITY
+			if (!bouncyCell(x, z)) return Double.POSITIVE_INFINITY
 			return hypot(px - (x + 0.5), pz - (z + 0.5))
 		}
 
-		fun admissible(solution: BounceSolution): Boolean {
-			if (!contactPenalty(solution.launchOffset + solution.contactDistance).isFinite()) return false
-			val clearance = JumpArcProbe.sweepClearance(
-				view, from, dx, dz, solution.arc,
-				launchOffset = solution.launchOffset,
-				launchHeight = launchHeight,
-				reads = reads,
-				cache = cache,
-			) ?: return false
-			return clearance >= 0.0
+		private fun bouncyCell(x: Int, z: Int): Boolean {
+			reads?.add(BlockPos.asLong(x, padY, z))
+			val pad = view.voxel(x, padY, z)
+			if (pad.bouncy) return true
+			val surface = pad.standingSurface
+			if (surface != null && surface <= THIN_COVER_SURFACE) {
+				reads?.add(BlockPos.asLong(x, padY - 1, z))
+				if (view.voxel(x, padY - 1, z).bouncy) return true
+			}
+			return false
 		}
 
-		for ((jump, sprint) in BounceSolver.STANDING_STYLES) {
-			val solution = solveRefined(view, from, dx, dz, length, drop, launchOffset, reads) { contactDepth ->
-				BounceSolver.solveStanding(
-					horizontalDistance = length, drop = drop, rise = rise,
-					jump = jump, sprint = sprint, profile = profile,
-					contactDepth = contactDepth, riseHeight = riseHeight,
-					contactPenalty = ::contactPenalty,
-					headroom = headroom,
-					launchReach = launchReach,
-				)
-			} ?: continue
-			if (!admissible(solution)) continue
-			return solution
+		private fun launchReach(): Double {
+			val direct = view.voxel(from.x, from.y - 1, from.z).standingSurface != null
+			val supportY = if (direct) from.y - 1 else from.y - 2
+			reads?.add(BlockPos.asLong(from.x, supportY, from.z))
+			val shape = view.collisionShape(from.x, supportY, from.z)
+				?: return BounceSolver.LAUNCH_OFFSET
+			val surfaceLocal = launchHeight - supportY
+			var extent = Double.NEGATIVE_INFINITY
+			for (box in shape.boundingBoxes) {
+				if (box.maxY < surfaceLocal - SUPPORT_SURFACE_EPSILON) continue
+				val alongX = maxOf((box.minX - 0.5) * unitX, (box.maxX - 0.5) * unitX)
+				val alongZ = maxOf((box.minZ - 0.5) * unitZ, (box.maxZ - 0.5) * unitZ)
+				extent = maxOf(extent, alongX + alongZ)
+			}
+			if (extent == Double.NEGATIVE_INFINITY) return BounceSolver.LAUNCH_OFFSET
+			return (extent + BODY_HALF_WIDTH).coerceIn(BODY_HALF_WIDTH, BounceSolver.LAUNCH_OFFSET)
 		}
-
-		for ((jump, sprint, holdForward, holdTicks) in COMBOS) {
-			val solution = solveRefined(view, from, dx, dz, length, drop, launchOffset, reads) { contactDepth ->
-				BounceSolver.solve(
-					horizontalDistance = length, drop = drop, rise = rise, profile = profile,
-					sprint = sprint, holdForward = holdForward,
-					jump = jump, holdTicks = holdTicks,
-					contactDepth = contactDepth, riseHeight = riseHeight,
-					headroom = headroom,
-					launchReach = launchReach,
-				)
-			} ?: continue
-			if (!admissible(solution)) continue
-			return solution
-		}
-		return null
 	}
 
-	data class LaunchCombo(
+	private data class LaunchCombo(
 		val jump: Boolean,
 		val sprint: Boolean,
 		val holdForward: Boolean,
 		val holdTicks: Int = Int.MAX_VALUE,
 	)
 
-	private inline fun solveRefined(
-		view: CoarseVoxelView,
-		from: Stance,
-		dx: Int,
-		dz: Int,
-		length: Double,
-		drop: Int,
-		launchOffset: Double,
-		reads: LongOpenHashSet?,
-		solveAtDepth: (Double) -> BounceSolution?,
-	): BounceSolution? {
-		var contactOffset = seedContactOffset(view, from, dx, dz, length, drop, reads)
-		repeat(CONTACT_REFINEMENTS) {
-			val solution = solveAtDepth(drop + launchOffset - contactOffset) ?: return null
-			val observed = contactSurfaceOffset(view, from, dx, dz, length, drop, solution, reads)
-			if (abs(observed - contactOffset) < CONTACT_CONVERGENCE) return solution
-			contactOffset = observed
-		}
-		return null
-	}
-
-	private fun seedContactOffset(
-		view: CoarseVoxelView,
-		from: Stance,
-		dx: Int,
-		dz: Int,
-		length: Double,
-		drop: Int,
-		reads: LongOpenHashSet?,
-	): Double {
-		val padY = from.y - drop - 1
-		var along = 1.0
-		while (along < length) {
-			val x = floor(from.x + 0.5 + (dx / length) * along).toInt()
-			val z = floor(from.z + 0.5 + (dz / length) * along).toInt()
-			reads?.add(BlockPos.asLong(x, padY, z))
-			if (view.voxel(x, padY, z).standingSurface != null) return view.surfaceOffset(x, padY, z)
-			along += 1.0
-		}
-		return 0.0
-	}
-
-	private fun contactSurfaceOffset(
-		view: CoarseVoxelView,
-		from: Stance,
-		dx: Int,
-		dz: Int,
-		length: Double,
-		drop: Int,
-		solution: BounceSolution,
-		reads: LongOpenHashSet?,
-	): Double {
-		val reach = solution.launchOffset + solution.contactDistance
-		val x = floor(from.x + 0.5 + (dx / length) * reach).toInt()
-		val z = floor(from.z + 0.5 + (dz / length) * reach).toInt()
-		val padY = from.y - drop - 1
-		reads?.add(BlockPos.asLong(x, padY, z))
-		return view.surfaceOffset(x, padY, z)
-	}
-
-	private fun bouncyCell(
-		view: CoarseVoxelView,
-		x: Int,
-		padY: Int,
-		z: Int,
-		reads: LongOpenHashSet?,
-	): Boolean {
-		reads?.add(BlockPos.asLong(x, padY, z))
-		val pad = view.voxel(x, padY, z)
-		if (pad.bouncy) return true
-		val surface = pad.standingSurface
-		if (surface != null && surface <= THIN_COVER_SURFACE) {
-			reads?.add(BlockPos.asLong(x, padY - 1, z))
-			if (view.voxel(x, padY - 1, z).bouncy) return true
-		}
-		return false
-	}
+	private val STANDING_STYLES = listOf(
+		true to false,
+		false to false,
+		true to true,
+		false to true,
+	)
 
 	private val PARTIAL_HOLDS = intArrayOf(20, 16, 12, 8, 5, 3, 2)
 
@@ -258,38 +224,9 @@ object BounceArcProbe {
 		}
 	}
 
-	private fun launchReach(
-		view: CoarseVoxelView,
-		from: Stance,
-		launchHeight: Double,
-		unitX: Double,
-		unitZ: Double,
-		reads: LongOpenHashSet?,
-	): Double {
-		val direct = view.voxel(from.x, from.y - 1, from.z).standingSurface != null
-		val supportY = if (direct) from.y - 1 else from.y - 2
-		reads?.add(BlockPos.asLong(from.x, supportY, from.z))
-		val shape = view.collisionShape(from.x, supportY, from.z)
-			?: return BounceSolver.LAUNCH_OFFSET
-		val surfaceLocal = launchHeight - supportY
-		var extent = Double.NEGATIVE_INFINITY
-		for (box in shape.boundingBoxes) {
-			if (box.maxY < surfaceLocal - SUPPORT_SURFACE_EPSILON) continue
-			val alongX = maxOf((box.minX - 0.5) * unitX, (box.maxX - 0.5) * unitX)
-			val alongZ = maxOf((box.minZ - 0.5) * unitZ, (box.maxZ - 0.5) * unitZ)
-			extent = maxOf(extent, alongX + alongZ)
-		}
-		if (extent == Double.NEGATIVE_INFINITY) return BounceSolver.LAUNCH_OFFSET
-		return (extent + BODY_HALF_WIDTH).coerceIn(BODY_HALF_WIDTH, BounceSolver.LAUNCH_OFFSET)
-	}
-
-	private const val BODY_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
-
 	private const val SUPPORT_SURFACE_EPSILON = 1.0E-4
 
 	private const val THIN_COVER_SURFACE = 0.2
-
-	private const val BODY_HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
 
 	private const val LAUNCH_ASCENT_REACH = 3.5
 

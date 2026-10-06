@@ -32,7 +32,7 @@ internal class RunUpLaunchProgram(
 		if (launched && !observed.onGround) {
 			return MovementSimulationInput(
 				forward = if (solution.holdForward) 1.0 else 0.0,
-				strafe = airborneStrafe(takeoff, aim, observed, LATERAL_DEADBAND),
+				strafe = airborneStrafe(takeoff, aim, observed),
 				sprint = solution.sprint && solution.holdForward,
 				rotation = rotation,
 			)
@@ -59,9 +59,5 @@ internal class RunUpLaunchProgram(
 			jump = jump,
 			rotation = rotation,
 		)
-	}
-
-	private companion object {
-		const val LATERAL_DEADBAND = 0.08
 	}
 }

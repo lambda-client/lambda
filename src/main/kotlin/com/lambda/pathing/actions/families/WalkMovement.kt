@@ -1,6 +1,7 @@
 package com.lambda.pathing.actions.families
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.actions.CellCondition
 import com.lambda.pathing.actions.CellPredicate
 import com.lambda.pathing.actions.CoarseEdge
@@ -14,7 +15,6 @@ import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.ProposalContext
-import com.lambda.pathing.actions.control.PursuitTracker
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.StanceRules.CARDINALS
 import com.lambda.pathing.actions.StanceRules.DIAGONALS
@@ -117,9 +117,10 @@ object WalkMovement : Movement {
 		val leading = steps.first()
 		if (climbing || !walkable(leading)) return proposals
 		val target = leading.to
-		val bearing = routeBearing(context, target)
+		val chain = context.steering.chain(body.stance, target, BEARING_LOOKAHEAD + 1, body.heading())
+		val bearing = routeBearing(body, chain)
 
-		val turning = turnsAhead(context, target)
+		val turning = turnsAhead(chain)
 		val hazardous = body.hazardFrame != null
 		val fanned = hazardous || turning
 
@@ -158,10 +159,9 @@ object WalkMovement : Movement {
 
 			if (hazardous) {
 				for (delay in OFF_AXIS_LAUNCH_DELAYS) {
-					for (air in AIRBORNE_KEYS.drop(1)) {
+					for (air in AIRBORNE_STRAFE_KEYS) {
 						proposals += TrajectoryDecision.Heading(
-							sprint, target, bearing, delayFrames = delay,
-							keys = MovementKeys.FORWARD, airborneKeys = air,
+							sprint, target, bearing, delayFrames = delay, airborneKeys = air,
 						)
 					}
 				}
@@ -212,29 +212,17 @@ object WalkMovement : Movement {
 		return false
 	}
 
-	private fun turnsAhead(context: ProposalContext, firstStep: Stance): Boolean {
-		val chain = context.steering.chain(
-			context.body.stance, firstStep, BEARING_LOOKAHEAD + 1, context.body.heading(),
-		)
+	private fun turnsAhead(chain: List<Stance>): Boolean {
 		if (chain.size < 3) return false
 		val first = bearingBetween(chain[0].center(), chain[1].center())
 		val second = bearingBetween(chain[1].center(), chain[chain.lastIndex].center())
 		return abs(Rotation.wrap(second - first)) >= DECOUPLE_TURN_DEGREES
 	}
 
-	private fun routeBearing(context: ProposalContext, firstStep: Stance): Double {
-		val chain = context.steering.chain(
-			context.body.stance, firstStep, BEARING_LOOKAHEAD, context.body.heading(),
-		)
+	private fun routeBearing(body: BodyState, chain: List<Stance>): Double {
 		val aim = chain[minOf(chain.lastIndex, BEARING_LOOKAHEAD)].center()
-		return bearingBetween(
-			HorizontalPoint(
-				context.body.state.position.x,
-				context.body.state.position.y,
-				context.body.state.position.z,
-			),
-			aim,
-		)
+		val position = body.state.position
+		return bearingBetween(HorizontalPoint(position.x, position.y, position.z), aim)
 	}
 
 	override fun program(context: ProgramContext): ControlProgram {
@@ -249,13 +237,14 @@ object WalkMovement : Movement {
 				airborneKeys = decision.airborneKeys,
 			)
 		}
+		val walk = decision as TrajectoryDecision.Walk
 		return SegmentFollowerProgram(
 			nodes = context.nodes,
-			sprint = decision.sprint,
-			lookAheadNodes = decision.followLookAheadNodes ?: PursuitTracker.DEFAULT_LOOK_AHEAD_NODES,
+			sprint = walk.sprint,
+			lookAheadNodes = walk.lookAheadNodes,
 			launch = context.launch,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
-			easeTurns = (decision as? TrajectoryDecision.Walk)?.easeTurns == true,
+			easeTurns = walk.easeTurns,
 		)
 	}
 
@@ -283,9 +272,7 @@ object WalkMovement : Movement {
 
 	private const val DECOUPLE_TURN_DEGREES = 35.0
 
-	private val AIRBORNE_KEYS = listOf(
-		MovementKeys.FORWARD, MovementKeys.FORWARD_LEFT, MovementKeys.FORWARD_RIGHT,
-	)
+	private val AIRBORNE_STRAFE_KEYS = listOf(MovementKeys.FORWARD_LEFT, MovementKeys.FORWARD_RIGHT)
 
 	private const val BEARING_LOOKAHEAD = 2
 

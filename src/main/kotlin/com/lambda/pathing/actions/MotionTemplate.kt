@@ -5,6 +5,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceArcProbe
+import com.lambda.pathing.launch.BounceSolution
 import com.lambda.pathing.launch.JumpArcProbe
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
@@ -44,33 +45,6 @@ class MotionTemplate internal constructor(
 
 	internal val minimumTicks: Double = minOf(lowerBoundTicks, strideCost ?: lowerBoundTicks)
 
-	private fun bounceEdge(
-		view: CoarseVoxelView,
-		origin: Stance,
-		drop: Int,
-		launchOffset: Double,
-	): CoarseEdge? {
-		val probed = BounceArcProbe.probe(
-			view, origin, dx, dz, drop, dy,
-			launchHeight = origin.y + launchOffset,
-		) ?: return null
-
-		return CoarseEdge(
-			id = CoarseEdgeId(id, origin),
-			from = origin,
-			to = target(origin),
-			movement = movement,
-			lowerBoundTicks = lowerBoundTicks,
-			readSet = LazyReadSet {
-				buildSet {
-					readOffsets.forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
-					addAll(probed.reads)
-				}
-			},
-			bounce = probed.solution,
-		)
-	}
-
 	private fun surfaceOffset(view: CoarseVoxelView, stance: Stance): Double =
 		view.surfaceOffset(stance.x, stance.y - 1, stance.z)
 
@@ -82,54 +56,60 @@ class MotionTemplate internal constructor(
 
 	internal fun edge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
 		if (!matches(view, origin)) return null
-		val probed = arc?.let { spec ->
-
-			val launchOffset = surfaceOffset(view, origin)
-			val landingOffset = surfaceOffset(view, target(origin))
-			spec.bounceDrop?.let { drop ->
-				return bounceEdge(view, origin, drop, launchOffset)
-			}
-			val riseHeight = dy + landingOffset - launchOffset
-			spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
-			JumpArcProbe.probe(
-				view, origin, dx, dz, dy, modes = spec.modes,
-				riseHeight = riseHeight,
-				launchHeight = origin.y + launchOffset,
-			) ?: return null
+		val spec = arc ?: return edgeOf(origin, ticks(view, origin), probeReads = null)
+		val launchOffset = surfaceOffset(view, origin)
+		spec.bounceDrop?.let { drop ->
+			val probed = BounceArcProbe.probe(view, origin, dx, dz, drop, dy, launchHeight = origin.y + launchOffset)
+				?: return null
+			return edgeOf(origin, lowerBoundTicks, { probed.reads }, bounce = probed.solution)
 		}
-
-		val ticks = if (strideCost != null && realRise(view, origin) <= CoarseMoveRates.FREE_STEP_RISE) {
-			strideCost
-		} else {
-			lowerBoundTicks
-		}
-
-		val spec = arc
-		val standingStart = spec == null || probed == null ||
-				standingStartViable(view, origin, spec, probed.solution)
-
-		return CoarseEdge(
-			id = CoarseEdgeId(id, origin),
-			from = origin,
-			to = target(origin),
-			movement = movement,
-			lowerBoundTicks = ticks,
-			readSet = LazyReadSet {
-				buildSet {
-					readOffsets.forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
-					probed?.let { addAll(it.reads) }
-				}
-			},
-			launch = probed?.solution,
-			standingStart = standingStart,
+		val riseHeight = dy + surfaceOffset(view, target(origin)) - launchOffset
+		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
+		val probed = JumpArcProbe.probe(
+			view, origin, dx, dz, dy, modes = spec.modes,
+			riseHeight = riseHeight,
+			launchHeight = origin.y + launchOffset,
+		) ?: return null
+		return edgeOf(
+			origin, ticks(view, origin), { probed.reads },
+			launch = probed.solution,
+			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, riseHeight),
 		)
 	}
+
+	private fun ticks(view: CoarseVoxelView, origin: Stance): Double =
+		if (strideCost != null && realRise(view, origin) <= CoarseMoveRates.FREE_STEP_RISE) strideCost else lowerBoundTicks
+
+	private fun edgeOf(
+		origin: Stance,
+		ticks: Double,
+		probeReads: (() -> Set<VoxelPos>)?,
+		launch: LaunchSolution? = null,
+		bounce: BounceSolution? = null,
+		standingStart: Boolean = true,
+	) = CoarseEdge(
+		id = CoarseEdgeId(id, origin),
+		from = origin,
+		to = target(origin),
+		movement = movement,
+		lowerBoundTicks = ticks,
+		readSet = LazyReadSet {
+			buildSet {
+				readOffsets.forEach { add(VoxelPos(origin.x + it.x, origin.y + it.y, origin.z + it.z)) }
+				probeReads?.let { addAll(it()) }
+			}
+		},
+		launch = launch,
+		bounce = bounce,
+		standingStart = standingStart,
+	)
 
 	private fun standingStartViable(
 		view: CoarseVoxelView,
 		origin: Stance,
-		spec: ArcSpec,
+		modes: List<LaunchMode>,
 		solution: LaunchSolution,
+		rise: Double,
 	): Boolean {
 		val profile = BallisticProfile.VANILLA
 		val behindX = origin.x - Integer.signum(dx)
@@ -140,11 +120,7 @@ class MotionTemplate internal constructor(
 			profile.runUpSpeed(0.0, profile.groundRunUpTicks(0.0, runUp, sprint, STANDING_RUN_UP_TICKS), sprint)
 
 		if (solution.speed - solution.speedSlack <= reach(solution.mode.sprint)) return true
-		return LaunchSolver.best(
-			origin, target(origin), profile, spec.modes,
-			maxEntrySpeed = { reach(it.sprint) },
-			rise = realRise(view, origin),
-		) != null
+		return LaunchSolver.best(origin, target(origin), modes, maxEntrySpeed = { reach(it.sprint) }, rise = rise) != null
 	}
 
 	internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
@@ -185,4 +161,14 @@ class MotionTemplate internal constructor(
 
 		const val ARC_READ_CEILING = 4
 	}
+}
+
+private class LazyReadSet(supplier: () -> Set<VoxelPos>) : AbstractSet<VoxelPos>() {
+	private val backing: Set<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION, supplier)
+
+	override val size: Int get() = backing.size
+
+	override fun iterator(): Iterator<VoxelPos> = backing.iterator()
+
+	override fun contains(element: VoxelPos): Boolean = element in backing
 }

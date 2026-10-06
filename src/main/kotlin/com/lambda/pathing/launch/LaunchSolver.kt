@@ -2,7 +2,6 @@ package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -19,8 +18,6 @@ data class LaunchSolution(
 	val lateralSlack: Double,
 	val holdForward: Boolean,
 	val arc: ArcSample,
-	val clearance: Double = 0.0,
-
 	val lateralOffset: Double = 0.0,
 
 	val holdTicks: Int = Int.MAX_VALUE,
@@ -29,10 +26,9 @@ data class LaunchSolution(
 	val jumps: Boolean get() = mode.jumps
 	val airTicks: Int get() = arc.airTicks
 	val apex: Double get() = arc.apex
+	val heldForwardTicks: Int get() = if (holdForward) holdTicks else 0
 
 	fun fallDistance(rise: Double): Double = (apex - rise).coerceAtLeast(0.0)
-
-	fun withClearance(clearance: Double) = copy(clearance = clearance)
 
 	val margin: Double
 		get() =
@@ -79,14 +75,14 @@ data class LaunchSolution(
 }
 
 object LaunchSolver {
+	private val ballistics = BallisticProfile.VANILLA
 
 	fun solve(
 		from: Stance,
 		to: Stance,
-		profile: BallisticProfile = BallisticProfile.VANILLA,
 		modes: List<LaunchMode> = LaunchMode.entries,
-		maxEntrySpeed: (LaunchMode) -> Double = { profile.momentumSpeed(it.sprint) },
-		preferredEntrySpeed: (LaunchMode) -> Double = { profile.cruiseSpeed(it.sprint) },
+		maxEntrySpeed: (LaunchMode) -> Double = { ballistics.momentumSpeed(it.sprint) },
+		preferredEntrySpeed: (LaunchMode) -> Double = { ballistics.cruiseSpeed(it.sprint) },
 
 		rise: Double = (to.y - from.y).toDouble(),
 
@@ -103,10 +99,13 @@ object LaunchSolver {
 
 		val lateral = lateralSlack(unitX, unitZ)
 		if (lateral < 0.0) return emptyList()
+		val landing = landingWindow(from, to, unitX, unitZ) ?: return emptyList()
+		val window = if (catch) landing.start..Double.POSITIVE_INFINITY else landing
+		val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
 
 		return modes.filter { it.supports(rise) }.mapNotNull { mode ->
 			solveMode(
-				from, to, unitX, unitZ, rise, lateral, mode, profile,
+				mode, rise, lateral, window, nearEdge,
 				maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow, catch,
 			)
 		}.sortedWith(LaunchSolution.BEST_FIRST)
@@ -115,35 +114,28 @@ object LaunchSolver {
 	fun best(
 		from: Stance,
 		to: Stance,
-		profile: BallisticProfile = BallisticProfile.VANILLA,
 		modes: List<LaunchMode> = LaunchMode.entries,
-		maxEntrySpeed: (LaunchMode) -> Double = { profile.momentumSpeed(it.sprint) },
-		preferredEntrySpeed: (LaunchMode) -> Double = { profile.cruiseSpeed(it.sprint) },
+		maxEntrySpeed: (LaunchMode) -> Double = { ballistics.momentumSpeed(it.sprint) },
+		preferredEntrySpeed: (LaunchMode) -> Double = { ballistics.cruiseSpeed(it.sprint) },
 		rise: Double = (to.y - from.y).toDouble(),
 		exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
 		catch: Boolean = false,
 	): LaunchSolution? =
-		solve(from, to, profile, modes, maxEntrySpeed, preferredEntrySpeed, rise, exitSpeedWindow, catch)
+		solve(from, to, modes, maxEntrySpeed, preferredEntrySpeed, rise, exitSpeedWindow, catch)
 			.firstOrNull()
 
 	private fun solveMode(
-		from: Stance,
-		to: Stance,
-		unitX: Double,
-		unitZ: Double,
+		mode: LaunchMode,
 		rise: Double,
 		lateral: Double,
-		mode: LaunchMode,
-		profile: BallisticProfile,
+		window: ClosedFloatingPointRange<Double>,
+		nearEdge: Double,
 		maxEntrySpeed: Double,
 		preferredEntrySpeed: Double,
 		exitSpeedWindow: ClosedFloatingPointRange<Double>?,
-		catch: Boolean = false,
+		catch: Boolean,
 	): LaunchSolution? {
 		if (maxEntrySpeed < 0.0) return null
-
-		val landing = landingWindow(from, to, unitX, unitZ) ?: return null
-		val window = if (catch) landing.start..Double.POSITIVE_INFINITY else landing
 
 		var best: LaunchSolution? = null
 
@@ -152,23 +144,17 @@ object LaunchSolver {
 
 		for (holdForward in policies) {
 
-			val base = profile.fly(mode, 0.0, rise, holdForward) ?: continue
-			val unit = profile.fly(mode, 1.0, rise, holdForward) ?: continue
-			val slope = unit.distance - base.distance
-			if (slope <= 1e-9) continue
+			val line = speedLine(mode, rise, holdForward, Int.MAX_VALUE) ?: continue
+			val slope = line.slope
 
 			for (offset in launchOffsets(mode)) {
-
-				fun speedFor(distance: Double) = (distance - offset - base.distance) / slope
-
-				val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
-				val feasibleLow = max(speedFor(nearEdge), 0.0)
-				val feasibleHigh = min(speedFor(window.endInclusive), maxEntrySpeed)
+				val feasibleLow = max(line.speedFor(nearEdge, offset), 0.0)
+				val feasibleHigh = min(line.speedFor(window.endInclusive, offset), maxEntrySpeed)
 				if (feasibleHigh < feasibleLow) continue
 
 				val speed = if (catch) feasibleHigh else preferredSpeed(preferredEntrySpeed, feasibleLow, feasibleHigh, slope)
 
-				val arc = profile.fly(mode, speed, rise, holdForward) ?: continue
+				val arc = ballistics.fly(mode, speed, rise, holdForward) ?: continue
 				val candidate = LaunchSolution(
 					mode = mode,
 					launchOffset = offset,
@@ -185,15 +171,15 @@ object LaunchSolver {
 			}
 		}
 		return best?.let {
-			released(it, rise, profile, window, exitSpeedWindow, maxEntrySpeed, preferredEntrySpeed)
+			released(it, rise, window, nearEdge, exitSpeedWindow, maxEntrySpeed, preferredEntrySpeed)
 		}
 	}
 
 	private fun released(
 		solution: LaunchSolution,
 		rise: Double,
-		profile: BallisticProfile,
 		window: ClosedFloatingPointRange<Double>,
+		nearEdge: Double,
 		exitSpeedWindow: ClosedFloatingPointRange<Double>?,
 		maxEntrySpeed: Double,
 		preferredEntrySpeed: Double,
@@ -202,24 +188,18 @@ object LaunchSolver {
 		if (solution.arc.exitSpeed <= exitSpeedWindow.endInclusive) return solution
 
 		fun solveAt(hold: Int): LaunchSolution? {
-			val mode = solution.mode
-			val held = solution.holdForward
-			val base = profile.fly(mode, 0.0, rise, held, holdTicks = hold) ?: return null
-			val unit = profile.fly(mode, 1.0, rise, held, holdTicks = hold) ?: return null
-			val slope = unit.distance - base.distance
-			if (slope <= 1e-9) return null
+			val line = speedLine(solution.mode, rise, solution.holdForward, hold) ?: return null
 			val offset = solution.launchOffset
-			val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
-			val low = max((nearEdge - offset - base.distance) / slope, 0.0)
-			val high = min((window.endInclusive - offset - base.distance) / slope, maxEntrySpeed)
+			val low = max(line.speedFor(nearEdge, offset), 0.0)
+			val high = min(line.speedFor(window.endInclusive, offset), maxEntrySpeed)
 			if (high < low) return null
-			val speed = preferredSpeed(preferredEntrySpeed, low, high, slope)
-			val arc = profile.fly(mode, speed, rise, held, holdTicks = hold) ?: return null
+			val speed = preferredSpeed(preferredEntrySpeed, low, high, line.slope)
+			val arc = ballistics.fly(solution.mode, speed, rise, solution.holdForward, holdTicks = hold) ?: return null
 			val slack = min(speed - low, high - speed)
 			return solution.copy(
 				speed = speed,
 				speedSlack = slack,
-				landingSlack = slack * slope,
+				landingSlack = slack * line.slope,
 				aimDistance = offset + arc.distance,
 				arc = arc,
 				holdTicks = hold,
@@ -240,6 +220,17 @@ object LaunchSolver {
 			}
 		}
 		return best ?: solution
+	}
+
+	private class SpeedLine(private val base: Double, val slope: Double) {
+		fun speedFor(distance: Double, offset: Double): Double = (distance - offset - base) / slope
+	}
+
+	private fun speedLine(mode: LaunchMode, rise: Double, holdForward: Boolean, holdTicks: Int): SpeedLine? {
+		val base = ballistics.fly(mode, 0.0, rise, holdForward, holdTicks = holdTicks) ?: return null
+		val unit = ballistics.fly(mode, 1.0, rise, holdForward, holdTicks = holdTicks) ?: return null
+		val slope = unit.distance - base.distance
+		return if (slope <= MIN_SPEED_SLOPE) null else SpeedLine(base.distance, slope)
 	}
 
 	private fun preferredSpeed(preferred: Double, low: Double, high: Double, slope: Double): Double {
@@ -292,7 +283,6 @@ object LaunchSolver {
 
 	private val DROP_OFFSETS = listOf(0.5 + BODY_HALF_WIDTH)
 
-	private const val BODY_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
 
 	private const val LANDING_SAFETY_BLOCKS = 0.2
 
@@ -301,6 +291,8 @@ object LaunchSolver {
 	private const val LANDING_AIM_INSET = LANDING_SAFETY_BLOCKS + BODY_HALF_WIDTH
 
 	private const val AXIS_EPSILON = 1e-9
+
+	private const val MIN_SPEED_SLOPE = 1e-9
 }
 
 fun BallisticProfile.momentumSpeed(sprint: Boolean): Double {

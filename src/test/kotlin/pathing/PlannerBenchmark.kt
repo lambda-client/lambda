@@ -142,8 +142,7 @@ internal class RolloutFixture {
             lookAheadNodes = 1,
             launch = LaunchTrigger(seed % 3),
             maxYawChange = MotionConstraints().maxYawDegreesPerFrame,
-            holdForwardInFlight = solution.holdForward,
-            holdTicks = solution.holdTicks,
+            holdTicks = solution.heldForwardTicks,
         )
         TrajectoryRolloutEngine.rollout(initial, PROFILE, environment, program, frameCount = FRAMES)
     }

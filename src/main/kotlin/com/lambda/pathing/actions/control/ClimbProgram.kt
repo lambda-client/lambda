@@ -22,12 +22,9 @@ internal class ClimbProgram(
 	private val overLip = holdForward && !holdWhileClimbing && !climbWithJump
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
-		val yawDelta = targetYaw?.let { target ->
-			Rotation.wrap(target - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
-		} ?: 0.0
-
-		val aligned = targetYaw == null ||
-				abs(Rotation.wrap(targetYaw - observed.rotation.yaw)) <= ALIGNMENT_DEGREES
+		val yawError = targetYaw?.let { Rotation.wrap(it - observed.rotation.yaw) }
+		val yawDelta = yawError?.coerceIn(-maxYawChange, maxYawChange) ?: 0.0
+		val aligned = yawError == null || abs(yawError) <= ALIGNMENT_DEGREES
 
 		val forward = if (observed.onGround) {
 			if (overLip && !aligned) {
@@ -53,8 +50,6 @@ internal class ClimbProgram(
 
 		return MovementSimulationInput(
 			forward = forward,
-			sprint = false,
-
 			jump = climbWithJump,
 			rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
 		)

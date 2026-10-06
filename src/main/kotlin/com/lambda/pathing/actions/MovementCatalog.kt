@@ -7,7 +7,6 @@ import com.lambda.pathing.actions.families.SlimeBounceMovement
 import com.lambda.pathing.actions.families.WalkMovement
 import com.lambda.pathing.actions.families.jump.JumpMovement
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.launch.BallisticProfile
 
 class MovementCatalog private constructor(
 	val movements: List<Movement>,
@@ -33,10 +32,9 @@ class MovementCatalog private constructor(
 		fun build(
 			costs: CoarseMoveCosts,
 			options: SimpleMoveOptions = SimpleMoveOptions(),
-			ballistics: BallisticProfile = BallisticProfile.VANILLA,
 			movements: List<Movement> = REGISTERED,
 		): MovementCatalog {
-			val context = MovementContext(options, costs, ballistics)
+			val context = MovementContext(options, costs)
 			val owners = LinkedHashMap<MovementId, Movement>()
 			val specs = ArrayList<TemplateSpec>()
 

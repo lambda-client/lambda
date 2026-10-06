@@ -242,8 +242,7 @@ class FenceJumpTest {
             lookAheadNodes = 1,
             launch = LaunchTrigger(delay),
             maxYawChange = MotionConstraints().maxYawDegreesPerFrame,
-            holdForwardInFlight = solution.holdForward,
-            holdTicks = solution.holdTicks,
+            holdTicks = solution.heldForwardTicks,
         )
         val rollout = TrajectoryRolloutEngine.rollout(initial, PROFILE, environment, program, frameCount = 40)
         return rollout.frames.any { frame ->

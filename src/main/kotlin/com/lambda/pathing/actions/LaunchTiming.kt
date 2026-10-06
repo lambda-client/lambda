@@ -2,6 +2,7 @@ package com.lambda.pathing.actions
 
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
+import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchSolution
 
 internal fun nominalLaunchFrame(context: DecisionContext, solution: LaunchSolution): Int {
@@ -11,7 +12,7 @@ internal fun nominalLaunchFrame(context: DecisionContext, solution: LaunchSoluti
 	val body = context.body.state
 	val remaining = solution.launchOffset - alongEdge(from, to, body.position.x, body.position.z)
 	if (remaining <= 0.0) return 0
-	return context.ballistics.groundRunUpTicks(
+	return BallisticProfile.VANILLA.groundRunUpTicks(
 		entrySpeed = closingSpeed(context),
 		distance = remaining,
 		sprint = solution.sprint,
@@ -30,5 +31,8 @@ internal fun closingSpeed(context: DecisionContext): Double {
 		from.z + body.velocity.z,
 	).coerceAtLeast(0.0)
 }
+
+internal fun reachableEntrySpeed(context: DecisionContext): Double =
+	maxOf(context.body.speed, BallisticProfile.VANILLA.cruiseSpeed(sprint = true))
 
 internal const val MAX_LAUNCH_FRAME = 8

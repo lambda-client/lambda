@@ -26,71 +26,31 @@ object ClimbMovement : Movement {
 	override fun templates(context: MovementContext): List<TemplateSpec> {
 		if (!context.options.allowClimbing) return emptyList()
 		return buildList {
-
 			add(
-				TemplateSpec(
-					dx = 0, dy = 1, dz = 0,
-					movement = id,
-					cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
-					conditions = listOf(
-						CellCondition(0, 0, 0, CellPredicate.CLIMBABLE),
-						CellCondition(0, 1, 0, CellPredicate.CLIMBABLE),
-						CellCondition(0, 2, 0, CellPredicate.CENTER_HEAD),
-					),
+				spec(
+					0, 1, 0,
+					CellCondition(0, 0, 0, CellPredicate.CLIMBABLE),
+					CellCondition(0, 1, 0, CellPredicate.CLIMBABLE),
+					CellCondition(0, 2, 0, CellPredicate.CENTER_HEAD),
 				)
 			)
-			add(
-				TemplateSpec(
-					dx = 0, dy = -1, dz = 0,
-					movement = id,
-					cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
-					conditions = listOf(
-						CellCondition(0, 0, 0, CellPredicate.CLIMBABLE),
-						CellCondition(0, -1, 0, CellPredicate.CLIMBABLE),
-					),
-				)
-			)
-
+			add(spec(0, -1, 0, CellCondition(0, 0, 0, CellPredicate.CLIMBABLE), CellCondition(0, -1, 0, CellPredicate.CLIMBABLE)))
 			for ((dx, dz) in StanceRules.CARDINALS) {
-				add(
-					TemplateSpec(
-						dx = dx, dy = -1, dz = dz,
-						movement = id,
-						cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
-						conditions = listOf(
-							CellCondition(dx, -1, dz, CellPredicate.CLIMBABLE),
-
-							CellCondition(dx, 0, dz, CellPredicate.CENTER_HEAD),
-						),
-					)
-				)
+				add(spec(dx, -1, dz, CellCondition(dx, -1, dz, CellPredicate.CLIMBABLE), CellCondition(dx, 0, dz, CellPredicate.CENTER_HEAD)))
 			}
-
 			for ((dx, dz) in StanceRules.CARDINALS) {
-				add(
-					TemplateSpec(
-						dx = dx, dy = 0, dz = dz,
-						movement = id,
-						cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
-						conditions = listOf(
-							CellCondition(dx, 0, dz, CellPredicate.CLIMBABLE),
-							CellCondition(dx, 1, dz, CellPredicate.CENTER_HEAD),
-						),
-					)
-				)
-				add(
-					TemplateSpec(
-						dx = dx, dy = 0, dz = dz,
-						movement = id,
-						cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
-						conditions = listOf(
-							CellCondition(0, 0, 0, CellPredicate.CLIMBABLE),
-						) + StanceRules.stanceConditions(dx, 0, dz),
-					)
-				)
+				add(spec(dx, 0, dz, CellCondition(dx, 0, dz, CellPredicate.CLIMBABLE), CellCondition(dx, 1, dz, CellPredicate.CENTER_HEAD)))
+				add(spec(dx, 0, dz, CellCondition(0, 0, 0, CellPredicate.CLIMBABLE), *StanceRules.stanceConditions(dx, 0, dz).toTypedArray()))
 			}
 		}
 	}
+
+	private fun spec(dx: Int, dy: Int, dz: Int, vararg conditions: CellCondition) = TemplateSpec(
+		dx = dx, dy = dy, dz = dz,
+		movement = id,
+		cost = CoarseMoveRates.CLIMB_TICKS_PER_BLOCK,
+		conditions = conditions.toList(),
+	)
 
 	override fun occupies(view: CoarseVoxelView, stance: Stance): Boolean =
 		view.medium(stance.x, stance.y, stance.z) == Medium.CLIMBABLE
@@ -156,13 +116,7 @@ object ClimbMovement : Movement {
 		)
 	}
 
-	@Suppress("ReturnCount")
-	override fun completed(context: CompletionContext): Boolean {
-		val target = (context.decision as? TrajectoryDecision.Climb)?.step
-			?: return context.stance != context.body.stance
-
-		return context.stance == target
-	}
+	override fun completed(context: CompletionContext): Boolean = context.stance == context.decision.step
 
 	override val completesAirborne: Boolean get() = true
 

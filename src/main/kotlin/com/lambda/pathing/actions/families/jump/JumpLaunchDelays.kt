@@ -7,6 +7,7 @@ import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.unitBetween
+import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.HorizontalDynamics
 import com.lambda.pathing.launch.LaunchSolution
 import kotlin.math.abs
@@ -22,7 +23,7 @@ internal object JumpLaunchDelays {
 		val to = edge.to.center()
 		val (unitX, unitZ) = unitBetween(from, to) ?: return emptyList()
 
-		val dynamics = HorizontalDynamics.ground(context.ballistics, solution.sprint)
+		val dynamics = HorizontalDynamics.ground(BallisticProfile.VANILLA, solution.sprint)
 		val body = context.body.state
 		var velocityX = body.velocity.x
 		var velocityZ = body.velocity.z
@@ -33,7 +34,7 @@ internal object JumpLaunchDelays {
 
 		class Fit(val delay: Int, val cost: Double, val misplacement: Double, val speedError: Double)
 
-		val standableAlong = 0.5 * (abs(unitX) + abs(unitZ)) + 0.3
+		val standableAlong = 0.5 * (abs(unitX) + abs(unitZ)) + FOOTPRINT_OVERHANG
 
 		val fitting = ArrayList<Fit>()
 		for (delay in 0..MAX_LAUNCH_FRAME) {
@@ -62,9 +63,13 @@ internal object JumpLaunchDelays {
 
 		if (fitting.isEmpty()) {
 			val nominal = nominalLaunchFrame(context, solution)
+			val needed = (solution.speed - solution.speedSlack)..(solution.speed + solution.speedSlack)
 			return LAUNCH_BRACKET.map { (nominal + it).coerceAtLeast(0) }
 				.distinct()
-				.filter { !unreachableEntry(context, it, solution) }
+				.filterNot { delay ->
+					val reach = dynamics.reachable(body.velocity.x, body.velocity.z, delay).projectOnto(unitX, unitZ)
+					reach.endInclusive < needed.start || reach.start > needed.endInclusive
+				}
 		}
 
 		val cheapest = fitting.sortedBy { it.cost }.map { it.delay }
@@ -75,25 +80,10 @@ internal object JumpLaunchDelays {
 			.take(MAX_LAUNCH_DELAY_CANDIDATES)
 	}
 
-	private fun unreachableEntry(
-		context: DecisionContext,
-		delay: Int,
-		solution: LaunchSolution,
-	): Boolean {
-		val edge = context.edge
-		val from = edge.from.center()
-		val to = edge.to.center()
-		val (unitX, unitZ) = unitBetween(from, to) ?: return false
-		val velocity = context.body.state.velocity
-		val along = HorizontalDynamics.ground(context.ballistics, solution.sprint)
-			.reachable(velocity.x, velocity.z, delay)
-			.projectOnto(unitX, unitZ)
-		val needed = (solution.speed - solution.speedSlack)..(solution.speed + solution.speedSlack)
-		return along.endInclusive < needed.start || along.start > needed.endInclusive
-	}
-
 	private val LAUNCH_BRACKET = listOf(0, -1, 1)
 
 	private const val MAX_LAUNCH_DELAY_CANDIDATES = 6
+
+	private const val FOOTPRINT_OVERHANG = 0.3
 
 }

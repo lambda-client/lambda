@@ -30,8 +30,7 @@ internal class DropProgram(
 
 		val rotation = rotationToward(aim, observed, maxYawChange)
 
-		val approaching = !airborne && !landed
-		val sneak = approaching && pinningToLip(observed)
+		val sneak = !airborne && pinningToLip(observed)
 
 		val forward = when {
 			landed -> 0.0
@@ -44,9 +43,8 @@ internal class DropProgram(
 
 		return MovementSimulationInput(
 			forward = forward,
-			strafe = if (airborne && !landed) airborneStrafe(takeoff, aim, observed, LATERAL_DEADBAND) else 0.0,
+			strafe = if (airborne && !landed) airborneStrafe(takeoff, aim, observed) else 0.0,
 			sprint = solution.sprint && forward > 0.0 && !sneak,
-			jump = false,
 			sneak = sneak,
 			rotation = rotation,
 		)
@@ -99,7 +97,5 @@ internal class DropProgram(
 		const val STEP_DECAY = 0.9
 
 		const val LIP_MARGIN = 0.1
-
-		const val LATERAL_DEADBAND = 0.08
 	}
 }

@@ -21,8 +21,6 @@ internal class SegmentFollowerProgram(
 	private val maxYawChange: Double,
 	private val easeTurns: Boolean = false,
 
-	private val holdForwardInFlight: Boolean = true,
-
 	private val holdTicks: Int = Int.MAX_VALUE,
 
 	private val airPlan: AirSteering.AirPlan? = null,
@@ -43,7 +41,7 @@ internal class SegmentFollowerProgram(
 		val flying = jump || (launch?.hasFired == true && !observed.onGround)
 		val jumpKey = jump || (holdJumpInFlight && flying)
 		if (flying) airborneTicks++ else airborneTicks = 0
-		val coasting = flying && (!holdForwardInFlight || airborneTicks > holdTicks)
+		val coasting = flying && airborneTicks > holdTicks
 
 		val steered = if (flying && !observed.onGround && airPlan != null) {
 			AirSteering.steer(
@@ -57,12 +55,8 @@ internal class SegmentFollowerProgram(
 				unitX = airPlan.unitX,
 				unitZ = airPlan.unitZ,
 				remainingTicks = airPlan.airTicks - airborneTicks + 2,
-				plannedHoldTicks = when {
-					!holdForwardInFlight -> 0
-					else -> (airPlan.holdTicks - airborneTicks + 1).coerceAtLeast(0)
-				},
+				plannedHoldTicks = (airPlan.holdTicks - airborneTicks + 1).coerceAtLeast(0),
 				sprintAcceleration = airPlan.sprintAcceleration,
-				walkAcceleration = airPlan.walkAcceleration,
 			)
 		} else null
 

@@ -14,7 +14,7 @@ internal object JumpTemplates {
 
 	val MODES = LaunchMode.entries.filter { it.jumps }
 
-	fun templates(context: MovementContext, movement: MovementId): List<TemplateSpec> = buildList {
+	fun templates(context: MovementContext): List<TemplateSpec> = buildList {
 		val options = context.options
 		if (!options.allowJumpCandidates) return@buildList
 
@@ -23,7 +23,7 @@ internal object JumpTemplates {
 			for (dx in -reach..reach) {
 				for (dz in -reach..reach) {
 					if (!offered(dx, dz, rise, options)) continue
-					add(spec(dx, dz, rise, context.costs.jumpCandidateCost(hypot(dx, dz), rise), movement))
+					add(spec(dx, dz, rise, context.costs.jumpCandidateCost(hypot(dx, dz), rise)))
 				}
 			}
 		}
@@ -34,7 +34,6 @@ internal object JumpTemplates {
 		if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE) return false
 		if (dx != 0 && dz != 0 && !options.allowDiagonal) return false
 		if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
-		if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return false
 
 		val ceiling = if (rise < 0 && options.allowDeepDropJumps) FULL_DROP_AIR_GAP_BLOCKS
 		else STANDING_AIR_GAP_BLOCKS
@@ -48,11 +47,11 @@ internal object JumpTemplates {
 
 	private fun hypot(dx: Int, dz: Int): Double = kotlin.math.hypot(dx.toDouble(), dz.toDouble())
 
-	private fun spec(dx: Int, dz: Int, rise: Int, cost: Double, movement: MovementId): TemplateSpec {
+	private fun spec(dx: Int, dz: Int, rise: Int, cost: Double): TemplateSpec {
 		val gap = airGap(dx, dz)
 		return TemplateSpec(
 			dx = dx, dy = rise, dz = dz,
-			movement = movement,
+			movement = MovementId.JUMP,
 			cost = cost,
 			conditions = StanceRules.stanceConditions(dx, rise, dz),
 			arc = MotionTemplate.ArcSpec(

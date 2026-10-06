@@ -10,7 +10,6 @@ import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.actions.closingSpeed
 import com.lambda.pathing.actions.landingRisk
 import com.lambda.pathing.core.MovementId
 
@@ -18,7 +17,7 @@ object JumpMovement : Movement {
 	override val id = MovementId.JUMP
 
 	override fun templates(context: MovementContext): List<TemplateSpec> =
-		JumpTemplates.templates(context, id)
+		JumpTemplates.templates(context)
 
 	override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y >= edge.from.y
 
@@ -28,22 +27,17 @@ object JumpMovement : Movement {
 			.distinctBy { it.mode to it.launchOffset }
 			.sortedByDescending { it.margin }
 
-		val closing = closingSpeed(context)
 		val standard = solutions.flatMap { solution ->
 			JumpLaunchDelays.launchDelays(context, solution).map { delay ->
 				TrajectoryDecision.Launch(solution.sprint, context.edge.to, delay, solution)
 			}
 		}
-		return standard + JumpDecisions.runUpDecisions(context, solutions, closing)
+		return standard + JumpDecisions.runUpDecisions(context, solutions)
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
-		val solution = when (decision) {
-			is TrajectoryDecision.Launch -> decision.solution
-			is TrajectoryDecision.RunUpLaunch -> decision.solution
-			else -> null
-		}
-		if (solution == null) return DecisionPrice.FREE
+		val solution =
+			if (decision is TrajectoryDecision.RunUpLaunch) decision.solution else (decision as TrajectoryDecision.Launch).solution
 
 		val tightness = 1.0 - (solution.speedSlack / COMFORTABLE_SPEED_SLACK).coerceIn(0.0, 1.0)
 		val base = DecisionPrice(

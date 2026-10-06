@@ -1,12 +1,14 @@
 package com.lambda.pathing.actions.families.jump
 
-import com.lambda.pathing.actions.MAX_LAUNCH_FRAME
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.TrajectoryDecision
-import com.lambda.pathing.core.alongEdge
+import com.lambda.pathing.actions.closingSpeed
+import com.lambda.pathing.actions.nominalLaunchFrame
+import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.unitBetween
+import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
@@ -16,18 +18,19 @@ import kotlin.math.hypot
 
 internal object JumpDecisions {
 
+	private val ballistics = BallisticProfile.VANILLA
+
 	fun solutionsFor(context: DecisionContext): List<LaunchSolution> {
 		val onward = onwardEntryWindow(context)
 
 		val ideal = onward?.let { window ->
 			LaunchSolver.best(
 				context.edge.from, context.edge.to,
-				profile = context.ballistics, modes = JumpTemplates.MODES, exitSpeedWindow = window,
+				modes = JumpTemplates.MODES, exitSpeedWindow = window,
 			)
 		} ?: context.edge.launch ?: hopOver(context)
 		val asIs = LaunchSolver.best(
 			context.edge.from, context.edge.to,
-			profile = context.ballistics,
 			modes = JumpTemplates.MODES,
 			maxEntrySpeed = { context.body.speed },
 			preferredEntrySpeed = { context.body.speed },
@@ -52,51 +55,35 @@ internal object JumpDecisions {
 			CoarseMoveRates.MIN_JUMP_DISTANCE
 		) return null
 		val solutions = LaunchSolver.solve(
-			context.edge.to, onward, profile = context.ballistics, modes = JumpTemplates.MODES,
+			context.edge.to, onward, modes = JumpTemplates.MODES,
 		)
 		if (solutions.isEmpty()) return null
 		val entry = solutions.minOf { it.speed - it.speedSlack }..
 				solutions.maxOf { it.speed + it.speedSlack }
 
-		return context.ballistics.groundReachable(entry, PAD_GROUND_TICKS, sprint = true)
+		return ballistics.groundReachable(entry, PAD_GROUND_TICKS, sprint = true)
 	}
 
 	private fun hopOver(context: DecisionContext): LaunchSolution? {
 		val edge = context.edge
 		if (edge.to.y < edge.from.y) return null
-		val reachable = maxOf(context.body.speed, context.ballistics.cruiseSpeed(sprint = true))
+		val reachable = reachableEntrySpeed(context)
 		return LaunchSolver.best(
 			edge.from, edge.to,
-			profile = context.ballistics,
 			modes = JumpTemplates.MODES,
 			maxEntrySpeed = { reachable },
 		)
 	}
 
-	fun runUpDecisions(
-		context: DecisionContext,
-		solutions: List<LaunchSolution>,
-		closing: Double,
-	): List<TrajectoryDecision> {
+	fun runUpDecisions(context: DecisionContext, solutions: List<LaunchSolution>): List<TrajectoryDecision> {
 		if (solutions.isEmpty()) return emptyList()
 		val edge = context.edge
-		val from = edge.from.center()
-		val to = edge.to.center()
-		val body = context.body.state
-		val along = alongEdge(from, to, body.position.x, body.position.z)
-
+		val closing = closingSpeed(context)
 		val anyReachable = solutions.any { solution ->
-			val available = (solution.launchOffset - along).coerceAtLeast(0.0)
-			val ticks = context.ballistics.groundRunUpTicks(
-				entrySpeed = closing, distance = available,
-				sprint = solution.sprint, maxTicks = MAX_LAUNCH_FRAME,
-			)
-			context.ballistics.runUpSpeed(closing, ticks, solution.sprint) >=
-					solution.speed - solution.speedSlack * 0.5
+			ballistics.runUpSpeed(closing, nominalLaunchFrame(context, solution), solution.sprint) >= minimumSpeed(solution)
 		}
 		if (anyReachable) return emptyList()
 
-		val ballistics = context.ballistics
 		val decisions = ArrayList<TrajectoryDecision>()
 		for (solution in solutions) {
 			val groundNeeded = ballistics.runUpDistanceFor(solution.speed, solution.sprint)
@@ -113,7 +100,7 @@ internal object JumpDecisions {
 			val mode = if (solution.sprint) LaunchMode.SPRINT_JUMP else LaunchMode.WALK_JUMP
 			val cruise = ballistics.cruiseSpeed(solution.sprint)
 			val hop = ballistics.fly(mode, cruise, 0.0) ?: continue
-			if (hop.exitSpeed < solution.speed - solution.speedSlack * 0.5 - HOP_EXIT_TOLERANCE) continue
+			if (hop.exitSpeed < minimumSpeed(solution) - HOP_EXIT_TOLERANCE) continue
 			val groundToCruise = ballistics.runUpDistanceFor(cruise * CRUISE_FRACTION, solution.sprint)
 				?: continue
 			for (gap in HOP_LANDING_GAPS) {
@@ -128,12 +115,10 @@ internal object JumpDecisions {
 		return decisions.take(MAX_RUN_UP_VARIANTS)
 	}
 
+	private fun minimumSpeed(solution: LaunchSolution) = solution.speed - solution.speedSlack * REQUIRED_SLACK_FRACTION
+
 	private fun clearBehind(context: DecisionContext, distance: Double): Boolean {
 		if (distance <= 0.0) return true
-		return retreatClear(context, distance)
-	}
-
-	private fun retreatClear(context: DecisionContext, distance: Double): Boolean {
 		val edge = context.edge
 		val from = edge.from.center()
 		val to = edge.to.center()
@@ -150,6 +135,8 @@ internal object JumpDecisions {
 	}
 
 	private const val RUN_UP_MARGIN_BLOCKS = 0.75
+
+	private const val REQUIRED_SLACK_FRACTION = 0.5
 
 	private const val CRUISE_FRACTION = 0.97
 

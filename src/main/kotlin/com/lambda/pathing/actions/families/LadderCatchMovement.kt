@@ -15,6 +15,7 @@ import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.control.airPlanToward
 import com.lambda.pathing.actions.nominalLaunchFrame
+import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
@@ -50,11 +51,10 @@ object LadderCatchMovement : Movement {
 
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val edge = context.edge
-		val reachable = maxOf(context.body.speed, context.ballistics.cruiseSpeed(sprint = true))
+		val reachable = reachableEntrySpeed(context)
 
 		val catches = LaunchSolver.solve(
 			edge.from, edge.to,
-			profile = context.ballistics,
 			modes = MODES,
 			maxEntrySpeed = { reachable },
 			catch = true,
@@ -87,17 +87,13 @@ object LadderCatchMovement : Movement {
 			lookAheadNodes = 1,
 			launch = context.launch,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
-			holdForwardInFlight = true,
 			airPlan = airPlan,
 			holdJumpInFlight = true,
 		)
 	}
 
-	override fun completed(context: CompletionContext): Boolean {
-		val step = (context.decision as? TrajectoryDecision.Launch)?.step
-			?: return context.stance != context.body.stance
-		return context.launch?.hasFired != false && context.stance == step
-	}
+	override fun completed(context: CompletionContext): Boolean =
+		context.launch?.hasFired != false && context.stance == context.decision.step
 
 	override val completesAirborne: Boolean get() = true
 

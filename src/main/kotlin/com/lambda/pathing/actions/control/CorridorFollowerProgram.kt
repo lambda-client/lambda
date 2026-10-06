@@ -12,7 +12,6 @@ import com.lambda.pathing.core.horizontalDistance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
-import kotlin.math.atan2
 import kotlin.math.hypot
 
 internal class CorridorFollowerProgram(
@@ -65,27 +64,28 @@ internal class CorridorFollowerProgram(
 				terminalApproach = true
 				return terminalApproachInput(observed, jump)
 			}
-			return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
+			return coastInput(observed, jump)
 		}
 
 		val coastStop = observed.velocity.horizontalLength() * GROUND_COAST_PER_SPEED +
 				BRAKE_SHORT_BIAS_BLOCKS
 		if (!risePending &&
 			remainingPathDistance(observed) <= maxOf(parameters.brakeDistance, coastStop)
-		) braking = true
-		if (braking) {
-			return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
+		) {
+			braking = true
+			return coastInput(observed, jump)
 		}
 
-		val desiredYaw = yawTowards(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed)
-		val yawDelta = yawStepTowards(desiredYaw, observed, maxYawChange)
 		return MovementSimulationInput(
 			forward = 1.0,
 			sprint = parameters.sprint,
 			jump = jump,
-			rotation = Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch),
+			rotation = rotationToward(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed, maxYawChange),
 		)
 	}
+
+	private fun coastInput(observed: MovementSimulationState, jump: Boolean) =
+		MovementSimulationInput(rotation = observed.rotation, jump = jump)
 
 	private fun terminalApproachInput(
 		observed: MovementSimulationState,
@@ -102,10 +102,9 @@ internal class CorridorFollowerProgram(
 
 		if (terminalReleased || distance <= config.goalRadius || coast >= distance) {
 			terminalReleased = true
-			return MovementSimulationInput(rotation = observed.rotation, sprint = false, jump = jump)
+			return coastInput(observed, jump)
 		}
-		val desiredYaw = Math.toDegrees(atan2(dz, dx)) - 90.0
-		val yawError = Rotation.wrap(desiredYaw - observed.rotation.yaw)
+		val yawError = Rotation.wrap(yawTowards(goal, observed) - observed.rotation.yaw)
 		val yawDelta = yawError.coerceIn(-maxYawChange, maxYawChange)
 
 		val forward = if (abs(yawError) > TERMINAL_PIVOT_YAW_DEGREES) 0.0 else 1.0

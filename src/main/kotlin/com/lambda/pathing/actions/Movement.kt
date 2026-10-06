@@ -4,7 +4,6 @@ package com.lambda.pathing.actions
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.CoarseVoxelView
@@ -44,7 +43,6 @@ data class TemplateSpec(
 class MovementContext(
 	val options: SimpleMoveOptions,
 	val costs: CoarseMoveCosts,
-	val ballistics: BallisticProfile = BallisticProfile.VANILLA,
 )
 
 class DecisionContext(
@@ -52,7 +50,6 @@ class DecisionContext(
 	val edge: CoarseEdge,
 	val constraints: MotionConstraints,
 	val view: CoarseVoxelView,
-	val ballistics: BallisticProfile = BallisticProfile.VANILLA,
 
 	val steering: SteeringField? = null,
 )

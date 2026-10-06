@@ -20,8 +20,6 @@ interface TrajectoryDecision {
 
 	val leavesGround: Boolean get() = false
 
-	val followLookAheadNodes: Int? get() = null
-
 	data class Walk(
 		override val sprint: Boolean,
 		override val step: Stance,
@@ -29,7 +27,6 @@ interface TrajectoryDecision {
 		val easeTurns: Boolean,
 		override val movement: MovementId = MovementId.WALK,
 	) : TrajectoryDecision {
-		override val followLookAheadNodes: Int get() = lookAheadNodes
 		override val seedsHazardOnFailure: Boolean get() = true
 	}
 

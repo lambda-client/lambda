@@ -4,10 +4,9 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 import com.lambda.pathing.core.DEGENERATE_LENGTH
+import com.lambda.pathing.core.MovementKeys
 
 object AirSteering {
-	data class Keys(val forward: Double, val strafe: Double)
-
 	data class AirPlan(
 		val aimX: Double,
 		val aimZ: Double,
@@ -16,7 +15,6 @@ object AirSteering {
 		val airTicks: Int,
 		val holdTicks: Int,
 		val sprintAcceleration: Double,
-		val walkAcceleration: Double,
 	)
 
 	fun steer(
@@ -32,8 +30,7 @@ object AirSteering {
 		remainingTicks: Int,
 		plannedHoldTicks: Int,
 		sprintAcceleration: Double,
-		walkAcceleration: Double,
-	): Keys? {
+	): MovementKeys? {
 		if (remainingTicks <= 0) return null
 		val reach = displacementKernel(remainingTicks)
 
@@ -72,7 +69,7 @@ object AirSteering {
 				val acceleration = when {
 					length <= DEGENERATE_LENGTH -> 0.0
 					forward > 0.0 -> sprintAcceleration
-					else -> walkAcceleration
+					else -> BallisticProfile.WALK_AIR_ACCELERATION
 				}
 				val candidateX = errorX - reach * (acceleration * directionX - plannedTickX)
 				val candidateZ = errorZ - reach * (acceleration * directionZ - plannedTickZ)
@@ -85,7 +82,7 @@ object AirSteering {
 				}
 			}
 		}
-		return if (improved) Keys(bestForward, bestStrafe) else null
+		return if (improved) MovementKeys(bestForward, bestStrafe) else null
 	}
 
 	private fun displacementKernel(ticks: Int): Double {

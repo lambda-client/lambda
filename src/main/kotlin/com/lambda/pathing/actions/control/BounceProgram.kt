@@ -81,7 +81,6 @@ internal class BounceProgram(
 			strafe = strafe,
 			sprint = sprint,
 			jump = jump,
-			sneak = false,
 			rotation = rotation,
 		)
 	}

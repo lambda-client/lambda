@@ -15,6 +15,8 @@ internal const val CREEP_TAP_SPEED = 0.06
 
 internal val GROUND_COAST_PER_SPEED = BallisticProfile.VANILLA.coastDistancePerSpeed
 
+private const val AIRBORNE_STRAFE_DEADBAND = 0.08
+
 internal fun lateralOffset(
 	takeoff: HorizontalPoint,
 	aim: HorizontalPoint,
@@ -33,10 +35,9 @@ internal fun airborneStrafe(
 	takeoff: HorizontalPoint,
 	aim: HorizontalPoint,
 	observed: MovementSimulationState,
-	deadband: Double,
 ): Double {
 	val offset = lateralOffset(takeoff, aim, observed)
-	if (abs(offset) < deadband) return 0.0
+	if (abs(offset) < AIRBORNE_STRAFE_DEADBAND) return 0.0
 	return if (offset > 0.0) 1.0 else -1.0
 }
 

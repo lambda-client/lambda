@@ -44,7 +44,6 @@ class AirSteeringTest {
                 remainingTicks = 12 - tick,
                 plannedHoldTicks = 0,
                 sprintAcceleration = AIR_ACCELERATION,
-                walkAcceleration = AIR_ACCELERATION,
             )
             assertNull(keys, "tick $tick: an on-course coast must not be corrected")
             state = tick(state, forward = 0.0, strafe = 0.0)
@@ -66,7 +65,6 @@ class AirSteeringTest {
                     remainingTicks = 12 - tick,
                     plannedHoldTicks = 0,
                     sprintAcceleration = AIR_ACCELERATION,
-                    walkAcceleration = AIR_ACCELERATION,
                 )
                 if (keys != null) {
                     assertTrue(
@@ -117,7 +115,6 @@ class AirSteeringTest {
                 remainingTicks = ticks - tick,
                 plannedHoldTicks = ticks - tick,
                 sprintAcceleration = AIR_ACCELERATION,
-                walkAcceleration = AIR_ACCELERATION,
             )
             state = tick(state, keys?.forward ?: 1.0, keys?.strafe ?: 0.0)
         }
@@ -144,7 +141,6 @@ class AirSteeringTest {
                     remainingTicks = ticks - tick,
                     plannedHoldTicks = 0,
                     sprintAcceleration = AIR_ACCELERATION,
-                    walkAcceleration = AIR_ACCELERATION,
                 )
             }
             state = tick(state, keys?.forward ?: 0.0, keys?.strafe ?: 0.0)

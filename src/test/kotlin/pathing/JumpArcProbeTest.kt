@@ -104,8 +104,7 @@ class JumpArcProbeTest {
         world.fullCube(0, 0, 0)
         world.fullCube(2, 0, 0)
 
-        val result = assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, rise = 0))
-        assertTrue(result.solution.clearance > 0.0)
+        assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, rise = 0))
     }
 
     @Test

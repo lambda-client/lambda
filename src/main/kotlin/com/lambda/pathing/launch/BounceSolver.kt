@@ -31,16 +31,17 @@ data class BounceSolution(
 }
 
 object BounceSolver {
+	private val ballistics = BallisticProfile.VANILLA
+
 	fun solve(
 		horizontalDistance: Double,
 		drop: Int,
 		rise: Int,
-		profile: BallisticProfile = BallisticProfile.VANILLA,
 		sprint: Boolean = true,
 		holdForward: Boolean = true,
 		jump: Boolean = false,
 		holdTicks: Int = Int.MAX_VALUE,
-		maxEntrySpeed: Double = profile.momentumSpeed(sprint),
+		maxEntrySpeed: Double = ballistics.momentumSpeed(sprint),
 
 		contactDepth: Double = drop.toDouble(),
 
@@ -55,15 +56,15 @@ object BounceSolver {
 		val flight = horizontalDistance - launchReach
 		if (flight <= 0.0) return null
 
-		val base = profile.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
-		val unit = profile.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
+		val base = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
+		val unit = ballistics.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
 		val slope = unit.distance - base.distance
 		if (slope <= 0.0) return null
 
 		val speed = (flight - base.distance) / slope
 		if (speed < 0.0 || speed > maxEntrySpeed) return null
 
-		val arc = profile.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
+		val arc = ballistics.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
 
 		val slack = (LANDING_WINDOW / 2.0) / slope
 
@@ -89,7 +90,6 @@ object BounceSolver {
 		rise: Int,
 		jump: Boolean,
 		sprint: Boolean,
-		profile: BallisticProfile = BallisticProfile.VANILLA,
 		contactDepth: Double = drop.toDouble(),
 		riseHeight: Double = rise.toDouble(),
 
@@ -103,7 +103,7 @@ object BounceSolver {
 		if (target <= 0.0) return null
 
 		val minHold = if (sprint) 2 else if (jump) 0 else 1
-		fun arcAt(holdTicks: Int): ArcSample? = profile.bounce(
+		fun arcAt(holdTicks: Int): ArcSample? = ballistics.bounce(
 			0.0, contactDepth, riseHeight,
 			holdForward = holdTicks > 0, sprint = sprint, jump = jump, holdTicks = holdTicks,
 			headroom = headroom,
@@ -159,13 +159,6 @@ object BounceSolver {
 	private const val HOLD_SCAN = 3
 
 	private const val LANDING_SUPPORT_REACH = 0.8
-
-	val STANDING_STYLES = listOf(
-		true to false,
-		false to false,
-		true to true,
-		false to true,
-	)
 
 	const val STANDING_REST_SPEED = 0.02
 

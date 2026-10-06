@@ -54,7 +54,6 @@ object DropMovement : Movement {
 		val ideal = context.edge.launch
 		val asIs = LaunchSolver.best(
 			context.edge.from, context.edge.to,
-			profile = context.ballistics,
 			modes = MODES,
 			maxEntrySpeed = { context.body.speed },
 			preferredEntrySpeed = { context.body.speed },
@@ -67,7 +66,7 @@ object DropMovement : Movement {
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
-		val drop = decision as? TrajectoryDecision.Drop ?: return DecisionPrice.FREE
+		val drop = decision as TrajectoryDecision.Drop
 		return DecisionPrice(difficulty = context.landingRisk(drop.solution))
 	}
 

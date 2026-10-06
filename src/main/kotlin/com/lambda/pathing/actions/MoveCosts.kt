@@ -96,8 +96,8 @@ class CoarseMoveCosts(
 
 		fun measured(
 			transitionOverheadTicks: Double = 0.0,
-			profile: BallisticProfile = BallisticProfile.VANILLA,
 		): CoarseMoveCosts {
+			val profile = BallisticProfile.VANILLA
 			require(transitionOverheadTicks >= 0.0 && transitionOverheadTicks.isFinite()) {
 				"transitionOverheadTicks must be non-negative and finite: $transitionOverheadTicks"
 			}

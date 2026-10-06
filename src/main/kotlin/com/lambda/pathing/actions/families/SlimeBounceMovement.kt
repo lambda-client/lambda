@@ -26,12 +26,11 @@ object SlimeBounceMovement : Movement {
 	override fun templates(context: MovementContext): List<TemplateSpec> = buildList {
 		val options = context.options
 		if (!options.allowSlimeBounces) return@buildList
-		val profile = context.ballistics
 
 		for (drop in MIN_DROP..options.maxBounceDrop) {
 
 			for (rise in -(drop - 1)..MAX_RISE) {
-				val window = reachWindow(profile, drop, rise) ?: continue
+				val window = reachWindow(drop, rise) ?: continue
 
 				for ((dx, dz) in StanceRules.CARDINALS + StanceRules.DIAGONALS) {
 					val perStep = hypot(dx.toDouble(), dz.toDouble())
@@ -45,11 +44,8 @@ object SlimeBounceMovement : Movement {
 		}
 	}
 
-	private fun reachWindow(
-		profile: BallisticProfile,
-		drop: Int,
-		rise: Int,
-	): Pair<Double, Double>? {
+	private fun reachWindow(drop: Int, rise: Int): Pair<Double, Double>? {
+		val profile = BallisticProfile.VANILLA
 		val depth = drop.toDouble()
 		val height = rise.toDouble()
 		val offset = BounceSolver.LAUNCH_OFFSET
@@ -99,15 +95,11 @@ object SlimeBounceMovement : Movement {
 		return listOf(TrajectoryDecision.Bounce(solution.sprint, context.edge.to, solution))
 	}
 
-	override fun descentAllowance(decision: TrajectoryDecision): Double {
-		val bounce = decision as? TrajectoryDecision.Bounce ?: return 0.0
-		return bounce.solution.contactDepth
-	}
+	override fun descentAllowance(decision: TrajectoryDecision): Double =
+		(decision as TrajectoryDecision.Bounce).solution.contactDepth
 
-	override fun transitionFrames(decision: TrajectoryDecision): Int {
-		val bounce = decision as? TrajectoryDecision.Bounce ?: return 0
-		return bounce.solution.airTicks + TRANSITION_MARGIN_FRAMES
-	}
+	override fun transitionFrames(decision: TrajectoryDecision): Int =
+		(decision as TrajectoryDecision.Bounce).solution.airTicks + TRANSITION_MARGIN_FRAMES
 
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision as TrajectoryDecision.Bounce
