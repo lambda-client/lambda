@@ -168,8 +168,9 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
     override val maxSafeFallDistance by c.setting(
         "Max Safe Fall", 3.0, 1.0..30.0, 0.5,
-        "Deepest fall certified as survivable on ordinary ground. Above ~3 blocks the " +
-            "landing costs health; raise it only when that trade is intended.",
+        "Deepest fall the planner accepts. Falls the player takes without damage are always " +
+            "accepted (flight, Slow Falling, its safe fall distance and fall damage multiplier); " +
+            "raise this only to accept damage, e.g. where the server turns fall damage off.",
         unit = " blocks",
     )
 

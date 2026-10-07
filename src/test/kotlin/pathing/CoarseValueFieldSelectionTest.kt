@@ -36,7 +36,8 @@ class CoarseValueFieldSelectionTest {
             }
             val field = CoarseValueField(view, moves, goal,
                 labelAt = { stance, _ -> labels[stance] ?: Double.POSITIVE_INFINITY },
-                edgeProvider = { if (it == from) edges else emptyList() })
+                edgeProvider = { if (it == from) edges else emptyList() },
+                labelRevision = { 0L })
             for (heading in listOf(null, 0.0 to 0.0, 1.0 to -2.0, 1e-12 to 0.0, Double.NaN to 1.0)) {
                 for (margin in listOf(-0.5, 0.0, 0.2, 0.5, 2.0, Double.MAX_VALUE, Double.NaN)) {
                     for (count in listOf(-1, 0, 1, 2, 8)) {

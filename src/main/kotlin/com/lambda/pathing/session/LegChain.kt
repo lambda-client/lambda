@@ -43,13 +43,15 @@ internal class LegChain(
 	private lateinit var current: Leg
 	private lateinit var field: SwitchableValueField
 	private var nextIndex = 0
-	private var pending: CompletableFuture<Leg?>? = null
+	private val started = ArrayList<Leg>()
+	private val pending = HashMap<Int, CompletableFuture<Leg?>>()
 	private val forwarded = Array(states.size) { ConcurrentLinkedQueue<WorldEventBatch>() }
 
 	val ledger: String get() = current.sync?.ledger ?: "coarseSync=n/a"
 
 	fun begin(route: CoarseRoutePlan, resolution: RouteResolution): SwitchableValueField {
 		current = leg(0, route, resolution)
+		started += current
 		field = SwitchableValueField(current.field)
 		nextIndex = 1
 		prepareNext()
@@ -61,7 +63,7 @@ internal class LegChain(
 	fun sync(route: CoarseRoutePlan, from: BodyState): WorldSyncResult = current.sync?.sync(route, from) ?: WorldSyncResult.Quiet
 
 	private fun onBatch(batch: WorldEventBatch) {
-		for (i in nextIndex until states.size) forwarded[i] += batch
+		for (i in states.indices) if (i != started.lastIndex) forwarded[i] += batch
 	}
 
 	override fun handoff(touched: Stance): CoarseRoutePlan? {
@@ -79,7 +81,7 @@ internal class LegChain(
 			null
 		}
 		val waited = (System.nanoTime() - waitStarted) / 1_000_000L
-		pending = null
+		pending.remove(index)
 		if (leg == null) {
 			LOG.warn("Route leg {} toward {} did not resolve; finishing at {} instead", index, states[index].goal, touched)
 			nextIndex = states.size
@@ -91,6 +93,7 @@ internal class LegChain(
 		} else leg.route
 
 		current = leg
+		started += leg
 		field.current = leg.field
 		nextIndex = index + 1
 		LOG.info(
@@ -101,12 +104,24 @@ internal class LegChain(
 		return route
 	}
 
+	override fun rewind(): CoarseRoutePlan {
+		val left = started.removeLast()
+		pending[started.size] = CompletableFuture.completedFuture(left)
+		current = started.last()
+		field.current = current.field
+		nextIndex = started.size
+		val index = started.lastIndex
+		drainForwarded(index)
+		LOG.info("Leg rewind: back toward {} from {}", states[index].goal, states[index + 1].goal)
+		return current.resolution.resolve(starts[index], snapshotRevision, coarseExpansionBudget, cancelled = cancelled) ?: current.route
+	}
+
 	private fun prepareNext() {
 		if (hasNext()) pendingLeg(nextIndex)
 	}
 
 	private fun pendingLeg(index: Int): CompletableFuture<Leg?> =
-		pending ?: CompletableFuture.supplyAsync({ resolveLeg(index) }, executor).also { pending = it }
+		pending.getOrPut(index) { CompletableFuture.supplyAsync({ resolveLeg(index) }, executor) }
 
 	private fun drainForwarded(index: Int): Boolean {
 		var changed = false

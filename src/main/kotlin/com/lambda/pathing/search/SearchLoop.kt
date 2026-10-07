@@ -54,6 +54,7 @@ internal class SearchLoop(
 	private var lastViewMillis = -VIEW_INTERVAL_MILLIS
 	private var lastPublishedTip: ValueAnchor? = null
 	private var idleCursor = -1
+	private val legRoots = ArrayDeque<ValueAnchor>()
 	private var idleSlices = 0
 	private var exit = SearchExit.BUDGET
 
@@ -131,6 +132,7 @@ internal class SearchLoop(
 
 	private fun followCursor(executing: Int): MotionPlanResult? {
 		frontier.follow(publications)
+		rewindLegs()
 		annealing.rewindOnNewRoot()
 		incumbent.dropUnadoptable()
 		incumbent.arrival?.let { tape -> if (executing >= tape.frames - ARRIVAL_RETURN_FRAMES) return finish(tape) }
@@ -402,6 +404,7 @@ internal class SearchLoop(
 		val cut = publications.repairCut(mutations) ?: return
 		frontier.dropDescendants(cut)
 		frontier.reRoot(cut)
+		rewindLegs()
 		publisher.abandonTip()
 		repairs++
 		incumbent.dropBeyond(cut)
@@ -429,12 +432,14 @@ internal class SearchLoop(
 		annealing.clearSpent()
 		restartWindow(seed.stance)
 		frontier.reRoot(seed)
+		rewindLegs()
 		return true
 	}
 
 	private fun switchLeg(anchor: ValueAnchor, next: CoarseRoutePlan) {
-		route.switchLeg(next, anchor.elapsed)
+		route.replace(next)
 		anchor.legRoot = true
+		legRoots.addLast(anchor)
 		incumbent.clear()
 		annealing.clearSpent()
 		restartWindow(anchor.stance)
@@ -449,6 +454,21 @@ internal class SearchLoop(
 		finisher.resetSweeps()
 		budget.restartWindow()
 		annealing.rewindForRestart(seed)
+	}
+
+	private fun rewindLegs() {
+		val root = frontier.root ?: return
+		val chain = legs ?: return
+		while (legRoots.isNotEmpty() && !root.descendsFrom(legRoots.last())) {
+			legRoots.removeLast().legRoot = false
+			route.replace(chain.rewind())
+			incumbent.clear()
+			annealing.clearSpent()
+			restartWindow(root.stance)
+			frontier.updateRoute(route.index)
+			recovery.beginLeg()
+			publisher.forgetRefusedCommit()
+		}
 	}
 
 	private fun routeReachesFinalGoal(): Boolean = finalGoal == null || route.goal == finalGoal

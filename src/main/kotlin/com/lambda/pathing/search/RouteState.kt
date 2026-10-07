@@ -24,17 +24,8 @@ internal class RouteState(
 	var revision: Long = initial.snapshotRevision
 		private set
 
-	private val touchedLegs = ArrayList<LegTouch>()
-
-	val touches: List<LegTouch> get() = touchedLegs
-
 	fun advanceRevision(synced: Long) {
 		revision = maxOf(revision, synced)
-	}
-
-	fun switchLeg(next: CoarseRoutePlan, frame: Int) {
-		touchedLegs += LegTouch(frame, goal)
-		replace(next)
 	}
 
 	fun replace(next: CoarseRoutePlan) {

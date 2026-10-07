@@ -16,7 +16,7 @@ data class MotionConstraints(
 		require(maxYawDegreesPerFrame > 0.0 && maxYawDegreesPerFrame.isFinite())
 		require(goalRadius > 0.0 && goalRadius.isFinite())
 		require(stableStopFrames > 0)
-		require(maxSafeFallDistance >= 0.0 && maxSafeFallDistance.isFinite())
+		require(maxSafeFallDistance >= 0.0)
 		require(brakeDistances.isNotEmpty() && brakeDistances.all { it > 0.0 && it.isFinite() })
 		require(sprintModes.isNotEmpty())
 		require(touchRestRadius > 0.0 && touchRestRadius.isFinite())

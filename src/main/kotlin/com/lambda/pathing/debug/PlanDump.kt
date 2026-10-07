@@ -177,7 +177,7 @@ object PlanDump {
 	private fun MotionConstraints.dump(): String = listOf(
 		"search", maxFrames, maxYawDegreesPerFrame, goalRadius,
 		sprintModes.joinToString(",").ifEmpty { "-" },
-		touchArrival, touchRestRadius,
+		touchArrival, touchRestRadius, maxSafeFallDistance,
 	).joinToString(" ")
 
 	private fun readSearchConfig(parts: List<String>) = MotionConstraints(
@@ -187,7 +187,7 @@ object PlanDump {
 		sprintModes = if (parts[4] == "-") emptyList() else parts[4].split(',').map { it.toBoolean() },
 		touchArrival = parts.getOrNull(5)?.toBoolean() ?: false,
 		touchRestRadius = parts.getOrNull(6)?.toDouble() ?: 1.6,
-	)
+	).let { constraints -> parts.getOrNull(7)?.let { constraints.copy(maxSafeFallDistance = it.toDouble()) } ?: constraints }
 
 	private fun MovementSimulationState.dump(): String = listOf(
 		"state", position.x, position.y, position.z, velocity.x, velocity.y, velocity.z,

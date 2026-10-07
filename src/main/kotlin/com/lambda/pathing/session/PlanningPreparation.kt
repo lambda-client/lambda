@@ -6,6 +6,7 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.damageFreeFallDistance
 import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.supportedStanceOf
@@ -86,7 +87,7 @@ internal fun preparePlanning(
 		maxYawDegreesPerFrame = turnSpeed,
 		goalRadius = config.goalRadius,
 		touchArrival = config.touchArrival,
-		maxSafeFallDistance = config.maxSafeFallDistance,
+		maxSafeFallDistance = maxOf(config.maxSafeFallDistance, player.damageFreeFallDistance()),
 		sprintModes = if (config.allowSprint) listOf(true, false) else listOf(false),
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)

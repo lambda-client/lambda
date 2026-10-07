@@ -7,6 +7,8 @@ interface LegSource {
 	fun hasNext(): Boolean
 
 	fun handoff(touched: Stance): CoarseRoutePlan?
+
+	fun rewind(): CoarseRoutePlan
 }
 
 data class LegTouch(val frame: Int, val waypoint: Stance)

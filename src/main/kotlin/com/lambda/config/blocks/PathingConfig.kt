@@ -151,7 +151,7 @@ interface PathingConfig {
      */
     val dumpAllPlans: Boolean get() = false
 
-    /** Deepest fall the trajectory layer will certify as survivable on ordinary ground. */
+    /** Deepest fall accepted beyond the falls the player takes without damage. */
     val maxSafeFallDistance: Double get() = 3.0
 
     /** Hard cap on coarse D* expansions per repair before the search gives up. */

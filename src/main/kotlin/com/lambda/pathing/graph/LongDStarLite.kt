@@ -409,13 +409,18 @@ class LongDStarLite(
 		return best
 	}
 
+	var revision = 0L
+		private set
+
 	private fun setG(node: Long, value: Double) {
 		require(!value.isNaN()) { "D* Lite g must not be NaN: ${describe(node)}" }
+		revision++
 		if (value == INF) gValues.remove(node) else gValues.put(node, value)
 	}
 
 	private fun setRhs(node: Long, value: Double) {
 		require(!value.isNaN()) { "D* Lite rhs must not be NaN: ${describe(node)}" }
+		revision++
 		if (value == INF) rhsValues.remove(node) else rhsValues.put(node, value)
 	}
 

@@ -80,7 +80,10 @@ internal class Certifier(
 			safeAnchorStance = solution.anchor.stance,
 			safeAnchorFrame = solution.anchor.elapsed,
 			attemptCount = attempts.count,
-			legTouches = route.touches.filter { it.frame <= solution.frames },
+			legTouches = solution.anchor.legTouches(),
 		)
 	}
 }
+
+private fun ValueAnchor.legTouches(): List<LegTouch> =
+	generateSequence(this) { it.parent }.filter { it.legRoot }.map { LegTouch(it.elapsed, it.stance) }.toList().asReversed()

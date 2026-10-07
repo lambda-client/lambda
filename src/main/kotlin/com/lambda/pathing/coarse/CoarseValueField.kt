@@ -7,7 +7,6 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
 import kotlin.math.hypot
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap
 
 class CoarseValueField(
 	override val view: CoarseVoxelView,
@@ -15,68 +14,36 @@ class CoarseValueField(
 	val goal: Stance,
 	private val labelAt: (Stance, SpeedClass) -> Double,
 	private val edgeProvider: (Stance) -> List<CoarseEdge>,
+	private val labelRevision: () -> Long,
 ) : ValueField {
-	private val guides = Object2DoubleOpenHashMap<Stance>()
-		.apply { defaultReturnValue(Double.NaN) }
-	private val movingGuides = Object2DoubleOpenHashMap<Stance>()
-		.apply { defaultReturnValue(Double.NaN) }
-	private val stoppedGuides = Object2DoubleOpenHashMap<Stance>()
-		.apply { defaultReturnValue(Double.NaN) }
-	private val edges = HashMap<Stance, List<CoarseEdge>>()
 	private val chains = HashMap<ChainKey, List<Stance>>()
+	private var chainsRevision = labelRevision()
 
 	override fun invalidate(sections: Set<PathingSection>) {
-		if (sections.isEmpty()) return
-		chains.clear()
-		val halo = HashSet<PathingSection>(sections.size * 27)
-		for ((x, y, z) in sections) {
-			for (dx in -1..1) for (dy in -1..1) for (dz in -1..1) {
-				halo += PathingSection(
-					x + dx, y + dy, z + dz,
-				)
-			}
-		}
-
-		val inHalo = { stance: Stance -> PathingSection(stance.x shr 4, stance.y shr 4, stance.z shr 4) in halo }
-		guides.keys.removeAll(inHalo)
-		movingGuides.keys.removeAll(inHalo)
-		stoppedGuides.keys.removeAll(inHalo)
-		edges.keys.removeAll(inHalo)
+		if (sections.isNotEmpty()) chains.clear()
 	}
 
 	override fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
 	override fun guide(stance: Stance): Double =
-		guideVia(guides, stance) { minOf(labelAt(it, SpeedClass.MOVING), labelAt(it, SpeedClass.STOPPED)) }
+		guideVia(stance) { minOf(labelAt(it, SpeedClass.MOVING), labelAt(it, SpeedClass.STOPPED)) }
 
-	override fun guide(stance: Stance, speed: SpeedClass): Double =
-		guideVia(if (speed == SpeedClass.MOVING) movingGuides else stoppedGuides, stance) { labelAt(it, speed) }
+	override fun guide(stance: Stance, speed: SpeedClass): Double = guideVia(stance) { labelAt(it, speed) }
 
-	private inline fun guideVia(
-		cache: Object2DoubleOpenHashMap<Stance>,
-		stance: Stance,
-		labelOf: (Stance) -> Double,
-	): Double {
-		val cached = cache.getDouble(stance)
-		if (!cached.isNaN()) return cached
-
+	private inline fun guideVia(stance: Stance, labelOf: (Stance) -> Double): Double {
 		val direct = labelOf(stance)
-		val computed = if (direct.isFinite()) direct else {
-			var best = Double.POSITIVE_INFINITY
-			for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
-				val neighbour = labelOf(to)
-				if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
-			}
-			best
+		if (direct.isFinite()) return direct
+		var best = Double.POSITIVE_INFINITY
+		for ((_, _, to, _, lowerBoundTicks) in edgesFrom(stance)) {
+			val neighbour = labelOf(to)
+			if (neighbour.isFinite()) best = minOf(best, lowerBoundTicks + neighbour)
 		}
-		cache.put(stance, computed)
-		return computed
+		return best
 	}
 
 	override fun isMapped(stance: Stance): Boolean = guide(stance).isFinite()
 
-	fun edgesFrom(stance: Stance): List<CoarseEdge> =
-		edges.getOrPut(stance) { edgeProvider(stance) }
+	fun edgesFrom(stance: Stance): List<CoarseEdge> = edgeProvider(stance)
 
 	override fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
 
@@ -124,6 +91,11 @@ class CoarseValueField(
 		heading: Pair<Double, Double>?,
 	): List<Stance> {
 		require(length > 0) { "A steering chain needs at least one node" }
+		val revision = labelRevision()
+		if (revision != chainsRevision) {
+			chains.clear()
+			chainsRevision = revision
+		}
 		val key = ChainKey(stance, firstStep, length, heading)
 		chains[key]?.let { return it }
 		val chain = ArrayList<Stance>(length + 1)

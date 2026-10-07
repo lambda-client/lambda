@@ -262,6 +262,7 @@ class CoarsePlanner(
 		goal = goalStance,
 		labelAt = ::nodeLabel,
 		edgeProvider = edgeCache::edgesFrom,
+		labelRevision = search::revision,
 	)
 
 	private fun nodeLabel(stance: Stance, speed: SpeedClass): Double {
