@@ -23,6 +23,7 @@ import com.lambda.event.events.PlayerEvent;
 import com.lambda.interaction.handler.handlers.BaritoneHandler;
 import com.lambda.interaction.manager.managers.inventory.InventoryManager;
 import com.lambda.interaction.manager.managers.rotating.RotationManager;
+import com.lambda.module.modules.client.Client;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -115,6 +116,11 @@ public class ClientPlayInteractionManagerMixin {
     public void clickSlotTail(int syncId, int slotId, int button, SlotActionType actionType, PlayerEntity player, CallbackInfo ci) {
         if (syncId != player.currentScreenHandler.syncId) return;
         EventFlow.post(new PlayerEvent.SlotClick.Post(syncId, slotId, button, actionType, player.currentScreenHandler));
+    }
+
+    @ModifyExpressionValue(method = "clickSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/screen/ScreenHandler;getRevision()I"))
+    private int modifyClickSlotRevision(int originalRevision) {
+        return Client.INSTANCE.getAvoidInventoryDesync() ? -1 : originalRevision;
     }
 
     /**

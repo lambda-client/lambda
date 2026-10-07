@@ -20,6 +20,7 @@ package com.lambda.interaction.manager.managers.inventory
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.canSendPackets
@@ -80,6 +81,10 @@ object InventoryManager : Manager<InventoryRequest>(
             activeRequest = null
             actions = mutableListOf()
         }
+
+		listen<PlayerEvent.SlotClick.Post> {
+			if (Client.avoidInventoryDesync) indexInventoryChanges(isSlotClick = true)
+		}
 
 		listen<PacketEvent.Send.Post> { event ->
 			if (event.packet is CloseHandledScreenC2SPacket) {
@@ -167,20 +172,31 @@ object InventoryManager : Manager<InventoryRequest>(
 
 	/**
 	 * Detects changes in item stacks between now and the last time slots were cached and
-	 * adds them all to the [alteredSlots] collection where they can be compared to
+	 * adds them to the [alteredSlots] collection where they can be compared to
 	 * incoming [InventoryS2CPacket] and [ScreenHandlerSlotUpdateS2CPacket] packets to decide whether to
 	 * block certain updates.
+	 *
+	 * When [isSlotClick] is true, an inventory click packet ([ClickSlotC2SPacket]) was sent with a mismatched
+	 * revision (-1). The server will respond with both an [InventoryS2CPacket] and potentially a
+	 * [ScreenHandlerSlotUpdateS2CPacket], so each change is cached **twice** to allow both packets to consume
+	 * their corresponding entry.
+	 *
+	 * For non-click actions (e.g. placing blocks, picking up items, eating food, equipping via right-click),
+	 * the server only ever sends single slot updates, so each change is cached **once**.
 	 */
 	context(safeContext: SafeContext)
-	fun indexInventoryChanges() {
+	fun indexInventoryChanges(isSlotClick: Boolean = false) {
 		with(safeContext) {
 			if (player.currentScreenHandler.syncId != screenHandler?.syncId) return
 			val changes = screenHandler?.slots
-				?.filter { !it.stack.equal(slots[it.id]) }
-				?.map { InventoryChange(it.id, slots[it.id], it.stack.copy()) }
+				?.filter { !it.stack.equal(slots.getOrNull(it.id)) }
+				?.map { InventoryChange(it.id, slots.getOrNull(it.id) ?: ItemStack.EMPTY, it.stack.copy()) }
 				?: emptyList()
-			if (player.currentScreenHandler.syncId == 0) alteredPlayerSlots.addAll(changes)
-			else alteredSlots.addAll(changes)
+			val target =
+				if (player.currentScreenHandler.syncId == 0) alteredPlayerSlots
+				else alteredSlots
+			target.addAll(changes)
+			if (isSlotClick) target.addAll(changes)
 			slots = getStacks(player.currentScreenHandler.slots)
 		}
 	}
@@ -208,8 +224,8 @@ object InventoryManager : Manager<InventoryRequest>(
 			val alteredContents = mutableListOf<ItemStack>()
 			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
 			packet.contents.forEachIndexed { index, incomingStack ->
-				val matches = alteredSlots.removeIf { cached ->
-					incomingStack.equal(cached.after)
+				val matches = alteredSlots.removeFirstMatch { cached ->
+					cached.slotId == index && incomingStack.equal(cached.after)
 				}
 				if (matches) alteredContents.add(packetScreenHandler.slots[index].stack)
 				else alteredContents.add(incomingStack)
@@ -240,7 +256,7 @@ object InventoryManager : Manager<InventoryRequest>(
 			} ?: false
 
 			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
-			val matches = alteredSlots.removeIf {
+			val matches = alteredSlots.removeFirstMatch {
 				it.slotId == packet.slot && it.after.equal(itemStack)
 			}
 

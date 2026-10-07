@@ -32,7 +32,6 @@ import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
-import com.lambda.interaction.manager.managers.inventory.InventoryManager
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.FlyMode
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.fakeFly
@@ -112,8 +111,7 @@ abstract class ElytraFlyMode(
 
 		fun InvRequestBuilder.swapChest() {
 			if (elytraInHotbar) {
-				interaction.interactItem(player, Hand.MAIN_HAND)
-				InventoryManager.indexInventoryChanges()
+				action { interaction.interactItem(player, Hand.MAIN_HAND) }
 			} else {
 				moveSlot(elytraSlot.id, chestSlot.id)
 				if (!chestSlot.stack.isEmpty) pickup(elytraSlot.id)
