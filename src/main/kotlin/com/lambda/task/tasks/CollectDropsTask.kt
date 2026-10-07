@@ -24,7 +24,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findStack

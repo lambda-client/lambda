@@ -23,7 +23,6 @@ import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 
 @ContainerDslMarker
@@ -41,6 +40,16 @@ fun selectContainers(
     vararg containers: Container,
     scope: ContainerSearchScope = ContainerSearchScope.Loaded
 ) = containerSelection(scope) { ofAny(*containers) }
+
+fun containerSelection(
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded,
+    builder: ContainerSelectionBuilder.() -> Unit = {}
+) = ContainerSelectionBuilder(scope).apply(builder).build()
+
+fun ContainerSelection.mutate(
+    scope: ContainerSearchScope = this.scope,
+    builder: ContainerSelectionBuilder.() -> Unit = {}
+) = ContainerSelectionBuilder(this, scope).apply(builder).build()
 
 /**
  * ContainerSelection is a class that holds a predicate for matching containers.
@@ -92,11 +101,11 @@ class ContainerSelection @ContainerDslMarker internal constructor(
 
 @Suppress("unused")
 @ContainerDslMarker
-class ContainerSelectionBuilder @ContainerDslMarker private constructor(
+class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
     private val scope: ContainerSearchScope
 ) {
     @ContainerDslMarker
-    private constructor(
+    internal constructor(
         selection: ContainerSelection,
         scope: ContainerSearchScope
     ) : this(scope) {
@@ -224,7 +233,7 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
         this.selector = { currentSelector(it) && selector(it) }
     }
 
-    private fun build() =
+    internal fun build() =
         ContainerSelection(
             selector,
             scope,
@@ -237,18 +246,6 @@ class ContainerSelectionBuilder @ContainerDslMarker private constructor(
                 ?.thenBy { it.type }
                 ?: compareBy { it.type }
         )
-
-    companion object {
-        fun containerSelection(
-            scope: ContainerSearchScope = ContainerSearchScope.Loaded,
-            builder: ContainerSelectionBuilder.() -> Unit = {}
-        ) = ContainerSelectionBuilder(scope).apply(builder).build()
-
-        fun ContainerSelection.mutate(
-            scope: ContainerSearchScope = this.scope,
-            builder: ContainerSelectionBuilder.() -> Unit = {}
-        ) = ContainerSelectionBuilder(this, scope).apply(builder).build()
-    }
 }
 
 enum class AccessScope(val accessed: Boolean?) {

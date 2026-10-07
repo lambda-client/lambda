@@ -25,8 +25,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag

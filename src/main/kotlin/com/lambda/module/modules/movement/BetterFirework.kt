@@ -30,9 +30,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffhandContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.selectContainers
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.GlideHandler
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findStack

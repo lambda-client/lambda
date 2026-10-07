@@ -28,8 +28,8 @@ import com.lambda.interaction.construction.simulation.result.results.InteractRes
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.rotating.Rotation
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotation

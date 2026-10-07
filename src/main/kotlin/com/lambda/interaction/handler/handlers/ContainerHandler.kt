@@ -44,10 +44,10 @@ import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.containers.external.PlacedShulkerBoxContainer
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.containerSelection
+import com.lambda.interaction.container.selection.mutate
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.FolderRegistry
 import com.lambda.util.ReflectionUtils.getInstances

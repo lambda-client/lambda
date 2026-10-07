@@ -21,7 +21,6 @@ package com.lambda.interaction.container.selection
 
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
@@ -43,6 +42,16 @@ fun Item.select(count: Int = 1) = stackSelection(count) { isItem(this@select) }
 
 @ContainerDslMarker
 fun ItemStack.select(count: Int = 1) = stackSelection(count) { isItemStack(this@select) }
+
+fun stackSelection(
+	count: Int = 1,
+	builder: StackSelectionBuilder.() -> Unit = {}
+) = StackSelectionBuilder(count).apply(builder).build()
+
+fun StackSelection.mutate(
+	count: Int = this.count,
+	builder: StackSelectionBuilder.() -> Unit = {}
+) = StackSelectionBuilder(this, count).apply(builder).build()
 
 class StackSelection @ContainerDslMarker internal constructor(
 	val count: Int = 1,
@@ -170,7 +179,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 }
 
 @ContainerDslMarker
-class StackSelectionBuilder @ContainerDslMarker private constructor(
+class StackSelectionBuilder @ContainerDslMarker internal constructor(
 	private var count: Int = 1
 ) {
 	private val whitelistedSlots = mutableListOf<Slot>()
@@ -182,7 +191,7 @@ class StackSelectionBuilder @ContainerDslMarker private constructor(
 	private var shulkerBoxScope: ShulkerBoxScope = ShulkerBoxScope.NotInShulkerBox
 
 	@ContainerDslMarker
-	private constructor(
+	internal constructor(
 		selection: StackSelection,
 		count: Int = selection.count
 	) : this(count) {
@@ -439,7 +448,7 @@ class StackSelectionBuilder @ContainerDslMarker private constructor(
 		}
 	}
 
-	private fun build() =
+	internal fun build() =
 		StackSelection(
 			count,
 			whitelistedSlots,
@@ -453,16 +462,6 @@ class StackSelectionBuilder @ContainerDslMarker private constructor(
 
 	companion object {
 		private val efficientToolCache = Collections.synchronizedMap<BlockState, Boolean>(mutableMapOf())
-
-		fun stackSelection(
-			count: Int = 1,
-			builder: StackSelectionBuilder.() -> Unit = {}
-		) = StackSelectionBuilder(count).apply(builder).build()
-
-		fun StackSelection.mutate(
-			count: Int = this.count,
-			builder: StackSelectionBuilder.() -> Unit = {}
-		) = StackSelectionBuilder(this, count).apply(builder).build()
 	}
 }
 

@@ -25,7 +25,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.FriendHandler.isFriend
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.module.Module

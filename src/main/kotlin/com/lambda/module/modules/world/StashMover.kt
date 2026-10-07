@@ -42,8 +42,8 @@ import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.handler.handlers.findSlots

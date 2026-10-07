@@ -23,7 +23,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.ContainerType
 import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.interaction.handler.handlers.findContainers

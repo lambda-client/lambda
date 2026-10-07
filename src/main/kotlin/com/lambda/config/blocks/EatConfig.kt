@@ -20,7 +20,7 @@ package com.lambda.config.blocks
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.container.selection.StackAndSlot
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.threading.runSafe
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum

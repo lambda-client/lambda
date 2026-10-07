@@ -20,7 +20,7 @@ package com.lambda.config.blocks
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
+import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item

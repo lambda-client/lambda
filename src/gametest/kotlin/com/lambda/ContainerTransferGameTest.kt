@@ -32,10 +32,10 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.containerSelection
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.task.RootTask
 import com.lambda.task.Task

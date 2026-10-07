@@ -31,8 +31,8 @@ import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module

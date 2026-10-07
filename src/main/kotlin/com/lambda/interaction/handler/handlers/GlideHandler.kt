@@ -22,7 +22,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.mode

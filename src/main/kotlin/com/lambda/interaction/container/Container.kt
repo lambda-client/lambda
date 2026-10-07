@@ -26,7 +26,7 @@ import com.lambda.interaction.container.containers.CursorContainer
 import com.lambda.interaction.container.containers.external.ShulkerBoxContainer
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
+import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.manager.managers.inventory.InvRequestBuilder
 import com.lambda.interaction.manager.managers.inventory.InventoryRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest

@@ -35,8 +35,8 @@ import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest

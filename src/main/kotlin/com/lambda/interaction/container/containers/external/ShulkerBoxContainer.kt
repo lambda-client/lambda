@@ -28,8 +28,8 @@ import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.interaction.handler.handlers.findSlot
 import com.lambda.task.Task.Ta5kBuilder

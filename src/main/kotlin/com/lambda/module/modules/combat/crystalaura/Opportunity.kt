@@ -21,8 +21,8 @@ import com.lambda.Lambda
 import com.lambda.context.Automated
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.OffhandContainer
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.move
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo

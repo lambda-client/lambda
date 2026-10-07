@@ -30,11 +30,10 @@ import com.lambda.interaction.container.containers.CursorContainer
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.ContainerSelectionBuilder.Companion.mutate
 import com.lambda.interaction.container.selection.StackSelection
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.mutate
-import com.lambda.interaction.container.selection.StackSelectionBuilder.Companion.stackSelection
+import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.selectContainers
+import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePackets
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.handler.handlers.findContainers
@@ -328,17 +327,21 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 		init {
 			listen<TickEvent.Pre> {
-				runSafeAutomated { tick() }
+				runSafeAutomated {
+					do {
+						val done = tick()
+					} while (!done)
+				}
 			}
 		}
 
-		private fun AutomatedSafeContext.tick() {
+		private fun AutomatedSafeContext.tick(): Boolean {
 			val currentLimit =
 				if (limit == Int.MAX_VALUE) Int.MAX_VALUE
 				else (limit - moved).coerceAtLeast(0)
 			if (currentLimit <= 0) {
 				finish()
-				return
+				return true
 			}
 
 			val currentSelection =
@@ -363,10 +366,10 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 
 			if (pair == null) {
 				finish()
-				return
+				return true
 			}
 
-			move(pair, atMost = currentLimit)
+			return move(pair, atMost = currentLimit)
 		}
 
 		private fun AutomatedSafeContext.findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
@@ -386,33 +389,47 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			return toContainer.findReplaceSlot(fromSlot.stack, toSelection)?.takeIf { fromSlot.canInsert(it.stack) }
 		}
 
-		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int) {
+		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int): Boolean {
 			val stack = pair.fromSlot.stack
 			val count = minOf(stack.count, atMost)
 			val cursor = CursorContainer.stacks.firstOrNull() ?: ItemStack.EMPTY
-			when {
+			return when {
 				pair.toSlot.stack.isForeignTo(stack) -> swapOut(pair)
 				count == stack.count && cursor.isEmpty && quickMoveStaysInside(pair.fromContainer, stack) -> quickMoveWhole(pair)
 				else -> clickThrough(pair, count)
 			}
 		}
 
-		private fun AutomatedSafeContext.swapOut(pair: SlotPair) {
+		private fun AutomatedSafeContext.swapOut(pair: SlotPair): Boolean {
 			val count = pair.fromSlot.stack.count
 			val request = pair.fromContainer.swapRequest(pair.fromSlot, pair.toSlot, pair.toContainer)?.submit()
-			when {
-				request == null -> finish()
-				!request.done -> finishUnlessTransient(request.failureReason)
+			return when {
+				request == null -> {
+					finish()
+					true
+				}
+				!request.done -> {
+					finishUnlessTransient(request.failureReason)
+					true
+				}
 				else -> {
 					recordMoved(count)
 					recordDestination(pair.toSlot, pair.toContainer)
+					false
 				}
 			}
 		}
 
-		private fun AutomatedSafeContext.quickMoveWhole(pair: SlotPair) {
-			if (availablePackets(PacketType.Inventory) < 1) return
-			if (ContainerEvent.Transfer(pair.fromSlot, pair.toSlot, pair.fromContainer, pair.toContainer).post().isCanceled()) return
+		private fun AutomatedSafeContext.quickMoveWhole(pair: SlotPair): Boolean {
+			if (availablePackets(PacketType.Inventory) < 1) return true
+			val transferEvent =
+				ContainerEvent.Transfer(
+					pair.fromSlot,
+					pair.toSlot,
+					pair.fromContainer,
+					pair.toContainer
+				)
+			if (transferEvent.post().isCanceled()) return true
 
 			val before = pair.fromSlot.stack.copy()
 			val destinationsBefore =
@@ -421,30 +438,31 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			val request = inventoryRequest { quickMove(pair.fromSlot.id) }.submit()
 			if (!request.done) {
 				finishUnlessTransient(request.failureReason)
-				return
+				return true
 			}
 
 			val left = pair.fromSlot.stack.takeIf { it.sameItemAs(before) }?.count ?: 0
 			val count = before.count - left
 			if (count <= 0) {
 				finish()
-				return
+				return true
 			}
 			recordMoved(count)
 			if (trackResult) recordReceivingSlots(destinationsBefore)
+			return false
 		}
 
-		private fun AutomatedSafeContext.clickThrough(pair: SlotPair, count: Int) {
+		private fun AutomatedSafeContext.clickThrough(pair: SlotPair, count: Int): Boolean {
 			if (!CursorContainer.isAccessible) {
 				finish()
-				return
+				return true
 			}
 			val stack = pair.fromSlot.stack
-			val cursor = CursorContainer.stacks.firstOrNull() ?: return
+			val cursor = CursorContainer.stacks.firstOrNull() ?: return true
 			// A foreign stack on the cursor is somebody else's business; wait until it has been put away.
 			if (cursor.isForeignTo(stack)) {
 				finish()
-				return
+				return true
 			}
 
 			val budget = availablePackets(PacketType.Inventory)
@@ -459,22 +477,29 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			if (plan == null) {
 				// Even an untouched budget cannot fit the shortest plan: this pair can never be served, give it up.
 				if (budget >= buildConfig.inventoryLimit) finish()
-				return
+				return true
 			}
 
-			val transferEvent = ContainerEvent.Transfer(pair.fromSlot, pair.toSlot, pair.fromContainer, pair.toContainer)
-			if (transferEvent.post().isCanceled()) return
+			val transferEvent =
+				ContainerEvent.Transfer(
+					pair.fromSlot,
+					pair.toSlot,
+					pair.fromContainer,
+					pair.toContainer
+				)
+			if (transferEvent.post().isCanceled()) return true
 			val request =
 				inventoryRequest {
 					plan.clicks.forEach { click -> pickup(pair[click.target].id, click.button.id) }
 				}.submit()
 			if (!request.done) {
 				finishUnlessTransient(request.failureReason)
-				return
+				return true
 			}
 
 			recordMoved(plan.destination - beforeTo)
 			recordDestination(pair.toSlot, pair.toContainer)
+			return false
 		}
 
 		private fun AutomatedSafeContext.quickMoveStaysInside(fromContainer: Container, stack: ItemStack): Boolean {

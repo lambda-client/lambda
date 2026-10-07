@@ -28,18 +28,9 @@ import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
 import kotlin.io.path.notExists
 
-/**
- * Handles saving and loading [PlacedContainer]s to/from disk as JSON files.
- *
- * Serialized containers are stored under [FolderRegistry.containers].
- */
 object ContainerSerializer {
 	private const val ENDER_CHEST_FILE = "ender_chest.json"
 
-	/**
-	 * A reusable sequence that lazily loads all serialized containers from disk.
-	 * Every iteration reads the files anew, preventing RAM exhaustion.
-	 */
 	val serializedContainers: Sequence<PlacedContainer> =
 		sequence {
 			val dir = FolderRegistry.containers
@@ -52,9 +43,6 @@ object ContainerSerializer {
 			}
 		}
 
-	/**
-	 * Saves a [PlacedContainer] to disk as JSON.
-	 */
 	@Synchronized
 	fun saveContainer(container: PlacedContainer) {
 		val dir = ensureDirectory()
@@ -62,20 +50,25 @@ object ContainerSerializer {
 		mapper.writeValue(file, container)
 	}
 
-	/**
-	 * Saves the [EnderChestContainer] to disk. This is always loaded into memory
-	 * for the entire session.
-	 */
+	private fun readContainer(file: Path): PlacedContainer? =
+		runCatching {
+			mapper.readValue(file.toFile(), PlacedContainer::class.java)
+		}.onFailure {
+			LOG.warn("Failed to read container from ${file.fileName}", it)
+		}.getOrNull()
+
+	@Synchronized
+	fun removeContainer(pos: BlockPos) {
+		val dir = FolderRegistry.containers
+		dir.resolve(containerFileName(pos)).deleteIfExists()
+	}
+
 	fun saveEnderChest() {
 		val dir = ensureDirectory()
 		val file = dir.resolve(ENDER_CHEST_FILE).toFile()
 		mapper.writeValue(file, EnderChestContainer)
 	}
 
-	/**
-	 * Loads the [EnderChestContainer] contents from disk, if available.
-	 * Called on session start to restore the ender chest state.
-	 */
 	fun loadEnderChest() {
 		val file = FolderRegistry.containers.resolve(ENDER_CHEST_FILE)
 		if (!file.exists()) return
@@ -85,24 +78,6 @@ object ContainerSerializer {
 			LOG.warn("Failed to load ender chest from $file", it)
 		}
 	}
-
-	/**
-	 * Removes a serialized container from disk.
-	 */
-	@Synchronized
-	fun removeContainer(pos: BlockPos) {
-		val dir = FolderRegistry.containers
-		dir.resolve(containerFileName(pos)).deleteIfExists()
-	}
-
-
-
-	private fun readContainer(file: Path): PlacedContainer? =
-		runCatching {
-			mapper.readValue(file.toFile(), PlacedContainer::class.java)
-		}.onFailure {
-			LOG.warn("Failed to read container from ${file.fileName}", it)
-		}.getOrNull()
 
 	private fun ensureDirectory() =
 		FolderRegistry.containers.also { if (it.notExists()) it.createDirectories() }
