@@ -49,6 +49,8 @@ internal class Frontier(
 
 	private val buckets = HashMap<AnchorKey, MutableList<ValueAnchor>>()
 
+	private var perKey = searchConfig.frontierPerKey
+
 	private var insertionSequence = 0L
 
 	val isExhausted: Boolean get() = open.isEmpty() && parked.isEmpty()
@@ -101,6 +103,12 @@ internal class Frontier(
 		reopen(anchor)
 		if (window > 0) end = anchor.elapsed + window
 		repartition(anchor, end)
+	}
+
+	val widenable: Boolean get() = perKey < searchConfig.frontierPerKey * MAX_WIDENING
+
+	fun widen() {
+		perKey *= 2
 	}
 
 	fun extend(): Boolean {
@@ -215,7 +223,7 @@ internal class Frontier(
 		val before = bucket.size
 		bucket.removeAll { anchor.preferredForBeamOver(it) }
 		beamMerged += before - bucket.size
-		if (bucket.size >= searchConfig.frontierPerKey) {
+		if (bucket.size >= perKey) {
 			val worst = bucket.maxBy { it.elapsed }
 			beamMerged++
 			if (worst.elapsed <= anchor.elapsed) return
@@ -307,6 +315,8 @@ internal class Frontier(
 	}
 
 	private companion object {
+
+		const val MAX_WIDENING = 8
 
 		const val SPEED_DOMINANCE_SLACK = 0.01
 

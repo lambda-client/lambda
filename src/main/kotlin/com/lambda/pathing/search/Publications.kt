@@ -1,6 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.physics.MovementSimulationState
 
 internal class Publication(
 	val sequence: Long,
@@ -69,7 +70,11 @@ internal class Publications(
 	fun divergence(anchor: ValueAnchor): Int {
 		val running = running ?: return Int.MAX_VALUE
 		if (anchor.divergenceSequence == running.sequence) return anchor.divergenceElapsed
-		val divergence = if (anchor.descendsFrom(running.brake)) running.brake.elapsed else forkFrame(running.anchor, anchor)
+		val divergence = when {
+			!anchor.descendsFrom(running.brake) -> forkFrame(running.anchor, anchor)
+			running.brake.state.resting -> Int.MAX_VALUE
+			else -> running.brake.elapsed
+		}
 		anchor.divergenceElapsed = divergence
 		anchor.divergenceSequence = running.sequence
 		return divergence
@@ -104,3 +109,6 @@ internal class Publications(
 		private const val ADOPTION_TIMEOUT_MILLIS = 150L
 	}
 }
+
+private val MovementSimulationState.resting: Boolean
+	get() = onGround && jumpingCooldown == 0 && velocity.x == 0.0 && velocity.z == 0.0

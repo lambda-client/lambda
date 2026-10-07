@@ -7,7 +7,7 @@
 #
 bedrock-00             arrived  reach=17/18   frames=189  excess=-5%  collisions=0   jumps=11  pubs=15  adopt=15  refuse=0   firstPub=5    maxCommit=59  turn=457  stalled=6
 bedrock-01             arrived  reach=15/15   frames=179  excess=-10% collisions=1   jumps=13  pubs=10  adopt=10  refuse=0   firstPub=5    maxCommit=64  turn=285  stalled=0
-bedrock-02             arrived  reach=22/22   frames=242  excess=-8%  collisions=0   jumps=18  pubs=11  adopt=10  refuse=1   firstPub=5    maxCommit=67  turn=312  stalled=0
+bedrock-02             arrived  reach=22/22   frames=242  excess=-8%  collisions=0   jumps=18  pubs=13  adopt=13  refuse=0   firstPub=5    maxCommit=67  turn=382  stalled=0
 bedrock-03             arrived  reach=20/20   frames=214  excess=-11% collisions=0   jumps=16  pubs=12  adopt=12  refuse=0   firstPub=5    maxCommit=61  turn=470  stalled=0
 bedrock-04             arrived  reach=16/17   frames=200  excess=-9%  collisions=0   jumps=14  pubs=15  adopt=15  refuse=0   firstPub=5    maxCommit=63  turn=415  stalled=0
 bedrock-05             arrived  reach=14/14   frames=145  excess=-11% collisions=0   jumps=11  pubs=7   adopt=7   refuse=0   firstPub=5    maxCommit=64  turn=236  stalled=0
@@ -26,5 +26,5 @@ parkour-chain-offaxis  arrived  reach=2/2     frames=29   excess=-30% collisions
 parkour-course-1       arrived  reach=22/23   frames=198  excess=-25% collisions=1   jumps=14  pubs=9   adopt=8   refuse=0   firstPub=5    maxCommit=48  turn=357  stalled=0
 parkour-course-2       arrived  reach=22/23   frames=201  excess=-29% collisions=0   jumps=13  pubs=12  adopt=12  refuse=0   firstPub=5    maxCommit=70  turn=352  stalled=0
 parkour-course-3       arrived  reach=22/22   frames=207  excess=-25% collisions=0   jumps=16  pubs=8   adopt=8   refuse=0   firstPub=5    maxCommit=66  turn=309  stalled=0
-parkour-course-4       arrived  reach=22/23   frames=226  excess=-20% collisions=0   jumps=14  pubs=16  adopt=15  refuse=0   firstPub=5    maxCommit=68  turn=271  stalled=0
+parkour-course-4       arrived  reach=22/23   frames=226  excess=-20% collisions=0   jumps=14  pubs=16  adopt=16  refuse=0   firstPub=5    maxCommit=68  turn=271  stalled=0
 staircase-over-both    arrived  reach=0/8     frames=85   excess=-18% collisions=1   jumps=5   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=126  stalled=0

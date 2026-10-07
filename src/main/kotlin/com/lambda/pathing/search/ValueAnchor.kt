@@ -50,6 +50,8 @@ internal class ValueAnchor(
 
 	fun continuation() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs, decision, trace)
 
+	fun restingChild() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, this, emptyList())
+
 	fun lineFrom(root: ValueAnchor?): List<ValueAnchor> =
 		generateSequence(this) { it.parent }
 			.takeWhile { it !== root && it.parent != null }

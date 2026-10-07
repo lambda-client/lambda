@@ -10,7 +10,7 @@ internal class Publisher(
 	private val frontier: Frontier,
 	private val clock: SearchClock,
 	private val publications: Publications,
-	private val sink: ((MotionPlanResult.Success) -> Unit)?,
+	private val sink: ((MotionPlanResult.Success, Boolean) -> Unit)?,
 	private val budget: ExpansionBudget,
 	private val incumbent: Incumbent,
 	private val finisher: Finisher,
@@ -103,14 +103,16 @@ internal class Publisher(
 
 	fun publishFinal(solution: Solution): Boolean {
 		if (sink == null) return false
-		if (publications.tip == null) return false
+		val newest = publications.newest ?: return false
+		val reference = tipArrival(newest.anchor)
 		if (solution.score >= finalScore) return false
+		if (finalScore != Int.MAX_VALUE && solution.score + SWAP_FLOOR_GAIN_TICKS > reference) return false
 		if (!publications.adoptable(solution.anchor)) return false
 		if (!publications.upToDate) return false
 		val certified = certifier.certify(solution) as? MotionPlanResult.Success ?: return false
 		val terminal = tailAnchor(solution.anchor, certified, solution.collisionEvents)
 		finalScore = solution.score
-		publish(terminal, terminal, certified)
+		publish(terminal, terminal, certified.copy(swap = SwapComparison(solution.score.toDouble(), reference, newest.sequence)), arrives = true)
 		incumbent.seal(solution)
 		return true
 	}
@@ -137,11 +139,11 @@ internal class Publisher(
 		if (tip.descendsFrom(candidate)) return false
 		if (executing >= 0 && candidate.elapsed < executing + searchConfig.horizonCommitFrames) return false
 		if (tipAbandoned) return true
-		val candidateArrival = arrivalEstimate(candidate)
-		val proven = incumbent.best?.takeIf { it.anchor.descendsFrom(tip) }
-		val tipArrival = proven?.score?.toDouble() ?: arrivalEstimate(tip, staleAllowance())
-		return candidateArrival + SWAP_FLOOR_GAIN_TICKS <= tipArrival
+		return arrivalEstimate(candidate) + SWAP_FLOOR_GAIN_TICKS <= tipArrival(tip)
 	}
+
+	private fun tipArrival(tip: ValueAnchor): Double =
+		incumbent.best?.takeIf { it.anchor.descendsFrom(tip) }?.score?.toDouble() ?: arrivalEstimate(tip, staleAllowance())
 
 	private fun staleAllowance(): Double =
 		((budget.count - expansionsAtPublish - STALE_TIP_FLOOR_EXPANSIONS).toDouble() / STALE_TIP_RAMP_EXPANSIONS)
@@ -154,18 +156,18 @@ internal class Publisher(
 		val braked = finisher.brakeToStop(anchor) ?: return false
 		var certified = certifier.certify(braked) as? MotionPlanResult.Success ?: return false
 		publications.newest?.let { newest ->
-			certified = certified.copy(swap = SwapComparison(arrivalEstimate(anchor), arrivalEstimate(newest.anchor), newest.sequence))
+			certified = certified.copy(swap = SwapComparison(arrivalEstimate(anchor), tipArrival(newest.anchor), newest.sequence))
 		}
-		publish(anchor, tailAnchor(anchor, certified, anchor.collisionEvents), certified)
+		publish(anchor, tailAnchor(anchor, certified, anchor.collisionEvents), certified, arrives = false)
 		return true
 	}
 
-	private fun publish(anchor: ValueAnchor, brake: ValueAnchor, certified: MotionPlanResult.Success) {
+	private fun publish(anchor: ValueAnchor, brake: ValueAnchor, certified: MotionPlanResult.Success, arrives: Boolean) {
 		publications.record(anchor, brake, certified)
 		expansionsAtPublish = budget.count
 		refusedCommit = null
 		tipAbandoned = false
-		sink?.invoke(certified)
+		sink?.invoke(certified, arrives)
 	}
 
 	private fun tailAnchor(parent: ValueAnchor, certified: MotionPlanResult.Success, collisionEvents: Int): ValueAnchor {

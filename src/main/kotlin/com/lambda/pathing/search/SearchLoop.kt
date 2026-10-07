@@ -21,7 +21,7 @@ internal class SearchLoop(
 	environment: SnapshotSimulationEnvironment,
 	private val config: MotionConstraints,
 	private val searchConfig: SearchConfig = SearchConfig(),
-	onSafePrefix: ((MotionPlanResult.Success) -> Unit)? = null,
+	onPublish: ((MotionPlanResult.Success, Boolean) -> Unit)? = null,
 	private val execution: ExecutionFeedback = ExecutionFeedback.DETACHED,
 	private val clock: SearchClock = SystemSearchClock(),
 	private val cancelled: () -> Boolean = { false },
@@ -45,7 +45,7 @@ internal class SearchLoop(
 	private val crew = if (parallelism > 1) RolloutCrew(parallelism - 1, rollouts) else null
 	private val certifier = Certifier(initialState, profile, environment, cancelled, route, attempts)
 	private val finisher = Finisher(field, environment, config, RolloutGate(profile, environment, config, route), attempts, route)
-	private val publisher = Publisher(searchConfig, field, frontier, clock, publications, onSafePrefix, budget, incumbent, finisher, certifier, probe)
+	private val publisher = Publisher(searchConfig, field, frontier, clock, publications, onPublish, budget, incumbent, finisher, certifier, probe)
 	private val recovery = StallRecovery(frontier, publications, world)
 
 	private var repairs = 0
@@ -53,6 +53,8 @@ internal class SearchLoop(
 	private var publishBucket = -1
 	private var lastViewMillis = -VIEW_INTERVAL_MILLIS
 	private var lastPublishedTip: ValueAnchor? = null
+	private var idleCursor = -1
+	private var idleSlices = 0
 	private var exit = SearchExit.BUDGET
 
 	fun run(): MotionPlanResult = try {
@@ -100,7 +102,7 @@ internal class SearchLoop(
 	}
 
 	private fun stopReason(): SearchExit? = when {
-		frontier.isExhausted && !frontier.hasBlocked && !annealing.revivable && !restartable() && !extendable() -> SearchExit.EXHAUSTED
+		frontier.isExhausted && !frontier.hasBlocked && !annealing.revivable && !restartable() && !extendable() && !refine() && !walkingToGoal() -> SearchExit.EXHAUSTED
 		budget.exhausted && !awaitingArrival() && !restartFromTape() -> SearchExit.BUDGET
 		else -> null
 	}
@@ -108,6 +110,22 @@ internal class SearchLoop(
 	private fun awaitingArrival(): Boolean = incumbent.isSealed && execution.cursorFrame() != null
 
 	private fun extendable(): Boolean = world != null && !routeReachesFinalGoal()
+
+	private fun walkingToGoal(): Boolean =
+		world != null && incumbent.best != null && routeReachesFinalGoal() && execution.cursorFrame() != null
+
+	private fun idleUntilArrival(): Boolean {
+		if (!walkingToGoal()) return false
+		val executing = execution.cursorFrame() ?: return false
+		if (executing != idleCursor) {
+			idleCursor = executing
+			idleSlices = 0
+		}
+		if (idleSlices++ >= IDLE_PATIENCE_SLICES) return false
+		world?.await(StallRecovery.WAIT_SLICE_MILLIS)
+		syncWorld()
+		return true
+	}
 
 	private fun restartable(): Boolean = !incumbent.hasSolution && recovery.restartable()
 
@@ -126,6 +144,7 @@ internal class SearchLoop(
 		}
 		val tip = publications.tip ?: return null
 		val urgent = tip.elapsed - executing <= searchConfig.horizonCommitFrames
+		if (!urgent) budget.restartWindow()
 		val extended = publisher.commit(urgent = urgent, along = incumbent.best?.anchor)
 		if (!extended && urgent) {
 			incumbent.best?.takeIf { routeReachesFinalGoal() && incumbent.ready(it) }
@@ -162,7 +181,7 @@ internal class SearchLoop(
 		}
 		if (frontier.extend()) return null
 		val toward = incumbent.best?.takeIf { !incumbent.ready(it) }?.anchor
-		if (!frontier.hasParked && toward == null) return SearchExit.DRAINED
+		if (!frontier.hasParked && toward == null) return SearchExit.DRAINED.takeUnless { refine() || idleUntilArrival() }
 		if (!publisher.commit(urgent = true, along = toward)) return SearchExit.COMMIT_REFUSED
 		return null
 	}
@@ -350,7 +369,10 @@ internal class SearchLoop(
 	}
 
 	private fun syncWorld() {
-		val result = world?.sync(route.plan) ?: return
+		val root = frontier.root ?: return
+		val result = world?.sync(route.plan, root) ?: return
+		result.revision?.let(route::advanceRevision)
+		if (result.mutations.isNotEmpty()) certifier.forget()
 		repairFor(result.mutations)
 		when (result) {
 			WorldSyncResult.Quiet -> return
@@ -385,6 +407,20 @@ internal class SearchLoop(
 		incumbent.dropBeyond(cut)
 		restartWindow(cut.stance)
 		frontier.updateRoute(route.index)
+	}
+
+	private fun refine(): Boolean {
+		if (!frontier.widenable) return false
+		val solution = incumbent.best?.takeIf { routeReachesFinalGoal() } ?: return false
+		val executing = execution.cursorFrame() ?: return false
+		val lead = executing + searchConfig.horizonCommitFrames + Publications.DIVERGENCE_MARGIN_FRAMES
+		val seed = solution.anchor.lineFrom(frontier.root).firstOrNull { it.elapsed >= lead } ?: return false
+		frontier.widen()
+		seed.attempted.clear()
+		annealing.clearSpent()
+		restartWindow(seed.stance)
+		frontier.reRoot(seed)
+		return true
 	}
 
 	private fun restartFromTape(): Boolean {
@@ -479,5 +515,6 @@ internal class SearchLoop(
 		const val VIEW_INTERVAL_MILLIS = 100L
 		const val ARRIVAL_RETURN_FRAMES = 2
 		const val SPINE_ATTEMPTS_PER_EDGE = 8
+		const val IDLE_PATIENCE_SLICES = 5
 	}
 }

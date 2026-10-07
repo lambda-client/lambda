@@ -1,7 +1,9 @@
 package com.lambda.pathing.session
 
+import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
@@ -34,7 +36,8 @@ internal class ContinuousSyncPolicy(
 
 	val ledger: String get() = "coarseSync=${syncNanos / 1_000_000L}ms[apply ${(syncNanos - resolveNanos) / 1_000_000L}, resolve ${resolveNanos / 1_000_000L} x$resolves]"
 
-	fun sync(current: CoarseRoutePlan): WorldSyncResult {
+	fun sync(current: CoarseRoutePlan, from: BodyState): WorldSyncResult {
+		coarseState.planner.updateStart(from.stance, SpeedClass.of(from.speed))
 		val batch = world.drainEvents()
 		if (batch.isEmpty) return quiet(current)
 		onBatch(batch)
@@ -61,7 +64,7 @@ internal class ContinuousSyncPolicy(
 
 		val mutatedSections = mutatedSectionSet(batch)
 		if (!routeNeighborhoodTouched(current, batch) || (!extending && !mutated)) {
-			return WorldSyncResult.Woken(mutatedSections)
+			return WorldSyncResult.Woken(mutatedSections, batch.revision)
 		}
 		field.invalidate(batch.sections)
 
@@ -80,7 +83,7 @@ internal class ContinuousSyncPolicy(
 			refreshGraph(next)
 			world.interestAround(next.goal, InterestTier.CORRIDOR)
 		}
-		return WorldSyncResult.Changed(next, mutatedSections)
+		return WorldSyncResult.Changed(next, mutatedSections, batch.revision)
 	}
 
 	private fun <T> timedSync(block: () -> T): T {

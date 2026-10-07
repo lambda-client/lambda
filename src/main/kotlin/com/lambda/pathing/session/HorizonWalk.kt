@@ -64,9 +64,9 @@ internal fun walkHorizon(
 
 	val result = SearchLoop(
 		route, planner.moves.catalog, field, initial, profile, snapshot, seedConfig, searchConfig,
-		onSafePrefix = { step ->
+		onPublish = { step, arrives ->
 			if (!cancelled()) {
-				publish(stamp(step, partial = true, sequence = published + 1), published > 0)
+				publish(stamp(step, partial = !arrives, sequence = published + 1), published > 0)
 				published++
 			}
 		},

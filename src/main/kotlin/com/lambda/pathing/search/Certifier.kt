@@ -20,6 +20,11 @@ internal class Certifier(
 	private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
 	private var certifiedDependencies: List<Set<VoxelPos>> = emptyList()
 
+	fun forget() {
+		certifiedFrames = emptyList()
+		certifiedDependencies = emptyList()
+	}
+
 	fun certify(solution: Solution): MotionPlanResult {
 		if (cancelled()) return MotionPlanResult.Cancelled
 		val inputs = solution.inputs
@@ -64,7 +69,7 @@ internal class Certifier(
 		return MotionPlanResult.Success(
 			sourceRoute = route.plan,
 			plan = TrajectoryPlan(
-				snapshotRevision = route.plan.snapshotRevision,
+				snapshotRevision = route.revision,
 				physicsProfile = profile,
 				initialState = initialState,
 				frameDependencies = frameDependencies,

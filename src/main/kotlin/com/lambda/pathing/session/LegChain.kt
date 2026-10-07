@@ -5,6 +5,7 @@ import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.CoarseValueField
 import com.lambda.pathing.coarse.SwitchableValueField
+import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.LegSource
 import com.lambda.pathing.search.SearchProbe
@@ -57,7 +58,7 @@ internal class LegChain(
 
 	override fun hasNext(): Boolean = nextIndex < states.size
 
-	fun sync(route: CoarseRoutePlan): WorldSyncResult = current.sync?.sync(route) ?: WorldSyncResult.Quiet
+	fun sync(route: CoarseRoutePlan, from: BodyState): WorldSyncResult = current.sync?.sync(route, from) ?: WorldSyncResult.Quiet
 
 	private fun onBatch(batch: WorldEventBatch) {
 		for (i in nextIndex until states.size) forwarded[i] += batch

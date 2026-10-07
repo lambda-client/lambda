@@ -4,6 +4,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FrontierAnchors
+import com.lambda.pathing.actions.BodyState
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.graph.LongDStarLite
@@ -118,7 +119,7 @@ internal class PlanningJob(
 	private fun link(legs: LegChain) = object : WorldLink {
 		override fun await(timeoutMillis: Long) = world.awaitEvents(world.revision, timeoutMillis)
 
-		override fun sync(route: CoarseRoutePlan) = legs.sync(route)
+		override fun sync(route: CoarseRoutePlan, from: BodyState) = legs.sync(route, from)
 
 		override fun capturable(sectionX: Int, sectionZ: Int) = world.chunkCapturable(sectionX, sectionZ)
 	}

@@ -96,7 +96,7 @@ class DagRepairTest {
                 override fun capturable(sectionX: Int, sectionZ: Int) = true
 
                 // Once the body is under way and the tape reaches past the wall, drop it.
-                override fun sync(route: CoarseRoutePlan): WorldSyncResult =
+                override fun sync(route: CoarseRoutePlan, from: com.lambda.pathing.actions.BodyState): WorldSyncResult =
                     if (!mutated && clock.cursorFrame() >= 10 && publishedFrames >= 70) {
                         mutated = true
                         environment.install(ChunkSectionPos.asLong(wallX shr 4, 0, 0), floorSection(wallX shr 4, withWall = true))

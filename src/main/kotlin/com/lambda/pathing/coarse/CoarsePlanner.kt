@@ -103,7 +103,7 @@ class CoarsePlanner(
 		cancelled: () -> Boolean = { false },
 	): LongDStarLite.ComputeResult = search.computeShortestPath(Duration.INFINITE, maxExpansions, cancelled)
 
-	fun updateStart(start: Stance) = search.updateStart(PackedStance.pack(start, SpeedClass.STOPPED))
+	fun updateStart(start: Stance, speed: SpeedClass = SpeedClass.STOPPED) = search.updateStart(PackedStance.pack(start, speed))
 
 	val optimisticAnchors: Map<Stance, Double> get() = HashMap(anchors)
 
