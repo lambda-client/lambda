@@ -29,7 +29,7 @@ import net.minecraft.sound.SoundEvent
 object SoundHandler : Loadable {
     fun playSound(event: SoundEvent, pitch: Double = 1.0) {
         mc.soundManager.play(
-            PositionedSoundInstance.master(event, pitch.toFloat())
+            PositionedSoundInstance.ui(event, pitch.toFloat())
         )
     }
 
@@ -37,7 +37,7 @@ object SoundHandler : Loadable {
         val actualPitch = (pitch - pitchRange..pitch + pitchRange).random()
 
         mc.soundManager.play(
-            PositionedSoundInstance.master(event, actualPitch.toFloat())
+            PositionedSoundInstance.ui(event, actualPitch.toFloat())
         )
     }
 
