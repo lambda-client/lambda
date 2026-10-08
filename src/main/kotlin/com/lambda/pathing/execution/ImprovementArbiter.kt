@@ -1,7 +1,6 @@
 package com.lambda.pathing.execution
 
 import com.lambda.pathing.search.PublishedPath
-import com.lambda.pathing.search.SWAP_FLOOR_GAIN_TICKS
 
 internal object ImprovementArbiter {
 	sealed interface Verdict {
@@ -22,9 +21,6 @@ internal object ImprovementArbiter {
 		runningInvalid: Boolean = false,
 	): Verdict {
 		if (running == null || cursorFrame == null) return Verdict.BeginFresh
-		if (offered.planningGeneration != running.planningGeneration) {
-			return Verdict.Keep("publication belongs to a different planning generation")
-		}
 		if (offered.publicationSequence <= running.publicationSequence) {
 			return Verdict.Keep("publication is older than the running tape")
 		}
@@ -33,34 +29,15 @@ internal object ImprovementArbiter {
 		if (cursorFrame > offered.plan.tape.frameCount) {
 			return Verdict.Keep("improvement is shorter than the walk so far")
 		}
-		if (runningInvalid) {
-			return if (divergesBehind(running, offered, cursorFrame)) Verdict.Keep("repair diverges behind the cursor")
-			else Verdict.Adopt(cursorFrame)
-		}
-		if (!running.partial && !offered.partial &&
-			offered.plan.tape.frameCount >= running.plan.tape.frameCount
-		) {
-			return Verdict.Keep("improvement is not shorter than the running tape")
-		}
-		if (running.partial && offered.partial && offered.safeAnchorFrame <= running.safeAnchorFrame) {
-			val swap = offered.swap
-			val gains = swap != null && swap.runningSequence == running.publicationSequence.toLong() &&
-					swap.arrivalTicks.isFinite() && swap.runningArrivalTicks.isFinite() &&
-					swap.arrivalTicks + SWAP_FLOOR_GAIN_TICKS <= swap.runningArrivalTicks
-
-			val runway = offered.safeAnchorFrame - cursorFrame >= SWAP_MIN_RUNWAY_FRAMES
-			if (!gains || !runway) return Verdict.Keep("partial publication commits no new anchor")
-		}
-		if (offered.partial && offered.safeAnchorFrame <= cursorFrame) {
+		if (!runningInvalid && offered.partial && offered.safeAnchorFrame <= cursorFrame) {
 			return Verdict.Keep("partial publication has no unexecuted progress anchor")
 		}
-		if (divergesBehind(running, offered, cursorFrame)) return Verdict.Keep("improvement diverges behind the cursor")
-
+		if (divergesBehind(running, offered, cursorFrame)) {
+			return Verdict.Keep(if (runningInvalid) "repair diverges behind the cursor" else "improvement diverges behind the cursor")
+		}
 		return Verdict.Adopt(cursorFrame)
 	}
 
 	private fun divergesBehind(running: PublishedPath, offered: PublishedPath, cursorFrame: Int): Boolean =
 		(0 until cursorFrame).any { running.plan.tape[it] != offered.plan.tape[it] }
-
-	private const val SWAP_MIN_RUNWAY_FRAMES = 20
 }

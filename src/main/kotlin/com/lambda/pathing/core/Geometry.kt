@@ -7,6 +7,17 @@ import kotlin.math.sin
 
 data class HorizontalPoint(val x: Double, val y: Double, val z: Double)
 
+data class Via(val x: Double, val z: Double) {
+	fun detour(dx: Int, dz: Int, landingShift: Double = 0.0): Double {
+		val length = hypot(dx.toDouble(), dz.toDouble())
+		val toX = dx - dz / length * landingShift
+		val toZ = dz + dx / length * landingShift
+		return hypot(x, z) + hypot(toX - x, toZ - z) - length
+	}
+}
+
+operator fun HorizontalPoint.plus(via: Via) = copy(x = x + via.x, z = z + via.z)
+
 const val DEGENERATE_LENGTH = 1e-9
 
 fun Stance.center() = HorizontalPoint(x + 0.5, y.toDouble(), z + 0.5)

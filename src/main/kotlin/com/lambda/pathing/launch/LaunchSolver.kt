@@ -2,6 +2,7 @@ package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.Via
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -19,6 +20,7 @@ data class LaunchSolution(
 	val arc: ArcSample,
 	val lateralOffset: Double = 0.0,
 	val holdTicks: Int = Int.MAX_VALUE,
+	val via: Via? = null,
 ) {
 	val sprint: Boolean get() = mode.sprint
 	val jumps: Boolean get() = mode.jumps
@@ -37,7 +39,7 @@ data class LaunchSolution(
 			(other is LaunchSolution && mode == other.mode &&
 					launchOffset == other.launchOffset && speed == other.speed &&
 					aimDistance == other.aimDistance && airTicks == other.airTicks &&
-					holdTicks == other.holdTicks && lateralOffset == other.lateralOffset)
+					holdTicks == other.holdTicks && lateralOffset == other.lateralOffset && via == other.via)
 
 	override fun hashCode(): Int {
 		var result = mode.hashCode()
@@ -47,6 +49,7 @@ data class LaunchSolution(
 		result = 31 * result + airTicks
 		result = 31 * result + holdTicks
 		result = 31 * result + lateralOffset.hashCode()
+		if (via != null) result = 31 * result + via.hashCode()
 		return result
 	}
 
@@ -84,6 +87,8 @@ object LaunchSolver {
 		rise: Double = (to.y - from.y).toDouble(),
 		exitSpeedWindow: ClosedFloatingPointRange<Double>? = null,
 		catch: Boolean = false,
+		via: Via? = null,
+		landingShift: Double = 0.0,
 	): List<LaunchSolution> {
 		val dx = (to.x - from.x).toDouble()
 		val dz = (to.z - from.z).toDouble()
@@ -93,12 +98,14 @@ object LaunchSolver {
 		val unitZ = dz / length
 
 		val lateral = lateralSlack(unitX, unitZ)
-		val landing = landingWindow(from, to, unitX, unitZ) ?: return emptyList()
+		val landing = (if (via == null) landingWindow(from.x + 0.5, from.z + 0.5, unitX, unitZ, to) else bentLandingWindow(from, to, unitX, unitZ, via, landingShift))
+			?: return emptyList()
 		val window = if (catch) landing.start..Double.POSITIVE_INFINITY else landing
 		val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
 
 		return modes.filter { it.supports(rise) }.mapNotNull { mode ->
 			ModeSolve(mode, rise, lateral, window, nearEdge, maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow).solve(catch)
+				?.let { if (via == null) it else it.copy(via = via, lateralOffset = landingShift) }
 		}.sortedWith(LaunchSolution.BEST_FIRST)
 	}
 
@@ -192,14 +199,31 @@ object LaunchSolver {
 		return preferred.coerceIn(low + safety, high - safety)
 	}
 
-	private fun landingWindow(
+	private fun bentLandingWindow(
 		from: Stance,
 		to: Stance,
 		unitX: Double,
 		unitZ: Double,
+		via: Via,
+		landingShift: Double,
 	): ClosedFloatingPointRange<Double>? {
-		val originX = from.x + 0.5
-		val originZ = from.z + 0.5
+		val legX = to.x - from.x - unitZ * landingShift - via.x
+		val legZ = to.z - from.z + unitX * landingShift - via.z
+		val leg = hypot(legX, legZ)
+		if (leg <= DEGENERATE_LENGTH) return null
+		val bend = hypot(via.x, via.z)
+		val window = landingWindow(from.x + 0.5 + via.x, from.z + 0.5 + via.z, legX / leg, legZ / leg, to) ?: return null
+		val near = max(window.start, 0.0)
+		return if (window.endInclusive > near) (near + bend)..(window.endInclusive + bend) else null
+	}
+
+	private fun landingWindow(
+		originX: Double,
+		originZ: Double,
+		unitX: Double,
+		unitZ: Double,
+		to: Stance,
+	): ClosedFloatingPointRange<Double>? {
 		var near = Double.NEGATIVE_INFINITY
 		var far = Double.POSITIVE_INFINITY
 

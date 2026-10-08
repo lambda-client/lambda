@@ -112,7 +112,7 @@ internal class Publisher(
 		val certified = certifier.certify(solution) as? MotionPlanResult.Success ?: return false
 		val terminal = tailAnchor(solution.anchor, certified, solution.collisionEvents)
 		finalScore = solution.score
-		publish(terminal, terminal, certified.copy(swap = SwapComparison(solution.score.toDouble(), reference, newest.sequence)), arrives = true)
+		publish(terminal, terminal, certified, arrives = true)
 		incumbent.seal(solution)
 		return true
 	}
@@ -154,10 +154,7 @@ internal class Publisher(
 
 	private fun publishBraked(anchor: ValueAnchor): Boolean {
 		val braked = finisher.brakeToStop(anchor) ?: return false
-		var certified = certifier.certify(braked) as? MotionPlanResult.Success ?: return false
-		publications.newest?.let { newest ->
-			certified = certified.copy(swap = SwapComparison(arrivalEstimate(anchor), tipArrival(newest.anchor), newest.sequence))
-		}
+		val certified = certifier.certify(braked) as? MotionPlanResult.Success ?: return false
 		publish(anchor, tailAnchor(anchor, certified, anchor.collisionEvents), certified, arrives = false)
 		return true
 	}

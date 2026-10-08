@@ -25,31 +25,20 @@ import pathing.ProbeScenarios.PROFILE
 class ImprovementArbiterTest {
     @Test
     fun `no running tape or no cursor begins fresh`() {
-        val offered = published(east3, generation = 1, sequence = 1)
+        val offered = published(east3, sequence = 1)
         assertIs<ImprovementArbiter.Verdict.BeginFresh>(
             ImprovementArbiter.judge(null, 0, awaitingObservation = false, offered = offered),
         )
-        val running = published(east6, generation = 1, sequence = 1)
+        val running = published(east6, sequence = 1)
         assertIs<ImprovementArbiter.Verdict.BeginFresh>(
             ImprovementArbiter.judge(running, null, awaitingObservation = false, offered = offered),
         )
     }
 
     @Test
-    fun `a different planning generation is kept out`() {
-        val running = published(east6, generation = 1, sequence = 1)
-        val offered = published(east3, generation = 2, sequence = 2)
-        val verdict = ImprovementArbiter.judge(running, 0, false, offered)
-        assertEquals(
-            "publication belongs to a different planning generation",
-            assertIs<ImprovementArbiter.Verdict.Keep>(verdict).reason,
-        )
-    }
-
-    @Test
     fun `stale publication sequence is kept out`() {
-        val running = published(east6, generation = 1, sequence = 3)
-        val offered = published(east3, generation = 1, sequence = 3)
+        val running = published(east6, sequence = 3)
+        val offered = published(east3, sequence = 3)
         val verdict = ImprovementArbiter.judge(running, 0, false, offered)
         assertEquals(
             "publication is older than the running tape",
@@ -59,8 +48,8 @@ class ImprovementArbiterTest {
 
     @Test
     fun `improvements defer while an input awaits observation`() {
-        val running = published(east6, generation = 1, sequence = 1)
-        val offered = published(east3, generation = 1, sequence = 2)
+        val running = published(east6, sequence = 1)
+        val offered = published(east3, sequence = 2)
         assertIs<ImprovementArbiter.Verdict.DeferForObservation>(
             ImprovementArbiter.judge(running, 0, awaitingObservation = true, offered = offered),
         )
@@ -68,8 +57,8 @@ class ImprovementArbiterTest {
 
     @Test
     fun `an improvement already walked past is kept out`() {
-        val running = published(east6, generation = 1, sequence = 1)
-        val offered = published(east3, generation = 1, sequence = 2)
+        val running = published(east6, sequence = 1)
+        val offered = published(east3, sequence = 2)
         val behind = east3.plan.tape.frameCount + 1
         val verdict = ImprovementArbiter.judge(running, behind, false, offered)
         assertEquals(
@@ -79,31 +68,25 @@ class ImprovementArbiterTest {
     }
 
     @Test
-    fun `a complete tape that is not shorter is kept out`() {
-        val running = published(east3, generation = 1, sequence = 1)
-        val offered = published(east6, generation = 1, sequence = 2)
+    fun `a newer complete tape is adopted even when longer, the search judged it`() {
+        val running = published(east3, sequence = 1)
+        val offered = published(east6, sequence = 2)
         val verdict = ImprovementArbiter.judge(running, 0, false, offered)
-        assertEquals(
-            "improvement is not shorter than the running tape",
-            assertIs<ImprovementArbiter.Verdict.Keep>(verdict).reason,
-        )
+        assertEquals(0, assertIs<ImprovementArbiter.Verdict.Adopt>(verdict).frame)
     }
 
     @Test
-    fun `a partial tape without a new anchor is kept out`() {
-        val running = published(east6, generation = 1, sequence = 1, partial = true, safeAnchorFrame = 20)
-        val offered = published(east6, generation = 1, sequence = 2, partial = true, safeAnchorFrame = 20)
+    fun `a partial swap with its anchor ahead of the cursor is adopted`() {
+        val running = published(east6, sequence = 1, partial = true, safeAnchorFrame = 20)
+        val offered = published(east6, sequence = 2, partial = true, safeAnchorFrame = 20)
         val verdict = ImprovementArbiter.judge(running, 0, false, offered)
-        assertEquals(
-            "partial publication commits no new anchor",
-            assertIs<ImprovementArbiter.Verdict.Keep>(verdict).reason,
-        )
+        assertEquals(0, assertIs<ImprovementArbiter.Verdict.Adopt>(verdict).frame)
     }
 
     @Test
     fun `a partial tape whose anchor the cursor passed is kept out`() {
-        val running = published(east6, generation = 1, sequence = 1, partial = true, safeAnchorFrame = 5)
-        val offered = published(east6, generation = 1, sequence = 2, partial = true, safeAnchorFrame = 20)
+        val running = published(east6, sequence = 1, partial = true, safeAnchorFrame = 5)
+        val offered = published(east6, sequence = 2, partial = true, safeAnchorFrame = 20)
         val verdict = ImprovementArbiter.judge(running, 25, false, offered)
         assertEquals(
             "partial publication has no unexecuted progress anchor",
@@ -114,8 +97,8 @@ class ImprovementArbiterTest {
     @Test
     fun `an improvement that diverges behind the cursor is kept out`() {
         assertTrue(east6.plan.tape[0] != south3.plan.tape[0], "fixture tapes must diverge at frame 0")
-        val running = published(east6, generation = 1, sequence = 1)
-        val offered = published(south3, generation = 1, sequence = 2)
+        val running = published(east6, sequence = 1)
+        val offered = published(south3, sequence = 2)
         val verdict = ImprovementArbiter.judge(running, 1, false, offered)
         assertEquals(
             "improvement diverges behind the cursor",
@@ -125,16 +108,16 @@ class ImprovementArbiterTest {
 
     @Test
     fun `a shorter complete tape is adopted at the cursor frame`() {
-        val running = published(east6, generation = 1, sequence = 1)
-        val offered = published(east3, generation = 1, sequence = 2)
+        val running = published(east6, sequence = 1)
+        val offered = published(east3, sequence = 2)
         val verdict = ImprovementArbiter.judge(running, 0, false, offered)
         assertEquals(0, assertIs<ImprovementArbiter.Verdict.Adopt>(verdict).frame)
     }
 
     @Test
     fun `a partial tape committing a further anchor is adopted`() {
-        val running = published(east6, generation = 1, sequence = 1, partial = true, safeAnchorFrame = 5)
-        val offered = published(east6, generation = 1, sequence = 2, partial = true, safeAnchorFrame = 20)
+        val running = published(east6, sequence = 1, partial = true, safeAnchorFrame = 5)
+        val offered = published(east6, sequence = 2, partial = true, safeAnchorFrame = 20)
         val verdict = ImprovementArbiter.judge(running, 10, false, offered)
         assertEquals(10, assertIs<ImprovementArbiter.Verdict.Adopt>(verdict).frame)
     }
@@ -143,7 +126,6 @@ class ImprovementArbiterTest {
 
     private fun published(
         certified: Certified,
-        generation: Long,
         sequence: Int,
         partial: Boolean = false,
         safeAnchorFrame: Int = 0,
@@ -156,7 +138,6 @@ class ImprovementArbiterTest {
         planMillis = 0,
         finalGoal = certified.route.goal,
         partial = partial,
-        planningGeneration = generation,
         publicationSequence = sequence,
     )
 

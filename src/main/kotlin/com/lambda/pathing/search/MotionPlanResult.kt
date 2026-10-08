@@ -85,8 +85,6 @@ data class SearchStats(
 	}
 }
 
-data class SwapComparison(val arrivalTicks: Double, val runningArrivalTicks: Double, val runningSequence: Long)
-
 sealed interface MotionPlanResult {
 	data object Cancelled : MotionPlanResult
 
@@ -96,7 +94,6 @@ sealed interface MotionPlanResult {
 		val safeAnchorStance: Stance,
 		val safeAnchorFrame: Int,
 		val attemptCount: Int,
-		val swap: SwapComparison? = null,
 		val legTouches: List<LegTouch> = emptyList(),
 	) : MotionPlanResult
 

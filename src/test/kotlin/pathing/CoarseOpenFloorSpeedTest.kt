@@ -50,9 +50,9 @@ class CoarseOpenFloorSpeedTest {
             val route = RouteResolution(state).resolve(start, 1L, 1_000_000, world = null)
             println("[speed] round=$round expansions=${coarse.processedNodes} nodes=${state.planner.graphSize} ms=%.1f us/exp=%.1f route=${route?.nodes?.size} ticks=${route?.lowerBoundTicks}".format(ms, ms * 1000.0 / coarse.processedNodes))
             assertNotNull(route)
-            // Pinned against the pre-refactor planner on this exact floor: same expansions, same bound.
-            assertEquals(5342, coarse.processedNodes, "coarse expansions on the open floor")
-            assertEquals(378.46867952253905, route.lowerBoundTicks, 1e-6, "route lower bound on the open floor")
+            // Pinned on this exact floor; a change to the coarse vocabulary or its costs moves both.
+            assertEquals(4261, coarse.processedNodes, "coarse expansions on the open floor")
+            assertEquals(373.0257941482758, route.lowerBoundTicks, 1e-6, "route lower bound on the open floor")
         }
     }
 }

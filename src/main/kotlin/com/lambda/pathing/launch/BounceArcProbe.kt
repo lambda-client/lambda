@@ -97,7 +97,7 @@ object BounceArcProbe {
 
 		private fun admissible(solution: BounceSolution, arcs: ArcSweep): Boolean =
 			contactPenalty(solution.launchOffset + solution.contactDistance).isFinite() &&
-					arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.CLEAR
+					arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.Clear
 
 		private fun crossesPad(): Boolean {
 			var along = 1.0

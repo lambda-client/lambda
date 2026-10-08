@@ -47,16 +47,18 @@ class CoarseMoveCosts(
 	val walkOff: (depth: Int) -> Double,
 	val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
 	val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
+	val cornerWalk: Double = diagonalWalk,
 ) {
 	init {
 		validate("cardinalWalk", cardinalWalk)
 		validate("diagonalWalk", diagonalWalk)
+		validate("cornerWalk", cornerWalk)
 		validate("stepUp", stepUp)
 	}
 
 	fun jumpCandidateCost(distance: Double, verticalOffset: Int): Double {
-		require(distance >= CoarseMoveRates.MIN_JUMP_DISTANCE) {
-			"a jump candidate must reach past the adjacent stance: $distance"
+		require(distance >= CoarseMoveRates.MIN_JUMP_DISTANCE || verticalOffset < 0) {
+			"a level jump candidate must reach past the adjacent stance: $distance"
 		}
 		return jumpCandidate(distance, verticalOffset).also {
 			validate("jumpCandidate($distance, $verticalOffset)", it)
@@ -117,6 +119,7 @@ class CoarseMoveCosts(
 			return CoarseMoveCosts(
 				cardinalWalk = walk + transitionOverheadTicks,
 				diagonalWalk = sqrt(2.0) * walk + transitionOverheadTicks,
+				cornerWalk = 2.0 * (walk + transitionOverheadTicks),
 				stepUp = step + transitionOverheadTicks,
 				walkOff = { depth -> max(walk, CoarseMoveRates.fallTicks(depth)) + 1.0 + transitionOverheadTicks },
 				jumpCandidate = { distance, vo -> jump(distance, vo) + JUMP_SETTLE_TICKS + transitionOverheadTicks },

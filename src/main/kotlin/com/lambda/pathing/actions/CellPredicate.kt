@@ -29,6 +29,15 @@ fun interface CellPredicate {
 
 		val CLIMBABLE = CellPredicate { view, x, y, z -> view.medium(x, y, z) == Medium.CLIMBABLE }
 
+		val OPEN_COLUMN = column { view, x, y, z -> FULL_SLICE.matches(view, x, y, z) && FULL_HEAD.matches(view, x, y + 1, z) }
+
+		val BLOCKED_COLUMN = column { view, x, y, z -> !OPEN_COLUMN.matches(view, x, y, z) }
+
+		private fun column(test: CellPredicate) = object : CellPredicate {
+			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int) = test.matches(view, x, y, z)
+			override val extraReads = listOf(VoxelPos(0, -1, 0), VoxelPos(0, 1, 0))
+		}
+
 		private fun below(test: CellPredicate) = object : CellPredicate {
 			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int) = test.matches(view, x, y, z)
 			override val extraReads = listOf(VoxelPos(0, -1, 0))

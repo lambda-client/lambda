@@ -5,6 +5,7 @@ import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.search.ExecutionFeedback
@@ -34,7 +35,6 @@ internal fun walkHorizon(
 	world: WorldLink? = null,
 	clock: SearchClock = SystemSearchClock(),
 	cancelled: () -> Boolean = { false },
-	planningGeneration: Long = 0L,
 	finalGoal: Stance = route.goal,
 	field: ValueField = planner.valueField(),
 	probe: SearchProbe = SearchProbe.NONE,
@@ -43,6 +43,7 @@ internal fun walkHorizon(
 	legs: LegSource? = null,
 ): PathPlanResult {
 	var published = 0
+	var lastTape: List<MovementSimulationInput>? = null
 
 	fun stamp(seed: MotionPlanResult.Success, partial: Boolean, sequence: Int): PublishedPath {
 		val planMillis = System.currentTimeMillis() - started
@@ -55,9 +56,7 @@ internal fun walkHorizon(
 			planMillis = planMillis,
 			finalGoal = finalGoal,
 			partial = partial || seed.sourceRoute.goal != finalGoal,
-			planningGeneration = planningGeneration,
 			publicationSequence = sequence,
-			swap = seed.swap,
 			legTouches = seed.legTouches,
 		)
 	}
@@ -68,6 +67,7 @@ internal fun walkHorizon(
 			if (!cancelled()) {
 				publish(stamp(step, partial = !arrives, sequence = published + 1), published > 0)
 				published++
+				lastTape = step.plan.tape.asList()
 			}
 		},
 		execution = execution,
@@ -83,7 +83,8 @@ internal fun walkHorizon(
 
 	return when (result) {
 		MotionPlanResult.Cancelled -> PathPlanResult.Cancelled
-		is MotionPlanResult.Success -> PathPlanResult.Planned(stamp(result, partial = false, sequence = published + 1))
+		is MotionPlanResult.Success ->
+			PathPlanResult.Planned(stamp(result, partial = false, sequence = if (result.plan.tape.asList() == lastTape) published else published + 1))
 
 		else -> PathPlanResult.Failed("the search dead-ended (${describeRefusal(result)})")
 	}

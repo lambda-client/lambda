@@ -214,6 +214,37 @@ class JumpArcProbeTest {
         )
     }
 
+    @Test
+    fun `a full block clipping the corner of a diagonal jump is passed with a bend`() {
+        val world = ShapeWorld()
+        world.fullCube(0, 0, 0)
+        world.fullCube(2, 0, 2)
+        world.fullCube(1, 1, 0)
+        world.fullCube(1, 2, 0)
+
+        val result = assertNotNull(
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 2, riseHeight = 0.0),
+            "a block beside the diagonal line must be flown around, not refused",
+        )
+        val via = assertNotNull(result.solution.via, "the clipped line must be replaced by a bend")
+        assertTrue(via.z > via.x, "the bend must pass on the open side, got $via")
+    }
+
+    @Test
+    fun `a full block centred on the jump line still blocks it`() {
+        val world = ShapeWorld()
+        world.fullCube(0, 0, 0)
+        world.fullCube(2, 0, 0)
+        world.fullCube(1, 1, 0)
+        world.fullCube(1, 2, 0)
+        world.fullCube(1, 3, 0)
+
+        assertNull(
+            JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, riseHeight = 0.0),
+            "a wall across the whole line has no corner to bend around",
+        )
+    }
+
     private class ShapeWorld(private val unknownIsNull: Boolean = false) : CoarseVoxelView {
         private val shapes = HashMap<VoxelPos, VoxelShape>()
 

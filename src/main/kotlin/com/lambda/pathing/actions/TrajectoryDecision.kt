@@ -3,6 +3,7 @@ package com.lambda.pathing.actions
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.MovementKeys
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.Via
 import com.lambda.pathing.launch.BounceSolution
 import com.lambda.pathing.launch.LaunchSolution
 
@@ -24,6 +25,7 @@ interface TrajectoryDecision {
 		val lookAheadNodes: Int,
 		val easeTurns: Boolean,
 		override val movement: MovementId = MovementId.WALK,
+		val via: Via? = null,
 	) : TrajectoryDecision {
 		override val seedsHazardOnFailure: Boolean get() = true
 	}

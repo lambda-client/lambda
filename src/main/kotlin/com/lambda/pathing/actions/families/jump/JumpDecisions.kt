@@ -7,6 +7,8 @@ import com.lambda.pathing.actions.closingSpeed
 import com.lambda.pathing.actions.nominalLaunchFrame
 import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.center
+import com.lambda.pathing.core.Via
+import com.lambda.pathing.core.plus
 import com.lambda.pathing.core.unitBetween
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
@@ -29,26 +31,37 @@ internal object JumpDecisions {
 
 	fun solutionsFor(context: DecisionContext): List<LaunchSolution> {
 		val onward = onwardEntryWindow(context)
+		val dodge = context.edge.launch?.lateralOffset ?: 0.0
+		val via = context.edge.via
+			?: return solve(context, onward, null, 0.0, context.edge.launch).map { if (dodge != 0.0 && it.lateralOffset == 0.0) it.copy(lateralOffset = dodge) else it }
+		val bent = solve(context, onward, via, dodge, context.edge.launch)
+		if (dodge == 0.0) return bent
+		return bent + solve(context, onward, null, 0.0, null).map { it.copy(lateralOffset = dodge) }
+	}
 
+	private fun solve(
+		context: DecisionContext,
+		onward: ClosedFloatingPointRange<Double>?,
+		via: Via?,
+		landingShift: Double,
+		fallback: LaunchSolution?,
+	): List<LaunchSolution> {
 		val ideal = onward?.let { window ->
 			LaunchSolver.solve(
 				context.edge.from, context.edge.to,
-				modes = JumpTemplates.MODES, exitSpeedWindow = window,
+				modes = JumpTemplates.MODES, exitSpeedWindow = window, via = via, landingShift = landingShift,
 			).firstOrNull()
-		} ?: context.edge.launch ?: hopOver(context)
+		} ?: fallback ?: hopOver(context)
 		val asIs = LaunchSolver.solve(
 			context.edge.from, context.edge.to,
 			modes = JumpTemplates.MODES,
 			maxEntrySpeed = { context.body.speed },
 			preferredEntrySpeed = { context.body.speed },
 			exitSpeedWindow = onward,
+			via = via,
+			landingShift = landingShift,
 		).firstOrNull()
-
-		val dodge = context.edge.launch?.lateralOffset ?: 0.0
-		return listOfNotNull(ideal, asIs).map { solution ->
-			if (dodge != 0.0 && solution.lateralOffset == 0.0) solution.copy(lateralOffset = dodge)
-			else solution
-		}
+		return listOfNotNull(ideal, asIs)
 	}
 
 	private fun onwardEntryWindow(context: DecisionContext): ClosedFloatingPointRange<Double>? {
@@ -84,7 +97,7 @@ internal object JumpDecisions {
 	fun launchDelays(context: DecisionContext, solution: LaunchSolution): List<Int> {
 		val edge = context.edge
 		val from = edge.from.center()
-		val to = edge.to.center()
+		val to = solution.via?.let { from + it } ?: edge.to.center()
 		val (unitX, unitZ) = unitBetween(from, to) ?: return emptyList()
 
 		val ballistics = BallisticProfile.VANILLA

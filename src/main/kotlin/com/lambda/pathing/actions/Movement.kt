@@ -3,6 +3,7 @@ package com.lambda.pathing.actions
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.Via
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.world.CoarseVoxelView
 
@@ -32,9 +33,10 @@ data class TemplateSpec(
 	val conditions: List<CellCondition>,
 	val arc: MotionTemplate.ArcSpec? = null,
 	val strideCost: Double? = null,
+	val via: Via? = null,
 ) {
 	internal fun toTemplate(id: MotionTemplateId) =
-		MotionTemplate(id, dx, dy, dz, movement, cost, conditions, arc, strideCost)
+		MotionTemplate(id, dx, dy, dz, movement, cost, conditions, arc, strideCost, via)
 }
 
 class MovementContext(

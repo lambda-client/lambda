@@ -31,7 +31,7 @@ internal object JumpTemplates {
 
 	private fun offered(dx: Int, dz: Int, rise: Int, options: SimpleMoveOptions): Boolean {
 		val distance = hypot(dx, dz)
-		if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE) return false
+		if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE && !diagonalStep(dx, dz, rise)) return false
 		if (dx != 0 && dz != 0 && !options.allowDiagonal) return false
 		if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
 
@@ -39,6 +39,8 @@ internal object JumpTemplates {
 		else STANDING_AIR_GAP_BLOCKS
 		return airGap(dx, dz) <= ceiling + REACH_EPSILON
 	}
+
+	private fun diagonalStep(dx: Int, dz: Int, rise: Int) = rise < 0 && abs(dx) == 1 && abs(dz) == 1
 
 	private fun airGap(dx: Int, dz: Int): Double = kotlin.math.hypot(
 		(abs(dx) - 1).coerceAtLeast(0).toDouble(),

@@ -102,6 +102,8 @@ internal object ProbeScenarios {
         frontierPerKey: Int = 3,
         probe: com.lambda.pathing.search.SearchProbe = com.lambda.pathing.search.SearchProbe.NONE,
         constraints: MotionConstraints = MotionConstraints(),
+        initialYaw: Double? = null,
+        initialOffset: Pair<Double, Double> = 0.5 to 0.5,
     ): Outcome {
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = transitionOverheadTicks),
@@ -121,8 +123,8 @@ internal object ProbeScenarios {
             route, planner,
             MovementSimulationState.synthetic(
                 profile = PROFILE,
-                position = Vec3d(scenario.start.x + 0.5, scenario.start.y.toDouble(), scenario.start.z + 0.5),
-                rotation = Rotation(Math.toDegrees(atan2(-dx, dz)), 0.0),
+                position = Vec3d(scenario.start.x + initialOffset.first, scenario.start.y.toDouble(), scenario.start.z + initialOffset.second),
+                rotation = Rotation(initialYaw ?: Math.toDegrees(atan2(-dx, dz)), 0.0),
                 velocity = Vec3d(0.0, -0.0784, 0.0),
                 onGround = true,
             ),

@@ -19,6 +19,7 @@ import com.lambda.pathing.launch.AirPlan
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
+import com.lambda.pathing.core.plus
 import com.lambda.pathing.core.unitBetween
 
 object JumpMovement : Movement {
@@ -32,7 +33,7 @@ object JumpMovement : Movement {
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val solutions = JumpDecisions.solutionsFor(context)
 			.filter { context.constraints.sprintModes.contains(it.sprint) }
-			.distinctBy { it.mode to it.launchOffset }
+			.distinctBy { Triple(it.mode, it.launchOffset, it.via) }
 			.sortedByDescending { it.margin }
 
 		val standard = solutions.flatMap { solution ->
@@ -40,7 +41,7 @@ object JumpMovement : Movement {
 				TrajectoryDecision.Launch(context.edge.to, delay, solution)
 			}
 		}
-		return standard + JumpDecisions.runUpDecisions(context, solutions)
+		return standard + JumpDecisions.runUpDecisions(context, solutions.filter { it.via == null })
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
@@ -91,6 +92,7 @@ object JumpMovement : Movement {
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
 			holdTicks = solution.heldForwardTicks,
 			airPlan = if (context.openLanding) null else AirPlan.toward(context.body.stance, step, solution, solution.lateralOffset),
+			via = solution.via?.let { nodes.first() + it },
 		)
 	}
 

@@ -3,7 +3,6 @@ package com.lambda.pathing.session
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.pathing.debug.PlanningDebugChannel
-import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
@@ -14,8 +13,6 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 internal class PlanningLauncher(private val walk: PathingSession) {
-	private var generation = 0L
-
 	var current: PlanningSession? = null
 		private set
 
@@ -33,13 +30,10 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		dropSuccessor()
 	}
 
-	private fun dropSuccessor(): PublishedPath? {
-		val planning = successor
-		val planned = successorPath
+	private fun dropSuccessor() {
+		successor?.cancel()
 		successor = null
 		successorPath = null
-		planning?.cancel()
-		return planned
 	}
 
 	fun reset() {
@@ -56,7 +50,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 		cancel()
 		val request = walk.request
-		val session = PlanningSession(++generation)
+		val session = PlanningSession()
 		current = session
 
 		walk.alignment.planningYaw = player.moveYaw.toDouble()
@@ -82,20 +76,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			walk.journey?.cancel()
 			PlanningJourney.open(preparation, player).also { walk.journey = it }
 		}
-		launch(
-			session, preparation, currentJourney,
-			execution = session,
-			onPublish = { path, running ->
-				if (walk.active && current === session) {
-					if (running) {
-						if (walk.replay != null) with(walk.admission) { adopt(path) }
-					} else if (walk.replay == null && walk.alignment.pendingPath == null) {
-						with(walk.admission) { begin(path) }
-					}
-				}
-			},
-			onComplete = { result, failure -> completePlanning(session, result, failure) },
-		)
+		launch(session, preparation, currentJourney)
 		with(walk) { advanceSnapshotCapture() }
 	}
 
@@ -156,9 +137,20 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		walk.replay = null
 		walk.tickInput = null
 
-		val planned = dropSuccessor() ?: return with(walk) { planTrajectory() }
-		LOG.info("Installing the successor tape planned during replay")
-		with(walk.admission) { begin(planned) }
+		val next = successor
+		val planned = successorPath
+		successor = null
+		successorPath = null
+		if (next != null) {
+			current = next
+			next.attach()
+			LOG.info("Continuing with the successor search planned during replay")
+		}
+		when {
+			planned != null -> with(walk.admission) { begin(planned) }
+			next != null -> walk.state = State.Planning(walk.goalLabel())
+			else -> with(walk) { planTrajectory() }
+		}
 	}
 
 	fun SafeContext.planSuccessor() {
@@ -166,7 +158,6 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		val running = walk.replay?.path ?: return
 		val terminal = running.plan.frames.lastOrNull()?.state ?: return
 		val request = walk.request
-		val session = PlanningSession(++generation)
 
 		val preparation = when (
 			val prepared = preparePlanning(
@@ -181,42 +172,43 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		}
 
 		val successorJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: return
+		val session = PlanningSession(attached = false)
 		successor = session
-
-		launch(
-			session, preparation, successorJourney,
-			execution = ExecutionFeedback.DETACHED,
-			onPublish = { path, _ ->
-				if (walk.active && successor === session) successorPath = path
-			},
-			onComplete = { result, failure ->
-				if (!walk.active || successor !== session) return@launch
-				if (failure == null && result is PathPlanResult.Planned) {
-					successorPath = result.path
-				}
-			},
-		)
+		launch(session, preparation, successorJourney)
 	}
 
-	private fun SafeContext.launch(
-		session: PlanningSession,
-		preparation: PlanningPreparation,
-		journey: PlanningJourney,
-		execution: ExecutionFeedback,
-		onPublish: (PublishedPath, Boolean) -> Unit,
-		onComplete: (PathPlanResult?, Throwable?) -> Unit,
-	) {
+	private fun SafeContext.published(session: PlanningSession, path: PublishedPath, running: Boolean) {
+		if (!walk.active) return
+		if (session === successor) {
+			successorPath = path
+			return
+		}
+		if (session !== current) return
+		if (running) {
+			if (walk.replay != null) with(walk.admission) { adopt(path) }
+		} else if (walk.replay == null && walk.alignment.pendingPath == null) {
+			with(walk.admission) { begin(path) }
+		}
+	}
+
+	private fun SafeContext.completed(session: PlanningSession, result: PathPlanResult?, failure: Throwable?) {
+		if (!walk.active) return
+		if (session !== successor) return completePlanning(session, result, failure)
+		if (failure == null && result is PathPlanResult.Planned) successorPath = result.path
+		successor = null
+	}
+
+	private fun SafeContext.launch(session: PlanningSession, preparation: PlanningPreparation, journey: PlanningJourney) {
 		session.launchRevision = journey.world.revision
 		PlanningJob(
 			preparation = preparation,
 			world = journey.world,
 			legStates = journey.legsFor(preparation),
 			cancelled = { session.isCancelled },
-			planningGeneration = session.generation,
 			snapshotRevision = session.launchRevision,
-			execution = execution,
-			publish = { path, running -> mc.execute { onPublish(path, running) } },
-		).start().whenCompleteAsync({ result, failure -> onComplete(result, failure) }, mc)
+			execution = session,
+			publish = { path, running -> mc.execute { published(session, path, running) } },
+		).start().whenCompleteAsync({ result, failure -> completed(session, result, failure) }, mc)
 	}
 
 	private fun Throwable.rootMessage(): String {

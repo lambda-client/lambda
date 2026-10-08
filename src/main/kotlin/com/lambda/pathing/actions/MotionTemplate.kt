@@ -2,6 +2,7 @@ package com.lambda.pathing.actions
 
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.Via
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceArcProbe
@@ -27,6 +28,7 @@ class MotionTemplate internal constructor(
 	private val conditions: List<CellCondition>,
 	private val arc: ArcSpec?,
 	private val strideCost: Double?,
+	private val via: Via?,
 ) {
 	data class ArcSpec(
 		val modes: List<LaunchMode> = LaunchMode.entries,
@@ -69,8 +71,9 @@ class MotionTemplate internal constructor(
 		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
 		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset)
 			?: return null
+		val detour = probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0
 		return edgeOf(
-			origin, lowerBoundTicks, probed.reads,
+			origin, lowerBoundTicks + detour / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK, probed.reads,
 			launch = probed.solution,
 			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, riseHeight),
 		)
@@ -107,6 +110,7 @@ class MotionTemplate internal constructor(
 		launch = launch,
 		bounce = bounce,
 		standingStart = standingStart,
+		via = via ?: launch?.via,
 	)
 
 	private fun standingStartViable(

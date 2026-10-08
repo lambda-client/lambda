@@ -22,9 +22,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 
 		val drift = with(walk.alignment) { startDrift(path) }
 		if (drift > START_DRIFT_TOLERANCE) {
-			if (walk.launcher.current == null) {
-				return keepRunning(path, "publication was certified from a stance the walk has left")
-			}
+			if (walk.launcher.current == null) return with(walk) { planTrajectory() }
 			return with(walk) { fail("moved %.2f blocks while planning".format(drift)) }
 		}
 

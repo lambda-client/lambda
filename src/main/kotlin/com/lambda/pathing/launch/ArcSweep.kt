@@ -1,5 +1,6 @@
 package com.lambda.pathing.launch
 
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
@@ -20,7 +21,50 @@ internal inline fun <S : Any> probed(crossinline solve: (LongOpenHashSet?) -> S?
 	return Probed(solution) { LongOpenHashSet().also { solve(it) } }
 }
 
-internal enum class Sweep { CLEAR, BLOCKED, PARTIAL }
+internal sealed interface Sweep {
+	data object Clear : Sweep
+	data object Blocked : Sweep
+	data object Partial : Sweep
+	class Clipped(val x: Int, val z: Int) : Sweep
+}
+
+internal class ArcPath(
+	private val launchX: Double,
+	private val launchZ: Double,
+	private val unitX: Double,
+	private val unitZ: Double,
+	val bendAt: Double = Double.POSITIVE_INFINITY,
+	private val bendX: Double = launchX,
+	private val bendZ: Double = launchZ,
+	private val turnedX: Double = unitX,
+	private val turnedZ: Double = unitZ,
+) {
+	fun x(distance: Double): Double = if (distance <= bendAt) launchX + unitX * distance else bendX + turnedX * (distance - bendAt)
+
+	fun z(distance: Double): Double = if (distance <= bendAt) launchZ + unitZ * distance else bendZ + turnedZ * (distance - bendAt)
+
+	fun offset(x: Double, z: Double) = ArcPath(launchX + x, launchZ + z, unitX, unitZ, bendAt, bendX + x, bendZ + z, turnedX, turnedZ)
+
+	companion object {
+		fun through(originX: Double, originZ: Double, viaX: Double, viaZ: Double, toX: Double, toZ: Double, launchOffset: Double): ArcPath? {
+			val legX = viaX - originX
+			val legZ = viaZ - originZ
+			val leg = hypot(legX, legZ)
+			val turnX = toX - viaX
+			val turnZ = toZ - viaZ
+			val turn = hypot(turnX, turnZ)
+			if (leg <= DEGENERATE_LENGTH || turn <= DEGENERATE_LENGTH) return null
+			if (launchOffset >= leg) {
+				val past = launchOffset - leg
+				return ArcPath(viaX + turnX / turn * past, viaZ + turnZ / turn * past, turnX / turn, turnZ / turn)
+			}
+			return ArcPath(
+				originX + legX / leg * launchOffset, originZ + legZ / leg * launchOffset, legX / leg, legZ / leg,
+				bendAt = leg - launchOffset, bendX = viaX, bendZ = viaZ, turnedX = turnX / turn, turnedZ = turnZ / turn,
+			)
+		}
+	}
+}
 
 internal class ArcSweep(
 	private val view: CoarseVoxelView,
@@ -41,10 +85,18 @@ internal class ArcSweep(
 		launchHeight: Double,
 		lateralOffset: Double = 0.0,
 		halfWidth: Double = CORE_HALF_WIDTH,
-	): Sweep {
-		val launchX = from.x + 0.5 + unitX * launchOffset - unitZ * lateralOffset
-		val launchZ = from.z + 0.5 + unitZ * launchOffset + unitX * lateralOffset
-		forEachSweptCell(arc, launchX, launchHeight, launchZ, unitX, unitZ, halfWidth) { x, y, z, swept ->
+	): Sweep = sweep(
+		arc,
+		ArcPath(
+			from.x + 0.5 + unitX * launchOffset - unitZ * lateralOffset,
+			from.z + 0.5 + unitZ * launchOffset + unitX * lateralOffset,
+			unitX, unitZ,
+		),
+		launchHeight, halfWidth,
+	)
+
+	fun sweep(arc: ArcSample, path: ArcPath, launchHeight: Double, halfWidth: Double = CORE_HALF_WIDTH): Sweep {
+		forEachSweptCell(arc, path, launchHeight, halfWidth) { x, y, z, swept ->
 			val key = BlockPos.asLong(x, y, z)
 			reads?.add(key)
 
@@ -56,23 +108,23 @@ internal class ArcSweep(
 			}
 			when (cellClass) {
 				CollisionClass.EMPTY -> {}
-				CollisionClass.UNKNOWN -> return Sweep.BLOCKED
+				CollisionClass.UNKNOWN -> return Sweep.Blocked
 				CollisionClass.FULL ->
 					if (swept.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)) {
-						return Sweep.BLOCKED
+						return Sweep.Clipped(x, z)
 					}
 				CollisionClass.PARTIAL -> {
 					val cached = shapes ?: Long2ObjectOpenHashMap<VoxelShape>().also { shapes = it }
 					val shape = cached.get(key)
 						?: view.collisionShape(x, y, z)?.also { cached.put(key, it) }
-						?: return Sweep.BLOCKED
+						?: return Sweep.Blocked
 					for (bounds in shape.boundingBoxes) {
-						if (bounds.offset(x.toDouble(), y.toDouble(), z.toDouble()).intersects(swept)) return Sweep.PARTIAL
+						if (bounds.offset(x.toDouble(), y.toDouble(), z.toDouble()).intersects(swept)) return Sweep.Partial
 					}
 				}
 			}
 		}
-		return Sweep.CLEAR
+		return Sweep.Clear
 	}
 
 	private companion object {
@@ -82,27 +134,38 @@ internal class ArcSweep(
 
 internal inline fun forEachSweptCell(
 	arc: ArcSample,
-	launchX: Double,
+	path: ArcPath,
 	launchHeight: Double,
-	launchZ: Double,
-	unitX: Double,
-	unitZ: Double,
 	halfWidth: Double,
 	visit: (x: Int, y: Int, z: Int, swept: Box) -> Unit,
 ) {
 	val heights = arc.heights
 	val distances = arc.distances
-	var previous = coreBox(launchX, launchHeight, launchZ, halfWidth)
+	var previous = coreBox(path.x(0.0), launchHeight, path.z(0.0), halfWidth)
+	var previousAlong = 0.0
+	var previousHeight = 0.0
 	for (index in heights.indices) {
 		val along = distances[index]
-		val box = coreBox(launchX + unitX * along, launchHeight + heights[index], launchZ + unitZ * along, halfWidth)
-		val swept = previous.union(box)
+		val height = heights[index]
+		if (previousAlong < path.bendAt && path.bendAt < along) {
+			val bendHeight = previousHeight + (height - previousHeight) * (path.bendAt - previousAlong) / (along - previousAlong)
+			val bend = coreBox(path.x(path.bendAt), launchHeight + bendHeight, path.z(path.bendAt), halfWidth)
+			visitSwept(previous.union(bend), visit)
+			previous = bend
+		}
+		val box = coreBox(path.x(along), launchHeight + height, path.z(along), halfWidth)
+		visitSwept(previous.union(box), visit)
 		previous = box
-		val margin = swept.expand(SWEEP_MARGIN)
-		for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
-			for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
-				for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) visit(x, y, z, swept)
-			}
+		previousAlong = along
+		previousHeight = height
+	}
+}
+
+internal inline fun visitSwept(swept: Box, visit: (x: Int, y: Int, z: Int, swept: Box) -> Unit) {
+	val margin = swept.expand(SWEEP_MARGIN)
+	for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
+		for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
+			for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) visit(x, y, z, swept)
 		}
 	}
 }
@@ -116,4 +179,5 @@ internal const val CORE_HALF_WIDTH = 0.2
 internal const val SWEEP_MARGIN = 0.5
 internal const val BODY_HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
 internal const val BODY_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
+internal const val CORNER_CLEARANCE = BODY_HALF_WIDTH + 0.1
 private val COLLISION_CLASSES = CollisionClass.entries.toTypedArray()

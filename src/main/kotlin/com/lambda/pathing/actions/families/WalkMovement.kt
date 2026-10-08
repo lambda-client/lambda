@@ -26,9 +26,12 @@ import com.lambda.pathing.actions.control.yawTowards
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.MovementKeys
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.Via
+import com.lambda.pathing.core.plus
 import com.lambda.pathing.core.bearingBetween
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.headingOfBearing
+import com.lambda.pathing.launch.CORNER_CLEARANCE
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.canStandAt
@@ -73,13 +76,29 @@ object WalkMovement : Movement {
 					spec(
 						dx, 0, dz, costs.diagonalWalk,
 						stanceConditions(dx, 0, dz) + listOf(
-							CellCondition(dx, 0, 0, CellPredicate.FULL_SLICE),
-							CellCondition(dx, 1, 0, CellPredicate.FULL_HEAD),
-							CellCondition(0, 0, dz, CellPredicate.FULL_SLICE),
-							CellCondition(0, 1, dz, CellPredicate.FULL_HEAD),
+							CellCondition(dx, 0, 0, CellPredicate.OPEN_COLUMN),
+							CellCondition(0, 0, dz, CellPredicate.OPEN_COLUMN),
 						),
 					)
 				)
+				for ((openX, openZ) in listOf(dx to 0, 0 to dz)) {
+					val blockedX = dx - openX
+					val blockedZ = dz - openZ
+					add(
+						spec(
+							dx, 0, dz, costs.cornerWalk,
+							stanceConditions(dx, 0, dz) + listOf(
+								CellCondition(openX, 0, openZ, CellPredicate.OPEN_COLUMN),
+								CellCondition(blockedX, 0, blockedZ, CellPredicate.BLOCKED_COLUMN),
+								CellCondition(dx + openX, 0, dz + openZ, CellPredicate.OPEN_COLUMN),
+							),
+							via = Via(
+								dx * 0.5 + (openX - blockedX) * CORNER_CLEARANCE,
+								dz * 0.5 + (openZ - blockedZ) * CORNER_CLEARANCE,
+							),
+						)
+					)
+				}
 			}
 		}
 	}
@@ -92,12 +111,13 @@ object WalkMovement : Movement {
 		conditions: List<CellCondition>,
 		movement: MovementId = id,
 		strideCost: Double? = null,
-	) = TemplateSpec(dx, dy, dz, movement, cost, conditions, strideCost = strideCost)
+		via: Via? = null,
+	) = TemplateSpec(dx, dy, dz, movement, cost, conditions, strideCost = strideCost, via = via)
 
-	private fun walks(step: Stance, constraints: MotionConstraints): List<TrajectoryDecision> = buildList {
+	private fun walks(step: CoarseEdge, constraints: MotionConstraints): List<TrajectoryDecision> = buildList {
 		for (sprint in constraints.sprintModes) {
 			for ((lookAhead, ease) in WALK_STYLES) {
-				add(TrajectoryDecision.Walk(sprint, step, lookAhead, ease))
+				add(TrajectoryDecision.Walk(sprint, step.to, lookAhead, ease, via = step.via))
 			}
 		}
 	}
@@ -112,7 +132,7 @@ object WalkMovement : Movement {
 			if (!walkable(step)) continue
 
 			if (climbing && !(step.movement == MovementId.STEP_UP && step.to.y > body.stance.y)) continue
-			proposals += walks(step.to, context.constraints)
+			proposals += walks(step, context.constraints)
 		}
 
 		val leading = steps.first()
@@ -205,6 +225,7 @@ object WalkMovement : Movement {
 			launch = context.launch,
 			maxYawChange = context.constraints.maxYawDegreesPerFrame,
 			easeTurns = walk.easeTurns,
+			via = walk.via?.let { context.nodes.first() + it },
 		)
 	}
 

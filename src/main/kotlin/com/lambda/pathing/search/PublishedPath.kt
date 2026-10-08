@@ -14,9 +14,7 @@ data class PublishedPath(
 	val planMillis: Long,
 	val finalGoal: Stance,
 	val partial: Boolean,
-	val planningGeneration: Long,
 	val publicationSequence: Int,
-	val swap: SwapComparison? = null,
 	val legTouches: List<LegTouch> = emptyList(),
 ) {
 	val controlSegments: Int get() = plan.segments.size
