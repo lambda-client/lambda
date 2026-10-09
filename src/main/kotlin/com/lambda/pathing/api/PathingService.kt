@@ -7,6 +7,7 @@ import com.lambda.pathing.session.PathingRequest
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.session.Telemetry
+import com.lambda.pathing.world.streaming.PathingWorld
 
 object PathingService {
 
@@ -25,5 +26,5 @@ object PathingService {
 
 	val renderConfig: PathingRenderConfig get() = PathingManager.renderConfig
 
-	fun diagnostics(): String = PathingManager.diagnostics()
+	val world: PathingWorld? get() = PathingManager.world
 }

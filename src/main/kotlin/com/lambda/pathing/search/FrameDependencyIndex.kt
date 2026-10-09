@@ -15,6 +15,8 @@ internal class FrameDependencyIndex<K : Any>(frames: List<Set<VoxelPos>>, keyOf:
 
 	fun first(key: K): Int? = reads[key]?.first
 
+	fun reads(key: K, frame: Int, untilFrame: Int): Boolean = reads[key]?.let { it.last >= frame && it.first < untilFrame } == true
+
 	fun between(frame: Int, untilFrame: Int): Set<K> = select { it.last >= frame && it.first < untilFrame }
 
 	private inline fun select(predicate: (ReadWindow) -> Boolean): Set<K> =

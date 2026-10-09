@@ -5,8 +5,9 @@ import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.ValueField
-import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
@@ -377,8 +378,8 @@ internal class SearchLoop(
 		val root = frontier.root ?: return
 		val result = world?.sync(route.plan, root) ?: return
 		result.revision?.let(route::advanceRevision)
-		if (result.mutations.isNotEmpty()) certifier.forget()
-		repairFor(result.mutations)
+		if (result.mutations.isNotEmpty() || result.chunks.isNotEmpty()) certifier.forget()
+		repairFor(result.mutations, result.chunks)
 		when (result) {
 			WorldSyncResult.Quiet -> return
 
@@ -403,8 +404,8 @@ internal class SearchLoop(
 		}
 	}
 
-	private fun repairFor(mutations: Set<PathingSection>) {
-		val cut = publications.repairCut(mutations) ?: return
+	private fun repairFor(mutations: Set<VoxelPos>, chunks: Set<PathingChunk>) {
+		val cut = publications.repairCut(mutations, chunks) ?: return
 		frontier.dropDescendants(cut)
 		frontier.reRoot(cut)
 		rewindLegs()

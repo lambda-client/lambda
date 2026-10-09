@@ -1,6 +1,7 @@
 package com.lambda.pathing.search
 
-import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 
 internal class Publication(
@@ -92,11 +93,11 @@ internal class Publications(
 		return generateSequence(candidate) { it.parent }.firstOrNull { it in line }?.elapsed ?: 0
 	}
 
-	fun repairCut(mutations: Set<PathingSection>): ValueAnchor? {
-		if (mutations.isEmpty()) return null
+	fun repairCut(mutations: Set<VoxelPos>, chunks: Set<PathingChunk>): ValueAnchor? {
+		if (mutations.isEmpty() && chunks.isEmpty()) return null
 		val newest = newest ?: return null
 		val plan = newest.plan.plan
-		val first = plan.firstFrameReading(mutations) ?: return null
+		val first = plan.firstFrameReading(mutations, chunks) ?: return null
 		val frame = plan.segments.repairFrame(first, maxOf(observedCursor, 0), DIVERGENCE_MARGIN_FRAMES) ?: return null
 		return newest.anchor.ancestorAt(frame)
 	}

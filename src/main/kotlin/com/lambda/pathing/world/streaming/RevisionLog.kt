@@ -3,6 +3,7 @@ package com.lambda.pathing.world.streaming
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.VoxelPos
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -12,13 +13,13 @@ class RevisionLog(private val lock: ReentrantLock = ReentrantLock()) {
 	private var revisionCounter = 0L
 	private var closed = false
 	private val subscribers = ArrayList<Pending>()
-	private val sectionRevisions = HashMap<PathingSection, Long>()
+	private val cellMutations = ArrayList<WorldMutation.Cell>()
 	private val chunkRevisions = HashMap<PathingChunk, Long>()
 
 	private class Pending {
 		val sections = HashSet<PathingSection>()
 		val chunks = HashSet<PathingChunk>()
-		val mutations = HashSet<PathingSection>()
+		val mutations = HashSet<VoxelPos>()
 	}
 
 	inner class Subscription internal constructor() {
@@ -45,13 +46,9 @@ class RevisionLog(private val lock: ReentrantLock = ReentrantLock()) {
 		changed.signalAll()
 	}
 
-	fun recordMutation(section: PathingSection) = lock.withLock {
-		val next = ++revisionCounter
-		sectionRevisions[section] = next
-		for (pending in subscribers) {
-			pending.sections += section
-			pending.mutations += section
-		}
+	fun recordMutation(cell: VoxelPos) = lock.withLock {
+		cellMutations += WorldMutation.Cell(cell, ++revisionCounter)
+		for (pending in subscribers) pending.mutations += cell
 		changed.signalAll()
 	}
 
@@ -64,21 +61,16 @@ class RevisionLog(private val lock: ReentrantLock = ReentrantLock()) {
 
 	fun signal() = lock.withLock { changed.signalAll() }
 
-	fun changedSince(
-		snapshotRevision: Long,
-		dependedSections: Set<PathingSection>,
-		dependedChunks: Set<PathingChunk>,
-	): WorldMutation? = lock.withLock {
-		if (revisionCounter <= snapshotRevision) return null
-		dependedSections.forEach { section ->
-			val at = sectionRevisions[section] ?: return@forEach
-			if (at > snapshotRevision) return WorldMutation.Section(section, at)
+	fun mutationsSince(snapshotRevision: Long): List<WorldMutation> = lock.withLock {
+		if (revisionCounter <= snapshotRevision) return emptyList()
+		val since = ArrayList<WorldMutation>()
+		for (index in cellMutations.indices.reversed()) {
+			val mutation = cellMutations[index]
+			if (mutation.revision <= snapshotRevision) break
+			since += mutation
 		}
-		dependedChunks.forEach { chunk ->
-			val at = chunkRevisions[chunk] ?: return@forEach
-			if (at > snapshotRevision) return WorldMutation.Chunk(chunk, at)
-		}
-		null
+		for ((chunk, at) in chunkRevisions) if (at > snapshotRevision) since += WorldMutation.Chunk(chunk, at)
+		since
 	}
 
 	fun awaitEvents(sinceRevision: Long, timeoutMillis: Long): Boolean = lock.withLock {
@@ -99,16 +91,17 @@ class WorldEventBatch(
 	val revision: Long,
 	val sections: Set<PathingSection>,
 	val chunks: Set<PathingChunk>,
-	val mutations: Set<PathingSection>,
+	val mutations: Set<VoxelPos>,
 ) {
-	val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
+	val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty() && mutations.isEmpty()
 
-	val changed: List<CellBox> by lazy { changedChunks.map(CellBox::column) }
-
-	val arrived: List<CellBox> by lazy {
-		sections.filter { PathingChunk(it.x, it.z) !in changedChunks }.groupBy { PathingChunk(it.x, it.z) }
-			.map { (chunk, arrivals) -> CellBox.sections(chunk, arrivals.minOf(PathingSection::y), arrivals.maxOf(PathingSection::y)) }
+	val changed: List<CellBox> by lazy {
+		chunks.map(CellBox::column) + mutations.filter { PathingChunk.containing(it) !in chunks }
+			.groupBy(PathingSection::containing).values.map(CellBox::bounding)
 	}
 
-	private val changedChunks: Set<PathingChunk> by lazy { chunks + mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) } }
+	val arrived: List<CellBox> by lazy {
+		sections.filter { PathingChunk(it.x, it.z) !in chunks }.groupBy { PathingChunk(it.x, it.z) }
+			.map { (chunk, arrivals) -> CellBox.sections(chunk, arrivals.minOf(PathingSection::y), arrivals.maxOf(PathingSection::y)) }
+	}
 }

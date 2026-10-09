@@ -16,9 +16,7 @@ import com.lambda.util.CommunicationUtils.info
 internal class TapeAdmission(private val walk: PathingSession) {
 
 	fun SafeContext.begin(path: PublishedPath) {
-		executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
-			return with(walk) { fail("certified plan became stale before execution: $deviation") }
-		}
+		executionEnvironmentDeviation(path, nextFrame = 0)?.let { return staleBeforeExecution(it) }
 
 		val drift = with(walk.alignment) { startDrift(path) }
 		if (drift > START_DRIFT_TOLERANCE) {
@@ -75,6 +73,10 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		}
 	}
 
+	private fun SafeContext.staleBeforeExecution(deviation: ExecutionDeviation) = with(walk) {
+		recover("certified plan became stale before execution: $deviation", reuseCoarseState = deviation !is ExecutionDeviation.PhysicsProfile)
+	}
+
 	private fun keepRunning(rejected: PublishedPath, reason: String) {
 		walk.telemetry.countRejectedImprovement()
 
@@ -82,9 +84,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.install(path: PublishedPath) {
-		executionEnvironmentDeviation(path, nextFrame = 0)?.let { deviation ->
-			return with(walk) { fail("certified plan became stale before execution: $deviation") }
-		}
+		executionEnvironmentDeviation(path, nextFrame = 0)?.let { return staleBeforeExecution(it) }
 		walk.face(path.plan.initialState.rotation.yaw)
 		walk.alignment.installed()
 		replay(path, frame = 0)
@@ -118,11 +118,8 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		}
 		val world = walk.journey?.world ?: return null
 		if (world.revision <= path.plan.snapshotRevision) return null
-		val mutation = world.changedSince(
-			snapshotRevision = path.plan.snapshotRevision,
-			dependedSections = path.plan.dependencySectionsBetween(nextFrame, untilFrame),
-			dependedChunks = path.plan.dependencyChunksBetween(nextFrame, untilFrame),
-		) ?: return null
+		val mutation = world.mutationsSince(path.plan.snapshotRevision)
+			.firstOrNull { path.plan.reads(it, nextFrame, untilFrame) } ?: return null
 		return ExecutionDeviation.WorldChanged(path.plan.snapshotRevision, mutation)
 	}
 }

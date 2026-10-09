@@ -14,6 +14,7 @@ import com.lambda.interaction.managers.Manager
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.session.PathingSession.State
+import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.world.ChunkPacketLoadContext
 
@@ -34,20 +35,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 	private val waypointRoute = WaypointRoute()
 
-	fun diagnostics(): String = buildString {
-		append("status=").append(status)
-		telemetry.published?.let { p ->
-			append(" tape=").append(p.plan.tape.frameCount)
-			append(" routeGoal=").append(p.route.goal)
-			append(" finalGoal=").append(p.finalGoal)
-			append(" partial=").append(p.partial)
-			append(" seq=").append(p.publicationSequence)
-		}
-		session?.journey?.world?.let { w ->
-			append(" revision=").append(w.revision)
-			append(" pendingInterest=").append(w.pendingInterest)
-		}
-	}
+	val world: PathingWorld? get() = session?.journey?.world
 
 	fun isFinished(request: PathingRequest): Boolean = queuedRequest !== request && session?.isFinished(request) ?: true
 

@@ -20,15 +20,13 @@ package com.lambda.module.hud
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImColor
 import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImVec2
-import com.lambda.imgui.flag.ImGuiCol
-import com.lambda.imgui.flag.ImGuiTableFlags
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.render.movementColor
+import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchExit
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.session.PathingSession.State
@@ -36,54 +34,48 @@ import com.lambda.pathing.session.Telemetry
 import java.awt.Color
 
 /**
- * The walk's numbers, in one fixed-width panel. Every widget is sized to [panelWidth]
- * explicitly: the HUD window auto-fits its content, so anything that stretches to the
- * available region would grow the window without bound.
- *
- * Compact by default: a status line, the tape bar with its runway, the search window
- * bar with its runway, one line per section. "Detailed" adds the long tail of counters.
+ * The walk's numbers on one card at least [panelWidth] wide. Rows hold up to two label/value pairs
+ * drawn straight into the window's draw list, so every value sits right-aligned in its half and no
+ * text ever goes through a printf-style ImGui call. The card grows to the widest row it measured
+ * on the previous frame, so no font scale can make a label run into its value.
  */
 @Suppress("unused")
 object PathingHud : HudModule(
     name = "Pathing",
-    description = "Live state, tape, search and world metrics of the pathfinder.",
+    description = "Live state, tape, search and coarse planner figures of the pathfinder.",
     tag = ModuleTag.HUD,
 ) {
     private val showTape by setting("Tape", true, "Progress, runway and movement mix of the running tape.")
-    private val showSearch by setting("Search", true, "Live counters of the trajectory search while it runs.")
-    private val showLastSession by setting("Last Session", true, "The exit report of the most recent search.")
-    private val showWorld by setting("World", false, "Coarse graph and snapshot figures.")
-    private val detailed by setting("Detailed", false, "Every counter, not only the ones that change what you do next.")
-    private val showHistory by setting("History", false, "Runway sparkline under the search bar.") { showSearch }
+    private val showSearch by setting("Search", true, "Expansions and the open, parked and spent nodes of the trajectory search.")
+    private val showCoarse by setting("Coarse", true, "Frames, graph and frontier anchors of the coarse planner.")
+    private val showWorld by setting("World", false, "Captured terrain and pending capture interest.")
     private val showIdle by setting("Show When Idle", false, "Keep the element visible while nothing is being walked.")
-    private val historyLength by setting("History Length", 120, 30..600, 10, "Samples kept in the sparkline.", " samples") { showHistory }
-    private val panelWidth by setting("Width", 230, 160..480, 10, unit = " px")
+    private val panelWidth by setting("Width", 340, 200..1000, 10, "Minimum width; the card grows to fit its rows.", " px")
 
-    // Sparkline buffer, sampled per HUD frame while a search publishes counters.
-    private val runwayHistory = FloatArray(600)
-    private var historyWrite = 0
-    private var historyCount = 0
-    private var lastSampledExpansions = -1
+    private var fitted = 0f
+    private var measured = 0f
 
-    private var widgetId = 0
+    private val width: Float get() = maxOf(panelWidth.toFloat(), fitted)
+
+    private var rateExpansions = -1
+    private var rateNanos = 0L
+    private var expansionsPerSecond = 0.0
 
     override fun ImGuiBuilder.buildLayout() {
         PlanningDebugChannel.hudWanted = isEnabled
-        widgetId = 0
         val status = PathingService.status
         val telemetry = PathingService.telemetry
-        if (status is State.Idle && telemetry.published == null && !showIdle) {
-            textDisabled("Pathing idle")
-            return
+        if (status is State.Idle && telemetry.published == null && !showIdle) return textDisabled("Pathing idle")
+        measured = 0f
+        card {
+            header(status, telemetry)
+            if (showTape) telemetry.published?.let { tape(it, status, telemetry) }
+            if (showSearch) search(status)
+            if (showCoarse) coarse()
+            if (showWorld) world()
         }
-        header(status, telemetry)
-        if (showTape) tape(status, telemetry)
-        if (showSearch) search(status)
-        if (showLastSession) lastSession()
-        if (showWorld) world()
+        fitted = measured
     }
-
-    // ---- Sections ------------------------------------------------------------------------
 
     private fun ImGuiBuilder.header(status: State, telemetry: Telemetry) {
         val (label, color) = badge(status, telemetry)
@@ -91,271 +83,231 @@ object PathingHud : HudModule(
         val x = ImGui.getCursorScreenPosX()
         val y = ImGui.getCursorScreenPosY()
         val h = ImGui.getTextLineHeight()
-        draw.addCircleFilled(x + h * 0.4f, y + h * 0.5f, h * 0.26f, im(color))
-        ImGui.dummy(h * 0.8f, h)
-        sameLine()
-        textColored(label, color)
-
-        val right = buildString {
-            if (telemetry.leg > 0) append("leg ").append(telemetry.leg)
-            if (telemetry.queuedWaypoints > 0) append(" +").append(telemetry.queuedWaypoints)
-            if (telemetry.sessionRestarts > 0) append("  r").append(telemetry.sessionRestarts)
-        }
-        if (right.isNotEmpty()) {
-            val w = ImGui.calcTextSize(right).x
-            sameLine(panelWidth - w)
-            textDisabled(right)
-        }
-        val goal = goalLabel(status, telemetry)
-        if (goal.isNotEmpty()) textDisabled(goal)
-        if (status is State.Failed) {
-            ImGui.pushTextWrapPos(ImGui.getCursorPosX() + panelWidth)
-            textColored(status.reason, Palette.DANGER)
-            ImGui.popTextWrapPos()
-        }
+        draw.addCircleFilled(x + h * 0.35f, y + h * 0.5f, h * 0.25f, im(color))
+        draw.addText(x + h * 0.9f, y, im(color), label)
+        val legs = buildList {
+            if (telemetry.leg > 0) add("leg ${telemetry.leg}")
+            if (telemetry.queuedWaypoints > 0) add("+${telemetry.queuedWaypoints} queued")
+            if (telemetry.sessionRestarts > 0) add("${telemetry.sessionRestarts} restarts")
+        }.joinToString("  ")
+        val legsWidth = ImGui.calcTextSizeX(legs)
+        draw.addText(x + width - legsWidth, y, im(Palette.MUTED), legs)
+        fit(h * 0.9f + ImGui.calcTextSizeX(label) + COLUMN_GAP + legsWidth)
+        ImGui.dummy(width, h)
+        goal(status, telemetry)?.let { row(Cell("goal", it)) }
+        if (status is State.Failed) message(status.reason, Palette.DANGER)
     }
 
-    private fun ImGuiBuilder.tape(status: State, telemetry: Telemetry) {
-        val path = telemetry.published ?: return
-        val plan = path.plan
-        val frames = plan.tape.frameCount
+    private fun ImGuiBuilder.tape(path: PublishedPath, status: State, telemetry: Telemetry) {
+        val frames = path.plan.tape.frameCount
         val cursor = (status as? State.Executing)?.frame ?: if (status is State.Complete) frames else 0
         val runway = frames - cursor
-
-        section("Tape")
-        val barColor = when {
-            path.partial && runway < STARVING_RUNWAY_FRAMES -> Palette.DANGER
-            path.partial -> Palette.WARNING
-            else -> Palette.OK
-        }
-        bar(if (frames > 0) cursor.toFloat() / frames else 0f, barColor)
-        line(
-            "frame" to "$cursor/$frames",
-            "runway" to "$runway${if (path.partial) "*" else ""}",
-            "ratio" to if (path.excessRatio.isFinite()) "%.2fx".format(path.excessRatio) else "-",
-        )
-        line(
-            "dev" to "%.0e".format(telemetry.maxDeviation),
-            "adopt" to "${telemetry.adopted}/${telemetry.adopted + telemetry.rejectedImprovements}",
-            "repairs" to telemetry.repairs.toString(),
-        )
-        if (detailed) {
-            line(
-                "holds" to telemetry.holds.toString(),
-                "recover" to telemetry.recoveries.toString(),
-                "standing" to "${path.standingFrames()}f",
-            )
-            line(
-                "bound" to "%.0f".format(path.route.lowerBoundTicks),
-                "route" to "${path.route.nodes.size}n",
-                "seq" to path.publicationSequence.toString(),
-            )
-            if (telemetry.cadence.isNotEmpty() && telemetry.cadence != "no adoptions") {
-                textDisabled(telemetry.cadence.substringAfter("(").substringBefore(")"))
-            }
-        }
-        movementBar(path.plan.segments.map { it.movement to it.frameCount })
-    }
-
-    private fun ImGuiBuilder.search(status: State) {
-        val stats = PlanningDebugChannel.stats
-        val live = status is State.Planning || status is State.Executing || status is State.Aligning
-        if (stats == null || !live) return
-        sample(stats)
-
-        section("Search")
-        val window = if (stats.windowBudget > 0) stats.windowExpansions.toFloat() / stats.windowBudget else 0f
-        bar(window.coerceIn(0f, 1f), Palette.ACCENT)
-        val runway = if (stats.publishedFrame >= 0 && stats.cursorFrame >= 0) stats.publishedFrame - stats.cursorFrame else null
         val runwayColor = when {
-            runway == null -> Palette.MUTED
+            !path.partial -> Palette.OK
             runway < STARVING_RUNWAY_FRAMES -> Palette.DANGER
             runway < 2 * STARVING_RUNWAY_FRAMES -> Palette.WARNING
             else -> Palette.OK
         }
-        line(
-            "exp" to compact(stats.expansions),
-            "window" to "${compact(stats.windowExpansions)}/${compact(stats.windowBudget)}",
-            "runway" to (runway?.toString() ?: "-"),
-            valueColors = mapOf("runway" to runwayColor),
+        section("TAPE")
+        bar(if (frames > 0) cursor.toFloat() / frames else 0f, runwayColor)
+        row(Cell("frame", "$cursor/$frames"), Cell("runway", if (path.partial) "$runway" else "$runway to goal", runwayColor))
+        row(Cell("adopted", "${telemetry.adopted}/${telemetry.adopted + telemetry.rejectedImprovements}"), Cell("repairs", telemetry.repairs))
+        row(Cell("holds", telemetry.holds), Cell("recovered", telemetry.recoveries))
+        row(
+            Cell("ratio", if (!path.partial && path.excessRatio.isFinite()) "%.2fx".format(path.excessRatio) else "-"),
+            Cell("deviation", if (telemetry.maxDeviation > 0.0) "%.0e".format(telemetry.maxDeviation) else "0"),
         )
-        line(
-            "open" to stats.openAnchors.toString(),
-            "parked" to stats.parkedAnchors.toString(),
-            "spent" to stats.spentAnchors.toString(),
-        )
-        if (detailed) {
-            val mergeRate = if (stats.admitted > 0) 100.0 * stats.merged / stats.admitted else 0.0
-            line(
-                "blocked" to stats.blockedAttempts.toString(),
-                "merged" to "%.0f%%".format(mergeRate),
-                "restarts" to stats.tapeRestarts.toString(),
-            )
-            line(
-                "temp" to "%.2f".format(stats.temperature),
-                "best" to (stats.bestScore?.toString() ?: "-"),
-            )
-            line(
-                "root" to stats.rootFrame.toString(),
-                "tip" to stats.publishedFrame.toString(),
-                "horizon" to if (stats.horizonEnd == Int.MAX_VALUE) "∞" else stats.horizonEnd.toString(),
-            )
-        }
-        if (showHistory && historyCount > 1) {
-            val count = minOf(historyCount, historyLength)
-            val start = (historyWrite - count + runwayHistory.size) % runwayHistory.size
-            val series = FloatArray(count) { runwayHistory[(start + it) % runwayHistory.size] }
-            withStyleColor(ImGuiCol.PlotLines, runwayColor) {
-                withStyleColor(ImGuiCol.FrameBg, Palette.FRAME) {
-                    plotLines("##runway", series, scaleMin = 0f, graphSize = ImVec2(panelWidth.toFloat(), 26f))
-                }
-            }
-        }
+        movementMix(path.plan.segments.map { it.movement to it.frameCount })
     }
 
-    private fun ImGuiBuilder.lastSession() {
-        val report = PlanningDebugChannel.lastExhaustion ?: return
-        section("Last Session")
-        val exitColor = when (report.exit) {
-            SearchExit.SOLVED -> Palette.OK
-            SearchExit.BUDGET -> Palette.WARNING
-            else -> Palette.DANGER
-        }
-        line(
-            "exit" to report.exit.toString(),
-            "exp" to compact(report.expansions),
-            "route" to "${report.deepestRouteIndex}/${report.routeNodes}",
-            valueColors = mapOf("exit" to exitColor),
-        )
-        if (detailed) {
-            line(
-                "restarts" to report.tapeRestarts.toString(),
-                "repairs" to report.repairs.toString(),
-            )
-            line(
-                "commits" to report.commitAttempts.toString(),
-                "refused" to compact(report.publishRefusals),
-                "coarse" to PlanningDebugChannel.lastExhaustionLedger.removePrefix("coarse ").ifEmpty { "-" },
-            )
-        }
+    private fun ImGuiBuilder.search(status: State) {
+        val live = status is State.Planning || status is State.Executing || status is State.Aligning
+        val stats = PlanningDebugChannel.stats
+        if (live && stats != null) liveSearch(stats)
+        else PlanningDebugChannel.lastExhaustion?.let { lastSearch(it) }
+    }
+
+    private fun ImGuiBuilder.liveSearch(stats: SearchStats) {
+        sampleRate(stats.expansions)
+        section("SEARCH")
+        row(Cell("expanded", compact(stats.expansions)), Cell("rate", "${compact(expansionsPerSecond.toLong())}/s"))
+        row(Cell("open", stats.openAnchors), Cell("parked", stats.parkedAnchors))
+        row(Cell("spent", stats.spentAnchors), Cell("blocked", stats.blockedAttempts))
+        row(Cell("route", "${stats.deepestRouteIndex}/${stats.routeNodes}"), Cell("solutions", stats.solutionsFound))
+        row(Cell("window", "${compact(stats.windowExpansions)}/${compact(stats.windowBudget)}"), Cell("restarts", stats.tapeRestarts))
+    }
+
+    private fun ImGuiBuilder.lastSearch(report: SearchStats) {
+        section("LAST SEARCH")
+        row(Cell("exit", report.exit.name.lowercase().replace('_', ' '), exitColor(report.exit)))
+        row(Cell("expanded", compact(report.expansions)), Cell("route", "${report.deepestRouteIndex}/${report.routeNodes}"))
+        row(Cell("solutions", report.solutionsFound), Cell("restarts", report.tapeRestarts))
+    }
+
+    private fun ImGuiBuilder.coarse() {
+        val sample = PlanningDebugChannel.coarse ?: return
+        section("COARSE")
+        row(Cell("frames", sample.frames), Cell("settle", "${sample.settleMillis} ms"))
+        row(Cell("graph", compact(sample.graphNodes)), Cell("anchors", sample.anchors))
     }
 
     private fun ImGuiBuilder.world() {
-        val graph = PlanningDebugChannel.graph
-        val diagnostics = PathingService.diagnostics()
-        val revision = diagnostics.substringAfter("revision=", "").substringBefore(" ")
-        val pending = diagnostics.substringAfter("pendingInterest=", "").substringBefore(" ")
-        if (graph == null && revision.isEmpty()) return
-        section("World")
-        if (graph != null) {
-            line(
-                "cells" to compact(graph.total),
-                "drawn" to compact(graph.nodes.size),
-                "edges" to compact(graph.totalEdges),
-            )
-            line(
-                "frontier" to graph.nodes.count { it.frontier }.toString(),
-                "anchors" to graph.nodes.count { it.anchor }.toString(),
-                "cost" to "%.0f..%.0f".format(graph.cheapest, graph.dearest),
-            )
-        }
-        if (revision.isNotEmpty()) line("rev" to revision, "pending" to pending)
+        val world = PathingService.world ?: return
+        section("WORLD")
+        row(Cell("sections", compact(world.sectionsCaptured)), Cell("pending", world.pendingInterest))
+        row(Cell("revision", compact(world.revision)))
     }
 
-    // ---- Widgets -------------------------------------------------------------------------
+    /** The content on a rounded translucent card, unless the element has its own background colour. */
+    private inline fun ImGuiBuilder.card(content: () -> Unit) {
+        val draw = windowDrawList
+        draw.channelsSplit(2)
+        draw.channelsSetCurrent(1)
+        content()
+        draw.channelsSetCurrent(0)
+        if (backgroundColor.value.alpha == 0) {
+            val x = ImGui.getWindowPosX()
+            val y = ImGui.getWindowPosY()
+            draw.addRectFilled(x, y, x + ImGui.getWindowWidth(), y + ImGui.getWindowHeight(), im(Palette.CARD), CARD_ROUNDING)
+        }
+        draw.channelsMerge()
+    }
 
-    /** A muted section caption with a hairline, the width of the panel. */
     private fun ImGuiBuilder.section(title: String) {
-        spacing()
+        ImGui.dummy(0f, SECTION_GAP)
         val draw = windowDrawList
         val x = ImGui.getCursorScreenPosX()
         val y = ImGui.getCursorScreenPosY()
         val h = ImGui.getTextLineHeight()
-        val w = ImGui.calcTextSize(title).x
-        textDisabled(title)
-        draw.addLine(x + w + 6f, y + h * 0.55f, x + panelWidth, y + h * 0.55f, im(Palette.HAIRLINE), 1f)
+        draw.addText(x, y, im(Palette.HEADING), title)
+        draw.addLine(x + ImGui.calcTextSizeX(title) + 6f, y + h * 0.55f, x + width, y + h * 0.55f, im(Palette.HAIRLINE), 1f)
+        ImGui.dummy(width, h)
     }
 
-    /** A slim, label-free progress bar the width of the panel. */
+    private class Cell(val label: String, val value: String, val color: Color = Palette.TEXT) {
+        constructor(label: String, value: Number, color: Color = Palette.TEXT) : this(label, value.toString(), color)
+    }
+
+    /** One line of up to two cells; each label sits left in its half, its value right. */
+    private fun ImGuiBuilder.row(vararg cells: Cell) {
+        val draw = windowDrawList
+        val x = ImGui.getCursorScreenPosX()
+        val y = ImGui.getCursorScreenPosY()
+        val half = width / cells.size
+        var widest = 0f
+        cells.forEachIndexed { index, cell ->
+            val left = x + index * half
+            val right = left + half - if (index < cells.lastIndex) COLUMN_GAP else 0f
+            val labelWidth = ImGui.calcTextSizeX(cell.label)
+            val valueWidth = ImGui.calcTextSizeX(cell.value)
+            draw.addText(left, y, im(Palette.MUTED), cell.label)
+            draw.addText(right - valueWidth, y, im(cell.color), cell.value)
+            widest = maxOf(widest, labelWidth + VALUE_GAP + valueWidth)
+        }
+        fit(cells.size * widest + cells.lastIndex * COLUMN_GAP)
+        ImGui.dummy(width, ImGui.getTextLineHeight())
+    }
+
+    private fun fit(required: Float) {
+        measured = maxOf(measured, required)
+    }
+
     private fun ImGuiBuilder.bar(fraction: Float, color: Color) {
-        withStyleColor(ImGuiCol.PlotHistogram, color) {
-            withStyleColor(ImGuiCol.FrameBg, Palette.FRAME) {
-                ImGui.progressBar(fraction, panelWidth.toFloat(), BAR_HEIGHT, "")
-            }
-        }
+        val draw = windowDrawList
+        val x = ImGui.getCursorScreenPosX()
+        val y = ImGui.getCursorScreenPosY() + 1f
+        draw.addRectFilled(x, y, x + width, y + BAR_HEIGHT, im(Palette.TRACK), BAR_HEIGHT / 2)
+        val filled = width * fraction.coerceIn(0f, 1f)
+        if (filled > 0f) draw.addRectFilled(x, y, x + filled, y + BAR_HEIGHT, im(color), BAR_HEIGHT / 2)
+        ImGui.dummy(width, BAR_HEIGHT + 2f)
     }
 
-    /** One line of "label value" cells in equal columns; the label muted, the value bright. */
-    private fun ImGuiBuilder.line(vararg cells: Pair<String, String>, valueColors: Map<String, Color> = emptyMap()) {
-        val flags = ImGuiTableFlags.SizingStretchSame or ImGuiTableFlags.NoPadOuterX
-        if (!ImGui.beginTable("##l${widgetId++}", cells.size, flags, panelWidth.toFloat(), 0f)) return
-        cells.forEach { (label, value) ->
-            ImGui.tableNextColumn()
-            textDisabled(label)
-            sameLine()
-            textColored(value, valueColors[label] ?: Palette.TEXT)
-        }
-        ImGui.endTable()
+    /** A wrapped message cut to a few lines; the full text is in the chat and the log. */
+    private fun ImGuiBuilder.message(text: String, color: Color) {
+        val shown = if (text.length > MAX_MESSAGE_CHARS) text.take(MAX_MESSAGE_CHARS).trimEnd() + "..." else text
+        ImGui.pushTextWrapPos(ImGui.getCursorPosX() + width)
+        textColored(shown, color)
+        ImGui.popTextWrapPos()
     }
 
-    /** One stacked bar of the tape's frames by movement kind, in the world render's colours. */
-    private fun ImGuiBuilder.movementBar(parts: List<Pair<MovementId, Int>>) {
+    /** The tape's frames by movement kind as one stacked bar in the world render's colours. */
+    private fun ImGuiBuilder.movementMix(parts: List<Pair<MovementId, Int>>) {
         val total = parts.sumOf { it.second }
         if (total <= 0) return
-        val merged = LinkedHashMap<MovementId, Int>()
-        parts.forEach { (movement, frames) -> merged.merge(movement, frames, Int::plus) }
-        val ordered = merged.entries.sortedByDescending { it.value }
+        val frames = LinkedHashMap<MovementId, Int>()
+        parts.forEach { (movement, count) -> frames.merge(movement, count, Int::plus) }
+        val ordered = frames.entries.sortedByDescending { it.value }
 
         val draw = windowDrawList
         val x0 = ImGui.getCursorScreenPosX()
         val y0 = ImGui.getCursorScreenPosY() + 2f
-        val width = panelWidth.toFloat()
         var x = x0
-        ordered.forEach { (movement, frames) ->
-            val w = width * frames / total
-            draw.addRectFilled(x, y0, x + w, y0 + BAR_HEIGHT, im(PathingService.renderConfig.movementColor(movement)), 1.5f)
+        ordered.forEach { (movement, count) ->
+            val w = width * count / total
+            draw.addRectFilled(x, y0, x + w, y0 + BAR_HEIGHT, im(PathingService.renderConfig.movementColor(movement)))
             x += w
         }
         ImGui.dummy(width, BAR_HEIGHT + 2f)
 
-        val legend = ordered.take(4).joinToString("  ") { (movement, frames) ->
-            "${movement.key} ${100 * frames / total}%"
+        val legend = StringBuilder()
+        for ((movement, count) in ordered) {
+            val entry = "${movement.key} ${100 * count / total}%"
+            val next = if (legend.isEmpty()) entry else "$legend   $entry"
+            if (ImGui.calcTextSizeX(next) > width) break
+            legend.setLength(0)
+            legend.append(next)
         }
-        textDisabled(legend)
+        row(Cell(legend.toString(), ""))
     }
 
     private fun badge(status: State, telemetry: Telemetry): Pair<String, Color> = when (status) {
         State.Idle -> "IDLE" to Palette.MUTED
         is State.Settling -> "SETTLING" to Palette.WARNING
         is State.Planning -> "PLANNING" to Palette.ACCENT
-        is State.Aligning -> "ALIGNING %.1f°".format(status.yawError) to Palette.ACCENT
-        is State.Executing -> (if (telemetry.published?.partial == true) "WALKING · PARTIAL" else "WALKING") to Palette.OK
-        is State.Complete -> "ARRIVED · ${status.frames}f" to Palette.OK
+        is State.Aligning -> "ALIGNING %.1f deg".format(status.yawError) to Palette.ACCENT
+        is State.Executing -> "WALKING" to Palette.OK
+        is State.Complete -> "ARRIVED in ${status.frames} frames" to Palette.OK
         is State.Failed -> "FAILED" to Palette.DANGER
     }
 
-    private fun goalLabel(status: State, telemetry: Telemetry): String = when (status) {
+    private fun goal(status: State, telemetry: Telemetry): String? = when (status) {
         is State.Settling -> status.goal
         is State.Planning -> status.goal
-        else -> telemetry.published?.finalGoal?.toString() ?: ""
+        else -> telemetry.published?.finalGoal?.toString()
     }
 
-    /** One sample per HUD frame while a search publishes. */
-    private fun sample(stats: SearchStats) {
-        if (stats.expansions == lastSampledExpansions) return
-        lastSampledExpansions = stats.expansions
-        val runway = if (stats.publishedFrame >= 0 && stats.cursorFrame >= 0) (stats.publishedFrame - stats.cursorFrame).toFloat() else 0f
-        runwayHistory[historyWrite] = runway
-        historyWrite = (historyWrite + 1) % runwayHistory.size
-        historyCount = minOf(historyCount + 1, runwayHistory.size)
+    private fun exitColor(exit: SearchExit): Color = when (exit) {
+        SearchExit.SOLVED -> Palette.OK
+        SearchExit.BUDGET -> Palette.WARNING
+        else -> Palette.DANGER
+    }
+
+    /** Expansions per second, smoothed over the stats the search publishes a few times a second. */
+    private fun sampleRate(expansions: Int) {
+        val now = System.nanoTime()
+        if (rateExpansions < 0 || expansions < rateExpansions) {
+            rateExpansions = expansions
+            rateNanos = now
+            expansionsPerSecond = 0.0
+            return
+        }
+        val seconds = (now - rateNanos) / 1e9
+        if (seconds < RATE_WINDOW_SECONDS) return
+        val instant = (expansions - rateExpansions) / seconds
+        expansionsPerSecond = if (expansionsPerSecond == 0.0) instant else expansionsPerSecond + (instant - expansionsPerSecond) * RATE_SMOOTHING
+        rateExpansions = expansions
+        rateNanos = now
     }
 
     /** 1234 -> "1.2k", 1_234_567 -> "1.2M": counters that only need their magnitude. */
-    private fun compact(value: Int): String = when {
-        value >= 1_000_000 -> "%.1fM".format(value / 1e6)
-        value >= 10_000 -> "%.0fk".format(value / 1e3)
-        value >= 1_000 -> "%.1fk".format(value / 1e3)
-        else -> value.toString()
+    private fun compact(value: Number): String {
+        val v = value.toLong()
+        return when {
+            v >= 1_000_000 -> "%.1fM".format(v / 1e6)
+            v >= 10_000 -> "%.0fk".format(v / 1e3)
+            v >= 1_000 -> "%.1fk".format(v / 1e3)
+            else -> v.toString()
+        }
     }
 
     private fun im(color: Color): Int = ImColor.rgba(color.red, color.green, color.blue, color.alpha)
@@ -363,15 +315,24 @@ object PathingHud : HudModule(
     private object Palette {
         val TEXT = Color(235, 238, 245)
         val MUTED = Color(148, 163, 184)
+        val HEADING = Color(203, 213, 225)
         val ACCENT = Color(96, 165, 250)
         val OK = Color(52, 211, 153)
         val WARNING = Color(251, 191, 36)
         val DANGER = Color(248, 113, 113)
-        val FRAME = Color(255, 255, 255, 18)
+        val TRACK = Color(255, 255, 255, 28)
         val HAIRLINE = Color(148, 163, 184, 70)
+        val CARD = Color(15, 17, 23, 175)
     }
 
-    private const val BAR_HEIGHT = 5f
+    private const val BAR_HEIGHT = 4f
+    private const val COLUMN_GAP = 14f
+    private const val VALUE_GAP = 10f
+    private const val SECTION_GAP = 4f
+    private const val CARD_ROUNDING = 6f
+    private const val MAX_MESSAGE_CHARS = 200
+    private const val RATE_WINDOW_SECONDS = 0.5
+    private const val RATE_SMOOTHING = 0.5
 
     /** Certified frames left ahead of the body before the walk is about to stand still. */
     private const val STARVING_RUNWAY_FRAMES = 20

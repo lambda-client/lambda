@@ -2,7 +2,6 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.core.headingAlignment
-import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
@@ -19,9 +18,7 @@ class CoarseValueField(
 	private val chains = HashMap<ChainKey, List<Stance>>()
 	private var chainsRevision = labelRevision()
 
-	override fun invalidate(sections: Set<PathingSection>) {
-		if (sections.isNotEmpty()) chains.clear()
-	}
+	override fun invalidate() = chains.clear()
 
 	override fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 

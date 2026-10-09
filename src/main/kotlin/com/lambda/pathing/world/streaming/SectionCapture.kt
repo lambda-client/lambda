@@ -14,6 +14,10 @@ internal class SectionCapture {
 	val localY: Int get() = cursor shr 8
 	val localZ: Int get() = (cursor shr 4) and 15
 
+	fun patch(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics) {
+		if ((((y and 15) shl 8) or ((z and 15) shl 4) or (x and 15)) < cursor) builder?.replace(x, y, z, physics)
+	}
+
 	fun begin(key: Long) {
 		activeKey = key
 		builder = ImmutableSnapshotSection.Builder()

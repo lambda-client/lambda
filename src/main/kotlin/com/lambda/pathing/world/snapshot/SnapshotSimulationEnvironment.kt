@@ -42,6 +42,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	internal fun hasSection(key: Long): Boolean = store.contains(key)
 
+	internal fun section(key: Long): ImmutableSnapshotSection? = store[key]
+
 	internal fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(storeRef) {
 		storeRef.store = storeRef.store.with(key, section)
 	}
@@ -110,17 +112,17 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z) { store[it] }
 
-	override fun slipperiness(pos: BlockPos): Double = checkedBlockAt(pos).slipperiness
+	override fun slipperiness(pos: BlockPos): Double = blockAt(pos).slipperiness
 
-	override fun velocityMultiplier(pos: BlockPos): Double = checkedBlockAt(pos).velocityMultiplier
+	override fun velocityMultiplier(pos: BlockPos): Double = blockAt(pos).velocityMultiplier
 
-	override fun jumpVelocityMultiplier(pos: BlockPos): Double = checkedBlockAt(pos).jumpVelocityMultiplier
+	override fun jumpVelocityMultiplier(pos: BlockPos): Double = blockAt(pos).jumpVelocityMultiplier
 
-	override fun bounceFactor(pos: BlockPos): Double = checkedBlockAt(pos).bounceFactor
+	override fun bounceFactor(pos: BlockPos): Double = blockAt(pos).bounceFactor
 
-	override fun dampensSteppingSpeed(pos: BlockPos): Boolean = checkedBlockAt(pos).dampensSteppingSpeed
+	override fun dampensSteppingSpeed(pos: BlockPos): Boolean = blockAt(pos).dampensSteppingSpeed
 
-	override fun isFenceLike(pos: BlockPos): Boolean = checkedBlockAt(pos).fenceLike
+	override fun isFenceLike(pos: BlockPos): Boolean = blockAt(pos).fenceLike
 
 	override fun isClimbable(pos: BlockPos): Boolean {
 		onRead?.invoke(pos)
@@ -134,7 +136,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		stepHeight: Double,
 	): Vec3d = VanillaBlockCollisionResolver.adjust(movement, boundingBox, onGround, stepHeight) { query, collisions ->
 		forEachCollisionShape(query) { pos, shape -> collisions.add(pos.x, pos.y, pos.z, shape) }
-	}
+	}.also { moved -> rejectUnsupportedContact(boundingBox.stretch(moved)) }
 
 	override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? {
 		val sections = PinnedSections(store)
@@ -164,20 +166,23 @@ class SnapshotSimulationEnvironment internal constructor(
 		forEachCollisionCandidate(query) { pos ->
 			onRead?.invoke(pos)
 			val block = exactBlock(pos, sections::at)
-			val unsupported = block.unsupportedPhysics
-			if (unsupported != null && query.intersectsUnitBlock(pos.x, pos.y, pos.z)) {
-				throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
-			}
 			if (!block.collisionShape.isEmpty) action(pos, block.collisionShape)
 		}
 	}
 
-	private fun checkedBlockAt(pos: BlockPos): SnapshotBlockPhysics {
+	private fun blockAt(pos: BlockPos): SnapshotBlockPhysics {
 		onRead?.invoke(pos)
-		val block = exactBlock(pos) { store[it] }
-		val unsupported = block.unsupportedPhysics
-		if (unsupported != null) throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
-		return block
+		return exactBlock(pos) { store[it] }
+	}
+
+	private fun rejectUnsupportedContact(box: Box) {
+		val sections = PinnedSections(store)
+		forEachCollisionCandidate(box) { pos ->
+			if (!box.intersectsUnitBlock(pos.x, pos.y, pos.z)) return@forEachCollisionCandidate
+			onRead?.invoke(pos)
+			val unsupported = exactBlock(pos, sections::at).unsupportedPhysics ?: return@forEachCollisionCandidate
+			throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
+		}
 	}
 
 	private inline fun exactBlock(pos: BlockPos, sectionAt: (Long) -> ImmutableSnapshotSection?): SnapshotBlockPhysics {

@@ -131,7 +131,6 @@ import com.lambda.imgui.ImGui.setCursorPosX
 import com.lambda.imgui.ImGui.setCursorPosY
 import com.lambda.imgui.ImGui.sliderFloat
 import com.lambda.imgui.ImGui.sliderInt
-import com.lambda.imgui.ImGui.textColored
 import com.lambda.imgui.ImGui.textUnformatted
 import com.lambda.imgui.ImGui.treeNode
 import com.lambda.imgui.ImGui.treePop
@@ -433,18 +432,19 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    fun textColored(text: String, color: Color) {
-        val floats = floatArrayOf(0f, 0f, 0f, 0f)
-        val (r, g, b, a) = color.getColorComponents(floats)
-        textColored(r, g, b, a, text)
-    }
+    fun textColored(text: String, color: Color) =
+        withStyleColor(ImGuiCol.Text, color.red, color.green, color.blue, color.alpha) { textUnformatted(text) }
 
     /**
      * Text with disabled coloring.
      *
      * @param text The text to display
      */
-    fun textDisabled(text: String) = ImGui.textDisabled(text)
+    fun textDisabled(text: String) {
+        pushStyleColor(ImGuiCol.Text, ImGui.getStyleColorVec4(ImGuiCol.TextDisabled))
+        textUnformatted(text)
+        popStyleColor()
+    }
 
     /**
      * Text that can be copied to clipboard.
@@ -475,7 +475,10 @@ object ImGuiBuilder {
      *
      * @param text The text to display
      */
-    fun bulletText(text: String) = ImGui.bulletText(text)
+    fun bulletText(text: String) {
+        ImGui.bullet()
+        textUnformatted(text)
+    }
 
     /**
      * Label with text aligned to the right.

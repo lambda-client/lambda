@@ -100,6 +100,16 @@ object PlanningDebugChannel : SearchProbe {
 	@Volatile
 	var hudWanted: Boolean = false
 
+	class CoarseSample(val frames: Long, val graphNodes: Int, val anchors: Int, val settleMillis: Long)
+
+	@Volatile
+	var coarse: CoarseSample? = null
+		private set
+
+	fun publishCoarse(sample: CoarseSample) {
+		if (isActive) coarse = sample
+	}
+
 	@Volatile
 	var lastExhaustion: SearchStats? = null
 		private set
@@ -261,6 +271,7 @@ object PlanningDebugChannel : SearchProbe {
 		lastExhaustion = null
 		lastExhaustionLedger = ""
 		graph = null
+		coarse = null
 		clearSearchViews()
 	}
 

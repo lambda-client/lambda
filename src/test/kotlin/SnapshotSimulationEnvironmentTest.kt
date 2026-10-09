@@ -215,21 +215,25 @@ class SnapshotSimulationEnvironmentTest {
     }
 
     @Test
-    fun `unsupported captured physics is rejected`() {
-        val environment = environment(
-            mapOf(
-                BlockPos.ORIGIN to SnapshotBlockPhysics(
-                    collisionShape = VoxelShapes.empty(),
-                    unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.FLUID),
-                ),
-            ),
+    fun `unsupported physics is rejected when the body moves into it, not when its friction is read`() {
+        val fluid = SnapshotBlockPhysics(
+            collisionShape = VoxelShapes.empty(),
+            unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.FLUID),
         )
+        val pad = SnapshotBlockPhysics(collisionShape = VoxelShapes.cuboid(0.0625, 0.0, 0.0625, 0.9375, 0.09375, 0.9375))
+        val body = Box(0.2, 1.2, 0.2, 0.8, 3.0, 0.8)
 
+        val open = environment(mapOf(BlockPos.ORIGIN to fluid))
+        assertEquals(1.0, open.velocityMultiplier(BlockPos.ORIGIN), "a fluid under a support only lends its friction")
         val failure = assertFailsWith<UnsupportedBlockPhysicsException> {
-            environment.velocityMultiplier(BlockPos.ORIGIN)
+            open.adjustMovementForCollisions(Vec3d(0.0, -0.5, 0.0), body, onGround = false, stepHeight = 0.6)
         }
-
         assertEquals(UnsupportedPhysicsKind.FLUID, failure.physics.kind)
+
+        // The same fall onto a lily pad stops on the pad, above the water the query box reached into.
+        val padded = environment(mapOf(BlockPos.ORIGIN to fluid, BlockPos(0, 1, 0) to pad))
+        val landed = padded.adjustMovementForCollisions(Vec3d(0.0, -0.5, 0.0), body, onGround = false, stepHeight = 0.6)
+        assertClose(1.09375 - 1.2, landed.y)
     }
 
     @Test

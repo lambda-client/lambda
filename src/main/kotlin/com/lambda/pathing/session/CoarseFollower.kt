@@ -6,8 +6,6 @@ import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FieldEdges
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.coarse.SwitchableValueField
-import com.lambda.pathing.core.PathingChunk
-import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.LegSource
@@ -15,8 +13,6 @@ import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.search.WorldSyncResult
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.streaming.PathingWorld
-import com.lambda.pathing.world.streaming.WorldEventBatch
-import net.minecraft.util.math.ChunkSectionPos
 import org.apache.logging.log4j.LogManager
 
 private val LOG = LogManager.getLogger(Lambda.SYMBOL)
@@ -49,16 +45,17 @@ internal class CoarseFollower(
 		val batch = events?.drain()?.takeUnless { it.isEmpty }
 		if (batch != null) {
 			edges.invalidate(batch)
-			field.invalidate(batch.sections)
+			field.invalidate()
 		}
-		val mutations = batch?.let(::mutatedSections).orEmpty()
+		val mutations = batch?.mutations.orEmpty()
+		val chunks = batch?.chunks.orEmpty()
 		val latest = coarse.frame(leg)
 		val result = when {
 			latest != null && latest !== frame -> {
 				adopt(latest)
-				WorldSyncResult.Changed(latest.route, mutations, batch?.revision)
+				WorldSyncResult.Changed(latest.route, mutations, chunks, batch?.revision)
 			}
-			batch != null -> WorldSyncResult.Woken(mutations, batch.revision)
+			batch != null -> WorldSyncResult.Woken(mutations, chunks, batch.revision)
 			else -> WorldSyncResult.Quiet
 		}
 		syncNanos += System.nanoTime() - started
@@ -112,17 +109,6 @@ internal class CoarseFollower(
 		field.current = edges.field(next.goal, next.labels, next.sequence)
 		adopted++
 		PlanningDebugChannel.publishRoute(next.route)
-	}
-
-	private fun mutatedSections(batch: WorldEventBatch): Set<PathingSection> {
-		if (batch.mutations.isEmpty() && batch.chunks.isEmpty()) return emptySet()
-		val mutated = HashSet(batch.mutations)
-		if (batch.chunks.isNotEmpty()) world?.snapshot?.forEachSectionKey { key ->
-			val x = ChunkSectionPos.unpackX(key)
-			val z = ChunkSectionPos.unpackZ(key)
-			if (PathingChunk(x, z) in batch.chunks) mutated += PathingSection(x, ChunkSectionPos.unpackY(key), z)
-		}
-		return mutated
 	}
 
 	private companion object {

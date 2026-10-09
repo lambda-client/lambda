@@ -2,14 +2,13 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.SteeringField
-import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 
 interface ValueField : SteeringField {
 	val view: CoarseVoxelView
 
-	fun invalidate(sections: Set<PathingSection>)
+	fun invalidate()
 	fun lowerBound(stance: Stance): Double
 	fun guide(stance: Stance): Double
 	fun guide(stance: Stance, speed: SpeedClass): Double
@@ -31,7 +30,7 @@ class SwitchableValueField(initial: CoarseValueField) : ValueField {
 
 	override val view: CoarseVoxelView get() = current.view
 
-	override fun invalidate(sections: Set<PathingSection>) = current.invalidate(sections)
+	override fun invalidate() = current.invalidate()
 	override fun lowerBound(stance: Stance): Double = current.lowerBound(stance)
 	override fun guide(stance: Stance): Double = current.guide(stance)
 	override fun guide(stance: Stance, speed: SpeedClass): Double = current.guide(stance, speed)

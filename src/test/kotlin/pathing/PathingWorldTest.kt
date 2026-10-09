@@ -11,7 +11,9 @@ package pathing
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
+import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.streaming.InterestTier
@@ -19,6 +21,7 @@ import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.streaming.WorldMutation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -74,7 +77,7 @@ class PathingWorldTest {
     }
 
     @Test
-    fun `a block change re-captures the section and installs the replacement only on drain`() {
+    fun `a block change patches its cell and installs the patch only on drain`() {
         world.interest(listOf(key), InterestTier.BODY)
         world.advance(1_000.0)
         events.drain()
@@ -82,59 +85,75 @@ class PathingWorldTest {
         source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
         world.onBlockChanged(BlockPos(5, 70, 5))
         assertEquals(2L, world.revision, "the mutation is a revision on its own")
-        assertEquals(1, world.pendingDemand)
-        assertTrue(world.snapshot.hasSection(key), "the stale section stays readable until drain")
-        assertTrue(world.snapshot.collisionShape(5, 70, 5).isEmpty)
-
-        world.advance(1_000.0)
-        assertEquals(3L, world.revision)
-        assertTrue(world.snapshot.collisionShape(5, 70, 5).isEmpty, "replacement is parked, not installed")
+        assertEquals(0, world.pendingDemand, "the cell is patched, nothing is re-captured")
+        assertTrue(world.snapshot.collisionShape(5, 70, 5).isEmpty, "the patch is parked until drain")
 
         val batch = events.drain()
         assertFalse(world.snapshot.collisionShape(5, 70, 5).isEmpty)
-        assertEquals(setOf(section), batch.sections)
-        assertEquals(setOf(section), batch.mutations)
-        assertEquals(
-            section,
-            (world.changedSince(1L, setOf(section), emptySet()) as WorldMutation.Section).section,
-        )
+        assertTrue(world.snapshot.collisionShape(6, 70, 5).isEmpty)
+        assertTrue(batch.sections.isEmpty())
+        assertEquals(setOf(VoxelPos(5, 70, 5)), batch.mutations)
+        assertEquals(listOf(WorldMutation.Cell(VoxelPos(5, 70, 5), 2L)), world.mutationsSince(1L))
+        assertTrue(world.mutationsSince(2L).isEmpty())
     }
 
     @Test
-    fun `a block change in an uncaptured section only records the mutation`() {
-        world.onBlockChanged(BlockPos(5, 70, 5))
-        assertEquals(1L, world.revision)
-        assertEquals(0, world.pendingDemand, "nothing to re-capture")
-        assertEquals(setOf(section), events.drain().mutations)
-    }
-
-    @Test
-    fun `a block change during a first capture is recorded but does not restart the capture`() {
-        world.interest(listOf(key), InterestTier.BODY)
-        world.advance(0.0)
-        assertEquals(1, world.pendingInterest)
-        world.onBlockChanged(BlockPos(1, 65, 1))
-        assertEquals(1L, world.revision)
-        assertEquals(1, world.pendingInterest, "the section was never present, so capture carries on")
-        assertEquals(0, world.pendingDemand)
-        world.advance(1_000.0)
-        assertTrue(world.snapshot.hasSection(key))
-        assertEquals(setOf(section), events.drain().mutations)
-    }
-
-    @Test
-    fun `a block change while a replacement is mid-capture restarts that capture`() {
+    fun `a block change that keeps the recorded physics is not a mutation`() {
         world.interest(listOf(key), InterestTier.BODY)
         world.advance(1_000.0)
         events.drain()
+
+        source.set(5, 70, 5, SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.AIR))
+        world.onBlockChanged(BlockPos(5, 70, 5))
+        assertEquals(1L, world.revision)
+        assertEquals(0, world.pendingDemand, "nothing to re-capture")
+        assertTrue(events.drain().isEmpty)
+    }
+
+    @Test
+    fun `a block change in an uncaptured section is ignored`() {
+        source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
+        world.onBlockChanged(BlockPos(5, 70, 5))
+        assertEquals(0L, world.revision)
+        assertEquals(0, world.pendingDemand, "nothing to re-capture")
+        assertTrue(events.drain().isEmpty)
+    }
+
+    @Test
+    fun `a block change during a first capture patches the cells the capture already wrote`() {
+        world.interest(listOf(key), InterestTier.BODY)
+        world.advance(0.0)
+        source.set(1, 65, 1, SnapshotBlockPhysics.FULL_CUBE)
         world.onBlockChanged(BlockPos(1, 65, 1))
+        source.set(0, 64, 0, SnapshotBlockPhysics.FULL_CUBE)
+        world.onBlockChanged(BlockPos(0, 64, 0))
+        assertEquals(1, world.pendingInterest, "the capture carries on")
+        assertEquals(0, world.pendingDemand)
+        world.advance(1_000.0)
+        assertEquals(1L, world.revision)
+        assertFalse(world.snapshot.collisionShape(0, 64, 0).isEmpty, "the written cell was patched")
+        assertFalse(world.snapshot.collisionShape(1, 65, 1).isEmpty, "the unwritten cell was captured fresh")
+        val batch = events.drain()
+        assertEquals(setOf(section), batch.sections)
+        assertTrue(batch.mutations.isEmpty(), "nothing depended on a section that was never installed")
+    }
+
+    @Test
+    fun `a block change in a dropped section patches its re-capture instead of recording a mutation`() {
+        world.interest(listOf(key), InterestTier.BODY)
+        world.advance(1_000.0)
+        events.drain()
+        world.onChunkEvent(0, 0)
         world.advance(0.0)
         assertEquals(1, world.pendingInterest, "re-capture in flight")
-        world.onBlockChanged(BlockPos(2, 65, 2))
-        assertEquals(1, world.pendingDemand, "the in-flight capture was abandoned and the key re-queued")
+        source.set(0, 64, 0, SnapshotBlockPhysics.FULL_CUBE)
+        world.onBlockChanged(BlockPos(0, 64, 0))
+        assertEquals(2L, world.revision, "the chunk event already covers the section")
         world.advance(1_000.0)
-        assertEquals(0, world.pendingInterest)
-        assertEquals(4L, world.revision)
+        assertEquals(3L, world.revision)
+        val batch = events.drain()
+        assertFalse(world.snapshot.collisionShape(0, 64, 0).isEmpty)
+        assertTrue(batch.mutations.isEmpty())
     }
 
     @Test
@@ -154,10 +173,7 @@ class PathingWorldTest {
         assertEquals(setOf(PathingChunk(0, 0)), batch.chunks)
         assertTrue(batch.mutations.isEmpty(), "chunk events are not block mutations")
         assertFalse(world.snapshot.hasSection(key), "drain dropped the stale section")
-        assertEquals(
-            PathingChunk(0, 0),
-            (world.changedSince(1L, emptySet(), setOf(PathingChunk(0, 0))) as WorldMutation.Chunk).chunk,
-        )
+        assertEquals(listOf(WorldMutation.Chunk(PathingChunk(0, 0), 2L)), world.mutationsSince(1L))
     }
 
     @Test

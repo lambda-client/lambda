@@ -9,5 +9,6 @@ enum class UnsupportedPhysicsKind {
 	FLUID,
 	COBWEB,
 	POWDER_SNOW,
+	SWEET_BERRY_BUSH,
 	HONEY_SIDE_EFFECTS,
 }

@@ -1,13 +1,13 @@
 package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.core.PathingChunk
-import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.VoxelPos
 
 sealed interface WorldMutation {
 	val revision: Long
 
-	data class Section(
-		val section: PathingSection,
+	data class Cell(
+		val cell: VoxelPos,
 		override val revision: Long,
 	) : WorldMutation
 

@@ -240,6 +240,7 @@ internal class CoarseService(
 			published.signalAll()
 		}
 		PlanningDebugChannel.refreshGraph(planner, Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5))
+		PlanningDebugChannel.publishCoarse(PlanningDebugChannel.CoarseSample(frame.sequence, planner.graphSize, frame.anchors.size, timings.elapsedMillis))
 	}
 
 	private fun requestKnowledge(world: PathingWorld, state: CoarsePlanningState, route: CoarseRoutePlan?, tier: InterestTier) {

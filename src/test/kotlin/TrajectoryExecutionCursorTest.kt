@@ -125,7 +125,6 @@ class TrajectoryExecutionCursorTest {
         val safelyPastOldChunk = plan.frames.indexOfFirst { it.state.position.x > 18.0 }
         assertTrue(safelyPastOldChunk > 0, "fixture must cross into the next chunk")
         assertTrue(oldChunk !in plan.dependencyChunksBetween(safelyPastOldChunk, plan.tape.frameCount))
-        assertTrue(plan.dependencySectionsBetween(plan.tape.frameCount, plan.tape.frameCount).isEmpty())
         assertTrue(plan.dependencyChunksBetween(plan.tape.frameCount, plan.tape.frameCount).isEmpty())
     }
 

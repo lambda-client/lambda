@@ -30,6 +30,12 @@ data class CellBox(val xs: IntRange, val ys: IntRange, val zs: IntRange) {
 
 		fun column(chunk: PathingChunk): CellBox = CellBox((chunk.x shl 4)..((chunk.x shl 4) + 15), ANY_Y, (chunk.z shl 4)..((chunk.z shl 4) + 15))
 
+		fun bounding(cells: Collection<VoxelPos>): CellBox = CellBox(
+			cells.minOf(VoxelPos::x)..cells.maxOf(VoxelPos::x),
+			cells.minOf(VoxelPos::y)..cells.maxOf(VoxelPos::y),
+			cells.minOf(VoxelPos::z)..cells.maxOf(VoxelPos::z),
+		)
+
 		fun sections(chunk: PathingChunk, lowestY: Int, highestY: Int): CellBox =
 			CellBox((chunk.x shl 4)..((chunk.x shl 4) + 15), (lowestY shl 4)..((highestY shl 4) + 15), (chunk.z shl 4)..((chunk.z shl 4) + 15))
 	}

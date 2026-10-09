@@ -76,6 +76,7 @@ object BlockPhysicsCapture {
 		!state.fluidState.isEmpty -> UnsupportedPhysicsKind.FLUID
 		state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
 		state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
+		state.isOf(Blocks.SWEET_BERRY_BUSH) -> UnsupportedPhysicsKind.SWEET_BERRY_BUSH
 		state.isOf(Blocks.HONEY_BLOCK) -> UnsupportedPhysicsKind.HONEY_SIDE_EFFECTS
 		else -> null
 	}?.let { kind ->

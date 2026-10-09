@@ -9,8 +9,10 @@
 
 package pathing
 
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.streaming.RevisionLog
 import com.lambda.pathing.world.streaming.WorldMutation
 import java.util.concurrent.CountDownLatch
@@ -19,11 +21,11 @@ import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RevisionLogTest {
     private val section = PathingSection(1, 4, 2)
+    private val cell = VoxelPos(21, 70, 37)
     private val chunk = PathingChunk(1, 2)
 
     @Test
@@ -32,7 +34,7 @@ class RevisionLogTest {
         assertEquals(0L, log.revision)
         log.recordCaptured(section)
         assertEquals(1L, log.revision)
-        log.recordMutation(section)
+        log.recordMutation(cell)
         assertEquals(2L, log.revision)
         log.recordChunkChanged(chunk)
         assertEquals(3L, log.revision)
@@ -41,23 +43,20 @@ class RevisionLogTest {
     }
 
     @Test
-    fun `changedSince reports the depended section or chunk that moved`() {
+    fun `mutationsSince lists the cells and chunks that changed after a revision, newest cell first`() {
         val log = RevisionLog()
         log.recordCaptured(PathingSection(9, 9, 9))
-        assertNull(log.changedSince(0L, setOf(section), setOf(chunk)), "captures are not mutations")
+        assertTrue(log.mutationsSince(0L).isEmpty(), "captures are not mutations")
 
-        log.recordMutation(section)
-        assertEquals(WorldMutation.Section(section, 2L), log.changedSince(1L, setOf(section), setOf(chunk)))
-        assertNull(log.changedSince(2L, setOf(section), setOf(chunk)))
-        assertNull(log.changedSince(1L, setOf(PathingSection(0, 0, 0)), emptySet()), "undepended section")
+        val other = VoxelPos(20, 70, 36)
+        log.recordMutation(cell)
+        log.recordMutation(other)
+        assertEquals(listOf(WorldMutation.Cell(other, 3L), WorldMutation.Cell(cell, 2L)), log.mutationsSince(1L))
+        assertEquals(listOf(WorldMutation.Cell(other, 3L)), log.mutationsSince(2L))
 
         log.recordChunkChanged(chunk)
-        assertEquals(WorldMutation.Chunk(chunk, 3L), log.changedSince(2L, emptySet(), setOf(chunk)))
-        assertEquals(
-            WorldMutation.Section(section, 2L),
-            log.changedSince(1L, setOf(section), setOf(chunk)),
-            "sections are checked before chunks",
-        )
+        assertEquals(listOf(WorldMutation.Chunk(chunk, 4L)), log.mutationsSince(3L))
+        assertTrue(log.mutationsSince(4L).isEmpty())
     }
 
     @Test
@@ -65,14 +64,33 @@ class RevisionLogTest {
         val log = RevisionLog()
         val subscription = log.subscribe()
         log.recordCaptured(section)
-        log.recordMutation(PathingSection(3, 3, 3))
+        log.recordMutation(cell)
         log.recordChunkChanged(chunk)
         val batch = subscription.drain()
         assertEquals(3L, batch.revision)
-        assertEquals(setOf(section, PathingSection(3, 3, 3)), batch.sections)
-        assertEquals(setOf(PathingSection(3, 3, 3)), batch.mutations)
+        assertEquals(setOf(section), batch.sections)
+        assertEquals(setOf(cell), batch.mutations)
         assertEquals(setOf(chunk), batch.chunks)
         assertTrue(subscription.drain().isEmpty)
+    }
+
+    @Test
+    fun `mutated cells invalidate their bounding box per section, a chunk event its column and arrivals the rest`() {
+        val log = RevisionLog()
+        val subscription = log.subscribe()
+        log.recordMutation(VoxelPos(3, 70, 5))
+        log.recordMutation(VoxelPos(9, 66, 2))
+        log.recordMutation(VoxelPos(20, 70, 3))
+        log.recordChunkChanged(PathingChunk(1, 0))
+        log.recordCaptured(PathingSection(0, 6, 0))
+        log.recordCaptured(PathingSection(1, 5, 0))
+        log.recordCaptured(PathingSection(2, 3, 0))
+        val batch = subscription.drain()
+        assertEquals(listOf(CellBox.column(PathingChunk(1, 0)), CellBox(3..9, 66..70, 2..5)), batch.changed)
+        assertEquals(
+            setOf(CellBox.sections(PathingChunk(0, 0), 6, 6), CellBox.sections(PathingChunk(2, 0), 3, 3)),
+            batch.arrived.toSet(),
+        )
     }
 
     @Test

@@ -7,6 +7,8 @@ import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.UnsupportedPhysics
+import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -330,7 +332,46 @@ class BlockShapeStanceTest {
         assertEquals(Stance(3, 66, 0), route.nodes.last(), "the route must run along the fence")
     }
 
+    /**
+     * Lily pads on open water.
+     *
+     * A pad is a plate a pixel and a half thick floating on the water. Standing on it, vanilla
+     * takes friction, speed and jump from the block half a block under the feet -- the water --
+     * and that read used to fail as "unsupported fluid", so no tape could start on, land on or
+     * cross a pad even though the pad itself holds the body.
+     */
+    @Test
+    fun `lily pads with open water between them are jumped across`() {
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (x in -4..12) for (z in -2..2) {
+            blocks[BlockPos(x, 62, z)] = SnapshotBlockPhysics.FULL_CUBE
+            blocks[BlockPos(x, 63, z)] = if (x in 0..8) water() else SnapshotBlockPhysics.FULL_CUBE
+        }
+        for (x in 0..8 step 2) blocks[BlockPos(x, 64, 0)] = lilyPad()
+        val environment = SnapshotSimulationEnvironment.synthetic(bounds(), blocks)
+
+        val planner = CoarsePlanner(environment, library(), Stance(-2, 64, 0), Stance(11, 64, 0))
+        assertTrue(planner.repair().converged, "a pond with lily pads must converge")
+        planner.expandSearchField()
+        val route = assertNotNull(planner.routePlan(0L), "the pads must carry a route over the pond")
+
+        val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 64.0, 0.5), -90.0), environment)
+        val path = assertNotNull(
+            (outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial },
+            "a walk over the pads must be certified, got $outcome",
+        )
+        assertTrue(path.plan.frames.none { it.state.position.y < 64.0 }, "the tape must never sink into the water")
+        assertEquals(Stance(11, 64, 0), Stance.of(path.plan.frames.last().state.position, onGround = true))
+    }
+
     private fun bounds() = SimulationSnapshotBounds(-16, 55, -16, 16, 80, 16)
+
+    private fun water() = SnapshotBlockPhysics(
+        collisionShape = VoxelShapes.empty(),
+        unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.FLUID, "minecraft:water"),
+    )
+
+    private fun lilyPad() = SnapshotBlockPhysics.of(VoxelShapes.cuboid(1 / 16.0, 0.0, 1 / 16.0, 15 / 16.0, 1.5 / 16.0, 15 / 16.0))
 
     /** Vanilla's fence: a 1.5-tall post, narrow enough to leave the cell mostly open. */
     private fun fence() = SnapshotBlockPhysics.of(

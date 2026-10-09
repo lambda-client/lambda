@@ -5,7 +5,6 @@ import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.PathingChunk
-import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -22,7 +21,7 @@ class TrajectoryPlan internal constructor(
 	val segments: List<PlanSegment>,
 ) {
 	val frames: List<SimulatedTrajectoryFrame> = Collections.unmodifiableList(ArrayList(frames))
-	private val sectionReads = FrameDependencyIndex(frameDependencies, PathingSection::containing)
+	private val cellReads = FrameDependencyIndex(frameDependencies) { it }
 	private val chunkReads = FrameDependencyIndex(frameDependencies, PathingChunk::containing)
 
 	init {
@@ -80,20 +79,21 @@ class TrajectoryPlan internal constructor(
 		first
 	}
 
-	fun dependencySectionsBetween(nextFrame: Int, untilFrame: Int): Set<PathingSection> {
-		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
-		return sectionReads.between(nextFrame, untilFrame)
-	}
-
 	fun dependencyChunksBetween(nextFrame: Int, untilFrame: Int): Set<PathingChunk> {
 		require(nextFrame in 0..tape.frameCount) { "Frame is outside the published tape" }
 		return chunkReads.between(nextFrame, untilFrame)
 	}
 
-	fun firstFrameReading(sections: Set<PathingSection>): Int? = sections.mapNotNull { sectionReads.first(it) }.minOrNull()
+	fun reads(mutation: WorldMutation, nextFrame: Int, untilFrame: Int): Boolean = when (mutation) {
+		is WorldMutation.Cell -> cellReads.reads(mutation.cell, nextFrame, untilFrame)
+		is WorldMutation.Chunk -> chunkReads.reads(mutation.chunk, nextFrame, untilFrame)
+	}
+
+	fun firstFrameReading(cells: Set<VoxelPos>, chunks: Set<PathingChunk>): Int? =
+		(cells.mapNotNull(cellReads::first) + chunks.mapNotNull(chunkReads::first)).minOrNull()
 
 	fun firstFrameReading(mutation: WorldMutation): Int? = when (mutation) {
-		is WorldMutation.Section -> sectionReads.first(mutation.section)
+		is WorldMutation.Cell -> cellReads.first(mutation.cell)
 		is WorldMutation.Chunk -> chunkReads.first(mutation.chunk)
 	}
 

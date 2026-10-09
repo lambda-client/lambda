@@ -274,7 +274,7 @@ internal object PathingTestHarness {
                 stuckReported = true
                 recordStuck(
                     "no progress for $stillTicks ticks in ${observed.first}(${observed.second})",
-                    "at tick $ticks: ${PathingService.diagnostics()}",
+                    "at tick $ticks: ${diagnostics()}",
                 )
             }
         }
@@ -308,7 +308,7 @@ internal object PathingTestHarness {
             // and replanned ends on a short final leg, and asking that leg whether the
             // trip pressed jump answers about the last few blocks instead.
             val walked = walkedPaths.ifEmpty { listOf(path) }
-            check(path.plan.dependencySectionsBetween(0, path.plan.tape.frameCount).isNotEmpty()) {
+            check(path.plan.dependencyChunksBetween(0, path.plan.tape.frameCount).isNotEmpty()) {
                 "$scenario: no voxel dependencies published"
             }
             println(
@@ -550,6 +550,21 @@ internal object PathingTestHarness {
 
         context.runOnClient<IllegalStateException> {
             Lambda.mc.player?.input = previousInput
+        }
+    }
+
+    private fun diagnostics(): String = buildString {
+        append("status=").append(PathingService.status)
+        PathingService.telemetry.published?.let { p ->
+            append(" tape=").append(p.plan.tape.frameCount)
+            append(" routeGoal=").append(p.route.goal)
+            append(" finalGoal=").append(p.finalGoal)
+            append(" partial=").append(p.partial)
+            append(" seq=").append(p.publicationSequence)
+        }
+        PathingService.world?.let { w ->
+            append(" revision=").append(w.revision)
+            append(" pendingInterest=").append(w.pendingInterest)
         }
     }
 

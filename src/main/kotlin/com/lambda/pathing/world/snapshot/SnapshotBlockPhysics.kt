@@ -8,6 +8,7 @@ import com.lambda.pathing.world.CollisionClass
 import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
+import java.util.Objects
 
 data class SnapshotBlockPhysics(
 	val collisionShape: VoxelShape,
@@ -26,6 +27,19 @@ data class SnapshotBlockPhysics(
 	val cellClass: CellClass = if (unsupportedPhysics != null) CellClass.HAZARD else CellClass.of(coarseVoxel, collisionClass)
 
 	private val collisionBoxes = collisionShape.boundingBoxes
+
+	private val hash = Objects.hash(
+		collisionBoxes, slipperiness, velocityMultiplier, jumpVelocityMultiplier, unsupportedPhysics,
+		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed,
+	)
+
+	override fun equals(other: Any?): Boolean = this === other || other is SnapshotBlockPhysics && hash == other.hash &&
+			collisionBoxes == other.collisionBoxes && slipperiness == other.slipperiness &&
+			velocityMultiplier == other.velocityMultiplier && jumpVelocityMultiplier == other.jumpVelocityMultiplier &&
+			unsupportedPhysics == other.unsupportedPhysics && coarseVoxel == other.coarseVoxel && fenceLike == other.fenceLike &&
+			bounceFactor == other.bounceFactor && dampensSteppingSpeed == other.dampensSteppingSpeed
+
+	override fun hashCode(): Int = hash
 
 	internal fun intersectsCollisionBox(query: Box, x: Int, y: Int, z: Int): Boolean =
 		collisionBoxes.any { local ->

@@ -15,7 +15,6 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.search.SearchStats
@@ -78,7 +77,6 @@ class DagRepairTest {
         var publishedFrames = 0
         var mutated = false
         var exhaustion: SearchStats? = null
-        val wallSection = PathingSection(wallX shr 4, 0, 0)
 
         val outcome = walkHorizon(
             route, planner, initial, PROFILE, environment, MotionConstraints(),
@@ -102,7 +100,7 @@ class DagRepairTest {
                         environment.install(ChunkSectionPos.asLong(wallX shr 4, 0, 0), floorSection(wallX shr 4, withWall = true))
                         planner.chunksChanged(listOf(PathingChunk(wallX shr 4, 0)))
                         planner.repair()
-                        WorldSyncResult.Changed(planner.routePlan(1L), setOf(wallSection))
+                        WorldSyncResult.Changed(planner.routePlan(1L), chunks = setOf(PathingChunk(wallX shr 4, 0)))
                     } else WorldSyncResult.Quiet
             },
             onConcluded = { exhaustion = it },

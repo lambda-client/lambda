@@ -2,6 +2,7 @@ package com.lambda.pathing.world.streaming
 
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -31,6 +32,8 @@ class PathingWorld(
 	private var capturedCells = 0L
 	@Volatile
 	private var captureNanos = 0L
+
+	val sectionsCaptured: Long get() = capturedSections
 
 	fun captureLedger(): String =
 		"%d sections/%d cells in %d ms".format(capturedSections, capturedCells, captureNanos / 1_000_000L)
@@ -74,7 +77,15 @@ class PathingWorld(
 	}
 
 	fun onBlockChanged(pos: BlockPos) {
-		invalidateSection(ChunkSectionPos.toLong(pos), mutation = true)
+		val key = ChunkSectionPos.toLong(pos)
+		val capturing = capture.activeKey == key
+		val recorded = if (key in pendingRemovals) null else pendingReplacements[key] ?: snapshot.section(key)
+		if (!capturing && recorded == null) return
+		val physics = source.physicsAt(pos.x, pos.y, pos.z)
+		if (capturing) capture.patch(pos.x, pos.y, pos.z, physics)
+		if (recorded == null || recorded[pos.x, pos.y, pos.z] == physics) return
+		pendingReplacements[key] = recorded.with(pos.x, pos.y, pos.z, physics)
+		revisions.recordMutation(VoxelPos(pos.x, pos.y, pos.z))
 	}
 
 	fun onChunkEvent(chunkX: Int, chunkZ: Int) {
@@ -88,7 +99,7 @@ class PathingWorld(
 		}
 		revisions.recordChunkChanged(PathingChunk(chunkX, chunkZ))
 		val keys = inChunk.iterator()
-		while (keys.hasNext()) invalidateSection(keys.nextLong(), mutation = false)
+		while (keys.hasNext()) dropSection(keys.nextLong())
 	}
 
 	fun interest(sectionKeys: Iterable<Long>, tier: InterestTier) {
@@ -107,11 +118,7 @@ class PathingWorld(
 		interest(keys, tier)
 	}
 
-	fun changedSince(
-		snapshotRevision: Long,
-		dependedSections: Set<PathingSection>,
-		dependedChunks: Set<PathingChunk>,
-	): WorldMutation? = revisions.changedSince(snapshotRevision, dependedSections, dependedChunks)
+	fun mutationsSince(snapshotRevision: Long): List<WorldMutation> = revisions.mutationsSince(snapshotRevision)
 
 	fun close() = revisions.close()
 
@@ -153,15 +160,11 @@ class PathingWorld(
 		interest(keys, InterestTier.DEMAND)
 	}
 
-	private fun invalidateSection(key: Long, mutation: Boolean) {
-		val present = snapshot.hasSection(key) || pendingReplacements.containsKey(key)
-		if (mutation) revisions.recordMutation(sectionOf(key)) else revisions.signal()
-		if (present) {
-			pendingReplacements.remove(key)
-			if (capture.activeKey == key) capture.abandon()
-			pendingRemovals += key
-			interest(listOf(key), InterestTier.DEMAND)
-		}
+	private fun dropSection(key: Long) {
+		pendingReplacements.remove(key)
+		if (capture.activeKey == key) capture.abandon()
+		pendingRemovals += key
+		interest(listOf(key), InterestTier.DEMAND)
 	}
 
 	private fun trustedKey(key: Long): Boolean =

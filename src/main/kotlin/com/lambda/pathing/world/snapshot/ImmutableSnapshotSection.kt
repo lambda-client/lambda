@@ -11,12 +11,16 @@ internal class ImmutableSnapshotSection private constructor(
 	val bouncy: Boolean = palette.any { it.coarseVoxel.bouncy }
 	val indexStorageBytes: Int get() = byteIndices?.size ?: shortIndices?.size?.times(Short.SIZE_BYTES) ?: 0
 
-	operator fun get(x: Int, y: Int, z: Int): SnapshotBlockPhysics {
+	operator fun get(x: Int, y: Int, z: Int): SnapshotBlockPhysics = cell(localIndex(x, y, z))
+
+	fun with(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics): ImmutableSnapshotSection =
+		Builder(this).apply { replace(x, y, z, physics) }.build()
+
+	private fun cell(index: Int): SnapshotBlockPhysics {
 		if (palette.size == 1) return palette[0]
-		val localIndex = localIndex(x, y, z)
-		byteIndices?.let { return palette[it[localIndex].toInt() and 0xff] }
+		byteIndices?.let { return palette[it[index].toInt() and 0xff] }
 		val shorts = shortIndices ?: error("Non-uniform snapshot section has no indices")
-		return palette[shorts[localIndex].toInt() and 0xffff]
+		return palette[shorts[index].toInt() and 0xffff]
 	}
 
 	fun classify(planes: Array<LongArray>) {
@@ -31,13 +35,21 @@ internal class ImmutableSnapshotSection private constructor(
 		for (index in 0 until SECTION_CELLS) classes[shorts[index].toInt() and 0xffff].mark(planes, index)
 	}
 
-	class Builder {
+	class Builder() {
 		private val cells = Array(SECTION_CELLS) { SnapshotBlockPhysics.AIR }
 		private var writes = 0
+
+		internal constructor(source: ImmutableSnapshotSection) : this() {
+			for (index in 0 until SECTION_CELLS) cells[index] = source.cell(index)
+		}
 
 		fun set(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics) {
 			cells[localIndex(x, y, z)] = physics
 			writes++
+		}
+
+		fun replace(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics) {
+			cells[localIndex(x, y, z)] = physics
 		}
 
 		fun fill(physics: SnapshotBlockPhysics) {
