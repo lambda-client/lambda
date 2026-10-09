@@ -36,7 +36,6 @@ import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.selectContainers
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePackets
-import com.lambda.interaction.handler.handlers.ContainerHandler
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.interaction.manager.managers.inventory.InvRequestFailureReason
@@ -51,7 +50,6 @@ import com.lambda.threading.runSafeAutomated
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.item.ItemStackUtils.hasSpace
 import com.lambda.util.item.StackMovePlanner
-import com.lambda.util.extension.containerSlots
 import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
@@ -133,22 +131,13 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				}
 			)
 		if (fromQueue.isEmpty() || (!unlimited && !(fromStack isIn fromQueue))) {
-			if (verboseDebug) {
-				LOG.info("[transfer] no source for $fromStack ${describeState()} fromSel=$fromSelection")
-				findContainers(fromSelection).forEach {
-					LOG.info("[transfer] candidate ${it.name} ${describeContainerState(it)} count=${it.count(fromStack.mutate(1))} slots=${describeSlots(it)}")
-				}
-			}
+			if (verboseDebug) LOG.info("[transfer] no source for $fromStack ${describeState()}")
 			fail("Could not find source containers for $fromStack (${describeState()})")
 			return
 		}
 
 		toQueue += findContainers(toSelection).filter { canReceive(it) }
-		if (verboseDebug) {
-			LOG.info("[transfer] start fromStack=$fromStack from=${fromQueue.map { it.name to it.isAccessible }} to=${toQueue.map { it.name to it.isAccessible }} screen=${player.currentScreenHandler.syncId}")
-			fromQueue.forEach { LOG.info("[transfer] from ${it.name} ${describeContainerState(it)} slots=${describeSlots(it)} stacks=${describeStacks(it)}") }
-			toQueue.forEach { LOG.info("[transfer] to ${it.name} space=${it.spaceLeft(fromStack.mutate(1))} ${describeContainerState(it)} slots=${describeSlots(it)}") }
-		}
+		if (verboseDebug) LOG.info("[transfer] start $fromStack from=${fromQueue.map { it.name }} to=${toQueue.map { it.name }} screen=${player.currentScreenHandler.syncId}")
 		if (toQueue.isEmpty()) {
 			fail("Could not find destination containers with space for $fromStack (${describeState()})")
 			return
@@ -160,42 +149,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private fun SafeContext.describeState() =
 		"fromQueue=${fromQueue.size} toQueue=${toQueue.size} " +
 			"cursor=${player.currentScreenHandler.cursorStack} screen=${player.currentScreenHandler.syncId}"
-
-	private fun describeSlots(container: Container): String {
-		return try {
-			container.slots.joinToString { slot ->
-				"[id=${slot.id} idx=${slot.index} ${slot.stack.item} x${slot.stack.count} '${slot.stack.name.string}']"
-			}
-		} catch (_: Exception) {
-			"unreadable"
-		}
-	}
-
-	private fun SafeContext.describeContainerState(container: Container): String {
-		return try {
-			val handler = player.currentScreenHandler
-			val handlerSlots = handler.slots.size
-			val containerSlots = try {
-				handler.containerSlots.size
-			} catch (_: Exception) {
-				-1
-			}
-			val last = ContainerHandler.lastInteractedBlockEntity
-			"isAccessed=${container.isAccessed} handlerSync=${handler.syncId} handlerType=${handler.type} slots=$handlerSlots containerSlots=$containerSlots last=${last?.javaClass?.simpleName}@${last?.pos}"
-		} catch (e: Exception) {
-			"state-unreadable ${e.message}"
-		}
-	}
-
-	private fun describeStacks(container: Container): String {
-		return try {
-			container.stacks.mapIndexed { index, stack ->
-				"[$index ${stack.item} x${stack.count} '${stack.name.string}']"
-			}.joinToString()
-		} catch (_: Exception) {
-			"unreadable"
-		}
-	}
 
 	private fun SafeContext.nextStep() {
 		if (isComplete) {
@@ -420,13 +373,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				}
 
 			if (pair == null) {
-				if (verboseDebug) {
-					val fromSeen = fromContainers.map { it.name to (it.findSlot(currentSelection) != null) }
-					val cursorStack = CursorContainer.stacks.firstOrNull() ?: ItemStack.EMPTY
-					LOG.info("[transfer] no pair for $currentSelection from=$fromSeen to=${toContainers.map { it.name }} cursor=$cursorStack")
-					fromContainers.forEach { LOG.info("[transfer] dump from ${it.name} ${describeContainerState(it)} slots=${describeSlots(it)} stacks=${describeStacks(it)}") }
-					toContainers.forEach { LOG.info("[transfer] dump to ${it.name} ${describeContainerState(it)} canSwap=${fromContainers.firstOrNull()?.canSwapWith(it)} slots=${describeSlots(it)}") }
-				}
+				if (verboseDebug) LOG.info("[transfer] no pair for $currentSelection from=${fromContainers.map { it.name }} to=${toContainers.map { it.name }}")
 				finish()
 				return true
 			}

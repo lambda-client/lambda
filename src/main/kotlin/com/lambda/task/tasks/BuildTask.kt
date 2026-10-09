@@ -39,6 +39,7 @@ import com.lambda.interaction.construction.simulation.result.Dependent
 import com.lambda.interaction.construction.simulation.result.Drawable
 import com.lambda.interaction.construction.simulation.result.Navigable
 import com.lambda.interaction.construction.simulation.result.Resolvable
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
@@ -348,7 +349,7 @@ class BuildTask @Ta5kBuilder internal constructor(
             is Dependent -> handleResult(result.lastDependency, allResults)
 
             is Resolvable -> {
-	            LOG.info("Resolving: ${result.name}")
+	            if (verboseDebug) LOG.info("Resolving: ${result.name}")
                 result.resolve()
                     .softFail()
                     .start()
