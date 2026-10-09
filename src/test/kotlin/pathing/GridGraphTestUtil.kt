@@ -21,7 +21,7 @@ import com.lambda.pathing.coarse.PackedStance
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.graph.EdgeList
 import com.lambda.pathing.graph.LongDStarLite
-import com.lambda.pathing.graph.LongLazyGraph
+import com.lambda.pathing.graph.LongGraph
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongList
 import kotlin.math.abs
@@ -49,7 +49,7 @@ object GridGraphTestUtil {
     fun graph(
         blockedNodes: Set<Long> = emptySet(),
         connectivity: Connectivity = Connectivity.N6,
-    ) = LongLazyGraph(successorProvider = { node, sink ->
+    ) = LongGraph(successorProvider = { node, sink ->
         if (node !in blockedNodes) forEachNeighbor(node, connectivity) { neighbor, cost ->
             if (neighbor !in blockedNodes) sink.add(neighbor, cost)
         }

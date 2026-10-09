@@ -43,6 +43,37 @@ enum class Medium {
 	UNKNOWN,
 }
 
+enum class CellClass(val plane: Int) {
+	EMPTY(-1),
+	SOLID(0),
+	HAZARD(1),
+	CLIMB(2),
+	SPECIAL(3),
+	;
+
+	fun mark(planes: Array<LongArray>, index: Int) {
+		if (plane >= 0) planes[plane][index ushr 6] = planes[plane][index ushr 6] or (1L shl index)
+	}
+
+	fun fill(planes: Array<LongArray>) {
+		if (plane >= 0) planes[plane].fill(-1L)
+	}
+
+	companion object {
+		const val PLANES = 4
+
+		fun of(voxel: CoarseVoxel, collision: CollisionClass): CellClass = when {
+			(voxel == CoarseVoxel.FULL_BLOCK || voxel == CoarseVoxel.BOUNCY_BLOCK) && collision == CollisionClass.FULL -> SOLID
+			voxel == CoarseVoxel.AIR && collision == CollisionClass.EMPTY -> EMPTY
+			voxel == CoarseVoxel.HAZARD && collision == CollisionClass.FULL -> HAZARD
+			voxel == CoarseVoxel.CLIMBABLE && collision == CollisionClass.EMPTY -> CLIMB
+			else -> SPECIAL
+		}
+	}
+}
+
+const val SECTION_CELL_COUNT = 16 * 16 * 16
+
 data class CoarseVoxel(
 	val fullyPassable: Boolean,
 	val centerPassable: Boolean,
@@ -61,6 +92,7 @@ data class CoarseVoxel(
 
 		val AIR = CoarseVoxel(fullyPassable = true, centerPassable = true, standingSurface = null)
 		val FULL_BLOCK = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = 1.0)
+		val BOUNCY_BLOCK = FULL_BLOCK.copy(bouncy = true)
 		val UNKNOWN = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, intrusionHeight = UNKNOWN_INTRUSION, medium = Medium.UNKNOWN)
 		val HAZARD = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.UNKNOWN)
 		val CLIMBABLE = CoarseVoxel(fullyPassable = true, centerPassable = true, standingSurface = null, medium = Medium.CLIMBABLE)
@@ -95,6 +127,20 @@ interface CoarseVoxelView {
 	val revision: Any? get() = null
 
 	fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
+	val mayBounce: Boolean get() = true
+
+	fun cellClass(x: Int, y: Int, z: Int): CellClass =
+		if (!isKnown(x, y, z)) CellClass.SPECIAL else CellClass.of(voxel(x, y, z), collisionClass(x, y, z))
+
+	fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
+		val baseX = sectionX shl 4
+		val baseY = sectionY shl 4
+		val baseZ = sectionZ shl 4
+		for (index in 0 until SECTION_CELL_COUNT) {
+			cellClass(baseX + (index and 15), baseY + (index ushr 8), baseZ + ((index ushr 4) and 15)).mark(planes, index)
+		}
+	}
 }
 
 fun CoarseVoxelView.climbableAt(position: Vec3d): Boolean =

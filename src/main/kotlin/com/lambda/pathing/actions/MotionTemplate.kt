@@ -119,17 +119,75 @@ class MotionTemplate internal constructor(
 		modes: List<LaunchMode>,
 		solution: LaunchSolution,
 		rise: Double,
+	): Boolean = standingStartViable(
+		view.canStandAt(origin.x - Integer.signum(dx), origin.y, origin.z - Integer.signum(dz)), origin, modes, solution, rise,
+	)
+
+	private fun standingStartViable(
+		behind: Boolean,
+		origin: Stance,
+		modes: List<LaunchMode>,
+		solution: LaunchSolution,
+		rise: Double,
 	): Boolean {
 		val profile = BallisticProfile.VANILLA
-		val behindX = origin.x - Integer.signum(dx)
-		val behindZ = origin.z - Integer.signum(dz)
-		val behind = view.canStandAt(behindX, origin.y, behindZ)
 		val runUp = IN_CELL_RUN_UP + if (behind) 1.0 else 0.0
 		fun reach(sprint: Boolean): Double =
 			profile.runUpSpeed(0.0, profile.groundRunUpTicks(0.0, runUp, sprint, STANDING_RUN_UP_TICKS), sprint)
 
 		if (solution.speed - solution.speedSlack <= reach(solution.mode.sprint)) return true
 		return LaunchSolver.solve(origin, target(origin), modes, maxEntrySpeed = { reach(it.sprint) }, rise = rise).isNotEmpty()
+	}
+
+	internal val walkTicks: Double = if (strideCost != null && dy <= CoarseMoveRates.FREE_STEP_RISE) strideCost else lowerBoundTicks
+
+	internal val stampedTicks: Double = if (arc == null) walkTicks else lowerBoundTicks
+
+	internal fun stampProgram(): StampProgram? {
+		val spec = arc
+		if (spec?.bounceDrop != null) return null
+		val clauses = conditions.map { condition ->
+			StampProgram.Clause.of(condition.reads().distinct()) { condition.matches(it, 0, 0, 0) } ?: return null
+		}
+		val after = LinkedHashSet<VoxelPos>()
+		val surfaceReads = listOf(VoxelPos(0, -1, 0), VoxelPos(0, -2, 0), VoxelPos(dx, dy - 1, dz), VoxelPos(dx, dy - 2, dz))
+		if (spec == null) {
+			if (strideCost != null) after += surfaceReads
+			return StampProgram(clauses, after, candidates = null, behind = null, IntArray(0), emptyList())
+		}
+		after += surfaceReads
+		val rise = dy.toDouble()
+		if (spec.riseAdmission?.invoke(rise) == false) return StampProgram(clauses, after, emptyList(), behind = null, IntArray(0), emptyList())
+		val behindX = -Integer.signum(dx)
+		val behindZ = -Integer.signum(dz)
+		val behindCells = (-2..1).map { VoxelPos(behindX, it, behindZ) }
+		val behind = StampProgram.Clause.of(behindCells) { it.canStandAt(behindX, 0, behindZ) } ?: return null
+		after += behindCells
+		val origin = Stance(0, 0, 0)
+		fun candidateOf(probed: JumpArcProbe.Footprint) = StampProgram.Candidate(
+			probed.solution, probed.cells, probed.clipCells,
+			ticks = lowerBoundTicks + (probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0) / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK,
+			standingStart = standingStartViable(false, origin, spec.modes, probed.solution, rise),
+			standingStartBehind = standingStartViable(true, origin, spec.modes, probed.solution, rise),
+		)
+		val candidates = JumpArcProbe.footprints(dx, dz, rise, spec.modes).map(::candidateOf)
+		val clipCells = candidates.firstOrNull()?.clipCells.orEmpty()
+		val columns = LinkedHashMap<Pair<Int, Int>, Int>()
+		val bendColumns = IntArray(clipCells.size) { columns.getOrPut(clipCells[it].x to clipCells[it].z) { columns.size } }
+		val bendGroups = columns.keys.map { (x, z) -> JumpArcProbe.bendFootprints(dx, dz, rise, spec.modes, x, z).map(::candidateOf) }
+		return StampProgram(clauses, after, candidates, behind, bendColumns, bendGroups)
+	}
+
+	internal fun stampedEdge(view: CoarseVoxelView, origin: Stance, candidate: StampProgram.Candidate?, behindStands: Boolean): CoarseEdge {
+		val spec = arc
+		if (spec == null || candidate == null) return edgeOf(origin, walkTicks, probeReads = null)
+		val rise = dy.toDouble()
+		return edgeOf(
+			origin, candidate.ticks,
+			{ JumpArcProbe.probe(view, origin, dx, dz, rise, spec.modes, origin.y.toDouble())?.reads?.invoke() ?: LongOpenHashSet() },
+			launch = candidate.solution,
+			standingStart = if (behindStands) candidate.standingStartBehind else candidate.standingStart,
+		)
 	}
 
 	internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {

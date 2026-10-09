@@ -96,18 +96,6 @@ interface PathingConfig {
     /** Deepest fall onto slime a bounce may be planned around. */
     val maxBounceDrop: Int
 
-    /**
-     * Radius of the planning horizon around the body, in chunks; 0 plans everything at once.
-     *
-     * At full render distance a single converged coarse field can cost twenty seconds
-     * before the first step. Inside a horizon the planner treats terrain past the ring
-     * exactly as it treats terrain the server has not streamed: it routes to the ring's
-     * edge on an optimistic edge, starts walking within a second or two, and each
-     * continuation grants the next ring as ordinary incremental repair -- the full field
-     * is paid for while moving instead of before it.
-     */
-    val planningHorizonChunks: Int get() = 4
-
     /** Longest tape the seed search may certify. */
     val maxFrames: Int
 

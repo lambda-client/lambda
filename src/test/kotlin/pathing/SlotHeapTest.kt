@@ -17,8 +17,8 @@
 
 package pathing
 
-import com.lambda.pathing.graph.LongIndexedHeap
-import com.lambda.pathing.graph.LongIndexedHeap.Companion.compareKeys
+import com.lambda.pathing.graph.SlotHeap
+import com.lambda.pathing.graph.SlotHeap.Companion.compareKeys
 import kotlin.random.Random
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -27,22 +27,22 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** The indexed heap plus the `(k1, k2)` key order the old `Key` class used to carry. */
-class LongIndexedHeapTest {
-    private lateinit var queue: LongIndexedHeap
+/** The slot heap plus the `(k1, k2)` key order the old `Key` class used to carry. */
+class SlotHeapTest {
+    private lateinit var queue: SlotHeap
 
-    private val a = 1L
-    private val b = 2L
-    private val c = 3L
+    private val a = 1
+    private val b = 2
+    private val c = 3
 
     @BeforeTest
     fun setup() {
-        queue = LongIndexedHeap()
+        queue = SlotHeap()
     }
 
-    private fun LongIndexedHeap.insert(node: Long, key: Int) = insert(node, key.toDouble(), 0.0)
+    private fun SlotHeap.insert(slot: Int, key: Int) = insert(slot, key.toDouble(), 0.0)
 
-    private fun LongIndexedHeap.pop(): Long = top().also { remove(it) }
+    private fun SlotHeap.pop(): Int = top().also { remove(it) }
 
     @Test
     fun `empty queue reports infinity top key and throws on top or pop`() {
@@ -120,28 +120,28 @@ class LongIndexedHeapTest {
         // Exercise both replacement cases repeatedly rather than relying on
         // the root-only pop path.
         val expected = (0 until 200).associateWith { (it * 73) % 211 }.toMutableMap()
-        for ((value, key) in expected) queue.insert(value.toLong(), key)
+        for ((value, key) in expected) queue.insert(value, key)
 
         for (value in (0 until 200 step 3)) {
-            assertTrue(queue.remove(value.toLong()))
+            assertTrue(queue.remove(value))
             expected.remove(value)
         }
 
         val ordered = ArrayList<Int>()
-        while (!queue.isEmpty()) ordered += queue.pop().toInt()
+        while (!queue.isEmpty()) ordered += queue.pop()
         assertEquals(expected.entries.sortedBy { it.value }.map { it.key }, ordered)
     }
 
     @Test
-    fun `indexed heap matches a reference map through random updates and removals`() {
+    fun `slot heap matches a reference map through random updates and removals`() {
         repeat(40) { seed ->
             val random = Random(seed)
-            val heap = LongIndexedHeap(4)
-            val reference = mutableMapOf<Long, Pair<Double, Double>>()
+            val heap = SlotHeap(4)
+            val reference = mutableMapOf<Int, Pair<Double, Double>>()
             val order = compareBy<Pair<Double, Double>> { it.first }.thenBy { it.second }
 
             repeat(2_000) {
-                val value = random.nextInt(80).toLong()
+                val value = random.nextInt(80)
                 when (random.nextInt(4)) {
                     0, 1 -> {
                         val key = random.nextInt(50).toDouble() to random.nextInt(20).toDouble()

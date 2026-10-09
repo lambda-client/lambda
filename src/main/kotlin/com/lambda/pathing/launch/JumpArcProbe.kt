@@ -3,6 +3,7 @@ package com.lambda.pathing.launch
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.Via
+import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import it.unimi.dsi.fastutil.longs.LongArrayList
@@ -109,6 +110,19 @@ object JumpArcProbe {
 			val order = cells.indices.sortedBy(::distance)
 			return SweepPlan(LongArray(cells.size) { cells[order[it]] }, BooleanArray(cells.size) { intersectsFull[order[it]] })
 		}
+	}
+
+	internal class Footprint(val solution: LaunchSolution, val cells: List<VoxelPos>, val clipCells: List<VoxelPos>)
+
+	internal fun footprints(dx: Int, dz: Int, rise: Double, modes: List<LaunchMode>): List<Footprint> =
+		candidates(Stance(0, 0, 0), dx, dz, modes, rise).map { footprintOf(it.solution, it.plan) }
+
+	internal fun bendFootprints(dx: Int, dz: Int, rise: Double, modes: List<LaunchMode>, cellX: Int, cellZ: Int): List<Footprint> =
+		candidates(Stance(0, 0, 0), dx, dz, modes, rise).firstOrNull()?.bends(cellX, cellZ)?.map { footprintOf(it.solution, it.plan) }.orEmpty()
+
+	private fun footprintOf(solution: LaunchSolution, plan: SweepPlan): Footprint {
+		val cells = plan.cells.map { VoxelPos(BlockPos.unpackLongX(it), BlockPos.unpackLongY(it), BlockPos.unpackLongZ(it)) }
+		return Footprint(solution, cells, cells.filterIndexed { index, _ -> plan.intersectsFull[index] })
 	}
 
 	fun probe(

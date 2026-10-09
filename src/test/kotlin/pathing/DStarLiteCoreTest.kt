@@ -18,7 +18,7 @@
 package pathing
 
 import com.lambda.pathing.graph.LongDStarLite
-import com.lambda.pathing.graph.LongLazyGraph
+import com.lambda.pathing.graph.LongGraph
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import pathing.GridGraphTestUtil.Connectivity.N26
 import pathing.GridGraphTestUtil.Connectivity.N6
@@ -187,7 +187,7 @@ class DStarLiteCoreTest {
         val start = node(0, 0, 0)
         val goal = node(1, 0, 0)
         var opened = false
-        val graph = LongLazyGraph(
+        val graph = LongGraph(
             successorProvider = { node, sink ->
                 if (opened && node == start) sink.add(goal, 1.0)
             },
@@ -202,8 +202,8 @@ class DStarLiteCoreTest {
 
         // The search has examined this adjacency and learned that it is a
         // dead end. It remains a known node even though it stores no edges.
-        assertTrue(graph.successors(start).isEmpty())
-        assertTrue(start in graph)
+        assertTrue(planner.successors(start).isEmpty())
+        assertTrue(planner.isKnown(start))
 
         opened = true
         val sync = planner.synchronizeAffected(Nodes.of(start))
@@ -214,18 +214,17 @@ class DStarLiteCoreTest {
     }
 
     @Test
-    fun `lazy graph maintains known nodes without rebuilding its node set`() {
-        val graph = LongLazyGraph({ node, sink -> if (node == 1L) sink.add(2L, 1.0) })
+    fun `known nodes follow the materialized edges`() {
+        val planner = LongDStarLite(LongGraph({ node, sink -> if (node == 1L) sink.add(2L, 1.0) }), 1L, 3L, heuristic = { _, _ -> 0.0 })
 
-        assertTrue(2L in graph.successors(1L))
-        assertEquals(setOf(1L, 2L), graph.nodes.toSet())
-        assertEquals(2, graph.size)
-        assertFailsWith<UnsupportedOperationException> { graph.nodes.add(3L) }
+        assertTrue(2L in planner.successors(1L))
+        assertEquals(setOf(1L, 2L), planner.knownNodes().toSet())
+        assertEquals(2, planner.knownNodeCount)
 
-        graph.setCost(1L, 2L, Double.POSITIVE_INFINITY)
+        planner.updateEdge(1L, 2L, Double.POSITIVE_INFINITY)
         // Initialized node 1 remains planner knowledge; endpoint 2 was only
         // known through the removed edge and is pruned.
-        assertEquals(setOf(1L), graph.nodes.toSet())
+        assertEquals(setOf(1L), planner.knownNodes().toSet())
     }
 
     @Test
@@ -241,7 +240,7 @@ class DStarLiteCoreTest {
         val takeoff = node(0, 0, 1)
         val goal = node(5, 0, 0)
         var discovered = false
-        val graph = LongLazyGraph(
+        val graph = LongGraph(
             successorProvider = { node, sink ->
                 if (node == start) {
                     sink.add(middle, 1.0)

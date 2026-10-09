@@ -1,5 +1,7 @@
 package com.lambda.pathing.world.snapshot
 
+import com.lambda.pathing.world.CellClass
+
 internal class ImmutableSnapshotSection private constructor(
 	private val palette: Array<SnapshotBlockPhysics>,
 	private val byteIndices: ByteArray?,
@@ -15,6 +17,18 @@ internal class ImmutableSnapshotSection private constructor(
 		byteIndices?.let { return palette[it[localIndex].toInt() and 0xff] }
 		val shorts = shortIndices ?: error("Non-uniform snapshot section has no indices")
 		return palette[shorts[localIndex].toInt() and 0xffff]
+	}
+
+	fun classify(planes: Array<LongArray>) {
+		if (palette.size == 1) return palette[0].cellClass.fill(planes)
+		val classes = Array(palette.size) { palette[it].cellClass }
+		val bytes = byteIndices
+		if (bytes != null) {
+			for (index in 0 until SECTION_CELLS) classes[bytes[index].toInt() and 0xff].mark(planes, index)
+			return
+		}
+		val shorts = shortIndices ?: error("Non-uniform snapshot section has no indices")
+		for (index in 0 until SECTION_CELLS) classes[shorts[index].toInt() and 0xffff].mark(planes, index)
 	}
 
 	class Builder {

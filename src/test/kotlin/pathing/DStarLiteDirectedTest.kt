@@ -18,7 +18,7 @@
 package pathing
 
 import com.lambda.pathing.graph.LongDStarLite
-import com.lambda.pathing.graph.LongLazyGraph
+import com.lambda.pathing.graph.LongGraph
 import com.lambda.pathing.graph.LongRouteCandidate
 import com.lambda.pathing.graph.TailCost
 import it.unimi.dsi.fastutil.longs.LongArrayList
@@ -102,7 +102,7 @@ class DStarLiteDirectedTest {
 
         // Initialize before mutating the provider so updateEdge can compare
         // the old cached edge with the declared replacement.
-        graph.successors(1)
+        planner.successors(1)
         edges.getValue(1)[2] = 8.0
         planner.updateEdge(1, 2, 8.0)
 
@@ -190,7 +190,7 @@ class DStarLiteDirectedTest {
                 if (to >= from) to++
 
                 // Capture the old graph value before changing the provider.
-                graph.successors(from.toLong())
+                planner.successors(from.toLong())
                 val newCost = when (random.nextInt(3)) {
                     0 -> Double.POSITIVE_INFINITY
                     else -> random.nextInt(1, 25).toDouble()
@@ -215,38 +215,72 @@ class DStarLiteDirectedTest {
     }
 
     @Test
+    fun `re-keying after the heuristic changes keeps matching Dijkstra`() {
+        repeat(30) { seed ->
+            val random = Random(seed * 131 + 7)
+            val nodeCount = 14
+            val edges = randomGraph(random, nodeCount)
+            val start = random.nextInt(nodeCount)
+            val goal = random.nextInt(nodeCount)
+            // Every edge costs at least 1, so a flat 1 between distinct nodes stays admissible.
+            var floor = 1.0
+            val planner = LongDStarLite(lazyGraph(edges), start.toLong(), goal.toLong(), heuristic = { a, b -> if (a == b) 0.0 else floor })
+            planner.computeShortestPath(timeBudget = Duration.INFINITE, maxExpansions = 3)
+
+            repeat(6) { round ->
+                floor = 1.0 - floor
+                planner.rekey()
+                val from = random.nextInt(nodeCount)
+                var to = random.nextInt(nodeCount - 1)
+                if (to >= from) to++
+                planner.successors(from.toLong())
+                val newCost = random.nextInt(1, 25).toDouble()
+                edges.getValue(from)[to] = newCost
+                planner.updateEdge(from.toLong(), to.toLong(), newCost)
+
+                val result = planner.computeShortestPath(timeBudget = Duration.INFINITE)
+                val context = "seed=$seed round=$round floor=$floor edge=$from->$to cost=$newCost"
+                assertTrue(result.converged, context)
+                assertPlannerMatches(dijkstra(edges, start, goal), planner.tailCost(), context)
+            }
+        }
+    }
+
+    @Test
     fun `invalid costs and heuristics fail at the boundary`() {
         assertFailsWith<IllegalArgumentException> {
-            LongLazyGraph({ _, sink -> sink.add(1, -1.0) }).successors(0)
+            LongGraph({ _, sink -> sink.add(1, -1.0) }).successors(0)
         }
         assertFailsWith<IllegalArgumentException> {
-            LongLazyGraph({ _, sink -> sink.add(1, Double.NaN) }).successors(0)
+            LongGraph({ _, sink -> sink.add(1, Double.NaN) }).successors(0)
         }
         assertFailsWith<IllegalArgumentException> {
-            LongDStarLite(LongLazyGraph({ _, _ -> }), 0, 1, heuristic = { _, _ -> Double.NaN })
+            LongDStarLite(LongGraph({ _, _ -> }), 0, 1, heuristic = { _, _ -> Double.NaN })
         }
 
-        val graph = LongLazyGraph({ _, sink -> sink.add(1, Double.POSITIVE_INFINITY) })
+        val graph = LongGraph({ _, sink -> sink.add(1, Double.POSITIVE_INFINITY) })
         assertTrue(graph.successors(0).isEmpty())
     }
 
     @Test
     fun `lazy provider failure leaves node retryable and unpublished`() {
         var attempts = 0
-        val graph = LongLazyGraph({ node, sink ->
+        val graph = LongGraph({ node, sink ->
             if (node == 0L && attempts++ == 0) error("section not ready")
             if (node == 0L) sink.add(1, 2.0)
         })
 
-        assertFailsWith<IllegalStateException> { graph.successors(0) }
-        assertFalse(0L in graph)
-        assertEquals(mapOf(1L to 2.0), graph.successors(0).toMap())
-        assertTrue(0L in graph)
+        val planner = LongDStarLite(graph, 5, 9, heuristic = { _, _ -> 0.0 })
+
+        assertFailsWith<IllegalStateException> { planner.successors(0) }
+        assertFalse(planner.isKnown(0))
+        assertEquals(mapOf(1L to 2.0), planner.successors(0).toMap())
+        assertTrue(planner.isKnown(0))
     }
 
     @Test
     fun `moving start materializes a lazy vertex after the old queue emptied`() {
-        val graph = LongLazyGraph(
+        val graph = LongGraph(
             successorProvider = { node, sink -> if (node == 3L) sink.add(2, 1.0) },
             // Node 3 models a stance reached by continuous execution which was not
             // part of the predecessor field when the old start was solved.
@@ -287,7 +321,7 @@ class DStarLiteDirectedTest {
     private fun planner(edges: DirectedEdges, start: Int, goal: Int) =
         LongDStarLite(lazyGraph(edges), start.toLong(), goal.toLong(), heuristic = { _, _ -> 0.0 })
 
-    private fun lazyGraph(edges: DirectedEdges) = LongLazyGraph(
+    private fun lazyGraph(edges: DirectedEdges) = LongGraph(
         successorProvider = { node, sink ->
             edges[node.toInt()]?.forEach { (to, cost) -> sink.add(to.toLong(), cost) }
         },

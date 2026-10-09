@@ -18,7 +18,6 @@ internal class PlanningJourney private constructor(
 		goals.indices.map { index ->
 			CoarsePlanningState(
 				world.snapshot, origin.moveOptions, starts[index], goals[index],
-				horizonChunks = origin.planningHorizonChunks,
 				frontierSweepBudget = origin.frontierSweepBudget,
 				capturable = world::chunkCapturable,
 			)
@@ -30,7 +29,6 @@ internal class PlanningJourney private constructor(
 	fun compatibleWith(preparation: PlanningPreparation): Boolean =
 		goal == preparation.finalGoal && origin.moveOptions == preparation.moveOptions &&
 				origin.profile.isCompatibleWith(preparation.profile) &&
-				origin.planningHorizonChunks == preparation.planningHorizonChunks &&
 				origin.waypoints.size >= preparation.waypoints.size &&
 				origin.waypoints.takeLast(preparation.waypoints.size) == preparation.waypoints
 

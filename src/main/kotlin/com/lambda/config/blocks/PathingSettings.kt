@@ -106,16 +106,6 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     ) { allowSlimeBounces }
 
     @Group(SEARCH_GROUP)
-    override val planningHorizonChunks by c.setting(
-        "Planning Horizon", 4, 0..16, 1,
-        "How far around the body the coarse planner searches before it starts walking. " +
-            "Terrain past the ring is planned while moving, the way unstreamed chunks " +
-            "already are. 0 plans the whole loaded world up front, which at full render " +
-            "distance can take tens of seconds before the first step.",
-        unit = " chunks",
-    )
-
-    @Group(SEARCH_GROUP)
     override val maxFrames by c.setting(
         "Max Frames", 160, 40..600, 10,
         "Longest tape the seed search may certify.", unit = " ticks",

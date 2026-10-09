@@ -56,12 +56,11 @@ internal class FrontierSweep(
 					bestAnchorTicks = minOf(bestAnchorTicks, moves.heuristic(node, goal))
 				}
 			}
-			val successors = edges.edgesFrom(node)
-			if (edges.isComplete(node)) incomplete -= node else incomplete += node
-
-			for ((_, _, to) in successors) {
+			edges.forEachEdgeFrom(PackedStance.pack(node, SpeedClass.STOPPED)) { template, _, _ ->
+				val to = node.offset(template.dx, template.dy, template.dz)
 				if (visited.add(to)) queue += to
 			}
+			if (edges.isComplete(node)) incomplete -= node else incomplete += node
 		}
 		return anchors
 	}

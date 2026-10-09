@@ -15,6 +15,11 @@ class EdgeList(initialCapacity: Int = 16) {
 
 	fun isEmpty(): Boolean = targets.isEmpty
 
+	fun clear() {
+		targets.clear()
+		costs.clear()
+	}
+
 	fun node(index: Int): Long = targets.getLong(index)
 
 	fun cost(index: Int): Double = costs.getDouble(index)

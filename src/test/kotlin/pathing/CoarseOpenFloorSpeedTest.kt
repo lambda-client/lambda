@@ -42,7 +42,7 @@ class CoarseOpenFloorSpeedTest {
         val start = Stance(-82, 4 + height(-82, -91), -91)
         val goal = Stance(-164, 4 + height(-164, -13), -13)
         repeat(3) { round ->
-            val state = CoarsePlanningState(environment, SimpleMoveOptions(), start, goal, horizonChunks = 0)
+            val state = CoarsePlanningState(environment, SimpleMoveOptions(), start, goal)
             state.repairFrom(start)
             val t0 = System.nanoTime()
             val coarse = state.planner.repair(maxExpansions = 1_000_000)
@@ -51,7 +51,7 @@ class CoarseOpenFloorSpeedTest {
             println("[speed] round=$round expansions=${coarse.processedNodes} nodes=${state.planner.graphSize} ms=%.1f us/exp=%.1f route=${route?.nodes?.size} ticks=${route?.lowerBoundTicks}".format(ms, ms * 1000.0 / coarse.processedNodes))
             assertNotNull(route)
             // Pinned on this exact floor; a change to the coarse vocabulary or its costs moves both.
-            assertEquals(3301, coarse.processedNodes, "coarse expansions on the open floor")
+            assertEquals(6468, coarse.processedNodes, "coarse expansions on the open floor")
             assertEquals(369.72865824853534, route.lowerBoundTicks, 1e-6, "route lower bound on the open floor")
         }
     }

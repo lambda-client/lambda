@@ -34,7 +34,7 @@ class PlanningHorizonRegressionTest {
         return streamedSnapshot(SimulationSnapshotBounds(-10_000, 0, -10_000, 10_000, 15, 10_000), sections)
     }
 
-    private fun plan(horizonChunks: Int): Pair<CoarsePlanningState, com.lambda.pathing.coarse.CoarseRoutePlan?> {
+    private fun plan(): Pair<CoarsePlanningState, com.lambda.pathing.coarse.CoarseRoutePlan?> {
         val start = Stance(27, 5, -34)
         val goal = Stance(-164, 5, -13)
         val state = CoarsePlanningState(
@@ -42,30 +42,23 @@ class PlanningHorizonRegressionTest {
             moveOptions = SimpleMoveOptions(),
             start = start,
             goal = goal,
-            horizonChunks = horizonChunks,
         )
         state.repairFrom(start)
         val result = state.planner.repair(maxExpansions = 1_000_000)
-        println("horizon=$horizonChunks expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
+        println("expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
         val route = state.planner.routePlan(snapshotRevision = 1L)
             ?: state.planner.resynchronizedRoutePlan(snapshotRevision = 1L)
             ?: run {
                 if (state.planner.discoverReachableFrontier()) state.planner.routePlan(snapshotRevision = 1L) else null
             }
-        if (route == null) println("FAILURE horizon=$horizonChunks report: ${state.planner.routeFailureReport()}")
+        if (route == null) println("FAILURE report: ${state.planner.routeFailureReport()}")
         return state to route
     }
 
     @Test
-    fun `horizon off finds a route toward the unstreamed goal`() {
-        val (_, route) = plan(horizonChunks = 0)
-        assertNotNull(route)
-    }
-
-    @Test
-    fun `default horizon finds a route toward the unstreamed goal`() {
-        val (_, route) = plan(horizonChunks = 4)
-        val r = assertNotNull(route, "no coarse route with the planning horizon enabled")
+    fun `a route leads toward the unstreamed goal`() {
+        val (_, route) = plan()
+        val r = assertNotNull(route, "no coarse route toward the unstreamed goal")
         assertTrue(r.nodes.first() == Stance(27, 5, -34))
     }
 }
@@ -97,7 +90,7 @@ class RetainedJourneyReplanTest {
             }
         }
         val snapshot = streamedSnapshot(SimulationSnapshotBounds(-10_000, 0, -10_000, 10_000, 15, 10_000), sections)
-        val state = CoarsePlanningState(snapshot, SimpleMoveOptions(), firstStart, goal, horizonChunks = 4)
+        val state = CoarsePlanningState(snapshot, SimpleMoveOptions(), firstStart, goal)
         state.repairFrom(firstStart)
         state.planner.repair(maxExpansions = 1_000_000)
         assertNotNull(state.planner.routePlan(snapshotRevision = 1L), "the near leg must route")

@@ -60,9 +60,9 @@ class CompositeCourseTest {
         }
     }
 
-    /** The field configuration: a course longer than the planning horizon ring. */
+    /** The field configuration: nine chunks of course planned in one coarse field. */
     @Test
-    fun `a course longer than the horizon ring resolves via terminal grants`() {
+    fun `a nine chunk course resolves to the true goal`() {
         val slime = SnapshotBlockPhysics.of(
             VoxelShapes.fullCube(), bounceFactor = 1.0, dampensSteppingSpeed = true,
         )
@@ -99,14 +99,15 @@ class CompositeCourseTest {
             moveOptions = SimpleMoveOptions(allowSlimeBounces = true, maxBounceDrop = 12),
             start = Stance(0, 10, 0),
             goal = Stance(0, 10, 145),
-            horizonChunks = 4,
         )
+        state.repairFrom(Stance(0, 10, 0))
+        state.planner.repair(maxExpansions = 1_000_000)
         val route = RouteResolution(state).resolve(
             start = Stance(0, 10, 0), snapshotRevision = 0L, maxExpansions = 1_000_000,
         )
         val resolved = checkNotNull(route) {
-            "the ringed course must resolve: ${state.planner.routeFailureReport()}"
+            "the course must resolve: ${state.planner.routeFailureReport()}"
         }
-        kotlin.test.assertEquals(Stance(0, 10, 145), resolved.goal, "the terminal grants must reach the true goal")
+        kotlin.test.assertEquals(Stance(0, 10, 145), resolved.goal, "the route must reach the true goal")
     }
 }

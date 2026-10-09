@@ -5,7 +5,7 @@ import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.graph.CoarseRouteCandidate
 import com.lambda.pathing.graph.LongDStarLite
-import com.lambda.pathing.graph.LongLazyGraph
+import com.lambda.pathing.graph.LongGraph
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -27,11 +27,13 @@ class CoarsePlanner(
 
 	private val edgeCache = CoarseEdgeCache(view.cursor(), moves)
 
+	private val momentum = MomentumRules(moves.templates)
+
 	private val frontier = FrontierSweep(view, moves, goalStance, edgeCache, sweepBudget, capturable, onCaptureLag)
 
-	private val graph = LongLazyGraph(
+	private val graph = LongGraph(
 		successorProvider = { node, sink ->
-			MomentumRules.successors(edgeCache, node, sink)
+			momentum.successors(edgeCache, node, sink)
 
 			if (anchors.isNotEmpty()) {
 				val cost = anchors[PackedStance.stance(node)]
@@ -39,7 +41,7 @@ class CoarsePlanner(
 			}
 		},
 		predecessorProvider = { node, sink ->
-			MomentumRules.predecessors(edgeCache, node, sink)
+			momentum.predecessors(edgeCache, node, sink)
 			if (node == goalNode && anchors.isNotEmpty()) {
 				for ((stance, cost) in anchors) {
 					sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
@@ -49,27 +51,23 @@ class CoarsePlanner(
 		},
 	)
 
+	private var grounded = !view.mayBounce
+
 	private val search = LongDStarLite(
 		graph = graph,
 		start = PackedStance.pack(start, SpeedClass.STOPPED),
 		goal = goalNode,
-		heuristic = { a, b ->
-			moves.heuristic(
-				PackedStance.unpackX(a), PackedStance.unpackY(a), PackedStance.unpackZ(a),
-				PackedStance.unpackX(b), PackedStance.unpackY(b), PackedStance.unpackZ(b),
-			)
-		},
+		heuristic = { a, b -> momentum.heuristic(a, b, grounded && b != goalNode) },
 		describe = PackedStance::describe,
 	)
 
-	val graphSize: Int get() = graph.size
+	val graphSize: Int get() = search.knownNodeCount
 
 	fun forEachGraphStance(action: (x: Int, y: Int, z: Int) -> Unit) {
-		val iterator = graph.nodes.iterator()
-		while (iterator.hasNext()) {
-			val node = iterator.nextLong()
-			if (PackedStance.speed(node) == SpeedClass.MOVING && graph.contains(PackedStance.withSpeed(node, SpeedClass.STOPPED))) continue
-			action(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))
+		search.forEachKnownNode { node ->
+			if (PackedStance.speed(node) != SpeedClass.MOVING || !search.isKnown(PackedStance.withSpeed(node, SpeedClass.STOPPED))) {
+				action(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))
+			}
 		}
 	}
 
@@ -87,7 +85,7 @@ class CoarsePlanner(
 	fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
 		val merged = HashMap<Stance, Double>()
 		for (speed in SpeedClass.entries) {
-			val edges = graph.knownSuccessors(PackedStance.pack(node, speed))
+			val edges = search.knownSuccessors(PackedStance.pack(node, speed))
 			for (i in 0 until edges.size) {
 				val successor = edges.node(i)
 				val stance = PackedStance.stance(successor)
@@ -277,14 +275,15 @@ class CoarsePlanner(
 	) {
 		if (!arrivalsOnly) frontier.dirty = true
 		val ranges = chunks.map(moves::originColumnRanges)
-		val iterator = graph.nodes.iterator()
-		while (iterator.hasNext()) {
-			val key = PackedStance.stanceKey(iterator.nextLong())
-			if (!CoarseEdgeCache.covers(ranges, key)) continue
-			if (arrivalsOnly && edgeCache.isComplete(key)) continue
-			pendingSync.add(key)
+		search.forEachKnownNode { node ->
+			val key = PackedStance.stanceKey(node)
+			if (CoarseEdgeCache.covers(ranges, key) && !(arrivalsOnly && edgeCache.isComplete(key))) pendingSync.add(key)
 		}
 		edgeCache.invalidateChunks(chunks, ranges, arrivalsOnly)
+		if (grounded == view.mayBounce) {
+			grounded = !view.mayBounce
+			search.rekey()
+		}
 		continueSync(maxStances)
 	}
 

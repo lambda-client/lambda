@@ -53,24 +53,23 @@ internal class RouteResolution(
 		if (route == null) return report(timings, waitRounds, stalls, 0)
 
 		val goal = state.goal
-		var grantRounds = 0
-		val grantStarted = System.nanoTime()
-		while (route!!.goal != goal && grantRounds++ < TERMINAL_GRANT_ROUNDS) {
+		var terminalRounds = 0
+		val terminalStarted = System.nanoTime()
+		while (route!!.goal != goal && terminalRounds++ < TERMINAL_ROUNDS) {
 			if (cancelled()) return route
-			if (world != null && grantRounds > 1 && System.nanoTime() - grantStarted > TERMINAL_GRANT_BUDGET_MILLIS * 1_000_000L) break
+			if (world != null && terminalRounds > 1 && System.nanoTime() - terminalStarted > TERMINAL_BUDGET_MILLIS * 1_000_000L) break
 			val terminal = route.goal
 			world?.let { awaitTerminalKnowledge(it, terminal, timings, cancelled) }
-			val revealed = timings.measure("sync") { state.revealAround(terminal) }
-			if (!sweep() && revealed.isEmpty() && world == null) break
+			if (!sweep() && world == null) break
 			repair()
-			route = extract() ?: return report(timings, waitRounds, stalls, grantRounds)
+			route = extract() ?: return report(timings, waitRounds, stalls, terminalRounds)
 			if (route.goal == terminal) break
 		}
 		if (route.goal == goal && planner.retireAllAnchors()) {
 			repair()
 			route = extract() ?: route
 		}
-		return route.also { report(timings, waitRounds, stalls, grantRounds) }
+		return route.also { report(timings, waitRounds, stalls, terminalRounds) }
 	}
 
 	private fun awaitTerminalKnowledge(world: PathingWorld, terminal: Stance, timings: PhaseTimings, cancelled: () -> Boolean) {
@@ -87,16 +86,16 @@ internal class RouteResolution(
 		timings.measure("sync") { if (!batch.isEmpty) state.applyEvents(batch) }
 	}
 
-	private fun report(timings: PhaseTimings, waitRounds: Int, stalls: Int, grantRounds: Int): CoarseRoutePlan? {
-		lastResolveReport = "wait $waitRounds rounds ($stalls stalls), grant $grantRounds rounds; $timings"
+	private fun report(timings: PhaseTimings, waitRounds: Int, stalls: Int, terminalRounds: Int): CoarseRoutePlan? {
+		lastResolveReport = "wait $waitRounds rounds ($stalls stalls), terminal $terminalRounds rounds; $timings"
 		return null
 	}
 
 	private companion object {
 
-		const val TERMINAL_GRANT_ROUNDS = 4
+		const val TERMINAL_ROUNDS = 4
 
-		const val TERMINAL_GRANT_BUDGET_MILLIS = 1_500L
+		const val TERMINAL_BUDGET_MILLIS = 1_500L
 
 		const val TERMINAL_KNOWLEDGE_WAIT_MILLIS = 400L
 

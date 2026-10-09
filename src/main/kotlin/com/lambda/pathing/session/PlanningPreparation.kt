@@ -32,7 +32,6 @@ internal data class PlanningPreparation(
 	val initial: MovementSimulationState,
 	val profile: PlayerPhysicsProfile,
 	val start: Stance,
-	val planningHorizonChunks: Int,
 	val searchConfig: SearchConfig,
 	val coarseExpansionBudget: Int,
 	val frontierSweepBudget: Int,
@@ -132,7 +131,6 @@ internal fun preparePlanning(
 			initial = initial,
 			profile = profile,
 			start = start,
-			planningHorizonChunks = config.planningHorizonChunks,
 			searchConfig = SearchConfig.horizon(
 				runwayFrames = config.horizonRunwayFrames,
 				commitFrames = config.horizonCommitFrames,

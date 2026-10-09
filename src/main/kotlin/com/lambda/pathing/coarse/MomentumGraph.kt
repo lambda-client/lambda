@@ -1,5 +1,6 @@
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.graph.EdgeList
 
@@ -15,41 +16,52 @@ enum class SpeedClass {
 	}
 }
 
-internal object MomentumRules {
+internal class MomentumRules(templates: List<MotionTemplate>) {
 
-	private const val STARTUP_TICKS = 2.0
+	private val departsStoppedOnly = BooleanArray(templates.size) { templates[it].movement == MovementId.CLIMB }
 
-	private const val BRAKE_TICKS = 4.0
-
-	private const val CHAIN_TAX_TICKS = 1.0
-
-	private const val MIN_CHAINED_COST_FRACTION = 0.5
-
-	private fun departsStoppedOnly(movement: MovementId): Boolean = movement == MovementId.CLIMB
-
-	private fun arrival(movement: MovementId): SpeedClass =
+	private val arrival = Array(templates.size) {
+		val movement = templates[it].movement
 		if (movement == MovementId.CLIMB || movement == MovementId.STEP_UP || movement == MovementId.LADDER_CATCH) SpeedClass.STOPPED
 		else SpeedClass.MOVING
+	}
+
+	private val searchCaps = HeuristicCaps.of(templates, ::costFloor)
+
+	private val groundCaps = HeuristicCaps.of(templates.filter { it.bounceDrop == null }, ::costFloor)
+
+	fun heuristic(from: Long, to: Long, grounded: Boolean): Double = (if (grounded) groundCaps else searchCaps).estimate(
+		PackedStance.unpackX(to) - PackedStance.unpackX(from),
+		PackedStance.unpackY(to) - PackedStance.unpackY(from),
+		PackedStance.unpackZ(to) - PackedStance.unpackZ(from),
+	)
+
+	private fun costFloor(template: MotionTemplate): Double =
+		if (departsStoppedOnly[template.id.value]) template.minimumTicks else movingCost(template.minimumTicks)
 
 	private fun movingCost(ticks: Double): Double =
 		(ticks - CHAIN_TAX_TICKS).coerceAtLeast(ticks * MIN_CHAINED_COST_FRACTION)
 
-	private fun stoppedCost(movement: MovementId, ticks: Double): Double =
-		if (departsStoppedOnly(movement)) ticks else ticks + STARTUP_TICKS
+	private fun stoppedCost(template: Int, ticks: Double): Double =
+		if (departsStoppedOnly[template]) ticks else ticks + STARTUP_TICKS
 
 	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.MOVING) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.STOPPED), BRAKE_TICKS)
 		}
-		for (edge in edges.edgesFrom(node)) {
-			if (speed == SpeedClass.MOVING && departsStoppedOnly(edge.movement)) continue
-			if (speed == SpeedClass.STOPPED && !edge.standingStart) continue
+		val x = PackedStance.unpackX(node)
+		val y = PackedStance.unpackY(node)
+		val z = PackedStance.unpackZ(node)
+		edges.forEachEdgeFrom(node) { template, ticks, standingStart ->
+			val id = template.id.value
+			if (speed == SpeedClass.MOVING && departsStoppedOnly[id]) return@forEachEdgeFrom
+			if (speed == SpeedClass.STOPPED && !standingStart) return@forEachEdgeFrom
 			val cost = when (speed) {
-				SpeedClass.MOVING -> movingCost(edge.lowerBoundTicks)
-				SpeedClass.STOPPED -> stoppedCost(edge.movement, edge.lowerBoundTicks)
+				SpeedClass.MOVING -> movingCost(ticks)
+				SpeedClass.STOPPED -> stoppedCost(id, ticks)
 			}
-			out.addMin(PackedStance.pack(edge.to, arrival(edge.movement)), cost)
+			out.addMin(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]), cost)
 		}
 	}
 
@@ -58,14 +70,32 @@ internal object MomentumRules {
 		if (speed == SpeedClass.STOPPED) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.MOVING), BRAKE_TICKS)
 		}
-		for (edge in edges.edgesTo(node)) {
-			if (arrival(edge.movement) != speed) continue
-			if (!departsStoppedOnly(edge.movement)) {
-				out.addMin(PackedStance.pack(edge.from, SpeedClass.MOVING), movingCost(edge.lowerBoundTicks))
+		val x = PackedStance.unpackX(node)
+		val y = PackedStance.unpackY(node)
+		val z = PackedStance.unpackZ(node)
+		edges.forEachEdgeTo(node) { template, ticks, standingStart ->
+			val id = template.id.value
+			if (arrival[id] != speed) return@forEachEdgeTo
+			val originX = x - template.dx
+			val originY = y - template.dy
+			val originZ = z - template.dz
+			if (!departsStoppedOnly[id]) {
+				out.addMin(PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING), movingCost(ticks))
 			}
-			if (edge.standingStart) {
-				out.addMin(PackedStance.pack(edge.from, SpeedClass.STOPPED), stoppedCost(edge.movement, edge.lowerBoundTicks))
+			if (standingStart) {
+				out.addMin(PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED), stoppedCost(id, ticks))
 			}
 		}
+	}
+
+	private companion object {
+
+		const val STARTUP_TICKS = 2.0
+
+		const val BRAKE_TICKS = 4.0
+
+		const val CHAIN_TAX_TICKS = 1.0
+
+		const val MIN_CHAINED_COST_FRACTION = 0.5
 	}
 }

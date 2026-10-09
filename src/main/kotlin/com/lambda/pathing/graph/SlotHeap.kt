@@ -1,36 +1,35 @@
 package com.lambda.pathing.graph
 
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
-
-class LongIndexedHeap(initialCapacity: Int = 64) {
-	private var nodes = LongArray(initialCapacity.coerceAtLeast(1))
-	private var k1 = DoubleArray(nodes.size)
-	private var k2 = DoubleArray(nodes.size)
+internal class SlotHeap(initialCapacity: Int = 64) {
+	private var slots = IntArray(initialCapacity.coerceAtLeast(1))
+	private var k1 = DoubleArray(slots.size)
+	private var k2 = DoubleArray(slots.size)
+	private var positions = IntArray(slots.size) { -1 }
 	private var count = 0
-	private val index = Long2IntOpenHashMap(initialCapacity).apply { defaultReturnValue(-1) }
 
-	fun insert(node: Long, first: Double, second: Double) {
-		val existing = index.get(node)
+	fun insert(slot: Int, first: Double, second: Double) {
+		val existing = position(slot)
 		if (existing >= 0) {
 			updateAt(existing, first, second)
 			return
 		}
 		ensureCapacity(count + 1)
 		val newIndex = count++
-		place(newIndex, node, first, second)
+		place(newIndex, slot, first, second)
 		siftUp(newIndex)
 	}
 
-	fun remove(node: Long): Boolean {
-		val position = index.remove(node)
+	fun remove(slot: Int): Boolean {
+		val position = position(slot)
 		if (position < 0) return false
+		positions[slot] = -1
 		removeAt(position)
 		return true
 	}
 
-	fun top(): Long {
+	fun top(): Int {
 		if (count == 0) throw NoSuchElementException("Priority queue is empty")
-		return nodes[0]
+		return slots[0]
 	}
 
 	fun topFirst(): Double = if (count == 0) Double.POSITIVE_INFINITY else k1[0]
@@ -41,16 +40,20 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 
 	fun topIsAbove(first: Double, second: Double): Boolean = compareKeys(topFirst(), topSecond(), first, second) > 0
 
-	operator fun contains(node: Long): Boolean = index.containsKey(node)
+	operator fun contains(slot: Int): Boolean = position(slot) >= 0
 
 	fun isEmpty(): Boolean = count == 0
 
 	fun size(): Int = count
 
+	fun slots(): IntArray = slots.copyOf(count)
+
+	private fun position(slot: Int): Int = if (slot < positions.size) positions[slot] else -1
+
 	private fun ensureCapacity(needed: Int) {
-		if (needed <= nodes.size) return
-		val newSize = maxOf(needed, nodes.size * 2)
-		nodes = nodes.copyOf(newSize)
+		if (needed <= slots.size) return
+		val newSize = maxOf(needed, slots.size * 2)
+		slots = slots.copyOf(newSize)
 		k1 = k1.copyOf(newSize)
 		k2 = k2.copyOf(newSize)
 	}
@@ -66,37 +69,42 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 	private fun removeAt(position: Int) {
 		val lastIndex = --count
 		if (position == lastIndex) return
-		place(position, nodes[lastIndex], k1[lastIndex], k2[lastIndex])
+		place(position, slots[lastIndex], k1[lastIndex], k2[lastIndex])
 		val parent = (position - 1) ushr 1
 		if (position > 0 && compareKeys(k1[position], k2[position], k1[parent], k2[parent]) < 0) siftUp(position)
 		else siftDown(position)
 	}
 
-	private fun place(position: Int, node: Long, first: Double, second: Double) {
-		nodes[position] = node
+	private fun place(position: Int, slot: Int, first: Double, second: Double) {
+		slots[position] = slot
 		k1[position] = first
 		k2[position] = second
-		index.put(node, position)
+		if (slot >= positions.size) {
+			val grown = positions.size
+			positions = positions.copyOf(maxOf(slot + 1, grown * 2))
+			positions.fill(-1, grown, positions.size)
+		}
+		positions[slot] = position
 	}
 
 	private fun siftUp(start: Int) {
 		var position = start
-		val node = nodes[position]
+		val slot = slots[position]
 		val first = k1[position]
 		val second = k2[position]
 		while (position > 0) {
 			val parent = (position - 1) ushr 1
 			if (compareKeys(first, second, k1[parent], k2[parent]) >= 0) break
-			place(position, nodes[parent], k1[parent], k2[parent])
+			place(position, slots[parent], k1[parent], k2[parent])
 			position = parent
 		}
-		place(position, node, first, second)
+		place(position, slot, first, second)
 	}
 
 	private fun siftDown(start: Int) {
 		var position = start
 		val size = count
-		val node = nodes[position]
+		val slot = slots[position]
 		val first = k1[position]
 		val second = k2[position]
 		val half = size ushr 1
@@ -107,10 +115,10 @@ class LongIndexedHeap(initialCapacity: Int = 64) {
 				child = right
 			}
 			if (compareKeys(first, second, k1[child], k2[child]) <= 0) break
-			place(position, nodes[child], k1[child], k2[child])
+			place(position, slots[child], k1[child], k2[child])
 			position = child
 		}
-		place(position, node, first, second)
+		place(position, slot, first, second)
 	}
 
 	companion object {

@@ -10,15 +10,16 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.abs
-import kotlin.math.hypot
 
 class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	val templates: List<MotionTemplate> = catalog.templates
+	internal val stampPrograms by lazy(LazyThreadSafetyMode.PUBLICATION) { templates.map { it.stampProgram() } }
 	private val templatesWithoutBounces = templates.filter { it.movement != MovementId.BOUNCE }
 	private val bounceReach = templates.maxOfOrNull { if (it.bounceDrop == null) 0 else 2 * maxOf(abs(it.dx), abs(it.dz)) + 1 } ?: 0
 	private val bounceDepth = templates.maxOfOrNull { it.bounceDrop?.plus(2) ?: 0 } ?: 0
+	internal val groups = TemplateGroups(templates)
 	private val readOffsets: Set<VoxelPos> = templates.flatMapTo(HashSet()) { it.readOffsets }
-	private val heuristicCaps: HeuristicCaps = deriveCaps(templates)
+	private val heuristicCaps = HeuristicCaps.of(templates)
 	val sustainedTicksPerBlock: Double = sustainedRate(templates)
 
 	private val minReadX = readOffsets.minOf(VoxelPos::x)
@@ -43,14 +44,6 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	private val maxTargetX = targetReadOffsets.maxOf(VoxelPos::x)
 	private val minTargetZ = targetReadOffsets.minOf(VoxelPos::z)
 	private val maxTargetZ = targetReadOffsets.maxOf(VoxelPos::z)
-
-	private data class HeuristicCaps(
-		val axisTicksPerBlock: Double,
-		val diagonalTicksPerPair: Double,
-		val ascentTicksPerBlock: Double,
-		val descentTicksPerBlock: Double,
-		val straightTicksPerBlock: Double,
-	)
 
 	fun readsUnknown(view: CoarseVoxelView, origin: Stance): Boolean {
 		val x0 = origin.x + minReadX
@@ -86,28 +79,18 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	}
 
 	fun templates(view: CoarseVoxelView, at: Stance): List<MotionTemplate> =
-		if (bounceDepth > 0 && view.mayBounceWithin(at.x - bounceReach, at.y - bounceDepth, at.z - bounceReach, at.x + bounceReach, at.y, at.z + bounceReach)) templates
-		else templatesWithoutBounces
+		if (bouncesAt(view, at.x, at.y, at.z)) templates else templatesWithoutBounces
+
+	internal val hasBounces: Boolean get() = bounceDepth > 0
+
+	internal fun bouncesAt(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
+		bounceDepth > 0 && view.mayBounceWithin(x - bounceReach, y - bounceDepth, z - bounceReach, x + bounceReach, y, z + bounceReach)
+
 
 	fun heuristic(from: Stance, to: Stance): Double = heuristic(from.x, from.y, from.z, to.x, to.y, to.z)
 
-	fun heuristic(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int): Double {
-		val dx = abs(toX - fromX)
-		val dz = abs(toZ - fromZ)
-		val paired = minOf(dx, dz)
-		val straight = maxOf(dx, dz) - paired
-
-		val octile = paired * heuristicCaps.diagonalTicksPerPair + straight * heuristicCaps.axisTicksPerBlock
-		val straightLine = hypot(dx.toDouble(), dz.toDouble()) * heuristicCaps.straightTicksPerBlock
-		val horizontal = maxOf(octile, straightLine)
-		val dy = toY - fromY
-		val vertical = when {
-			dy > 0 -> dy * heuristicCaps.ascentTicksPerBlock
-			dy < 0 -> -dy * heuristicCaps.descentTicksPerBlock
-			else -> 0.0
-		}
-		return maxOf(horizontal, vertical)
-	}
+	fun heuristic(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int): Double =
+		heuristicCaps.estimate(toX - fromX, toY - fromY, toZ - fromZ)
 
 	internal fun originColumnRanges(chunk: PathingChunk) = columnRanges(chunk, -maxReadX, -minReadX, -maxReadZ, -minReadZ)
 
@@ -128,54 +111,5 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 			.filter { it.dy == 0 && abs(it.dx) + abs(it.dz) == 1 }
 			.minOfOrNull { it.lowerBoundTicks }
 			?: 1.0
-
-		private fun deriveCaps(templates: List<MotionTemplate>): HeuristicCaps {
-			var axis = Double.POSITIVE_INFINITY
-			var diagonal = Double.POSITIVE_INFINITY
-			var ascent = Double.POSITIVE_INFINITY
-			var descent = Double.POSITIVE_INFINITY
-			var straight = Double.POSITIVE_INFINITY
-			for (template in templates) {
-				val reach = hypot(template.dx.toDouble(), template.dz.toDouble())
-				if (reach > 0.0) straight = minOf(straight, template.minimumTicks / reach)
-			}
-			for (template in templates) {
-				val dx = abs(template.dx)
-				val dz = abs(template.dz)
-				when {
-					dx > 0 && dz == 0 -> axis = minOf(axis, template.minimumTicks / dx)
-					dz > 0 && dx == 0 -> axis = minOf(axis, template.minimumTicks / dz)
-					dx == dz && dx > 0 -> diagonal = minOf(diagonal, template.minimumTicks / dx)
-				}
-				if (template.dy > 0) ascent = minOf(ascent, template.minimumTicks / template.dy)
-				if (template.dy < 0) descent = minOf(descent, template.minimumTicks / abs(template.dy))
-			}
-
-			axis = minOf(axis, diagonal)
-			diagonal = minOf(diagonal, 2.0 * axis)
-
-			for (template in templates) {
-				val a = abs(template.dx)
-				val b = abs(template.dz)
-				if (a == 0 || b == 0 || a == b) continue
-				val pairs = minOf(a, b)
-				val straights = abs(a - b)
-				val claimed = pairs * diagonal + straights * axis
-				if (!claimed.isFinite() || claimed <= template.minimumTicks) continue
-
-				val roomForDiagonal = (template.minimumTicks - straights * axis) / pairs
-				if (roomForDiagonal >= axis) {
-					diagonal = roomForDiagonal
-				} else {
-					val even = template.minimumTicks / (pairs + straights)
-					axis = even
-					diagonal = even
-				}
-			}
-
-			return HeuristicCaps(axis.finiteOrZero(), diagonal.finiteOrZero(), ascent.finiteOrZero(), descent.finiteOrZero(), straight.finiteOrZero())
-		}
-
-		private fun Double.finiteOrZero() = if (isFinite()) this else 0.0
 	}
 }

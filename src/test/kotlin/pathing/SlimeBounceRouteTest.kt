@@ -13,13 +13,16 @@ import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
@@ -122,6 +125,34 @@ class SlimeBounceRouteTest {
         assertTrue(
             route.edges.any { it.movement == MovementId.BOUNCE },
             "drop 4 / land +2 at span 5 must route as a bounce; got ${route.edges.map { it.movement }}",
+        )
+    }
+
+    /**
+     * Without slime anywhere in the snapshot the search estimates with ground moves only,
+     * which is twice as tight as the bounce reach. A pad streaming in afterwards must swap
+     * the estimate back before the new bounce edge can be trusted.
+     */
+    @Test
+    fun `slime streamed in after a slime free search still routes the bounce`() {
+        val environment = world(SnapshotBlockPhysics.FULL_CUBE)
+        val planner = planner(environment)
+        planner.repair()
+        assertNull(planner.routePlan(0L), "a stone pit floor must not route")
+
+        val sections = HashMap<Long, ImmutableSnapshotSection.Builder>()
+        world(slime).forEachInstalledBlock { pos, physics ->
+            sections.getOrPut(ChunkSectionPos.toLong(BlockPos.fromLong(pos))) { ImmutableSnapshotSection.Builder() }
+                .set(BlockPos.unpackLongX(pos), BlockPos.unpackLongY(pos), BlockPos.unpackLongZ(pos), physics)
+        }
+        sections.forEach { (key, section) -> environment.install(key, section.build()) }
+        planner.chunksChanged(setOf(PathingChunk(-1, 0), PathingChunk(0, 0)))
+
+        assertTrue(planner.repair().converged)
+        val route = checkNotNull(planner.routePlan(1L)) { planner.routeFailureReport() }
+        assertTrue(
+            route.edges.any { it.movement == MovementId.BOUNCE },
+            "the streamed pad is only crossable by rebound; got ${route.edges.map { it.movement }}",
         )
     }
 

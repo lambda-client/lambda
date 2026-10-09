@@ -1,7 +1,7 @@
 package pathing
 
 import com.lambda.pathing.graph.LongDStarLite
-import com.lambda.pathing.graph.LongLazyGraph
+import com.lambda.pathing.graph.LongGraph
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -10,7 +10,7 @@ import kotlin.time.Duration
 
 class DStarBudgetTest {
     private fun planner(start: Long) = LongDStarLite(
-        LongLazyGraph(
+        LongGraph(
             successorProvider = { node, sink -> if (node > 0) sink.add(node - 1, 1.0) },
             predecessorProvider = { node, sink -> if (node < 100) sink.add(node + 1, 1.0) },
         ), start, 0, { _, _ -> 0.0 },

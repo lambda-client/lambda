@@ -62,7 +62,7 @@ class DStarDifferentialTest {
         fun assertFullStateEqual(context: String) {
             assertEquals(reference.km, packed.km, "km $context")
             assertEquals(reference.start, packed.start, "start $context")
-            assertEquals(referenceGraph.nodes, packedGraph.nodes.toSet(), "graph nodes $context")
+            assertEquals(referenceGraph.nodes, packed.knownNodes().toSet(), "graph nodes $context")
             assertEquals(reference.queue.size(), packed.queue.size(), "queue size $context")
             if (!reference.queue.isEmpty()) {
                 assertEquals(reference.queue.top(), packed.queue.top(), "queue top $context")
@@ -83,7 +83,7 @@ class DStarDifferentialTest {
          */
         fun assertLabelsEqual(context: String, adjacency: Boolean) {
             val union = HashSet<Long>(referenceGraph.nodes)
-            union += packedGraph.nodes
+            union += packed.knownNodes()
             union += reference.start
             union += goal
             for (node in union) {
@@ -92,7 +92,7 @@ class DStarDifferentialTest {
                 assertEquals(node in reference.queue, node in packed.queue, "queued($node) $context")
                 if (adjacency) assertEquals(
                     referenceGraph.knownSuccessors(node).toList(),
-                    packedGraph.knownSuccessors(node).toMap().toList(),
+                    packed.knownSuccessors(node).toMap().toList(),
                     "successors($node) $context",
                 )
             }

@@ -1,7 +1,11 @@
 package com.lambda.pathing.graph
 
-import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
+import com.lambda.pathing.graph.NodeTable.Companion.KNOWN
+import com.lambda.pathing.graph.NodeTable.Companion.PREDECESSORS_INITIALIZED
+import com.lambda.pathing.graph.NodeTable.Companion.SUCCESSORS_INITIALIZED
+import com.lambda.pathing.graph.NodeTable.Companion.SUCCESSORS_SET
 import it.unimi.dsi.fastutil.longs.LongArrayList
+import it.unimi.dsi.fastutil.longs.LongConsumer
 import it.unimi.dsi.fastutil.longs.LongIterable
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlin.math.abs
@@ -14,7 +18,7 @@ fun interface LongHeuristic {
 }
 
 class LongDStarLite(
-	private val graph: LongLazyGraph,
+	private val graph: LongGraph,
 	start: Long,
 	private val goal: Long,
 	private val heuristic: LongHeuristic,
@@ -23,18 +27,60 @@ class LongDStarLite(
 	var start: Long = start
 		private set
 
-	private val gValues = Long2DoubleOpenHashMap().apply { defaultReturnValue(INF) }
-	private val rhsValues = Long2DoubleOpenHashMap().apply { defaultReturnValue(INF) }
+	private val nodes = NodeTable()
 
-	val queue = LongIndexedHeap()
+	private val heap = SlotHeap()
+
+	private val generated = EdgeList()
+
+	private val goalSlot = nodes.slot(goal)
+
+	val queue = Queue()
 
 	var km = 0.0
 		private set
 
 	init {
-		setRhs(goal, 0.0)
-		queue.insert(goal, checkedHeuristic(start, goal), 0.0)
+		setRhs(goalSlot, 0.0)
+		heap.insert(goalSlot, checkedHeuristic(start, goal), 0.0)
 	}
+
+	inner class Queue {
+		fun size(): Int = heap.size()
+
+		fun isEmpty(): Boolean = heap.isEmpty()
+
+		fun top(): Long = nodes.key(heap.top())
+
+		fun topFirst(): Double = heap.topFirst()
+
+		fun topSecond(): Double = heap.topSecond()
+
+		operator fun contains(node: Long): Boolean {
+			val slot = nodes.find(node)
+			return slot >= 0 && slot in heap
+		}
+	}
+
+	val knownNodeCount: Int get() = nodes.knownCount
+
+	fun isKnown(node: Long): Boolean {
+		val slot = nodes.find(node)
+		return slot >= 0 && nodes.has(slot, KNOWN)
+	}
+
+	fun forEachKnownNode(action: LongConsumer) {
+		for (slot in 0 until nodes.size) if (nodes.has(slot, KNOWN)) action.accept(nodes.key(slot))
+	}
+
+	fun knownNodes(): LongOpenHashSet = LongOpenHashSet().also { set -> forEachKnownNode { set.add(it) } }
+
+	fun knownSuccessors(node: Long): EdgeList {
+		val slot = nodes.find(node)
+		return if (slot < 0) EdgeList() else edgeList(nodes.successors(slot))
+	}
+
+	fun successors(node: Long): EdgeList = edgeList(successors(nodes.slot(node)))
 
 	fun computeShortestPath(
 		timeBudget: Duration = 500.milliseconds,
@@ -44,21 +90,21 @@ class LongDStarLite(
 		require(!timeBudget.isNegative()) { "timeBudget must be non-negative" }
 		require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
 
-		var stallNode = 0L
+		var stallNode = -1
 		var stallG = 0.0
 		var stallRhs = 0.0
 		var stallSteps = 0
 
 		return compute(timeBudget, maxExpansions, cancelled, ::shouldCompute) {
-			if (queue.isEmpty()) {
+			if (heap.isEmpty()) {
 				return@compute "queue empty while start is inconsistent: start=${describe(start)} g=${g(start)} rhs=${rhs(start)}"
 			}
-			val top = queue.top()
-			val topG = g(top)
-			val topRhs = rhs(top)
+			val top = heap.top()
+			val topG = nodes.g(top)
+			val topRhs = nodes.rhs(top)
 			if (top == stallNode && topG == stallG && topRhs == stallRhs) {
 				if (++stallSteps >= STALL_STEPS) {
-					return@compute "node ${describe(top)} re-processed $stallSteps times with g=$topG rhs=$topRhs key=(${queue.topFirst()}, ${queue.topSecond()}) km=$km"
+					return@compute "node ${describe(nodes.key(top))} re-processed $stallSteps times with g=$topG rhs=$topRhs key=(${heap.topFirst()}, ${heap.topSecond()}) km=$km"
 				}
 			} else {
 				stallNode = top
@@ -88,7 +134,7 @@ class LongDStarLite(
 		val threshold = startCost + km + extraTicks
 		return compute(
 			timeBudget, maxExpansions, cancelled,
-			keepGoing = { !queue.isEmpty() && queue.topFirst() <= threshold },
+			keepGoing = { !heap.isEmpty() && heap.topFirst() <= threshold },
 			stallReason = { null },
 		)
 	}
@@ -137,41 +183,41 @@ class LongDStarLite(
 	}
 
 	private fun step() {
-		val node = queue.top()
-		val nodeG = g(node)
-		val nodeRhs = rhs(node)
+		val node = heap.top()
+		val nodeG = nodes.g(node)
+		val nodeRhs = nodes.rhs(node)
 		val minCost = min(nodeG, nodeRhs)
 		val newFirst = firstKey(node, minCost)
 
 		when {
-			queue.topIsBelow(newFirst, minCost) -> queue.insert(node, newFirst, minCost)
+			heap.topIsBelow(newFirst, minCost) -> heap.insert(node, newFirst, minCost)
 
 			nodeG > nodeRhs -> {
-				val predecessors = graph.predecessors(node)
+				val predecessors = predecessors(node)
 				setG(node, nodeRhs)
-				queue.remove(node)
+				heap.remove(node)
 				for (i in 0 until predecessors.size) {
-					val predecessor = predecessors.node(i)
+					val predecessor = predecessors.slot(i)
 					val cost = predecessors.cost(i)
-					if (predecessor != goal) setRhs(predecessor, min(rhs(predecessor), cost + nodeRhs))
+					if (predecessor != goalSlot) setRhs(predecessor, min(nodes.rhs(predecessor), cost + nodeRhs))
 					updateVertex(predecessor)
 				}
 			}
 
 			else -> {
-				val predecessors = graph.predecessors(node)
-				for (i in 0 until predecessors.size) graph.successors(predecessors.node(i))
-				graph.successors(node)
+				val predecessors = predecessors(node)
+				for (i in 0 until predecessors.size) successors(predecessors.slot(i))
+				successors(node)
 				setG(node, INF)
 
-				fun refresh(vertex: Long) {
-					if (vertex != goal && sameCost(rhs(vertex), graph.knownSuccessors(vertex).costOf(node) + nodeG)) {
+				fun refresh(vertex: Int) {
+					if (vertex != goalSlot && sameCost(nodes.rhs(vertex), costOf(vertex, node) + nodeG)) {
 						setRhs(vertex, minSuccessorCost(vertex))
 					}
 					updateVertex(vertex)
 				}
-				for (i in 0 until predecessors.size) refresh(predecessors.node(i))
-				if (node !in predecessors) refresh(node)
+				for (i in 0 until predecessors.size) refresh(predecessors.slot(i))
+				if (predecessors.indexOf(node) < 0) refresh(node)
 			}
 		}
 	}
@@ -182,8 +228,16 @@ class LongDStarLite(
 		start = newStart
 		km += checkedHeuristic(previousStart, newStart)
 
-		if (newStart != goal) setRhs(newStart, minSuccessorCost(newStart))
-		updateVertex(newStart)
+		val slot = nodes.slot(newStart)
+		if (slot != goalSlot) setRhs(slot, minSuccessorCost(slot))
+		updateVertex(slot)
+	}
+
+	fun rekey() {
+		for (slot in heap.slots()) {
+			val minCost = min(nodes.g(slot), nodes.rhs(slot))
+			heap.insert(slot, firstKey(slot, minCost), minCost)
+		}
 	}
 
 	fun synchronizeAffected(affectedNodes: LongIterable): Boolean {
@@ -195,15 +249,16 @@ class LongDStarLite(
 
 		var changed = false
 		for (node in ordered) {
-			if (node !in graph) continue
-			val oldSuccessors = graph.knownSuccessors(node).copy()
-			val newSuccessors = graph.generateSuccessors(node)
-			graph.markSuccessorsInitialized(node)
+			val slot = nodes.find(node)
+			if (slot < 0 || !nodes.has(slot, KNOWN)) continue
+			val oldSuccessors = edgeList(nodes.successors(slot))
+			val newSuccessors = graph.successors(node)
+			nodes.mark(slot, SUCCESSORS_INITIALIZED or KNOWN)
 			if (reconcileEdges(oldSuccessors, newSuccessors) { target, cost -> updateEdge(node, target, cost) }) changed = true
 
-			val oldPredecessors = graph.knownPredecessors(node).copy()
-			val newPredecessors = graph.generatePredecessors(node)
-			graph.markPredecessorsInitialized(node)
+			val oldPredecessors = edgeList(nodes.predecessors(slot))
+			val newPredecessors = graph.predecessors(node)
+			nodes.mark(slot, PREDECESSORS_INITIALIZED or KNOWN)
 			if (reconcileEdges(oldPredecessors, newPredecessors) { source, cost -> updateEdge(source, node, cost) }) changed = true
 		}
 		return changed
@@ -230,16 +285,18 @@ class LongDStarLite(
 
 	fun updateEdge(from: Long, to: Long, newCost: Double) {
 		EdgeList.checkCost(newCost)
-		val oldCost = graph.knownSuccessors(from).costOf(to)
+		val oldCost = knownCost(from, to)
 		if (sameCost(oldCost, newCost)) return
-		graph.setCost(from, to, newCost)
+		val fromSlot = nodes.slot(from)
+		val toSlot = nodes.slot(to)
+		if (newCost.isFinite()) putEdge(fromSlot, toSlot, newCost) else removeEdge(fromSlot, toSlot)
 
 		when {
-			oldCost > newCost -> if (from != goal) setRhs(from, min(rhs(from), newCost + g(to)))
-			sameCost(rhs(from), oldCost + g(to)) -> if (from != goal) setRhs(from, minSuccessorCost(from))
+			oldCost > newCost -> if (fromSlot != goalSlot) setRhs(fromSlot, min(nodes.rhs(fromSlot), newCost + nodes.g(toSlot)))
+			sameCost(nodes.rhs(fromSlot), oldCost + nodes.g(toSlot)) -> if (fromSlot != goalSlot) setRhs(fromSlot, minSuccessorCost(fromSlot))
 		}
 
-		updateVertex(from)
+		updateVertex(fromSlot)
 	}
 
 	fun computeRouteCandidate(
@@ -265,20 +322,20 @@ class LongDStarLite(
 
 	private sealed interface Descent {
 		class Reached(val candidate: LongRouteCandidate) : Descent
-		class Blocked(val node: Long) : Descent
+		class Blocked(val node: Int) : Descent
 		data object Unreachable : Descent
 	}
 
-	private fun settle(node: Long, maxExpansions: Int, cancelled: () -> Boolean): Int = compute(
+	private fun settle(node: Int, maxExpansions: Int, cancelled: () -> Boolean): Int = compute(
 		Duration.INFINITE, maxExpansions, cancelled,
-		keepGoing = { !queue.isEmpty() && (shouldCompute() || !isSettled(node)) },
+		keepGoing = { !heap.isEmpty() && (shouldCompute() || !isSettled(node)) },
 		stallReason = { null },
 	).processedNodes
 
-	private fun isSettled(node: Long): Boolean {
-		if (!sameCost(g(node), rhs(node))) return false
-		val minCost = min(g(node), rhs(node))
-		return queue.topIsAbove(firstKey(node, minCost), minCost)
+	private fun isSettled(node: Int): Boolean {
+		if (!sameCost(nodes.g(node), nodes.rhs(node))) return false
+		val minCost = min(nodes.g(node), nodes.rhs(node))
+		return heap.topIsAbove(firstKey(node, minCost), minCost)
 	}
 
 	private fun descend(strict: Boolean, report: StringBuilder?): Descent {
@@ -295,55 +352,55 @@ class LongDStarLite(
 
 		val path = LongArrayList()
 		val seen = LongOpenHashSet()
-		var current = start
+		var current = nodes.slot(start)
 		var actualCost = 0.0
 
-		path.add(current)
-		seen.add(current)
+		path.add(start)
+		seen.add(start)
 
 		for (step in 0 until MAX_ROUTE_NODES) {
-			if (current == goal) {
+			if (current == goalSlot) {
 				report?.append("reaches-goal-in-$step")
 				return Descent.Reached(LongRouteCandidate(path, actualCost, isStartCostExact()))
 			}
 
-			if (strict && !sameCost(g(current), rhs(current))) {
-				report?.append("inconsistent-at-${describe(current)}-after-$step")
+			if (strict && !sameCost(nodes.g(current), nodes.rhs(current))) {
+				report?.append("inconsistent-at-${describe(nodes.key(current))}-after-$step")
 				return Descent.Blocked(current)
 			}
 
-			val successors = graph.successors(current)
+			val successors = successors(current)
 			if (successors.isEmpty()) {
-				report?.append("no-successors-at-${describe(current)}-after-$step")
+				report?.append("no-successors-at-${describe(nodes.key(current))}-after-$step")
 				return Descent.Unreachable
 			}
-			var next = successors.node(0)
+			var next = successors.slot(0)
 			var bestEdge = successors.cost(0)
-			var bestCost = bestEdge + g(next)
+			var bestCost = bestEdge + nodes.g(next)
 			for (i in 1 until successors.size) {
-				val successor = successors.node(i)
+				val successor = successors.slot(i)
 				val edgeCost = successors.cost(i)
-				val candidateCost = edgeCost + g(successor)
-				if (candidateCost < bestCost || (candidateCost.compareTo(bestCost) == 0 && successor < next)) {
+				val candidateCost = edgeCost + nodes.g(successor)
+				if (candidateCost < bestCost || (candidateCost.compareTo(bestCost) == 0 && nodes.key(successor) < nodes.key(next))) {
 					next = successor
 					bestCost = candidateCost
 					bestEdge = edgeCost
 				}
 			}
 			if (strict && !bestCost.isFinite()) {
-				report?.append("infinite-cost-at-${describe(current)}-after-$step")
+				report?.append("infinite-cost-at-${describe(nodes.key(current))}-after-$step")
 				return Descent.Blocked(current)
 			}
 
-			if (!seen.add(next)) {
+			if (!seen.add(nodes.key(next))) {
 				report?.append(
-					"cycles-at-${describe(current)}-to-${describe(next)}-after-$step" +
-							" (g=%.1f -> %.1f)".format(g(current), g(next)),
+					"cycles-at-${describe(nodes.key(current))}-to-${describe(nodes.key(next))}-after-$step" +
+							" (g=%.1f -> %.1f)".format(nodes.g(current), nodes.g(next)),
 				)
 				return Descent.Blocked(next)
 			}
 			actualCost += bestEdge
-			path.add(next)
+			path.add(nodes.key(next))
 			current = next
 		}
 
@@ -375,53 +432,126 @@ class LongDStarLite(
 
 	fun isStartCostExact(): Boolean = start == goal || !shouldCompute() && sameCost(g(start), rhs(start))
 
-	fun g(node: Long): Double = gValues.get(node)
+	fun g(node: Long): Double {
+		val slot = nodes.find(node)
+		return if (slot < 0) INF else nodes.g(slot)
+	}
 
-	fun rhs(node: Long): Double = rhsValues.get(node)
+	fun rhs(node: Long): Double {
+		val slot = nodes.find(node)
+		return if (slot < 0) INF else nodes.rhs(slot)
+	}
 
-	private fun updateVertex(node: Long) {
-		val nodeG = g(node)
-		val nodeRhs = rhs(node)
+	private fun updateVertex(node: Int) {
+		val nodeG = nodes.g(node)
+		val nodeRhs = nodes.rhs(node)
 		if (sameCost(nodeG, nodeRhs)) {
-			queue.remove(node)
+			heap.remove(node)
 			return
 		}
 		val minCost = min(nodeG, nodeRhs)
-		queue.insert(node, firstKey(node, minCost), minCost)
+		heap.insert(node, firstKey(node, minCost), minCost)
 	}
 
-	private fun firstKey(node: Long, minCost: Double): Double = minCost + checkedHeuristic(start, node) + km
+	private fun firstKey(node: Int, minCost: Double): Double = minCost + checkedHeuristic(start, nodes.key(node)) + km
 
 	private fun shouldCompute(): Boolean {
 		val startG = g(start)
 		val startRhs = rhs(start)
 		val minCost = min(startG, startRhs)
-		return queue.topIsBelow(firstKey(start, minCost), minCost) || !sameCost(startRhs, startG)
+		val startKey = minCost + checkedHeuristic(start, start) + km
+		return heap.topIsBelow(startKey, minCost) || !sameCost(startRhs, startG)
 	}
 
-	private fun minSuccessorCost(node: Long): Double {
+	private fun minSuccessorCost(node: Int): Double {
 		var best = INF
-		val successors = graph.successors(node)
+		val successors = successors(node)
 		for (i in 0 until successors.size) {
-			val candidate = successors.cost(i) + g(successors.node(i))
+			val candidate = successors.cost(i) + nodes.g(successors.slot(i))
 			if (candidate < best) best = candidate
 		}
 		return best
 	}
 
+	private fun costOf(from: Int, to: Int): Double = nodes.successors(from)?.costOf(to) ?: INF
+
+	private fun knownCost(from: Long, to: Long): Double {
+		val fromSlot = nodes.find(from)
+		val toSlot = nodes.find(to)
+		return if (fromSlot < 0 || toSlot < 0) INF else costOf(fromSlot, toSlot)
+	}
+
+	private fun successors(node: Int): SlotEdges {
+		if (!nodes.has(node, SUCCESSORS_INITIALIZED)) {
+			val edges = graph.successorsInto(nodes.key(node), generated)
+			for (i in 0 until edges.size) addUnknownEdge(node, nodes.slot(edges.node(i)), edges.cost(i), mayExist = true)
+			nodes.mark(node, SUCCESSORS_INITIALIZED or KNOWN)
+		}
+		return nodes.successors(node) ?: EMPTY
+	}
+
+	private fun predecessors(node: Int): SlotEdges {
+		if (!nodes.has(node, PREDECESSORS_INITIALIZED)) {
+			val edges = graph.predecessorsInto(nodes.key(node), generated)
+			for (i in 0 until edges.size) {
+				val from = nodes.slot(edges.node(i))
+				addUnknownEdge(from, node, edges.cost(i), mayExist = nodes.has(from, SUCCESSORS_INITIALIZED or SUCCESSORS_SET))
+			}
+			nodes.mark(node, PREDECESSORS_INITIALIZED or KNOWN)
+		}
+		return nodes.predecessors(node) ?: EMPTY
+	}
+
+	private fun addUnknownEdge(from: Int, to: Int, cost: Double, mayExist: Boolean) {
+		val successors = nodes.successorsOrCreate(from)
+		if (mayExist && successors.indexOf(to) >= 0) return
+		successors.append(to, cost)
+		nodes.mark(from, KNOWN)
+		nodes.mark(to, KNOWN)
+		nodes.predecessorsOrCreate(to).append(from, cost)
+	}
+
+	private fun putEdge(from: Int, to: Int, cost: Double) {
+		nodes.mark(from, KNOWN or SUCCESSORS_SET)
+		nodes.mark(to, KNOWN)
+		nodes.successorsOrCreate(from).put(to, cost)
+		nodes.predecessorsOrCreate(to).put(from, cost)
+	}
+
+	private fun removeEdge(from: Int, to: Int) {
+		nodes.successors(from)?.let { if (it.remove(to) && it.isEmpty()) nodes.dropSuccessors(from) }
+		nodes.predecessors(to)?.let { if (it.remove(from) && it.isEmpty()) nodes.dropPredecessors(to) }
+		refreshKnownNode(from)
+		refreshKnownNode(to)
+	}
+
+	private fun refreshKnownNode(node: Int) {
+		if (nodes.successors(node) == null && nodes.predecessors(node) == null &&
+			!nodes.has(node, SUCCESSORS_INITIALIZED or PREDECESSORS_INITIALIZED)
+		) {
+			nodes.forget(node)
+		}
+	}
+
+	private fun edgeList(edges: SlotEdges?): EdgeList {
+		val out = EdgeList(maxOf(edges?.size ?: 0, 1))
+		if (edges != null) for (i in 0 until edges.size) out.add(nodes.key(edges.slot(i)), edges.cost(i))
+		return out
+	}
+
 	var revision = 0L
 		private set
 
-	private fun setG(node: Long, value: Double) {
-		require(!value.isNaN()) { "D* Lite g must not be NaN: ${describe(node)}" }
+	private fun setG(node: Int, value: Double) {
+		require(!value.isNaN()) { "D* Lite g must not be NaN: ${describe(nodes.key(node))}" }
 		revision++
-		if (value == INF) gValues.remove(node) else gValues.put(node, value)
+		nodes.setG(node, value)
 	}
 
-	private fun setRhs(node: Long, value: Double) {
-		require(!value.isNaN()) { "D* Lite rhs must not be NaN: ${describe(node)}" }
+	private fun setRhs(node: Int, value: Double) {
+		require(!value.isNaN()) { "D* Lite rhs must not be NaN: ${describe(nodes.key(node))}" }
 		revision++
-		if (value == INF) rhsValues.remove(node) else rhsValues.put(node, value)
+		nodes.setRhs(node, value)
 	}
 
 	private fun checkedHeuristic(from: Long, to: Long): Double {
@@ -451,6 +581,8 @@ class LongDStarLite(
 		private const val MAX_DESCENT_ROUNDS = 256
 
 		private const val MAX_ROUTE_NODES = 10_000
+
+		private val EMPTY = SlotEdges()
 
 		private fun sameCost(a: Double, b: Double, tolerance: Double = EPSILON): Boolean = when {
 			a.isInfinite() || b.isInfinite() -> a == b

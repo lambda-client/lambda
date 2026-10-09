@@ -4,80 +4,35 @@ import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.world.CoarseVoxel
-import com.lambda.pathing.world.CoarseVoxelView
-import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.streaming.InterestTier
 import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.streaming.WorldEventBatch
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.util.shape.VoxelShape
-import net.minecraft.util.shape.VoxelShapes
 
 private val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
-
-private class PlanningHorizonView(
-	private val backing: CoarseVoxelView,
-	private val granted: LongOpenHashSet,
-) : CoarseVoxelView {
-	private fun grantedAt(x: Int, z: Int): Boolean = granted.contains(PathingChunk.key(x shr 4, z shr 4))
-
-	override val simulableStanceY: IntRange get() = backing.simulableStanceY
-
-	override fun isKnown(x: Int, y: Int, z: Int): Boolean = grantedAt(x, z) && backing.isKnown(x, y, z)
-
-	override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel =
-		if (grantedAt(x, z)) backing.voxel(x, y, z) else CoarseVoxel.UNKNOWN
-
-	override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape? =
-		if (grantedAt(x, z)) backing.collisionShape(x, y, z) else VoxelShapes.fullCube()
-
-	override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass =
-		if (grantedAt(x, z)) backing.collisionClass(x, y, z) else CollisionClass.FULL
-
-	override fun cursor(): CoarseVoxelView = PlanningHorizonView(backing.cursor(), granted)
-
-	override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
-		backing.mayBounceWithin(minX, minY, minZ, maxX, maxY, maxZ)
-
-	override val revision: Any? get() = backing.revision
-}
 
 internal class CoarsePlanningState(
 	snapshot: SnapshotSimulationEnvironment,
 	moveOptions: SimpleMoveOptions,
 	start: Stance,
 	val goal: Stance,
-	val horizonChunks: Int = 0,
 	frontierSweepBudget: Int = FrontierAnchors.SWEEP_MAX_NODES,
 	capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
 ) {
 	private val moves = SimpleMoveLibrary.build(costs = DEFAULT_MOVE_COSTS, options = moveOptions)
 
-	private val grantedChunks = LongOpenHashSet()
-
-	private val view: CoarseVoxelView =
-		if (horizonChunks <= 0) snapshot
-		else PlanningHorizonView(snapshot, grantedChunks)
-
 	private val captureLagSections = HashSet<Long>()
 
-	init {
-		grant(start)
-	}
-
 	val planner = CoarsePlanner(
-		view, moves, start, goal,
+		snapshot, moves, start, goal,
 		sweepBudget = frontierSweepBudget,
-		capturable = if (horizonChunks <= 0) capturable else { cx, cz -> grantedChunks.contains(PathingChunk.key(cx, cz)) && capturable(cx, cz) },
+		capturable = capturable,
 		onCaptureLag = { x, y, z -> captureLagSections += ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4) },
 	)
 
 	fun repairFrom(start: Stance) {
 		planner.updateStart(start)
-		revealAround(start)
 	}
 
 	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {
@@ -86,9 +41,6 @@ internal class CoarsePlanningState(
 		val arrivals = batch.sections.mapNotNullTo(HashSet()) { PathingChunk(it.x, it.z).takeUnless { chunk -> chunk in mutated } }
 		if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals, maxStances, arrivalsOnly = true)
 	}
-
-	fun revealAround(stance: Stance): Set<PathingChunk> =
-		grant(stance).also { if (it.isNotEmpty()) planner.chunksChanged(it, arrivalsOnly = true) }
 
 	fun demandCaptureLag(world: PathingWorld, tier: InterestTier = InterestTier.DEMAND) {
 		if (captureLagSections.isEmpty()) return
@@ -104,17 +56,4 @@ internal class CoarsePlanningState(
 					planner.routePlan(snapshotRevision, cancelled = cancelled)
 				} else null
 			}
-
-	private fun grant(start: Stance): Set<PathingChunk> {
-		if (horizonChunks <= 0) return emptySet()
-		val revealed = HashSet<PathingChunk>()
-		val centerX = start.x shr 4
-		val centerZ = start.z shr 4
-		for (dx in -horizonChunks..horizonChunks) {
-			for (dz in -horizonChunks..horizonChunks) {
-				if (grantedChunks.add(PathingChunk.key(centerX + dx, centerZ + dz))) revealed += PathingChunk(centerX + dx, centerZ + dz)
-			}
-		}
-		return revealed
-	}
 }

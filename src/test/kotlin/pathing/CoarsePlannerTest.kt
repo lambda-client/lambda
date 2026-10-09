@@ -9,6 +9,7 @@
 
 package pathing
 
+import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.coarse.CoarseEdgeCache
@@ -319,8 +320,12 @@ class CoarsePlannerTest {
     }
 
 
-    private fun SimpleMoveLibrary.edgesTo(view: CoarseVoxelView, target: Stance) =
-        CoarseEdgeCache(view, this).edgesTo(PackedStance.pack(target, SpeedClass.STOPPED))
+    private fun SimpleMoveLibrary.edgesTo(view: CoarseVoxelView, target: Stance): List<CoarseEdge> {
+        val cache = CoarseEdgeCache(view, this)
+        return templates(view, target).mapNotNull { template ->
+            cache.edgesFrom(target.offset(-template.dx, -template.dy, -template.dz)).firstOrNull { it.template == template.id }
+        }
+    }
 
     private fun library(options: SimpleMoveOptions = SimpleMoveOptions()) = SimpleMoveLibrary.build(
         costs = CoarseMoveCosts(

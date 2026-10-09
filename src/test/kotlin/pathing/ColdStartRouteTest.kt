@@ -80,14 +80,13 @@ class ColdStartRouteTest {
         }
     }
 
-    private fun resolveColdStart(rig: Rig, horizon: Int = 4): Pair<com.lambda.pathing.coarse.CoarseRoutePlan?, String> {
+    private fun resolveColdStart(rig: Rig): Pair<com.lambda.pathing.coarse.CoarseRoutePlan?, String> {
         val world = rig.world
         val start = rig.start
         val goal = rig.goal
         InterestPrimer.primeJourney(world, start, goal)
         val state = CoarsePlanningState(
-            world.snapshot, SimpleMoveOptions(), start, goal,
-            horizonChunks = horizon, capturable = world::chunkCapturable,
+            world.snapshot, SimpleMoveOptions(), start, goal, capturable = world::chunkCapturable,
         )
 
         // awaitStartKnowledge, as PlanningJob does it.
@@ -135,38 +134,6 @@ class ColdStartRouteTest {
         try {
             val (route, report) = resolveColdStart(rig)
             assertNotNull(route, "flat floor, everything loaded: $report")
-        } finally {
-            rig.stop()
-        }
-    }
-
-    @Test
-    fun `a goal beyond the ring with everything capturable anchors at the ring edge`() {
-        val blocks = HashMap<BlockPos, com.lambda.pathing.world.snapshot.SnapshotBlockPhysics>()
-        for (x in -180..-60) for (z in -110..0) for (y in 0..3) {
-            blocks[BlockPos(x, y, z)] = com.lambda.pathing.world.snapshot.SnapshotBlockPhysics.FULL_CUBE
-        }
-        val environment = com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment.synthetic(
-            bounds = SimulationSnapshotBounds(-190, -8, -120, -50, 40, 10), blocks = blocks,
-        )
-        val start = Stance(-82, 4, -91)
-        val goal = Stance(-164, 4, -13)
-        val state = CoarsePlanningState(
-            environment, SimpleMoveOptions(), start, goal, horizonChunks = 4, capturable = { _, _ -> true },
-        )
-        state.repairFrom(start)
-        state.planner.repair(maxExpansions = 1_000_000)
-        val route = RouteResolution(state).resolve(start, 1L, 1_000_000, world = null)
-        println("[ring] route=${route?.nodes?.size} to ${route?.goal}")
-        assertNotNull(route, "the ring edge must anchor: ${state.planner.routeFailureReport()}")
-    }
-
-    @Test
-    fun `the 112 block case with no planning horizon`() {
-        val rig = Rig(Stance(-82, 4, -91), Stance(-164, 4, -13), loadedRadiusChunks = 10, viewDistance = 8)
-        try {
-            val (route, report) = resolveColdStart(rig, horizon = 0)
-            assertNotNull(route, "flat floor, no horizon: $report")
         } finally {
             rig.stop()
         }

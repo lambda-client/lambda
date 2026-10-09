@@ -3,6 +3,7 @@ package com.lambda.pathing.world.snapshot
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxel
+import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CollisionClass
 import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
@@ -21,6 +22,8 @@ data class SnapshotBlockPhysics(
 ) {
 	val collisionClass: CollisionClass =
 		if (unsupportedPhysics != null) CollisionClass.FULL else CollisionClass.of(collisionShape)
+
+	val cellClass: CellClass = if (unsupportedPhysics != null) CellClass.HAZARD else CellClass.of(coarseVoxel, collisionClass)
 
 	private val collisionBoxes = collisionShape.boundingBoxes
 

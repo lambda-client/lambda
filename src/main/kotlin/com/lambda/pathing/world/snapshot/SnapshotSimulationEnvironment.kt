@@ -8,6 +8,7 @@ import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
 import com.lambda.pathing.physics.closestSupportingBlock
 import com.lambda.pathing.physics.forEachCollisionCandidate
+import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
@@ -71,10 +72,35 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override val revision: Any get() = store
 
+	override val mayBounce: Boolean get() = store.bouncySections > 0
+
 	override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
 	override fun cursor(): CoarseVoxelView = SectionCursor()
+
+	override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
+		if (!classifySectionIn(sectionX, sectionY, sectionZ, planes) { store[it] }) {
+			super.classifySection(sectionX, sectionY, sectionZ, planes)
+		}
+	}
+
+	private inline fun classifySectionIn(
+		sectionX: Int,
+		sectionY: Int,
+		sectionZ: Int,
+		planes: Array<LongArray>,
+		sectionAt: (Long) -> ImmutableSnapshotSection?,
+	): Boolean {
+		val minX = sectionX shl 4
+		val minY = sectionY shl 4
+		val minZ = sectionZ shl 4
+		if (!bounds.contains(minX, minY, minZ) || !bounds.contains(minX + 15, minY + 15, minZ + 15)) return false
+		val section = sectionAt(ChunkSectionPos.asLong(sectionX, sectionY, sectionZ))
+		if (section != null) section.classify(planes)
+		else (defaultBlock?.cellClass ?: CellClass.SPECIAL).fill(planes)
+		return true
+	}
 
 	override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z) { store[it] }
 
@@ -218,6 +244,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override val revision: Any get() = store
 
+		override val mayBounce: Boolean get() = store.bouncySections > 0
+
 		override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
@@ -228,6 +256,12 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
 
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
+
+		override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
+			if (!classifySectionIn(sectionX, sectionY, sectionZ, planes, ::at)) {
+				super.classifySection(sectionX, sectionY, sectionZ, planes)
+			}
+		}
 
 		private fun at(key: Long): ImmutableSnapshotSection? {
 			val current = store
