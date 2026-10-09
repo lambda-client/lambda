@@ -114,6 +114,27 @@ class DStarLiteDirectedTest {
     }
 
     @Test
+    fun `a cost changed before its source is resynchronized leaves the route acyclic`() {
+        val edges = mutableDirectedGraph(
+            0 to mapOf(1 to 1.0),
+            1 to mapOf(2 to 1.0, 3 to 1.0),
+            2 to mapOf(4 to 1.0),
+            3 to mapOf(1 to 1.0, 4 to 10.0),
+            4 to emptyMap(),
+        )
+        val graph = lazyGraph(edges)
+        val planner = LongDStarLite(graph, 0, 4, heuristic = { _, _ -> 0.0 })
+        assertTrue(planner.computeShortestPath(timeBudget = Duration.INFINITE).converged)
+
+        edges.getValue(1)[2] = 100.0
+        assertEquals(LongArrayList.of(0L, 1L, 2L, 4L), planner.path(), planner.routeDescentReport())
+
+        planner.synchronizeAffected(LongArrayList.of(1L))
+        assertTrue(planner.computeShortestPath(timeBudget = Duration.INFINITE).converged)
+        assertEquals(LongArrayList.of(0L, 1L, 3L, 4L), planner.path())
+    }
+
+    @Test
     fun `unreachable is reported only after convergence`() {
         val edges = mutableDirectedGraph(
             0 to mapOf(1 to 1.0),

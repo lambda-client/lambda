@@ -120,7 +120,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 			with(walk) { tick() }
 		}
 
-		listen<MovementEvent.InputUpdate>({ Int.MAX_VALUE }) { event ->
+		listen<MovementEvent.InputUpdate>({ Int.MAX_VALUE - 1 }) { event ->
 			val walk = session ?: return@listen
 			val input = with(walk) { inputForThisTick() } ?: return@listen
 			event.input.update(

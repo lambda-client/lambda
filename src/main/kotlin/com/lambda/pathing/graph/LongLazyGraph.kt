@@ -61,15 +61,22 @@ class LongLazyGraph(
 	private fun ensureSuccessors(node: Long) {
 		if (initializedSuccessors.contains(node)) return
 		val generated = generateSuccessors(node)
-		for (i in 0 until generated.size) putEdge(node, generated.node(i), generated.cost(i))
+		for (i in 0 until generated.size) addUnknownEdge(node, generated.node(i), generated.cost(i))
 		markSuccessorsInitialized(node)
 	}
 
 	private fun ensurePredecessors(node: Long) {
 		if (initializedPredecessors.contains(node)) return
 		val generated = generatePredecessors(node)
-		for (i in 0 until generated.size) putEdge(generated.node(i), node, generated.cost(i))
+		for (i in 0 until generated.size) addUnknownEdge(generated.node(i), node, generated.cost(i))
 		markPredecessorsInitialized(node)
+	}
+
+	private fun addUnknownEdge(from: Long, to: Long, cost: Double) {
+		if (!edgesOf(successorEdges, from).addIfAbsent(to, cost)) return
+		knownNodes.add(from)
+		knownNodes.add(to)
+		edgesOf(predecessorEdges, to).add(from, cost)
 	}
 
 	private fun putEdge(from: Long, to: Long, cost: Double) {

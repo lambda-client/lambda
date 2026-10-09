@@ -72,7 +72,7 @@ class LazyGraph<N>(
         if (node in initializedSuccessors) return
 
         val generated = generateSuccessors(node)
-        generated.forEach { (successor, cost) -> putEdge(node, successor, cost) }
+        generated.forEach { (successor, cost) -> addUnknownEdge(node, successor, cost) }
         initializedSuccessors += node
         knownNodes += node
     }
@@ -80,9 +80,13 @@ class LazyGraph<N>(
     private fun ensurePredecessors(node: N) {
         if (node in initializedPredecessors) return
         val generated = generatePredecessors(node)
-        generated.forEach { (predecessor, cost) -> putEdge(predecessor, node, cost) }
+        generated.forEach { (predecessor, cost) -> addUnknownEdge(predecessor, node, cost) }
         initializedPredecessors += node
         knownNodes += node
+    }
+
+    private fun addUnknownEdge(from: N, to: N, cost: Double) {
+        if (to !in knownSuccessors(from)) putEdge(from, to, cost)
     }
 
     private fun putEdge(from: N, to: N, cost: Double) {

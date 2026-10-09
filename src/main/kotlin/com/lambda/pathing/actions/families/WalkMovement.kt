@@ -51,7 +51,7 @@ object WalkMovement : Movement {
 				add(
 					spec(
 						dx, 1, dz, costs.stepUp,
-						stanceConditions(dx, 1, dz) + CellCondition(0, 2, 0, CellPredicate.CENTER_SLICE),
+						stanceConditions(dx, 1, dz) + STEP_UP_HEADROOM,
 						MovementId.STEP_UP,
 						strideCost = costs.cardinalWalk,
 					)
@@ -71,14 +71,19 @@ object WalkMovement : Movement {
 		}
 
 		if (options.allowDiagonal) {
-			for ((dx, dz) in DIAGONALS) {
+			for ((dx, dz) in DIAGONALS) for (dy in if (options.allowStepUp) 0..1 else 0..0) {
+				val rising = dy > 0
+				val movement = if (rising) MovementId.STEP_UP else id
+				val stance = stanceConditions(dx, dy, dz) + if (rising) listOf(STEP_UP_HEADROOM) else emptyList()
 				add(
 					spec(
-						dx, 0, dz, costs.diagonalWalk,
-						stanceConditions(dx, 0, dz) + listOf(
-							CellCondition(dx, 0, 0, CellPredicate.OPEN_COLUMN),
-							CellCondition(0, 0, dz, CellPredicate.OPEN_COLUMN),
+						dx, dy, dz, if (rising) costs.stepUp else costs.diagonalWalk,
+						stance + listOf(
+							CellCondition(dx, dy, 0, CellPredicate.OPEN_COLUMN),
+							CellCondition(0, dy, dz, CellPredicate.OPEN_COLUMN),
 						),
+						movement,
+						strideCost = if (rising) costs.diagonalWalk else null,
 					)
 				)
 				for ((openX, openZ) in listOf(dx to 0, 0 to dz)) {
@@ -86,12 +91,14 @@ object WalkMovement : Movement {
 					val blockedZ = dz - openZ
 					add(
 						spec(
-							dx, 0, dz, costs.cornerWalk,
-							stanceConditions(dx, 0, dz) + listOf(
-								CellCondition(openX, 0, openZ, CellPredicate.OPEN_COLUMN),
-								CellCondition(blockedX, 0, blockedZ, CellPredicate.BLOCKED_COLUMN),
-								CellCondition(dx + openX, 0, dz + openZ, CellPredicate.OPEN_COLUMN),
+							dx, dy, dz, if (rising) costs.stepUp + costs.cardinalWalk else costs.cornerWalk,
+							stance + listOf(
+								CellCondition(openX, dy, openZ, CellPredicate.OPEN_COLUMN),
+								CellCondition(blockedX, dy, blockedZ, CellPredicate.BLOCKED_COLUMN),
+								CellCondition(dx + openX, dy, dz + openZ, CellPredicate.OPEN_COLUMN),
 							),
+							movement,
+							strideCost = if (rising) costs.cornerWalk else null,
 							via = Via(
 								dx * 0.5 + (openX - blockedX) * CORNER_CLEARANCE,
 								dz * 0.5 + (openZ - blockedZ) * CORNER_CLEARANCE,
@@ -239,6 +246,8 @@ object WalkMovement : Movement {
 	}
 
 	private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
+
+	private val STEP_UP_HEADROOM = CellCondition(0, 2, 0, CellPredicate.CENTER_SLICE)
 
 	private val HEADING_FAN_DEGREES = listOf(-12.0, 12.0)
 

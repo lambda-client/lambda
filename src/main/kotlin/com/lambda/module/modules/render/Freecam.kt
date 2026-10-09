@@ -155,7 +155,7 @@ object Freecam : Module(
 			it.cancel()
 		}
 
-		listen<MovementEvent.InputUpdate> { event ->
+		listen<MovementEvent.InputUpdate>({ Int.MAX_VALUE }) { event ->
 			mc.options.perspective = Perspective.FIRST_PERSON
 
 			// Don't block baritone from working

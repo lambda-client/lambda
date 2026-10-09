@@ -52,6 +52,16 @@ class CornerMovesTest {
 	}
 
 	@Test
+	fun `diagonal blocks one higher each are stepped up in the open and along a wall`() {
+		val stair = (0..3).flatMap { k -> (100..100 + k).map { BlockPos(k, it, -k) } }
+		val wall = (0..2).flatMap { k -> (100..104 + k).map { BlockPos(k + 1, it, -k) } }
+		for (blocks in listOf(stair, stair + wall)) {
+			val route = arrives(blocks, Stance(0, 101, 0), Stance(3, 104, -3), -135.0)
+			assertTrue(route.all { it.movement == MovementId.STEP_UP }, "every block must be stepped up diagonally, got ${route.map { it.movement }}")
+		}
+	}
+
+	@Test
 	fun `a single diagonal step past a wall is walked around the corner`() {
 		val blocks = listOf(BlockPos(0, 100, 0), BlockPos(1, 100, 1), BlockPos(1, 101, 0), BlockPos(1, 102, 0))
 		val route = arrives(blocks, Stance(0, 101, 0), Stance(1, 101, 1))
