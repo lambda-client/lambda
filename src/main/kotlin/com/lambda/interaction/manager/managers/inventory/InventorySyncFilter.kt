@@ -46,19 +46,21 @@ class InventorySyncFilter<T>(
     }
 
     @Synchronized
-    fun observeLocal(syncId: Int, slots: Map<Int, T>, cursor: T) {
+    fun observeLocal(syncId: Int, slots: Map<Int, T>, cursor: T): Int {
         val snap = slotSnapshots[syncId]
         if (snap == null) {
             slotSnapshots[syncId] = slots.mapValuesTo(HashMap()) { copy(it.value) }
             cursorSnapshots[syncId] = copy(cursor)
-            return
+            return 0
         }
+        var recorded = 0
         slots.forEach { (slotId, live) ->
             val old = snap[slotId]
             if (old == null) snap[slotId] = copy(live)
             else if (!equal(old, live)) {
                 ledger.record(syncId, slotId, old, copy(live))
                 snap[slotId] = copy(live)
+                recorded++
             }
         }
         snap.keys.retainAll(slots.keys)
@@ -67,7 +69,9 @@ class InventorySyncFilter<T>(
         else if (!equal(oldCursor, cursor)) {
             ledger.record(syncId, InventoryLedger.CURSOR_SLOT_ID, oldCursor, copy(cursor))
             cursorSnapshots[syncId] = copy(cursor)
+            recorded++
         }
+        return recorded
     }
 
     @Synchronized
@@ -76,6 +80,20 @@ class InventorySyncFilter<T>(
         slotSnapshots[syncId]?.let { snap ->
             if (snap.containsKey(slotId)) snap[slotId] = copy(if (drop) current else incoming)
         }
+        return !drop
+    }
+
+    /**
+     * Decides a cursor-only server update ([SetCursorItemS2CPacket]). These bypass the full
+     * packets: the server emits them from content updates on non-click triggers (pickups, tick
+     * syncs), carrying cursor truth that lags our predictions by a round trip. Without this,
+     * every such packet is applied blindly and resurrects whatever we just placed.
+     * Same contract as [onSingle], tracked under [InventoryLedger.CURSOR_SLOT_ID].
+     */
+    @Synchronized
+    fun onCursor(syncId: Int, incoming: T, current: T): Boolean {
+        val drop = ledger.decideCursor(syncId, incoming) == Drop
+        if (cursorSnapshots.containsKey(syncId)) cursorSnapshots[syncId] = copy(if (drop) current else incoming)
         return !drop
     }
 
@@ -88,7 +106,7 @@ class InventorySyncFilter<T>(
         clientCursor: T,
     ): FullResult {
         val apply = ledger.decideFull(syncId, incoming, client)
-        val applyCursor = ledger.decideSingle(syncId, InventoryLedger.CURSOR_SLOT_ID, incomingCursor) != Drop
+        val applyCursor = ledger.decideCursor(syncId, incomingCursor) != Drop
         val merged = incoming.indices.map { copy(if (apply[it]) incoming[it] else client[it]) }
         val snap = HashMap<Int, T>(merged.size)
         merged.forEachIndexed { index, stack -> snap[index] = stack }

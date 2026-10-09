@@ -156,7 +156,7 @@ public class ClientPlayInteractionManagerMixin {
     @WrapMethod(method = "createPlayer(Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/stat/StatHandler;Lnet/minecraft/client/recipebook/ClientRecipeBook;)Lnet/minecraft/client/network/ClientPlayerEntity;")
     private ClientPlayerEntity wrapCreatePlayer(ClientWorld world, StatHandler statHandler, ClientRecipeBook recipeBook, Operation<ClientPlayerEntity> original) {
         var player = original.call(world, statHandler, recipeBook);
-        InventoryManager.INSTANCE.setScreenHandler(player.playerScreenHandler);
+        InventoryManager.onSetScreenHandler(player.playerScreenHandler);
         return player;
     }
 }

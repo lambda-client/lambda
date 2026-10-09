@@ -17,6 +17,10 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.ShulkerPickupGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.TaskLifecycleGameTest"
       }
     ]
   }

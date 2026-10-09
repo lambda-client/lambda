@@ -65,6 +65,20 @@ class InventoryLedger<T>(
     }
 
     @Synchronized
+    fun decideCursor(syncId: Int, incoming: T): SingleDecision {
+        cleanup()
+        val queue = queues[syncId]?.get(CURSOR_SLOT_ID) ?: return SingleDecision.Apply
+        if (queue.any { equal(it.after, incoming) }) {
+            consumeFirstAfterMatch(queue, incoming)
+            if (queue.isEmpty()) removeQueue(syncId, CURSOR_SLOT_ID)
+            return SingleDecision.Drop
+        }
+        if (queue.any { equal(it.before, incoming) }) return SingleDecision.Drop
+        removeQueue(syncId, CURSOR_SLOT_ID)
+        return SingleDecision.Apply
+    }
+
+    @Synchronized
     fun decideFull(syncId: Int, incoming: List<T>, client: List<T>): List<Boolean> {
         if (incoming.size != client.size) return List(incoming.size) { true }
         cleanup()

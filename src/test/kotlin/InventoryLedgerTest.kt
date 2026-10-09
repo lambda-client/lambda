@@ -252,7 +252,7 @@ class InventoryLedgerTest {
         ledger.record(0, cursor, shulker("gear"), empty)
 
         // The first full (cursor still holding the shulker) arrives after the second click.
-        assertEquals(Drop, ledger.decideSingle(0, cursor, shulker("gear")))
+        assertEquals(Drop, ledger.decideCursor(0, shulker("gear")))
         // The destination slot in the same stale full is merged the same way.
         assertEquals(
             listOf(true, true, true, true, true, true, true, true, true, true, false),
@@ -270,17 +270,17 @@ class InventoryLedgerTest {
         ledger.record(0, cursor, shulker("gear"), empty)
 
         // First full arrives late: cursor grab is stale, destination already holds the shulker.
-        assertEquals(Drop, ledger.decideSingle(0, cursor, shulker("gear")))
+        assertEquals(Drop, ledger.decideCursor(0, shulker("gear")))
         assertEquals(listOf(true, true, true, false), ledger.decideFull(0, listOf(empty, empty, empty, stone(5)), listOf(empty, empty, empty, shulker("gear"))))
 
         // Second full (everything current) drains the rest; nothing is left to false-match later.
-        assertEquals(Drop, ledger.decideSingle(0, cursor, empty))
+        assertEquals(Drop, ledger.decideCursor(0, empty))
         assertEquals(listOf(true, true, true, true), ledger.decideFull(0, listOf(empty, empty, empty, shulker("gear")), listOf(empty, empty, empty, shulker("gear"))))
         assertEquals(0, ledger.totalPending())
 
         // A later genuine cursor correction still applies.
         ledger.record(0, cursor, empty, dirt(2))
-        assertEquals(Apply, ledger.decideSingle(0, cursor, stone(30)))
+        assertEquals(Apply, ledger.decideCursor(0, stone(30)))
         assertEquals(0, ledger.pendingCount(0, cursor))
     }
 
@@ -290,8 +290,25 @@ class InventoryLedgerTest {
         val ledger = ledger(clock)
 
         ledger.record(0, cursor, empty, shulker("gear"))
-        // The server rejected the grab: the cursor is still empty, which we never predicted.
-        assertEquals(Apply, ledger.decideSingle(0, cursor, empty))
+        // Something genuinely new that matches neither end of the prediction.
+        assertEquals(Apply, ledger.decideCursor(0, dirt(2)))
+        assertEquals(0, ledger.pendingCount(0, cursor))
+    }
+
+    @Test
+    fun `redundant full keeps the newer prediction without consuming it`() {
+        val clock = ManualClock()
+        val ledger = ledger(clock)
+
+        // Grab, then place: two predictions. A no-op click in between makes the server send
+        // a full carrying the intermediate cursor, which must neither apply nor consume.
+        ledger.record(0, cursor, empty, shulker("gear"))
+        ledger.record(0, cursor, shulker("gear"), empty)
+        assertEquals(Drop, ledger.decideCursor(0, shulker("gear")))
+        assertEquals(1, ledger.pendingCount(0, cursor))
+        assertEquals(Drop, ledger.decideCursor(0, shulker("gear")))
+        assertEquals(1, ledger.pendingCount(0, cursor))
+        assertEquals(Drop, ledger.decideCursor(0, empty))
         assertEquals(0, ledger.pendingCount(0, cursor))
     }
 
@@ -301,7 +318,7 @@ class InventoryLedgerTest {
         val ledger = ledger(clock)
 
         ledger.record(5, cursor, empty, shulker("gear"))
-        assertEquals(Apply, ledger.decideSingle(0, cursor, shulker("gear")))
+        assertEquals(Apply, ledger.decideCursor(0, shulker("gear")))
         assertEquals(Drop, ledger.decideSingle(5, cursor, shulker("gear")))
     }
 }

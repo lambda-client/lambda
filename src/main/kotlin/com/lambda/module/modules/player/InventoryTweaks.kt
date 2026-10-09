@@ -34,6 +34,7 @@ import com.lambda.module.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.wrappers.then
+import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import net.minecraft.item.Items
 import net.minecraft.screen.ScreenHandler
@@ -82,14 +83,18 @@ object InventoryTweaks : Module(
 
             event.cancel()
 
+            // Latest click wins: a previous open still running would fight this one over
+            // transfers, placement and screens, so stop it first.
+            openTask?.cancel()
             openTask = targetContainer
                 .access()
                 ?.onSuccess { ctx ->
                     openContexts.push(ctx)
                     lastOpenScreen = player.currentScreenHandler
-                    openTask = null
                 }
-            openTask?.start()
+                ?.onFailure { e -> warn("Failed to open ${stack.name.string}: ${e.message}") }
+                ?.onCompletion { openTask = null }
+                ?.start()
         }
 
         listen<InventoryEvent.Close> { event ->
@@ -109,6 +114,7 @@ object InventoryTweaks : Module(
                 }
 
             closeTask
+                ?.onFailure { e -> warn("Failed to close containers: ${e.message}") }
                 ?.onCompletion { isClosing = false }
                 ?.start()
                 ?: run { isClosing = false }

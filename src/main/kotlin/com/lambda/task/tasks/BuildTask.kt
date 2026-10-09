@@ -156,6 +156,8 @@ class BuildTask @Ta5kBuilder internal constructor(
     }
 
     init {
+        onCompletion { BaritoneHandler.cancel() }
+
         listen<TickEvent.Post> {
             if (!firstSim || !async) {
                 if (checkEmpty() || !async) return@listen

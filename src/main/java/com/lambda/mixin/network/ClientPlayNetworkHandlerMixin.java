@@ -134,6 +134,11 @@ public class ClientPlayNetworkHandlerMixin {
         InventoryManager.onInventoryUpdate(packet, original);
     }
 
+    @WrapMethod(method = "onSetCursorItem")
+    private void wrapOnSetCursorItem(SetCursorItemS2CPacket packet, Operation<Void> original) {
+        InventoryManager.onCursorUpdate(packet, original);
+    }
+
     @WrapMethod(method = "sendChatMessage(Ljava/lang/String;)V")
     void onSendMessage(String content, Operation<Void> original) {
         var event = new ChatEvent.Send(content);

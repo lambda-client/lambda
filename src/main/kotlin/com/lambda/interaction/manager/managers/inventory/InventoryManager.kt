@@ -19,6 +19,8 @@ package com.lambda.interaction.manager.managers.inventory
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
+import com.lambda.Lambda.LOG
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
@@ -29,6 +31,7 @@ import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.processActiveRequest
 import com.lambda.module.modules.client.Client
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
@@ -37,6 +40,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.SetCursorItemS2CPacket
 import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.ScreenHandler
 
@@ -63,15 +67,6 @@ object InventoryManager : Manager<InventoryRequest>(
 			Client.desyncTimeout * 50L
 		)
 
-	var screenHandler: ScreenHandler? = null
-		set(value) {
-			if (value != null) {
-				if (value.syncId != 0) filter.clear(value.syncId)
-				filter.snapshot(value.syncId, value.slots.associate { it.id to it.stack }, value.cursorStack)
-			}
-			field = value
-		}
-
 	private var actionsThisTick = 0
 
 	override fun load(): String {
@@ -90,8 +85,12 @@ object InventoryManager : Manager<InventoryRequest>(
 
 		listen<PacketEvent.Send.Post> { event ->
 			if (event.packet is CloseHandledScreenC2SPacket) {
-				screenHandler = player.playerScreenHandler
+				onSetScreenHandler(player.playerScreenHandler)
 			}
+		}
+
+		listen<InventoryEvent.Close> {
+			onSetScreenHandler(player.currentScreenHandler)
 		}
 
 		return "Loaded Inventory Manager"
@@ -188,12 +187,12 @@ object InventoryManager : Manager<InventoryRequest>(
 	 */
 	fun SafeContext.indexInventoryChanges() {
 		val current = player.currentScreenHandler
-		if (current.syncId != screenHandler?.syncId) return
-		filter.observeLocal(
+		val recorded = filter.observeLocal(
 			current.syncId,
 			current.slots.associate { it.id to it.stack },
 			current.cursorStack
 		)
+		if (verboseDebug && recorded > 0) LOG.info("[desync] recorded $recorded change(s) on sync=${current.syncId}")
 	}
 
 	private fun snapshotHandler(handler: ScreenHandler) {
@@ -202,55 +201,6 @@ object InventoryManager : Manager<InventoryRequest>(
 			handler.slots.associate { it.id to it.stack },
 			handler.cursorStack
 		)
-	}
-
-	/**
-	 * A modified version of the minecraft onInventory method
-	 *
-	 * @see net.minecraft.client.network.ClientPlayNetworkHandler.onInventory
-	 */
-	@JvmStatic
-	fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>) {
-		runSafe {
-			val packetScreenHandler =
-				when (packet.syncId) {
-					0 -> player.playerScreenHandler
-					player.currentScreenHandler.syncId -> player.currentScreenHandler
-					else -> {
-						original.call(packet)
-						return
-					}
-				}
-			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
-				original.call(packet)
-				snapshotHandler(packetScreenHandler)
-				return
-			}
-			val clientStacks = packetScreenHandler.slots.map { it.stack }
-			if (clientStacks.size != packet.contents.size) {
-				original.call(packet)
-				snapshotHandler(packetScreenHandler)
-				return
-			}
-			val result =
-				filter.onFull(
-					packet.syncId,
-					packet.contents,
-					clientStacks,
-					packet.cursorStack(),
-					packetScreenHandler.cursorStack
-				)
-			val merged =
-				packet.contents.mapIndexed { index, incomingStack ->
-					if (result.apply[index]) incomingStack else clientStacks[index]
-				}
-			val mergedCursor =
-				if (result.applyCursor) packet.cursorStack()
-				else packetScreenHandler.cursorStack
-			packetScreenHandler.updateSlotStacks(packet.revision(), merged, mergedCursor)
-			return
-		}
-		original.call(packet)
 	}
 
 	/**
@@ -269,6 +219,7 @@ object InventoryManager : Manager<InventoryRequest>(
 					0 -> player.playerScreenHandler
 					player.currentScreenHandler.syncId -> player.currentScreenHandler
 					else -> {
+						if (verboseDebug) LOG.info("[desync] single ignored: packet sync=${packet.syncId} slot=${packet.slot} current=${player.currentScreenHandler.syncId} stack=${packet.stack}")
 						original.call(packet)
 						return
 					}
@@ -314,8 +265,99 @@ object InventoryManager : Manager<InventoryRequest>(
 		original.call(packet)
 	}
 
+	/**
+	 * A modified version of the minecraft onSetCursorItem method. Cursor-only updates bypass
+	 * the full packets, so without this every one of them is applied blindly — including ones
+	 * the server generated before our latest click (see [InventorySyncFilter.onCursor]).
+	 *
+	 * @see net.minecraft.client.network.ClientPlayNetworkHandler.onSetCursorItem
+	 */
+	@JvmStatic
+	fun onCursorUpdate(packet: SetCursorItemS2CPacket, original: Operation<Void>) {
+		runSafe {
+			val stack = packet.contents()
+			mc.tutorialManager.onSlotUpdate(stack)
+			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+				original.call(packet)
+				snapshotHandler(player.currentScreenHandler)
+				return
+			}
+			val handler = player.currentScreenHandler
+			val drop = !filter.onCursor(handler.syncId, stack, handler.cursorStack)
+			if (verboseDebug) {
+				LOG.info("[desync] cursor single sync=${handler.syncId} incoming=$stack client=${handler.cursorStack} apply=${!drop} pendings=${filter.pendingCount(handler.syncId, InventoryLedger.CURSOR_SLOT_ID)}")
+			}
+			if (drop) return
+			original.call(packet)
+			return
+		}
+		original.call(packet)
+	}
+
+	/**
+	 * A modified version of the minecraft onInventory method
+	 *
+	 * @see net.minecraft.client.network.ClientPlayNetworkHandler.onInventory
+	 */
+	@JvmStatic
+	fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>) {
+		runSafe {
+			val packetScreenHandler =
+				when (packet.syncId) {
+					0 -> player.playerScreenHandler
+					player.currentScreenHandler.syncId -> player.currentScreenHandler
+					else -> {
+						if (verboseDebug) LOG.info("[desync] full ignored: packet sync=${packet.syncId} current=${player.currentScreenHandler.syncId}")
+						original.call(packet)
+						return
+					}
+				}
+			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+				original.call(packet)
+				snapshotHandler(packetScreenHandler)
+				return
+			}
+			val clientStacks = packetScreenHandler.slots.map { it.stack }
+			if (clientStacks.size != packet.contents.size) {
+				original.call(packet)
+				snapshotHandler(packetScreenHandler)
+				return
+			}
+			val result =
+				filter.onFull(
+					packet.syncId,
+					packet.contents,
+					clientStacks,
+					packet.cursorStack(),
+					packetScreenHandler.cursorStack
+				)
+			val merged =
+				packet.contents.mapIndexed { index, incomingStack ->
+					if (result.apply[index]) incomingStack else clientStacks[index]
+				}
+			val mergedCursor =
+				if (result.applyCursor) packet.cursorStack()
+				else packetScreenHandler.cursorStack
+			if (verboseDebug && !ItemStack.areEqual(packet.cursorStack(), packetScreenHandler.cursorStack)) {
+				LOG.info("[desync] full sync=${packet.syncId} cursor incoming=${packet.cursorStack()} client=${packetScreenHandler.cursorStack} apply=${result.applyCursor} pendings=${filter.pendingCount(packet.syncId, InventoryLedger.CURSOR_SLOT_ID)}")
+			}
+			packetScreenHandler.updateSlotStacks(packet.revision(), merged, mergedCursor)
+			return
+		}
+		original.call(packet)
+	}
+
+	/**
+	 * Anchors tracking to a screen's live state: drops pendings that cannot belong to a fresh
+	 * screen id, and photographs the current truth. Called on opens, closes and respawns.
+	 */
 	@JvmStatic
 	fun onSetScreenHandler(screenHandler: ScreenHandler) {
-		this.screenHandler = screenHandler
+		if (screenHandler.syncId != 0) filter.clear(screenHandler.syncId)
+		filter.snapshot(
+			screenHandler.syncId,
+			screenHandler.slots.associate { it.id to it.stack },
+			screenHandler.cursorStack
+		)
 	}
 }

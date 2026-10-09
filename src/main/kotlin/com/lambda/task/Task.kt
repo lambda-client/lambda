@@ -35,259 +35,269 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 abstract class Task<R> : Nameable, Muteable {
-    var state = State.Init
-    var age = 0
+	var state = State.Init
+	var age = 0
 
-    var parent: Task<*>? = null
-    val subTasks = mutableListOf<Task<*>>()
-    private val depth: Int get() = parent?.depth?.plus(1) ?: 0
-    val size: Int get() = subTasks.sumOf { it.size } + 1
+	var parent: Task<*>? = null
+	val subTasks = mutableListOf<Task<*>>()
+	private val depth: Int get() = parent?.depth?.plus(1) ?: 0
+	val size: Int get() = subTasks.sumOf { it.size } + 1
 
-    override val isMuted: Boolean get() = state == State.Paused || state == State.Init
+	override val isMuted: Boolean get() = state == State.Paused || state == State.Init
 
-    private val successCallbacks = mutableListOf<SafeContext.(R) -> Unit>()
-    private val completionCallbacks = mutableListOf<SafeContext.() -> Unit>()
-    private val failureCallbacks = mutableListOf<SafeContext.(Throwable) -> Unit>()
+	private val successCallbacks = mutableListOf<SafeContext.(R) -> Unit>()
+	private val completionCallbacks = mutableListOf<SafeContext.() -> Unit>()
+	private val failureCallbacks = mutableListOf<SafeContext.(Throwable) -> Unit>()
 
-    val duration: String get() =
-        (age * 50).toDuration(DurationUnit.MILLISECONDS).toComponents { days, hours, minutes, seconds, nanoseconds ->
-            "${"%03d".format(days)}:${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"${nanoseconds / 1_000_000}".take(2)}"
-        }
+	val duration: String
+		get() =
+			(age * 50).toDuration(DurationUnit.MILLISECONDS).toComponents { days, hours, minutes, seconds, nanoseconds ->
+				"${"%03d".format(days)}:${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"${nanoseconds / 1_000_000}".take(2)}"
+			}
 
-    enum class State {
-        Init,
-        Running,
-        Paused,
-        Cancelled,
-        Failed,
-        Completed;
-    }
+	enum class State {
+		Init,
+		Running,
+		Paused,
+		Cancelled,
+		Failed,
+		Completed;
+	}
 
-    init {
-        if (this is RootTask) state = State.Running
-        listen<TickEvent.Pre>({ Int.MAX_VALUE }) { age++ }
-    }
+	init {
+		listen<TickEvent.Pre>({ Int.MAX_VALUE }) { age++ }
+	}
 
-    /**
-     * "Typo" in name is used to force the dsl style green
-     * (color is based on name hash, don't ask me who came up with this)
-     */
-    @DslMarker
-    annotation class Ta5kBuilder
+	/**
+	 * "Typo" in name is used to force the dsl style green
+	 * (color is based on name hash, don't ask me who came up with this)
+	 */
+	@DslMarker
+	annotation class Ta5kBuilder
 
-    @Ta5kBuilder
-    context(parentTask: Task<*>)
-    fun start(pauseParent: Boolean = true) =
-        this.execute(parentTask, pauseParent)
+	@Ta5kBuilder
+	context(parentTask: Task<*>)
+	fun start(pauseParent: Boolean = true) =
+		this.execute(parentTask, pauseParent)
 
-    /**
-     * Executes the current task as a subtask of the specified owner task.
-     *
-     * This method adds the current task to the owner's subtasks, sets the parent relationship,
-     * logs the execution details, and invokes the necessary lifecycle hooks. Additionally,
-     * it manages the state of the parent task and starts any required listeners for execution.
-     *
-     * @param parent The parent task that will execute this task as a sub task. Must not be the same as this task.
-     * @param pauseParent Defines whether the parent task should be paused during the execution of this task. Defaults to `true`.
-     * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
-     * @throws IllegalArgumentException if the owner task is the same as the task being executed.
-     */
-    @Ta5kBuilder
-    fun execute(parent: Task<*>, pauseParent: Boolean = true): Task<R> {
-        require(parent != this) { "Cannot execute a task as a sub task of itself" }
-        parent.subTasks.add(this)
-        this@Task.parent = parent
-        if (verboseDebug) LOG.info("${parent.name} started $name")
-        if (pauseParent) {
-            if (verboseDebug) LOG.info("$name pausing parent ${parent.name}")
-            if (parent !is RootTask) parent.pause()
-        }
-        state = State.Running
-        runSafe { runCatching { onStart() }.onFailure { failure(it) } }
-        return this
-    }
+	/**
+	 * Executes the current task as a subtask of the specified owner task.
+	 *
+	 * This method adds the current task to the owner's subtasks, sets the parent relationship,
+	 * logs the execution details, and invokes the necessary lifecycle hooks. Additionally,
+	 * it manages the state of the parent task and starts any required listeners for execution.
+	 *
+	 * @param parent The parent task that will execute this task as a sub task. Must not be the same as this task.
+	 * @param pauseParent Defines whether the parent task should be paused during the execution of this task. Defaults to `true`.
+	 * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
+	 * @throws IllegalArgumentException if the owner task is the same as the task being executed.
+	 */
+	@Ta5kBuilder
+	fun execute(parent: Task<*>, pauseParent: Boolean = true): Task<R> =
+		apply {
+	    	require(parent != this) { "Cannot execute a task as a sub task of itself" }
+	    	if (state != State.Init) return@apply
+			if (this@Task is RootTask) return@apply
+	    	parent.subTasks.add(this)
+	    	this@Task.parent = parent
+	    	if (pauseParent) {
+			    if (verboseDebug) LOG.info("$name pausing parent ${parent.name}")
+			    if (parent !is RootTask) parent.pause()
+		    }
+			if (verboseDebug) LOG.info("${parent.name} starting $name")
+			state = State.Running
+	    	runSafe {
+				runCatching {
+					onStart()
+				}.onFailure {
+					failure(it)
+				}
+			}
+	    }
 
-    /**
-     * Invoked when the task starts execution.
-     *
-     * This method serves as a lifecycle hook and can be overridden to define
-     * custom behavior or initialization steps necessary before the task begins.
-     * It provides a `SafeContext` to access relevant context-sensitive properties
-     * or actions safely.
-     *
-     * By default, this method does not contain any logic. Subclasses may override
-     * it to implement specific functionality, such as logging, resource allocation,
-     * or preparing preconditions for task execution.
-     */
-    @Ta5kBuilder
-    protected open fun SafeContext.onStart() {}
+	/**
+	 * Invoked when the task starts execution.
+	 *
+	 * This method serves as a lifecycle hook and can be overridden to define
+	 * custom behavior or initialization steps necessary before the task begins.
+	 * It provides a `SafeContext` to access relevant context-sensitive properties
+	 * or actions safely.
+	 *
+	 * By default, this method does not contain any logic. Subclasses may override
+	 * it to implement specific functionality, such as logging, resource allocation,
+	 * or preparing preconditions for task execution.
+	 */
+	@Ta5kBuilder
+	protected open fun SafeContext.onStart() {}
 
-    /**
-     * This function is called when the task is canceled.
-     * It can be overridden for tasks that need to perform cleanup operations,
-     * such as cancelling a block breaking progress, releasing resources,
-     * or stopping any ongoing operations that were started by the task.
-     */
-    @Ta5kBuilder
-    protected open fun SafeContext.onCancel() {}
+	/**
+	 * This function is called when the task is canceled.
+	 * It can be overridden for tasks that need to perform cleanup operations,
+	 * such as cancelling a block breaking progress, releasing resources,
+	 * or stopping any ongoing operations that were started by the task.
+	 */
+	@Ta5kBuilder
+	protected open fun SafeContext.onCancel() {}
 
-    @Ta5kBuilder
-    protected fun success(result: R) {
-        if (state != State.Running && state != State.Paused) return
-        unsubscribe()
-        state = State.Completed
-        cancelSubTasks()
+	@Ta5kBuilder
+	protected fun success(result: R) {
+		if (state != State.Running && state != State.Paused) return
+		if (this is RootTask) return
+		unsubscribe()
+		state = State.Completed
+		cancelSubTasks()
 
-        parent?.onSubTaskSuccess(this)
-        parent?.onSubTaskCompletion(this)
+		parent?.onSubTaskSuccess(this)
+		parent?.onSubTaskCompletion(this)
 
-        runSafe {
-            successCallbacks.forEach { it.invoke(this, result) }
-            completionCallbacks.forEach { it.invoke(this) }
-        }
+		runSafe {
+			successCallbacks.forEach { it.invoke(this, result) }
+			completionCallbacks.forEach { it.invoke(this) }
+		}
 
-        parent?.subTasks?.remove(this)
-    }
+		parent?.subTasks?.remove(this)
+	}
 
-    @Ta5kBuilder
-    protected fun Task<Unit>.success() {
-        success(Unit)
-    }
+	@Ta5kBuilder
+	protected fun Task<Unit>.success() {
+		success(Unit)
+	}
 
-    @Ta5kBuilder
-    protected fun failure(
-        e: Throwable,
-        stacktrace: MutableList<Task<*>> = mutableListOf(),
-    ) {
-        if (state != State.Running && state != State.Paused) return
-        unsubscribe()
-        state = State.Failed
-        cancelSubTasks()
-        stacktrace.add(this)
+	@Ta5kBuilder
+	protected fun failure(
+		e: Throwable,
+		stacktrace: MutableList<Task<*>> = mutableListOf(),
+	) {
+		if (state != State.Running && state != State.Paused) return
+		if (this is RootTask) return
+		unsubscribe()
+		state = State.Failed
+		cancelSubTasks()
+		stacktrace.add(this)
 
-        parent?.onSubTaskFailure(this, e)
-            ?: run {
-                if (!verboseDebug) return@run
-                logError(
-                    buildString {
-                        val first = stacktrace.firstOrNull() ?: return@buildString
-                        append("${first.name} failed: ${e.message}\n")
-                        stacktrace.drop(1).forEach {
-                            append("  -> ${it.name}\n")
-                        }
-                    }
-                )
-            }
-        parent?.onSubTaskCompletion(this)
+		parent?.onSubTaskFailure(this, e)
+			?: run {
+				if (!verboseDebug) return@run
+				logError(
+					buildString {
+						val first = stacktrace.firstOrNull() ?: return@buildString
+						append("${first.name} failed: ${e.message}\n")
+						stacktrace.drop(1).forEach {
+							append("  -> ${it.name}\n")
+						}
+					}
+				)
+			}
+		parent?.onSubTaskCompletion(this)
 
-        runSafe {
-            failureCallbacks.forEach { it.invoke(this, e) }
-            completionCallbacks.forEach { it.invoke(this) }
-        }
+		runSafe {
+			failureCallbacks.forEach { it.invoke(this, e) }
+			completionCallbacks.forEach { it.invoke(this) }
+		}
 
-        parent?.subTasks?.remove(this)
-    }
+		parent?.subTasks?.remove(this)
+	}
 
-    @Ta5kBuilder
-    protected fun failure(message: String) = failure(IllegalStateException(message))
+	@Ta5kBuilder
+	protected fun failure(message: String) = failure(IllegalStateException(message))
 
-    @Ta5kBuilder
-    fun cancel() = internalCancel(true)
+	@Ta5kBuilder
+	fun cancel() = internalCancel(true)
 
-    @Ta5kBuilder
-    private fun internalCancel(removeFromParent: Boolean = true) {
-        if (state != State.Running && state != State.Paused) return
-        cancelSubTasks()
-        if (this is RootTask) return
-        unsubscribe()
-        state = State.Cancelled
-        runSafe {
-            onCancel()
-            completionCallbacks.forEach { it.invoke(this) }
-        }
+	@Ta5kBuilder
+	private fun internalCancel(removeFromParent: Boolean = true) {
+		if (state != State.Running && state != State.Paused) return
+		cancelSubTasks()
+		if (this is RootTask) return
+		unsubscribe()
+		state = State.Cancelled
+		runSafe {
+			onCancel()
+			completionCallbacks.forEach { it.invoke(this) }
+		}
 
-        if (removeFromParent) parent?.subTasks?.remove(this)
-        parent?.activate()
-    }
+		if (removeFromParent) parent?.subTasks?.remove(this)
+		parent?.activate()
+	}
 
-    @Ta5kBuilder
-    private fun cancelSubTasks() {
-        subTasks.forEach { it.internalCancel(removeFromParent = false) }
-        subTasks.clear()
-    }
+	@Ta5kBuilder
+	private fun cancelSubTasks() {
+		subTasks.toList().forEach { it.internalCancel(removeFromParent = false) }
+		subTasks.clear()
+	}
 
-    @Ta5kBuilder
-    fun pause() {
-        if (state != State.Running) return
-        state = State.Paused
-    }
+	@Ta5kBuilder
+	fun pause() {
+		if (state != State.Running) return
+		state = State.Paused
+	}
 
-    @Ta5kBuilder
-    fun activate() {
-        if (state != State.Paused) return
-        state = State.Running
-    }
+	@Ta5kBuilder
+	fun activate() {
+		if (state != State.Paused) return
+		state = State.Running
+	}
 
-    @Ta5kBuilder
-    protected open fun onSubTaskSuccess(subTask: Task<*>) {
-        activate()
-    }
+	@Ta5kBuilder
+	protected open fun onSubTaskSuccess(subTask: Task<*>) {
+		activate()
+	}
 
-    @Ta5kBuilder
-    protected open fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
-        failure(cause)
-    }
+	@Ta5kBuilder
+	protected open fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
+		failure(cause)
+	}
 
-    @Ta5kBuilder
-    protected open fun onSubTaskCompletion(subTask: Task<*>) {
-        activate()
-    }
+	@Ta5kBuilder
+	protected open fun onSubTaskCompletion(subTask: Task<*>) {
+		activate()
+	}
 
-    /**
-     * Registers a callback for if the task succeeds.
-     */
-    @Ta5kBuilder
-    fun onSuccess(callback: SafeContext.(R) -> Unit): Task<R> {
-        successCallbacks.add(callback)
-        return this
-    }
+	/**
+	 * Registers a callback for if the task succeeds.
+	 */
+	@Ta5kBuilder
+	fun onSuccess(callback: SafeContext.(R) -> Unit): Task<R> {
+		successCallbacks.add(callback)
+		return this
+	}
 
-    /**
-     * Registers a callback for if the task fails.
-     *
-     * This could be mistaken for [withRecovery] which is used to wrap the given task with another task that runs a recovery task if this one fails.
-     */
-    @Ta5kBuilder
-    fun onFailure(callback: SafeContext.(Throwable) -> Unit): Task<R> {
-        failureCallbacks.add(callback)
-        return this
-    }
+	/**
+	 * Registers a callback for if the task fails.
+	 *
+	 * This could be mistaken for [withRecovery] which is used to wrap the given task with another task that runs a recovery task if this one fails.
+	 */
+	@Ta5kBuilder
+	fun onFailure(callback: SafeContext.(Throwable) -> Unit): Task<R> {
+		failureCallbacks.add(callback)
+		return this
+	}
 
-    /**
-     * Registers a callback for when the task completes.
-     *
-     * This is called regardless of whether the task succeeds or fails.
-     */
-    @Ta5kBuilder
-    fun onCompletion(callback: SafeContext.() -> Unit): Task<R> {
-        completionCallbacks.add(callback)
-        return this
-    }
+	/**
+	 * Registers a callback for when the task completes.
+	 *
+	 * This is called regardless of whether the task succeeds or fails.
+	 */
+	@Ta5kBuilder
+	fun onCompletion(callback: SafeContext.() -> Unit): Task<R> {
+		completionCallbacks.add(callback)
+		return this
+	}
 
-    override fun toString() =
-        buildString { appendTaskTree(this@Task) }
+	override fun toString() =
+		buildString { appendTaskTree(this@Task) }
 
-    private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
-        if (task.state == State.Cancelled) return
-        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.name}] ${(task.age * 50).milliseconds}" else "")
-        val left = task.subTasks.size - maxEntries
-        if (left > 0) {
-            appendLine("${" ".repeat((level + 1) * 4)}...and $left more tasks")
-        }
-        task.subTasks.takeLast(maxEntries).forEach {
-            appendTaskTree(it, level + 1)
-        }
-    }
+	private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
+		if (task.state == State.Cancelled) return
+		appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.name}] ${(task.age * 50).milliseconds}" else "")
+		val left = task.subTasks.size - maxEntries
+		if (left > 0) {
+			appendLine("${" ".repeat((level + 1) * 4)}...and $left more tasks")
+		}
+		task.subTasks.takeLast(maxEntries).forEach {
+			appendTaskTree(it, level + 1)
+		}
+	}
 }
 
 typealias TaskGenerator<R, R2> = SafeContext.(R) -> Task<R2>

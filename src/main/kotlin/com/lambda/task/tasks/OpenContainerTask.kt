@@ -47,7 +47,7 @@ class OpenContainerTask @Ta5kBuilder internal constructor(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
     private val sides: Set<Direction> = Direction.entries.toSet(),
-    private val automated: Automated
+    automated: Automated
 ) : Task<ScreenHandler>(), Automated by automated {
     override val name get() = "${containerState.description()} at ${blockPos.toShortString()}"
 
@@ -55,6 +55,7 @@ class OpenContainerTask @Ta5kBuilder internal constructor(
     private var containerState = State.Scoping
 
     private val retryTimer = TickTimer()
+    private var interactions = 0
 
     enum class State {
         Pathing,
@@ -71,6 +72,8 @@ class OpenContainerTask @Ta5kBuilder internal constructor(
     }
 
     init {
+        onCompletion { BaritoneHandler.cancel() }
+
         listen<InventoryEvent.Open> {
             if (containerState != State.Opening) return@listen
 
@@ -119,6 +122,14 @@ class OpenContainerTask @Ta5kBuilder internal constructor(
             player.swingHand(Hand.MAIN_HAND)
 
             containerState = State.Opening
+            if (++interactions > MAX_OPEN_ATTEMPTS) {
+                failure("Failed to open container at ${blockPos.toShortString()} after $interactions attempts")
+                return@listen
+            }
         }
+    }
+
+    companion object {
+        private const val MAX_OPEN_ATTEMPTS = 20
     }
 }

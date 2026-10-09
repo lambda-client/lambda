@@ -21,6 +21,10 @@ import com.lambda.task.Task.Ta5kBuilder
 
 object RootTask : Task<Unit>() {
     override val name get() = "Root Task"
+
+    init {
+        state = State.Running
+    }
 }
 
 @Ta5kBuilder

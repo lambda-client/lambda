@@ -37,11 +37,11 @@ class SoftFailTask<R> @Ta5kBuilder internal constructor(
 ) : Task<R?>() {
     override val name get() = "Soft fail protection for ${innerTask.name}"
 
-    override fun SafeContext.onStart() {
-        innerTask
-            .onSuccess { success(it) }
+	override fun SafeContext.onStart() {
+		innerTask
+			.onSuccess { success(it) }
             .start()
-    }
+	}
 
     override fun onSubTaskFailure(subTask: Task<*>, cause: Throwable) {
         if (subTask == innerTask) success(null)

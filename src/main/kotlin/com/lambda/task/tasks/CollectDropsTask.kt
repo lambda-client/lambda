@@ -20,7 +20,6 @@ package com.lambda.task.tasks
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.ContainerSelection
@@ -53,6 +52,8 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 	override val name get() = "Collecting ${drops.size} item drop(s)"
 
 	init {
+		onCompletion { BaritoneHandler.cancel() }
+
 		listen<TickEvent.Pre> {
 			runSafeAutomated {
 				do {
@@ -97,9 +98,5 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		BaritoneHandler.setGoalAndPath(GoalBlock(target.blockPos))
 
 		return true
-	}
-
-	override fun SafeContext.onCancel() {
-		BaritoneHandler.cancel()
 	}
 }

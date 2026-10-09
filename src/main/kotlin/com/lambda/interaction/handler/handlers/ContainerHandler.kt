@@ -96,7 +96,10 @@ object ContainerHandler : Loadable {
 			val sh = event.screenHandler
 			onContainerUpdate(sh)
 			if (sh.syncId != 0 && pendingInteractedBlockEntity == null) {
-				lastInteractedBlockEntity = null
+				val current = player.currentScreenHandler
+				if (current == null || current.syncId == 0 || current === sh) {
+					lastInteractedBlockEntity = null
+				}
 			}
 			accessedPlacedContainer = null
 		}

@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import com.lambda.interaction.manager.managers.inventory.InventoryLedger
 import com.lambda.interaction.manager.managers.inventory.InventorySyncFilter
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -129,6 +130,37 @@ class InventorySyncFilterTest {
         assertTrue(filter.onSingle(5, 0, TestStack("stone", 1), TestStack("stone", 1)))
 
         filter.clear(0)
+        assertEquals(0, filter.totalPending())
+    }
+
+    @Test
+    fun `stale cursor-only update is dropped`() {
+        val clock = ManualClock()
+        val filter = filter(clock)
+        val cursor = InventoryLedger.CURSOR_SLOT_ID
+
+        filter.observeLocal(0, playerSlots(0, empty), empty)
+        filter.observeLocal(0, playerSlots(0, empty), shulker("gear"))
+        filter.observeLocal(0, playerSlots(0, empty), empty)
+
+        // A cursor echo from after the grab arrives after the place: stale, drop it.
+        assertEquals(false, filter.onCursor(0, shulker("gear"), empty))
+        assertEquals(false, filter.onCursor(0, empty, empty))
+        assertEquals(0, filter.pendingCount(0, cursor))
+    }
+
+    @Test
+    fun `novel cursor applies and refreshes the snapshot`() {
+        val clock = ManualClock()
+        val filter = filter(clock)
+
+        filter.observeLocal(0, playerSlots(0, empty), empty)
+        filter.observeLocal(0, playerSlots(0, empty), shulker("gear"))
+
+        // The server rejected the grab and reports something unpredicted: apply it...
+        assertEquals(true, filter.onCursor(0, TestStack("dirt", 1), shulker("gear")))
+        // ...and the snapshot followed, so the next diff records no phantom.
+        filter.observeLocal(0, playerSlots(0, empty), TestStack("dirt", 1))
         assertEquals(0, filter.totalPending())
     }
 }
