@@ -51,8 +51,6 @@ interface SearchProbe {
 	) {
 	}
 
-	fun sync(sections: Int, mutations: Int, chunks: Int, routeAffected: Boolean, extending: Boolean) {}
-
 	fun candidates(lines: List<CandidatePath>) {}
 
 	companion object {

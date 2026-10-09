@@ -2,7 +2,6 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseMoveCosts
 import com.lambda.pathing.actions.SimpleMoveOptions
-import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.streaming.InterestTier
 import com.lambda.pathing.world.streaming.PathingWorld
@@ -36,10 +35,8 @@ internal class CoarsePlanningState(
 	}
 
 	fun applyEvents(batch: WorldEventBatch, maxStances: Int = Int.MAX_VALUE) {
-		val mutated = batch.chunks + batch.mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) }
-		if (mutated.isNotEmpty()) planner.chunksChanged(mutated, maxStances)
-		val arrivals = batch.sections.mapNotNullTo(HashSet()) { PathingChunk(it.x, it.z).takeUnless { chunk -> chunk in mutated } }
-		if (arrivals.isNotEmpty()) planner.chunksChanged(arrivals, maxStances, arrivalsOnly = true)
+		if (batch.changed.isNotEmpty()) planner.terrainChanged(batch.changed, maxStances)
+		if (batch.arrived.isNotEmpty()) planner.terrainChanged(batch.arrived, maxStances, arrivalsOnly = true)
 	}
 
 	fun demandCaptureLag(world: PathingWorld, tier: InterestTier = InterestTier.DEMAND) {

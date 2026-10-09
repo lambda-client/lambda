@@ -5,7 +5,7 @@ import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
@@ -42,6 +42,8 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 
 	private val minTargetX = targetReadOffsets.minOf(VoxelPos::x)
 	private val maxTargetX = targetReadOffsets.maxOf(VoxelPos::x)
+	private val minTargetY = targetReadOffsets.minOf(VoxelPos::y)
+	private val maxTargetY = targetReadOffsets.maxOf(VoxelPos::y)
 	private val minTargetZ = targetReadOffsets.minOf(VoxelPos::z)
 	private val maxTargetZ = targetReadOffsets.maxOf(VoxelPos::z)
 
@@ -92,15 +94,10 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	fun heuristic(fromX: Int, fromY: Int, fromZ: Int, toX: Int, toY: Int, toZ: Int): Double =
 		heuristicCaps.estimate(toX - fromX, toY - fromY, toZ - fromZ)
 
-	internal fun originColumnRanges(chunk: PathingChunk) = columnRanges(chunk, -maxReadX, -minReadX, -maxReadZ, -minReadZ)
+	internal fun originsReading(changed: CellBox): CellBox = changed.grown(-maxReadX, -minReadX, -maxReadY, -minReadY, -maxReadZ, -minReadZ)
 
-	internal fun targetColumnRanges(chunk: PathingChunk) = columnRanges(chunk, minTargetX, maxTargetX, minTargetZ, maxTargetZ)
-
-	private fun columnRanges(chunk: PathingChunk, lowX: Int, highX: Int, lowZ: Int, highZ: Int): Pair<IntRange, IntRange> {
-		val chunkMinX = chunk.x shl 4
-		val chunkMinZ = chunk.z shl 4
-		return ((chunkMinX + lowX)..(chunkMinX + 15 + highX)) to ((chunkMinZ + lowZ)..(chunkMinZ + 15 + highZ))
-	}
+	internal fun targetsReading(changed: CellBox): CellBox =
+		changed.grown(minTargetX, maxTargetX, minTargetY, maxTargetY, minTargetZ, maxTargetZ)
 
 	companion object {
 

@@ -4,10 +4,12 @@ import com.lambda.pathing.graph.NodeTable.Companion.KNOWN
 import com.lambda.pathing.graph.NodeTable.Companion.PREDECESSORS_INITIALIZED
 import com.lambda.pathing.graph.NodeTable.Companion.SUCCESSORS_INITIALIZED
 import com.lambda.pathing.graph.NodeTable.Companion.SUCCESSORS_SET
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongConsumer
 import it.unimi.dsi.fastutil.longs.LongIterable
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import java.util.function.LongPredicate
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.time.Duration
@@ -440,6 +442,15 @@ class LongDStarLite(
 	fun rhs(node: Long): Double {
 		val slot = nodes.find(node)
 		return if (slot < 0) INF else nodes.rhs(slot)
+	}
+
+	fun labels(include: LongPredicate): Long2DoubleOpenHashMap {
+		val labels = Long2DoubleOpenHashMap().apply { defaultReturnValue(INF) }
+		for (slot in 0 until nodes.size) {
+			val label = min(nodes.g(slot), nodes.rhs(slot))
+			if (label.isFinite() && include.test(nodes.key(slot))) labels.put(nodes.key(slot), label)
+		}
+		return labels
 	}
 
 	private fun updateVertex(node: Int) {

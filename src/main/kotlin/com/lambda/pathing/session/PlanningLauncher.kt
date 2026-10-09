@@ -202,10 +202,8 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		session.launchRevision = journey.world.revision
 		PlanningJob(
 			preparation = preparation,
-			world = journey.world,
-			legStates = journey.legsFor(preparation),
+			journey = journey,
 			cancelled = { session.isCancelled },
-			snapshotRevision = session.launchRevision,
 			execution = session,
 			publish = { path, running -> mc.execute { published(session, path, running) } },
 		).start().whenCompleteAsync({ result, failure -> completed(session, result, failure) }, mc)

@@ -23,6 +23,8 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.VoxelPos
 import kotlin.random.Random
 import kotlin.test.Test
@@ -285,17 +287,22 @@ class CoarsePlannerTest {
     }
 
     @Test
-    fun `chunk invalidation covers the origin of every edge read`() {
+    fun `section invalidation covers the origin and target of every edge read`() {
         val world = SyntheticView().apply { fillGround(-5..5, -5..5, y = 0) }
         val moves = library()
         val origin = Stance(0, 1, 0)
 
         for (edge in moves.edgesFrom(world, origin)) {
             for (read in edge.readSet) {
-                val (xs, zs) = moves.originColumnRanges(PathingChunk.containing(read))
+                val section = PathingSection.containing(read)
+                val changed = CellBox.sections(PathingChunk(section.x, section.z), section.y, section.y)
                 assertTrue(
-                    origin.x in xs && origin.z in zs,
-                    "${edge.movement} did not overlap the refreshed chunk containing $read",
+                    moves.originsReading(changed).contains(origin.x, origin.y, origin.z),
+                    "${edge.movement} origin is outside the refresh of the section containing $read",
+                )
+                assertTrue(
+                    moves.targetsReading(changed).contains(edge.to.x, edge.to.y, edge.to.z),
+                    "${edge.movement} target is outside the refresh of the section containing $read",
                 )
             }
         }

@@ -1,6 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.graph.CoarseRouteCandidate
@@ -9,6 +10,7 @@ import com.lambda.pathing.graph.LongGraph
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import kotlin.math.abs
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -263,23 +265,33 @@ class CoarsePlanner(
 		labelRevision = search::revision,
 	)
 
+	fun labels(around: Stance, radius: Int, height: Int): FieldLabels = FieldLabels(
+		search.labels { node ->
+			abs(PackedStance.unpackX(node) - around.x) <= radius &&
+					abs(PackedStance.unpackZ(node) - around.z) <= radius &&
+					abs(PackedStance.unpackY(node) - around.y) <= height
+		},
+	)
+
 	private fun nodeLabel(stance: Stance, speed: SpeedClass): Double {
 		val node = PackedStance.pack(stance, speed)
 		return minOf(search.g(node), search.rhs(node))
 	}
 
-	fun chunksChanged(
-		chunks: Iterable<PathingChunk>,
+	fun chunksChanged(chunks: Iterable<PathingChunk>) = terrainChanged(chunks.map(CellBox::column))
+
+	fun terrainChanged(
+		changed: List<CellBox>,
 		maxStances: Int = Int.MAX_VALUE,
 		arrivalsOnly: Boolean = false,
 	) {
 		if (!arrivalsOnly) frontier.dirty = true
-		val ranges = chunks.map(moves::originColumnRanges)
+		val origins = changed.map(moves::originsReading)
 		search.forEachKnownNode { node ->
 			val key = PackedStance.stanceKey(node)
-			if (CoarseEdgeCache.covers(ranges, key) && !(arrivalsOnly && edgeCache.isComplete(key))) pendingSync.add(key)
+			if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key))) pendingSync.add(key)
 		}
-		edgeCache.invalidateChunks(chunks, ranges, arrivalsOnly)
+		edgeCache.invalidate(changed, arrivalsOnly)
 		if (grounded == view.mayBounce) {
 			grounded = !view.mayBounce
 			search.rekey()

@@ -1,6 +1,7 @@
 package pathing
 
-import com.lambda.pathing.session.LegChain
+import com.lambda.pathing.session.CoarseFollower
+import com.lambda.pathing.session.CoarseService
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanningState
@@ -11,19 +12,16 @@ import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.search.VirtualSearchClock
-import com.lambda.pathing.session.RouteResolution
+import com.lambda.pathing.coarse.SpeedClass
 import java.nio.file.Path
-import java.util.concurrent.Executor
 import kotlin.test.Test
-import kotlin.time.Duration
-import pathing.ProbeScenarios.moveLibrary
 
 /**
  * Replays a live dump as a compound walk-through route: the dump's start and goal are the
  * first leg, PATHING_DUMP_WAYPOINTS ("x,y,z;x,y,z;...") the legs after it. Reproduces the
  * leg-switch behaviour a single-leg replay cannot. Diagnostic output, not an assertion.
  */
-class DumpLegChainReplayTest {
+class DumpLegRouteReplayTest {
     @Test
     fun `replay a dump as a walk-through route`() {
         val dir = System.getenv("PATHING_DUMP_DIR") ?: return
@@ -48,20 +46,15 @@ class DumpLegChainReplayTest {
             onGround = true,
         )
         val first = CoarsePlanningState(environment, options, start, firstGoal)
-        first.repairFrom(start)
-        check(first.planner.repair().converged)
-        first.planner.expandSearchField()
-        val route = checkNotNull(first.planner.routePlan(0L))
-
         val legStarts = listOf(firstGoal) + legGoals.dropLast(1)
         val states = legGoals.indices.map { CoarsePlanningState(environment, options, legStarts[it], legGoals[it]) }
-        val chain = LegChain(
-            world = null, states = listOf(first) + states, starts = listOf(start) + legStarts,
-            coarseExpansionBudget = 1_000_000, snapshotRevision = 0L, cancelled = { false },
-            probe = SearchProbe.NONE, executor = Executor { it.run() },
-            fieldExpansionBudget = Duration.INFINITE,
-        )
-        val field = chain.begin(route, RouteResolution(first))
+        val coarse = CoarseService(world = null, legs = listOf(first) + states, starts = listOf(start) + legStarts, expansionBudget = 1_000_000)
+        coarse.follow(0, start, SpeedClass.STOPPED)
+        coarse.settle()
+        val frame = checkNotNull(coarse.frame(0))
+        val route = frame.route
+        val chain = CoarseFollower(coarse, world = null, environment, leg = 0, frame)
+        val field = chain.field
 
         val tempo = System.getenv("PATHING_DUMP_TEMPO")?.toLong() ?: 83L
         val clock = VirtualSearchClock(microsPerExpansion = tempo)

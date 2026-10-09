@@ -115,7 +115,18 @@ class PathingWorld(
 
 	fun close() = revisions.close()
 
-	fun drainEvents(): WorldEventBatch {
+	fun subscribe(): WorldEvents = WorldEvents(revisions.subscribe())
+
+	inner class WorldEvents internal constructor(private val subscription: RevisionLog.Subscription) : AutoCloseable {
+		fun drain(): WorldEventBatch {
+			applyPending()
+			return subscription.drain()
+		}
+
+		override fun close() = subscription.close()
+	}
+
+	private fun applyPending() {
 		val removed = LongArrayList()
 		for (key in pendingRemovals.toList()) {
 			if (pendingRemovals.remove(key)) removed.add(key)
@@ -124,7 +135,6 @@ class PathingWorld(
 		for ((key, section) in pendingReplacements) {
 			if (pendingReplacements.remove(key, section)) snapshot.install(key, section)
 		}
-		return revisions.drain()
 	}
 
 	fun awaitEvents(sinceRevision: Long, timeoutMillis: Long): Boolean =

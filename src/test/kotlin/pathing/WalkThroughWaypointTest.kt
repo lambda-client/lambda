@@ -3,26 +3,24 @@
  */
 package pathing
 
-import com.lambda.pathing.session.LegChain
+import com.lambda.pathing.session.CoarseFollower
+import com.lambda.pathing.session.CoarseService
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.SearchStats
-import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.VirtualSearchClock
-import com.lambda.pathing.session.RouteResolution
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
-import java.util.concurrent.Executor
 import kotlin.math.hypot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
@@ -31,7 +29,7 @@ import net.minecraft.util.math.Vec3d
  * one tape. The waypoint must be passed at speed (no standing frames around it), the
  * search must switch legs exactly once, and the tape must still end at rest on the final goal.
  */
-class LegChainTest {
+class WalkThroughWaypointTest {
 
     @Test
     fun `a walk-through waypoint is passed without stopping and the tape ends at the final goal`() {
@@ -46,24 +44,14 @@ class LegChainTest {
         val goal = Stance(0, 64, 90)
 
         val first = CoarsePlanningState(environment, options, start, waypoint)
-        first.repairFrom(start)
-        check(first.planner.repair().converged)
-        first.planner.expandSearchField()
-        val route = checkNotNull(first.planner.routePlan(0L))
-
         val second = CoarsePlanningState(environment, options, waypoint, goal)
-        val chain = LegChain(
-            world = null,
-            states = listOf(first, second),
-            starts = listOf(start, waypoint),
-            coarseExpansionBudget = 200_000,
-            snapshotRevision = 0L,
-            cancelled = { false },
-            probe = SearchProbe.NONE,
-            executor = Executor { it.run() },
-            fieldExpansionBudget = Duration.INFINITE,
-        )
-        val field = chain.begin(route, RouteResolution(first))
+        val coarse = CoarseService(world = null, legs = listOf(first, second), starts = listOf(start, waypoint), expansionBudget = 200_000)
+        coarse.follow(0, start, SpeedClass.STOPPED)
+        coarse.settle()
+        val frame = checkNotNull(coarse.frame(0))
+        val route = frame.route
+        val chain = CoarseFollower(coarse, world = null, environment, leg = 0, frame)
+        val field = chain.field
 
         val clock = VirtualSearchClock(microsPerExpansion = 640L)
         val executor = VirtualExecutor(clock)

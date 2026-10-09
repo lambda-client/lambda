@@ -16,6 +16,7 @@ internal class Publisher(
 	private val finisher: Finisher,
 	private val certifier: Certifier,
 	private val probe: SearchProbe,
+	private val live: Boolean,
 ) {
 	val enabled: Boolean get() = sink != null
 
@@ -103,10 +104,10 @@ internal class Publisher(
 
 	fun publishFinal(solution: Solution): Boolean {
 		if (sink == null) return false
-		val newest = publications.newest ?: return false
-		val reference = tipArrival(newest.anchor)
+		val newest = publications.newest
+		if (newest == null && !live) return false
 		if (solution.score >= finalScore) return false
-		if (finalScore != Int.MAX_VALUE && solution.score + SWAP_FLOOR_GAIN_TICKS > reference) return false
+		if (newest != null && finalScore != Int.MAX_VALUE && solution.score + SWAP_FLOOR_GAIN_TICKS > tipArrival(newest.anchor)) return false
 		if (!publications.adoptable(solution.anchor)) return false
 		if (!publications.upToDate) return false
 		val certified = certifier.certify(solution) as? MotionPlanResult.Success ?: return false

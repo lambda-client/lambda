@@ -1,0 +1,132 @@
+package com.lambda.pathing.session
+
+import com.lambda.Lambda
+import com.lambda.pathing.actions.BodyState
+import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.coarse.FieldEdges
+import com.lambda.pathing.coarse.SpeedClass
+import com.lambda.pathing.coarse.SwitchableValueField
+import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.PathingSection
+import com.lambda.pathing.core.Stance
+import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.search.LegSource
+import com.lambda.pathing.search.WorldLink
+import com.lambda.pathing.search.WorldSyncResult
+import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.streaming.PathingWorld
+import com.lambda.pathing.world.streaming.WorldEventBatch
+import net.minecraft.util.math.ChunkSectionPos
+import org.apache.logging.log4j.LogManager
+
+private val LOG = LogManager.getLogger(Lambda.SYMBOL)
+
+internal class CoarseFollower(
+	private val coarse: CoarseService,
+	private val world: PathingWorld?,
+	view: CoarseVoxelView,
+	private var leg: Int,
+	first: CoarseService.Frame,
+) : WorldLink, LegSource, AutoCloseable {
+	private val events = world?.subscribe()
+	private val edges = FieldEdges(view, coarse.moves)
+	private var frame = first
+	private var abandoned = false
+	private var adopted = 0
+	private var syncNanos = 0L
+
+	val field = SwitchableValueField(edges.field(first.goal, first.labels, first.sequence))
+
+	val route: CoarseRoutePlan get() = frame.route
+
+	val anchors: Map<Stance, Double> get() = frame.anchors
+
+	val ledger: String get() = "coarse frames=$adopted sync=${syncNanos / 1_000_000L}ms"
+
+	override fun sync(route: CoarseRoutePlan, from: BodyState): WorldSyncResult {
+		val started = System.nanoTime()
+		coarse.follow(leg, from.stance, SpeedClass.of(from.speed))
+		val batch = events?.drain()?.takeUnless { it.isEmpty }
+		if (batch != null) {
+			edges.invalidate(batch)
+			field.invalidate(batch.sections)
+		}
+		val mutations = batch?.let(::mutatedSections).orEmpty()
+		val latest = coarse.frame(leg)
+		val result = when {
+			latest != null && latest !== frame -> {
+				adopt(latest)
+				WorldSyncResult.Changed(latest.route, mutations, batch?.revision)
+			}
+			batch != null -> WorldSyncResult.Woken(mutations, batch.revision)
+			else -> WorldSyncResult.Quiet
+		}
+		syncNanos += System.nanoTime() - started
+		return result
+	}
+
+	override fun await(timeoutMillis: Long): Boolean {
+		val world = world ?: return false
+		val since = world.revision
+		val deadline = System.nanoTime() + timeoutMillis * 1_000_000L
+		while (coarse.frame(leg) === frame) {
+			val remaining = (deadline - System.nanoTime()) / 1_000_000L
+			if (remaining <= 0L) return false
+			if (world.awaitEvents(since, minOf(remaining, POLL_MILLIS))) return true
+		}
+		return true
+	}
+
+	override fun capturable(sectionX: Int, sectionZ: Int): Boolean = world?.chunkCapturable(sectionX, sectionZ) ?: true
+
+	override fun hasNext(): Boolean = !abandoned && leg + 1 < coarse.legCount
+
+	override fun handoff(touched: Stance): CoarseRoutePlan? {
+		if (!hasNext()) return null
+		val began = System.nanoTime()
+		val next = coarse.awaitFrame(leg + 1, HANDOFF_WAIT_MILLIS)
+		if (next == null) {
+			LOG.warn("Route leg {} toward {} has no coarse route after {} ms; finishing at {} instead", leg + 1, coarse.goal(leg + 1), HANDOFF_WAIT_MILLIS, touched)
+			abandoned = true
+			return null
+		}
+		leg++
+		adopt(next)
+		LOG.info("Leg handoff at {}: next goal {}, route {} nodes, waited {} ms", touched, next.goal, next.route.nodes.size, (System.nanoTime() - began) / 1_000_000L)
+		return next.route
+	}
+
+	override fun rewind(): CoarseRoutePlan {
+		leg--
+		adopt(checkNotNull(coarse.frame(leg)) { "leg $leg was walked without a coarse frame" })
+		LOG.info("Leg rewind: back toward {}", frame.goal)
+		return frame.route
+	}
+
+	override fun close() {
+		events?.close()
+	}
+
+	private fun adopt(next: CoarseService.Frame) {
+		frame = next
+		field.current = edges.field(next.goal, next.labels, next.sequence)
+		adopted++
+		PlanningDebugChannel.publishRoute(next.route)
+	}
+
+	private fun mutatedSections(batch: WorldEventBatch): Set<PathingSection> {
+		if (batch.mutations.isEmpty() && batch.chunks.isEmpty()) return emptySet()
+		val mutated = HashSet(batch.mutations)
+		if (batch.chunks.isNotEmpty()) world?.snapshot?.forEachSectionKey { key ->
+			val x = ChunkSectionPos.unpackX(key)
+			val z = ChunkSectionPos.unpackZ(key)
+			if (PathingChunk(x, z) in batch.chunks) mutated += PathingSection(x, ChunkSectionPos.unpackY(key), z)
+		}
+		return mutated
+	}
+
+	private companion object {
+		const val HANDOFF_WAIT_MILLIS = 4_000L
+		const val POLL_MILLIS = 25L
+	}
+}

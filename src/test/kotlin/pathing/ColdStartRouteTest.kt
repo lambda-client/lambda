@@ -11,8 +11,9 @@ package pathing
 
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.session.RouteResolution
+import com.lambda.pathing.session.CoarseService
 import com.lambda.pathing.session.InterestPrimer
 import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
@@ -24,10 +25,10 @@ import kotlin.test.assertNotNull
 
 /**
  * The in-game cold start, end to end below the session layer: a [PathingWorld] fed by a
- * [FakeCaptureSource] on a "client thread", and the planner thread doing exactly what
- * `PlanningJob` does before the trajectory search -- knowledge wait,
- * coarse repair, route resolution. Far goals at negative coordinates, the case the
- * bedrock corpus (all near the origin, all pre-captured) never exercises.
+ * [FakeCaptureSource] on a "client thread", and the journey's [CoarseService] thread
+ * serving the first route the way a planning job waits for it. Far goals at negative
+ * coordinates, the case the bedrock corpus (all near the origin, all pre-captured) never
+ * exercises.
  */
 class ColdStartRouteTest {
 
@@ -88,44 +89,19 @@ class ColdStartRouteTest {
         val state = CoarsePlanningState(
             world.snapshot, SimpleMoveOptions(), start, goal, capturable = world::chunkCapturable,
         )
-
-        // awaitStartKnowledge, as PlanningJob does it.
-        val bodyDeadline = System.nanoTime() + 1_500_000_000L
-        while (System.nanoTime() < bodyDeadline && !world.snapshot.isKnown(start.x, start.y - 1, start.z)) {
-            if (!world.awaitEvents(world.revision, 50)) break
+        val coarse = CoarseService(world, listOf(state), listOf(start), expansionBudget = 200_000)
+        try {
+            coarse.start()
+            coarse.follow(0, start, SpeedClass.STOPPED)
+            val began = System.nanoTime()
+            val route = coarse.awaitRoute(0, start, cancelled = { false })?.route
+            val report = "route=${route?.nodes?.size} nodes to ${route?.goal} in ${(System.nanoTime() - began) / 1_000_000} ms; " +
+                "sections=${world.snapshot.sectionCount} capture=${world.captureLedger()}; failure=${coarse.failure(0, start) ?: "-"}"
+            println("[cold] $report")
+            return route to report
+        } finally {
+            coarse.close()
         }
-        val interestDeadline = System.nanoTime() + 1_500_000_000L
-        while (System.nanoTime() < interestDeadline && world.pendingDemand > 0) {
-            if (!world.awaitEvents(world.revision, 50)) break
-        }
-
-        val batch = world.drainEvents()
-        state.repairFrom(start)
-        state.applyEvents(batch)
-        val planner = state.planner
-        val coarseStarted = System.nanoTime()
-        val coarse = planner.repair(maxExpansions = 200_000)
-        val coarseMillis = (System.nanoTime() - coarseStarted) / 1_000_000
-        val sections = world.snapshot.sectionCount
-        println("[cold] coarse: ${coarse.processedNodes} expansions, ${planner.graphSize} nodes, $sections sections, $coarseMillis ms, converged=${coarse.converged}")
-
-        val resolution = RouteResolution(state)
-        val routeStarted = System.nanoTime()
-        val route = resolution.resolve(start, world.revision, 200_000, world)
-        val routeMillis = (System.nanoTime() - routeStarted) / 1_000_000
-        val report = "route=${route?.nodes?.size} nodes to ${route?.goal} in $routeMillis ms; ${resolution.lastResolveReport}; " +
-            "sections=${world.snapshot.sectionCount} capture=${world.captureLedger()}; " +
-            "failure=${if (route == null) planner.routeFailureReport() else "-"}"
-        println("[cold] $report")
-        if (route == null) {
-            val view = planner.view
-            val moves = planner.moves
-            println(
-                "[cold] no route: startIsStance=${moves.isStance(view, start)} startEdges=${moves.edgesFrom(view, start).size} " +
-                    "anchors=${planner.optimisticAnchors.size} pendingInterest=${world.pendingInterest} pendingDemand=${world.pendingDemand}",
-            )
-        }
-        return route to report
     }
 
     @Test

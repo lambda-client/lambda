@@ -63,15 +63,35 @@ class RevisionLogTest {
     @Test
     fun `drain hands over pending changes once`() {
         val log = RevisionLog()
+        val subscription = log.subscribe()
         log.recordCaptured(section)
         log.recordMutation(PathingSection(3, 3, 3))
         log.recordChunkChanged(chunk)
-        val batch = log.drain()
+        val batch = subscription.drain()
         assertEquals(3L, batch.revision)
         assertEquals(setOf(section, PathingSection(3, 3, 3)), batch.sections)
         assertEquals(setOf(PathingSection(3, 3, 3)), batch.mutations)
         assertEquals(setOf(chunk), batch.chunks)
-        assertTrue(log.drain().isEmpty)
+        assertTrue(subscription.drain().isEmpty)
+    }
+
+    @Test
+    fun `every subscriber drains its own copy of the changes recorded after it subscribed`() {
+        val log = RevisionLog()
+        val early = log.subscribe()
+        log.recordCaptured(section)
+        val late = log.subscribe()
+        log.recordChunkChanged(chunk)
+        val earlyBatch = early.drain()
+        assertEquals(setOf(section), earlyBatch.sections)
+        assertEquals(setOf(chunk), earlyBatch.chunks)
+        val lateBatch = late.drain()
+        assertTrue(lateBatch.sections.isEmpty(), "the capture happened before it subscribed")
+        assertEquals(setOf(chunk), lateBatch.chunks)
+        late.close()
+        log.recordCaptured(PathingSection(7, 7, 7))
+        assertTrue(late.drain().isEmpty, "a closed subscription receives nothing")
+        assertEquals(setOf(PathingSection(7, 7, 7)), early.drain().sections)
     }
 
     @Test

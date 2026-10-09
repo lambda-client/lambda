@@ -33,6 +33,7 @@ internal class SearchLoop(
 	private val legs: LegSource? = null,
 ) {
 	private val parallelism = parallelism.coerceAtLeast(1)
+	private val live = world != null
 	private val unsupported = initialRoute.edges.mapTo(HashSet()) { it.movement }.filterTo(HashSet()) { !catalog.supports(it) }
 	private val route = RouteState(initialRoute, environment)
 	private val attempts = AttemptAccumulator(probe)
@@ -45,7 +46,7 @@ internal class SearchLoop(
 	private val crew = if (parallelism > 1) RolloutCrew(parallelism - 1, rollouts) else null
 	private val certifier = Certifier(initialState, profile, environment, cancelled, route, attempts)
 	private val finisher = Finisher(field, environment, config, RolloutGate(profile, environment, config, route), attempts, route)
-	private val publisher = Publisher(searchConfig, field, frontier, clock, publications, onPublish, budget, incumbent, finisher, certifier, probe)
+	private val publisher = Publisher(searchConfig, field, frontier, clock, publications, onPublish, budget, incumbent, finisher, certifier, probe, live)
 	private val recovery = StallRecovery(frontier, publications, world)
 
 	private var repairs = 0
@@ -53,9 +54,10 @@ internal class SearchLoop(
 	private var publishBucket = -1
 	private var lastViewMillis = -VIEW_INTERVAL_MILLIS
 	private var lastPublishedTip: ValueAnchor? = null
+	private var refinedSeed: ValueAnchor? = null
 	private var idleCursor = -1
-	private val legRoots = ArrayDeque<ValueAnchor>()
 	private var idleSlices = 0
+	private val legRoots = ArrayDeque<ValueAnchor>()
 	private var exit = SearchExit.BUDGET
 
 	fun run(): MotionPlanResult = try {
@@ -104,7 +106,7 @@ internal class SearchLoop(
 
 	private fun stopReason(): SearchExit? = when {
 		frontier.isExhausted && !frontier.hasBlocked && !annealing.revivable && !restartable() && !extendable() && !refine() && !walkingToGoal() -> SearchExit.EXHAUSTED
-		budget.exhausted && !awaitingArrival() && !restartFromTape() -> SearchExit.BUDGET
+		budget.exhausted && !awaitingArrival() && !walkingToGoal() && !restartFromTape() -> SearchExit.BUDGET
 		else -> null
 	}
 
@@ -112,12 +114,13 @@ internal class SearchLoop(
 
 	private fun extendable(): Boolean = world != null && !routeReachesFinalGoal()
 
-	private fun walkingToGoal(): Boolean =
-		world != null && incumbent.best != null && routeReachesFinalGoal() && execution.cursorFrame() != null
+	private fun walkingToGoal(): Boolean = live && incumbent.best != null && routeReachesFinalGoal()
 
 	private fun idleUntilArrival(): Boolean {
 		if (!walkingToGoal()) return false
-		val executing = execution.cursorFrame() ?: return false
+		val best = checkNotNull(incumbent.best)
+		if (!incumbent.isSealed && incumbent.ready(best) && publisher.seal(best) != null) return false
+		val executing = execution.cursorFrame() ?: -1
 		if (executing != idleCursor) {
 			idleCursor = executing
 			idleSlices = 0
@@ -184,8 +187,8 @@ internal class SearchLoop(
 		if (frontier.extend()) return null
 		val toward = incumbent.best?.takeIf { !incumbent.ready(it) }?.anchor
 		if (!frontier.hasParked && toward == null) return SearchExit.DRAINED.takeUnless { refine() || idleUntilArrival() }
-		if (!publisher.commit(urgent = true, along = toward)) return SearchExit.COMMIT_REFUSED
-		return null
+		if (publisher.commit(urgent = true, along = toward)) return null
+		return SearchExit.COMMIT_REFUSED.takeUnless { idleUntilArrival() }
 	}
 
 	private fun periodicMaintenance() {
@@ -240,7 +243,7 @@ internal class SearchLoop(
 		}
 		val best = incumbent.best ?: return Verdict.EXPAND
 		if (!routeReachesFinalGoal()) return Verdict.EXPAND
-		val finishable = incumbent.ready(best) && incumbent.nearEnd(best)
+		val finishable = !live && incumbent.ready(best) && incumbent.nearEnd(best)
 		val bound = entry.bound + Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
 		if (bound >= best.score) return if (finishable) Verdict.FINISH else Verdict.SKIP
 		return if (finishable && incumbent.stalled) Verdict.FINISH else Verdict.EXPAND
@@ -413,12 +416,13 @@ internal class SearchLoop(
 	}
 
 	private fun refine(): Boolean {
-		if (!frontier.widenable) return false
+		if (!frontier.widenable && !live) return false
 		val solution = incumbent.best?.takeIf { routeReachesFinalGoal() } ?: return false
-		val executing = execution.cursorFrame() ?: return false
+		val executing = execution.cursorFrame() ?: if (live) 0 else return false
 		val lead = executing + searchConfig.horizonCommitFrames + Publications.DIVERGENCE_MARGIN_FRAMES
 		val seed = solution.anchor.lineFrom(frontier.root).firstOrNull { it.elapsed >= lead } ?: return false
-		frontier.widen()
+		if (frontier.widenable) frontier.widen() else if (seed === refinedSeed) return false
+		refinedSeed = seed
 		seed.attempted.clear()
 		annealing.clearSpent()
 		restartWindow(seed.stance)

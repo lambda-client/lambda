@@ -3,7 +3,7 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.core.MovementId
-import com.lambda.pathing.core.PathingChunk
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.HashCommon
@@ -191,27 +191,28 @@ internal class CoarseEdgeCache(
 		bouncesTo.clear()
 	}
 
-	fun invalidateChunks(chunks: Iterable<PathingChunk>, originRanges: List<Pair<IntRange, IntRange>>, arrivalsOnly: Boolean) {
-		if (originRanges.isEmpty()) return
-		val targetRanges = chunks.map(moves::targetColumnRanges)
+	fun invalidate(changed: List<CellBox>, arrivalsOnly: Boolean) {
+		if (changed.isEmpty()) return
+		val origins = changed.map(moves::originsReading)
+		val targets = changed.map(moves::targetsReading)
 		val kept = if (arrivalsOnly) completeOrigins else null
-		removeColumns(outgoing.keys, originRanges, kept)
-		removeColumns(checkedOrigins, originRanges, kept)
-		if (!arrivalsOnly) removeColumns(completeOrigins, originRanges)
-		standable.removeColumns(targetRanges)
+		remove(outgoing.keys, origins, kept)
+		remove(checkedOrigins, origins, kept)
+		if (!arrivalsOnly) remove(completeOrigins, origins)
+		standable.remove(targets)
 		stamper.invalidate()
-		originRows.removeColumns(originRanges)
-		targetRows.removeColumns(targetRanges)
-		removeColumns(bouncesFrom.keys, originRanges, kept)
-		removeColumns(bouncesTo.keys, targetRanges)
+		originRows.remove(origins)
+		targetRows.remove(targets)
+		remove(bouncesFrom.keys, origins, kept)
+		remove(bouncesTo.keys, targets)
 	}
 
-	private fun removeColumns(keys: LongSet, ranges: List<Pair<IntRange, IntRange>>, keep: LongSet? = null) {
+	private fun remove(keys: LongSet, boxes: List<CellBox>, keep: LongSet? = null) {
 		val iterator = keys.iterator()
 		while (iterator.hasNext()) {
 			val k = iterator.nextLong()
 			if (keep != null && keep.contains(k)) continue
-			if (covers(ranges, k)) iterator.remove()
+			if (covers(boxes, k)) iterator.remove()
 		}
 	}
 
@@ -258,14 +259,15 @@ internal class CoarseEdgeCache(
 			slotBlocks.fill(null)
 		}
 
-		fun removeColumns(ranges: List<Pair<IntRange, IntRange>>) {
+		fun remove(boxes: List<CellBox>) {
 			for (entry in blocks.long2ObjectEntrySet()) {
 				val minX = ChunkSectionPos.unpackX(entry.longKey) shl 6
+				val minY = ChunkSectionPos.unpackY(entry.longKey) shl 4
 				val minZ = ChunkSectionPos.unpackZ(entry.longKey) shl 4
-				for ((xs, zs) in ranges) {
-					if (xs.first > minX + 63 || minX > xs.last) continue
-					for (z in maxOf(zs.first, minZ)..minOf(zs.last, minZ + 15)) {
-						for (y in 0 until 16) entry.value[(y shl 4) or (z and 15)] = null
+				for (box in boxes) {
+					if (!box.overlaps(minX, minY, minZ, minX + 63, minY + 15, minZ + 15)) continue
+					for (y in maxOf(box.ys.first, minY)..minOf(box.ys.last, minY + 15)) {
+						for (z in maxOf(box.zs.first, minZ)..minOf(box.zs.last, minZ + 15)) entry.value[((y and 15) shl 4) or (z and 15)] = null
 					}
 				}
 			}
@@ -287,10 +289,11 @@ internal class CoarseEdgeCache(
 			else -> mask ushr -by
 		}
 
-		fun covers(ranges: List<Pair<IntRange, IntRange>>, key: Long): Boolean {
+		fun covers(boxes: List<CellBox>, key: Long): Boolean {
 			val x = PackedStance.unpackX(key)
+			val y = PackedStance.unpackY(key)
 			val z = PackedStance.unpackZ(key)
-			return ranges.any { (xs, zs) -> x in xs && z in zs }
+			return boxes.any { it.contains(x, y, z) }
 		}
 	}
 }

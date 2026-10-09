@@ -235,7 +235,7 @@ object PathingHud : HudModule(
             line(
                 "commits" to report.commitAttempts.toString(),
                 "refused" to compact(report.publishRefusals),
-                "sync" to PlanningDebugChannel.lastExhaustionLedger.substringAfter("coarseSync=", "-").substringBefore("["),
+                "coarse" to PlanningDebugChannel.lastExhaustionLedger.removePrefix("coarse ").ifEmpty { "-" },
             )
         }
     }

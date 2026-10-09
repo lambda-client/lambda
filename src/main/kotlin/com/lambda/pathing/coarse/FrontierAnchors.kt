@@ -16,16 +16,14 @@ internal class FrontierSweep(
 ) {
 	private val visited = HashSet<Stance>()
 	private val incomplete = HashSet<Stance>()
-	private var origin: Stance? = null
 	var dirty = false
 
 	fun anchorsFrom(from: Stance, cancelled: () -> Boolean = { false }): Map<Stance, Double> {
 		if (from == goal || FrontierAnchors.refusesOptimism(view, moves, goal)) return emptyMap()
-		val seeds: Collection<Stance> = if (origin == from && !dirty && visited.isNotEmpty()) ArrayList(incomplete) else {
+		val seeds: Collection<Stance> = if (!dirty && from in visited) ArrayList(incomplete) else {
 			if (!moves.isStance(view, from)) return emptyMap()
 			visited.clear()
 			incomplete.clear()
-			origin = from
 			dirty = false
 			listOf(from)
 		}

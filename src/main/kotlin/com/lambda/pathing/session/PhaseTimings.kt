@@ -13,8 +13,10 @@ internal class PhaseTimings {
 		}
 	}
 
+	val elapsedMillis: Long get() = (System.nanoTime() - started) / 1_000_000L
+
 	override fun toString(): String =
-		nanos.entries.joinToString(", ", postfix = "; total ${(System.nanoTime() - started) / 1_000_000L} ms") { (phase, nanos) ->
+		nanos.entries.joinToString(", ", postfix = "; total $elapsedMillis ms") { (phase, nanos) ->
 			"$phase ${nanos / 1_000_000L} ms"
 		}
 }

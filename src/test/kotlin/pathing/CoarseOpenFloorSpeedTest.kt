@@ -47,7 +47,7 @@ class CoarseOpenFloorSpeedTest {
             val t0 = System.nanoTime()
             val coarse = state.planner.repair(maxExpansions = 1_000_000)
             val ms = (System.nanoTime() - t0) / 1e6
-            val route = RouteResolution(state).resolve(start, 1L, 1_000_000, world = null)
+            val route = RouteResolution(state).resolve(start, 1L, 1_000_000)
             println("[speed] round=$round expansions=${coarse.processedNodes} nodes=${state.planner.graphSize} ms=%.1f us/exp=%.1f route=${route?.nodes?.size} ticks=${route?.lowerBoundTicks}".format(ms, ms * 1000.0 / coarse.processedNodes))
             assertNotNull(route)
             // Pinned on this exact floor; a change to the coarse vocabulary or its costs moves both.

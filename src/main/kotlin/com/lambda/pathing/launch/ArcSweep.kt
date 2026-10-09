@@ -5,13 +5,10 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
-import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.MathHelper
-import net.minecraft.util.shape.VoxelShape
 import kotlin.math.hypot
 
 class Probed<S>(val solution: S, val reads: () -> LongOpenHashSet)
@@ -76,8 +73,6 @@ internal class ArcSweep(
 	private val length = hypot(dx.toDouble(), dz.toDouble())
 	private val unitX = dx / length
 	private val unitZ = dz / length
-	private val classes = Long2ByteOpenHashMap().apply { defaultReturnValue(UNVISITED) }
-	private var shapes: Long2ObjectOpenHashMap<VoxelShape>? = null
 
 	fun sweep(
 		arc: ArcSample,
@@ -97,16 +92,8 @@ internal class ArcSweep(
 
 	fun sweep(arc: ArcSample, path: ArcPath, launchHeight: Double, halfWidth: Double = CORE_HALF_WIDTH): Sweep {
 		forEachSweptCell(arc, path, launchHeight, halfWidth) { x, y, z, swept ->
-			val key = BlockPos.asLong(x, y, z)
-			reads?.add(key)
-
-			val known = classes.get(key)
-			val cellClass = if (known == UNVISITED) {
-				view.collisionClass(x, y, z).also { classes.put(key, it.ordinal.toByte()) }
-			} else {
-				COLLISION_CLASSES[known.toInt()]
-			}
-			when (cellClass) {
+			reads?.add(BlockPos.asLong(x, y, z))
+			when (view.collisionClass(x, y, z)) {
 				CollisionClass.EMPTY -> {}
 				CollisionClass.UNKNOWN -> return Sweep.Blocked
 				CollisionClass.FULL ->
@@ -114,10 +101,7 @@ internal class ArcSweep(
 						return Sweep.Clipped(x, z)
 					}
 				CollisionClass.PARTIAL -> {
-					val cached = shapes ?: Long2ObjectOpenHashMap<VoxelShape>().also { shapes = it }
-					val shape = cached.get(key)
-						?: view.collisionShape(x, y, z)?.also { cached.put(key, it) }
-						?: return Sweep.Blocked
+					val shape = view.collisionShape(x, y, z) ?: return Sweep.Blocked
 					for (bounds in shape.boundingBoxes) {
 						if (bounds.offset(x.toDouble(), y.toDouble(), z.toDouble()).intersects(swept)) return Sweep.Partial
 					}
@@ -125,10 +109,6 @@ internal class ArcSweep(
 			}
 		}
 		return Sweep.Clear
-	}
-
-	private companion object {
-		const val UNVISITED: Byte = -1
 	}
 }
 
@@ -180,4 +160,3 @@ internal const val SWEEP_MARGIN = 0.5
 internal const val BODY_HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
 internal const val BODY_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
 internal const val CORNER_CLEARANCE = BODY_HALF_WIDTH + 0.1
-private val COLLISION_CLASSES = CollisionClass.entries.toTypedArray()

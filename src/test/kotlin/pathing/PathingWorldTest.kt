@@ -33,6 +33,7 @@ class PathingWorldTest {
     private val bounds = SimulationSnapshotBounds(-64, 0, -64, 63, 127, 63)
     private val source = FakeCaptureSource(groundY = 64, viewDistance = 8).apply { loadSquare(2) }
     private val world = PathingWorld(bounds, source)
+    private val events = world.subscribe()
 
     private val key = ChunkSectionPos.asLong(0, 4, 0)
     private val section = PathingSection(0, 4, 0)
@@ -53,11 +54,11 @@ class PathingWorldTest {
         assertTrue(world.snapshot.collisionShape(3, 65, 3).isEmpty)
         assertTrue(world.captureLedger().startsWith("1 sections/4096 cells"))
 
-        val batch = world.drainEvents()
+        val batch = events.drain()
         assertEquals(1L, batch.revision)
         assertEquals(setOf(section), batch.sections)
         assertTrue(batch.mutations.isEmpty() && batch.chunks.isEmpty())
-        assertTrue(world.drainEvents().isEmpty)
+        assertTrue(events.drain().isEmpty)
     }
 
     @Test
@@ -76,7 +77,7 @@ class PathingWorldTest {
     fun `a block change re-captures the section and installs the replacement only on drain`() {
         world.interest(listOf(key), InterestTier.BODY)
         world.advance(1_000.0)
-        world.drainEvents()
+        events.drain()
 
         source.set(5, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
         world.onBlockChanged(BlockPos(5, 70, 5))
@@ -89,7 +90,7 @@ class PathingWorldTest {
         assertEquals(3L, world.revision)
         assertTrue(world.snapshot.collisionShape(5, 70, 5).isEmpty, "replacement is parked, not installed")
 
-        val batch = world.drainEvents()
+        val batch = events.drain()
         assertFalse(world.snapshot.collisionShape(5, 70, 5).isEmpty)
         assertEquals(setOf(section), batch.sections)
         assertEquals(setOf(section), batch.mutations)
@@ -104,7 +105,7 @@ class PathingWorldTest {
         world.onBlockChanged(BlockPos(5, 70, 5))
         assertEquals(1L, world.revision)
         assertEquals(0, world.pendingDemand, "nothing to re-capture")
-        assertEquals(setOf(section), world.drainEvents().mutations)
+        assertEquals(setOf(section), events.drain().mutations)
     }
 
     @Test
@@ -118,14 +119,14 @@ class PathingWorldTest {
         assertEquals(0, world.pendingDemand)
         world.advance(1_000.0)
         assertTrue(world.snapshot.hasSection(key))
-        assertEquals(setOf(section), world.drainEvents().mutations)
+        assertEquals(setOf(section), events.drain().mutations)
     }
 
     @Test
     fun `a block change while a replacement is mid-capture restarts that capture`() {
         world.interest(listOf(key), InterestTier.BODY)
         world.advance(1_000.0)
-        world.drainEvents()
+        events.drain()
         world.onBlockChanged(BlockPos(1, 65, 1))
         world.advance(0.0)
         assertEquals(1, world.pendingInterest, "re-capture in flight")
@@ -140,16 +141,16 @@ class PathingWorldTest {
     fun `a chunk event bumps only when the chunk had captured content`() {
         world.onChunkEvent(0, 0)
         assertEquals(0L, world.revision)
-        assertTrue(world.drainEvents().isEmpty)
+        assertTrue(events.drain().isEmpty)
 
         world.interest(listOf(key), InterestTier.BODY)
         world.advance(1_000.0)
-        world.drainEvents()
+        events.drain()
 
         world.onChunkEvent(0, 0)
         assertEquals(2L, world.revision)
         assertEquals(1, world.pendingDemand, "content sections are re-queued at demand tier")
-        val batch = world.drainEvents()
+        val batch = events.drain()
         assertEquals(setOf(PathingChunk(0, 0)), batch.chunks)
         assertTrue(batch.mutations.isEmpty(), "chunk events are not block mutations")
         assertFalse(world.snapshot.hasSection(key), "drain dropped the stale section")

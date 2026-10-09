@@ -1,6 +1,7 @@
 package com.lambda.pathing.session
 
 import com.lambda.pathing.coarse.CoarsePlanningState
+import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.streaming.MinecraftCaptureSource
 import com.lambda.pathing.world.streaming.PathingWorld
@@ -24,7 +25,12 @@ internal class PlanningJourney private constructor(
 		}
 	}
 
-	fun cancel() = world.close()
+	val coarse = CoarseService(world, legs, listOf(origin.start) + origin.waypoints, origin.coarseExpansionBudget).also { it.start() }
+
+	fun cancel() {
+		coarse.close()
+		world.close()
+	}
 
 	fun compatibleWith(preparation: PlanningPreparation): Boolean =
 		goal == preparation.finalGoal && origin.moveOptions == preparation.moveOptions &&
@@ -32,8 +38,9 @@ internal class PlanningJourney private constructor(
 				origin.waypoints.size >= preparation.waypoints.size &&
 				origin.waypoints.takeLast(preparation.waypoints.size) == preparation.waypoints
 
-	fun legsFor(preparation: PlanningPreparation): List<CoarsePlanningState> =
-		legs.takeLast(preparation.waypoints.size + 1)
+	fun firstLegFor(preparation: PlanningPreparation): Int = legs.size - (preparation.waypoints.size + 1)
+
+	fun planner(leg: Int): CoarsePlanner = legs[leg].planner
 
 	companion object {
 		fun open(preparation: PlanningPreparation, player: ClientPlayerEntity): PlanningJourney {

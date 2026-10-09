@@ -1,5 +1,6 @@
 package com.lambda.pathing.world.streaming
 
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import java.util.concurrent.locks.ReentrantLock
@@ -10,32 +11,54 @@ class RevisionLog(private val lock: ReentrantLock = ReentrantLock()) {
 
 	private var revisionCounter = 0L
 	private var closed = false
-	private val pendingSections = HashSet<PathingSection>()
-	private val pendingChunks = HashSet<PathingChunk>()
-	private val pendingMutations = HashSet<PathingSection>()
+	private val subscribers = ArrayList<Pending>()
 	private val sectionRevisions = HashMap<PathingSection, Long>()
 	private val chunkRevisions = HashMap<PathingChunk, Long>()
 
+	private class Pending {
+		val sections = HashSet<PathingSection>()
+		val chunks = HashSet<PathingChunk>()
+		val mutations = HashSet<PathingSection>()
+	}
+
+	inner class Subscription internal constructor() {
+		private val pending = Pending().also { subscribers += it }
+
+		fun drain(): WorldEventBatch = lock.withLock {
+			val batch = WorldEventBatch(revisionCounter, HashSet(pending.sections), HashSet(pending.chunks), HashSet(pending.mutations))
+			pending.sections.clear()
+			pending.chunks.clear()
+			pending.mutations.clear()
+			batch
+		}
+
+		fun close() = lock.withLock { subscribers -= pending }
+	}
+
 	val revision: Long get() = lock.withLock { revisionCounter }
+
+	fun subscribe(): Subscription = lock.withLock { Subscription() }
 
 	fun recordCaptured(section: PathingSection) = lock.withLock {
 		revisionCounter++
-		pendingSections += section
+		for (pending in subscribers) pending.sections += section
 		changed.signalAll()
 	}
 
 	fun recordMutation(section: PathingSection) = lock.withLock {
 		val next = ++revisionCounter
 		sectionRevisions[section] = next
-		pendingSections += section
-		pendingMutations += section
+		for (pending in subscribers) {
+			pending.sections += section
+			pending.mutations += section
+		}
 		changed.signalAll()
 	}
 
 	fun recordChunkChanged(chunk: PathingChunk) = lock.withLock {
 		val next = ++revisionCounter
 		chunkRevisions[chunk] = next
-		pendingChunks += chunk
+		for (pending in subscribers) pending.chunks += chunk
 		changed.signalAll()
 	}
 
@@ -70,16 +93,6 @@ class RevisionLog(private val lock: ReentrantLock = ReentrantLock()) {
 		closed = true
 		changed.signalAll()
 	}
-
-	fun drain(): WorldEventBatch = lock.withLock {
-		val batch = WorldEventBatch(
-			revisionCounter, HashSet(pendingSections), HashSet(pendingChunks), HashSet(pendingMutations),
-		)
-		pendingSections.clear()
-		pendingChunks.clear()
-		pendingMutations.clear()
-		batch
-	}
 }
 
 class WorldEventBatch(
@@ -89,4 +102,13 @@ class WorldEventBatch(
 	val mutations: Set<PathingSection>,
 ) {
 	val isEmpty: Boolean get() = sections.isEmpty() && chunks.isEmpty()
+
+	val changed: List<CellBox> by lazy { changedChunks.map(CellBox::column) }
+
+	val arrived: List<CellBox> by lazy {
+		sections.filter { PathingChunk(it.x, it.z) !in changedChunks }.groupBy { PathingChunk(it.x, it.z) }
+			.map { (chunk, arrivals) -> CellBox.sections(chunk, arrivals.minOf(PathingSection::y), arrivals.maxOf(PathingSection::y)) }
+	}
+
+	private val changedChunks: Set<PathingChunk> by lazy { chunks + mutations.mapTo(HashSet()) { PathingChunk(it.x, it.z) } }
 }

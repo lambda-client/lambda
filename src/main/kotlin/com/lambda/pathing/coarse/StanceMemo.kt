@@ -1,5 +1,6 @@
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
@@ -35,15 +36,14 @@ internal class StanceMemo(private val view: CoarseVoxelView, private val moves: 
 		bits[index ushr 6] = bits[index ushr 6] and (1L shl index).inv()
 	}
 
-	fun removeColumns(ranges: List<Pair<IntRange, IntRange>>) {
+	fun remove(boxes: List<CellBox>) {
 		val iterator = sections.keys.iterator()
 		while (iterator.hasNext()) {
 			val key = iterator.nextLong()
 			val minX = ChunkSectionPos.unpackX(key) shl 4
+			val minY = ChunkSectionPos.unpackY(key) shl 4
 			val minZ = ChunkSectionPos.unpackZ(key) shl 4
-			if (ranges.any { (xs, zs) -> xs.first <= minX + 15 && minX <= xs.last && zs.first <= minZ + 15 && minZ <= zs.last }) {
-				iterator.remove()
-			}
+			if (boxes.any { it.overlaps(minX, minY, minZ, minX + 15, minY + 15, minZ + 15) }) iterator.remove()
 		}
 		last = null
 	}

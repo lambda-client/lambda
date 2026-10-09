@@ -128,13 +128,6 @@ object PlanningDebugChannel : SearchProbe {
 		)
 	}
 
-	override fun sync(sections: Int, mutations: Int, chunks: Int, routeAffected: Boolean, extending: Boolean) {
-		if (verbose) LOG.info(
-			"[sync] sections={} mutations={} chunks={} routeAffected={} extending={}",
-			sections, mutations, chunks, routeAffected, extending,
-		)
-	}
-
 	@Volatile
 	var graph: GraphSample? = null
 		private set
