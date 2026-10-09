@@ -13,6 +13,10 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.ContainerTransferGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.ShulkerPickupGameTest"
       }
     ]
   }

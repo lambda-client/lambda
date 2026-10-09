@@ -109,7 +109,7 @@ data class ShulkerBoxContainer(
         override fun close() =
             taskOrNull {
                 if (!isAccessed) null
-                else actionTask { player.closeScreen() }
+                else actionTask { player.closeHandledScreen() }
             }.then { breakAndCollect(blockPos) }
                 .then {
                     stackSelection {

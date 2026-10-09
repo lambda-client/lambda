@@ -102,7 +102,7 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 		context(_: Automated)
 		override fun close() =
 			taskOrNull {
-				if (isAccessed) actionTask { player.closeScreen() }
+				if (isAccessed) actionTask { player.closeHandledScreen() }
 				else null
 			}.thenOrNull {
 				if (blockPos != null) breakAndCollect(blockPos)

@@ -27,15 +27,10 @@ import com.lambda.interaction.handler.handlers.PacketLimitHandler.canSendPackets
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.sentPackets
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.Manager
-import com.lambda.interaction.manager.managers.inventory.InventoryManager.actions
-import com.lambda.interaction.manager.managers.inventory.InventoryManager.activeRequest
-import com.lambda.interaction.manager.managers.inventory.InventoryManager.alteredSlots
 import com.lambda.interaction.manager.managers.inventory.InventoryManager.processActiveRequest
 import com.lambda.module.modules.client.Client
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeAutomated
-import com.lambda.util.collections.LimitedDecayQueue
-import com.lambda.util.item.ItemStackUtils.equal
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.item.ItemStack
@@ -44,11 +39,15 @@ import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
 import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.ScreenHandler
-import net.minecraft.screen.slot.Slot
 
 /**
  * Manager designed to handle inventory actions. One of the key features being the inventory change detection to
  * avoid accepting old information from the server in cases where ping is high. This helps to prevent desync.
+ *
+ * Every local prediction (clicks through this manager, plus anything else the client predicts such as block
+ * placement, which is picked up by the tick diff in [indexInventoryChanges]) is recorded in the [filter] as an
+ * ordered per-slot queue. Server answers that match a recording are echoes of our own actions and are dropped;
+ * anything else is new information and is applied. See [InventorySyncFilter] for the exact rules.
  */
 object InventoryManager : Manager<InventoryRequest>(
 	1,
@@ -57,15 +56,18 @@ object InventoryManager : Manager<InventoryRequest>(
 	private var activeRequest: InventoryRequest? = null
 	private var actions = mutableListOf<InventoryAction>()
 
-	private var slots = listOf<ItemStack>()
-	private var alteredSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout * 50L)
-	private var alteredPlayerSlots = LimitedDecayQueue<InventoryChange>(Int.MAX_VALUE, Client.desyncTimeout * 50L)
+	private val filter =
+		InventorySyncFilter<ItemStack>(
+			{ a, b -> ItemStack.areEqual(a, b) },
+			{ it.copy() },
+			Client.desyncTimeout * 50L
+		)
 
 	var screenHandler: ScreenHandler? = null
 		set(value) {
 			if (value != null) {
-				alteredSlots.clear()
-				slots = getStacks(value.slots)
+				if (value.syncId != 0) filter.clear(value.syncId)
+				filter.snapshot(value.syncId, value.slots.associate { it.id to it.stack }, value.cursorStack)
 			}
 			field = value
 		}
@@ -83,7 +85,7 @@ object InventoryManager : Manager<InventoryRequest>(
         }
 
 		listen<PlayerEvent.SlotClick.Post> {
-			if (Client.avoidInventoryDesync) indexInventoryChanges(isSlotClick = true)
+			if (Client.avoidInventoryDesync) indexInventoryChanges()
 		}
 
 		listen<PacketEvent.Send.Post> { event ->
@@ -132,8 +134,7 @@ object InventoryManager : Manager<InventoryRequest>(
 	private fun populateFrom(request: InventoryRequest) {
 		activeRequest = request
 		actions = request.actions.toMutableList()
-		alteredSlots.setDecayTime(Client.desyncTimeout * 50L)
-		alteredPlayerSlots.setDecayTime(Client.desyncTimeout * 50L)
+		filter.maxAgeMs = Client.desyncTimeout * 50L
 	}
 
 	/**
@@ -171,37 +172,37 @@ object InventoryManager : Manager<InventoryRequest>(
 	}
 
 	/**
-	 * Detects changes in item stacks between now and the last time slots were cached and
-	 * adds them to the [alteredSlots] collection where they can be compared to
-	 * incoming [InventoryS2CPacket] and [ScreenHandlerSlotUpdateS2CPacket] packets to decide whether to
-	 * block certain updates.
+	 * Diffs the live screen against the last snapshot and records every changed slot in the [filter]
+	 * in the order it happened. This runs after every performed action and at the end of every tick,
+	 * so predictions made outside this manager (placing blocks, eating, picking items up) are recorded
+	 * too, as long as their server echo arrives later than the next recording point.
 	 *
-	 * When [isSlotClick] is true, an inventory click packet ([ClickSlotC2SPacket]) was sent with a mismatched
-	 * revision (-1). The server will respond with both an [InventoryS2CPacket] and potentially a
-	 * [ScreenHandlerSlotUpdateS2CPacket], so each change is cached **twice** to allow both packets to consume
-	 * their corresponding entry.
+	 * The cursor is tracked the same way: every click sends a mismatched revision (-1), so the server
+	 * answers with a full [InventoryS2CPacket] carrying the cursor, and with rapid clicks that cursor
+	 * is routinely stale by the time it arrives. Merging it like a slot keeps a resurrected cursor
+	 * from breaking the transfer tasks that read it every tick.
 	 *
-	 * For non-click actions (e.g. placing blocks, picking up items, eating food, equipping via right-click),
-	 * the server only ever sends single slot updates, so each change is cached **once**.
+	 * Note the click path sends a mismatched revision (-1), so the server answers a click with a full
+	 * [InventoryS2CPacket]; that packet is merged per slot in [onInventoryUpdate], which is why each
+	 * change is recorded exactly once here.
 	 */
-	context(safeContext: SafeContext)
-	fun indexInventoryChanges(isSlotClick: Boolean = false) {
-		with(safeContext) {
-			if (player.currentScreenHandler.syncId != screenHandler?.syncId) return
-			val changes = screenHandler?.slots
-				?.filter { !it.stack.equal(slots.getOrNull(it.id)) }
-				?.map { InventoryChange(it.id, slots.getOrNull(it.id) ?: ItemStack.EMPTY, it.stack.copy()) }
-				?: emptyList()
-			val target =
-				if (player.currentScreenHandler.syncId == 0) alteredPlayerSlots
-				else alteredSlots
-			target.addAll(changes)
-			if (isSlotClick) target.addAll(changes)
-			slots = getStacks(player.currentScreenHandler.slots)
-		}
+	fun SafeContext.indexInventoryChanges() {
+		val current = player.currentScreenHandler
+		if (current.syncId != screenHandler?.syncId) return
+		filter.observeLocal(
+			current.syncId,
+			current.slots.associate { it.id to it.stack },
+			current.cursorStack
+		)
 	}
 
-	private fun getStacks(slots: Collection<Slot>) = slots.map { it.stack.copy() }
+	private fun snapshotHandler(handler: ScreenHandler) {
+		filter.snapshot(
+			handler.syncId,
+			handler.slots.associate { it.id to it.stack },
+			handler.cursorStack
+		)
+	}
 
 	/**
 	 * A modified version of the minecraft onInventory method
@@ -209,28 +210,44 @@ object InventoryManager : Manager<InventoryRequest>(
 	 * @see net.minecraft.client.network.ClientPlayNetworkHandler.onInventory
 	 */
 	@JvmStatic
-	fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>){
+	fun onInventoryUpdate(packet: InventoryS2CPacket, original: Operation<Void>) {
 		runSafe {
-			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
-				original.call(packet)
-				return
-			}
 			val packetScreenHandler =
 				when (packet.syncId) {
 					0 -> player.playerScreenHandler
 					player.currentScreenHandler.syncId -> player.currentScreenHandler
-					else -> return@runSafe
+					else -> {
+						original.call(packet)
+						return
+					}
 				}
-			val alteredContents = mutableListOf<ItemStack>()
-			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
-			packet.contents.forEachIndexed { index, incomingStack ->
-				val matches = alteredSlots.removeFirstMatch { cached ->
-					cached.slotId == index && incomingStack.equal(cached.after)
-				}
-				if (matches) alteredContents.add(packetScreenHandler.slots[index].stack)
-				else alteredContents.add(incomingStack)
+			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+				original.call(packet)
+				snapshotHandler(packetScreenHandler)
+				return
 			}
-			packetScreenHandler.updateSlotStacks(packet.revision(), alteredContents, packet.cursorStack())
+			val clientStacks = packetScreenHandler.slots.map { it.stack }
+			if (clientStacks.size != packet.contents.size) {
+				original.call(packet)
+				snapshotHandler(packetScreenHandler)
+				return
+			}
+			val result =
+				filter.onFull(
+					packet.syncId,
+					packet.contents,
+					clientStacks,
+					packet.cursorStack(),
+					packetScreenHandler.cursorStack
+				)
+			val merged =
+				packet.contents.mapIndexed { index, incomingStack ->
+					if (result.apply[index]) incomingStack else clientStacks[index]
+				}
+			val mergedCursor =
+				if (result.applyCursor) packet.cursorStack()
+				else packetScreenHandler.cursorStack
+			packetScreenHandler.updateSlotStacks(packet.revision(), merged, mergedCursor)
 			return
 		}
 		original.call(packet)
@@ -244,21 +261,34 @@ object InventoryManager : Manager<InventoryRequest>(
 	@JvmStatic
 	fun onSlotUpdate(packet: ScreenHandlerSlotUpdateS2CPacket, original: Operation<Void>) {
 		runSafe {
-			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+			val itemStack = packet.stack
+			mc.tutorialManager.onSlotUpdate(itemStack)
+
+			val packetScreenHandler =
+				when (packet.syncId) {
+					0 -> player.playerScreenHandler
+					player.currentScreenHandler.syncId -> player.currentScreenHandler
+					else -> {
+						original.call(packet)
+						return
+					}
+				}
+			val current = packetScreenHandler.slots.getOrNull(packet.slot)?.stack
+			if (current == null) {
 				original.call(packet)
 				return
 			}
-			val itemStack = packet.stack
-			mc.tutorialManager.onSlotUpdate(itemStack)
+			if (!mc.isOnThread || !Client.avoidInventoryDesync) {
+				original.call(packet)
+				snapshotHandler(packetScreenHandler)
+				return
+			}
 
 			val bl = (mc.currentScreen as? CreativeInventoryScreen)?.let {
 				!it.isInventoryTabSelected
 			} ?: false
 
-			val alteredSlots = if (packet.syncId == 0) alteredPlayerSlots else alteredSlots
-			val matches = alteredSlots.removeFirstMatch {
-				it.slotId == packet.slot && it.after.equal(itemStack)
-			}
+			val apply = filter.onSingle(packet.syncId, packet.slot, itemStack, current)
 
 			if (packet.syncId == 0) {
 				if (PlayerScreenHandler.isInHotbar(packet.slot) && !itemStack.isEmpty) {
@@ -268,10 +298,10 @@ object InventoryManager : Manager<InventoryRequest>(
 					}
 				}
 
-				if (matches) player.playerScreenHandler.revision = packet.revision
+				if (!apply) player.playerScreenHandler.revision = packet.revision
 				else player.playerScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
 			} else if (packet.syncId == player.currentScreenHandler.syncId && (packet.syncId != 0 || !bl)) {
-				if (matches) player.currentScreenHandler.revision = packet.revision
+				if (!apply) player.currentScreenHandler.revision = packet.revision
 				else player.currentScreenHandler.setStackInSlot(packet.slot, packet.revision, itemStack)
 			}
 
@@ -288,10 +318,4 @@ object InventoryManager : Manager<InventoryRequest>(
 	fun onSetScreenHandler(screenHandler: ScreenHandler) {
 		this.screenHandler = screenHandler
 	}
-
-	private data class InventoryChange(
-		val slotId: Int,
-		val before: ItemStack,
-		val after: ItemStack
-	)
 }

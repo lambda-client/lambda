@@ -34,5 +34,5 @@ open class BasicOpenedContainerContext(
 	context(_: Automated)
 	final override fun close() =
 		if (!isAccessed()) null
-		else actionTask { player.closeScreen() }
+		else actionTask { player.closeHandledScreen() }
 }
