@@ -83,7 +83,10 @@ data class ShulkerBoxContainer(
             transfer(
                 stackSelection {
                     sortedWith {
-                        compareByDescending { stackAndSlot -> stackAndSlot.slot?.index == index }
+                        compareByDescending { stackAndSlot ->
+                            stackAndSlot.slot?.index == index &&
+                                    stackAndSlot.slot.stack?.isEmpty != false
+                        }
                     }
                     isItem(shulkerItem)
                     withName(itemName)
