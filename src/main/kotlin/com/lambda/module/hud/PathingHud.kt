@@ -34,10 +34,10 @@ import com.lambda.pathing.session.Telemetry
 import java.awt.Color
 
 /**
- * The walk's numbers on one card at least [panelWidth] wide. Rows hold up to two label/value pairs
+ * The walk's numbers on one card exactly [panelWidth] wide. Rows hold up to two label/value pairs
  * drawn straight into the window's draw list, so every value sits right-aligned in its half and no
- * text ever goes through a printf-style ImGui call. The card grows to the widest row it measured
- * on the previous frame, so no font scale can make a label run into its value.
+ * text ever goes through a printf-style ImGui call. A label that would run into its value is
+ * shortened instead, so the card keeps the width the user chose whatever it shows.
  */
 @Suppress("unused")
 object PathingHud : HudModule(
@@ -50,12 +50,9 @@ object PathingHud : HudModule(
     private val showCoarse by setting("Coarse", true, "Frames, graph and frontier anchors of the coarse planner.")
     private val showWorld by setting("World", false, "Captured terrain and pending capture interest.")
     private val showIdle by setting("Show When Idle", false, "Keep the element visible while nothing is being walked.")
-    private val panelWidth by setting("Width", 340, 200..1000, 10, "Minimum width; the card grows to fit its rows.", " px")
+    private val panelWidth by setting("Width", 340, 200..2000, 10, "Width of the card; labels that do not fit are shortened.", " px")
 
-    private var fitted = 0f
-    private var measured = 0f
-
-    private val width: Float get() = maxOf(panelWidth.toFloat(), fitted)
+    private val width: Float get() = panelWidth.toFloat()
 
     private var rateExpansions = -1
     private var rateNanos = 0L
@@ -66,7 +63,6 @@ object PathingHud : HudModule(
         val status = PathingService.status
         val telemetry = PathingService.telemetry
         if (status is State.Idle && telemetry.published == null && !showIdle) return textDisabled("Pathing idle")
-        measured = 0f
         card {
             header(status, telemetry)
             if (showTape) telemetry.published?.let { tape(it, status, telemetry) }
@@ -74,7 +70,6 @@ object PathingHud : HudModule(
             if (showCoarse) coarse()
             if (showWorld) world()
         }
-        fitted = measured
     }
 
     private fun ImGuiBuilder.header(status: State, telemetry: Telemetry) {
@@ -83,16 +78,15 @@ object PathingHud : HudModule(
         val x = ImGui.getCursorScreenPosX()
         val y = ImGui.getCursorScreenPosY()
         val h = ImGui.getTextLineHeight()
-        draw.addCircleFilled(x + h * 0.35f, y + h * 0.5f, h * 0.25f, im(color))
-        draw.addText(x + h * 0.9f, y, im(color), label)
         val legs = buildList {
             if (telemetry.leg > 0) add("leg ${telemetry.leg}")
             if (telemetry.queuedWaypoints > 0) add("+${telemetry.queuedWaypoints} queued")
             if (telemetry.sessionRestarts > 0) add("${telemetry.sessionRestarts} restarts")
         }.joinToString("  ")
         val legsWidth = ImGui.calcTextSizeX(legs)
+        draw.addCircleFilled(x + h * 0.35f, y + h * 0.5f, h * 0.25f, im(color))
+        draw.addText(x + h * 0.9f, y, im(color), elide(label, width - h * 0.9f - COLUMN_GAP - legsWidth))
         draw.addText(x + width - legsWidth, y, im(Palette.MUTED), legs)
-        fit(h * 0.9f + ImGui.calcTextSizeX(label) + COLUMN_GAP + legsWidth)
         ImGui.dummy(width, h)
         goal(status, telemetry)?.let { row(Cell("goal", it)) }
         if (status is State.Failed) message(status.reason, Palette.DANGER)
@@ -194,22 +188,23 @@ object PathingHud : HudModule(
         val x = ImGui.getCursorScreenPosX()
         val y = ImGui.getCursorScreenPosY()
         val half = width / cells.size
-        var widest = 0f
         cells.forEachIndexed { index, cell ->
             val left = x + index * half
             val right = left + half - if (index < cells.lastIndex) COLUMN_GAP else 0f
-            val labelWidth = ImGui.calcTextSizeX(cell.label)
             val valueWidth = ImGui.calcTextSizeX(cell.value)
-            draw.addText(left, y, im(Palette.MUTED), cell.label)
+            val labelRoom = right - left - if (cell.value.isEmpty()) 0f else valueWidth + VALUE_GAP
+            draw.addText(left, y, im(Palette.MUTED), elide(cell.label, labelRoom))
             draw.addText(right - valueWidth, y, im(cell.color), cell.value)
-            widest = maxOf(widest, labelWidth + VALUE_GAP + valueWidth)
         }
-        fit(cells.size * widest + cells.lastIndex * COLUMN_GAP)
         ImGui.dummy(width, ImGui.getTextLineHeight())
     }
 
-    private fun fit(required: Float) {
-        measured = maxOf(measured, required)
+    /** The text cut to [room] pixels, ending in an ellipsis when it had to be cut. */
+    private fun elide(text: String, room: Float): String {
+        if (ImGui.calcTextSizeX(text) <= room) return text
+        var end = text.length
+        while (end > 0 && ImGui.calcTextSizeX(text.take(end) + ELLIPSIS) > room) end--
+        return if (end == 0) "" else text.take(end) + ELLIPSIS
     }
 
     private fun ImGuiBuilder.bar(fraction: Float, color: Color) {
@@ -224,7 +219,7 @@ object PathingHud : HudModule(
 
     /** A wrapped message cut to a few lines; the full text is in the chat and the log. */
     private fun ImGuiBuilder.message(text: String, color: Color) {
-        val shown = if (text.length > MAX_MESSAGE_CHARS) text.take(MAX_MESSAGE_CHARS).trimEnd() + "..." else text
+        val shown = if (text.length > MAX_MESSAGE_CHARS) text.take(MAX_MESSAGE_CHARS).trimEnd() + ELLIPSIS else text
         ImGui.pushTextWrapPos(ImGui.getCursorPosX() + width)
         textColored(shown, color)
         ImGui.popTextWrapPos()
@@ -331,6 +326,7 @@ object PathingHud : HudModule(
     private const val SECTION_GAP = 4f
     private const val CARD_ROUNDING = 6f
     private const val MAX_MESSAGE_CHARS = 200
+    private const val ELLIPSIS = "..."
     private const val RATE_WINDOW_SECONDS = 0.5
     private const val RATE_SMOOTHING = 0.5
 

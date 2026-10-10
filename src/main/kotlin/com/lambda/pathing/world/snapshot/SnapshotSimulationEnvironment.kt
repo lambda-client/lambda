@@ -335,7 +335,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		}
 
 		override fun forget(): Boolean {
-			if (forgotten) return false
+			if (forgotten || recalled.all { store[it] != null }) return false
 			forgotten = true
 			return true
 		}

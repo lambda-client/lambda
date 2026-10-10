@@ -1,7 +1,6 @@
 package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
-import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.ExecutionFeedback
@@ -30,7 +29,6 @@ internal class PlanningJob(
 
 	private fun plan(): PathPlanResult {
 		val began = System.nanoTime()
-		coarse.follow(leg, start, SpeedClass.STOPPED)
 		val frame = coarse.awaitRoute(leg, start, cancelled)
 		if (cancelled()) return PathPlanResult.Cancelled
 		if (frame == null) return noRoute()

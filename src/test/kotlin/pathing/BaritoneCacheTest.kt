@@ -2,6 +2,7 @@ package pathing
 
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanningState
+import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CellClass
@@ -59,13 +60,13 @@ class BaritoneCacheTest {
 		val start = Stance(8, 64, 40)
 		val goal = Stance(120, 64, 40)
 
-		val straight = assertNotNull(CoarsePlanningState(captured, SimpleMoveOptions(), start, goal).routePlan(0L, { false }, ROUTE_EXPANSIONS)).nodes
+		val straight = assertNotNull(CoarsePlanningState(captured, SimpleMoveOptions(), start, goal).settledRoute(start)).nodes
 		assertTrue(straight.none { it.z >= GAP_Z }, "without memory the route heads straight for the goal: $straight")
 
 		val cache = BaritoneCache(directory, MIN_Y, HEIGHT)
 		val memory = captured.remembering(cache::section) { _, _ -> false }
 		val remembering = CoarsePlanningState(memory, SimpleMoveOptions(), start, goal, memory = memory)
-		val around = assertNotNull(remembering.routePlan(0L, { false }, ROUTE_EXPANSIONS)).nodes
+		val around = assertNotNull(remembering.settledRoute(start)).nodes
 		assertTrue(around.any { it.x in 55..66 && it.z >= GAP_Z }, "the route must go around the remembered wall: $around")
 		assertEquals(goal, around.last())
 	}
@@ -79,7 +80,7 @@ class BaritoneCacheTest {
 		val goal = Stance(120, 64, 40)
 		val memory = captured.remembering(cache::section) { _, _ -> false }
 		val state = CoarsePlanningState(memory, SimpleMoveOptions(), start, goal, memory = memory)
-		assertTrue(assertNotNull(state.routePlan(0L, { false }, ROUTE_EXPANSIONS)).nodes.none { it.z >= CAPTURED_GAP_Z }, "remembered open ground carries a straight route")
+		assertTrue(assertNotNull(state.settledRoute(start)).nodes.none { it.z >= CAPTURED_GAP_Z }, "remembered open ground carries a straight route")
 
 		val wall = HashMap<Long, ImmutableSnapshotSection>()
 		val arrivals = HashSet<PathingSection>()
@@ -94,7 +95,7 @@ class BaritoneCacheTest {
 		}
 		wall.forEach(captured::install)
 		state.applyEvents(WorldEventBatch(revision = 1, sections = arrivals, chunks = emptySet(), mutations = emptySet()))
-		val route = assertNotNull(state.routePlan(1L, { false }, ROUTE_EXPANSIONS)).nodes
+		val route = assertNotNull(state.settledRoute(start, revision = 1L)).nodes
 		assertTrue(route.any { it.x in 55..66 && it.z >= CAPTURED_GAP_Z }, "the captured wall replaces the remembered open ground: $route")
 	}
 
@@ -107,11 +108,28 @@ class BaritoneCacheTest {
 		val goal = Stance(120, 64, 120)
 		val memory = captured.remembering(cache.sectionsExcept(listOf(goal))) { _, _ -> false }
 		val state = CoarsePlanningState(memory, SimpleMoveOptions(), start, goal, memory = memory)
-		assertNull(state.routePlan(0L, { false }, ROUTE_EXPANSIONS), "a stale void remembered around the start leaves no route")
-		assertTrue(state.forgetMemory())
-		val route = assertNotNull(state.routePlan(0L, { false }, ROUTE_EXPANSIONS), "without the memory the unknown world is open again")
+		assertNull(state.settledRoute(start), "a stale void remembered around the start leaves no route")
+		assertTrue(state.forgetMemory(start))
+		val route = assertNotNull(state.settledRoute(start), "without the memory the unknown world is open again")
 		assertTrue(route.nodes.size > 1, "the route must leave the start: ${route.nodes}")
-		assertFalse(state.forgetMemory(), "memory is forgotten once")
+		assertFalse(state.forgetMemory(start), "memory is forgotten once")
+	}
+
+	@Test
+	fun `memory that was never recalled is not forgotten`() {
+		val captured = SnapshotSimulationEnvironment(BOUNDS, floorSections(0..0, 0..0), defaultBlock = null)
+		val memory = captured.remembering(BaritoneCache(cacheOf { _, _, _ -> AIR }, MIN_Y, HEIGHT)::section) { _, _ -> false }
+		val state = CoarsePlanningState(memory, SimpleMoveOptions(), Stance(8, 64, 8), Stance(8, 64, 12), memory = memory)
+		assertNotNull(state.settledRoute(Stance(8, 64, 8)), "a goal on the captured floor needs no memory")
+		assertFalse(state.forgetMemory(Stance(8, 64, 8)), "nothing was recalled, so a missing route could not have come from the memory")
+	}
+
+	/** Plans the way the coarse service settles: each route recalls the memory at its end until the memory adds nothing. */
+	private fun CoarsePlanningState.settledRoute(start: Stance, revision: Long = 0L): CoarseRoutePlan? {
+		while (true) {
+			val route = routePlan(revision, { false }, ROUTE_EXPANSIONS) ?: return null
+			if (!recallMemory(route, start)) return route
+		}
 	}
 
 	private fun floorSections(chunksX: IntRange, chunksZ: IntRange): Map<Long, ImmutableSnapshotSection> {

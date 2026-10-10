@@ -92,11 +92,11 @@ internal class CoarseService(
 
 	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean): Frame? {
 		val goal = legs[leg].goal
-		val deadline = System.nanoTime() + ROUTE_PATIENCE_MILLIS * 1_000_000L
 		var frame: Frame? = null
 		var settleBy = Long.MAX_VALUE
 		var hopelessSince = 0L
-		while (!cancelled() && System.nanoTime() < minOf(deadline, settleBy)) {
+		while (!cancelled() && !closed && System.nanoTime() < settleBy) {
+			follow(leg, start, SpeedClass.STOPPED)
 			val next = awaitFrame(leg, ROUTE_POLL_MILLIS) { it.start == start && it !== frame }
 			if (next != null) {
 				frame = next
@@ -129,6 +129,7 @@ internal class CoarseService(
 			}
 		} catch (failure: Throwable) {
 			LOG.error("The coarse planner thread failed", failure)
+			closed = true
 			lock.withLock {
 				for (leg in legs.indices) failures[leg] = Failure(starts[leg], "the coarse planner crashed: ${failure.message}", final = true)
 				published.signalAll()
@@ -214,7 +215,7 @@ internal class CoarseService(
 		world?.let { requestKnowledge(it, state, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
 		if (route == null) {
 			val capturing = world != null && world.pendingInterest > 0
-			if (!capturing && state.forgetMemory()) {
+			if (!capturing && state.forgetMemory(start, speeds[leg])) {
 				LOG.info("Remembered terrain leaves no coarse route from {} to {}; planning leg {} without it", start, state.goal, leg)
 				dirty[leg] = true
 				return
@@ -222,6 +223,7 @@ internal class CoarseService(
 			return fail(leg, start, "no coarse route to the goal: ${planner.routeFailureReport()}", final = !capturing)
 		}
 		publish(leg, start, route, timings)
+		if (timings.measure("recall") { state.recallMemory(route, start) }) dirty[leg] = true
 	}
 
 	private fun publish(leg: Int, start: Stance, route: CoarseRoutePlan, timings: PhaseTimings) {
@@ -254,7 +256,6 @@ internal class CoarseService(
 	}
 
 	private companion object {
-		const val ROUTE_PATIENCE_MILLIS = 20_000L
 		const val TERMINAL_WAIT_MILLIS = 1_500L
 		const val HOPELESS_MILLIS = 1_000L
 		const val ROUTE_POLL_MILLIS = 100L
