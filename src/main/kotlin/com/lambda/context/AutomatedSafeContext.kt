@@ -17,7 +17,14 @@
 
 package com.lambda.context
 
-class AutomatedSafeContext(
-	safeContext: SafeContext,
-	automated: Automated
-) : IAutomatedSafeContext, SafeContext by safeContext, Automated by automated
+interface AutomatedSafeContext : SafeContext, Automated {
+	companion object {
+		fun create(
+			safeContext: SafeContext,
+			automated: Automated
+		): AutomatedSafeContext =
+			object : AutomatedSafeContext,
+				SafeContext by safeContext,
+				Automated by automated {}
+	}
+}
