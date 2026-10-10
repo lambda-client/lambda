@@ -187,14 +187,6 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
 
     @Group(SEARCH_GROUP)
-    override val frontierSweepBudget by c.setting(
-        "Frontier Sweep Budget", 40_000, 1_000..200_000, 1_000,
-        "Node budget of the last-resort reachability sweep used when every probe ray " +
-            "lands somewhere the body cannot reach.",
-        unit = " nodes",
-    )
-
-    @Group(SEARCH_GROUP)
     override val bootstrapDelayMillis by c.setting(
         "Bootstrap Delay", 200, 0..2000, 25,
         "Minimum wall time before the first partial tape is published. Longer waits " +

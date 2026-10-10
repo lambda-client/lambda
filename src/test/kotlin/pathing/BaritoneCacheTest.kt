@@ -43,8 +43,7 @@ class BaritoneCacheTest {
 			}
 		}
 		val cache = BaritoneCache(directory, MIN_Y, HEIGHT)
-		assertTrue(cache.remembers(0, 0))
-		assertFalse(cache.remembers(40, 0), "a chunk outside every region file is not remembered")
+		assertNull(cache.section(ChunkSectionPos.asLong(40, 4, 0)), "a chunk outside every region file is not remembered")
 		val surface = assertNotNull(cache.section(ChunkSectionPos.asLong(0, 4, 0)))
 		assertEquals(Medium.WATER, surface[3, 64, 5].coarseVoxel.medium)
 		assertEquals(CellClass.HAZARD, surface[4, 64, 5].cellClass)
@@ -64,7 +63,8 @@ class BaritoneCacheTest {
 		assertTrue(straight.none { it.z >= GAP_Z }, "without memory the route heads straight for the goal: $straight")
 
 		val cache = BaritoneCache(directory, MIN_Y, HEIGHT)
-		val remembering = CoarsePlanningState(captured.remembering(cache::section, cache::remembers), SimpleMoveOptions(), start, goal)
+		val memory = captured.remembering(cache::section) { _, _ -> false }
+		val remembering = CoarsePlanningState(memory, SimpleMoveOptions(), start, goal, memory = memory)
 		val around = assertNotNull(remembering.routePlan(0L, { false }, ROUTE_EXPANSIONS)).nodes
 		assertTrue(around.any { it.x in 55..66 && it.z >= GAP_Z }, "the route must go around the remembered wall: $around")
 		assertEquals(goal, around.last())
@@ -77,7 +77,7 @@ class BaritoneCacheTest {
 		val cache = BaritoneCache(directory, MIN_Y, HEIGHT)
 		val start = Stance(8, 64, 40)
 		val goal = Stance(120, 64, 40)
-		val memory = captured.remembering(cache::section, cache::remembers)
+		val memory = captured.remembering(cache::section) { _, _ -> false }
 		val state = CoarsePlanningState(memory, SimpleMoveOptions(), start, goal, memory = memory)
 		assertTrue(assertNotNull(state.routePlan(0L, { false }, ROUTE_EXPANSIONS)).nodes.none { it.z >= CAPTURED_GAP_Z }, "remembered open ground carries a straight route")
 
@@ -105,7 +105,7 @@ class BaritoneCacheTest {
 		val cache = BaritoneCache(directory, MIN_Y, HEIGHT)
 		val start = Stance(56, 64, 56)
 		val goal = Stance(120, 64, 120)
-		val memory = captured.remembering(cache.sectionsExcept(listOf(goal)), cache::remembers)
+		val memory = captured.remembering(cache.sectionsExcept(listOf(goal))) { _, _ -> false }
 		val state = CoarsePlanningState(memory, SimpleMoveOptions(), start, goal, memory = memory)
 		assertNull(state.routePlan(0L, { false }, ROUTE_EXPANSIONS), "a stale void remembered around the start leaves no route")
 		assertTrue(state.forgetMemory())

@@ -1,9 +1,6 @@
 package pathing
 
 import com.lambda.pathing.actions.CoarseEdge
-import com.lambda.pathing.coarse.CoarseEdgeCache
-import com.lambda.pathing.coarse.FrontierAnchors
-import com.lambda.pathing.coarse.FrontierSweep
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.WaterPhysics
@@ -49,17 +46,6 @@ internal fun SnapshotBlockPhysics.Companion.water(height: Float = SURFACE_WATER_
     SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.WATER, water = WaterPhysics(height, Vec3d.ZERO))
 
 internal const val SURFACE_WATER_HEIGHT = 0.8888889f
-
-internal fun FrontierAnchors.sweep(
-    view: CoarseVoxelView,
-    moves: SimpleMoveLibrary,
-    from: Stance,
-    goal: Stance,
-    capturable: (Int, Int) -> Boolean = NOTHING_CAPTURABLE,
-    onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
-): Map<Stance, Double> =
-    FrontierSweep(view, moves, goal, CoarseEdgeCache(view, moves), capturable = capturable, onCaptureLag = onCaptureLag)
-        .anchorsFrom(from)
 
 internal fun SimpleMoveLibrary.edgesFrom(view: CoarseVoxelView, origin: Stance): List<CoarseEdge> =
     if (!isStance(view, origin)) emptyList() else templates(view, origin).mapNotNull { it.edge(view, origin) }

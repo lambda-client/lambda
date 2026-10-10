@@ -12,8 +12,8 @@ import com.lambda.pathing.search.VirtualSearchClock
  * [ExecutionFeedback.DETACHED], so every fixture built on it modelled an executor that accepts every
  * publication, instantly, and never refuses one. Real walks do not behave that way -- a
  * logged parkour run published seven tapes and adopted five -- and the difference is not
- * cosmetic. An unacknowledged publication blocks `publishPrefix` and
- * `commit` behind `Publications.upToDate` until the rollback timer fires, and the
+ * cosmetic. An unjudged publication blocks `publishPrefix` and
+ * `commit` behind `Publications.upToDate` until the body adopts or refuses it, and the
  * body keeps eating frames throughout. With the refusal path absent the corpus scored a
  * 3% stall rate against roughly 75% in game, which made it useless for exactly the
  * failure it was being asked about.
@@ -33,6 +33,7 @@ internal class VirtualExecutor(
     private var running: PublishedPath? = null
     private var replayBeganAt: Int? = null
     private var acked = 0L
+    private var declined = 0L
 
     var adoptions = 0
         private set
@@ -51,6 +52,8 @@ internal class VirtualExecutor(
     }
 
     override fun adoptedSequence(): Long = acked
+
+    override fun refusedSequence(): Long = declined
 
     /**
      * The frame the body is replaying.
@@ -98,13 +101,14 @@ internal class VirtualExecutor(
             is ImprovementArbiter.Verdict.Keep -> {
                 refusals++
                 refusalReasons.merge(verdict.reason, 1, Int::plus)
+                declined = maxOf(declined, path.publicationSequence.toLong())
             }
 
             ImprovementArbiter.Verdict.DeferForObservation -> refusals++
         }
     }
 
-    private companion object {
+    companion object {
         /**
          * Ticks between a publication and the body seeing it.
          *

@@ -87,7 +87,7 @@ class ColdStartRouteTest {
         val goal = rig.goal
         InterestPrimer.primeJourney(world, start, goal)
         val state = CoarsePlanningState(
-            world.snapshot, SimpleMoveOptions(), start, goal, capturable = world::chunkCapturable,
+            world.snapshot, SimpleMoveOptions(), start, goal,
         )
         val coarse = CoarseService(world, listOf(state), listOf(start), expansionBudget = 200_000)
         try {

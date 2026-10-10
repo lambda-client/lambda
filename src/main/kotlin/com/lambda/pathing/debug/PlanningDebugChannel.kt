@@ -148,7 +148,6 @@ object PlanningDebugChannel : SearchProbe {
 	fun publishGraph(planner: CoarsePlanner, around: Vec3d) {
 		if (!isActive) return
 		lastGraphMillis = System.currentTimeMillis()
-		val anchors = planner.optimisticAnchors
 		val goal = planner.goalStance
 		val view = planner.view
 		val limits = graphLimits
@@ -174,7 +173,7 @@ object PlanningDebugChannel : SearchProbe {
 				pos = center(view, stance),
 				cost = planner.stanceCost(stance),
 				frontier = planner.inFrontier(stance),
-				anchor = stance in anchors,
+				anchor = planner.isAnchor(stance),
 			)
 		}
 
@@ -188,7 +187,7 @@ object PlanningDebugChannel : SearchProbe {
 				if (existing == null || edge.lowerBoundTicks < existing.lowerBoundTicks) cheapest[edge.to] = edge
 			}
 
-			val real = successors.filterKeys { to -> to in drawn && !(to == goal && from in anchors) }
+			val real = successors.filterKeys { to -> to in drawn && !(to == goal && planner.isAnchor(from)) }
 			if (real.isEmpty()) return@forEach
 
 			val best = real.entries.minByOrNull { (to, cost) -> cost + planner.stanceCost(to) }

@@ -30,7 +30,7 @@ internal class CoarseService(
 		val goal: Stance,
 		val route: CoarseRoutePlan,
 		val labels: FieldLabels,
-		val anchors: Map<Stance, Double>,
+		val anchorCount: Int,
 		val publishedNanos: Long,
 	)
 
@@ -45,7 +45,6 @@ internal class CoarseService(
 	private var request: Request? = null
 
 	private val events = world?.subscribe()
-	private val resolutions = legs.map(::RouteResolution)
 	private val starts = starts.toTypedArray()
 	private val speeds = Array(legs.size) { SpeedClass.STOPPED }
 	private val dirty = BooleanArray(legs.size) { true }
@@ -193,7 +192,7 @@ internal class CoarseService(
 		settleRoute(leg, timings)
 		val millis = timings.elapsedMillis
 		if (millis >= SLOW_SETTLE_MILLIS) {
-			LOG.info("Coarse leg {} from {} settled ({} graph nodes): {} (route: {})", leg, starts[leg], legs[leg].planner.graphSize, timings, resolutions[leg].lastResolveReport)
+			LOG.info("Coarse leg {} from {} settled ({} graph nodes, {} anchors): {}", leg, starts[leg], legs[leg].planner.graphSize, legs[leg].planner.anchorCount, timings)
 		}
 	}
 
@@ -209,23 +208,20 @@ internal class CoarseService(
 			return fail(leg, start, "coarse search did not converge within $expansionBudget expansions$stall", final = true)
 		}
 		timings.measure("field") { planner.expandSearchField(cancelled = ::closed) }
-		val resolution = resolutions[leg]
-		val route = timings.measure("route") { resolution.resolve(start, revision, expansionBudget, cancelled = ::closed) }
+		val route = timings.measure("route") { state.routePlan(revision, ::closed, expansionBudget) }
 		if (closed) return
 		val routed = lock.withLock { frames[leg] } != null
 		world?.let { requestKnowledge(it, state, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
 		if (route == null) {
-			if (state.forgetMemory()) {
+			val capturing = world != null && world.pendingInterest > 0
+			if (!capturing && state.forgetMemory()) {
 				LOG.info("Remembered terrain leaves no coarse route from {} to {}; planning leg {} without it", start, state.goal, leg)
 				dirty[leg] = true
 				return
 			}
-			val capturing = world != null && world.pendingInterest > 0
 			return fail(leg, start, "no coarse route to the goal: ${planner.routeFailureReport()}", final = !capturing)
 		}
 		publish(leg, start, route, timings)
-		val extended = timings.measure("extend") { resolution.extend(route, start, revision, expansionBudget, cancelled = ::closed) }
-		if (extended != null && !closed) publish(leg, start, extended, timings)
 	}
 
 	private fun publish(leg: Int, start: Stance, route: CoarseRoutePlan, timings: PhaseTimings) {
@@ -236,7 +232,7 @@ internal class CoarseService(
 			goal = legs[leg].goal,
 			route = route,
 			labels = timings.measure("labels") { planner.labels(start, LABEL_RADIUS_BLOCKS, LABEL_HEIGHT_BLOCKS) },
-			anchors = planner.optimisticAnchors,
+			anchorCount = planner.anchorCount,
 			publishedNanos = System.nanoTime(),
 		)
 		lock.withLock {
@@ -245,11 +241,10 @@ internal class CoarseService(
 			published.signalAll()
 		}
 		PlanningDebugChannel.refreshGraph(planner, Vec3d(start.x + 0.5, start.y.toDouble(), start.z + 0.5))
-		PlanningDebugChannel.publishCoarse(PlanningDebugChannel.CoarseSample(frame.sequence, planner.graphSize, frame.anchors.size, timings.elapsedMillis))
+		PlanningDebugChannel.publishCoarse(PlanningDebugChannel.CoarseSample(frame.sequence, planner.graphSize, frame.anchorCount, timings.elapsedMillis))
 	}
 
 	private fun requestKnowledge(world: PathingWorld, state: CoarsePlanningState, route: CoarseRoutePlan?, tier: InterestTier) {
-		state.demandCaptureLag(world, tier)
 		if (route != null && route.goal != state.goal) world.interestAround(route.goal, tier)
 	}
 

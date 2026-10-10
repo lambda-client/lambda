@@ -35,7 +35,7 @@ internal class CoarseFollower(
 
 	val route: CoarseRoutePlan get() = frame.route
 
-	val anchors: Map<Stance, Double> get() = frame.anchors
+	val anchorCount: Int get() = frame.anchorCount
 
 	val ledger: String get() = "coarse frames=$adopted sync=${syncNanos / 1_000_000L}ms"
 

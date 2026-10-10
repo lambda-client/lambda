@@ -1,7 +1,6 @@
 package pathing
 
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.session.RouteResolution
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -102,9 +101,7 @@ class CompositeCourseTest {
         )
         state.repairFrom(Stance(0, 10, 0))
         state.planner.repair(maxExpansions = 1_000_000)
-        val route = RouteResolution(state).resolve(
-            start = Stance(0, 10, 0), snapshotRevision = 0L, maxExpansions = 1_000_000,
-        )
+        val route = state.routePlan(0L, { false }, 1_000_000)
         val resolved = checkNotNull(route) {
             "the course must resolve: ${state.planner.routeFailureReport()}"
         }

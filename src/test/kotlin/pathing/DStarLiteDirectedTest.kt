@@ -100,11 +100,8 @@ class DStarLiteDirectedTest {
         planner.computeShortestPath(timeBudget = Duration.INFINITE)
         assertExactCost(2.0, planner.tailCost())
 
-        // Initialize before mutating the provider so updateEdge can compare
-        // the old cached edge with the declared replacement.
-        planner.successors(1)
         edges.getValue(1)[2] = 8.0
-        planner.updateEdge(1, 2, 8.0)
+        planner.refresh(1)
 
         assertIs<TailCost.Bounds>(planner.tailCost())
         val result = planner.computeShortestPath(timeBudget = Duration.INFINITE)
@@ -189,15 +186,13 @@ class DStarLiteDirectedTest {
                 var to = random.nextInt(nodeCount - 1)
                 if (to >= from) to++
 
-                // Capture the old graph value before changing the provider.
-                planner.successors(from.toLong())
                 val newCost = when (random.nextInt(3)) {
                     0 -> Double.POSITIVE_INFINITY
                     else -> random.nextInt(1, 25).toDouble()
                 }
                 if (newCost.isFinite()) edges.getValue(from)[to] = newCost
                 else edges.getValue(from).remove(to)
-                planner.updateEdge(from.toLong(), to.toLong(), newCost)
+                planner.refresh(from.toLong())
 
                 if (mutation % 9 == 8) {
                     start = random.nextInt(nodeCount)
@@ -233,10 +228,9 @@ class DStarLiteDirectedTest {
                 val from = random.nextInt(nodeCount)
                 var to = random.nextInt(nodeCount - 1)
                 if (to >= from) to++
-                planner.successors(from.toLong())
                 val newCost = random.nextInt(1, 25).toDouble()
                 edges.getValue(from)[to] = newCost
-                planner.updateEdge(from.toLong(), to.toLong(), newCost)
+                planner.refresh(from.toLong())
 
                 val result = planner.computeShortestPath(timeBudget = Duration.INFINITE)
                 val context = "seed=$seed round=$round floor=$floor edge=$from->$to cost=$newCost"
@@ -275,7 +269,6 @@ class DStarLiteDirectedTest {
         assertFailsWith<IllegalStateException> { planner.successors(0) }
         assertFalse(planner.isKnown(0))
         assertEquals(mapOf(1L to 2.0), planner.successors(0).toMap())
-        assertTrue(planner.isKnown(0))
     }
 
     @Test

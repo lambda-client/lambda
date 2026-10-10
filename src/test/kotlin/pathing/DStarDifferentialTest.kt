@@ -19,232 +19,175 @@ package pathing
 
 import com.lambda.pathing.coarse.PackedStance
 import com.lambda.pathing.graph.LongDStarLite
-import com.lambda.pathing.graph.TailCost
+import com.lambda.pathing.graph.LongGraph
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import pathing.GridGraphTestUtil.Connectivity
 import pathing.GridGraphTestUtil.affectedNodes
 import pathing.GridGraphTestUtil.euclidean
-import pathing.GridGraphTestUtil.graph
+import pathing.GridGraphTestUtil.forEachNeighbor
 import pathing.GridGraphTestUtil.manhattan
+import pathing.GridGraphTestUtil.neighborhood
 import pathing.GridGraphTestUtil.node
-import pathing.GridGraphTestUtil.referenceGraph
-import pathing.reference.DStarLite
+import java.util.PriorityQueue
+import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 /**
- * The packed-long engine against the generic reference engine it replaced, over random
- * grid graphs with random blocked cells, start moves and edge cost updates.
- *
- * Two regimes:
- * - Step-identical: every call both engines receive is the same, so their heaps see the
- *   same insertions in the same order and the WHOLE state (g, rhs, queue top, route) must
- *   agree after every call, including partial expansions.
- * - Synchronisation: `synchronizeAffected` visits affected nodes in a hash order in the
- *   reference and in sorted order in the packed engine, so only the converged, fully
- *   drained state is comparable -- and there g, rhs and the route must agree everywhere.
+ * The packed engine against Dijkstra, over random grid graphs with blocked cells, start
+ * moves, edge cost updates and partial expansions in between. The engine keeps no
+ * adjacency: it regenerates edges from the provider and is told which nodes changed, so
+ * once drained every label must be the exact distance to the goal and the route must
+ * cost exactly that.
  */
 class DStarDifferentialTest {
-    private class Pair(
-        val blocked: MutableSet<Long>,
-        val connectivity: Connectivity,
-        start: Long,
-        val goal: Long,
-        private val heuristic: (Long, Long) -> Double,
-    ) {
-        val referenceGraph = referenceGraph(blocked, connectivity)
-        val reference = DStarLite(referenceGraph, start, goal, heuristic, nodeTieBreaker = naturalOrder())
-        val packedGraph = graph(blocked, connectivity)
-        val packed = LongDStarLite(packedGraph, start, goal, { a, b -> heuristic(a, b) })
+	private class Grid(random: Random) {
+		val connectivity = Connectivity.entries[random.nextInt(Connectivity.entries.size)]
+		private val blockedCells = HashSet<Long>()
+		val overrides = HashMap<Pair<Long, Long>, Double>()
+		val goal: Long
 
-        fun assertFullStateEqual(context: String) {
-            assertEquals(reference.km, packed.km, "km $context")
-            assertEquals(reference.start, packed.start, "start $context")
-            assertEquals(referenceGraph.nodes, packed.knownNodes().toSet(), "graph nodes $context")
-            assertEquals(reference.queue.size(), packed.queue.size(), "queue size $context")
-            if (!reference.queue.isEmpty()) {
-                assertEquals(reference.queue.top(), packed.queue.top(), "queue top $context")
-                val key = reference.queue.topKey(pathing.reference.Key.INFINITY)
-                assertEquals(key.first, packed.queue.topFirst(), "queue top k1 $context")
-                assertEquals(key.second, packed.queue.topSecond(), "queue top k2 $context")
-            }
-            assertLabelsEqual(context, adjacency = true)
-            assertEquals(reference.isStartCostExact(), packed.isStartCostExact(), "exactness $context")
-            assertRouteEqual(context)
-        }
+		var start: Long
+			private set
 
-        /**
-         * [adjacency] compares the materialised edge lists too. Only the step-identical
-         * regime can ask for that: which nodes `synchronizeAffected` skips as "not in the
-         * graph" depends on which affected neighbour was visited before them, so the
-         * materialised adjacency (not the labels) is visiting-order dependent.
-         */
-        fun assertLabelsEqual(context: String, adjacency: Boolean) {
-            val union = HashSet<Long>(referenceGraph.nodes)
-            union += packed.knownNodes()
-            union += reference.start
-            union += goal
-            for (node in union) {
-                assertEquals(reference.g(node), packed.g(node), "g($node) $context")
-                assertEquals(reference.rhs(node), packed.rhs(node), "rhs($node) $context")
-                assertEquals(node in reference.queue, node in packed.queue, "queued($node) $context")
-                if (adjacency) assertEquals(
-                    referenceGraph.knownSuccessors(node).toList(),
-                    packed.knownSuccessors(node).toMap().toList(),
-                    "successors($node) $context",
-                )
-            }
-        }
+		val heuristic: (Long, Long) -> Double = when (random.nextInt(3)) {
+			0 -> { _, _ -> 0.0 }
+			1 -> if (connectivity == Connectivity.N6) ::manhattan else ::euclidean
+			else -> ::euclidean
+		}
 
-        fun assertRouteEqual(context: String) {
-            val expected = reference.routeCandidate()
-            val actual = packed.routeCandidate()
-            assertEquals(expected?.nodes, actual?.nodes?.toList(), "route nodes $context")
-            assertEquals(expected?.ticks, actual?.ticks, "route ticks $context")
-            assertEquals(expected?.exactFromStart, actual?.exactFromStart, "route exactness $context")
-            assertEquals(describe(reference.tailCost()), describe(packed.tailCost()), "tail cost $context")
-            // The descent report is deliberately NOT compared: the reference walker had no
-            // tie-break, the unified walker uses natural order -- the one intended change.
-        }
+		init {
+			repeat(random.nextInt(0, 30)) { blockedCells += randomNode(random) }
+			start = randomNode(random)
+			goal = randomNode(random)
+			blockedCells -= start
+			blockedCells -= goal
+		}
 
-        private fun describe(cost: TailCost): String = when (cost) {
-            is TailCost.Exact -> "exact ${cost.ticks}"
-            is TailCost.Bounds -> "bounds ${cost.lowerBound} ${cost.upperBound}"
-            is TailCost.Unreachable -> "unreachable"
-        }
-    }
+		val engine = LongDStarLite(
+			LongGraph(
+				successorProvider = { node, sink -> successors(node).forEach { (to, cost) -> sink.add(to, cost) } },
+				predecessorProvider = { node, sink -> predecessors(node).forEach { (from, cost) -> sink.add(from, cost) } },
+			),
+			start, goal, { a, b -> heuristic(a, b) },
+		)
 
-    /**
-     * The grid is otherwise unbounded; draining the queue in the synchronisation regime
-     * needs a finite graph, so everything outside the box reads as blocked.
-     */
-    private class BoundedBlocked(private val blocked: HashSet<Long> = HashSet()) : AbstractMutableSet<Long>() {
-        private fun inBox(node: Long): Boolean {
-            val x = PackedStance.unpackX(node)
-            val y = PackedStance.unpackY(node)
-            val z = PackedStance.unpackZ(node)
-            return x in -4..4 && y in -1..3 && z in -4..4
-        }
+		fun blocked(node: Long): Boolean = !inBox(node) || node in blockedCells
 
-        override val size: Int get() = blocked.size
-        override fun iterator(): MutableIterator<Long> = blocked.iterator()
-        override fun add(element: Long): Boolean = blocked.add(element)
-        override fun remove(element: Long): Boolean = blocked.remove(element)
-        override fun contains(element: Long): Boolean = !inBox(element) || element in blocked
-    }
+		fun toggle(cell: Long) {
+			if (!blockedCells.remove(cell)) blockedCells += cell
+		}
 
-    private fun randomPair(random: Random): Pair {
-        val connectivity = Connectivity.entries[random.nextInt(Connectivity.entries.size)]
-        val blocked = BoundedBlocked()
-        repeat(random.nextInt(0, 30)) { blocked += randomNode(random) }
-        val start = randomNode(random)
-        val goal = randomNode(random)
-        blocked -= start
-        blocked -= goal
-        val heuristic: (Long, Long) -> Double = when (random.nextInt(3)) {
-            0 -> { _, _ -> 0.0 }
-            1 -> ::manhattan.takeIf { connectivity == Connectivity.N6 } ?: ::euclidean
-            else -> ::euclidean
-        }
-        return Pair(blocked, connectivity, start, goal, heuristic)
-    }
+		fun moveStart(to: Long) {
+			blockedCells -= to
+			start = to
+			engine.updateStart(to)
+		}
 
-    private fun randomNode(random: Random): Long =
-        node(random.nextInt(-3, 4), random.nextInt(0, 3), random.nextInt(-3, 4))
+		fun successors(node: Long): Map<Long, Double> = edges(node) { to -> node to to }
 
-    @Test
-    fun `step identical regimes agree on the whole state after every call`() {
-        repeat(60) { seed ->
-            val random = Random(seed * 31 + 7)
-            val pair = randomPair(random)
-            pair.assertFullStateEqual("seed=$seed init")
+		fun predecessors(node: Long): Map<Long, Double> = edges(node) { from -> from to node }
 
-            repeat(40) { step ->
-                val context = "seed=$seed step=$step"
-                when (random.nextInt(10)) {
-                    in 0..3 -> {
-                        val budget = if (random.nextBoolean()) random.nextInt(1, 12) else Int.MAX_VALUE
-                        val a = pair.reference.computeShortestPath(Duration.INFINITE, maxExpansions = budget)
-                        val b = pair.packed.computeShortestPath(Duration.INFINITE, maxExpansions = budget)
-                        assertEquals(a.processedNodes, b.processedNodes, "processed $context")
-                        assertEquals(a.converged, b.converged, "converged $context")
-                        assertEquals(a.expansionLimitReached, b.expansionLimitReached, "limit $context")
-                    }
-                    4, 5 -> {
-                        val newStart = randomNode(random)
-                        pair.blocked -= newStart
-                        pair.reference.updateStart(newStart)
-                        pair.packed.updateStart(newStart)
-                    }
-                    6, 7 -> {
-                        // A random edge between grid neighbours, priced or removed.
-                        val from = randomNode(random)
-                        val to = GridGraphTestUtil.neighborhood(from, pair.connectivity).keys.random(random)
-                        val cost = if (random.nextInt(4) == 0) Double.POSITIVE_INFINITY
-                        else random.nextInt(1, 9).toDouble()
-                        pair.reference.updateEdge(from, to, cost)
-                        pair.packed.updateEdge(from, to, cost)
-                    }
-                    8 -> {
-                        val extra = random.nextInt(0, 6).toDouble()
-                        val budget = random.nextInt(1, 30)
-                        val a = pair.reference.expandField(extra, Duration.INFINITE, maxExpansions = budget)
-                        val b = pair.packed.expandField(extra, Duration.INFINITE, maxExpansions = budget)
-                        assertEquals(a.processedNodes, b.processedNodes, "field processed $context")
-                    }
-                    else -> {
-                        val budget = random.nextInt(0, 40)
-                        val a = pair.reference.computeRouteCandidate(maxExpansions = budget)
-                        val b = pair.packed.computeRouteCandidate(maxExpansions = budget)
-                        assertEquals(a?.nodes, b?.nodes?.toList(), "route candidate nodes $context")
-                        assertEquals(a?.ticks, b?.ticks, "route candidate ticks $context")
-                        assertEquals(a?.exactFromStart, b?.exactFromStart, "route candidate exactness $context")
-                    }
-                }
-                pair.assertFullStateEqual(context)
-            }
-        }
-    }
+		private inline fun edges(node: Long, edge: (Long) -> Pair<Long, Long>): Map<Long, Double> {
+			val out = LinkedHashMap<Long, Double>()
+			if (blocked(node)) return out
+			forEachNeighbor(node, connectivity) { other, cost ->
+				if (!blocked(other)) (overrides[edge(other)] ?: cost).takeIf { it.isFinite() }?.let { out[other] = it }
+			}
+			return out
+		}
 
-    @Test
-    fun `synchronisation regimes agree once drained`() {
-        repeat(60) { seed ->
-            val random = Random(seed * 131 + 3)
-            val pair = randomPair(random)
-            pair.reference.computeShortestPath(Duration.INFINITE)
-            pair.packed.computeShortestPath(Duration.INFINITE)
+		fun distances(): Map<Long, Double> {
+			val distance = hashMapOf(goal to 0.0)
+			val queue = PriorityQueue<Pair<Double, Long>>(compareBy { it.first })
+			queue += 0.0 to goal
+			while (queue.isNotEmpty()) {
+				val (reached, node) = queue.poll()
+				if (reached > distance.getValue(node)) continue
+				for ((from, cost) in predecessors(node)) {
+					val through = reached + cost
+					if (through < (distance[from] ?: Double.POSITIVE_INFINITY)) {
+						distance[from] = through
+						queue += through to from
+					}
+				}
+			}
+			return distance
+		}
 
-            repeat(12) { step ->
-                val context = "seed=$seed step=$step"
-                val cell = randomNode(random)
-                if (cell == pair.goal || cell == pair.reference.start) return@repeat
-                if (!pair.blocked.remove(cell)) pair.blocked += cell
-                val affected = affectedNodes(cell, pair.connectivity)
-                val a = pair.reference.synchronizeAffected(affected)
-                val b = pair.packed.synchronizeAffected(LongArrayList(affected))
-                assertEquals(
-                    a.edgesAdded + a.edgesRemoved + a.edgesChanged > 0, b,
-                    "synchronisation changed anything $context",
-                )
+		fun assertExact(context: String) {
+			engine.computeShortestPath(Duration.INFINITE)
+			engine.expandField(1e9, Duration.INFINITE)
+			assertTrue(engine.queue.isEmpty(), "not drained $context")
+			val distances = distances()
+			for (node in engine.knownNodes() + distances.keys) {
+				assertSameCost(distances[node] ?: Double.POSITIVE_INFINITY, engine.g(node), "g(${PackedStance.describe(node)}) $context")
+			}
+			val expected = distances[start] ?: Double.POSITIVE_INFINITY
+			if (!expected.isFinite()) return
+			val route = assertNotNull(engine.routeCandidate(), "route $context")
+			assertSameCost(expected, route.ticks, "route ticks $context")
+			val nodes = route.nodes
+			assertEquals(start, nodes.getLong(0), "route start $context")
+			assertEquals(goal, nodes.getLong(nodes.size - 1), "route end $context")
+			var cost = 0.0
+			for (i in 1 until nodes.size) cost += assertNotNull(successors(nodes.getLong(i - 1))[nodes.getLong(i)], "route edge $i $context")
+			assertSameCost(expected, cost, "route edges $context")
+		}
 
-                if (random.nextInt(3) == 0) {
-                    val newStart = randomNode(random)
-                    pair.blocked -= newStart
-                    pair.reference.updateStart(newStart)
-                    pair.packed.updateStart(newStart)
-                }
+		private fun inBox(node: Long): Boolean =
+			PackedStance.unpackX(node) in -4..4 && PackedStance.unpackY(node) in -1..3 && PackedStance.unpackZ(node) in -4..4
 
-                pair.reference.computeShortestPath(Duration.INFINITE)
-                pair.packed.computeShortestPath(Duration.INFINITE)
-                pair.reference.expandField(1e9, Duration.INFINITE)
-                pair.packed.expandField(1e9, Duration.INFINITE)
-                check(pair.reference.queue.isEmpty() && pair.packed.queue.isEmpty()) { "not drained $context" }
+		private fun assertSameCost(expected: Double, actual: Double, context: String) =
+			assertTrue(expected == actual || abs(expected - actual) <= 1e-9, "expected $expected but was $actual: $context")
+	}
 
-                pair.assertLabelsEqual(context, adjacency = false)
-                pair.assertRouteEqual(context)
-            }
-        }
-    }
+	@Test
+	fun `edge cost updates and start moves stay exact`() {
+		repeat(60) { seed ->
+			val random = Random(seed * 31 + 7)
+			val grid = Grid(random)
+			grid.assertExact("seed=$seed init")
+			repeat(20) { step ->
+				val context = "seed=$seed step=$step"
+				if (random.nextInt(4) == 0) {
+					grid.moveStart(randomNode(random))
+				} else {
+					val from = randomNode(random)
+					val to = neighborhood(from, grid.connectivity).keys.random(random)
+					if (!grid.blocked(from) && !grid.blocked(to)) {
+						grid.overrides[from to to] = if (random.nextInt(4) == 0) Double.POSITIVE_INFINITY else random.nextInt(1, 9).toDouble()
+						grid.engine.refresh(from)
+					}
+				}
+				if (random.nextBoolean()) grid.engine.computeShortestPath(Duration.INFINITE, maxExpansions = random.nextInt(1, 12))
+				grid.assertExact(context)
+			}
+		}
+	}
+
+	@Test
+	fun `blocked cells and their neighbourhood stay exact`() {
+		repeat(60) { seed ->
+			val random = Random(seed * 131 + 3)
+			val grid = Grid(random)
+			grid.assertExact("seed=$seed init")
+			repeat(12) { step ->
+				val cell = randomNode(random)
+				if (cell == grid.goal || cell == grid.start) return@repeat
+				grid.toggle(cell)
+				grid.engine.synchronizeAffected(LongArrayList(affectedNodes(cell, grid.connectivity)))
+				if (random.nextInt(3) == 0) grid.moveStart(randomNode(random))
+				grid.assertExact("seed=$seed step=$step")
+			}
+		}
+	}
+
+	private companion object {
+		fun randomNode(random: Random): Long = node(random.nextInt(-3, 4), random.nextInt(0, 3), random.nextInt(-3, 4))
+	}
 }

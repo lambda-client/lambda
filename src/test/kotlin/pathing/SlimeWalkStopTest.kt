@@ -99,9 +99,6 @@ class SlimeWalkStopTest {
         val carpetCellGoal = Stance(0, 100, 7)
         val moves = moveLibrary()
         val planner = CoarsePlanner(environment, moves, start, carpetCellGoal)
-        planner.advanceFrontier(
-            com.lambda.pathing.coarse.FrontierAnchors.sweep(environment, moves, start, carpetCellGoal),
-        )
         planner.repair()
 
         assertTrue(

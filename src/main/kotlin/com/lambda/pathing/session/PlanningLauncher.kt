@@ -184,10 +184,11 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			return
 		}
 		if (session !== current) return
-		if (running) {
-			if (walk.replay != null) with(walk.admission) { adopt(path) }
-		} else if (walk.replay == null && walk.alignment.pendingPath == null) {
-			with(walk.admission) { begin(path) }
+		when {
+			walk.replay != null && running -> with(walk.admission) { adopt(path) }
+			walk.replay == null && walk.alignment.pendingPath != null -> walk.alignment.beginAligning(path)
+			walk.replay == null && !running -> with(walk.admission) { begin(path) }
+			else -> session.refuse(path.publicationSequence.toLong())
 		}
 	}
 

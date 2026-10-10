@@ -22,13 +22,8 @@ internal class PlanningJourney private constructor(
 		val goals = origin.waypoints + origin.finalGoal
 		val starts = listOf(origin.start) + origin.waypoints
 		goals.indices.map { index ->
-			val memory = remembered?.let { world.snapshot.remembering(it.sectionsExcept(starts + goals), it::remembers) }
-			CoarsePlanningState(
-				memory ?: world.snapshot, origin.moveOptions, starts[index], goals[index],
-				frontierSweepBudget = origin.frontierSweepBudget,
-				capturable = world::chunkCapturable,
-				memory = memory,
-			)
+			val memory = remembered?.let { world.snapshot.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
+			CoarsePlanningState(memory ?: world.snapshot, origin.moveOptions, starts[index], goals[index], memory = memory)
 		}
 	}
 

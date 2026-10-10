@@ -52,11 +52,14 @@ internal class RowEdges(
 			if (rank != null) IntArrays.quickSort(entries) { a, b -> rank[templates.getInt(a)].compareTo(rank[templates.getInt(b)]) }
 			val order = IntArray(irregularKeys.size) { it }
 			IntArrays.quickSort(order) { a, b -> irregularKeys.getInt(a).compareTo(irregularKeys.getInt(b)) }
+			val edges = LongArray(entries.size) { masks.getLong(entries[it] * 3) }
+			val standing = LongArray(entries.size) { masks.getLong(entries[it] * 3 + 1) }
+			val irregular = LongArray(entries.size) { masks.getLong(entries[it] * 3 + 2) }
 			return RowEdges(
 				IntArray(entries.size) { templates.getInt(entries[it]) },
-				LongArray(entries.size) { masks.getLong(entries[it] * 3) },
-				LongArray(entries.size) { masks.getLong(entries[it] * 3 + 1) },
-				LongArray(entries.size) { masks.getLong(entries[it] * 3 + 2) },
+				edges,
+				if (standing.contentEquals(edges)) edges else standing,
+				if (irregular.all { it == 0L }) zeros(entries.size) else irregular,
 				IntArray(order.size) { irregularKeys.getInt(order[it]) },
 				DoubleArray(order.size) { irregularTicks.getDouble(order[it]) },
 			)
@@ -65,6 +68,14 @@ internal class RowEdges(
 
 	companion object {
 		val EMPTY = RowEdges(IntArray(0), LongArray(0), LongArray(0), LongArray(0), IntArray(0), DoubleArray(0))
+
+		@Volatile
+		private var ZEROS = LongArray(64)
+
+		private fun zeros(size: Int): LongArray {
+			if (ZEROS.size < size) ZEROS = LongArray(Integer.highestOneBit(size) shl 1)
+			return ZEROS
+		}
 
 		private fun key(template: Int, bit: Int): Int = (template shl 6) or bit
 	}

@@ -78,6 +78,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 	}
 
 	private fun keepRunning(rejected: PublishedPath, reason: String) {
+		walk.launcher.current?.refuse(rejected.publicationSequence.toLong())
 		walk.telemetry.countRejectedImprovement()
 
 		LOG.debug("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")

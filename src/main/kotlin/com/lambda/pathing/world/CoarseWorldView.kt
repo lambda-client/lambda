@@ -117,6 +117,10 @@ interface CoarseVoxelView {
 
 	fun isKnown(x: Int, y: Int, z: Int): Boolean = true
 
+	fun isUnknown(x: Int, y: Int, z: Int): Boolean = !isKnown(x, y, z)
+
+	fun forEachKnownSection(action: (Long) -> Unit) {}
+
 	val simulableStanceY: IntRange get() = Int.MIN_VALUE..Int.MAX_VALUE
 
 	fun standingSurface(x: Int, y: Int, z: Int): Double? {

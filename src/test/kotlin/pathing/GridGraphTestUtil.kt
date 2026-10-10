@@ -26,13 +26,8 @@ import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongList
 import kotlin.math.abs
 import kotlin.math.sqrt
-import pathing.reference.LazyGraph
 
-/**
- * Grid graphs over [PackedStance]-packed nodes (speed bit 0). The same neighbourhood is
- * offered in both provider shapes so the packed engine and the reference engine can be
- * built over identical adjacency in identical insertion order.
- */
+/** Grid graphs over [PackedStance]-packed nodes (speed bit 0). */
 object GridGraphTestUtil {
     enum class Connectivity(val minDistSq: Int, val maxDistSq: Int) {
         N6(1, 1),
@@ -53,15 +48,6 @@ object GridGraphTestUtil {
         if (node !in blockedNodes) forEachNeighbor(node, connectivity) { neighbor, cost ->
             if (neighbor !in blockedNodes) sink.add(neighbor, cost)
         }
-    })
-
-    /** The reference engine's shape of [graph]: same nodes, same order. */
-    fun referenceGraph(
-        blockedNodes: Set<Long> = emptySet(),
-        connectivity: Connectivity = Connectivity.N6,
-    ) = LazyGraph<Long>(successorProvider = { node ->
-        if (node in blockedNodes) emptyMap()
-        else neighborhood(node, connectivity).filterKeys { it !in blockedNodes }
     })
 
     fun affectedNodes(node: Long, connectivity: Connectivity = Connectivity.N26): Set<Long> =

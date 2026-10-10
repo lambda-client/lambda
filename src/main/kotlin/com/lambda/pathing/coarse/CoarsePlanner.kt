@@ -19,36 +19,26 @@ class CoarsePlanner(
 	val moves: SimpleMoveLibrary,
 	start: Stance,
 	val goalStance: Stance,
-	sweepBudget: Int = FrontierAnchors.SWEEP_MAX_NODES,
-	capturable: (Int, Int) -> Boolean = FrontierAnchors.NOTHING_CAPTURABLE,
-	onCaptureLag: (Int, Int, Int) -> Unit = { _, _, _ -> },
 ) {
-	private val anchors = HashMap<Stance, Double>()
-
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
 	private val edgeCache = CoarseEdgeCache(view.cursor(), moves)
 
 	private val momentum = MomentumRules(moves.templates)
 
-	private val frontier = FrontierSweep(view, moves, goalStance, edgeCache, sweepBudget, capturable, onCaptureLag)
+	private val anchors = FrontierIndex(view, moves, goalStance, ::updateAnchorEdges)
 
 	private val graph = LongGraph(
 		successorProvider = { node, sink ->
 			momentum.successors(edgeCache, node, sink)
-
-			if (anchors.isNotEmpty()) {
-				val cost = anchors[PackedStance.stance(node)]
-				if (cost != null) sink.add(goalNode, cost)
-			}
+			val cost = anchors.cost(node)
+			if (!cost.isNaN()) sink.add(goalNode, cost)
 		},
 		predecessorProvider = { node, sink ->
 			momentum.predecessors(edgeCache, node, sink)
-			if (node == goalNode && anchors.isNotEmpty()) {
-				for ((stance, cost) in anchors) {
-					sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
-					sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
-				}
+			if (node == goalNode) anchors.forEach { stance, cost ->
+				sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
+				sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
 			}
 		},
 	)
@@ -62,6 +52,10 @@ class CoarsePlanner(
 		heuristic = { a, b -> momentum.heuristic(a, b, grounded && b != goalNode) },
 		describe = PackedStance::describe,
 	)
+
+	init {
+		anchors.rebuild()
+	}
 
 	val graphSize: Int get() = search.knownNodeCount
 
@@ -87,7 +81,7 @@ class CoarsePlanner(
 	fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
 		val merged = HashMap<Stance, Double>()
 		for (speed in SpeedClass.entries) {
-			val edges = search.knownSuccessors(PackedStance.pack(node, speed))
+			val edges = search.successors(PackedStance.pack(node, speed))
 			for (i in 0 until edges.size) {
 				val successor = edges.node(i)
 				val stance = PackedStance.stance(successor)
@@ -105,55 +99,17 @@ class CoarsePlanner(
 
 	fun updateStart(start: Stance, speed: SpeedClass = SpeedClass.STOPPED) = search.updateStart(PackedStance.pack(start, speed))
 
-	val optimisticAnchors: Map<Stance, Double> get() = HashMap(anchors)
+	val anchorCount: Int get() = anchors.size
 
-	private fun updateAnchorEdges(anchor: Stance, cost: Double) {
-		search.updateEdge(PackedStance.pack(anchor, SpeedClass.MOVING), goalNode, cost)
-		search.updateEdge(PackedStance.pack(anchor, SpeedClass.STOPPED), goalNode, cost)
+	val optimisticAnchors: Map<Stance, Double> get() = HashMap<Stance, Double>().also { copy -> anchors.forEach { stance, cost -> copy[stance] = cost } }
+
+	fun isAnchor(stance: Stance): Boolean = stance in anchors
+
+	private fun updateAnchorEdges(anchor: Stance) {
+		search.refresh(PackedStance.pack(anchor, SpeedClass.MOVING))
+		search.refresh(PackedStance.pack(anchor, SpeedClass.STOPPED))
 	}
 
-	fun advanceFrontier(probed: Map<Stance, Double>): Boolean {
-		val refused = FrontierAnchors.refusesOptimism(view, moves, goalStance)
-		val retired = anchors.keys.filterTo(ArrayList()) {
-			refused || !FrontierAnchors.bordersUnknown(view, it)
-		}
-		retired.forEach(::retire)
-		var changed = retired.isNotEmpty()
-
-		probed.forEach { (anchor, cost) ->
-			if (anchor != goalStance && anchors[anchor] != cost) {
-				anchors[anchor] = cost
-				updateAnchorEdges(anchor, cost)
-				changed = true
-			}
-		}
-		return changed
-	}
-
-	fun retireAllAnchors(): Boolean {
-		if (anchors.isEmpty()) return false
-		anchors.keys.toList().forEach(::retire)
-		return true
-	}
-
-	private fun retire(anchor: Stance) {
-		anchors.remove(anchor)
-		updateAnchorEdges(anchor, Double.POSITIVE_INFINITY)
-	}
-
-	fun advanceReachableFrontier(
-		from: Stance = PackedStance.stance(search.start),
-		cancelled: () -> Boolean = { false },
-	): Boolean = advanceFrontier(frontier.anchorsFrom(from, cancelled))
-
-	fun discoverReachableFrontier(
-		cancelled: () -> Boolean = { false },
-		maxExpansions: Int = Int.MAX_VALUE,
-	): Boolean {
-		val changed = advanceReachableFrontier(cancelled = cancelled)
-		if (changed) repair(maxExpansions = maxExpansions, cancelled = cancelled)
-		return changed
-	}
 
 	fun expandField(
 		extraTicks: Double,
@@ -228,7 +184,7 @@ class CoarsePlanner(
 		repeat(ROUTE_RESYNCHRONIZATION_ROUNDS) {
 			if (cancelled()) return null
 			val stale = route()?.nodes ?: return null
-			if (!synchronizeStances(stale)) return null
+			if (!synchronizeStances(stale)) return routePlan(snapshotRevision)
 			repair(maxExpansions = maxExpansions, cancelled = cancelled)
 			routePlan(snapshotRevision)?.let { return it }
 		}
@@ -285,7 +241,7 @@ class CoarsePlanner(
 		maxStances: Int = Int.MAX_VALUE,
 		arrivalsOnly: Boolean = false,
 	) {
-		if (!arrivalsOnly) frontier.dirty = true
+		anchors.refresh(changed)
 		val origins = changed.map(moves::originsReading)
 		search.forEachKnownNode { node ->
 			val key = PackedStance.stanceKey(node)

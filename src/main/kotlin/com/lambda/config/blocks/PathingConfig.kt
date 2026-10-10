@@ -158,8 +158,6 @@ interface PathingConfig {
     /** Hard cap on trajectory-search expansions per leg before the search gives up. */
     val trajectoryExpansionBudget: Int get() = 2_000_000
 
-    /** Node budget of the reachable-frontier sweep that mints optimistic route terminals. */
-    val frontierSweepBudget: Int get() = 40_000
 
     /** Minimum wall time before the first partial tape may be published. */
     val bootstrapDelayMillis: Int get() = 200

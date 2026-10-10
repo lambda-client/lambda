@@ -104,6 +104,7 @@ internal object ProbeScenarios {
         constraints: MotionConstraints = MotionConstraints(),
         initialYaw: Double? = null,
         initialOffset: Pair<Double, Double> = 0.5 to 0.5,
+        latencyTicks: Int = VirtualExecutor.ADOPTION_LATENCY_TICKS,
     ): Outcome {
         val moves = SimpleMoveLibrary.build(
             costs = CoarseMoveCosts.measured(transitionOverheadTicks = transitionOverheadTicks),
@@ -117,7 +118,7 @@ internal object ProbeScenarios {
         val dx = (scenario.goal.x - scenario.start.x).toDouble()
         val dz = (scenario.goal.z - scenario.start.z).toDouble()
         val clock = VirtualSearchClock(microsPerExpansion = microsPerExpansion)
-        val executor = VirtualExecutor(clock)
+        val executor = VirtualExecutor(clock, latencyTicks)
         val exhaustions = ArrayList<SearchStats>()
         val result = walkHorizon(
             route, planner,

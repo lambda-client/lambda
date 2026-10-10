@@ -46,11 +46,7 @@ class PlanningHorizonRegressionTest {
         state.repairFrom(start)
         val result = state.planner.repair(maxExpansions = 1_000_000)
         println("expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
-        val route = state.planner.routePlan(snapshotRevision = 1L)
-            ?: state.planner.resynchronizedRoutePlan(snapshotRevision = 1L)
-            ?: run {
-                if (state.planner.discoverReachableFrontier()) state.planner.routePlan(snapshotRevision = 1L) else null
-            }
+        val route = state.routePlan(1L, { false }, 1_000_000)
         if (route == null) println("FAILURE report: ${state.planner.routeFailureReport()}")
         return state to route
     }
@@ -99,11 +95,7 @@ class RetainedJourneyReplanTest {
         state.repairFrom(teleportedStart)
         val result = state.planner.repair(maxExpansions = 1_000_000)
         println("replan expansions=${result.processedNodes} nodes=${state.planner.graphSize} converged=${result.converged}")
-        val route = state.planner.routePlan(snapshotRevision = 2L)
-            ?: state.planner.resynchronizedRoutePlan(snapshotRevision = 2L)
-            ?: run {
-                if (state.planner.discoverReachableFrontier()) state.planner.routePlan(snapshotRevision = 2L) else null
-            }
+        val route = state.routePlan(2L, { false }, 1_000_000)
         if (route == null) println("FAILURE report: ${state.planner.routeFailureReport()}")
         val r = assertNotNull(route, "no coarse route after teleporting away from a retained journey")
         assertTrue(r.nodes.first() == teleportedStart, "route must start at the body, got ${r.nodes.first()}")

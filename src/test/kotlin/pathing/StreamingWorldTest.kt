@@ -11,7 +11,6 @@ package pathing
 
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
-import com.lambda.pathing.coarse.FrontierAnchors
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -84,7 +83,6 @@ class StreamingWorldTest {
             val arrived = world.stream(position)
             planner.updateStart(position)
             if (arrived.isNotEmpty()) planner.chunksChanged(arrived)
-            planner.advanceFrontier(FrontierAnchors.sweep(world.view, moves, position, goal))
 
             val repair = planner.repair(maxExpansions = 200_000)
             expansions += repair.processedNodes
@@ -229,9 +227,6 @@ class StreamingWorldTest {
         val goal = Stance(0, 20, 8)
         val walk = Walk(world, start, goal)
         walk.planner.updateStart(start)
-        walk.planner.advanceFrontier(
-            FrontierAnchors.sweep(world.view, walk.moves, start, goal),
-        )
         walk.planner.repair(maxExpansions = 50_000)
 
         assertTrue(
@@ -279,7 +274,6 @@ class StreamingWorldTest {
             val delivered = world.stream(position)
             planner.updateStart(position)
             if (delivered.isNotEmpty()) planner.chunksChanged(delivered)
-            planner.advanceFrontier(FrontierAnchors.sweep(view, moves, position, goal))
             planner.repair(maxExpansions = 500_000)
 
             val route = planner.routePlan(++revision) ?: planner.resynchronizedRoutePlan(revision)

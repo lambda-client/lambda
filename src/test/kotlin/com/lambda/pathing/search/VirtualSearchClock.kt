@@ -19,6 +19,8 @@ class VirtualSearchClock(private val microsPerExpansion: Long = DEFAULT_MICROS_P
 
     override fun adoptedSequence(): Long = Long.MAX_VALUE
 
+    override fun refusedSequence(): Long = 0L
+
     companion object {
         const val DEFAULT_MICROS_PER_EXPANSION = 640L
         private const val MILLIS_PER_TICK = 50L

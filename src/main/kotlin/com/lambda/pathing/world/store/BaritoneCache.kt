@@ -1,6 +1,5 @@
 package com.lambda.pathing.world.store
 
-import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
@@ -29,16 +28,6 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 	}
 	private val sections = object : LinkedHashMap<Long, ImmutableSnapshotSection>(256, 0.75f, true) {
 		override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, ImmutableSnapshotSection>) = size > CACHED_SECTIONS
-	}
-
-	@Synchronized
-	fun remembers(chunkX: Int, chunkZ: Int): Boolean = chunk(chunkX, chunkZ) != null
-
-	fun remembers(box: CellBox): Boolean {
-		for (chunkX in (box.xs.first shr 4)..(box.xs.last shr 4)) for (chunkZ in (box.zs.first shr 4)..(box.zs.last shr 4)) {
-			if (remembers(chunkX, chunkZ)) return true
-		}
-		return false
 	}
 
 	fun sectionsExcept(endpoints: Collection<Stance>): (Long) -> ImmutableSnapshotSection? {

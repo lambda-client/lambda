@@ -85,7 +85,7 @@ internal class Frontier(
 
 	fun follow(publications: Publications) {
 		val cursor = publications.cursor() ?: return
-		publications.expireUnadopted()
+		publications.dropRefused()
 		val running = publications.running ?: return
 		val executing = cursor.coerceAtMost(running.brake.elapsed)
 		if (executing > running.anchor.elapsed) {

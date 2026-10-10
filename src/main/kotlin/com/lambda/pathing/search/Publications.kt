@@ -21,12 +21,10 @@ internal class Publication(
 }
 
 internal class Publications(
-	private val clock: SearchClock,
 	private val execution: ExecutionFeedback,
 ) {
 	private val published = ArrayDeque<Publication>()
 	private var sequence = 0L
-	private var unadoptedSinceMillis: Long? = null
 
 	var observedCursor: Int = -1
 		private set
@@ -37,7 +35,7 @@ internal class Publications(
 
 	val running: Publication? get() = published.lastOrNull { it.sequence <= adopted() }
 
-	val upToDate: Boolean get() = newest.let { it == null || adopted() >= it.sequence }
+	val upToDate: Boolean get() = newest.let { it == null || it.sequence <= adopted() || it.sequence <= execution.refusedSequence() }
 
 	fun adopted(): Long = execution.adoptedSequence()
 
@@ -48,21 +46,9 @@ internal class Publications(
 		published += Publication(++sequence, anchor, brake, plan)
 	}
 
-	fun expireUnadopted() {
-		if (upToDate) {
-			unadoptedSinceMillis = null
-			return
-		}
-		val now = clock.elapsedMillis()
-		val since = unadoptedSinceMillis
-		if (since == null) {
-			unadoptedSinceMillis = now
-			return
-		}
-		if (now - since < ADOPTION_TIMEOUT_MILLIS) return
-		unadoptedSinceMillis = null
-		val adopted = adopted()
-		while (published.lastOrNull()?.let { it.sequence > adopted } == true) published.removeLast()
+	fun dropRefused() {
+		val refused = execution.refusedSequence()
+		while (published.lastOrNull()?.let { it.sequence <= refused && it.sequence > adopted() } == true) published.removeLast()
 	}
 
 	fun adoptable(anchor: ValueAnchor): Boolean {
@@ -113,8 +99,6 @@ internal class Publications(
 		const val HOLD_LEAD_FRAMES = 20
 
 		private const val FINAL_FORK_HEADROOM_FRAMES = 12
-
-		private const val ADOPTION_TIMEOUT_MILLIS = 150L
 	}
 }
 

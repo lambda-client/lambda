@@ -10,7 +10,6 @@
 package pathing
 
 import com.lambda.pathing.coarse.CoarsePlanner
-import com.lambda.pathing.coarse.FrontierAnchors
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -48,7 +47,6 @@ class UnloadedCoarsePlannerTest {
         val moves = moveLibrary()
         val planner = CoarsePlanner(snapshot, moves, start, goal)
 
-        planner.advanceFrontier(FrontierAnchors.sweep(snapshot, moves, start, goal))
         val result = planner.repair(maxExpansions = 100_000)
         val route = assertNotNull(planner.routePlan(snapshotRevision = 1L))
 
@@ -144,14 +142,13 @@ class UnloadedCoarsePlannerTest {
         val goal = Stance(120, 3, 0)
         val planner = CoarsePlanner(view, moves, start, goal)
 
-        planner.advanceFrontier(FrontierAnchors.sweep(view, moves, start, goal))
+        planner.chunksChanged(world.toList())
         planner.repair(maxExpansions = 100_000)
         val before = planner.optimisticAnchors
         assertTrue(before.isNotEmpty())
 
         for (z in -1..1) world += PathingChunk(2, z)
         planner.chunksChanged((-1..1).map { PathingChunk(2, it) })
-        planner.advanceFrontier(FrontierAnchors.sweep(view, moves, start, goal))
         planner.repair(maxExpansions = 100_000)
         val after = planner.optimisticAnchors
 

@@ -214,27 +214,9 @@ class DStarLiteCoreTest {
     }
 
     @Test
-    fun `known nodes follow the materialized edges`() {
-        val planner = LongDStarLite(LongGraph({ node, sink -> if (node == 1L) sink.add(2L, 1.0) }), 1L, 3L, heuristic = { _, _ -> 0.0 })
-
-        assertTrue(2L in planner.successors(1L))
-        assertEquals(setOf(1L, 2L), planner.knownNodes().toSet())
-        assertEquals(2, planner.knownNodeCount)
-
-        planner.updateEdge(1L, 2L, Double.POSITIVE_INFINITY)
-        // Initialized node 1 remains planner knowledge; endpoint 2 was only
-        // known through the removed edge and is pruned.
-        assertEquals(setOf(1L), planner.knownNodes().toSet())
-    }
-
-    @Test
-    fun `updateEdge from an uninitialized node reactivates the search even when the provider already knows the edge`() {
-        // The maneuver-improvement pass declares a discovered edge whose
-        // takeoff node the search never expanded, AND whose provider (the
-        // discovery object) already returns it from its own maps. A naive
-        // old-cost read would lazily initialize the takeoff, see the edge as
-        // pre-existing, and skip the rhs update -- leaving the shortcut
-        // permanently invisible.
+    fun `refreshing a node the search never expanded reactivates the search`() {
+        // A provider learns an edge whose takeoff node the search never expanded;
+        // refreshing the takeoff must make the shortcut visible.
         val start = node(0, 0, 0)
         val middle = node(1, 0, 0)
         val takeoff = node(0, 0, 1)
@@ -263,10 +245,8 @@ class DStarLiteCoreTest {
         planner.computeShortestPath()
         assertEquals(Nodes.of(start, middle, goal), planner.path())
 
-        // The discovery provider learns the edge, then the improvement pass
-        // declares it -- in that order, exactly as in production.
         discovered = true
-        planner.updateEdge(takeoff, goal, 1.0)
+        planner.refresh(takeoff)
         planner.computeShortestPath()
 
         assertEquals(Nodes.of(start, takeoff, goal), planner.path())

@@ -7,6 +7,7 @@ import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.HashCommon
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import it.unimi.dsi.fastutil.longs.LongSet
@@ -20,7 +21,7 @@ internal class CoarseEdgeCache(
 	private val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
 ) {
-	private val outgoing = Long2ObjectOpenHashMap<List<CoarseEdge>>()
+	private val outgoing = Long2ObjectLinkedOpenHashMap<List<CoarseEdge>>()
 
 	private val checkedOrigins = LongOpenHashSet()
 
@@ -52,6 +53,7 @@ internal class CoarseEdgeCache(
 			val stance = PackedStance.stance(key)
 			check(key, stance)
 			val edges = if (!standable.isStance(stance)) emptyList() else moves.templates(view, stance).mapNotNull { stamper.edge(it, stance) }
+			if (outgoing.size >= CACHED_EDGE_LISTS) outgoing.removeFirst()
 			outgoing.put(key, edges)
 			edges
 		}
@@ -230,7 +232,7 @@ internal class CoarseEdgeCache(
 	}
 
 	private class RowCache(private val build: (Int, Int, Int) -> RowEdges) {
-		private val blocks = Long2ObjectOpenHashMap<Array<RowEdges?>>()
+		private val blocks = Long2ObjectLinkedOpenHashMap<Array<RowEdges?>>()
 		private val slotKeys = LongArray(SLOTS)
 		private val slotBlocks = arrayOfNulls<Array<RowEdges?>>(SLOTS)
 
@@ -245,13 +247,20 @@ internal class CoarseEdgeCache(
 			val slot = (HashCommon.mix(key) and (SLOTS - 1).toLong()).toInt()
 			val cached = slotBlocks[slot]
 			if (cached != null && slotKeys[slot] == key) return cached
-			val block = blocks.get(key) ?: arrayOfNulls<RowEdges>(ROWS).also {
-				if (blocks.size >= CAPACITY) clear()
-				blocks.put(key, it)
+			val block = blocks.getAndMoveToLast(key) ?: arrayOfNulls<RowEdges>(ROWS).also {
+				if (blocks.size >= CAPACITY) evictEldest()
+				blocks.putAndMoveToLast(key, it)
 			}
 			slotKeys[slot] = key
 			slotBlocks[slot] = block
 			return block
+		}
+
+		private fun evictEldest() {
+			val key = blocks.firstLongKey()
+			blocks.removeFirst()
+			val slot = (HashCommon.mix(key) and (SLOTS - 1).toLong()).toInt()
+			if (slotKeys[slot] == key) slotBlocks[slot] = null
 		}
 
 		fun clear() {
@@ -276,11 +285,13 @@ internal class CoarseEdgeCache(
 		private companion object {
 			const val ROWS = 256
 			const val SLOTS = 1_024
-			const val CAPACITY = 1 shl 12
+			const val CAPACITY = 1 shl 8
 		}
 	}
 
 	companion object {
+		private const val CACHED_EDGE_LISTS = 1 shl 10
+
 		private fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
 
 		private fun shifted(mask: Long, by: Int): Long = when {

@@ -1,9 +1,5 @@
 package com.lambda.pathing.graph
 
-import com.lambda.pathing.graph.NodeTable.Companion.KNOWN
-import com.lambda.pathing.graph.NodeTable.Companion.PREDECESSORS_INITIALIZED
-import com.lambda.pathing.graph.NodeTable.Companion.SUCCESSORS_INITIALIZED
-import com.lambda.pathing.graph.NodeTable.Companion.SUCCESSORS_SET
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongConsumer
@@ -33,7 +29,9 @@ class LongDStarLite(
 
 	private val heap = SlotHeap()
 
-	private val generated = EdgeList()
+	private val successorScratch = EdgeList()
+
+	private val predecessorScratch = EdgeList()
 
 	private val goalSlot = nodes.slot(goal)
 
@@ -43,6 +41,7 @@ class LongDStarLite(
 		private set
 
 	init {
+		nodes.slot(start)
 		setRhs(goalSlot, 0.0)
 		heap.insert(goalSlot, checkedHeuristic(start, goal), 0.0)
 	}
@@ -64,25 +63,17 @@ class LongDStarLite(
 		}
 	}
 
-	val knownNodeCount: Int get() = nodes.knownCount
+	val knownNodeCount: Int get() = nodes.size
 
-	fun isKnown(node: Long): Boolean {
-		val slot = nodes.find(node)
-		return slot >= 0 && nodes.has(slot, KNOWN)
-	}
+	fun isKnown(node: Long): Boolean = nodes.find(node) >= 0
 
 	fun forEachKnownNode(action: LongConsumer) {
-		for (slot in 0 until nodes.size) if (nodes.has(slot, KNOWN)) action.accept(nodes.key(slot))
+		for (slot in 0 until nodes.size) action.accept(nodes.key(slot))
 	}
 
 	fun knownNodes(): LongOpenHashSet = LongOpenHashSet().also { set -> forEachKnownNode { set.add(it) } }
 
-	fun knownSuccessors(node: Long): EdgeList {
-		val slot = nodes.find(node)
-		return if (slot < 0) EdgeList() else edgeList(nodes.successors(slot))
-	}
-
-	fun successors(node: Long): EdgeList = edgeList(successors(nodes.slot(node)))
+	fun successors(node: Long): EdgeList = graph.successors(node)
 
 	fun computeShortestPath(
 		timeBudget: Duration = 500.milliseconds,
@@ -195,31 +186,21 @@ class LongDStarLite(
 			heap.topIsBelow(newFirst, minCost) -> heap.insert(node, newFirst, minCost)
 
 			nodeG > nodeRhs -> {
-				val predecessors = predecessors(node)
 				setG(node, nodeRhs)
 				heap.remove(node)
+				val predecessors = graph.predecessorsInto(nodes.key(node), predecessorScratch)
 				for (i in 0 until predecessors.size) {
-					val predecessor = predecessors.slot(i)
-					val cost = predecessors.cost(i)
-					if (predecessor != goalSlot) setRhs(predecessor, min(nodes.rhs(predecessor), cost + nodeRhs))
+					val predecessor = nodes.slot(predecessors.node(i))
+					if (predecessor != goalSlot) setRhs(predecessor, min(nodes.rhs(predecessor), predecessors.cost(i) + nodeRhs))
 					updateVertex(predecessor)
 				}
 			}
 
 			else -> {
-				val predecessors = predecessors(node)
-				for (i in 0 until predecessors.size) successors(predecessors.slot(i))
-				successors(node)
 				setG(node, INF)
-
-				fun refresh(vertex: Int) {
-					if (vertex != goalSlot && sameCost(nodes.rhs(vertex), costOf(vertex, node) + nodeG)) {
-						setRhs(vertex, minSuccessorCost(vertex))
-					}
-					updateVertex(vertex)
-				}
-				for (i in 0 until predecessors.size) refresh(predecessors.slot(i))
-				if (predecessors.indexOf(node) < 0) refresh(node)
+				val predecessors = graph.predecessorsInto(nodes.key(node), predecessorScratch)
+				for (i in 0 until predecessors.size) recompute(nodes.slot(predecessors.node(i)))
+				if (predecessors.indexOf(nodes.key(node)) < 0) recompute(node)
 			}
 		}
 	}
@@ -252,53 +233,28 @@ class LongDStarLite(
 		var changed = false
 		for (node in ordered) {
 			val slot = nodes.find(node)
-			if (slot < 0 || !nodes.has(slot, KNOWN)) continue
-			val oldSuccessors = edgeList(nodes.successors(slot))
-			val newSuccessors = graph.successors(node)
-			nodes.mark(slot, SUCCESSORS_INITIALIZED or KNOWN)
-			if (reconcileEdges(oldSuccessors, newSuccessors) { target, cost -> updateEdge(node, target, cost) }) changed = true
-
-			val oldPredecessors = edgeList(nodes.predecessors(slot))
-			val newPredecessors = graph.predecessors(node)
-			nodes.mark(slot, PREDECESSORS_INITIALIZED or KNOWN)
-			if (reconcileEdges(oldPredecessors, newPredecessors) { source, cost -> updateEdge(source, node, cost) }) changed = true
+			if (slot < 0) continue
+			if (reconsider(slot)) changed = true
+			val predecessors = graph.predecessorsInto(node, predecessorScratch).copy()
+			for (i in 0 until predecessors.size) {
+				val predecessor = predecessors.node(i)
+				if (nodes.find(predecessor) < 0 && minSuccessorCost(predecessor).isFinite() && reconsider(nodes.slot(predecessor))) changed = true
+			}
 		}
 		return changed
 	}
 
-	private inline fun reconcileEdges(old: EdgeList, new: EdgeList, apply: (Long, Double) -> Unit): Boolean {
-		var changed = false
-		for (i in 0 until old.size) {
-			val node = old.node(i)
-			if (node in new) continue
-			apply(node, INF)
-			changed = true
-		}
-		for (i in 0 until new.size) {
-			val node = new.node(i)
-			val cost = new.cost(i)
-			val oldIndex = old.indexOf(node)
-			if (oldIndex >= 0 && sameCost(old.cost(oldIndex), cost)) continue
-			apply(node, cost)
-			changed = true
-		}
-		return changed
+	private fun reconsider(slot: Int): Boolean {
+		val before = nodes.rhs(slot)
+		recompute(slot)
+		return !sameCost(before, nodes.rhs(slot))
 	}
 
-	fun updateEdge(from: Long, to: Long, newCost: Double) {
-		EdgeList.checkCost(newCost)
-		val oldCost = knownCost(from, to)
-		if (sameCost(oldCost, newCost)) return
-		val fromSlot = nodes.slot(from)
-		val toSlot = nodes.slot(to)
-		if (newCost.isFinite()) putEdge(fromSlot, toSlot, newCost) else removeEdge(fromSlot, toSlot)
+	fun refresh(node: Long) = recompute(nodes.slot(node))
 
-		when {
-			oldCost > newCost -> if (fromSlot != goalSlot) setRhs(fromSlot, min(nodes.rhs(fromSlot), newCost + nodes.g(toSlot)))
-			sameCost(nodes.rhs(fromSlot), oldCost + nodes.g(toSlot)) -> if (fromSlot != goalSlot) setRhs(fromSlot, minSuccessorCost(fromSlot))
-		}
-
-		updateVertex(fromSlot)
+	private fun recompute(slot: Int) {
+		if (slot != goalSlot) setRhs(slot, minSuccessorCost(slot))
+		updateVertex(slot)
 	}
 
 	fun computeRouteCandidate(
@@ -371,19 +327,19 @@ class LongDStarLite(
 				return Descent.Blocked(current)
 			}
 
-			val successors = successors(current)
+			val successors = graph.successorsInto(nodes.key(current), successorScratch)
 			if (successors.isEmpty()) {
 				report?.append("no-successors-at-${describe(nodes.key(current))}-after-$step")
 				return Descent.Unreachable
 			}
-			var next = successors.slot(0)
-			var bestEdge = successors.cost(0)
-			var bestCost = bestEdge + nodes.g(next)
-			for (i in 1 until successors.size) {
-				val successor = successors.slot(i)
+			var next = -1
+			var bestEdge = INF
+			var bestCost = INF
+			for (i in 0 until successors.size) {
+				val successor = nodes.slot(successors.node(i))
 				val edgeCost = successors.cost(i)
 				val candidateCost = edgeCost + nodes.g(successor)
-				if (candidateCost < bestCost || (candidateCost.compareTo(bestCost) == 0 && nodes.key(successor) < nodes.key(next))) {
+				if (next < 0 || candidateCost < bestCost || (candidateCost.compareTo(bestCost) == 0 && nodes.key(successor) < nodes.key(next))) {
 					next = successor
 					bestCost = candidateCost
 					bestEdge = edgeCost
@@ -474,80 +430,18 @@ class LongDStarLite(
 		return heap.topIsBelow(startKey, minCost) || !sameCost(startRhs, startG)
 	}
 
-	private fun minSuccessorCost(node: Int): Double {
+	private fun minSuccessorCost(node: Int): Double = minSuccessorCost(nodes.key(node))
+
+	private fun minSuccessorCost(key: Long): Double {
 		var best = INF
-		val successors = successors(node)
+		val successors = graph.successorsInto(key, successorScratch)
 		for (i in 0 until successors.size) {
-			val candidate = successors.cost(i) + nodes.g(successors.slot(i))
+			val target = nodes.find(successors.node(i))
+			if (target < 0) continue
+			val candidate = successors.cost(i) + nodes.g(target)
 			if (candidate < best) best = candidate
 		}
 		return best
-	}
-
-	private fun costOf(from: Int, to: Int): Double = nodes.successors(from)?.costOf(to) ?: INF
-
-	private fun knownCost(from: Long, to: Long): Double {
-		val fromSlot = nodes.find(from)
-		val toSlot = nodes.find(to)
-		return if (fromSlot < 0 || toSlot < 0) INF else costOf(fromSlot, toSlot)
-	}
-
-	private fun successors(node: Int): SlotEdges {
-		if (!nodes.has(node, SUCCESSORS_INITIALIZED)) {
-			val edges = graph.successorsInto(nodes.key(node), generated)
-			for (i in 0 until edges.size) addUnknownEdge(node, nodes.slot(edges.node(i)), edges.cost(i), mayExist = true)
-			nodes.mark(node, SUCCESSORS_INITIALIZED or KNOWN)
-		}
-		return nodes.successors(node) ?: EMPTY
-	}
-
-	private fun predecessors(node: Int): SlotEdges {
-		if (!nodes.has(node, PREDECESSORS_INITIALIZED)) {
-			val edges = graph.predecessorsInto(nodes.key(node), generated)
-			for (i in 0 until edges.size) {
-				val from = nodes.slot(edges.node(i))
-				addUnknownEdge(from, node, edges.cost(i), mayExist = nodes.has(from, SUCCESSORS_INITIALIZED or SUCCESSORS_SET))
-			}
-			nodes.mark(node, PREDECESSORS_INITIALIZED or KNOWN)
-		}
-		return nodes.predecessors(node) ?: EMPTY
-	}
-
-	private fun addUnknownEdge(from: Int, to: Int, cost: Double, mayExist: Boolean) {
-		val successors = nodes.successorsOrCreate(from)
-		if (mayExist && successors.indexOf(to) >= 0) return
-		successors.append(to, cost)
-		nodes.mark(from, KNOWN)
-		nodes.mark(to, KNOWN)
-		nodes.predecessorsOrCreate(to).append(from, cost)
-	}
-
-	private fun putEdge(from: Int, to: Int, cost: Double) {
-		nodes.mark(from, KNOWN or SUCCESSORS_SET)
-		nodes.mark(to, KNOWN)
-		nodes.successorsOrCreate(from).put(to, cost)
-		nodes.predecessorsOrCreate(to).put(from, cost)
-	}
-
-	private fun removeEdge(from: Int, to: Int) {
-		nodes.successors(from)?.let { if (it.remove(to) && it.isEmpty()) nodes.dropSuccessors(from) }
-		nodes.predecessors(to)?.let { if (it.remove(from) && it.isEmpty()) nodes.dropPredecessors(to) }
-		refreshKnownNode(from)
-		refreshKnownNode(to)
-	}
-
-	private fun refreshKnownNode(node: Int) {
-		if (nodes.successors(node) == null && nodes.predecessors(node) == null &&
-			!nodes.has(node, SUCCESSORS_INITIALIZED or PREDECESSORS_INITIALIZED)
-		) {
-			nodes.forget(node)
-		}
-	}
-
-	private fun edgeList(edges: SlotEdges?): EdgeList {
-		val out = EdgeList(maxOf(edges?.size ?: 0, 1))
-		if (edges != null) for (i in 0 until edges.size) out.add(nodes.key(edges.slot(i)), edges.cost(i))
-		return out
 	}
 
 	var revision = 0L
@@ -592,8 +486,6 @@ class LongDStarLite(
 		private const val MAX_DESCENT_ROUNDS = 256
 
 		private const val MAX_ROUTE_NODES = 10_000
-
-		private val EMPTY = SlotEdges()
 
 		private fun sameCost(a: Double, b: Double, tolerance: Double = EPSILON): Boolean = when {
 			a.isInfinite() || b.isInfinite() -> a == b

@@ -75,10 +75,7 @@ internal class PlanningJob(
 			val note = buildString {
 				append(outcome.reason)
 				append("; route ").append(follower.route.nodes.joinToString(" "))
-				val anchors = follower.anchors
-				if (anchors.isNotEmpty()) {
-					append("; anchors ").append(anchors.entries.joinToString(" ") { "${it.key}=%.1f".format(it.value) })
-				}
+				append("; anchors ").append(follower.anchorCount)
 			}
 			dump("failed plan", note)
 		}

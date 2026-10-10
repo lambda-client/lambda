@@ -40,7 +40,7 @@ internal class SearchLoop(
 	private val attempts = AttemptAccumulator(probe)
 	private val budget = ExpansionBudget(searchConfig.maxExpansions, clock)
 	private val frontier = Frontier(field, config, searchConfig, route.index, searchConfig.localHorizon(initialRoute))
-	private val publications = Publications(clock, execution)
+	private val publications = Publications(execution)
 	private val incumbent = Incumbent(publications, frontier, searchConfig, execution, budget)
 	private val annealing = Annealing(field, frontier, ActionSet(catalog, field, config), budget, searchConfig.maxTemperature)
 	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe)

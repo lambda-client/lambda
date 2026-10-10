@@ -1,6 +1,7 @@
 package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.core.CellBox
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
@@ -28,6 +29,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class SnapshotSimulationEnvironment internal constructor(
 	val bounds: SimulationSnapshotBounds,
@@ -89,8 +91,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun cursor(): CoarseVoxelView = SectionCursor(this) { store[it] }
 
-	internal fun remembering(remembered: (Long) -> ImmutableSnapshotSection?, remembers: (CellBox) -> Boolean): RememberingView =
-		RememberingView(remembered, remembers)
+	internal fun remembering(remembered: (Long) -> ImmutableSnapshotSection?, loaded: (Int, Int) -> Boolean): RememberingView =
+		RememberingView(remembered, loaded)
 
 	override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
 		if (!classifySectionIn(sectionX, sectionY, sectionZ, planes) { store[it] }) {
@@ -116,6 +118,10 @@ class SnapshotSimulationEnvironment internal constructor(
 	}
 
 	override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z) { store[it] }
+
+	override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z) { store[it] }
+
+	override fun forEachKnownSection(action: (Long) -> Unit) = store.forEach { key, _ -> action(key) }
 
 	override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z) { store[it] }
 
@@ -241,6 +247,9 @@ class SnapshotSimulationEnvironment internal constructor(
 	private inline fun isKnownIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
 		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt) != null
 
+	private inline fun isUnknownIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
+		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt) == null
+
 	private inline fun voxelIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CoarseVoxel {
 		if (!bounds.contains(x, y, z)) return CoarseVoxel.UNKNOWN
 		val block = blockIn(x, y, z, sectionAt) ?: return CoarseVoxel.UNKNOWN
@@ -279,10 +288,12 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	internal inner class RememberingView(
 		private val remembered: (Long) -> ImmutableSnapshotSection?,
-		private val remembersBox: (CellBox) -> Boolean,
+		private val loaded: (Int, Int) -> Boolean,
 	) : CoarseVoxelView, RememberedTerrain {
 		@Volatile
 		private var forgotten = false
+
+		private val recalled = ConcurrentHashMap.newKeySet<Long>()
 
 		@Volatile
 		private var forgottenRevision: Pair<SectionStore, Unit>? = null
@@ -297,12 +308,41 @@ class SnapshotSimulationEnvironment internal constructor(
 				return (current to Unit).also { forgottenRevision = it }
 			}
 
-		override fun remembers(box: CellBox): Boolean = !forgotten && remembersBox(box)
+		override fun remembers(box: CellBox): Boolean {
+			if (forgotten || recalled.isEmpty()) return false
+			for (sx in (box.xs.first shr 4)..(box.xs.last shr 4)) for (sz in (box.zs.first shr 4)..(box.zs.last shr 4)) {
+				for (sy in (maxOf(box.ys.first, bounds.minY) shr 4)..(minOf(box.ys.last, bounds.maxY) shr 4)) {
+					if (ChunkSectionPos.asLong(sx, sy, sz) in recalled) return true
+				}
+			}
+			return false
+		}
+
+		override fun recall(around: Stance): List<CellBox> {
+			if (forgotten) return emptyList()
+			val boxes = ArrayList<CellBox>()
+			for (sx in (around.x shr 4) - RECALL_CHUNKS..(around.x shr 4) + RECALL_CHUNKS) {
+				for (sz in (around.z shr 4) - RECALL_CHUNKS..(around.z shr 4) + RECALL_CHUNKS) {
+					if (loaded(sx, sz)) continue
+					for (sy in (around.y shr 4) - 1..(around.y shr 4) + 1) {
+						val key = ChunkSectionPos.asLong(sx, sy, sz)
+						if (store[key] != null || key in recalled || remembered(key) == null || !recalled.add(key)) continue
+						boxes += CellBox((sx shl 4)..(sx shl 4) + 15, (sy shl 4)..(sy shl 4) + 15, (sz shl 4)..(sz shl 4) + 15)
+					}
+				}
+			}
+			return boxes
+		}
 
 		override fun forget(): Boolean {
 			if (forgotten) return false
 			forgotten = true
 			return true
+		}
+
+		override fun forEachKnownSection(action: (Long) -> Unit) {
+			store.forEach { key, _ -> action(key) }
+			if (!forgotten) recalled.forEach { key -> if (store[key] == null) action(key) }
 		}
 
 		override val mayBounce: Boolean get() = store.bouncySections > 0
@@ -320,13 +360,15 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
 
+		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, ::at)
+
 		override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
 			if (!classifySectionIn(sectionX, sectionY, sectionZ, planes, ::at)) {
 				super.classifySection(sectionX, sectionY, sectionZ, planes)
 			}
 		}
 
-		private fun at(key: Long): ImmutableSnapshotSection? = store[key] ?: if (forgotten) null else remembered(key)
+		private fun at(key: Long): ImmutableSnapshotSection? = store[key] ?: if (forgotten || key !in recalled) null else remembered(key)
 	}
 
 	private inner class SectionCursor(
@@ -354,6 +396,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
 
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
+
+		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, ::at)
 
 		override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
 			if (!classifySectionIn(sectionX, sectionY, sectionZ, planes, ::at)) {
@@ -389,6 +433,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	companion object {
 		private const val CURSOR_SLOTS = 64
+
+		private const val RECALL_CHUNKS = 2
 
 		internal fun streaming(
 			bounds: SimulationSnapshotBounds,
