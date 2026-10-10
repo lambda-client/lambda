@@ -95,7 +95,7 @@ class CompositeCourseTest {
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 176), blocks,
         )
         val state = com.lambda.pathing.coarse.CoarsePlanningState(
-            snapshot = environment,
+            view = environment,
             moveOptions = SimpleMoveOptions(allowSlimeBounces = true, maxBounceDrop = 12),
             start = Stance(0, 10, 0),
             goal = Stance(0, 10, 145),

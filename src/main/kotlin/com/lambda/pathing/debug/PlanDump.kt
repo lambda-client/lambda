@@ -11,26 +11,39 @@ import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
+import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import com.lambda.pathing.world.store.StoredTerrain
+import com.lambda.pathing.world.store.TerrainStore
+import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 
-object PlanDump {
-	const val VERSION = 5
+internal object PlanDump {
+	const val VERSION = 6
 
-	private const val NO_SURFACE = -1.0
+	private const val EMBEDDED_PHYSICS_VERSION = 5
+
+	private const val PLAIN_EXTENSION = ".dump"
+
+	private const val EXTENSION = "$PLAIN_EXTENSION.gz"
 
 	private const val BOX_COUNT_FIELD = 15
 
+	fun readable(version: String?): Boolean = version == "version $VERSION" || version == "version $EMBEDDED_PHYSICS_VERSION"
+
 	data class Loaded(
 		val bounds: SimulationSnapshotBounds,
-		val blocks: Map<BlockPos, SnapshotBlockPhysics>,
+		val sections: Map<Long, ImmutableSnapshotSection>,
 		val start: Stance,
 		val goal: Stance,
 		val initialState: MovementSimulationState,
@@ -40,12 +53,14 @@ object PlanDump {
 		val note: String,
 	) {
 		fun environment(): SnapshotSimulationEnvironment =
-			SnapshotSimulationEnvironment.synthetic(bounds, blocks)
+			SnapshotSimulationEnvironment(bounds, sections, SnapshotBlockPhysics.AIR)
 	}
 
 	fun write(
 		directory: Path,
-		environment: SnapshotSimulationEnvironment,
+		store: TerrainStore,
+		sections: LongArray,
+		bounds: SimulationSnapshotBounds,
 		start: Stance,
 		goal: Stance,
 		initialState: MovementSimulationState,
@@ -55,39 +70,37 @@ object PlanDump {
 		note: String,
 	): Path {
 		Files.createDirectories(directory)
-		val path = directory.resolve("plan-${System.currentTimeMillis()}.dump")
-
-		val palette = LinkedHashMap<SnapshotBlockPhysics, Int>()
-		val cells = ArrayList<Pair<BlockPos, Int>>()
-		environment.forEachInstalledBlock { packed, physics ->
-			if (physics == SnapshotBlockPhysics.AIR) return@forEachInstalledBlock
-			val index = palette.getOrPut(physics) { palette.size }
-			cells += BlockPos.fromLong(packed) to index
+		val at = System.currentTimeMillis()
+		store.reference(at)
+		val path = directory.resolve("plan-$at$EXTENSION")
+		GZIPOutputStream(Files.newOutputStream(path)).bufferedWriter().use { out ->
+			fun line(text: String) = out.append(text).append('\n')
+			line("version $VERSION")
+			line("note ${note.replace('\n', ' ')}")
+			with(bounds) { line("bounds $minX $minY $minZ $maxX $maxY $maxZ") }
+			line("start ${start.x} ${start.y} ${start.z}")
+			line("goal ${goal.x} ${goal.y} ${goal.z}")
+			line(profile.dump())
+			line(moveOptions.dump())
+			line(searchConfig.dump())
+			line(initialState.dump())
+			line("terrain ${directory.toAbsolutePath().relativize(store.directory.toAbsolutePath())} $at")
+			line("sections ${sections.size}")
+			sections.sorted().forEach { line("s ${ChunkSectionPos.unpackX(it)} ${ChunkSectionPos.unpackY(it)} ${ChunkSectionPos.unpackZ(it)}") }
 		}
-
-		val text = buildString {
-			appendLine("version $VERSION")
-			appendLine("note ${note.replace('\n', ' ')}")
-			with(environment.bounds) {
-				appendLine("bounds $minX $minY $minZ $maxX $maxY $maxZ")
-			}
-			appendLine("start ${start.x} ${start.y} ${start.z}")
-			appendLine("goal ${goal.x} ${goal.y} ${goal.z}")
-			appendLine(profile.dump())
-			appendLine(moveOptions.dump())
-			appendLine(searchConfig.dump())
-			appendLine(initialState.dump())
-			appendLine("palette ${palette.size}")
-			palette.keys.forEach { appendLine(it.dump()) }
-			appendLine("cells ${cells.size}")
-			cells.forEach { (pos, index) -> appendLine("c ${pos.x} ${pos.y} ${pos.z} $index") }
-		}
-		Files.writeString(path, text)
 		return path
 	}
 
-	fun read(path: Path): Loaded {
-		val lines = Files.readAllLines(path).filter { it.isNotBlank() }
+	fun isDump(path: Path): Boolean = path.fileName.toString().let { it.endsWith(EXTENSION) || it.endsWith(PLAIN_EXTENSION) }
+
+	fun <T> useLines(path: Path, block: (Sequence<String>) -> T): T {
+		val input = Files.newInputStream(path).let { if (path.fileName.toString().endsWith(".gz")) GZIPInputStream(it) else it }
+		return input.bufferedReader().useLines(block)
+	}
+
+	fun read(path: Path): Loaded = useLines(path) { lines -> parse(path, lines.filter { it.isNotBlank() }) }
+
+	private fun parse(path: Path, lines: Sequence<String>): Loaded {
 		var bounds: SimulationSnapshotBounds? = null
 		var start: Stance? = null
 		var goal: Stance? = null
@@ -96,15 +109,16 @@ object PlanDump {
 		var searchConfig = MotionConstraints()
 		var state: MovementSimulationState? = null
 		var note = ""
+		var terrain: Path? = null
+		var terrainAt = 0L
+		val sectionKeys = LongArrayList()
 		val palette = ArrayList<SnapshotBlockPhysics>()
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
 
 		for (line in lines) {
 			val parts = line.split(' ')
 			when (parts[0]) {
-				"version" -> require(parts[1].toInt() == VERSION) {
-					"Unsupported plan dump version ${parts[1]}"
-				}
+				"version" -> require(readable(line)) { "Unsupported plan dump version ${parts[1]}" }
 				"note" -> note = line.removePrefix("note ")
 				"bounds" -> bounds = SimulationSnapshotBounds(
 					parts[1].toInt(), parts[2].toInt(), parts[3].toInt(),
@@ -117,15 +131,22 @@ object PlanDump {
 				"options" -> moveOptions = readOptions(parts)
 				"search" -> searchConfig = readSearchConfig(parts)
 				"state" -> state = readState(parts, checkNotNull(profile) { "profile must precede state" })
+				"terrain" -> {
+					terrain = path.toAbsolutePath().parent.resolve(parts[1]).normalize()
+					terrainAt = parts[2].toLong()
+				}
+				"s" -> sectionKeys.add(ChunkSectionPos.asLong(parts[1].toInt(), parts[2].toInt(), parts[3].toInt()))
 				"p" -> palette += readPhysics(parts)
 				"c" -> blocks[BlockPos(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())] =
 					palette[parts[4].toInt()]
 			}
 		}
 
+		val box = checkNotNull(bounds) { "dump has no bounds" }
 		return Loaded(
-			bounds = checkNotNull(bounds) { "dump has no bounds" },
-			blocks = blocks,
+			bounds = box,
+			sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics() }
+				?: ImmutableSnapshotSection.sectionsOf(blocks),
 			start = checkNotNull(start) { "dump has no start" },
 			goal = checkNotNull(goal) { "dump has no goal" },
 			initialState = checkNotNull(state) { "dump has no entry state" },
@@ -231,32 +252,6 @@ object PlanDump {
 		)
 	}
 
-	private fun SnapshotBlockPhysics.dump(): String {
-		val boxes = collisionShape.boundingBoxes
-		return buildString {
-			append("p ").append(slipperiness).append(' ')
-				.append(velocityMultiplier).append(' ')
-				.append(jumpVelocityMultiplier).append(' ')
-				.append(fenceLike).append(' ')
-				.append(coarseVoxel.fullyPassable).append(' ')
-				.append(coarseVoxel.centerPassable).append(' ')
-				.append(coarseVoxel.standingSurface ?: NO_SURFACE).append(' ')
-				.append(coarseVoxel.intrusionHeight).append(' ')
-				.append(coarseVoxel.bouncy).append(' ')
-				.append(coarseVoxel.medium.name).append(' ')
-				.append(unsupportedPhysics?.kind?.name ?: "-").append(' ')
-				.append(unsupportedPhysics?.blockId?.replace(' ', '_') ?: "-").append(' ')
-				.append(bounceFactor).append(' ')
-				.append(dampensSteppingSpeed).append(' ')
-				.append(boxes.size)
-			boxes.forEach { box ->
-				append(' ').append(box.minX).append(' ').append(box.minY).append(' ').append(box.minZ)
-					.append(' ').append(box.maxX).append(' ').append(box.maxY).append(' ').append(box.maxZ)
-			}
-			water?.let { append(" water ").append(it.height).append(' ').append(it.flow.x).append(' ').append(it.flow.y).append(' ').append(it.flow.z) }
-		}
-	}
-
 	private fun readPhysics(parts: List<String>): SnapshotBlockPhysics {
 		val boxCount = parts[BOX_COUNT_FIELD].toInt()
 		var shape = VoxelShapes.empty()
@@ -272,10 +267,20 @@ object PlanDump {
 				),
 			)
 		}
-		val tail = BOX_COUNT_FIELD + 1 + boxCount * 6
-		val water = if (parts.getOrNull(tail) == "water") {
-			WaterPhysics(parts[tail + 1].toFloat(), Vec3d(parts[tail + 2].toDouble(), parts[tail + 3].toDouble(), parts[tail + 4].toDouble()))
-		} else null
+		var water: WaterPhysics? = null
+		var exceedsCube: Boolean? = null
+		var tail = BOX_COUNT_FIELD + 1 + boxCount * 6
+		while (tail < parts.size) when (parts[tail]) {
+			"water" -> {
+				water = WaterPhysics(parts[tail + 1].toFloat(), Vec3d(parts[tail + 2].toDouble(), parts[tail + 3].toDouble(), parts[tail + 4].toDouble()))
+				tail += 5
+			}
+			"exceeds" -> {
+				exceedsCube = parts[tail + 1].toBoolean()
+				tail += 2
+			}
+			else -> tail++
+		}
 		val medium = Medium.valueOf(parts[10])
 		val unsupportedKind = parts[11].takeIf { it != "-" }?.let { UnsupportedPhysicsKind.valueOf(it) }
 		return SnapshotBlockPhysics(
@@ -298,6 +303,6 @@ object PlanDump {
 			bounceFactor = parts[13].toDouble(),
 			dampensSteppingSpeed = parts[14].toBoolean(),
 			water = water,
-		)
+		).let { physics -> exceedsCube?.let { physics.copy(exceedsCube = it) } ?: physics }
 	}
 }

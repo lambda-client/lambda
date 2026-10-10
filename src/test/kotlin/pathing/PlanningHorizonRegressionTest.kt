@@ -38,7 +38,7 @@ class PlanningHorizonRegressionTest {
         val start = Stance(27, 5, -34)
         val goal = Stance(-164, 5, -13)
         val state = CoarsePlanningState(
-            snapshot = snapshot(streamedChunkRadius = 10, center = start),
+            view = snapshot(streamedChunkRadius = 10, center = start),
             moveOptions = SimpleMoveOptions(),
             start = start,
             goal = goal,

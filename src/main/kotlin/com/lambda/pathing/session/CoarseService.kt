@@ -215,6 +215,11 @@ internal class CoarseService(
 		val routed = lock.withLock { frames[leg] } != null
 		world?.let { requestKnowledge(it, state, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
 		if (route == null) {
+			if (state.forgetMemory()) {
+				LOG.info("Remembered terrain leaves no coarse route from {} to {}; planning leg {} without it", start, state.goal, leg)
+				dirty[leg] = true
+				return
+			}
 			val capturing = world != null && world.pendingInterest > 0
 			return fail(leg, start, "no coarse route to the goal: ${planner.routeFailureReport()}", final = !capturing)
 		}

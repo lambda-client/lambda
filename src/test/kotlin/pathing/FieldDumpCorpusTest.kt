@@ -4,6 +4,7 @@ import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.debug.PlanDump
+import minecraft.MinecraftBootstrap
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.VirtualSearchClock
 import org.junit.jupiter.api.Tag
@@ -11,7 +12,6 @@ import pathing.ProbeScenarios.moveLibrary
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.name
-import kotlin.io.path.useLines
 import kotlin.test.Test
 import kotlin.time.Duration
 
@@ -19,7 +19,7 @@ import kotlin.time.Duration
 class FieldDumpCorpusTest {
     @Test
     fun `replay the newest dump of every field case`() {
-        val directory = Path.of(System.getenv("PATHING_DUMP_DIR") ?: "run/neolambda/pathing-dumps")
+        val directory = Path.of(System.getenv("PATHING_DUMP_DIR") ?: "run/lambda/pathing-dumps")
         if (!Files.isDirectory(directory)) return println("[dumps] no dump directory at $directory")
         val match = System.getenv("PATHING_DUMP_MATCH")
         val cases = newestPerCase(directory).filter { match == null || it.name.contains(match) }
@@ -54,6 +54,7 @@ class FieldDumpCorpusTest {
     }
 
     private fun replay(dump: Path): Replay {
+        MinecraftBootstrap.ensure()
         val loaded = PlanDump.read(dump)
         val environment = loaded.environment()
         val planner = CoarsePlanner(environment, moveLibrary(loaded.moveOptions), loaded.start, loaded.goal)
@@ -88,9 +89,9 @@ class FieldDumpCorpusTest {
     private fun newestPerCase(directory: Path): List<Path> {
         val newest = LinkedHashMap<String, Path>()
         Files.list(directory).use { paths ->
-            paths.filter { it.name.endsWith(".dump") }.sorted().forEach { dump ->
-                val header = dump.useLines { lines -> lines.take(HEADER_LINES).toList() }
-                if (header.firstOrNull() != "version ${PlanDump.VERSION}") return@forEach
+            paths.filter(PlanDump::isDump).sorted().forEach { dump ->
+                val header = PlanDump.useLines(dump) { lines -> lines.take(HEADER_LINES).toList() }
+                if (!PlanDump.readable(header.firstOrNull())) return@forEach
                 val start = header.firstOrNull { it.startsWith("start ") } ?: return@forEach
                 val goal = header.firstOrNull { it.startsWith("goal ") } ?: return@forEach
                 newest["$start|$goal"] = dump

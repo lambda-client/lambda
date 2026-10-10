@@ -7,6 +7,7 @@ import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
+import minecraft.MinecraftBootstrap
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
@@ -30,6 +31,7 @@ class DumpLegRouteReplayTest {
             val (x, y, z) = text.split(',').map { it.trim().toInt() }
             Stance(x, y, z)
         }
+        MinecraftBootstrap.ensure()
         val loaded = PlanDump.read(Path.of(dir, file))
         val environment = loaded.environment()
         val options = loaded.moveOptions

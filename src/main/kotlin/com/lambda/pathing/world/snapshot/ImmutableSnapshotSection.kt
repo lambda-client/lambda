@@ -1,6 +1,8 @@
 package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.world.CellClass
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkSectionPos
 
 internal class ImmutableSnapshotSection private constructor(
 	private val palette: Array<SnapshotBlockPhysics>,
@@ -91,8 +93,14 @@ internal class ImmutableSnapshotSection private constructor(
 		}
 	}
 
-	private companion object {
-		fun localIndex(x: Int, y: Int, z: Int): Int =
+	companion object {
+		fun sectionsOf(blocks: Map<BlockPos, SnapshotBlockPhysics>): Map<Long, ImmutableSnapshotSection> {
+			val builders = HashMap<Long, Builder>()
+			blocks.forEach { (pos, physics) -> builders.getOrPut(ChunkSectionPos.toLong(pos), ::Builder).set(pos.x, pos.y, pos.z, physics) }
+			return builders.mapValues { (_, builder) -> builder.build() }
+		}
+
+		private fun localIndex(x: Int, y: Int, z: Int): Int =
 			((y and 15) shl 8) or ((z and 15) shl 4) or (x and 15)
 	}
 }

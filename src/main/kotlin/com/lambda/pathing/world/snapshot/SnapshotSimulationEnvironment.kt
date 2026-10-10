@@ -1,11 +1,13 @@
 package com.lambda.pathing.world.snapshot
 
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
 import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.physics.closestSupportingBlock
@@ -15,6 +17,7 @@ import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Medium
+import com.lambda.pathing.world.RememberedTerrain
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
@@ -46,6 +49,8 @@ class SnapshotSimulationEnvironment internal constructor(
 	internal fun hasSection(key: Long): Boolean = store.contains(key)
 
 	internal fun section(key: Long): ImmutableSnapshotSection? = store[key]
+
+	internal fun installedBlock(x: Int, y: Int, z: Int): SnapshotBlockPhysics? = blockIn(x, y, z) { store[it] }
 
 	internal fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(storeRef) {
 		storeRef.store = storeRef.store.with(key, section)
@@ -82,7 +87,10 @@ class SnapshotSimulationEnvironment internal constructor(
 	override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
-	override fun cursor(): CoarseVoxelView = SectionCursor()
+	override fun cursor(): CoarseVoxelView = SectionCursor(this) { store[it] }
+
+	internal fun remembering(remembered: (Long) -> ImmutableSnapshotSection?, remembers: (CellBox) -> Boolean): RememberingView =
+		RememberingView(remembered, remembers)
 
 	override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
 		if (!classifySectionIn(sectionX, sectionY, sectionZ, planes) { store[it] }) {
@@ -184,10 +192,20 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	private inline fun forEachCollisionShape(query: Box, action: (BlockPos, VoxelShape) -> Unit) {
 		val sections = PinnedSections(store)
+		val minX = MathHelper.floor(query.minX - Vanilla.COLLISION_EPSILON)
+		val maxX = MathHelper.floor(query.maxX + Vanilla.COLLISION_EPSILON)
+		val minY = MathHelper.floor(query.minY - Vanilla.COLLISION_EPSILON)
+		val maxY = MathHelper.floor(query.maxY + Vanilla.COLLISION_EPSILON)
+		val minZ = MathHelper.floor(query.minZ - Vanilla.COLLISION_EPSILON)
+		val maxZ = MathHelper.floor(query.maxZ + Vanilla.COLLISION_EPSILON)
 		forEachCollisionCandidate(query) { pos ->
+			val margins = (if (pos.x < minX || pos.x > maxX) 1 else 0) + (if (pos.y < minY || pos.y > maxY) 1 else 0) +
+					(if (pos.z < minZ || pos.z > maxZ) 1 else 0)
+			if (margins > 1) return@forEachCollisionCandidate
 			onRead?.invoke(pos)
 			val block = exactBlock(pos, sections::at)
-			if (!block.collisionShape.isEmpty) action(pos, block.collisionShape)
+			if (block.collisionShape.isEmpty || margins == 1 && !block.exceedsCube) return@forEachCollisionCandidate
+			if (block.intersectsCollisionBox(query, pos.x, pos.y, pos.z)) action(pos, block.collisionShape)
 		}
 	}
 
@@ -259,15 +277,70 @@ class SnapshotSimulationEnvironment internal constructor(
 		}
 	}
 
-	private inner class SectionCursor : CoarseVoxelView {
-		private var cached: SectionStore? = null
+	internal inner class RememberingView(
+		private val remembered: (Long) -> ImmutableSnapshotSection?,
+		private val remembersBox: (CellBox) -> Boolean,
+	) : CoarseVoxelView, RememberedTerrain {
+		@Volatile
+		private var forgotten = false
+
+		@Volatile
+		private var forgottenRevision: Pair<SectionStore, Unit>? = null
+
+		override val simulableStanceY: IntRange get() = this@SnapshotSimulationEnvironment.simulableStanceY
+
+		override val revision: Any
+			get() {
+				val current = store
+				if (!forgotten) return current
+				forgottenRevision?.takeIf { it.first === current }?.let { return it }
+				return (current to Unit).also { forgottenRevision = it }
+			}
+
+		override fun remembers(box: CellBox): Boolean = !forgotten && remembersBox(box)
+
+		override fun forget(): Boolean {
+			if (forgotten) return false
+			forgotten = true
+			return true
+		}
+
+		override val mayBounce: Boolean get() = store.bouncySections > 0
+
+		override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
+		override fun cursor(): CoarseVoxelView = SectionCursor(this, ::at)
+
+		override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z, ::at)
+
+		override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShapeIn(x, y, z, ::at)
+
+		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
+
+		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
+
+		override fun classifySection(sectionX: Int, sectionY: Int, sectionZ: Int, planes: Array<LongArray>) {
+			if (!classifySectionIn(sectionX, sectionY, sectionZ, planes, ::at)) {
+				super.classifySection(sectionX, sectionY, sectionZ, planes)
+			}
+		}
+
+		private fun at(key: Long): ImmutableSnapshotSection? = store[key] ?: if (forgotten) null else remembered(key)
+	}
+
+	private inner class SectionCursor(
+		private val owner: CoarseVoxelView,
+		private val sectionAt: (Long) -> ImmutableSnapshotSection?,
+	) : CoarseVoxelView {
+		private var cached: Any? = null
 		private var filled = 0L
 		private val keys = LongArray(CURSOR_SLOTS)
 		private val sections = arrayOfNulls<ImmutableSnapshotSection>(CURSOR_SLOTS)
 
 		override val simulableStanceY: IntRange get() = this@SnapshotSimulationEnvironment.simulableStanceY
 
-		override val revision: Any get() = store
+		override val revision: Any? get() = owner.revision
 
 		override val mayBounce: Boolean get() = store.bouncySections > 0
 
@@ -289,14 +362,14 @@ class SnapshotSimulationEnvironment internal constructor(
 		}
 
 		private fun at(key: Long): ImmutableSnapshotSection? {
-			val current = store
+			val current = owner.revision
 			if (current !== cached) {
 				cached = current
 				filled = 0L
 			}
 			val slot = (((key ushr 42).toInt() and 3) shl 4) or ((key.toInt() and 3) shl 2) or ((key ushr 20).toInt() and 3)
 			if (filled and (1L shl slot) != 0L && keys[slot] == key) return sections[slot]
-			val section = current[key]
+			val section = sectionAt(key)
 			keys[slot] = key
 			sections[slot] = section
 			filled = filled or (1L shl slot)
@@ -327,18 +400,8 @@ class SnapshotSimulationEnvironment internal constructor(
 			bounds: SimulationSnapshotBounds,
 			blocks: Map<BlockPos, SnapshotBlockPhysics>,
 		): SnapshotSimulationEnvironment {
-			val builders = HashMap<Long, ImmutableSnapshotSection.Builder>()
-			blocks.forEach { (pos, physics) ->
-				require(pos in bounds) { "Synthetic block $pos lies outside $bounds" }
-				val sectionKey = ChunkSectionPos.toLong(pos)
-				builders.getOrPut(sectionKey, ImmutableSnapshotSection::Builder)
-					.set(pos.x, pos.y, pos.z, physics)
-			}
-			return SnapshotSimulationEnvironment(
-				bounds = bounds,
-				sections = builders.mapValues { (_, builder) -> builder.build() },
-				defaultBlock = SnapshotBlockPhysics.AIR,
-			)
+			blocks.keys.forEach { pos -> require(pos in bounds) { "Synthetic block $pos lies outside $bounds" } }
+			return SnapshotSimulationEnvironment(bounds, ImmutableSnapshotSection.sectionsOf(blocks), SnapshotBlockPhysics.AIR)
 		}
 	}
 }

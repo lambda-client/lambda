@@ -194,7 +194,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		observed: MovementSimulationState,
 		afterInput: Boolean,
 	) {
-		val report = executionRejectionReport(path, frame, deviation, observed, afterInput)
+		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, walk.journey?.world?.snapshot)
 		with(walk) {
 			when (deviation) {
 				is ExecutionDeviation.WorldChanged -> recover(report, reuseCoarseState = true)

@@ -14,6 +14,7 @@ import com.lambda.interaction.managers.Manager
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.session.PathingSession.State
+import com.lambda.pathing.world.store.TerrainStores
 import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.util.player.MovementUtils.update
 import com.lambda.util.world.ChunkPacketLoadContext
@@ -90,7 +91,10 @@ object PathingManager : Manager<PathingRequest>(0) {
 	}
 
 	init {
-		listenUnsafe<ConnectionEvent.Disconnect> { clear() }
+		listenUnsafe<ConnectionEvent.Disconnect> {
+			clear()
+			TerrainStores.close()
+		}
 		listenUnsafe<WorldEvent.BlockUpdate.Client> { event ->
 			if (event.world.isClient && event.oldState != event.newState &&
 				!ChunkPacketLoadContext.isActive()

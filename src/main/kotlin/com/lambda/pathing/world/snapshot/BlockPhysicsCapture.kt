@@ -18,7 +18,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
-import net.minecraft.world.World
+import net.minecraft.world.BlockView
 
 object BlockPhysicsCapture {
 
@@ -52,7 +52,7 @@ object BlockPhysicsCapture {
 		)
 	}
 
-	fun capture(state: BlockState, world: World, pos: BlockPos, shapeContext: ShapeContext): SnapshotBlockPhysics {
+	fun capture(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext): SnapshotBlockPhysics {
 		val shape = state.getCollisionShape(world, pos, shapeContext)
 		val unsupported = unsupportedPhysics(state)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
@@ -75,6 +75,7 @@ object BlockPhysicsCapture {
 			water = state.fluidState.takeIf { it.isIn(FluidTags.WATER) }?.let {
 				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
 			},
+			exceedsCube = state.exceedsCube(),
 		)
 	}
 

@@ -147,6 +147,15 @@ transitive-accessible field net/minecraft/client/gui/hud/DebugHud renderingAndTi
 transitive-accessible field net/minecraft/client/gui/hud/DebugHud packetSizeAndPingChartsVisible Z
 transitive-accessible method net/minecraft/item/DebugStickItem cycle (Lnet/minecraft/block/BlockState;Lnet/minecraft/state/property/Property;Z)Lnet/minecraft/block/BlockState;
 
+# Bootstrap
+transitive-accessible method net/minecraft/registry/entry/RegistryEntry$Reference setRegistryKey (Lnet/minecraft/registry/RegistryKey;)V
+transitive-accessible method net/minecraft/registry/entry/RegistryEntry$Reference setValue (Ljava/lang/Object;)V
+transitive-accessible method net/minecraft/registry/entry/RegistryEntry$Reference setTags (Ljava/util/Collection;)V
+transitive-accessible method net/minecraft/registry/entry/RegistryEntryList$Named <init> (Lnet/minecraft/registry/entry/RegistryEntryOwner;Lnet/minecraft/registry/tag/TagKey;)V
+transitive-accessible method net/minecraft/registry/entry/RegistryEntryList$Named setEntries (Ljava/util/List;)V
+transitive-accessible method net/minecraft/entity/Entity isInSameTeam (Lnet/minecraft/entity/Entity;)Z
+transitive-accessible method net/minecraft/entity/LivingEntity getHitbox ()Lnet/minecraft/util/math/Box;
+
 # Other
 transitive-accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;
 transitive-accessible method net/minecraft/item/BlockItem getPlacementState (Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/block/BlockState;

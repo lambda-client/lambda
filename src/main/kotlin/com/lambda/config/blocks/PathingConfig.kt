@@ -128,10 +128,10 @@ interface PathingConfig {
     val horizonCommitFrames: Int get() = 20
 
     /**
-     * On a refusal, write the whole captured plan — collision shapes, endpoints, entry
-     * state, physics profile — to `neolambda/pathing-dumps`. The terrain behind a field
-     * refusal otherwise exists only in the reporter's world; this turns it into a JVM
-     * fixture that replays in a second.
+     * On a refusal, write the plan — endpoints, entry state, physics profile and the sections
+     * it captured — gzipped to `lambda/pathing-dumps`, with the block states of those sections
+     * in `lambda/cache/terrain`. The terrain behind a field refusal otherwise exists only in the
+     * reporter's world; this turns it into a JVM fixture that replays in a second.
      */
     val dumpFailedPlans: Boolean get() = false
 
@@ -141,6 +141,13 @@ interface PathingConfig {
      * and the slack audit can be measured against.
      */
     val dumpAllPlans: Boolean get() = false
+
+    /**
+     * Plan beyond loaded chunks through the terrain Baritone's cache remembers, read only:
+     * oceans, mountains and ravines from earlier trips shape the coarse route, and every chunk
+     * captured exactly replaces what the cache remembered of it.
+     */
+    val useBaritoneCache: Boolean get() = true
 
     /** Deepest fall accepted beyond the falls the player takes without damage. */
     val maxSafeFallDistance: Double get() = 3.0

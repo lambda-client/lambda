@@ -38,11 +38,12 @@ object FolderRegistry : Loadable {
     val structure: Path = lambda.resolve("structure")
     val maps: Path = lambda.resolve("maps")
     val fonts: Path = lambda.resolve("fonts")
+    val pathingDumps: Path = lambda.resolve("pathing-dumps")
 
     val File.relativeMCPath: Path get() = minecraft.relativize(toPath())
 
     override fun load(): String {
-        val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps, fonts)
+        val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps, fonts, pathingDumps)
         val createdFolders = folders.mapNotNull {
             if (it.notExists()) {
                 it.createDirectories()

@@ -5,7 +5,12 @@ import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
+import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import net.minecraft.block.ShapeContext
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 
 internal fun executionRejectionReport(
@@ -14,6 +19,7 @@ internal fun executionRejectionReport(
 	deviation: ExecutionDeviation,
 	observed: MovementSimulationState,
 	afterInput: Boolean,
+	snapshot: SnapshotSimulationEnvironment?,
 ): String {
 	val splice = when {
 		frame in path.spliceFrames -> " at predicted splice"
@@ -62,9 +68,40 @@ internal fun executionRejectionReport(
 			it.playerInput.sneak(),
 		)
 	}.orEmpty()
+	val worldDetail = if (deviation is ExecutionDeviation.WorldChanged || snapshot == null) "" else {
+		snapshotDifferences(snapshot, listOfNotNull(before?.boundingBox, expected?.boundingBox, observed.boundingBox))
+	}
 	return "frame $frame $phase$splice: $deviation$inputDetail$previousInputDetail" +
-			"$liveInputDetail$stateDetail$ledgeDetail"
+			"$liveInputDetail$stateDetail$ledgeDetail$worldDetail"
 }
+
+private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: List<Box>): String {
+	val player = mc.player ?: return ""
+	val world = mc.world ?: return ""
+	val around = boxes.reduce(Box::union).expand(1.0)
+	val context = ShapeContext.of(player)
+	val differences = ArrayList<String>()
+	val cell = BlockPos.Mutable()
+	for (x in MathHelper.floor(around.minX)..MathHelper.floor(around.maxX)) {
+		for (y in MathHelper.floor(around.minY)..MathHelper.floor(around.maxY)) {
+			for (z in MathHelper.floor(around.minZ)..MathHelper.floor(around.maxZ)) {
+				val state = world.getBlockState(cell.set(x, y, z))
+				val live = BlockPhysicsCapture.capture(state, world, cell, context)
+				val captured = snapshot.installedBlock(x, y, z)
+				if (captured == live) continue
+				differences += "($x,$y,$z) live ${state.block.translationKey.substringAfterLast('.')} ${live.collisionShape.boundingBoxes.map { it.short() }}" +
+						" snapshot ${captured?.collisionShape?.boundingBoxes?.map { it.short() } ?: "unknown"}"
+			}
+		}
+	}
+	world.getOtherEntities(player, around) { it.isCollidable(player) }.forEach { entity ->
+		differences += "collidable ${entity.type.untranslatedName} ${entity.boundingBox.short()}"
+	}
+	return if (differences.isEmpty()) "; snapshot matches the live world around the body"
+	else "; snapshot differs from the live world in ${differences.size} cell(s): ${differences.take(MAX_REPORTED_DIFFERENCES).joinToString(", ")}"
+}
+
+private const val MAX_REPORTED_DIFFERENCES = 12
 
 private fun liveLedgeProbe(box: Box, movement: Vec3d): String {
 	val player = mc.player ?: return ""

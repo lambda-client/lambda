@@ -16,6 +16,7 @@ import kotlin.concurrent.withLock
 class PathingWorld(
 	val bounds: SimulationSnapshotBounds,
 	private val source: CaptureSource,
+	private val recorder: SectionRecorder? = null,
 ) {
 	private val pendingReplacements = ConcurrentHashMap<Long, ImmutableSnapshotSection>()
 	private val pendingRemovals = ConcurrentHashMap.newKeySet<Long>()
@@ -96,6 +97,7 @@ class PathingWorld(
 		if (capturing) capture.patch(x, y, z, physics)
 		if (recorded == null || recorded[x, y, z] == physics) return
 		pendingReplacements[key] = recorded.with(x, y, z, physics)
+		recorder?.record(key)
 		revisions.recordMutation(VoxelPos(x, y, z))
 	}
 
@@ -202,6 +204,7 @@ class PathingWorld(
 		} else {
 			snapshot.install(key, frozen)
 		}
+		recorder?.record(key)
 		revisions.recordCaptured(sectionOf(key))
 	}
 

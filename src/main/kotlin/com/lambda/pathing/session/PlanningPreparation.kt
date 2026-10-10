@@ -11,7 +11,7 @@ import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.supportedStanceOf
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
-import net.minecraft.client.MinecraftClient
+import com.lambda.util.FolderRegistry
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -38,6 +38,7 @@ internal data class PlanningPreparation(
 	val plannerThreads: Int,
 	val dumpDirectory: Path?,
 	val dumpAllPlans: Boolean,
+	val useBaritoneCache: Boolean,
 	val startedMillis: Long,
 )
 
@@ -118,7 +119,7 @@ internal fun preparePlanning(
 	}
 
 	val dumpDirectory = if (config.dumpFailedPlans || config.dumpAllPlans || java.lang.Boolean.getBoolean("lambda.pathing.dumpFailures")) {
-		MinecraftClient.getInstance().runDirectory.toPath().resolve(DUMP_DIRECTORY)
+		FolderRegistry.pathingDumps
 	} else {
 		null
 	}
@@ -143,6 +144,7 @@ internal fun preparePlanning(
 			plannerThreads = config.plannerThreads,
 			dumpDirectory = dumpDirectory,
 			dumpAllPlans = config.dumpAllPlans,
+			useBaritoneCache = config.useBaritoneCache,
 			startedMillis = started,
 		)
 	)
@@ -157,5 +159,3 @@ private const val MAX_ENTRY_HORIZONTAL_SPEED = 0.6
 private const val MAX_ENTRY_ASCENT_SPEED = 0.5
 
 private const val MAX_ENTRY_DESCENT_SPEED = 4.0
-
-private const val DUMP_DIRECTORY = "neolambda/pathing-dumps"

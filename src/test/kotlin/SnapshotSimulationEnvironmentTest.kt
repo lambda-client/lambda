@@ -184,6 +184,36 @@ class SnapshotSimulationEnvironmentTest {
         assertClose(0.0, adjusted.y)
     }
 
+    /**
+     * Field replans at trees (10 Oct 2026): a body one tick past a downhill edge is still on ground,
+     * jumps forward and its head meets leaves. Vanilla's collision collection only offers step
+     * heights from blocks the query box touches, plus margin blocks taller than a cube, so the
+     * edge block just left behind is no candidate: the jump rises and stops at the leaves. Taking
+     * step heights from every scanned block kept the body at its feet and slid it under them.
+     */
+    @Test
+    fun `a block behind the step query is no step candidate`() {
+        val blocks = buildMap {
+            for (x in -2..2) {
+                put(BlockPos(x, 85, 0), SnapshotBlockPhysics.FULL_CUBE)
+                for (z in 1..3) put(BlockPos(x, 84, z), SnapshotBlockPhysics.FULL_CUBE)
+                put(BlockPos(x, 88, 2), SnapshotBlockPhysics.FULL_CUBE)
+            }
+        }
+        val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-8, 80, -8, 8, 95, 8), blocks)
+        val pastTheEdge = Box(0.2, 86.0, 1.04, 0.8, 87.8, 1.64)
+
+        val adjusted = environment.adjustMovementForCollisions(
+            movement = Vec3d(0.0, 0.42, 0.58),
+            boundingBox = pastTheEdge,
+            onGround = true,
+            stepHeight = 0.6,
+        )
+
+        assertClose(0.42, adjusted.y)
+        assertClose(0.36, adjusted.z)
+    }
+
     @Test
     fun `snapshot collision resolver performs vanilla slab auto step`() {
         val slab = SnapshotBlockPhysics(

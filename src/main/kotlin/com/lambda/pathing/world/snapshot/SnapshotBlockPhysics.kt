@@ -22,6 +22,7 @@ data class SnapshotBlockPhysics(
 	val bounceFactor: Double = 0.0,
 	val dampensSteppingSpeed: Boolean = false,
 	val water: WaterPhysics? = null,
+	val exceedsCube: Boolean = collisionShape.boundingBoxes.any { it.minX < 0.0 || it.minY < 0.0 || it.minZ < 0.0 || it.maxX > 1.0 || it.maxY > 1.0 || it.maxZ > 1.0 },
 ) {
 	internal val coarseShape: VoxelShape =
 		if (unsupportedPhysics != null || water != null) VoxelShapes.fullCube() else collisionShape
@@ -34,14 +35,15 @@ data class SnapshotBlockPhysics(
 
 	private val hash = Objects.hash(
 		collisionBoxes, slipperiness, velocityMultiplier, jumpVelocityMultiplier, unsupportedPhysics,
-		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water,
+		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water, exceedsCube,
 	)
 
 	override fun equals(other: Any?): Boolean = this === other || other is SnapshotBlockPhysics && hash == other.hash &&
 			collisionBoxes == other.collisionBoxes && slipperiness == other.slipperiness &&
 			velocityMultiplier == other.velocityMultiplier && jumpVelocityMultiplier == other.jumpVelocityMultiplier &&
 			unsupportedPhysics == other.unsupportedPhysics && coarseVoxel == other.coarseVoxel && fenceLike == other.fenceLike &&
-			bounceFactor == other.bounceFactor && dampensSteppingSpeed == other.dampensSteppingSpeed && water == other.water
+			bounceFactor == other.bounceFactor && dampensSteppingSpeed == other.dampensSteppingSpeed && water == other.water &&
+			exceedsCube == other.exceedsCube
 
 	override fun hashCode(): Int = hash
 

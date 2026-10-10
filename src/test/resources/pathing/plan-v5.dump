@@ -1,0 +1,21 @@
+version 5
+note unit round trip
+bounds -4 60 -4 8 76 8
+start 0 65 0
+goal 7 65 3
+profile 0.1 0.3 0.08 0.42 0.6 0.0 false 0.6 1.8 0.0 false
+options false true 5 true 5 2 false false false 8 2 false true
+search 240 42.5 0.33 false false 1.6 3.0
+state 0.5 65.0 0.5 0.123 -0.0784 -0.456 37.5 12.0 true false true false 3 false true false 0 64 0 none false 0.0 false false false
+palette 5
+p 0.6000000238418579 1.0 1.0 false false false 1.0 0.0 false SOLID - - 0.0 false 1 0.0 0.0 0.0 1.0 1.0 1.0
+p 0.98 0.4 0.5 false false true 0.5 0.0 false SOLID - - 0.0 false 1 0.0 0.0 0.0 1.0 0.5 1.0
+p 0.6000000238418579 1.0 1.0 true false false -1.0 0.5 false SOLID - - 0.0 false 3 0.375 0.0 0.375 0.625 1.5 0.625 0.0 0.75 0.375 0.375 0.9375 0.625 0.625 0.75 0.375 1.0 0.9375 0.625
+p 0.6000000238418579 1.0 1.0 false false false -1.0 1.0 false UNKNOWN FLUID minecraft:lava 0.0 false 0
+p 0.6000000238418579 1.0 1.0 false false false -1.0 1.0 false UNKNOWN FLUID minecraft:water 0.0 false 0 water 0.7777778 -0.7071067811865475 0.0 0.7071067811865476
+cells 5
+c 0 64 0 0
+c 1 64 0 1
+c 2 64 0 2
+c 3 64 0 3
+c 4 64 0 4

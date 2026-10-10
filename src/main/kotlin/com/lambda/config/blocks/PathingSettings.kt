@@ -225,18 +225,25 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     ) { captureRetries > 0 }
 
     @Group(SEARCH_GROUP)
+    override val useBaritoneCache by c.setting(
+        "Baritone Cache", true,
+        "Plan beyond loaded chunks through the terrain Baritone's cache remembers. Read only; " +
+            "every loaded chunk replaces what the cache remembered of it.",
+    )
+
+    @Group(SEARCH_GROUP)
     override val dumpFailedPlans by c.setting(
         "Dump Failed Plans", false,
-        "On a refusal, write the captured world, endpoints and entry state to " +
-            "neolambda/pathing-dumps so the failure can be replayed and fixed offline.",
+        "On a refusal, write the endpoints and entry state to lambda/pathing-dumps and the " +
+            "captured terrain to lambda/cache/terrain, so the failure can be replayed and fixed offline.",
     )
 
     @Group(SEARCH_GROUP)
     override val dumpAllPlans by c.setting(
         "Dump All Plans", false,
-        "Write the captured world, endpoints and entry state of every planned leg to " +
-            "neolambda/pathing-dumps, successes included, so a real course can be replayed " +
-            "and improved offline.",
+        "Write the endpoints and entry state of every planned leg to lambda/pathing-dumps " +
+            "and the captured terrain to lambda/cache/terrain, successes included, so a real " +
+            "course can be replayed and improved offline.",
     )
 
     private companion object {

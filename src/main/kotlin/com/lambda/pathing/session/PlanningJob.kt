@@ -94,10 +94,11 @@ internal class PlanningJob(
 
 	private fun dump(kind: String, note: String) {
 		val directory = preparation.dumpDirectory ?: return
+		val terrain = journey.terrain ?: return
 		runCatching {
 			PlanDump.write(
-				directory, snapshot, start, goal, preparation.initial, preparation.profile,
-				preparation.moveOptions, preparation.seedConfig, note = note,
+				directory, terrain.store, terrain.recordedSections(), snapshot.bounds, start, goal, preparation.initial,
+				preparation.profile, preparation.moveOptions, preparation.seedConfig, note = note,
 			)
 		}.onFailure { LOG.error("Could not write the $kind dump", it) }
 			.onSuccess { LOG.info("Wrote the {} dump: {}", kind, it) }
