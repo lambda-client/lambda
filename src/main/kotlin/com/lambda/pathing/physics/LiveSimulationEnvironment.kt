@@ -4,6 +4,7 @@ import com.lambda.util.BlockUtils.isFenceLike
 import net.minecraft.block.Blocks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.tag.BlockTags
+import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -59,4 +60,10 @@ class LiveSimulationEnvironment(
 
 	override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
 		world.getBlockState(pos).isOf(Blocks.SLIME_BLOCK)
+
+	override fun water(pos: BlockPos): WaterPhysics? = world.getFluidState(pos).takeIf { it.isIn(FluidTags.WATER) }?.let {
+		WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
+	}
+
+	override fun containsFluid(box: Box): Boolean = world.containsFluid(box)
 }

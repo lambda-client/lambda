@@ -9,6 +9,7 @@ internal class ImmutableSnapshotSection private constructor(
 ) {
 	val paletteSize: Int get() = palette.size
 	val bouncy: Boolean = palette.any { it.coarseVoxel.bouncy }
+	val watery: Boolean = palette.any { it.water != null }
 	val indexStorageBytes: Int get() = byteIndices?.size ?: shortIndices?.size?.times(Short.SIZE_BYTES) ?: 0
 
 	operator fun get(x: Int, y: Int, z: Int): SnapshotBlockPhysics = cell(localIndex(x, y, z))

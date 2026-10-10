@@ -8,6 +8,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
@@ -137,7 +138,7 @@ object PlanDump {
 
 	private fun PlayerPhysicsProfile.dump(): String = listOf(
 		"profile", movementSpeed, sneakSpeedModifier, gravity, jumpStrength, stepHeight,
-		jumpBoostVelocityModifier, slowFalling, width, height,
+		jumpBoostVelocityModifier, slowFalling, width, height, waterMovementEfficiency, dolphinsGrace,
 	).joinToString(" ")
 
 	private fun readProfile(parts: List<String>) = PlayerPhysicsProfile(
@@ -150,13 +151,15 @@ object PlanDump {
 		slowFalling = parts[7].toBoolean(),
 		width = parts[8].toDouble(),
 		height = parts[9].toDouble(),
+		waterMovementEfficiency = parts.getOrNull(10)?.toDouble() ?: 0.0,
+		dolphinsGrace = parts.getOrNull(11)?.toBoolean() ?: false,
 	)
 
 	private fun SimpleMoveOptions.dump(): String = listOf(
 		"options", allowDiagonal, allowStepUp, maxWalkOffDepth, allowJumpCandidates,
 		maxJumpSpan, maxJumpDrop, allowOffAxisJumps,
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
-		allowDeepDropJumps,
+		allowDeepDropJumps, allowSwimming,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -172,6 +175,7 @@ object PlanDump {
 		maxBounceDrop = parts.getOrNull(10)?.toInt() ?: 8,
 		maxDropSpan = parts.getOrNull(11)?.toInt() ?: 2,
 		allowDeepDropJumps = parts.getOrNull(12)?.toBoolean() ?: false,
+		allowSwimming = parts.getOrNull(13)?.toBoolean() ?: true,
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(
@@ -195,10 +199,12 @@ object PlanDump {
 		jumpingCooldown, horizontalCollision, collidedSoftly, verticalCollision,
 		velocityAffectingPos.x, velocityAffectingPos.y, velocityAffectingPos.z,
 		supportingBlockPos?.let { "${it.x} ${it.y} ${it.z}" } ?: "none",
+		touchingWater, waterHeight, eyeInWater, submergedInWater, swimming,
 	).joinToString(" ")
 
 	private fun readState(parts: List<String>, profile: PlayerPhysicsProfile): MovementSimulationState {
 		val position = Vec3d(parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble())
+		val water = parts.drop(if (parts[20] == "none") 21 else 23)
 		return MovementSimulationState.synthetic(
 			profile = profile,
 			position = position,
@@ -217,6 +223,11 @@ object PlanDump {
 			supportingBlockPos = if (parts[20] == "none") null else {
 				BlockPos(parts[20].toInt(), parts[21].toInt(), parts[22].toInt())
 			},
+			touchingWater = water.getOrNull(0)?.toBoolean() ?: false,
+			waterHeight = water.getOrNull(1)?.toDouble() ?: 0.0,
+			eyeInWater = water.getOrNull(2)?.toBoolean() ?: false,
+			submergedInWater = water.getOrNull(3)?.toBoolean() ?: false,
+			swimming = water.getOrNull(4)?.toBoolean() ?: false,
 		)
 	}
 
@@ -242,6 +253,7 @@ object PlanDump {
 				append(' ').append(box.minX).append(' ').append(box.minY).append(' ').append(box.minZ)
 					.append(' ').append(box.maxX).append(' ').append(box.maxY).append(' ').append(box.maxZ)
 			}
+			water?.let { append(" water ").append(it.height).append(' ').append(it.flow.x).append(' ').append(it.flow.y).append(' ').append(it.flow.z) }
 		}
 	}
 
@@ -260,6 +272,10 @@ object PlanDump {
 				),
 			)
 		}
+		val tail = BOX_COUNT_FIELD + 1 + boxCount * 6
+		val water = if (parts.getOrNull(tail) == "water") {
+			WaterPhysics(parts[tail + 1].toFloat(), Vec3d(parts[tail + 2].toDouble(), parts[tail + 3].toDouble(), parts[tail + 4].toDouble()))
+		} else null
 		val medium = Medium.valueOf(parts[10])
 		val unsupportedKind = parts[11].takeIf { it != "-" }?.let { UnsupportedPhysicsKind.valueOf(it) }
 		return SnapshotBlockPhysics(
@@ -281,6 +297,7 @@ object PlanDump {
 			fenceLike = parts[4].toBoolean(),
 			bounceFactor = parts[13].toDouble(),
 			dampensSteppingSpeed = parts[14].toBoolean(),
+			water = water,
 		)
 	}
 }

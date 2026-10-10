@@ -96,7 +96,7 @@ internal class AnchorRollout(
 			program = program,
 			evaluator = RolloutEvaluator(
 				anchor.state, points, route.goalPoint, config,
-				allowHorizontalContact = movement.climbs,
+				allowHorizontalContact = movement.inMedium,
 				descentAllowance = movement.descentAllowance(action),
 				climbing = climbingAt,
 			),
@@ -132,7 +132,7 @@ internal class AnchorRollout(
 				is RolloutVerdict.Continue -> {
 					if (!frame.state.onGround) airborne = true
 
-					if (!frame.state.onGround && !movement.climbs) {
+					if (!frame.state.onGround && !movement.inMedium) {
 						false
 					} else {
 						val stance = stanceOf(frame.state)
@@ -149,9 +149,9 @@ internal class AnchorRollout(
 						)
 
 						val moving = frame.state.velocity.horizontalLength() > MotionConstraints.STOPPED_SPEED ||
-								action.leavesGround || movement.climbs
+								action.leavesGround || movement.inMedium
 
-						val onLadderTop = frame.state.onGround && !movement.climbs &&
+						val onLadderTop = frame.state.onGround && !movement.inMedium &&
 								field.view.medium(stance.x, stance.y - 1, stance.z) == Medium.CLIMBABLE &&
 								!field.isStance(stance)
 						if (done && moving && stance != anchor.stance && !onLadderTop) {

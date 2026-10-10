@@ -39,6 +39,7 @@ enum class CollisionClass {
 enum class Medium {
 	AIR,
 	CLIMBABLE,
+	WATER,
 	SOLID,
 	UNKNOWN,
 }
@@ -49,6 +50,7 @@ enum class CellClass(val plane: Int) {
 	HAZARD(1),
 	CLIMB(2),
 	SPECIAL(3),
+	WATER(4),
 	;
 
 	fun mark(planes: Array<LongArray>, index: Int) {
@@ -60,13 +62,14 @@ enum class CellClass(val plane: Int) {
 	}
 
 	companion object {
-		const val PLANES = 4
+		const val PLANES = 5
 
 		fun of(voxel: CoarseVoxel, collision: CollisionClass): CellClass = when {
 			(voxel == CoarseVoxel.FULL_BLOCK || voxel == CoarseVoxel.BOUNCY_BLOCK) && collision == CollisionClass.FULL -> SOLID
 			voxel == CoarseVoxel.AIR && collision == CollisionClass.EMPTY -> EMPTY
 			voxel == CoarseVoxel.HAZARD && collision == CollisionClass.FULL -> HAZARD
 			voxel == CoarseVoxel.CLIMBABLE && collision == CollisionClass.EMPTY -> CLIMB
+			voxel == CoarseVoxel.WATER && collision == CollisionClass.FULL -> WATER
 			else -> SPECIAL
 		}
 	}
@@ -96,6 +99,7 @@ data class CoarseVoxel(
 		val UNKNOWN = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, intrusionHeight = UNKNOWN_INTRUSION, medium = Medium.UNKNOWN)
 		val HAZARD = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.UNKNOWN)
 		val CLIMBABLE = CoarseVoxel(fullyPassable = true, centerPassable = true, standingSurface = null, medium = Medium.CLIMBABLE)
+		val WATER = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.WATER)
 	}
 }
 

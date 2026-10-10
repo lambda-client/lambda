@@ -442,7 +442,7 @@ internal object PathingTestHarness {
         context: ClientGameTestContext,
         scenario: String,
         tape: List<MovementSimulationInput>,
-    ) {
+    ): List<MovementSimulationState> {
         lateinit var previousInput: Input
         lateinit var expected: List<MovementSimulationState>
 
@@ -463,7 +463,7 @@ internal object PathingTestHarness {
                     minZ = center.z - 6,
                     maxX = center.x + 6,
                     maxY = center.y + 6,
-                    maxZ = center.z + 10,
+                    maxZ = center.z + 14,
                 ),
             )
 
@@ -545,12 +545,22 @@ internal object PathingTestHarness {
                     "$scenario frame $frame velocityAffectingPos: expected ${predicted.velocityAffectingPos}, " +
                         "actual ${player.velocityAffectingPos}"
                 }
+                check(predicted.touchingWater == player.isTouchingWater) {
+                    "$scenario frame $frame touchingWater: expected ${predicted.touchingWater}, actual ${player.isTouchingWater}"
+                }
+                check(predicted.submergedInWater == player.isSubmergedInWater) {
+                    "$scenario frame $frame submergedInWater: expected ${predicted.submergedInWater}, actual ${player.isSubmergedInWater}"
+                }
+                // The swimming flag itself is not compared: the server echoes the player's entity
+                // flags back between ticks and can clear it after the client swam the whole tick.
+                // The pose the client derived from it is the box height checked above.
             }
         }
 
         context.runOnClient<IllegalStateException> {
             Lambda.mc.player?.input = previousInput
         }
+        return expected
     }
 
     private fun diagnostics(): String = buildString {

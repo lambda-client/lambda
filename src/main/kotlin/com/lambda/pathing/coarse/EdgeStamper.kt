@@ -103,6 +103,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private val solids = LongArray(cellRow.size)
 	private val hazards = LongArray(cellRow.size)
 	private val climbs = LongArray(cellRow.size)
+	private val waters = LongArray(cellRow.size)
 	private val specialCells = LongArray(cellRow.size)
 
 	fun synchronize() {
@@ -218,7 +219,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		fetch(word, y, z, 0, stanceRows)
 		val (below2, below, body, head) = stanceCells
 		for (cell in stanceCells) load(cell)
-		val gated = (solid(below) and (blocking(body) or blocking(head)).inv()) or climb(body) or
+		val gated = (solid(below) and (blocking(body) or blocking(head)).inv()) or climb(body) or (water(body) and blocking(head).inv()) or
 				special(below2) or special(below) or special(body) or special(head)
 		var stances = 0L
 		var remaining = gated
@@ -366,10 +367,11 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 
 	private fun among(classes: Int, cell: Int): Long {
 		var mask = 0L
-		if (classes and EMPTY_CLASS != 0) mask = mask or (solid(cell) or hazard(cell) or climb(cell)).inv()
+		if (classes and EMPTY_CLASS != 0) mask = mask or (solid(cell) or hazard(cell) or climb(cell) or water(cell)).inv()
 		if (classes and SOLID_CLASS != 0) mask = mask or solid(cell)
 		if (classes and HAZARD_CLASS != 0) mask = mask or hazard(cell)
 		if (classes and CLIMB_CLASS != 0) mask = mask or climb(cell)
+		if (classes and WATER_CLASS != 0) mask = mask or water(cell)
 		return mask
 	}
 
@@ -377,6 +379,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		solids[cell] = shifted(words[CellClass.SOLID.plane], cell)
 		hazards[cell] = shifted(words[CellClass.HAZARD.plane], cell)
 		climbs[cell] = shifted(words[CellClass.CLIMB.plane], cell)
+		waters[cell] = shifted(words[CellClass.WATER.plane], cell)
 		specialCells[cell] = if (specials) shifted(words[CellClass.SPECIAL.plane], cell) else 0L
 	}
 
@@ -399,9 +402,11 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 
 	private fun climb(cell: Int): Long = climbs[cell]
 
+	private fun water(cell: Int): Long = waters[cell]
+
 	private fun special(cell: Int): Long = specialCells[cell]
 
-	private fun blocking(cell: Int): Long = solids[cell] or hazards[cell]
+	private fun blocking(cell: Int): Long = solids[cell] or hazards[cell] or waters[cell]
 
 	private fun shifted(words: LongArray, cell: Int): Long {
 		val base = cellRow[cell] * 3 + 1
@@ -443,7 +448,8 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		const val SOLID_CLASS = 2
 		const val HAZARD_CLASS = 4
 		const val CLIMB_CLASS = 8
-		const val ALL_CLASSES = 15
+		const val WATER_CLASS = 16
+		const val ALL_CLASSES = 31
 
 		val STANCE_CELLS = listOf(VoxelPos(0, -2, 0), VoxelPos(0, -1, 0), VoxelPos(0, 0, 0), VoxelPos(0, 1, 0))
 	}

@@ -37,7 +37,7 @@ internal class RolloutEvaluator(
 	fun observe(index: Int, state: MovementSimulationState): RolloutVerdict {
 		val before = previous
 		previous = state
-		if (climbing(state.position)) apex = state.position.y
+		if (state.touchingWater || climbing(state.position)) apex = state.position.y
 		if (state.onGround) {
 			val rebounded = state.velocity.y > 0.0
 			val fallDistance = apex - state.position.y

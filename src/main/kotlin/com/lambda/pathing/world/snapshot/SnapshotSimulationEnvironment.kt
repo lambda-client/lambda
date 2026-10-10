@@ -5,7 +5,9 @@ import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
 import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
+import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
+import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.physics.closestSupportingBlock
 import com.lambda.pathing.physics.forEachCollisionCandidate
 import com.lambda.pathing.world.CellClass
@@ -18,6 +20,7 @@ import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
@@ -124,6 +127,24 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun isFenceLike(pos: BlockPos): Boolean = blockAt(pos).fenceLike
 
+	override fun water(pos: BlockPos): WaterPhysics? = blockAt(pos).water
+
+	override fun mayContainWater(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		store.waterWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
+	override fun containsFluid(box: Box): Boolean {
+		val cell = BlockPos.Mutable()
+		for (x in MathHelper.floor(box.minX) until MathHelper.ceil(box.maxX)) {
+			for (y in MathHelper.floor(box.minY) until MathHelper.ceil(box.maxY)) {
+				for (z in MathHelper.floor(box.minZ) until MathHelper.ceil(box.maxZ)) {
+					val block = blockAt(cell.set(x, y, z))
+					if (block.water != null || block.unsupportedPhysics?.kind == UnsupportedPhysicsKind.FLUID) return true
+				}
+			}
+		}
+		return false
+	}
+
 	override fun isClimbable(pos: BlockPos): Boolean {
 		onRead?.invoke(pos)
 		return blockIn(pos.x, pos.y, pos.z) { store[it] }?.coarseVoxel?.medium == Medium.CLIMBABLE
@@ -210,8 +231,7 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	private inline fun collisionShapeIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): VoxelShape {
 		if (!bounds.contains(x, y, z)) return VoxelShapes.fullCube()
-		val block = blockIn(x, y, z, sectionAt) ?: return VoxelShapes.empty()
-		return if (block.unsupportedPhysics == null) block.collisionShape else VoxelShapes.fullCube()
+		return blockIn(x, y, z, sectionAt)?.coarseShape ?: VoxelShapes.empty()
 	}
 
 	private inline fun collisionClassIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CollisionClass {

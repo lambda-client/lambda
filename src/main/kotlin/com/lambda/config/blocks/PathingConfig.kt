@@ -49,6 +49,9 @@ interface PathingConfig {
      */
     val allowClimbing: Boolean get() = false
 
+    /** Let the graph route across water at the surface, in from the shore and out onto banks. */
+    val allowSwimming: Boolean get() = true
+
     /**
      * Let the coarse layer propose gap jumps.
      *

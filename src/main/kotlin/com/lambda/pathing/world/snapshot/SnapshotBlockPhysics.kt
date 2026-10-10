@@ -2,6 +2,7 @@ package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.Vanilla
+import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CollisionClass
@@ -20,9 +21,12 @@ data class SnapshotBlockPhysics(
 	val fenceLike: Boolean = false,
 	val bounceFactor: Double = 0.0,
 	val dampensSteppingSpeed: Boolean = false,
+	val water: WaterPhysics? = null,
 ) {
-	val collisionClass: CollisionClass =
-		if (unsupportedPhysics != null) CollisionClass.FULL else CollisionClass.of(collisionShape)
+	internal val coarseShape: VoxelShape =
+		if (unsupportedPhysics != null || water != null) VoxelShapes.fullCube() else collisionShape
+
+	val collisionClass: CollisionClass = CollisionClass.of(coarseShape)
 
 	val cellClass: CellClass = if (unsupportedPhysics != null) CellClass.HAZARD else CellClass.of(coarseVoxel, collisionClass)
 
@@ -30,14 +34,14 @@ data class SnapshotBlockPhysics(
 
 	private val hash = Objects.hash(
 		collisionBoxes, slipperiness, velocityMultiplier, jumpVelocityMultiplier, unsupportedPhysics,
-		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed,
+		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water,
 	)
 
 	override fun equals(other: Any?): Boolean = this === other || other is SnapshotBlockPhysics && hash == other.hash &&
 			collisionBoxes == other.collisionBoxes && slipperiness == other.slipperiness &&
 			velocityMultiplier == other.velocityMultiplier && jumpVelocityMultiplier == other.jumpVelocityMultiplier &&
 			unsupportedPhysics == other.unsupportedPhysics && coarseVoxel == other.coarseVoxel && fenceLike == other.fenceLike &&
-			bounceFactor == other.bounceFactor && dampensSteppingSpeed == other.dampensSteppingSpeed
+			bounceFactor == other.bounceFactor && dampensSteppingSpeed == other.dampensSteppingSpeed && water == other.water
 
 	override fun hashCode(): Int = hash
 

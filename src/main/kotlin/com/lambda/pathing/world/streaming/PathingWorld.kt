@@ -77,16 +77,35 @@ class PathingWorld(
 	}
 
 	fun onBlockChanged(pos: BlockPos) {
-		val key = ChunkSectionPos.toLong(pos)
-		val capturing = capture.activeKey == key
-		val recorded = if (key in pendingRemovals) null else pendingReplacements[key] ?: snapshot.section(key)
-		if (!capturing && recorded == null) return
-		val physics = source.physicsAt(pos.x, pos.y, pos.z)
-		if (capturing) capture.patch(pos.x, pos.y, pos.z, physics)
-		if (recorded == null || recorded[pos.x, pos.y, pos.z] == physics) return
-		pendingReplacements[key] = recorded.with(pos.x, pos.y, pos.z, physics)
-		revisions.recordMutation(VoxelPos(pos.x, pos.y, pos.z))
+		resample(pos.x, pos.y, pos.z)
+		resampleWater(pos.x, pos.y - 1, pos.z)
+		for (dy in -1..1) {
+			resampleWater(pos.x + 1, pos.y + dy, pos.z)
+			resampleWater(pos.x - 1, pos.y + dy, pos.z)
+			resampleWater(pos.x, pos.y + dy, pos.z + 1)
+			resampleWater(pos.x, pos.y + dy, pos.z - 1)
+		}
 	}
+
+	private fun resample(x: Int, y: Int, z: Int) {
+		val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
+		val capturing = capture.activeKey == key
+		val recorded = recordedSection(key)
+		if (!capturing && recorded == null) return
+		val physics = source.physicsAt(x, y, z)
+		if (capturing) capture.patch(x, y, z, physics)
+		if (recorded == null || recorded[x, y, z] == physics) return
+		pendingReplacements[key] = recorded.with(x, y, z, physics)
+		revisions.recordMutation(VoxelPos(x, y, z))
+	}
+
+	private fun resampleWater(x: Int, y: Int, z: Int) {
+		val key = ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)
+		if (capture.activeKey == key || recordedSection(key)?.get(x, y, z)?.water != null) resample(x, y, z)
+	}
+
+	private fun recordedSection(key: Long): ImmutableSnapshotSection? =
+		if (key in pendingRemovals) null else pendingReplacements[key] ?: snapshot.section(key)
 
 	fun onChunkEvent(chunkX: Int, chunkZ: Int) {
 		val inChunk = LongArrayList()

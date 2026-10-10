@@ -93,7 +93,7 @@ object LadderCatchMovement : Movement {
 	override fun completed(context: CompletionContext): Boolean =
 		context.launch?.hasFired != false && context.stance == context.decision.step
 
-	override val climbs: Boolean get() = true
+	override val inMedium: Boolean get() = true
 
 	override fun descentAllowance(decision: TrajectoryDecision): Double = 1.0
 

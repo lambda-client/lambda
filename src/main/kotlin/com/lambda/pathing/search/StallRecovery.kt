@@ -47,7 +47,7 @@ internal class StallRecovery(
 	fun restartSeed(): ValueAnchor? {
 		if (tapeRestarts >= MAX_TAPE_RESTARTS) return null
 		val seed = publications.tip?.continuation()?.takeIf { publications.adoptable(it) && restartedMoving.add(it.elapsed) }
-			?: publications.running?.brake?.restingChild()?.takeIf(publications::adoptable)
+			?: publications.running?.holdAnchor((publications.cursor() ?: 0) + Publications.HOLD_LEAD_FRAMES)?.restingChild()?.takeIf(publications::adoptable)
 			?: return null
 		tapeRestarts++
 		return seed

@@ -9,7 +9,16 @@ internal class Publication(
 	val anchor: ValueAnchor,
 	val brake: ValueAnchor,
 	val plan: MotionPlanResult.Success,
-)
+) {
+	fun holdAnchor(frame: Int): ValueAnchor {
+		var link = brake
+		while (true) {
+			val parent = link.parent
+			if (parent == null || parent === anchor || parent.elapsed < frame) return link
+			link = parent
+		}
+	}
+}
 
 internal class Publications(
 	private val clock: SearchClock,
@@ -71,11 +80,7 @@ internal class Publications(
 	fun divergence(anchor: ValueAnchor): Int {
 		val running = running ?: return Int.MAX_VALUE
 		if (anchor.divergenceSequence == running.sequence) return anchor.divergenceElapsed
-		val divergence = when {
-			!anchor.descendsFrom(running.brake) -> forkFrame(running.anchor, anchor)
-			running.brake.state.resting -> Int.MAX_VALUE
-			else -> running.brake.elapsed
-		}
+		val divergence = if (running.brake.state.resting && anchor.descendsFrom(running.brake)) Int.MAX_VALUE else forkFrame(running.brake, anchor)
 		anchor.divergenceElapsed = divergence
 		anchor.divergenceSequence = running.sequence
 		return divergence
@@ -104,6 +109,8 @@ internal class Publications(
 
 	companion object {
 		const val DIVERGENCE_MARGIN_FRAMES = 3
+
+		const val HOLD_LEAD_FRAMES = 20
 
 		private const val FINAL_FORK_HEADROOM_FRAMES = 12
 

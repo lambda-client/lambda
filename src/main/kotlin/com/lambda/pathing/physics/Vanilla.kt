@@ -58,6 +58,36 @@ object Vanilla {
 	const val PLAYER_HALF_WIDTH = PLAYER_WIDTH / 2.0F
 	const val PLAYER_HEIGHT = 1.8F
 	const val CROUCH_HEIGHT = 1.5F
+	const val SWIMMING_HEIGHT = 0.6F
+	const val STANDING_EYE_HEIGHT = 1.62F
+	const val CROUCHING_EYE_HEIGHT = 1.27F
+	const val SWIMMING_EYE_HEIGHT = 0.4F
+
+	const val SWIM_HEIGHT = 0.4
+	const val WATER_DRAG = 0.8F
+	const val SPRINT_WATER_DRAG = 0.9F
+	const val DEPTH_STRIDER_WATER_DRAG = 0.54600006F
+	const val DOLPHINS_GRACE_WATER_DRAG = 0.96F
+	const val WATER_VERTICAL_DRAG = 0.8F
+	const val WATER_ACCELERATION = 0.02F
+	const val WATER_GRAVITY_DIVISOR = 16.0
+	const val WATER_SINK_SNAP = 0.005
+	const val WATER_SINK_SNAP_WINDOW = 0.003
+	const val WATER_SINK_SNAP_SPEED = -0.003
+	const val WATER_PUSH_SPEED = 0.014
+	const val WATER_MIN_PUSH = 0.0045000000000000005
+	const val WATER_MIN_PUSH_SPEED = 0.003
+	const val SHALLOW_PUSH_DEPTH = 0.4
+	const val FLUID_BOX_CONTRACTION = 0.001
+	const val SWIM_UP_SPEED = 0.04F
+	const val WATER_SINK_SPEED = 0.04F
+	const val WATER_EXIT_CLEARANCE = 0.6F
+	const val WATER_EXIT_SPEED = 0.3F
+	const val WATER_CLIMB_SPEED = 0.2
+	const val SWIM_STEER = 0.06
+	const val SWIM_STEER_DIVING = 0.085
+	const val SWIM_DIVING_LOOK = -0.2
+	const val POSE_CLEARANCE = 1.0E-7
 }
 
 internal fun BlockState.bounceFactor(): Double = when {

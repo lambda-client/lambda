@@ -173,7 +173,7 @@ object WalkMovement : Movement {
 
 	private fun walkable(edge: CoarseEdge): Boolean = when (edge.movement) {
 		MovementId.BOUNCE, MovementId.LADDER_CATCH, MovementId.CLIMB -> false
-		else -> true
+		else -> edge.movement !in MovementId.AQUATIC
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {

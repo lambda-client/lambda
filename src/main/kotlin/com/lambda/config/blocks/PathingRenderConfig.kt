@@ -80,6 +80,7 @@ interface PathingRenderConfig {
     val jumpColor: Color
     val bounceColor: Color
     val climbColor: Color
+    val swimColor: Color
     val unknownMovementColor: Color
 
     // The tape.

@@ -89,7 +89,11 @@ internal class Frontier(
 		val running = publications.running ?: return
 		val executing = cursor.coerceAtMost(running.brake.elapsed)
 		if (executing > running.anchor.elapsed) {
-			if (root !== running.brake) reRoot(running.brake)
+			val held = root?.takeIf {
+				it === running.brake || it.elapsed > running.anchor.elapsed && running.brake.descendsFrom(it) &&
+						it.elapsed >= executing + Publications.DIVERGENCE_MARGIN_FRAMES
+			}
+			if (held == null) reRoot(running.holdAnchor(executing + Publications.HOLD_LEAD_FRAMES))
 			return
 		}
 		val reached = running.anchor.ancestorAtOrBefore(executing) ?: return
@@ -113,7 +117,6 @@ internal class Frontier(
 
 	fun extend(): Boolean {
 		if (window <= 0 || parked.isEmpty()) return false
-		val root = root ?: return false
 		val before = open.size
 		end += window
 		repartition(root, end)
@@ -195,8 +198,8 @@ internal class Frontier(
 		woken.keys.forEach { reopen(it) }
 	}
 
-	private fun repartition(root: ValueAnchor, horizonEnd: Int) {
-		val surviving = parked.filter { it.anchor.descendsFrom(root) }
+	private fun repartition(root: ValueAnchor?, horizonEnd: Int) {
+		val surviving = parked.filter { root == null || it.anchor.descendsFrom(root) }
 		parked.clear()
 		surviving.forEach { entry ->
 			if (entry.anchor.elapsed < horizonEnd) open += entry else parked += entry

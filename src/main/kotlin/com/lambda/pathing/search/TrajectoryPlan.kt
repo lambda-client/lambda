@@ -54,8 +54,9 @@ class TrajectoryPlan internal constructor(
 					val b = cycleFrames[i + 2].state
 					a.position == b.position && a.velocity == b.velocity && a.onGround == b.onGround
 				}
-		require(slow && (grounded || cycleClosed)) {
-			"Published trajectory does not end in a stable grounded stop: " +
+		val afloat = frames.last().state.touchingWater
+		require(slow && (grounded || cycleClosed || afloat)) {
+			"Published trajectory does not end in a stable grounded or floating stop: " +
 					stopFrames.joinToString(" | ") { frame ->
 						"f=${frame.index} ground=${frame.state.onGround} " +
 								"speed=%.4f vy=%.4f pos=%s".format(

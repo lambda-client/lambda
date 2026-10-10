@@ -8,6 +8,7 @@ import com.lambda.util.math.plus
 import com.lambda.util.math.times
 import com.lambda.util.player.MovementUtils.moveYaw
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -30,6 +31,11 @@ data class MovementSimulationState(
 	val supportingBlockPos: BlockPos? = null,
 	val doubleTapSprintTicks: Int = 0,
 	val hadForwardMovement: Boolean = false,
+	val touchingWater: Boolean = false,
+	val waterHeight: Double = 0.0,
+	val eyeInWater: Boolean = false,
+	val submergedInWater: Boolean = false,
+	val swimming: Boolean = false,
 ) {
 	companion object {
 		fun from(player: ClientPlayerEntity, isJumping: Boolean = false) = MovementSimulationState(
@@ -49,6 +55,11 @@ data class MovementSimulationState(
 			supportingBlockPos = player.supportingBlockPos.getOrNull(),
 			doubleTapSprintTicks = (player as ClientPlayerEntityAccessor).`lambda$getTicksLeftToDoubleTapSprint`(),
 			hadForwardMovement = player.input.hasForwardMovement(),
+			touchingWater = player.isTouchingWater,
+			waterHeight = player.getFluidHeight(FluidTags.WATER),
+			eyeInWater = player.isSubmergedIn(FluidTags.WATER),
+			submergedInWater = player.isSubmergedInWater,
+			swimming = player.isSwimming,
 		)
 
 		fun synthetic(

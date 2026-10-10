@@ -18,13 +18,9 @@ enum class SpeedClass {
 
 internal class MomentumRules(templates: List<MotionTemplate>) {
 
-	private val departsStoppedOnly = BooleanArray(templates.size) { templates[it].movement == MovementId.CLIMB }
+	private val departsStoppedOnly = BooleanArray(templates.size) { templates[it].movement in STOPPED_DEPARTURES }
 
-	private val arrival = Array(templates.size) {
-		val movement = templates[it].movement
-		if (movement == MovementId.CLIMB || movement == MovementId.STEP_UP || movement == MovementId.LADDER_CATCH) SpeedClass.STOPPED
-		else SpeedClass.MOVING
-	}
+	private val arrival = Array(templates.size) { if (templates[it].movement in STOPPED_ARRIVALS) SpeedClass.STOPPED else SpeedClass.MOVING }
 
 	private val searchCaps = HeuristicCaps.of(templates, ::costFloor)
 
@@ -89,6 +85,10 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 	}
 
 	private companion object {
+
+		val STOPPED_DEPARTURES = setOf(MovementId.CLIMB, MovementId.SWIM, MovementId.EXIT_WATER)
+
+		val STOPPED_ARRIVALS = STOPPED_DEPARTURES + setOf(MovementId.STEP_UP, MovementId.LADDER_CATCH, MovementId.ENTER_WATER)
 
 		const val STARTUP_TICKS = 2.0
 

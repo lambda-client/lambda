@@ -219,5 +219,7 @@ class PathingSession internal constructor(
 		const val PATHING_SOURCE = "Pathing"
 
 		val ALIGNMENT_INPUT = MovementSimulationInput()
+
+		val TREAD_WATER_INPUT = MovementSimulationInput(jump = true)
 	}
 }

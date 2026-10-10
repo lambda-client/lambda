@@ -21,6 +21,7 @@ import com.lambda.PathingTestHarness.assertMovementReplay
 import com.lambda.PathingTestHarness.restoreArena
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
 
@@ -148,5 +149,56 @@ internal object MovementReplayTests {
             add(MovementSimulationInput(forward = 1.0, sprint = true, jump = true, rotation = facing))
             repeat(10) { add(MovementSimulationInput(forward = 1.0, sprint = true, rotation = facing)) }
         })
+
+        waterReplays(context, server)
+    }
+
+    /**
+     * A walled pool three deep south of the platform, its surface level with the platform
+     * top, so the far bank stands a ninth of a block proud of the water: only vanilla's
+     * pop-out climbs it. Every scenario starts at rest on the platform.
+     */
+    private fun waterReplays(context: ClientGameTestContext, server: TestServerContext) {
+        server.runCommand("/fill -3 96 2 3 99 9 minecraft:stone")
+        server.runCommand("/fill -2 97 3 2 99 8 minecraft:water")
+        val south = Rotation(0.0, 0.0)
+
+        fun fromPlatform(scenario: String, tape: List<MovementSimulationInput>): List<MovementSimulationState> {
+            server.runCommand("/tp Steve 0 100 0 0 0")
+            repeat(5) { context.waitTick() }
+            return assertMovementReplay(context, scenario, tape)
+        }
+
+        val walkIn = fromPlatform("water-walk-in", List(30) { MovementSimulationInput(forward = 1.0, rotation = south) })
+        check(walkIn.any { it.touchingWater }) { "water-walk-in never reached the water" }
+        val across = fromPlatform("water-swim-across", List(90) { MovementSimulationInput(forward = 1.0, jump = true, rotation = south) })
+        check(across.any { it.onGround && it.position.y >= 100.0 && it.position.z > 8.7 }) {
+            "water-swim-across never climbed out onto the far bank"
+        }
+        fromPlatform("water-sneak-sink", buildList {
+            repeat(15) { add(MovementSimulationInput(forward = 1.0, rotation = south)) }
+            repeat(15) { add(MovementSimulationInput(sneak = true, rotation = south)) }
+        })
+        val dive = fromPlatform("water-sprint-dive", buildList {
+            repeat(15) { add(MovementSimulationInput(forward = 1.0, rotation = south)) }
+            repeat(30) { add(MovementSimulationInput(forward = 1.0, sprint = true, rotation = Rotation(0.0, 30.0))) }
+        })
+        check(dive.any { it.swimming }) { "water-sprint-dive never started swimming" }
+
+        // A current laid out level by level, a step shallower every block south. Unfed flowing
+        // water drains within a few fluid ticks, so the world is frozen while it is walked:
+        // players still move, the water stays exactly as the snapshot captured it.
+        server.runCommand("/tick freeze")
+        for ((row, level) in (-3..2).zip(1..6)) server.runCommand("/fill -2 100 $row 2 100 $row minecraft:water[level=$level]")
+        val drift = fromPlatform("water-current-drift", List(30) { MovementSimulationInput(rotation = south) })
+        server.runCommand("/tick unfreeze")
+        check(drift.first().position.distanceTo(drift.last().position) > 0.1) {
+            "water-current-drift was not carried by the current: touching ${drift.count { it.touchingWater }}/${drift.size}, " +
+                "from ${drift.first().position} to ${drift.last().position}, water depth ${drift.first().waterHeight}"
+        }
+
+        server.runCommand("/fill -8 100 -8 8 100 9 minecraft:air")
+        server.runCommand("/fill -3 96 2 3 99 9 minecraft:air")
+        server.runCommand("/fill -8 99 -8 8 99 8 minecraft:stone")
     }
 }

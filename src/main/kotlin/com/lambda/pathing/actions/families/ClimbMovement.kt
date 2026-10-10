@@ -104,5 +104,5 @@ object ClimbMovement : Movement {
 
 	override fun completed(context: CompletionContext): Boolean = context.stance == context.decision.step
 
-	override val climbs: Boolean get() = true
+	override val inMedium: Boolean get() = true
 }

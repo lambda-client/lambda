@@ -3,6 +3,7 @@ package com.lambda.pathing.world.snapshot
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
+import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.physics.bounceFactor
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.util.BlockUtils.isFenceLike
@@ -11,6 +12,7 @@ import net.minecraft.block.Blocks
 import net.minecraft.block.ShapeContext
 import net.minecraft.registry.Registries
 import net.minecraft.registry.tag.BlockTags
+import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -55,8 +57,9 @@ object BlockPhysicsCapture {
 		val unsupported = unsupportedPhysics(state)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
 		val coarseVoxel = when {
-			state.fluidState.isEmpty && state.isIn(BlockTags.CLIMBABLE) -> CoarseVoxel.CLIMBABLE
 			unsupported != null -> CoarseVoxel.UNKNOWN
+			state.isIn(BlockTags.CLIMBABLE) -> CoarseVoxel.CLIMBABLE
+			!state.fluidState.isEmpty && shape.isEmpty -> CoarseVoxel.WATER
 			else -> coarseVoxelOf(shape, bouncy = slime)
 		}
 		return SnapshotBlockPhysics(
@@ -69,11 +72,15 @@ object BlockPhysicsCapture {
 			fenceLike = state.isFenceLike(),
 			bounceFactor = state.bounceFactor(),
 			dampensSteppingSpeed = slime,
+			water = state.fluidState.takeIf { it.isIn(FluidTags.WATER) }?.let {
+				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
+			},
 		)
 	}
 
 	private fun unsupportedPhysics(state: BlockState): UnsupportedPhysics? = when {
-		!state.fluidState.isEmpty -> UnsupportedPhysicsKind.FLUID
+		!state.fluidState.isEmpty && (!state.fluidState.isIn(FluidTags.WATER) || state.isIn(BlockTags.CLIMBABLE)) -> UnsupportedPhysicsKind.FLUID
+		state.isOf(Blocks.BUBBLE_COLUMN) -> UnsupportedPhysicsKind.FLUID
 		state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
 		state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
 		state.isOf(Blocks.SWEET_BERRY_BUSH) -> UnsupportedPhysicsKind.SWEET_BERRY_BUSH

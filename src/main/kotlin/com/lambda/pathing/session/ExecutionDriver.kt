@@ -12,6 +12,7 @@ import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
+import com.lambda.pathing.session.PathingSession.Companion.TREAD_WATER_INPUT
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.util.CommunicationUtils.info
 
@@ -132,7 +133,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 				PATHING_SOURCE,
 			)
 		}
-		walk.tickInput = ALIGNMENT_INPUT
+		walk.tickInput = if (player.isTouchingWater) TREAD_WATER_INPUT else ALIGNMENT_INPUT
 		walk.launcher.current?.updateExecutionFrame(replay.cursor.nextFrame)
 		walk.face(path.plan.frames.last().state.rotation.yaw)
 		walk.state = State.Executing(replay.cursor.nextFrame, path.plan.tape.frameCount, walk.leg)

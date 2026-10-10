@@ -22,6 +22,7 @@ import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.physics.WaterPhysics
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -57,11 +58,18 @@ class PlanDumpRoundTripTest {
             unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.FLUID, "minecraft:lava"),
             coarseVoxel = CoarseVoxel.UNKNOWN,
         )
+        val water = SnapshotBlockPhysics(
+            collisionShape = VoxelShapes.empty(),
+            unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.FLUID, "minecraft:water"),
+            coarseVoxel = CoarseVoxel.UNKNOWN,
+            water = WaterPhysics(0.7777778f, Vec3d(-0.7071067811865475, 0.0, 0.7071067811865476)),
+        )
         val blocks = mapOf(
             BlockPos(0, 64, 0) to SnapshotBlockPhysics.FULL_CUBE,
             BlockPos(1, 64, 0) to slab,
             BlockPos(2, 64, 0) to fence,
             BlockPos(3, 64, 0) to lava,
+            BlockPos(4, 64, 0) to water,
         )
         val bounds = SimulationSnapshotBounds(-4, 60, -4, 8, 76, 8)
         val environment = SnapshotSimulationEnvironment.synthetic(bounds, blocks)
@@ -115,6 +123,7 @@ class PlanDumpRoundTripTest {
             assertEquals(expected.unsupportedPhysics, actual.unsupportedPhysics, "physics at $pos")
             assertEquals(expected.coarseVoxel, actual.coarseVoxel, "voxel at $pos")
             assertEquals(expected.fenceLike, actual.fenceLike, "fenceLike at $pos")
+            assertEquals(expected.water, actual.water, "water at $pos")
             assertEquals(
                 expected.collisionShape.boundingBoxes, actual.collisionShape.boundingBoxes,
                 "collision shape at $pos",

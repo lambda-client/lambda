@@ -149,5 +149,21 @@ internal object TrajectoryPathingTests {
             maxLegs = 2, minGapLaunches = 2, requireJumpInput = true,
         )
         restoreArena(server)
+
+        // A pool across the whole arena, walled too high to walk around: the only way
+        // over is to walk off the bank into the water, swim at the surface and climb out
+        // over the far bank one block up -- certified against the client's own water. The
+        // pool is long enough that tapes are published and adopted mid-swim, each ending
+        // in a certified float rather than a stop on ground.
+        server.runCommand("/fill -8 95 3 8 99 20 minecraft:stone")
+        server.runCommand("/fill -8 100 3 -8 101 20 minecraft:stone")
+        server.runCommand("/fill 8 100 3 8 101 20 minecraft:stone")
+        server.runCommand("/fill -7 96 4 7 99 19 minecraft:water")
+        server.runCommand("/fill -8 99 21 8 99 24 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-swim-across-pool", Stance(0, 100, 23),
+            maxLegs = 2, requireJumpInput = true,
+        )
+        restoreArena(server)
     }
 }

@@ -155,6 +155,9 @@ class PathingRenderSettings(override val c: Config) : PathingRenderConfig, Confi
     override val climbColor by c.setting("Climb / Ladder", Color(232, 121, 249, 235)) { enabled }
 
     @Group(MOVEMENT_GROUP)
+    override val swimColor by c.setting("Swim", Color(59, 130, 246, 235)) { enabled }
+
+    @Group(MOVEMENT_GROUP)
     override val unknownMovementColor by c.setting("Other", Color(203, 213, 225, 200)) { enabled }
 
     @Group(TAPE_GROUP)

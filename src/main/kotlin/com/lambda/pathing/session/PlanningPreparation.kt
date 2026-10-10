@@ -73,6 +73,7 @@ internal fun preparePlanning(
 		maxWalkOffDepth = config.maxWalkOffDepth,
 		maxDropSpan = config.maxDropSpan,
 		allowClimbing = config.allowClimbing,
+		allowSwimming = config.allowSwimming,
 		allowJumpCandidates = config.allowJumpCandidates,
 		maxJumpSpan = config.maxJumpSpan,
 		maxJumpDrop = config.maxJumpDrop,

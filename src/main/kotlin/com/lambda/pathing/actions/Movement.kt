@@ -34,9 +34,10 @@ data class TemplateSpec(
 	val arc: MotionTemplate.ArcSpec? = null,
 	val strideCost: Double? = null,
 	val via: Via? = null,
+	val departure: CellPredicate? = CellPredicate.DRY,
 ) {
 	internal fun toTemplate(id: MotionTemplateId) =
-		MotionTemplate(id, dx, dy, dz, movement, cost, conditions, arc, strideCost, via)
+		MotionTemplate(id, dx, dy, dz, movement, cost, listOfNotNull(departure?.let { CellCondition(0, 0, 0, it) }) + conditions, arc, strideCost, via)
 }
 
 class MovementContext(
@@ -108,7 +109,7 @@ interface Movement {
 
 	fun occupies(view: CoarseVoxelView, stance: Stance): Boolean = false
 
-	val climbs: Boolean get() = false
+	val inMedium: Boolean get() = false
 
 	fun descentAllowance(decision: TrajectoryDecision): Double = 0.0
 

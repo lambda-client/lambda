@@ -4,12 +4,14 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.control.CorridorFollowerProgram
 import com.lambda.pathing.actions.control.TerminalApproach
 import com.lambda.pathing.actions.control.brakeToStop
+import com.lambda.pathing.actions.control.treadWater
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.VERTICAL_GOAL_TOLERANCE
+import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.center
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.math.abs
@@ -97,7 +99,19 @@ internal class Finisher(
 		}
 	}
 
-	fun brakeToStop(anchor: ValueAnchor): Solution? {
+	fun brakeToStop(anchor: ValueAnchor): Solution? = groundBrake(anchor) ?: floatBrake(anchor)
+
+	private fun floatBrake(anchor: ValueAnchor): Solution? {
+		if (field.view.medium(anchor.stance.x, anchor.stance.y, anchor.stance.z) != Medium.WATER) return null
+		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw), FLOAT_TAIL_FRAMES)
+		if (gated.failed) return null
+		val frames = gated.rollout.frames
+		val end = frames.indexOfLast { field.floatsAt(it.state, anchor.stance.y) }
+		if (end < FLOAT_TAIL_FRAMES - FLOAT_END_SLACK_FRAMES) return null
+		return Solution(anchor, frames.take(end + 1))
+	}
+
+	private fun groundBrake(anchor: ValueAnchor): Solution? {
 		val gated = gate.run(
 			anchor.state, listOf(anchor.stance.center(environment)),
 			brakeToStop(anchor.state.rotation.yaw),
@@ -145,5 +159,9 @@ internal class Finisher(
 		const val FINISH_CHAIN_LENGTH = 24
 
 		const val BRAKE_TAIL_FRAMES = 64
+
+		const val FLOAT_TAIL_FRAMES = 600
+
+		const val FLOAT_END_SLACK_FRAMES = 20
 	}
 }

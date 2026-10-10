@@ -27,6 +27,12 @@ interface SimulationEnvironment {
 	fun bounceFactor(pos: BlockPos): Double = 0.0
 
 	fun dampensSteppingSpeed(pos: BlockPos): Boolean = false
+
+	fun water(pos: BlockPos): WaterPhysics? = null
+
+	fun mayContainWater(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
+	fun containsFluid(box: Box): Boolean = false
 }
 
 internal inline fun forEachCollisionCandidate(box: Box, action: (BlockPos) -> Unit) {

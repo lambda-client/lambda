@@ -77,4 +77,10 @@ interface TrajectoryDecision {
 		val solution: BounceSolution,
 		override val movement: MovementId = MovementId.BOUNCE,
 	) : TrajectoryDecision
+
+	data class Swim(
+		override val step: Stance,
+		val sprint: Boolean,
+		override val movement: MovementId = MovementId.SWIM,
+	) : TrajectoryDecision
 }

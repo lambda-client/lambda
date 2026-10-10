@@ -29,6 +29,12 @@ fun interface CellPredicate {
 
 		val CLIMBABLE = CellPredicate { view, x, y, z -> view.medium(x, y, z) == Medium.CLIMBABLE }
 
+		val WATER = CellPredicate { view, x, y, z -> view.medium(x, y, z) == Medium.WATER }
+
+		val DRY = CellPredicate { view, x, y, z -> view.medium(x, y, z) != Medium.WATER }
+
+		val SWIMMABLE = CellPredicate { view, x, y, z -> view.voxel(x, y, z).let { it.fullyPassable || it.medium == Medium.WATER } }
+
 		val OPEN_COLUMN = column { view, x, y, z -> FULL_SLICE.matches(view, x, y, z) && FULL_HEAD.matches(view, x, y + 1, z) }
 
 		val BLOCKED_COLUMN = column { view, x, y, z -> !OPEN_COLUMN.matches(view, x, y, z) }

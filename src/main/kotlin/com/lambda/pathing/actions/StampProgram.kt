@@ -41,6 +41,7 @@ internal class StampProgram(
 			fun of(cells: List<VoxelPos>, test: (CoarseVoxelView) -> Boolean): Clause? {
 				val truth = BooleanArray(1 shl (CLASS_BITS * cells.size))
 				for (assignment in truth.indices) {
+					if (cells.indices.any { classOf(assignment, it) >= VOXELS.size }) continue
 					val view = AssignedCells(cells, assignment)
 					truth[assignment] = test(view)
 					if (view.strayRead) return null
@@ -71,9 +72,9 @@ internal class StampProgram(
 	}
 
 	companion object {
-		const val CLASS_BITS = 2
-		const val CLASS_MASK = 3
+		const val CLASS_BITS = 3
+		const val CLASS_MASK = 7
 
-		private val VOXELS = listOf(CoarseVoxel.AIR, CoarseVoxel.FULL_BLOCK, CoarseVoxel.HAZARD, CoarseVoxel.CLIMBABLE)
+		private val VOXELS = listOf(CoarseVoxel.AIR, CoarseVoxel.FULL_BLOCK, CoarseVoxel.HAZARD, CoarseVoxel.CLIMBABLE, CoarseVoxel.WATER)
 	}
 }

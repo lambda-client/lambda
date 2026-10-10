@@ -3,6 +3,7 @@ package com.lambda.pathing.search
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
 
+import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
@@ -42,6 +43,11 @@ internal fun launchSeedFrame(diagnostic: TrajectoryDiagnostic): Int? = when (dia
 }
 
 internal fun stanceOf(state: MovementSimulationState): Stance = Stance.of(state.position, state.onGround)
+
+internal fun ValueField.floatsAt(state: MovementSimulationState, level: Int): Boolean {
+	val stance = stanceOf(state)
+	return state.touchingWater && stance.y == level && isStance(stance) && isMapped(stance)
+}
 
 internal fun supportedStanceOf(state: MovementSimulationState): Stance? {
 	if (!state.onGround) return null

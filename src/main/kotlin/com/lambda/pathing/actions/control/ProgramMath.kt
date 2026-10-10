@@ -53,6 +53,9 @@ internal fun yawStepTowards(desiredYaw: Double, observed: MovementSimulationStat
 internal fun brakeToStop(heldYaw: Double) =
 	ControlProgram { _, observed -> MovementSimulationInput(rotation = Rotation(heldYaw, observed.rotation.pitch)) }
 
+internal fun treadWater(heldYaw: Double) =
+	ControlProgram { _, observed -> MovementSimulationInput(jump = observed.touchingWater, rotation = Rotation(heldYaw, observed.rotation.pitch)) }
+
 internal fun rotationToward(aim: HorizontalPoint, observed: MovementSimulationState, maxYawChange: Double): Rotation {
 	val yawDelta = yawStepTowards(yawTowards(aim, observed), observed, maxYawChange)
 	return Rotation(observed.rotation.yaw + yawDelta, observed.rotation.pitch)

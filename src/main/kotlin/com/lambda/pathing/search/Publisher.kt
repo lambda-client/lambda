@@ -170,18 +170,28 @@ internal class Publisher(
 
 	private fun tailAnchor(parent: ValueAnchor, certified: MotionPlanResult.Success, collisionEvents: Int): ValueAnchor {
 		val frames = certified.plan.frames
-		val tail = frames.drop(parent.elapsed)
-		val terminal = frames.last().state
-		return ValueAnchor(
-			state = terminal,
-			stance = stanceOf(terminal),
-			elapsed = frames.size,
-			collisionEvents = collisionEvents,
-			inputSwitches = parent.inputSwitches,
-			parent = parent,
-			inputs = tail.map { it.input },
-			trace = probe.traceOf(tail),
-		)
+		var link = parent
+		fun linkTo(until: Int) {
+			val tail = frames.subList(link.elapsed, until)
+			val state = tail.last().state
+			link = ValueAnchor(
+				state = state,
+				stance = stanceOf(state),
+				elapsed = until,
+				collisionEvents = collisionEvents,
+				inputSwitches = parent.inputSwitches,
+				parent = link,
+				inputs = tail.map { it.input },
+				trace = probe.traceOf(tail),
+			)
+		}
+		if (!frames.last().state.onGround) {
+			for (until in parent.elapsed + 1 until frames.size) {
+				if (until - link.elapsed >= HOLD_LINK_FRAMES && field.floatsAt(frames[until - 1].state, parent.stance.y)) linkTo(until)
+			}
+		}
+		linkTo(frames.size)
+		return link
 	}
 
 	private companion object {
@@ -196,5 +206,7 @@ internal class Publisher(
 		const val FIRST_PUBLISH_MIN_REMAINING_TICKS = 30.0
 
 		const val PUBLISH_RUNWAY_CHUNKS = 3
+
+		const val HOLD_LINK_FRAMES = 10
 	}
 }

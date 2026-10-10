@@ -28,7 +28,7 @@ object JumpMovement : Movement {
 	override fun templates(context: MovementContext): List<TemplateSpec> =
 		JumpTemplates.templates(context)
 
-	override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y >= edge.from.y
+	override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y >= edge.from.y && edge.movement !in MovementId.AQUATIC
 
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val solutions = JumpDecisions.solutionsFor(context)

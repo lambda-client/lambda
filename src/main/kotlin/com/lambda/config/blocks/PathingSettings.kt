@@ -47,6 +47,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(MOVES_GROUP)
+    override val allowSwimming by c.setting(
+        "Swimming", true,
+        "Swim across water at the surface, walking or dropping in from the shore and climbing " +
+            "out onto banks one block high.",
+    )
+
+    @Group(MOVES_GROUP)
     override val allowJumpCandidates by c.setting(
         "Gap Jumps", true,
         "Let the coarse layer propose gap jumps. Each still needs a simulated launch before it is walked.",

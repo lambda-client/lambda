@@ -13,6 +13,7 @@ import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
+import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -21,6 +22,7 @@ import com.lambda.pathing.world.streaming.PathingWorld
 import com.lambda.pathing.world.streaming.WorldMutation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -108,6 +110,23 @@ class PathingWorldTest {
         assertEquals(1L, world.revision)
         assertEquals(0, world.pendingDemand, "nothing to re-capture")
         assertTrue(events.drain().isEmpty)
+    }
+
+    @Test
+    fun `a block change next to water re-samples the current of the water it feeds`() {
+        val still = SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.HAZARD, water = WaterPhysics(0.8888889f, Vec3d.ZERO))
+        source.set(5, 70, 5, still)
+        world.interest(listOf(key), InterestTier.BODY)
+        world.advance(1_000.0)
+        events.drain()
+
+        val flowing = SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.HAZARD, water = WaterPhysics(0.8888889f, Vec3d(1.0, 0.0, 0.0)))
+        source.set(5, 70, 5, flowing)
+        source.set(6, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
+        world.onBlockChanged(BlockPos(6, 70, 5))
+
+        assertEquals(setOf(VoxelPos(6, 70, 5), VoxelPos(5, 70, 5)), events.drain().mutations)
+        assertEquals(Vec3d(1.0, 0.0, 0.0), world.snapshot.water(BlockPos(5, 70, 5))?.flow)
     }
 
     @Test
