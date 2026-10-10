@@ -21,8 +21,8 @@ import com.lambda.config.blocks.ActionConfig
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.context.BuildContext
 import com.lambda.interaction.construction.simulation.context.InteractContext
-import com.lambda.interaction.managers.hotbar.HotbarManager
-import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.hotbar.HotbarManager
+import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import net.minecraft.block.Blocks
@@ -36,8 +36,8 @@ interface Contextual : ComparableResult<Rank> {
     override fun compareResult(other: ComparableResult<Rank>) = runSafe {
         when (other) {
             is Contextual -> compareBy<BuildContext> {
-                if (it is InteractContext) BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
-                else BlockUtils.fluids.size - 1
+                if (it is InteractContext) BlockUtils.FLUIDS.indexOf(it.cachedState.fluidState.fluid)
+                else BlockUtils.FLUIDS.size - 1
             }.thenByDescending {
                 if (it is InteractContext && it.cachedState.fluidState.level != 0) it.blockPos.y
                 else Int.MIN_VALUE

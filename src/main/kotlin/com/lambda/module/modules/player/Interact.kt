@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 
 object Interact : Module(
     name = "Interact",

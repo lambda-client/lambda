@@ -28,15 +28,15 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
-import com.lambda.interaction.managers.hotbar.HotbarManager
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.EVERYTHING
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.StackAndSlot
+import com.lambda.interaction.container.selection.StackSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.findStack
+import com.lambda.interaction.manager.managers.hotbar.HotbarManager
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
@@ -138,54 +138,29 @@ class BreakSim internal constructor(simInfo: SimInfo)
 	}
 
 	private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
-		// Stack size 0 to account for attacking with an empty hand. Empty slots have stack size 0
-		val stackSelection = selectStack(
-			count = 0,
-			sorter = compareByDescending<ItemStack> {
-				it.canBreak(CachedBlockPosition(world, pos, false))
-			}.thenByDescending {
-				state.calcItemBlockBreakingDelta(pos, it)
-			}.thenByDescending {
-				it.inventoryIndex == HotbarManager.serverSlot
-			}
-		) {
-			EVERYTHING
-				.andIf(breakConfig.efficientOnly) {
-					isEfficientForBreaking(state)
-				}.andIf(breakConfig.suitableToolsOnly) {
-					isSuitableForBreaking(state)
-				}.andIf(breakConfig.forceSilkTouch) {
-					hasEnchantment(Enchantments.SILK_TOUCH)
-				}.andIf(breakConfig.forceFortunePickaxe) {
-					hasEnchantment(Enchantments.FORTUNE)
+		val stackSelection = stackSelection {
+			if (breakConfig.efficientOnly) isEfficientForBreaking(state)
+			if (breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
+			if (breakConfig.forceSilkTouch) withEnchantment(Enchantments.SILK_TOUCH)
+			if (breakConfig.forceFortunePickaxe) withEnchantment(Enchantments.FORTUNE)
+			sortedWith {
+				compareByDescending<StackAndSlot<*>> {
+					it.stack.canBreak(CachedBlockPosition(world, pos, false))
+				}.thenByDescending {
+					state.calcItemBlockBreakingDelta(pos, it.stack)
+				}.thenByDescending {
+					it.stack.inventoryIndex == HotbarManager.serverSlot
 				}
-		}
-
-		val silentSwapSelection = selectContainer {
-			ofAnyType(MaterialContainer.Rank.Hotbar)
-		}
-
-		val hotbarCandidates = stackSelection
-			.findContainersWithMaterial(silentSwapSelection)
-			.flatMap { it.matchingStacks(stackSelection) }
-		if (hotbarCandidates.isEmpty()) {
-			result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
-			return null
-		}
-
-		var bestStack = ItemStack.EMPTY
-		var bestBreakDelta = -1f
-		hotbarCandidates.forEach { stack ->
-			val breakDelta = state.calcItemBlockBreakingDelta(pos, stack)
-			if (breakDelta > bestBreakDelta ||
-				(stack == player.mainHandStack && breakDelta >= bestBreakDelta)
-			) {
-				bestBreakDelta = breakDelta
-				bestStack = stack
 			}
 		}
-		return if (bestBreakDelta == -1f) null
-		else Pair(bestStack, stackSelection)
+
+		val bestStack = findStack(stackSelection, HotbarContainer.select())
+			?: run {
+				result(GenericResult.WrongItemSelection(pos, stackSelection, player.mainHandStack))
+				return null
+			}
+
+		return Pair(bestStack, stackSelection)
 	}
 
 	private suspend fun AutomatedSafeContext.affectsFluids(): Boolean {

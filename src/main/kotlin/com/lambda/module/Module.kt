@@ -23,11 +23,9 @@ import com.lambda.config.ConfigCategory
 import com.lambda.config.automation.IMutableAutomationConfig
 import com.lambda.config.automation.MutableAutomationConfig
 import com.lambda.config.categories.ModuleCategory
-import com.lambda.config.entries.Setting.Companion.onValueChange
-import com.lambda.config.entries.Setting.Companion.onValueChangeUnsafe
+import com.lambda.config.entries.onValueChange
+import com.lambda.config.entries.onValueChangeUnsafe
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.updateListenerSorting
@@ -41,7 +39,6 @@ import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.module.modules.client.Client
-import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundHandler.play
 import com.lambda.util.KeyCode

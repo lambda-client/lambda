@@ -23,7 +23,7 @@ import com.lambda.config.blocks.EntityColorSettings
 import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.blocks.OutlineSettings
 import com.lambda.config.blocks.WorldLineSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.withEdits
@@ -31,7 +31,7 @@ import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DynamicAABB.Companion.interpolatedBox
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.NamedEnum
 import com.lambda.util.math.setAlpha

@@ -17,20 +17,22 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
 import com.lambda.config.hideBlock
 import com.lambda.config.withEdits
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.PlayerTrap.getTrapPositions
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.start
+import com.lambda.task.tasks.build
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
 import net.minecraft.block.Blocks
 import net.minecraft.item.BlockItem
 
@@ -59,13 +61,22 @@ object Surround : Module(
 
 		onEnable {
 			task = tickingBlueprint {
-				val block = player.hotbarAndInventoryStacks.firstOrNull {
-					it.item is BlockItem && blocks.contains(it.item.block)
-				}?.item?.block ?: return@tickingBlueprint emptyMap()
+				val selection =
+					stackSelection {
+						predicate { stack, _ ->
+							stack.item is BlockItem && blocks.contains(stack.item.block)
+						}
+					}
+
+				val block = findStack(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
+					?.item?.block
+					?: return@tickingBlueprint emptyMap()
+
 				getTrapPositions(player)
 					.filter { it.y <= player.blockPos.y }
 					.associateWith { TargetState.Block(block) }
-			}.build(finishOnDone = false).run()
+			}.build(finishOnDone = false)
+				.start()
 		}
 		onDisable { task?.cancel(); task = null }
 	}

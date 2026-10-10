@@ -19,9 +19,9 @@ package com.lambda.module.modules.world
 
 import com.lambda.Lambda.mc
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.WorldLineSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.forEachSetting
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
@@ -33,10 +33,10 @@ import com.lambda.interaction.construction.simulation.result.results.BreakResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.start
+import com.lambda.task.tasks.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.CommunicationUtils.logError
 import com.lambda.util.Describable
@@ -149,7 +149,8 @@ object Printer : Module(
 				.filter { DataManager.getRenderLayerRange().isPositionWithinRange(it) && inSchematic(it) }
 				.associateWith { TargetState.State(schematicWorld.getBlockState(it)) }
 				.filter { air || !it.value.blockState.isAir }
-		}.build(finishOnDone = false, async = async) { filterBuildResults(it) }.run()
+		}.build(finishOnDone = false, async = async) { filterBuildResults(it) }
+			.start()
 	}
 
 	/**

@@ -19,11 +19,11 @@ package com.lambda.module.modules.debug
 
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.container.selection.select
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
-import com.lambda.task.tasks.AcquireMaterialTask.Companion.acquire
+import com.lambda.module.ModuleTag
+import com.lambda.task.start
+import com.lambda.task.tasks.acquireStack
 import net.minecraft.item.Items
 
 @Suppress("unused")
@@ -38,9 +38,8 @@ object ContainerTest : Module(
         }
 
         onEnable {
-            acquire {
-                Items.OBSIDIAN.select()
-            }.run()
+            acquireStack { Items.OBSIDIAN.select() }
+                .start()
         }
     }
 }

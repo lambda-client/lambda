@@ -1,0 +1,90 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+@file:Suppress("unused")
+
+package com.lambda.config.serializers
+
+import com.lambda.config.Deserializer
+import com.lambda.config.JsonOps
+import com.lambda.config.Serializer
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.containers.external.EnderChestContainer
+import net.minecraft.item.ItemStack
+import tools.jackson.core.JsonGenerator
+import tools.jackson.core.JsonParser
+import tools.jackson.databind.DeserializationContext
+import tools.jackson.databind.SerializationContext
+import tools.jackson.databind.node.ArrayNode
+import tools.jackson.databind.node.ObjectNode
+
+object EnderChestContainerSerializer : Serializer<EnderChestContainer>(EnderChestContainer::class.java) {
+    override fun serialize(container: EnderChestContainer, gen: JsonGenerator, ctxt: SerializationContext) {
+        gen.writeStartObject()
+        gen.writeStringProperty("Type", ContainerType.EnderChest.name)
+
+        gen.writeArrayPropertyStart("Stacks")
+        container.stacks.forEach { stack ->
+            if (stack.isEmpty) {
+                gen.writeNull()
+            } else {
+                val encoded = ItemStack.CODEC
+                    .encodeStart(JsonOps.UNCOMPRESSED, stack)
+                    .result()
+                if (encoded.isPresent) {
+                    gen.writePOJO(encoded.get())
+                } else {
+                    gen.writeNull()
+                }
+            }
+        }
+        gen.writeEndArray()
+
+        gen.writeEndObject()
+    }
+}
+
+object EnderChestContainerDeserializer : Deserializer<EnderChestContainer>(EnderChestContainer::class.java) {
+    override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): EnderChestContainer? {
+        throw initFromJsonException("EnderChestContainer")
+    }
+
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext, intoValue: EnderChestContainer): EnderChestContainer {
+        val root = p.readValueAsTree<ObjectNode>()
+        val stackArray = root.get("Stacks") as? ArrayNode
+        val decodedStacks =
+            stackArray?.mapNotNull { element ->
+                if (element.isNull) {
+                    ItemStack.EMPTY
+                } else {
+                    ItemStack.CODEC
+                        .parse(JsonOps.UNCOMPRESSED, element)
+                        .result()
+                        .orElse(ItemStack.EMPTY)
+                }
+            } ?: emptyList()
+
+        val stacks =
+            if (decodedStacks.size < 27) {
+                decodedStacks + List(27 - decodedStacks.size) { ItemStack.EMPTY }
+            } else decodedStacks
+
+        EnderChestContainer.update(stacks)
+        EnderChestContainer.scanStacksForNestedContainers()
+        return EnderChestContainer
+    }
+}

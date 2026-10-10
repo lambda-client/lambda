@@ -1,0 +1,255 @@
+/*
+ * Copyright 2026 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.interaction.container.selection
+
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.ContainerDslMarker
+import com.lambda.interaction.container.ContainerType
+import com.lambda.interaction.container.NestedContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.handler.handlers.ContainerSearchScope
+
+@ContainerDslMarker
+fun Container.select(
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded
+) = containerSelection(scope) { ofAny(this@select) }
+
+@ContainerDslMarker
+fun Iterable<Container>.select(
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded
+) = containerSelection(scope) { ofAny(this@select) }
+
+@ContainerDslMarker
+fun selectContainers(
+    vararg containers: Container,
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded
+) = containerSelection(scope) { ofAny(*containers) }
+
+fun containerSelection(
+    scope: ContainerSearchScope = ContainerSearchScope.Loaded,
+    builder: ContainerSelectionBuilder.() -> Unit = {}
+) = ContainerSelectionBuilder(scope).apply(builder).build()
+
+fun ContainerSelection.mutate(
+    scope: ContainerSearchScope = this.scope,
+    builder: ContainerSelectionBuilder.() -> Unit = {}
+) = ContainerSelectionBuilder(this, scope).apply(builder).build()
+
+/**
+ * ContainerSelection is a class that holds a predicate for matching containers.
+ */
+@Suppress("unused")
+class ContainerSelection @ContainerDslMarker internal constructor(
+    val selector: (Container) -> Boolean,
+    val scope: ContainerSearchScope = ContainerSearchScope.Loaded,
+    val containersWhitelist: Collection<Container> = emptyList(),
+    val loadedContainers: Collection<Container> = emptyList(),
+    val containersBlacklist: Collection<Container> = emptyList(),
+    val accessScope: AccessScope = AccessScope.Both,
+    val comparator: Comparator<Container> = compareBy { it.type }
+) {
+    @ContainerDslMarker
+    fun bestMatch(containers: Iterable<Container>) = filter(containers).firstOrNull()
+
+    @ContainerDslMarker
+    fun matches(container: Container): Boolean = selector(container)
+
+    @ContainerDslMarker
+    fun filter(containers: Iterable<Container>, sorted: Boolean = true) =
+        run {
+            containersWhitelist
+                .takeIf { it.isNotEmpty() }
+                ?.asSequence()
+                ?.filter { it in containers && (accessScope.accessed?.equals(it.isAccessed) != false) }
+                ?: containers.asSequence()
+        }.filter { it !in containersBlacklist }
+            .filter(selector)
+            .let {
+                if (sorted) it.sortedWith(comparator)
+                else it
+            }
+            .toList()
+
+    companion object {
+        val ACCESSED = ContainerSelection({ true })
+        val NOTHING = ContainerSelection({ false })
+        val HOTBAR_AND_INVENTORY =
+            selectContainers(
+                HotbarContainer,
+                InventoryContainer,
+                scope = ContainerSearchScope.Player
+            )
+        val PLAYER = containerSelection(scope = ContainerSearchScope.Player)
+    }
+}
+
+@Suppress("unused")
+@ContainerDslMarker
+class ContainerSelectionBuilder @ContainerDslMarker internal constructor(
+    private val scope: ContainerSearchScope
+) {
+    @ContainerDslMarker
+    internal constructor(
+        selection: ContainerSelection,
+        scope: ContainerSearchScope
+    ) : this(scope) {
+        this.selector = selection.selector
+        this.containersWhitelist.addAll(selection.containersWhitelist)
+        this.loadedContainers.addAll(selection.loadedContainers)
+        this.containersBlacklist.addAll(selection.containersBlacklist)
+        this.accessScope = selection.accessScope
+        this.comparator = selection.comparator
+    }
+
+    private var selector: (Container) -> Boolean = { true }
+    private val containersWhitelist = mutableListOf<Container>()
+    private val loadedContainers = mutableListOf<Container>()
+    private val containersBlacklist = mutableListOf<Container>()
+    private var accessScope: AccessScope = AccessScope.Both
+    private var comparator: Comparator<Container>? = null
+
+    fun withContainers(vararg containers: Container) {
+        loadedContainers.addAll(containers)
+    }
+
+    fun withContainers(containers: Iterable<Container>) {
+        loadedContainers.addAll(containers)
+    }
+
+    fun ofAny(vararg containers: Container) {
+        containersWhitelist.addAll(containers)
+        withContainers(*containers)
+        appendSelector { container -> container in containersWhitelist }
+    }
+
+    fun ofAny(containers: Iterable<Container>) {
+        containersWhitelist.addAll(containers)
+        withContainers(containers)
+        appendSelector { container -> container in containersWhitelist }
+    }
+
+    fun noneOf(vararg containers: Container) {
+        containersBlacklist.addAll(containers)
+        appendSelector { container -> container !in containersBlacklist }
+    }
+
+    fun noneOf(containers: Iterable<Container>) {
+        containersBlacklist.addAll(containers)
+        appendSelector { container -> container !in containersBlacklist }
+    }
+
+    fun ofAnyType(vararg types: ContainerType) {
+        appendSelector { container -> types.contains(container.type) }
+    }
+
+    fun ofAnyType(types: Iterable<ContainerType>) {
+        appendSelector { container -> types.contains(container.type) }
+    }
+
+    fun noneOfType(vararg types: ContainerType) {
+        appendSelector { container -> !types.contains(container.type) }
+    }
+
+    fun noneOfType(types: Iterable<ContainerType>) {
+        appendSelector { container -> !types.contains(container.type) }
+    }
+
+    fun isNested() {
+        appendSelector { container -> container is NestedContainer }
+    }
+
+    fun notNested() {
+        appendSelector { container -> container !is NestedContainer }
+    }
+
+    fun matches(containerSelection: ContainerSelection) {
+        appendSelector { container -> containerSelection.matches(container) }
+    }
+
+    fun noMatch(containerSelection: ContainerSelection) {
+        appendSelector { container -> !containerSelection.matches(container) }
+    }
+
+    fun hasStack(stackSelection: StackSelection) {
+        appendSelector { container -> stackSelection isIn container }
+    }
+
+    fun noStack(stackSelection: StackSelection) {
+        appendSelector { container -> !stackSelection.isIn(container) }
+    }
+
+    fun hasSpace(stackSelection: StackSelection) {
+        appendSelector { container -> stackSelection spaceIn container }
+    }
+
+    fun noSpace(stackSelection: StackSelection) {
+        appendSelector { container -> !stackSelection.spaceIn(container) }
+    }
+
+    fun isAccessed() {
+        accessScope = AccessScope.Accessed
+        appendSelector { it.isAccessed }
+    }
+
+    fun notAccessed() {
+        accessScope = AccessScope.NotAccessed
+        appendSelector { !it.isAccessed }
+    }
+
+    fun predicate(predicate: (Container) -> Boolean) {
+        appendSelector { predicate(it) }
+    }
+
+    fun sortedWith(comparator: Comparator<Container>) {
+        this.comparator = this.comparator
+            ?.then(comparator)
+            ?: comparator
+    }
+
+    fun sortedWith(comparatorSupplier: () -> Comparator<Container>) {
+        this.comparator = this.comparator
+            ?.then(comparatorSupplier())
+            ?: comparatorSupplier()
+    }
+
+    private fun appendSelector(selector: (Container) -> Boolean) {
+        val currentSelector = this.selector
+        this.selector = { currentSelector(it) && selector(it) }
+    }
+
+    internal fun build() =
+        ContainerSelection(
+            selector,
+            scope,
+            containersWhitelist,
+            loadedContainers,
+            containersBlacklist,
+            accessScope,
+            comparator
+                .takeUnless { it == null }
+                ?.thenBy { it.type }
+                ?: compareBy { it.type }
+        )
+}
+
+enum class AccessScope(val accessed: Boolean?) {
+    Both(null),
+    Accessed(true),
+    NotAccessed(false)
+}

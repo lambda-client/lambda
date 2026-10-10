@@ -31,6 +31,9 @@ import com.lambda.config.categories.AutomationCategory
 import com.lambda.context.Automated
 import com.lambda.module.Module
 
+@DslMarker
+private annotation class AutomationConfigMarker
+
 open class AutomationConfig(
 	name: String,
 	configCategory: ConfigCategory = AutomationCategory
@@ -55,20 +58,17 @@ open class AutomationConfig(
 		private const val HOTBAR_TAB = "Hotbar"
 		private const val EAT_TAB = "Eat"
 
-		@DslMarker
-		private annotation class AutomationConfigMarker
-
-		@AutomationConfigMarker
-		context(module: Module)
-        fun IMutableAutomationConfig.setDefaultAutomationConfig(
-	        name: String = module.name
-		) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }
-
-		@AutomationConfigMarker
-        fun IMutableAutomationConfig.setDefaultAutomationConfig(
-	        name: String
-		) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }
-
 		val DEFAULT = AutomationConfig("Default")
     }
 }
+
+@AutomationConfigMarker
+context(module: Module)
+fun IMutableAutomationConfig.setDefaultAutomationConfig(
+	name: String = module.name
+) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }
+
+@AutomationConfigMarker
+fun IMutableAutomationConfig.setDefaultAutomationConfig(
+	name: String
+) = AutomationConfig("$name Automation Config").also { this.defaultAutomationConfig = it }

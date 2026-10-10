@@ -17,16 +17,17 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.hotbar.HotbarRequest
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.CommunicationUtils.info
 
+@Suppress("unused")
 object SilentSwap : Module(
     name = "SilentSwap",
     description = "SilentSwap",
@@ -39,7 +40,7 @@ object SilentSwap : Module(
             }
 
         listen<PlayerEvent.Attack.Block> {
-            if (!HotbarRequest(0, this@SilentSwap).submit().done) {
+            if (!hotbarRequest(0).submit().done) {
                 it.cancel()
                 return@listen
             }

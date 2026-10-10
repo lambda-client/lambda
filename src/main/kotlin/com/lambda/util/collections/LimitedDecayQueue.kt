@@ -98,6 +98,23 @@ class LimitedDecayQueue<E>(
     }
 
     /**
+     * Removes the first element matching the [predicate] and returns `true`, or `false` if no match was found.
+     * Unlike [removeIf], this stops after the first removal so that duplicate entries are consumed one at a time.
+     */
+    @Synchronized
+    fun removeFirstMatch(predicate: (E) -> Boolean): Boolean {
+        cleanUp()
+        val iterator = queue.iterator()
+        while (iterator.hasNext()) {
+            if (predicate(iterator.next().first)) {
+                iterator.remove()
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
      * Updates the maximum allowed size for the queue and triggers a cleanup operation
      * to remove elements exceeding the new size or falling outside the allowed time interval.
      *

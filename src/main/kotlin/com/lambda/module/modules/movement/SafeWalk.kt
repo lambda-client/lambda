@@ -20,7 +20,7 @@ package com.lambda.module.modules.movement
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.player.MovementUtils.motionX
 import com.lambda.util.player.MovementUtils.motionZ
 import com.lambda.util.player.MovementUtils.sneaking

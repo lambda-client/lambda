@@ -142,5 +142,13 @@ sealed class PlayerEvent {
         val button: Int,
         val action: SlotActionType,
         val screenHandler: ScreenHandler,
-    ) : ICancellable by Cancellable()
+    ) : ICancellable by Cancellable() {
+        data class Post(
+            val syncId: Int,
+            val slot: Int,
+            val button: Int,
+            val action: SlotActionType,
+            val screenHandler: ScreenHandler,
+        ) : Event
+    }
 }

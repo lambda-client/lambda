@@ -23,16 +23,23 @@ import com.lambda.context.Automated
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.material.container.containers.HotbarContainer
-import com.lambda.interaction.material.container.containers.InventoryContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 
-class EatTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun eat() = EatTask(automated)
+
+class EatTask @Ta5kBuilder internal constructor(
     automated: Automated
 ) : Task<Unit>(), Automated by automated {
     override val name: String
@@ -56,20 +63,24 @@ class EatTask @Ta5kBuilder constructor(
                 return@listen
             }
 
-            val foodFinder = reason.selector()
-            val hotbarSlot = foodFinder.filterSlots(HotbarContainer.slots).firstOrNull()
+            val selection = reason.selector()
+            val hotbarSlot = findSlot(selection, HotbarContainer.select())
             if (hotbarSlot != null) {
-                val request = HotbarRequest(
-                    hotbarSlot.index,
-                    this@EatTask,
-                    keepTicks = hotbarConfig.keepTicks.coerceAtLeast(1),
-                    nowOrNothing = false
-                ).submit()
+                val request =
+                    hotbarRequest(hotbarSlot.index) {
+                        keepTicks(hotbarConfig.keepTicks.coerceAtLeast(1))
+                    }.submit()
                 if (!request.done) return@listen
             } else {
-                val inventorySlot = foodFinder.filterSlots(InventoryContainer.slots).firstOrNull()
-                if (inventorySlot != null) runSafeAutomated {
-                    InventoryContainer.transfer(foodFinder, HotbarContainer)
+                if (selection isIn InventoryContainer) {
+                    runSafeAutomated {
+                        transfer(
+                            selection,
+                            InventoryContainer.select(),
+                            HotbarContainer.select()
+                        ).start()
+                        return@listen
+                    }
                 }
                 if (holdingUse) {
                     mc.options.useKey.isPressed = false
@@ -95,11 +106,5 @@ class EatTask @Ta5kBuilder constructor(
                 holdingUse = true
             }
         }
-    }
-
-    companion object {
-        @Ta5kBuilder
-        context(automated: Automated)
-        fun eat() = EatTask(automated)
     }
 }

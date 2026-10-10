@@ -19,7 +19,7 @@ package com.lambda.module.modules.network
 
 import com.lambda.Lambda.mc
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen
 import net.minecraft.client.gui.screen.world.SelectWorldScreen

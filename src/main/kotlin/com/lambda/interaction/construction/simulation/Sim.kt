@@ -21,7 +21,7 @@ import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingData
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.util.math.distSq
 import com.lambda.util.math.vec3d
 import com.lambda.util.player.CheckedHit
@@ -84,7 +84,7 @@ abstract class Sim<T : BuildResult> : Results<T> {
         dependencyStack.pop()
     }
 
-    protected abstract suspend fun AutomatedSafeContext.sim()
+    abstract suspend fun AutomatedSafeContext.sim()
 
     /**
      * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].

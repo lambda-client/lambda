@@ -9,6 +9,18 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.LambdaTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.ContainerTransferGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.ShulkerPickupGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.TaskLifecycleGameTest"
       }
     ]
   }

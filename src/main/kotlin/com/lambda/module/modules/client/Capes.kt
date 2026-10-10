@@ -18,7 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 
 object Capes : Module(
     name = "Capes",

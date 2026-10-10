@@ -45,9 +45,8 @@ import net.minecraft.nbt.NbtElement
  */
 @JvmName("valueNbtCompoundArg")
 @BrigadierDsl
-fun DefaultArgumentReader<NbtCompoundArgumentType>.value(): NbtCompound {
-    return NbtCompoundArgumentType.getNbtCompound(context, name)
-}
+fun DefaultArgumentReader<NbtCompoundArgumentType>.value(): NbtCompound =
+    NbtCompoundArgumentType.getNbtCompound(context, name)
 
 /**
  * Reads the [NbtElement] value from the
@@ -57,9 +56,8 @@ fun DefaultArgumentReader<NbtCompoundArgumentType>.value(): NbtCompound {
  */
 @JvmName("valueNbtElementArg")
 @BrigadierDsl
-fun DefaultArgumentReader<NbtElementArgumentType>.value(): NbtElement {
-    return NbtElementArgumentType.getNbtElement(context, name)
-}
+fun DefaultArgumentReader<NbtElementArgumentType>.value(): NbtElement =
+    NbtElementArgumentType.getNbtElement(context, name)
 
 /**
  * Reads the [NbtPath] value from the
@@ -69,9 +67,8 @@ fun DefaultArgumentReader<NbtElementArgumentType>.value(): NbtElement {
  */
 @JvmName("valueNbtPathArg")
 @BrigadierDsl
-fun DefaultArgumentReader<NbtPathArgumentType>.value(): NbtPath {
-    return NbtPathArgumentType.getNbtPath(context.assumeSourceNotUsed(), name)
-}
+fun DefaultArgumentReader<NbtPathArgumentType>.value(): NbtPath =
+    NbtPathArgumentType.getNbtPath(context.assumeSourceNotUsed(), name)
 
 /**
  * Creates a nbt compound argument with [name] as the parameter name.
@@ -79,9 +76,8 @@ fun DefaultArgumentReader<NbtPathArgumentType>.value(): NbtPath {
 @BrigadierDsl
 fun <S> nbtCompound(
     name: String,
-): DefaultArgumentConstructor<S, NbtCompoundArgumentType> {
-    return argument(name, NbtCompoundArgumentType.nbtCompound())
-}
+): DefaultArgumentConstructor<S, NbtCompoundArgumentType> =
+    argument(name, NbtCompoundArgumentType.nbtCompound())
 
 /**
  * Creates an NBT element argument with [name] as the parameter name.
@@ -89,9 +85,8 @@ fun <S> nbtCompound(
 @BrigadierDsl
 fun <S> nbtElement(
     name: String,
-): DefaultArgumentConstructor<S, NbtElementArgumentType> {
-    return argument(name, NbtElementArgumentType.nbtElement())
-}
+): DefaultArgumentConstructor<S, NbtElementArgumentType> =
+    argument(name, NbtElementArgumentType.nbtElement())
 
 /**
  * Creates an NBT path argument with [name] as the parameter name.
@@ -99,6 +94,5 @@ fun <S> nbtElement(
 @BrigadierDsl
 fun <S> nbtPath(
     name: String,
-): DefaultArgumentConstructor<S, NbtPathArgumentType> {
-    return argument(name, NbtPathArgumentType.nbtPath())
-}
+): DefaultArgumentConstructor<S, NbtPathArgumentType> =
+    argument(name, NbtPathArgumentType.nbtPath())

@@ -19,14 +19,15 @@ package com.lambda.module.modules.combat.crystalaura
 
 import com.lambda.Lambda
 import com.lambda.context.Automated
-import com.lambda.interaction.handlers.ContainerHandler.transfer
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation.Companion.rotationTo
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.containers.HotbarContainer
-import com.lambda.interaction.material.container.containers.OffHandContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.OffhandContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.move
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.ActionType
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.crystalPosition
 import com.lambda.module.modules.combat.crystalaura.CrystalAura.explodeDelay
@@ -64,7 +65,6 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration.Companion.milliseconds
-
 
 /**
  * Represents the damage information resulting from placing an end crystal on a given [blockPos]
@@ -122,7 +122,7 @@ class Opportunity(
 			return@runSafe
 		}
 		var crystalHand: Hand? = null
-		val selection = StackSelection.selectStack { isItem(Items.END_CRYSTAL) }
+		val selection = stackSelection { isItem(Items.END_CRYSTAL) }
 		if ((swapHand == Hand.MAIN_HAND && player.mainHandStack.item != Items.END_CRYSTAL) ||
 			(swapHand == Hand.OFF_HAND && player.offHandStack.item != Items.END_CRYSTAL)
 		) automated.runSafeAutomated {
@@ -137,19 +137,19 @@ class Opportunity(
 
 			val swapTo = when (swapHand) {
 				Hand.MAIN_HAND -> HotbarContainer
-				Hand.OFF_HAND -> OffHandContainer
-			}
+				Hand.OFF_HAND -> OffhandContainer
+			}.select()
 
 			if (itemToUse == null || swapHand == Hand.MAIN_HAND) {
 				if (swapHand == Hand.MAIN_HAND) {
-					val itemStack = selection.bestItemMatch(player.hotbarStacks)
+					val itemStack = selection.bestMatch(player.hotbarStacks)
 					if (itemStack == null) { // retrieve to hotbar
-						if (!selection.transfer(swapTo)) return@runSafe
+						if (!selection.move(toSelection = swapTo)) return@runSafe
 					}
 					val s = player.hotbarStacks.indexOf(itemStack)
-					if ((!HotbarRequest(s, automated, nowOrNothing = false).submit().done) && itemToUse == null) return@runSafe
+					if ((!hotbarRequest(s, nowOrNothing = false).submit().done) && itemToUse == null) return@runSafe
 				} else { // retrieve to offhand
-					if (!selection.transfer(swapTo)) return@runSafe
+					if (!selection.move(toSelection = swapTo)) return@runSafe
 				}
 			}
 		}

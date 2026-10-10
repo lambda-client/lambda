@@ -19,7 +19,8 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.interaction.handlers.ContainerHandler.findDisposable
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
@@ -86,9 +87,12 @@ sealed class TargetState : StateMatcher {
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
-                findDisposable()?.stacks?.firstOrNull {
-                    it.item in inventoryConfig.disposables && it.item.block !in replace
-                } ?: ItemStack(Items.NETHERRACK)
+                findStack(
+                    stackSelection {
+                        ofAnyItems(inventoryConfig.disposables)
+                        predicate { stack, _ -> stack.item.block !in replace }
+                    }
+                ) ?: ItemStack(Items.NETHERRACK)
             }
 
         context(_: AutomatedSafeContext)
@@ -113,9 +117,8 @@ sealed class TargetState : StateMatcher {
         context(automatedSafeContext: AutomatedSafeContext)
         override fun getStack(pos: BlockPos) =
             with(automatedSafeContext) {
-                findDisposable()?.stacks?.firstOrNull {
-                    it.item in inventoryConfig.disposables
-                } ?: ItemStack(Items.NETHERRACK)
+                findStack(stackSelection { ofAnyItems(inventoryConfig.disposables) })
+                    ?: ItemStack(Items.NETHERRACK)
             }
 
         context(_: AutomatedSafeContext)
@@ -176,12 +179,12 @@ sealed class TargetState : StateMatcher {
             ignoredProperties: Collection<Property<*>>
         ) = state.block == block
 
-        context(automatedSafeContext: AutomatedSafeContext)
+        context(_: AutomatedSafeContext)
         override fun getStack(pos: BlockPos): ItemStack = itemStack
 
         context(_: AutomatedSafeContext)
         override fun getState(pos: BlockPos): BlockState = block.defaultState
 
-        override fun isEmpty() = false
+        override fun isEmpty() = block.defaultState.isEmpty
     }
 }

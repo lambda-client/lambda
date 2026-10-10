@@ -107,7 +107,7 @@ fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean =
 val Vec3d.roundedBlockPos: BlockPos
     get() = BlockPos(x.roundToInt(), y.roundToInt(), z.roundToInt())
 
-val Vec3d.flooredBlockPos: BlockPos
+val Vec3d.blockPos: BlockPos
     get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
 
 val Entity.netherCoord: Vec3d get() = pos.multiply(0.125, 1.0, 0.125)
@@ -205,7 +205,7 @@ infix fun Entity.distSq(other: Vec3i): Int = blockPos distSq other
 infix fun Entity.distSq(other: Entity): Double = squaredDistanceTo(other)
 
 context(safeContext: SafeContext)
-val Vec3d.isLoaded get() = flooredBlockPos.isLoaded
+val Vec3d.isLoaded get() = blockPos.isLoaded
 
 val UP = Vec3d(0.0, 1.0, 0.0)
 val DOWN = Vec3d(0.0, -1.0, 0.0)

@@ -50,7 +50,7 @@ inline fun <T> runSafe(block: SafeContext.() -> T): T? =
 @JvmName("runSafeAutomated0")
 context(safeContext: SafeContext)
 inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: AutomatedSafeContext.() -> T): T =
-    AutomatedSafeContext(safeContext, automated).run(block)
+    AutomatedSafeContext.create(safeContext, automated).run(block)
 
 /**
  * Runs the [block] in an automated context.
@@ -59,7 +59,7 @@ inline fun <T> Automated.runSafeAutomated(automated: Automated = this, block: Au
  */
 @JvmName("runSafeAutomated1")
 inline fun <T> Automated.runSafeAutomated(block: AutomatedSafeContext.() -> T): T? {
-    return AutomatedSafeContext(SafeContext.create() ?: return null, this).run(block)
+    return AutomatedSafeContext.create(SafeContext.create() ?: return null, this).run(block)
 }
 
 /**

@@ -27,7 +27,7 @@ object PacketUtils {
     /**
      * Sends a packet through the regular packet pipeline
      */
-    fun ClientPlayNetworkHandler.sendPacket(block: () -> Packet<*>) = connection.send(block())
+    fun ClientPlayNetworkHandler.sendPacket(packetSupplier: () -> Packet<*>) = connection.send(packetSupplier())
 
     /**
      * Sends a packet to the server without notifying the client.

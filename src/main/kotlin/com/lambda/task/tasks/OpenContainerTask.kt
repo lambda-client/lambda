@@ -22,9 +22,10 @@ import com.lambda.context.Automated
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.task.Task
+import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.TickTimer
 import com.lambda.util.player.RotationUtils.lookAtBlock
@@ -34,11 +35,19 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class OpenContainerTask @Ta5kBuilder constructor(
+@Ta5kBuilder
+context(automated: Automated)
+fun openContainer(
+    blockPos: BlockPos,
+    waitForSlotLoad: Boolean = true,
+    sides: Set<Direction> = Direction.entries.toSet()
+) = OpenContainerTask(blockPos, waitForSlotLoad, sides, automated)
+
+class OpenContainerTask @Ta5kBuilder internal constructor(
     private val blockPos: BlockPos,
-    private val automated: Automated,
     private val waitForSlotLoad: Boolean = true,
-    private val sides: Set<Direction> = Direction.entries.toSet()
+    private val sides: Set<Direction> = Direction.entries.toSet(),
+    automated: Automated
 ) : Task<ScreenHandler>(), Automated by automated {
     override val name get() = "${containerState.description()} at ${blockPos.toShortString()}"
 
@@ -46,6 +55,7 @@ class OpenContainerTask @Ta5kBuilder constructor(
     private var containerState = State.Scoping
 
     private val retryTimer = TickTimer()
+    private var interactions = 0
 
     enum class State {
         Pathing,
@@ -62,6 +72,8 @@ class OpenContainerTask @Ta5kBuilder constructor(
     }
 
     init {
+        onCompletion { BaritoneHandler.cancel() }
+
         listen<InventoryEvent.Open> {
             if (containerState != State.Opening) return@listen
 
@@ -110,6 +122,14 @@ class OpenContainerTask @Ta5kBuilder constructor(
             player.swingHand(Hand.MAIN_HAND)
 
             containerState = State.Opening
+            if (++interactions > MAX_OPEN_ATTEMPTS) {
+                failure("Failed to open container at ${blockPos.toShortString()} after $interactions attempts")
+                return@listen
+            }
         }
+    }
+
+    companion object {
+        private const val MAX_OPEN_ATTEMPTS = 20
     }
 }

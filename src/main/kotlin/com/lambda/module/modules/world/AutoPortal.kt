@@ -19,15 +19,13 @@ package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.Group
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.WorldLineSettings
 import com.lambda.config.editSetting
 import com.lambda.config.forEachSetting
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -35,20 +33,24 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.graphics.util.DirectionMask
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
+import com.lambda.module.ModuleTag
 import com.lambda.module.modules.world.AutoPortal.PosHandler.currAnchorPos
 import com.lambda.module.modules.world.AutoPortal.PosHandler.obiPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.portalPositions
 import com.lambda.module.modules.world.AutoPortal.PosHandler.prevAnchorPos
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.task.wrappers.thenOrNull
+import com.lambda.task.start
+import com.lambda.task.tasks.build
+import com.lambda.task.tasks.wrappers.thenOrNull
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
@@ -59,10 +61,7 @@ import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.vec3d
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
-import com.lambda.util.player.SlotUtils.hotbarSlots
 import net.minecraft.block.Blocks
-import net.minecraft.item.FlintAndSteelItem
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
@@ -76,7 +75,7 @@ import net.minecraft.util.math.Vec3d
 @Suppress("unused")
 object AutoPortal : Module(
 	name = "AutoPortal",
-	description = "Automatically places and lights a nether portal",
+	description = "Automatically builds a nether portal",
 	tag = ModuleTag.WORLD
 ) {
 	private const val RENDER_GROUP = "Renders"
@@ -105,7 +104,7 @@ object AutoPortal : Module(
 					else null
 				}
 				.onCompletion { buildTask = null }
-				.run()
+				.start()
 		}
 	private val corners by setting("Corners", false)
 	private val light by setting("Light", true, "Attempts to automatically light the portal after building")
@@ -276,7 +275,7 @@ object AutoPortal : Module(
 			}
 	}
 
-	private class LightTask(
+	private class LightTask @Ta5kBuilder constructor(
 		private val pos: BlockPos,
 		private val walkIn: Boolean
 	) : Task<Unit>() {
@@ -323,45 +322,41 @@ object AutoPortal : Module(
 				return
 			}
 
-			val sel = selectStack(1) { isItem<FlintAndSteelItem>() }
+			val selection = Items.FLINT_AND_STEEL.select()
 
-			val hotbarStack = sel.filterSlots(player.hotbarSlots).firstOrNull()
-			if (hotbarStack != null) {
-				val request = HotbarRequest(
-					hotbarStack.index,
-					this@AutoPortal,
-					keepTicks = 0
-				).submit(queueIfMismatchedStage = false)
+			val hotbarIndex = selection.bestMatch(HotbarContainer.slots)?.index
+			if (hotbarIndex != null) {
+				val request =
+					hotbarRequest(hotbarIndex) {
+						keepTicks(0)
+					}.submit(false)
 				if (request.done) block()
 				return
 			}
 
 			val invSlot =
-				if (inventory) sel.filterSlots(player.hotbarAndInventorySlots).firstOrNull()
+				if (inventory) findSlot(selection, InventoryContainer.select())
 				else null
 			if (invSlot == null) {
 				failure("No Flint and Steel!")
 				return
 			}
 			val hotbarSlotToSwapWith =
-				player.hotbarSlots.find { slot ->
-					slot.stack.isEmpty
-				}?.index ?: 8
+				findSlot(
+					stackSelection(0) { isEmpty() },
+					HotbarContainer.select()
+				)?.index ?: 8
 
 			inventoryRequest {
-				swap(invSlot.id, hotbarSlotToSwapWith)
+				swapWithHotbar(invSlot.id, hotbarSlotToSwapWith)
 				action {
-					val request = HotbarRequest(
-						hotbarSlotToSwapWith,
-						this@AutoPortal,
-						keepTicks = 0,
-						nowOrNothing = true
-					).submit(queueIfMismatchedStage = false)
-					if (request.done) {
-						block()
-					}
+					val request =
+						hotbarRequest(hotbarSlotToSwapWith) {
+							keepTicks(0)
+						}.submit(false)
+					if (request.done) block()
 				}
-				swap(invSlot.id, hotbarSlotToSwapWith)
+				swapWithHotbar(invSlot.id, hotbarSlotToSwapWith)
 			}.submit()
 		}
 	}

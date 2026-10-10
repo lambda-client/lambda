@@ -17,20 +17,22 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.ContainerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
+import com.lambda.threading.runSafeAutomated
 import com.lambda.util.EnchantmentUtils.forEachEnchantment
 import com.lambda.util.EnchantmentUtils.getEnchantment
-import com.lambda.util.player.SlotUtils.hotbarSlots
-import com.lambda.util.player.SlotUtils.inventorySlots
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
 
@@ -50,10 +52,15 @@ object ToolSaver : Module(
 			}
 
 		listen<TickEvent.Pre> {
-			val endangeredStacks = player.hotbarSlots.filter { it.stack.isEndangered }
+			val endangeredSlots =
+				findSlots(
+					stackSelection { predicate { stack, _ -> stack.isEndangered } },
+					HotbarContainer.select()
+				)
 
-			val inventorySlots = player.inventorySlots
-			val swaps = endangeredStacks
+			val inventorySlots = findSlots(containerSelection = InventoryContainer.select())
+
+			val swaps = endangeredSlots
 				.mapNotNull { endangered ->
 					val sorter = compareByDescending<Slot> { swapSlot ->
 						if (!replace) 0
@@ -80,17 +87,15 @@ object ToolSaver : Module(
 						?: return@mapNotNull null
 					endangered to swapWith
 				}
+				.toList()
 
 			if (swaps.isEmpty()) return@listen
 
-			inventoryRequest {
-				swaps.forEach {
-					pickup(it.first.id)
-					pickup(it.second.id)
-					if (!it.second.stack.isEmpty)
-						pickup(it.first.id)
+			runSafeAutomated {
+				swaps.forEach { (endangered, swapWith) ->
+					HotbarContainer.swap(endangered, swapWith, InventoryContainer)
 				}
-			}.submit()
+			}
 		}
 
 		listen<ContainerEvent.Transfer> { event ->

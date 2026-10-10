@@ -17,21 +17,24 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.hide
 import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.containers.OffhandContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.findSlots
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.util.item.ItemStackUtils.slotId
-import com.lambda.util.player.SlotUtils.hotbarStacks
-import com.lambda.util.player.SlotUtils.inventoryStacks
+import com.lambda.module.ModuleTag
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.screen.slot.Slot
 
 @Suppress("unused")
 object StackReplenish : Module(
@@ -47,29 +50,37 @@ object StackReplenish : Module(
 			.withEdits {
 				hideAllExcept(::inventoryConfig)
 				inventoryConfig.apply {
-					hide(::disposables, ::swapWithDisposables, ::providerPriority, ::storePriority)
+					hide(::disposables)
 				}
 			}
 
 		listen<TickEvent.Pre> {
 			if (player.currentScreenHandler.cursorStack.item !== Items.AIR) return@listen
-			player.hotbarStacks.forEach { stack -> checkReplenish(stack) }
-			if (offhand) checkReplenish(player.offHandStack)
+			findSlots(containerSelection = HotbarContainer.select()).forEach { slot -> checkReplenish(slot) }
+			if (offhand) findSlots(containerSelection = OffhandContainer.select()).forEach { slot -> checkReplenish(slot) }
 		}
 	}
 
-	private fun SafeContext.checkReplenish(stack: ItemStack) {
+	private fun checkReplenish(targetSlot: Slot) {
+		val stack = targetSlot.stack
+		if (stack.isEmpty || !stack.isStackable) return
 		if (stack.count.toFloat() / stack.maxCount >= (minStackPercent.toFloat() / 100)) return
-		if (!stack.isStackable) return
 
-		player.inventoryStacks.forEach { invStack ->
-			if (!ItemStack.areItemsAndComponentsEqual(invStack, stack)) return@forEach
-			val invId = invStack.slotId
-			val completing = stack.count + invStack.count >= stack.maxCount
-			val tooMany = invStack.count + stack.count > stack.maxCount
+		val replenishSlots =
+			findSlots(
+				stackSelection {
+					predicate { s, _ -> ItemStack.areItemsAndComponentsEqual(s, stack) }
+				},
+				InventoryContainer.select()
+			)
+
+		replenishSlots.forEach { replenishSlot ->
+			val invStack = replenishSlot.stack
+			val completing = targetSlot.stack.count + invStack.count >= stack.maxCount
+			val tooMany = targetSlot.stack.count + invStack.count > stack.maxCount
 			inventoryRequest {
-				moveSlot(invId, stack.slotId)
-				if (tooMany) pickup(invId)
+				moveSlot(replenishSlot.id, targetSlot.id)
+				if (tooMany) pickup(replenishSlot.id)
 			}.submit()
 			if (completing) return
 		}

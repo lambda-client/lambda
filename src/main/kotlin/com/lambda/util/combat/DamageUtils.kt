@@ -20,7 +20,7 @@ package com.lambda.util.combat
 import com.lambda.context.SafeContext
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.fullHealth
-import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.blockPos
 import com.lambda.util.math.minus
 import com.lambda.util.player.prediction.buildPlayerPrediction
 import net.minecraft.block.BedBlock
@@ -76,7 +76,7 @@ object DamageUtils {
         val predictedPos = prediction.position
         val fallDistance = player.y - predictedPos.y + player.fallDistance
 
-        val state = blockState(predictedPos.flooredBlockPos)
+        val state = blockState(predictedPos.blockPos)
         val block = state.block
 
         val distance = fallDistance +

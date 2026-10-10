@@ -21,7 +21,7 @@ import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES
-import com.lambda.interaction.managers.rotating.RotationMode
+import com.lambda.interaction.manager.managers.rotating.RotationMode
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos

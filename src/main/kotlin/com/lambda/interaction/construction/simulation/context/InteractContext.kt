@@ -20,8 +20,8 @@ package com.lambda.interaction.construction.simulation.context
 import com.lambda.context.Automated
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.interaction.construction.simulation.processing.PreProcessingInfo
-import com.lambda.interaction.managers.interacting.InteractRequest
-import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.manager.managers.interacting.InteractRequest
+import com.lambda.interaction.manager.managers.rotating.RotationRequest
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos

@@ -20,7 +20,7 @@ package com.lambda.module.modules.movement
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 
 @Suppress("unused")
 object Timer : Module(

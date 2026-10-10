@@ -171,13 +171,13 @@ object WorldUtils {
         range: FastVector,
         step: FastVector,
     ) = sequence {
-        for (x in -range.x..range.x step step.x) {
-            for (y in -range.y..range.y step step.y) {
-                for (z in -range.z..range.z step step.z) {
-                    yield(pos plus fastVectorOf(x, y, z))
-                }
-            }
-        }
+	    (-range.x..range.x step step.x).forEach { x ->
+		    (-range.y..range.y step step.y).forEach { y ->
+			    (-range.z..range.z step step.z).forEach { z ->
+				    yield(pos plus fastVectorOf(x, y, z))
+			    }
+		    }
+	    }
     }
 }
 

@@ -48,9 +48,8 @@ object LiteralDescriptor : ArgumentDescriptor<ArgumentType<*>>
  */
 @JvmName("valueTimeArg")
 @BrigadierDsl
-fun DefaultArgumentReader<TimeArgumentType>.value(): Int {
-    return IntegerArgumentType.getInteger(context, name)
-} // TimeArgumentType does not provide an accessor, defaulting to int
+fun DefaultArgumentReader<TimeArgumentType>.value(): Int =
+    IntegerArgumentType.getInteger(context, name) // TimeArgumentType does not provide an accessor, defaulting to int
 
 /**
  * Reads the [UUID] value from the
@@ -60,9 +59,8 @@ fun DefaultArgumentReader<TimeArgumentType>.value(): Int {
  */
 @JvmName("valueUuidArg")
 @BrigadierDsl
-fun DefaultArgumentReader<UuidArgumentType>.value(): UUID {
-    return UuidArgumentType.getUuid(context.assumeSourceNotUsed(), name)
-}
+fun DefaultArgumentReader<UuidArgumentType>.value(): UUID =
+    UuidArgumentType.getUuid(context.assumeSourceNotUsed(), name)
 
 /**
  * Creates a time argument with [name] as the parameter name.
@@ -73,9 +71,8 @@ fun DefaultArgumentReader<UuidArgumentType>.value(): UUID {
 fun <S> time(
     name: String,
     minimumTicks: Int = 0,
-): DefaultArgumentConstructor<S, TimeArgumentType> {
-    return argument(name, TimeArgumentType.time(minimumTicks))
-}
+): DefaultArgumentConstructor<S, TimeArgumentType> =
+    argument(name, TimeArgumentType.time(minimumTicks))
 
 /**
  * Creates a UUID argument with [name] as the parameter name.
@@ -83,9 +80,8 @@ fun <S> time(
 @BrigadierDsl
 fun <S> uuid(
     name: String,
-): RequiredArgumentConstructor<S, DefaultArgumentDescriptor<UuidArgumentType>> {
-    return argument(name, UuidArgumentType.uuid())
-}
+): RequiredArgumentConstructor<S, DefaultArgumentDescriptor<UuidArgumentType>> =
+    argument(name, UuidArgumentType.uuid())
 
 /**
  * Creates a literal argument with [name] as the literal.
@@ -98,6 +94,5 @@ fun <S> uuid(
 @BrigadierDsl
 fun <S> literal(
     name: String,
-): ArgumentConstructor<S, LiteralArgumentBuilder<S>, LiteralDescriptor> {
-    return ArgumentConstructor(LiteralArgumentBuilder.literal(name), name, LiteralDescriptor)
-}
+): ArgumentConstructor<S, LiteralArgumentBuilder<S>, LiteralDescriptor> =
+    ArgumentConstructor(LiteralArgumentBuilder.literal(name), name, LiteralDescriptor)

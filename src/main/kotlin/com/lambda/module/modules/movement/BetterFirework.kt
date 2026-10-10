@@ -19,30 +19,33 @@ package com.lambda.module.modules.movement
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editSetting
 import com.lambda.config.hideAllExcept
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.handlers.GlideHandler
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.containers.OffhandContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.selectContainers
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.GlideHandler
+import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.handler.handlers.findStack
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.player.PlayerUtils
 import com.lambda.util.player.PlayerUtils.canStartGliding
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
@@ -59,15 +62,16 @@ object BetterFirework : Module(
 		.onPress {
 			if (mc.crosshairTarget?.type == HitResult.Type.BLOCK &&
 				!middleClickCancel &&
-				activateButton.mouse == Lambda.mc.options.pickItemKey.boundKey.code) return@onPress
+				activateButton.mouse == Lambda.mc.options.pickItemKey.boundKey.code
+			) return@onPress
 
-			if (!player.hasFireworks) {
+			if (!hasFireworks) {
 				warn("You need to have fireworks in your inventory to use this module!")
 				return@onPress
 			}
 			// Prevent using multiple times
 			if (takeoffState != TakeoffState.Idle) return@onPress
-			// If already gliding use another firework
+			// If already gliding, use another firework
 			if (player.canStartGliding || player.isGliding) takeoffState = TakeoffState.StartFlying
 			else if (player.canTakeoff) takeoffState = TakeoffState.Jumping
 		}
@@ -83,10 +87,12 @@ object BetterFirework : Module(
 
 	private var takeoffState = TakeoffState.Idle
 
-	val ClientPlayerEntity.hasFireworks: Boolean
-		get() = Items.FIREWORK_ROCKET.select()
-			.filterStacks(hotbarAndInventoryStacks)
-			.isNotEmpty() || offHandStack.item == Items.FIREWORK_ROCKET
+	val hasFireworks: Boolean
+		get() = findStack(
+			Items.FIREWORK_ROCKET.select(),
+			selectContainers(HotbarContainer, InventoryContainer, OffhandContainer),
+			sorted = false
+		) != null
 
 	context(_: SafeContext)
 	private val ClientPlayerEntity.canTakeoff: Boolean
@@ -156,39 +162,40 @@ object BetterFirework : Module(
 	 * Return true if a firework has been used
 	 */
 	fun SafeContext.startFirework(inventory: Boolean) {
-		val stack = selectStack(count = 1) { isItem(Items.FIREWORK_ROCKET) }
+		val selection = Items.FIREWORK_ROCKET.select(1)
 
-		stack.bestItemMatch(player.hotbarStacks)
-			?.let {
-				val request = HotbarRequest(player.hotbarStacks.indexOf(it), this@BetterFirework, keepTicks = 0)
-					.submit(queueIfMismatchedStage = false)
-				if (request.done) {
-					interaction.interactItem(player, Hand.MAIN_HAND)
-					sendSwing()
-				}
-				return
-			}
+		val hotbarMatch = selection.bestMatch(HotbarContainer.slots)
+		if (hotbarMatch != null) {
+			swapAndFirework(hotbarMatch.index)
+			return
+		}
 
 		if (!inventory) return
 
-		stack.bestItemMatch(player.hotbarAndInventoryStacks)
-			?.let {
-				val swapSlotId = player.hotbarAndInventoryStacks.indexOf(it)
-				val hotbarSlotToSwapWith = player.hotbarStacks.find { slot -> slot.isEmpty }?.let { slot -> player.hotbarStacks.indexOf(slot) } ?: 8
+		val inventoryMatch = findSlot(containerSelection = InventoryContainer.select()) ?: return
+		val hotbarSlot =
+			findSlot(
+				stackSelection { isEmpty() },
+				HotbarContainer.select()
+			)?.index
+				?: 8
 
-				inventoryRequest {
-					swap(swapSlotId, hotbarSlotToSwapWith)
-					action {
-						val request = HotbarRequest(hotbarSlotToSwapWith, this@BetterFirework, keepTicks = 0, nowOrNothing = true)
-							.submit(queueIfMismatchedStage = false)
-						if (request.done) {
-							interaction.interactItem(player, Hand.MAIN_HAND)
-							sendSwing()
-						}
-					}
-					swap(swapSlotId, hotbarSlotToSwapWith)
-				}.submit()
-			}
+		inventoryRequest {
+			swapWithHotbar(inventoryMatch.id, hotbarSlot)
+			action { swapAndFirework(hotbarSlot) }
+			swapWithHotbar(inventoryMatch.id, hotbarSlot)
+		}.submit()
+	}
+
+	private fun SafeContext.swapAndFirework(hotbarSlot: Int) {
+		val request =
+			hotbarRequest(hotbarSlot, true) {
+				keepTicks(0)
+			}.submit(false)
+		if (request.done) {
+			interaction.interactItem(player, Hand.MAIN_HAND)
+			sendSwing()
+		}
 	}
 
 	enum class TakeoffState {

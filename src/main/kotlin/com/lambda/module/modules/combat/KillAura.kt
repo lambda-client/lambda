@@ -18,7 +18,7 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.blocks.TargetingSettings
 import com.lambda.config.editSetting
 import com.lambda.config.hide
@@ -28,18 +28,20 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.NamedEnum
 import com.lambda.util.item.ItemStackUtils.attackDamage
 import com.lambda.util.item.ItemStackUtils.attackSpeed
 import com.lambda.util.math.random
 import com.lambda.util.player.RotationUtils.lookAtEntity
-import com.lambda.util.player.SlotUtils.hotbarStacks
 import net.minecraft.entity.Entity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
@@ -119,14 +121,21 @@ object KillAura : Module(
                 }
 
                 if (swap) {
-                    val selection = selectStack().sortByDescending {
-                        damageMode.block(this, it)
-                    }
+                    val selection =
+                        stackSelection {
+                            sortedWith {
+                                compareByDescending {
+                                    damageMode.block(this@listen, it.stack)
+                                }
+                            }
+                        }
 
-                    selection.bestItemMatch(player.hotbarStacks)?.let { bestStack ->
-                        val slotId = player.hotbarStacks.indexOf(bestStack)
-                        if (!HotbarRequest(slotId, this@KillAura, nowOrNothing = false).submit().done) return@listen
-                    }
+                    val slot =
+                        findSlot(
+                            selection,
+                            HotbarContainer.select()
+                        ) ?: return@listen
+                    if (!hotbarRequest(slot.index).submit().done) return@listen
                 }
 
                 if (!rotated) return@listen

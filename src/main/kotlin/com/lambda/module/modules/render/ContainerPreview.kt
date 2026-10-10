@@ -19,18 +19,18 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.config.Tab
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.settings.complex.Bind
-import com.lambda.interaction.material.container.containers.EnderChestContainer
+import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.InputUtils.isSatisfied
 import com.lambda.util.KeyCode
-import com.lambda.util.item.ItemStackUtils.bundleContents
-import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
-import com.lambda.util.item.ItemUtils.bundles
-import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.item.ItemStackUtils.bundleStacks
+import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
+import com.lambda.util.item.ItemUtils.BUNDLES
+import com.lambda.util.item.ItemUtils.SHULKER_BOXES
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.block.ShulkerBoxBlock
@@ -261,7 +261,7 @@ object ContainerPreview : Module(
 
     private fun getContainerContents(stack: ItemStack): List<ItemStack> {
         return when {
-            isShulkerBox(stack) -> stack.shulkerBoxContents
+            isShulkerBox(stack) -> stack.shulkerBoxStacks
             isEnderChest(stack) -> EnderChestContainer.stacks
             else -> emptyList()
         }
@@ -360,7 +360,7 @@ object ContainerPreview : Module(
         val hash = container.hashCode()
 
         return containerCache.computeIfAbsent(hash) {
-            val contents = container.shulkerBoxContents + container.bundleContents
+            val contents = container.shulkerBoxStacks + container.bundleStacks
             if (contents.isEmpty()) return@computeIfAbsent ContainerPreviewInfo(null, false)
 
             val group = contents.filter { stack -> stack.item != Items.AIR }
@@ -379,7 +379,7 @@ object ContainerPreview : Module(
     }
 
     @JvmStatic
-    fun isShulkerBox(stack: ItemStack) = stack.item in shulkerBoxes
+    fun isShulkerBox(stack: ItemStack) = stack.item in SHULKER_BOXES
 
     @JvmStatic
     fun isEnderChest(stack: ItemStack) = stack.item == Items.ENDER_CHEST && EnderChestContainer.stacks.isNotEmpty()
@@ -388,7 +388,7 @@ object ContainerPreview : Module(
     fun isPreviewableContainer(stack: ItemStack) = isShulkerBox(stack) || isEnderChest(stack)
 
     @JvmStatic
-    fun isBundle(stack: ItemStack) = stack.item in bundles
+    fun isBundle(stack: ItemStack) = stack.item in BUNDLES
 
 	@JvmStatic
 	fun drawOnItem(drawContext: DrawContext, state: GuiRenderState, entity: LivingEntity?, world: World?, stack: ItemStack, x: Int, y: Int, seed: Int) {

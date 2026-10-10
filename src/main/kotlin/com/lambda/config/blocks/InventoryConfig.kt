@@ -17,11 +17,10 @@
 
 package com.lambda.config.blocks
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.material.ContainerSelection
-import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.container.Container
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.util.Describable
 import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
@@ -29,56 +28,24 @@ import net.minecraft.item.Item
 interface InventoryConfig {
 	val tickStageMask: Collection<TickEvent>
 	val disposables: Collection<Item>
-	val swapWithDisposables: Boolean
-	val providerPriority: Priority
-	val storePriority: Priority
 
-	val accessShulkerBoxes: Boolean
-	val accessChests: Boolean
-	val accessEnderChest: Boolean
-	val accessStashes: Boolean
-
+	val allowedContainers: Collection<com.lambda.interaction.container.ContainerType>
 	val containerSelection: ContainerSelection
-		get() = ContainerSelection.selectContainer {
-			val allowedContainers = buildSet {
-				addAll(MaterialContainer.Rank.entries)
-				if (!accessShulkerBoxes) remove(MaterialContainer.Rank.ShulkerBox)
-				if (!accessEnderChest) remove(MaterialContainer.Rank.EnderChest)
-				if (!accessChests) remove(MaterialContainer.Rank.Chest)
-				if (!accessStashes) remove(MaterialContainer.Rank.Stash)
-			}
-			ofAnyType(*allowedContainers.toTypedArray())
-		}
+		get() = containerSelection { ofAnyType(*allowedContainers.toTypedArray()) }
 
-	enum class Priority(
+	val enderChestSearchRadius: Int
+
+	@Suppress("unused")
+	enum class ContainerPriority(
 		override val displayName: String,
 		override val description: String
 	) : NamedEnum, Describable {
 		WithMinItems("With Min Items", "Pick containers with the fewest matching items (or least space) first; useful for topping off or clearing leftovers."),
 		WithMaxItems("With Max Items", "Pick containers with the most matching items (or most space) first; ideal for bulk moves with fewer transfers.");
 
-		context(_: SafeContext)
-		fun materialComparator(selection: StackSelection) =
-			when (this) {
-				WithMaxItems -> compareBy<MaterialContainer> { it.rank }
-					.thenByDescending { it.materialAvailable(selection) }
-					.thenBy { it.name }
-
-				WithMinItems -> compareBy<MaterialContainer> { it.rank }
-					.thenBy { it.materialAvailable(selection) }
-					.thenBy { it.name }
-			}
-
-		context(_: SafeContext)
-		fun spaceComparator(selection: StackSelection) =
-			when (this) {
-				WithMaxItems -> compareBy<MaterialContainer> { it.rank }
-					.thenByDescending { it.spaceAvailable(selection) }
-					.thenBy { it.name }
-
-				WithMinItems -> compareBy<MaterialContainer> { it.rank }
-					.thenBy { it.spaceAvailable(selection) }
-					.thenBy { it.name }
-			}
+		fun <T> comparator(countSelector: (Container, T) -> Int) =
+			compareBy<Pair<Container, T>> { it.first.type }
+				.thenByDescending { countSelector(it.first, it.second) }
+				.thenBy { it.first.name }
 	}
 }

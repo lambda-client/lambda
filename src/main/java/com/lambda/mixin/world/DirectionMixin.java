@@ -17,8 +17,8 @@
 
 package com.lambda.mixin.world;
 
-import com.lambda.interaction.handlers.BaritoneHandler;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.handler.handlers.BaritoneHandler;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Direction;

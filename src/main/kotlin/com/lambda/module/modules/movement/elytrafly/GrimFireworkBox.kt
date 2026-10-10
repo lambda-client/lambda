@@ -18,7 +18,7 @@
 package com.lambda.module.modules.movement.elytrafly
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.RotationManager
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import kotlin.math.asin

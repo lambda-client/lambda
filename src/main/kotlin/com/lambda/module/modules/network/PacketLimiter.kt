@@ -17,11 +17,11 @@
 
 package com.lambda.module.modules.network
 
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.ModuleTag
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.ReflectionUtils.className
 import com.lambda.util.collections.LimitedDecayQueue

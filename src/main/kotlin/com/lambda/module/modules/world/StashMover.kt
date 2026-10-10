@@ -20,13 +20,12 @@ package com.lambda.module.modules.world
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.mc
 import com.lambda.config.Tab
-import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.automation.setDefaultAutomationConfig
 import com.lambda.config.editTypedSettings
-import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.entries.onValueChange
 import com.lambda.config.hide
 import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
-import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ButtonEvent
@@ -38,21 +37,31 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.renderer.TickedRenderer.Companion.tickedRenderer
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.handlers.BaritoneHandler
-import com.lambda.interaction.managers.hotbar.HotbarRequest
-import com.lambda.interaction.managers.inventory.InventoryRequest.Companion.inventoryRequest
-import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
-import com.lambda.interaction.managers.rotating.Rotation
-import com.lambda.interaction.managers.rotating.Rotation.Companion.dist
-import com.lambda.interaction.managers.rotating.RotationManager
-import com.lambda.interaction.material.container.containers.EnderChestContainer
+import com.lambda.interaction.container.containers.HotbarContainer
+import com.lambda.interaction.container.containers.InventoryContainer
+import com.lambda.interaction.container.containers.OffhandContainer
+import com.lambda.interaction.container.containers.external.EnderChestContainer
+import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.BaritoneHandler
+import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.handler.handlers.findSlots
+import com.lambda.interaction.handler.handlers.findStack
+import com.lambda.interaction.handler.handlers.findStacks
+import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
+import com.lambda.interaction.manager.managers.inventory.inventoryRequest
+import com.lambda.interaction.manager.managers.rotating.Rotation
+import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.dist
+import com.lambda.interaction.manager.managers.rotating.RotationManager
+import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
+import com.lambda.module.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.build
-import com.lambda.task.tasks.OpenContainerTask
-import com.lambda.task.wrappers.thenAction
+import com.lambda.task.start
+import com.lambda.task.tasks.build
+import com.lambda.task.tasks.openContainer
+import com.lambda.task.tasks.wrappers.thenAction
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.blockState
@@ -66,13 +75,6 @@ import com.lambda.util.extension.containerStacks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.distSq
 import com.lambda.util.math.setAlpha
-import com.lambda.util.player.SlotUtils.allSlots
-import com.lambda.util.player.SlotUtils.hotbarAndInventorySlots
-import com.lambda.util.player.SlotUtils.hotbarAndInventoryStacks
-import com.lambda.util.player.SlotUtils.hotbarSlots
-import com.lambda.util.player.SlotUtils.hotbarStacks
-import com.lambda.util.player.SlotUtils.inventoryStacks
-import com.lambda.util.player.SlotUtils.offHandSlots
 import com.lambda.util.text.bold
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -97,6 +99,7 @@ import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import kotlin.math.min
 
+//ToDo: Transform to use the updated container api alongside properly implementing StashContainer and using tasks for chaining instead of a state machine.
 @Suppress("unused")
 object StashMover : Module(
 	name = "StashMover",
@@ -363,7 +366,7 @@ object StashMover : Module(
 				)
 				task = null
 			}
-			.run()
+			.start()
 	}
 
 	fun pauseUnpause() {
@@ -457,7 +460,13 @@ object StashMover : Module(
 					MoverState.DispensingPearl -> handleDispensingPearl()
 					MoverState.AwaitingPearl ->
 						checkTimerProgress(MoverState.DispensingPearl, pearlButtonTimeout) {
-							if (player.hotbarAndInventoryStacks.any { it.item === Items.ENDER_PEARL }) {
+							val hasPearl =
+								findStack(
+									Items.ENDER_PEARL.select(),
+									ContainerSelection.HOTBAR_AND_INVENTORY,
+									sorted = false
+								) != null
+							if (hasPearl) {
 								pearlThrown = false
 								moverState = MoverState.ThrowingPearl
 								true
@@ -504,7 +513,13 @@ object StashMover : Module(
 				if (moverState != MoverState.AwaitingTeleport) return@listen
 				val packet = event.packet
 				if (packet !is PlayerPositionLookS2CPacket) return@listen
-				if (finished && player.hotbarAndInventoryStacks.all { it.isEmpty }) {
+				val allMoved =
+					findStack(
+						stackSelection { notEmpty() },
+						ContainerSelection.HOTBAR_AND_INVENTORY,
+						sorted = false
+					) == null
+				if (finished && allMoved) {
 					success(finishedMessage)
 					return@listen
 				}
@@ -523,12 +538,17 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPullContainer
 				return
 			}
-			if (!moveFromContainerToContainer(screenHandler.containerSlots, player.hotbarAndInventoryStacks)) return
+			val move =
+				moveFromContainerToContainer(
+					screenHandler.containerSlots,
+					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList()
+				)
+			if (!move) return
 			pullContainer?.let { container ->
 				if (screenHandler.containerStacks.all { it.isEmpty }) {
 					pullContainers.remove(container)
 					pulledContainers.add(container)
-					if (player.hotbarAndInventoryStacks.any { it.isEmpty }) {
+					if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) != null) {
 						moverState = MoverState.OpeningPullContainer
 						return
 					}
@@ -546,7 +566,12 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPutEnderChest
 				return
 			}
-			if (moveFromContainerToContainer(player.hotbarAndInventorySlots, screenHandler.containerStacks)) {
+			val move =
+				moveFromContainerToContainer(
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList(),
+					screenHandler.containerStacks
+				)
+			if (move) {
 				moverState = MoverState.OpeningPullContainer
 			}
 		}
@@ -562,7 +587,7 @@ object StashMover : Module(
 					pulledContainers.clear()
 					moverState = MoverState.MessagingForPearl
 				}
-				.execute(this)
+				.start()
 		}
 
 		private fun SafeContext.handleMessagingForPearl() {
@@ -583,7 +608,7 @@ object StashMover : Module(
 				rotation(rotation)
 			}.submit()
 			if (!rotationRequest.done || rotation dist RotationManager.serverRotation > 0.001) return
-			val throwSlots = player.hotbarAndInventorySlots.filter { !it.stack.isEmpty }
+			val throwSlots = findSlots(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY).toList()
 			if (throwSlots.isNotEmpty()) {
 				val inventoryRequest = inventoryRequest(settleForLess = true) {
 					throwSlots.forEach { slot ->
@@ -600,12 +625,17 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPutContainer
 				return
 			}
-			if (!moveFromContainerToContainer(player.hotbarAndInventorySlots, screenHandler.containerStacks)) return
+			val move =
+				moveFromContainerToContainer(
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList(),
+					screenHandler.containerStacks
+				)
+			if (!move) return
 			putContainer?.let { container ->
 				if (screenHandler.containerStacks.all { !it.isEmpty }) {
 					putContainers.remove(container)
 					filledContainers.add(container)
-					if (player.hotbarAndInventoryStacks.any { !it.isEmpty }) {
+					if (findStack(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) != null) {
 						moverState = MoverState.OpeningPutContainer
 						return
 					}
@@ -619,9 +649,12 @@ object StashMover : Module(
 				moverState = MoverState.OpeningPullEnderChest
 				return
 			}
-			if (moveFromContainerToContainer(screenHandler.containerSlots, player.hotbarAndInventoryStacks)) {
-				putOrThrowItems()
-			}
+			val move =
+				moveFromContainerToContainer(
+					screenHandler.containerSlots,
+					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList()
+				)
+			if (move) putOrThrowItems()
 		}
 
 		private fun SafeContext.handleDispensingPearl() {
@@ -631,13 +664,17 @@ object StashMover : Module(
 				return
 			}
 			if (BaritoneHandler.isActive) return
-			if (player.hotbarStacks.none { it.isEmpty }) {
-				val firstSlot = player.hotbarSlots.getOrNull(0) ?: run { failWithLog("No first slot? This shouldn't occur.", ::failure); return }
-				if (player.inventoryStacks.any { it.isEmpty }) {
+			if (HotbarContainer.stacks.none { it.isEmpty }) {
+				val firstSlot = findSlot(containerSelection = HotbarContainer.select())
+					?: run {
+						failWithLog("No first slot? This shouldn't occur.", ::failure)
+						return
+					}
+				if (InventoryContainer.stacks.any { it.isEmpty }) {
 					inventoryRequest { quickMove(firstSlot.id) }.submit()
 					return
 				} else if (player.offHandStack.isEmpty) {
-					inventoryRequest { swap(firstSlot.id, 40) }.submit()
+					inventoryRequest { swapWithHotbar(firstSlot.id, 40) }.submit()
 					return
 				}
 				failWithLog("No free slots for an ender pearl!", ::failure)
@@ -648,7 +685,7 @@ object StashMover : Module(
 					tickTimer.reset()
 					moverState = MoverState.AwaitingPearl
 				}
-				?.execute(this@MoverBot)
+				?.start()
 		}
 
 		private fun SafeContext.handleThrowingPearl() {
@@ -662,11 +699,11 @@ object StashMover : Module(
 
 			if (pearlThrown) {
 				if (!player.offHandStack.isEmpty) {
-					if (player.hotbarAndInventoryStacks.none { it.isEmpty }) {
+					if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) == null) {
 						failWithLog("No free slots to return the offhand stack to!", ::failure)
 						return
 					}
-					val offhandSlot = player.offHandSlots.firstOrNull() ?: run { failWithLog("No offhand slot? This shouldn't occur.", ::failure); return }
+					val offhandSlot = OffhandContainer.slots.firstOrNull() ?: run { failWithLog("No offhand slot? This shouldn't occur.", ::failure); return }
 					inventoryRequest { quickMove(offhandSlot.id) }.submit()
 				}
 				putOrThrowItems()
@@ -679,17 +716,17 @@ object StashMover : Module(
 			}.submit()
 			if (!rotationRequest.done) return
 			if (player.mainHandStack.item != Items.ENDER_PEARL) {
-				val hotbarSlot = player.hotbarSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
+				val hotbarSlot = findSlot(Items.ENDER_PEARL.select(), HotbarContainer.select())
 				if (hotbarSlot != null) {
-					val hotbarRequest = HotbarRequest(hotbarSlot.index, StashMover, nowOrNothing = false).submit()
+					val hotbarRequest = hotbarRequest(hotbarSlot.index).submit()
 					if (!hotbarRequest.done) return
 				} else {
-					val inventorySlot = player.allSlots.firstOrNull { it.stack.item === Items.ENDER_PEARL }
+					val inventorySlot = findSlot(Items.ENDER_PEARL.select(), InventoryContainer.select())
 					if (inventorySlot == null) {
 						failWithLog("No pearl in inventory!", ::failure)
 						return
 					}
-					inventoryRequest { swap(inventorySlot.id, 0) }.submit()
+					inventoryRequest { swapWithHotbar(inventorySlot.id, 0) }.submit()
 					return
 				}
 			}
@@ -748,12 +785,9 @@ object StashMover : Module(
 					return
 				}
 
-			OpenContainerTask(
-				pos,
-				StashMover
-			).thenAction {
+			openContainer(pos).thenAction {
 				onOpened(pos)
-			}.execute(this@MoverBot)
+			}.start()
 		}
 
 		private fun SafeContext.moveFromContainerToContainer(
@@ -826,7 +860,7 @@ object StashMover : Module(
 							?.thenAction {
 								pearlState = PearlState.Waiting
 							}
-							?.execute(this@PearlBot)
+							?.start()
 					}
 					else -> {}
 				}

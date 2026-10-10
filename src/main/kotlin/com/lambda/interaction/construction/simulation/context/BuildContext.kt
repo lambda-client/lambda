@@ -20,7 +20,7 @@ package com.lambda.interaction.construction.simulation.context
 import com.lambda.config.blocks.ActionConfig
 import com.lambda.context.Automated
 import com.lambda.interaction.construction.simulation.result.Drawable
-import com.lambda.interaction.managers.rotating.RotationRequest
+import com.lambda.interaction.manager.managers.rotating.RotationRequest
 import com.lambda.threading.runSafe
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult

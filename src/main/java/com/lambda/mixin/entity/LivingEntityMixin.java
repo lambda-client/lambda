@@ -20,9 +20,9 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.handlers.BaritoneHandler;
-import com.lambda.interaction.handlers.GlideHandler;
-import com.lambda.interaction.managers.rotating.RotationManager;
+import com.lambda.interaction.handler.handlers.BaritoneHandler;
+import com.lambda.interaction.handler.handlers.GlideHandler;
+import com.lambda.interaction.manager.managers.rotating.RotationManager;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.render.ViewModel;
@@ -49,7 +49,6 @@ import static com.lambda.threading.ThreadingKt.runSafe;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends EntityMixin {
-
     @Unique private final LivingEntity lambda$instance = (LivingEntity) (Object) this;
 
     @Definition(id = "getJumpVelocity", method = "Lnet/minecraft/entity/LivingEntity;getJumpVelocity()F")

@@ -18,7 +18,7 @@
 package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
-import com.lambda.interaction.managers.hotbar.HotbarManager;
+import com.lambda.interaction.manager.managers.hotbar.HotbarManager;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.minecraft.entity.player.PlayerInventory;
 import org.objectweb.asm.Opcodes;
