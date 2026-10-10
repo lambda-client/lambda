@@ -118,7 +118,9 @@ data class ShulkerBoxContainer(
                         sortedByBestContentMatch(stacks)
                     }.transfer(
                         ContainerSelection.HOTBAR_AND_INVENTORY,
-                        fromContainer.select(ContainerSearchScope.Loaded)
+                        fromContainer.select(ContainerSearchScope.Loaded),
+                        stackSelection { sortedWith { compareByDescending { it.slot?.index == index } } },
+                        allowQuickMove = false
                     )
                 }
     }

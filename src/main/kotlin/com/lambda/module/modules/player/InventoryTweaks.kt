@@ -28,6 +28,7 @@ import com.lambda.interaction.container.NestedContainer
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.external.EnderChestContainer
 import com.lambda.interaction.container.selection.containerSelection
+import com.lambda.interaction.handler.handlers.ContainerSearchScope
 import com.lambda.interaction.handler.handlers.findContainer
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -66,14 +67,15 @@ object InventoryTweaks : Module(
             val stack = slot.stack
 
             when (stack.item) {
-                in SHULKER_BOXES if (!instantShulker) -> return@listen
-                Items.ENDER_CHEST if (!instantEChest) -> return@listen
+                in SHULKER_BOXES -> if (!instantShulker) return@listen
+                Items.ENDER_CHEST -> if (!instantEChest) return@listen
+                else -> return@listen
             }
 
             val targetContainer =
                 if (stack.item == Items.ENDER_CHEST) EnderChestContainer
                 else findContainer(
-                    containerSelection {
+                    containerSelection(ContainerSearchScope.Accessed) {
                         ofAnyType(ContainerType.ShulkerBox)
                         predicate { container ->
                             container is NestedContainer && container.index == slot.index
@@ -83,8 +85,6 @@ object InventoryTweaks : Module(
 
             event.cancel()
 
-            // Latest click wins: a previous open still running would fight this one over
-            // transfers, placement and screens, so stop it first.
             openTask?.cancel()
             openTask = targetContainer
                 .access()

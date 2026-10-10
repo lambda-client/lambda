@@ -175,6 +175,7 @@ class StackSelection @ContainerDslMarker internal constructor(
 	companion object {
 		val ANYTHING = StackSelection(0) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
+		val EMPTY = stackSelection { isEmpty() }
 	}
 }
 

@@ -34,7 +34,6 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.selectContainers
-import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePackets
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.handler.handlers.findContainers
@@ -60,8 +59,9 @@ fun transfer(
 	fromStack: StackSelection,
 	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	toSelection: ContainerSelection,
-	toStack: StackSelection = StackSelection.ANYTHING
-) = ContainerTransferTask(fromStack, fromSelection, toSelection, toStack, automated)
+	toStack: StackSelection = StackSelection.ANYTHING,
+	allowQuickMove: Boolean = true,
+) = ContainerTransferTask(fromStack, fromSelection, toSelection, toStack, allowQuickMove, automated)
 
 @Ta5kBuilder
 @JvmName("transferExt")
@@ -69,8 +69,9 @@ context(automated: Automated)
 fun StackSelection.transfer(
 	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	toSelection: ContainerSelection,
-	toStack: StackSelection = StackSelection.ANYTHING
-) = transfer(this, fromSelection, toSelection, toStack)
+	toStack: StackSelection = StackSelection.ANYTHING,
+	allowQuickMove: Boolean = true,
+) = transfer(this, fromSelection, toSelection, toStack, allowQuickMove)
 
 class TransferResult internal constructor(
 	val stackSelection: StackSelection,
@@ -82,6 +83,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 	private val fromSelection: ContainerSelection,
 	private val toSelection: ContainerSelection,
 	private val toStack: StackSelection,
+	private val allowQuickMove: Boolean,
 	automated: Automated
 ) : Task<TransferResult>(), Automated by automated {
 	override val name = "Transferring $fromStack"
@@ -327,11 +329,9 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		override val name get() = "Moving ${this@MoveTask.fromSelection}"
 		private var moved = 0
 
-		private val toSelection =
-			toSelection.mutate {
-				notEmpty()
-				withoutSelection(this@MoveTask.fromSelection)
-			}
+		// Raw caller ordering; the destination search only narrows it,
+		// so toStack stays the end-all for which slot gets used.
+		private val baseToSelection = toSelection
 
 		init {
 			listen<TickEvent.Pre> {
@@ -381,30 +381,44 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			return move(pair, atMost = currentLimit)
 		}
 
-		private fun AutomatedSafeContext.findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
+		private fun findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
 			val stack = fromSlot.stack
-			val partialStack =
-				stackSelection {
-					predicate { candidate, _ -> !candidate.isEmpty && candidate.hasSpace && candidate.sameItemAs(stack) }
+			return toContainer.findSlot(
+				baseToSelection.mutate {
+					predicate { candidate, slot ->
+						when {
+							candidate.isEmpty -> true
+							candidate.sameItemAs(stack) -> candidate.hasSpace
+							else -> allowReplace &&
+								slot != null &&
+								!fromSelection.matches(slot) &&
+								fromSlot.canInsert(candidate)
+						}
+					}
 					canInsert(stack)
 				}
-			return toContainer.findSlot(partialStack)
-				?: toContainer.findReplaceSlot(stack, stackSelection { isEmpty() })
-				?: findSwappableSlot(fromSlot, toContainer)
-		}
-
-		private fun AutomatedSafeContext.findSwappableSlot(fromSlot: Slot, toContainer: Container): Slot? {
-			if (!allowReplace) return null
-			return toContainer.findReplaceSlot(fromSlot.stack, toSelection)?.takeIf { fromSlot.canInsert(it.stack) }
+			)
 		}
 
 		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int): Boolean {
 			val stack = pair.fromSlot.stack
 			val count = minOf(stack.count, atMost)
 			val cursor = CursorContainer.stacks.firstOrNull() ?: ItemStack.EMPTY
-			return when {
-				pair.toSlot.stack.isForeignTo(stack) -> swapOut(pair)
-				count == stack.count && cursor.isEmpty && quickMoveStaysInside(pair.fromContainer, stack) -> quickMoveWhole(pair)
+			if (pair.toSlot.stack.isForeignTo(stack)) {
+				if (count != stack.count) {
+					finish()
+					return true
+				}
+				return swapOut(pair)
+			}
+			return when (count) {
+				stack.count if cursor.isEmpty &&
+						allowQuickMove &&
+						quickMoveStaysInside(pair.fromContainer, stack) -> quickMoveWhole(pair)
+
+				stack.count if cursor.isEmpty &&
+						pair.toSlot.stack.isEmpty -> swapOut(pair)
+
 				else -> clickThrough(pair, count)
 			}
 		}
