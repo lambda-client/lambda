@@ -82,12 +82,7 @@ data class ShulkerBoxContainer(
         override fun SafeContext.onStart() {
             transfer(
                 stackSelection {
-                    sortedWith {
-                        compareByDescending { stackAndSlot ->
-                            stackAndSlot.slot?.index == index &&
-                                    stackAndSlot.slot.stack?.isEmpty != false
-                        }
-                    }
+                    sortedWith { compareByDescending { it.slot?.index == index } }
                     isItem(shulkerItem)
                     withName(itemName)
                     sortedByBestContentMatch(stacks)
@@ -122,7 +117,14 @@ data class ShulkerBoxContainer(
                     }.transfer(
                         ContainerSelection.HOTBAR_AND_INVENTORY,
                         fromContainer.select(ContainerSearchScope.Loaded),
-                        stackSelection { sortedWith { compareByDescending { it.slot?.index == index } } },
+                        stackSelection {
+                            sortedWith {
+                                compareByDescending {
+                                    it.slot?.index == index &&
+                                            it.slot.stack?.isEmpty != false
+                                }
+                            }
+                        },
                         allowQuickMove = false
                     )
                 }
