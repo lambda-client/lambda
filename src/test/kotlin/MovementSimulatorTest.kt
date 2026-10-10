@@ -30,6 +30,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShapes
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -116,6 +117,13 @@ class MovementSimulatorTest {
         )
     }
 
+    /** Food at six or below, blindness or eating: vanilla neither starts nor keeps a sprint. */
+    @Test
+    fun `a body that cannot sprint keeps walking with the sprint key held`() {
+        val simulator = MovementSimulator(PROFILE.copy(canSprint = false), FlatGroundEnvironment, groundedState())
+        repeat(5) { assertTrue(!simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true)).isSprinting, "frame $it must not sprint") }
+    }
+
     @Test
     fun `releasing sprint while holding forward preserves vanilla sprint state`() {
         val simulator = simulator(groundedState())
@@ -158,6 +166,36 @@ class MovementSimulatorTest {
 
         val retained = simulator.tickMovement(input)
         assertTrue(retained.isSprinting)
+    }
+
+    /**
+     * Vanilla reads a block's velocity multiplier after the move, half a block under where the
+     * feet ended up. Leaving soul sand by a jump, the second airborne tick ends more than half a
+     * block above it, so that tick is no longer slowed; reading the block from where the tick
+     * began slowed it once more, and the live player outran the certified plan.
+     */
+    @Test
+    fun `soul sand stops slowing the body once its feet clear half a block above it`() {
+        val soulSand = SnapshotBlockPhysics(VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.875, 1.0), velocityMultiplier = 0.4)
+        val blocks = buildMap<BlockPos, SnapshotBlockPhysics> { for (x in -3..3) for (z in -3..12) put(BlockPos(x, -1, z), soulSand) }
+        val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-3, -3, -3, 3, 4, 12), blocks)
+        val initial = MovementSimulationState.synthetic(
+            profile = PROFILE,
+            position = Vec3d(0.5, -0.125, 0.5),
+            rotation = Rotation(0.0, 0.0),
+            velocity = Vec3d(0.0, -0.0784, 0.0),
+            onGround = true,
+        )
+        val simulator = MovementSimulator(PROFILE, environment, initial)
+        repeat(6) { simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true)) }
+        val launched = simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true, jump = true))
+        val cleared = simulator.tickMovement(MovementSimulationInput(forward = 1.0, sprint = true))
+
+        assertTrue(cleared.position.y - 0.5 > 0.0, "the feet end the tick more than half a block above the soul sand")
+        assertTrue(
+            cleared.velocity.horizontalLength() > 0.8 * launched.velocity.horizontalLength(),
+            "air drag alone acts on that tick: ${launched.velocity.horizontalLength()} -> ${cleared.velocity.horizontalLength()}",
+        )
     }
 
     @Test

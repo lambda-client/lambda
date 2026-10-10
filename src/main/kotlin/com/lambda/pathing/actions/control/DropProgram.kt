@@ -13,6 +13,8 @@ import com.lambda.pathing.physics.MovementSimulationState
 
 internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramContext) : ControlProgram {
 	private val solution = decision.solution
+	private val climbOut = decision.climbOut
+	private val origin = context.body.stance.center()
 	private val takeoff = interpolate(context.body.stance.center(), decision.step.center(), solution.launchOffset)
 	private val aim = interpolate(context.body.stance.center(), decision.step.center(), solution.aimDistance)
 	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
@@ -47,6 +49,7 @@ internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramCo
 			strafe = if (airborne && !landed) airborneStrafe(takeoff, aim, observed) else 0.0,
 			sprint = solution.sprint && forward > 0.0 && !sneak,
 			sneak = sneak,
+			jump = climbOut && !landed && alongEdge(origin, aim, observed.position.x, observed.position.z) < CLIMB_OUT_ALONG,
 			rotation = rotation,
 		)
 	}
@@ -82,7 +85,7 @@ internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramCo
 	}
 
 	private fun airborneForward(observed: MovementSimulationState): Double {
-		if (!solution.holdForward) return 0.0
+		if (!solution.holdForward && !climbOut) return 0.0
 		val travelled = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
 		return if (travelled < flightLength) 1.0 else 0.0
 	}
@@ -98,5 +101,7 @@ internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramCo
 		const val STEP_DECAY = 0.9
 
 		const val LIP_MARGIN = 0.1
+
+		const val CLIMB_OUT_ALONG = 0.5
 	}
 }

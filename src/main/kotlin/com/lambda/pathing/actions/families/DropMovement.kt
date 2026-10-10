@@ -19,6 +19,7 @@ import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CoarseVoxel
+import com.lambda.pathing.world.Medium
 
 object DropMovement : Movement {
 	override val id = MovementId.DROP
@@ -55,11 +56,14 @@ object DropMovement : Movement {
 			maxEntrySpeed = { context.body.speed },
 			preferredEntrySpeed = { context.body.speed },
 		).firstOrNull()
-		return listOfNotNull(ideal, asIs)
+		val drops = listOfNotNull(ideal, asIs)
 			.filter { context.constraints.sprintModes.contains(it.sprint) }
 			.distinctBy { it.mode to it.holdForward }
 			.sortedWith(LaunchSolution.BEST_FIRST)
 			.map { TrajectoryDecision.Drop(context.edge.to, it) }
+		val from = context.edge.from
+		if (context.view.medium(from.x, from.y, from.z) != Medium.CLIMBABLE) return drops
+		return drops + drops.map { it.copy(climbOut = true) }
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {

@@ -159,7 +159,7 @@ internal object PlanDump {
 
 	private fun PlayerPhysicsProfile.dump(): String = listOf(
 		"profile", movementSpeed, sneakSpeedModifier, gravity, jumpStrength, stepHeight,
-		jumpBoostVelocityModifier, slowFalling, width, height, waterMovementEfficiency, dolphinsGrace,
+		jumpBoostVelocityModifier, slowFalling, width, height, waterMovementEfficiency, dolphinsGrace, canSprint,
 	).joinToString(" ")
 
 	private fun readProfile(parts: List<String>) = PlayerPhysicsProfile(
@@ -174,6 +174,7 @@ internal object PlanDump {
 		height = parts[9].toDouble(),
 		waterMovementEfficiency = parts.getOrNull(10)?.toDouble() ?: 0.0,
 		dolphinsGrace = parts.getOrNull(11)?.toBoolean() ?: false,
+		canSprint = parts.getOrNull(12)?.toBoolean() ?: true,
 	)
 
 	private fun SimpleMoveOptions.dump(): String = listOf(

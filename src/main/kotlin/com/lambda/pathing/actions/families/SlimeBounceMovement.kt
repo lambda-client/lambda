@@ -1,5 +1,6 @@
 package com.lambda.pathing.actions.families
 
+import com.lambda.pathing.actions.CellPredicate
 import com.lambda.pathing.actions.control.BounceProgram
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
@@ -53,6 +54,7 @@ object SlimeBounceMovement : Movement {
 		movement = id,
 		cost = context.costs.bounceCost(drop, rise),
 		conditions = StanceRules.stanceConditions(span * dx, rise, span * dz),
+		departure = CellPredicate.LAUNCHABLE,
 		arc = MotionTemplate.ArcSpec(bounceDrop = drop),
 	)
 

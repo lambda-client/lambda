@@ -5,6 +5,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
+import com.lambda.pathing.world.Medium
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -66,8 +67,8 @@ internal class ArcPath(
 internal class ArcSweep(
 	private val view: CoarseVoxelView,
 	private val from: Stance,
-	dx: Int,
-	dz: Int,
+	private val dx: Int,
+	private val dz: Int,
 	private val reads: LongOpenHashSet?,
 ) {
 	private val length = hypot(dx.toDouble(), dz.toDouble())
@@ -108,7 +109,20 @@ internal class ArcSweep(
 				}
 			}
 		}
-		return Sweep.Clear
+		return if (grips(arc, path, launchHeight)) Sweep.Blocked else Sweep.Clear
+	}
+
+	private fun grips(arc: ArcSample, path: ArcPath, launchHeight: Double): Boolean {
+		for (index in -1 until arc.heights.size) {
+			val along = if (index < 0) 0.0 else arc.distances[index]
+			val x = MathHelper.floor(path.x(along))
+			val y = MathHelper.floor(launchHeight + if (index < 0) 0.0 else arc.heights[index])
+			val z = MathHelper.floor(path.z(along))
+			if (x == from.x + dx && z == from.z + dz) continue
+			reads?.add(BlockPos.asLong(x, y, z))
+			if (view.medium(x, y, z) == Medium.CLIMBABLE) return true
+		}
+		return false
 	}
 }
 

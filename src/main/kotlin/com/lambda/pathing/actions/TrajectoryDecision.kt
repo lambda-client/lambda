@@ -40,6 +40,7 @@ interface TrajectoryDecision {
 	data class Drop(
 		override val step: Stance,
 		val solution: LaunchSolution,
+		val climbOut: Boolean = false,
 		override val movement: MovementId = MovementId.DROP,
 	) : TrajectoryDecision {
 		override val leavesGround: Boolean get() = true

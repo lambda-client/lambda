@@ -378,7 +378,7 @@ object JumpArcProbe {
 			reads?.add(BlockPos.asLong(x, y, z))
 
 			when (view.collisionClass(x, y, z)) {
-				CollisionClass.EMPTY -> {}
+				CollisionClass.EMPTY -> if (view.medium(x, y, z) == Medium.CLIMBABLE) return partial()
 
 				CollisionClass.UNKNOWN -> return Sweep.Blocked
 

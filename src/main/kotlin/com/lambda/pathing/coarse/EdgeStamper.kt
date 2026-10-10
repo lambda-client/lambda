@@ -100,6 +100,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private val stamps = Long2ObjectLinkedOpenHashMap<LongArray>()
 	private var gate = 0L
 	private var specials = false
+	private var climbing = false
 	private var generation = 0
 	private val solids = LongArray(cellRow.size)
 	private val hazards = LongArray(cellRow.size)
@@ -217,6 +218,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private fun compute(word: Int, y: Int, z: Int): LongArray {
 		val stamp = LongArray(slotCount)
 		specials = false
+		climbing = false
 		fetch(word, y, z, 0, stanceRows)
 		val (below2, below, body, head) = stanceCells
 		for (cell in stanceCells) load(cell)
@@ -234,7 +236,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		fetch(word, y, z, stanceRows, rowY.size)
 		for (cell in cellRow.indices) load(cell)
 		generation++
-		if (specials) taint()
+		if (specials || climbing) taint()
 		for (program in programs) {
 			if (program == null) continue
 			var passing = stances
@@ -284,7 +286,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 				var clipped = 0L
 				for (entry in program.scans[index]) {
 					val cell = entry ushr 1
-					val special = special(cell) and scanning
+					val special = (special(cell) or climb(cell)) and scanning
 					fallback = fallback or special
 					scanning = scanning and special.inv()
 					if (entry and 1 != 0) {
@@ -331,7 +333,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 				var through = open and clipped.inv()
 				if (through != 0L && tainted[program.bendFootprints[group][index]] == generation) {
 					var special = 0L
-					for (cell in cells[index]) special = special or special(cell)
+					for (cell in cells[index]) special = special or special(cell) or climb(cell)
 					fallback = fallback or (through and special)
 					through = through and special.inv()
 				}
@@ -392,12 +394,16 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private fun fetch(word: Int, y: Int, z: Int, from: Int, until: Int) {
 		for (row in from until until) bits.fetch(word, y + rowY[row], z + rowZ[row], words, row * 3)
 		val special = words[CellClass.SPECIAL.plane]
-		for (index in from * 3 until until * 3) if (special[index] != 0L) specials = true
+		val climb = words[CellClass.CLIMB.plane]
+		for (index in from * 3 until until * 3) {
+			if (special[index] != 0L) specials = true
+			if (climb[index] != 0L) climbing = true
+		}
 	}
 
 	private fun taint() {
 		for (cell in cellRow.indices) {
-			if (specialCells[cell] == 0L) continue
+			if (specialCells[cell] == 0L && climbs[cell] == 0L) continue
 			for (footprint in cellFootprints[cell]) tainted[footprint] = generation
 		}
 	}

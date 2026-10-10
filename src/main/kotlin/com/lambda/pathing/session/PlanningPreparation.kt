@@ -82,16 +82,16 @@ internal fun preparePlanning(
 		allowSlimeBounces = config.allowSlimeBounces,
 		maxBounceDrop = config.maxBounceDrop,
 	)
+	val profile = PlayerPhysicsProfile.capture(player)
 	val seedConfig = MotionConstraints(
 		maxFrames = config.maxFrames,
 		maxYawDegreesPerFrame = turnSpeed,
 		goalRadius = config.goalRadius,
 		touchArrival = config.touchArrival,
 		maxSafeFallDistance = maxOf(config.maxSafeFallDistance, player.damageFreeFallDistance()),
-		sprintModes = if (config.allowSprint) listOf(true, false) else listOf(false),
+		sprintModes = if (config.allowSprint && profile.canSprint) listOf(true, false) else listOf(false),
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
-	val profile = PlayerPhysicsProfile.capture(player)
 	val start = supportedStanceOf(initial) ?: stanceOf(initial)
 
 	if (!plannableEntry(initial.velocity)) {

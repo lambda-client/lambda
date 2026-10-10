@@ -40,6 +40,7 @@ object LadderCatchMovement : Movement {
 								CellCondition(dx * span, rise, dz * span, CellPredicate.CLIMBABLE),
 								CellCondition(dx * span, rise + 1, dz * span, CellPredicate.CENTER_HEAD),
 							),
+							departure = CellPredicate.LAUNCHABLE,
 							arc = MotionTemplate.ArcSpec(),
 						)
 					)

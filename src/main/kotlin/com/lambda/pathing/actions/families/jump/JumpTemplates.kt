@@ -1,5 +1,6 @@
 package com.lambda.pathing.actions.families.jump
 
+import com.lambda.pathing.actions.CellPredicate
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.MovementContext
@@ -57,6 +58,7 @@ internal object JumpTemplates {
 			movement = MovementId.JUMP,
 			cost = cost,
 			conditions = StanceRules.stanceConditions(dx, rise, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0),
+			departure = CellPredicate.LAUNCHABLE,
 			arc = MotionTemplate.ArcSpec(
 				MODES,
 				riseAdmission = { realRise ->

@@ -92,7 +92,7 @@ class MovementSimulator(
 		val hasForwardMovement = movementInput.y > Vanilla.FORWARD_INPUT_EPSILON
 		if (inSneakingPose || input.forward < 0.0) doubleTapSprintTicks = 0
 
-		if (!isSprinting && hasForwardMovement && !partlyInWater && (!inSneakingPose || submergedInWater)) {
+		if (!isSprinting && profile.canSprint && hasForwardMovement && !partlyInWater && (!inSneakingPose || submergedInWater)) {
 			if (!hadForward) {
 				if (doubleTapSprintTicks > 0) isSprinting = true
 				else doubleTapSprintTicks = profile.sprintWindowTicks
@@ -102,7 +102,7 @@ class MovementSimulator(
 		val stopsSprinting = if (swimming) {
 			!touchingWater || !hasForwardMovement && !onGround && !input.sneak
 		} else {
-			partlyInWater || !hasForwardMovement || horizontalCollision && !collidedSoftly
+			!profile.canSprint || partlyInWater || !hasForwardMovement || horizontalCollision && !collidedSoftly
 		}
 		if (isSprinting && stopsSprinting) isSprinting = false
 		if (touchingWater && input.sneak) velocity = velocity.add(0.0, -Vanilla.WATER_SINK_SPEED.toDouble(), 0.0)
@@ -403,11 +403,9 @@ class MovementSimulator(
 
 		if (verticalCollision) onEntityLand()
 
-		val velocityMultiplier = blockMultiplier(environment::velocityMultiplier)
-
-		velocity *= Vec3d(velocityMultiplier, 1.0, velocityMultiplier)
-
 		velocityAffectingPos = posWithYOffset(Vanilla.VELOCITY_AFFECTING_POS_OFFSET.toDouble())
+		val velocityMultiplier = blockMultiplier(environment::velocityMultiplier)
+		velocity *= Vec3d(velocityMultiplier, 1.0, velocityMultiplier)
 	}
 
 	private fun onEntityLand() {

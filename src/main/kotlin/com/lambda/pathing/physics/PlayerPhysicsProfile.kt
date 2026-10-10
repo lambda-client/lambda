@@ -2,6 +2,8 @@ package com.lambda.pathing.physics
 
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.component.DataComponentTypes
+import net.minecraft.component.type.UseEffectsComponent
 import net.minecraft.entity.EntityPose
 import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.effect.StatusEffects
@@ -27,6 +29,7 @@ data class PlayerPhysicsProfile(
 	val swimmingEyeHeight: Double = Vanilla.SWIMMING_EYE_HEIGHT.toDouble(),
 	val waterMovementEfficiency: Double = 0.0,
 	val dolphinsGrace: Boolean = false,
+	val canSprint: Boolean = true,
 ) {
 	val swimHeight: Double get() = if (standingEyeHeight < Vanilla.SWIM_HEIGHT) 0.0 else Vanilla.SWIM_HEIGHT
 
@@ -47,7 +50,8 @@ data class PlayerPhysicsProfile(
 				crouchingEyeHeight.closeTo(other.crouchingEyeHeight) &&
 				swimmingEyeHeight.closeTo(other.swimmingEyeHeight) &&
 				waterMovementEfficiency.closeTo(other.waterMovementEfficiency) &&
-				dolphinsGrace == other.dolphinsGrace
+				dolphinsGrace == other.dolphinsGrace &&
+				canSprint == other.canSprint
 
 	private fun Double.closeTo(other: Double): Boolean =
 		abs(this - other) <= PROFILE_EPSILON * max(1.0, max(abs(this), abs(other)))
@@ -68,6 +72,11 @@ data class PlayerPhysicsProfile(
 			width = Vanilla.PLAYER_WIDTH.toDouble(),
 			height = Vanilla.PLAYER_HEIGHT.toDouble(),
 		)
+
+		private fun canSprint(player: ClientPlayerEntity): Boolean {
+			val blockedByItem = player.isUsingItem && !player.activeItem.getOrDefault(DataComponentTypes.USE_EFFECTS, UseEffectsComponent.DEFAULT).canSprint()
+			return !player.hasBlindnessEffect() && (player.hungerManager.canSprint() || player.abilities.allowFlying) && !blockedByItem
+		}
 
 		fun capture(player: ClientPlayerEntity): PlayerPhysicsProfile {
 			val liveSpeed = player.getAttributeValue(EntityAttributes.MOVEMENT_SPEED)
@@ -94,6 +103,7 @@ data class PlayerPhysicsProfile(
 				swimmingEyeHeight = swimmingDimensions.eyeHeight.toDouble(),
 				waterMovementEfficiency = player.getAttributeValue(EntityAttributes.WATER_MOVEMENT_EFFICIENCY),
 				dolphinsGrace = player.hasStatusEffect(StatusEffects.DOLPHINS_GRACE),
+				canSprint = canSprint(player),
 			)
 		}
 	}
