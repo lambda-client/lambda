@@ -178,6 +178,10 @@ object WalkMovement : Movement {
 			if (hazardous) for (delay in OFF_AXIS_LAUNCH_DELAYS) for (air in AIRBORNE_STRAFE_KEYS) heading(sprint, bearing, delay, air = air)
 		}
 
+		if (turning && context.constraints.maxYawDegreesPerFrame > GRADUAL_TURN_RATE) {
+			proposals += proposals.filterIsInstance<TrajectoryDecision.Heading>().map { it.copy(turnRate = GRADUAL_TURN_RATE) }
+		}
+
 		return proposals
 	}
 
@@ -271,6 +275,8 @@ object WalkMovement : Movement {
 	)
 
 	private const val DECOUPLE_TURN_DEGREES = 35.0
+
+	private const val GRADUAL_TURN_RATE = 30.0
 
 	private val AIRBORNE_STRAFE_KEYS = listOf(MovementKeys.FORWARD_LEFT, MovementKeys.FORWARD_RIGHT)
 

@@ -67,6 +67,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 					IntArray(candidate.cells.size) { (id(candidate.cells[it]) shl 1) or (if (candidate.cells[it] in clips) 1 else 0) }
 				}.toTypedArray(),
 				clips = candidates.orEmpty().map { ids(it.clipCells) }.toTypedArray(),
+				bonks = candidates.orEmpty().map { ids(it.bonkCells) }.toTypedArray(),
 				footprints = candidates.orEmpty().map { footprint(it.cells) }.toIntArray(),
 				behind = program.behind?.let(::clause),
 				firstClips = ids(candidates?.firstOrNull()?.clipCells.orEmpty()),
@@ -265,14 +266,18 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 			var open = conditions
 			for (index in candidates.indices) {
 				if (open == 0L) break
+				val bonks = program.bonks[index]
+				var bonked = if (bonks.isEmpty()) -1L else 0L
+				for (cell in bonks) bonked = bonked or solid(cell)
 				if (tainted[program.footprints[index]] != generation) {
 					var clipped = 0L
 					for (cell in program.clips[index]) {
 						clipped = clipped or (blocking(cell) and open)
 						if (clipped == open) break
 					}
-					stamp[program.slot + 2 + index] = open and clipped.inv()
-					open = clipped
+					val clear = open and clipped.inv() and bonked
+					stamp[program.slot + 2 + index] = clear
+					open = open and clear.inv()
 					continue
 				}
 				var scanning = open
@@ -289,8 +294,9 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 					}
 					if (scanning == 0L) break
 				}
-				stamp[program.slot + 2 + index] = scanning
-				open = clipped
+				val clear = scanning and bonked
+				stamp[program.slot + 2 + index] = clear
+				open = clipped or (scanning and clear.inv())
 			}
 			stamp[program.slot] = if (open != 0L) fallback or bend(program, open, stamp) else fallback
 		}
@@ -426,6 +432,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		val candidates: List<StampProgram.Candidate>?,
 		val scans: Array<IntArray>,
 		val clips: Array<IntArray>,
+		val bonks: Array<IntArray>,
 		val footprints: IntArray,
 		val behind: IndexedClause?,
 		val firstClips: IntArray,

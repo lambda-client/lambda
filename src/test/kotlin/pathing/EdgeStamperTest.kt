@@ -64,6 +64,29 @@ class EdgeStamperTest {
 		}
 	}
 
+	/**
+	 * Ceilings two, three and four blocks above uneven floors with holes: jumps under them fly
+	 * arcs cut short where the head meets the ceiling, which the stamper must find exactly where
+	 * the exact probe does.
+	 */
+	@Test
+	fun `stamped edges equal exact edges under ceilings`() {
+		for (seed in 1..3) {
+			val random = Random(seed)
+			val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+			for (x in -4..51) for (z in -4..51) {
+				val floor = 62 + random.nextInt(2)
+				if (random.nextInt(5) != 0) for (y in 58..floor) blocks[BlockPos(x, y, z)] = SnapshotBlockPhysics.FULL_CUBE
+				val ceiling = floor + 3 + random.nextInt(3)
+				for (y in ceiling..ceiling + 1) blocks[BlockPos(x, y, z)] = SnapshotBlockPhysics.FULL_CUBE
+			}
+			val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-16, 48, -16, 63, 95, 63), blocks)
+			for (options in listOf(SimpleMoveOptions(), FIELD_OPTIONS)) {
+				compare(environment, moveLibrary(options), 0..47, 60..68, 0..47)
+			}
+		}
+	}
+
 	private fun compare(environment: SnapshotSimulationEnvironment, moves: SimpleMoveLibrary, xs: IntRange, ys: IntRange, zs: IntRange): Int {
 		val view = environment.cursor()
 		val stamper = EdgeStamper(view, moves, StanceMemo(view, moves))

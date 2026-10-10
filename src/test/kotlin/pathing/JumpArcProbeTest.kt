@@ -10,6 +10,8 @@
 package pathing
 
 import com.lambda.pathing.launch.JumpArcProbe
+import com.lambda.pathing.launch.LaunchSolution
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CoarseVoxelView
@@ -41,46 +43,60 @@ class JumpArcProbeTest {
         assertTrue(result.reads().isNotEmpty(), "the sweep must publish its shape reads")
     }
 
+    /**
+     * A block over the middle of a long jump, its underside a little below the free apex head.
+     * The head stays under it until the body is beneath it, then meets it and the climb stops:
+     * a head bonk that trims the arc, which still lands. What must never be proposed is the
+     * free arc that would carry the head into the block.
+     */
     @Test
-    fun `a full block at the apex head blocks the arc`() {
+    fun `a full block at the apex head is bonked, not flown through`() {
         val world = ShapeWorld()
         world.fullCube(0, 0, 0)
         world.fullCube(4, 0, 0)
-        world.fullCube(2, 4, 0) // apex feet ~1.25 above stance y=1 -> head reaches past y=4
+        world.fullCube(2, 4, 0)
 
-        assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, riseHeight = 0.0),
-            "a jump whose apex head passes through a block must not be proposed",
-        )
+        val result = assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, riseHeight = 0.0), "the bonked arc still lands")
+        assertHeadStaysBelow(4.0, result.solution)
     }
 
     @Test
-    fun `a bottom slab at apex head height still blocks the arc`() {
+    fun `a bottom slab at apex head height is bonked like a full block`() {
         val world = ShapeWorld()
         world.fullCube(0, 0, 0)
         world.fullCube(4, 0, 0)
-        // Bottom slab occupies only [4.0, 4.5]; the apex head (~4.05) clips it. The old
-        // trait mask saw `centerPassable` heuristics, never the shape.
         world.shape(2, 4, 0, VoxelShapes.cuboid(0.0, 0.0, 0.0, 1.0, 0.5, 1.0))
 
-        assertNull(
-            JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, riseHeight = 0.0),
-            "a slab the apex head clips must block the arc",
-        )
+        val result = assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 4, 0, riseHeight = 0.0), "the bonked arc still lands")
+        assertHeadStaysBelow(4.0, result.solution)
     }
 
     @Test
-    fun `a top slab over the mid column blocks a flat span-2 jump`() {
+    fun `a top slab over the gap is bonked below its underside`() {
         val world = ShapeWorld()
         world.fullCube(0, 0, 0)
         world.fullCube(2, 0, 0)
-        // Top slab at the mid column's head cell: [2.5, 3.0] above the stance floor.
-        // The body crosses the column with feet around 1.0-1.25, head past 2.8.
         world.shape(1, 3, 0, VoxelShapes.cuboid(0.0, 0.5, 0.0, 1.0, 1.0, 1.0))
+
+        val result = assertNotNull(JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, riseHeight = 0.0), "the bonked arc still lands")
+        assertHeadStaysBelow(3.5, result.solution)
+    }
+
+    /**
+     * A ceiling two blocks up over the landing only. The low arc it would allow is never flown:
+     * nothing stops the climb at take-off, so the head rises past the ceiling's underside before
+     * the body gets beneath it and runs into its side.
+     */
+    @Test
+    fun `a ceiling the head reaches from the side blocks the arc`() {
+        val world = ShapeWorld()
+        world.fullCube(0, 0, 0)
+        world.fullCube(2, 0, 0)
+        world.fullCube(2, 3, 0)
 
         assertNull(
             JumpArcProbe.probe(world, Stance(0, 1, 0), 2, 0, riseHeight = 0.0),
-            "a top slab the crossing head clips must block the arc",
+            "a jump bonking a ceiling it is not yet under must not be proposed",
         )
     }
 
@@ -171,7 +187,6 @@ class JumpArcProbeTest {
         )
     }
 
-    /** Minimal shape-carrying view: air everywhere except the placed shapes. */
     /**
      * A pane arm protruding halfway into the corridor: the centre line is blocked,
      * but the solver's lateral slack holds a parallel line that sweeps clear -- the
@@ -245,6 +260,12 @@ class JumpArcProbeTest {
         )
     }
 
+    private fun assertHeadStaysBelow(underside: Double, solution: LaunchSolution) {
+        val head = 1.0 + solution.arc.apex + Vanilla.PLAYER_HEIGHT
+        assertTrue(head <= underside, "the head must stay below the underside at $underside, reached $head")
+    }
+
+    /** Minimal shape-carrying view: air everywhere except the placed shapes. */
     private class ShapeWorld(private val unknownIsNull: Boolean = false) : CoarseVoxelView {
         private val shapes = HashMap<VoxelPos, VoxelShape>()
 

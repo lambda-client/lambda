@@ -11,7 +11,9 @@ import com.lambda.pathing.launch.JumpArcProbe
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
+import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.canStandAt
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -59,7 +61,7 @@ class MotionTemplate internal constructor(
 		conditions.all { it.matches(view, origin.x, origin.y, origin.z) }
 
 	internal fun edge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
-		if (!matches(view, origin)) return null
+		if (!matches(view, origin)) return if (undecided(view, origin)) ledgeEdge(view, origin) else null
 		val spec = arc ?: return edgeOf(origin, ticks(view, origin), probeReads = null)
 		val launchOffset = surfaceOffset(view, origin)
 		spec.bounceDrop?.let { drop ->
@@ -68,14 +70,31 @@ class MotionTemplate internal constructor(
 			return edgeOf(origin, lowerBoundTicks, probed.reads, bounce = probed.solution)
 		}
 		val riseHeight = realRise(view, origin)
-		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return null }
+		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return ledgeEdge(view, origin) }
 		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset)
-			?: return null
+			?: return ledgeEdge(view, origin)
 		val detour = probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0
 		return edgeOf(
 			origin, lowerBoundTicks + detour / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK, probed.reads,
 			launch = probed.solution,
 			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, riseHeight),
+		)
+	}
+
+	private fun undecided(view: CoarseVoxelView, origin: Stance): Boolean = conditions.all { condition ->
+		condition.matches(view, origin.x, origin.y, origin.z) ||
+			condition.reads().any { view.cellClass(origin.x + it.x, origin.y + it.y, origin.z + it.z) == CellClass.SPECIAL }
+	}
+
+	private fun ledgeEdge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
+		val spec = arc?.takeIf { it.bounceDrop == null } ?: return null
+		val target = target(origin)
+		if (!Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !Footing.involvesPartial(view, target.x, target.y, target.z)) return null
+		val probed = JumpArcProbe.ledge(view, origin, target, spec.modes, spec.riseAdmission ?: { true }) ?: return null
+		return edgeOf(
+			origin, lowerBoundTicks, probed.reads,
+			launch = probed.solution,
+			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, dy.toDouble()),
 		)
 	}
 
@@ -136,7 +155,7 @@ class MotionTemplate internal constructor(
 			profile.runUpSpeed(0.0, profile.groundRunUpTicks(0.0, runUp, sprint, STANDING_RUN_UP_TICKS), sprint)
 
 		if (solution.speed - solution.speedSlack <= reach(solution.mode.sprint)) return true
-		return LaunchSolver.solve(origin, target(origin), modes, maxEntrySpeed = { reach(it.sprint) }, rise = rise).isNotEmpty()
+		return LaunchSolver.solve(origin, target(origin), modes, maxEntrySpeed = { reach(it.sprint) }, rise = rise, headroom = solution.headroom).isNotEmpty()
 	}
 
 	internal val walkTicks: Double = if (strideCost != null && dy <= CoarseMoveRates.FREE_STEP_RISE) strideCost else lowerBoundTicks
@@ -169,9 +188,12 @@ class MotionTemplate internal constructor(
 			ticks = lowerBoundTicks + (probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0) / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK,
 			standingStart = standingStartViable(false, origin, spec.modes, probed.solution, rise),
 			standingStartBehind = standingStartViable(true, origin, spec.modes, probed.solution, rise),
+			bonkCells = probed.bonkCells,
 		)
-		val candidates = JumpArcProbe.footprints(dx, dz, rise, spec.modes).map(::candidateOf)
-		val clipCells = candidates.firstOrNull()?.clipCells.orEmpty()
+		val free = JumpArcProbe.footprints(dx, dz, rise, spec.modes)
+		val capped = if (free.isEmpty()) emptyList() else JumpArcProbe.cappedFootprints(dx, dz, rise, spec.modes)
+		val candidates = (free + capped).map(::candidateOf)
+		val clipCells = free.firstOrNull()?.clipCells.orEmpty()
 		val columns = LinkedHashMap<Pair<Int, Int>, Int>()
 		val bendColumns = IntArray(clipCells.size) { columns.getOrPut(clipCells[it].x to clipCells[it].z) { columns.size } }
 		val bendGroups = columns.keys.map { (x, z) -> JumpArcProbe.bendFootprints(dx, dz, rise, spec.modes, x, z).map(::candidateOf) }

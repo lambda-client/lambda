@@ -191,6 +191,38 @@ class LedgeStanceTest {
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
+	/**
+	 * The field course's gap: a path one block wide with a pane on one side of a missing block and
+	 * a fence on the other, each two high and joined to a block beside the path, so the middle of
+	 * both cells is taken. The body takes off from the ledge beside the fence and lands on the ledge
+	 * beside the pane, a jump any player makes without slowing down.
+	 */
+	@Test
+	fun `a gap between a pane and a fence is jumped from ledge to ledge`() {
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -4..8) if (x != 2) blocks[BlockPos(x, 63, 0)] = SnapshotBlockPhysics.FULL_CUBE
+		for (y in 64..65) {
+			blocks[BlockPos(1, y, 0)] = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.4375, 0.0, 0.4375, 0.5625, 1.0, 1.0))
+			blocks[BlockPos(3, y, 0)] = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.375, 0.0, 0.375, 0.625, 1.5, 1.0), fenceLike = true)
+			for (x in listOf(1, 3)) blocks[BlockPos(x, y, 1)] = SnapshotBlockPhysics.FULL_CUBE
+		}
+		val environment = SnapshotSimulationEnvironment.synthetic(BOUNDS, blocks)
+		val start = Stance(6, 64, 0)
+		val goal = Stance(-2, 64, 0)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), start, goal)
+		assertTrue(planner.repair().converged, "the gap must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the gap between the ledges must carry a coarse route")
+
+		val outcome = walkFrom(route, planner, resting(Vec3d(6.5, 64.0, 0.5), 90.0), environment)
+		val path = assertNotNull(
+			(outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial },
+			"a jump from ledge to ledge must be certified, got $outcome",
+		)
+		assertTrue(path.plan.frames.none { it.state.position.y < 63.0 }, "the body must never fall into the gap")
+		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
+	}
+
 	private fun bridge(wallSide: Int?, railing: SnapshotBlockPhysics = FENCE_ALONG_X): SnapshotSimulationEnvironment {
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
 		for (x in -4..-1) for (z in -2..2) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
@@ -208,7 +240,7 @@ class LedgeStanceTest {
 		assertTrue(planner.repair().converged, "the bridge must converge")
 		planner.expandSearchField()
 		val route = assertNotNull(planner.routePlan(0L), "the bridge must carry a coarse route")
-		assertTrue(route.nodes.containsAll((0..8).map { Stance(it, 64, 0) }), "the route must cross the bridge: ${route.nodes}")
+		assertTrue(route.nodes.any { it.x in 0..8 } && route.nodes.all { it.x !in 0..8 || it.z == 0 }, "the route must cross the bridge: ${route.nodes}")
 		val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 64.0, 0.5), -90.0), environment)
 		return (outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }?.plan?.frames?.map { it.state.position }
 	}

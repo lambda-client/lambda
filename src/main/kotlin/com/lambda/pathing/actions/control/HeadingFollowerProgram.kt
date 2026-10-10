@@ -9,7 +9,7 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 
 internal class HeadingFollowerProgram(private val decision: TrajectoryDecision.Heading, context: ProgramContext) : ControlProgram {
-	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
+	private val maxYawChange = minOf(context.constraints.maxYawDegreesPerFrame, decision.turnRate)
 	private val launch = context.launch
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {

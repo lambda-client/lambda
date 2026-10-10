@@ -21,6 +21,7 @@ internal class StampProgram(
 		val ticks: Double,
 		val standingStart: Boolean,
 		val standingStartBehind: Boolean,
+		val bonkCells: List<VoxelPos>,
 	) {
 		fun standingStartOn(behindStands: Boolean): Boolean = if (behindStands) standingStartBehind else standingStart
 	}

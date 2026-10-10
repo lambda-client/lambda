@@ -26,6 +26,7 @@ import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.physics.Vanilla
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -221,10 +222,10 @@ class CoarsePlannerTest {
     @Test
     fun `a jump whose apex arc passes through a block is not proposed`() {
         // A four-stance gap the body would clear, but with a block sitting at the arc's
-        // apex column (two out) at head-apex height (+3 above the takeoff feet). The body
-        // is at ~1.25 there, so its head is at that block -- a head bonk. The old fixed
-        // y=0..2 arc check never looked at +3 and admitted the jump; the body then drove
-        // straight through the wall.
+        // apex column (two out) at head-apex height (+3 above the takeoff feet). The old
+        // fixed y=0..2 arc check never looked at +3 and admitted the free arc; the body
+        // then drove straight through the wall. The head may only meet the block's
+        // underside: a bonked arc that keeps the head below y=4 is the one jump allowed.
         val world = SyntheticView().apply {
             for (x in 0..4) this[VoxelPos(x, 0, 0)] = CoarseVoxel.FULL_BLOCK // support at ends
             this[VoxelPos(1, 0, 0)] = CoarseVoxel.AIR                        // carve the gap
@@ -235,11 +236,11 @@ class CoarsePlannerTest {
         val moves = library()
 
         val jumps = moves.edgesFrom(world, Stance(0, 1, 0))
-            .filter { it.movement == MovementId.JUMP }
-        assertFalse(
-            jumps.any { it.to == Stance(4, 1, 0) },
-            "a jump whose apex head hits the block at (2,4,0) must be rejected: ${jumps.map { it.to }}",
-        )
+            .filter { it.movement == MovementId.JUMP && it.to == Stance(4, 1, 0) }
+        for (jump in jumps) {
+            val head = 1.0 + jump.launch!!.arc.apex + Vanilla.PLAYER_HEIGHT
+            assertTrue(head <= 4.0, "a jump whose apex head passes through the block at (2,4,0) must be rejected, head reached $head")
+        }
     }
 
     @Test

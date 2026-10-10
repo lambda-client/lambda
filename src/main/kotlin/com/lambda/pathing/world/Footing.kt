@@ -3,8 +3,12 @@ package com.lambda.pathing.world
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.Vanilla
+import it.unimi.dsi.fastutil.booleans.BooleanArrayList
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList
 import it.unimi.dsi.fastutil.ints.IntArrayList
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
+import net.minecraft.util.math.BlockPos
+import java.lang.ref.WeakReference
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.hypot
@@ -33,23 +37,93 @@ object Footing {
 
 	private const val MARGIN = 5
 
+	private const val CACHE_CAPACITY = 256
+
 	fun involvesPartial(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 		view.voxel(x, y, z).partial || view.voxel(x, y + 1, z).partial || view.voxel(x, y - 1, z).partial || view.voxel(x, y - 2, z).partial
 
-	fun stands(view: CoarseVoxelView, stance: Stance): Boolean = Patch.around(view, stance).footholds(stance).isNotEmpty()
+	fun stands(view: CoarseVoxelView, stance: Stance): Boolean = !holds(view, stance).isEmpty
+
+	fun holds(view: CoarseVoxelView, stance: Stance): Holds {
+		val revision = view.revision
+		val cache = caches.get()
+		if (cache.view.get() !== view || cache.revision.get() !== revision) cache.reset(view, revision)
+		val key = BlockPos.asLong(stance.x, stance.y, stance.z)
+		cache.entries[key]?.let { return it }
+		val holds = Patch.around(view, stance).holds(stance)
+		if (revision != null && known(view, stance)) cache.entries[key] = holds
+		return holds
+	}
+
+	inline fun forEachRead(stance: Stance, visit: (Int, Int, Int) -> Unit) {
+		for (x in stance.x - 1..stance.x + 1) for (y in stance.y - 2..stance.y + 2) for (z in stance.z - 1..stance.z + 1) visit(x, y, z)
+	}
+
+	class Holds internal constructor(internal val keys: LongArray, private val heights: DoubleArray) {
+		private val lookup by lazy(LazyThreadSafetyMode.NONE) { Long2DoubleOpenHashMap(keys, heights) }
+
+		val isEmpty: Boolean get() = keys.isEmpty()
+
+		fun at(x: Double, z: Double): Double? {
+			val key = gridKey((x / STEP).roundToInt(), (z / STEP).roundToInt())
+			return if (lookup.containsKey(key)) lookup.get(key) else null
+		}
+
+		fun nearest(x: Double, z: Double): HorizontalPoint? {
+			var best = -1
+			var bestDistance = Double.MAX_VALUE
+			for (i in keys.indices) {
+				val distance = hypot(gridX(keys[i]) * STEP - x, gridZ(keys[i]) * STEP - z)
+				if (distance < bestDistance) {
+					best = i
+					bestDistance = distance
+				}
+			}
+			return if (best < 0) null else HorizontalPoint(gridX(keys[best]) * STEP, heights[best], gridZ(keys[best]) * STEP)
+		}
+	}
+
+	private fun gridKey(gridX: Int, gridZ: Int): Long = gridX.toLong() shl 32 or (gridZ.toLong() and 0xFFFFFFFFL)
+
+	private fun gridX(key: Long): Int = (key shr 32).toInt()
+
+	private fun gridZ(key: Long): Int = key.toInt()
+
+	private fun known(view: CoarseVoxelView, stance: Stance): Boolean {
+		for (x in intArrayOf(stance.x - 1, stance.x + 1)) for (y in intArrayOf(stance.y - 2, stance.y + 2)) for (z in intArrayOf(stance.z - 1, stance.z + 1)) {
+			if (!view.isKnown(x, y, z)) return false
+		}
+		return true
+	}
+
+	private class Cache {
+		var view = WeakReference<CoarseVoxelView>(null)
+		var revision = WeakReference<Any>(null)
+		val entries = object : LinkedHashMap<Long, Holds>(CACHE_CAPACITY, 0.75f, true) {
+			override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, Holds>) = size > CACHE_CAPACITY
+		}
+
+		fun reset(view: CoarseVoxelView, revision: Any?) {
+			entries.clear()
+			this.view = WeakReference(view)
+			this.revision = WeakReference(revision)
+		}
+	}
+
+	private val caches = ThreadLocal.withInitial(::Cache)
 
 	fun walkable(view: CoarseVoxelView, from: Stance, to: Stance, maxRise: Double): Boolean {
-		val start = Patch.around(view, from).footholds(from)
+		val start = holds(view, from).keys
 		if (start.isEmpty()) return false
-		val goal = Patch.around(view, to).footholds(to)
+		val goal = holds(view, to).keys
 		if (goal.isEmpty()) return false
 		val patch = Patch.spanning(view, from, to)
 		return patch.search(patch.indices(start), maxRise, patch.mask(goal)) != null
 	}
 
 	fun climbable(view: CoarseVoxelView, from: Stance, to: Stance): Boolean {
-		val lower = Patch.around(view, from).footholds(from)
-		val upper = Patch.around(view, to).footholds(to)
+		val lower = holds(view, from).keys
+		val upper = holds(view, to).keys
 		if (lower.isEmpty() || upper.isEmpty()) return false
 		val patch = Patch.spanning(view, from, to)
 		val bottoms = patch.indices(lower)
@@ -59,7 +133,7 @@ object Footing {
 	}
 
 	fun route(view: CoarseVoxelView, from: HorizontalPoint, to: Stance, maxRise: Double): List<HorizontalPoint>? {
-		val goal = Patch.around(view, to).footholds(to)
+		val goal = holds(view, to).keys
 		if (goal.isEmpty()) return null
 		val origin = Stance(floor(from.x).toInt(), floor(from.y - EPSILON).toInt() + 1, floor(from.z).toInt())
 		val patch = Patch.spanning(view, origin, to)
@@ -68,23 +142,8 @@ object Footing {
 		return patch.simplify(path).map(patch::point)
 	}
 
-	fun spot(view: CoarseVoxelView, stance: Stance, near: HorizontalPoint? = null): HorizontalPoint? {
-		val patch = Patch.around(view, stance)
-		val held = patch.indices(patch.footholds(stance))
-		val targetX = near?.x ?: (stance.x + 0.5)
-		val targetZ = near?.z ?: (stance.z + 0.5)
-		var best = -1
-		var bestDistance = Double.MAX_VALUE
-		for (i in 0 until held.size) {
-			val index = held.getInt(i)
-			val distance = hypot(patch.x(index) - targetX, patch.z(index) - targetZ)
-			if (distance < bestDistance) {
-				best = index
-				bestDistance = distance
-			}
-		}
-		return if (best < 0) null else patch.point(best)
-	}
+	fun spot(view: CoarseVoxelView, stance: Stance, near: HorizontalPoint? = null): HorizontalPoint? =
+		holds(view, stance).nearest(near?.x ?: (stance.x + 0.5), near?.z ?: (stance.z + 0.5))
 
 	private class Patch(view: CoarseVoxelView, cellX0: Int, cellX1: Int, cellZ0: Int, cellZ1: Int, low: Int, high: Int) {
 		private val kx0 = cellX0 * 16 - MARGIN
@@ -126,6 +185,11 @@ object Footing {
 				}
 			}
 			return LongArray(best.size) { key(best.getInt(it)) }
+		}
+
+		fun holds(stance: Stance): Holds {
+			val keys = footholds(stance)
+			return Holds(keys, DoubleArray(keys.size) { feet[indexOf(keys[it])] })
 		}
 
 		fun indices(keys: LongArray): IntArrayList {
@@ -232,7 +296,7 @@ object Footing {
 			return kept
 		}
 
-		private fun key(index: Int): Long = (kx0 + index % nx).toLong() shl 32 or ((kz0 + index / nx).toLong() and 0xFFFFFFFFL)
+		private fun key(index: Int): Long = gridKey(kx0 + index % nx, kz0 + index / nx)
 
 		private fun indexOf(key: Long): Int {
 			val gx = (key shr 32).toInt() - kx0
@@ -268,44 +332,49 @@ object Footing {
 	private class Boxes(view: CoarseVoxelView, x0: Int, x1: Int, y0: Int, y1: Int, z0: Int, z1: Int) {
 		private val bounds: DoubleArray
 		private val columns: IntArray
+		private val floors: BooleanArray
 
 		init {
 			val collected = DoubleArrayList()
 			val owners = IntArrayList()
-			fun add(x: Int, y: Int, z: Int, minX: Double, minY: Double, minZ: Double, maxX: Double, maxY: Double, maxZ: Double) {
+			val holding = BooleanArrayList()
+			fun add(x: Int, y: Int, z: Int, minX: Double, minY: Double, minZ: Double, maxX: Double, maxY: Double, maxZ: Double, floor: Boolean) {
 				collected.add(x + minX); collected.add(y + minY); collected.add(z + minZ)
 				collected.add(x + maxX); collected.add(y + maxY); collected.add(z + maxZ)
 				owners.add(x); owners.add(z)
+				holding.add(floor)
 			}
 			for (x in x0..x1) for (y in y0..y1) for (z in z0..z1) {
 				val shape = view.collisionShape(x, y, z)
-				if (shape == null) add(x, y, z, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0)
-				else for (box in shape.boundingBoxes) add(x, y, z, box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ)
+				val floor = shape != null && view.voxel(x, y, z).medium.let { it != Medium.WATER && it != Medium.UNKNOWN }
+				if (shape == null) add(x, y, z, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, floor)
+				else for (box in shape.boundingBoxes) add(x, y, z, box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ, floor)
 			}
 			bounds = collected.toDoubleArray()
 			columns = owners.toIntArray()
+			floors = holding.toBooleanArray()
 		}
 
 		fun standingHeight(x: Double, z: Double, floorFeet: Double, ceilingFeet: Double): Double {
 			var height = Double.NaN
-			for (i in 0 until columns.size / 2) {
+			for (i in floors.indices) {
 				val top = bounds[6 * i + 4]
-				if (top <= floorFeet + EPSILON || top > ceilingFeet + EPSILON || !(top > height || height.isNaN())) continue
+				if (!floors[i] || top <= floorFeet + EPSILON || top > ceilingFeet + EPSILON || !(top > height || height.isNaN())) continue
 				if (supports(i, x, z)) height = top
 			}
 			return if (!height.isNaN() && clear(x, x, z, z, height, height + HEIGHT)) height else Double.NaN
 		}
 
 		fun supportsFrom(x: Double, z: Double, height: Double, cellX: Int, cellZ: Int): Boolean {
-			for (i in 0 until columns.size / 2) {
-				if (columns[2 * i] != cellX || columns[2 * i + 1] != cellZ || abs(bounds[6 * i + 4] - height) > EPSILON) continue
+			for (i in floors.indices) {
+				if (!floors[i] || columns[2 * i] != cellX || columns[2 * i + 1] != cellZ || abs(bounds[6 * i + 4] - height) > EPSILON) continue
 				if (supports(i, x, z)) return true
 			}
 			return false
 		}
 
 		fun clear(fromX: Double, toX: Double, fromZ: Double, toZ: Double, bottom: Double, top: Double): Boolean {
-			for (i in 0 until columns.size / 2) {
+			for (i in floors.indices) {
 				val b = 6 * i
 				if (bounds[b] >= toX + HALF_WIDTH - EPSILON || bounds[b + 3] <= fromX - HALF_WIDTH + EPSILON) continue
 				if (bounds[b + 2] >= toZ + HALF_WIDTH - EPSILON || bounds[b + 5] <= fromZ - HALF_WIDTH + EPSILON) continue

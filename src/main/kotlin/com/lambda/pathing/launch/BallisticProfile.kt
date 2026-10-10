@@ -46,6 +46,8 @@ data class BallisticProfile(
 
 	fun momentumSpeed(sprint: Boolean): Double = if (sprint) sprintMomentumSpeed else walkMomentumSpeed
 
+	val jumpApex: Double = generateSequence(jumpVelocity) { (it - gravity) * VERTICAL_DRAG }.takeWhile { it > 0.0 }.sum()
+
 	private fun momentumOf(sprint: Boolean): Double {
 		val cruise = cruiseSpeed(sprint)
 		val landing = fly(if (sprint) LaunchMode.SPRINT_JUMP else LaunchMode.WALK_JUMP, cruise, 0.0) ?: return cruise
@@ -141,7 +143,8 @@ data class BallisticProfile(
 		holdForward: Boolean = true,
 		maxTicks: Int = MAX_ARC_TICKS,
 		holdTicks: Int = Int.MAX_VALUE,
-	): ArcSample? = arc(entrySpeed, rise, holdForward, mode.sprint, mode.jumps, holdTicks, maxTicks)
+		headroom: Double = Double.POSITIVE_INFINITY,
+	): ArcSample? = arc(entrySpeed, rise, holdForward, mode.sprint, mode.jumps, holdTicks, maxTicks, headroom = headroom)
 
 	fun bounce(
 		entrySpeed: Double,

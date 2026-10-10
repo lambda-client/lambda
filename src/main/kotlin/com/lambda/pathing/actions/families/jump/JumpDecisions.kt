@@ -49,7 +49,7 @@ internal object JumpDecisions {
 		val ideal = onward?.let { window ->
 			LaunchSolver.solve(
 				context.edge.from, context.edge.to,
-				modes = JumpTemplates.MODES, exitSpeedWindow = window, via = via, landingShift = landingShift,
+				modes = JumpTemplates.MODES, exitSpeedWindow = window, via = via, landingShift = landingShift, headroom = context.headroom,
 			).firstOrNull()
 		} ?: fallback ?: hopOver(context)
 		val asIs = LaunchSolver.solve(
@@ -60,6 +60,7 @@ internal object JumpDecisions {
 			exitSpeedWindow = onward,
 			via = via,
 			landingShift = landingShift,
+			headroom = context.headroom,
 		).firstOrNull()
 		return listOfNotNull(ideal, asIs)
 	}
@@ -91,8 +92,11 @@ internal object JumpDecisions {
 			edge.from, edge.to,
 			modes = JumpTemplates.MODES,
 			maxEntrySpeed = { reachable },
+			headroom = context.headroom,
 		).firstOrNull()
 	}
+
+	private val DecisionContext.headroom: Double get() = edge.launch?.headroom ?: Double.POSITIVE_INFINITY
 
 	fun launchDelays(context: DecisionContext, solution: LaunchSolution): List<Int> {
 		val edge = context.edge
