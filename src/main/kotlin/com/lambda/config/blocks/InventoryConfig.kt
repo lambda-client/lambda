@@ -18,34 +18,11 @@
 package com.lambda.config.blocks
 
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.container.Container
-import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.container.selection.containerSelection
-import com.lambda.util.Describable
-import com.lambda.util.NamedEnum
 import net.minecraft.item.Item
 
 interface InventoryConfig {
 	val tickStageMask: Collection<TickEvent>
 	val disposables: Collection<Item>
-
 	val allowedContainers: Collection<com.lambda.interaction.container.ContainerType>
-	val containerSelection: ContainerSelection
-		get() = containerSelection { ofAnyType(*allowedContainers.toTypedArray()) }
-
 	val enderChestSearchRadius: Int
-
-	@Suppress("unused")
-	enum class ContainerPriority(
-		override val displayName: String,
-		override val description: String
-	) : NamedEnum, Describable {
-		WithMinItems("With Min Items", "Pick containers with the fewest matching items (or least space) first; useful for topping off or clearing leftovers."),
-		WithMaxItems("With Max Items", "Pick containers with the most matching items (or most space) first; ideal for bulk moves with fewer transfers.");
-
-		fun <T> comparator(countSelector: (Container, T) -> Int) =
-			compareBy<Pair<Container, T>> { it.first.type }
-				.thenByDescending { countSelector(it.first, it.second) }
-				.thenBy { it.first.name }
-	}
 }
