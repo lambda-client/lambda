@@ -72,10 +72,7 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
 
-object InteractManager : Manager<InteractRequest>(
-	0,
-	onOpen = { activeRequest?.let { it.runSafeAutomated { processRequest(it) } } }
-), PositionBlocking {
+object InteractManager : Manager<InteractRequest>(0), PositionBlocking {
 	private var activeRequest: InteractRequest? = null
 	private var potentialInteractions = mutableListOf<InteractContext>()
 
@@ -122,6 +119,12 @@ object InteractManager : Manager<InteractRequest>(
 		}
 
 		return "Loaded Place Manager"
+	}
+
+	override fun SafeContext.onOpen() {
+		activeRequest?.let {
+			it.runSafeAutomated { processRequest(it) }
+		}
 	}
 
 	/**

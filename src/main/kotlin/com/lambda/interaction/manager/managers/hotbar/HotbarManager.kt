@@ -25,7 +25,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.manager.Manager
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.activeRequest
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.activeSlot
-import com.lambda.interaction.manager.managers.hotbar.HotbarManager.checkResetSwap
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.setActiveRequest
 import com.lambda.interaction.manager.managers.hotbar.HotbarManager.setActiveSlot
 import com.lambda.threading.runSafe
@@ -39,11 +38,7 @@ import net.minecraft.item.ItemStack
  * set to 0, assuming the request is accepted, the manager will only swap for the duration of the current [tickStage].
  * After which, the manager will end the request and swap back to the player's selected slot.
  */
-object HotbarManager : Manager<HotbarRequest>(
-	1,
-	onOpen = { if (activeRequest != null) setActiveSlot() },
-	onClose = { checkResetSwap() }
-) {
+object HotbarManager : Manager<HotbarRequest>(1) {
 	private var activeRequest: HotbarRequest? = null
 	@JvmStatic var activeSlot: Int = -1
 
@@ -78,6 +73,14 @@ object HotbarManager : Manager<HotbarRequest>(
 		}
 
 		return "Loaded Hotbar Manager"
+	}
+
+	override fun SafeContext.onOpen() {
+		if (activeRequest != null) setActiveSlot()
+	}
+
+	override fun SafeContext.onClose() {
+		checkResetSwap()
 	}
 
 	/**

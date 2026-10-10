@@ -17,9 +17,9 @@
 
 package com.lambda.interaction.manager.managers.inventory
 
+import com.lambda.Lambda.LOG
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
-import com.lambda.Lambda.LOG
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
@@ -29,7 +29,11 @@ import com.lambda.interaction.handler.handlers.PacketLimitHandler.canSendPackets
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.sentPackets
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.Manager
-import com.lambda.interaction.manager.managers.inventory.InventoryManager.processActiveRequest
+import com.lambda.interaction.manager.managers.inventory.InventoryManager.actions
+import com.lambda.interaction.manager.managers.inventory.InventoryManager.activeRequest
+import com.lambda.interaction.manager.managers.inventory.InventoryManager.filter
+import com.lambda.interaction.manager.managers.inventory.InventoryManager.indexInventoryChanges
+import com.lambda.interaction.manager.managers.inventory.InventoryManager.onInventoryUpdate
 import com.lambda.module.modules.client.Client
 import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.threading.runSafe
@@ -53,10 +57,7 @@ import net.minecraft.screen.ScreenHandler
  * ordered per-slot queue. Server answers that match a recording are echoes of our own actions and are dropped;
  * anything else is new information and is applied. See [InventorySyncFilter] for the exact rules.
  */
-object InventoryManager : Manager<InventoryRequest>(
-	1,
-	onOpen = { processActiveRequest() }
-) {
+object InventoryManager : Manager<InventoryRequest>(1) {
 	private var activeRequest: InventoryRequest? = null
 	private var actions = mutableListOf<InventoryAction>()
 
@@ -128,6 +129,10 @@ object InventoryManager : Manager<InventoryRequest>(
 			activeRequest = null
 			actions = mutableListOf()
 		}
+	}
+
+	override fun SafeContext.onOpen() {
+		processActiveRequest()
 	}
 
 	private fun populateFrom(request: InventoryRequest) {

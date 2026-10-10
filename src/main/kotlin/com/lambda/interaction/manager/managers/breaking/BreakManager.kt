@@ -57,7 +57,6 @@ import com.lambda.interaction.manager.managers.breaking.BreakManager.activeReque
 import com.lambda.interaction.manager.managers.breaking.BreakManager.breakInfos
 import com.lambda.interaction.manager.managers.breaking.BreakManager.breaks
 import com.lambda.interaction.manager.managers.breaking.BreakManager.canAccept
-import com.lambda.interaction.manager.managers.breaking.BreakManager.checkForCancels
 import com.lambda.interaction.manager.managers.breaking.BreakManager.handlePreProcessing
 import com.lambda.interaction.manager.managers.breaking.BreakManager.hotbarRequest
 import com.lambda.interaction.manager.managers.breaking.BreakManager.initNewBreak
@@ -67,7 +66,6 @@ import com.lambda.interaction.manager.managers.breaking.BreakManager.populateFro
 import com.lambda.interaction.manager.managers.breaking.BreakManager.processNewBreak
 import com.lambda.interaction.manager.managers.breaking.BreakManager.processRequest
 import com.lambda.interaction.manager.managers.breaking.BreakManager.rotationRequest
-import com.lambda.interaction.manager.managers.breaking.BreakManager.simulateAbandoned
 import com.lambda.interaction.manager.managers.breaking.BreakManager.updateBreakProgress
 import com.lambda.interaction.manager.managers.breaking.BreakManager.updatePreProcessing
 import com.lambda.interaction.manager.managers.breaking.SwapInfo.Companion.getSwapInfo
@@ -105,14 +103,7 @@ import kotlin.math.max
  * different requests. Each break will be handled using its own config, and just like the other managers, priority is a first-come, first-served
  * style system.
  */
-object BreakManager : Manager<BreakRequest>(
-	0,
-	onOpen = {
-		processRequest(activeRequest)
-		simulateAbandoned()
-			 },
-	onClose = { checkForCancels() }
-), PositionBlocking {
+object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	private val breakInfos = arrayOfNulls<BreakInfo>(2)
 
 	private val activeInfos
@@ -287,6 +278,15 @@ object BreakManager : Manager<BreakRequest>(
 		}
 
 		return "Loaded Break Manager"
+	}
+
+	override fun SafeContext.onOpen() {
+		processRequest(activeRequest)
+		simulateAbandoned()
+	}
+
+	override fun SafeContext.onClose() {
+		checkForCancels()
 	}
 
 	/**

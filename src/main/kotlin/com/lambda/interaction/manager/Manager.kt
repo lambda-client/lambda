@@ -35,9 +35,7 @@ import kotlin.reflect.KClass
  */
 abstract class Manager<R : Request>(
 	val stagePriority: Int,
-	vararg val blacklistedStages: TickEvent,
-	private val onOpen: (SafeContext.() -> Unit)? = null,
-	private val onClose: (SafeContext.() -> Unit)? = null
+	vararg val blacklistedStages: TickEvent
 ) : Loadable {
 	val openStages: List<TickEvent> = ALL_STAGES.filter { it !in blacklistedStages }
 
@@ -86,14 +84,18 @@ abstract class Manager<R : Request>(
                 queuedRequest = null
             }
             acceptingRequests = true
-            onOpen?.invoke(this)
+            onOpen()
         }
 
         listen(instance, { (Int.MIN_VALUE + 1) + stagePriority }) {
-            onClose?.invoke(this)
+            onClose()
             acceptingRequests = false
         }
     }
+
+	protected open fun SafeContext.onOpen() {}
+
+	protected open fun SafeContext.onClose() {}
 
 	/**
 	 * Registers a new request
