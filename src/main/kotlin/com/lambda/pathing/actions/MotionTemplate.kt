@@ -193,7 +193,10 @@ class MotionTemplate internal constructor(
 	internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
 		buildList {
 			addAll(ORIGIN_STANCE_READS)
-			conditions.forEach { addAll(it.reads()) }
+			conditions.forEach {
+				addAll(it.reads())
+				addAll(it.neighborReads())
+			}
 
 			arc?.let { spec ->
 

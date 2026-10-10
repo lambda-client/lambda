@@ -26,6 +26,7 @@ internal class Finisher(
 	private val gate: RolloutGate,
 	private val attempts: AttemptAccumulator,
 	private val route: RouteState,
+	private val routePoints: RoutePoints,
 ) {
 	private var provenApproach: TerminalApproach? = null
 	private var sweepEpoch = 0
@@ -46,7 +47,7 @@ internal class Finisher(
 	fun finishFrom(anchor: ValueAnchor): Solution? {
 		val chain = field.chain(anchor.stance, null, FINISH_CHAIN_LENGTH)
 		if (!field.reachesGoal(chain)) return null
-		val points = chain.map { it.center(environment) }
+		val points = routePoints.of(chain)
 		val leads: List<Double?> = if (chain.asSequence().zipWithNext().any { (from, to) -> to.y > from.y }) {
 			STEP_UP_JUMP_LEADS
 		} else {

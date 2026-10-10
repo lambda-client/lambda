@@ -11,6 +11,7 @@ import com.lambda.pathing.search.AttemptAccumulator
 import com.lambda.pathing.search.Finisher
 import com.lambda.pathing.search.GatedRollout
 import com.lambda.pathing.search.RolloutGate
+import com.lambda.pathing.search.RoutePoints
 import com.lambda.pathing.search.RouteState
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
@@ -64,6 +65,7 @@ class FinisherTest {
         val cached = Finisher(
             field, environment, config, gate, attempts,
             RouteState(CoarseRoutePlan(0L, listOf(anchor.stance), emptyList(), 0.0, emptySet()), environment),
+            RoutePoints(environment),
         )
         reads = 0
         assertNotNull(cached.finishFrom(anchor))

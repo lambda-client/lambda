@@ -9,6 +9,7 @@ import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Footing
 import kotlin.math.abs
 
 class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
@@ -72,11 +73,9 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 
 	fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
 		if (stance.y !in view.simulableStanceY) return false
-		val support = view.voxel(stance.x, stance.y - 1, stance.z)
-		val stands = view.standingSurface(stance.x, stance.y - 1, stance.z) != null &&
-				!support.intrudesAbove &&
-				view.voxel(stance.x, stance.y, stance.z).centerPassable &&
-				view.voxel(stance.x, stance.y + 1, stance.z).centerPassable
+		val stands = if (Footing.involvesPartial(view, stance.x, stance.y, stance.z)) Footing.stands(view, stance)
+		else view.standingSurface(stance.x, stance.y - 1, stance.z) != null && !view.voxel(stance.x, stance.y - 1, stance.z).intrudesAbove &&
+				view.voxel(stance.x, stance.y, stance.z).centerPassable && view.voxel(stance.x, stance.y + 1, stance.z).centerPassable
 		return stands || catalog.movements.any { it.occupies(view, stance) }
 	}
 

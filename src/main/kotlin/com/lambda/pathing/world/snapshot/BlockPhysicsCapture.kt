@@ -6,6 +6,7 @@ import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.physics.bounceFactor
 import com.lambda.pathing.world.CoarseVoxel
+import com.lambda.pathing.world.CollisionClass
 import com.lambda.util.BlockUtils.isFenceLike
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -38,6 +39,13 @@ object BlockPhysicsCapture {
 		BODY_MAX, SUPPORT_COLUMN_CEILING, BODY_MAX,
 	)
 
+	private val SIDE_PASSAGES = listOf(
+		VoxelShapes.cuboid(BODY_MAX, Vanilla.COLLISION_EPSILON, BODY_MIN, 1.0, 1.0 - Vanilla.COLLISION_EPSILON, BODY_MAX),
+		VoxelShapes.cuboid(0.0, Vanilla.COLLISION_EPSILON, BODY_MIN, BODY_MIN, 1.0 - Vanilla.COLLISION_EPSILON, BODY_MAX),
+		VoxelShapes.cuboid(BODY_MIN, Vanilla.COLLISION_EPSILON, BODY_MAX, BODY_MAX, 1.0 - Vanilla.COLLISION_EPSILON, 1.0),
+		VoxelShapes.cuboid(BODY_MIN, Vanilla.COLLISION_EPSILON, 0.0, BODY_MAX, 1.0 - Vanilla.COLLISION_EPSILON, BODY_MIN),
+	)
+
 	fun coarseVoxelOf(shape: VoxelShape, bouncy: Boolean = false): CoarseVoxel {
 		if (shape.isEmpty) return CoarseVoxel.AIR
 		val underBody = VoxelShapes.combineAndSimplify(shape, CENTERED_SUPPORT_COLUMN, BooleanBiFunction.AND)
@@ -49,6 +57,10 @@ object BlockPhysicsCapture {
 			standingSurface = top.takeIf { !standsProud && it > 0.0 }?.coerceAtMost(1.0),
 			intrusionHeight = (top - 1.0).coerceAtLeast(0.0),
 			bouncy = bouncy,
+			openSides = SIDE_PASSAGES.foldIndexed(0) { index, open, passage ->
+				if (VoxelShapes.matchesAnywhere(shape, passage, BooleanBiFunction.AND)) open else open or (1 shl index)
+			},
+			partial = CollisionClass.of(shape) == CollisionClass.PARTIAL,
 		)
 	}
 

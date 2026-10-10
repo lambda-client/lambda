@@ -84,14 +84,42 @@ data class CoarseVoxel(
 	val intrusionHeight: Double = 0.0,
 	val bouncy: Boolean = false,
 	val medium: Medium = if (fullyPassable) Medium.AIR else Medium.SOLID,
+	val openSides: Int = if (fullyPassable) ALL_SIDES else 0,
+	val partial: Boolean = false,
 ) {
 	val surfaceOffset: Double get() = (standingSurface ?: 1.0) - 1.0
 
 	val intrudesAbove: Boolean get() = intrusionHeight > 0.0
 
+	fun opensToward(sides: Int): Boolean = openSides and sides == sides
+
 	companion object {
 
 		const val UNKNOWN_INTRUSION = 1.0
+
+		const val EAST = 0b0001
+
+		const val WEST = 0b0010
+
+		const val SOUTH = 0b0100
+
+		const val NORTH = 0b1000
+
+		const val ALL_SIDES = EAST or WEST or SOUTH or NORTH
+
+		fun side(dx: Int, dz: Int): Int = when {
+			dx > 0 -> EAST
+			dx < 0 -> WEST
+			dz > 0 -> SOUTH
+			dz < 0 -> NORTH
+			else -> 0
+		}
+
+		fun sides(dx: Int, dz: Int): Int = side(dx, 0) or side(0, dz)
+
+		fun dx(side: Int): Int = (side and EAST) - ((side and WEST) ushr 1)
+
+		fun dz(side: Int): Int = ((side and SOUTH) ushr 2) - ((side and NORTH) ushr 3)
 
 		val AIR = CoarseVoxel(fullyPassable = true, centerPassable = true, standingSurface = null)
 		val FULL_BLOCK = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = 1.0)
@@ -99,7 +127,7 @@ data class CoarseVoxel(
 		val UNKNOWN = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, intrusionHeight = UNKNOWN_INTRUSION, medium = Medium.UNKNOWN)
 		val HAZARD = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.UNKNOWN)
 		val CLIMBABLE = CoarseVoxel(fullyPassable = true, centerPassable = true, standingSurface = null, medium = Medium.CLIMBABLE)
-		val WATER = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.WATER)
+		val WATER = CoarseVoxel(fullyPassable = false, centerPassable = false, standingSurface = null, medium = Medium.WATER, openSides = ALL_SIDES)
 	}
 }
 
@@ -157,8 +185,7 @@ fun CoarseVoxelView.climbableAt(position: Vec3d): Boolean =
 fun CoarseVoxelView.canStandAt(x: Int, y: Int, z: Int): Boolean =
 	standingSurface(x, y - 1, z) != null && voxel(x, y, z).centerPassable && voxel(x, y + 1, z).centerPassable
 
-fun Stance.center(view: CoarseVoxelView) = HorizontalPoint(
-	x + 0.5,
-	y + view.surfaceOffset(x, y - 1, z),
-	z + 0.5,
-)
+fun Stance.center(view: CoarseVoxelView): HorizontalPoint {
+	if (Footing.involvesPartial(view, x, y, z)) Footing.spot(view, this)?.let { return it }
+	return HorizontalPoint(x + 0.5, y + view.surfaceOffset(x, y - 1, z), z + 0.5)
+}

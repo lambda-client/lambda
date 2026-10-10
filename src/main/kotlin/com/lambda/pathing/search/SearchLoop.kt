@@ -43,10 +43,11 @@ internal class SearchLoop(
 	private val publications = Publications(execution)
 	private val incumbent = Incumbent(publications, frontier, searchConfig, execution, budget)
 	private val annealing = Annealing(field, frontier, ActionSet(catalog, field, config), budget, searchConfig.maxTemperature)
-	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe)
+	private val routePoints = RoutePoints(environment)
+	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe, routePoints)
 	private val crew = if (parallelism > 1) RolloutCrew(parallelism - 1, rollouts) else null
 	private val certifier = Certifier(initialState, profile, environment, cancelled, route, attempts)
-	private val finisher = Finisher(field, environment, config, RolloutGate(profile, environment, config, route), attempts, route)
+	private val finisher = Finisher(field, environment, config, RolloutGate(profile, environment, config, route), attempts, route, routePoints)
 	private val publisher = Publisher(searchConfig, field, frontier, clock, publications, onPublish, budget, incumbent, finisher, certifier, probe, live)
 	private val recovery = StallRecovery(frontier, publications, world)
 

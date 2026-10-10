@@ -19,7 +19,9 @@ import com.lambda.pathing.actions.ProposalContext
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
 import com.lambda.pathing.actions.StanceRules.CARDINALS
 import com.lambda.pathing.actions.StanceRules.DIAGONALS
+import com.lambda.pathing.actions.StanceRules.leaving
 import com.lambda.pathing.actions.StanceRules.stanceConditions
+import com.lambda.pathing.actions.StanceRules.walkConditions
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.control.yawTowards
@@ -33,6 +35,7 @@ import com.lambda.pathing.core.center
 import com.lambda.pathing.core.headingOfBearing
 import com.lambda.pathing.launch.CORNER_CLEARANCE
 import com.lambda.pathing.launch.LaunchMode
+import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.canStandAt
 import kotlin.math.abs
@@ -45,13 +48,14 @@ object WalkMovement : Movement {
 		val options = context.options
 		val costs = context.costs
 		for ((dx, dz) in CARDINALS) {
-			add(spec(dx, 0, dz, costs.cardinalWalk, stanceConditions(dx, 0, dz)))
+			val behind = CoarseVoxel.side(-dx, -dz)
+			add(spec(dx, 0, dz, costs.cardinalWalk, walkConditions(dx, 0, dz)))
 
 			if (options.allowStepUp) {
 				add(
 					spec(
 						dx, 1, dz, costs.stepUp,
-						stanceConditions(dx, 1, dz) + STEP_UP_HEADROOM,
+						walkConditions(dx, 1, dz) + STEP_UP_HEADROOM,
 						MovementId.STEP_UP,
 						strideCost = costs.cardinalWalk,
 					)
@@ -62,23 +66,27 @@ object WalkMovement : Movement {
 				add(
 					spec(
 						dx, -1, dz, costs.walkOffCost(1),
-						stanceConditions(dx, -1, dz) +
-								(1 downTo 0).map { y -> CellCondition(dx, y, dz, CellPredicate.CENTER_SLICE) },
+						walkConditions(dx, -1, dz) +
+								(1 downTo 0).map { y -> CellCondition(dx, y, dz, CellPredicate.entering(behind)) },
 						MovementId.WALK_OFF,
 					)
 				)
 			}
 		}
 
+		if (options.allowStepUp) {
+			add(spec(0, 1, 0, costs.stepUp, listOf(CellCondition(0, 0, 0, CellPredicate.CLIMBING)), MovementId.STEP_UP))
+		}
+
 		if (options.allowDiagonal) {
 			for ((dx, dz) in DIAGONALS) for (dy in if (options.allowStepUp) 0..1 else 0..0) {
 				val rising = dy > 0
 				val movement = if (rising) MovementId.STEP_UP else id
-				val stance = stanceConditions(dx, dy, dz) + if (rising) listOf(STEP_UP_HEADROOM) else emptyList()
+				val headroom = if (rising) listOf(STEP_UP_HEADROOM) else emptyList()
 				add(
 					spec(
 						dx, dy, dz, if (rising) costs.stepUp else costs.diagonalWalk,
-						stance + listOf(
+						stanceConditions(dx, dy, dz, CoarseVoxel.sides(-dx, -dz)) + headroom + leaving(CoarseVoxel.sides(dx, dz), dy) + listOf(
 							CellCondition(dx, dy, 0, CellPredicate.OPEN_COLUMN),
 							CellCondition(0, dy, dz, CellPredicate.OPEN_COLUMN),
 						),
@@ -89,10 +97,12 @@ object WalkMovement : Movement {
 				for ((openX, openZ) in listOf(dx to 0, 0 to dz)) {
 					val blockedX = dx - openX
 					val blockedZ = dz - openZ
+					val turn = stanceConditions(dx, dy, dz, CoarseVoxel.side(-blockedX, -blockedZ)) + headroom +
+							leaving(CoarseVoxel.side(openX, openZ), dy)
 					add(
 						spec(
 							dx, dy, dz, if (rising) costs.stepUp + costs.cardinalWalk else costs.cornerWalk,
-							stance + listOf(
+							turn + listOf(
 								CellCondition(openX, dy, openZ, CellPredicate.OPEN_COLUMN),
 								CellCondition(blockedX, dy, blockedZ, CellPredicate.BLOCKED_COLUMN),
 								CellCondition(dx + openX, dy, dz + openZ, CellPredicate.OPEN_COLUMN),

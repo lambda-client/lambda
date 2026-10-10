@@ -8,6 +8,7 @@ import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.launch.LaunchMode
+import com.lambda.pathing.world.CoarseVoxel
 import kotlin.math.abs
 
 internal object JumpTemplates {
@@ -55,7 +56,7 @@ internal object JumpTemplates {
 			dx = dx, dy = rise, dz = dz,
 			movement = MovementId.JUMP,
 			cost = cost,
-			conditions = StanceRules.stanceConditions(dx, rise, dz),
+			conditions = StanceRules.stanceConditions(dx, rise, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0),
 			arc = MotionTemplate.ArcSpec(
 				MODES,
 				riseAdmission = { realRise ->

@@ -21,8 +21,8 @@ import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.Medium
-import com.lambda.pathing.world.center
 import com.lambda.pathing.world.climbableAt
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.Vec3d
@@ -43,6 +43,7 @@ internal class AnchorRollout(
 	private val route: RouteState,
 	private val attempts: AttemptAccumulator,
 	private val probe: SearchProbe,
+	private val routePoints: RoutePoints,
 ) {
 	private val climbingAt: (Vec3d) -> Boolean = { field.view.climbableAt(it) }
 
@@ -75,7 +76,7 @@ internal class AnchorRollout(
 		val chain = field.chain(
 			anchor.stance, action.step, SteeringField.PURSUIT_CHAIN_LENGTH, anchor.heading(),
 		)
-		val points = chain.map { it.center(environment) }
+		val points = routePoints.of(chain)
 		val movement = movements[action.movement] ?: return null
 
 		val launch = action.delayFrames?.let { LaunchTrigger(it) }
@@ -96,7 +97,7 @@ internal class AnchorRollout(
 			program = program,
 			evaluator = RolloutEvaluator(
 				anchor.state, points, route.goalPoint, config,
-				allowHorizontalContact = movement.inMedium,
+				allowHorizontalContact = movement.inMedium || Footing.involvesPartial(field.view, action.step.x, action.step.y, action.step.z),
 				descentAllowance = movement.descentAllowance(action),
 				climbing = climbingAt,
 			),

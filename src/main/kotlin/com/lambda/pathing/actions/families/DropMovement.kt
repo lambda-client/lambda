@@ -18,6 +18,7 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
+import com.lambda.pathing.world.CoarseVoxel
 
 object DropMovement : Movement {
 	override val id = MovementId.DROP
@@ -40,7 +41,7 @@ object DropMovement : Movement {
 		dx = span * dx, dy = -depth, dz = span * dz,
 		movement = id,
 		cost = cost,
-		conditions = StanceRules.stanceConditions(span * dx, -depth, span * dz),
+		conditions = StanceRules.stanceConditions(span * dx, -depth, span * dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0),
 		arc = MotionTemplate.ArcSpec(MODES),
 	)
 
