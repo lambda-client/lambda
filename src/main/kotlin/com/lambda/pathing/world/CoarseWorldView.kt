@@ -179,6 +179,8 @@ interface CoarseVoxelView {
 
 	fun cursor(): CoarseVoxelView = this
 
+	val terrain: Any get() = this
+
 	val revision: Any? get() = null
 
 	fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true

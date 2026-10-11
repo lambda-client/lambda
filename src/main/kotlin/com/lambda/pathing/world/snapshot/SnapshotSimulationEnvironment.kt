@@ -13,6 +13,7 @@ import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.physics.closestSupportingBlock
+import com.lambda.pathing.physics.collisionCandidateRange
 import com.lambda.pathing.physics.forEachCollisionCandidate
 import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxel
@@ -195,7 +196,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		return closestSupportingBlock(box, entityPos) { pos ->
 			onRead?.invoke(pos)
 			val block = exactBlock(pos, sections::at)
-			!block.collisionShape.isEmpty && block.intersectsCollisionBox(box, pos.x, pos.y, pos.z)
+			block.collides && block.intersectsCollisionBox(box, pos.x, pos.y, pos.z)
 		}
 	}
 
@@ -222,12 +223,12 @@ class SnapshotSimulationEnvironment internal constructor(
 		val minZ = MathHelper.floor(query.minZ - Vanilla.COLLISION_EPSILON)
 		val maxZ = MathHelper.floor(query.maxZ + Vanilla.COLLISION_EPSILON)
 		forEachCollisionCandidate(query) { pos ->
-			val margins = (if (pos.x < minX || pos.x > maxX) 1 else 0) + (if (pos.y < minY || pos.y > maxY) 1 else 0) +
-					(if (pos.z < minZ || pos.z > maxZ) 1 else 0)
+			val margins = (if (pos.x !in minX..maxX) 1 else 0) + (if (pos.y !in minY..maxY) 1 else 0) +
+					(if (pos.z !in minZ..maxZ) 1 else 0)
 			if (margins > 1) return@forEachCollisionCandidate
 			onRead?.invoke(pos)
 			val block = exactBlock(pos, sections::at)
-			if (block.collisionShape.isEmpty || margins == 1 && !block.exceedsCube) return@forEachCollisionCandidate
+			if (!block.collides || margins == 1 && !block.exceedsCube) return@forEachCollisionCandidate
 			if (block.intersectsCollisionBox(query, pos.x, pos.y, pos.z)) action(pos, block.collisionShape)
 		}
 	}
@@ -238,13 +239,24 @@ class SnapshotSimulationEnvironment internal constructor(
 	}
 
 	private fun rejectUnsupportedContact(box: Box) {
-		val sections = PinnedSections(store)
+		val pinned = store
+		if (onRead == null && clearOfUnsupported(box, pinned)) return
+		val sections = PinnedSections(pinned)
 		forEachCollisionCandidate(box) { pos ->
 			if (!box.intersectsUnitBlock(pos.x, pos.y, pos.z)) return@forEachCollisionCandidate
 			onRead?.invoke(pos)
 			val unsupported = exactBlock(pos, sections::at).unsupportedPhysics ?: return@forEachCollisionCandidate
 			throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
 		}
+	}
+
+	private fun clearOfUnsupported(box: Box, pinned: SectionStore): Boolean = collisionCandidateRange(box) { minX, minY, minZ, maxX, maxY, maxZ ->
+		if (!bounds.contains(minX, minY, minZ) || !bounds.contains(maxX, maxY, maxZ)) return false
+		for (sectionX in (minX shr 4)..(maxX shr 4)) for (sectionY in (minY shr 4)..(maxY shr 4)) for (sectionZ in (minZ shr 4)..(maxZ shr 4)) {
+			val section = pinned[ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)] ?: return false
+			if (section.unsupported) return false
+		}
+		true
 	}
 
 	private inline fun exactBlock(pos: BlockPos, sectionAt: (Long) -> ImmutableSnapshotSection?): SnapshotBlockPhysics {
@@ -419,6 +431,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		override val simulableStanceY: IntRange get() = this@SnapshotSimulationEnvironment.simulableStanceY
 
 		override val revision: Any? get() = owner.revision
+
+		override val terrain: Any get() = owner.terrain
 
 		override val mayBounce: Boolean get() = store.bouncySections > 0
 

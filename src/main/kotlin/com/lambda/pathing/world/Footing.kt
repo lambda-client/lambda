@@ -54,8 +54,9 @@ object Footing {
 
 	private fun cache(view: CoarseVoxelView): Cache {
 		val revision = view.revision
+		val terrain = view.terrain
 		val cache = caches.get()
-		if (cache.view.get() !== view || cache.revision.get() !== revision) cache.reset(view, revision)
+		if (cache.terrain.get() !== terrain || cache.revision.get() !== revision) cache.reset(terrain, revision)
 		return cache
 	}
 
@@ -150,17 +151,17 @@ object Footing {
 	}
 
 	private class Cache {
-		var view = WeakReference<CoarseVoxelView>(null)
+		var terrain = WeakReference<Any>(null)
 		var revision = WeakReference<Any>(null)
 		val entries = Long2ObjectLinkedOpenHashMap<Holds>()
 		val walks = Long2LongOpenHashMap()
 		val climbs = Long2LongOpenHashMap()
 
-		fun reset(view: CoarseVoxelView, revision: Any?) {
+		fun reset(terrain: Any, revision: Any?) {
 			entries.clear()
 			walks.clear()
 			climbs.clear()
-			this.view = WeakReference(view)
+			this.terrain = WeakReference(terrain)
 			this.revision = WeakReference(revision)
 		}
 	}

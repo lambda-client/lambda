@@ -59,7 +59,7 @@ internal class CoarseEdgeCache(
 			val stance = PackedStance.stance(key)
 			check(key, stance)
 			val edges = if (!standable.isStance(stance)) emptyList() else {
-				val stamped = moves.templates(view, stance).mapNotNull { stamper.edge(it, stance) }
+				val stamped = stampedEdgesFrom(stance)
 				val falling = falls
 				val dropped = falling?.from(stance)
 				if (falling == null || dropped.isNullOrEmpty()) stamped else stamped + dropped.map { falling.coarseEdge(stance, it) }
@@ -134,6 +134,18 @@ internal class CoarseEdgeCache(
 
 	private fun bounces(stance: Stance): Boolean =
 		bounceTemplates.isNotEmpty() && moves.bouncesAt(view, stance.x, stance.y, stance.z)
+
+	private fun stampedEdgesFrom(origin: Stance): List<CoarseEdge> {
+		val departures = if (bounces(origin)) pads.departures(origin) else NO_TEMPLATES
+		val edges = ArrayList<CoarseEdge>()
+		var next = 0
+		for (template in moves.templatesWithoutBounces) {
+			while (next < departures.size && departures[next] < template.id.value) moves.templates[departures[next++]].edge(view, origin)?.let(edges::add)
+			stamper.edge(template, origin)?.let(edges::add)
+		}
+		while (next < departures.size) moves.templates[departures[next++]].edge(view, origin)?.let(edges::add)
+		return edges
+	}
 
 	private fun bouncesFrom(origin: Stance): StanceEdges = StanceEdges.of(pads.departures(origin).map { moves.templates[it] }) { it.edge(view, origin) }
 
@@ -343,6 +355,8 @@ internal class CoarseEdgeCache(
 
 	companion object {
 		private const val CACHED_EDGE_LISTS = 1 shl 10
+
+		private val NO_TEMPLATES = IntArray(0)
 
 		private fun key(stance: Stance): Long = PackedStance.pack(stance, SpeedClass.STOPPED)
 

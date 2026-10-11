@@ -73,8 +73,13 @@ internal class Frontier(
 	val parkedSize: Int get() = parked.size
 	val openEntries: List<OpenEntry> get() = open.toList()
 
-	fun bestLiveEntryDeeperThan(floor: Int): OpenEntry? =
-		open.asSequence().filter { it.anchor.elapsed > floor }.minByOrNull { it.order }
+	fun bestLiveEntryDeeperThan(floor: Int): OpenEntry? {
+		val head = open.peek() ?: return null
+		if (head.anchor.elapsed > floor) return head
+		var best: OpenEntry? = null
+		for (entry in open) if (entry.anchor.elapsed > floor && (best == null || entry.order < best.order)) best = entry
+		return best
+	}
 
 	var deepestProgress = 0
 		private set

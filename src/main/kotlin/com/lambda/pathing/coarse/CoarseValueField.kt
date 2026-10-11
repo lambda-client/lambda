@@ -18,7 +18,15 @@ class CoarseValueField(
 	private val chains = HashMap<ChainKey, List<Stance>>()
 	private var chainsRevision = labelRevision()
 
-	override fun invalidate() = chains.clear()
+	private class Options(val edges: List<CoarseEdge>, val costs: DoubleArray)
+
+	private val options = HashMap<Stance, Options>()
+	private var optionsRevision = labelRevision()
+
+	override fun invalidate() {
+		chains.clear()
+		options.clear()
+	}
 
 	override fun lowerBound(stance: Stance): Double = moves.heuristic(stance, goal)
 
@@ -50,6 +58,27 @@ class CoarseValueField(
 		marginTicks: Double,
 		heading: Pair<Double, Double>?,
 	): List<CoarseEdge> {
+		val options = optionsFrom(stance)
+		if (options.edges.isEmpty()) return emptyList()
+		val reference = reference(stance, heading)
+		val ranked = ArrayList<RankedStep>(options.edges.size)
+		for (index in options.edges.indices) {
+			val edge = options.edges[index]
+			val cost = options.costs[index]
+			ranked += RankedStep(edge, cost, floor(cost / TIE_TICKS), alignment(stance, edge.to, reference))
+		}
+		val best = ranked.minOf { it.cost }
+		val ordered = if (count == 1) listOfNotNull(ranked.minOrNull()) else ranked.sorted()
+		return ordered.asSequence().takeWhile { it.cost <= best + marginTicks }.take(count).map { it.edge }.toList()
+	}
+
+	private fun optionsFrom(stance: Stance): Options {
+		val revision = labelRevision()
+		if (revision != optionsRevision) {
+			options.clear()
+			optionsRevision = revision
+		}
+		options[stance]?.let { return it }
 		val byDestination = HashMap<Stance, CoarseEdge>()
 		for (edge in edgesFrom(stance)) {
 			val incumbent = byDestination[edge.to]
@@ -57,19 +86,16 @@ class CoarseValueField(
 				byDestination[edge.to] = edge
 			}
 		}
-
-		val reference = reference(stance, heading)
-		val ranked = ArrayList<RankedStep>(byDestination.size)
+		val edges = ArrayList<CoarseEdge>(byDestination.size)
+		val costs = DoubleArray(byDestination.size)
 		for (edge in byDestination.values) {
 			val guide = guide(edge.to)
 			if (!guide.isFinite()) continue
-			val cost = edge.lowerBoundTicks + guide
-			ranked += RankedStep(edge, cost, floor(cost / TIE_TICKS), alignment(stance, edge.to, reference))
+			costs[edges.size] = edge.lowerBoundTicks + guide
+			edges += edge
 		}
-		if (ranked.isEmpty()) return emptyList()
-		val best = ranked.minOf { it.cost }
-		val ordered = if (count == 1) listOfNotNull(ranked.minOrNull()) else ranked.sorted()
-		return ordered.asSequence().takeWhile { it.cost <= best + marginTicks }.take(count).map { it.edge }.toList()
+		if (options.size >= MAX_OPTIONS) options.clear()
+		return Options(edges, costs).also { options[stance] = it }
 	}
 
 	private class RankedStep(val edge: CoarseEdge, val cost: Double, val tier: Double, val alignment: Double) :
@@ -131,23 +157,22 @@ class CoarseValueField(
 		visited: Set<Stance>,
 		heading: Pair<Double, Double>?,
 	): Stance? {
-		val edges = edgesFrom(from)
-		val costs = DoubleArray(edges.size) { index ->
-			val to = edges[index].to
-			if (to in visited) Double.NaN
-			else guide(to).let { if (it.isFinite()) edges[index].lowerBoundTicks + it else Double.NaN }
-		}
+		val options = optionsFrom(from)
+		val edges = options.edges
 		var best = Double.NaN
-		for (cost in costs) if (!cost.isNaN()) best = if (best.isNaN()) cost else minOf(best, cost)
+		for (index in edges.indices) {
+			if (edges[index].to in visited) continue
+			val cost = options.costs[index]
+			best = if (best.isNaN()) cost else minOf(best, cost)
+		}
 		if (best.isNaN()) return null
 
 		val reference = reference(from, heading)
 		var chosen: Stance? = null
 		var chosenAlignment = 0.0
 		for (index in edges.indices) {
-			val cost = costs[index]
-			if (cost.isNaN() || !(cost <= best + TIE_TICKS)) continue
 			val to = edges[index].to
+			if (to in visited || !(options.costs[index] <= best + TIE_TICKS)) continue
 			val alignment = alignment(from, to, reference)
 			if (chosen == null || compareDirections(alignment, to, chosenAlignment, chosen) < 0) {
 				chosen = to
@@ -179,5 +204,6 @@ class CoarseValueField(
 		const val TIE_TICKS = 0.5
 		const val MIN_HEADING_LENGTH = 1e-6
 		const val MAX_CHAINS = 4096
+		const val MAX_OPTIONS = 16384
 	}
 }

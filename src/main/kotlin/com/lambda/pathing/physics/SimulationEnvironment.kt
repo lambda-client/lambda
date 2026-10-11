@@ -41,13 +41,16 @@ interface SimulationEnvironment {
 	fun containsFluid(box: Box): Boolean = false
 }
 
-internal inline fun forEachCollisionCandidate(box: Box, action: (BlockPos) -> Unit) {
-	val minX = MathHelper.floor(box.minX - Vanilla.COLLISION_EPSILON) - 1
-	val maxX = MathHelper.floor(box.maxX + Vanilla.COLLISION_EPSILON) + 1
-	val minY = MathHelper.floor(box.minY - Vanilla.COLLISION_EPSILON) - 1
-	val maxY = MathHelper.floor(box.maxY + Vanilla.COLLISION_EPSILON) + 1
-	val minZ = MathHelper.floor(box.minZ - Vanilla.COLLISION_EPSILON) - 1
-	val maxZ = MathHelper.floor(box.maxZ + Vanilla.COLLISION_EPSILON) + 1
+internal inline fun <T> collisionCandidateRange(box: Box, within: (minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int) -> T): T = within(
+	MathHelper.floor(box.minX - Vanilla.COLLISION_EPSILON) - 1,
+	MathHelper.floor(box.minY - Vanilla.COLLISION_EPSILON) - 1,
+	MathHelper.floor(box.minZ - Vanilla.COLLISION_EPSILON) - 1,
+	MathHelper.floor(box.maxX + Vanilla.COLLISION_EPSILON) + 1,
+	MathHelper.floor(box.maxY + Vanilla.COLLISION_EPSILON) + 1,
+	MathHelper.floor(box.maxZ + Vanilla.COLLISION_EPSILON) + 1,
+)
+
+internal inline fun forEachCollisionCandidate(box: Box, action: (BlockPos) -> Unit) = collisionCandidateRange(box) { minX, minY, minZ, maxX, maxY, maxZ ->
 	val mutable = BlockPos.Mutable()
 	for (y in minY..maxY) {
 		for (z in minZ..maxZ) {

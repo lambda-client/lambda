@@ -6,17 +6,21 @@ import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.closingSpeed
 import com.lambda.pathing.actions.nominalLaunchFrame
 import com.lambda.pathing.actions.reachableEntrySpeed
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.Via
 import com.lambda.pathing.core.plus
 import com.lambda.pathing.core.unitBetween
+import com.lambda.pathing.launch.BODY_HALF_WIDTH
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.canStandAt
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.floor
 import kotlin.math.hypot
+import kotlin.math.pow
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.MAX_LAUNCH_FRAME
 import com.lambda.pathing.core.alongEdge
@@ -47,10 +51,7 @@ internal object JumpDecisions {
 		fallback: LaunchSolution?,
 	): List<LaunchSolution> {
 		val ideal = onward?.let { window ->
-			LaunchSolver.solve(
-				context.edge.from, context.edge.to,
-				modes = JumpTemplates.MODES, exitSpeedWindow = window, via = via, landingShift = landingShift, headroom = context.headroom,
-			).firstOrNull()
+			solved(SolveKey(context.edge.from, context.edge.to, window, via, landingShift, context.headroom, null)).firstOrNull()
 		} ?: fallback ?: hopOver(context)
 		val asIs = LaunchSolver.solve(
 			context.edge.from, context.edge.to,
@@ -74,9 +75,7 @@ internal object JumpDecisions {
 		if (hypot((onward.x - context.edge.to.x).toDouble(), (onward.z - context.edge.to.z).toDouble()) <
 			CoarseMoveRates.MIN_JUMP_DISTANCE
 		) return null
-		val solutions = LaunchSolver.solve(
-			context.edge.to, onward, modes = JumpTemplates.MODES,
-		)
+		val solutions = solved(SolveKey(context.edge.to, onward, null, null, 0.0, Double.POSITIVE_INFINITY, null))
 		if (solutions.isEmpty()) return null
 		val entry = solutions.minOf { it.speed - it.speedSlack }..
 				solutions.maxOf { it.speed + it.speedSlack }
@@ -88,12 +87,35 @@ internal object JumpDecisions {
 		val edge = context.edge
 		if (edge.to.y < edge.from.y) return null
 		val reachable = reachableEntrySpeed(context)
-		return LaunchSolver.solve(
-			edge.from, edge.to,
-			modes = JumpTemplates.MODES,
-			maxEntrySpeed = { reachable },
-			headroom = context.headroom,
-		).firstOrNull()
+		if (reachable > CRUISE_ENTRY_SPEED) {
+			return LaunchSolver.solve(edge.from, edge.to, modes = JumpTemplates.MODES, maxEntrySpeed = { reachable }, headroom = context.headroom).firstOrNull()
+		}
+		return solved(SolveKey(edge.from, edge.to, null, null, 0.0, context.headroom, reachable)).firstOrNull()
+	}
+
+	private data class SolveKey(
+		val from: Stance,
+		val to: Stance,
+		val exitSpeedWindow: ClosedFloatingPointRange<Double>?,
+		val via: Via?,
+		val landingShift: Double,
+		val headroom: Double,
+		val maxEntrySpeed: Double?,
+	)
+
+	private val solutions = ConcurrentHashMap<SolveKey, List<LaunchSolution>>()
+
+	private fun solved(key: SolveKey): List<LaunchSolution> {
+		solutions[key]?.let { return it }
+		if (solutions.size > SOLUTION_CACHE_LIMIT) solutions.clear()
+		return solutions.computeIfAbsent(key) {
+			val maxEntrySpeed = key.maxEntrySpeed
+			if (maxEntrySpeed == null) {
+				LaunchSolver.solve(key.from, key.to, modes = JumpTemplates.MODES, exitSpeedWindow = key.exitSpeedWindow, via = key.via, landingShift = key.landingShift, headroom = key.headroom)
+			} else {
+				LaunchSolver.solve(key.from, key.to, modes = JumpTemplates.MODES, maxEntrySpeed = { maxEntrySpeed }, exitSpeedWindow = key.exitSpeedWindow, via = key.via, landingShift = key.landingShift, headroom = key.headroom)
+			}
+		}
 	}
 
 	private val DecisionContext.headroom: Double get() = edge.launch?.headroom ?: Double.POSITIVE_INFINITY
@@ -111,25 +133,35 @@ internal object JumpDecisions {
 		var velocityX = body.velocity.x
 		var velocityZ = body.velocity.z
 		var along = alongEdge(from, to, body.position.x, body.position.z)
+		var lateral = (body.position.x - from.x) * -unitZ + (body.position.z - from.z) * unitX
 
 		val bearing = Math.toDegrees(atan2(-(to.x - from.x), to.z - from.z))
 		var yaw = body.rotation.yaw
 
 		class Fit(val delay: Int, val cost: Double, val misplacement: Double, val speedError: Double)
 
-		val standableAlong = 0.5 * (abs(unitX) + abs(unitZ)) + FOOTPRINT_OVERHANG
+		val halfExtent = 0.5 * (abs(unitX) + abs(unitZ))
+		val standableAlong = halfExtent + FOOTPRINT_OVERHANG
+		val landingPerSpeed = if (solution.speedSlack > 0.0) solution.landingSlack / solution.speedSlack else Double.POSITIVE_INFINITY
+		val lateralCarry = 1.0 + friction * (1.0 - AIR_DRAG.pow((solution.airTicks - 1).coerceAtLeast(0))) / (1.0 - AIR_DRAG)
 
 		val fitting = ArrayList<Fit>()
 		for (delay in 0..MAX_LAUNCH_FRAME) {
 			if (along > standableAlong) break
 			val speed = velocityX * unitX + velocityZ * unitZ
-			if (abs(speed - solution.speed) <= solution.speedSlack) {
+			val speedError = minOf(
+				abs(speed - solution.speed),
+				abs(speed - solution.speed + (along - solution.launchOffset) / landingPerSpeed),
+			)
+			val drift = lateral + (velocityX * -unitZ + velocityZ * unitX) * lateralCarry - solution.lateralOffset
+			val landsBeside = solution.via == null && abs(drift) > halfExtent + BODY_HALF_WIDTH
+			if (speedError <= solution.speedSlack && !landsBeside) {
 				val misplacement = abs(along - solution.launchOffset)
 				fitting += Fit(
 					delay,
 					delay + misplacement / ballistics.cruiseSpeed(solution.sprint),
 					misplacement,
-					abs(speed - solution.speed),
+					speedError,
 				)
 			}
 
@@ -141,6 +173,7 @@ internal object JumpDecisions {
 			velocityX = (velocityX + acceleration * forwardX) * friction
 			velocityZ = (velocityZ + acceleration * forwardZ) * friction
 			along += (velocityX * unitX + velocityZ * unitZ) / friction
+			lateral += (velocityX * -unitZ + velocityZ * unitX) / friction
 		}
 
 		if (fitting.isEmpty()) {
@@ -233,4 +266,10 @@ internal object JumpDecisions {
 	private val LAUNCH_BRACKET = listOf(0, -1, 1)
 
 	private const val FOOTPRINT_OVERHANG = 0.3
+
+	private const val SOLUTION_CACHE_LIMIT = 1 shl 15
+
+	private val CRUISE_ENTRY_SPEED = BallisticProfile.VANILLA.cruiseSpeed(sprint = true)
+
+	private const val AIR_DRAG = BallisticProfile.HORIZONTAL_DRAG
 }

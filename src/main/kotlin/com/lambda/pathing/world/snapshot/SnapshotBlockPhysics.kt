@@ -39,6 +39,8 @@ data class SnapshotBlockPhysics(
 
 	private val collisionBoxes = collisionShape.boundingBoxes
 
+	internal val collides: Boolean = !collisionShape.isEmpty
+
 	private val hash = Objects.hash(
 		collisionBoxes, slipperiness, velocityMultiplier, jumpVelocityMultiplier, unsupportedPhysics,
 		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water, hotFloor, fallRule, exceedsCube,

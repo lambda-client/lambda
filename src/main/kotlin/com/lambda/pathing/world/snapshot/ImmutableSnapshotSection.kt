@@ -12,6 +12,7 @@ internal class ImmutableSnapshotSection private constructor(
 	val bouncy: Boolean = palette.any { it.coarseVoxel.bouncy }
 	val watery: Boolean = palette.any { it.water != null }
 	val hot: Boolean = palette.any { it.hotFloor }
+	val unsupported: Boolean = palette.any { it.unsupportedPhysics != null }
 	val soft: Boolean = palette.any { it.water != null || it.fallRule.cushions && !it.coarseVoxel.bouncy }
 	val indexStorageBytes: Int get() = byteIndices?.size ?: shortIndices?.size?.times(Short.SIZE_BYTES) ?: 0
 

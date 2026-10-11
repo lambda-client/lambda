@@ -34,6 +34,7 @@ internal class SearchLoop(
 	private val legs: LegSource? = null,
 ) {
 	private val parallelism = parallelism.coerceAtLeast(1)
+	private val batchSize = if (this.parallelism > 1) this.parallelism * ROLLOUTS_PER_THREAD else 1
 	private val live = world != null
 	private val unsupported = initialRoute.edges.mapTo(HashSet()) { it.movement }.filterTo(HashSet()) { !catalog.supports(it) }
 	private val route = RouteState(initialRoute, environment)
@@ -206,8 +207,8 @@ internal class SearchLoop(
 	}
 
 	private fun selectBatch(): List<AnchorRollout.PreparedRollout>? {
-		val batch = ArrayList<AnchorRollout.PreparedRollout>(parallelism)
-		while (batch.size < parallelism) {
+		val batch = ArrayList<AnchorRollout.PreparedRollout>(batchSize)
+		while (batch.size < batchSize) {
 			val entry = frontier.poll() ?: break
 			when (judge(entry)) {
 				Verdict.SKIP -> continue
@@ -541,6 +542,7 @@ internal class SearchLoop(
 		const val VIEW_INTERVAL_MILLIS = 100L
 		const val ARRIVAL_RETURN_FRAMES = 2
 		const val SPINE_ATTEMPTS_PER_EDGE = 8
+		const val ROLLOUTS_PER_THREAD = 2
 		const val IDLE_PATIENCE_SLICES = 5
 	}
 }

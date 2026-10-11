@@ -21,13 +21,18 @@ internal class AttemptAccumulator(private val probe: SearchProbe) {
 	var nearest: PlanAttempt? = null
 		private set
 
+	private var nearestSquared = Double.POSITIVE_INFINITY
+
 	fun record(rollout: TrajectoryRollout, stopped: Boolean, goal: HorizontalPoint, diagnostic: TrajectoryDiagnostic?) {
 		probe.attempt(rollout, stopped, diagnostic)
-		val final = rollout.finalState.position
-		val attempt = PlanAttempt(rollout.frames.size, hypot(final.x - goal.x, final.z - goal.z), diagnostic)
 		count++
-		val current = nearest
-		if (current == null || attempt.finalGoalError < current.finalGoalError) nearest = attempt
+		val final = rollout.finalState.position
+		val dx = final.x - goal.x
+		val dz = final.z - goal.z
+		val squared = dx * dx + dz * dz
+		if (nearest != null && squared >= nearestSquared) return
+		nearestSquared = squared
+		nearest = PlanAttempt(rollout.frames.size, hypot(dx, dz), diagnostic)
 	}
 }
 
