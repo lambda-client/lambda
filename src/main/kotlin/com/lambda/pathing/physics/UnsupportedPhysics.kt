@@ -11,4 +11,6 @@ enum class UnsupportedPhysicsKind {
 	POWDER_SNOW,
 	SWEET_BERRY_BUSH,
 	HONEY_SIDE_EFFECTS,
+	FIRE,
+	CACTUS,
 }

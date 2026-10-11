@@ -14,17 +14,21 @@ internal class SectionStore private constructor(
 
 	fun contains(key: Long): Boolean = map.containsKey(key)
 
-	fun bouncyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean {
-		if (bouncySections == 0) return false
-		for (x in (minX shr 4)..(maxX shr 4)) for (z in (minZ shr 4)..(maxZ shr 4)) for (y in (minY shr 4)..(maxY shr 4)) {
-			if (map.get(ChunkSectionPos.asLong(x, y, z))?.bouncy == true) return true
-		}
-		return false
-	}
+	fun bouncyWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		bouncySections > 0 && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.bouncy }
 
-	fun waterWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean {
+	fun waterWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.watery }
+
+	fun hotWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.hot }
+
+	private inline fun anyWithin(
+		minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int,
+		test: (ImmutableSnapshotSection) -> Boolean,
+	): Boolean {
 		for (x in (minX shr 4)..(maxX shr 4)) for (z in (minZ shr 4)..(maxZ shr 4)) for (y in (minY shr 4)..(maxY shr 4)) {
-			if (map.get(ChunkSectionPos.asLong(x, y, z))?.watery == true) return true
+			if (map.get(ChunkSectionPos.asLong(x, y, z))?.let(test) == true) return true
 		}
 		return false
 	}

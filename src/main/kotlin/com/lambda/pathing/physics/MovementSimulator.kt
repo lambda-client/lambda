@@ -70,6 +70,28 @@ class MovementSimulator(
 			swimming = swimming,
 		)
 
+	val burningFeet: Boolean
+		get() = onGround && !isSneaking && environment.hotFloor(posWithYOffset(Vanilla.LANDING_POS_OFFSET.toDouble()))
+
+	fun burnsNextTick(input: MovementSimulationInput): Boolean {
+		if (isSneaking || !nearHotFloor()) return false
+		val next = MovementSimulator(profile, environment, state)
+		return try {
+			next.tickMovement(input)
+			next.burningFeet
+		} catch (_: SimulationEnvironmentException) {
+			false
+		}
+	}
+
+	private fun nearHotFloor(): Boolean {
+		val reach = boundingBox.stretch(velocity).expand(1.0)
+		return environment.mayContainHotFloor(
+			MathHelper.floor(reach.minX), MathHelper.floor(reach.minY), MathHelper.floor(reach.minZ),
+			MathHelper.floor(reach.maxX), MathHelper.floor(reach.maxY), MathHelper.floor(reach.maxZ),
+		)
+	}
+
 	fun tickMovement(input: MovementSimulationInput): MovementSimulationState {
 		submergedInWater = eyeInWater
 		updateWaterState()

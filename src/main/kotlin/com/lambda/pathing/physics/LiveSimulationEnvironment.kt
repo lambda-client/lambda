@@ -61,6 +61,8 @@ class LiveSimulationEnvironment(
 	override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
 		world.getBlockState(pos).isOf(Blocks.SLIME_BLOCK)
 
+	override fun hotFloor(pos: BlockPos): Boolean = world.getBlockState(pos).isOf(Blocks.MAGMA_BLOCK)
+
 	override fun water(pos: BlockPos): WaterPhysics? = world.getFluidState(pos).takeIf { it.isIn(FluidTags.WATER) }?.let {
 		WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
 	}

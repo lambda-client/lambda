@@ -10,6 +10,7 @@ import com.lambda.pathing.world.CollisionClass
 import com.lambda.util.BlockUtils.isFenceLike
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.block.CampfireBlock
 import net.minecraft.block.ShapeContext
 import net.minecraft.registry.Registries
 import net.minecraft.registry.tag.BlockTags
@@ -87,6 +88,7 @@ object BlockPhysicsCapture {
 			water = state.fluidState.takeIf { it.isIn(FluidTags.WATER) }?.let {
 				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
 			},
+			hotFloor = state.isOf(Blocks.MAGMA_BLOCK),
 			exceedsCube = state.exceedsCube(),
 		)
 	}
@@ -98,6 +100,8 @@ object BlockPhysicsCapture {
 		state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
 		state.isOf(Blocks.SWEET_BERRY_BUSH) -> UnsupportedPhysicsKind.SWEET_BERRY_BUSH
 		state.isOf(Blocks.HONEY_BLOCK) -> UnsupportedPhysicsKind.HONEY_SIDE_EFFECTS
+		state.isIn(BlockTags.FIRE) || CampfireBlock.isLitCampfire(state) -> UnsupportedPhysicsKind.FIRE
+		state.isOf(Blocks.CACTUS) -> UnsupportedPhysicsKind.CACTUS
 		else -> null
 	}?.let { kind ->
 		UnsupportedPhysics(

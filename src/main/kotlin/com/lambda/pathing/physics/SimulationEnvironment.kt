@@ -28,6 +28,10 @@ interface SimulationEnvironment {
 
 	fun dampensSteppingSpeed(pos: BlockPos): Boolean = false
 
+	fun hotFloor(pos: BlockPos): Boolean = false
+
+	fun mayContainHotFloor(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
 	fun water(pos: BlockPos): WaterPhysics? = null
 
 	fun mayContainWater(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true

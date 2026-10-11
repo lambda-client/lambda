@@ -139,6 +139,11 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun dampensSteppingSpeed(pos: BlockPos): Boolean = blockAt(pos).dampensSteppingSpeed
 
+	override fun hotFloor(pos: BlockPos): Boolean = blockAt(pos).hotFloor
+
+	override fun mayContainHotFloor(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		store.hotWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
 	override fun isFenceLike(pos: BlockPos): Boolean = blockAt(pos).fenceLike
 
 	override fun water(pos: BlockPos): WaterPhysics? = blockAt(pos).water

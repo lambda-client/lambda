@@ -47,7 +47,7 @@ object TrajectoryRolloutEngine {
 	): TrajectoryRollout {
 		require(frameCount >= 0) { "frameCount must be non-negative" }
 
-		val simulator = MovementSimulator(
+		var simulator = MovementSimulator(
 			profile = profile,
 			environment = environment,
 			initialState = initialState,
@@ -56,9 +56,14 @@ object TrajectoryRolloutEngine {
 		var current = initialState
 
 		for (frame in 0 until frameCount) {
-			val input = program.input(frame, current)
+			var input = program.input(frame, current)
 			val next = try {
-				simulator.tickMovement(input)
+				simulator.tickMovement(input).let { moved ->
+					if (!simulator.burningFeet && !simulator.burnsNextTick(input)) return@let moved
+					simulator = MovementSimulator(profile, environment, current)
+					input = input.copy(sneak = true)
+					simulator.tickMovement(input)
+				}
 			} catch (failure: SimulationEnvironmentException) {
 				return TrajectoryRollout(
 					initialState = initialState,
