@@ -137,7 +137,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		val builder = RowEdges.Builder()
 		for (index in stamped) stampedEdges(builder, index, programs[index]!!, stamp, stances)
 		for (index in unstamped) addEdges(builder, index, 0L, 0L, 0L, stances)
-		return builder.build(moves.groups.rank)
+		return builder.build(moves.groups)
 	}
 
 	private fun stampedEdges(builder: RowEdges.Builder, index: Int, program: Indexed, stamp: LongArray, stances: Long) {

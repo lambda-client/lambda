@@ -181,6 +181,7 @@ class CoarsePlanner(
 	fun isAnchor(stance: Stance): Boolean = stance in anchors
 
 	private fun updateAnchorEdges(anchor: Stance, added: Boolean) {
+		if (!search.hasSettledNodes) return
 		val moving = PackedStance.pack(anchor, SpeedClass.MOVING)
 		val stopped = PackedStance.pack(anchor, SpeedClass.STOPPED)
 		if (goalKnown) {

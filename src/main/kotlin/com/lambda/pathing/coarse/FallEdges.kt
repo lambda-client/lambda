@@ -280,9 +280,8 @@ internal class FallEdges(
 		return true
 	}
 
-	private fun landable(target: Stance): Boolean {
-		if (!standable.isStance(target)) return false
-		return when (view.medium(target.x, target.y, target.z)) {
+	private fun landable(target: Stance): Boolean =
+		standable.isStance(target) && when (view.medium(target.x, target.y, target.z)) {
 			Medium.WATER -> true
 			Medium.AIR -> {
 				val floorY = floor(target.y + view.surfaceOffset(target.x, target.y - 1, target.z) - LANDING_PROBE_DEPTH).toInt()
@@ -290,7 +289,6 @@ internal class FallEdges(
 			}
 			else -> false
 		}
-	}
 
 	private fun acceptsDeepFalls(rule: FallRule): Boolean = normalFloors || limits.maxFallOnto(rule) >= MIN_DROP
 
@@ -315,7 +313,7 @@ internal class FallEdges(
 				val floorY = occupancy.highestAtOrBelow(x, probe, z, bottom)
 				if (floorY == Int.MIN_VALUE || floorY < bottom) break
 				for (stanceY in floorY + 1..floorY + if (view.voxel(x, floorY, z).intrudesAbove) INTRUDING_FLOOR_DEPTH else 1) {
-					if (stanceY < lowest || stanceY > highest) continue
+					if (stanceY !in lowest..highest) continue
 					val origin = Stance(x, stanceY, z)
 					for (edge in from(origin)) {
 						if (edge.dx == dx && edge.dz == dz && stanceY + edge.dy == target.y) {

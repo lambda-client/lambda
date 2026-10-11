@@ -4,7 +4,6 @@ import com.lambda.util.FolderRegistry
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.WorldSavePath
 import net.minecraft.world.World
-import java.nio.file.Path
 
 object TerrainStores {
 	private var open: TerrainStore? = null

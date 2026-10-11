@@ -1,6 +1,7 @@
 package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -45,7 +46,9 @@ class ValueAnchorContinuationTest {
         assertNull(copy.hazardFrame)
         assertEquals(0.0, copy.pendingSurcharge)
         assertFalse(copy.legRoot)
-        assertTrue(copy.attempted.isEmpty())
-        assertNotSame(anchor.attempted, copy.attempted)
+        assertEquals(0, copy.actionCursor)
+        val decision = TrajectoryDecision.Swim(anchor.stance, sprint = false)
+        assertTrue(anchor.attempt(decision))
+        assertFalse(copy.hasAttempted(decision), "a continuation keeps its own attempts")
     }
 }

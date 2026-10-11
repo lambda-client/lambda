@@ -27,8 +27,8 @@ object SwimMovement : Movement {
 		val costs = context.costs
 		return buildList {
 			for ((dx, dz) in CARDINALS) {
-				add(TemplateSpec(dx, 0, dz, id, costs.swim, surface(dx, 0, dz), departure = CellPredicate.WATER))
-				add(TemplateSpec(dx, 0, dz, MovementId.ENTER_WATER, costs.cardinalWalk, surface(dx, 0, dz)))
+				add(TemplateSpec(dx, 0, dz, id, costs.swim, surface(dx, dz), departure = CellPredicate.WATER))
+				add(TemplateSpec(dx, 0, dz, MovementId.ENTER_WATER, costs.cardinalWalk, surface(dx, dz)))
 				for (depth in 1..MAX_ENTRY_DEPTH) {
 					val fall = (1 downTo 1 - depth).map { CellCondition(dx, it, dz, CellPredicate.CENTER_SLICE) }
 					val cost = if (depth == 1) costs.walkOffCost(depth) else costs.dropCost(1, depth)
@@ -43,14 +43,14 @@ object SwimMovement : Movement {
 				val corners = listOf(dx to 0, 0 to dz).flatMap { (x, z) ->
 					listOf(CellCondition(x, 0, z, CellPredicate.SWIMMABLE), CellCondition(x, 1, z, CellPredicate.FULL_HEAD))
 				}
-				add(TemplateSpec(dx, 0, dz, id, costs.diagonalSwim, surface(dx, 0, dz) + corners, departure = CellPredicate.WATER))
+				add(TemplateSpec(dx, 0, dz, id, costs.diagonalSwim, surface(dx, dz) + corners, departure = CellPredicate.WATER))
 			}
 		}
 	}
 
-	private fun surface(dx: Int, dy: Int, dz: Int) = listOf(
-		CellCondition(dx, dy, dz, CellPredicate.WATER),
-		CellCondition(dx, dy + 1, dz, CellPredicate.CENTER_HEAD),
+	private fun surface(dx: Int, dz: Int) = listOf(
+		CellCondition(dx, 0, dz, CellPredicate.WATER),
+		CellCondition(dx, 1, dz, CellPredicate.CENTER_HEAD),
 	)
 
 	override fun occupies(view: CoarseVoxelView, stance: Stance): Boolean =
@@ -62,10 +62,9 @@ object SwimMovement : Movement {
 	override fun program(context: ProgramContext): ControlProgram =
 		SwimProgram(context.decision as TrajectoryDecision.Swim, context)
 
-	override fun completed(context: CompletionContext): Boolean {
-		if (context.stance == context.body.stance || context.stance.y != context.decision.step.y) return false
-		return if (context.decision.movement == MovementId.EXIT_WATER) context.observed.onGround else context.observed.touchingWater
-	}
+	override fun completed(context: CompletionContext): Boolean =
+		context.stance != context.body.stance && context.stance.y == context.decision.step.y &&
+			if (context.decision.movement == MovementId.EXIT_WATER) context.observed.onGround else context.observed.touchingWater
 
 	override val inMedium: Boolean get() = true
 

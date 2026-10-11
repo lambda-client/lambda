@@ -76,7 +76,7 @@ internal class ActionSet(
 
 		if (priced.isEmpty()) return emptyList()
 
-		priced.sortWith(compareBy { it.price.surcharge })
+		priced.sortWith { a, b -> a.price.surcharge.compareTo(b.price.surcharge) }
 		val affordable = priced.filter { it.price.difficulty <= temperature }
 		if (affordable.isNotEmpty()) return affordable
 
@@ -84,11 +84,24 @@ internal class ActionSet(
 		return priced.filter { it.price.difficulty <= floor + DIFFICULTY_TIER }
 	}
 
-	fun next(anchor: ValueAnchor, temperature: Double, epoch: Int): TrajectoryDecision? =
-		cached(anchor, temperature, epoch).firstOrNull { anchor.attempted.add(it.decision) }?.decision
+	fun next(anchor: ValueAnchor, temperature: Double, epoch: Int): TrajectoryDecision? {
+		val actions = cached(anchor, temperature, epoch)
+		while (anchor.actionCursor < actions.size) {
+			val decision = actions[anchor.actionCursor++].decision
+			if (anchor.attempt(decision)) return decision
+		}
+		return null
+	}
 
-	fun nextSurcharge(anchor: ValueAnchor, temperature: Double, epoch: Int): Double? =
-		cached(anchor, temperature, epoch).firstOrNull { it.decision !in anchor.attempted }?.price?.surcharge
+	fun nextSurcharge(anchor: ValueAnchor, temperature: Double, epoch: Int): Double? {
+		val actions = cached(anchor, temperature, epoch)
+		while (anchor.actionCursor < actions.size) {
+			val action = actions[anchor.actionCursor]
+			if (!anchor.hasAttempted(action.decision)) return action.price.surcharge
+			anchor.actionCursor++
+		}
+		return null
+	}
 
 	private fun cached(anchor: ValueAnchor, temperature: Double, epoch: Int): List<PricedDecision> {
 		val hazard = anchor.hazardFrame
@@ -96,6 +109,7 @@ internal class ActionSet(
 		if (cached != null && anchor.actionsHazardFrame == hazard && anchor.actionsEpoch == epoch) return cached
 		return actions(anchor, temperature).also {
 			anchor.actions = it
+			anchor.actionCursor = 0
 			anchor.actionsHazardFrame = hazard
 			anchor.actionsEpoch = epoch
 		}

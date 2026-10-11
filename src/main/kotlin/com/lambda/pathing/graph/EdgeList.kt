@@ -47,14 +47,6 @@ class EdgeList(initialCapacity: Int = 16) {
 		costs.add(cost)
 	}
 
-	fun addIfAbsent(node: Long, cost: Double): Boolean {
-		checkCost(cost)
-		if (indexOf(node) >= 0) return false
-		targets.add(node)
-		costs.add(cost)
-		return true
-	}
-
 	private fun put(node: Long, cost: Double, keepLower: Boolean) {
 		checkCost(cost)
 		val index = indexOf(node)

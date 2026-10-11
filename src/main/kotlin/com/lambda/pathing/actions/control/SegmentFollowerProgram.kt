@@ -26,12 +26,11 @@ internal class SegmentFollowerProgram(
 	private val holdTicks: Int = Int.MAX_VALUE,
 	private val airPlan: AirPlan? = null,
 	private val holdJumpInFlight: Boolean = false,
-	via: HorizontalPoint? = null,
+	private var via: HorizontalPoint? = null,
 ) : ControlProgram {
 	private var airborneTicks = 0
 	private val pursuit = PursuitTracker(nodes)
 	private val origin = nodes.first()
-	private var via = via
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		pursuit.advance(observed)

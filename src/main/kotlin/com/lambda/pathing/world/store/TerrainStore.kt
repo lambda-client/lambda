@@ -38,10 +38,12 @@ class TerrainStore(val directory: Path) : AutoCloseable {
 		if (!io.isShutdown) io.execute { store(sectionKey, states, at) }
 	}
 
-	fun reference(at: Long) = io.submit {
-		referencedAt = maxOf(referencedAt, at)
-		flush()
-	}.get()
+	fun reference(at: Long) {
+		io.submit {
+			referencedAt = maxOf(referencedAt, at)
+			flush()
+		}.get()
+	}
 
 	override fun close() {
 		if (io.isShutdown) return

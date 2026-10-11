@@ -33,9 +33,25 @@ internal class ValueAnchor(
 
 	var actionsEpoch: Int = -1
 
+	var actionCursor: Int = 0
+
 	var pendingSurcharge: Double = 0.0
 
-	val attempted: MutableSet<TrajectoryDecision> = HashSet()
+	private val attempted = HashSet<TrajectoryDecision>()
+
+	fun attempt(decision: TrajectoryDecision): Boolean = attempted.add(decision)
+
+	fun hasAttempted(decision: TrajectoryDecision): Boolean = decision in attempted
+
+	fun retry(decision: TrajectoryDecision) {
+		attempted.remove(decision)
+		actionCursor = 0
+	}
+
+	fun retryAll() {
+		attempted.clear()
+		actionCursor = 0
+	}
 
 	override var hazardFrame: Int? = null
 

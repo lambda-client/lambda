@@ -43,8 +43,6 @@ internal class CoarseEdgeCache(
 
 	private val touched = LongArray((moves.templates.size + 63) ushr 6)
 
-	private val ordered = LongArray(moves.templates.size)
-
 	private val bounceTemplates = moves.templates.filter { it.movement == MovementId.BOUNCE }
 
 	private val bouncesFrom = Long2ObjectOpenHashMap<StanceEdges>()
@@ -84,13 +82,12 @@ internal class CoarseEdgeCache(
 		val row = row(originRows, origin.x shr 6, origin.y, origin.z)
 		val bit = origin.x and 63
 		val mask = 1L shl bit
-		var count = 0
-		for (index in 0 until row.size) {
+		val byTemplate = row.byTemplate
+		for (position in byTemplate.indices) {
+			val index = byTemplate[position]
 			if (row.pending[index] and mask != 0L) settle(row, index, bit, origin)
-			if (row.edges[index] and mask != 0L) ordered[count++] = (row.templates[index].toLong() shl 32) or index.toLong()
+			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
 		}
-		ordered.sort(0, count)
-		for (position in 0 until count) visit(row, ordered[position].toInt(), bit, visitor)
 		if (bounces(origin)) visit(bouncesFrom.get(key) ?: bouncesFrom(origin).also { bouncesFrom.put(key, it) }, visitor)
 	}
 
@@ -156,7 +153,7 @@ internal class CoarseEdgeCache(
 		val origin = target.offset(-motion.dx, -motion.dy, -motion.dz)
 		val origins = row(originRows, origin.x shr 6, origin.y, origin.z)
 		val position = origins.indexOf(template, moves.groups.rank)
-		if (position < 0) return row.resolve(index, bit, false, false, Double.NaN)
+		if (position < 0) return row.resolve(index, bit, found = false, standingStart = false, irregularTicks = Double.NaN)
 		val originBit = origin.x and 63
 		val originMask = 1L shl originBit
 		if (origins.pending[position] and originMask != 0L) settle(origins, position, originBit, origin)
@@ -178,8 +175,6 @@ internal class CoarseEdgeCache(
 
 	fun isComplete(node: Long): Boolean = completeOrigins.contains(PackedStance.stanceKey(node))
 
-	fun isComplete(origin: Stance): Boolean = completeOrigins.contains(key(origin))
-
 	private fun check(key: Long, origin: Stance) {
 		if (checkedOrigins.add(key) && !moves.readsUnknown(view, origin)) completeOrigins.add(key)
 	}
@@ -198,8 +193,10 @@ internal class CoarseEdgeCache(
 			val originZ = z - groups.dz[group]
 			for (originWord in ((base - groups.maxDx[group]) shr 6)..((base + 63 - groups.minDx[group]) shr 6)) {
 				val origin = originRows[originWord, originY, originZ]
-				var index = origin.groupStart(group, groups.of)
-				while (index < origin.size && groups.of[origin.templates[index]] == group) {
+				if (origin.size == 0) continue
+				var index = origin.groupStarts[group]
+				val end = origin.groupStarts[group + 1]
+				while (index < end) {
 					val template = origin.templates[index]
 					val shift = ((originWord - word) shl 6) + moves.templates[template].dx
 					val edges = shifted(origin.edges[index], shift)
@@ -298,11 +295,23 @@ internal class CoarseEdgeCache(
 
 		operator fun get(word: Int, y: Int, z: Int): RowEdges {
 			val key = BlockPos.asLong(word, y, z)
-			rows.getAndMoveToLast(key)?.let { return it }
+			rows.get(key)?.let { cached ->
+				if (cached !== RowEdges.EMPTY) cached.referenced = true
+				return cached
+			}
 			val row = build(word, y, z)
 			rows.putAndMoveToLast(key, row)
 			bytes += row.bytes
-			while (bytes > BUDGET_BYTES && rows.size > 1) bytes -= rows.removeFirst().bytes
+			while (bytes > BUDGET_BYTES && rows.size > 1) {
+				val oldest = rows.firstLongKey()
+				val candidate = rows.get(oldest)
+				if (candidate.referenced) {
+					candidate.referenced = false
+					rows.getAndMoveToLast(oldest)
+				} else {
+					bytes -= rows.removeFirst().bytes
+				}
+			}
 			return row
 		}
 

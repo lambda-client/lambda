@@ -2,15 +2,12 @@ package com.lambda.pathing.session
 
 import com.lambda.pathing.search.ExecutionFeedback
 
-internal class PlanningSession(attached: Boolean = true) : ExecutionFeedback {
+internal class PlanningSession(@Volatile private var attached: Boolean = true) : ExecutionFeedback {
 	@Volatile
 	var isCancelled = false
 		private set
 
 	var launchRevision: Long = -1L
-
-	@Volatile
-	private var attached = attached
 
 	@Volatile
 	private var executionFrame: Int? = null

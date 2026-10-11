@@ -33,10 +33,8 @@ internal class ColumnOccupancy(private val view: CoarseVoxelView) {
 		last = null
 	}
 
-	fun occupied(x: Int, y: Int, z: Int): Boolean {
-		if (y < minY || y > maxY) return true
-		return column(x, y, z).toInt() and (1 shl (y and 15)) != 0
-	}
+	fun occupied(x: Int, y: Int, z: Int): Boolean =
+		y !in minY..maxY || column(x, y, z).toInt() and (1 shl (y and 15)) != 0
 
 	fun highestAtOrBelow(x: Int, y: Int, z: Int, lowest: Int): Int {
 		var top = minOf(y, maxY)

@@ -261,7 +261,7 @@ class LongDStarLite(
 	fun refreshIfReaching(node: Long) {
 		val slot = nodes.find(node)
 		if (slot >= 0) recompute(slot)
-		else if (node != goal && minSuccessorCost(node).isFinite()) recompute(nodes.slot(node))
+		else if (node != goal && hasSettledNodes && minSuccessorCost(node).isFinite()) recompute(nodes.slot(node))
 	}
 
 	fun edgeAdded(from: Long, to: Long, cost: Double) {
@@ -489,9 +489,13 @@ class LongDStarLite(
 	var revision = 0L
 		private set
 
+	var hasSettledNodes = false
+		private set
+
 	private fun setG(node: Int, value: Double) {
 		require(!value.isNaN()) { "D* Lite g must not be NaN: ${describe(nodes.key(node))}" }
 		revision++
+		if (value < INF) hasSettledNodes = true
 		nodes.setG(node, value)
 	}
 

@@ -425,7 +425,7 @@ internal class SearchLoop(
 		val seed = solution.anchor.lineFrom(frontier.root).firstOrNull { it.elapsed >= lead } ?: return false
 		if (frontier.widenable) frontier.widen() else if (seed === refinedSeed) return false
 		refinedSeed = seed
-		seed.attempted.clear()
+		seed.retryAll()
 		annealing.clearSpent()
 		restartWindow(seed.stance)
 		frontier.reRoot(seed)

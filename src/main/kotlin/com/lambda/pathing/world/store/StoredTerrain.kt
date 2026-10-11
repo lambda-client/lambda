@@ -33,7 +33,9 @@ internal class StoredTerrain(
 	fun physics(ignoreHazards: Boolean): Map<Long, ImmutableSnapshotSection> {
 		val sampler = BlockPhysicsSampler(this, ShapeContext.absent(), ignoreHazards)
 		val physics = HashMap<Long, ImmutableSnapshotSection>(sections.size)
-		for (key in sections.keys) {
+		val keys = sections.keys.iterator()
+		while (keys.hasNext()) {
+			val key = keys.nextLong()
 			val baseX = ChunkSectionPos.unpackX(key) shl 4
 			val baseY = ChunkSectionPos.unpackY(key) shl 4
 			val baseZ = ChunkSectionPos.unpackZ(key) shl 4

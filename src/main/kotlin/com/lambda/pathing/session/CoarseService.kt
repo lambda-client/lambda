@@ -116,7 +116,7 @@ internal class CoarseService(
 	fun failure(leg: Int, start: Stance): String? = lock.withLock { failures[leg]?.takeIf { it.start == start }?.reason }
 
 	fun settle() {
-		while (!closed && advance()) Unit
+		while (!closed) if (!advance()) return
 	}
 
 	private fun hopeless(leg: Int, start: Stance): Boolean = lock.withLock { failures[leg]?.let { it.start == start && it.final } == true }

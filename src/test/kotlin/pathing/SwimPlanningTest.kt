@@ -21,6 +21,7 @@ import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import minecraft.MinecraftBootstrap
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import pathing.ProbeScenarios.moveLibrary
@@ -36,6 +37,10 @@ import kotlin.test.assertTrue
  * is what the simulated stroke actually achieves.
  */
 class SwimPlanningTest {
+	init {
+		MinecraftBootstrap.ensure()
+	}
+
 	@Test
 	fun `a pool between one block banks is swum across`() {
 		val environment = pool(width = 8)

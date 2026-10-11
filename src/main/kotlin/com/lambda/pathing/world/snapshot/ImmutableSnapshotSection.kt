@@ -1,6 +1,5 @@
 package com.lambda.pathing.world.snapshot
 
-import com.lambda.pathing.world.CellClass
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 

@@ -15,14 +15,14 @@ class TrajectoryPlan internal constructor(
 	val snapshotRevision: Long,
 	val physicsProfile: PlayerPhysicsProfile,
 	val initialState: MovementSimulationState,
-	frameDependencies: List<Set<VoxelPos>>,
+	private val frameDependencies: List<Set<VoxelPos>>,
 	val tape: InputTape,
 	frames: List<SimulatedTrajectoryFrame>,
 	val segments: List<PlanSegment>,
 ) {
 	val frames: List<SimulatedTrajectoryFrame> = Collections.unmodifiableList(ArrayList(frames))
-	private val cellReads = FrameDependencyIndex(frameDependencies) { it }
-	private val chunkReads = FrameDependencyIndex(frameDependencies, PathingChunk::containing)
+	private val cellReads by lazy { FrameDependencyIndex(frameDependencies) { it } }
+	private val chunkReads by lazy { FrameDependencyIndex(frameDependencies, PathingChunk::containing) }
 
 	init {
 		require(frames.size == tape.frameCount) { "Every published input must have one expected frame" }

@@ -18,6 +18,7 @@ import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.hypot
+import kotlin.math.sign
 import kotlin.math.sqrt
 
 object JumpArcProbe {
@@ -54,7 +55,7 @@ object JumpArcProbe {
 
 		private fun bendsAround(cellX: Int, cellZ: Int): List<Bend> {
 			val via = viaAround(cellX, cellZ) ?: return emptyList()
-			val side = Math.signum(via.z * unitX - via.x * unitZ)
+			val side = (via.z * unitX - via.x * unitZ).sign
 			return LANDING_SHIFTS.mapNotNull { fraction -> bendTo(via, side * fraction * solution.lateralSlack) }
 		}
 
@@ -72,7 +73,7 @@ object JumpArcProbe {
 
 		private fun viaAround(cellX: Int, cellZ: Int): Via? {
 			fun lateral(x: Double, z: Double) = (z - 0.5) * unitX - (x - 0.5) * unitZ
-			val side = Math.signum(lateral(cellX + 0.5, cellZ + 0.5))
+			val side = lateral(cellX + 0.5, cellZ + 0.5).sign
 			if (side == 0.0) return null
 			var cornerX = cellX
 			var cornerZ = cellZ
@@ -265,15 +266,15 @@ object JumpArcProbe {
 		launchHeight: Double,
 		reads: LongOpenHashSet?,
 	): LaunchSolution? {
-		val arcs = lazy(LazyThreadSafetyMode.NONE) { ArcSweep(view, from, dx, dz, reads) }
+		val arcs by lazy(LazyThreadSafetyMode.NONE) { ArcSweep(view, from, dx, dz, reads) }
 		val planar = launchHeight == from.y.toDouble()
 		var clipped: Candidate? = null
 		var clip: Sweep.Clipped? = null
 
 		fun sweep(candidate: Candidate): Sweep {
 			val solution = candidate.solution
-			if (!planar) return arcs.value.sweep(solution.arc, solution.launchOffset, launchHeight, halfWidth = candidate.halfWidth)
-			return sweepByPlan(view, from, candidate.plan, reads) { arcs.value.sweep(solution.arc, solution.launchOffset, launchHeight, halfWidth = candidate.halfWidth) }
+			if (!planar) return arcs.sweep(solution.arc, solution.launchOffset, launchHeight, halfWidth = candidate.halfWidth)
+			return sweepByPlan(view, from, candidate.plan, reads) { arcs.sweep(solution.arc, solution.launchOffset, launchHeight, halfWidth = candidate.halfWidth) }
 		}
 
 		val free = candidates(from, dx, dz, modes, riseHeight)
@@ -282,7 +283,7 @@ object JumpArcProbe {
 			when (val sweep = sweep(candidate)) {
 				Sweep.Clear -> return solution
 				Sweep.Blocked -> {}
-				Sweep.Partial -> dodge(solution, launchHeight, arcs.value)?.let { return it }
+				Sweep.Partial -> dodge(solution, launchHeight, arcs)?.let { return it }
 				is Sweep.Clipped -> if (clipped == null) {
 					clipped = candidate
 					clip = sweep
@@ -299,9 +300,9 @@ object JumpArcProbe {
 		if (clipped == null || clip == null) return null
 		val bend = clipped.bends(clip.x - from.x, clip.z - from.z).firstOrNull { bend ->
 			val sweep = if (planar) {
-				sweepByPlan(view, from, bend.plan, reads) { arcs.value.sweep(bend.solution.arc, bend.path.offset(from.x.toDouble(), from.z.toDouble()), launchHeight, clipped.halfWidth) }
+				sweepByPlan(view, from, bend.plan, reads) { arcs.sweep(bend.solution.arc, bend.path.offset(from.x.toDouble(), from.z.toDouble()), launchHeight, clipped.halfWidth) }
 			} else {
-				arcs.value.sweep(bend.solution.arc, bend.path.offset(from.x.toDouble(), from.z.toDouble()), launchHeight, clipped.halfWidth)
+				arcs.sweep(bend.solution.arc, bend.path.offset(from.x.toDouble(), from.z.toDouble()), launchHeight, clipped.halfWidth)
 			}
 			sweep == Sweep.Clear
 		} ?: return null

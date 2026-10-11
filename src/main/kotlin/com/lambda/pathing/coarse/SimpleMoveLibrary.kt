@@ -70,8 +70,6 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	fun templates(view: CoarseVoxelView, at: Stance): List<MotionTemplate> =
 		if (bouncesAt(view, at.x, at.y, at.z)) templates else templatesWithoutBounces
 
-	internal val hasBounces: Boolean get() = bounceDepth > 0
-
 	internal val falls: Boolean = catalog.supports(MovementId.FALL)
 
 	internal fun bouncesAt(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =

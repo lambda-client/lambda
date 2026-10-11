@@ -6,8 +6,6 @@ class LongGraph(
 ) {
 	fun successors(node: Long): EdgeList = EdgeList().also { successorProvider.edges(node, it) }.dropNonFinite()
 
-	fun predecessors(node: Long): EdgeList = EdgeList().also { predecessorProvider.edges(node, it) }.dropNonFinite()
-
 	internal fun successorsInto(node: Long, sink: EdgeList): EdgeList {
 		sink.clear()
 		successorProvider.edges(node, sink)

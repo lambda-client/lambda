@@ -457,9 +457,12 @@ object Footing {
 				starts[column++] = holding.size
 				for (y in y0..y1) {
 					val boxes = view.collisionBoxes(x, y, z)
-					val floor = boxes != null && view.voxel(x, y, z).medium.let { it != Medium.WATER && it != Medium.UNKNOWN }
-					if (boxes == null) add(x, y, z, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, floor)
-					else for (box in 0 until boxes.size / 6) {
+					if (boxes == null) {
+						add(x, y, z, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, floor = false)
+						continue
+					}
+					val floor = view.voxel(x, y, z).medium.let { it != Medium.WATER && it != Medium.UNKNOWN }
+					for (box in 0 until boxes.size / 6) {
 						val b = 6 * box
 						add(x, y, z, boxes[b], boxes[b + 1], boxes[b + 2], boxes[b + 3], boxes[b + 4], boxes[b + 5], floor)
 					}

@@ -16,7 +16,7 @@ internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
 	private var closed = false
 
 	private val threads = List(workers) { index ->
-		Thread({ work() }, "PathPlanner-rollout-$index").apply {
+		Thread({ work(adaptive = index >= HOT_WORKERS) }, "PathPlanner-rollout-$index").apply {
 			isDaemon = true
 			start()
 		}
@@ -35,15 +35,20 @@ internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
 		threads.forEach(LockSupport::unpark)
 	}
 
-	private fun work() {
+	private fun work(adaptive: Boolean) {
 		var seen: Round? = null
+		var limit = MAX_SPINS
 		while (!closed) {
 			var spins = 0
 			var current = round
 			while (current === seen && !closed) {
-				if (++spins < SPIN_LIMIT) Thread.onSpinWait() else LockSupport.park(this)
+				if (spins < limit) {
+					spins++
+					Thread.onSpinWait()
+				} else LockSupport.park(this)
 				current = round
 			}
+			if (adaptive) limit = if (spins < limit) minOf(limit * 2, MAX_SPINS) else maxOf(limit / 2, MIN_SPINS)
 			seen = current
 			if (current != null) claim(current)
 		}
@@ -62,6 +67,10 @@ internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
 	}
 
 	private companion object {
-		const val SPIN_LIMIT = 20_000
+		const val HOT_WORKERS = 3
+
+		const val MIN_SPINS = 250
+
+		const val MAX_SPINS = 20_000
 	}
 }

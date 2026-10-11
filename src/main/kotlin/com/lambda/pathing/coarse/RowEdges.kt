@@ -9,6 +9,8 @@ import java.util.Arrays
 
 internal class RowEdges(
 	val templates: IntArray,
+	val byTemplate: IntArray,
+	val groupStarts: IntArray,
 	val edges: LongArray,
 	val standing: LongArray,
 	val irregular: LongArray,
@@ -18,9 +20,11 @@ internal class RowEdges(
 ) {
 	private var resolvedTicks: Int2DoubleOpenHashMap? = null
 
+	var referenced = false
+
 	val size: Int get() = templates.size
 
-	val bytes: Int = ROW_BYTES + templates.size * ENTRY_BYTES + irregularKeys.size * IRREGULAR_BYTES
+	val bytes: Int = ROW_BYTES + templates.size * ENTRY_BYTES + groupStarts.size * 4 + irregularKeys.size * IRREGULAR_BYTES
 
 	fun ticksOf(template: Int, bit: Int): Double {
 		val key = key(template, bit)
@@ -55,16 +59,6 @@ internal class RowEdges(
 		return -1
 	}
 
-	fun groupStart(group: Int, groupOf: IntArray): Int {
-		var low = 0
-		var high = templates.size
-		while (low < high) {
-			val middle = (low + high) ushr 1
-			if (groupOf[templates[middle]] < group) low = middle + 1 else high = middle
-		}
-		return low
-	}
-
 	class Builder {
 		private val templates = IntArrayList()
 		private val masks = LongArrayList()
@@ -84,9 +78,10 @@ internal class RowEdges(
 			masks.add(pending)
 		}
 
-		fun build(rank: IntArray? = null): RowEdges {
+		fun build(groups: TemplateGroups? = null): RowEdges {
 			if (templates.isEmpty) return EMPTY
 			val entries = IntArray(templates.size) { it }
+			val rank = groups?.rank
 			if (rank != null) IntArrays.quickSort(entries) { a, b -> rank[templates.getInt(a)].compareTo(rank[templates.getInt(b)]) }
 			val order = IntArray(irregularKeys.size) { it }
 			IntArrays.quickSort(order) { a, b -> irregularKeys.getInt(a).compareTo(irregularKeys.getInt(b)) }
@@ -95,8 +90,20 @@ internal class RowEdges(
 			val irregular = LongArray(entries.size) { masks.getLong(entries[it] * 4 + 2) }
 			val pending = LongArray(entries.size) { masks.getLong(entries[it] * 4 + 3) }
 			val settled = pending.all { it == 0L }
+			val ordered = IntArray(entries.size) { templates.getInt(entries[it]) }
+			val byTemplate = IntArray(entries.size) { it }
+			if (rank != null) IntArrays.quickSort(byTemplate) { a, b -> ordered[a].compareTo(ordered[b]) }
+			val groupStarts = if (groups == null) NO_GROUPS else IntArray(groups.size + 1).also { starts ->
+				var index = 0
+				for (group in starts.indices) {
+					while (index < ordered.size && groups.of[ordered[index]] in 0 until group) index++
+					starts[group] = index
+				}
+			}
 			return RowEdges(
-				IntArray(entries.size) { templates.getInt(entries[it]) },
+				ordered,
+				byTemplate,
+				groupStarts,
 				edges,
 				if (settled && standing.contentEquals(edges)) edges else standing,
 				if (settled && irregular.all { it == 0L }) zeros(entries.size) else irregular,
@@ -108,7 +115,9 @@ internal class RowEdges(
 	}
 
 	companion object {
-		val EMPTY = RowEdges(IntArray(0), LongArray(0), LongArray(0), LongArray(0), LongArray(0), IntArray(0), DoubleArray(0))
+		private val NO_GROUPS = IntArray(0)
+
+		val EMPTY = RowEdges(IntArray(0), IntArray(0), NO_GROUPS, LongArray(0), LongArray(0), LongArray(0), LongArray(0), IntArray(0), DoubleArray(0))
 
 		@Volatile
 		private var ZEROS = LongArray(64)
@@ -122,7 +131,7 @@ internal class RowEdges(
 
 		private const val ROW_BYTES = 160
 
-		private const val ENTRY_BYTES = 4 + 4 * 8
+		private const val ENTRY_BYTES = 2 * 4 + 4 * 8
 
 		private const val IRREGULAR_BYTES = 4 + 8
 	}

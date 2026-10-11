@@ -38,9 +38,13 @@ internal class Frontier(
 		val sequence: Long,
 	)
 
-	private val open = PriorityQueue(
-		compareBy<OpenEntry>({ it.order }, { it.bound }, { it.anchor.elapsed }, { it.sequence })
-	)
+	private val open = PriorityQueue<OpenEntry> { a, b ->
+		var result = a.order.compareTo(b.order)
+		if (result == 0) result = a.bound.compareTo(b.bound)
+		if (result == 0) result = a.anchor.elapsed.compareTo(b.anchor.elapsed)
+		if (result == 0) result = a.sequence.compareTo(b.sequence)
+		result
+	}
 	private val parked = ArrayList<OpenEntry>()
 
 	private class BlockedAttempt(val anchor: ValueAnchor, val action: TrajectoryDecision)
@@ -191,7 +195,7 @@ internal class Frontier(
 		if (blocked.isEmpty()) return
 		val woken = IdentityHashMap<ValueAnchor, Unit>()
 		blocked.forEach { attempt ->
-			attempt.anchor.attempted.remove(attempt.action)
+			attempt.anchor.retry(attempt.action)
 			woken[attempt.anchor] = Unit
 		}
 		blocked.clear()

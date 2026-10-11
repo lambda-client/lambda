@@ -23,7 +23,7 @@ internal class Solution(
 		internal const val COLLISION_FRAME_PENALTY = 4
 
 		private fun segmentsOf(anchor: ValueAnchor, tail: List<SimulatedTrajectoryFrame>): List<PlanSegment> {
-			val segments = anchor.lineFrom(null).mapTo(ArrayList<PlanSegment>()) { child ->
+			val segments = anchor.lineFrom(null).mapTo(ArrayList()) { child ->
 				val parent = checkNotNull(child.parent)
 				val decision = child.decision
 				if (decision != null) PlanSegment.Move(decision, parent.state, child.state, child.inputs, parent.elapsed)

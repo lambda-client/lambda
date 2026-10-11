@@ -22,6 +22,9 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 
 	private val arrival = Array(templates.size) { if (templates[it].movement in STOPPED_ARRIVALS) SpeedClass.STOPPED else SpeedClass.MOVING }
 
+	private val sharesNeighbor = templates.groupBy { listOf(it.dx, it.dy, it.dz, arrival[it.id.value].ordinal) }.values
+		.filter { it.size > 1 }.flatten().let { shared -> BooleanArray(templates.size).also { flags -> shared.forEach { flags[it.id.value] = true } } }
+
 	private val searchCaps = HeuristicCaps.of(templates, ::costFloor)
 
 	private val groundCaps = HeuristicCaps.of(templates.filter { it.bounceDrop == null }, ::costFloor)
@@ -57,7 +60,8 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 				SpeedClass.MOVING -> movingCost(ticks)
 				SpeedClass.STOPPED -> stoppedCost(id, ticks)
 			}
-			out.addMin(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]), cost)
+			val target = PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id])
+			if (sharesNeighbor[id]) out.addMin(target, cost) else out.append(target, cost)
 		}
 		if (settledOnly) return edges.forEachSettledEdgeFrom(node, visitor)
 		edges.forEachEdgeFrom(node, visitor)
@@ -82,11 +86,14 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			val originX = x - template.dx
 			val originY = y - template.dy
 			val originZ = z - template.dz
+			val shared = sharesNeighbor[id]
 			if (!departsStoppedOnly[id]) {
-				out.addMin(PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING), movingCost(ticks))
+				val origin = PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING)
+				if (shared) out.addMin(origin, movingCost(ticks)) else out.append(origin, movingCost(ticks))
 			}
 			if (standingStart) {
-				out.addMin(PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED), stoppedCost(id, ticks))
+				val origin = PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED)
+				if (shared) out.addMin(origin, stoppedCost(id, ticks)) else out.append(origin, stoppedCost(id, ticks))
 			}
 		}
 		edges.forEachFallTo(node) { origin, fall ->
