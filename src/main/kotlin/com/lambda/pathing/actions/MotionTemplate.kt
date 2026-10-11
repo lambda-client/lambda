@@ -31,6 +31,7 @@ class MotionTemplate internal constructor(
 	private val arc: ArcSpec?,
 	private val strideCost: Double?,
 	private val via: Via?,
+	private val maxRise: Double = Double.POSITIVE_INFINITY,
 ) {
 	data class ArcSpec(
 		val modes: List<LaunchMode> = LaunchMode.entries,
@@ -62,7 +63,7 @@ class MotionTemplate internal constructor(
 
 	internal fun edge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {
 		if (!matches(view, origin)) return if (undecided(view, origin)) ledgeEdge(view, origin) else null
-		val spec = arc ?: return edgeOf(origin, ticks(view, origin), probeReads = null)
+		val spec = arc ?: return if (realRise(view, origin) > maxRise) null else edgeOf(origin, ticks(view, origin), probeReads = null)
 		val launchOffset = surfaceOffset(view, origin)
 		spec.bounceDrop?.let { drop ->
 			val probed = BounceArcProbe.probe(view, origin, dx, dz, drop, dy, launchHeight = origin.y + launchOffset)
@@ -171,7 +172,7 @@ class MotionTemplate internal constructor(
 		val after = LinkedHashSet<VoxelPos>()
 		val surfaceReads = listOf(VoxelPos(0, -1, 0), VoxelPos(0, -2, 0), VoxelPos(dx, dy - 1, dz), VoxelPos(dx, dy - 2, dz))
 		if (spec == null) {
-			if (strideCost != null) after += surfaceReads
+			if (strideCost != null || maxRise.isFinite()) after += surfaceReads
 			return StampProgram(clauses, after, candidates = null, behind = null, IntArray(0), emptyList())
 		}
 		after += surfaceReads

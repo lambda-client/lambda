@@ -35,9 +35,10 @@ data class TemplateSpec(
 	val strideCost: Double? = null,
 	val via: Via? = null,
 	val departure: CellPredicate? = CellPredicate.DRY,
+	val maxRise: Double = Double.POSITIVE_INFINITY,
 ) {
 	internal fun toTemplate(id: MotionTemplateId) =
-		MotionTemplate(id, dx, dy, dz, movement, cost, listOfNotNull(departure?.let { CellCondition(0, 0, 0, it) }) + conditions, arc, strideCost, via)
+		MotionTemplate(id, dx, dy, dz, movement, cost, listOfNotNull(departure?.let { CellCondition(0, 0, 0, it) }) + conditions, arc, strideCost, via, maxRise)
 }
 
 class MovementContext(

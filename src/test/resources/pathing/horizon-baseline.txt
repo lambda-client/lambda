@@ -17,7 +17,7 @@ bedrock-08             arrived  reach=32/32   frames=357  excess=-8%  collisions
 bedrock-09             short    reach=0/27    frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 bedrock-10             arrived  reach=22/23   frames=249  excess=-6%  collisions=6   jumps=17  pubs=14  adopt=14  refuse=0   firstPub=5    maxCommit=62  turn=589  stalled=0
 bedrock-11             no-route reach=-       frames=0    excess=0%   collisions=0   jumps=0   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
-bedrock-traverse       arrived  reach=24/34   frames=415  excess=-2%  collisions=4   jumps=30  pubs=31  adopt=31  refuse=0   firstPub=5    maxCommit=59  turn=1472 stalled=0
+bedrock-traverse       arrived  reach=34/34   frames=397  excess=-7%  collisions=0   jumps=30  pubs=28  adopt=28  refuse=0   firstPub=5    maxCommit=47  turn=1082 stalled=0
 flat-straight          arrived  reach=0/5     frames=52   excess=-23% collisions=0   jumps=2   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 flat-diagonal          arrived  reach=0/4     frames=50   excess=-23% collisions=0   jumps=3   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=0    stalled=0
 flat-shallow           arrived  reach=4/5     frames=53   excess=-22% collisions=0   jumps=3   pubs=0   adopt=0   refuse=0   firstPub=-1   maxCommit=0   turn=80   stalled=0

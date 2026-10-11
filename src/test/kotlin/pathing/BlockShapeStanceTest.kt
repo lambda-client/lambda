@@ -67,6 +67,32 @@ class BlockShapeStanceTest {
      * Each riser is half a block, which the body clears by walking -- there is no jump in
      * a slab staircase, and a planner that cannot see the slabs cannot see that.
      */
+    /**
+     * A step up is a jump, and its reach is measured from where the feet are. On a snow layer the
+     * feet stand an eighth above the block under it, so the block one cell up diagonally whose top
+     * is two blocks above the ground is nearly two blocks above the feet: out of a jump's reach.
+     */
+    @Test
+    fun `a step up from a snow layer is limited by what a jump can reach`() {
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            bounds(),
+            buildMap {
+                for (x in -4..4) for (z in -4..4) put(BlockPos(x, 63, z), SnapshotBlockPhysics.FULL_CUBE)
+                put(BlockPos(0, 64, 0), snowLayer(2))
+                put(BlockPos(1, 64, 1), SnapshotBlockPhysics.FULL_CUBE)
+                put(BlockPos(1, 65, 1), SnapshotBlockPhysics.FULL_CUBE)
+                put(BlockPos(-2, 64, -2), SnapshotBlockPhysics.FULL_CUBE)
+            },
+        )
+        val moves = library()
+        val tooHigh = moves.edgesFrom(environment, Stance(0, 65, 0)).filter { it.to == Stance(1, 66, 1) }
+        assertTrue(tooHigh.isEmpty(), "a block top 1.875 above the feet is out of reach: $tooHigh")
+        assertTrue(
+            moves.edgesFrom(environment, Stance(-3, 64, -3)).any { it.to == Stance(-2, 65, -2) },
+            "a single block one up diagonally from the ground is still a step up",
+        )
+    }
+
     @Test
     fun `a staircase of slabs is a route`() {
         val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()

@@ -129,7 +129,10 @@ object WalkMovement : Movement {
 		movement: MovementId = id,
 		strideCost: Double? = null,
 		via: Via? = null,
-	) = TemplateSpec(dx, dy, dz, movement, cost, conditions, strideCost = strideCost, via = via)
+	) = TemplateSpec(
+		dx, dy, dz, movement, cost, conditions, strideCost = strideCost, via = via,
+		maxRise = if (dy > 0 && strideCost != null) LaunchMode.MAX_JUMP_RISE else Double.POSITIVE_INFINITY,
+	)
 
 	private fun walks(step: CoarseEdge, constraints: MotionConstraints): List<TrajectoryDecision> = buildList {
 		for (sprint in constraints.sprintModes) {
