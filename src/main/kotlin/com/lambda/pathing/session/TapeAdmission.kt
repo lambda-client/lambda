@@ -21,7 +21,7 @@ internal class TapeAdmission(private val walk: PathingSession) {
 		val drift = with(walk.alignment) { startDrift(path) }
 		if (drift > START_DRIFT_TOLERANCE) {
 			if (walk.launcher.current == null) return with(walk) { planTrajectory() }
-			return with(walk) { fail("moved %.2f blocks while planning".format(drift)) }
+			return with(walk) { recoverOrFail("moved %.2f blocks while planning".format(drift)) }
 		}
 
 		val yawDrift = with(walk.alignment) { launchYawError(path) }
@@ -80,6 +80,10 @@ internal class TapeAdmission(private val walk: PathingSession) {
 	private fun keepRunning(rejected: PublishedPath, reason: String) {
 		walk.launcher.current?.refuse(rejected.publicationSequence.toLong())
 		walk.telemetry.countRejectedImprovement()
+		walk.replay?.takeIf { it.holding }?.let { held ->
+			held.heldRefusals++
+			held.lastHeldRefusal = reason
+		}
 
 		LOG.debug("Pathing kept the running tape: $reason (${rejected.plan.tape.frameCount} frames offered)")
 	}

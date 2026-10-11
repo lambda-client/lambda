@@ -11,6 +11,7 @@ import java.util.IdentityHashMap
 class BlockPhysicsSampler(
 	private val view: BlockView,
 	private val shapeContext: ShapeContext,
+	private val ignoreHazards: Boolean = false,
 ) {
 	private val mutablePos = BlockPos.Mutable()
 	private val physicsByState = IdentityHashMap<BlockState, SnapshotBlockPhysics>()
@@ -19,10 +20,10 @@ class BlockPhysicsSampler(
 	fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics {
 		val pos = mutablePos.set(x, y, z)
 		val state = view.getBlockState(pos)
-		if (state.block.hasDynamicBounds()) return BlockPhysicsCapture.capture(state, view, pos, shapeContext)
+		if (state.block.hasDynamicBounds()) return BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards)
 		val fluid = state.fluidState
-		if (!fluid.isIn(FluidTags.WATER)) return physicsByState.getOrPut(state) { BlockPhysicsCapture.capture(state, view, pos, shapeContext) }
+		if (!fluid.isIn(FluidTags.WATER)) return physicsByState.getOrPut(state) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards) }
 		val water = WaterPhysics(fluid.getHeight(view, pos), fluid.getVelocity(view, pos))
-		return physicsByWater.getOrPut(state to water) { BlockPhysicsCapture.capture(state, view, pos, shapeContext) }
+		return physicsByWater.getOrPut(state to water) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards) }
 	}
 }

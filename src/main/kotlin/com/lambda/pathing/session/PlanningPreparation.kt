@@ -84,6 +84,7 @@ internal fun preparePlanning(
 		maxBounceDrop = config.maxBounceDrop,
 		allowDeepFalls = config.allowDeepFalls,
 		fallLimits = fallLimits,
+		ignoreHazards = config.ignoreHazards,
 	)
 	val profile = PlayerPhysicsProfile.capture(player)
 	val seedConfig = MotionConstraints(

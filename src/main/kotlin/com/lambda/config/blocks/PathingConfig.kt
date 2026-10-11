@@ -159,6 +159,12 @@ interface PathingConfig {
     /** Fall damage in hearts the planner may take on one landing; falls the player takes unhurt are always used. */
     val maxFallDamage: Double get() = 0.0
 
+    /**
+     * Treat fire, lit campfires and cacti as the blocks they are instead of cells to keep out of:
+     * the walk passes through fire and stands on or brushes past cacti, taking the damage.
+     */
+    val ignoreHazards: Boolean get() = false
+
     /** Hard cap on coarse D* expansions per repair before the search gives up. */
     val coarseExpansionBudget: Int get() = 1_000_000
 

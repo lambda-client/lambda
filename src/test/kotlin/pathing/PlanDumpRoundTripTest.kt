@@ -141,7 +141,7 @@ class PlanDumpRoundTripTest {
     }
 
     @Test
-    fun `a dumped plan replays the terrain store with physics derived from block states`() {
+    fun `a dumped plan replays the terrain store with physics derived from block states and its hazard policy`() {
         MinecraftBootstrap.ensure()
         val states = mapOf(
             BlockPos(0, 64, 0) to Blocks.STONE.defaultState,
@@ -152,6 +152,7 @@ class PlanDumpRoundTripTest {
             BlockPos(5, 64, 0) to Blocks.LADDER.defaultState,
             BlockPos(6, 64, 0) to Blocks.OAK_LEAVES.defaultState,
             BlockPos(7, 64, 0) to Blocks.ICE.defaultState,
+            BlockPos(8, 64, 0) to Blocks.CACTUS.defaultState,
             BlockPos(20, 64, 0) to Blocks.SLIME_BLOCK.defaultState,
         )
         val directory = Files.createTempDirectory("plan-dump-terrain")
@@ -170,7 +171,7 @@ class PlanDumpRoundTripTest {
         val initial = MovementSimulationState.synthetic(profile, Vec3d(0.5, 65.0, 0.5), Rotation(37.5, 12.0), onGround = true)
         val path = PlanDump.write(
             directory.resolve("dumps"), store, sections.toLongArray(), bounds, Stance(0, 65, 0), Stance(7, 65, 3), initial, profile,
-            SimpleMoveOptions(), MotionConstraints(), "terrain round trip",
+            SimpleMoveOptions(ignoreHazards = true), MotionConstraints(), "terrain round trip",
         )
         store.close()
 
@@ -178,8 +179,9 @@ class PlanDumpRoundTripTest {
         assertEquals(bounds, loaded.bounds)
         assertEquals(initial, loaded.initialState)
         assertEquals(sections.toSet(), loaded.sections.keys)
+        assertTrue(loaded.moveOptions.ignoreHazards, "the hazard policy is part of the move options")
         val environment = loaded.environment()
-        val live = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+        val live = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), ignoreHazards = true)
         for (pos in states.keys + listOf(BlockPos(0, 65, 0), BlockPos(9, 64, 0))) {
             val expected = live.physicsAt(pos.x, pos.y, pos.z)
             assertEquals(expected, environment.installedBlock(pos.x, pos.y, pos.z), "derived physics at $pos")
@@ -190,6 +192,7 @@ class PlanDumpRoundTripTest {
         assertEquals(CoarseVoxel.WATER, environment.voxel(4, 64, 0))
         assertEquals(CoarseVoxel.CLIMBABLE, environment.voxel(5, 64, 0))
         assertEquals(0.98, checkNotNull(environment.installedBlock(7, 64, 0)).slipperiness, 1e-6)
+        assertEquals(15.0 / 16.0, environment.voxel(8, 64, 0).standingSurface, "an ignored cactus replays as a floor")
         assertTrue(environment.voxel(20, 64, 0).bouncy, "slime bounces")
         assertTrue(Files.size(path) < 1_000, "a dump that references its terrain stays small: ${Files.size(path)} bytes")
     }

@@ -20,6 +20,7 @@ internal fun executionRejectionReport(
 	observed: MovementSimulationState,
 	afterInput: Boolean,
 	snapshot: SnapshotSimulationEnvironment?,
+	ignoreHazards: Boolean,
 ): String {
 	val splice = when {
 		frame in path.spliceFrames -> " at predicted splice"
@@ -69,13 +70,21 @@ internal fun executionRejectionReport(
 		)
 	}.orEmpty()
 	val worldDetail = if (deviation is ExecutionDeviation.WorldChanged || snapshot == null) "" else {
-		snapshotDifferences(snapshot, listOfNotNull(before?.boundingBox, expected?.boundingBox, observed.boundingBox))
+		snapshotDifferences(snapshot, listOfNotNull(before?.boundingBox, expected?.boundingBox, observed.boundingBox), ignoreHazards)
 	}
 	return "frame $frame $phase$splice: $deviation$inputDetail$previousInputDetail" +
-			"$liveInputDetail$stateDetail$ledgeDetail$worldDetail"
+			"$liveInputDetail$stateDetail$ledgeDetail$worldDetail${touchingEntities()}"
 }
 
-private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: List<Box>): String {
+private fun touchingEntities(): String {
+	val player = mc.player ?: return ""
+	val world = mc.world ?: return ""
+	val touching = world.getCrammedEntities(player, player.boundingBox.expand(CONTACT_REACH))
+	if (touching.isEmpty()) return ""
+	return "; touching " + touching.take(MAX_REPORTED_ENTITIES).joinToString(", ") { "${it.type.untranslatedName} at ${it.pos.short()}" }
+}
+
+private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: List<Box>, ignoreHazards: Boolean): String {
 	val player = mc.player ?: return ""
 	val world = mc.world ?: return ""
 	val around = boxes.reduce(Box::union).expand(1.0)
@@ -86,7 +95,7 @@ private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: 
 		for (y in MathHelper.floor(around.minY)..MathHelper.floor(around.maxY)) {
 			for (z in MathHelper.floor(around.minZ)..MathHelper.floor(around.maxZ)) {
 				val state = world.getBlockState(cell.set(x, y, z))
-				val live = BlockPhysicsCapture.capture(state, world, cell, context)
+				val live = BlockPhysicsCapture.capture(state, world, cell, context, ignoreHazards)
 				val captured = snapshot.installedBlock(x, y, z)
 				if (captured == live) continue
 				differences += "($x,$y,$z) live ${state.block.translationKey.substringAfterLast('.')} ${live.collisionShape.boundingBoxes.map { it.short() }}" +
@@ -102,6 +111,10 @@ private fun snapshotDifferences(snapshot: SnapshotSimulationEnvironment, boxes: 
 }
 
 private const val MAX_REPORTED_DIFFERENCES = 12
+
+private const val MAX_REPORTED_ENTITIES = 4
+
+private const val CONTACT_REACH = 0.5
 
 private fun liveLedgeProbe(box: Box, movement: Vec3d): String {
 	val player = mc.player ?: return ""

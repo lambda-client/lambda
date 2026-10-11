@@ -10,8 +10,9 @@ import net.minecraft.world.World
 class MinecraftCaptureSource(
 	private val world: World,
 	private val player: ClientPlayerEntity,
+	ignoreHazards: Boolean,
 ) : CaptureSource {
-	private val sampler = BlockPhysicsSampler(world, ShapeContext.of(player))
+	private val sampler = BlockPhysicsSampler(world, ShapeContext.of(player), ignoreHazards)
 
 	override fun isChunkLoaded(chunkX: Int, chunkZ: Int): Boolean =
 		world.chunkManager.isChunkLoaded(chunkX, chunkZ)

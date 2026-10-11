@@ -7,6 +7,9 @@ import com.lambda.pathing.search.PublishedPath
 internal class Replay(val path: PublishedPath, val cursor: TrajectoryExecutionCursor) {
 	var pendingImprovement: PublishedPath? = null
 	var holding = false
+	var heldSince = 0L
+	var heldRefusals = 0
+	var lastHeldRefusal: String? = null
 	var repairDeadline: Int? = null
 	var repairDeviation: ExecutionDeviation? = null
 }

@@ -126,6 +126,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		val path = replay.path
 		if (!replay.holding) {
 			replay.holding = true
+			replay.heldSince = System.currentTimeMillis()
 			walk.telemetry.countHold()
 			info(
 				"Holding at the tape terminal (${path.plan.tape.frameCount} frames) " +
@@ -194,15 +195,14 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		observed: MovementSimulationState,
 		afterInput: Boolean,
 	) {
-		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, walk.journey?.world?.snapshot)
+		val journey = walk.journey
+		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, journey?.world?.snapshot, journey?.ignoresHazards == true)
 		with(walk) {
 			when (deviation) {
 				is ExecutionDeviation.WorldChanged -> recover(report, reuseCoarseState = true)
 				is ExecutionDeviation.PhysicsProfile -> recover(report, reuseCoarseState = false)
 
-				else ->
-					if (telemetry.recoveries < MAX_STATE_RECOVERIES) recover(report, reuseCoarseState = true)
-					else fail(report)
+				else -> recoverOrFail(report)
 			}
 		}
 	}
@@ -211,8 +211,6 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		MovementSimulationState.from(player, isJumping = frame > 0 && frame <= plan.tape.frameCount && plan.tape[frame - 1].jump)
 
 	private companion object {
-		const val MAX_STATE_RECOVERIES = 8
-
 		const val REPAIR_MIN_LEAD_FRAMES = 8
 	}
 }

@@ -62,7 +62,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 		val path = pendingPath ?: return with(walk) { fail("lost the certified plan while aligning") }
 		val positionDrift = startDrift(path)
 		if (positionDrift > START_DRIFT_TOLERANCE) {
-			return with(walk) { fail("moved %.2f blocks while aligning to the plan".format(positionDrift)) }
+			return with(walk) { recoverOrFail("moved %.2f blocks while aligning to the plan".format(positionDrift)) }
 		}
 
 		walk.face(path.plan.initialState.rotation.yaw)

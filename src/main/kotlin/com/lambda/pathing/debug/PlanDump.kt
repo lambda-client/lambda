@@ -150,7 +150,7 @@ internal object PlanDump {
 		val box = checkNotNull(bounds) { "dump has no bounds" }
 		return Loaded(
 			bounds = box,
-			sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics() }
+			sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics(moveOptions.ignoreHazards) }
 				?: ImmutableSnapshotSection.sectionsOf(blocks),
 			start = checkNotNull(start) { "dump has no start" },
 			goal = checkNotNull(goal) { "dump has no goal" },
@@ -192,6 +192,7 @@ internal object PlanDump {
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
 		allowDeepDropJumps, allowSwimming, allowDeepFalls,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
+		ignoreHazards,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -213,6 +214,7 @@ internal object PlanDump {
 			val damage = accepted.toIntOrNull() ?: FallLimits.acceptingFallsOf(accepted.toDouble()).acceptedDamage
 			FallLimits(damage, parts[16].toDouble(), parts[17].toDouble())
 		} ?: FallLimits(),
+		ignoreHazards = parts.getOrNull(18)?.toBoolean() ?: false,
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(

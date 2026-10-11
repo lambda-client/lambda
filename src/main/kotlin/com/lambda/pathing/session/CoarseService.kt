@@ -83,13 +83,15 @@ internal class CoarseService(
 
 	fun awaitFrame(leg: Int, timeoutMillis: Long, accept: (Frame) -> Boolean = { true }): Frame? = lock.withLock {
 		var remaining = timeoutMillis * 1_000_000L
-		var frame = frames[leg]?.takeIf(accept)
+		var frame = standing(leg)?.takeIf(accept)
 		while (frame == null && !closed && remaining > 0L) {
 			remaining = published.awaitNanos(remaining)
-			frame = frames[leg]?.takeIf(accept)
+			frame = standing(leg)?.takeIf(accept)
 		}
 		frame
 	}
+
+	private fun standing(leg: Int): Frame? = frames[leg]?.takeUnless { failures[leg]?.start == it.start }
 
 	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean): Frame? {
 		val goal = legs[leg].goal

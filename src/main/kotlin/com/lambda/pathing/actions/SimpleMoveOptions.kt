@@ -18,6 +18,7 @@ data class SimpleMoveOptions(
 	val maxBounceDrop: Int = 8,
 	val allowDeepFalls: Boolean = true,
 	val fallLimits: FallLimits = FallLimits(),
+	val ignoreHazards: Boolean = false,
 ) {
 	init {
 		require(maxWalkOffDepth >= 0) { "maxWalkOffDepth must be non-negative" }

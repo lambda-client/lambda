@@ -134,6 +134,13 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			return with(walk) { fail("planning kept dead-ending: $reason") }
 		}
 		if (reason != null) restarts++
+		walk.replay?.takeIf { it.holding }?.let { held ->
+			LOG.info(
+				"Held {} ms at the tape terminal; the session refused {} offered tape(s){}",
+				System.currentTimeMillis() - held.heldSince, held.heldRefusals,
+				held.lastHeldRefusal?.let { ", the last because $it" }.orEmpty(),
+			)
+		}
 		walk.replay = null
 		walk.tickInput = null
 

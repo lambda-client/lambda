@@ -30,8 +30,8 @@ internal class StoredTerrain(
 
 	override fun getBottomY(): Int = minY
 
-	fun physics(): Map<Long, ImmutableSnapshotSection> {
-		val sampler = BlockPhysicsSampler(this, ShapeContext.absent())
+	fun physics(ignoreHazards: Boolean): Map<Long, ImmutableSnapshotSection> {
+		val sampler = BlockPhysicsSampler(this, ShapeContext.absent(), ignoreHazards)
 		val physics = HashMap<Long, ImmutableSnapshotSection>(sections.size)
 		for (key in sections.keys) {
 			val baseX = ChunkSectionPos.unpackX(key) shl 4

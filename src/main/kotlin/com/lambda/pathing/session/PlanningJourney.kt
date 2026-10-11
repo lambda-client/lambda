@@ -18,6 +18,8 @@ internal class PlanningJourney private constructor(
 ) {
 	val goal: Stance get() = origin.finalGoal
 
+	val ignoresHazards: Boolean get() = origin.moveOptions.ignoreHazards
+
 	private val legs: List<CoarsePlanningState> = run {
 		val goals = origin.waypoints + origin.finalGoal
 		val starts = listOf(origin.start) + origin.waypoints
@@ -47,7 +49,7 @@ internal class PlanningJourney private constructor(
 	companion object {
 		fun open(preparation: PlanningPreparation, player: ClientPlayerEntity): PlanningJourney {
 			val terrain = preparation.dumpDirectory?.let { TerrainRecorder(player.entityWorld, TerrainStores.of(player.entityWorld)) }
-			val world = PathingWorld(preparation.bounds, MinecraftCaptureSource(player.entityWorld, player), terrain)
+			val world = PathingWorld(preparation.bounds, MinecraftCaptureSource(player.entityWorld, player, preparation.moveOptions.ignoreHazards), terrain)
 			InterestPrimer.primeJourney(world, preparation.start, preparation.finalGoal, preparation.waypoints)
 			val remembered = if (preparation.useBaritoneCache) BaritoneCache.of(player.entityWorld) else null
 			return PlanningJourney(preparation, world, terrain, remembered)

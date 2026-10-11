@@ -66,9 +66,9 @@ object BlockPhysicsCapture {
 		)
 	}
 
-	fun capture(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext): SnapshotBlockPhysics {
+	fun capture(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext, ignoreHazards: Boolean = false): SnapshotBlockPhysics {
 		val shape = state.getCollisionShape(world, pos, shapeContext)
-		val unsupported = unsupportedPhysics(state)
+		val unsupported = unsupportedPhysics(state, ignoreHazards)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
 		val coarseVoxel = when {
 			unsupported != null -> CoarseVoxel.UNKNOWN
@@ -95,13 +95,14 @@ object BlockPhysicsCapture {
 		)
 	}
 
-	private fun unsupportedPhysics(state: BlockState): UnsupportedPhysics? = when {
+	private fun unsupportedPhysics(state: BlockState, ignoreHazards: Boolean): UnsupportedPhysics? = when {
 		!state.fluidState.isEmpty && (!state.fluidState.isIn(FluidTags.WATER) || state.isIn(BlockTags.CLIMBABLE)) -> UnsupportedPhysicsKind.FLUID
 		state.isOf(Blocks.BUBBLE_COLUMN) -> UnsupportedPhysicsKind.FLUID
 		state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
 		state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
 		state.isOf(Blocks.SWEET_BERRY_BUSH) -> UnsupportedPhysicsKind.SWEET_BERRY_BUSH
 		state.isOf(Blocks.HONEY_BLOCK) -> UnsupportedPhysicsKind.HONEY_SIDE_EFFECTS
+		ignoreHazards -> null
 		state.isIn(BlockTags.FIRE) || CampfireBlock.isLitCampfire(state) -> UnsupportedPhysicsKind.FIRE
 		state.isOf(Blocks.CACTUS) -> UnsupportedPhysicsKind.CACTUS
 		else -> null

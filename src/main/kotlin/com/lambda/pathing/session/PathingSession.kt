@@ -11,6 +11,7 @@ import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 
 class PathingSession internal constructor(
 	internal val request: PathingRequest,
@@ -49,6 +50,9 @@ class PathingSession internal constructor(
 	internal var replay: Replay? = null
 
 	internal var tickInput: MovementSimulationInput? = null
+
+	private var recoveryStreak = 0
+	private var recoveredAt: Vec3d? = null
 
 	internal val alignment = AlignmentController(this)
 	internal val launcher = PlanningLauncher(this)
@@ -176,6 +180,14 @@ class PathingSession internal constructor(
 		warn("Stopped ${if (walked == 0) "before" else "during"} continuous replay at $position$destination: $reason", PATHING_SOURCE)
 	}
 
+	internal fun SafeContext.recoverOrFail(reason: String) {
+		if (recoveredAt?.let { player.pos.distanceTo(it) <= RECOVERY_PROGRESS_BLOCKS } != true) recoveryStreak = 0
+		if (recoveryStreak >= MAX_RECOVERY_STREAK) return fail(reason)
+		recoveryStreak++
+		recoveredAt = player.pos
+		recover(reason, reuseCoarseState = true)
+	}
+
 	internal fun SafeContext.recover(reason: String, reuseCoarseState: Boolean) {
 		if (!active) return fail(reason)
 		if (!reuseCoarseState) {
@@ -215,6 +227,10 @@ class PathingSession internal constructor(
 
 	internal companion object {
 		const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
+
+		const val MAX_RECOVERY_STREAK = 8
+
+		const val RECOVERY_PROGRESS_BLOCKS = 16.0
 
 		const val PATHING_SOURCE = "Pathing"
 

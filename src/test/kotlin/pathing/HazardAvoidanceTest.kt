@@ -35,7 +35,8 @@ import kotlin.test.assertTrue
  * walked through, setting the body alight; a cactus is a sixteenth narrower than its cell on every
  * side, so it was a partial block the body stood on and brushed past, and vanilla pricks any body
  * whose box enters the cell. Both are hazards: the coarse route goes round them and no certified
- * trajectory lets the body touch their cells.
+ * trajectory lets the body touch their cells. Ignore Hazards captures them as the blocks they are
+ * again, for courses that can only be crossed by taking the damage.
  */
 class HazardAvoidanceTest {
 	@Test
@@ -52,6 +53,66 @@ class HazardAvoidanceTest {
 	fun `a cactus is a hazard`() {
 		MinecraftBootstrap.ensure()
 		assertEquals(UnsupportedPhysicsKind.CACTUS, captured(Blocks.CACTUS.defaultState).unsupportedPhysics?.kind)
+	}
+
+	@Test
+	fun `ignored hazards are captured as the blocks they are`() {
+		MinecraftBootstrap.ensure()
+		for (state in listOf(Blocks.FIRE.defaultState, Blocks.SOUL_FIRE.defaultState)) {
+			val fire = captured(state, ignoreHazards = true)
+			assertNull(fire.unsupportedPhysics, "$state")
+			assertTrue(fire.coarseVoxel.fullyPassable, "$state has no collision box")
+		}
+		assertNull(captured(Blocks.CAMPFIRE.defaultState, ignoreHazards = true).unsupportedPhysics, "a lit campfire is a slab to stand on")
+		val cactus = captured(Blocks.CACTUS.defaultState, ignoreHazards = true)
+		assertNull(cactus.unsupportedPhysics)
+		assertEquals(15.0 / 16.0, assertNotNull(cactus.coarseVoxel.standingSurface, "a cactus is a floor"), 1e-9)
+		assertEquals(
+			UnsupportedPhysicsKind.SWEET_BERRY_BUSH, captured(Blocks.SWEET_BERRY_BUSH.defaultState, ignoreHazards = true).unsupportedPhysics?.kind,
+			"a berry bush also slows the body, which the simulator does not model",
+		)
+	}
+
+	/**
+	 * A chasm five cells wide is too far for any jump, and the only footing in it is a cactus on a sand pillar,
+	 * two cells from either rim. Avoiding hazards there is no route; ignoring them, the walk hops across on the cactus.
+	 */
+	@Test
+	fun `a chasm with a cactus as its only stepping stone is crossed only when hazards are ignored`() {
+		MinecraftBootstrap.ensure()
+		val states = HashMap<BlockPos, BlockState>()
+		for (z in -1..1) {
+			for (x in -6..0) states[BlockPos(x, 63, z)] = Blocks.STONE.defaultState
+			for (x in 6..10) states[BlockPos(x, 63, z)] = Blocks.STONE.defaultState
+		}
+		for (y in 52..61) states[BlockPos(3, y, 0)] = Blocks.STONE.defaultState
+		states[BlockPos(3, 62, 0)] = Blocks.SAND.defaultState
+		states[BlockPos(3, 63, 0)] = Blocks.CACTUS.defaultState
+		val start = Stance(-4, 64, 0)
+		val goal = Stance(8, 64, 0)
+		fun environment(ignoreHazards: Boolean): SnapshotSimulationEnvironment {
+			val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), ignoreHazards)
+			return SnapshotSimulationEnvironment.synthetic(
+				SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
+				states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+			)
+		}
+
+		val avoided = CoarsePlanner(environment(ignoreHazards = false), moveLibrary(SimpleMoveOptions()), start, goal)
+		avoided.repair()
+		assertNull(avoided.routePlan(0L), "the cactus is the only way across and it is a hazard")
+
+		val ignoring = environment(ignoreHazards = true)
+		val moves = moveLibrary(SimpleMoveOptions(ignoreHazards = true))
+		val planner = CoarsePlanner(ignoring, moves, start, goal)
+		assertTrue(planner.repair().converged, "the chasm must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the cactus carries the route across")
+		val outcome = walkFrom(route, planner, resting(Vec3d(-3.5, 64.0, 0.5), -90.0), ignoring)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the crossing must be certified, got $outcome")
+		val cactusTop = Box(3.0, 63.9, 0.0, 4.0, 64.0, 1.0)
+		assertTrue(path.plan.frames.any { it.state.onGround && it.state.boundingBox.intersects(cactusTop) }, "the walk must touch down on the cactus")
+		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
 	@Test
@@ -151,7 +212,8 @@ class HazardAvoidanceTest {
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
-	private fun captured(state: BlockState) = BlockPhysicsCapture.capture(state, StatesView(mapOf(BlockPos.ORIGIN to state)), BlockPos.ORIGIN, ShapeContext.absent())
+	private fun captured(state: BlockState, ignoreHazards: Boolean = false) =
+		BlockPhysicsCapture.capture(state, StatesView(mapOf(BlockPos.ORIGIN to state)), BlockPos.ORIGIN, ShapeContext.absent(), ignoreHazards)
 
 	private class StatesView(private val states: Map<BlockPos, BlockState>) : BlockView {
 		override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState

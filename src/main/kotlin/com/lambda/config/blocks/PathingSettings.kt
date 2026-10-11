@@ -181,6 +181,14 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
         unit = " hearts",
     )
 
+    @Group(MOVES_GROUP)
+    override val ignoreHazards by c.setting(
+        "Ignore Hazards", false,
+        "Plan through fire, lit campfires and cacti as if they were harmless: walk through flames " +
+            "and stand on or brush past cacti. Every hit hurts and makes the server correct the " +
+            "velocity, so the walk replans after it. Off, those cells are kept out of entirely.",
+    )
+
     @Group(SEARCH_GROUP)
     override val coarseExpansionBudget by c.setting(
         "Coarse Budget", 1_000_000, 10_000..5_000_000, 10_000,
