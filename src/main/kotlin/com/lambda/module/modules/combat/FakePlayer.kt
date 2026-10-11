@@ -89,8 +89,7 @@ object FakePlayer : Module(
         }
 
     suspend fun SafeContext.fetchProfile(user: String): GameProfile {
-        val requestedProfile = getProfile(user)
-            .getOrElse { return nilProfile }
+        val requestedProfile = getProfile(user).getOrNull() ?: return nilProfile
 
         // Fetch the skin properties from mojang
         val properties = mc.apiServices.profileResolver
