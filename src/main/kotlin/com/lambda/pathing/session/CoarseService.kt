@@ -3,6 +3,7 @@ package com.lambda.pathing.session
 import com.lambda.Lambda
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.coarse.FallEdges
 import com.lambda.pathing.coarse.FieldLabels
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SpeedClass
@@ -204,12 +205,14 @@ internal class CoarseService(
 		timings.measure("sync") { planner.continueSync() }
 		val repair = timings.measure("repair") { planner.repair(maxExpansions = expansionBudget, cancelled = ::closed) }
 		if (closed) return
-		if (!repair.converged) {
+		if (!repair.converged && !repair.provenUnreachable) {
 			val stall = repair.stall?.let { "; stalled: $it" } ?: ""
 			return fail(leg, start, "coarse search did not converge within $expansionBudget expansions$stall", final = true)
 		}
-		timings.measure("field") { planner.expandSearchField(cancelled = ::closed) }
-		val route = timings.measure("route") { state.routePlan(revision, ::closed, expansionBudget) }
+		val route = if (repair.provenUnreachable) null else {
+			timings.measure("field") { planner.expandSearchField(cancelled = ::closed) }
+			timings.measure("route") { state.routePlan(revision, ::closed, expansionBudget) }
+		}
 		if (closed) return
 		val routed = lock.withLock { frames[leg] } != null
 		world?.let { requestKnowledge(it, state, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
@@ -220,7 +223,8 @@ internal class CoarseService(
 				dirty[leg] = true
 				return
 			}
-			return fail(leg, start, "no coarse route to the goal: ${planner.routeFailureReport()}", final = !capturing)
+			val why = planner.unreachableReport ?: planner.routeFailureReport()
+			return fail(leg, start, "no coarse route to the goal: $why", final = !capturing)
 		}
 		publish(leg, start, route, timings)
 		if (timings.measure("recall") { state.recallMemory(route, start) }) dirty[leg] = true
@@ -266,6 +270,6 @@ internal class CoarseService(
 		const val REFRAME_NANOS = 300_000_000L
 		const val SLOW_SETTLE_MILLIS = 1_000L
 		const val LABEL_RADIUS_BLOCKS = 128
-		const val LABEL_HEIGHT_BLOCKS = 64
+		const val LABEL_HEIGHT_BLOCKS = FallEdges.MAX_DEPTH + 32
 	}
 }

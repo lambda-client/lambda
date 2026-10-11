@@ -80,9 +80,9 @@ interface PathingConfig {
      * Whether descending jumps are offered beyond the flat standing reach.
      *
      * Rollout-measured: half a block of real drop clears a four-cell air gap, a full
-     * block the wide diagonals. Off by default because the wider fan measurably costs
-     * search health on ordinary terrain; parkour courses with deep drop-gaps are what
-     * it is for.
+     * block the wide diagonals, a block and three quarters a straight five-cell gap from
+     * momentum. On by default: over 35 bedrock routes the frames were unchanged (-0.1%,
+     * per-route spread 4.4%), at a little more stalling and coarse time.
      */
     val allowDeepDropJumps: Boolean
 
@@ -98,6 +98,13 @@ interface PathingConfig {
 
     /** Deepest fall onto slime a bounce may be planned around. */
     val maxBounceDrop: Int
+
+    /**
+     * Whether the coarse layer offers falls deeper than a walk-off, from any rim down to water,
+     * hay bales and beds, or to any floor the accepted fall damage allows. Landings are found by
+     * scanning the columns below the rim rather than by templates, so the depth has no cap.
+     */
+    val allowDeepFalls: Boolean get() = true
 
     /** Longest tape the seed search may certify. */
     val maxFrames: Int
@@ -149,8 +156,8 @@ interface PathingConfig {
      */
     val useBaritoneCache: Boolean get() = true
 
-    /** Deepest fall accepted beyond the falls the player takes without damage. */
-    val maxSafeFallDistance: Double get() = 3.0
+    /** Fall damage in hearts the planner may take on one landing; falls the player takes unhurt are always used. */
+    val maxFallDamage: Double get() = 0.0
 
     /** Hard cap on coarse D* expansions per repair before the search gives up. */
     val coarseExpansionBudget: Int get() = 1_000_000

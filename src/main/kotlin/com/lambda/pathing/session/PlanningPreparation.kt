@@ -6,7 +6,7 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.physics.damageFreeFallDistance
+import com.lambda.pathing.physics.fallLimits
 import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.search.stanceOf
 import com.lambda.pathing.search.supportedStanceOf
@@ -67,6 +67,7 @@ internal fun preparePlanning(
 	@Suppress("NAME_SHADOWING")
 	val goal = resolveGoalStance(player, goal)
 	val resolvedWaypoints = waypoints.map { resolveGoalStance(player, it) }
+	val fallLimits = player.fallLimits(acceptedDamage = (config.maxFallDamage * HEALTH_PER_HEART).toInt())
 	val moveOptions = SimpleMoveOptions(
 		allowDiagonal = config.allowDiagonal,
 		allowStepUp = config.allowStepUp,
@@ -81,6 +82,8 @@ internal fun preparePlanning(
 		allowDeepDropJumps = config.allowDeepDropJumps,
 		allowSlimeBounces = config.allowSlimeBounces,
 		maxBounceDrop = config.maxBounceDrop,
+		allowDeepFalls = config.allowDeepFalls,
+		fallLimits = fallLimits,
 	)
 	val profile = PlayerPhysicsProfile.capture(player)
 	val seedConfig = MotionConstraints(
@@ -88,7 +91,7 @@ internal fun preparePlanning(
 		maxYawDegreesPerFrame = turnSpeed,
 		goalRadius = config.goalRadius,
 		touchArrival = config.touchArrival,
-		maxSafeFallDistance = maxOf(config.maxSafeFallDistance, player.damageFreeFallDistance()),
+		fallLimits = fallLimits,
 		sprintModes = if (config.allowSprint && profile.canSprint) listOf(true, false) else listOf(false),
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
@@ -153,6 +156,8 @@ private fun plannableEntry(velocity: Vec3d): Boolean =
 			velocity.y in -MAX_ENTRY_DESCENT_SPEED..MAX_ENTRY_ASCENT_SPEED
 
 private const val MAX_ENTRY_HORIZONTAL_SPEED = 0.6
+
+private const val HEALTH_PER_HEART = 2.0
 
 private const val MAX_ENTRY_ASCENT_SPEED = 0.5
 

@@ -20,7 +20,10 @@ import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.FallRule
+import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.landingRule
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.climbableAt
@@ -46,6 +49,8 @@ internal class AnchorRollout(
 	private val routePoints: RoutePoints,
 ) {
 	private val climbingAt: (Vec3d) -> Boolean = { field.view.climbableAt(it) }
+
+	private val landingRuleOf: (MovementSimulationState) -> FallRule = { environment.landingRule(it) }
 
 	private fun openLanding(target: Stance): Boolean {
 		var mapped = 0
@@ -100,6 +105,7 @@ internal class AnchorRollout(
 				allowHorizontalContact = movement.inMedium || Footing.involvesPartial(field.view, action.step.x, action.step.y, action.step.z),
 				descentAllowance = movement.descentAllowance(action),
 				climbing = climbingAt,
+				landingRule = landingRuleOf,
 			),
 			frameCount = maxOf(TRANSITION_FRAMES, movement.transitionFrames(action)),
 			launch = launch,

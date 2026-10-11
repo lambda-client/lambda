@@ -28,7 +28,13 @@ class FieldDumpCorpusTest {
         var unfinished = 0
         var noRoute = 0
         for (dump in cases) {
-            val result = replay(dump)
+            val result = try {
+                replay(dump)
+            } catch (incomplete: IllegalStateException) {
+                if (incomplete.message?.startsWith("dump has no") != true) throw incomplete
+                println("[dumps] ${dump.name} skipped: ${incomplete.message}")
+                continue
+            }
             println("[dumps] ${dump.name} $result")
             when (result) {
                 is Replay.Arrived -> { arrived++; frames += result.frames }

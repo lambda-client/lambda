@@ -2,6 +2,7 @@ package com.lambda.pathing.debug
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.MotionConstraints
+import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
@@ -106,6 +107,7 @@ internal object PlanDump {
 		var goal: Stance? = null
 		var profile: PlayerPhysicsProfile? = null
 		var moveOptions = SimpleMoveOptions()
+		var optionsFallLimits = false
 		var searchConfig = MotionConstraints()
 		var state: MovementSimulationState? = null
 		var note = ""
@@ -128,7 +130,10 @@ internal object PlanDump {
 				"start" -> start = Stance(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())
 				"goal" -> goal = Stance(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())
 				"profile" -> profile = readProfile(parts)
-				"options" -> moveOptions = readOptions(parts)
+				"options" -> {
+					moveOptions = readOptions(parts)
+					optionsFallLimits = parts.size > FALL_LIMIT_OPTION
+				}
 				"search" -> searchConfig = readSearchConfig(parts)
 				"state" -> state = readState(parts, checkNotNull(profile) { "profile must precede state" })
 				"terrain" -> {
@@ -151,11 +156,15 @@ internal object PlanDump {
 			goal = checkNotNull(goal) { "dump has no goal" },
 			initialState = checkNotNull(state) { "dump has no entry state" },
 			profile = checkNotNull(profile) { "dump has no physics profile" },
-			moveOptions = moveOptions,
+			moveOptions = if (optionsFallLimits) moveOptions else moveOptions.copy(fallLimits = searchConfig.fallLimits),
 			searchConfig = searchConfig,
 			note = note,
 		)
 	}
+
+	private const val FALL_LIMIT_OPTION = 15
+
+	private const val SEARCH_FALL_LIMITS = 8
 
 	private fun PlayerPhysicsProfile.dump(): String = listOf(
 		"profile", movementSpeed, sneakSpeedModifier, gravity, jumpStrength, stepHeight,
@@ -181,7 +190,8 @@ internal object PlanDump {
 		"options", allowDiagonal, allowStepUp, maxWalkOffDepth, allowJumpCandidates,
 		maxJumpSpan, maxJumpDrop, allowOffAxisJumps,
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
-		allowDeepDropJumps, allowSwimming,
+		allowDeepDropJumps, allowSwimming, allowDeepFalls,
+		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -198,12 +208,18 @@ internal object PlanDump {
 		maxDropSpan = parts.getOrNull(11)?.toInt() ?: 2,
 		allowDeepDropJumps = parts.getOrNull(12)?.toBoolean() ?: false,
 		allowSwimming = parts.getOrNull(13)?.toBoolean() ?: true,
+		allowDeepFalls = parts.getOrNull(14)?.toBoolean() ?: true,
+		fallLimits = parts.getOrNull(15)?.let { accepted ->
+			val damage = accepted.toIntOrNull() ?: FallLimits.acceptingFallsOf(accepted.toDouble()).acceptedDamage
+			FallLimits(damage, parts[16].toDouble(), parts[17].toDouble())
+		} ?: FallLimits(),
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(
 		"search", maxFrames, maxYawDegreesPerFrame, goalRadius,
 		sprintModes.joinToString(",").ifEmpty { "-" },
 		touchArrival, touchRestRadius, maxSafeFallDistance,
+		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
 	).joinToString(" ")
 
 	private fun readSearchConfig(parts: List<String>) = MotionConstraints(
@@ -213,7 +229,12 @@ internal object PlanDump {
 		sprintModes = if (parts[4] == "-") emptyList() else parts[4].split(',').map { it.toBoolean() },
 		touchArrival = parts.getOrNull(5)?.toBoolean() ?: false,
 		touchRestRadius = parts.getOrNull(6)?.toDouble() ?: 1.6,
-	).let { constraints -> parts.getOrNull(7)?.let { constraints.copy(maxSafeFallDistance = it.toDouble()) } ?: constraints }
+		fallLimits = if (parts.size > SEARCH_FALL_LIMITS + 2) {
+			FallLimits(parts[SEARCH_FALL_LIMITS].toInt(), parts[SEARCH_FALL_LIMITS + 1].toDouble(), parts[SEARCH_FALL_LIMITS + 2].toDouble())
+		} else {
+			FallLimits.acceptingFallsOf(parts.getOrNull(7)?.toDouble() ?: FallLimits.DEFAULT_SAFE_FALL_DISTANCE)
+		},
+	)
 
 	private fun MovementSimulationState.dump(): String = listOf(
 		"state", position.x, position.y, position.z, velocity.x, velocity.y, velocity.z,

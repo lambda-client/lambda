@@ -1,5 +1,7 @@
 package com.lambda.pathing.actions
 
+import com.lambda.pathing.physics.FallLimits
+
 data class SimpleMoveOptions(
 	val allowDiagonal: Boolean = true,
 	val allowStepUp: Boolean = true,
@@ -11,9 +13,11 @@ data class SimpleMoveOptions(
 	val maxJumpSpan: Int = 5,
 	val maxJumpDrop: Int = 1,
 	val allowOffAxisJumps: Boolean = true,
-	val allowDeepDropJumps: Boolean = false,
+	val allowDeepDropJumps: Boolean = true,
 	val allowSlimeBounces: Boolean = false,
 	val maxBounceDrop: Int = 8,
+	val allowDeepFalls: Boolean = true,
+	val fallLimits: FallLimits = FallLimits(),
 ) {
 	init {
 		require(maxWalkOffDepth >= 0) { "maxWalkOffDepth must be non-negative" }

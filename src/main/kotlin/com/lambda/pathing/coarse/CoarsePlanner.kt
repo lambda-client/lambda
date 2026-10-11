@@ -5,6 +5,7 @@ import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.graph.CoarseRouteCandidate
+import com.lambda.pathing.graph.EdgeList
 import com.lambda.pathing.graph.LongDStarLite
 import com.lambda.pathing.graph.LongGraph
 import com.lambda.pathing.world.CoarseVoxelView
@@ -28,20 +29,42 @@ class CoarsePlanner(
 
 	private val anchors = FrontierIndex(view, moves, goalStance, ::updateAnchorEdges)
 
+	private var goalKnown = FrontierAnchors.goalResolved(view, goalStance)
+
 	private val graph = LongGraph(
 		successorProvider = { node, sink ->
 			momentum.successors(edgeCache, node, sink)
 			val cost = anchors.cost(node)
-			if (!cost.isNaN()) sink.add(goalNode, cost)
+			if (!cost.isNaN()) {
+				if (!goalKnown) sink.add(goalNode, cost)
+				else {
+					val from = PackedStance.stanceKey(node)
+					anchors.forEachKey { to -> if (to != from) sink.append(PackedStance.withSpeed(to, SpeedClass.MOVING), transitCost(from, to)) }
+				}
+			}
 		},
 		predecessorProvider = { node, sink ->
 			momentum.predecessors(edgeCache, node, sink)
-			if (node == goalNode) anchors.forEach { stance, cost ->
-				sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
-				sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
+			if (!goalKnown) {
+				if (node == goalNode) anchors.forEach { stance, cost ->
+					sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
+					sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
+				}
+			} else if (PackedStance.speed(node) == SpeedClass.MOVING && !anchors.cost(node).isNaN()) {
+				val to = PackedStance.stanceKey(node)
+				anchors.forEachKey { from ->
+					if (from != to) {
+						val cost = transitCost(from, to)
+						sink.append(PackedStance.withSpeed(from, SpeedClass.MOVING), cost)
+						sink.append(from, cost)
+					}
+				}
 			}
 		},
 	)
+
+	private fun transitCost(from: Long, to: Long): Double =
+		anchors.transitCost(from, to, momentum.heuristic(from, to, grounded = true))
 
 	private var grounded = !view.mayBounce
 
@@ -81,7 +104,7 @@ class CoarsePlanner(
 	fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
 		val merged = HashMap<Stance, Double>()
 		for (speed in SpeedClass.entries) {
-			val edges = search.successors(PackedStance.pack(node, speed))
+			val edges = EdgeList().also { momentum.successors(edgeCache, PackedStance.pack(node, speed), it) }
 			for (i in 0 until edges.size) {
 				val successor = edges.node(i)
 				val stance = PackedStance.stance(successor)
@@ -95,7 +118,59 @@ class CoarsePlanner(
 	fun repair(
 		maxExpansions: Int = Int.MAX_VALUE,
 		cancelled: () -> Boolean = { false },
-	): LongDStarLite.ComputeResult = search.computeShortestPath(Duration.INFINITE, maxExpansions, cancelled)
+	): LongDStarLite.ComputeResult {
+		unreachableReport = null
+		var processed = 0
+		var closure: ForwardClosure? = null
+		while (true) {
+			val slice = minOf(REPAIR_SLICE, maxExpansions - processed)
+			val result = search.computeShortestPath(Duration.INFINITE, slice, cancelled)
+			processed += result.processedNodes
+			if (!result.expansionLimitReached || processed >= maxExpansions) return result.copy(processedNodes = processed)
+			val proof = closure ?: ForwardClosure(search.start).also { closure = it }
+			if (proof.exhausted(REPAIR_SLICE / FORWARD_SHARE)) {
+				unreachableReport = "the start's forward closure of ${proof.size} nodes reaches neither the goal nor the frontier"
+				return result.copy(processedNodes = processed, provenUnreachable = true)
+			}
+		}
+	}
+
+	var unreachableReport: String? = null
+		private set
+
+	private inner class ForwardClosure(root: Long) {
+		private val seen = LongOpenHashSet().apply { add(root) }
+		private val open = it.unimi.dsi.fastutil.longs.LongHeapPriorityQueue { a, b ->
+			search.heuristicToGoal(a).compareTo(search.heuristicToGoal(b))
+		}.apply { enqueue(root) }
+		private var reaching = false
+		private val scratch = EdgeList()
+
+		val size: Int get() = seen.size
+
+		fun exhausted(budget: Int): Boolean {
+			if (reaching) return false
+			repeat(budget) {
+				if (open.isEmpty) return true
+				val node = open.dequeueLong()
+				if (search.rhs(node).isFinite()) {
+					reaching = true
+					return false
+				}
+				scratch.clear()
+				graph.successorsInto(node, scratch)
+				for (i in 0 until scratch.size) {
+					val next = scratch.node(i)
+					if (next == goalNode) {
+						reaching = true
+						return false
+					}
+					if (seen.add(next)) open.enqueue(next)
+				}
+			}
+			return false
+		}
+	}
 
 	fun updateStart(start: Stance, speed: SpeedClass = SpeedClass.STOPPED) = search.updateStart(PackedStance.pack(start, speed))
 
@@ -105,11 +180,31 @@ class CoarsePlanner(
 
 	fun isAnchor(stance: Stance): Boolean = stance in anchors
 
-	private fun updateAnchorEdges(anchor: Stance) {
-		search.refresh(PackedStance.pack(anchor, SpeedClass.MOVING))
-		search.refresh(PackedStance.pack(anchor, SpeedClass.STOPPED))
+	private fun updateAnchorEdges(anchor: Stance, added: Boolean) {
+		val moving = PackedStance.pack(anchor, SpeedClass.MOVING)
+		val stopped = PackedStance.pack(anchor, SpeedClass.STOPPED)
+		if (goalKnown) {
+			anchors.forEachKey { from ->
+				if (from == stopped) return@forEachKey
+				val cost = transitCost(from, stopped)
+				for (source in longArrayOf(PackedStance.withSpeed(from, SpeedClass.MOVING), from)) {
+					if (added) search.edgeAdded(source, moving, cost) else search.edgeRemoved(source, moving, cost)
+				}
+			}
+		}
+		search.refreshIfReaching(moving)
+		search.refreshIfReaching(stopped)
 	}
 
+	private fun updateGoalKnowledge() {
+		val known = FrontierAnchors.goalResolved(view, goalStance)
+		if (known == goalKnown) return
+		goalKnown = known
+		anchors.forEachKey { key ->
+			search.refreshIfReaching(PackedStance.withSpeed(key, SpeedClass.MOVING))
+			search.refreshIfReaching(key)
+		}
+	}
 
 	fun expandField(
 		extraTicks: Double,
@@ -132,6 +227,7 @@ class CoarsePlanner(
 		var previous = 0L
 		for (i in nodes.indices) {
 			val node = nodes.getLong(i)
+			if (i > 0 && !isRealEdge(previous, node)) break
 			if (i == 0 || !PackedStance.sameStance(previous, node)) stances += PackedStance.stance(node)
 			previous = node
 		}
@@ -142,16 +238,21 @@ class CoarsePlanner(
 		)
 	}
 
+	private val realScratch = EdgeList()
+
+	private fun isRealEdge(from: Long, to: Long): Boolean {
+		realScratch.clear()
+		momentum.successors(edgeCache, from, realScratch)
+		return to in realScratch
+	}
+
 	fun routePlan(
 		snapshotRevision: Long,
 		cancelled: () -> Boolean = { false },
 	): CoarseRoutePlan? {
 		val candidate = route(cancelled) ?: return null
 
-		val nodes =
-			if (candidate.nodes.size >= 2 && candidate.nodes.last() == goalStance &&
-				candidate.nodes[candidate.nodes.size - 2] in anchors
-			) candidate.nodes.dropLast(1) else candidate.nodes
+		val nodes = candidate.nodes
 		val edges = nodes.zipWithNext { from, to -> liveEdge(from, to) ?: return null }
 		return CoarseRoutePlan(
 			snapshotRevision = snapshotRevision,
@@ -210,6 +311,10 @@ class CoarsePlanner(
 		const val SEARCH_FIELD_TICKS = 36.0
 
 		const val SEARCH_FIELD_EXPANSIONS = 20_000
+
+		const val REPAIR_SLICE = 512
+
+		const val FORWARD_SHARE = 2
 	}
 
 	fun valueField(): CoarseValueField = CoarseValueField(
@@ -241,11 +346,12 @@ class CoarsePlanner(
 		maxStances: Int = Int.MAX_VALUE,
 		arrivalsOnly: Boolean = false,
 	) {
+		updateGoalKnowledge()
 		anchors.refresh(changed)
 		val origins = changed.map(moves::originsReading)
 		search.forEachKnownNode { node ->
 			val key = PackedStance.stanceKey(node)
-			if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key))) pendingSync.add(key)
+			if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key)) pendingSync.add(key)
 		}
 		edgeCache.invalidate(changed, arrivalsOnly)
 		if (grounded == view.mayBounce) {

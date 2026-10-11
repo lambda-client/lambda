@@ -261,7 +261,7 @@ data class BallisticProfile(
 
 		const val MAX_BOUNCE_TICKS = 64
 
-		private const val MAX_ARC_TICKS = 24
+		const val MAX_ARC_TICKS = 24
 
 		private const val SPRINT_JUMP_BOOST = Vanilla.SPRINT_JUMP_BOOST
 

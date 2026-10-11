@@ -59,6 +59,11 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			}
 			out.addMin(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]), cost)
 		}
+		edges.forEachFallFrom(node) { _, fall ->
+			if (speed == SpeedClass.STOPPED && !fall.standingStart) return@forEachFallFrom
+			val ticks = if (speed == SpeedClass.MOVING) movingCost(fall.ticks) else fall.ticks + STARTUP_TICKS
+			out.addMin(PackedStance.pack(x + fall.dx, y + fall.dy, z + fall.dz, fallArrival(fall)), fallCost(fall, ticks))
+		}
 	}
 
 	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeList) {
@@ -82,7 +87,16 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 				out.addMin(PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED), stoppedCost(id, ticks))
 			}
 		}
+		edges.forEachFallTo(node) { origin, fall ->
+			if (fallArrival(fall) != speed) return@forEachFallTo
+			out.addMin(PackedStance.pack(origin, SpeedClass.MOVING), fallCost(fall, movingCost(fall.ticks)))
+			if (fall.standingStart) out.addMin(PackedStance.pack(origin, SpeedClass.STOPPED), fallCost(fall, fall.ticks + STARTUP_TICKS))
+		}
 	}
+
+	private fun fallArrival(fall: FallEdge): SpeedClass = if (fall.water) SpeedClass.STOPPED else SpeedClass.MOVING
+
+	private fun fallCost(fall: FallEdge, ticks: Double): Double = maxOf(ticks, groundCaps.estimate(fall.dx, fall.dy, fall.dz))
 
 	private companion object {
 

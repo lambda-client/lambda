@@ -88,11 +88,12 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
     @Group(MOVES_GROUP)
     override val allowDeepDropJumps by c.setting(
-        "Deep Drop Jumps", false,
+        "Deep Drop Jumps", true,
         "Offer descending jumps beyond the flat standing reach: a four-cell air gap " +
-            "with half a block of real drop, wide diagonals with a full block " +
-            "(rollout-measured). Off by default: the wider fan costs search speed on " +
-            "ordinary terrain; turn it on for parkour with deep drop-gaps.",
+            "with half a block of real drop, wide diagonals with a full block and a straight " +
+            "five-cell gap with a block and three quarters, taken only with momentum and only where " +
+            "nothing easier leads on (solver-measured). Route lengths are unchanged on ordinary " +
+            "terrain; turn it off only to keep the planner to flat-reach jumps.",
     ) { allowJumpCandidates }
 
     @Group(MOVES_GROUP)
@@ -111,6 +112,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
             "and need less run-up, at the cost of a longer arc to simulate.",
         unit = " blocks",
     ) { allowSlimeBounces }
+
+    @Group(MOVES_GROUP)
+    override val allowDeepFalls by c.setting(
+        "Deep Falls", true,
+        "Fall from any height into water, onto hay bales and beds, or onto any floor Max Safe Fall " +
+            "accepts, steering toward the landing on the way down.",
+    )
 
     @Group(SEARCH_GROUP)
     override val maxFrames by c.setting(
@@ -163,12 +171,14 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(MOVES_GROUP)
-    override val maxSafeFallDistance by c.setting(
-        "Max Safe Fall", 3.0, 1.0..30.0, 0.5,
-        "Deepest fall the planner accepts. Falls the player takes without damage are always " +
-            "accepted (flight, Slow Falling, its safe fall distance and fall damage multiplier); " +
-            "raise this only to accept damage, e.g. where the server turns fall damage off.",
-        unit = " blocks",
+    override val maxFallDamage by c.setting(
+        "Max Fall Damage", 0.0, 0.0..10.0, 0.5,
+        "Fall damage the planner may take on one landing. At 0 it never gets hurt; falls the player " +
+            "takes unhurt are always used: into water of any depth, onto hay bales and beds within " +
+            "their cushion, and within its safe fall distance, fall damage multiplier, flight or " +
+            "Slow Falling. Half a heart opens drops like nine blocks onto hay. A damaging landing " +
+            "makes the server correct the velocity, so the walk replans after it.",
+        unit = " hearts",
     )
 
     @Group(SEARCH_GROUP)

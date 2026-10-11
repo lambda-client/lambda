@@ -11,6 +11,7 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.landingRule
 import com.lambda.pathing.world.climbableAt
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
@@ -33,7 +34,11 @@ internal class RolloutGate(
 		program: ControlProgram,
 		frameCount: Int,
 	): GatedRollout {
-		val evaluator = RolloutEvaluator(from, points, route.goalPoint, config, climbing = { environment.climbableAt(it) })
+		val evaluator = RolloutEvaluator(
+			from, points, route.goalPoint, config,
+			climbing = { environment.climbableAt(it) },
+			landingRule = { environment.landingRule(it) },
+		)
 		var stopFrame: Int? = null
 		var failure: TrajectoryDiagnostic? = null
 		val rollout = TrajectoryRolloutEngine.rollout(

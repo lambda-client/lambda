@@ -95,3 +95,10 @@ internal fun BlockState.bounceFactor(): Double = when {
 	block is BedBlock -> Vanilla.BED_BOUNCE_FACTOR.toDouble()
 	else -> 0.0
 }
+
+internal fun BlockState.fallRule(): FallRule = when {
+	isOf(Blocks.HAY_BLOCK) -> FallRule.HAY
+	block is BedBlock -> FallRule.BED
+	isOf(Blocks.SLIME_BLOCK) -> FallRule.NONE
+	else -> FallRule.NORMAL
+}

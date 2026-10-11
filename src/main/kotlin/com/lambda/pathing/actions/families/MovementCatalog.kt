@@ -14,6 +14,7 @@ class MovementCatalog private constructor(
 	val movements: List<Movement>,
 	val templates: List<MotionTemplate>,
 	private val byId: Map<MovementId, Movement>,
+	val options: SimpleMoveOptions,
 ) {
 	operator fun get(id: MovementId): Movement? = byId[id]
 
@@ -29,6 +30,7 @@ class MovementCatalog private constructor(
 			LadderCatchMovement,
 			SwimMovement,
 			SlimeBounceMovement,
+			FallMovement,
 		)
 
 		fun build(
@@ -42,14 +44,14 @@ class MovementCatalog private constructor(
 
 			val active = movements.filter { movement ->
 				val contributed = movement.templates(context)
-				if (contributed.isEmpty()) return@filter false
+				if (contributed.isEmpty() && !movement.scans(options)) return@filter false
 				owners[movement.id] = movement
 				contributed.forEach { owners.putIfAbsent(it.movement, movement) }
 				specs += contributed
 				true
 			}
 			val templates = specs.mapIndexed { index, spec -> spec.toTemplate(MotionTemplateId(index)) }
-			return MovementCatalog(active, templates, owners)
+			return MovementCatalog(active, templates, owners, options)
 		}
 	}
 }

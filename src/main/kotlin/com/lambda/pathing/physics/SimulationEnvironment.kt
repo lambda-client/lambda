@@ -30,6 +30,8 @@ interface SimulationEnvironment {
 
 	fun hotFloor(pos: BlockPos): Boolean = false
 
+	fun fallRule(pos: BlockPos): FallRule = FallRule.NORMAL
+
 	fun mayContainHotFloor(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
 
 	fun water(pos: BlockPos): WaterPhysics? = null

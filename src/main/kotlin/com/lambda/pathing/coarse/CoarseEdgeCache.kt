@@ -6,6 +6,7 @@ import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Medium
 import it.unimi.dsi.fastutil.HashCommon
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
@@ -15,6 +16,10 @@ import net.minecraft.util.math.ChunkSectionPos
 
 internal fun interface EdgeVisitor {
 	fun visit(template: MotionTemplate, ticks: Double, standingStart: Boolean)
+}
+
+internal fun interface FallVisitor {
+	fun visit(origin: Stance, edge: FallEdge)
 }
 
 internal class CoarseEdgeCache(
@@ -47,12 +52,19 @@ internal class CoarseEdgeCache(
 
 	private val bouncesTo = Long2ObjectOpenHashMap<StanceEdges>()
 
+	private val falls = if (moves.falls) FallEdges(view, moves, standable) else null
+
 	fun edgesFrom(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
 		return outgoing.get(key) ?: run {
 			val stance = PackedStance.stance(key)
 			check(key, stance)
-			val edges = if (!standable.isStance(stance)) emptyList() else moves.templates(view, stance).mapNotNull { stamper.edge(it, stance) }
+			val edges = if (!standable.isStance(stance)) emptyList() else {
+				val stamped = moves.templates(view, stance).mapNotNull { stamper.edge(it, stance) }
+				val falling = falls
+				val dropped = falling?.from(stance)
+				if (falling == null || dropped.isNullOrEmpty()) stamped else stamped + dropped.map { falling.coarseEdge(stance, it) }
+			}
 			if (outgoing.size >= CACHED_EDGE_LISTS) outgoing.removeFirst()
 			outgoing.put(key, edges)
 			edges
@@ -92,6 +104,23 @@ internal class CoarseEdgeCache(
 		val key = PackedStance.stanceKey(node)
 		if (bounces(target)) visit(bouncesTo.get(key) ?: bouncesTo(target).also { bouncesTo.put(key, it) }, visitor)
 	}
+
+	fun forEachFallFrom(node: Long, visitor: FallVisitor) {
+		val falls = falls ?: return
+		val origin = PackedStance.stance(node)
+		if (!standable.isStance(origin)) return
+		for (edge in falls.from(origin)) visitor.visit(origin, edge)
+	}
+
+	fun forEachFallTo(node: Long, visitor: FallVisitor) {
+		val falls = falls ?: return
+		val target = PackedStance.stance(node)
+		val water = view.medium(target.x, target.y, target.z) == Medium.WATER
+		if (water != (PackedStance.speed(node) == SpeedClass.STOPPED)) return
+		for (arrival in falls.to(target)) visitor.visit(arrival.origin, arrival.edge)
+	}
+
+	fun fallsRead(changed: List<CellBox>, key: Long): Boolean = falls?.reads(changed, key) == true
 
 	private fun bounces(stance: Stance): Boolean =
 		bounceTemplates.isNotEmpty() && moves.bouncesAt(view, stance.x, stance.y, stance.z)
@@ -191,6 +220,7 @@ internal class CoarseEdgeCache(
 		targetRows.clear()
 		bouncesFrom.clear()
 		bouncesTo.clear()
+		falls?.clear()
 	}
 
 	fun invalidate(changed: List<CellBox>, arrivalsOnly: Boolean) {
@@ -207,6 +237,7 @@ internal class CoarseEdgeCache(
 		targetRows.remove(targets)
 		remove(bouncesFrom.keys, origins, kept)
 		remove(bouncesTo.keys, targets)
+		falls?.clear()
 	}
 
 	private fun remove(keys: LongSet, boxes: List<CellBox>, keep: LongSet? = null) {

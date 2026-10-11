@@ -168,12 +168,12 @@ class FenceJumpTest {
     }
 
     /**
-     * The opt-in deep-drop family: a four-cell air gap onto a landing one stance
-     * down (real drop 1.0) mints ONLY with [SimpleMoveOptions.allowDeepDropJumps].
-     * Default-off is deliberate -- see the option's doc for the measured trade.
+     * The deep-drop family: a four-cell air gap onto a landing one stance down (real
+     * drop 1.0) mints only with [SimpleMoveOptions.allowDeepDropJumps], which is on by
+     * default since a large bedrock sample showed it leaves route lengths unchanged.
      */
     @Test
-    fun `the deep drop ceiling is opt-in`() {
+    fun `the deep drop ceiling is on by default and can be switched off`() {
         val environment = SnapshotSimulationEnvironment.synthetic(
             SimulationSnapshotBounds(-8, 80, -8, 24, 120, 8),
             buildMap {
@@ -187,12 +187,12 @@ class FenceJumpTest {
             .edgesFrom(environment, origin)
             .filter { it.movement == MovementId.JUMP && it.to == target }
         assertTrue(
-            jumpEdges(SimpleMoveOptions()).isEmpty(),
-            "the four-cell drop gap must stay unoffered by default",
+            jumpEdges(SimpleMoveOptions()).isNotEmpty(),
+            "by default the four-cell drop gap mints a jump edge",
         )
         assertTrue(
-            jumpEdges(SimpleMoveOptions(allowDeepDropJumps = true)).isNotEmpty(),
-            "with deep drops on, the four-cell drop gap must mint a jump edge",
+            jumpEdges(SimpleMoveOptions(allowDeepDropJumps = false)).isEmpty(),
+            "with deep drops off, the four-cell drop gap stays unoffered",
         )
     }
 

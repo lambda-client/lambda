@@ -83,11 +83,6 @@ class LongDStarLite(
 		require(!timeBudget.isNegative()) { "timeBudget must be non-negative" }
 		require(maxExpansions >= 0) { "maxExpansions must be non-negative" }
 
-		var stallNode = -1
-		var stallG = 0.0
-		var stallRhs = 0.0
-		var stallSteps = 0
-
 		return compute(timeBudget, maxExpansions, cancelled, ::shouldCompute) {
 			if (heap.isEmpty()) {
 				return@compute "queue empty while start is inconsistent: start=${describe(start)} g=${g(start)} rhs=${rhs(start)}"
@@ -108,6 +103,11 @@ class LongDStarLite(
 			null
 		}
 	}
+
+	private var stallNode = -1
+	private var stallG = 0.0
+	private var stallRhs = 0.0
+	private var stallSteps = 0
 
 	fun expandField(
 		extraTicks: Double,
@@ -252,6 +252,30 @@ class LongDStarLite(
 
 	fun refresh(node: Long) = recompute(nodes.slot(node))
 
+	fun refreshIfReaching(node: Long) {
+		val slot = nodes.find(node)
+		if (slot >= 0) recompute(slot)
+		else if (node != goal && minSuccessorCost(node).isFinite()) recompute(nodes.slot(node))
+	}
+
+	fun edgeAdded(from: Long, to: Long, cost: Double) {
+		val source = nodes.find(from)
+		val target = nodes.find(to)
+		if (source < 0 || target < 0 || source == goalSlot) return
+		val through = cost + nodes.g(target)
+		if (through < nodes.rhs(source)) {
+			setRhs(source, through)
+			updateVertex(source)
+		}
+	}
+
+	fun edgeRemoved(from: Long, to: Long, cost: Double) {
+		val source = nodes.find(from)
+		val target = nodes.find(to)
+		if (source < 0 || target < 0 || source == goalSlot) return
+		if (sameCost(nodes.rhs(source), cost + nodes.g(target))) recompute(source)
+	}
+
 	private fun recompute(slot: Int) {
 		if (slot != goalSlot) setRhs(slot, minSuccessorCost(slot))
 		updateVertex(slot)
@@ -390,6 +414,8 @@ class LongDStarLite(
 
 	fun isStartCostExact(): Boolean = start == goal || !shouldCompute() && sameCost(g(start), rhs(start))
 
+	fun heuristicToGoal(node: Long): Double = checkedHeuristic(node, goal)
+
 	fun g(node: Long): Double {
 		val slot = nodes.find(node)
 		return if (slot < 0) INF else nodes.g(slot)
@@ -474,6 +500,7 @@ class LongDStarLite(
 		val cancelled: Boolean,
 		val converged: Boolean,
 		val stall: String? = null,
+		val provenUnreachable: Boolean = false,
 	)
 
 	companion object {

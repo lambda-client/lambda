@@ -104,6 +104,7 @@ class PlanDumpRoundTripTest {
         val moveOptions = SimpleMoveOptions(
             allowDiagonal = false, allowStepUp = true, maxWalkOffDepth = 5,
             allowJumpCandidates = true, maxJumpSpan = 5, maxJumpDrop = 2, allowOffAxisJumps = false,
+            allowDeepDropJumps = false,
         )
 
         // Written by the last writer that embedded physics; the field corpus is full of these.

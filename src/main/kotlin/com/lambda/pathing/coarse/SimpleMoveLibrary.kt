@@ -84,6 +84,8 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 
 	internal val hasBounces: Boolean get() = bounceDepth > 0
 
+	internal val falls: Boolean = catalog.supports(MovementId.FALL)
+
 	internal fun bouncesAt(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 		bounceDepth > 0 && view.mayBounceWithin(x - bounceReach, y - bounceDepth, z - bounceReach, x + bounceReach, y, z + bounceReach)
 

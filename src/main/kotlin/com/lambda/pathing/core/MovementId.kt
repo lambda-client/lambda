@@ -13,6 +13,7 @@ value class MovementId(val key: String) {
 		val CLIMB = MovementId("climb")
 		val LADDER_CATCH = MovementId("ladder_catch")
 		val BOUNCE = MovementId("bounce")
+		val FALL = MovementId("fall")
 		val SWIM = MovementId("swim")
 		val ENTER_WATER = MovementId("enter_water")
 		val EXIT_WATER = MovementId("exit_water")

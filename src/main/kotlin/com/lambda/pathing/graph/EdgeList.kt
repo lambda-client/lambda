@@ -41,6 +41,12 @@ class EdgeList(initialCapacity: Int = 16) {
 
 	fun addMin(node: Long, cost: Double) = put(node, cost, keepLower = true)
 
+	fun append(node: Long, cost: Double) {
+		checkCost(cost)
+		targets.add(node)
+		costs.add(cost)
+	}
+
 	fun addIfAbsent(node: Long, cost: Double): Boolean {
 		checkCost(cost)
 		if (indexOf(node) >= 0) return false

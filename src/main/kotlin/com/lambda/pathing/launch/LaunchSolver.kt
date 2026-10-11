@@ -93,6 +93,7 @@ object LaunchSolver {
 		headroom: Double = Double.POSITIVE_INFINITY,
 		landingRange: ClosedFloatingPointRange<Double>? = null,
 		launchable: (Double) -> Boolean = { true },
+		maxTicks: Int = BallisticProfile.MAX_ARC_TICKS,
 	): List<LaunchSolution> {
 		val dx = (to.x - from.x).toDouble()
 		val dz = (to.z - from.z).toDouble()
@@ -109,7 +110,7 @@ object LaunchSolver {
 		val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
 
 		return modes.filter { it.supports(rise) }.mapNotNull { mode ->
-			ModeSolve(mode, rise, lateral, window, nearEdge, maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow, headroom, launchable).solve(catch)
+			ModeSolve(mode, rise, lateral, window, nearEdge, maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow, headroom, launchable, maxTicks).solve(catch)
 				?.let { if (via == null) it else it.copy(via = via, lateralOffset = landingShift) }
 		}.sortedWith(LaunchSolution.BEST_FIRST)
 	}
@@ -125,12 +126,13 @@ object LaunchSolver {
 		private val exitSpeedWindow: ClosedFloatingPointRange<Double>?,
 		private val headroom: Double,
 		private val launchable: (Double) -> Boolean,
+		private val maxTicks: Int,
 	) {
 		fun solve(catch: Boolean): LaunchSolution? {
 			var best: LaunchSolution? = null
 			val policies = if (mode.drops || exitSpeedWindow != null) listOf(true, false) else listOf(true)
 			for (holdForward in policies) {
-				val line = speedLine(mode, rise, holdForward, Int.MAX_VALUE, headroom) ?: continue
+				val line = speedLine(mode, rise, holdForward, Int.MAX_VALUE, headroom, maxTicks) ?: continue
 				for (offset in launchOffsets(mode)) {
 					if (!launchable(offset)) continue
 					val candidate = candidate(line, holdForward, Int.MAX_VALUE, offset, catch) ?: continue
@@ -145,7 +147,7 @@ object LaunchSolver {
 			val high = min(line.speedFor(window.endInclusive, offset), maxEntrySpeed)
 			if (high < low) return null
 			val speed = if (catch) high else preferredSpeed(preferredEntrySpeed, low, high, line.slope)
-			val arc = ballistics.fly(mode, speed, rise, holdForward, holdTicks = holdTicks, headroom = headroom) ?: return null
+			val arc = ballistics.fly(mode, speed, rise, holdForward, holdTicks = holdTicks, headroom = headroom, maxTicks = maxTicks) ?: return null
 			val slack = min(speed - low, high - speed)
 			return LaunchSolution(
 				mode = mode,
@@ -167,7 +169,7 @@ object LaunchSolver {
 			if (solution.arc.exitSpeed <= exitSpeedWindow.endInclusive) return solution
 
 			fun solveAt(hold: Int): LaunchSolution? {
-				val line = speedLine(mode, rise, solution.holdForward, hold, headroom) ?: return null
+				val line = speedLine(mode, rise, solution.holdForward, hold, headroom, maxTicks) ?: return null
 				return candidate(line, solution.holdForward, hold, solution.launchOffset, catch = false)
 					?.copy(speedReserve = solution.speedReserve)
 			}
@@ -193,9 +195,9 @@ object LaunchSolver {
 		fun speedFor(distance: Double, offset: Double): Double = (distance - offset - base) / slope
 	}
 
-	private fun speedLine(mode: LaunchMode, rise: Double, holdForward: Boolean, holdTicks: Int, headroom: Double): SpeedLine? {
-		val base = ballistics.fly(mode, 0.0, rise, holdForward, holdTicks = holdTicks, headroom = headroom) ?: return null
-		val unit = ballistics.fly(mode, 1.0, rise, holdForward, holdTicks = holdTicks, headroom = headroom) ?: return null
+	private fun speedLine(mode: LaunchMode, rise: Double, holdForward: Boolean, holdTicks: Int, headroom: Double, maxTicks: Int): SpeedLine? {
+		val base = ballistics.fly(mode, 0.0, rise, holdForward, holdTicks = holdTicks, headroom = headroom, maxTicks = maxTicks) ?: return null
+		val unit = ballistics.fly(mode, 1.0, rise, holdForward, holdTicks = holdTicks, headroom = headroom, maxTicks = maxTicks) ?: return null
 		val slope = unit.distance - base.distance
 		return if (slope <= MIN_SPEED_SLOPE) null else SpeedLine(base.distance, slope)
 	}

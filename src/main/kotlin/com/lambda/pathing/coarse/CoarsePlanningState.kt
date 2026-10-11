@@ -49,7 +49,7 @@ internal class CoarsePlanningState(
 	}
 
 	fun routePlan(snapshotRevision: Long, cancelled: () -> Boolean, maxExpansions: Int): CoarseRoutePlan? {
-		planner.repair(maxExpansions = maxExpansions, cancelled = cancelled)
+		if (planner.repair(maxExpansions = maxExpansions, cancelled = cancelled).provenUnreachable) return null
 		return planner.routePlan(snapshotRevision, cancelled = cancelled)
 			?: planner.resynchronizedRoutePlan(snapshotRevision, cancelled = cancelled, maxExpansions = maxExpansions)
 	}

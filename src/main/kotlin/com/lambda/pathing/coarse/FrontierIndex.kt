@@ -13,7 +13,7 @@ internal class FrontierIndex(
 	private val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
 	private val goal: Stance,
-	private val onChange: (Stance) -> Unit,
+	private val onChange: (Stance, Boolean) -> Unit,
 ) {
 	private val costs = Long2DoubleOpenHashMap()
 	private val bySection = Long2ObjectOpenHashMap<LongOpenHashSet>()
@@ -31,6 +31,25 @@ internal class FrontierIndex(
 			val entry = iterator.next()
 			action(PackedStance.stance(entry.longKey), entry.doubleValue)
 		}
+	}
+
+	inline fun forEachKey(action: (Long) -> Unit) {
+		val iterator = keys().iterator()
+		while (iterator.hasNext()) action(iterator.nextLong())
+	}
+
+	@PublishedApi
+	internal fun keys() = costs.keys
+
+	fun transitCost(from: Long, to: Long, floor: Double): Double {
+		val realistic = hypot(
+			(PackedStance.unpackX(to) - PackedStance.unpackX(from)).toDouble(),
+			(PackedStance.unpackZ(to) - PackedStance.unpackZ(from)).toDouble(),
+		) * moves.sustainedTicksPerBlock
+		return maxOf(floor, moves.heuristic(
+			PackedStance.unpackX(from), PackedStance.unpackY(from), PackedStance.unpackZ(from),
+			PackedStance.unpackX(to), PackedStance.unpackY(to), PackedStance.unpackZ(to),
+		), realistic)
 	}
 
 	@PublishedApi
@@ -93,7 +112,7 @@ internal class FrontierIndex(
 			val cost = optimisticCost(stance)
 			costs.put(key, cost)
 			bySection.computeIfAbsent(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)) { LongOpenHashSet() }.add(key)
-			onChange(stance)
+			onChange(stance, true)
 		} else if (!anchors && anchored) {
 			retire(key)
 		}
@@ -103,7 +122,7 @@ internal class FrontierIndex(
 		costs.remove(key)
 		val section = ChunkSectionPos.asLong(PackedStance.unpackX(key) shr 4, PackedStance.unpackY(key) shr 4, PackedStance.unpackZ(key) shr 4)
 		bySection.get(section)?.let { if (it.remove(key) && it.isEmpty()) bySection.remove(section) }
-		onChange(PackedStance.stance(key))
+		onChange(PackedStance.stance(key), false)
 	}
 
 	private fun optimisticCost(anchor: Stance): Double {

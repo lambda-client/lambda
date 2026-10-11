@@ -3,6 +3,7 @@ package com.lambda.pathing.world.snapshot
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
@@ -89,6 +90,11 @@ class SnapshotSimulationEnvironment internal constructor(
 	override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
+	override fun maySoftLandWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		store.softWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
+	override val maySoftLand: Boolean get() = store.softSections > 0
+
 	override fun cursor(): CoarseVoxelView = SectionCursor(this) { store[it] }
 
 	internal fun remembering(remembered: (Long) -> ImmutableSnapshotSection?, loaded: (Int, Int) -> Boolean): RememberingView =
@@ -140,6 +146,10 @@ class SnapshotSimulationEnvironment internal constructor(
 	override fun dampensSteppingSpeed(pos: BlockPos): Boolean = blockAt(pos).dampensSteppingSpeed
 
 	override fun hotFloor(pos: BlockPos): Boolean = blockAt(pos).hotFloor
+
+	override fun fallRule(pos: BlockPos): FallRule = blockAt(pos).fallRule
+
+	override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z) { store[it] }
 
 	override fun mayContainHotFloor(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.hotWithin(minX, minY, minZ, maxX, maxY, maxZ)
@@ -266,6 +276,11 @@ class SnapshotSimulationEnvironment internal constructor(
 		return blockIn(x, y, z, sectionAt)?.coarseShape ?: VoxelShapes.empty()
 	}
 
+	private inline fun fallRuleIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): FallRule {
+		if (!bounds.contains(x, y, z)) return FallRule.NORMAL
+		return blockIn(x, y, z, sectionAt)?.fallRule ?: FallRule.NORMAL
+	}
+
 	private inline fun collisionClassIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CollisionClass {
 		if (!bounds.contains(x, y, z)) return CollisionClass.FULL
 		return blockIn(x, y, z, sectionAt)?.collisionClass ?: CollisionClass.EMPTY
@@ -355,6 +370,11 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
+		override fun maySoftLandWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			store.softWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
+		override val maySoftLand: Boolean get() = store.softSections > 0
+
 		override fun cursor(): CoarseVoxelView = SectionCursor(this, ::at)
 
 		override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z, ::at)
@@ -362,6 +382,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShapeIn(x, y, z, ::at)
 
 		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
+
+		override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z, ::at)
 
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
 
@@ -394,11 +416,18 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 			store.bouncyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
+		override fun maySoftLandWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			store.softWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
+		override val maySoftLand: Boolean get() = store.softSections > 0
+
 		override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z, ::at)
 
 		override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShapeIn(x, y, z, ::at)
 
 		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
+
+		override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z, ::at)
 
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
 

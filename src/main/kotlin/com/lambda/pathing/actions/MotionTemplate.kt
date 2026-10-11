@@ -37,6 +37,7 @@ class MotionTemplate internal constructor(
 		val modes: List<LaunchMode> = LaunchMode.entries,
 		val bounceDrop: Int? = null,
 		val riseAdmission: ((Double) -> Boolean)? = null,
+		val momentumOnly: Boolean = false,
 	)
 
 	init {
@@ -150,6 +151,7 @@ class MotionTemplate internal constructor(
 		solution: LaunchSolution,
 		rise: Double,
 	): Boolean {
+		if (arc?.momentumOnly == true) return false
 		val profile = BallisticProfile.VANILLA
 		val runUp = IN_CELL_RUN_UP + if (behind) 1.0 else 0.0
 		fun reach(sprint: Boolean): Double =

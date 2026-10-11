@@ -5,6 +5,7 @@ import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.physics.bounceFactor
+import com.lambda.pathing.physics.fallRule
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.util.BlockUtils.isFenceLike
@@ -89,6 +90,7 @@ object BlockPhysicsCapture {
 				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
 			},
 			hotFloor = state.isOf(Blocks.MAGMA_BLOCK),
+			fallRule = state.fallRule(),
 			exceedsCube = state.exceedsCube(),
 		)
 	}

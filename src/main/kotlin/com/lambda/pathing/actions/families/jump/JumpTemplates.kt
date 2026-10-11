@@ -20,12 +20,14 @@ internal object JumpTemplates {
 		val options = context.options
 		if (!options.allowJumpCandidates) return@buildList
 
-		val reach = options.maxJumpSpan
+		val reach = if (options.allowDeepDropJumps) maxOf(options.maxJumpSpan, WIDE_DROP_SPAN) else options.maxJumpSpan
 		for (rise in -options.maxJumpDrop..LaunchMode.MAX_JUMP_STEP) {
 			for (dx in -reach..reach) {
 				for (dz in -reach..reach) {
 					if (!offered(dx, dz, rise, options)) continue
-					add(spec(dx, dz, rise, context.costs.jumpCandidateCost(hypot(dx, dz), rise)))
+					val wide = maxOf(abs(dx), abs(dz)) > options.maxJumpSpan
+					val cost = context.costs.jumpCandidateCost(hypot(dx, dz), rise) + if (wide) WIDE_DROP_RISK_TICKS else 0.0
+					add(spec(dx, dz, rise, cost, momentumOnly = wide))
 				}
 			}
 		}
@@ -39,6 +41,7 @@ internal object JumpTemplates {
 		if (dx != 0 && dz != 0 && !options.allowDiagonal) return false
 		if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
 
+		if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return rise <= WIDE_DROP_STEP && options.allowDeepDropJumps && wideDrop(dx, dz)
 		val ceiling = when {
 			step -> STEP_JUMP_AIR_GAP_BLOCKS
 			rise < 0 && options.allowDeepDropJumps -> FULL_DROP_AIR_GAP_BLOCKS
@@ -49,6 +52,8 @@ internal object JumpTemplates {
 
 	private fun diagonalStep(dx: Int, dz: Int, rise: Int) = rise < 0 && abs(dx) == 1 && abs(dz) == 1
 
+	private fun wideDrop(dx: Int, dz: Int) = maxOf(abs(dx), abs(dz)) == WIDE_DROP_SPAN && minOf(abs(dx), abs(dz)) <= 1
+
 	private fun airGap(dx: Int, dz: Int): Double = kotlin.math.hypot(
 		(abs(dx) - 1).coerceAtLeast(0).toDouble(),
 		(abs(dz) - 1).coerceAtLeast(0).toDouble(),
@@ -56,7 +61,7 @@ internal object JumpTemplates {
 
 	private fun hypot(dx: Int, dz: Int): Double = kotlin.math.hypot(dx.toDouble(), dz.toDouble())
 
-	private fun spec(dx: Int, dz: Int, rise: Int, cost: Double): TemplateSpec {
+	private fun spec(dx: Int, dz: Int, rise: Int, cost: Double, momentumOnly: Boolean): TemplateSpec {
 		val gap = airGap(dx, dz)
 		return TemplateSpec(
 			dx = dx, dy = rise, dz = dz,
@@ -74,9 +79,12 @@ internal object JumpTemplates {
 						gap <= STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
 						realRise > HALF_DROP_RISE -> false
 						gap <= HALF_DROP_AIR_GAP_BLOCKS + REACH_EPSILON -> true
-						else -> realRise <= FULL_DROP_RISE
+						realRise > FULL_DROP_RISE -> false
+						gap <= FULL_DROP_AIR_GAP_BLOCKS + REACH_EPSILON -> true
+						else -> realRise <= WIDE_DROP_RISE
 					}
 				},
+				momentumOnly = momentumOnly,
 			),
 		)
 	}
@@ -92,6 +100,14 @@ internal object JumpTemplates {
 	private const val HALF_DROP_AIR_GAP_BLOCKS = 4.0
 
 	private val FULL_DROP_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 3.0)
+
+	private const val WIDE_DROP_SPAN = 6
+
+	private const val WIDE_DROP_STEP = -2
+
+	private const val WIDE_DROP_RISE = -1.75
+
+	private const val WIDE_DROP_RISK_TICKS = 24.0
 
 	private const val HALF_DROP_RISE = -0.25
 

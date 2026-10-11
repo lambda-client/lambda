@@ -7,6 +7,7 @@ import net.minecraft.util.math.ChunkSectionPos
 internal class SectionStore private constructor(
 	private val map: Long2ObjectOpenHashMap<ImmutableSnapshotSection>,
 	val bouncySections: Int,
+	val softSections: Int,
 ) {
 	val size: Int get() = map.size
 
@@ -23,6 +24,9 @@ internal class SectionStore private constructor(
 	fun hotWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.hot }
 
+	fun softWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		softSections > 0 && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.soft }
+
 	private inline fun anyWithin(
 		minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int,
 		test: (ImmutableSnapshotSection) -> Boolean,
@@ -36,16 +40,25 @@ internal class SectionStore private constructor(
 	fun with(key: Long, section: ImmutableSnapshotSection): SectionStore {
 		val copy = Long2ObjectOpenHashMap(map)
 		val replaced = copy.put(key, section)
-		return SectionStore(copy, bouncySections - replaced.bouncyCount() + section.bouncyCount())
+		return SectionStore(
+			copy,
+			bouncySections - replaced.bouncyCount() + section.bouncyCount(),
+			softSections - replaced.softCount() + section.softCount(),
+		)
 	}
 
 	fun without(keys: LongCollection): SectionStore {
 		if (keys.isEmpty()) return this
 		val copy = Long2ObjectOpenHashMap(map)
 		var bouncy = bouncySections
+		var soft = softSections
 		val iterator = keys.iterator()
-		while (iterator.hasNext()) bouncy -= copy.remove(iterator.nextLong()).bouncyCount()
-		return SectionStore(copy, bouncy)
+		while (iterator.hasNext()) {
+			val removed = copy.remove(iterator.nextLong())
+			bouncy -= removed.bouncyCount()
+			soft -= removed.softCount()
+		}
+		return SectionStore(copy, bouncy, soft)
 	}
 
 	inline fun forEach(action: (key: Long, section: ImmutableSnapshotSection) -> Unit) {
@@ -60,13 +73,16 @@ internal class SectionStore private constructor(
 	internal fun entries() = map.long2ObjectEntrySet()
 
 	companion object {
-		val EMPTY = SectionStore(Long2ObjectOpenHashMap(), 0)
+		val EMPTY = SectionStore(Long2ObjectOpenHashMap(), 0, 0)
 
 		fun of(sections: Map<Long, ImmutableSnapshotSection>): SectionStore = SectionStore(
 			Long2ObjectOpenHashMap<ImmutableSnapshotSection>(sections.size).also { it.putAll(sections) },
 			sections.values.count { it.bouncy },
+			sections.values.count { it.soft },
 		)
 
 		private fun ImmutableSnapshotSection?.bouncyCount(): Int = if (this?.bouncy == true) 1 else 0
+
+		private fun ImmutableSnapshotSection?.softCount(): Int = if (this?.soft == true) 1 else 0
 	}
 }

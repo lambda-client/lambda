@@ -46,7 +46,8 @@ object DropMovement : Movement {
 		arc = MotionTemplate.ArcSpec(MODES),
 	)
 
-	override fun offersFor(edge: CoarseEdge): Boolean = edge.to.y < edge.from.y && edge.movement !in MovementId.AQUATIC
+	override fun offersFor(edge: CoarseEdge): Boolean =
+		edge.to.y < edge.from.y && edge.movement !in MovementId.AQUATIC && edge.movement != MovementId.FALL
 
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val ideal = context.edge.launch

@@ -2,6 +2,7 @@ package com.lambda.pathing.rollout
 
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import kotlin.math.abs
@@ -24,6 +25,7 @@ internal class RolloutEvaluator(
 	private val allowHorizontalContact: Boolean = false,
 	descentAllowance: Double = 0.0,
 	private val climbing: (Vec3d) -> Boolean,
+	private val landingRule: (MovementSimulationState) -> FallRule = { FallRule.NORMAL },
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
 
@@ -41,7 +43,7 @@ internal class RolloutEvaluator(
 		if (state.onGround) {
 			val rebounded = state.velocity.y > 0.0
 			val fallDistance = apex - state.position.y
-			if (!rebounded && fallDistance > config.maxSafeFallDistance) {
+			if (!rebounded && fallDistance > config.maxSafeFallDistance && fallDistance > config.maxFallOnto(landingRule(state))) {
 				return RolloutVerdict.Failed(TrajectoryDiagnostic.HarmfulFall(index, fallDistance))
 			}
 

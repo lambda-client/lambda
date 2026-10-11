@@ -80,6 +80,17 @@ interface TrajectoryDecision {
 		override val movement: MovementId = MovementId.BOUNCE,
 	) : TrajectoryDecision
 
+	data class Fall(
+		override val step: Stance,
+		val solution: LaunchSolution,
+		val water: Boolean,
+		val plunge: Double,
+		val plungeTicks: Int,
+		override val movement: MovementId = MovementId.FALL,
+	) : TrajectoryDecision {
+		override val leavesGround: Boolean get() = true
+	}
+
 	data class Swim(
 		override val step: Stance,
 		val sprint: Boolean,

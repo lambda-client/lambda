@@ -56,9 +56,11 @@ class BaritoneCacheTest {
 	@Test
 	fun `a remembered wall beyond the captured world bends the coarse route`() {
 		val directory = cacheOf { x, y, z -> if (y <= 63 || x in 60..61 && z < GAP_Z && y <= 70) SOLID else AIR }
-		val captured = SnapshotSimulationEnvironment(BOUNDS, floorSections(0..0, 2..2), defaultBlock = null)
-		val start = Stance(8, 64, 40)
-		val goal = Stance(120, 64, 40)
+		// Start and goal sit beside the gap, so walking round the wall's far end through the unknown south of z = 0
+		// costs more than the gap: the free-space frontier may otherwise take that end legitimately.
+		val captured = SnapshotSimulationEnvironment(BOUNDS, floorSections(0..0, 5..5), defaultBlock = null)
+		val start = Stance(8, 64, 84)
+		val goal = Stance(120, 64, 84)
 
 		val straight = assertNotNull(CoarsePlanningState(captured, SimpleMoveOptions(), start, goal).settledRoute(start)).nodes
 		assertTrue(straight.none { it.z >= GAP_Z }, "without memory the route heads straight for the goal: $straight")

@@ -2,6 +2,7 @@ package com.lambda.pathing.world
 
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.FallRule
 import kotlin.math.floor
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
@@ -158,6 +159,8 @@ interface CoarseVoxelView {
 
 	fun surfaceOffset(x: Int, y: Int, z: Int): Double = (standingSurface(x, y, z) ?: 1.0) - 1.0
 
+	fun fallRule(x: Int, y: Int, z: Int): FallRule = FallRule.NORMAL
+
 	fun cursor(): CoarseVoxelView = this
 
 	val revision: Any? get() = null
@@ -165,6 +168,10 @@ interface CoarseVoxelView {
 	fun mayBounceWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
 
 	val mayBounce: Boolean get() = true
+
+	fun maySoftLandWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
+	val maySoftLand: Boolean get() = true
 
 	fun cellClass(x: Int, y: Int, z: Int): CellClass =
 		if (!isKnown(x, y, z)) CellClass.SPECIAL else CellClass.of(voxel(x, y, z), collisionClass(x, y, z))

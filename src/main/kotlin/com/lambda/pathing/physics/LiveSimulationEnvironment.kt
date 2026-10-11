@@ -63,6 +63,8 @@ class LiveSimulationEnvironment(
 
 	override fun hotFloor(pos: BlockPos): Boolean = world.getBlockState(pos).isOf(Blocks.MAGMA_BLOCK)
 
+	override fun fallRule(pos: BlockPos): FallRule = world.getBlockState(pos).fallRule()
+
 	override fun water(pos: BlockPos): WaterPhysics? = world.getFluidState(pos).takeIf { it.isIn(FluidTags.WATER) }?.let {
 		WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
 	}

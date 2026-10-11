@@ -27,7 +27,7 @@ internal const val MAX_LAUNCH_FRAME = 8
 
 fun DecisionContext.landingRisk(solution: LaunchSolution): Double {
 	if (view.voxel(edge.to.x, edge.to.y - 1, edge.to.z).bouncy) return 0.0
-	val limit = constraints.maxSafeFallDistance
+	val limit = constraints.maxFallOnto(view.fallRule(edge.to.x, edge.to.y - 1, edge.to.z))
 	if (limit <= 0.0) return 1.0
 	val rise = (edge.to.y - edge.from.y).toDouble()
 	val fall = solution.fallDistance(rise)

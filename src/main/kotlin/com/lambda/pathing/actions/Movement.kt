@@ -99,6 +99,8 @@ interface Movement {
 
 	fun templates(context: MovementContext): List<TemplateSpec>
 
+	fun scans(options: SimpleMoveOptions): Boolean = false
+
 	fun decisions(context: DecisionContext): List<TrajectoryDecision> = emptyList()
 
 	fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice =
