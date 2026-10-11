@@ -41,7 +41,7 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 	private fun stoppedCost(template: Int, ticks: Double): Double =
 		if (departsStoppedOnly[template]) ticks else ticks + STARTUP_TICKS
 
-	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList) {
+	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList, settledOnly: Boolean = false) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.MOVING) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.STOPPED), BRAKE_TICKS)
@@ -49,16 +49,18 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 		val x = PackedStance.unpackX(node)
 		val y = PackedStance.unpackY(node)
 		val z = PackedStance.unpackZ(node)
-		edges.forEachEdgeFrom(node) { template, ticks, standingStart ->
+		val visitor = EdgeVisitor { template, ticks, standingStart ->
 			val id = template.id.value
-			if (speed == SpeedClass.MOVING && departsStoppedOnly[id]) return@forEachEdgeFrom
-			if (speed == SpeedClass.STOPPED && !standingStart) return@forEachEdgeFrom
+			if (speed == SpeedClass.MOVING && departsStoppedOnly[id]) return@EdgeVisitor
+			if (speed == SpeedClass.STOPPED && !standingStart) return@EdgeVisitor
 			val cost = when (speed) {
 				SpeedClass.MOVING -> movingCost(ticks)
 				SpeedClass.STOPPED -> stoppedCost(id, ticks)
 			}
 			out.addMin(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]), cost)
 		}
+		if (settledOnly) return edges.forEachSettledEdgeFrom(node, visitor)
+		edges.forEachEdgeFrom(node, visitor)
 		edges.forEachFallFrom(node) { _, fall ->
 			if (speed == SpeedClass.STOPPED && !fall.standingStart) return@forEachFallFrom
 			val ticks = if (speed == SpeedClass.MOVING) movingCost(fall.ticks) else fall.ticks + STARTUP_TICKS

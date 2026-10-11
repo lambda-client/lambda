@@ -8,10 +8,10 @@ import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.Medium
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import java.util.TreeSet
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
@@ -138,7 +138,7 @@ object JumpArcProbe {
 		val head = launchHeight + BODY_HEIGHT
 		val levels = TreeSet<Double>()
 		for (column in region(dx, dz).columns) {
-			forEachCeiling(view, from.x + BlockPos.unpackLongX(column), from.z + BlockPos.unpackLongZ(column), head, reads) { bottom, _ ->
+			forEachCeiling(view, from.x + BlockPos.unpackLongX(column), from.z + BlockPos.unpackLongZ(column), head, reads) { bottom, _, _, _, _ ->
 				levels += quantized(bottom - head)
 			}
 		}
@@ -152,9 +152,9 @@ object JumpArcProbe {
 		var bonked = false
 		forEachColumn(x, z) { cellX, cellZ ->
 			if (BlockPos.asLong(cellX, 0, cellZ) !in region) return@forEachColumn
-			forEachCeiling(view, from.x + cellX, from.z + cellZ, head, reads) { bottom, box ->
-				val over = box == null || cellX + box.maxX > x - BODY_HALF_WIDTH && cellX + box.minX < x + BODY_HALF_WIDTH &&
-					cellZ + box.maxZ > z - BODY_HALF_WIDTH && cellZ + box.minZ < z + BODY_HALF_WIDTH
+			forEachCeiling(view, from.x + cellX, from.z + cellZ, head, reads) { bottom, minX, maxX, minZ, maxZ ->
+				val over = cellX + maxX > x - BODY_HALF_WIDTH && cellX + minX < x + BODY_HALF_WIDTH &&
+					cellZ + maxZ > z - BODY_HALF_WIDTH && cellZ + minZ < z + BODY_HALF_WIDTH
 				if (over && quantized(bottom - head) == solution.headroom) bonked = true
 			}
 		}
@@ -184,15 +184,19 @@ object JumpArcProbe {
 		cellZ: Int,
 		head: Double,
 		reads: LongOpenHashSet?,
-		found: (bottom: Double, box: Box?) -> Unit,
+		found: (bottom: Double, minX: Double, maxX: Double, minZ: Double, maxZ: Double) -> Unit,
 	) {
 		for (cellY in floor(head).toInt()..floor(head + FREE_APEX).toInt()) {
 			reads?.add(BlockPos.asLong(cellX, cellY, cellZ))
 			when (view.collisionClass(cellX, cellY, cellZ)) {
-				CollisionClass.FULL -> if (view.voxel(cellX, cellY, cellZ).medium == Medium.SOLID && cellY >= head && cellY < head + FREE_APEX) found(cellY.toDouble(), null)
-				CollisionClass.PARTIAL -> for (box in view.collisionShape(cellX, cellY, cellZ)?.boundingBoxes.orEmpty()) {
-					val bottom = cellY + box.minY
-					if (bottom >= head && bottom < head + FREE_APEX) found(bottom, box)
+				CollisionClass.FULL -> if (view.voxel(cellX, cellY, cellZ).medium == Medium.SOLID && cellY >= head && cellY < head + FREE_APEX) found(cellY.toDouble(), 0.0, 1.0, 0.0, 1.0)
+				CollisionClass.PARTIAL -> {
+					val boxes = view.collisionBoxes(cellX, cellY, cellZ) ?: continue
+					for (box in 0 until boxes.size / 6) {
+						val b = 6 * box
+						val bottom = cellY + boxes[b + 1]
+						if (bottom >= head && bottom < head + FREE_APEX) found(bottom, boxes[b], boxes[b + 3], boxes[b + 2], boxes[b + 5])
+					}
 				}
 				else -> {}
 			}
@@ -330,24 +334,52 @@ object JumpArcProbe {
 		val unitX = dx / length
 		val unitZ = dz / length
 		val arcs = ArcSweep(view, from, dx, dz, reads)
+		val culprits = DoubleArrayList()
 		for (lateral in LEDGE_LATERALS) {
 			fun feet(holds: Footing.Holds, along: Double) =
-				holds.at(from.x + 0.5 + unitX * along - unitZ * lateral, from.z + 0.5 + unitZ * along + unitX * lateral)
-			val launchFeet = feet(takeoff, 0.0) ?: continue
-			val landingFeet = feet(landing, length) ?: continue
+				holds.heightAt(from.x + 0.5 + unitX * along - unitZ * lateral, from.z + 0.5 + unitZ * along + unitX * lateral)
+			val launchFeet = feet(takeoff, 0.0)
+			if (launchFeet.isNaN()) continue
+			val landingFeet = feet(landing, length)
+			if (landingFeet.isNaN()) continue
 			val rise = landingFeet - launchFeet
 			if (!admits(rise)) continue
 			var near = length
-			while (feet(landing, near - LEDGE_STEP) != null) near -= LEDGE_STEP
+			while (!feet(landing, near - LEDGE_STEP).isNaN()) near -= LEDGE_STEP
 			var far = length
-			while (feet(landing, far + LEDGE_STEP) != null) far += LEDGE_STEP
-			val solutions = LaunchSolver.solve(from, to, modes, rise = rise, landingRange = near..far, launchable = { feet(takeoff, it) != null })
-			for (solution in solutions) {
-				val sweep = arcs.sweep(solution.arc, solution.launchOffset, launchFeet, lateralOffset = lateral, halfWidth = BODY_HALF_WIDTH)
-				if (sweep == Sweep.Clear) return solution.copy(lateralOffset = lateral)
+			while (!feet(landing, far + LEDGE_STEP).isNaN()) far += LEDGE_STEP
+			var launchable = 0
+			for ((index, offset) in LaunchSolver.LAUNCH_OFFSETS.withIndex()) if (!feet(takeoff, offset).isNaN()) launchable = launchable or (1 shl index)
+			if (launchable == 0) continue
+			for (solution in ledgeSolutions(LedgeKey(dx, dz, modes, rise.toRawBits(), near.toRawBits(), far.toRawBits(), launchable))) {
+				val path = ArcPath(
+					from.x + 0.5 + unitX * solution.launchOffset - unitZ * lateral,
+					from.z + 0.5 + unitZ * solution.launchOffset + unitX * lateral,
+					unitX, unitZ,
+				)
+				if (arcs.hitsAny(solution.arc, path, launchFeet, BODY_HALF_WIDTH, culprits)) continue
+				if (arcs.sweep(solution.arc, path, launchFeet, BODY_HALF_WIDTH, culprits) == Sweep.Clear) return solution.copy(lateralOffset = lateral)
 			}
 		}
 		return null
+	}
+
+	private data class LedgeKey(val dx: Int, val dz: Int, val modes: List<LaunchMode>, val riseBits: Long, val nearBits: Long, val farBits: Long, val launchable: Int)
+
+	private val ledgeSolutionCache = ConcurrentHashMap<LedgeKey, List<LaunchSolution>>()
+
+	private fun ledgeSolutions(key: LedgeKey): List<LaunchSolution> {
+		ledgeSolutionCache[key]?.let { return it }
+		if (ledgeSolutionCache.size > SOLUTION_CACHE_LIMIT) ledgeSolutionCache.clear()
+		return ledgeSolutionCache.computeIfAbsent(key) {
+			val origin = Stance(0, 0, 0)
+			LaunchSolver.solve(
+				origin, origin.offset(key.dx, 0, key.dz), key.modes,
+				rise = Double.fromBits(key.riseBits),
+				landingRange = Double.fromBits(key.nearBits)..Double.fromBits(key.farBits),
+				launchable = { offset -> LaunchSolver.LAUNCH_OFFSETS.indexOf(offset).let { it >= 0 && key.launchable and (1 shl it) != 0 } },
+			)
+		}
 	}
 
 	private fun dodge(solution: LaunchSolution, launchHeight: Double, arcs: ArcSweep): LaunchSolution? {
@@ -391,13 +423,23 @@ object JumpArcProbe {
 	}
 
 	private fun buildPlan(arc: ArcSample, path: ArcPath, halfWidth: Double): SweepPlan {
+		val swept = LongOpenHashSet()
+		val intersecting = LongOpenHashSet()
+		forEachSweptCell(arc, path, 0.0, halfWidth) { x, y, z, box ->
+			val key = BlockPos.asLong(x, y, z)
+			swept.add(key)
+			if (box.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)) intersecting.add(key)
+		}
 		val order = LongArrayList()
 		val seen = LongOpenHashSet()
-		val intersecting = LongOpenHashSet()
-		forEachSweptCell(arc, path, 0.0, halfWidth) { x, y, z, swept ->
-			val key = BlockPos.asLong(x, y, z)
-			if (seen.add(key)) order.add(key)
-			if (swept.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)) intersecting.add(key)
+		forEachSweptBox(arc, path, 0.0, halfWidth) { box ->
+			val near = box.expand(APPROACH_REACH)
+			for (y in floor(near.minY).toInt()..floor(near.maxY).toInt()) for (z in floor(near.minZ).toInt()..floor(near.maxZ).toInt()) {
+				for (x in floor(near.minX).toInt()..floor(near.maxX).toInt()) {
+					val key = BlockPos.asLong(x, y, z)
+					if (key in swept && seen.add(key)) order.add(key)
+				}
+			}
 		}
 		val cells = order.toLongArray()
 		return SweepPlan(cells, BooleanArray(cells.size) { cells[it] in intersecting })
@@ -424,5 +466,7 @@ object JumpArcProbe {
 	private val LEDGE_LATERALS = (0..13).flatMap { listOf(it * LEDGE_STEP, -it * LEDGE_STEP) }.distinct()
 
 	private const val CEILING_SAMPLES_PER_BLOCK = 4
+
+	private const val APPROACH_REACH = 0.5
 
 }

@@ -7,6 +7,7 @@ import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CollisionClass
+import com.lambda.pathing.world.flatBoxes
 import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
@@ -31,6 +32,8 @@ data class SnapshotBlockPhysics(
 		if (unsupportedPhysics != null || water != null) VoxelShapes.fullCube() else collisionShape
 
 	val collisionClass: CollisionClass = CollisionClass.of(coarseShape)
+
+	internal val coarseBoxes: DoubleArray = coarseShape.flatBoxes()
 
 	val cellClass: CellClass = if (unsupportedPhysics != null) CellClass.HAZARD else CellClass.of(coarseVoxel, collisionClass)
 

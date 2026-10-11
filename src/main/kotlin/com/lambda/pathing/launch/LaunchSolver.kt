@@ -261,9 +261,9 @@ object LaunchSolver {
 	}
 
 	private fun launchOffsets(mode: LaunchMode): List<Double> =
-		if (mode.drops) DROP_OFFSETS else JUMP_OFFSETS
+		if (mode.drops) DROP_OFFSETS else LAUNCH_OFFSETS
 
-	private val JUMP_OFFSETS = listOf(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.5 + BODY_HALF_WIDTH)
+	internal val LAUNCH_OFFSETS = listOf(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.5 + BODY_HALF_WIDTH)
 
 	private val DROP_OFFSETS = listOf(0.5 + BODY_HALF_WIDTH)
 

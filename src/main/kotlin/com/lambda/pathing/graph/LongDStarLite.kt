@@ -191,7 +191,11 @@ class LongDStarLite(
 				val predecessors = graph.predecessorsInto(nodes.key(node), predecessorScratch)
 				for (i in 0 until predecessors.size) {
 					val predecessor = nodes.slot(predecessors.node(i))
-					if (predecessor != goalSlot) setRhs(predecessor, min(nodes.rhs(predecessor), predecessors.cost(i) + nodeRhs))
+					if (predecessor != goalSlot) {
+						val through = predecessors.cost(i) + nodeRhs
+						if (through < nodes.rhs(predecessor)) nodes.setBest(predecessor, node)
+						setRhs(predecessor, min(nodes.rhs(predecessor), through))
+					}
 					updateVertex(predecessor)
 				}
 			}
@@ -199,7 +203,11 @@ class LongDStarLite(
 			else -> {
 				setG(node, INF)
 				val predecessors = graph.predecessorsInto(nodes.key(node), predecessorScratch)
-				for (i in 0 until predecessors.size) recompute(nodes.slot(predecessors.node(i)))
+				for (i in 0 until predecessors.size) {
+					val predecessor = nodes.slot(predecessors.node(i))
+					val best = nodes.best(predecessor)
+					if (best == node || best == NodeTable.NONE) recompute(predecessor)
+				}
 				if (predecessors.indexOf(nodes.key(node)) < 0) recompute(node)
 			}
 		}
@@ -211,9 +219,7 @@ class LongDStarLite(
 		start = newStart
 		km += checkedHeuristic(previousStart, newStart)
 
-		val slot = nodes.slot(newStart)
-		if (slot != goalSlot) setRhs(slot, minSuccessorCost(slot))
-		updateVertex(slot)
+		recompute(nodes.slot(newStart))
 	}
 
 	fun rekey() {
@@ -265,6 +271,7 @@ class LongDStarLite(
 		val through = cost + nodes.g(target)
 		if (through < nodes.rhs(source)) {
 			setRhs(source, through)
+			nodes.setBest(source, target)
 			updateVertex(source)
 		}
 	}
@@ -277,7 +284,10 @@ class LongDStarLite(
 	}
 
 	private fun recompute(slot: Int) {
-		if (slot != goalSlot) setRhs(slot, minSuccessorCost(slot))
+		if (slot != goalSlot) {
+			setRhs(slot, minSuccessorCost(slot))
+			nodes.setBest(slot, bestSuccessor)
+		}
 		updateVertex(slot)
 	}
 
@@ -458,14 +468,20 @@ class LongDStarLite(
 
 	private fun minSuccessorCost(node: Int): Double = minSuccessorCost(nodes.key(node))
 
+	private var bestSuccessor = NodeTable.NONE
+
 	private fun minSuccessorCost(key: Long): Double {
 		var best = INF
+		bestSuccessor = NodeTable.NONE
 		val successors = graph.successorsInto(key, successorScratch)
 		for (i in 0 until successors.size) {
 			val target = nodes.find(successors.node(i))
 			if (target < 0) continue
 			val candidate = successors.cost(i) + nodes.g(target)
-			if (candidate < best) best = candidate
+			if (candidate < best) {
+				best = candidate
+				bestSuccessor = target
+			}
 		}
 		return best
 	}

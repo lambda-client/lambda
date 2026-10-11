@@ -133,6 +133,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShapeIn(x, y, z) { store[it] }
 
+	override fun collisionBoxes(x: Int, y: Int, z: Int): DoubleArray = collisionBoxesIn(x, y, z) { store[it] }
+
 	override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z) { store[it] }
 
 	override fun slipperiness(pos: BlockPos): Double = blockAt(pos).slipperiness
@@ -276,6 +278,11 @@ class SnapshotSimulationEnvironment internal constructor(
 		return blockIn(x, y, z, sectionAt)?.coarseShape ?: VoxelShapes.empty()
 	}
 
+	private inline fun collisionBoxesIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): DoubleArray {
+		if (!bounds.contains(x, y, z)) return SnapshotBlockPhysics.FULL_CUBE.coarseBoxes
+		return blockIn(x, y, z, sectionAt)?.coarseBoxes ?: SnapshotBlockPhysics.AIR.coarseBoxes
+	}
+
 	private inline fun fallRuleIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): FallRule {
 		if (!bounds.contains(x, y, z)) return FallRule.NORMAL
 		return blockIn(x, y, z, sectionAt)?.fallRule ?: FallRule.NORMAL
@@ -381,6 +388,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShapeIn(x, y, z, ::at)
 
+		override fun collisionBoxes(x: Int, y: Int, z: Int): DoubleArray = collisionBoxesIn(x, y, z, ::at)
+
 		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
 
 		override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z, ::at)
@@ -424,6 +433,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun voxel(x: Int, y: Int, z: Int): CoarseVoxel = voxelIn(x, y, z, ::at)
 
 		override fun collisionShape(x: Int, y: Int, z: Int): VoxelShape = collisionShapeIn(x, y, z, ::at)
+
+		override fun collisionBoxes(x: Int, y: Int, z: Int): DoubleArray = collisionBoxesIn(x, y, z, ::at)
 
 		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
 

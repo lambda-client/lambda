@@ -135,17 +135,17 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		val stances = gate
 		if (stances == 0L) return RowEdges.EMPTY
 		val builder = RowEdges.Builder()
-		for (index in stamped) stampedEdges(builder, index, programs[index]!!, stamp, stances, word, y, z)
-		for (index in unstamped) addEdges(builder, index, 0L, 0L, 0L, stances, word, y, z)
+		for (index in stamped) stampedEdges(builder, index, programs[index]!!, stamp, stances)
+		for (index in unstamped) addEdges(builder, index, 0L, 0L, 0L, stances)
 		return builder.build(moves.groups.rank)
 	}
 
-	private fun stampedEdges(builder: RowEdges.Builder, index: Int, program: Indexed, stamp: LongArray, stances: Long, word: Int, y: Int, z: Int) {
+	private fun stampedEdges(builder: RowEdges.Builder, index: Int, program: Indexed, stamp: LongArray, stances: Long) {
 		val exact = stamp[program.slot] and stances
 		val candidates = program.candidates
 		if (candidates == null) {
 			val edges = stamp[program.slot + 1] and stances
-			return addEdges(builder, index, edges, edges, 0L, exact, word, y, z)
+			return addEdges(builder, index, edges, edges, 0L, exact)
 		}
 		var edges = 0L
 		var standing = 0L
@@ -172,26 +172,11 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 			if (bend.standingStartOn(behind and mask != 0L)) standing = standing or mask
 			builder.irregular(index, bit, bend.ticks)
 		}
-		addEdges(builder, index, edges, standing, irregular, exact, word, y, z)
+		addEdges(builder, index, edges, standing, irregular, exact)
 	}
 
-	private fun addEdges(builder: RowEdges.Builder, index: Int, stampedEdges: Long, stampedStanding: Long, stampedIrregular: Long, exact: Long, word: Int, y: Int, z: Int) {
-		var edges = stampedEdges
-		var standing = stampedStanding
-		var irregular = stampedIrregular
-		val template = moves.templates[index]
-		var pending = exact
-		while (pending != 0L) {
-			val bit = java.lang.Long.numberOfTrailingZeros(pending)
-			pending = pending and (pending - 1)
-			val edge = template.edge(view, Stance((word shl 6) + bit, y, z)) ?: continue
-			val mask = 1L shl bit
-			edges = edges or mask
-			irregular = irregular or mask
-			if (edge.standingStart) standing = standing or mask
-			builder.irregular(index, bit, edge.lowerBoundTicks)
-		}
-		if (edges != 0L) builder.add(index, edges, standing, irregular)
+	private fun addEdges(builder: RowEdges.Builder, index: Int, edges: Long, standing: Long, irregular: Long, exact: Long) {
+		if (edges != 0L || exact != 0L) builder.add(index, edges, standing, irregular, exact)
 	}
 
 	private fun standingMask(candidate: StampProgram.Candidate, behind: Long): Long =

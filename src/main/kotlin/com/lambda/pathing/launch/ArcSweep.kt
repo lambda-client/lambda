@@ -6,6 +6,7 @@ import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Medium
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -91,25 +92,50 @@ internal class ArcSweep(
 		launchHeight, halfWidth,
 	)
 
-	fun sweep(arc: ArcSample, path: ArcPath, launchHeight: Double, halfWidth: Double = CORE_HALF_WIDTH): Sweep {
+	fun sweep(arc: ArcSample, path: ArcPath, launchHeight: Double, halfWidth: Double = CORE_HALF_WIDTH, culprits: DoubleArrayList? = null): Sweep {
 		forEachSweptCell(arc, path, launchHeight, halfWidth) { x, y, z, swept ->
 			reads?.add(BlockPos.asLong(x, y, z))
 			when (view.collisionClass(x, y, z)) {
 				CollisionClass.EMPTY -> {}
-				CollisionClass.UNKNOWN -> return Sweep.Blocked
+				CollisionClass.UNKNOWN -> {
+					culprits?.addBox(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0 + TALL_SHAPE_REACH, z + 1.0)
+					return Sweep.Blocked
+				}
 				CollisionClass.FULL ->
 					if (swept.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)) {
+						culprits?.addBox(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)
 						return Sweep.Clipped(x, z)
 					}
 				CollisionClass.PARTIAL -> {
-					val shape = view.collisionShape(x, y, z) ?: return Sweep.Blocked
-					for (bounds in shape.boundingBoxes) {
-						if (bounds.offset(x.toDouble(), y.toDouble(), z.toDouble()).intersects(swept)) return Sweep.Partial
+					val boxes = view.collisionBoxes(x, y, z) ?: return Sweep.Blocked
+					for (box in 0 until boxes.size / 6) {
+						val b = 6 * box
+						if (swept.intersects(x + boxes[b], y + boxes[b + 1], z + boxes[b + 2], x + boxes[b + 3], y + boxes[b + 4], z + boxes[b + 5])) {
+							culprits?.addBox(x + boxes[b], y + boxes[b + 1], z + boxes[b + 2], x + boxes[b + 3], y + boxes[b + 4], z + boxes[b + 5])
+							return Sweep.Partial
+						}
 					}
 				}
 			}
 		}
 		return if (grips(arc, path, launchHeight)) Sweep.Blocked else Sweep.Clear
+	}
+
+	fun hitsAny(arc: ArcSample, path: ArcPath, launchHeight: Double, halfWidth: Double, culprits: DoubleArrayList): Boolean {
+		if (culprits.isEmpty) return false
+		val boxes = culprits.elements()
+		val count = culprits.size / 6
+		forEachSweptBox(arc, path, launchHeight, halfWidth) { swept ->
+			for (index in 0 until count) {
+				val b = 6 * index
+				if (swept.intersects(boxes[b], boxes[b + 1], boxes[b + 2], boxes[b + 3], boxes[b + 4], boxes[b + 5])) return true
+			}
+		}
+		return false
+	}
+
+	private fun DoubleArrayList.addBox(minX: Double, minY: Double, minZ: Double, maxX: Double, maxY: Double, maxZ: Double) {
+		add(minX); add(minY); add(minZ); add(maxX); add(maxY); add(maxZ)
 	}
 
 	private fun grips(arc: ArcSample, path: ArcPath, launchHeight: Double): Boolean {
@@ -132,6 +158,14 @@ internal inline fun forEachSweptCell(
 	launchHeight: Double,
 	halfWidth: Double,
 	visit: (x: Int, y: Int, z: Int, swept: Box) -> Unit,
+) = forEachSweptBox(arc, path, launchHeight, halfWidth) { swept -> visitSwept(swept, visit) }
+
+internal inline fun forEachSweptBox(
+	arc: ArcSample,
+	path: ArcPath,
+	launchHeight: Double,
+	halfWidth: Double,
+	visit: (swept: Box) -> Unit,
 ) {
 	val heights = arc.heights
 	val distances = arc.distances
@@ -144,11 +178,11 @@ internal inline fun forEachSweptCell(
 		if (previousAlong < path.bendAt && path.bendAt < along) {
 			val bendHeight = previousHeight + (height - previousHeight) * (path.bendAt - previousAlong) / (along - previousAlong)
 			val bend = coreBox(path.x(path.bendAt), launchHeight + bendHeight, path.z(path.bendAt), halfWidth)
-			visitSwept(previous.union(bend), visit)
+			visit(previous.union(bend))
 			previous = bend
 		}
 		val box = coreBox(path.x(along), launchHeight + height, path.z(along), halfWidth)
-		visitSwept(previous.union(box), visit)
+		visit(previous.union(box))
 		previous = box
 		previousAlong = along
 		previousHeight = height
@@ -156,10 +190,9 @@ internal inline fun forEachSweptCell(
 }
 
 internal inline fun visitSwept(swept: Box, visit: (x: Int, y: Int, z: Int, swept: Box) -> Unit) {
-	val margin = swept.expand(SWEEP_MARGIN)
-	for (y in MathHelper.floor(margin.minY)..MathHelper.floor(margin.maxY)) {
-		for (z in MathHelper.floor(margin.minZ)..MathHelper.floor(margin.maxZ)) {
-			for (x in MathHelper.floor(margin.minX)..MathHelper.floor(margin.maxX)) visit(x, y, z, swept)
+	for (y in MathHelper.floor(swept.minY - TALL_SHAPE_REACH) until MathHelper.ceil(swept.maxY)) {
+		for (z in MathHelper.floor(swept.minZ) until MathHelper.ceil(swept.maxZ)) {
+			for (x in MathHelper.floor(swept.minX) until MathHelper.ceil(swept.maxX)) visit(x, y, z, swept)
 		}
 	}
 }
@@ -170,7 +203,7 @@ internal fun coreBox(x: Double, y: Double, z: Double, halfWidth: Double = CORE_H
 )
 
 internal const val CORE_HALF_WIDTH = 0.2
-internal const val SWEEP_MARGIN = 0.5
+internal const val TALL_SHAPE_REACH = 0.5
 internal const val BODY_HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
 internal const val BODY_HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
 internal const val CORNER_CLEARANCE = BODY_HALF_WIDTH + 0.1

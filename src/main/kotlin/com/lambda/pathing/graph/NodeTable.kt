@@ -7,6 +7,7 @@ internal class NodeTable {
 	private var keys = LongArray(INITIAL)
 	private var g = DoubleArray(INITIAL)
 	private var rhs = DoubleArray(INITIAL)
+	private var best = IntArray(INITIAL)
 
 	var size = 0
 		private set
@@ -20,6 +21,7 @@ internal class NodeTable {
 		keys[size] = node
 		g[size] = INF
 		rhs[size] = INF
+		best[size] = NONE
 		index.put(node, size)
 		return size++
 	}
@@ -38,15 +40,23 @@ internal class NodeTable {
 		rhs[slot] = value
 	}
 
+	fun best(slot: Int): Int = best[slot]
+
+	fun setBest(slot: Int, successor: Int) {
+		best[slot] = successor
+	}
+
 	private fun grow() {
 		val capacity = keys.size * 2
 		keys = keys.copyOf(capacity)
 		g = g.copyOf(capacity)
 		rhs = rhs.copyOf(capacity)
+		best = best.copyOf(capacity)
 	}
 
-	private companion object {
-		const val INITIAL = 1024
-		const val INF = Double.POSITIVE_INFINITY
+	companion object {
+		private const val INITIAL = 1024
+		private const val INF = Double.POSITIVE_INFINITY
+		const val NONE = -1
 	}
 }

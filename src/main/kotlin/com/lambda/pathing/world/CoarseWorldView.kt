@@ -37,6 +37,20 @@ enum class CollisionClass {
 	}
 }
 
+fun VoxelShape.flatBoxes(): DoubleArray {
+	val boxes = boundingBoxes
+	val flat = DoubleArray(boxes.size * 6)
+	for ((index, box) in boxes.withIndex()) {
+		flat[6 * index] = box.minX
+		flat[6 * index + 1] = box.minY
+		flat[6 * index + 2] = box.minZ
+		flat[6 * index + 3] = box.maxX
+		flat[6 * index + 4] = box.maxY
+		flat[6 * index + 5] = box.maxZ
+	}
+	return flat
+}
+
 enum class Medium {
 	AIR,
 	CLIMBABLE,
@@ -136,6 +150,8 @@ interface CoarseVoxelView {
 	fun voxel(x: Int, y: Int, z: Int): CoarseVoxel
 
 	fun collisionShape(x: Int, y: Int, z: Int): VoxelShape? = null
+
+	fun collisionBoxes(x: Int, y: Int, z: Int): DoubleArray? = collisionShape(x, y, z)?.flatBoxes()
 
 	fun collisionClass(x: Int, y: Int, z: Int): CollisionClass {
 		val shape = collisionShape(x, y, z) ?: return CollisionClass.UNKNOWN

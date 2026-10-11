@@ -7,12 +7,11 @@ import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
-import it.unimi.dsi.fastutil.HashCommon
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import it.unimi.dsi.fastutil.longs.LongSet
-import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.BlockPos
 
 internal fun interface EdgeVisitor {
 	fun visit(template: MotionTemplate, ticks: Double, standingStart: Boolean)
@@ -40,7 +39,7 @@ internal class CoarseEdgeCache(
 
 	private val targetRows = RowCache(::gather)
 
-	private val gathered = LongArray(moves.templates.size * 3)
+	private val gathered = LongArray(moves.templates.size * 4)
 
 	private val touched = LongArray((moves.templates.size + 63) ushr 6)
 
@@ -51,6 +50,8 @@ internal class CoarseEdgeCache(
 	private val bouncesFrom = Long2ObjectOpenHashMap<StanceEdges>()
 
 	private val bouncesTo = Long2ObjectOpenHashMap<StanceEdges>()
+
+	private val pads = BouncePads(view, bounceTemplates)
 
 	private val falls = if (moves.falls) FallEdges(view, moves, standable) else null
 
@@ -85,11 +86,22 @@ internal class CoarseEdgeCache(
 		val mask = 1L shl bit
 		var count = 0
 		for (index in 0 until row.size) {
+			if (row.pending[index] and mask != 0L) settle(row, index, bit, origin)
 			if (row.edges[index] and mask != 0L) ordered[count++] = (row.templates[index].toLong() shl 32) or index.toLong()
 		}
 		ordered.sort(0, count)
 		for (position in 0 until count) visit(row, ordered[position].toInt(), bit, visitor)
 		if (bounces(origin)) visit(bouncesFrom.get(key) ?: bouncesFrom(origin).also { bouncesFrom.put(key, it) }, visitor)
+	}
+
+	fun forEachSettledEdgeFrom(node: Long, visitor: EdgeVisitor) {
+		val key = PackedStance.stanceKey(node)
+		val origin = PackedStance.stance(key)
+		val row = originRows.peek(origin.x shr 6, origin.y, origin.z) ?: return
+		val bit = origin.x and 63
+		val mask = 1L shl bit
+		for (index in 0 until row.size) if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
+		bouncesFrom.get(key)?.let { visit(it, visitor) }
 	}
 
 	fun forEachEdgeTo(node: Long, visitor: EdgeVisitor) {
@@ -99,6 +111,7 @@ internal class CoarseEdgeCache(
 		val bit = target.x and 63
 		val mask = 1L shl bit
 		for (index in 0 until row.size) {
+			if (row.pending[index] and mask != 0L) settleArrival(row, index, bit, target)
 			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
 		}
 		val key = PackedStance.stanceKey(node)
@@ -125,11 +138,31 @@ internal class CoarseEdgeCache(
 	private fun bounces(stance: Stance): Boolean =
 		bounceTemplates.isNotEmpty() && moves.bouncesAt(view, stance.x, stance.y, stance.z)
 
-	private fun bouncesFrom(origin: Stance): StanceEdges = StanceEdges.of(bounceTemplates) { it.edge(view, origin) }
+	private fun bouncesFrom(origin: Stance): StanceEdges = StanceEdges.of(pads.departures(origin).map { moves.templates[it] }) { it.edge(view, origin) }
 
-	private fun bouncesTo(target: Stance): StanceEdges = StanceEdges.of(bounceTemplates) { template ->
+	private fun bouncesTo(target: Stance): StanceEdges = StanceEdges.of(pads.arrivals(target).map { moves.templates[it] }) { template ->
 		val origin = target.offset(-template.dx, -template.dy, -template.dz)
 		if (standable.isStance(origin)) template.edge(view, origin) else null
+	}
+
+	private fun settle(row: RowEdges, index: Int, bit: Int, origin: Stance) {
+		val edge = moves.templates[row.templates[index]].edge(view, origin)
+		row.resolve(index, bit, edge != null, edge?.standingStart == true, edge?.lowerBoundTicks ?: Double.NaN)
+	}
+
+	private fun settleArrival(row: RowEdges, index: Int, bit: Int, target: Stance) {
+		val template = row.templates[index]
+		val motion = moves.templates[template]
+		val origin = target.offset(-motion.dx, -motion.dy, -motion.dz)
+		val origins = row(originRows, origin.x shr 6, origin.y, origin.z)
+		val position = origins.indexOf(template, moves.groups.rank)
+		if (position < 0) return row.resolve(index, bit, false, false, Double.NaN)
+		val originBit = origin.x and 63
+		val originMask = 1L shl originBit
+		if (origins.pending[position] and originMask != 0L) settle(origins, position, originBit, origin)
+		val found = origins.edges[position] and originMask != 0L
+		val ticks = if (found && origins.irregular[position] and originMask != 0L) origins.ticksOf(template, originBit) else Double.NaN
+		row.resolve(index, bit, found, origins.standing[position] and originMask != 0L, ticks)
 	}
 
 	private fun visit(edges: StanceEdges, visitor: EdgeVisitor) {
@@ -158,6 +191,7 @@ internal class CoarseEdgeCache(
 
 	private fun gather(word: Int, y: Int, z: Int): RowEdges {
 		val groups = moves.groups
+		val builder = RowEdges.Builder()
 		val base = word shl 6
 		for (group in 0 until groups.size) {
 			val originY = y - groups.dy[group]
@@ -169,42 +203,36 @@ internal class CoarseEdgeCache(
 					val template = origin.templates[index]
 					val shift = ((originWord - word) shl 6) + moves.templates[template].dx
 					val edges = shifted(origin.edges[index], shift)
-					if (edges != 0L) {
-						if (gathered[template * 3] == 0L) touched[template ushr 6] = touched[template ushr 6] or (1L shl template)
-						gathered[template * 3] = gathered[template * 3] or edges
-						gathered[template * 3 + 1] = gathered[template * 3 + 1] or shifted(origin.standing[index], shift)
-						gathered[template * 3 + 2] = gathered[template * 3 + 2] or shifted(origin.irregular[index], shift)
+					val pending = shifted(origin.pending[index], shift)
+					if (edges != 0L || pending != 0L) {
+						touched[template ushr 6] = touched[template ushr 6] or (1L shl template)
+						val irregular = shifted(origin.irregular[index], shift)
+						gathered[template * 4] = gathered[template * 4] or edges
+						gathered[template * 4 + 1] = gathered[template * 4 + 1] or shifted(origin.standing[index], shift)
+						gathered[template * 4 + 2] = gathered[template * 4 + 2] or irregular
+						gathered[template * 4 + 3] = gathered[template * 4 + 3] or pending
+						var bits = irregular
+						while (bits != 0L) {
+							val bit = java.lang.Long.numberOfTrailingZeros(bits)
+							bits = bits and (bits - 1)
+							builder.irregular(template, bit, origin.ticksOf(template, bit - shift))
+						}
 					}
 					index++
 				}
 			}
 		}
-		val builder = RowEdges.Builder()
 		for (chunk in touched.indices) {
 			var bits = touched[chunk]
 			touched[chunk] = 0L
 			while (bits != 0L) {
 				val template = (chunk shl 6) + java.lang.Long.numberOfTrailingZeros(bits)
 				bits = bits and (bits - 1)
-				val irregular = gathered[template * 3 + 2]
-				builder.add(template, gathered[template * 3], gathered[template * 3 + 1], irregular)
-				if (irregular != 0L) ticksInto(builder, template, irregular, word, y, z)
-				gathered.fill(0L, template * 3, template * 3 + 3)
+				builder.add(template, gathered[template * 4], gathered[template * 4 + 1], gathered[template * 4 + 2], gathered[template * 4 + 3])
+				gathered.fill(0L, template * 4, template * 4 + 4)
 			}
 		}
 		return builder.build()
-	}
-
-	private fun ticksInto(builder: RowEdges.Builder, template: Int, irregular: Long, word: Int, y: Int, z: Int) {
-		val motion = moves.templates[template]
-		var bits = irregular
-		while (bits != 0L) {
-			val bit = java.lang.Long.numberOfTrailingZeros(bits)
-			bits = bits and (bits - 1)
-			val originX = (word shl 6) + bit - motion.dx
-			val origin = originRows[originX shr 6, y - motion.dy, z - motion.dz]
-			builder.irregular(template, bit, origin.ticksOf(template, originX and 63))
-		}
 	}
 
 	fun invalidateStances(stances: Iterable<Stance>) {
@@ -220,6 +248,7 @@ internal class CoarseEdgeCache(
 		targetRows.clear()
 		bouncesFrom.clear()
 		bouncesTo.clear()
+		pads.clear()
 		falls?.clear()
 	}
 
@@ -237,6 +266,7 @@ internal class CoarseEdgeCache(
 		targetRows.remove(targets)
 		remove(bouncesFrom.keys, origins, kept)
 		remove(bouncesTo.keys, targets)
+		pads.clear()
 		falls?.clear()
 	}
 
@@ -263,62 +293,44 @@ internal class CoarseEdgeCache(
 	}
 
 	private class RowCache(private val build: (Int, Int, Int) -> RowEdges) {
-		private val blocks = Long2ObjectLinkedOpenHashMap<Array<RowEdges?>>()
-		private val slotKeys = LongArray(SLOTS)
-		private val slotBlocks = arrayOfNulls<Array<RowEdges?>>(SLOTS)
+		private val rows = Long2ObjectLinkedOpenHashMap<RowEdges>()
+		private var bytes = 0L
 
 		operator fun get(word: Int, y: Int, z: Int): RowEdges {
-			val block = block(word, y shr 4, z shr 4)
-			val index = ((y and 15) shl 4) or (z and 15)
-			return block[index] ?: build(word, y, z).also { block[index] = it }
+			val key = BlockPos.asLong(word, y, z)
+			rows.getAndMoveToLast(key)?.let { return it }
+			val row = build(word, y, z)
+			rows.putAndMoveToLast(key, row)
+			bytes += row.bytes
+			while (bytes > BUDGET_BYTES && rows.size > 1) bytes -= rows.removeFirst().bytes
+			return row
 		}
 
-		private fun block(word: Int, sectionY: Int, sectionZ: Int): Array<RowEdges?> {
-			val key = ChunkSectionPos.asLong(word, sectionY, sectionZ)
-			val slot = (HashCommon.mix(key) and (SLOTS - 1).toLong()).toInt()
-			val cached = slotBlocks[slot]
-			if (cached != null && slotKeys[slot] == key) return cached
-			val block = blocks.getAndMoveToLast(key) ?: arrayOfNulls<RowEdges>(ROWS).also {
-				if (blocks.size >= CAPACITY) evictEldest()
-				blocks.putAndMoveToLast(key, it)
-			}
-			slotKeys[slot] = key
-			slotBlocks[slot] = block
-			return block
-		}
-
-		private fun evictEldest() {
-			val key = blocks.firstLongKey()
-			blocks.removeFirst()
-			val slot = (HashCommon.mix(key) and (SLOTS - 1).toLong()).toInt()
-			if (slotKeys[slot] == key) slotBlocks[slot] = null
-		}
+		fun peek(word: Int, y: Int, z: Int): RowEdges? = rows.get(BlockPos.asLong(word, y, z))
 
 		fun clear() {
-			blocks.clear()
-			slotBlocks.fill(null)
+			rows.clear()
+			bytes = 0L
 		}
 
 		fun remove(boxes: List<CellBox>) {
-			for (entry in blocks.long2ObjectEntrySet()) {
-				val minX = ChunkSectionPos.unpackX(entry.longKey) shl 6
-				val minY = ChunkSectionPos.unpackY(entry.longKey) shl 4
-				val minZ = ChunkSectionPos.unpackZ(entry.longKey) shl 4
-				for (box in boxes) {
-					if (!box.overlaps(minX, minY, minZ, minX + 63, minY + 15, minZ + 15)) continue
-					for (y in maxOf(box.ys.first, minY)..minOf(box.ys.last, minY + 15)) {
-						for (z in maxOf(box.zs.first, minZ)..minOf(box.zs.last, minZ + 15)) entry.value[((y and 15) shl 4) or (z and 15)] = null
-					}
-				}
+			val iterator = rows.long2ObjectEntrySet().fastIterator()
+			while (iterator.hasNext()) {
+				val entry = iterator.next()
+				val minX = BlockPos.unpackLongX(entry.longKey) shl 6
+				val y = BlockPos.unpackLongY(entry.longKey)
+				val z = BlockPos.unpackLongZ(entry.longKey)
+				if (boxes.none { it.overlaps(minX, y, z, minX + 63, y, z) }) continue
+				bytes -= entry.value.bytes
+				iterator.remove()
 			}
 		}
 
 		private companion object {
-			const val ROWS = 256
-			const val SLOTS = 1_024
-			const val CAPACITY = 1 shl 8
+			const val BUDGET_BYTES = 128L shl 20
 		}
 	}
+
 
 	companion object {
 		private const val CACHED_EDGE_LISTS = 1 shl 10

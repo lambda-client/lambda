@@ -104,7 +104,7 @@ class CoarsePlanner(
 	fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
 		val merged = HashMap<Stance, Double>()
 		for (speed in SpeedClass.entries) {
-			val edges = EdgeList().also { momentum.successors(edgeCache, PackedStance.pack(node, speed), it) }
+			val edges = EdgeList().also { momentum.successors(edgeCache, PackedStance.pack(node, speed), it, settledOnly = true) }
 			for (i in 0 until edges.size) {
 				val successor = edges.node(i)
 				val stance = PackedStance.stance(successor)

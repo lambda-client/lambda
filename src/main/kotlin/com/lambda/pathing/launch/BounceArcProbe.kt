@@ -25,6 +25,25 @@ object BounceArcProbe {
 		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, reads).solve() }
 	}
 
+	fun padColumns(dx: Int, dz: Int): List<Pair<Int, Int>> {
+		val length = hypot(dx.toDouble(), dz.toDouble())
+		if (length <= 0.0) return emptyList()
+		val columns = ArrayList<Pair<Int, Int>>()
+		var along = 1.0
+		while (along < length + 0.5) {
+			columns += floor(0.5 + dx / length * along).toInt() to floor(0.5 + dz / length * along).toInt()
+			along += 1.0
+		}
+		return columns
+	}
+
+	fun isPad(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
+		val pad = view.voxel(x, y, z)
+		if (pad.bouncy) return true
+		val surface = pad.standingSurface
+		return surface != null && surface <= THIN_COVER_SURFACE && view.voxel(x, y - 1, z).bouncy
+	}
+
 	private class BounceLine(
 		private val view: CoarseVoxelView,
 		private val from: Stance,
@@ -173,14 +192,15 @@ object BounceArcProbe {
 			val direct = view.voxel(from.x, from.y - 1, from.z).standingSurface != null
 			val supportY = if (direct) from.y - 1 else from.y - 2
 			reads?.add(BlockPos.asLong(from.x, supportY, from.z))
-			val shape = view.collisionShape(from.x, supportY, from.z)
+			val boxes = view.collisionBoxes(from.x, supportY, from.z)
 				?: return BounceSolver.LAUNCH_OFFSET
 			val surfaceLocal = launchHeight - supportY
 			var extent = Double.NEGATIVE_INFINITY
-			for (box in shape.boundingBoxes) {
-				if (box.maxY < surfaceLocal - SUPPORT_SURFACE_EPSILON) continue
-				val alongX = maxOf((box.minX - 0.5) * unitX, (box.maxX - 0.5) * unitX)
-				val alongZ = maxOf((box.minZ - 0.5) * unitZ, (box.maxZ - 0.5) * unitZ)
+			for (box in 0 until boxes.size / 6) {
+				val b = 6 * box
+				if (boxes[b + 4] < surfaceLocal - SUPPORT_SURFACE_EPSILON) continue
+				val alongX = maxOf((boxes[b] - 0.5) * unitX, (boxes[b + 3] - 0.5) * unitX)
+				val alongZ = maxOf((boxes[b + 2] - 0.5) * unitZ, (boxes[b + 5] - 0.5) * unitZ)
 				extent = maxOf(extent, alongX + alongZ)
 			}
 			if (extent == Double.NEGATIVE_INFINITY) return BounceSolver.LAUNCH_OFFSET
