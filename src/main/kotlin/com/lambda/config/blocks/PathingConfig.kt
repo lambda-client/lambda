@@ -68,7 +68,7 @@ interface PathingConfig {
     val maxJumpDrop: Int
 
     /**
-     * Whether jumps that land off the eight compass rays are offered.
+     * Whether jumps that land off the eight compass rays, and slime bounces at any heading, are offered.
      *
      * Three across and one to the side is an unremarkable gap in anything built by hand, and
      * it has no cardinal or diagonal template. Roughly doubles the graph's fan-out on open

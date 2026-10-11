@@ -51,7 +51,7 @@ internal class CoarseEdgeCache(
 
 	private val bouncesTo = Long2ObjectOpenHashMap<StanceEdges>()
 
-	private val pads = BouncePads(view, bounceTemplates)
+	private val pads = BouncePads(view, moves.bounceIndex)
 
 	private val falls = if (moves.falls) FallEdges(view, moves, standable) else null
 

@@ -7,7 +7,6 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Footing
 import kotlin.math.abs
@@ -19,34 +18,23 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	private val bounceReach = templates.maxOfOrNull { if (it.bounceDrop == null) 0 else 2 * maxOf(abs(it.dx), abs(it.dz)) + 1 } ?: 0
 	private val bounceDepth = templates.maxOfOrNull { it.bounceDrop?.plus(2) ?: 0 } ?: 0
 	internal val groups = TemplateGroups(templates)
-	private val readOffsets: Set<VoxelPos> = templates.flatMapTo(HashSet()) { it.readOffsets }
+	internal val bounceIndex by lazy(LazyThreadSafetyMode.PUBLICATION) { BounceIndex(templates.filter { it.movement == MovementId.BOUNCE }) }
 	private val heuristicCaps = HeuristicCaps.of(templates)
 	val sustainedTicksPerBlock: Double = sustainedRate(templates)
 
-	private val minReadX = readOffsets.minOf(VoxelPos::x)
-	private val maxReadX = readOffsets.maxOf(VoxelPos::x)
-	private val minReadZ = readOffsets.minOf(VoxelPos::z)
-	private val maxReadZ = readOffsets.maxOf(VoxelPos::z)
-	private val minReadY = minOf(readOffsets.minOf(VoxelPos::y), -1)
-	private val maxReadY = maxOf(readOffsets.maxOf(VoxelPos::y), 1)
+	private val minReadX = templates.minOf { it.readBounds[0] }
+	private val maxReadX = templates.maxOf { it.readBounds[3] }
+	private val minReadZ = templates.minOf { it.readBounds[2] }
+	private val maxReadZ = templates.maxOf { it.readBounds[5] }
+	private val minReadY = minOf(templates.minOf { it.readBounds[1] }, -1)
+	private val maxReadY = maxOf(templates.maxOf { it.readBounds[4] }, 1)
 
-	private val targetReadOffsets: Set<VoxelPos> = buildSet {
-		for (template in templates) {
-			for ((x, y, z) in template.readOffsets) {
-				add(VoxelPos(template.dx - x, template.dy - y, template.dz - z))
-			}
-		}
-		add(VoxelPos(0, -1, 0))
-		add(VoxelPos(0, 0, 0))
-		add(VoxelPos(0, 1, 0))
-	}
-
-	private val minTargetX = targetReadOffsets.minOf(VoxelPos::x)
-	private val maxTargetX = targetReadOffsets.maxOf(VoxelPos::x)
-	private val minTargetY = targetReadOffsets.minOf(VoxelPos::y)
-	private val maxTargetY = targetReadOffsets.maxOf(VoxelPos::y)
-	private val minTargetZ = targetReadOffsets.minOf(VoxelPos::z)
-	private val maxTargetZ = targetReadOffsets.maxOf(VoxelPos::z)
+	private val minTargetX = minOf(templates.minOf { it.dx - it.readBounds[3] }, 0)
+	private val maxTargetX = maxOf(templates.maxOf { it.dx - it.readBounds[0] }, 0)
+	private val minTargetY = minOf(templates.minOf { it.dy - it.readBounds[4] }, -1)
+	private val maxTargetY = maxOf(templates.maxOf { it.dy - it.readBounds[1] }, 1)
+	private val minTargetZ = minOf(templates.minOf { it.dz - it.readBounds[5] }, 0)
+	private val maxTargetZ = maxOf(templates.maxOf { it.dz - it.readBounds[2] }, 0)
 
 	fun readsUnknown(view: CoarseVoxelView, origin: Stance): Boolean {
 		val x0 = origin.x + minReadX

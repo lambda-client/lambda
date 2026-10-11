@@ -21,7 +21,19 @@ import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
+import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import minecraft.MinecraftBootstrap
+import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
+import net.minecraft.block.ShapeContext
+import net.minecraft.block.SlabBlock
+import net.minecraft.block.WallBlock
+import net.minecraft.block.entity.BlockEntity
+import net.minecraft.block.enums.SlabType
+import net.minecraft.block.enums.WallShape
+import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
+import net.minecraft.world.BlockView
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -348,6 +360,56 @@ class SlimeBounceRouteTest {
             SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks,
         )
         certifyArrival(environment, goal = Stance(0, 9, 8), start = Stance(0, 10, 0))
+    }
+
+    /**
+     * The cylonemc gazebo (dump plan-1791738884955, mirrored in z): from a ledge, six down onto a two by two
+     * slime pad in a stone floor and up onto the roof through the gap between two wall posts in its railing,
+     * eight on and five across. No compass ray from the ledge crosses the pad and threads the gap, so the
+     * bounce has to be offered off the eight directions.
+     */
+    @Test
+    fun `an off-axis bounce threads a railing gap and is certified end to end`() {
+        MinecraftBootstrap.ensure()
+        val stone = Blocks.STONE.defaultState
+        val states = HashMap<BlockPos, BlockState>()
+        states[BlockPos(0, 9, 0)] = stone
+        for (x in -2..10) for (z in 1..7) states[BlockPos(x, 3, z)] = stone
+        for (x in 3..4) for (z in 4..5) states[BlockPos(x, 3, z)] = Blocks.SLIME_BLOCK.defaultState
+        for (x in -2..9) for (z in 8..12) states[BlockPos(x, 7, z)] = stone
+        for (x in listOf(0, 2, 4, 6, 8)) for (y in 4..6) states[BlockPos(x, y, 8)] = Blocks.OAK_FENCE.defaultState
+        val double = Blocks.OAK_SLAB.defaultState.with(SlabBlock.TYPE, SlabType.DOUBLE)
+        val bottom = Blocks.OAK_SLAB.defaultState
+        val wall = Blocks.COBBLESTONE_WALL.defaultState.with(WallBlock.UP, true)
+        for (x in -2..0) states[BlockPos(x, 8, 8)] = stone
+        states[BlockPos(1, 8, 8)] = double
+        states[BlockPos(2, 8, 8)] = bottom
+        states[BlockPos(3, 8, 8)] = double
+        states[BlockPos(4, 8, 8)] = wall.with(WallBlock.WEST_WALL_SHAPE, WallShape.LOW)
+        states[BlockPos(6, 8, 8)] = wall.with(WallBlock.EAST_WALL_SHAPE, WallShape.LOW)
+        states[BlockPos(7, 8, 8)] = double
+        states[BlockPos(8, 8, 8)] = bottom
+        states[BlockPos(9, 8, 8)] = double
+        states[BlockPos(3, 9, 8)] = wall
+        states[BlockPos(7, 9, 8)] = wall
+        val view = object : BlockView {
+            override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState
+            override fun getFluidState(pos: BlockPos): FluidState = getBlockState(pos).fluidState
+            override fun getBlockEntity(pos: BlockPos): BlockEntity? = null
+            override fun getHeight(): Int = 384
+            override fun getBottomY(): Int = -64
+        }
+        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16),
+            states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+        )
+        val compassOnly = CoarsePlanner(
+            environment, moveLibrary(SimpleMoveOptions(allowSlimeBounces = true, allowOffAxisJumps = false)), Stance(0, 10, 0), Stance(5, 8, 9),
+        )
+        compassOnly.repair()
+        assertNull(compassOnly.routePlan(0L), "no compass ray crosses the pad and the gap")
+        certifyArrival(environment, goal = Stance(5, 8, 9))
     }
 
     /** The six-cell pit (drop 4, span 7): beyond every walk-off window, jump range. */

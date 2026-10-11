@@ -17,7 +17,7 @@ internal class CoarsePlanningState(
 	val goal: Stance,
 	private val memory: RememberedTerrain? = null,
 ) {
-	private val moves = SimpleMoveLibrary.build(costs = DEFAULT_MOVE_COSTS, options = moveOptions)
+	private val moves = libraryFor(moveOptions)
 
 	var planner = CoarsePlanner(view, moves, start, goal)
 		private set
@@ -56,5 +56,15 @@ internal class CoarsePlanningState(
 
 	private companion object {
 		const val MEMORY_LOOKAHEAD_BLOCKS = 640
+
+		const val CACHED_LIBRARIES = 4
+
+		val libraries = object : LinkedHashMap<SimpleMoveOptions, SimpleMoveLibrary>(CACHED_LIBRARIES, 0.75f, true) {
+			override fun removeEldestEntry(eldest: MutableMap.MutableEntry<SimpleMoveOptions, SimpleMoveLibrary>): Boolean = size > CACHED_LIBRARIES
+		}
+
+		fun libraryFor(options: SimpleMoveOptions): SimpleMoveLibrary = synchronized(libraries) {
+			libraries.getOrPut(options) { SimpleMoveLibrary.build(costs = DEFAULT_MOVE_COSTS, options = options) }
+		}
 	}
 }

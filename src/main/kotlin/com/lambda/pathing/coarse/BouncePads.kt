@@ -11,8 +11,8 @@ import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 
-internal class BouncePads(private val view: CoarseVoxelView, templates: List<MotionTemplate>) {
-	private class Index(templates: List<MotionTemplate>, relative: (MotionTemplate, Int, Int, Int) -> Long) {
+internal class BounceIndex(templates: List<MotionTemplate>) {
+	class Lookup(templates: List<MotionTemplate>, relative: (MotionTemplate, Int, Int, Int) -> Long) {
 		private val byPad = Long2ObjectOpenHashMap<IntArray>()
 		val min = IntArray(3) { Int.MAX_VALUE }
 		val max = IntArray(3) { Int.MIN_VALUE }
@@ -38,19 +38,21 @@ internal class BouncePads(private val view: CoarseVoxelView, templates: List<Mot
 		operator fun get(x: Int, y: Int, z: Int): IntArray? = byPad.get(BlockPos.asLong(x, y, z))
 	}
 
-	private val arrivals = Index(templates) { template, x, y, z -> BlockPos.asLong(x - template.dx, y - template.dy, z - template.dz) }
+	val arrivals = Lookup(templates) { template, x, y, z -> BlockPos.asLong(x - template.dx, y - template.dy, z - template.dz) }
 
-	private val departures = Index(templates) { _, x, y, z -> BlockPos.asLong(x, y, z) }
+	val departures = Lookup(templates) { _, x, y, z -> BlockPos.asLong(x, y, z) }
+}
 
+internal class BouncePads(private val view: CoarseVoxelView, private val index: BounceIndex) {
 	private val sections = Long2ObjectOpenHashMap<LongArray>()
 
-	fun arrivals(target: Stance): IntArray = candidates(target, arrivals)
+	fun arrivals(target: Stance): IntArray = candidates(target, index.arrivals)
 
-	fun departures(origin: Stance): IntArray = candidates(origin, departures)
+	fun departures(origin: Stance): IntArray = candidates(origin, index.departures)
 
 	fun clear() = sections.clear()
 
-	private fun candidates(at: Stance, index: Index): IntArray {
+	private fun candidates(at: Stance, index: BounceIndex.Lookup): IntArray {
 		if (index.min[0] > index.max[0]) return EMPTY
 		var found: IntAVLTreeSet? = null
 		val minX = at.x + index.min[0]

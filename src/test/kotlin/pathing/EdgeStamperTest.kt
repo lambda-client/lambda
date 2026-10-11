@@ -201,7 +201,7 @@ class EdgeStamperTest {
 		val NO_ARC = ArcSample(DoubleArray(0), DoubleArray(0), 0.0)
 
 		val FIELD_OPTIONS = SimpleMoveOptions(
-			maxJumpDrop = 2, maxJumpSpan = 3, allowClimbing = true, allowSlimeBounces = true, allowDeepDropJumps = true,
+			maxJumpDrop = 2, maxJumpSpan = 3, allowClimbing = true, allowSlimeBounces = true, maxBounceDrop = 5, allowDeepDropJumps = true,
 		)
 	}
 }

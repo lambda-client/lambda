@@ -82,8 +82,8 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     override val allowOffAxisJumps by c.setting(
         "Off-Axis Jumps", true,
         "Offer jumps that land off the eight compass directions -- three across and one to " +
-            "the side, which has no cardinal or diagonal template. Roughly doubles the " +
-            "graph's fan-out on open ground.",
+            "the side, which has no cardinal or diagonal template -- and slime bounces at any " +
+            "heading. Roughly doubles the graph's fan-out on open ground.",
     ) { allowJumpCandidates }
 
     @Group(MOVES_GROUP)

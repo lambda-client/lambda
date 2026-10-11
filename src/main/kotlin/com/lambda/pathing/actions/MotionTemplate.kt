@@ -215,6 +215,27 @@ class MotionTemplate internal constructor(
 		)
 	}
 
+	internal val readBounds: IntArray by lazy(LazyThreadSafetyMode.PUBLICATION) {
+		val bounds = intArrayOf(0, -1, 0, 0, 1, 0)
+		fun include(x: Int, y: Int, z: Int) {
+			bounds[0] = minOf(bounds[0], x)
+			bounds[1] = minOf(bounds[1], y)
+			bounds[2] = minOf(bounds[2], z)
+			bounds[3] = maxOf(bounds[3], x)
+			bounds[4] = maxOf(bounds[4], y)
+			bounds[5] = maxOf(bounds[5], z)
+		}
+		conditions.forEach { condition ->
+			condition.reads().forEach { include(it.x, it.y, it.z) }
+			condition.neighborReads().forEach { include(it.x, it.y, it.z) }
+		}
+		arc?.let { spec ->
+			include(minOf(0, dx) - 1, minOf(dy, -(spec.bounceDrop ?: 0), 0) - 2, minOf(0, dz) - 1)
+			include(maxOf(0, dx) + 1, ARC_READ_CEILING, maxOf(0, dz) + 1)
+		}
+		bounds
+	}
+
 	internal val readOffsets: List<VoxelPos> by lazy(LazyThreadSafetyMode.PUBLICATION) {
 		buildList {
 			addAll(ORIGIN_STANCE_READS)

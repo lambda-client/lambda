@@ -33,8 +33,19 @@ object SlimeBounceMovement : Movement {
 					for (span in 1..MAX_SPAN) {
 						val distance = span * perStep
 						if (distance !in window) continue
-						add(spec(dx, dz, span, drop, rise, context))
+						add(spec(span * dx, span * dz, drop, rise, context))
 					}
+				}
+			}
+		}
+		if (!options.allowOffAxisJumps) return@buildList
+		for (drop in MIN_DROP..options.maxBounceDrop) {
+			for (rise in -(drop - 1)..MAX_RISE) {
+				val window = BounceSolver.reach(drop, rise) ?: continue
+				for (dx in -MAX_SPAN..MAX_SPAN) for (dz in -MAX_SPAN..MAX_SPAN) {
+					if (dx == 0 || dz == 0 || abs(dx) == abs(dz)) continue
+					if (hypot(dx.toDouble(), dz.toDouble()) !in window) continue
+					add(spec(dx, dz, drop, rise, context))
 				}
 			}
 		}
@@ -43,17 +54,16 @@ object SlimeBounceMovement : Movement {
 	private fun spec(
 		dx: Int,
 		dz: Int,
-		span: Int,
 		drop: Int,
 		rise: Int,
 		context: MovementContext,
 	) = TemplateSpec(
-		dx = span * dx,
+		dx = dx,
 		dy = rise,
-		dz = span * dz,
+		dz = dz,
 		movement = id,
 		cost = context.costs.bounceCost(drop, rise),
-		conditions = StanceRules.stanceConditions(span * dx, rise, span * dz),
+		conditions = StanceRules.stanceConditions(dx, rise, dz),
 		departure = CellPredicate.LAUNCHABLE,
 		arc = MotionTemplate.ArcSpec(bounceDrop = drop),
 	)
