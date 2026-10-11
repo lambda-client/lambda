@@ -176,7 +176,7 @@ internal class Publisher(
 			val state = tail.last().state
 			link = ValueAnchor(
 				state = state,
-				stance = stanceOf(state),
+				stance = heldStanceOf(field.view, state),
 				elapsed = until,
 				collisionEvents = collisionEvents,
 				inputSwitches = parent.inputSwitches,

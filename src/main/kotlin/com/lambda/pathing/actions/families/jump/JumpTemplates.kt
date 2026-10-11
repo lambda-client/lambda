@@ -21,7 +21,7 @@ internal object JumpTemplates {
 		if (!options.allowJumpCandidates) return@buildList
 
 		val reach = options.maxJumpSpan
-		for (rise in -options.maxJumpDrop..LaunchMode.MAX_JUMP_RISE) {
+		for (rise in -options.maxJumpDrop..LaunchMode.MAX_JUMP_STEP) {
 			for (dx in -reach..reach) {
 				for (dz in -reach..reach) {
 					if (!offered(dx, dz, rise, options)) continue
@@ -33,12 +33,17 @@ internal object JumpTemplates {
 
 	private fun offered(dx: Int, dz: Int, rise: Int, options: SimpleMoveOptions): Boolean {
 		val distance = hypot(dx, dz)
-		if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE && !diagonalStep(dx, dz, rise)) return false
+		val step = rise == LaunchMode.MAX_JUMP_STEP
+		if (dx == 0 && dz == 0) return false
+		if (distance < CoarseMoveRates.MIN_JUMP_DISTANCE && !step && !diagonalStep(dx, dz, rise)) return false
 		if (dx != 0 && dz != 0 && !options.allowDiagonal) return false
 		if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) return false
 
-		val ceiling = if (rise < 0 && options.allowDeepDropJumps) FULL_DROP_AIR_GAP_BLOCKS
-		else STANDING_AIR_GAP_BLOCKS
+		val ceiling = when {
+			step -> STEP_JUMP_AIR_GAP_BLOCKS
+			rise < 0 && options.allowDeepDropJumps -> FULL_DROP_AIR_GAP_BLOCKS
+			else -> STANDING_AIR_GAP_BLOCKS
+		}
 		return airGap(dx, dz) <= ceiling + REACH_EPSILON
 	}
 
@@ -63,6 +68,7 @@ internal object JumpTemplates {
 				MODES,
 				riseAdmission = { realRise ->
 					when {
+						realRise > LaunchMode.MAX_JUMP_RISE -> false
 						gap <= RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
 						realRise > NEAR_FLAT_RISE -> false
 						gap <= STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
@@ -80,6 +86,8 @@ internal object JumpTemplates {
 	private val STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 1.0)
 
 	private val RISING_STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(2.0, 2.0)
+
+	private const val STEP_JUMP_AIR_GAP_BLOCKS = 1.0
 
 	private const val HALF_DROP_AIR_GAP_BLOCKS = 4.0
 

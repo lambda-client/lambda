@@ -70,7 +70,7 @@ class CoarseMoveCosts(
 	}
 
 	fun jumpCandidateCost(distance: Double, verticalOffset: Int): Double {
-		require(distance >= CoarseMoveRates.MIN_JUMP_DISTANCE || verticalOffset < 0) {
+		require(distance >= CoarseMoveRates.MIN_JUMP_DISTANCE || verticalOffset < 0 || verticalOffset >= LaunchMode.MAX_JUMP_STEP) {
 			"a level jump candidate must reach past the adjacent stance: $distance"
 		}
 		return jumpCandidate(distance, verticalOffset).also {
@@ -118,10 +118,13 @@ class CoarseMoveCosts(
 			val walk = 1.0 / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
 			val step = 1.0 / CoarseMoveRates.STEP_UP_BLOCKS_PER_TICK
 
-			fun ballistic(jumping: Boolean, rise: Int): Double? = LaunchMode.entries
-				.filter { it.jumps == jumping && it.supports(rise.toDouble()) }
-				.mapNotNull { mode -> profile.fly(mode, profile.cruiseSpeed(mode.sprint), rise.toDouble())?.airTicks }
-				.minOrNull()?.let { (it + 1).toDouble() }
+			fun ballistic(jumping: Boolean, rise: Int): Double? {
+				val height = minOf(rise.toDouble(), LaunchMode.MAX_JUMP_RISE)
+				return LaunchMode.entries
+					.filter { it.jumps == jumping && it.supports(height) }
+					.mapNotNull { mode -> profile.fly(mode, profile.cruiseSpeed(mode.sprint), height)?.airTicks }
+					.minOrNull()?.let { (it + 1).toDouble() }
+			}
 
 			fun jump(horizontalDistance: Double, verticalOffset: Int): Double =
 				max(

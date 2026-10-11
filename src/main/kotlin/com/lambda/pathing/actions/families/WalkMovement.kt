@@ -211,7 +211,7 @@ object WalkMovement : Movement {
 			.chain(origin, context.edge.to, SteeringField.PURSUIT_CHAIN_LENGTH, context.body.heading())
 			.minOf { it.y }
 		val lowest = minOf(corridorFloor, origin.y)
-		val highest = origin.y + LaunchMode.MAX_JUMP_RISE
+		val highest = origin.y + LaunchMode.MAX_JUMP_STEP
 		if (highest < lowest) return true
 		for (distance in 1..LAUNCH_REACH_BLOCKS) {
 			val x = floor(origin.x + 0.5 + unitX * distance).toInt()

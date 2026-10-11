@@ -6,7 +6,9 @@ package pathing
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.search.heldStanceOf
 import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.center
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -221,6 +223,37 @@ class LedgeStanceTest {
 		)
 		assertTrue(path.plan.frames.none { it.state.position.y < 63.0 }, "the body must never fall into the gap")
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
+	}
+
+	/**
+	 * A railing along a roof's edge stands on the roof's last row, so that row's cell has a ledge on
+	 * each side of the railing, and only one of them can be the cell's stance. A body pressed against
+	 * the railing has its centre over the railing's cell whichever side it stands on, so the stance it
+	 * is searched from must be one whose ledge actually holds it: the field far outside the railing
+	 * (the roof walked off past the railing's end) must not be read for a body that stands inside it.
+	 */
+	@Test
+	fun `a body against a railing is placed in the stance whose ledge holds it`() {
+		val environment = roof()
+		val railing = Stance(0, 64, -3)
+		val sides = listOf(-2.07, -2.97)
+		assertTrue(
+			sides.any { Footing.holds(environment, railing).at(0.5, it) == null },
+			"the railing's cell holds the body on one side of the railing only",
+		)
+		for (z in sides) {
+			val body = resting(Vec3d(0.5, 64.0, z))
+			assertEquals(railing, Stance.of(body.position, onGround = true), "the body at z=$z is centred over the railing's cell")
+			val stance = heldStanceOf(environment, body)
+			assertNotNull(Footing.holds(environment, stance).at(0.5, z), "the body at z=$z must stand on a ledge of its stance $stance")
+		}
+	}
+
+	private fun roof(): SnapshotSimulationEnvironment {
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -3..3) for (z in -3..2) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
+		for (x in -3..3) blocks[BlockPos(x, 64, -3)] = FENCE_ALONG_X
+		return SnapshotSimulationEnvironment.synthetic(BOUNDS, blocks)
 	}
 
 	private fun bridge(wallSide: Int?, railing: SnapshotBlockPhysics = FENCE_ALONG_X): SnapshotSimulationEnvironment {

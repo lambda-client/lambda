@@ -16,7 +16,9 @@ enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 
 	companion object {
 
-		const val MAX_JUMP_RISE = 1
+		const val MAX_JUMP_RISE = 1.25
+
+		const val MAX_JUMP_STEP = 2
 	}
 }
 

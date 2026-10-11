@@ -92,6 +92,37 @@ class HazardAvoidanceTest {
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
+	/**
+	 * Parkour stacks a carpet on a cactus: the carpet's stance is two cells above the ground, but its
+	 * top is only a block and a sixteenth up, inside a jump's reach. The jump must clear the cactus's
+	 * cell on the way up and land on the carpet.
+	 */
+	@Test
+	fun `a carpet on a cactus one block up is jumped onto without touching the cactus`() {
+		MinecraftBootstrap.ensure()
+		val states = HashMap<BlockPos, BlockState>()
+		for (x in -4..6) for (z in -2..2) states[BlockPos(x, 63, z)] = Blocks.STONE.defaultState
+		states[BlockPos(2, 64, 0)] = Blocks.CACTUS.defaultState
+		states[BlockPos(2, 65, 0)] = Blocks.GREEN_CARPET.defaultState
+		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val environment = SnapshotSimulationEnvironment.synthetic(
+			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
+			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+		)
+		val goal = Stance(2, 66, 0)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-1, 64, 0), goal)
+		assertTrue(planner.repair().converged, "the carpet on the cactus must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the carpet is a jump up from the ground")
+
+		val outcome = walkFrom(route, planner, resting(Vec3d(-0.5, 64.0, 0.5), -90.0), environment)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the jump must be certified, got $outcome")
+		val cactus = Box(2.0, 64.0, 0.0, 3.0, 65.0, 1.0)
+		assertTrue(path.plan.frames.none { it.state.boundingBox.intersects(cactus) }, "the body must never enter the cactus's cell")
+		val last = path.plan.frames.last().state
+		assertTrue(last.onGround && last.position.y in 65.0..65.1 && last.position.x in 2.0..3.0 && last.position.z in 0.0..1.0, "the body ends on the carpet, at ${last.position}")
+	}
+
 	private fun walkedRound(hazardOf: () -> BlockState) {
 		MinecraftBootstrap.ensure()
 		val hazard = hazardOf()

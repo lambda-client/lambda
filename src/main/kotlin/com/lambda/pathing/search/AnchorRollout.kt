@@ -136,7 +136,7 @@ internal class AnchorRollout(
 					if (!frame.state.onGround && !movement.inMedium) {
 						false
 					} else {
-						val stance = stanceOf(frame.state)
+						val stance = heldStanceOf(field.view, frame.state)
 						val done = movement.completed(
 							CompletionContext(
 								decision = action,

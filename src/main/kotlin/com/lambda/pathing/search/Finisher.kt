@@ -138,7 +138,7 @@ internal class Finisher(
 		}
 		if (stableEnd < 0) return null
 		val frames = gated.rollout.frames.take(stableEnd + 1)
-		val resting = stanceOf(frames.last().state)
+		val resting = heldStanceOf(field.view, frames.last().state)
 		if (!field.isStance(resting) || !field.isMapped(resting)) return null
 		return Solution(anchor, frames)
 	}
