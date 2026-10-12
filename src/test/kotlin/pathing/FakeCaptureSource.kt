@@ -12,6 +12,7 @@ package pathing
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.streaming.CaptureSource
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkSectionPos
 
 /**
  * A flat world: full cubes below [groundY], air at and above, with per-block overrides in
@@ -27,6 +28,7 @@ class FakeCaptureSource(
     val loaded = HashSet<Long>()
     val blocks = HashMap<Long, SnapshotBlockPhysics>()
     var reads = 0L
+    var reportUniform = false
 
     fun load(chunkX: Int, chunkZ: Int) = loaded.add(chunkKey(chunkX, chunkZ))
 
@@ -41,6 +43,18 @@ class FakeCaptureSource(
     }
 
     override fun isChunkLoaded(chunkX: Int, chunkZ: Int): Boolean = chunkKey(chunkX, chunkZ) in loaded
+
+    override fun uniformPhysics(sectionKey: Long): SnapshotBlockPhysics? {
+        if (!reportUniform) return null
+        val minX = ChunkSectionPos.unpackX(sectionKey) shl 4
+        val minY = ChunkSectionPos.unpackY(sectionKey) shl 4
+        val minZ = ChunkSectionPos.unpackZ(sectionKey) shl 4
+        if (minY < groundY) return null
+        val touched = blocks.keys.any { key ->
+            BlockPos.unpackLongX(key) shr 4 == minX shr 4 && BlockPos.unpackLongY(key) shr 4 == minY shr 4 && BlockPos.unpackLongZ(key) shr 4 == minZ shr 4
+        }
+        return if (touched) null else SnapshotBlockPhysics.AIR
+    }
 
     override fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics {
         reads++

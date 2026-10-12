@@ -241,7 +241,7 @@ class LongDStarLite(
 			val slot = nodes.find(node)
 			if (slot < 0) continue
 			if (reconsider(slot)) changed = true
-			val predecessors = graph.predecessorsInto(node, predecessorScratch).copy()
+			val predecessors = graph.unknownPredecessorsInto(node, predecessorScratch, unknown).copy()
 			for (i in 0 until predecessors.size) {
 				val predecessor = predecessors.node(i)
 				if (nodes.find(predecessor) < 0 && minSuccessorCost(predecessor).isFinite() && reconsider(nodes.slot(predecessor))) changed = true
@@ -471,6 +471,8 @@ class LongDStarLite(
 	private var bestSuccessor = NodeTable.NONE
 
 	private val reached = LongPredicate { node -> nodes.find(node).let { it >= 0 && nodes.g(it) < INF } }
+
+	private val unknown = LongPredicate { node -> nodes.find(node) < 0 }
 
 	private fun minSuccessorCost(key: Long): Double {
 		var best = INF

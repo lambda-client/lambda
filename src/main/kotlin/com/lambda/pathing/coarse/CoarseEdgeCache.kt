@@ -114,14 +114,17 @@ internal class CoarseEdgeCache(
 		bouncesFrom.get(key)?.let { visit(it, visitor) }
 	}
 
-	fun forEachEdgeTo(node: Long, visitor: EdgeVisitor) {
+	fun forEachEdgeTo(node: Long, pending: PendingFilter? = null, visitor: EdgeVisitor) {
 		val target = PackedStance.stance(node)
 		if (!standable.isStance(target)) return
 		val row = row(targetRows, target.x shr 6, target.y, target.z)
 		val bit = target.x and 63
 		val mask = 1L shl bit
 		for (index in 0 until row.size) {
-			if (row.pending[index] and mask != 0L) settleArrival(row, index, bit, target)
+			if (row.pending[index] and mask != 0L) {
+				if (pending != null && !pending.wanted(moves.templates[row.templates[index]])) continue
+				settleArrival(row, index, bit, target)
+			}
 			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
 		}
 		val key = PackedStance.stanceKey(node)

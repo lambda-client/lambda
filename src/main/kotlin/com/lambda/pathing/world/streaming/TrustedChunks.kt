@@ -12,13 +12,10 @@ class TrustedChunks(private val source: CaptureSource) {
 	fun contains(chunkX: Int, chunkZ: Int): Boolean = PathingChunk.key(chunkX, chunkZ) in published
 
 	fun isTrusted(chunkX: Int, chunkZ: Int): Boolean {
-		if (!source.isChunkLoaded(chunkX, chunkZ)) return false
-		val centerX = source.playerChunkX
-		val centerZ = source.playerChunkZ
 		val viewDistance = source.viewDistance
-		val dx = maxOf(0, abs(chunkX - centerX) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-		val dz = maxOf(0, abs(chunkZ - centerZ) - CHUNK_FILTER_EDGE_MARGIN).toLong()
-		return dx * dx + dz * dz < viewDistance.toLong() * viewDistance
+		val dx = maxOf(0, abs(chunkX - source.playerChunkX) - CHUNK_FILTER_EDGE_MARGIN).toLong()
+		val dz = maxOf(0, abs(chunkZ - source.playerChunkZ) - CHUNK_FILTER_EDGE_MARGIN).toLong()
+		return dx * dx + dz * dz < viewDistance.toLong() * viewDistance && source.isChunkLoaded(chunkX, chunkZ)
 	}
 
 	fun tick() {

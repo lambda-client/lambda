@@ -7,8 +7,8 @@ fun interface LongEdgeProvider {
 	fun edges(node: Long, sink: EdgeList)
 }
 
-fun interface ReachedEdgeProvider {
-	fun edges(node: Long, sink: EdgeList, reached: java.util.function.LongPredicate)
+fun interface FilteredEdgeProvider {
+	fun edges(node: Long, sink: EdgeList, wanted: java.util.function.LongPredicate)
 }
 
 class EdgeList(initialCapacity: Int = 16) {

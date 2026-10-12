@@ -1,12 +1,14 @@
 package com.lambda.pathing.session
 
 import com.lambda.Lambda
+import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.coarse.FallEdges
 import com.lambda.pathing.coarse.FieldLabels
 import com.lambda.pathing.coarse.SimpleMoveLibrary
 import com.lambda.pathing.coarse.SpeedClass
+import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.world.streaming.InterestTier
@@ -21,12 +23,22 @@ private val LOG = LogManager.getLogger(Lambda.SYMBOL)
 
 internal class CoarseService(
 	private val world: PathingWorld?,
-	private val legs: List<CoarsePlanningState>,
+	private val goals: List<Stance>,
+	private val buildLegs: () -> List<CoarsePlanningState>,
 	starts: List<Stance>,
 	private val expansionBudget: Int,
 	private val repin: () -> Unit = {},
 	private val pinCurrent: () -> Boolean = { true },
 ) : AutoCloseable {
+	constructor(
+		world: PathingWorld?,
+		legs: List<CoarsePlanningState>,
+		starts: List<Stance>,
+		expansionBudget: Int,
+		repin: () -> Unit = {},
+		pinCurrent: () -> Boolean = { true },
+	) : this(world, legs.map { it.goal }, { legs }, starts, expansionBudget, repin, pinCurrent)
+
 	class Frame(
 		val sequence: Long,
 		val start: Stance,
@@ -43,14 +55,21 @@ internal class CoarseService(
 
 	private val lock = ReentrantLock()
 	private val published = lock.newCondition()
-	private val frames = arrayOfNulls<Frame>(legs.size)
-	private val failures = arrayOfNulls<Failure>(legs.size)
+	private val frames = arrayOfNulls<Frame>(goals.size)
+	private val failures = arrayOfNulls<Failure>(goals.size)
 	private var request: Request? = null
 
 	private val events = world?.subscribe()
 	private val starts = starts.toTypedArray()
-	private val speeds = Array(legs.size) { SpeedClass.STOPPED }
-	private val dirty = BooleanArray(legs.size) { true }
+	private val speeds = Array(goals.size) { SpeedClass.STOPPED }
+	private val dirty = BooleanArray(goals.size) { true }
+
+	@Volatile
+	private var built: List<CoarsePlanningState>? = null
+
+	private val legs: List<CoarsePlanningState> get() = built ?: build()
+
+	private fun build(): List<CoarsePlanningState> = synchronized(this) { built ?: buildLegs().also { built = it } }
 	private var revision = 0L
 	private var sequence = 0L
 	private var settled = -1
@@ -64,14 +83,19 @@ internal class CoarseService(
 	@Volatile
 	private var settlingLeg = -1
 
-	val legCount: Int get() = legs.size
+	val legCount: Int get() = goals.size
 
 	val moves: SimpleMoveLibrary get() = legs.first().planner.moves
 
-	fun goal(leg: Int): Stance = legs[leg].goal
+	fun goal(leg: Int): Stance = goals[leg]
+
+	fun planner(leg: Int): CoarsePlanner = legs[leg].planner
 
 	fun start() {
-		Thread(::run, "NeoLambda-PathPlanner-coarse").apply { isDaemon = true }.start()
+		Thread(::run, "NeoLambda-PathPlanner-coarse").apply {
+			isDaemon = true
+			priority = PLANNER_THREAD_PRIORITY
+		}.start()
 	}
 
 	override fun close() {
@@ -118,7 +142,7 @@ internal class CoarseService(
 	private fun standing(leg: Int): Frame? = frames[leg]?.takeUnless { failures[leg]?.start == it.start }
 
 	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean): Frame? {
-		val goal = legs[leg].goal
+		val goal = goals[leg]
 		var frame: Frame? = null
 		var settleBy = Long.MAX_VALUE
 		var hopelessSince = 0L
@@ -147,6 +171,7 @@ internal class CoarseService(
 
 	private fun run() {
 		try {
+			build()
 			while (!closed) {
 				val began = System.nanoTime()
 				val worked = advance()
@@ -158,7 +183,7 @@ internal class CoarseService(
 			LOG.error("The coarse planner thread failed", failure)
 			closed = true
 			lock.withLock {
-				for (leg in legs.indices) failures[leg] = Failure(starts[leg], "the coarse planner crashed: ${failure.message}", final = true)
+				for (leg in goals.indices) failures[leg] = Failure(starts[leg], "the coarse planner crashed: ${failure.message}", final = true)
 				published.signalAll()
 			}
 		}
@@ -280,7 +305,10 @@ internal class CoarseService(
 			start = start,
 			goal = legs[leg].goal,
 			route = route,
-			labels = timings.measure("labels") { planner.labels(start, LABEL_RADIUS_BLOCKS, LABEL_HEIGHT_BLOCKS) },
+			labels = timings.measure("labels") {
+				val body = lock.withLock { request }?.takeIf { it.leg == leg }?.stance ?: start
+				planner.labels(listOf(start, body), route.nodes, LABEL_RADIUS_BLOCKS, ROUTE_LABEL_BAND_BLOCKS, LABEL_HEIGHT_BLOCKS)
+			},
 			anchorCount = planner.anchorCount,
 			publishedNanos = System.nanoTime(),
 		)
@@ -313,6 +341,7 @@ internal class CoarseService(
 		const val REFRAME_NANOS = 300_000_000L
 		const val SLOW_SETTLE_MILLIS = 1_000L
 		const val LABEL_RADIUS_BLOCKS = 128
+		const val ROUTE_LABEL_BAND_BLOCKS = 48
 		const val LABEL_HEIGHT_BLOCKS = FallEdges.MAX_DEPTH + 32
 	}
 }

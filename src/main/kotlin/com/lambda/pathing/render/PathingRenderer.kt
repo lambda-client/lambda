@@ -68,19 +68,25 @@ object PathingRenderer : Loadable {
 		}
 	}
 
+	private fun executedFrame(plan: TrajectoryPlan): Int = (status as? State.Executing)?.frame?.coerceIn(0, plan.frames.size) ?: 0
+
 	private fun RenderBuilder.renderTrajectory(path: PublishedPath) {
 		val plan = path.plan
-		val points = ArrayList<Vec3d>(plan.frames.size + 1)
-		points += plan.initialState.position.add(0.0, TAPE_Y, 0.0)
-		plan.frames.forEach { points += it.state.position.add(0.0, TAPE_Y, 0.0) }
+		val frames = plan.frames
+		if (frames.isEmpty()) return
+		val cursor = executedFrame(plan)
+		val from = (cursor - EXECUTED_TAIL_FRAMES).coerceAtLeast(0)
+		val points = ArrayList<Vec3d>(frames.size - from + 1)
+		points += (if (from == 0) plan.initialState.position else frames[from - 1].state.position).add(0.0, TAPE_Y, 0.0)
+		for (index in from until frames.size) points += frames[index].state.position.add(0.0, TAPE_Y, 0.0)
 		if (points.size < 2) return
 
-		val cursor = (status as? State.Executing)?.frame?.coerceIn(0, points.lastIndex) ?: 0
+		val local = cursor - from
 		val width = px(config.trajectoryWidth)
 
-		if (cursor > 0) polyline(points.subList(0, cursor + 1), config.executedColor, px(config.trajectoryWidth / 2))
+		if (local > 0) polyline(points.subList(0, local + 1), config.executedColor, px(config.trajectoryWidth / 2))
 
-		val ahead = points.subList(cursor, points.size)
+		val ahead = points.subList(local, points.size)
 		val span = (ahead.size - 1).coerceAtLeast(1)
 		for (i in 0 until ahead.size - 1) {
 			lineGradient(
@@ -91,16 +97,15 @@ object PathingRenderer : Loadable {
 		}
 
 		if (config.renderJumpMarkers) {
-			plan.frames.forEachIndexed { index, frame ->
-				if (index >= cursor && plan.tape[index].jump) {
-					tick(frame.state.position.add(0.0, TAPE_Y, 0.0), JUMP_TICK_HEIGHT, config.jumpMarkerColor)
-				}
+			for (index in cursor until frames.size) {
+				if (plan.tape[index].jump) tick(frames[index].state.position.add(0.0, TAPE_Y, 0.0), JUMP_TICK_HEIGHT, config.jumpMarkerColor)
 			}
 		}
 
 		if (config.renderSplices) {
 			path.spliceFrames.forEach { frame ->
-				plan.frames.getOrNull(frame - 1)?.let { at ->
+				if (frame <= from) return@forEach
+				frames.getOrNull(frame - 1)?.let { at ->
 					diamond(at.state.position.add(0.0, TAPE_Y + 0.02, 0.0), SPLICE_MARK, config.spliceColor)
 				}
 			}
@@ -118,7 +123,11 @@ object PathingRenderer : Loadable {
 	private fun RenderBuilder.renderLiveTrail() {
 		val trail = telemetry.trail
 		if (trail.size < 2) return
-		polyline(trail.map { it.add(0.0, TRAIL_Y, 0.0) }, config.trailColor, px(config.trailWidth))
+		val stride = (trail.size + MAX_TRAIL_POINTS - 1) / MAX_TRAIL_POINTS
+		val points = ArrayList<Vec3d>(trail.size / stride + 2)
+		for (index in 0 until trail.size step stride) points += trail[index].add(0.0, TRAIL_Y, 0.0)
+		if ((trail.size - 1) % stride != 0) points += trail.last().add(0.0, TRAIL_Y, 0.0)
+		polyline(points, config.trailColor, px(config.trailWidth))
 	}
 
 	private fun RenderBuilder.renderGoal(path: PublishedPath?) {
@@ -156,9 +165,11 @@ object PathingRenderer : Loadable {
 	private fun RenderBuilder.renderPlanGraph(plan: TrajectoryPlan) {
 		if (plan.segments.isEmpty()) return
 		val width = px(maxOf(config.trajectoryWidth * 2 / 3, 1))
+		val from = (executedFrame(plan) - EXECUTED_TAIL_FRAMES).coerceAtLeast(0)
+		val shown = plan.segments.filter { it.endFrame > from }
 
 		if (config.renderPlanGraphPace) {
-			plan.segments.forEach { segment ->
+			shown.forEach { segment ->
 				val points = ArrayList<Vec3d>(segment.frameCount + 1)
 				points += segment.entry.position.add(0.0, PLAN_GRAPH_Y, 0.0)
 				for (frame in segment.startFrame until segment.endFrame) {
@@ -172,8 +183,8 @@ object PathingRenderer : Loadable {
 			}
 		}
 
-		junction(plan.initialState.position, settled = true)
-		plan.segments.forEach { junction(it.exit.position, it.settledExit) }
+		if (from == 0) junction(plan.initialState.position, settled = true)
+		shown.forEach { junction(it.exit.position, it.settledExit) }
 	}
 
 	private fun RenderBuilder.junction(position: Vec3d, settled: Boolean) {
@@ -346,6 +357,9 @@ object PathingRenderer : Loadable {
 	private val TAIL_DOTS = LineDashStyle(dashLength = 0.15f, gapLength = 0.2f)
 	private val OPTIMISTIC_DOTS = LineDashStyle(dashLength = 0.2f, gapLength = 0.2f)
 	private val RIVAL_DASHES = LineDashStyle(dashLength = 0.3f, gapLength = 0.15f)
+
+	private const val EXECUTED_TAIL_FRAMES = 400
+	private const val MAX_TRAIL_POINTS = 1024
 
 	private const val FRAMES_PER_BLOCK_IDEAL = 3.6
 	private const val FRAMES_PER_BLOCK_WORST = 14.0

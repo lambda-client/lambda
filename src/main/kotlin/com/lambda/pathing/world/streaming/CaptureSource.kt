@@ -8,5 +8,6 @@ interface CaptureSource {
 	val playerChunkZ: Int
 	val viewDistance: Int
 	fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics
+	fun uniformPhysics(sectionKey: Long): SnapshotBlockPhysics? = null
 	fun isOnClientThread(): Boolean
 }

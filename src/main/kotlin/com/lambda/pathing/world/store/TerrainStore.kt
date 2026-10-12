@@ -1,5 +1,6 @@
 package com.lambda.pathing.world.store
 
+import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
@@ -22,7 +23,10 @@ import java.util.concurrent.TimeUnit
 
 class TerrainStore(val directory: Path) : AutoCloseable {
 	private val io = ScheduledThreadPoolExecutor(1) { task ->
-		Thread(task, "NeoLambda-TerrainStore").apply { isDaemon = true }
+		Thread(task, "NeoLambda-TerrainStore").apply {
+			isDaemon = true
+			priority = PLANNER_THREAD_PRIORITY
+		}
 	}.apply { executeExistingDelayedTasksAfterShutdownPolicy = false }
 	private val tiles = object : LinkedHashMap<Long, Tile>(16, 0.75f, true) {
 		override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, Tile>): Boolean {

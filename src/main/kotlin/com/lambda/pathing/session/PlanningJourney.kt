@@ -22,17 +22,17 @@ internal class PlanningJourney private constructor(
 
 	private val coarseView = world.snapshot.pinned()
 
-	private val legs: List<CoarsePlanningState> = run {
-		val goals = origin.waypoints + origin.finalGoal
-		val starts = listOf(origin.start) + origin.waypoints
-		goals.indices.map { index ->
-			val memory = remembered?.let { coarseView.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
-			CoarsePlanningState(memory ?: coarseView, origin.moveOptions, starts[index], goals[index], memory = memory)
-		}
+	private val goals = origin.waypoints + origin.finalGoal
+
+	private val starts = listOf(origin.start) + origin.waypoints
+
+	private fun buildLegs(remembered: BaritoneCache?): List<CoarsePlanningState> = goals.indices.map { index ->
+		val memory = remembered?.let { coarseView.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
+		CoarsePlanningState(memory ?: coarseView, origin.moveOptions, starts[index], goals[index], memory = memory)
 	}
 
 	val coarse = CoarseService(
-		world, legs, listOf(origin.start) + origin.waypoints, origin.coarseExpansionBudget,
+		world, goals, { buildLegs(remembered) }, starts, origin.coarseExpansionBudget,
 		repin = { coarseView.repin(world.snapshot) },
 		pinCurrent = { coarseView.pinnedTo(world.snapshot) },
 	).also { it.start() }
@@ -48,9 +48,9 @@ internal class PlanningJourney private constructor(
 				origin.waypoints.size >= preparation.waypoints.size &&
 				origin.waypoints.takeLast(preparation.waypoints.size) == preparation.waypoints
 
-	fun firstLegFor(preparation: PlanningPreparation): Int = legs.size - (preparation.waypoints.size + 1)
+	fun firstLegFor(preparation: PlanningPreparation): Int = goals.size - (preparation.waypoints.size + 1)
 
-	fun planner(leg: Int): CoarsePlanner = legs[leg].planner
+	fun planner(leg: Int): CoarsePlanner = coarse.planner(leg)
 
 	companion object {
 		fun open(preparation: PlanningPreparation, player: ClientPlayerEntity): PlanningJourney {

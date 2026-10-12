@@ -91,7 +91,7 @@ class PathingSession internal constructor(
 		with(heartbeat) { beat(this@PathingSession) }
 		if (mc.isPaused) return
 		if (state is State.Settling) return with(alignment) { settle() }
-		if (state is State.Planning) return
+		if (state is State.Planning) return with(launcher) { retryAfterCapture() }
 		if (state is State.Aligning) return with(alignment) { align() }
 
 		waypointRoute.primeNextLeg(player, request, replay?.path)
@@ -162,9 +162,11 @@ class PathingSession internal constructor(
 		val configured = request.pathingConfig.snapshotCaptureBudgetMillis
 
 		val replay = replay
-		val budget = if (replay == null || replay.holding) {
-			maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS)
-		} else configured
+		val budget = when {
+			replay == null || replay.holding -> maxOf(configured, IDLE_CAPTURE_BUDGET_MILLIS)
+			activeJourney.world.pendingDemand > DEMAND_BACKLOG_SECTIONS -> maxOf(configured, BACKLOG_CAPTURE_BUDGET_MILLIS)
+			else -> configured
+		}
 		activeJourney.world.advance(budget)
 
 		waypointRoute.advanceCapture(configured)
@@ -248,6 +250,10 @@ class PathingSession internal constructor(
 
 	internal companion object {
 		const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
+
+		const val BACKLOG_CAPTURE_BUDGET_MILLIS = 8.0
+
+		const val DEMAND_BACKLOG_SECTIONS = 64
 
 		const val MAX_RECOVERY_STREAK = 8
 

@@ -1,5 +1,6 @@
 package com.lambda.pathing.world.streaming
 
+import com.lambda.Lambda
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.VoxelPos
@@ -15,6 +16,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+import kotlin.math.abs
+import org.apache.logging.log4j.LogManager
+
+private val LOG = LogManager.getLogger(Lambda.SYMBOL)
 
 class PathingWorld(
 	val bounds: SimulationSnapshotBounds,
@@ -22,11 +27,11 @@ class PathingWorld(
 	private val recorder: SectionRecorder? = null,
 ) {
 	private val pendingReplacements = ConcurrentHashMap<Long, ImmutableSnapshotSection>()
-	private val pendingRemovals = ConcurrentHashMap.newKeySet<Long>()
+	private val rereading = ConcurrentHashMap.newKeySet<Long>()
 
 	private val lock = ReentrantLock()
 	private val revisions = RevisionLog(lock)
-	private val interestQueue = InterestQueue(present = { key -> snapshot.hasSection(key) && key !in pendingRemovals })
+	private val interestQueue = InterestQueue(present = { key -> snapshot.hasSection(key) && key !in rereading })
 	private val trusted = TrustedChunks(source)
 	private val capture = SectionCapture()
 
@@ -37,15 +42,21 @@ class PathingWorld(
 	@Volatile
 	private var captureNanos = 0L
 
+	@Volatile
+	private var uniformSections = 0L
+
 	private val reloads = AtomicLong()
-	private val dropped = AtomicLong()
+	private val rereads = AtomicLong()
+	private val changedRereads = AtomicLong()
 	private val misses = AtomicLong()
 
 	val sectionsCaptured: Long get() = capturedSections
 
 	val chunkReloads: Long get() = reloads.get()
 
-	val sectionsDropped: Long get() = dropped.get()
+	val sectionsReread: Long get() = rereads.get()
+
+	val rereadsChanged: Long get() = changedRereads.get()
 
 	val exactMisses: Long get() = misses.get()
 
@@ -53,7 +64,7 @@ class PathingWorld(
 		get() = lock.withLock { interestQueue.deferredSize }
 
 	fun captureLedger(): String =
-		"%d sections/%d cells in %d ms".format(capturedSections, capturedCells, captureNanos / 1_000_000L)
+		"%d sections/%d cells in %d ms, %d uniform".format(capturedSections, capturedCells, captureNanos / 1_000_000L, uniformSections)
 
 	val snapshot: SnapshotSimulationEnvironment = SnapshotSimulationEnvironment.streaming(bounds, ::demandMiss)
 
@@ -77,7 +88,16 @@ class PathingWorld(
 		var completed = 0
 		val finished = Long2ObjectLinkedOpenHashMap<ImmutableSnapshotSection>()
 		while (written == 0 || System.nanoTime() < deadline) {
+			val resuming = capture.activeKey != null
 			val key = capture.activeKey ?: nextCapturable() ?: break
+			if (!resuming) source.uniformPhysics(key)?.let { uniform ->
+				capture.fill(uniform)
+				finished.put(key, capture.build())
+				completed++
+				written++
+				uniformSections++
+				continue
+			}
 			val x = (ChunkSectionPos.unpackX(key) shl 4) + capture.localX
 			val y = (ChunkSectionPos.unpackY(key) shl 4) + capture.localY
 			val z = (ChunkSectionPos.unpackZ(key) shl 4) + capture.localZ
@@ -124,8 +144,7 @@ class PathingWorld(
 		if (capture.activeKey == key || recordedSection(key)?.get(x, y, z)?.water != null) resample(x, y, z)
 	}
 
-	private fun recordedSection(key: Long): ImmutableSnapshotSection? =
-		if (key in pendingRemovals) null else pendingReplacements[key] ?: snapshot.section(key)
+	private fun recordedSection(key: Long): ImmutableSnapshotSection? = pendingReplacements[key] ?: snapshot.section(key)
 
 	fun onChunkEvent(chunkX: Int, chunkZ: Int) {
 		val inChunk = LongArrayList()
@@ -137,9 +156,9 @@ class PathingWorld(
 			return
 		}
 		reloads.incrementAndGet()
-		revisions.recordChunkChanged(PathingChunk(chunkX, chunkZ))
+		logReload(chunkX, chunkZ, inChunk.size)
 		val keys = inChunk.iterator()
-		while (keys.hasNext()) dropSection(keys.nextLong())
+		while (keys.hasNext()) reread(keys.nextLong())
 	}
 
 	fun interest(sectionKeys: Iterable<Long>, tier: InterestTier) {
@@ -174,11 +193,6 @@ class PathingWorld(
 	}
 
 	private fun applyPending() {
-		val removed = LongArrayList()
-		for (key in pendingRemovals.toList()) {
-			if (pendingRemovals.remove(key)) removed.add(key)
-		}
-		if (!removed.isEmpty) snapshot.removeSections(removed)
 		val replaced = Long2ObjectOpenHashMap<ImmutableSnapshotSection>()
 		for ((key, section) in pendingReplacements) {
 			if (pendingReplacements.remove(key, section)) replaced.put(key, section)
@@ -188,6 +202,24 @@ class PathingWorld(
 
 	fun awaitEvents(sinceRevision: Long, timeoutMillis: Long): Boolean =
 		revisions.awaitEvents(sinceRevision, timeoutMillis)
+
+	private var reloadLogWindow = 0L
+	private var reloadsLogged = 0
+
+	private fun logReload(chunkX: Int, chunkZ: Int, sections: Int) {
+		val now = System.currentTimeMillis()
+		if (now - reloadLogWindow > RELOAD_LOG_WINDOW_MILLIS) {
+			reloadLogWindow = now
+			reloadsLogged = 0
+		}
+		if (reloadsLogged++ >= RELOAD_LOGS_PER_WINDOW) return
+		val dx = chunkX - source.playerChunkX
+		val dz = chunkZ - source.playerChunkZ
+		LOG.info(
+			"Chunk ({}, {}) reloaded {} chunks from the player (dx {}, dz {}, view distance {}); re-reading {} captured sections",
+			chunkX, chunkZ, maxOf(abs(dx), abs(dz)), dx, dz, source.viewDistance, sections,
+		)
+	}
 
 	private fun demandMiss(key: Long) {
 		misses.incrementAndGet()
@@ -203,11 +235,10 @@ class PathingWorld(
 		interest(keys, InterestTier.DEMAND)
 	}
 
-	private fun dropSection(key: Long) {
-		dropped.incrementAndGet()
-		pendingReplacements.remove(key)
+	private fun reread(key: Long) {
+		rereads.incrementAndGet()
 		if (capture.activeKey == key) capture.abandon()
-		pendingRemovals += key
+		rereading += key
 		interest(listOf(key), InterestTier.DEMAND)
 	}
 
@@ -221,15 +252,38 @@ class PathingWorld(
 	private fun completeSections(finished: Long2ObjectLinkedOpenHashMap<ImmutableSnapshotSection>) {
 		val installed = Long2ObjectOpenHashMap<ImmutableSnapshotSection>(finished.size)
 		for (entry in finished.long2ObjectEntrySet()) {
-			if (pendingRemovals.remove(entry.longKey)) pendingReplacements[entry.longKey] = entry.value else installed.put(entry.longKey, entry.value)
+			val recorded = if (rereading.remove(entry.longKey)) recordedSection(entry.longKey) else null
+			if (recorded != null) reconcile(entry.longKey, recorded, entry.value) else installed.put(entry.longKey, entry.value)
 		}
 		if (!installed.isEmpty()) snapshot.install(installed)
-		for (key in finished.keys) {
+		for (key in installed.keys) {
 			recorder?.record(key)
 			revisions.recordCaptured(sectionOf(key))
 		}
 	}
 
+	private fun reconcile(key: Long, recorded: ImmutableSnapshotSection, fresh: ImmutableSnapshotSection) {
+		val changed = ArrayList<Int>()
+		recorded.forEachDifference(fresh) { changed += it }
+		if (changed.isEmpty()) return
+		changedRereads.incrementAndGet()
+		pendingReplacements[key] = fresh
+		recorder?.record(key)
+		val chunkX = ChunkSectionPos.unpackX(key)
+		val chunkZ = ChunkSectionPos.unpackZ(key)
+		if (changed.size > MAX_REREAD_MUTATIONS) return revisions.recordChunkChanged(PathingChunk(chunkX, chunkZ))
+		val baseY = ChunkSectionPos.unpackY(key) shl 4
+		for (index in changed) {
+			revisions.recordMutation(VoxelPos((chunkX shl 4) + (index and 15), baseY + (index shr 8), (chunkZ shl 4) + ((index shr 4) and 15)))
+		}
+	}
+
 	private fun sectionOf(key: Long) =
 		PathingSection(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key), ChunkSectionPos.unpackZ(key))
+
+	private companion object {
+		const val RELOAD_LOG_WINDOW_MILLIS = 10_000L
+		const val RELOAD_LOGS_PER_WINDOW = 8
+		const val MAX_REREAD_MUTATIONS = 256
+	}
 }

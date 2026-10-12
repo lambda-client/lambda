@@ -24,6 +24,11 @@ internal class SectionCapture {
 		cursor = 0
 	}
 
+	fun fill(physics: SnapshotBlockPhysics) {
+		checkNotNull(builder) { "SectionCapture.fill without begin" }.fill(physics)
+		cursor = SECTION_CELLS
+	}
+
 	fun writeNext(physics: SnapshotBlockPhysics): Boolean {
 		val target = checkNotNull(builder) { "SectionCapture.writeNext without begin" }
 		target.set(localX, localY, localZ, physics)

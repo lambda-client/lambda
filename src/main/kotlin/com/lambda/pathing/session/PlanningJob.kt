@@ -1,6 +1,7 @@
 package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
+import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.ExecutionFeedback
@@ -154,11 +155,17 @@ internal class PlanningJob(
 
 	private companion object {
 		val PLANNER: ExecutorService = Executors.newSingleThreadExecutor { task ->
-			Thread(task, "NeoLambda-PathPlanner").apply { isDaemon = true }
+			Thread(task, "NeoLambda-PathPlanner").apply {
+				isDaemon = true
+				priority = PLANNER_THREAD_PRIORITY
+			}
 		}
 
 		val DUMPS: ExecutorService = Executors.newSingleThreadExecutor { task ->
-			Thread(task, "NeoLambda-PlanDumps").apply { isDaemon = true }
+			Thread(task, "NeoLambda-PlanDumps").apply {
+				isDaemon = true
+				priority = PLANNER_THREAD_PRIORITY
+			}
 		}
 	}
 }

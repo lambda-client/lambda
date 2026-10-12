@@ -52,23 +52,31 @@ class CoarsePlanner(
 		},
 		predecessorProvider = { node, sink ->
 			momentum.predecessors(edgeCache, node, sink)
-			if (!goalKnown) {
-				if (node == goalNode) anchors.forEach { stance, cost ->
-					sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
-					sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
-				}
-			} else if (PackedStance.speed(node) == SpeedClass.MOVING && !anchors.cost(node).isNaN()) {
-				val to = PackedStance.stanceKey(node)
-				anchors.forEachKey { from ->
-					if (from != to) {
-						val cost = transitCost(from, to)
-						sink.append(PackedStance.withSpeed(from, SpeedClass.MOVING), cost)
-						sink.append(from, cost)
-					}
-				}
-			}
+			anchorPredecessors(node, sink)
+		},
+		unknownPredecessorProvider = { node, sink, unknown ->
+			momentum.predecessors(edgeCache, node, sink, unknown)
+			anchorPredecessors(node, sink)
 		},
 	)
+
+	private fun anchorPredecessors(node: Long, sink: EdgeList) {
+		if (!goalKnown) {
+			if (node == goalNode) anchors.forEach { stance, cost ->
+				sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
+				sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
+			}
+		} else if (PackedStance.speed(node) == SpeedClass.MOVING && !anchors.cost(node).isNaN()) {
+			val to = PackedStance.stanceKey(node)
+			anchors.forEachKey { from ->
+				if (from != to) {
+					val cost = transitCost(from, to)
+					sink.append(PackedStance.withSpeed(from, SpeedClass.MOVING), cost)
+					sink.append(from, cost)
+				}
+			}
+		}
+	}
 
 	private fun transitCost(from: Long, to: Long): Double =
 		anchors.transitCost(from, to, momentum.heuristic(from, to, grounded = true))
@@ -350,13 +358,29 @@ class CoarsePlanner(
 		labelRevision = search::revision,
 	)
 
-	fun labels(around: Stance, radius: Int, height: Int): FieldLabels = FieldLabels(
-		search.labels { node ->
-			abs(PackedStance.unpackX(node) - around.x) <= radius &&
-					abs(PackedStance.unpackZ(node) - around.z) <= radius &&
-					abs(PackedStance.unpackY(node) - around.y) <= height
-		},
-	)
+	fun labels(around: Stance, radius: Int, height: Int): FieldLabels = labels(listOf(around), emptyList(), radius, 0, height)
+
+	fun labels(around: List<Stance>, route: List<Stance>, radius: Int, band: Int, height: Int): FieldLabels {
+		val cells = LongOpenHashSet()
+		var minY = Int.MAX_VALUE
+		var maxY = Int.MIN_VALUE
+		for (node in route) {
+			for (cellX in ((node.x - band) shr 4)..((node.x + band) shr 4)) {
+				for (cellZ in ((node.z - band) shr 4)..((node.z + band) shr 4)) cells.add(PathingChunk.key(cellX, cellZ))
+			}
+			minY = minOf(minY, node.y - height)
+			maxY = maxOf(maxY, node.y + height)
+		}
+		return FieldLabels(
+			search.labels { node ->
+				val x = PackedStance.unpackX(node)
+				val y = PackedStance.unpackY(node)
+				val z = PackedStance.unpackZ(node)
+				around.any { abs(x - it.x) <= radius && abs(z - it.z) <= radius && abs(y - it.y) <= height } ||
+						y in minY..maxY && cells.contains(PathingChunk.key(x shr 4, z shr 4))
+			},
+		)
+	}
 
 	private fun nodeLabel(stance: Stance, speed: SpeedClass): Double {
 		val node = PackedStance.pack(stance, speed)

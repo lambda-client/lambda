@@ -56,6 +56,20 @@ class CoarsePlannerTest {
     }
 
     @Test
+    fun `field labels follow the route beyond the label radius around the start`() {
+        val world = SyntheticView().apply { fillGround(-4..304, -3..3, y = 0) }
+        val start = Stance(0, 1, 0)
+        val planner = CoarsePlanner(world, moveLibrary(SimpleMoveOptions()), start, Stance(300, 1, 0))
+        assertTrue(planner.repair().converged)
+        val route = assertNotNull(planner.routePlan(0L))
+        val far = Stance(250, 1, 0)
+        assertFalse(planner.labels(start, 128, 64).label(far, SpeedClass.MOVING).isFinite(), "the start box alone ends 128 blocks out")
+        val labels = planner.labels(listOf(start), route.nodes, 128, 48, 64)
+        assertTrue(labels.label(far, SpeedClass.MOVING).isFinite(), "a stance on the route 250 blocks out must keep its value")
+        assertFalse(labels.label(Stance(250, 1, 3), SpeedClass.MOVING).isNaN())
+    }
+
+    @Test
     fun `simple library plans a flat route through the copied D star core`() {
         val world = SyntheticView().apply { fillGround(-8..8, -8..8, y = 0) }
         val planner = CoarsePlanner(world, library(), Stance(0, 1, 0), Stance(5, 1, 0))

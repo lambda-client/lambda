@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.core.PLANNER_THREAD_PRIORITY
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.LockSupport
 
@@ -18,6 +19,7 @@ internal class RolloutCrew(workers: Int, private val rollouts: AnchorRollout) {
 	private val threads = List(workers) { index ->
 		Thread({ work(adaptive = index >= HOT_WORKERS) }, "PathPlanner-rollout-$index").apply {
 			isDaemon = true
+			priority = PLANNER_THREAD_PRIORITY
 			start()
 		}
 	}

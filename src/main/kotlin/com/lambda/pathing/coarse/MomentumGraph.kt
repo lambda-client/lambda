@@ -78,7 +78,7 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 		}
 	}
 
-	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeList) {
+	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeList, wanted: java.util.function.LongPredicate? = null) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.STOPPED) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.MOVING), BRAKE_TICKS)
@@ -86,7 +86,17 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 		val x = PackedStance.unpackX(node)
 		val y = PackedStance.unpackY(node)
 		val z = PackedStance.unpackZ(node)
-		edges.forEachEdgeTo(node) { template, ticks, standingStart ->
+		val pending = PendingFilter { template ->
+			val id = template.id.value
+			if (arrival[id] != speed) return@PendingFilter false
+			val origins = wanted ?: return@PendingFilter true
+			val originX = x - template.dx
+			val originY = y - template.dy
+			val originZ = z - template.dz
+			!departsStoppedOnly[id] && origins.test(PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING)) ||
+					origins.test(PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED))
+		}
+		edges.forEachEdgeTo(node, pending) { template, ticks, standingStart ->
 			val id = template.id.value
 			if (arrival[id] != speed) return@forEachEdgeTo
 			val originX = x - template.dx

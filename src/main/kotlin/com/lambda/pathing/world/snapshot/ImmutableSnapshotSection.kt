@@ -21,6 +21,14 @@ internal class ImmutableSnapshotSection private constructor(
 	fun with(x: Int, y: Int, z: Int, physics: SnapshotBlockPhysics): ImmutableSnapshotSection =
 		Builder(this).apply { replace(x, y, z, physics) }.build()
 
+	fun forEachDifference(other: ImmutableSnapshotSection, action: (Int) -> Unit) {
+		if (palette.size == 1 && other.palette.size == 1) {
+			if (palette[0] != other.palette[0]) for (index in 0 until SECTION_CELLS) action(index)
+			return
+		}
+		for (index in 0 until SECTION_CELLS) if (cell(index) != other.cell(index)) action(index)
+	}
+
 	private fun cell(index: Int): SnapshotBlockPhysics {
 		if (palette.size == 1) return palette[0]
 		byteIndices?.let { return palette[it[index].toInt() and 0xff] }

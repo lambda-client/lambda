@@ -158,25 +158,37 @@ class PathingWorldTest {
     }
 
     @Test
-    fun `a block change in a dropped section patches its re-capture instead of recording a mutation`() {
+    fun `a block change during a reloaded chunk's re-read is reported once`() {
         world.interest(listOf(key), InterestTier.BODY)
         world.advance(1_000.0)
         events.drain()
         world.onChunkEvent(0, 0)
         world.advance(0.0)
-        assertEquals(1, world.pendingInterest, "re-capture in flight")
+        assertEquals(1, world.pendingInterest, "re-read in flight")
         source.set(0, 64, 0, SnapshotBlockPhysics.FULL_CUBE)
         world.onBlockChanged(BlockPos(0, 64, 0))
-        assertEquals(2L, world.revision, "the chunk event already covers the section")
+        assertEquals(2L, world.revision, "the kept section records the change at once")
         world.advance(1_000.0)
-        assertEquals(3L, world.revision)
+        assertEquals(2L, world.revision, "the re-read finds nothing beyond the recorded change")
         val batch = events.drain()
         assertFalse(world.snapshot.collisionShape(0, 64, 0).isEmpty)
-        assertTrue(batch.mutations.isEmpty())
+        assertEquals(setOf(VoxelPos(0, 64, 0)), batch.mutations)
+        assertTrue(batch.chunks.isEmpty())
     }
 
     @Test
-    fun `a chunk event bumps only when the chunk had captured content`() {
+    fun `an all-air section is captured in one step without sampling its cells`() {
+        source.reportUniform = true
+        val sky = ChunkSectionPos.asLong(0, 5, 0)
+        world.interest(listOf(sky), InterestTier.BODY)
+        world.advance(0.0)
+        assertTrue(world.snapshot.hasSection(sky))
+        assertEquals(0L, source.reads)
+        assertTrue(world.snapshot.collisionShape(7, 85, 7).isEmpty)
+    }
+
+    @Test
+    fun `a reloaded chunk keeps its sections and an unchanged re-read reports nothing`() {
         world.onChunkEvent(0, 0)
         assertEquals(0L, world.revision)
         assertTrue(events.drain().isEmpty)
@@ -186,13 +198,28 @@ class PathingWorldTest {
         events.drain()
 
         world.onChunkEvent(0, 0)
-        assertEquals(2L, world.revision)
-        assertEquals(1, world.pendingDemand, "content sections are re-queued at demand tier")
+        assertEquals(1, world.pendingDemand, "content sections are re-read at demand tier")
+        assertTrue(world.snapshot.hasSection(key), "the recorded section stays until its re-read")
+        world.advance(1_000.0)
+        assertEquals(1L, world.revision)
+        assertTrue(events.drain().isEmpty)
+        assertTrue(world.mutationsSince(1L).isEmpty())
+        assertEquals(0, world.pendingInterest)
+    }
+
+    @Test
+    fun `a re-read reports exactly the cells that changed while the chunk was away`() {
+        world.interest(listOf(key), InterestTier.BODY)
+        world.advance(1_000.0)
+        events.drain()
+        source.set(3, 70, 5, SnapshotBlockPhysics.FULL_CUBE)
+        world.onChunkEvent(0, 0)
+        world.advance(1_000.0)
         val batch = events.drain()
-        assertEquals(setOf(PathingChunk(0, 0)), batch.chunks)
-        assertTrue(batch.mutations.isEmpty(), "chunk events are not block mutations")
-        assertFalse(world.snapshot.hasSection(key), "drain dropped the stale section")
-        assertEquals(listOf(WorldMutation.Chunk(PathingChunk(0, 0), 2L)), world.mutationsSince(1L))
+        assertEquals(setOf(VoxelPos(3, 70, 5)), batch.mutations)
+        assertTrue(batch.chunks.isEmpty())
+        assertFalse(world.snapshot.collisionShape(3, 70, 5).isEmpty)
+        assertEquals(listOf(WorldMutation.Cell(VoxelPos(3, 70, 5), 2L)), world.mutationsSince(1L))
     }
 
     @Test

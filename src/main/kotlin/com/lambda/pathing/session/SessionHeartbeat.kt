@@ -17,7 +17,8 @@ internal class SessionHeartbeat {
 	private var replayed = 0L
 	private var captured = 0L
 	private var reloads = 0L
-	private var dropped = 0L
+	private var rereads = 0L
+	private var changedRereads = 0L
 	private var misses = 0L
 	private var adopted = 0
 	private var rejected = 0
@@ -101,17 +102,20 @@ internal class SessionHeartbeat {
 			trackedWorld = world
 			captured = 0L
 			reloads = 0L
-			dropped = 0L
+			rereads = 0L
+			changedRereads = 0L
 			misses = 0L
 		}
 		append(" | world +").append(world.sectionsCaptured - captured).append(" sections")
-		append(", reloads +").append(world.chunkReloads - reloads).append(" (dropped +").append(world.sectionsDropped - dropped).append(')')
+		append(", reloads +").append(world.chunkReloads - reloads).append(" (re-read +").append(world.sectionsReread - rereads)
+		append(", changed +").append(world.rereadsChanged - changedRereads).append(')')
 		append(", exact misses +").append(world.exactMisses - misses)
 		append(", interest ").append(world.pendingInterest)
 		append(" (demand ").append(world.pendingDemand).append(", awaiting load ").append(world.awaitingLoad).append(')')
 		captured = world.sectionsCaptured
 		reloads = world.chunkReloads
-		dropped = world.sectionsDropped
+		rereads = world.sectionsReread
+		changedRereads = world.rereadsChanged
 		misses = world.exactMisses
 	}
 
