@@ -1,6 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.coarse.SpeedClass
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.search.Publications.Companion.DIVERGENCE_MARGIN_FRAMES
 
@@ -59,6 +60,8 @@ internal class Publisher(
 
 	private var refusedCommit: CommitInputs? = null
 
+	private var deferredPlunge: ValueAnchor? = null
+
 	fun forgetRefusedCommit() {
 		refusedCommit = null
 	}
@@ -74,13 +77,12 @@ internal class Publisher(
 		if (!remaining.isFinite() || remaining <= FINISH_VALUE_TICKS) return
 		val cursor = publications.cursor()
 		val tip = publications.tip
-		if (anchor.elapsed > publicationCap(cursor ?: -1)) return refuse(Refusal.CAP)
+		if (anchor.elapsed > publicationCap(cursor ?: -1) && !plungesFromWithin(anchor, cursor ?: -1)) return refuse(Refusal.CAP)
 		if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refuse(Refusal.UNSTOPPABLE)
 		if (incumbent.best?.anchor?.descendsFrom(anchor) == false) return refuse(Refusal.OFF_INCUMBENT)
 		if (tip == null) {
 			if (anchor.elapsed < searchConfig.horizonCommitFrames) return
-			if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
-			if (budget.count < searchConfig.minCommitExpansions) return
+			if (!firstPublicationDue()) return deferPlunge(anchor)
 			if (remaining <= FIRST_PUBLISH_MIN_REMAINING_TICKS) return
 		} else {
 			if (!publications.upToDate) return refuse(Refusal.UNJUDGED)
@@ -91,6 +93,22 @@ internal class Publisher(
 			if (!publishableOver(tip, anchor, executing)) return refuse(Refusal.UNPUBLISHABLE)
 		}
 		publishBraked(anchor)?.let(::refuse)
+	}
+
+	fun publishDeferredPlunge() {
+		val anchor = deferredPlunge ?: return
+		if (!firstPublicationDue()) return
+		deferredPlunge = null
+		publishPrefix(anchor)
+	}
+
+	private fun firstPublicationDue(): Boolean =
+		clock.elapsedMillis() >= searchConfig.safePrefixDelayMillis && budget.count >= searchConfig.minCommitExpansions
+
+	private fun deferPlunge(anchor: ValueAnchor) {
+		if (anchor.decision?.movement != MovementId.FALL) return
+		val held = deferredPlunge
+		if (held == null || arrivalEstimate(anchor) < arrivalEstimate(held)) deferredPlunge = anchor
 	}
 
 	fun commit(urgent: Boolean, along: ValueAnchor? = null): Boolean {
@@ -153,6 +171,9 @@ internal class Publisher(
 
 	private fun publicationCap(executing: Int): Int =
 		maxOf(executing, 0) + searchConfig.horizonCommitFrames * PUBLISH_RUNWAY_CHUNKS
+
+	private fun plungesFromWithin(anchor: ValueAnchor, executing: Int): Boolean =
+		anchor.decision?.movement == MovementId.FALL && (anchor.parent?.elapsed ?: Int.MAX_VALUE) <= publicationCap(executing)
 
 	private fun publishableOver(tip: ValueAnchor, candidate: ValueAnchor, executing: Int): Boolean {
 		if (executing >= 0 && publications.divergence(candidate) < executing + DIVERGENCE_MARGIN_FRAMES) return false

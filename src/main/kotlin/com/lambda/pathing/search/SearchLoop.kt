@@ -168,6 +168,7 @@ internal class SearchLoop(
 			recovery.resetWaitWindow()
 			budget.restartWindow()
 		}
+		if (publications.tip == null) publisher.publishDeferredPlunge()
 		if (publications.tip == null && frontier.hasParked) publisher.commit(urgent = false)
 	}
 

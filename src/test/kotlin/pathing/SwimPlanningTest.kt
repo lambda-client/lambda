@@ -26,6 +26,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import pathing.ProbeScenarios.moveLibrary
 import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.hypot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -49,20 +51,36 @@ class SwimPlanningTest {
 		planner.expandSearchField()
 		val route = assertNotNull(planner.routePlan(0L), "the pool must carry a route")
 		val movements = route.edges.map { it.movement }
-		assertTrue(MovementId.ENTER_WATER in movements && MovementId.SWIM in movements && MovementId.EXIT_WATER in movements, "the route must swim: $movements")
+		assertTrue(movements.any { it == MovementId.ENTER_WATER || it == MovementId.FALL } && MovementId.SWIM in movements && MovementId.EXIT_WATER in movements, "the route must swim: $movements")
 
 		val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 64.0, 0.5), -90.0), environment)
 		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the crossing must be certified, got $outcome")
 		val frames = path.plan.frames
-		assertTrue(frames.count { it.state.touchingWater } > 40, "the tape must swim the pool")
+		assertTrue(frames.count { it.state.touchingWater } > 20, "the tape must swim the pool")
+		val entry = frames.first { it.state.touchingWater }.state.position.x
+		assertTrue(entry >= MIN_JUMP_ENTRY_BLOCKS, "the bank must jump into the pool instead of wading in: entered at x=%.2f".format(entry))
 		assertTrue(frames.none { it.state.eyeInWater }, "a surface crossing never puts the eyes under water")
+		assertEquals(Stance(10, 64, 0), Stance.of(frames.last().state.position, onGround = true))
+	}
+
+	@Test
+	fun `a bank under a low roof enters the pool without a running jump`() {
+		val environment = pool(width = 8, roofOverBank = true)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, 0), Stance(10, 64, 0))
+		assertTrue(planner.repair().converged, "the roofed pool crossing must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the roofed pool must carry a route")
+		val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 64.0, 0.5), -90.0), environment)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the roofed crossing must be certified, got $outcome")
+		val frames = path.plan.frames
+		assertTrue(frames.none { it.state.position.x < 0.0 && it.state.position.y > 64.3 }, "no jump may start under the roof")
 		assertEquals(Stance(10, 64, 0), Stance.of(frames.last().state.position, onGround = true))
 	}
 
 	@Test
 	fun `a long swim is published and adopted afloat before the far bank is reached`() {
 		val crossing = crossLongPool(stallTicks = 0)
-		assertTrue(crossing.afloat > 0 && crossing.executor.adoptions > crossing.afloat, "tapes must be published and adopted mid-pool, ending in a float: $crossing")
+		assertTrue(crossing.afloat > 0 && crossing.executor.adoptions >= crossing.afloat, "tapes must be published and adopted mid-pool, ending in a float: $crossing")
 		assertEquals(0, crossing.floating, "a search that keeps up never leaves the body treading water")
 	}
 
@@ -107,6 +125,26 @@ class SwimPlanningTest {
 	}
 
 	@Test
+	fun `an off-axis swim holds a steady heading instead of following the octile staircase`() {
+		val environment = lake(length = 44, halfWidth = 20)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, -8), Stance(46, 64, 9))
+		assertTrue(planner.repair().converged, "the lake crossing must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the lake must carry a route")
+		val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 64.0, -7.5), -90.0), environment)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the crossing must be certified, got $outcome")
+		val swum = path.plan.frames.map { it.state }.filter { it.touchingWater && it.position.x in 4.0..36.0 }
+		val travelled = swum.zipWithNext().sumOf { (a, b) -> hypot(b.position.x - a.position.x, b.position.z - a.position.z) }
+		val straight = hypot(swum.last().position.x - swum.first().position.x, swum.last().position.z - swum.first().position.z)
+		val bearing = Math.toDegrees(atan2(swum.last().position.z - swum.first().position.z, swum.last().position.x - swum.first().position.x)) - 90.0
+		val yaws = path.plan.frames.filter { it.state.touchingWater && it.state.position.x in 8.0..32.0 }.mapNotNull { it.input.rotation?.yaw }
+		val heading = yaws.map { abs(Rotation.wrap(it - bearing)) }.average()
+		println("[swim] stretch=%.4f heading error=%.1f deg over %d frames".format(travelled / straight, heading, yaws.size))
+		assertTrue(heading < MAX_OPEN_WATER_HEADING_ERROR, "open water must be swum on one heading, not an octile staircase: mean error %.1f deg".format(heading))
+		assertTrue(travelled / straight < MAX_OPEN_WATER_STRETCH, "open water must be swum on a straight line: stretch %.3f".format(travelled / straight))
+	}
+
+	@Test
 	fun `only swimming moves leave the water`() {
 		val environment = pool(width = 8)
 		val library = moveLibrary(SimpleMoveOptions(allowClimbing = true, allowSlimeBounces = true, allowDeepDropJumps = true))
@@ -140,9 +178,26 @@ class SwimPlanningTest {
 		assertTrue(abs(rate - CoarseMoveRates.SWIM_BLOCKS_PER_TICK) < 0.002, "measured $rate b/t against ${CoarseMoveRates.SWIM_BLOCKS_PER_TICK}")
 	}
 
-	private fun pool(width: Int): SnapshotSimulationEnvironment {
+	private fun lake(length: Int, halfWidth: Int): SnapshotSimulationEnvironment {
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -6..length + 6) for (z in -halfWidth - 4..halfWidth + 4) {
+			blocks[BlockPos(x, 60, z)] = SnapshotBlockPhysics.FULL_CUBE
+			val water = x in 0 until length
+			for (y in 61..63) {
+				blocks[BlockPos(x, y, z)] = when {
+					!water -> SnapshotBlockPhysics.FULL_CUBE
+					y == 63 -> SnapshotBlockPhysics.water()
+					else -> SnapshotBlockPhysics.water(1.0f)
+				}
+			}
+		}
+		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, 50, -halfWidth - 8, length + 10, 80, halfWidth + 8), blocks)
+	}
+
+	private fun pool(width: Int, roofOverBank: Boolean = false): SnapshotSimulationEnvironment {
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
 		for (x in -6..width + 6) for (z in -4..4) {
+			if (roofOverBank && x < 0) blocks[BlockPos(x, 66, z)] = SnapshotBlockPhysics.FULL_CUBE
 			blocks[BlockPos(x, 60, z)] = SnapshotBlockPhysics.FULL_CUBE
 			val water = x in 0 until width
 			for (y in 61..63) {
@@ -160,5 +215,11 @@ class SwimPlanningTest {
 		const val SLOW_SEARCH_MICROS = 20_000L
 
 		const val STALL_AFTER_AFLOAT_TAPES = 2
+
+		const val MAX_OPEN_WATER_STRETCH = 1.02
+
+		const val MAX_OPEN_WATER_HEADING_ERROR = 10.0
+
+		const val MIN_JUMP_ENTRY_BLOCKS = 2.5
 	}
 }

@@ -87,6 +87,7 @@ interface TrajectoryDecision {
 		val plunge: Double,
 		val plungeTicks: Int,
 		override val movement: MovementId = MovementId.FALL,
+		val swimOn: Boolean = false,
 	) : TrajectoryDecision {
 		override val leavesGround: Boolean get() = true
 	}
@@ -95,5 +96,6 @@ interface TrajectoryDecision {
 		override val step: Stance,
 		val sprint: Boolean,
 		override val movement: MovementId = MovementId.SWIM,
+		val yaw: Double? = null,
 	) : TrajectoryDecision
 }

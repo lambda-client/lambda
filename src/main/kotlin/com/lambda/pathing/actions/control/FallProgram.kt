@@ -11,6 +11,7 @@ import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 
 internal class FallProgram(decision: TrajectoryDecision.Fall, context: ProgramContext) : ControlProgram {
+	private val swimOn = decision.swimOn
 	private val solution = decision.solution
 	private val origin = context.body.stance.center()
 	private val aim = decision.step.center()
@@ -25,7 +26,7 @@ internal class FallProgram(decision: TrajectoryDecision.Fall, context: ProgramCo
 		if (!observed.onGround) airborne = true
 		if (airborne && observed.touchingWater) {
 			if (heldYaw.isNaN()) heldYaw = observed.rotation.yaw
-			return MovementSimulationInput(jump = true, rotation = Rotation(heldYaw, observed.rotation.pitch))
+			return MovementSimulationInput(forward = if (swimOn) 1.0 else 0.0, jump = true, rotation = Rotation(heldYaw, observed.rotation.pitch))
 		}
 
 		val rotation = rotationToward(aim, observed, maxYawChange)

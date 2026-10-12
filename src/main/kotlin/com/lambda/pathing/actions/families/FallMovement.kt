@@ -19,6 +19,8 @@ import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.Medium
 import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.hypot
 
 object FallMovement : Movement {
 	override val id = MovementId.FALL
@@ -41,6 +43,7 @@ object FallMovement : Movement {
 		val cells = if (water) waterCells(context) else 0
 		val modes = LaunchMode.entries.filter { it.sprint in context.constraints.sprintModes }
 		val entry = reachableEntrySpeed(context)
+		val swimOn = water && openWaterBeyond(context)
 		return LaunchSolver.solve(
 			from, to,
 			modes = modes,
@@ -50,8 +53,18 @@ object FallMovement : Movement {
 			maxTicks = FallReach.MAX_FALL_TICKS,
 		).map { solution ->
 			val plunge = if (!water) null else FallReach.flight(solution.jumps, -rise)?.let { FallReach.plunge(it.impactSpeed, cells) }
-			TrajectoryDecision.Fall(to, solution, water, plunge?.depth ?: 0.0, plunge?.ticks ?: 0)
+			TrajectoryDecision.Fall(to, solution, water, plunge?.depth ?: 0.0, plunge?.ticks ?: 0, swimOn = swimOn)
 		}
+	}
+
+	private fun openWaterBeyond(context: DecisionContext): Boolean {
+		val from = context.edge.from
+		val to = context.edge.to
+		val length = hypot((to.x - from.x).toDouble(), (to.z - from.z).toDouble())
+		if (length == 0.0) return false
+		val x = floor(to.x + 0.5 + (to.x - from.x) / length).toInt()
+		val z = floor(to.z + 0.5 + (to.z - from.z) / length).toInt()
+		return context.view.medium(x, to.y, z) == Medium.WATER
 	}
 
 	private fun waterCells(context: DecisionContext): Int {

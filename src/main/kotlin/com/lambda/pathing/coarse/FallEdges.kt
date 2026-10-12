@@ -47,6 +47,7 @@ internal class FallEdges(
 	private val standable: StanceMemo,
 ) {
 	private val limits = moves.catalog.options.fallLimits
+	private val shallowWater = moves.catalog.options.allowSwimming
 	private val occupancy = ColumnOccupancy(view)
 	private val outgoing = Long2ObjectLinkedOpenHashMap<Array<FallEdge>>()
 	private val incoming = Long2ObjectLinkedOpenHashMap<Array<FallArrival>>()
@@ -167,15 +168,23 @@ internal class FallEdges(
 		for (side in 0 until SIDES) {
 			val x = origin.x + SIDE_DX[side]
 			val z = origin.z + SIDE_DZ[side]
-			if (occupancy.occupied(x, origin.y - 1, z) || occupancy.occupied(x, origin.y - 2, z)) continue
-			if (!passable(x, origin.y, z)) continue
-			if (SIDE_DX[side] != 0 && SIDE_DZ[side] != 0 && (!passable(origin.x + SIDE_DX[side], origin.y, origin.z) || !passable(origin.x, origin.y, origin.z + SIDE_DZ[side]))) continue
+			val drops = !occupancy.occupied(x, origin.y - 1, z) && !occupancy.occupied(x, origin.y - 2, z) && passable(x, origin.y, z)
+			if (!drops && !waterSide(x, origin.y, z)) continue
+			if (SIDE_DX[side] != 0 && SIDE_DZ[side] != 0 && (!crossable(origin.x + SIDE_DX[side], origin.y, origin.z) || !crossable(origin.x, origin.y, origin.z + SIDE_DZ[side]))) continue
 			open = open or (1 shl side)
 		}
 		return open
 	}
 
 	private fun passable(x: Int, y: Int, z: Int): Boolean = !occupancy.occupied(x, y, z) && !occupancy.occupied(x, y + 1, z)
+
+	private fun crossable(x: Int, y: Int, z: Int): Boolean = passable(x, y, z) || waterSide(x, y, z)
+
+	private fun waterSide(x: Int, y: Int, z: Int): Boolean {
+		if (!shallowWater) return false
+		val top = occupancy.highestAtOrBelow(x, y + 1, z, y - SHALLOW_WATER_DEPTH)
+		return top != Int.MIN_VALUE && top <= y && view.medium(x, top, z) == Medium.WATER
+	}
 
 	private fun softBelow(origin: Stance): Boolean {
 		val section = ChunkSectionPos.asLong(origin.x shr 4, origin.y shr 4, origin.z shr 4)
@@ -185,7 +194,7 @@ internal class FallEdges(
 		val baseZ = (origin.z shr 4) shl 4
 		val soft = view.maySoftLandWithin(
 			baseX - MAX_REACH, baseY - MAX_DEPTH, baseZ - MAX_REACH,
-			baseX + 15 + MAX_REACH, baseY + 15 - MIN_DROP, baseZ + 15 + MAX_REACH,
+			baseX + 15 + MAX_REACH, baseY + 15 - if (shallowWater) MIN_WATER_DROP else MIN_DROP, baseZ + 15 + MAX_REACH,
 		)
 		gates.put(section, soft)
 		return soft
@@ -216,12 +225,12 @@ internal class FallEdges(
 			else -> return null
 		}
 		val target = Stance(x, if (water) hit else hit + 1, z)
-		if (target.y - origin.y > -MIN_DROP) return null
+		if (target.y - origin.y > -minimumDrop(water)) return null
 		if (!water && view.voxel(x, hit, z).bouncy) return null
 		if (!standable.isStance(target)) return null
 		val landingHeight = if (water) hit + 1.0 else target.y + view.surfaceOffset(x, target.y - 1, z)
 		val drop = launch - landingHeight
-		if (drop < MIN_REAL_DROP) return null
+		if (drop < if (water && shallowWater) MIN_WATER_REAL_DROP else MIN_REAL_DROP) return null
 
 		val length = hypot(dx.toDouble(), dz.toDouble())
 		val unitX = dx / length
@@ -295,13 +304,15 @@ internal class FallEdges(
 
 	private fun acceptsDeepFalls(rule: FallRule): Boolean = normalFloors || limits.maxFallOnto(rule) >= MIN_DROP
 
+	private fun minimumDrop(water: Boolean): Int = if (water && shallowWater) MIN_WATER_DROP else MIN_DROP
+
 	private fun discover(target: Stance): Array<FallArrival> {
 		if (!landable(target)) return NO_ARRIVALS
 		val water = view.medium(target.x, target.y, target.z) == Medium.WATER
 		val clearFrom = if (water) target.y + 1 else target.y
 		val ceiling = occupancy.lowestAbove(target.x, clearFrom - 1, target.z, target.y + MAX_DEPTH + 1)
 		val highest = minOf(ceiling - 2, target.y + MAX_DEPTH, view.simulableStanceY.last)
-		val lowest = target.y + MIN_DROP
+		val lowest = target.y + minimumDrop(water)
 		if (highest < lowest) return NO_ARRIVALS
 		var found: ArrayList<FallArrival>? = null
 		for (index in LATTICE_DX.indices) {
@@ -344,6 +355,12 @@ internal class FallEdges(
 		val TEMPLATE = MotionTemplateId(Int.MAX_VALUE)
 
 		private const val MIN_REAL_DROP = 3.0
+
+		private const val MIN_WATER_DROP = 0
+
+		private const val MIN_WATER_REAL_DROP = -1.0
+
+		private const val SHALLOW_WATER_DEPTH = 3
 
 		private const val HEADROOM_CELLS = 3
 
