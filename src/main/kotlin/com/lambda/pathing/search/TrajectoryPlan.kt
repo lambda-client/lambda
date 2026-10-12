@@ -15,7 +15,7 @@ class TrajectoryPlan internal constructor(
 	val snapshotRevision: Long,
 	val physicsProfile: PlayerPhysicsProfile,
 	val initialState: MovementSimulationState,
-	private val frameDependencies: List<Set<VoxelPos>>,
+	internal val frameDependencies: List<Set<VoxelPos>>,
 	val tape: InputTape,
 	frames: List<SimulatedTrajectoryFrame>,
 	val segments: List<PlanSegment>,

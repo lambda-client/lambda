@@ -4,11 +4,17 @@ internal class PhaseTimings {
 	private val started = System.nanoTime()
 	private val nanos = LinkedHashMap<String, Long>()
 
+	@Volatile
+	var current: String? = null
+		private set
+
 	fun <T> measure(phase: String, block: () -> T): T {
 		val begin = System.nanoTime()
+		current = phase
 		try {
 			return block()
 		} finally {
+			current = null
 			nanos.merge(phase, System.nanoTime() - begin, Long::plus)
 		}
 	}

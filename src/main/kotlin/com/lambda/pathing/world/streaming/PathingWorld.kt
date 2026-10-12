@@ -12,6 +12,7 @@ import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -36,7 +37,20 @@ class PathingWorld(
 	@Volatile
 	private var captureNanos = 0L
 
+	private val reloads = AtomicLong()
+	private val dropped = AtomicLong()
+	private val misses = AtomicLong()
+
 	val sectionsCaptured: Long get() = capturedSections
+
+	val chunkReloads: Long get() = reloads.get()
+
+	val sectionsDropped: Long get() = dropped.get()
+
+	val exactMisses: Long get() = misses.get()
+
+	val awaitingLoad: Int
+		get() = lock.withLock { interestQueue.deferredSize }
 
 	fun captureLedger(): String =
 		"%d sections/%d cells in %d ms".format(capturedSections, capturedCells, captureNanos / 1_000_000L)
@@ -122,6 +136,7 @@ class PathingWorld(
 			revisions.signal()
 			return
 		}
+		reloads.incrementAndGet()
 		revisions.recordChunkChanged(PathingChunk(chunkX, chunkZ))
 		val keys = inChunk.iterator()
 		while (keys.hasNext()) dropSection(keys.nextLong())
@@ -175,6 +190,7 @@ class PathingWorld(
 		revisions.awaitEvents(sinceRevision, timeoutMillis)
 
 	private fun demandMiss(key: Long) {
+		misses.incrementAndGet()
 		val sx = ChunkSectionPos.unpackX(key)
 		val sy = ChunkSectionPos.unpackY(key)
 		val sz = ChunkSectionPos.unpackZ(key)
@@ -188,6 +204,7 @@ class PathingWorld(
 	}
 
 	private fun dropSection(key: Long) {
+		dropped.incrementAndGet()
 		pendingReplacements.remove(key)
 		if (capture.activeKey == key) capture.abandon()
 		pendingRemovals += key

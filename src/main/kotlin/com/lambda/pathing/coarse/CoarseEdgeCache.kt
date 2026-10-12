@@ -57,6 +57,12 @@ internal class CoarseEdgeCache(
 
 	private val falls = if (moves.falls) FallEdges(view, moves, standable) else null
 
+	var exactChecks = 0L
+		private set
+
+	var arrivalChecks = 0L
+		private set
+
 	fun edgesFrom(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
 		return outgoing.get(key) ?: run {
@@ -164,11 +170,13 @@ internal class CoarseEdgeCache(
 	}
 
 	private fun settle(row: RowEdges, index: Int, bit: Int, origin: Stance) {
+		exactChecks++
 		val edge = moves.templates[row.templates[index]].edge(view, origin)
 		row.resolve(index, bit, edge != null, edge?.standingStart == true, edge?.lowerBoundTicks ?: Double.NaN)
 	}
 
 	private fun settleArrival(row: RowEdges, index: Int, bit: Int, target: Stance) {
+		arrivalChecks++
 		val template = row.templates[index]
 		val motion = moves.templates[template]
 		val origin = target.offset(-motion.dx, -motion.dy, -motion.dz)

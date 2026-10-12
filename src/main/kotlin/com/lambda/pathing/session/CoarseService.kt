@@ -58,6 +58,12 @@ internal class CoarseService(
 	@Volatile
 	private var closed = false
 
+	@Volatile
+	private var settling: PhaseTimings? = null
+
+	@Volatile
+	private var settlingLeg = -1
+
 	val legCount: Int get() = legs.size
 
 	val moves: SimpleMoveLibrary get() = legs.first().planner.moves
@@ -82,6 +88,22 @@ internal class CoarseService(
 	}
 
 	fun frame(leg: Int): Frame? = lock.withLock { frames[leg] }
+
+	fun activity(): String = buildString {
+		val leg = lock.withLock { request }?.leg ?: 0
+		val active = settling
+		if (active == null) append("idle") else {
+			append("settling leg ").append(settlingLeg).append(" for ").append(active.elapsedMillis).append(" ms")
+			active.current?.let { append(" (").append(it).append(')') }
+		}
+		val (framed, failed) = lock.withLock { frames[leg] to failures[leg] }
+		if (framed == null) append(", no frame for leg ").append(leg) else {
+			append(", leg ").append(leg).append(" frame #").append(framed.sequence)
+			append(' ').append((System.nanoTime() - framed.publishedNanos) / 1_000_000L).append(" ms old from ").append(framed.start)
+			append(", route ").append(framed.route.nodes.size).append(" nodes to ").append(framed.route.goal)
+		}
+		failed?.let { append(", failure from ").append(it.start).append(if (it.final) " (final): " else ": ").append(it.reason) }
+	}
 
 	fun awaitFrame(leg: Int, timeoutMillis: Long, accept: (Frame) -> Boolean = { true }): Frame? = lock.withLock {
 		var remaining = timeoutMillis * 1_000_000L
@@ -196,10 +218,24 @@ internal class CoarseService(
 	private fun settle(leg: Int) {
 		dirty[leg] = false
 		val timings = PhaseTimings()
-		settleRoute(leg, timings)
+		val planner = legs[leg].planner
+		val synced = planner.syncedStances
+		val exact = planner.exactEdgeChecks
+		val arrivals = planner.arrivalEdgeChecks
+		settlingLeg = leg
+		settling = timings
+		try {
+			settleRoute(leg, timings)
+		} finally {
+			settling = null
+		}
 		val millis = timings.elapsedMillis
 		if (millis >= SLOW_SETTLE_MILLIS) {
-			LOG.info("Coarse leg {} from {} settled ({} graph nodes, {} anchors): {}", leg, starts[leg], legs[leg].planner.graphSize, legs[leg].planner.anchorCount, timings)
+			LOG.info(
+				"Coarse leg {} from {} settled ({} graph nodes, {} anchors, {} stances synced, {} exact edge checks, {} predecessor edge checks): {}",
+				leg, starts[leg], planner.graphSize, planner.anchorCount, planner.syncedStances - synced,
+				planner.exactEdgeChecks - exact, planner.arrivalEdgeChecks - arrivals, timings,
+			)
 		}
 	}
 

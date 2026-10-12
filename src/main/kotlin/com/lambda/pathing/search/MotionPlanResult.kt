@@ -71,6 +71,12 @@ data class SearchStats(
 	val horizonEnd: Int,
 	val cursorFrame: Int,
 	val bestScore: Int?,
+	val certifications: Int = 0,
+	val certifyFailures: Int = 0,
+	val replayedFrames: Long = 0L,
+	val lastCertifyFailure: String? = null,
+	val refusalReasons: Map<String, Int> = emptyMap(),
+	val rootStance: Stance? = null,
 ) {
 	override fun toString(): String = buildString {
 		append("exit=").append(exit)
@@ -85,8 +91,12 @@ data class SearchStats(
 		append(" route=").append(deepestRouteIndex).append('/').append(routeNodes)
 		append(" commits=").append(commitAttempts)
 		append(" refusals=").append(publishRefusals)
+		if (refusalReasons.isNotEmpty()) append(refusalReasons.entries.joinToString(", ", " (", ")") { "${it.key} ${it.value}" })
 		if (repairs > 0) append(" repairs=").append(repairs)
 		if (solutionsFound > 0) append(" first=").append(firstSolutionFrames).append(" solutions=").append(solutionsFound)
+		if (certifications > 0) append(" certified=").append(certifications).append(" replayed=").append(replayedFrames)
+		if (certifyFailures > 0) append(" certify-failures=").append(certifyFailures).append(" (last: ").append(lastCertifyFailure).append(')')
+		rootStance?.let { append(" root=f").append(rootFrame).append(' ').append(it) }
 	}
 }
 

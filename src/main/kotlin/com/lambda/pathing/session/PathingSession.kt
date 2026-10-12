@@ -38,6 +38,8 @@ class PathingSession internal constructor(
 
 	internal val telemetry = WalkTelemetry()
 
+	internal val heartbeat = SessionHeartbeat()
+
 	internal var active = true
 		private set
 
@@ -85,7 +87,9 @@ class PathingSession internal constructor(
 		assertClientThread()
 		if (!active) return
 		advanceSnapshotCapture()
-		if (!active || mc.isPaused) return
+		if (!active) return
+		with(heartbeat) { beat(this@PathingSession) }
+		if (mc.isPaused) return
 		if (state is State.Settling) return with(alignment) { settle() }
 		if (state is State.Planning) return
 		if (state is State.Aligning) return with(alignment) { align() }

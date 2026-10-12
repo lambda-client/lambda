@@ -26,6 +26,25 @@ internal class Publisher(
 	var refusals = 0
 		private set
 
+	private enum class Refusal(val label: String) {
+		CAP("cap"),
+		UNSTOPPABLE("unstoppable"),
+		OFF_INCUMBENT("off-incumbent"),
+		UNJUDGED("unjudged"),
+		SHORT("short"),
+		TEMPO("tempo"),
+		UNPUBLISHABLE("unpublishable"),
+		NO_BRAKE("no-brake"),
+		CERTIFY("certify"),
+		NO_PROGRESS("no-progress"),
+		COMMIT("commit"),
+	}
+
+	private val refusalCounts = IntArray(Refusal.entries.size)
+
+	val refusalReasons: Map<String, Int>
+		get() = Refusal.entries.filter { refusalCounts[it.ordinal] > 0 }.associate { it.label to refusalCounts[it.ordinal] }
+
 	private var expansionsAtPublish = 0
 	private var finalScore = Int.MAX_VALUE
 	private var tipAbandoned = false
@@ -55,23 +74,23 @@ internal class Publisher(
 		if (!remaining.isFinite() || remaining <= FINISH_VALUE_TICKS) return
 		val cursor = publications.cursor()
 		val tip = publications.tip
-		if (anchor.elapsed > publicationCap(cursor ?: -1)) return refuse()
-		if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refuse()
-		if (incumbent.best?.anchor?.descendsFrom(anchor) == false) return refuse()
+		if (anchor.elapsed > publicationCap(cursor ?: -1)) return refuse(Refusal.CAP)
+		if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refuse(Refusal.UNSTOPPABLE)
+		if (incumbent.best?.anchor?.descendsFrom(anchor) == false) return refuse(Refusal.OFF_INCUMBENT)
 		if (tip == null) {
 			if (anchor.elapsed < searchConfig.horizonCommitFrames) return
 			if (clock.elapsedMillis() < searchConfig.safePrefixDelayMillis) return
 			if (budget.count < searchConfig.minCommitExpansions) return
 			if (remaining <= FIRST_PUBLISH_MIN_REMAINING_TICKS) return
 		} else {
-			if (!publications.upToDate) return refuse()
-			if (anchor.elapsed < tip.elapsed + searchConfig.horizonCommitFrames) return refuse()
-			if (budget.count - expansionsAtPublish < searchConfig.minCommitExpansions) return refuse()
+			if (!publications.upToDate) return refuse(Refusal.UNJUDGED)
+			if (anchor.elapsed < tip.elapsed + searchConfig.horizonCommitFrames) return refuse(Refusal.SHORT)
+			if (budget.count - expansionsAtPublish < searchConfig.minCommitExpansions) return refuse(Refusal.TEMPO)
 			val executing = cursor ?: return
 			if (tip.elapsed - executing > searchConfig.horizonRunwayFrames) return
-			if (!publishableOver(tip, anchor, executing)) return refuse()
+			if (!publishableOver(tip, anchor, executing)) return refuse(Refusal.UNPUBLISHABLE)
 		}
-		if (!publishBraked(anchor)) refuse()
+		publishBraked(anchor)?.let(::refuse)
 	}
 
 	fun commit(urgent: Boolean, along: ValueAnchor? = null): Boolean {
@@ -88,18 +107,18 @@ internal class Publisher(
 		val inputs = CommitInputs(tip, frontier.root, publications.adopted(), leaf, target)
 		if (inputs == refusedCommit) return false
 		commitAttempts++
-		if (tip != null && field.guideFor(tip) - field.guideFor(target) < MIN_COMMIT_PROGRESS_TICKS) return refuseCommit(inputs)
+		if (tip != null && field.guideFor(tip) - field.guideFor(target) < MIN_COMMIT_PROGRESS_TICKS) return refuseCommit(inputs, Refusal.NO_PROGRESS)
 		val cap = publicationCap(executing)
 		val (withinCap, beyondCap) = target.lineFrom(frontier.root).filter { it.elapsed > floor }.partition { it.elapsed <= cap }
 		for (candidate in withinCap.asReversed() + beyondCap) {
 			if (tip == null && field.guide(candidate.stance) <= FINISH_VALUE_TICKS) continue
 			if (tip != null && !publishableOver(tip, candidate, executing)) {
-				refusals++
+				refuse(Refusal.UNPUBLISHABLE)
 				continue
 			}
-			if (publishBraked(candidate)) return true
+			if (publishBraked(candidate) == null) return true
 		}
-		return refuseCommit(inputs)
+		return refuseCommit(inputs, Refusal.COMMIT)
 	}
 
 	fun publishFinal(solution: Solution): Boolean {
@@ -121,12 +140,13 @@ internal class Publisher(
 	fun seal(solution: Solution): Solution? =
 		solution.takeIf { !publishFinal(solution) && !incumbent.isSealed && publications.tip == null }
 
-	private fun refuse() {
+	private fun refuse(reason: Refusal) {
 		refusals++
+		refusalCounts[reason.ordinal]++
 	}
 
-	private fun refuseCommit(inputs: CommitInputs): Boolean {
-		refusals++
+	private fun refuseCommit(inputs: CommitInputs, reason: Refusal): Boolean {
+		refuse(reason)
 		refusedCommit = inputs
 		return false
 	}
@@ -153,11 +173,11 @@ internal class Publisher(
 	private fun arrivalEstimate(anchor: ValueAnchor, allowance: Double = 0.0): Double =
 		anchor.arrivalEstimate(field.guideFor(anchor), allowance)
 
-	private fun publishBraked(anchor: ValueAnchor): Boolean {
-		val braked = finisher.brakeToStop(anchor) ?: return false
-		val certified = certifier.certify(braked) as? MotionPlanResult.Success ?: return false
+	private fun publishBraked(anchor: ValueAnchor): Refusal? {
+		val braked = finisher.brakeToStop(anchor) ?: return Refusal.NO_BRAKE
+		val certified = certifier.certify(braked) as? MotionPlanResult.Success ?: return Refusal.CERTIFY
 		publish(anchor, tailAnchor(anchor, certified, anchor.collisionEvents), certified, arrives = false)
-		return true
+		return null
 	}
 
 	private fun publish(anchor: ValueAnchor, brake: ValueAnchor, certified: MotionPlanResult.Success, arrives: Boolean) {

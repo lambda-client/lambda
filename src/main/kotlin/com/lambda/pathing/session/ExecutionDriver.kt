@@ -128,6 +128,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		if (!replay.holding) {
 			replay.holding = true
 			replay.heldSince = System.currentTimeMillis()
+			walk.heartbeat.soon()
 			walk.telemetry.countHold()
 			walk.dumpEvent("hold", "holding at the tape terminal after ${path.plan.tape.frameCount} frames toward ${path.finalGoal}")
 			info(

@@ -117,6 +117,13 @@ class CoarsePlanner(
 
 	fun knownEdgesOf(node: Stance): List<CoarseEdge> = edgeCache.cachedEdgesFrom(node) ?: emptyList()
 
+	val exactEdgeChecks: Long get() = edgeCache.exactChecks
+
+	val arrivalEdgeChecks: Long get() = edgeCache.arrivalChecks
+
+	var syncedStances = 0L
+		private set
+
 	fun knownSuccessorsOf(node: Stance): Map<Stance, Double> {
 		val merged = HashMap<Stance, Double>()
 		for (speed in SpeedClass.entries) {
@@ -388,6 +395,7 @@ class CoarsePlanner(
 		val ordered = pendingSync.toLongArray()
 		ordered.sort()
 		val count = minOf(maxStances, ordered.size)
+		syncedStances += count
 		val lifted = LongArrayList(count * 2)
 		for (i in 0 until count) {
 			val key = ordered[i]

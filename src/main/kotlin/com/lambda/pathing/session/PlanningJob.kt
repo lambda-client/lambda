@@ -5,6 +5,8 @@ import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.search.SearchProbe
+import com.lambda.pathing.search.SearchStats
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -23,15 +25,54 @@ internal class PlanningJob(
 	private val start = preparation.start
 	private val goal = coarse.goal(leg)
 
+	@Volatile
+	var phase = "queued"
+		private set
+
+	@Volatile
+	var phaseSince = System.currentTimeMillis()
+		private set
+
+	@Volatile
+	var stats: SearchStats? = null
+		private set
+
+	@Volatile
+	var statsAt = 0L
+		private set
+
+	@Volatile
+	var publications = 0
+		private set
+
+	private val probe = object : SearchProbe by PlanningDebugChannel {
+		override fun stats(view: SearchStats) {
+			record(view)
+			PlanningDebugChannel.stats(view)
+		}
+	}
+
+	private fun record(view: SearchStats) {
+		stats = view
+		statsAt = System.currentTimeMillis()
+	}
+
+	private fun enter(next: String) {
+		phase = next
+		phaseSince = System.currentTimeMillis()
+	}
+
 	fun start(): CompletableFuture<PathPlanResult> = CompletableFuture.supplyAsync(::run, PLANNER)
 
 	private fun run(): PathPlanResult = if (cancelled()) PathPlanResult.Cancelled else plan()
 
 	private fun plan(): PathPlanResult {
 		val began = System.nanoTime()
+		enter("awaiting a coarse route from $start")
 		val frame = coarse.awaitRoute(leg, start, cancelled)
-		if (cancelled()) return PathPlanResult.Cancelled
-		if (frame == null) return noRoute()
+		if (cancelled()) return PathPlanResult.Cancelled.also { enter("cancelled") }
+		if (frame == null) return noRoute().also { enter("no coarse route") }
+		enter("searching")
 		PlanningDebugChannel.publishRoute(frame.route)
 		LOG.info(
 			"Planning startup {} -> {}: coarse route of {} nodes to {} after {} ms, since-request={} ms; capture so far: {}",
@@ -39,7 +80,10 @@ internal class PlanningJob(
 			System.currentTimeMillis() - preparation.startedMillis, world.captureLedger(),
 		)
 		return CoarseFollower(coarse, world, snapshot, leg, frame).use { follower ->
-			walk(frame, follower).also { dumpOutcome(it, follower) }
+			walk(frame, follower).also {
+				enter("finished: ${it::class.simpleName}")
+				dumpOutcome(it, follower)
+			}
 		}
 	}
 
@@ -52,15 +96,19 @@ internal class PlanningJob(
 
 	private fun walk(frame: CoarseService.Frame, follower: CoarseFollower): PathPlanResult = walkHorizon(
 		frame.route, journey.planner(leg), preparation.initial, preparation.profile, snapshot, preparation.seedConfig, execution,
-		publish = publish,
+		publish = { path, running ->
+			publications++
+			publish(path, running)
+		},
 		started = preparation.startedMillis,
 		searchConfig = preparation.searchConfig,
 		cancelled = cancelled,
 		finalGoal = preparation.finalGoal,
 		world = follower,
 		field = follower.field,
-		probe = PlanningDebugChannel,
+		probe = probe,
 		onConcluded = {
+			record(it)
 			LOG.info("Trajectory search {} -> {}: {} {}", start, preparation.finalGoal, it, follower.ledger)
 			PlanningDebugChannel.publishExhaustion(it, follower.ledger)
 		},

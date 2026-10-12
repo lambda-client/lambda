@@ -2,9 +2,12 @@ package com.lambda.pathing.search
 
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.rollout.TrajectoryRolloutEngine
+import com.lambda.pathing.rollout.TrajectoryRolloutTermination
 
 import com.lambda.pathing.actions.InputTape
+import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -16,13 +19,30 @@ internal class Certifier(
 	private val cancelled: () -> Boolean,
 	private val route: RouteState,
 	private val attempts: AttemptAccumulator,
+	private val publications: Publications? = null,
 ) {
 	private var certifiedFrames: List<SimulatedTrajectoryFrame> = emptyList()
 	private var certifiedDependencies: List<Set<VoxelPos>> = emptyList()
 
-	fun forget() {
-		certifiedFrames = emptyList()
-		certifiedDependencies = emptyList()
+	var certifications = 0
+		private set
+
+	var failures = 0
+		private set
+
+	var replayedFrames = 0L
+		private set
+
+	var lastFailure: String? = null
+		private set
+
+	fun forget(mutations: Set<VoxelPos>, chunks: Set<PathingChunk>, executed: Int) {
+		for (frame in executed.coerceAtLeast(0) until certifiedDependencies.size) {
+			if (certifiedDependencies[frame].none { it in mutations || PathingChunk.containing(it) in chunks }) continue
+			certifiedFrames = certifiedFrames.subList(0, frame)
+			certifiedDependencies = certifiedDependencies.subList(0, frame)
+			return
+		}
 	}
 
 	fun certify(solution: Solution): MotionPlanResult {
@@ -30,17 +50,29 @@ internal class Certifier(
 		val inputs = solution.inputs
 		val tape = InputTape(inputs)
 
-		var shared = 0
-		val maxShared = minOf(inputs.size, certifiedFrames.size)
-		while (shared < maxShared && inputs[shared] == certifiedFrames[shared].input) shared++
+		var baseFrames = certifiedFrames
+		var baseDependencies = certifiedDependencies
+		var shared = sharedPrefix(inputs, baseFrames, baseFrames.size)
+		val executed = publications?.cursor()
+		val running = publications?.running?.plan?.plan
+		if (executed != null && running != null && shared < executed) {
+			val trusted = sharedPrefix(inputs, running.frames, executed)
+			if (trusted > shared) {
+				baseFrames = running.frames
+				baseDependencies = running.frameDependencies
+				shared = trusted
+			}
+		}
 
 		val frames = ArrayList<SimulatedTrajectoryFrame>(inputs.size)
-		frames += certifiedFrames.subList(0, shared)
+		frames += baseFrames.subList(0, shared)
 		val frameDependencies = ArrayList<Set<VoxelPos>>(inputs.size)
-		frameDependencies += certifiedDependencies.subList(0, shared)
+		frameDependencies += baseDependencies.subList(0, shared)
 
-		val resumeState = if (shared == 0) initialState else certifiedFrames[shared - 1].state
+		val resumeState = if (shared == 0) initialState else baseFrames[shared - 1].state
 		val suffix = inputs.subList(shared, inputs.size)
+		certifications++
+		replayedFrames += suffix.size
 		val tracked = environment.trackingView()
 		val certified = TrajectoryRolloutEngine.rollout(
 			initialState = resumeState,
@@ -54,6 +86,8 @@ internal class Certifier(
 			},
 		)
 		if (!certified.completed || certified.frames.size != suffix.size) {
+			failures++
+			lastFailure = describe(certified.termination, shared)
 			return MotionPlanResult.UnstableReplay(
 				"value-field tape did not reproduce: ${certified.termination}"
 			)
@@ -82,6 +116,21 @@ internal class Certifier(
 			attemptCount = attempts.count,
 			legTouches = solution.anchor.legTouches(),
 		)
+	}
+
+	private fun describe(termination: TrajectoryRolloutTermination, replayedFrom: Int): String = when (termination) {
+		is TrajectoryRolloutTermination.Blocked ->
+			"unloaded section (${termination.section.x}, ${termination.section.y}, ${termination.section.z}) at f${replayedFrom + termination.frame}, replaying from f$replayedFrom"
+		is TrajectoryRolloutTermination.Rejected ->
+			"${termination.failure.message} at f${replayedFrom + termination.frame}, replaying from f$replayedFrom"
+		TrajectoryRolloutTermination.Completed -> "a short replay from f$replayedFrom"
+	}
+
+	private fun sharedPrefix(inputs: List<MovementSimulationInput>, frames: List<SimulatedTrajectoryFrame>, limit: Int): Int {
+		val bound = minOf(inputs.size, frames.size, limit)
+		var shared = 0
+		while (shared < bound && inputs[shared] == frames[shared].input) shared++
+		return shared
 	}
 }
 

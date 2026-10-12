@@ -17,6 +17,8 @@ class InterestQueue(
 
 	val demandSize: Int get() = queues[InterestTier.DEMAND.ordinal].size
 
+	val deferredSize: Int get() = deferred.size
+
 	fun add(sectionKeys: Iterable<Long>, tier: InterestTier) {
 		val queue = queues[tier.ordinal]
 		for (key in sectionKeys) {

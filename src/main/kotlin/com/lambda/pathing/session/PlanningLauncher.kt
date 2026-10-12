@@ -107,6 +107,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			is PathPlanResult.Failed ->
 				if (walk.replay != null) {
 					deadEnd = completed.reason
+					walk.heartbeat.soon()
 					LOG.info(
 						"Planning session dead-ended mid-walk ({}); planning the successor now",
 						completed.reason,

@@ -48,7 +48,7 @@ internal class SearchLoop(
 	private val visits = VisitIndex { frontier.root }
 	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe, routePoints, visits)
 	private val crew = if (parallelism > 1) RolloutCrew(parallelism - 1, rollouts) else null
-	private val certifier = Certifier(initialState, profile, environment, cancelled, route, attempts)
+	private val certifier = Certifier(initialState, profile, environment, cancelled, route, attempts, publications)
 	private val finisher = Finisher(field, environment, config, RolloutGate(profile, environment, config, route), attempts, route, routePoints)
 	private val publisher = Publisher(searchConfig, field, frontier, clock, publications, onPublish, budget, incumbent, finisher, certifier, probe, live)
 	private val recovery = StallRecovery(frontier, publications, world)
@@ -381,7 +381,7 @@ internal class SearchLoop(
 		val root = frontier.root ?: return
 		val result = world?.sync(route.plan, root) ?: return
 		result.revision?.let(route::advanceRevision)
-		if (result.mutations.isNotEmpty() || result.chunks.isNotEmpty()) certifier.forget()
+		if (result.mutations.isNotEmpty() || result.chunks.isNotEmpty()) certifier.forget(result.mutations, result.chunks, publications.cursor() ?: 0)
 		repairFor(result.mutations, result.chunks)
 		when (result) {
 			WorldSyncResult.Quiet -> return
@@ -537,6 +537,12 @@ internal class SearchLoop(
 		horizonEnd = frontier.end,
 		cursorFrame = publications.observedCursor,
 		bestScore = incumbent.best?.score,
+		certifications = certifier.certifications,
+		certifyFailures = certifier.failures,
+		replayedFrames = certifier.replayedFrames,
+		lastCertifyFailure = certifier.lastFailure,
+		refusalReasons = publisher.refusalReasons,
+		rootStance = frontier.root?.stance,
 	)
 
 	private companion object {

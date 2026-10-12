@@ -182,6 +182,7 @@ internal class Frontier(
 		deepestProgress = 0
 		open.forEach { deepestProgress = maxOf(deepestProgress, progressOf(it.anchor.stance)) }
 		parked.forEach { deepestProgress = maxOf(deepestProgress, progressOf(it.anchor.stance)) }
+		root?.let { deepestProgress = maxOf(deepestProgress, progressOf(it.stance)) }
 		rescore()
 	}
 
