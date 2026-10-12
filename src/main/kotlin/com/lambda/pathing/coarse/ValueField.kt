@@ -14,12 +14,7 @@ interface ValueField : SteeringField {
 	fun guide(stance: Stance, speed: SpeedClass): Double
 	fun isMapped(stance: Stance): Boolean
 	fun isStance(stance: Stance): Boolean
-	fun steps(
-		stance: Stance,
-		count: Int,
-		marginTicks: Double = Double.MAX_VALUE,
-		heading: Pair<Double, Double>? = null,
-	): List<CoarseEdge>
+	fun steps(stance: Stance, count: Int, marginTicks: Double = Double.MAX_VALUE): List<CoarseEdge>
 
 	fun reachesGoal(chain: List<Stance>): Boolean
 }
@@ -36,11 +31,11 @@ class SwitchableValueField(initial: CoarseValueField) : ValueField {
 	override fun guide(stance: Stance, speed: SpeedClass): Double = current.guide(stance, speed)
 	override fun isMapped(stance: Stance): Boolean = current.isMapped(stance)
 	override fun isStance(stance: Stance): Boolean = current.isStance(stance)
-	override fun steps(stance: Stance, count: Int, marginTicks: Double, heading: Pair<Double, Double>?): List<CoarseEdge> =
-		current.steps(stance, count, marginTicks, heading)
+	override fun steps(stance: Stance, count: Int, marginTicks: Double): List<CoarseEdge> =
+		current.steps(stance, count, marginTicks)
 
-	override fun chain(stance: Stance, firstStep: Stance?, length: Int, heading: Pair<Double, Double>?): List<Stance> =
-		current.chain(stance, firstStep, length, heading)
+	override fun chain(stance: Stance, firstStep: Stance?, length: Int): List<Stance> =
+		current.chain(stance, firstStep, length)
 
 	override fun reachesGoal(chain: List<Stance>): Boolean = current.reachesGoal(chain)
 }

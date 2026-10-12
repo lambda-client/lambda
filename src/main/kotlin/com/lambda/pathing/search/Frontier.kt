@@ -271,8 +271,7 @@ internal class Frontier(
 	private fun momentumAdjusted(anchor: ValueAnchor, guide: Double): Double {
 		if (anchor.momentumEpoch != fieldEpoch) {
 			anchor.momentumEpoch = fieldEpoch
-			val next = field.steps(anchor.stance, 1, heading = anchor.heading())
-				.firstOrNull()?.to?.center()
+			val next = field.steps(anchor.stance, 1).firstOrNull()?.to?.center()
 			if (next == null) {
 				anchor.momentumCredit = Double.NaN
 			} else {

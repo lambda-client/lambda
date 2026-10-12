@@ -21,6 +21,7 @@ import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.CollisionClass
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.RememberedTerrain
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
@@ -58,6 +59,10 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	internal fun install(key: Long, section: ImmutableSnapshotSection) = synchronized(storeRef) {
 		storeRef.store = storeRef.store.with(key, section)
+	}
+
+	internal fun install(sections: Long2ObjectMap<ImmutableSnapshotSection>) = synchronized(storeRef) {
+		storeRef.store = storeRef.store.with(sections)
 	}
 
 	internal fun removeSections(keys: LongArrayList) = synchronized(storeRef) {

@@ -6,6 +6,8 @@ import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
@@ -59,6 +61,7 @@ class PathingWorld(
 		lock.withLock { interestQueue.promoteDeferred(::trustedKey) }
 		var written = 0
 		var completed = 0
+		val finished = Long2ObjectLinkedOpenHashMap<ImmutableSnapshotSection>()
 		while (written == 0 || System.nanoTime() < deadline) {
 			val key = capture.activeKey ?: nextCapturable() ?: break
 			val x = (ChunkSectionPos.unpackX(key) shl 4) + capture.localX
@@ -66,10 +69,11 @@ class PathingWorld(
 			val z = (ChunkSectionPos.unpackZ(key) shl 4) + capture.localZ
 			written++
 			if (capture.writeNext(source.physicsAt(x, y, z))) {
-				completeSection(key)
+				finished.put(key, capture.build())
 				completed++
 			}
 		}
+		if (!finished.isEmpty()) completeSections(finished)
 		if (written > 0) {
 			capturedCells += written
 			capturedSections += completed
@@ -160,9 +164,11 @@ class PathingWorld(
 			if (pendingRemovals.remove(key)) removed.add(key)
 		}
 		if (!removed.isEmpty) snapshot.removeSections(removed)
+		val replaced = Long2ObjectOpenHashMap<ImmutableSnapshotSection>()
 		for ((key, section) in pendingReplacements) {
-			if (pendingReplacements.remove(key, section)) snapshot.install(key, section)
+			if (pendingReplacements.remove(key, section)) replaced.put(key, section)
 		}
+		if (!replaced.isEmpty()) snapshot.install(replaced)
 	}
 
 	fun awaitEvents(sinceRevision: Long, timeoutMillis: Long): Boolean =
@@ -195,17 +201,16 @@ class PathingWorld(
 		interestQueue.nextCapturable(::trustedKey)?.also(capture::begin)
 	}
 
-	private fun completeSection(key: Long) {
-		val frozen = capture.build()
-		val replacing = key in pendingRemovals
-		if (replacing) {
-			pendingRemovals.remove(key)
-			pendingReplacements[key] = frozen
-		} else {
-			snapshot.install(key, frozen)
+	private fun completeSections(finished: Long2ObjectLinkedOpenHashMap<ImmutableSnapshotSection>) {
+		val installed = Long2ObjectOpenHashMap<ImmutableSnapshotSection>(finished.size)
+		for (entry in finished.long2ObjectEntrySet()) {
+			if (pendingRemovals.remove(entry.longKey)) pendingReplacements[entry.longKey] = entry.value else installed.put(entry.longKey, entry.value)
 		}
-		recorder?.record(key)
-		revisions.recordCaptured(sectionOf(key))
+		if (!installed.isEmpty()) snapshot.install(installed)
+		for (key in finished.keys) {
+			recorder?.record(key)
+			revisions.recordCaptured(sectionOf(key))
+		}
 	}
 
 	private fun sectionOf(key: Long) =

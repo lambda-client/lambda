@@ -21,10 +21,7 @@ internal class ActionSet(
 			return emptyList()
 		}
 
-		val steps = field.steps(
-			anchor.stance, CORRIDOR_STEPS, CORRIDOR_MARGIN_TICKS,
-			anchor.heading(),
-		)
+		val steps = field.steps(anchor.stance, CORRIDOR_STEPS, CORRIDOR_MARGIN_TICKS)
 		if (steps.isEmpty()) return emptyList()
 
 		val costOf = HashMap<Stance, Double>(steps.size)

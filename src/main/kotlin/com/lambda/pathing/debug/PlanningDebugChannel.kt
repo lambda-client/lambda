@@ -4,6 +4,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.coarse.CoarseRoutePlan
+import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.PathingSection
 import com.lambda.pathing.core.Stance
@@ -15,9 +16,20 @@ import com.lambda.pathing.rollout.TrajectoryDiagnostic
 import com.lambda.pathing.rollout.TrajectoryRollout
 import com.lambda.pathing.world.CoarseVoxelView
 import net.minecraft.util.math.Vec3d
+import kotlin.math.ceil
+import kotlin.math.floor
 
 object PlanningDebugChannel : SearchProbe {
-	class Attempt(val points: List<Vec3d>, val certified: Boolean)
+	class Attempt(private val rollout: TrajectoryRollout, val certified: Boolean) {
+		val points: List<Vec3d> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+			val frames = rollout.frames
+			val points = ArrayList<Vec3d>(frames.size / DECIMATION + 2)
+			points += rollout.initialState.position
+			for (index in frames.indices step DECIMATION) points += frames[index].state.position
+			if (frames.isNotEmpty() && (frames.size - 1) % DECIMATION != 0) points += frames.last().state.position
+			points
+		}
+	}
 
 	@Volatile
 	var isActive = false
@@ -28,8 +40,10 @@ object PlanningDebugChannel : SearchProbe {
 		private set
 
 	@Volatile
-	var attempts: List<Attempt> = emptyList()
-		private set
+	private var attemptView: List<Attempt>? = null
+
+	val attempts: List<Attempt>
+		get() = attemptView ?: synchronized(ring) { ArrayList(ring).also { attemptView = it } }
 
 	class GraphNode(
 		val pos: Vec3d,
@@ -153,27 +167,28 @@ object PlanningDebugChannel : SearchProbe {
 		val limits = graphLimits
 		val radiusSquared = limits.radius * limits.radius
 
-		var total = 0
-		val within = ArrayList<Pair<Stance, Double>>()
-		planner.forEachGraphStance { x, y, z ->
-			total++
+		val reach = ceil(limits.radius).toInt() + 1
+		val bodyX = floor(around.x).toInt()
+		val bodyY = floor(around.y).toInt()
+		val bodyZ = floor(around.z).toInt()
+		val box = CellBox((bodyX - reach)..(bodyX + reach), (bodyY - reach)..(bodyY + reach), (bodyZ - reach)..(bodyZ + reach))
+		val within = ArrayList<SampledStance>()
+		planner.forEachGraphStanceWithin(box) { x, y, z ->
 			val stance = Stance(x, y, z)
 			val distance = distanceSquared(stance, around)
-			if (distance <= radiusSquared) within += stance to distance
+			if (distance <= radiusSquared) within += SampledStance(stance, distance, planner.stanceCost(stance))
 		}
-		val stances = within.asSequence()
-			.sortedWith(compareBy({ !planner.stanceCost(it.first).isFinite() }, { it.second }))
-			.take(limits.cells)
-			.map { (stance, _) -> stance }
-			.toList()
+		within.sortWith(compareBy({ !it.cost.isFinite() }, { it.distance }))
+		val picked = within.subList(0, minOf(within.size, limits.cells))
+		val stances = picked.map { it.stance }
 
 		val drawn = stances.toHashSet()
-		val sampled = stances.map { stance ->
+		val sampled = picked.map {
 			GraphNode(
-				pos = center(view, stance),
-				cost = planner.stanceCost(stance),
-				frontier = planner.inFrontier(stance),
-				anchor = planner.isAnchor(stance),
+				pos = center(view, it.stance),
+				cost = it.cost,
+				frontier = planner.inFrontier(it.stance),
+				anchor = planner.isAnchor(it.stance),
 			)
 		}
 
@@ -216,10 +231,12 @@ object PlanningDebugChannel : SearchProbe {
 			edges = edges,
 			cheapest = finite.minOrNull() ?: 0.0,
 			dearest = finite.maxOrNull() ?: 0.0,
-			total = total,
+			total = planner.graphSize,
 			totalEdges = knownEdges,
 		)
 	}
+
+	private class SampledStance(val stance: Stance, val distance: Double, val cost: Double)
 
 	private fun center(view: CoarseVoxelView, stance: Stance) = Vec3d(
 		stance.x + 0.5,
@@ -248,19 +265,10 @@ object PlanningDebugChannel : SearchProbe {
 
 	override fun attempt(rollout: TrajectoryRollout, certified: Boolean, diagnostic: TrajectoryDiagnostic?) {
 		if (!isActive) return
-		val points = ArrayList<Vec3d>(rollout.frames.size / DECIMATION + 2)
-		points += rollout.initialState.position
-		for (index in rollout.frames.indices step DECIMATION) {
-			points += rollout.frames[index].state.position
-		}
-		rollout.frames.lastOrNull()?.let { last ->
-			if ((rollout.frames.size - 1) % DECIMATION != 0) points += last.state.position
-		}
-		val attempt = Attempt(points, certified)
 		synchronized(ring) {
-			ring += attempt
+			ring += Attempt(rollout, certified)
 			while (ring.size > MAX_ATTEMPTS) ring.removeFirst()
-			attempts = ArrayList(ring)
+			attemptView = null
 		}
 	}
 
@@ -275,8 +283,10 @@ object PlanningDebugChannel : SearchProbe {
 	}
 
 	private fun clearSearchViews() {
-		synchronized(ring) { ring.clear() }
-		attempts = emptyList()
+		synchronized(ring) {
+			ring.clear()
+			attemptView = null
+		}
 		candidateLines = emptyList()
 		tree = null
 		stats = null

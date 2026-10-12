@@ -43,26 +43,37 @@ object TrajectoryRolloutEngine {
 		environment: SimulationEnvironment,
 		program: ControlProgram,
 		frameCount: Int,
+		siblings: List<List<SimulatedTrajectoryFrame>> = emptyList(),
 		observer: ((SimulatedTrajectoryFrame) -> Boolean)? = null,
 	): TrajectoryRollout {
 		require(frameCount >= 0) { "frameCount must be non-negative" }
 
-		var simulator = MovementSimulator(
-			profile = profile,
-			environment = environment,
-			initialState = initialState,
-		)
+		var simulator: MovementSimulator? = null
+		var shared = siblings
 		val frames = ArrayList<SimulatedTrajectoryFrame>(frameCount)
 		var current = initialState
 
 		for (frame in 0 until frameCount) {
 			var input = program.input(frame, current)
+			if (shared.isNotEmpty()) {
+				shared = shared.filter { sibling -> frame < sibling.size && physicallyEqual(sibling[frame].input, input) }
+				val match = shared.firstOrNull()?.get(frame)
+				if (match != null) {
+					val reused = if (match.input == input) match
+						else SimulatedTrajectoryFrame(frame, input, match.state.copy(rotation = input.rotation ?: current.rotation))
+					current = reused.state
+					frames += reused
+					if (observer?.invoke(reused) == true) break
+					continue
+				}
+			}
 			val next = try {
-				simulator.tickMovement(input).let { moved ->
-					if (!simulator.burningFeet && !simulator.burnsNextTick(input)) return@let moved
-					simulator = MovementSimulator(profile, environment, current)
+				val active = simulator ?: MovementSimulator(profile, environment, current).also { simulator = it }
+				active.tickMovement(input).let { moved ->
+					if (!active.burningFeet && !active.burnsNextTick(input)) return@let moved
+					val retry = MovementSimulator(profile, environment, current).also { simulator = it }
 					input = input.copy(sneak = true)
-					simulator.tickMovement(input)
+					retry.tickMovement(input)
 				}
 			} catch (failure: SimulationEnvironmentException) {
 				return TrajectoryRollout(
@@ -87,5 +98,14 @@ object TrajectoryRolloutEngine {
 			frames = frames,
 			termination = TrajectoryRolloutTermination.Completed,
 		)
+	}
+
+	private fun physicallyEqual(a: MovementSimulationInput, b: MovementSimulationInput): Boolean {
+		if (a.forward.toRawBits() != b.forward.toRawBits() || a.strafe.toRawBits() != b.strafe.toRawBits()) return false
+		if (a.jump != b.jump || a.sneak != b.sneak || a.sprint != b.sprint || a.useItemSlowdown != b.useItemSlowdown) return false
+		val first = a.rotation
+		val second = b.rotation
+		if (first == null || second == null) return first == null && second == null
+		return first.yawF.toRawBits() == second.yawF.toRawBits() && first.pitchF.toRawBits() == second.pitchF.toRawBits()
 	}
 }

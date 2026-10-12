@@ -74,6 +74,7 @@ internal fun searchTree(
 	fun claimChain(leaf: ValueAnchor?, role: SearchNodeRole) {
 		var node = leaf
 		while (node != null && roles.size < MAX_TREE_NODES) {
+			if (role == SearchNodeRole.INTERIOR && node in roles) return
 			claim(node, role)
 			node = node.parent
 		}
@@ -100,19 +101,35 @@ internal fun searchTree(
 private const val MAX_TREE_NODES = 4096
 
 internal fun candidatePaths(pool: List<Frontier.OpenEntry>, tip: ValueAnchor?): List<CandidatePath> {
-	val best = pool.minByOrNull { it.order }
+	val shown = ArrayList<Frontier.OpenEntry>(MAX_SHOWN_CANDIDATES + 1)
+	for (entry in pool) {
+		var at = shown.size
+		while (at > 0 && entry.order.compareTo(shown[at - 1].order) < 0) at--
+		if (at == MAX_SHOWN_CANDIDATES) continue
+		shown.add(at, entry)
+		if (shown.size > MAX_SHOWN_CANDIDATES) shown.removeAt(MAX_SHOWN_CANDIDATES)
+	}
 	val spine = Collections.newSetFromMap(IdentityHashMap<ValueAnchor, Boolean>())
-	generateSequence(tip) { it.parent }.forEach { spine += it }
-	return pool.sortedBy { it.order }.take(MAX_SHOWN_CANDIDATES).map { entry ->
-		val lineage = generateSequence(entry.anchor) { it.parent }
-		val branch = lineage.takeWhile { it !in spine }.toList().asReversed()
-		val points = ArrayList<Vec3d>()
-		lineage.firstOrNull { it in spine }?.let { points += it.state.position }
-		branch.forEach { anchor ->
-			points += anchor.trace
-			points += anchor.state.position
+	var unwalked = tip
+	return shown.map { entry ->
+		val branch = ArrayList<ValueAnchor>()
+		var node: ValueAnchor? = entry.anchor
+		while (node != null) {
+			while (unwalked != null && unwalked.elapsed >= node.elapsed) {
+				spine += unwalked
+				unwalked = unwalked.parent
+			}
+			if (node in spine) break
+			branch += node
+			node = node.parent
 		}
-		CandidatePath(points, entry === best)
+		val points = ArrayList<Vec3d>()
+		node?.let { points += it.state.position }
+		for (index in branch.indices.reversed()) {
+			points += branch[index].trace
+			points += branch[index].state.position
+		}
+		CandidatePath(points, entry === shown.first())
 	}
 }
 

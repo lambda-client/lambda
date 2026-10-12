@@ -38,28 +38,25 @@ class CoarseValueFieldSelectionTest {
                 labelAt = { stance, _ -> labels[stance] ?: Double.POSITIVE_INFINITY },
                 edgeProvider = { if (it == from) edges else emptyList() },
                 labelRevision = { 0L })
-            for (heading in listOf(null, 0.0 to 0.0, 1.0 to -2.0, 1e-12 to 0.0, Double.NaN to 1.0)) {
-                for (margin in listOf(-0.5, 0.0, 0.2, 0.5, 2.0, Double.MAX_VALUE, Double.NaN)) {
-                    for (count in listOf(-1, 0, 1, 2, 8)) {
-                        val expected = runCatching { reference(field, from, count, margin, heading) }
-                        val actual = runCatching { field.steps(from, count, margin, heading) }
-                        assertEquals(expected.exceptionOrNull()?.javaClass, actual.exceptionOrNull()?.javaClass)
-                        assertEquals(expected.getOrNull(), actual.getOrNull(), "count=$count margin=$margin heading=$heading")
-                    }
+            for (margin in listOf(-0.5, 0.0, 0.2, 0.5, 2.0, Double.MAX_VALUE, Double.NaN)) {
+                for (count in listOf(-1, 0, 1, 2, 8)) {
+                    val expected = runCatching { reference(field, from, count, margin) }
+                    val actual = runCatching { field.steps(from, count, margin) }
+                    assertEquals(expected.exceptionOrNull()?.javaClass, actual.exceptionOrNull()?.javaClass)
+                    assertEquals(expected.getOrNull(), actual.getOrNull(), "count=$count margin=$margin")
                 }
             }
         }
     }
 
-    private fun reference(field: CoarseValueField, from: Stance, count: Int, margin: Double, heading: Pair<Double, Double>?): List<CoarseEdge> {
+    private fun reference(field: CoarseValueField, from: Stance, count: Int, margin: Double): List<CoarseEdge> {
         val unique = HashMap<Stance, CoarseEdge>()
         for (edge in field.edgesFrom(from)) {
             val incumbent = unique[edge.to]
             if (incumbent == null || edge.lowerBoundTicks < incumbent.lowerBoundTicks) unique[edge.to] = edge
         }
         unique.values.retainAll { field.isMapped(it.to) }
-        val direction = heading?.takeIf { hypot(it.first, it.second) > 1e-6 }
-            ?: ((field.goal.x - from.x).toDouble() to (field.goal.z - from.z).toDouble())
+        val direction = (field.goal.x - from.x).toDouble() to (field.goal.z - from.z).toDouble()
         fun alignment(to: Stance): Double {
             val length = hypot(direction.first, direction.second)
             if (length <= 1e-9) return 0.0

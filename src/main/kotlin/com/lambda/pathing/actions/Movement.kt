@@ -15,13 +15,6 @@ interface BodyState {
 	val hazardFrame: Int?
 
 	val speed: Double
-
-	fun heading(): Pair<Double, Double>? =
-		if (speed <= HEADING_EPSILON) null else state.velocity.x to state.velocity.z
-
-	private companion object {
-		const val HEADING_EPSILON = 1e-6
-	}
 }
 
 data class TemplateSpec(
@@ -52,15 +45,15 @@ class DecisionContext(
 	val constraints: MotionConstraints,
 	val view: CoarseVoxelView,
 	val steering: SteeringField,
-)
+) {
+	private var bearings: HashMap<Double, Boolean>? = null
+
+	internal fun landableAlong(bearing: Double, landable: (Double) -> Boolean): Boolean =
+		(bearings ?: HashMap<Double, Boolean>(4).also { bearings = it }).getOrPut(bearing) { landable(bearing) }
+}
 
 interface SteeringField {
-	fun chain(
-		stance: Stance,
-		firstStep: Stance?,
-		length: Int,
-		heading: Pair<Double, Double>? = null,
-	): List<Stance>
+	fun chain(stance: Stance, firstStep: Stance?, length: Int): List<Stance>
 
 	companion object {
 		const val PURSUIT_CHAIN_LENGTH = 6

@@ -132,6 +132,8 @@ internal class CoarseEdgeCache(
 
 	fun fallsRead(changed: List<CellBox>, key: Long): Boolean = falls?.reads(changed, key) == true
 
+	fun fallReaders(changed: List<CellBox>): List<CellBox> = falls?.let { changed.map(it::readers) }.orEmpty()
+
 	private fun bounces(stance: Stance): Boolean =
 		bounceTemplates.isNotEmpty() && moves.bouncesAt(view, stance.x, stance.y, stance.z)
 
@@ -221,10 +223,11 @@ internal class CoarseEdgeCache(
 						gathered[template * 4 + 2] = gathered[template * 4 + 2] or irregular
 						gathered[template * 4 + 3] = gathered[template * 4 + 3] or pending
 						var bits = irregular
+						val start = if (bits != 0L) origin.irregularStart(template) else 0
 						while (bits != 0L) {
 							val bit = java.lang.Long.numberOfTrailingZeros(bits)
 							bits = bits and (bits - 1)
-							builder.irregular(template, bit, origin.ticksOf(template, bit - shift))
+							builder.irregular(template, bit, origin.ticksOf(template, bit - shift, start))
 						}
 					}
 					index++
@@ -280,9 +283,11 @@ internal class CoarseEdgeCache(
 	}
 
 	private fun remove(keys: LongSet, boxes: List<CellBox>, keep: LongSet? = null) {
+		val bounds = CellBox.enclosing(boxes)
 		val iterator = keys.iterator()
 		while (iterator.hasNext()) {
 			val k = iterator.nextLong()
+			if (!bounds.contains(PackedStance.unpackX(k), PackedStance.unpackY(k), PackedStance.unpackZ(k))) continue
 			if (keep != null && keep.contains(k)) continue
 			if (covers(boxes, k)) iterator.remove()
 		}

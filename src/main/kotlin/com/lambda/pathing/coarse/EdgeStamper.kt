@@ -21,9 +21,8 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private val cellDx: IntArray
 	private val programs: Array<Indexed?>
 	private val slotCount: Int
+	private val clauseCount: Int
 	private val groupMasks: LongArray
-	private val cellFootprints: Array<IntArray>
-	private val tainted: IntArray
 	private val stanceRows: Int
 
 	init {
@@ -38,17 +37,12 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 			cellRows.lastIndex
 		}
 		fun ids(cells: Collection<VoxelPos>) = cells.map(::id).toIntArray()
-		val containing = ArrayList<ArrayList<Int>>()
-		var footprints = 0
-		fun footprint(cells: List<VoxelPos>): Int {
-			for (cell in cells.distinct()) {
-				val index = id(cell)
-				while (containing.size <= index) containing += ArrayList<Int>()
-				containing[index] += footprints
-			}
-			return footprints++
+		val clauseIds = HashMap<List<Any>, Int>()
+		fun clause(clause: StampProgram.Clause): IndexedClause {
+			val cells = ids(clause.cells)
+			val id = clauseIds.getOrPut(listOf(cells.toList(), clause.truth.toList())) { clauseIds.size }
+			return IndexedClause(cells, clause.truth, clause.classSets, id)
 		}
-		fun clause(clause: StampProgram.Clause) = IndexedClause(ids(clause.cells), clause.truth, clause.classSets)
 		stanceCells = ids(STANCE_CELLS)
 		stanceRows = rows.size
 
@@ -68,13 +62,11 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 				}.toTypedArray(),
 				clips = candidates.orEmpty().map { ids(it.clipCells) }.toTypedArray(),
 				bonks = candidates.orEmpty().map { ids(it.bonkCells) }.toTypedArray(),
-				footprints = candidates.orEmpty().map { footprint(it.cells) }.toIntArray(),
 				behind = program.behind?.let(::clause),
 				firstClips = ids(candidates?.firstOrNull()?.clipCells.orEmpty()),
 				bendColumns = program.bendColumns,
 				bendClips = program.bendGroups.map { group -> group.map { ids(it.clipCells) }.toTypedArray() }.toTypedArray(),
 				bendCells = program.bendGroups.map { group -> group.map { ids(it.cells) }.toTypedArray() }.toTypedArray(),
-				bendFootprints = program.bendGroups.map { group -> group.map { footprint(it.cells) }.toIntArray() }.toTypedArray(),
 				groupOffset = program.bendGroups.runningFold(0) { offset, group -> offset + group.size }.toIntArray(),
 				bends = program.bendGroups.flatten(),
 				planes = 32 - Integer.numberOfLeadingZeros(bendCount),
@@ -85,13 +77,12 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 			}
 		}
 		slotCount = slots
+		clauseCount = clauseIds.size
 		groupMasks = LongArray(groups)
 		rowY = IntArray(rows.size) { rows[it].first }
 		rowZ = IntArray(rows.size) { rows[it].second }
 		cellRow = cellRows.toIntArray()
 		cellDx = cellDxs.toIntArray()
-		cellFootprints = Array(cellRow.size) { containing.getOrNull(it)?.toIntArray() ?: IntArray(0) }
-		tainted = IntArray(footprints)
 	}
 
 	private val stamped = programs.indices.filter { programs[it] != null }.toIntArray()
@@ -107,6 +98,10 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private val climbs = LongArray(cellRow.size)
 	private val waters = LongArray(cellRow.size)
 	private val specialCells = LongArray(cellRow.size)
+	private val blockings = LongArray(cellRow.size)
+	private val clauseMasks = LongArray(clauseCount)
+	private val clauseSpecials = LongArray(clauseCount)
+	private val clauseGenerations = IntArray(clauseCount)
 
 	fun synchronize() {
 		if (bits.synchronize()) stamps.clear()
@@ -221,16 +216,23 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		fetch(word, y, z, stanceRows, rowY.size)
 		for (cell in cellRow.indices) load(cell)
 		generation++
-		if (specials || climbing) taint()
+		val anySpecial = specials || climbing
 		for (program in programs) {
 			if (program == null) continue
 			var passing = stances
 			var undecided = 0L
 			for (clause in program.clauses) {
-				var special = 0L
-				for (cell in clause.cells) special = special or special(cell)
+				val id = clause.id
+				if (clauseGenerations[id] != generation) {
+					var special = 0L
+					for (cell in clause.cells) special = special or special(cell)
+					clauseSpecials[id] = special
+					clauseMasks[id] = mask(clause)
+					clauseGenerations[id] = generation
+				}
+				val special = clauseSpecials[id]
 				undecided = undecided or special
-				passing = passing and (mask(clause) or special)
+				passing = passing and (clauseMasks[id] or special)
 				if (passing == 0L) break
 			}
 			var fallback = passing and undecided
@@ -249,14 +251,14 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 				continue
 			}
 			if (candidates.isEmpty()) continue
-			stamp[program.slot + 1] = mask(program.behind!!)
+			stamp[program.slot + 1] = memoizedMask(program.behind!!)
 			var open = conditions
 			for (index in candidates.indices) {
 				if (open == 0L) break
 				val bonks = program.bonks[index]
 				var bonked = if (bonks.isEmpty()) -1L else 0L
 				for (cell in bonks) bonked = bonked or solid(cell)
-				if (tainted[program.footprints[index]] != generation) {
+				if (!anySpecial || !touchesSpecial(program.scans[index], 1)) {
 					var clipped = 0L
 					for (cell in program.clips[index]) {
 						clipped = clipped or (blocking(cell) and open)
@@ -285,12 +287,20 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 				stamp[program.slot + 2 + index] = clear
 				open = clipped or (scanning and clear.inv())
 			}
-			stamp[program.slot] = if (open != 0L) fallback or bend(program, open, stamp) else fallback
+			stamp[program.slot] = if (open != 0L) fallback or bend(program, open, stamp, anySpecial) else fallback
 		}
 		return stamp
 	}
 
-	private fun bend(program: Indexed, needing: Long, stamp: LongArray): Long {
+	private fun touchesSpecial(entries: IntArray, shift: Int): Boolean {
+		for (entry in entries) {
+			val cell = entry ushr shift
+			if (specialCells[cell] or climbs[cell] != 0L) return true
+		}
+		return false
+	}
+
+	private fun bend(program: Indexed, needing: Long, stamp: LongArray, anySpecial: Boolean): Long {
 		val groups = program.bendClips.size
 		groupMasks.fill(0L, 0, groups)
 		var remaining = needing
@@ -316,7 +326,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 					if (clipped == open) break
 				}
 				var through = open and clipped.inv()
-				if (through != 0L && tainted[program.bendFootprints[group][index]] == generation) {
+				if (through != 0L && anySpecial && touchesSpecial(cells[index], 0)) {
 					var special = 0L
 					for (cell in cells[index]) special = special or special(cell) or climb(cell)
 					fallback = fallback or (through and special)
@@ -333,6 +343,16 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 			}
 		}
 		return fallback
+	}
+
+	private fun memoizedMask(clause: IndexedClause): Long {
+		val id = clause.id
+		if (clauseGenerations[id] == generation) return clauseMasks[id]
+		var special = 0L
+		for (cell in clause.cells) special = special or special(cell)
+		clauseSpecials[id] = special
+		clauseGenerations[id] = generation
+		return mask(clause).also { clauseMasks[id] = it }
 	}
 
 	private fun mask(clause: IndexedClause): Long {
@@ -374,6 +394,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		climbs[cell] = shifted(words[CellClass.CLIMB.plane], cell)
 		waters[cell] = shifted(words[CellClass.WATER.plane], cell)
 		specialCells[cell] = if (specials) shifted(words[CellClass.SPECIAL.plane], cell) else 0L
+		blockings[cell] = solids[cell] or hazards[cell] or waters[cell]
 	}
 
 	private fun fetch(word: Int, y: Int, z: Int, from: Int, until: Int) {
@@ -383,13 +404,6 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		for (index in from * 3 until until * 3) {
 			if (special[index] != 0L) specials = true
 			if (climb[index] != 0L) climbing = true
-		}
-	}
-
-	private fun taint() {
-		for (cell in cellRow.indices) {
-			if (specialCells[cell] == 0L && climbs[cell] == 0L) continue
-			for (footprint in cellFootprints[cell]) tainted[footprint] = generation
 		}
 	}
 
@@ -403,7 +417,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 
 	private fun special(cell: Int): Long = specialCells[cell]
 
-	private fun blocking(cell: Int): Long = solids[cell] or hazards[cell] or waters[cell]
+	private fun blocking(cell: Int): Long = blockings[cell]
 
 	private fun shifted(words: LongArray, cell: Int): Long {
 		val base = cellRow[cell] * 3 + 1
@@ -415,7 +429,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		}
 	}
 
-	private class IndexedClause(val cells: IntArray, val truth: BooleanArray, val classSets: IntArray?)
+	private class IndexedClause(val cells: IntArray, val truth: BooleanArray, val classSets: IntArray?, val id: Int)
 
 	private class Indexed(
 		val clauses: Array<IndexedClause>,
@@ -424,13 +438,11 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		val scans: Array<IntArray>,
 		val clips: Array<IntArray>,
 		val bonks: Array<IntArray>,
-		val footprints: IntArray,
 		val behind: IndexedClause?,
 		val firstClips: IntArray,
 		val bendColumns: IntArray,
 		val bendClips: Array<Array<IntArray>>,
 		val bendCells: Array<Array<IntArray>>,
-		val bendFootprints: Array<IntArray>,
 		val groupOffset: IntArray,
 		val bends: List<StampProgram.Candidate>,
 		val planes: Int,

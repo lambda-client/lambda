@@ -90,6 +90,15 @@ class CoarsePlanner(
 		}
 	}
 
+	fun forEachGraphStanceWithin(box: CellBox, action: (x: Int, y: Int, z: Int) -> Unit) {
+		search.forEachKnownNode { node ->
+			val x = PackedStance.unpackX(node)
+			val y = PackedStance.unpackY(node)
+			val z = PackedStance.unpackZ(node)
+			if (box.contains(x, y, z) && (PackedStance.speed(node) != SpeedClass.MOVING || !search.isKnown(PackedStance.withSpeed(node, SpeedClass.STOPPED)))) action(x, y, z)
+		}
+	}
+
 	fun stanceCost(stance: Stance): Double = minOf(
 		search.g(PackedStance.pack(stance, SpeedClass.MOVING)),
 		search.g(PackedStance.pack(stance, SpeedClass.STOPPED)),
@@ -350,9 +359,13 @@ class CoarsePlanner(
 		updateGoalKnowledge()
 		anchors.refresh(changed)
 		val origins = changed.map(moves::originsReading)
-		search.forEachKnownNode { node ->
-			val key = PackedStance.stanceKey(node)
-			if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key)) pendingSync.add(key)
+		if (changed.isNotEmpty()) {
+			val bounds = CellBox.enclosing(origins + edgeCache.fallReaders(changed))
+			search.forEachKnownNode { node ->
+				if (!bounds.contains(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))) return@forEachKnownNode
+				val key = PackedStance.stanceKey(node)
+				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key)) pendingSync.add(key)
+			}
 		}
 		edgeCache.invalidate(changed, arrivalsOnly)
 		if (grounded == view.mayBounce) {
@@ -364,6 +377,7 @@ class CoarsePlanner(
 
 	fun continueSync(maxStances: Int = Int.MAX_VALUE): Boolean {
 		if (pendingSync.isEmpty()) return false
+		if (maxStances <= 0) return true
 		val ordered = pendingSync.toLongArray()
 		ordered.sort()
 		val count = minOf(maxStances, ordered.size)

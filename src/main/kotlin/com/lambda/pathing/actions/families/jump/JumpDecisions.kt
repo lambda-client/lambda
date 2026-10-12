@@ -68,7 +68,7 @@ internal object JumpDecisions {
 
 	private fun onwardEntryWindow(context: DecisionContext): ClosedFloatingPointRange<Double>? {
 		val onward = context.steering
-			.chain(context.edge.to, null, ONWARD_LOOKAHEAD, null)
+			.chain(context.edge.to, null, ONWARD_LOOKAHEAD)
 			.getOrNull(1)
 			?: return null
 		if (onward == context.edge.to) return null

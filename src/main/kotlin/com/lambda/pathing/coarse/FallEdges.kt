@@ -96,6 +96,9 @@ internal class FallEdges(
 		return arrivals
 	}
 
+	fun readers(changed: CellBox): CellBox =
+		changed.grown(-MAX_REACH - 1, MAX_REACH + 1, -HEADROOM_CELLS - 1, MAX_DEPTH + 2, -MAX_REACH - 1, MAX_REACH + 1)
+
 	fun reads(changed: List<CellBox>, key: Long): Boolean {
 		val x = PackedStance.unpackX(key)
 		val y = PackedStance.unpackY(key)

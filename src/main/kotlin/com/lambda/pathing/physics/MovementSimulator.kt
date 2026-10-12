@@ -37,7 +37,7 @@ class MovementSimulator(
 	private var supportingBlockPos = initialState.supportingBlockPos
 	private var doubleTapSprintTicks = initialState.doubleTapSprintTicks
 	private var hadForwardMovement = initialState.hadForwardMovement
-	private var forceUpdateSupportingBlockPos = initialState.supportingBlockPos == null
+	private var forceUpdateSupportingBlockPos = initialState.supportingBlockPos == null && initialState.onGround
 	private var touchingWater = initialState.touchingWater
 	private var waterHeight = initialState.waterHeight
 	private var eyeInWater = initialState.eyeInWater

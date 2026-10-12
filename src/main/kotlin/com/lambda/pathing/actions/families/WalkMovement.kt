@@ -9,7 +9,6 @@ import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
 import com.lambda.pathing.actions.DecisionPrice
-import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.control.HeadingFollowerProgram
 import com.lambda.pathing.actions.Movement
@@ -134,12 +133,27 @@ object WalkMovement : Movement {
 		maxRise = if (dy > 0 && strideCost != null) LaunchMode.MAX_JUMP_RISE else Double.POSITIVE_INFINITY,
 	)
 
-	private fun walks(step: CoarseEdge, constraints: MotionConstraints): List<TrajectoryDecision> = buildList {
-		for (sprint in constraints.sprintModes) {
-			for ((lookAhead, ease) in WALK_STYLES) {
+	private fun walks(step: CoarseEdge, context: ProposalContext): List<TrajectoryDecision> = buildList {
+		val chain = context.steering.chain(context.body.stance, step.to, SteeringField.PURSUIT_CHAIN_LENGTH)
+		val styles = if (bendsWithin(chain, WALK_LOOKAHEAD_SEGMENTS)) WALK_STYLES else STRAIGHT_STYLES
+		for (sprint in context.constraints.sprintModes) {
+			for ((lookAhead, ease) in styles) {
 				add(TrajectoryDecision.Walk(sprint, step.to, lookAhead, ease, via = step.via))
 			}
 		}
+	}
+
+	private fun bendsWithin(chain: List<Stance>, segments: Int): Boolean {
+		val last = minOf(chain.lastIndex, segments)
+		if (last < 2) return false
+		val dx = chain[1].x - chain[0].x
+		val dz = chain[1].z - chain[0].z
+		for (index in 2..last) {
+			val ex = chain[index].x - chain[index - 1].x
+			val ez = chain[index].z - chain[index - 1].z
+			if (dx * ez - dz * ex != 0 || dx * ex + dz * ez <= 0) return true
+		}
+		return false
 	}
 
 	override fun proposals(context: ProposalContext): List<TrajectoryDecision> {
@@ -152,13 +166,13 @@ object WalkMovement : Movement {
 			if (!walkable(step)) continue
 
 			if (climbing && !(step.movement == MovementId.STEP_UP && step.to.y > body.stance.y)) continue
-			proposals += walks(step, context.constraints)
+			proposals += walks(step, context)
 		}
 
 		val leading = steps.first()
 		if (climbing || !walkable(leading)) return proposals
 		val target = leading.to
-		val chain = context.steering.chain(body.stance, target, BEARING_LOOKAHEAD + 1, body.heading())
+		val chain = context.steering.chain(body.stance, target, BEARING_LOOKAHEAD + 1)
 		val bearing = routeBearing(body, chain)
 
 		val turning = turnsAhead(chain)
@@ -200,7 +214,7 @@ object WalkMovement : Movement {
 		}
 		val heading = decision as? TrajectoryDecision.Heading ?: return grounded
 		if (heading.delayFrames == null) return grounded
-		val landable = landableAlong(context, heading.yaw)
+		val landable = context.landableAlong(heading.yaw) { landableAlong(context, it) }
 		return grounded + DecisionPrice(
 			difficulty = if (landable) LAUNCH_HEADING_DIFFICULTY else BLIND_HEADING_DIFFICULTY,
 		)
@@ -211,7 +225,7 @@ object WalkMovement : Movement {
 		val origin = context.body.stance
 		val view = context.view
 		val corridorFloor = context.steering
-			.chain(origin, context.edge.to, SteeringField.PURSUIT_CHAIN_LENGTH, context.body.heading())
+			.chain(origin, context.edge.to, SteeringField.PURSUIT_CHAIN_LENGTH)
 			.minOf { it.y }
 		val lowest = minOf(corridorFloor, origin.y)
 		val highest = origin.y + LaunchMode.MAX_JUMP_STEP
@@ -263,6 +277,10 @@ object WalkMovement : Movement {
 	}
 
 	private val WALK_STYLES = listOf(1 to false, 2 to false, 1 to true)
+
+	private val STRAIGHT_STYLES = WALK_STYLES.filter { (lookAhead, _) -> lookAhead == 1 }
+
+	private const val WALK_LOOKAHEAD_SEGMENTS = 3
 
 	private val STEP_UP_HEADROOM = CellCondition(0, 2, 0, CellPredicate.CENTER_SLICE)
 

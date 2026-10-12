@@ -388,10 +388,7 @@ object JumpArcProbe {
 		if (slack < MIN_DODGE_SLACK) return null
 		for (fraction in DODGE_FRACTIONS) {
 			val offset = fraction * slack
-			val dodged = arcs.sweep(
-				solution.arc, solution.launchOffset, launchHeight, lateralOffset = offset, halfWidth = BODY_HALF_WIDTH,
-			)
-			if (dodged == Sweep.Clear) return solution.copy(lateralOffset = offset)
+			if (arcs.clearOf(solution.arc, arcs.path(solution.launchOffset, offset), launchHeight, BODY_HALF_WIDTH)) return solution.copy(lateralOffset = offset)
 		}
 		return null
 	}

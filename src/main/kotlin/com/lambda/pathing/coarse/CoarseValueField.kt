@@ -5,7 +5,6 @@ import com.lambda.pathing.core.headingAlignment
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import kotlin.math.floor
-import kotlin.math.hypot
 
 class CoarseValueField(
 	override val view: CoarseVoxelView,
@@ -52,15 +51,10 @@ class CoarseValueField(
 
 	override fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
 
-	override fun steps(
-		stance: Stance,
-		count: Int,
-		marginTicks: Double,
-		heading: Pair<Double, Double>?,
-	): List<CoarseEdge> {
+	override fun steps(stance: Stance, count: Int, marginTicks: Double): List<CoarseEdge> {
 		val options = optionsFrom(stance)
 		if (options.edges.isEmpty()) return emptyList()
-		val reference = reference(stance, heading)
+		val reference = towardGoal(stance)
 		val ranked = ArrayList<RankedStep>(options.edges.size)
 		for (index in options.edges.indices) {
 			val edge = options.edges[index]
@@ -107,36 +101,27 @@ class CoarseValueField(
 		}
 	}
 
-	override fun chain(
-		stance: Stance,
-		firstStep: Stance?,
-		length: Int,
-		heading: Pair<Double, Double>?,
-	): List<Stance> {
+	override fun chain(stance: Stance, firstStep: Stance?, length: Int): List<Stance> {
 		require(length > 0) { "A steering chain needs at least one node" }
 		val revision = labelRevision()
 		if (revision != chainsRevision) {
 			chains.clear()
 			chainsRevision = revision
 		}
-		val key = ChainKey(stance, firstStep, length, heading)
+		val key = ChainKey(stance, firstStep, length)
 		chains[key]?.let { return it }
 		val chain = ArrayList<Stance>(length + 1)
 		chain += stance
 		val visited = HashSet<Stance>()
 		visited += stance
 
-		var direction = heading
 		firstStep?.let {
-			direction = (it.x - stance.x).toDouble() to (it.z - stance.z).toDouble()
 			chain += it
 			visited += it
 		}
 
 		while (chain.size <= length && chain.last() != goal) {
-			val from = chain.last()
-			val next = descend(from, visited, direction) ?: break
-			direction = (next.x - from.x).toDouble() to (next.z - from.z).toDouble()
+			val next = descend(chain.last(), visited) ?: break
 			chain += next
 			visited += next
 		}
@@ -145,18 +130,9 @@ class CoarseValueField(
 		return chain
 	}
 
-	private data class ChainKey(
-		val stance: Stance,
-		val firstStep: Stance?,
-		val length: Int,
-		val heading: Pair<Double, Double>?,
-	)
+	private data class ChainKey(val stance: Stance, val firstStep: Stance?, val length: Int)
 
-	private fun descend(
-		from: Stance,
-		visited: Set<Stance>,
-		heading: Pair<Double, Double>?,
-	): Stance? {
+	private fun descend(from: Stance, visited: Set<Stance>): Stance? {
 		val options = optionsFrom(from)
 		val edges = options.edges
 		var best = Double.NaN
@@ -167,7 +143,7 @@ class CoarseValueField(
 		}
 		if (best.isNaN()) return null
 
-		val reference = reference(from, heading)
+		val reference = towardGoal(from)
 		var chosen: Stance? = null
 		var chosenAlignment = 0.0
 		for (index in edges.indices) {
@@ -182,13 +158,10 @@ class CoarseValueField(
 		return chosen
 	}
 
-	private fun reference(from: Stance, heading: Pair<Double, Double>?): Pair<Double, Double> {
-		if (heading != null && hypot(heading.first, heading.second) > MIN_HEADING_LENGTH) return heading
-		return Pair((goal.x - from.x).toDouble(), (goal.z - from.z).toDouble())
-	}
+	private fun towardGoal(from: Stance): Pair<Double, Double> = Pair((goal.x - from.x).toDouble(), (goal.z - from.z).toDouble())
 
-	private fun alignment(from: Stance, to: Stance, heading: Pair<Double, Double>): Double =
-		headingAlignment(heading.first, heading.second, (to.x - from.x).toDouble(), (to.z - from.z).toDouble())
+	private fun alignment(from: Stance, to: Stance, reference: Pair<Double, Double>): Double =
+		headingAlignment(reference.first, reference.second, (to.x - from.x).toDouble(), (to.z - from.z).toDouble())
 
 	override fun reachesGoal(chain: List<Stance>): Boolean = chain.lastOrNull() == goal
 
@@ -202,7 +175,6 @@ class CoarseValueField(
 		}
 
 		const val TIE_TICKS = 0.5
-		const val MIN_HEADING_LENGTH = 1e-6
 		const val MAX_CHAINS = 4096
 		const val MAX_OPTIONS = 16384
 	}

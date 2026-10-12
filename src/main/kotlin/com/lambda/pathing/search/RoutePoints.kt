@@ -12,7 +12,18 @@ internal class RoutePoints(private val environment: SnapshotSimulationEnvironmen
 	}
 	private var revision: Any? = environment.revision
 
+	private class Last(val chain: List<Stance>, val revision: Any?, val points: List<HorizontalPoint>)
+
+	@Volatile
+	private var last: Last? = null
+
 	fun of(chain: List<Stance>): List<HorizontalPoint> {
+		val current = environment.revision
+		last?.takeIf { it.chain === chain && it.revision === current }?.let { return it.points }
+		return points(chain).also { last = Last(chain, current, it) }
+	}
+
+	private fun points(chain: List<Stance>): List<HorizontalPoint> {
 		if (chain.none { partial(it) }) return chain.map { it.center(environment) }
 		synchronized(cache) {
 			val current = environment.revision

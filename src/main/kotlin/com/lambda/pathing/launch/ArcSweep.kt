@@ -75,6 +75,15 @@ internal class ArcSweep(
 	private val length = hypot(dx.toDouble(), dz.toDouble())
 	private val unitX = dx / length
 	private val unitZ = dz / length
+	private val stoppers = DoubleArrayList()
+	private val cellKeys = LongArray(CELL_SLOTS)
+	private val cellClasses = arrayOfNulls<CollisionClass>(CELL_SLOTS)
+
+	fun path(launchOffset: Double, lateralOffset: Double = 0.0) = ArcPath(
+		from.x + 0.5 + unitX * launchOffset - unitZ * lateralOffset,
+		from.z + 0.5 + unitZ * launchOffset + unitX * lateralOffset,
+		unitX, unitZ,
+	)
 
 	fun sweep(
 		arc: ArcSample,
@@ -82,20 +91,26 @@ internal class ArcSweep(
 		launchHeight: Double,
 		lateralOffset: Double = 0.0,
 		halfWidth: Double = CORE_HALF_WIDTH,
-	): Sweep = sweep(
-		arc,
-		ArcPath(
-			from.x + 0.5 + unitX * launchOffset - unitZ * lateralOffset,
-			from.z + 0.5 + unitZ * launchOffset + unitX * lateralOffset,
-			unitX, unitZ,
-		),
-		launchHeight, halfWidth,
-	)
+	): Sweep = sweep(arc, path(launchOffset, lateralOffset), launchHeight, halfWidth, stoppers)
+
+	fun clearOf(arc: ArcSample, path: ArcPath, launchHeight: Double, halfWidth: Double): Boolean =
+		!hitsAny(arc, path, launchHeight, halfWidth, stoppers) && sweep(arc, path, launchHeight, halfWidth, stoppers) == Sweep.Clear
+
+	private fun collisionClass(x: Int, y: Int, z: Int): CollisionClass {
+		val key = BlockPos.asLong(x, y, z)
+		val slot = (key xor (key ushr 21) xor (key ushr 42)).toInt() and (CELL_SLOTS - 1)
+		val cached = cellClasses[slot]
+		if (cached != null && cellKeys[slot] == key) return cached
+		return view.collisionClass(x, y, z).also {
+			cellKeys[slot] = key
+			cellClasses[slot] = it
+		}
+	}
 
 	fun sweep(arc: ArcSample, path: ArcPath, launchHeight: Double, halfWidth: Double = CORE_HALF_WIDTH, culprits: DoubleArrayList? = null): Sweep {
 		forEachSweptCell(arc, path, launchHeight, halfWidth) { x, y, z, swept ->
 			reads?.add(BlockPos.asLong(x, y, z))
-			when (view.collisionClass(x, y, z)) {
+			when (collisionClass(x, y, z)) {
 				CollisionClass.EMPTY -> {}
 				CollisionClass.UNKNOWN -> {
 					culprits?.addBox(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0 + TALL_SHAPE_REACH, z + 1.0)
@@ -201,6 +216,8 @@ internal fun coreBox(x: Double, y: Double, z: Double, halfWidth: Double = CORE_H
 	x - halfWidth, y, z - halfWidth,
 	x + halfWidth, y + BODY_HEIGHT, z + halfWidth,
 )
+
+private const val CELL_SLOTS = 128
 
 internal const val CORE_HALF_WIDTH = 0.2
 internal const val TALL_SHAPE_REACH = 0.5

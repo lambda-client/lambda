@@ -47,6 +47,7 @@ internal class AnchorRollout(
 	private val attempts: AttemptAccumulator,
 	private val probe: SearchProbe,
 	private val routePoints: RoutePoints,
+	private val visits: VisitIndex,
 ) {
 	private val climbingAt: (Vec3d) -> Boolean = { field.view.climbableAt(it) }
 
@@ -61,6 +62,10 @@ internal class AnchorRollout(
 		return mapped >= OPEN_LANDING_NEIGHBORS
 	}
 
+	private val recentRollouts = object : LinkedHashMap<ValueAnchor, ArrayDeque<List<SimulatedTrajectoryFrame>>>(RECENT_ANCHORS, 0.75f, true) {
+		override fun removeEldestEntry(eldest: MutableMap.MutableEntry<ValueAnchor, ArrayDeque<List<SimulatedTrajectoryFrame>>>) = size > RECENT_ANCHORS
+	}
+
 	internal class PreparedRollout(
 		val anchor: ValueAnchor,
 		val action: TrajectoryDecision,
@@ -69,6 +74,7 @@ internal class AnchorRollout(
 		internal val evaluator: RolloutEvaluator,
 		internal val frameCount: Int,
 		internal val launch: LaunchTrigger?,
+		internal val siblings: List<List<SimulatedTrajectoryFrame>>,
 	) {
 		internal var raw: TrajectoryRollout? = null
 		internal var failure: TrajectoryDiagnostic? = null
@@ -78,9 +84,7 @@ internal class AnchorRollout(
 	}
 
 	fun prepare(anchor: ValueAnchor, action: TrajectoryDecision): PreparedRollout? {
-		val chain = field.chain(
-			anchor.stance, action.step, SteeringField.PURSUIT_CHAIN_LENGTH, anchor.heading(),
-		)
+		val chain = field.chain(anchor.stance, action.step, SteeringField.PURSUIT_CHAIN_LENGTH)
 		val points = routePoints.of(chain)
 		val movement = movements[action.movement] ?: return null
 
@@ -109,6 +113,7 @@ internal class AnchorRollout(
 			),
 			frameCount = maxOf(TRANSITION_FRAMES, movement.transitionFrames(action)),
 			launch = launch,
+			siblings = recentRollouts[anchor]?.toList().orEmpty(),
 		)
 	}
 
@@ -124,6 +129,7 @@ internal class AnchorRollout(
 			environment = environment,
 			program = prepared.program,
 			frameCount = prepared.frameCount,
+			siblings = prepared.siblings,
 		) { frame ->
 			when (val verdict = prepared.evaluator.observe(frame.index, frame.state)) {
 				is RolloutVerdict.Failed -> {
@@ -185,6 +191,11 @@ internal class AnchorRollout(
 		val anchor = prepared.anchor
 		val action = prepared.action
 		val rollout = checkNotNull(prepared.raw) { "complete() before execute()" }
+		if (rollout.frames.isNotEmpty()) {
+			val siblings = recentRollouts.getOrPut(anchor) { ArrayDeque(SIBLINGS_PER_ANCHOR) }
+			if (siblings.size == SIBLINGS_PER_ANCHOR) siblings.removeFirst()
+			siblings.addLast(rollout.frames)
+		}
 		val failure = prepared.failure
 		val stopFrame = prepared.stopFrame
 		val eventFrame = prepared.eventFrame
@@ -220,7 +231,7 @@ internal class AnchorRollout(
 				Outcome.Rejected(TrajectoryDiagnostic.FellBelowRoute(frame, 0.0))
 			}
 		}
-		if (anchor.hasVisited(eventStance)) {
+		if (visits.visited(anchor, eventStance)) {
 			return Outcome.Rejected(
 				TrajectoryDiagnostic.RepeatedCoarseStance(frame, eventStance)
 			)
@@ -242,6 +253,8 @@ internal class AnchorRollout(
 	}
 
 	private companion object {
+		const val RECENT_ANCHORS = 64
+		const val SIBLINGS_PER_ANCHOR = 32
 		const val TRANSITION_FRAMES = 40
 		const val OPEN_LANDING_NEIGHBORS = 2
 		const val CORNER_CATCH_COLLISIONS = 2

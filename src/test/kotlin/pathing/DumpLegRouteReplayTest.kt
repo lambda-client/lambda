@@ -110,7 +110,7 @@ class DumpLegRouteReplayTest {
             val legField = (states.lastOrNull() ?: first).planner.valueField()
             val endStance = Stance.of(end.position, end.onGround)
             for (cell in listOf(endStance, Stance(endStance.x, endStance.y + 1, endStance.z), Stance(endStance.x, endStance.y - 1, endStance.z))) {
-                val steps = legField.steps(cell, 3, 4.0, null)
+                val steps = legField.steps(cell, 3, 4.0)
                 println("[legs-replay] field at $cell: mapped=${legField.isMapped(cell)} guide=${legField.guide(cell)} steps=${steps.map { "${it.movement}->${it.to}(${"%.1f".format(it.lowerBoundTicks)}) bounce=${it.bounce} launch=${it.launch} standingStart=${it.standingStart}" }}")
             }
         }

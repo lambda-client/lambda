@@ -2,6 +2,7 @@ package com.lambda.pathing.launch
 
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.Vanilla
+import java.util.concurrent.ConcurrentHashMap
 
 enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 	SPRINT_JUMP(sprint = true, jumps = true),
@@ -42,6 +43,8 @@ data class BallisticProfile(
 	val slipperiness: Double,
 ) {
 	val groundFriction: Double = (slipperiness.toFloat() * Vanilla.HORIZONTAL_DRAG).toDouble()
+
+	private val probeArcs = ConcurrentHashMap<ArcKey, Any>()
 
 	private val walkMomentumSpeed = momentumOf(sprint = false)
 	private val sprintMomentumSpeed = momentumOf(sprint = true)
@@ -164,6 +167,19 @@ data class BallisticProfile(
 		return arc(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
 	}
 
+	private data class ArcKey(
+		val entrySpeed: Double,
+		val rise: Double,
+		val holdForward: Boolean,
+		val sprint: Boolean,
+		val jump: Boolean,
+		val holdTicks: Int,
+		val maxTicks: Int,
+		val drop: Double,
+		val bounceFactor: Double,
+		val headroom: Double,
+	)
+
 	private fun arc(
 		entrySpeed: Double,
 		rise: Double,
@@ -175,6 +191,27 @@ data class BallisticProfile(
 		drop: Double = Double.NaN,
 		bounceFactor: Double = 1.0,
 		headroom: Double = Double.POSITIVE_INFINITY,
+	): ArcSample? {
+		if (entrySpeed != 0.0 && entrySpeed != 1.0) return simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
+		val key = ArcKey(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
+		probeArcs[key]?.let { return it as? ArcSample }
+		val arc = simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
+		if (probeArcs.size >= PROBE_ARC_LIMIT) probeArcs.clear()
+		probeArcs[key] = arc ?: NO_ARC
+		return arc
+	}
+
+	private fun simulate(
+		entrySpeed: Double,
+		rise: Double,
+		holdForward: Boolean,
+		sprint: Boolean,
+		jump: Boolean,
+		holdTicks: Int,
+		maxTicks: Int,
+		drop: Double,
+		bounceFactor: Double,
+		headroom: Double,
 	): ArcSample? {
 		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
 		val heights = DoubleArray(maxTicks + 1)
@@ -258,6 +295,10 @@ data class BallisticProfile(
 	}
 
 	companion object {
+
+		private const val PROBE_ARC_LIMIT = 1 shl 15
+
+		private val NO_ARC = Any()
 
 		const val MAX_BOUNCE_TICKS = 64
 

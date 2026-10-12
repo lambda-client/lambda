@@ -32,6 +32,23 @@ internal class RowEdges(
 		return if (index >= 0) irregularTicks[index] else resolvedTicks!!.get(key)
 	}
 
+	fun irregularStart(template: Int): Int {
+		val wanted = key(template, 0)
+		var low = 0
+		var high = irregularKeys.size
+		while (low < high) {
+			val middle = (low + high) ushr 1
+			if (irregularKeys[middle] < wanted) low = middle + 1 else high = middle
+		}
+		return low
+	}
+
+	fun ticksOf(template: Int, bit: Int, start: Int): Double {
+		val key = key(template, bit)
+		val index = Arrays.binarySearch(irregularKeys, start, minOf(start + Long.SIZE_BITS, irregularKeys.size), key)
+		return if (index >= 0) irregularTicks[index] else resolvedTicks!!.get(key)
+	}
+
 	fun resolve(index: Int, bit: Int, found: Boolean, standingStart: Boolean, irregularTicks: Double) {
 		val mask = 1L shl bit
 		pending[index] = pending[index] and mask.inv()

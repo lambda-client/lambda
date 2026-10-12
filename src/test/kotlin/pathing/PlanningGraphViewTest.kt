@@ -40,9 +40,7 @@ class PlanningGraphViewTest {
         PlanningDebugChannel.publishGraph(planner, Vec3d(0.5, 64.0, 0.5))
         val sample = assertNotNull(PlanningDebugChannel.graph, "an active channel must publish a graph")
 
-        var graphStances = 0
-        planner.forEachGraphStance { _, _, _ -> graphStances++ }
-        assertEquals(graphStances, sample.total, "the total must be the whole graph, not the sample")
+        assertEquals(planner.graphSize, sample.total, "the total must be the whole graph, not the sample")
         assertTrue(sample.nodes.isNotEmpty(), "a converged search must have touched something")
         assertTrue(
             sample.nodes.size <= sample.total,

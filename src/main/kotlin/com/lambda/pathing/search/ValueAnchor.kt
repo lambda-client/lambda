@@ -76,7 +76,7 @@ internal class ValueAnchor(
 
 	fun descendsFrom(other: ValueAnchor): Boolean {
 		var node: ValueAnchor? = this
-		while (node != null) {
+		while (node != null && node.elapsed >= other.elapsed) {
 			if (node === other) return true
 			node = node.parent
 		}
@@ -91,15 +91,6 @@ internal class ValueAnchor(
 
 	fun ancestorAt(frame: Int): ValueAnchor? = ancestorAtOrBefore(frame)?.takeIf { it.elapsed == frame }
 
-	fun hasVisited(visited: Stance): Boolean {
-		var node: ValueAnchor? = this
-		while (node != null) {
-			if (node.stance == visited) return true
-			if (node.legRoot) return false
-			node = node.parent
-		}
-		return false
-	}
 }
 
 internal fun ValueAnchor.arrivalEstimate(guide: Double, allowance: Double = 0.0): Double =
