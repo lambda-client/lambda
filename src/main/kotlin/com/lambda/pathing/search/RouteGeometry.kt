@@ -23,6 +23,19 @@ internal fun collisionEvents(
 	return events
 }
 
+internal fun groundJumps(
+	entry: MovementSimulationState,
+	frames: List<SimulatedTrajectoryFrame>,
+): Int {
+	var previous = entry
+	var jumps = 0
+	for ((_, input, state) in frames) {
+		if (input.jump && previous.onGround && !previous.touchingWater && !state.onGround && state.velocity.y > 0.0) jumps++
+		previous = state
+	}
+	return jumps
+}
+
 internal fun inputSwitches(
 	entryInput: MovementSimulationInput?,
 	frames: List<SimulatedTrajectoryFrame>,

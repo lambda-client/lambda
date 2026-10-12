@@ -55,17 +55,50 @@ object PathingRenderer : Loadable {
 		val width = px(config.coarseWidth)
 		val edges = route.edges
 		val truncated = route.goal != telemetry.published?.finalGoal
-		edges.forEachIndexed { index, edge ->
+		var index = 0
+		while (index < edges.size) {
+			val edge = edges[index]
 			val color = config.movementColor(edge.movement)
-			val from = edge.from.center(COARSE_Y)
-			val to = edge.to.center(COARSE_Y)
-			val tail = truncated && index == edges.lastIndex
-			line(from, to, if (tail) color.scaleAlpha(0.7) else color, width, if (tail) TAIL_DOTS else SKELETON_DASHES)
 			val previous = edges.getOrNull(index - 1)
-			if (previous == null || previous.movement != edge.movement) {
-				diamond(from, MOVEMENT_MARK, color)
+			if (previous == null || previous.movement != edge.movement) diamond(edge.from.center(COARSE_Y), MOVEMENT_MARK, color)
+			if (edge.movement == MovementId.SWIM) {
+				var end = index
+				while (end + 1 < edges.size && edges[end + 1].movement == MovementId.SWIM) end++
+				val stroke = simplified((index..end + 1).map { (if (it <= end) edges[it].from else edges[end].to).center(COARSE_Y) })
+				val tail = truncated && end == edges.lastIndex
+				polyline(stroke, if (tail) color.scaleAlpha(0.7) else color, width, if (tail) TAIL_DOTS else SKELETON_DASHES)
+				index = end + 1
+				continue
+			}
+			val tail = truncated && index == edges.lastIndex
+			line(edge.from.center(COARSE_Y), edge.to.center(COARSE_Y), if (tail) color.scaleAlpha(0.7) else color, width, if (tail) TAIL_DOTS else SKELETON_DASHES)
+			index++
+		}
+	}
+
+	private fun simplified(points: List<Vec3d>): List<Vec3d> {
+		if (points.size <= 2) return points
+		val first = points.first()
+		val last = points.last()
+		var farthest = 0
+		var distance = 0.0
+		for (i in 1 until points.lastIndex) {
+			val offset = offsetFromChord(points[i], first, last)
+			if (offset > distance) {
+				distance = offset
+				farthest = i
 			}
 		}
+		if (distance <= SWIM_ROUTE_TOLERANCE) return listOf(first, last)
+		return simplified(points.subList(0, farthest + 1)).dropLast(1) + simplified(points.subList(farthest, points.size))
+	}
+
+	private fun offsetFromChord(point: Vec3d, from: Vec3d, to: Vec3d): Double {
+		val dx = to.x - from.x
+		val dz = to.z - from.z
+		val length = kotlin.math.hypot(dx, dz)
+		if (length < 1e-9) return kotlin.math.hypot(point.x - from.x, point.z - from.z)
+		return kotlin.math.abs((point.x - from.x) * dz - (point.z - from.z) * dx) / length
 	}
 
 	private fun executedFrame(plan: TrajectoryPlan): Int = (status as? State.Executing)?.frame?.coerceIn(0, plan.frames.size) ?: 0
@@ -123,12 +156,10 @@ object PathingRenderer : Loadable {
 	private fun RenderBuilder.renderLiveTrail() {
 		val trail = telemetry.trail
 		if (trail.size < 2) return
-		val stride = (trail.size + MAX_TRAIL_POINTS - 1) / MAX_TRAIL_POINTS
-		val points = ArrayList<Vec3d>(trail.size / stride + 2)
-		for (index in 0 until trail.size step stride) points += trail[index].add(0.0, TRAIL_Y, 0.0)
-		if ((trail.size - 1) % stride != 0) points += trail.last().add(0.0, TRAIL_Y, 0.0)
-		polyline(points, config.trailColor, px(config.trailWidth))
+		val recent = trail.subList((trail.size - TRAIL_TAIL_POINTS).coerceAtLeast(0), trail.size)
+		polyline(recent.map { it.add(0.0, TRAIL_Y, 0.0) }, config.trailColor, px(config.trailWidth))
 	}
+
 
 	private fun RenderBuilder.renderGoal(path: PublishedPath?) {
 		val goal = path?.finalGoal ?: return
@@ -359,7 +390,8 @@ object PathingRenderer : Loadable {
 	private val RIVAL_DASHES = LineDashStyle(dashLength = 0.3f, gapLength = 0.15f)
 
 	private const val EXECUTED_TAIL_FRAMES = 400
-	private const val MAX_TRAIL_POINTS = 1024
+	private const val TRAIL_TAIL_POINTS = 400
+	private const val SWIM_ROUTE_TOLERANCE = 1.5
 
 	private const val FRAMES_PER_BLOCK_IDEAL = 3.6
 	private const val FRAMES_PER_BLOCK_WORST = 14.0

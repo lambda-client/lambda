@@ -12,4 +12,5 @@ internal class Replay(val path: PublishedPath, val cursor: TrajectoryExecutionCu
 	var lastHeldRefusal: String? = null
 	var repairDeadline: Int? = null
 	var repairDeviation: ExecutionDeviation? = null
+	var verifiedRevision = Long.MIN_VALUE
 }

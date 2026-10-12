@@ -46,6 +46,9 @@ internal class RolloutEvaluator(
 			if (!rebounded && fallDistance > config.maxSafeFallDistance && fallDistance > config.maxFallOnto(landingRule(state))) {
 				return RolloutVerdict.Failed(TrajectoryDiagnostic.HarmfulFall(index, fallDistance))
 			}
+			if (!rebounded && fallDistance > FallRule.TRAMPLE_FALL_DISTANCE && landingRule(state).tramples) {
+				return RolloutVerdict.Failed(TrajectoryDiagnostic.HarmfulFall(index, fallDistance))
+			}
 
 			apex = state.position.y
 		} else {

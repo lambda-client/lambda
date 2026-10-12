@@ -22,6 +22,7 @@ internal class ValueAnchor(
 	val inputs: List<MovementSimulationInput>,
 	val decision: TrajectoryDecision? = null,
 	val trace: List<Vec3d> = emptyList(),
+	val jumps: Int = 0,
 ) : BodyState {
 	override val speed: Double = state.velocity.horizontalLength()
 
@@ -64,9 +65,9 @@ internal class ValueAnchor(
 	var momentumCredit: Double = Double.NaN
 	var momentumTurnCost: Double = 0.0
 
-	fun continuation() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs, decision, trace)
+	fun continuation() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, parent, inputs, decision, trace, jumps)
 
-	fun restingChild() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, this, emptyList())
+	fun restingChild() = ValueAnchor(state, stance, elapsed, collisionEvents, inputSwitches, this, emptyList(), jumps = jumps)
 
 	fun lineFrom(root: ValueAnchor?): List<ValueAnchor> =
 		generateSequence(this) { it.parent }

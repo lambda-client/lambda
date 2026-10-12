@@ -48,6 +48,7 @@ internal class FallEdges(
 ) {
 	private val limits = moves.catalog.options.fallLimits
 	private val shallowWater = moves.catalog.options.allowSwimming
+	private val jumpPenalty = moves.catalog.options.jumpPenaltyTicks
 	private val occupancy = ColumnOccupancy(view)
 	private val outgoing = Long2ObjectLinkedOpenHashMap<Array<FallEdge>>()
 	private val incoming = Long2ObjectLinkedOpenHashMap<Array<FallArrival>>()
@@ -261,7 +262,7 @@ internal class FallEdges(
 			if (!water && drop + (if (jumps) JUMP_APEX else 0.0) > limits.maxFallOnto(rule)) continue
 			if (!clearChord(origin, unitX, unitZ, flight.launchOffset, launch + if (jumps) JUMP_APEX else 0.0, x, z, landingHeight)) continue
 			val settle = if (water) FallReach.plunge(flight.impactSpeed, waterCells).ticks.toDouble() else FLOOR_SETTLE_TICKS
-			val ticks = max((flight.airTicks + LAUNCH_TICKS).toDouble(), near / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK) + settle
+			val ticks = max((flight.airTicks + LAUNCH_TICKS).toDouble(), near / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK) + settle + if (jumps) jumpPenalty else 0.0
 			val standing = near <= flight.reach(STANDING_SPEED)
 			return FallEdge(dx, target.y - origin.y, dz, ticks, standing, water, jumps)
 		}

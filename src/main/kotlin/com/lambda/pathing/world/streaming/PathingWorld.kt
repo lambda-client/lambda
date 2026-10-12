@@ -192,7 +192,7 @@ class PathingWorld(
 		override fun close() = subscription.close()
 	}
 
-	private fun applyPending() {
+	internal fun applyPending() {
 		val replaced = Long2ObjectOpenHashMap<ImmutableSnapshotSection>()
 		for ((key, section) in pendingReplacements) {
 			if (pendingReplacements.remove(key, section)) replaced.put(key, section)

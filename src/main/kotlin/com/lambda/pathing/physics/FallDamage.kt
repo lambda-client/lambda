@@ -16,8 +16,8 @@ fun ClientPlayerEntity.fallLimits(acceptedDamage: Int): FallLimits {
 	)
 }
 
-data class FallRule(val distanceScale: Double, val damagePerDistance: Double) {
-	val cushions: Boolean get() = this != NORMAL
+data class FallRule(val distanceScale: Double, val damagePerDistance: Double, val tramples: Boolean = false) {
+	val cushions: Boolean get() = distanceScale != NORMAL.distanceScale || damagePerDistance != NORMAL.damagePerDistance
 
 	companion object {
 		val NORMAL = FallRule(1.0, 1.0)
@@ -27,6 +27,10 @@ data class FallRule(val distanceScale: Double, val damagePerDistance: Double) {
 		val BED = FallRule(0.5, 1.0)
 
 		val NONE = FallRule(1.0, 0.0)
+
+		val FARMLAND = FallRule(1.0, 1.0, tramples = true)
+
+		const val TRAMPLE_FALL_DISTANCE = 0.5
 	}
 }
 

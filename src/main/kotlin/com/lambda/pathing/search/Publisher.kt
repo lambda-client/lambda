@@ -224,6 +224,7 @@ internal class Publisher(
 				parent = link,
 				inputs = tail.map { it.input },
 				trace = probe.traceOf(tail),
+				jumps = parent.jumps,
 			)
 		}
 		if (!frames.last().state.onGround) {

@@ -100,5 +100,6 @@ internal fun BlockState.fallRule(): FallRule = when {
 	isOf(Blocks.HAY_BLOCK) -> FallRule.HAY
 	block is BedBlock -> FallRule.BED
 	isOf(Blocks.SLIME_BLOCK) -> FallRule.NONE
+	isOf(Blocks.FARMLAND) -> FallRule.FARMLAND
 	else -> FallRule.NORMAL
 }

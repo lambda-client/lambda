@@ -13,6 +13,7 @@ data class MotionConstraints(
 	val touchArrival: Boolean = false,
 	val touchRestRadius: Double = 1.6,
 	val fallLimits: FallLimits = FallLimits(),
+	val jumpPenaltyTicks: Double = 0.0,
 ) {
 	init {
 		require(maxFrames > 0)

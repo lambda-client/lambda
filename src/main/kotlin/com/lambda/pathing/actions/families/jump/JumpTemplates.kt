@@ -26,7 +26,7 @@ internal object JumpTemplates {
 				for (dz in -reach..reach) {
 					if (!offered(dx, dz, rise, options)) continue
 					val wide = maxOf(abs(dx), abs(dz)) > options.maxJumpSpan
-					val cost = context.costs.jumpCandidateCost(hypot(dx, dz), rise) + if (wide) WIDE_DROP_RISK_TICKS else 0.0
+					val cost = context.costs.jumpCandidateCost(hypot(dx, dz), rise) + (if (wide) WIDE_DROP_RISK_TICKS else 0.0) + options.jumpPenaltyTicks
 					add(spec(dx, dz, rise, cost, momentumOnly = wide))
 				}
 			}

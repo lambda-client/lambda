@@ -23,6 +23,8 @@ internal class FrontierIndex(
 
 	operator fun contains(stance: Stance): Boolean = costs.containsKey(PackedStance.pack(stance, SpeedClass.STOPPED))
 
+	private val unknownTicksPerBlock = maxOf(moves.sustainedTicksPerBlock, moves.catalog.options.frontierTicksPerBlock)
+
 	fun cost(node: Long): Double = costs.getOrDefault(PackedStance.stanceKey(node), Double.NaN)
 
 	inline fun forEach(action: (Stance, Double) -> Unit) {
@@ -45,7 +47,7 @@ internal class FrontierIndex(
 		val realistic = hypot(
 			(PackedStance.unpackX(to) - PackedStance.unpackX(from)).toDouble(),
 			(PackedStance.unpackZ(to) - PackedStance.unpackZ(from)).toDouble(),
-		) * moves.sustainedTicksPerBlock
+		) * unknownTicksPerBlock
 		return maxOf(floor, moves.heuristic(
 			PackedStance.unpackX(from), PackedStance.unpackY(from), PackedStance.unpackZ(from),
 			PackedStance.unpackX(to), PackedStance.unpackY(to), PackedStance.unpackZ(to),
@@ -126,7 +128,7 @@ internal class FrontierIndex(
 	}
 
 	private fun optimisticCost(anchor: Stance): Double {
-		val realistic = hypot((goal.x - anchor.x).toDouble(), (goal.z - anchor.z).toDouble()) * moves.sustainedTicksPerBlock
+		val realistic = hypot((goal.x - anchor.x).toDouble(), (goal.z - anchor.z).toDouble()) * unknownTicksPerBlock
 		return maxOf(moves.heuristic(anchor, goal), realistic)
 	}
 

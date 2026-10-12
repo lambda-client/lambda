@@ -84,6 +84,12 @@ internal class WalkTelemetry {
 
 	fun countHold() = update { holds++ }
 
+	@Volatile
+	var verifiedChanges: Int = 0
+		private set
+
+	fun countVerifiedChange() = update { verifiedChanges++ }
+
 	fun countRepair() = update { repairs++ }
 
 	fun countRecovery() = update { recoveries++ }

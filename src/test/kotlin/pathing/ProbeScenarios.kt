@@ -185,8 +185,9 @@ internal fun walkFrom(
     planner: CoarsePlanner,
     start: MovementSimulationState,
     environment: SnapshotSimulationEnvironment,
+    constraints: MotionConstraints = MotionConstraints(),
 ): PathPlanResult = walkHorizon(
-    route, planner, start, ProbeScenarios.PROFILE, environment, MotionConstraints(),
+    route, planner, start, ProbeScenarios.PROFILE, environment, constraints,
     publish = { _, _ -> },
     started = System.currentTimeMillis(),
 )

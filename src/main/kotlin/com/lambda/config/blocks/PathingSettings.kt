@@ -23,6 +23,20 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
     override val allowSprint by c.setting("Allow Sprint", true, "Let the seed search try sprinting gaits.")
 
+    @Group(SEARCH_GROUP)
+    override val frontierTicksPerBlock by c.setting(
+        "Frontier Directness", com.lambda.pathing.actions.SimpleMoveOptions.DEFAULT_FRONTIER_TICKS_PER_BLOCK, 3.0..30.0, 0.5,
+        "Ticks a far goal charges per block of unloaded terrain. Low values follow cheap known ground (coasts, ridges) " +
+            "sideways; high values head straight for the edge of the loaded world toward the goal, swimming if needed.",
+        unit = " ticks",
+    )
+
+    @Group(MOVES_GROUP)
+    override val saveFood by c.setting(
+        "Save Food", false,
+        "Spend as little hunger as possible: never sprint, and only jump where a jump saves more than a second over walking.",
+    )
+
     @Group(MOVES_GROUP)
     override val maxWalkOffDepth by c.setting(
         "Max Walk Off Depth", 3, 0..8, 1,

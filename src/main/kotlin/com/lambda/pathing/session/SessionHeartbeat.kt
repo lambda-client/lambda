@@ -45,6 +45,7 @@ internal class SessionHeartbeat {
 		append(" | adopted +").append(telemetry.adopted - adopted)
 		append(", rejected +").append(telemetry.rejectedImprovements - rejected)
 		append(", recoveries ").append(telemetry.recoveries).append(", holds ").append(telemetry.holds)
+		append(", verified world changes ").append(walk.telemetry.verifiedChanges)
 		adopted = telemetry.adopted
 		rejected = telemetry.rejectedImprovements
 		describeJob(walk.launcher.current?.job ?: walk.launcher.lastJob, now)

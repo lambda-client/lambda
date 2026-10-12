@@ -6,6 +6,7 @@ import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ImprovementArbiter
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.search.PublishedPath
+import com.lambda.pathing.search.replaysUnchanged
 import com.lambda.pathing.session.AlignmentController.Companion.FIRST_FRAME_YAW_EPSILON
 import com.lambda.pathing.session.AlignmentController.Companion.START_DRIFT_TOLERANCE
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
@@ -122,9 +123,21 @@ internal class TapeAdmission(private val walk: PathingSession) {
 			return ExecutionDeviation.PhysicsProfile(path.plan.physicsProfile, liveProfile)
 		}
 		val world = walk.journey?.world ?: return null
-		if (world.revision <= path.plan.snapshotRevision) return null
-		val mutation = world.mutationsSince(path.plan.snapshotRevision)
+		val replay = walk.replay?.takeIf { it.path === path }
+		val since = maxOf(path.plan.snapshotRevision, replay?.verifiedRevision ?: Long.MIN_VALUE)
+		val revision = world.revision
+		if (revision <= since) return null
+		val mutation = world.mutationsSince(since)
 			.firstOrNull { path.plan.reads(it, nextFrame, untilFrame) } ?: return null
+		if (replay != null) {
+			world.applyPending()
+			if (path.plan.replaysUnchanged(world.snapshot, nextFrame, untilFrame)) {
+				replay.verifiedRevision = revision
+				walk.telemetry.countVerifiedChange()
+				return null
+			}
+		}
 		return ExecutionDeviation.WorldChanged(path.plan.snapshotRevision, mutation)
 	}
+
 }

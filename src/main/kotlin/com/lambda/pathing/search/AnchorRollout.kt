@@ -248,6 +248,7 @@ internal class AnchorRollout(
 				inputs = frames.map { it.input },
 				decision = action,
 				trace = probe.traceOf(frames),
+				jumps = anchor.jumps + groundJumps(anchor.state, frames),
 			),
 		)
 	}

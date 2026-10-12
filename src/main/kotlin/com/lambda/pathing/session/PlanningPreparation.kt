@@ -85,6 +85,8 @@ internal fun preparePlanning(
 		allowDeepFalls = config.allowDeepFalls,
 		fallLimits = fallLimits,
 		ignoreHazards = config.ignoreHazards,
+		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
+		frontierTicksPerBlock = config.frontierTicksPerBlock,
 	)
 	val profile = PlayerPhysicsProfile.capture(player)
 	val seedConfig = MotionConstraints(
@@ -93,7 +95,8 @@ internal fun preparePlanning(
 		goalRadius = config.goalRadius,
 		touchArrival = config.touchArrival,
 		fallLimits = fallLimits,
-		sprintModes = if (config.allowSprint && profile.canSprint) listOf(true, false) else listOf(false),
+		sprintModes = if (config.allowSprint && !config.saveFood && profile.canSprint) listOf(true, false) else listOf(false),
+		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
 	val start = supportedStanceOf(initial) ?: stanceOf(initial)
@@ -163,3 +166,5 @@ private const val HEALTH_PER_HEART = 2.0
 private const val MAX_ENTRY_ASCENT_SPEED = 0.5
 
 private const val MAX_ENTRY_DESCENT_SPEED = 4.0
+
+private const val SAVE_FOOD_JUMP_TICKS = 20.0

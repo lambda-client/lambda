@@ -254,7 +254,7 @@ internal class Frontier(
 	private fun progressOf(stance: Stance): Int = routeIndex[stance] ?: deepestProgress
 
 	private fun entryFor(anchor: ValueAnchor, guide: Double, sequence: Long = insertionSequence++) = OpenEntry(
-		order = anchor.elapsed + momentumAdjusted(anchor, guide) + anchor.pendingSurcharge,
+		order = anchor.elapsed + momentumAdjusted(anchor, guide) + anchor.pendingSurcharge + config.jumpPenaltyTicks * anchor.jumps,
 		bound = anchor.elapsed +
 				(field.lowerBound(anchor.stance) - MOMENTUM_CREDIT_MAX_TICKS).coerceAtLeast(0.0),
 		anchor = anchor,

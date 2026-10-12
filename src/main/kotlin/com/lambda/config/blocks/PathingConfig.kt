@@ -25,6 +25,12 @@ interface PathingConfig {
     /** Let the seed search try sprinting gaits. */
     val allowSprint: Boolean
 
+    /** Spend as little hunger as possible: never sprint and jump only where a jump buys real time. */
+    val saveFood: Boolean get() = false
+
+    /** Ticks a far goal charges per block of terrain nobody has loaded yet; higher heads straighter for the goal. */
+    val frontierTicksPerBlock: Double get() = com.lambda.pathing.actions.SimpleMoveOptions.DEFAULT_FRONTIER_TICKS_PER_BLOCK
+
     /**
      * Deepest drop the coarse layer may propose.
      *

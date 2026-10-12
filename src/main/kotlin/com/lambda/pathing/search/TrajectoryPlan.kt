@@ -3,6 +3,8 @@ package com.lambda.pathing.search
 import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 
 import com.lambda.pathing.actions.InputTape
+import com.lambda.pathing.physics.SimulationEnvironment
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.VoxelPos
@@ -101,5 +103,19 @@ class TrajectoryPlan internal constructor(
 	companion object {
 		private const val REQUIRED_STABLE_STOP_FRAMES = 3
 		private const val TERMINAL_STOP_SPEED = MotionConstraints.STOPPED_SPEED + 1.0E-9
+	}
+}
+
+internal fun TrajectoryPlan.replaysUnchanged(environment: SimulationEnvironment, nextFrame: Int, untilFrame: Int): Boolean {
+	val until = minOf(untilFrame, frames.size)
+	if (nextFrame >= until) return true
+	val start = if (nextFrame == 0) initialState else frames[nextFrame - 1].state
+	val expected = frames.subList(nextFrame, until)
+	val replayed = TrajectoryRolloutEngine.rollout(start, physicsProfile, environment, InputTape(expected.map { it.input }), expected.size)
+	if (!replayed.completed || replayed.frames.size != expected.size) return false
+	return replayed.frames.indices.all { index ->
+		val actual = replayed.frames[index].state
+		val planned = expected[index].state
+		actual.position == planned.position && actual.velocity == planned.velocity && actual.onGround == planned.onGround
 	}
 }

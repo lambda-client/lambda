@@ -18,6 +18,7 @@ import com.lambda.pathing.search.RouteState
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.Solution
 import com.lambda.pathing.search.ValueAnchor
+import com.lambda.pathing.search.replaysUnchanged
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -29,6 +30,8 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertIs
 
 class CertifierHistoryTest {
@@ -80,6 +83,17 @@ class CertifierHistoryTest {
 	private fun dropStartChunk() {
 		environment.removeSections(LongArrayList.of(ChunkSectionPos.asLong(0, 6, 0)))
 		certifier.forget(emptySet(), setOf(PathingChunk(0, 0)), executed)
+	}
+
+	@Test
+	fun `a block change the tape reads but never touches replays unchanged`() {
+		val (_, running) = publishRunning()
+		val key = ChunkSectionPos.asLong(1, 6, 0)
+		val section = checkNotNull(environment.section(key))
+		environment.install(key, section.with(20, 101, 2, SnapshotBlockPhysics.of(VoxelShapes.fullCube())))
+		assertTrue(running.plan.replaysUnchanged(environment, 30, running.plan.frames.size), "a block beside the path leaves the tape exact")
+		environment.install(key, section.with(26, 100, 0, SnapshotBlockPhysics.of(VoxelShapes.fullCube())))
+		assertFalse(running.plan.replaysUnchanged(environment, 30, running.plan.frames.size), "a wall across the path compromises it")
 	}
 
 	@Test
