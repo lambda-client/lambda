@@ -19,6 +19,7 @@ import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.Medium
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.hypot
 
@@ -86,9 +87,9 @@ object FallMovement : Movement {
 		if (!context.airborne) return false
 		val fall = context.decision as TrajectoryDecision.Fall
 		val step = fall.step
-		if (context.stance.y != step.y || abs(context.stance.x - step.x) > LANDING_SLACK || abs(context.stance.z - step.z) > LANDING_SLACK) return false
-		if (!fall.water) return context.observed.onGround
-		return context.observed.touchingWater && context.observed.velocity.y > -SURFACED_SPEED
+		if (abs(context.stance.x - step.x) > LANDING_SLACK || abs(context.stance.z - step.z) > LANDING_SLACK) return false
+		if (!fall.water) return context.stance.y == step.y && context.observed.onGround
+		return context.observed.touchingWater && context.stance.y <= step.y && context.stance.y >= step.y - ceil(fall.plunge).toInt()
 	}
 
 	override fun descentAllowance(decision: TrajectoryDecision): Double {
@@ -104,8 +105,6 @@ object FallMovement : Movement {
 	private const val MAX_WATER_CELLS = 5
 
 	private const val LANDING_SLACK = 1
-
-	private const val SURFACED_SPEED = 0.05
 
 	private const val PLUNGE_MARGIN = 1.0
 

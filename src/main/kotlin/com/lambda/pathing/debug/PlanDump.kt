@@ -104,6 +104,7 @@ internal object PlanDump {
 		searchConfig: MotionConstraints,
 		note: String,
 		execution: ExecutionTrace? = null,
+		obstacles: LongArray = LongArray(0),
 	): Path {
 		Files.createDirectories(directory)
 		val at = System.currentTimeMillis()
@@ -131,6 +132,7 @@ internal object PlanDump {
 			line("terrain ${directory.toAbsolutePath().relativize(store.directory.toAbsolutePath())} $at")
 			line("sections ${sections.size}")
 			sections.sorted().forEach { line("s ${ChunkSectionPos.unpackX(it)} ${ChunkSectionPos.unpackY(it)} ${ChunkSectionPos.unpackZ(it)}") }
+			obstacles.forEach { line("e ${BlockPos.unpackLongX(it)} ${BlockPos.unpackLongY(it)} ${BlockPos.unpackLongZ(it)}") }
 		}
 		return path
 	}
@@ -164,6 +166,7 @@ internal object PlanDump {
 		val sectionKeys = LongArrayList()
 		val palette = ArrayList<SnapshotBlockPhysics>()
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		val obstacles = ArrayList<BlockPos>()
 
 		for (line in lines) {
 			val parts = line.split(' ')
@@ -197,14 +200,16 @@ internal object PlanDump {
 				"p" -> palette += readPhysics(parts)
 				"c" -> blocks[BlockPos(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())] =
 					palette[parts[4].toInt()]
+				"e" -> obstacles += BlockPos(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())
 			}
 		}
 
 		val box = checkNotNull(bounds) { "dump has no bounds" }
+		val sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics(moveOptions.ignoreHazards) }
+			?: ImmutableSnapshotSection.sectionsOf(blocks)
 		return Loaded(
 			bounds = box,
-			sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics(moveOptions.ignoreHazards) }
-				?: ImmutableSnapshotSection.sectionsOf(blocks),
+			sections = withObstacles(sections, obstacles),
 			start = checkNotNull(start) { "dump has no start" },
 			goal = checkNotNull(goal) { "dump has no goal" },
 			initialState = checkNotNull(state) { "dump has no entry state" },
@@ -219,6 +224,20 @@ internal object PlanDump {
 	}
 
 	private const val PREDICTED_BEFORE = 3
+
+	private val MOB = UnsupportedPhysics(UnsupportedPhysicsKind.ENTITY, "entity")
+
+	private fun withObstacles(sections: Map<Long, ImmutableSnapshotSection>, obstacles: List<BlockPos>): Map<Long, ImmutableSnapshotSection> {
+		if (obstacles.isEmpty()) return sections
+		val patched = HashMap(sections)
+		for (cell in obstacles) {
+			val key = ChunkSectionPos.asLong(cell.x shr 4, cell.y shr 4, cell.z shr 4)
+			val section = patched[key] ?: continue
+			val physics = section[cell.x, cell.y, cell.z]
+			if (physics.unsupportedPhysics == null) patched[key] = section.with(cell.x, cell.y, cell.z, physics.copy(unsupportedPhysics = MOB))
+		}
+		return patched
+	}
 
 	private fun MovementSimulationInput.dump(): String = listOf(
 		"i", forward, strafe, jump, sneak, sprint, useItemSlowdown, rotation?.yaw ?: "-", rotation?.pitch ?: "-",
@@ -265,7 +284,7 @@ internal object PlanDump {
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
 		allowDeepDropJumps, allowSwimming, allowDeepFalls,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
-		ignoreHazards, allowDiving,
+		ignoreHazards, allowDiving, avoidMobs,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -289,6 +308,7 @@ internal object PlanDump {
 		} ?: FallLimits(),
 		ignoreHazards = parts.getOrNull(18)?.toBoolean() ?: false,
 		allowDiving = parts.getOrNull(19)?.toBoolean() ?: true,
+		avoidMobs = parts.getOrNull(20)?.toBoolean() ?: false,
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(

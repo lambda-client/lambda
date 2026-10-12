@@ -65,6 +65,12 @@ object RotationManager : Manager<RotationRequest>(
 
 	private val IRotationRequest.overridable get() = age >= 1
 
+	private inline fun forEachRequest(action: (IRotationRequest) -> Unit) {
+		val pitch = requests[0]
+		pitch?.let(action)
+		requests[1]?.takeIf { it !== pitch }?.let(action)
+	}
+
 	private var pauseVanillaOverrides = false
 
 	private val overrideHolds = ArrayList<() -> Boolean>()
@@ -84,9 +90,7 @@ object RotationManager : Manager<RotationRequest>(
         }
 
         listen<TickEvent.Post>({ Int.MIN_VALUE }) {
-            requests.forEach { request ->
-                request?.age++
-            }
+            forEachRequest { request -> request.age++ }
             changedThisTick = false
         }
 
@@ -180,7 +184,7 @@ object RotationManager : Manager<RotationRequest>(
 		if (requests.any { it != null }) activeThisTick = true
 
 		if (!changedThisTick) { // rebuild the rotation if the same context gets used again
-			requests.forEach { request -> request?.updateRotation() }
+			forEachRequest { request -> request.updateRotation() }
 			updateActiveRotation()
 		}
 	}
@@ -236,8 +240,7 @@ object RotationManager : Manager<RotationRequest>(
 			serverRotation.slerpPitch(toPitch, pitchRequest.rotationConfig.turnSpeed)
 		} ?: player.rotation.pitch
 
-		requests.forEach { request ->
-			if (request == null) return@forEach
+		forEachRequest { request ->
 			if (request.keepTicks-- <= 0) {
 				request.decayTicks--
 			}

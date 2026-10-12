@@ -96,6 +96,13 @@ internal class Certifier(
 		check(frameDependencies.size == inputs.size) {
 			"Every certified input must publish its world-read dependencies"
 		}
+		val searched = solution.tailFrames.lastOrNull()?.state ?: solution.anchor.state
+		val replayed = frames.lastOrNull()?.state ?: searched
+		if (replayed.position != searched.position || replayed.velocity != searched.velocity) {
+			failures++
+			lastFailure = "replay from f$shared ended at ${replayed.position}, the search at ${searched.position}"
+			return MotionPlanResult.UnstableReplay("value-field tape left the searched trajectory: $lastFailure")
+		}
 		certifiedFrames = frames
 		certifiedDependencies = frameDependencies
 

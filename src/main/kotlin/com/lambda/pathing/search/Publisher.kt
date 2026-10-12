@@ -1,6 +1,7 @@
 package com.lambda.pathing.search
 
 import com.lambda.pathing.coarse.SpeedClass
+import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.search.Publications.Companion.DIVERGENCE_MARGIN_FRAMES
@@ -82,7 +83,7 @@ internal class Publisher(
 		if (!field.guide(anchor.stance, SpeedClass.STOPPED).isFinite()) return refuse(Refusal.UNSTOPPABLE)
 		if (incumbent.best?.anchor?.descendsFrom(anchor) == false) return refuse(Refusal.OFF_INCUMBENT)
 		if (tip == null) {
-			if (anchor.elapsed < searchConfig.horizonCommitFrames) return
+			if (anchor.elapsed < searchConfig.horizonCommitFrames && (anchor.decision as? TrajectoryDecision.Fall)?.water != true) return
 			if (!firstPublicationDue()) return deferPlunge(anchor)
 			if (remaining <= FIRST_PUBLISH_MIN_REMAINING_TICKS) return
 		} else {

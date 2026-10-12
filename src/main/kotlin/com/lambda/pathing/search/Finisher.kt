@@ -106,8 +106,16 @@ internal class Finisher(
 
 	fun treadTape(anchor: ValueAnchor): Solution? {
 		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw), FLOAT_TAIL_FRAMES)
-		return if (gated.failed) null else Solution(anchor, gated.rollout.frames)
+		if (gated.failed) return null
+		val frames = gated.rollout.frames
+		val end = frames.indices.lastOrNull { settledAfloat(frames, it) } ?: return null
+		if (end < FLOAT_TAIL_FRAMES - FLOAT_END_SLACK_FRAMES) return null
+		return Solution(anchor, frames.take(end + 1))
 	}
+
+	private fun settledAfloat(frames: List<SimulatedTrajectoryFrame>, end: Int): Boolean =
+		end >= SETTLED_FRAMES - 1 && frames[end].state.touchingWater &&
+			(end - SETTLED_FRAMES + 1..end).all { frames[it].state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED }
 
 	private fun hoverBrake(anchor: ValueAnchor): Solution? {
 		val stance = anchor.stance
@@ -127,10 +135,10 @@ internal class Finisher(
 
 	private fun floatBrake(anchor: ValueAnchor): Solution? {
 		if (field.view.medium(anchor.stance.x, anchor.stance.y, anchor.stance.z) != Medium.WATER) return null
-		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw), FLOAT_TAIL_FRAMES)
+		val gated = gate.run(anchor.state, listOf(anchor.stance.center(environment)), treadWater(anchor.state.rotation.yaw), FLOAT_TAIL_FRAMES, FLOAT_DIP)
 		if (gated.failed) return null
 		val frames = gated.rollout.frames
-		val end = frames.indexOfLast { field.floatsAt(it.state, anchor.stance.y) }
+		val end = frames.indices.lastOrNull { field.floatsAt(frames[it].state, anchor.stance.y) && settledAfloat(frames, it) } ?: return null
 		if (end < FLOAT_TAIL_FRAMES - FLOAT_END_SLACK_FRAMES) return null
 		return Solution(anchor, frames.take(end + 1))
 	}
@@ -187,6 +195,10 @@ internal class Finisher(
 		const val FLOAT_TAIL_FRAMES = 600
 
 		const val FLOAT_END_SLACK_FRAMES = 20
+
+		const val FLOAT_DIP = 2.0
+
+		const val SETTLED_FRAMES = 3
 
 		const val HOVER_TAIL_FRAMES = 200
 

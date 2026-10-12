@@ -97,6 +97,8 @@ interface TrajectoryDecision {
 		override val movement: MovementId = MovementId.DIVE,
 		val breathe: Boolean = false,
 		val detour: Boolean = false,
+		val surface: Boolean = false,
+		val aim: Stance = step,
 	) : TrajectoryDecision
 
 	data class Swim(

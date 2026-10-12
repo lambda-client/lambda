@@ -55,7 +55,7 @@ internal class PlanningJourney private constructor(
 	companion object {
 		fun open(preparation: PlanningPreparation, player: ClientPlayerEntity): PlanningJourney {
 			val terrain = preparation.dumpDirectory?.let { TerrainRecorder(player.entityWorld, TerrainStores.of(player.entityWorld)) }
-			val world = PathingWorld(preparation.bounds, MinecraftCaptureSource(player.entityWorld, player, preparation.moveOptions.ignoreHazards), terrain)
+			val world = PathingWorld(preparation.bounds, MinecraftCaptureSource(player.entityWorld, player, preparation.moveOptions.ignoreHazards, preparation.moveOptions.avoidMobs), terrain)
 			InterestPrimer.primeJourney(world, preparation.start, preparation.finalGoal, preparation.waypoints)
 			val remembered = if (preparation.useBaritoneCache) BaritoneCache.of(player.entityWorld) else null
 			return PlanningJourney(preparation, world, terrain, remembered)

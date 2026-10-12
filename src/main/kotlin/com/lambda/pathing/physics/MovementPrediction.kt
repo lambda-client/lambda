@@ -4,6 +4,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.util.player.MovementUtils.forward
 import com.lambda.util.player.MovementUtils.jumping
+import com.lambda.util.player.MovementUtils.movePitch
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.MovementUtils.strafe
@@ -21,7 +22,7 @@ fun SafeContext.predictPlayerUntil(ticks: Int, until: (MovementSimulationState) 
 		sneak = player.input.sneaking,
 		sprint = player.isSprinting,
 		useItemSlowdown = player.isUsingItem,
-		rotation = Rotation(player.moveYaw, player.pitch),
+		rotation = Rotation(player.moveYaw, player.movePitch),
 	)
 	repeat(ticks) {
 		val state = simulator.tickMovement(input)

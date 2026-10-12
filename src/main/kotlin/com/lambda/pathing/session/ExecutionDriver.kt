@@ -2,7 +2,6 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
@@ -58,8 +57,8 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 				walk.tickInput = next.input
 				walk.state = State.Executing(next.frame, current.plan.tape.frameCount, walk.leg)
 				next.input.rotation?.let { rotation ->
-					walk.face(rotation.yaw)
-					if (observed.touchingWater) RotationManager.setPlayerPitch(rotation.pitch)
+					val wet = observed.touchingWater || current.plan.frames.getOrNull(next.frame)?.state?.touchingWater == true
+					walk.face(rotation.yaw, rotation.pitch.takeIf { wet })
 				}
 			}
 

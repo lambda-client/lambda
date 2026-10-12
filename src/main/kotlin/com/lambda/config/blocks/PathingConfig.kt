@@ -175,6 +175,12 @@ interface PathingConfig {
      */
     val ignoreHazards: Boolean get() = false
 
+    /**
+     * Keep out of the cells nearby mobs, animals and other players stand in, for a few seconds after
+     * they leave them, so walks go around them instead of being pushed.
+     */
+    val avoidMobs: Boolean get() = true
+
     /** Hard cap on coarse D* expansions per repair before the search gives up. */
     val coarseExpansionBudget: Int get() = 1_000_000
 

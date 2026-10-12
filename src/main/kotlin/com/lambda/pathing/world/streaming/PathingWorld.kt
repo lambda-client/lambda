@@ -80,6 +80,7 @@ class PathingWorld(
 
 	fun advance(budgetMillis: Double) {
 		check(source.isOnClientThread()) { "PathingWorld capture must advance on the client thread" }
+		trackObstacles()
 		val started = System.nanoTime()
 		val deadline = started + (budgetMillis * 1_000_000.0).toLong()
 		trusted.tick()
@@ -112,6 +113,19 @@ class PathingWorld(
 			capturedCells += written
 			capturedSections += completed
 			captureNanos += System.nanoTime() - started
+		}
+	}
+
+	val obstacleCells: LongArray get() = source.obstacleCells
+
+	private val obstacleChanges = LongArrayList()
+
+	private fun trackObstacles() {
+		obstacleChanges.clear()
+		source.obstacleChanges(obstacleChanges)
+		for (index in 0 until obstacleChanges.size) {
+			val cell = obstacleChanges.getLong(index)
+			resample(BlockPos.unpackLongX(cell), BlockPos.unpackLongY(cell), BlockPos.unpackLongZ(cell))
 		}
 	}
 
@@ -194,10 +208,10 @@ class PathingWorld(
 
 	internal fun applyPending() {
 		val replaced = Long2ObjectOpenHashMap<ImmutableSnapshotSection>()
-		for ((key, section) in pendingReplacements) {
-			if (pendingReplacements.remove(key, section)) replaced.put(key, section)
-		}
-		if (!replaced.isEmpty()) snapshot.install(replaced)
+		for ((key, section) in pendingReplacements) replaced.put(key, section)
+		if (replaced.isEmpty()) return
+		snapshot.install(replaced)
+		for (entry in replaced.long2ObjectEntrySet()) pendingReplacements.remove(entry.longKey, entry.value)
 	}
 
 	fun awaitEvents(sinceRevision: Long, timeoutMillis: Long): Boolean =

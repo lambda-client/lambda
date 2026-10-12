@@ -13,4 +13,5 @@ enum class UnsupportedPhysicsKind {
 	HONEY_SIDE_EFFECTS,
 	FIRE,
 	CACTUS,
+	ENTITY,
 }

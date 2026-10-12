@@ -148,6 +148,7 @@ internal class PlanningJob(
 			PlanDump.write(
 				directory, terrain.store, terrain.recordedSections(), snapshot.bounds, start, goal, preparation.initial,
 				preparation.profile, preparation.moveOptions, preparation.seedConfig, note = note, execution = execution,
+				obstacles = journey.world.obstacleCells,
 			)
 		}.onFailure { LOG.error("Could not write the $kind dump", it) }
 			.onSuccess { LOG.info("Wrote the {} dump: {}", kind, it) }

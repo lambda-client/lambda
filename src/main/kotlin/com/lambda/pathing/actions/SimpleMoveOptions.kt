@@ -20,6 +20,7 @@ data class SimpleMoveOptions(
 	val allowDeepFalls: Boolean = true,
 	val fallLimits: FallLimits = FallLimits(),
 	val ignoreHazards: Boolean = false,
+	val avoidMobs: Boolean = false,
 	val jumpPenaltyTicks: Double = 0.0,
 	val frontierTicksPerBlock: Double = DEFAULT_FRONTIER_TICKS_PER_BLOCK,
 ) {

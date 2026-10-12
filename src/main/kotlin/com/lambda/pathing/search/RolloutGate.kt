@@ -33,9 +33,11 @@ internal class RolloutGate(
 		points: List<HorizontalPoint>,
 		program: ControlProgram,
 		frameCount: Int,
+		descentAllowance: Double = 0.0,
 	): GatedRollout {
 		val evaluator = RolloutEvaluator(
 			from, points, route.goalPoint, config,
+			descentAllowance = descentAllowance,
 			climbing = { environment.climbableAt(it) },
 			landingRule = { environment.landingRule(it) },
 		)

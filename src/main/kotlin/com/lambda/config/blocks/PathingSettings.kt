@@ -210,6 +210,14 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
             "velocity, so the walk replans after it. Off, those cells are kept out of entirely.",
     )
 
+    @Group(MOVES_GROUP)
+    override val avoidMobs by c.setting(
+        "Avoid Mobs", true,
+        "Plan around nearby mobs, animals and other players instead of through them: the cells they " +
+            "stand in stay closed for three seconds after they leave, so a walk is not pushed off its " +
+            "tape. Off, entities are ignored and every push makes the walk replan.",
+    )
+
     @Group(SEARCH_GROUP)
     override val coarseExpansionBudget by c.setting(
         "Coarse Budget", 1_000_000, 10_000..5_000_000, 10_000,

@@ -59,7 +59,9 @@ class SwimPlanningTest {
 		assertTrue(frames.count { it.state.touchingWater } > 20, "the tape must swim the pool")
 		val entry = frames.first { it.state.touchingWater }.state.position.x
 		assertTrue(entry >= MIN_JUMP_ENTRY_BLOCKS, "the bank must jump into the pool instead of wading in: entered at x=%.2f".format(entry))
-		assertTrue(frames.none { it.state.eyeInWater }, "a surface crossing never puts the eyes under water")
+		val wet = frames.indexOfFirst { it.state.touchingWater }
+		val stroking = frames.indexOfFirst { it.state.swimming }
+		assertTrue(stroking in wet..wet + MAX_STROKE_ENTRY_FRAMES, "the plunge must turn straight into the sprint stroke: water at $wet, swimming at $stroking")
 		assertEquals(Stance(10, 64, 0), Stance.of(frames.last().state.position, onGround = true))
 	}
 
@@ -223,5 +225,7 @@ class SwimPlanningTest {
 		const val MIN_STROKE_GAIN = 1.4
 
 		const val MIN_STROKE_FRAMES = 100
+
+		const val MAX_STROKE_ENTRY_FRAMES = 8
 	}
 }

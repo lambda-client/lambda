@@ -102,8 +102,21 @@ object DiveMovement : Movement {
 		return false
 	}
 
-	override fun decisions(context: DecisionContext): List<TrajectoryDecision> =
-		listOf(TrajectoryDecision.Dive(context.edge.to))
+	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
+		val from = context.edge.from
+		val to = context.edge.to
+		val view = context.view
+		val chain = context.steering.chain(from, to, AIM_NODES + 1)
+		var aim = to
+		for (index in 2 until chain.size) {
+			val node = chain[index]
+			val previous = chain[index - 1]
+			if (node.x - previous.x != to.x - from.x || node.y - previous.y != to.y - from.y || node.z - previous.z != to.z - from.z) break
+			if (!submerged(view, node.x, node.y, node.z)) break
+			aim = node
+		}
+		return listOf(TrajectoryDecision.Dive(to, surface = !submerged(view, to.x, to.y, to.z), aim = aim))
+	}
 
 	override fun proposals(context: ProposalContext): List<TrajectoryDecision> {
 		val leading = context.steps.firstOrNull() ?: return emptyList()
@@ -182,6 +195,8 @@ object DiveMovement : Movement {
 	private const val DIVE_DESCENT_ALLOWANCE = 48.0
 
 	private const val AIR_LOOKAHEAD_NODES = 48
+
+	private const val AIM_NODES = 3
 
 	private const val AIR_TICKS_PER_NODE = 8
 

@@ -50,6 +50,12 @@ internal object WalkPathingTests {
         assertPathingWalk(context, server, "pathing-straight", Stance(0, 100, 5))
         assertPathingWalk(context, server, "pathing-diagonal", Stance(5, 100, 5))
 
+        // A cow standing on the straight line. Walking through it gets the body pushed off
+        // its tape, so the cells a mob stands in are closed and the walk goes around it.
+        server.runCommand("/summon minecraft:cow 0.5 100 4.5 {NoAI:1b,Invulnerable:1b}")
+        assertPathingWalk(context, server, "pathing-mob-in-the-way", Stance(0, 100, 8))
+        server.runCommand("/kill @e[type=minecraft:cow]")
+
         // Submit while the body is still drifting, as a rapid retry does. Capturing that
         // moving state would freeze a frame zero the player sheds before the async plan
         // returns, and the cursor would reject it. The manager must settle to rest first.

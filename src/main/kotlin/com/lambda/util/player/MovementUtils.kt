@@ -157,6 +157,7 @@ object MovementUtils {
     }
 
     val ClientPlayerEntity.moveYaw get() = RotationManager.movementYaw ?: yaw
+    val ClientPlayerEntity.movePitch get() = RotationManager.movementPitch ?: pitch
 
     val Entity.moveDiff get() = Vec3d(x - lastX, y - lastY, z - lastZ)
     val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }

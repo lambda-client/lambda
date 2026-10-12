@@ -12,15 +12,17 @@ import kotlin.math.hypot
 
 internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramContext) : ControlProgram {
 	private val detour = decision.detour
+	private val surface = decision.surface
 	private var breathing = decision.breathe && !decision.detour
 	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
 	private val sprint = context.constraints.sprintModes.first()
-	private val targetX = decision.step.x + 0.5
-	private val targetY = decision.step.y + BODY_CENTER
-	private val targetZ = decision.step.z + 0.5
+	private val targetX = decision.aim.x + 0.5
+	private val targetY = decision.aim.y + BODY_CENTER
+	private val targetZ = decision.aim.z + 0.5
 	private val pocketX = (if (detour) decision.step.x else context.body.stance.x) + 0.5
 	private val pocketY = decision.step.y.toDouble()
 	private val pocketZ = (if (detour) decision.step.z else context.body.stance.z) + 0.5
+	private val nodes = context.nodes
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		if (detour) {
@@ -30,16 +32,22 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 		val dx = targetX - observed.position.x
 		val dz = targetZ - observed.position.z
 		val dy = targetY - (observed.position.y + BODY_CENTER)
-		val yaw = Math.toDegrees(atan2(dz, dx)) - 90.0
+		val yaw = if (hypot(dx, dz) > COLUMN_RADIUS) Math.toDegrees(atan2(dz, dx)) - 90.0 else aheadYaw(observed)
 		val pitch = (-Math.toDegrees(atan2(dy, maxOf(hypot(dx, dz), MIN_HORIZONTAL)))).coerceIn(-MAX_PITCH, MAX_PITCH)
 		val step = yawStepTowards(yaw, observed, maxYawChange)
+		val coast = COAST_TICKS * observed.velocity.y
 		return MovementSimulationInput(
 			forward = 1.0,
 			sprint = sprint,
-			jump = dy > RISE_WITH_JUMP && !observed.swimming,
-			sneak = sprint && dy <= 0.0 && !observed.swimming && !observed.onGround,
+			jump = if (observed.swimming) !surface && dy > maxOf(SWIM_MARGIN, coast) else dy > RISE_WITH_JUMP,
+			sneak = if (observed.swimming) dy < minOf(-SWIM_MARGIN, coast) else sprint && dy <= 0.0 && !observed.onGround,
 			rotation = Rotation(observed.rotation.yaw + step, pitchTowards(pitch, observed, maxYawChange)),
 		)
+	}
+
+	private fun aheadYaw(observed: MovementSimulationState): Double {
+		val ahead = nodes.firstOrNull { hypot(it.x - observed.position.x, it.z - observed.position.z) > AHEAD_RADIUS } ?: return observed.rotation.yaw
+		return yawTowards(ahead, observed)
 	}
 
 	private fun reachedPocket(observed: MovementSimulationState): Boolean =
@@ -65,5 +73,9 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 		const val MAX_PITCH = 75.0
 		const val MIN_HORIZONTAL = 0.35
 		const val RISE_WITH_JUMP = 0.4
+		const val SWIM_MARGIN = 0.4
+		const val COLUMN_RADIUS = 0.3
+		const val AHEAD_RADIUS = 0.75
+		const val COAST_TICKS = 4.0
 	}
 }

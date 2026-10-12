@@ -86,6 +86,7 @@ internal fun preparePlanning(
 		allowDeepFalls = config.allowDeepFalls,
 		fallLimits = fallLimits,
 		ignoreHazards = config.ignoreHazards,
+		avoidMobs = config.avoidMobs,
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 		frontierTicksPerBlock = config.frontierTicksPerBlock,
 	)

@@ -6,6 +6,7 @@ import com.lambda.util.math.DOWN
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
+import com.lambda.util.player.MovementUtils.movePitch
 import com.lambda.util.player.MovementUtils.moveYaw
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.registry.tag.FluidTags
@@ -41,7 +42,7 @@ data class MovementSimulationState(
 	companion object {
 		fun from(player: ClientPlayerEntity, isJumping: Boolean = false) = MovementSimulationState(
 			position = player.pos,
-			rotation = Rotation(player.moveYaw, player.pitch),
+			rotation = Rotation(player.moveYaw, player.movePitch),
 			velocity = player.velocity,
 			boundingBox = player.boundingBox,
 			onGround = player.isOnGround,
