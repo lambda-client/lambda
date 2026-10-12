@@ -81,7 +81,7 @@ object WalkMovement : Movement {
 			for ((dx, dz) in DIAGONALS) for (dy in if (options.allowStepUp) 0..1 else 0..0) {
 				val rising = dy > 0
 				val movement = if (rising) MovementId.STEP_UP else id
-				val headroom = if (rising) listOf(STEP_UP_HEADROOM) else emptyList()
+				val headroom = if (rising) listOf(STEP_UP_HEADROOM, CellCondition(0, 0, 0, CellPredicate.GROUNDED)) else emptyList()
 				add(
 					spec(
 						dx, dy, dz, if (rising) costs.stepUp else costs.diagonalWalk,

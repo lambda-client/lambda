@@ -20,16 +20,22 @@ internal class PlanningJourney private constructor(
 
 	val ignoresHazards: Boolean get() = origin.moveOptions.ignoreHazards
 
+	private val coarseView = world.snapshot.pinned()
+
 	private val legs: List<CoarsePlanningState> = run {
 		val goals = origin.waypoints + origin.finalGoal
 		val starts = listOf(origin.start) + origin.waypoints
 		goals.indices.map { index ->
-			val memory = remembered?.let { world.snapshot.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
-			CoarsePlanningState(memory ?: world.snapshot, origin.moveOptions, starts[index], goals[index], memory = memory)
+			val memory = remembered?.let { coarseView.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
+			CoarsePlanningState(memory ?: coarseView, origin.moveOptions, starts[index], goals[index], memory = memory)
 		}
 	}
 
-	val coarse = CoarseService(world, legs, listOf(origin.start) + origin.waypoints, origin.coarseExpansionBudget).also { it.start() }
+	val coarse = CoarseService(
+		world, legs, listOf(origin.start) + origin.waypoints, origin.coarseExpansionBudget,
+		repin = { coarseView.repin(world.snapshot) },
+		pinCurrent = { coarseView.pinnedTo(world.snapshot) },
+	).also { it.start() }
 
 	fun cancel() {
 		coarse.close()

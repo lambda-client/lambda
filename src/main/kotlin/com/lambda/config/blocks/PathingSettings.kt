@@ -244,8 +244,8 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(SEARCH_GROUP)
     override val dumpFailedPlans by c.setting(
         "Dump Failed Plans", false,
-        "On a refusal, write the endpoints and entry state to lambda/pathing-dumps and the " +
-            "captured terrain to lambda/cache/terrain, so the failure can be replayed and fixed offline.",
+        "On a refusal, replan, hold, stop or cancel, write the endpoints, entry state and the executed tape to " +
+            "lambda/pathing-dumps and the captured terrain to lambda/cache/terrain, so the failure can be replayed and fixed offline.",
     )
 
     @Group(SEARCH_GROUP)

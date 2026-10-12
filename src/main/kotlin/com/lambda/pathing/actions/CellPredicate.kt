@@ -107,6 +107,12 @@ fun interface CellPredicate {
 
 		val LAUNCHABLE = CellPredicate { view, x, y, z -> view.medium(x, y, z).let { it != Medium.WATER && it != Medium.CLIMBABLE } }
 
+		val GROUNDED = object : CellPredicate {
+			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
+				view.medium(x, y, z) != Medium.CLIMBABLE || view.standingSurface(x, y - 1, z) != null
+			override val extraReads = listOf(VoxelPos(0, -1, 0))
+		}
+
 		val SWIMMABLE = CellPredicate { view, x, y, z -> view.voxel(x, y, z).let { it.fullyPassable || it.medium == Medium.WATER } }
 
 		val OPEN_COLUMN = column { view, x, y, z -> FULL_SLICE.matches(view, x, y, z) && FULL_HEAD.matches(view, x, y + 1, z) }

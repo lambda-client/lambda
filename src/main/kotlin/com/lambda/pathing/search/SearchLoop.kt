@@ -37,7 +37,7 @@ internal class SearchLoop(
 	private val batchSize = if (this.parallelism > 1) this.parallelism * ROLLOUTS_PER_THREAD else 1
 	private val live = world != null
 	private val unsupported = initialRoute.edges.mapTo(HashSet()) { it.movement }.filterTo(HashSet()) { !catalog.supports(it) }
-	private val route = RouteState(initialRoute, environment)
+	private val route = RouteState(initialRoute, environment).also { state -> world?.startRevision?.let(state::advanceRevision) }
 	private val attempts = AttemptAccumulator(probe)
 	private val budget = ExpansionBudget(searchConfig.maxExpansions, clock)
 	private val frontier = Frontier(field, config, searchConfig, route.index, searchConfig.localHorizon(initialRoute))

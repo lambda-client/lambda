@@ -470,10 +470,12 @@ class LongDStarLite(
 
 	private var bestSuccessor = NodeTable.NONE
 
+	private val reached = LongPredicate { node -> nodes.find(node).let { it >= 0 && nodes.g(it) < INF } }
+
 	private fun minSuccessorCost(key: Long): Double {
 		var best = INF
 		bestSuccessor = NodeTable.NONE
-		val successors = graph.successorsInto(key, successorScratch)
+		val successors = graph.reachedSuccessorsInto(key, successorScratch, reached)
 		for (i in 0 until successors.size) {
 			val target = nodes.find(successors.node(i))
 			if (target < 0) continue

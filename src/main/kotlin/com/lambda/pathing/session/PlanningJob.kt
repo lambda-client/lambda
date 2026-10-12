@@ -87,13 +87,18 @@ internal class PlanningJob(
 		}
 	}
 
-	private fun dump(kind: String, note: String) {
+	fun dumpEvent(kind: String, note: String, execution: PlanDump.ExecutionTrace?) {
+		if (preparation.dumpDirectory == null || journey.terrain == null) return
+		DUMPS.execute { dump(kind, "$kind: $note", execution) }
+	}
+
+	private fun dump(kind: String, note: String, execution: PlanDump.ExecutionTrace? = null) {
 		val directory = preparation.dumpDirectory ?: return
 		val terrain = journey.terrain ?: return
 		runCatching {
 			PlanDump.write(
 				directory, terrain.store, terrain.recordedSections(), snapshot.bounds, start, goal, preparation.initial,
-				preparation.profile, preparation.moveOptions, preparation.seedConfig, note = note,
+				preparation.profile, preparation.moveOptions, preparation.seedConfig, note = note, execution = execution,
 			)
 		}.onFailure { LOG.error("Could not write the $kind dump", it) }
 			.onSuccess { LOG.info("Wrote the {} dump: {}", kind, it) }
@@ -102,6 +107,10 @@ internal class PlanningJob(
 	private companion object {
 		val PLANNER: ExecutorService = Executors.newSingleThreadExecutor { task ->
 			Thread(task, "NeoLambda-PathPlanner").apply { isDaemon = true }
+		}
+
+		val DUMPS: ExecutorService = Executors.newSingleThreadExecutor { task ->
+			Thread(task, "NeoLambda-PlanDumps").apply { isDaemon = true }
 		}
 	}
 }

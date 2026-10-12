@@ -17,6 +17,10 @@ internal fun interface EdgeVisitor {
 	fun visit(template: MotionTemplate, ticks: Double, standingStart: Boolean)
 }
 
+internal fun interface PendingFilter {
+	fun wanted(template: MotionTemplate): Boolean
+}
+
 internal fun interface FallVisitor {
 	fun visit(origin: Stance, edge: FallEdge)
 }
@@ -74,7 +78,7 @@ internal class CoarseEdgeCache(
 
 	fun cachedEdgesFrom(origin: Stance): List<CoarseEdge>? = outgoing.get(key(origin))
 
-	fun forEachEdgeFrom(node: Long, visitor: EdgeVisitor) {
+	fun forEachEdgeFrom(node: Long, pending: PendingFilter? = null, visitor: EdgeVisitor) {
 		val key = PackedStance.stanceKey(node)
 		val origin = PackedStance.stance(key)
 		check(key, origin)
@@ -85,7 +89,10 @@ internal class CoarseEdgeCache(
 		val byTemplate = row.byTemplate
 		for (position in byTemplate.indices) {
 			val index = byTemplate[position]
-			if (row.pending[index] and mask != 0L) settle(row, index, bit, origin)
+			if (row.pending[index] and mask != 0L) {
+				if (pending != null && !pending.wanted(moves.templates[row.templates[index]])) continue
+				settle(row, index, bit, origin)
+			}
 			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
 		}
 		if (bounces(origin)) visit(bouncesFrom.get(key) ?: bouncesFrom(origin).also { bouncesFrom.put(key, it) }, visitor)

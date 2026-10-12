@@ -49,7 +49,7 @@ object Footing {
 	fun stands(view: CoarseVoxelView, stance: Stance): Boolean {
 		val cache = cache(view)
 		cache.entries.get(BlockPos.asLong(stance.x, stance.y, stance.z))?.let { return !it.isEmpty }
-		return floored(view, stance) && Patch.around(view, stance).anyFoothold(stance)
+		return floored(view, stance) && (uniformHolds(view, stance) != null || Patch.around(view, stance).anyFoothold(stance))
 	}
 
 	private fun cache(view: CoarseVoxelView): Cache {
@@ -65,12 +65,37 @@ object Footing {
 		val cache = cache(view)
 		val key = BlockPos.asLong(stance.x, stance.y, stance.z)
 		cache.entries.getAndMoveToLast(key)?.let { return it }
-		val holds = if (floored(view, stance)) Patch.around(view, stance).holds(stance) else Holds.EMPTY
+		val holds = if (floored(view, stance)) uniformHolds(view, stance) ?: Patch.around(view, stance).holds(stance) else Holds.EMPTY
 		if (revision != null && known(view, stance)) {
 			cache.entries.putAndMoveToLast(key, holds)
 			if (cache.entries.size > CACHE_CAPACITY) cache.entries.removeFirst()
 		}
 		return holds
+	}
+
+	private fun uniformHolds(view: CoarseVoxelView, stance: Stance): Holds? {
+		var top = Double.NaN
+		for (z in stance.z - 1..stance.z + 1) for (x in stance.x - 1..stance.x + 1) {
+			val floor = view.collisionBoxes(x, stance.y - 1, z) ?: return null
+			if (floor.size != 6 || floor[0] != 0.0 || floor[2] != 0.0 || floor[3] != 1.0 || floor[5] != 1.0) return null
+			if (top.isNaN()) top = floor[4] else if (floor[4] != top) return null
+			if (view.voxel(x, stance.y - 1, z).medium.let { it == Medium.WATER || it == Medium.UNKNOWN }) return null
+			if (view.collisionBoxes(x, stance.y, z)?.isEmpty() != true || view.collisionBoxes(x, stance.y + 1, z)?.isEmpty() != true) return null
+			val below = view.collisionBoxes(x, stance.y - 2, z)
+			if (below != null) for (box in 4 until below.size step 6) if (below[box] > 1.0) return null
+		}
+		if (!(top > EPSILON && top <= 1.0)) return null
+		return Holds(stance.x * 16 - MARGIN, stance.z * 16 - MARGIN, doubleArrayOf((stance.y - 1) + top), UNIFORM_MASK)
+	}
+
+	private val UNIFORM_MASK = LongArray(Holds.WORDS).also { masks ->
+		for (gz in 0 until Holds.SIDE) for (gx in 0 until Holds.SIDE) {
+			val u = (gx - MARGIN) * STEP
+			val w = (gz - MARGIN) * STEP
+			if (min(1.0, u + HALF_WIDTH) - max(0.0, u - HALF_WIDTH) < MIN_SUPPORT || min(1.0, w + HALF_WIDTH) - max(0.0, w - HALF_WIDTH) < MIN_SUPPORT) continue
+			val index = gz * Holds.SIDE + gx
+			masks[index ushr 6] = masks[index ushr 6] or (1L shl index)
+		}
 	}
 
 	private fun floored(view: CoarseVoxelView, stance: Stance): Boolean {

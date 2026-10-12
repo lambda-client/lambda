@@ -2,6 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
+import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
@@ -128,6 +129,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			replay.holding = true
 			replay.heldSince = System.currentTimeMillis()
 			walk.telemetry.countHold()
+			walk.dumpEvent("hold", "holding at the tape terminal after ${path.plan.tape.frameCount} frames toward ${path.finalGoal}")
 			info(
 				"Holding at the tape terminal (${path.plan.tape.frameCount} frames) " +
 						"while the search continues toward ${path.finalGoal}.",
@@ -197,6 +199,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 	) {
 		val journey = walk.journey
 		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, journey?.world?.snapshot, journey?.ignoresHazards == true)
+		walk.dumpEvent("divergence", report, PlanDump.ExecutionTrace.of(path.plan, frame, afterInput, observed))
 		with(walk) {
 			when (deviation) {
 				is ExecutionDeviation.WorldChanged -> recover(report, reuseCoarseState = true)

@@ -19,6 +19,9 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	var restarts = 0
 		private set
 
+	var lastJob: PlanningJob? = null
+		private set
+
 	private var deadEnd: String? = null
 	private var successor: PlanningSession? = null
 	private var successorPath: PublishedPath? = null
@@ -150,6 +153,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		successorPath = null
 		if (next != null) {
 			current = next
+			lastJob = next.job
 			next.attach()
 			LOG.info("Continuing with the successor search planned during replay")
 		}
@@ -208,13 +212,16 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 	private fun SafeContext.launch(session: PlanningSession, preparation: PlanningPreparation, journey: PlanningJourney) {
 		session.launchRevision = journey.world.revision
-		PlanningJob(
+		val job = PlanningJob(
 			preparation = preparation,
 			journey = journey,
 			cancelled = { session.isCancelled },
 			execution = session,
 			publish = { path, running -> mc.execute { published(session, path, running) } },
-		).start().whenCompleteAsync({ result, failure -> completed(session, result, failure) }, mc)
+		)
+		session.job = job
+		if (session === current) lastJob = job
+		job.start().whenCompleteAsync({ result, failure -> completed(session, result, failure) }, mc)
 	}
 
 	private fun Throwable.rootMessage(): String {

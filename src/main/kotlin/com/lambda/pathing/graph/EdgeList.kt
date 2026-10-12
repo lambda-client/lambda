@@ -7,6 +7,10 @@ fun interface LongEdgeProvider {
 	fun edges(node: Long, sink: EdgeList)
 }
 
+fun interface ReachedEdgeProvider {
+	fun edges(node: Long, sink: EdgeList, reached: java.util.function.LongPredicate)
+}
+
 class EdgeList(initialCapacity: Int = 16) {
 	private val targets = LongArrayList(initialCapacity)
 	private val costs = DoubleArrayList(initialCapacity)

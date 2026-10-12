@@ -1,20 +1,21 @@
 package com.lambda.pathing.session
 
 import com.lambda.Lambda.mc
+import net.minecraft.client.network.ClientPlayerEntity
 
-internal class FlightPermissionHold {
-	private var held = false
+object FlightPermissionHold {
+	@Volatile
+	private var holder: ClientPlayerEntity? = null
 
-	fun hold() {
-		val abilities = mc.player?.abilities ?: return
-		if (abilities.flying || !abilities.allowFlying) return
-		held = true
-		abilities.allowFlying = false
+	@Volatile
+	private var heldAge = Int.MIN_VALUE
+
+	internal fun hold() {
+		val player = mc.player ?: return
+		holder = player
+		heldAge = player.age
 	}
 
-	fun release() {
-		if (!held) return
-		held = false
-		mc.player?.abilities?.allowFlying = true
-	}
+	@JvmStatic
+	fun holds(player: ClientPlayerEntity): Boolean = player === holder && player.age == heldAge
 }

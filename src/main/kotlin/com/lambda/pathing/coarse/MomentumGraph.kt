@@ -44,7 +44,7 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 	private fun stoppedCost(template: Int, ticks: Double): Double =
 		if (departsStoppedOnly[template]) ticks else ticks + STARTUP_TICKS
 
-	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList, settledOnly: Boolean = false) {
+	fun successors(edges: CoarseEdgeCache, node: Long, out: EdgeList, settledOnly: Boolean = false, reached: java.util.function.LongPredicate? = null) {
 		val speed = PackedStance.speed(node)
 		if (speed == SpeedClass.MOVING) {
 			out.add(PackedStance.withSpeed(node, SpeedClass.STOPPED), BRAKE_TICKS)
@@ -64,7 +64,13 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			if (sharesNeighbor[id]) out.addMin(target, cost) else out.append(target, cost)
 		}
 		if (settledOnly) return edges.forEachSettledEdgeFrom(node, visitor)
-		edges.forEachEdgeFrom(node, visitor)
+		val wanted = reached?.let { reach ->
+			PendingFilter { template ->
+				val id = template.id.value
+				!(speed == SpeedClass.MOVING && departsStoppedOnly[id]) && reach.test(PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id]))
+			}
+		}
+		edges.forEachEdgeFrom(node, wanted, visitor)
 		edges.forEachFallFrom(node) { _, fall ->
 			if (speed == SpeedClass.STOPPED && !fall.standingStart) return@forEachFallFrom
 			val ticks = if (speed == SpeedClass.MOVING) movingCost(fall.ticks) else fall.ticks + STARTUP_TICKS

@@ -11,6 +11,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.managers.Manager
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.session.PathingSession.State
@@ -76,6 +77,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 			journey = warmed
 		}
 
+		previous?.takeIf { it.active }?.dumpEvent("superseded", "a new request toward $goal replaced the session")
 		previous?.release()
 		if (journey?.goal != goal) {
 			journey?.cancel()
@@ -91,6 +93,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 	}
 
 	init {
+		RotationManager.holdVanillaOverridesWhile { session?.steersRotation == true }
 		listenUnsafe<ConnectionEvent.Disconnect> {
 			clear()
 			TerrainStores.close()

@@ -15,6 +15,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel
+import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
@@ -195,6 +196,54 @@ class PlanDumpRoundTripTest {
         assertEquals(15.0 / 16.0, environment.voxel(8, 64, 0).standingSurface, "an ignored cactus replays as a floor")
         assertTrue(environment.voxel(20, 64, 0).bouncy, "slime bounces")
         assertTrue(Files.size(path) < 1_000, "a dump that references its terrain stays small: ${Files.size(path)} bytes")
+    }
+
+    @Test
+    fun `a dump carries the executed tape, the predicted states around the event and the observed body`() {
+        MinecraftBootstrap.ensure()
+        val directory = Files.createTempDirectory("plan-dump-execution")
+        val store = TerrainStore(directory.resolve("terrain"))
+        val key = ChunkSectionPos.asLong(0, 4, 0)
+        val container = PalettedContainer(Blocks.AIR.defaultState, PaletteProvider.forBlockStates(Block.STATE_IDS))
+        container.set(0, 0, 0, Blocks.STONE.defaultState)
+        store.record(key, container, System.currentTimeMillis())
+        val profile = PlayerPhysicsProfile(
+            movementSpeed = 0.1, sneakSpeedModifier = 0.3, gravity = 0.08, jumpStrength = 0.42,
+            stepHeight = 0.6, jumpBoostVelocityModifier = 0.0, slowFalling = false, width = 0.6, height = 1.8,
+        )
+        val initial = MovementSimulationState.synthetic(profile, Vec3d(0.5, 65.0, 0.5), Rotation(37.5, 12.0), onGround = true)
+        val trace = PlanDump.ExecutionTrace(
+            frame = 2,
+            afterInput = true,
+            initial = initial,
+            inputs = listOf(
+                MovementSimulationInput(forward = 1.0, sprint = true, rotation = Rotation(12.5, -3.0)),
+                MovementSimulationInput(jump = true),
+                MovementSimulationInput(strafe = -0.5, sneak = true, useItemSlowdown = true, rotation = Rotation(-170.25, 0.0)),
+            ),
+            predicted = listOf(
+                1 to MovementSimulationState.synthetic(profile, Vec3d(0.6, 65.0, 0.5), Rotation(37.5, 12.0), Vec3d(0.1, 0.0, 0.0), onGround = true),
+                2 to MovementSimulationState.synthetic(profile, Vec3d(0.75, 65.42, 0.5), Rotation(12.5, -3.0), Vec3d(0.15, 0.42, 0.0), onGround = false).copy(isJumping = true, isSprinting = true),
+            ),
+            observed = MovementSimulationState.synthetic(profile, Vec3d(0.7, 65.4, 0.5), Rotation(12.5, -3.0), Vec3d(0.05, 0.33, 0.0), onGround = false),
+        )
+        val path = PlanDump.write(
+            directory.resolve("dumps"), store, longArrayOf(key), SimulationSnapshotBounds(-64, -64, -64, 64, 319, 64),
+            Stance(0, 65, 0), Stance(7, 65, 3), initial, profile, SimpleMoveOptions(), MotionConstraints(), "divergence: test",
+            execution = trace,
+        )
+        store.close()
+
+        val loaded = PlanDump.read(path)
+        val read = checkNotNull(loaded.execution) { "the execution trace must survive the round trip" }
+        assertEquals(trace.frame, read.frame)
+        assertEquals(trace.afterInput, read.afterInput)
+        assertEquals(trace.initial, read.initial)
+        assertEquals(trace.inputs, read.inputs)
+        assertEquals(trace.predicted, read.predicted)
+        assertEquals(trace.observed, read.observed)
+        assertEquals("divergence: test", loaded.note)
+        assertEquals(null, PlanDump.read(Path.of(checkNotNull(javaClass.getResource("/pathing/plan-v5.dump")).toURI())).execution)
     }
 
     private class StatesView(private val states: Map<BlockPos, BlockState>) : BlockView {

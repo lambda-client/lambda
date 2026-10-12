@@ -135,8 +135,9 @@ interface PathingConfig {
     val horizonCommitFrames: Int get() = 20
 
     /**
-     * On a refusal, write the plan — endpoints, entry state, physics profile and the sections
-     * it captured — gzipped to `lambda/pathing-dumps`, with the block states of those sections
+     * On a refusal, replan, hold, stop or cancel, write the plan — endpoints, entry state, physics
+     * profile, the executed tape around the event and the sections it captured — gzipped to
+     * `lambda/pathing-dumps`, with the block states of those sections
      * in `lambda/cache/terrain`. The terrain behind a field refusal otherwise exists only in the
      * reporter's world; this turns it into a JVM fixture that replays in a second.
      */

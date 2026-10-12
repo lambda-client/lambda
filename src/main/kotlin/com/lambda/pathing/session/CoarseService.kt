@@ -24,6 +24,8 @@ internal class CoarseService(
 	private val legs: List<CoarsePlanningState>,
 	starts: List<Stance>,
 	private val expansionBudget: Int,
+	private val repin: () -> Unit = {},
+	private val pinCurrent: () -> Boolean = { true },
 ) : AutoCloseable {
 	class Frame(
 		val sequence: Long,
@@ -153,6 +155,7 @@ internal class CoarseService(
 
 	private fun advance(): Boolean {
 		val batch = events?.drain()
+		repin()
 		if (batch != null && !batch.isEmpty) {
 			revision = batch.revision
 			for (leg in legs.indices) {
@@ -219,7 +222,9 @@ internal class CoarseService(
 		val routed = lock.withLock { frames[leg] } != null
 		world?.let { requestKnowledge(it, state, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
 		if (route == null) {
-			val capturing = world != null && world.pendingInterest > 0
+			val stale = !pinCurrent()
+			if (stale) dirty[leg] = true
+			val capturing = world != null && (world.pendingInterest > 0 || stale)
 			if (!capturing && state.forgetMemory(start, speeds[leg])) {
 				LOG.info("Remembered terrain leaves no coarse route from {} to {}; planning leg {} without it", start, state.goal, leg)
 				dirty[leg] = true

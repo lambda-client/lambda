@@ -5,7 +5,9 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.physics.MovementSimulationInput
+import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
 import com.lambda.threading.runSafeAutomated
@@ -39,7 +41,6 @@ class PathingSession internal constructor(
 	internal var active = true
 		private set
 
-	internal val flight = FlightPermissionHold()
 
 	internal var leg = 0
 
@@ -78,11 +79,13 @@ class PathingSession internal constructor(
 		planTrajectory()
 	}
 
+	internal val steersRotation: Boolean get() = active && (replay != null || state is State.Aligning)
+
 	fun SafeContext.tick() {
 		assertClientThread()
 		if (!active) return
 		advanceSnapshotCapture()
-		if (!active) return
+		if (!active || mc.isPaused) return
 		if (state is State.Settling) return with(alignment) { settle() }
 		if (state is State.Planning) return
 		if (state is State.Aligning) return with(alignment) { align() }
@@ -93,11 +96,8 @@ class PathingSession internal constructor(
 
 	fun SafeContext.inputForThisTick(): MovementSimulationInput? {
 		assertClientThread()
-		val input = tickInput?.takeIf { active } ?: run {
-			flight.release()
-			return null
-		}
-		flight.hold()
+		val input = tickInput?.takeIf { active } ?: return null
+		FlightPermissionHold.hold()
 
 		val replay = replay
 		if (replay != null && replay.cursor.awaitingObservation) {
@@ -113,6 +113,7 @@ class PathingSession internal constructor(
 
 	fun cancel() {
 		assertClientThread()
+		if (active) dumpEvent("cancel", "cancelled at ${Lambda.mc.player?.blockPos} while ${state::class.simpleName}")
 		release()
 		if (state !is State.Complete && state !is State.Failed) state = State.Idle
 	}
@@ -128,7 +129,6 @@ class PathingSession internal constructor(
 	}
 
 	internal fun release() {
-		flight.release()
 		launcher.cancel()
 		active = false
 	}
@@ -166,7 +166,24 @@ class PathingSession internal constructor(
 		waypointRoute.advanceCapture(configured)
 	}
 
+	internal fun dumpEvent(kind: String, note: String, execution: PlanDump.ExecutionTrace? = replayTrace()) {
+		val now = System.currentTimeMillis()
+		if (now - lastEventDump < EVENT_DUMP_INTERVAL_MILLIS) return
+		val job = launcher.current?.job ?: launcher.lastJob ?: return
+		lastEventDump = now
+		job.dumpEvent(kind, note, execution)
+	}
+
+	private fun replayTrace(): PlanDump.ExecutionTrace? {
+		val running = replay ?: return null
+		val observed = Lambda.mc.player?.let { MovementSimulationState.from(it) }
+		return PlanDump.ExecutionTrace.of(running.path.plan, running.cursor.nextFrame, afterInput = false, observed)
+	}
+
+	private var lastEventDump = 0L
+
 	internal fun SafeContext.fail(reason: String) {
+		if (active) dumpEvent("stopped", reason)
 		val goal = if (active) request.goal else telemetry.published?.finalGoal
 		val position = player.blockPos.let { "(${it.x}, ${it.y}, ${it.z})" }
 		val destination = goal?.let { " toward $it" } ?: ""
@@ -229,6 +246,8 @@ class PathingSession internal constructor(
 		const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0
 
 		const val MAX_RECOVERY_STREAK = 8
+
+		const val EVENT_DUMP_INTERVAL_MILLIS = 2_000L
 
 		const val RECOVERY_PROGRESS_BLOCKS = 16.0
 

@@ -31,17 +31,24 @@ class CoarsePlanner(
 
 	private var goalKnown = FrontierAnchors.goalResolved(view, goalStance)
 
+	private fun anchorSuccessors(node: Long, sink: EdgeList) {
+		val cost = anchors.cost(node)
+		if (cost.isNaN()) return
+		if (!goalKnown) sink.add(goalNode, cost)
+		else {
+			val from = PackedStance.stanceKey(node)
+			anchors.forEachKey { to -> if (to != from) sink.append(PackedStance.withSpeed(to, SpeedClass.MOVING), transitCost(from, to)) }
+		}
+	}
+
 	private val graph = LongGraph(
 		successorProvider = { node, sink ->
 			momentum.successors(edgeCache, node, sink)
-			val cost = anchors.cost(node)
-			if (!cost.isNaN()) {
-				if (!goalKnown) sink.add(goalNode, cost)
-				else {
-					val from = PackedStance.stanceKey(node)
-					anchors.forEachKey { to -> if (to != from) sink.append(PackedStance.withSpeed(to, SpeedClass.MOVING), transitCost(from, to)) }
-				}
-			}
+			anchorSuccessors(node, sink)
+		},
+		reachedSuccessorProvider = { node, sink, reached ->
+			momentum.successors(edgeCache, node, sink, reached = reached)
+			anchorSuccessors(node, sink)
 		},
 		predecessorProvider = { node, sink ->
 			momentum.predecessors(edgeCache, node, sink)

@@ -102,6 +102,32 @@ class ClimbableLaunchTest {
 	private fun jumpsAcross(environment: SnapshotSimulationEnvironment): Boolean =
 		moves.edgesFrom(environment, Stance(0, 64, 0)).any { it.movement == MovementId.JUMP && it.to == Stance(4, 64, 0) }
 
+	/**
+	 * The swamp field case: a vine column hanging from a mangrove's leaves ends a block below their
+	 * top. Pushing into the block a ladder hangs on carries the body over its ledge; around a corner
+	 * there is nothing to push against, the feet leave the vine and the body falls back down it.
+	 */
+	@Test
+	fun `no diagonal step up leaves a hanging vine`() {
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (y in 64..71) blocks[BlockPos(0, y, 0)] = VINE
+		for (y in 70..72) blocks[BlockPos(1, y, 0)] = LEAVES
+		blocks[BlockPos(1, 71, -1)] = LEAVES
+		val environment = SnapshotSimulationEnvironment.synthetic(BOUNDS, blocks)
+		val rising = moves.edgesFrom(environment, Stance(0, 71, 0)).filter { it.to.y > 71 && (it.to.x != 0 || it.to.z != 0) }
+		assertTrue(rising.isEmpty(), "a hanging vine has no ledge to step up from: ${rising.map { "${it.movement} ${it.to}" }}")
+	}
+
+	@Test
+	fun `a vine standing on ground still steps up diagonally`() {
+		val blocks = floor()
+		blocks[BlockPos(0, 64, 0)] = VINE
+		blocks[BlockPos(1, 64, 1)] = SnapshotBlockPhysics.FULL_CUBE
+		val environment = SnapshotSimulationEnvironment.synthetic(BOUNDS, blocks)
+		val steps = moves.edgesFrom(environment, Stance(0, 64, 0)).filter { it.movement == MovementId.STEP_UP && it.to == Stance(1, 65, 1) }
+		assertTrue(steps.isNotEmpty(), "the ground under the vine carries the step up")
+	}
+
 	private fun floor() = HashMap<BlockPos, SnapshotBlockPhysics>().apply {
 		for (x in -4..8) for (z in -4..4) put(BlockPos(x, 63, z), SnapshotBlockPhysics.FULL_CUBE)
 	}

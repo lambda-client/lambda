@@ -46,8 +46,8 @@ internal class AlignmentController(private val walk: PathingSession) {
 		if (++settleTicks > MAX_SETTLE_TICKS) {
 			with(walk) {
 				fail(
-					"could not settle to a stable start (%.3f b/t after %d ticks)".format(
-						player.velocity.horizontalLength(), settleTicks,
+					"could not settle to a stable start (%.3f b/t, ground %s, water %s after %d ticks)".format(
+						player.velocity.horizontalLength(), player.isOnGround, player.isTouchingWater, settleTicks,
 					)
 				)
 			}

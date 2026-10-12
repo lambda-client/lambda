@@ -5,11 +5,13 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.physics.FallLimits
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.WaterPhysics
+import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
@@ -42,6 +44,28 @@ internal object PlanDump {
 
 	fun readable(version: String?): Boolean = version == "version $VERSION" || version == "version $EMBEDDED_PHYSICS_VERSION"
 
+	class ExecutionTrace(
+		val frame: Int,
+		val afterInput: Boolean,
+		val initial: MovementSimulationState,
+		val inputs: List<MovementSimulationInput>,
+		val predicted: List<Pair<Int, MovementSimulationState>>,
+		val observed: MovementSimulationState?,
+	) {
+		companion object {
+			fun of(plan: TrajectoryPlan, frame: Int, afterInput: Boolean, observed: MovementSimulationState?): ExecutionTrace {
+				val frames = plan.frames
+				val last = minOf(frames.size - 1, frame + 1)
+				return ExecutionTrace(
+					frame, afterInput, plan.initialState,
+					frames.subList(0, minOf(frames.size, frame + 1)).map { it.input },
+					(maxOf(0, frame - PREDICTED_BEFORE)..last).map { it to frames[it].state },
+					observed,
+				)
+			}
+		}
+	}
+
 	data class Loaded(
 		val bounds: SimulationSnapshotBounds,
 		val sections: Map<Long, ImmutableSnapshotSection>,
@@ -52,6 +76,7 @@ internal object PlanDump {
 		val moveOptions: SimpleMoveOptions,
 		val searchConfig: MotionConstraints,
 		val note: String,
+		val execution: ExecutionTrace? = null,
 	) {
 		fun environment(): SnapshotSimulationEnvironment =
 			SnapshotSimulationEnvironment(bounds, sections, SnapshotBlockPhysics.AIR)
@@ -69,6 +94,7 @@ internal object PlanDump {
 		moveOptions: SimpleMoveOptions,
 		searchConfig: MotionConstraints,
 		note: String,
+		execution: ExecutionTrace? = null,
 	): Path {
 		Files.createDirectories(directory)
 		val at = System.currentTimeMillis()
@@ -85,6 +111,13 @@ internal object PlanDump {
 			line(moveOptions.dump())
 			line(searchConfig.dump())
 			line(initialState.dump())
+			execution?.let { trace ->
+				line("executed ${trace.frame} ${trace.afterInput} ${trace.inputs.size}")
+				line(trace.initial.dump("executed-state"))
+				trace.observed?.let { line(it.dump("observed")) }
+				trace.predicted.forEach { (index, state) -> line(state.dump("predicted $index")) }
+				trace.inputs.forEach { line(it.dump()) }
+			}
 			line("terrain ${directory.toAbsolutePath().relativize(store.directory.toAbsolutePath())} $at")
 			line("sections ${sections.size}")
 			sections.sorted().forEach { line("s ${ChunkSectionPos.unpackX(it)} ${ChunkSectionPos.unpackY(it)} ${ChunkSectionPos.unpackZ(it)}") }
@@ -113,6 +146,11 @@ internal object PlanDump {
 		var note = ""
 		var terrain: Path? = null
 		var terrainAt = 0L
+		var executed: List<String>? = null
+		var executedState: MovementSimulationState? = null
+		var observed: MovementSimulationState? = null
+		val predicted = ArrayList<Pair<Int, MovementSimulationState>>()
+		val inputs = ArrayList<MovementSimulationInput>()
 		val sectionKeys = LongArrayList()
 		val palette = ArrayList<SnapshotBlockPhysics>()
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
@@ -140,6 +178,11 @@ internal object PlanDump {
 					terrain = path.toAbsolutePath().parent.resolve(parts[1]).normalize()
 					terrainAt = parts[2].toLong()
 				}
+				"executed" -> executed = parts
+				"executed-state" -> executedState = readState(parts, checkNotNull(profile) { "profile must precede the executed state" })
+				"observed" -> observed = readState(parts, checkNotNull(profile) { "profile must precede the observed state" })
+				"predicted" -> predicted += parts[1].toInt() to readState(parts.drop(1), checkNotNull(profile) { "profile must precede predicted states" })
+				"i" -> inputs += readInput(parts)
 				"s" -> sectionKeys.add(ChunkSectionPos.asLong(parts[1].toInt(), parts[2].toInt(), parts[3].toInt()))
 				"p" -> palette += readPhysics(parts)
 				"c" -> blocks[BlockPos(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())] =
@@ -159,8 +202,27 @@ internal object PlanDump {
 			moveOptions = if (optionsFallLimits) moveOptions else moveOptions.copy(fallLimits = searchConfig.fallLimits),
 			searchConfig = searchConfig,
 			note = note,
+			execution = executed?.let { parts ->
+				ExecutionTrace(parts[1].toInt(), parts[2].toBoolean(), checkNotNull(executedState) { "an executed trace needs its start state" }, inputs, predicted, observed)
+			},
 		)
 	}
+
+	private const val PREDICTED_BEFORE = 3
+
+	private fun MovementSimulationInput.dump(): String = listOf(
+		"i", forward, strafe, jump, sneak, sprint, useItemSlowdown, rotation?.yaw ?: "-", rotation?.pitch ?: "-",
+	).joinToString(" ")
+
+	private fun readInput(parts: List<String>) = MovementSimulationInput(
+		forward = parts[1].toDouble(),
+		strafe = parts[2].toDouble(),
+		jump = parts[3].toBoolean(),
+		sneak = parts[4].toBoolean(),
+		sprint = parts[5].toBoolean(),
+		useItemSlowdown = parts[6].toBoolean(),
+		rotation = if (parts[7] == "-") null else Rotation(parts[7].toDouble(), parts[8].toDouble()),
+	)
 
 	private const val FALL_LIMIT_OPTION = 15
 
@@ -238,8 +300,8 @@ internal object PlanDump {
 		},
 	)
 
-	private fun MovementSimulationState.dump(): String = listOf(
-		"state", position.x, position.y, position.z, velocity.x, velocity.y, velocity.z,
+	private fun MovementSimulationState.dump(keyword: String = "state"): String = listOf(
+		keyword, position.x, position.y, position.z, velocity.x, velocity.y, velocity.z,
 		rotation.yaw, rotation.pitch, onGround, isJumping, isSprinting, isSneaking,
 		jumpingCooldown, horizontalCollision, collidedSoftly, verticalCollision,
 		velocityAffectingPos.x, velocityAffectingPos.y, velocityAffectingPos.z,

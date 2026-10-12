@@ -67,6 +67,10 @@ object RotationManager : Manager<RotationRequest>(
 
 	private var pauseVanillaOverrides = false
 
+	private val overrideHolds = ArrayList<() -> Boolean>()
+
+	private val vanillaOverridesPaused: Boolean get() = pauseVanillaOverrides || overrideHolds.any { it() }
+
 	override fun load(): String {
 		super.load()
 
@@ -98,11 +102,11 @@ object RotationManager : Manager<RotationRequest>(
 		}
 
         // Override user interactions with max priority
-        listen<PlayerEvent.Attack.Block>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
-        listen<PlayerEvent.Attack.Entity>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
-        listen<PlayerEvent.Interact.Item>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
-        listen<PlayerEvent.Interact.Block>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
-        listen<PlayerEvent.Interact.Entity>({ Int.MAX_VALUE }) { if (!pauseVanillaOverrides) activeRotation = player.rotation }
+        listen<PlayerEvent.Attack.Block>({ Int.MAX_VALUE }) { if (!vanillaOverridesPaused) activeRotation = player.rotation }
+        listen<PlayerEvent.Attack.Entity>({ Int.MAX_VALUE }) { if (!vanillaOverridesPaused) activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Item>({ Int.MAX_VALUE }) { if (!vanillaOverridesPaused) activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Block>({ Int.MAX_VALUE }) { if (!vanillaOverridesPaused) activeRotation = player.rotation }
+        listen<PlayerEvent.Interact.Entity>({ Int.MAX_VALUE }) { if (!vanillaOverridesPaused) activeRotation = player.rotation }
 
 		return "Loaded Rotation Manager"
 	}
@@ -154,6 +158,10 @@ object RotationManager : Manager<RotationRequest>(
 	fun setPlayerRotation(rotation: Rotation) {
 		setPlayerYaw(rotation.yaw)
 		setPlayerPitch(rotation.pitch)
+	}
+
+	fun holdVanillaOverridesWhile(condition: () -> Boolean) {
+		overrideHolds += condition
 	}
 
 	fun withoutVanillaOverrides(block: () -> Unit) {

@@ -6,6 +6,8 @@ import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.actions.BodyState
 
 interface WorldLink {
+	val startRevision: Long? get() = null
+
 	fun await(timeoutMillis: Long): Boolean
 
 	fun sync(route: CoarseRoutePlan, from: BodyState): WorldSyncResult

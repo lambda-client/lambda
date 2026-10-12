@@ -69,6 +69,14 @@ class SnapshotSimulationEnvironment internal constructor(
 		storeRef.store = storeRef.store.without(keys)
 	}
 
+	internal fun pinned(): SnapshotSimulationEnvironment = SnapshotSimulationEnvironment(bounds, StoreRef(store), defaultBlock, onExactMiss)
+
+	internal fun repin(from: SnapshotSimulationEnvironment) {
+		storeRef.store = from.store
+	}
+
+	internal fun pinnedTo(from: SnapshotSimulationEnvironment): Boolean = storeRef.store === from.store
+
 	internal inline fun forEachSectionKey(action: (Long) -> Unit) = store.forEach { key, _ -> action(key) }
 
 	internal val sectionCount: Int get() = store.size

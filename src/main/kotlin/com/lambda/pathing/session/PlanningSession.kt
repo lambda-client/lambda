@@ -9,6 +9,8 @@ internal class PlanningSession(@Volatile private var attached: Boolean = true) :
 
 	var launchRevision: Long = -1L
 
+	var job: PlanningJob? = null
+
 	@Volatile
 	private var executionFrame: Int? = null
 

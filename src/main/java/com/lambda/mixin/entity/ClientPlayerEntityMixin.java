@@ -25,6 +25,7 @@ import com.lambda.module.modules.movement.NoJumpCooldown;
 import com.lambda.module.modules.movement.elytrafly.ElytraFly;
 import com.lambda.module.modules.player.PortalGui;
 import com.lambda.module.modules.render.ViewModel;
+import com.lambda.pathing.session.FlightPermissionHold;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
@@ -93,6 +94,11 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayerEntity
         EventFlow.post(new MovementEvent.Player.Pre(movementType, vec3d));
         original.call(instance, movementType, vec3d);
         EventFlow.post(new MovementEvent.Player.Post(movementType, vec3d));
+    }
+
+    @ModifyExpressionValue(method = "tickMovement", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/player/PlayerAbilities;allowFlying:Z", opcode = Opcodes.GETFIELD))
+    private boolean holdFlightToggle(boolean allowFlying) {
+        return allowFlying && !FlightPermissionHold.holds((ClientPlayerEntity) (Object) this);
     }
 
     @WrapOperation(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick()V"))
