@@ -52,9 +52,16 @@ internal object PlanDump {
 		val inputs: List<MovementSimulationInput>,
 		val predicted: List<Pair<Int, MovementSimulationState>>,
 		val observed: MovementSimulationState?,
+		val history: List<Pair<Int, MovementSimulationState>> = emptyList(),
 	) {
 		companion object {
-			fun of(plan: TrajectoryPlan, frame: Int, afterInput: Boolean, observed: MovementSimulationState?): ExecutionTrace {
+			fun of(
+				plan: TrajectoryPlan,
+				frame: Int,
+				afterInput: Boolean,
+				observed: MovementSimulationState?,
+				history: List<Pair<Int, MovementSimulationState>> = emptyList(),
+			): ExecutionTrace {
 				val frames = plan.frames
 				val last = minOf(frames.size - 1, frame + 1)
 				return ExecutionTrace(
@@ -62,6 +69,7 @@ internal object PlanDump {
 					frames.subList(0, minOf(frames.size, frame + 1)).map { it.input },
 					(maxOf(0, frame - PREDICTED_BEFORE)..last).map { it to frames[it].state },
 					observed,
+					history,
 				)
 			}
 		}
@@ -117,6 +125,7 @@ internal object PlanDump {
 				line(trace.initial.dump("executed-state"))
 				trace.observed?.let { line(it.dump("observed")) }
 				trace.predicted.forEach { (index, state) -> line(state.dump("predicted $index")) }
+				trace.history.forEach { (index, state) -> line(state.dump("observed-at $index")) }
 				trace.inputs.forEach { line(it.dump()) }
 			}
 			line("terrain ${directory.toAbsolutePath().relativize(store.directory.toAbsolutePath())} $at")

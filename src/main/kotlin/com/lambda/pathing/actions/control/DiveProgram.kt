@@ -11,17 +11,21 @@ import kotlin.math.atan2
 import kotlin.math.hypot
 
 internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramContext) : ControlProgram {
-	private var breathing = decision.breathe
+	private val detour = decision.detour
+	private var breathing = decision.breathe && !decision.detour
 	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
 	private val sprint = context.constraints.sprintModes.first()
 	private val targetX = decision.step.x + 0.5
 	private val targetY = decision.step.y + BODY_CENTER
 	private val targetZ = decision.step.z + 0.5
-	private val pocketX = context.body.stance.x + 0.5
-	private val pocketZ = context.body.stance.z + 0.5
+	private val pocketX = (if (detour) decision.step.x else context.body.stance.x) + 0.5
+	private val pocketY = decision.step.y.toDouble()
+	private val pocketZ = (if (detour) decision.step.z else context.body.stance.z) + 0.5
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
-		if (breathing && observed.air < Vanilla.MAX_AIR) return breathe(observed)
+		if (detour) {
+			if (observed.air >= Vanilla.MAX_AIR || reachedPocket(observed)) return breathe(observed)
+		} else if (breathing && observed.air < Vanilla.MAX_AIR) return breathe(observed)
 		breathing = false
 		val dx = targetX - observed.position.x
 		val dz = targetZ - observed.position.z
@@ -38,6 +42,9 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 		)
 	}
 
+	private fun reachedPocket(observed: MovementSimulationState): Boolean =
+		hypot(pocketX - observed.position.x, pocketZ - observed.position.z) <= POCKET_REACHED && observed.position.y >= pocketY - POCKET_REACHED
+
 	private fun breathe(observed: MovementSimulationState): MovementSimulationInput {
 		val dx = pocketX - observed.position.x
 		val dz = pocketZ - observed.position.z
@@ -53,6 +60,7 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 	private companion object {
 		const val BODY_CENTER = 0.3
 		const val POCKET_CENTERING = 0.15
+		const val POCKET_REACHED = 0.6
 		const val CENTERING_INPUT = 0.3
 		const val MAX_PITCH = 75.0
 		const val MIN_HORIZONTAL = 0.35

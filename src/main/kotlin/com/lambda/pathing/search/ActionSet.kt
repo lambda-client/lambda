@@ -44,7 +44,7 @@ internal class ActionSet(
 		val priced = ArrayList<PricedDecision>()
 
 		fun add(decision: TrajectoryDecision) {
-			val edge = byDestination.getValue(decision.step)
+			val edge = byDestination[decision.step] ?: steps.first()
 			val excess = costOf.getValue(edge.to) - bestCost
 			val owner = catalog[decision.movement]
 			val movementPrice = owner?.price(decision, contextFor(edge)) ?: DecisionPrice.FREE

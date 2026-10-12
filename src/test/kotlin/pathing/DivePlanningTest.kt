@@ -104,6 +104,33 @@ class DivePlanningTest {
 	}
 
 	@Test
+	fun `a one-deep air gap over a one-high passage is no air source`() {
+		val length = 2 * POCKET_HALF + 5
+		val pocket = length / 2
+		val special = buildMap {
+			for (z in -1..1) {
+				put(BlockPos(pocket, 62, z), SnapshotBlockPhysics.AIR)
+				put(BlockPos(pocket, 61, z), SnapshotBlockPhysics.water())
+			}
+		}
+		val environment = channel(length, special) { x, y -> x in 2 until length - 2 && y >= 62 && !(x == pocket && y == 62) }
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, 0), Stance(length + 2, 64, 0))
+		planner.repair()
+		assertNull(planner.routePlan(0L), "a body that stands up to breathe there cannot swim back into the passage")
+	}
+
+	@Test
+	fun `a passage longer than a breath is dived by detouring into an air alcove beside it`() {
+		val length = 2 * POCKET_HALF + 5
+		val path = certified(alcovePassage(length), Stance(-2, 64, 0), Stance(length + 2, 64, 0), resting(Vec3d(-1.5, 64.0, 0.5), -90.0))
+		val frames = path.plan.frames
+		println("[dive] alcove passage frames=${frames.size} min air=${frames.minOf { it.state.air }}")
+		assertTrue(frames.any { it.state.position.z > 1.0 && it.state.position.x in (length / 2).toDouble()..(length / 2 + 1).toDouble() }, "the dive must turn into the alcove")
+		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the dive must keep a safe air margin")
+		assertEquals(Stance(length + 2, 64, 0), Stance.of(frames.last().state.position, onGround = true))
+	}
+
+	@Test
 	fun `a goal in open water above the floor is reached`() {
 		val environment = channel(length = 12) { _, _ -> false }
 		val path = certified(environment, Stance(-2, 64, 0), Stance(6, 62, 0), resting(Vec3d(-1.5, 64.0, 0.5), -90.0))
@@ -191,6 +218,30 @@ class DivePlanningTest {
 			}
 		}
 		blocks.putAll(special)
+		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, 50, -3, length + 10, 80, 3), blocks)
+	}
+
+	/** Pools at both ends joined by a one-wide, two-high flooded passage whose only air midway is an alcove beside it. */
+	private fun alcovePassage(length: Int): SnapshotSimulationEnvironment {
+		val alcove = length / 2
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -6..length + 6) for (z in -2..2) {
+			blocks[BlockPos(x, 60, z)] = SnapshotBlockPhysics.FULL_CUBE
+			for (y in 61..72) {
+				val pool = (x in 0 until 2 || x in length - 2 until length) && z in -1..1 && y <= 63
+				val passage = x in 2 until length - 2 && z == 0 && y <= 62
+				val side = x == alcove && z == 1 && y <= 62
+				blocks[BlockPos(x, y, z)] = when {
+					pool && y == 63 -> SnapshotBlockPhysics.water()
+					pool || passage -> SnapshotBlockPhysics.water(1.0f)
+					side && y == 62 -> SnapshotBlockPhysics.water()
+					side -> SnapshotBlockPhysics.water(1.0f)
+					x == alcove && z == 1 && y == 63 -> SnapshotBlockPhysics.AIR
+					y <= 63 || x in 2 until length - 2 -> SnapshotBlockPhysics.FULL_CUBE
+					else -> continue
+				}
+			}
+		}
 		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, 50, -3, length + 10, 80, 3), blocks)
 	}
 

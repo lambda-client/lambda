@@ -10,9 +10,9 @@ interface ValueField : SteeringField {
 
 	fun invalidate()
 	fun lowerBound(stance: Stance): Double
-	fun guide(stance: Stance): Double
+	override fun guide(stance: Stance): Double
 	fun guide(stance: Stance, speed: SpeedClass): Double
-	fun isMapped(stance: Stance): Boolean
+	override fun isMapped(stance: Stance): Boolean
 	fun isStance(stance: Stance): Boolean
 	fun steps(stance: Stance, count: Int, marginTicks: Double = Double.MAX_VALUE): List<CoarseEdge>
 

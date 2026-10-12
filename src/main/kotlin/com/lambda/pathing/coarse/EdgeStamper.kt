@@ -162,7 +162,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 				val id = clause.id
 				if (clauseGenerations[id] != generation) {
 					var special = 0L
-					for (cell in clause.cells) special = special or special(cell)
+					if (specials) for (cell in clause.cells) special = special or special(cell)
 					clauseSpecials[id] = special
 					clauseMasks[id] = mask(clause)
 					clauseGenerations[id] = generation
@@ -286,7 +286,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		val id = clause.id
 		if (clauseGenerations[id] == generation) return clauseMasks[id]
 		var special = 0L
-		for (cell in clause.cells) special = special or special(cell)
+		if (specials) for (cell in clause.cells) special = special or special(cell)
 		clauseSpecials[id] = special
 		clauseGenerations[id] = generation
 		return mask(clause).also { clauseMasks[id] = it }

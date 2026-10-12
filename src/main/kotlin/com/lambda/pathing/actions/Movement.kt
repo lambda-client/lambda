@@ -55,6 +55,10 @@ class DecisionContext(
 interface SteeringField {
 	fun chain(stance: Stance, firstStep: Stance?, length: Int): List<Stance>
 
+	fun guide(stance: Stance): Double
+
+	fun isMapped(stance: Stance): Boolean
+
 	companion object {
 		const val PURSUIT_CHAIN_LENGTH = 6
 	}

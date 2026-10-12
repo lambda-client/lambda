@@ -54,6 +54,8 @@ class PathingSession internal constructor(
 
 	internal var tickInput: MovementSimulationInput? = null
 
+	internal var afloatStart: AfloatStart? = null
+
 	private var recoveryStreak = 0
 	private var recoveredAt: Vec3d? = null
 
@@ -91,7 +93,10 @@ class PathingSession internal constructor(
 		with(heartbeat) { beat(this@PathingSession) }
 		if (mc.isPaused) return
 		if (state is State.Settling) return with(alignment) { settle() }
-		if (state is State.Planning) return with(launcher) { retryAfterCapture() }
+		if (state is State.Planning) {
+			if (afloatStart != null) tickInput = treadInput()
+			return with(launcher) { retryAfterCapture() }
+		}
 		if (state is State.Aligning) return with(alignment) { align() }
 
 		waypointRoute.primeNextLeg(player, request, replay?.path)
@@ -139,18 +144,14 @@ class PathingSession internal constructor(
 		journey = null
 	}
 
-	internal fun face(target: Double, pitch: Double? = null) {
-		request.runSafeAutomated {
-			rotationRequest {
-				yaw(target)
-				pitch?.let { pitch(it) }
-			}.submit()
-		}
+	internal fun face(target: Double) {
+		request.runSafeAutomated { rotationRequest { yaw(target) }.submit() }
 	}
 
 	internal fun takeJourney(): PlanningJourney? = journey.also { journey = null }
 
 	internal fun SafeContext.planTrajectory() {
+		if (afloat()) return with(launcher) { capturePlan() }
 		if (player.velocity.horizontalLength() > SETTLED_SPEED) {
 			alignment.beginSettling()
 			tickInput = ALIGNMENT_INPUT
@@ -254,6 +255,12 @@ class PathingSession internal constructor(
 	private fun assertClientThread() {
 		check(Lambda.mc.isOnThread) { "PathingSession must be driven from the client thread" }
 	}
+
+	internal fun SafeContext.afloat(): Boolean = player.isTouchingWater && !player.isOnGround
+
+	internal fun SafeContext.treadInput() = MovementSimulationInput(jump = player.isTouchingWater)
+
+	internal class AfloatStart(val state: MovementSimulationState, val age: Int)
 
 	internal companion object {
 		const val IDLE_CAPTURE_BUDGET_MILLIS = 15.0

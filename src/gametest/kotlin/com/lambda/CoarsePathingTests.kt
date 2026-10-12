@@ -96,6 +96,106 @@ internal object CoarsePathingTests {
 
         assertPathingInvalidatesOnWorldMutation(context, server)
         restoreArena(server)
+
+        assertPathingStartsAfloat(context, server)
+        restoreArena(server)
+
+        assertPathingRecoversAfloat(context, server)
+        restoreArena(server)
+    }
+
+    /** A tape invalidated mid-swim must restart from the water instead of waiting to stand on ground. */
+    private fun assertPathingRecoversAfloat(
+        context: ClientGameTestContext,
+        server: TestServerContext,
+    ) {
+        val scenario = "pathing-recover-afloat"
+        if (!scenarioSelected(scenario)) return
+        try {
+            server.runCommand("/fill -8 95 3 8 99 20 minecraft:stone")
+            server.runCommand("/fill -8 100 3 -8 101 20 minecraft:stone")
+            server.runCommand("/fill 8 100 3 8 101 20 minecraft:stone")
+            server.runCommand("/fill -7 96 4 7 99 19 minecraft:water")
+            server.runCommand("/fill -8 99 21 8 99 24 minecraft:stone")
+            server.runCommand("/tp Steve 0.5 100 0.5 0 0")
+            repeat(10) { context.waitTick() }
+            context.runOnClient<IllegalStateException> {
+                PathingService.clear()
+                PathingRequest(AutomationConfig.DEFAULT, Stance(0, 100, 23)).submit()
+            }
+            var ticks = 0
+            var swimmingAt: net.minecraft.util.math.BlockPos? = null
+            while (ticks++ < MAX_PATHING_TICKS && swimmingAt == null) {
+                context.waitTick()
+                context.runOnClient<IllegalStateException> {
+                    val player = com.lambda.Lambda.mc.player
+                    if (player != null && player.isTouchingWater && player.z > 8.0 && PathingService.status is State.Executing) swimmingAt = player.blockPos
+                }
+            }
+            val at = checkNotNull(swimmingAt) { "$scenario: never swam mid-pool (${PathingService.status})" }
+            server.runCommand("/fill ${at.x - 1} 96 ${at.z + 2} ${at.x + 1} 101 ${at.z + 2} minecraft:stone")
+            ticks = 0
+            while (ticks++ < 40 && PathingService.telemetry.recoveries == 0) {
+                context.waitTick()
+            }
+            check(PathingService.telemetry.recoveries >= 1) {
+                "$scenario: the pillar in the swim did not invalidate the tape (${PathingService.status})"
+            }
+            ticks = 0
+            while (ticks++ < MAX_PATHING_TICKS &&
+                PathingService.status !is State.Complete &&
+                PathingService.status !is State.Failed
+            ) {
+                context.waitTick()
+            }
+            check(PathingService.status is State.Complete) {
+                "$scenario: did not recover in the water (${PathingService.status})"
+            }
+        } catch (failure: IllegalStateException) {
+            pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
+            println("[pathing-fail] ${failure.message}")
+        } finally {
+            context.runOnClient<IllegalStateException> { PathingService.clear() }
+        }
+    }
+
+    /** A walk requested while floating mid-pool must start treading on a certified tape, not wait to stand. */
+    private fun assertPathingStartsAfloat(
+        context: ClientGameTestContext,
+        server: TestServerContext,
+    ) {
+        val scenario = "pathing-start-afloat"
+        if (!scenarioSelected(scenario)) return
+        try {
+            server.runCommand("/fill -8 95 3 8 99 20 minecraft:stone")
+            server.runCommand("/fill -8 100 3 -8 101 20 minecraft:stone")
+            server.runCommand("/fill 8 100 3 8 101 20 minecraft:stone")
+            server.runCommand("/fill -7 96 4 7 99 19 minecraft:water")
+            server.runCommand("/fill -8 99 21 8 99 24 minecraft:stone")
+            server.runCommand("/tp Steve 0.5 99.4 10.5 0 0")
+            repeat(10) { context.waitTick() }
+            context.runOnClient<IllegalStateException> {
+                val player = checkNotNull(com.lambda.Lambda.mc.player) { "$scenario: missing client player" }
+                check(player.isTouchingWater && !player.isOnGround) { "$scenario: the player is not afloat" }
+                PathingService.clear()
+                PathingRequest(AutomationConfig.DEFAULT, Stance(0, 100, 23)).submit()
+            }
+            var ticks = 0
+            while (ticks++ < MAX_PATHING_TICKS &&
+                PathingService.status !is State.Complete &&
+                PathingService.status !is State.Failed
+            ) {
+                context.waitTick()
+            }
+            check(PathingService.status is State.Complete) {
+                "$scenario: did not reach the far bank from the water (${PathingService.status})"
+            }
+        } catch (failure: IllegalStateException) {
+            pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
+            println("[pathing-fail] ${failure.message}")
+        } finally {
+            context.runOnClient<IllegalStateException> { PathingService.clear() }
+        }
     }
 
     /** A changed dependency must stop the old tape, then continue in a fresh generation. */
@@ -121,9 +221,9 @@ internal object CoarsePathingTests {
                 "$scenario: never started execution (${PathingService.status})"
             }
 
-            // This support block is in the certified route's dependency section.
-            // The client update must invalidate the snapshot before replay continues.
-            server.runCommand("/setblock 0 99 4 minecraft:air")
+            // A wall across the certified route changes how its remaining frames replay.
+            // The client update must invalidate the tape before replay continues.
+            server.runCommand("/fill -8 100 4 8 101 4 minecraft:stone")
             ticks = 0
             while (ticks++ < 40 && PathingService.telemetry.recoveries == 0) {
                 context.waitTick()
@@ -133,7 +233,7 @@ internal object CoarsePathingTests {
             }
             // Restore a walkable route. The second client update may restart an in-flight
             // multi-tick capture, but it must not resurrect the invalidated worker.
-            server.runCommand("/setblock 0 99 4 minecraft:stone")
+            server.runCommand("/fill -8 100 4 8 101 4 minecraft:air")
             ticks = 0
             while (ticks++ < MAX_PATHING_TICKS &&
                 PathingService.status !is State.Complete &&
@@ -148,7 +248,7 @@ internal object CoarsePathingTests {
             pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
             println("[pathing-fail] ${failure.message}")
         } finally {
-            server.runCommand("/setblock 0 99 4 minecraft:stone")
+            server.runCommand("/fill -8 100 4 8 101 4 minecraft:air")
             context.runOnClient<IllegalStateException> { PathingService.clear() }
         }
     }

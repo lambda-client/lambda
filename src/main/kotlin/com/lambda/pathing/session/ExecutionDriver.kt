@@ -2,6 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.debug.PlanDump
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
@@ -56,7 +57,10 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			is ExecutionInputResult.Apply -> {
 				walk.tickInput = next.input
 				walk.state = State.Executing(next.frame, current.plan.tape.frameCount, walk.leg)
-				next.input.rotation?.let { rotation -> walk.face(rotation.yaw, rotation.pitch.takeIf { observed.touchingWater }) }
+				next.input.rotation?.let { rotation ->
+					walk.face(rotation.yaw)
+					if (observed.touchingWater) RotationManager.setPlayerPitch(rotation.pitch)
+				}
 			}
 
 			ExecutionInputResult.Complete -> finishTrajectory(replay)
@@ -69,6 +73,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		val path = replay.path
 		val frame = replay.cursor.nextFrame
 		val observed = observe(path.plan, frame + 1)
+		replay.recordObserved(frame, observed)
 		with(walk.admission) {
 			executionEnvironmentDeviation(path, nextFrame = frame, untilFrame = repairUntil(replay))
 		}?.let { deviation ->
@@ -200,7 +205,8 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 	) {
 		val journey = walk.journey
 		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, journey?.world?.snapshot, journey?.ignoresHazards == true)
-		walk.dumpEvent("divergence", report, PlanDump.ExecutionTrace.of(path.plan, frame, afterInput, observed))
+		val history = walk.replay?.takeIf { it.path === path }?.observedHistory?.toList().orEmpty()
+		walk.dumpEvent("divergence", report, PlanDump.ExecutionTrace.of(path.plan, frame, afterInput, observed, history))
 		with(walk) {
 			when (deviation) {
 				is ExecutionDeviation.WorldChanged -> recover(report, reuseCoarseState = true)

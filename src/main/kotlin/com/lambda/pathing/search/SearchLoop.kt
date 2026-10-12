@@ -73,7 +73,9 @@ internal class SearchLoop(
 	private fun search(): MotionPlanResult {
 		if (cancelled()) return MotionPlanResult.Cancelled
 		if (unsupported.isNotEmpty()) return MotionPlanResult.UnsupportedRoute(unsupported)
-		constructSpine(plantRoot())
+		val root = plantRoot()
+		if (live) publisher.publishAfloat(root)
+		constructSpine(root)
 		while (true) {
 			stopReason()?.let { stop -> return incumbent.arrival?.let(::finish) ?: conclude(stop) }
 			if (cancelled()) return MotionPlanResult.Cancelled

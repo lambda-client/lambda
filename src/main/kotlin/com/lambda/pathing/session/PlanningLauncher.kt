@@ -88,6 +88,8 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			is PlanningPreparationResult.Ready -> prepared.preparation
 			is PlanningPreparationResult.Failed -> return with(walk) { fail(prepared.reason) }
 		}
+		walk.afloatStart = if (with(walk) { afloat() }) PathingSession.AfloatStart(preparation.initial, player.age) else null
+		if (walk.afloatStart != null) walk.tickInput = with(walk) { treadInput() }
 		val currentJourney = walk.journey?.takeIf { it.compatibleWith(preparation) } ?: run {
 			walk.journey?.cancel()
 			PlanningJourney.open(preparation, player).also { walk.journey = it }

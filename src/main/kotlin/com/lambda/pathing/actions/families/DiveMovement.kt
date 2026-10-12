@@ -9,6 +9,7 @@ import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.ProposalContext
+import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.actions.control.DiveProgram
@@ -55,9 +56,15 @@ object DiveMovement : Movement {
 	fun submerged(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 		view.medium(x, y, z) == Medium.WATER && (view.medium(x, y + 1, z) == Medium.WATER || !view.voxel(x, y + 1, z).fullyPassable)
 
-	private fun breathable(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
-		view.medium(x, y, z) == Medium.WATER && view.medium(x, y + 1, z) != Medium.WATER && view.voxel(x, y + 1, z).fullyPassable ||
-				view.bubbles(x, y, z) && view.medium(x, y, z) == Medium.WATER
+	private fun breathable(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
+		if (view.medium(x, y, z) != Medium.WATER) return false
+		if (view.bubbles(x, y, z)) return true
+		if (view.medium(x, y + 1, z) == Medium.WATER || !view.voxel(x, y + 1, z).fullyPassable) return false
+		return view.medium(x, y - 1, z) == Medium.WATER || HORIZONTAL_SIDES.none { side -> swimOnly(view, x + SIDE_X[side], y, z + SIDE_Z[side]) }
+	}
+
+	private fun swimOnly(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
+		view.medium(x, y, z) == Medium.WATER && view.medium(x, y + 1, z) != Medium.WATER && !view.voxel(x, y + 1, z).fullyPassable
 
 	fun breathableWithin(view: CoarseVoxelView, from: Stance, reach: Int): Boolean {
 		for (up in 0..reach) {
@@ -101,22 +108,63 @@ object DiveMovement : Movement {
 	override fun proposals(context: ProposalContext): List<TrajectoryDecision> {
 		val leading = context.steps.firstOrNull() ?: return emptyList()
 		val body = context.body
-		if (leading.movement != id || !body.state.touchingWater || body.state.air >= Vanilla.MAX_AIR) return emptyList()
-		if (!breathable(context.view, body.stance.x, body.stance.y, body.stance.z)) return emptyList()
+		val view = context.view
+		if (!body.state.touchingWater || body.state.air >= Vanilla.MAX_AIR) return emptyList()
 		val ahead = context.steering.chain(body.stance, leading.to, AIR_LOOKAHEAD_NODES).drop(1)
-		val holding = ahead.takeWhile { submerged(context.view, it.x, it.y, it.z) && !context.view.bubbles(it.x, it.y, it.z) }.size
+		val holding = ahead.takeWhile { submerged(view, it.x, it.y, it.z) && !view.bubbles(it.x, it.y, it.z) }.size
 		if (body.state.air >= Vanilla.SAFE_AIR + holding * AIR_TICKS_PER_NODE) return emptyList()
-		return listOf(TrajectoryDecision.Dive(leading.to, breathe = true))
+		val here = body.stance
+		if (breathable(view, here.x, here.y, here.z)) {
+			return if (leading.movement == id) listOf(TrajectoryDecision.Dive(leading.to, breathe = true)) else emptyList()
+		}
+		val pocket = nearbyAir(view, context.steering, here) ?: return emptyList()
+		return listOf(TrajectoryDecision.Dive(pocket, breathe = true, detour = true))
 	}
 
-	override fun transitionFrames(decision: TrajectoryDecision): Int =
-		if ((decision as? TrajectoryDecision.Dive)?.breathe == true) BREATHE_FRAMES else 0
+	private fun nearbyAir(view: CoarseVoxelView, steering: SteeringField, from: Stance): Stance? {
+		val limit = steering.guide(from) + DETOUR_SLACK_TICKS
+		if (!limit.isFinite()) return null
+		val seen = LongOpenHashSet()
+		var frontier = LongArrayFIFOQueue()
+		frontier.enqueue(BlockPos.asLong(from.x, from.y, from.z))
+		seen.add(BlockPos.asLong(from.x, from.y, from.z))
+		repeat(DETOUR_REACH) {
+			val next = LongArrayFIFOQueue()
+			while (!frontier.isEmpty) {
+				val cell = frontier.dequeueLong()
+				val x = BlockPos.unpackLongX(cell)
+				val y = BlockPos.unpackLongY(cell)
+				val z = BlockPos.unpackLongZ(cell)
+				for (side in 0 until 6) {
+					val nx = x + SIDE_X[side]
+					val ny = y + SIDE_Y[side]
+					val nz = z + SIDE_Z[side]
+					if (view.medium(nx, ny, nz) != Medium.WATER || !seen.add(BlockPos.asLong(nx, ny, nz))) continue
+					val candidate = Stance(nx, ny, nz)
+					if (breathable(view, nx, ny, nz) && steering.isMapped(candidate) && steering.guide(candidate) <= limit) return candidate
+					next.enqueue(BlockPos.asLong(nx, ny, nz))
+				}
+			}
+			frontier = next
+		}
+		return null
+	}
+
+	override fun transitionFrames(decision: TrajectoryDecision): Int {
+		val dive = decision as? TrajectoryDecision.Dive ?: return 0
+		return when {
+			dive.detour -> DETOUR_FRAMES
+			dive.breathe -> BREATHE_FRAMES
+			else -> 0
+		}
+	}
 
 	override fun program(context: ProgramContext): ControlProgram =
 		DiveProgram(context.decision as TrajectoryDecision.Dive, context)
 
 	override fun completed(context: CompletionContext): Boolean =
 		context.stance != context.body.stance && context.observed.touchingWater &&
+				((context.decision as? TrajectoryDecision.Dive)?.detour != true || context.observed.air >= Vanilla.MAX_AIR) &&
 				kotlin.math.abs(context.stance.x - context.decision.step.x) <= 1 &&
 				kotlin.math.abs(context.stance.y - context.decision.step.y) <= 1 &&
 				kotlin.math.abs(context.stance.z - context.decision.step.z) <= 1
@@ -138,6 +186,14 @@ object DiveMovement : Movement {
 	private const val AIR_TICKS_PER_NODE = 8
 
 	private const val BREATHE_FRAMES = 140
+
+	private const val DETOUR_FRAMES = 220
+
+	private const val DETOUR_REACH = 6
+
+	private const val DETOUR_SLACK_TICKS = 30.0
+
+	private val HORIZONTAL_SIDES = intArrayOf(0, 1, 4, 5)
 
 	private val SIDE_X = intArrayOf(1, -1, 0, 0, 0, 0)
 	private val SIDE_Y = intArrayOf(0, 0, 1, -1, 0, 0)

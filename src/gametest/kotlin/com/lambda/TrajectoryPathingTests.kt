@@ -165,5 +165,20 @@ internal object TrajectoryPathingTests {
             maxLegs = 2, requireJumpInput = true,
         )
         restoreArena(server)
+
+        // The same pool cut by a wall reaching into the water: the only way across is a
+        // dive through the one-block gap left above the pool floor, swum in the swimming
+        // pose the tape steers by pitch -- certified against the client's own water.
+        server.runCommand("/fill -8 95 3 8 99 20 minecraft:stone")
+        server.runCommand("/fill -8 100 3 -8 101 20 minecraft:stone")
+        server.runCommand("/fill 8 100 3 8 101 20 minecraft:stone")
+        server.runCommand("/fill -7 96 4 7 99 19 minecraft:water")
+        server.runCommand("/fill -8 97 11 8 103 12 minecraft:stone")
+        server.runCommand("/fill -8 99 21 8 99 24 minecraft:stone")
+        assertPathingWalk(
+            context, server, "pathing-dive-under-wall", Stance(0, 100, 23),
+            maxLegs = 3,
+        )
+        restoreArena(server)
     }
 }

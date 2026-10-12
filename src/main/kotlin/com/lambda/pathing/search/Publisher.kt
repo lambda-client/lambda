@@ -96,6 +96,13 @@ internal class Publisher(
 		publishBraked(anchor)?.let(::refuse)
 	}
 
+	fun publishAfloat(root: ValueAnchor) {
+		if (sink == null || publications.tip != null || !root.state.touchingWater || root.state.onGround) return
+		val treading = finisher.treadTape(root) ?: return refuse(Refusal.NO_BRAKE)
+		val certified = certifier.certify(treading) as? MotionPlanResult.Success ?: return refuse(Refusal.CERTIFY)
+		publish(root, tailAnchor(root, certified, root.collisionEvents), certified, arrives = false)
+	}
+
 	fun publishDeferredPlunge() {
 		val anchor = deferredPlunge ?: return
 		if (!firstPublicationDue()) return

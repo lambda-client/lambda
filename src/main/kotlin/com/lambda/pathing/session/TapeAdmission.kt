@@ -17,6 +17,10 @@ import com.lambda.util.CommunicationUtils.info
 internal class TapeAdmission(private val walk: PathingSession) {
 
 	fun SafeContext.begin(path: PublishedPath) {
+		walk.afloatStart?.let { afloat ->
+			walk.afloatStart = null
+			if (afloat.state == path.plan.initialState) return joinAfloat(path, player.age - afloat.age)
+		}
 		executionEnvironmentDeviation(path, nextFrame = 0)?.let { return staleBeforeExecution(it) }
 
 		val drift = with(walk.alignment) { startDrift(path) }
@@ -72,6 +76,16 @@ internal class TapeAdmission(private val walk: PathingSession) {
 				walk.telemetry.countAdoption(path.plan.tape.frameCount)
 			}
 		}
+	}
+
+	private fun SafeContext.joinAfloat(path: PublishedPath, frame: Int) {
+		if (frame >= path.plan.tape.frameCount) return with(walk) { recoverOrFail("treaded $frame frames before the first tape arrived") }
+		executionEnvironmentDeviation(path, nextFrame = frame)?.let { return staleBeforeExecution(it) }
+		walk.alignment.installed()
+		replay(path, frame)
+		walk.leg++
+		walk.state = State.Executing(frame, path.plan.tape.frameCount, walk.leg)
+		info("Certified trajectory afloat; joined it at frame $frame after treading water while planning.", PATHING_SOURCE)
 	}
 
 	private fun SafeContext.staleBeforeExecution(deviation: ExecutionDeviation) = with(walk) {

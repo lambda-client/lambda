@@ -104,7 +104,8 @@ class MovementSimulator(
 
 		if (doubleTapSprintTicks > 0) doubleTapSprintTicks--
 		val hadForward = hadForwardMovement
-		val inSneakingPose = isSneaking && !swimming
+		val inSneakingPose = !swimming && if (pose == Pose.STANDING) isSneaking else canChangeInto(Pose.CROUCHING) && (isSneaking || !canChangeInto(Pose.STANDING))
+		val slowedDown = inSneakingPose || pose == Pose.SWIMMING && !touchingWater
 		val partlyInWater = touchingWater && !submergedInWater
 
 		rotation = input.rotation ?: rotation
@@ -118,7 +119,7 @@ class MovementSimulator(
 		val hasForwardMovement = movementInput.y > Vanilla.FORWARD_INPUT_EPSILON
 		if (inSneakingPose || input.forward < 0.0) doubleTapSprintTicks = 0
 
-		if (!isSprinting && profile.canSprint && hasForwardMovement && !partlyInWater && (!inSneakingPose || submergedInWater)) {
+		if (!isSprinting && profile.canSprint && hasForwardMovement && !partlyInWater && (!slowedDown || submergedInWater)) {
 			if (!hadForward) {
 				if (doubleTapSprintTicks > 0) isSprinting = true
 				else doubleTapSprintTicks = profile.sprintWindowTicks
@@ -141,7 +142,7 @@ class MovementSimulator(
 				movementInput = movementInput.multiply(Vanilla.USING_ITEM_SPEED_FACTOR)
 			}
 
-			if (inSneakingPose) {
+			if (slowedDown) {
 				movementInput = movementInput.multiply(profile.sneakSpeedModifier.toFloat())
 			}
 

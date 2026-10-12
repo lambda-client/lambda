@@ -40,6 +40,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 	}
 
 	fun SafeContext.settle() {
+		if (with(walk) { afloat() }) return with(walk.launcher) { capturePlan() }
 		if (settled()) {
 			return with(walk.launcher) { capturePlan() }
 		}
