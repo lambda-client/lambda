@@ -1,10 +1,17 @@
 package com.lambda.pathing.physics
 
 import net.minecraft.block.BedBlock
+import net.minecraft.block.BubbleColumnBlock
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 
 object Vanilla {
+	const val MAX_AIR = 300
+
+	const val AIR_REFILL_PER_TICK = 4
+
+	const val SAFE_AIR = 60
+
 	const val GRAVITY = 0.08
 	const val SLOW_FALLING_MAX_GRAVITY = 0.01
 	const val VERTICAL_DRAG = 0.98F
@@ -88,12 +95,27 @@ object Vanilla {
 	const val SWIM_STEER_DIVING = 0.085
 	const val SWIM_DIVING_LOOK = -0.2
 	const val POSE_CLEARANCE = 1.0E-7
+
+	const val BUBBLE_LIFT = 0.06
+	const val BUBBLE_LIFT_MAX = 0.7
+	const val BUBBLE_DRAG = 0.03
+	const val BUBBLE_DRAG_MAX = 0.3
+	const val BUBBLE_SURFACE_LIFT = 0.1
+	const val BUBBLE_SURFACE_LIFT_MAX = 1.8
+	const val BUBBLE_SURFACE_DRAG_MAX = 0.9
+	const val BUBBLE_CONTRACTION = 1.0E-5F
 }
 
 internal fun BlockState.bounceFactor(): Double = when {
 	isOf(Blocks.SLIME_BLOCK) -> Vanilla.SLIME_BOUNCE_FACTOR
 	block is BedBlock -> Vanilla.BED_BOUNCE_FACTOR.toDouble()
 	else -> 0.0
+}
+
+internal fun BlockState.bubbles(): BubbleColumn? = when {
+	!isOf(Blocks.BUBBLE_COLUMN) -> null
+	get(BubbleColumnBlock.DRAG) -> BubbleColumn.DRAG
+	else -> BubbleColumn.LIFT
 }
 
 internal fun BlockState.fallRule(): FallRule = when {

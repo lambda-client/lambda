@@ -68,6 +68,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(MOVES_GROUP)
+    override val allowDiving by c.setting(
+        "Diving", true,
+        "Swim under water through flooded passages, caves and shafts, never further than a breath " +
+            "from air. Rising bubble columns are ridden as lifts; sinking ones are avoided.",
+    ) { allowSwimming }
+
+    @Group(MOVES_GROUP)
     override val allowJumpCandidates by c.setting(
         "Gap Jumps", true,
         "Let the coarse layer propose gap jumps. Each still needs a simulated launch before it is walked.",

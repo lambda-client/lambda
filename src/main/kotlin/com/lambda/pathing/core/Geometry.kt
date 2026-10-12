@@ -4,6 +4,7 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 data class HorizontalPoint(val x: Double, val y: Double, val z: Double)
 
@@ -19,6 +20,8 @@ data class Via(val x: Double, val z: Double) {
 operator fun HorizontalPoint.plus(via: Via) = copy(x = x + via.x, z = z + via.z)
 
 const val DEGENERATE_LENGTH = 1e-9
+
+fun planarLength(x: Double, z: Double): Double = sqrt(x * x + z * z)
 
 fun Stance.center() = HorizontalPoint(x + 0.5, y.toDouble(), z + 0.5)
 
@@ -59,8 +62,8 @@ fun interpolate(from: HorizontalPoint, to: HorizontalPoint, distance: Double): H
 }
 
 fun headingAlignment(headingX: Double, headingZ: Double, towardX: Double, towardZ: Double): Double {
-	val headingLength = hypot(headingX, headingZ)
-	val distance = hypot(towardX, towardZ)
+	val headingLength = planarLength(headingX, headingZ)
+	val distance = planarLength(towardX, towardZ)
 	if (headingLength <= DEGENERATE_LENGTH || distance <= DEGENERATE_LENGTH) return 0.0
 	return (headingX * towardX + headingZ * towardZ) / (headingLength * distance)
 }

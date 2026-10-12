@@ -4,7 +4,9 @@ import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
+import com.lambda.pathing.physics.BubbleColumn
 import com.lambda.pathing.physics.bounceFactor
+import com.lambda.pathing.physics.bubbles
 import com.lambda.pathing.physics.fallRule
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.CollisionClass
@@ -73,6 +75,7 @@ object BlockPhysicsCapture {
 		val coarseVoxel = when {
 			unsupported != null -> CoarseVoxel.UNKNOWN
 			state.isIn(BlockTags.CLIMBABLE) -> CoarseVoxel.CLIMBABLE
+			state.bubbles() == BubbleColumn.DRAG -> CoarseVoxel.HAZARD
 			!state.fluidState.isEmpty && shape.isEmpty -> CoarseVoxel.WATER
 			else -> coarseVoxelOf(shape, bouncy = slime)
 		}
@@ -87,7 +90,7 @@ object BlockPhysicsCapture {
 			bounceFactor = state.bounceFactor(),
 			dampensSteppingSpeed = slime,
 			water = state.fluidState.takeIf { it.isIn(FluidTags.WATER) }?.let {
-				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
+				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos), state.bubbles())
 			},
 			hotFloor = state.isOf(Blocks.MAGMA_BLOCK),
 			fallRule = state.fallRule(),
@@ -97,7 +100,6 @@ object BlockPhysicsCapture {
 
 	private fun unsupportedPhysics(state: BlockState, ignoreHazards: Boolean): UnsupportedPhysics? = when {
 		!state.fluidState.isEmpty && (!state.fluidState.isIn(FluidTags.WATER) || state.isIn(BlockTags.CLIMBABLE)) -> UnsupportedPhysicsKind.FLUID
-		state.isOf(Blocks.BUBBLE_COLUMN) -> UnsupportedPhysicsKind.FLUID
 		state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
 		state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
 		state.isOf(Blocks.SWEET_BERRY_BUSH) -> UnsupportedPhysicsKind.SWEET_BERRY_BUSH

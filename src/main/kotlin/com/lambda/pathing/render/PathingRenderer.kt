@@ -19,6 +19,7 @@ import com.lambda.pathing.session.Telemetry
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
+import it.unimi.dsi.fastutil.ints.IntArrayList
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
@@ -108,23 +109,20 @@ object PathingRenderer : Loadable {
 		val frames = plan.frames
 		if (frames.isEmpty()) return
 		val cursor = executedFrame(plan)
-		val from = (cursor - EXECUTED_TAIL_FRAMES).coerceAtLeast(0)
-		val points = ArrayList<Vec3d>(frames.size - from + 1)
-		points += (if (from == 0) plan.initialState.position else frames[from - 1].state.position).add(0.0, TAPE_Y, 0.0)
-		for (index in from until frames.size) points += frames[index].state.position.add(0.0, TAPE_Y, 0.0)
-		if (points.size < 2) return
+		val outline = outlineOf(plan)
+		fun at(index: Int): Vec3d = (if (index < 0) plan.initialState.position else frames[index].state.position).add(0.0, TAPE_Y, 0.0)
+		val here = cursor - 1
+		val from = (cursor - EXECUTED_TAIL_FRAMES).coerceAtLeast(0) - 1
 
-		val local = cursor - from
+		if (here > from) polyline(keptBetween(outline, from, here).map(::at), config.executedColor, px(config.trajectoryWidth / 2))
+
 		val width = px(config.trajectoryWidth)
-
-		if (local > 0) polyline(points.subList(0, local + 1), config.executedColor, px(config.trajectoryWidth / 2))
-
-		val ahead = points.subList(local, points.size)
-		val span = (ahead.size - 1).coerceAtLeast(1)
+		val ahead = if (here < frames.lastIndex) keptBetween(outline, here, frames.lastIndex) else IntArray(0)
+		val span = (frames.lastIndex - here).coerceAtLeast(1).toDouble()
 		for (i in 0 until ahead.size - 1) {
 			lineGradient(
-				ahead[i], config.trajectoryColor.fade(i.toDouble() / span),
-				ahead[i + 1], config.trajectoryColor.fade((i + 1).toDouble() / span),
+				at(ahead[i]), config.trajectoryColor.fade((ahead[i] - here) / span),
+				at(ahead[i + 1]), config.trajectoryColor.fade((ahead[i + 1] - here) / span),
 				width,
 			)
 		}
@@ -144,13 +142,74 @@ object PathingRenderer : Loadable {
 			}
 		}
 
-		val end = points.last()
+		val end = at(frames.lastIndex)
 		if (path.partial) {
 			ring(end, 0.42, config.partialStopColor, px(RING_WIDTH), SKELETON_DASHES)
 			ring(end, 0.26, config.partialStopColor.setAlpha(0.6), px(RING_WIDTH * 2 / 3))
 		} else {
 			ring(end, 0.38, config.stopColor, px(RING_WIDTH))
 		}
+	}
+
+	private var outlinedPlan: TrajectoryPlan? = null
+	private var outline = IntArray(0)
+
+	private fun outlineOf(plan: TrajectoryPlan): IntArray {
+		if (plan !== outlinedPlan) {
+			outline = outline(plan.frames.size) { index -> if (index < 0) plan.initialState.position else plan.frames[index].state.position }
+			outlinedPlan = plan
+		}
+		return outline
+	}
+
+	private fun outline(frames: Int, position: (Int) -> Vec3d): IntArray {
+		val keep = BooleanArray(frames + 1)
+		keep[0] = true
+		keep[frames] = true
+		val spans = IntArrayList()
+		spans.add(-1)
+		spans.add(frames - 1)
+		while (!spans.isEmpty) {
+			val to = spans.removeInt(spans.size - 1)
+			val from = spans.removeInt(spans.size - 1)
+			val start = position(from)
+			val end = position(to)
+			var farthest = from
+			var distance = TAPE_OUTLINE_TOLERANCE
+			for (index in from + 1 until to) {
+				val offset = offsetFromSegment(position(index), start, end)
+				if (offset > distance) {
+					distance = offset
+					farthest = index
+				}
+			}
+			if (farthest == from) continue
+			keep[farthest + 1] = true
+			spans.add(from)
+			spans.add(farthest)
+			spans.add(farthest)
+			spans.add(to)
+		}
+		return keep.indices.filter { keep[it] }.map { it - 1 }.toIntArray()
+	}
+
+	private fun keptBetween(outline: IntArray, from: Int, to: Int): IntArray {
+		val first = outline.binarySearch(from).let { if (it >= 0) it + 1 else -it - 1 }
+		val last = outline.binarySearch(to).let { if (it >= 0) it else -it - 1 }
+		return intArrayOf(from) + outline.copyOfRange(first, last.coerceAtLeast(first)) + intArrayOf(to)
+	}
+
+	private fun offsetFromSegment(point: Vec3d, from: Vec3d, to: Vec3d): Double {
+		val dx = to.x - from.x
+		val dy = to.y - from.y
+		val dz = to.z - from.z
+		val lengthSquared = dx * dx + dy * dy + dz * dz
+		val t = if (lengthSquared < 1e-12) 0.0 else
+			(((point.x - from.x) * dx + (point.y - from.y) * dy + (point.z - from.z) * dz) / lengthSquared).coerceIn(0.0, 1.0)
+		val ex = from.x + dx * t - point.x
+		val ey = from.y + dy * t - point.y
+		val ez = from.z + dz * t - point.z
+		return kotlin.math.sqrt(ex * ex + ey * ey + ez * ez)
 	}
 
 	private fun RenderBuilder.renderLiveTrail() {
@@ -392,6 +451,7 @@ object PathingRenderer : Loadable {
 	private const val EXECUTED_TAIL_FRAMES = 400
 	private const val TRAIL_TAIL_POINTS = 400
 	private const val SWIM_ROUTE_TOLERANCE = 1.5
+	private const val TAPE_OUTLINE_TOLERANCE = 0.02
 
 	private const val FRAMES_PER_BLOCK_IDEAL = 3.6
 	private const val FRAMES_PER_BLOCK_WORST = 14.0

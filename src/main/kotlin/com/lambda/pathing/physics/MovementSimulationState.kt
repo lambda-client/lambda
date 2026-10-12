@@ -36,6 +36,7 @@ data class MovementSimulationState(
 	val eyeInWater: Boolean = false,
 	val submergedInWater: Boolean = false,
 	val swimming: Boolean = false,
+	val air: Int = Vanilla.MAX_AIR,
 ) {
 	companion object {
 		fun from(player: ClientPlayerEntity, isJumping: Boolean = false) = MovementSimulationState(
@@ -60,6 +61,7 @@ data class MovementSimulationState(
 			eyeInWater = player.isSubmergedIn(FluidTags.WATER),
 			submergedInWater = player.isSubmergedInWater,
 			swimming = player.isSwimming,
+			air = player.air,
 		)
 
 		fun synthetic(

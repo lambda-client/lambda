@@ -51,10 +51,7 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 	fun clear() {
 		waypointRoute.drop()
-		session?.let { walk ->
-			walk.release()
-			walk.takeJourney()?.cancel()
-		}
+		session?.release()
 		session = null
 		PlanningDebugChannel.reset()
 	}

@@ -92,10 +92,17 @@ interface TrajectoryDecision {
 		override val leavesGround: Boolean get() = true
 	}
 
+	data class Dive(
+		override val step: Stance,
+		override val movement: MovementId = MovementId.DIVE,
+		val breathe: Boolean = false,
+	) : TrajectoryDecision
+
 	data class Swim(
 		override val step: Stance,
 		val sprint: Boolean,
 		override val movement: MovementId = MovementId.SWIM,
 		val yaw: Double? = null,
+		val stroke: Boolean = false,
 	) : TrajectoryDecision
 }

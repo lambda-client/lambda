@@ -2,9 +2,11 @@ package com.lambda.pathing.rollout
 
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.HorizontalPoint
+import com.lambda.pathing.core.planarLength
 import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
+import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 import kotlin.math.hypot
 import net.minecraft.util.math.Vec3d
@@ -28,6 +30,8 @@ internal class RolloutEvaluator(
 	private val landingRule: (MovementSimulationState) -> FallRule = { FallRule.NORMAL },
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
+
+	private val airFloor = if (initialState.air >= Vanilla.SAFE_AIR) Vanilla.SAFE_AIR else 0
 
 	private var previous = initialState
 	private var apex = initialState.position.y
@@ -55,6 +59,8 @@ internal class RolloutEvaluator(
 			apex = maxOf(apex, state.position.y)
 		}
 
+		if (state.eyeInWater && state.air < airFloor) return RolloutVerdict.Failed(TrajectoryDiagnostic.Drowning(index, state.air))
+
 		if (pendingBlocker == null && state.verticalCollision && before.velocity.y > 0.0 && !state.onGround) {
 			pendingBlocker = TrajectoryDiagnostic.HeadBonk(index, state.position)
 		}
@@ -68,7 +74,7 @@ internal class RolloutEvaluator(
 			return RolloutVerdict.Failed(TrajectoryDiagnostic.FellBelowRoute(index, floor - state.position.y))
 		}
 
-		val atGoal = hypot(state.position.x - goal.x, state.position.z - goal.z) <= config.goalRadius &&
+		val atGoal = planarLength(state.position.x - goal.x, state.position.z - goal.z) <= config.goalRadius &&
 				abs(state.position.y - goal.y) <= VERTICAL_GOAL_TOLERANCE
 		val stopped = state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED
 		stable = if (atGoal && stopped && state.onGround) stable + 1 else 0

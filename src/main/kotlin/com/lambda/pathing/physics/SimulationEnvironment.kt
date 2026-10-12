@@ -38,6 +38,8 @@ interface SimulationEnvironment {
 
 	fun mayContainWater(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
 
+	fun mayContainBubbles(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
 	fun containsFluid(box: Box): Boolean = false
 }
 

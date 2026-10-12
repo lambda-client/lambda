@@ -256,7 +256,9 @@ class PathingWorld(
 			if (recorded != null) reconcile(entry.longKey, recorded, entry.value) else installed.put(entry.longKey, entry.value)
 		}
 		if (!installed.isEmpty()) snapshot.install(installed)
-		for (key in installed.keys) {
+		val keys = installed.keys.iterator()
+		while (keys.hasNext()) {
+			val key = keys.nextLong()
 			recorder?.record(key)
 			revisions.recordCaptured(sectionOf(key))
 		}

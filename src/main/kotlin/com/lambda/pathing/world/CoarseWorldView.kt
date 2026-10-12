@@ -160,6 +160,8 @@ interface CoarseVoxelView {
 
 	fun medium(x: Int, y: Int, z: Int): Medium = voxel(x, y, z).medium
 
+	fun bubbles(x: Int, y: Int, z: Int): Boolean = false
+
 	fun isKnown(x: Int, y: Int, z: Int): Boolean = true
 
 	fun isUnknown(x: Int, y: Int, z: Int): Boolean = !isKnown(x, y, z)

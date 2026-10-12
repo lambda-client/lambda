@@ -30,6 +30,7 @@ data class PlayerPhysicsProfile(
 	val waterMovementEfficiency: Double = 0.0,
 	val dolphinsGrace: Boolean = false,
 	val canSprint: Boolean = true,
+	val canDrown: Boolean = true,
 ) {
 	val swimHeight: Double get() = if (standingEyeHeight < Vanilla.SWIM_HEIGHT) 0.0 else Vanilla.SWIM_HEIGHT
 
@@ -51,7 +52,8 @@ data class PlayerPhysicsProfile(
 				swimmingEyeHeight.closeTo(other.swimmingEyeHeight) &&
 				waterMovementEfficiency.closeTo(other.waterMovementEfficiency) &&
 				dolphinsGrace == other.dolphinsGrace &&
-				canSprint == other.canSprint
+				canSprint == other.canSprint &&
+				canDrown == other.canDrown
 
 	private fun Double.closeTo(other: Double): Boolean =
 		abs(this - other) <= PROFILE_EPSILON * max(1.0, max(abs(this), abs(other)))
@@ -104,6 +106,8 @@ data class PlayerPhysicsProfile(
 				waterMovementEfficiency = player.getAttributeValue(EntityAttributes.WATER_MOVEMENT_EFFICIENCY),
 				dolphinsGrace = player.hasStatusEffect(StatusEffects.DOLPHINS_GRACE),
 				canSprint = canSprint(player),
+				canDrown = !player.abilities.invulnerable && !player.hasStatusEffect(StatusEffects.WATER_BREATHING) &&
+						!player.hasStatusEffect(StatusEffects.CONDUIT_POWER),
 			)
 		}
 	}

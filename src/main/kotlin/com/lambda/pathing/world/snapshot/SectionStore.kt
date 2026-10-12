@@ -11,6 +11,7 @@ internal class SectionStore private constructor(
 	val size: Int,
 	val bouncySections: Int,
 	val softSections: Int,
+	val bubblySections: Int,
 ) {
 	operator fun get(key: Long): ImmutableSnapshotSection? = regions.get(regionOf(key))?.get(slotOf(key))
 
@@ -21,6 +22,9 @@ internal class SectionStore private constructor(
 
 	fun waterWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.watery }
+
+	fun bubblesWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		bubblySections > 0 && anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.bubbly }
 
 	fun hotWithin(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		anyWithin(minX, minY, minZ, maxX, maxY, maxZ) { it.hot }
@@ -48,6 +52,7 @@ internal class SectionStore private constructor(
 		var size = size
 		var bouncy = bouncySections
 		var soft = softSections
+		var bubbly = bubblySections
 		val iterator = sections.long2ObjectEntrySet().iterator()
 		while (iterator.hasNext()) {
 			val entry = iterator.next()
@@ -61,8 +66,9 @@ internal class SectionStore private constructor(
 			if (replaced == null) size++
 			bouncy += entry.value.bouncyCount() - replaced.bouncyCount()
 			soft += entry.value.softCount() - replaced.softCount()
+			bubbly += entry.value.bubblyCount() - replaced.bubblyCount()
 		}
-		return SectionStore(copy, size, bouncy, soft)
+		return SectionStore(copy, size, bouncy, soft, bubbly)
 	}
 
 	fun without(keys: LongCollection): SectionStore {
@@ -72,6 +78,7 @@ internal class SectionStore private constructor(
 		var size = size
 		var bouncy = bouncySections
 		var soft = softSections
+		var bubbly = bubblySections
 		val iterator = keys.iterator()
 		while (iterator.hasNext()) {
 			val key = iterator.nextLong()
@@ -84,13 +91,14 @@ internal class SectionStore private constructor(
 			size--
 			bouncy -= removed.bouncyCount()
 			soft -= removed.softCount()
+			bubbly -= removed.bubblyCount()
 		}
 		val emptied = copied.iterator()
 		while (emptied.hasNext()) {
 			val regionKey = emptied.nextLong()
 			if (copy.get(regionKey)?.all { it == null } == true) copy.remove(regionKey)
 		}
-		return SectionStore(copy, size, bouncy, soft)
+		return SectionStore(copy, size, bouncy, soft, bubbly)
 	}
 
 	inline fun forEach(action: (key: Long, section: ImmutableSnapshotSection) -> Unit) {
@@ -117,7 +125,7 @@ internal class SectionStore private constructor(
 
 		private const val REGION_MASK = ((3L shl X_SHIFT) or (3L shl Z_SHIFT) or 7L).inv()
 
-		val EMPTY = SectionStore(Long2ObjectOpenHashMap(), 0, 0, 0)
+		val EMPTY = SectionStore(Long2ObjectOpenHashMap(), 0, 0, 0, 0)
 
 		fun of(sections: Map<Long, ImmutableSnapshotSection>): SectionStore =
 			EMPTY.with(Long2ObjectOpenHashMap<ImmutableSnapshotSection>(sections.size).also { it.putAll(sections) })
@@ -133,5 +141,7 @@ internal class SectionStore private constructor(
 		private fun ImmutableSnapshotSection?.bouncyCount(): Int = if (this?.bouncy == true) 1 else 0
 
 		private fun ImmutableSnapshotSection?.softCount(): Int = if (this?.soft == true) 1 else 0
+
+		private fun ImmutableSnapshotSection?.bubblyCount(): Int = if (this?.bubbly == true) 1 else 0
 	}
 }

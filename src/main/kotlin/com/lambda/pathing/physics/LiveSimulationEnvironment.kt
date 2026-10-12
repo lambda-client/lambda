@@ -66,7 +66,7 @@ class LiveSimulationEnvironment(
 	override fun fallRule(pos: BlockPos): FallRule = world.getBlockState(pos).fallRule()
 
 	override fun water(pos: BlockPos): WaterPhysics? = world.getFluidState(pos).takeIf { it.isIn(FluidTags.WATER) }?.let {
-		WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos))
+		WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos), world.getBlockState(pos).bubbles())
 	}
 
 	override fun containsFluid(box: Box): Boolean = world.containsFluid(box)

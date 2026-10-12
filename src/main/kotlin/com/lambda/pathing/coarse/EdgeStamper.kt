@@ -3,9 +3,7 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.StampProgram
-import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
-import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.world.CellClass
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.TerrainBits
@@ -14,79 +12,18 @@ import net.minecraft.util.math.BlockPos
 
 internal class EdgeStamper(private val view: CoarseVoxelView, private val moves: SimpleMoveLibrary, private val standable: StanceMemo) {
 	private val bits = TerrainBits(view)
-	private val stanceCells: IntArray
-	private val rowY: IntArray
-	private val rowZ: IntArray
-	private val cellRow: IntArray
-	private val cellDx: IntArray
-	private val programs: Array<Indexed?>
-	private val slotCount: Int
-	private val clauseCount: Int
-	private val groupMasks: LongArray
-	private val stanceRows: Int
+	private val layout = moves.stampLayout
+	private val stanceCells = layout.stanceCells
+	private val rowY = layout.rowY
+	private val rowZ = layout.rowZ
+	private val cellRow = layout.cellRow
+	private val cellDx = layout.cellDx
+	private val programs = layout.programs
+	private val stanceRows = layout.stanceRows
+	private val groupMasks = LongArray(layout.groupCount)
 
-	init {
-		val cellIds = HashMap<VoxelPos, Int>()
-		val rowIds = HashMap<Pair<Int, Int>, Int>()
-		val rows = ArrayList<Pair<Int, Int>>()
-		val cellRows = ArrayList<Int>()
-		val cellDxs = ArrayList<Int>()
-		fun id(cell: VoxelPos): Int = cellIds.getOrPut(cell) {
-			cellRows += rowIds.getOrPut(cell.y to cell.z) { rows += cell.y to cell.z; rows.lastIndex }
-			cellDxs += cell.x
-			cellRows.lastIndex
-		}
-		fun ids(cells: Collection<VoxelPos>) = cells.map(::id).toIntArray()
-		val clauseIds = HashMap<List<Any>, Int>()
-		fun clause(clause: StampProgram.Clause): IndexedClause {
-			val cells = ids(clause.cells)
-			val id = clauseIds.getOrPut(listOf(cells.toList(), clause.truth.toList())) { clauseIds.size }
-			return IndexedClause(cells, clause.truth, clause.classSets, id)
-		}
-		stanceCells = ids(STANCE_CELLS)
-		stanceRows = rows.size
-
-		var slots = 0
-		var groups = 0
-		programs = Array(moves.templates.size) { index ->
-			val program = moves.stampPrograms[index] ?: return@Array null
-			val candidates = program.candidates
-			val bendCount = program.bendGroups.sumOf { it.size }
-			Indexed(
-				clauses = program.clauses.map(::clause).toTypedArray(),
-				after = ids(program.after),
-				candidates = candidates,
-				scans = candidates.orEmpty().map { candidate ->
-					val clips = candidate.clipCells.toSet()
-					IntArray(candidate.cells.size) { (id(candidate.cells[it]) shl 1) or (if (candidate.cells[it] in clips) 1 else 0) }
-				}.toTypedArray(),
-				clips = candidates.orEmpty().map { ids(it.clipCells) }.toTypedArray(),
-				bonks = candidates.orEmpty().map { ids(it.bonkCells) }.toTypedArray(),
-				behind = program.behind?.let(::clause),
-				firstClips = ids(candidates?.firstOrNull()?.clipCells.orEmpty()),
-				bendColumns = program.bendColumns,
-				bendClips = program.bendGroups.map { group -> group.map { ids(it.clipCells) }.toTypedArray() }.toTypedArray(),
-				bendCells = program.bendGroups.map { group -> group.map { ids(it.cells) }.toTypedArray() }.toTypedArray(),
-				groupOffset = program.bendGroups.runningFold(0) { offset, group -> offset + group.size }.toIntArray(),
-				bends = program.bendGroups.flatten(),
-				planes = 32 - Integer.numberOfLeadingZeros(bendCount),
-				slot = slots,
-			).also {
-				slots += it.slotsUsed
-				groups = maxOf(groups, program.bendGroups.size)
-			}
-		}
-		slotCount = slots
-		clauseCount = clauseIds.size
-		groupMasks = LongArray(groups)
-		rowY = IntArray(rows.size) { rows[it].first }
-		rowZ = IntArray(rows.size) { rows[it].second }
-		cellRow = cellRows.toIntArray()
-		cellDx = cellDxs.toIntArray()
-	}
-
-	private val stamped = programs.indices.filter { programs[it] != null }.toIntArray()
-	private val unstamped = programs.indices.filter { programs[it] == null && moves.templates[it].movement != MovementId.BOUNCE }.toIntArray()
+	private val stamped = layout.stamped
+	private val unstamped = layout.unstamped
 	private val words = Array(CellClass.PLANES) { LongArray(rowY.size * 3) }
 	private val stamps = Long2ObjectLinkedOpenHashMap<LongArray>()
 	private var gate = 0L
@@ -99,9 +36,9 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private val waters = LongArray(cellRow.size)
 	private val specialCells = LongArray(cellRow.size)
 	private val blockings = LongArray(cellRow.size)
-	private val clauseMasks = LongArray(clauseCount)
-	private val clauseSpecials = LongArray(clauseCount)
-	private val clauseGenerations = IntArray(clauseCount)
+	private val clauseMasks = LongArray(layout.clauseCount)
+	private val clauseSpecials = LongArray(layout.clauseCount)
+	private val clauseGenerations = IntArray(layout.clauseCount)
 
 	fun synchronize() {
 		if (bits.synchronize()) stamps.clear()
@@ -135,7 +72,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		return builder.build(moves.groups)
 	}
 
-	private fun stampedEdges(builder: RowEdges.Builder, index: Int, program: Indexed, stamp: LongArray, stances: Long) {
+	private fun stampedEdges(builder: RowEdges.Builder, index: Int, program: StampLayout.Program, stamp: LongArray, stances: Long) {
 		val exact = stamp[program.slot] and stances
 		val candidates = program.candidates
 		if (candidates == null) {
@@ -177,7 +114,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	private fun standingMask(candidate: StampProgram.Candidate, behind: Long): Long =
 		(if (candidate.standingStart) behind.inv() else 0L) or (if (candidate.standingStartBehind) behind else 0L)
 
-	private fun chosen(program: Indexed, stamp: LongArray, bit: Long): StampProgram.Candidate? {
+	private fun chosen(program: StampLayout.Program, stamp: LongArray, bit: Long): StampProgram.Candidate? {
 		val candidates = program.candidates!!
 		for (index in candidates.indices) if (stamp[program.slot + 2 + index] and bit != 0L) return candidates[index]
 		val planeSlot = program.slot + 2 + candidates.size
@@ -196,13 +133,13 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 	}
 
 	private fun compute(word: Int, y: Int, z: Int): LongArray {
-		val stamp = LongArray(slotCount)
+		val stamp = LongArray(layout.slotCount)
 		specials = false
 		climbing = false
 		fetch(word, y, z, 0, stanceRows)
 		val (below2, below, body, head) = stanceCells
 		for (cell in stanceCells) load(cell)
-		val gated = (solid(below) and (blocking(body) or blocking(head)).inv()) or climb(body) or (water(body) and blocking(head).inv()) or
+		val gated = (solid(below) and (blocking(body) or blocking(head)).inv()) or climb(body) or water(body) or
 				special(below2) or special(below) or special(body) or special(head)
 		var stances = 0L
 		var remaining = gated
@@ -300,7 +237,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		return false
 	}
 
-	private fun bend(program: Indexed, needing: Long, stamp: LongArray, anySpecial: Boolean): Long {
+	private fun bend(program: StampLayout.Program, needing: Long, stamp: LongArray, anySpecial: Boolean): Long {
 		val groups = program.bendClips.size
 		groupMasks.fill(0L, 0, groups)
 		var remaining = needing
@@ -345,7 +282,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		return fallback
 	}
 
-	private fun memoizedMask(clause: IndexedClause): Long {
+	private fun memoizedMask(clause: StampLayout.Clause): Long {
 		val id = clause.id
 		if (clauseGenerations[id] == generation) return clauseMasks[id]
 		var special = 0L
@@ -355,7 +292,7 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		return mask(clause).also { clauseMasks[id] = it }
 	}
 
-	private fun mask(clause: IndexedClause): Long {
+	private fun mask(clause: StampLayout.Clause): Long {
 		val sets = clause.classSets
 		if (sets != null) {
 			var mask = -1L
@@ -429,28 +366,6 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		}
 	}
 
-	private class IndexedClause(val cells: IntArray, val truth: BooleanArray, val classSets: IntArray?, val id: Int)
-
-	private class Indexed(
-		val clauses: Array<IndexedClause>,
-		val after: IntArray,
-		val candidates: List<StampProgram.Candidate>?,
-		val scans: Array<IntArray>,
-		val clips: Array<IntArray>,
-		val bonks: Array<IntArray>,
-		val behind: IndexedClause?,
-		val firstClips: IntArray,
-		val bendColumns: IntArray,
-		val bendClips: Array<Array<IntArray>>,
-		val bendCells: Array<Array<IntArray>>,
-		val groupOffset: IntArray,
-		val bends: List<StampProgram.Candidate>,
-		val planes: Int,
-		val slot: Int,
-	) {
-		val slotsUsed: Int get() = 2 + (candidates?.size ?: 0) + planes
-	}
-
 	private companion object {
 		const val MAX_STAMPS = 1_024
 
@@ -460,7 +375,5 @@ internal class EdgeStamper(private val view: CoarseVoxelView, private val moves:
 		const val CLIMB_CLASS = 8
 		const val WATER_CLASS = 16
 		const val ALL_CLASSES = 31
-
-		val STANCE_CELLS = listOf(VoxelPos(0, -2, 0), VoxelPos(0, -1, 0), VoxelPos(0, 0, 0), VoxelPos(0, 1, 0))
 	}
 }

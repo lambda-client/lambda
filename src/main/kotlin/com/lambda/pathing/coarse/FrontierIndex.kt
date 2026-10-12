@@ -1,5 +1,6 @@
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
@@ -109,7 +110,7 @@ internal class FrontierIndex(
 		val anchored = costs.containsKey(key)
 		val stance = Stance(x, y, z)
 		val anchors = (view.isUnknown(x + 1, y, z) || view.isUnknown(x - 1, y, z) || view.isUnknown(x, y, z + 1) || view.isUnknown(x, y, z - 1)) &&
-				stance != goal && moves.isStance(view, stance)
+				stance != goal && !DiveMovement.submerged(view, x, y, z) && moves.isStance(view, stance)
 		if (anchors && !anchored) {
 			val cost = optimisticCost(stance)
 			costs.put(key, cost)

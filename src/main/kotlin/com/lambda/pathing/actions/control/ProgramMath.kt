@@ -20,6 +20,12 @@ internal val GROUND_COAST_PER_SPEED = BallisticProfile.VANILLA.coastDistancePerS
 
 private const val AIRBORNE_STRAFE_DEADBAND = 0.08
 
+private const val HOVER_CENTERING = 0.08
+
+private const val HOVER_COAST_TICKS = 5.0
+
+private const val HOVER_INPUT = 0.3
+
 internal fun lateralOffset(
 	takeoff: HorizontalPoint,
 	aim: HorizontalPoint,
@@ -50,11 +56,27 @@ internal fun yawTowards(target: HorizontalPoint, observed: MovementSimulationSta
 internal fun yawStepTowards(desiredYaw: Double, observed: MovementSimulationState, maxYawChange: Double): Double =
 	Rotation.wrap(desiredYaw - observed.rotation.yaw).coerceIn(-maxYawChange, maxYawChange)
 
+internal fun pitchTowards(desiredPitch: Double, observed: MovementSimulationState, maxChange: Double): Double =
+	observed.rotation.pitch + (desiredPitch - observed.rotation.pitch).coerceIn(-maxChange, maxChange)
+
 internal fun brakeToStop(heldYaw: Double) =
 	ControlProgram { _, observed -> MovementSimulationInput(rotation = Rotation(heldYaw, observed.rotation.pitch)) }
 
 internal fun treadWater(heldYaw: Double) =
 	ControlProgram { _, observed -> MovementSimulationInput(jump = observed.touchingWater, rotation = Rotation(heldYaw, observed.rotation.pitch)) }
+
+internal fun hover(center: HorizontalPoint, depth: Double, maxYawChange: Double) = ControlProgram { _, observed ->
+	val jump = observed.position.y + observed.velocity.y * HOVER_COAST_TICKS < depth
+	val offsetX = center.x - (observed.position.x + observed.velocity.x * HOVER_COAST_TICKS)
+	val offsetZ = center.z - (observed.position.z + observed.velocity.z * HOVER_COAST_TICKS)
+	val level = Rotation(observed.rotation.yaw, 0.0)
+	if (observed.swimming || hypot(offsetX, offsetZ) <= HOVER_CENTERING) {
+		MovementSimulationInput(jump = jump, rotation = level)
+	} else {
+		val aim = HorizontalPoint(observed.position.x + offsetX, observed.position.y, observed.position.z + offsetZ)
+		MovementSimulationInput(forward = HOVER_INPUT, jump = jump, rotation = Rotation(rotationToward(aim, observed, maxYawChange).yaw, 0.0))
+	}
+}
 
 internal fun rotationToward(aim: HorizontalPoint, observed: MovementSimulationState, maxYawChange: Double): Rotation {
 	val yawDelta = yawStepTowards(yawTowards(aim, observed), observed, maxYawChange)

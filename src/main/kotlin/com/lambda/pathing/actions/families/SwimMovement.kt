@@ -89,7 +89,9 @@ object SwimMovement : Movement {
 			?.let { chain[it] } ?: chain[MIN_BEARING_NODES]
 		val bearing = yawTowards(target.center(), context.body.state)
 		val sprint = context.constraints.sprintModes.first()
-		return HEADING_FAN_DEGREES.map { offset -> TrajectoryDecision.Swim(leading.to, sprint, id, yaw = Rotation.wrap(bearing + offset)) }
+		val headings = HEADING_FAN_DEGREES.map { offset -> TrajectoryDecision.Swim(leading.to, sprint, id, yaw = Rotation.wrap(bearing + offset)) }
+		if (!sprint) return headings
+		return listOf(TrajectoryDecision.Swim(leading.to, true, id, yaw = Rotation.wrap(bearing), stroke = true)) + headings
 	}
 
 	override fun program(context: ProgramContext): ControlProgram =

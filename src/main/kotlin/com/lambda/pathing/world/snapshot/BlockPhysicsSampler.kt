@@ -1,6 +1,7 @@
 package com.lambda.pathing.world.snapshot
 
 import com.lambda.pathing.physics.WaterPhysics
+import com.lambda.pathing.physics.bubbles
 import net.minecraft.block.BlockState
 import net.minecraft.block.ShapeContext
 import net.minecraft.registry.tag.FluidTags
@@ -23,7 +24,7 @@ class BlockPhysicsSampler(
 		if (state.block.hasDynamicBounds()) return BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards)
 		val fluid = state.fluidState
 		if (!fluid.isIn(FluidTags.WATER)) return physicsByState.getOrPut(state) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards) }
-		val water = WaterPhysics(fluid.getHeight(view, pos), fluid.getVelocity(view, pos))
+		val water = WaterPhysics(fluid.getHeight(view, pos), fluid.getVelocity(view, pos), state.bubbles())
 		return physicsByWater.getOrPut(state to water) { BlockPhysicsCapture.capture(state, view, pos, shapeContext, ignoreHazards) }
 	}
 }

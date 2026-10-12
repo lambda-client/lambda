@@ -13,6 +13,12 @@ internal class SwimProgram(private val decision: TrajectoryDecision.Swim, contex
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		pursuit.advance(observed)
+		if (decision.stroke) return MovementSimulationInput(
+			forward = 1.0,
+			sprint = true,
+			sneak = !observed.swimming,
+			rotation = Rotation(observed.rotation.yaw + yawStepTowards(decision.yaw ?: observed.rotation.yaw, observed, maxYawChange), pitchTowards(STROKE_PITCH, observed, maxYawChange)),
+		)
 		val rotation = decision.yaw?.let { Rotation(observed.rotation.yaw + yawStepTowards(it, observed, maxYawChange), observed.rotation.pitch) }
 			?: rotationToward(pursuit.target(PursuitTracker.DEFAULT_LOOK_AHEAD_NODES), observed, maxYawChange)
 		return MovementSimulationInput(
@@ -21,5 +27,9 @@ internal class SwimProgram(private val decision: TrajectoryDecision.Swim, contex
 			sprint = decision.sprint && !observed.eyeInWater,
 			rotation = rotation,
 		)
+	}
+
+	private companion object {
+		const val STROKE_PITCH = -30.0
 	}
 }

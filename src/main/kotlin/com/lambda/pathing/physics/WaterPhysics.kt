@@ -5,4 +5,7 @@ import net.minecraft.util.math.Vec3d
 data class WaterPhysics(
 	val height: Float,
 	val flow: Vec3d,
+	val bubbles: BubbleColumn? = null,
 )
+
+enum class BubbleColumn { LIFT, DRAG }

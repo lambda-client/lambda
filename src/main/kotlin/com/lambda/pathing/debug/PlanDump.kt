@@ -10,6 +10,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.search.TrajectoryPlan
 import com.lambda.pathing.world.CoarseVoxel
@@ -230,7 +231,7 @@ internal object PlanDump {
 
 	private fun PlayerPhysicsProfile.dump(): String = listOf(
 		"profile", movementSpeed, sneakSpeedModifier, gravity, jumpStrength, stepHeight,
-		jumpBoostVelocityModifier, slowFalling, width, height, waterMovementEfficiency, dolphinsGrace, canSprint,
+		jumpBoostVelocityModifier, slowFalling, width, height, waterMovementEfficiency, dolphinsGrace, canSprint, canDrown,
 	).joinToString(" ")
 
 	private fun readProfile(parts: List<String>) = PlayerPhysicsProfile(
@@ -246,6 +247,7 @@ internal object PlanDump {
 		waterMovementEfficiency = parts.getOrNull(10)?.toDouble() ?: 0.0,
 		dolphinsGrace = parts.getOrNull(11)?.toBoolean() ?: false,
 		canSprint = parts.getOrNull(12)?.toBoolean() ?: true,
+		canDrown = parts.getOrNull(13)?.toBoolean() ?: true,
 	)
 
 	private fun SimpleMoveOptions.dump(): String = listOf(
@@ -254,7 +256,7 @@ internal object PlanDump {
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
 		allowDeepDropJumps, allowSwimming, allowDeepFalls,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
-		ignoreHazards,
+		ignoreHazards, allowDiving,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -277,6 +279,7 @@ internal object PlanDump {
 			FallLimits(damage, parts[16].toDouble(), parts[17].toDouble())
 		} ?: FallLimits(),
 		ignoreHazards = parts.getOrNull(18)?.toBoolean() ?: false,
+		allowDiving = parts.getOrNull(19)?.toBoolean() ?: true,
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(
@@ -306,7 +309,7 @@ internal object PlanDump {
 		jumpingCooldown, horizontalCollision, collidedSoftly, verticalCollision,
 		velocityAffectingPos.x, velocityAffectingPos.y, velocityAffectingPos.z,
 		supportingBlockPos?.let { "${it.x} ${it.y} ${it.z}" } ?: "none",
-		touchingWater, waterHeight, eyeInWater, submergedInWater, swimming,
+		touchingWater, waterHeight, eyeInWater, submergedInWater, swimming, air,
 	).joinToString(" ")
 
 	private fun readState(parts: List<String>, profile: PlayerPhysicsProfile): MovementSimulationState {
@@ -335,6 +338,7 @@ internal object PlanDump {
 			eyeInWater = water.getOrNull(2)?.toBoolean() ?: false,
 			submergedInWater = water.getOrNull(3)?.toBoolean() ?: false,
 			swimming = water.getOrNull(4)?.toBoolean() ?: false,
+			air = water.getOrNull(5)?.toInt() ?: Vanilla.MAX_AIR,
 		)
 	}
 

@@ -27,6 +27,11 @@ sealed interface TrajectoryDiagnostic {
 
 	data class UnknownTerrain(override val frame: Int, val section: PathingSection) : TrajectoryDiagnostic
 
+	data class Drowning(
+		override val frame: Int,
+		val air: Int,
+	) : TrajectoryDiagnostic
+
 	data class HarmfulFall(
 		override val frame: Int,
 		val fallDistance: Double,

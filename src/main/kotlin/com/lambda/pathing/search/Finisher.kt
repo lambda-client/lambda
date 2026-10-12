@@ -4,6 +4,8 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.control.CorridorFollowerProgram
 import com.lambda.pathing.actions.control.TerminalApproach
 import com.lambda.pathing.actions.control.brakeToStop
+import com.lambda.pathing.actions.control.hover
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.actions.control.treadWater
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.HorizontalPoint
@@ -83,7 +85,7 @@ internal class Finisher(
 		val resting = solution.tailFrames.last().state
 		val goal = route.goalPoint
 		if (hypot(resting.position.x - goal.x, resting.position.z - goal.z) > radius) return null
-		if (abs(resting.position.y - goal.y) > VERTICAL_GOAL_TOLERANCE) return null
+		if (abs(resting.position.y - goal.y) > VERTICAL_GOAL_TOLERANCE && !(resting.touchingWater && stanceOf(resting) == route.goal)) return null
 		return solution
 	}
 
@@ -100,7 +102,23 @@ internal class Finisher(
 		}
 	}
 
-	fun brakeToStop(anchor: ValueAnchor): Solution? = groundBrake(anchor) ?: floatBrake(anchor)
+	fun brakeToStop(anchor: ValueAnchor): Solution? = hoverBrake(anchor) ?: groundBrake(anchor) ?: floatBrake(anchor)
+
+	private fun hoverBrake(anchor: ValueAnchor): Solution? {
+		val stance = anchor.stance
+		val view = field.view
+		if (!DiveMovement.submerged(view, stance.x, stance.y, stance.z) || view.medium(stance.x, stance.y - 1, stance.z) != Medium.WATER) return null
+		val center = stance.center(environment)
+		val gated = gate.run(anchor.state, listOf(center), hover(center, stance.y + HOVER_DEPTH, config.maxYawDegreesPerFrame), HOVER_TAIL_FRAMES)
+		if (gated.failed) return null
+		var held = 0
+		for ((index, frame) in gated.rollout.frames.withIndex()) {
+			val state = frame.state
+			held = if (stanceOf(state) == stance && state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED) held + 1 else 0
+			if (held >= config.stableStopFrames) return Solution(anchor, gated.rollout.frames.take(index + 1))
+		}
+		return null
+	}
 
 	private fun floatBrake(anchor: ValueAnchor): Solution? {
 		if (field.view.medium(anchor.stance.x, anchor.stance.y, anchor.stance.z) != Medium.WATER) return null
@@ -164,5 +182,9 @@ internal class Finisher(
 		const val FLOAT_TAIL_FRAMES = 600
 
 		const val FLOAT_END_SLACK_FRAMES = 20
+
+		const val HOVER_TAIL_FRAMES = 200
+
+		const val HOVER_DEPTH = 0.3
 	}
 }

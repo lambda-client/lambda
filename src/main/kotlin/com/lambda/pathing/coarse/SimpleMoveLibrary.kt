@@ -14,6 +14,7 @@ import kotlin.math.abs
 class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 	val templates: List<MotionTemplate> = catalog.templates
 	internal val stampPrograms by lazy(LazyThreadSafetyMode.PUBLICATION) { templates.map { it.stampProgram() } }
+	internal val stampLayout by lazy(LazyThreadSafetyMode.PUBLICATION) { StampLayout(this) }
 	internal val templatesWithoutBounces = templates.filter { it.movement != MovementId.BOUNCE }
 	private val bounceReach = templates.maxOfOrNull { if (it.bounceDrop == null) 0 else 2 * maxOf(abs(it.dx), abs(it.dz)) + 1 } ?: 0
 	private val bounceDepth = templates.maxOfOrNull { it.bounceDrop?.plus(2) ?: 0 } ?: 0

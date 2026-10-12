@@ -37,6 +37,7 @@ internal class SessionHeartbeat {
 	private fun SafeContext.describe(walk: PathingSession, now: Long): String = buildString {
 		append(walk.state).append(" at ").append(player.blockPos.toShortString())
 		append(" speed %.3f".format(player.velocity.horizontalLength()))
+		if (player.air < player.maxAir) append(" air ").append(player.air)
 		walk.replay?.let { replay ->
 			append(" | tape f").append(replay.cursor.nextFrame).append('/').append(replay.path.plan.tape.frameCount)
 			if (replay.holding) append(", holding ").append(seconds(now - replay.heldSince))

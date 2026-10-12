@@ -135,10 +135,17 @@ class PathingSession internal constructor(
 	internal fun release() {
 		launcher.cancel()
 		active = false
+		journey?.cancel()
+		journey = null
 	}
 
-	internal fun face(target: Double) {
-		request.runSafeAutomated { rotationRequest { yaw(target) }.submit() }
+	internal fun face(target: Double, pitch: Double? = null) {
+		request.runSafeAutomated {
+			rotationRequest {
+				yaw(target)
+				pitch?.let { pitch(it) }
+			}.submit()
+		}
 	}
 
 	internal fun takeJourney(): PlanningJourney? = journey.also { journey = null }

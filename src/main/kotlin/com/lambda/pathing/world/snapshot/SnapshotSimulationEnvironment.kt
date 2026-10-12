@@ -12,7 +12,6 @@ import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
 import com.lambda.pathing.physics.WaterPhysics
-import com.lambda.pathing.physics.closestSupportingBlock
 import com.lambda.pathing.physics.collisionCandidateRange
 import com.lambda.pathing.physics.forEachCollisionCandidate
 import com.lambda.pathing.world.CellClass
@@ -167,6 +166,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z) { store[it] }
 
+	override fun bubbles(x: Int, y: Int, z: Int): Boolean = bubblesIn(x, y, z) { store[it] }
+
 	override fun mayContainHotFloor(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.hotWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
@@ -176,6 +177,9 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun mayContainWater(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.waterWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
+	override fun mayContainBubbles(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		store.bubblesWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
 	override fun containsFluid(box: Box): Boolean {
 		val cell = BlockPos.Mutable()
@@ -205,12 +209,18 @@ class SnapshotSimulationEnvironment internal constructor(
 	}.also { moved -> rejectUnsupportedContact(boundingBox.stretch(moved)) }
 
 	override fun findSupportingBlockPos(box: Box, entityPos: Vec3d): BlockPos? {
-		val sections = PinnedSections(store)
-		return closestSupportingBlock(box, entityPos) { pos ->
-			onRead?.invoke(pos)
-			val block = exactBlock(pos, sections::at)
-			block.collides && block.intersectsCollisionBox(box, pos.x, pos.y, pos.z)
+		var best: BlockPos? = null
+		var bestDistance = Double.MAX_VALUE
+		forEachNearBlock(box, maxMargins = 3) { pos, _, block ->
+			if (!block.collides || !block.intersectsCollisionBox(box, pos.x, pos.y, pos.z)) return@forEachNearBlock
+			val candidate = pos.toImmutable()
+			val distance = candidate.getSquaredDistance(entityPos)
+			if (distance < bestDistance || (distance == bestDistance && (best == null || best < candidate))) {
+				best = candidate
+				bestDistance = distance
+			}
 		}
+		return best
 	}
 
 	override fun isSpaceEmpty(box: Box): Boolean {
@@ -227,7 +237,13 @@ class SnapshotSimulationEnvironment internal constructor(
 	private fun observedBy(onRead: (BlockPos) -> Unit) =
 		SnapshotSimulationEnvironment(bounds, storeRef, defaultBlock, onExactMiss, onRead)
 
-	private inline fun forEachCollisionShape(query: Box, action: (BlockPos, VoxelShape) -> Unit) {
+	private inline fun forEachCollisionShape(query: Box, action: (BlockPos, VoxelShape) -> Unit) =
+		forEachNearBlock(query, maxMargins = 1) { pos, margins, block ->
+			if (!block.collides || margins == 1 && !block.exceedsCube) return@forEachNearBlock
+			if (block.intersectsCollisionBox(query, pos.x, pos.y, pos.z)) action(pos, block.collisionShape)
+		}
+
+	private inline fun forEachNearBlock(query: Box, maxMargins: Int, action: (BlockPos, Int, SnapshotBlockPhysics) -> Unit) {
 		val sections = PinnedSections(store)
 		val minX = MathHelper.floor(query.minX - Vanilla.COLLISION_EPSILON)
 		val maxX = MathHelper.floor(query.maxX + Vanilla.COLLISION_EPSILON)
@@ -235,14 +251,23 @@ class SnapshotSimulationEnvironment internal constructor(
 		val maxY = MathHelper.floor(query.maxY + Vanilla.COLLISION_EPSILON)
 		val minZ = MathHelper.floor(query.minZ - Vanilla.COLLISION_EPSILON)
 		val maxZ = MathHelper.floor(query.maxZ + Vanilla.COLLISION_EPSILON)
-		forEachCollisionCandidate(query) { pos ->
-			val margins = (if (pos.x !in minX..maxX) 1 else 0) + (if (pos.y !in minY..maxY) 1 else 0) +
-					(if (pos.z !in minZ..maxZ) 1 else 0)
-			if (margins > 1) return@forEachCollisionCandidate
-			onRead?.invoke(pos)
-			val block = exactBlock(pos, sections::at)
-			if (!block.collides || margins == 1 && !block.exceedsCube) return@forEachCollisionCandidate
-			if (block.intersectsCollisionBox(query, pos.x, pos.y, pos.z)) action(pos, block.collisionShape)
+		val pos = BlockPos.Mutable()
+		for (y in minY - 1..maxY + 1) {
+			val marginY = if (y < minY || y > maxY) 1 else 0
+			for (z in minZ - 1..maxZ + 1) {
+				val marginYZ = marginY + if (z < minZ || z > maxZ) 1 else 0
+				if (marginYZ > maxMargins) continue
+				for (x in minX - 1..maxX + 1) {
+					val margins = marginYZ + if (x < minX || x > maxX) 1 else 0
+					if (margins > maxMargins) continue
+					pos.set(x, y, z)
+					if (margins > 0 && onRead == null && pos in bounds &&
+						sections.at(ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4))?.exceeding == false
+					) continue
+					onRead?.invoke(pos)
+					action(pos, margins, exactBlock(pos, sections::at))
+				}
+			}
 		}
 	}
 
@@ -312,6 +337,9 @@ class SnapshotSimulationEnvironment internal constructor(
 		if (!bounds.contains(x, y, z)) return FallRule.NORMAL
 		return blockIn(x, y, z, sectionAt)?.fallRule ?: FallRule.NORMAL
 	}
+
+	private inline fun bubblesIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
+		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt)?.water?.bubbles != null
 
 	private inline fun collisionClassIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CollisionClass {
 		if (!bounds.contains(x, y, z)) return CollisionClass.FULL
@@ -419,6 +447,8 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z, ::at)
 
+		override fun bubbles(x: Int, y: Int, z: Int): Boolean = bubblesIn(x, y, z, ::at)
+
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
 
 		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, ::at)
@@ -466,6 +496,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun collisionClass(x: Int, y: Int, z: Int): CollisionClass = collisionClassIn(x, y, z, ::at)
 
 		override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z, ::at)
+
+		override fun bubbles(x: Int, y: Int, z: Int): Boolean = bubblesIn(x, y, z, ::at)
 
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
 

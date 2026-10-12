@@ -63,8 +63,8 @@ class CoarsePlanner(
 	private fun anchorPredecessors(node: Long, sink: EdgeList) {
 		if (!goalKnown) {
 			if (node == goalNode) anchors.forEach { stance, cost ->
-				sink.add(PackedStance.pack(stance, SpeedClass.MOVING), cost)
-				sink.add(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
+				sink.append(PackedStance.pack(stance, SpeedClass.MOVING), cost)
+				sink.append(PackedStance.pack(stance, SpeedClass.STOPPED), cost)
 			}
 		} else if (PackedStance.speed(node) == SpeedClass.MOVING && !anchors.cost(node).isNaN()) {
 			val to = PackedStance.stanceKey(node)

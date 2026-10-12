@@ -43,7 +43,9 @@ class MovementSimulator(
 	private var eyeInWater = initialState.eyeInWater
 	private var submergedInWater = initialState.submergedInWater
 	private var swimming = initialState.swimming
+	private var air = initialState.air
 	private val cell = BlockPos.Mutable()
+	private var lastMovementY = 0.0
 
 	val state: MovementSimulationState
 		get() = MovementSimulationState(
@@ -68,6 +70,7 @@ class MovementSimulator(
 			eyeInWater = eyeInWater,
 			submergedInWater = submergedInWater,
 			swimming = swimming,
+			air = air,
 		)
 
 	val burningFeet: Boolean
@@ -96,6 +99,7 @@ class MovementSimulator(
 		submergedInWater = eyeInWater
 		updateWaterState()
 		eyeInWater = isEyeInWater()
+		air = if (eyeInWater && profile.canDrown && !eyeInBubbles()) air - 1 else minOf(air + Vanilla.AIR_REFILL_PER_TICK, Vanilla.MAX_AIR)
 		updateSwimming()
 
 		if (doubleTapSprintTicks > 0) doubleTapSprintTicks--
@@ -401,6 +405,7 @@ class MovementSimulator(
 		if (movement.lengthSquared() > Vanilla.MIN_MOVEMENT_SQUARED) {
 			position += movement
 		}
+		lastMovementY = movement.y
 
 		val xCollide = !MathHelper.approximatelyEquals(movement.x, requested.x)
 		val yCollide = !MathHelper.approximatelyEquals(movement.y, requested.y)
@@ -440,6 +445,11 @@ class MovementSimulator(
 	}
 
 	private fun tickBlockCollision() {
+		dampenSlimeStep()
+		applyBubbleColumns()
+	}
+
+	private fun dampenSlimeStep() {
 		if (!onGround) return
 		val vertical = abs(velocity.y)
 		if (vertical >= Vanilla.SLIME_STEP_MAX_VERTICAL_SPEED) return
@@ -448,6 +458,34 @@ class MovementSimulator(
 		val drag = Vanilla.SLIME_STEP_DRAG + vertical * Vanilla.SLIME_STEP_DRAG_PER_VERTICAL_SPEED
 		velocity = Vec3d(velocity.x * drag, velocity.y, velocity.z * drag)
 	}
+
+	private fun applyBubbleColumns() {
+		val box = boundingBox.contract(Vanilla.BUBBLE_CONTRACTION.toDouble())
+		val x0 = MathHelper.floor(box.minX)
+		val y0 = MathHelper.floor(box.minY)
+		val z0 = MathHelper.floor(box.minZ)
+		val x1 = MathHelper.floor(box.maxX)
+		val y1 = MathHelper.floor(box.maxY)
+		val z1 = MathHelper.floor(box.maxZ)
+		if (!environment.mayContainBubbles(x0, y0, z0, x1, y1, z1)) return
+		val ys = if (lastMovementY >= 0.0) y0..y1 else y1 downTo y0
+		for (y in ys) for (x in x0..x1) for (z in z0..z1) {
+			val bubbles = environment.water(cell.set(x, y, z))?.bubbles ?: continue
+			val surface = environment.water(cell.set(x, y + 1, z)) == null &&
+				environment.isSpaceEmpty(Box(cell).contract(Vanilla.POSE_CLEARANCE))
+			val vy = velocity.y
+			val pushed = when {
+				bubbles == BubbleColumn.LIFT && surface -> minOf(Vanilla.BUBBLE_SURFACE_LIFT_MAX, vy + Vanilla.BUBBLE_SURFACE_LIFT)
+				bubbles == BubbleColumn.LIFT -> minOf(Vanilla.BUBBLE_LIFT_MAX, vy + Vanilla.BUBBLE_LIFT)
+				surface -> maxOf(-Vanilla.BUBBLE_SURFACE_DRAG_MAX, vy - Vanilla.BUBBLE_DRAG)
+				else -> maxOf(-Vanilla.BUBBLE_DRAG_MAX, vy - Vanilla.BUBBLE_DRAG)
+			}
+			velocity = Vec3d(velocity.x, pushed, velocity.z)
+		}
+	}
+
+	private fun eyeInBubbles(): Boolean =
+		environment.water(cell.set(position.x, position.y + pose.eyeHeight(), position.z))?.bubbles != null
 
 	private fun hasCollidedSoftly(input: Vec3d, adjustedMovement: Vec3d): Boolean {
 		val yawRadians = rotation.yawF * MathHelper.RADIANS_PER_DEGREE

@@ -88,7 +88,7 @@ class SwimPlanningTest {
 	fun `a stalled search leaves the body treading water and resumes from the float`() {
 		val crossing = crossLongPool(stallTicks = 120)
 		assertTrue(crossing.floating in 20..120, "the body must tread water through the stall and resume within it: $crossing")
-		assertTrue(crossing.plan.frames.none { it.state.eyeInWater }, "treading water keeps the eyes above the surface")
+		assertTrue(crossing.plan.frames.indices.none { crossing.plan.tape[it].forward == 0.0 && crossing.plan.frames[it].state.eyeInWater }, "treading water keeps the eyes above the surface")
 	}
 
 	private class Crossing(val plan: TrajectoryPlan, val executor: VirtualExecutor, val afloat: Int) {
@@ -140,6 +140,7 @@ class SwimPlanningTest {
 		val yaws = path.plan.frames.filter { it.state.touchingWater && it.state.position.x in 8.0..32.0 }.mapNotNull { it.input.rotation?.yaw }
 		val heading = yaws.map { abs(Rotation.wrap(it - bearing)) }.average()
 		println("[swim] stretch=%.4f heading error=%.1f deg over %d frames".format(travelled / straight, heading, yaws.size))
+		assertTrue(path.plan.frames.count { it.state.swimming } > MIN_STROKE_FRAMES, "open water must be crossed with the sprint stroke")
 		assertTrue(heading < MAX_OPEN_WATER_HEADING_ERROR, "open water must be swum on one heading, not an octile staircase: mean error %.1f deg".format(heading))
 		assertTrue(travelled / straight < MAX_OPEN_WATER_STRETCH, "open water must be swum on a straight line: stretch %.3f".format(travelled / straight))
 	}
@@ -161,21 +162,18 @@ class SwimPlanningTest {
 	}
 
 	@Test
-	fun `the coarse swim rate is the simulated surface stroke`() {
+	fun `the coarse swim rate is the simulated paddle and the stroke outpaces it`() {
 		val environment = pool(width = 40)
-		val start = MovementSimulationState.synthetic(ProbeScenarios.PROFILE, Vec3d(0.5, 63.3, 0.5), Rotation(-90.0, 0.0), onGround = false)
-		val simulator = MovementSimulator(ProbeScenarios.PROFILE, environment, start)
-		val xs = ArrayList<Double>()
-		repeat(300) {
-			val state = simulator.state
-			xs += simulator.tickMovement(
-				MovementSimulationInput(forward = 1.0, jump = state.touchingWater, sprint = true, rotation = Rotation(-90.0, 0.0)),
-			).position.x
+		fun rate(input: (MovementSimulationState) -> MovementSimulationInput): Double {
+			val start = MovementSimulationState.synthetic(ProbeScenarios.PROFILE, Vec3d(0.5, 63.3, 0.5), Rotation(-90.0, 0.0), onGround = false)
+			val simulator = MovementSimulator(ProbeScenarios.PROFILE, environment, start)
+			val xs = (0 until 300).map { simulator.tickMovement(input(simulator.state)).position.x }
+			return 20.0 / (xs.indexOfFirst { it >= 28.0 } - xs.indexOfFirst { it >= 8.0 })
 		}
-		val from = xs.indexOfFirst { it >= 8.0 }
-		val until = xs.indexOfFirst { it >= 28.0 }
-		val rate = 20.0 / (until - from)
-		assertTrue(abs(rate - CoarseMoveRates.SWIM_BLOCKS_PER_TICK) < 0.002, "measured $rate b/t against ${CoarseMoveRates.SWIM_BLOCKS_PER_TICK}")
+		val paddle = rate { MovementSimulationInput(forward = 1.0, jump = it.touchingWater, sprint = true, rotation = Rotation(-90.0, 0.0)) }
+		val stroke = rate { MovementSimulationInput(forward = 1.0, sprint = true, sneak = !it.swimming, rotation = Rotation(-90.0, -30.0)) }
+		assertTrue(abs(paddle - CoarseMoveRates.SWIM_BLOCKS_PER_TICK) < 0.002, "paddle measured $paddle b/t against ${CoarseMoveRates.SWIM_BLOCKS_PER_TICK}")
+		assertTrue(stroke > paddle * MIN_STROKE_GAIN, "the sprint stroke must outpace the paddle: $stroke against $paddle b/t")
 	}
 
 	private fun lake(length: Int, halfWidth: Int): SnapshotSimulationEnvironment {
@@ -221,5 +219,9 @@ class SwimPlanningTest {
 		const val MAX_OPEN_WATER_HEADING_ERROR = 10.0
 
 		const val MIN_JUMP_ENTRY_BLOCKS = 2.5
+
+		const val MIN_STROKE_GAIN = 1.4
+
+		const val MIN_STROKE_FRAMES = 100
 	}
 }

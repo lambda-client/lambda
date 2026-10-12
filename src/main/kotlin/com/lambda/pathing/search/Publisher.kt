@@ -36,6 +36,7 @@ internal class Publisher(
 		TEMPO("tempo"),
 		UNPUBLISHABLE("unpublishable"),
 		NO_BRAKE("no-brake"),
+		SUBMERGED("submerged"),
 		CERTIFY("certify"),
 		NO_PROGRESS("no-progress"),
 		COMMIT("commit"),
@@ -196,6 +197,7 @@ internal class Publisher(
 
 	private fun publishBraked(anchor: ValueAnchor): Refusal? {
 		val braked = finisher.brakeToStop(anchor) ?: return Refusal.NO_BRAKE
+		if ((braked.tailFrames.lastOrNull()?.state ?: anchor.state).eyeInWater) return Refusal.SUBMERGED
 		val certified = certifier.certify(braked) as? MotionPlanResult.Success ?: return Refusal.CERTIFY
 		publish(anchor, tailAnchor(anchor, certified, anchor.collisionEvents), certified, arrives = false)
 		return null

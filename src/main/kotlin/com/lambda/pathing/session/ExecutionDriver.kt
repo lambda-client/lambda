@@ -56,7 +56,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			is ExecutionInputResult.Apply -> {
 				walk.tickInput = next.input
 				walk.state = State.Executing(next.frame, current.plan.tape.frameCount, walk.leg)
-				next.input.rotation?.let { rotation -> walk.face(rotation.yaw) }
+				next.input.rotation?.let { rotation -> walk.face(rotation.yaw, rotation.pitch.takeIf { observed.touchingWater }) }
 			}
 
 			ExecutionInputResult.Complete -> finishTrajectory(replay)

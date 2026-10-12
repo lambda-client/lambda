@@ -29,6 +29,7 @@ class MovementCatalog private constructor(
 			ClimbMovement,
 			LadderCatchMovement,
 			SwimMovement,
+			DiveMovement,
 			SlimeBounceMovement,
 			FallMovement,
 		)

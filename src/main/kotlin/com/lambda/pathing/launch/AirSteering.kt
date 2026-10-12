@@ -1,11 +1,11 @@
 package com.lambda.pathing.launch
 
 import kotlin.math.cos
-import kotlin.math.hypot
 import kotlin.math.sin
 import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.MovementKeys
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.planarLength
 import com.lambda.pathing.physics.MovementSimulationState
 
 class AirPlan(
@@ -30,7 +30,7 @@ class AirPlan(
 
 		val errorX = aimX - plannedX
 		val errorZ = aimZ - plannedZ
-		var bestError = hypot(errorX, errorZ)
+		var bestError = planarLength(errorX, errorZ)
 		if (bestError <= ON_TARGET_BLOCKS) return null
 
 		val plannedTickX = if (holds >= 1) holdAcceleration * unitX else 0.0
@@ -47,7 +47,7 @@ class AirPlan(
 			for (strafe in COMPONENTS) {
 				var directionX = strafe * cos - forward * sin
 				var directionZ = forward * cos + strafe * sin
-				val length = hypot(directionX, directionZ)
+				val length = planarLength(directionX, directionZ)
 				if (length > DEGENERATE_LENGTH) {
 					directionX /= length
 					directionZ /= length
@@ -60,7 +60,7 @@ class AirPlan(
 				}
 				val candidateX = errorX - reach * (acceleration * directionX - plannedTickX)
 				val candidateZ = errorZ - reach * (acceleration * directionZ - plannedTickZ)
-				val error = hypot(candidateX, candidateZ)
+				val error = planarLength(candidateX, candidateZ)
 				if (error < bestError - 1e-9) {
 					bestError = error
 					bestForward = forward
@@ -76,7 +76,7 @@ class AirPlan(
 		fun toward(from: Stance, to: Stance, solution: LaunchSolution, lateralOffset: Double): AirPlan? {
 			val dx = (to.x - from.x).toDouble()
 			val dz = (to.z - from.z).toDouble()
-			val length = hypot(dx, dz)
+			val length = planarLength(dx, dz)
 			if (length <= DEGENERATE_LENGTH) return null
 			val unitX = dx / length
 			val unitZ = dz / length
