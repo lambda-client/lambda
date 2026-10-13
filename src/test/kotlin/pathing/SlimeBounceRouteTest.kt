@@ -427,6 +427,36 @@ class SlimeBounceRouteTest {
         certifyArrival(environment, goal = Stance(0, 8, 10))
     }
 
+    /**
+     * Two slime pads in a row with the landing beyond the second (the CycloneMC nether course, translated):
+     * one rebound cannot reach the slab ledge and the second pad is no landing, so only a bounce that
+     * touches both pads crosses -- a sprint jump held through both rebounds.
+     */
+    @Test
+    fun `two pads in a row are crossed by one double bounce and certified end to end`() {
+        MinecraftBootstrap.ensure()
+        val states = HashMap<BlockPos, BlockState>()
+        for (z in -1..0) states[BlockPos(0, 9, z)] = Blocks.NETHER_BRICKS.defaultState
+        for (x in -1..0) for (z in listOf(5, 6, 10, 11)) states[BlockPos(x, 5, z)] = Blocks.SLIME_BLOCK.defaultState
+        for (x in -1..0) for (z in 13..16) {
+            states[BlockPos(x, 6, z)] = Blocks.NETHER_BRICKS.defaultState
+            states[BlockPos(x, 7, z)] = Blocks.NETHER_BRICK_SLAB.defaultState
+        }
+        val view = object : BlockView {
+            override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState
+            override fun getFluidState(pos: BlockPos): FluidState = getBlockState(pos).fluidState
+            override fun getBlockEntity(pos: BlockPos): BlockEntity? = null
+            override fun getHeight(): Int = 384
+            override fun getBottomY(): Int = -64
+        }
+        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 30, 32),
+            states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+        )
+        certifyArrival(environment, goal = Stance(0, 8, 15))
+    }
+
     private fun certifyArrival(
         environment: SnapshotSimulationEnvironment,
         goal: Stance,

@@ -19,10 +19,11 @@ object BounceArcProbe {
 		drop: Int,
 		rise: Int,
 		launchHeight: Double,
+		bounces: Int = 1,
 	): Probed<BounceSolution>? {
 		val length = hypot(dx.toDouble(), dz.toDouble())
 		if (length <= 0.0) return null
-		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, reads).solve() }
+		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, bounces, reads).solve() }
 	}
 
 	fun padColumns(dx: Int, dz: Int): List<Pair<Int, Int>> {
@@ -53,6 +54,7 @@ object BounceArcProbe {
 		private val drop: Int,
 		private val rise: Int,
 		private val launchHeight: Double,
+		private val bounces: Int,
 		private val reads: LongOpenHashSet?,
 	) {
 		private val unitX = dx / length
@@ -84,6 +86,7 @@ object BounceArcProbe {
 						contactPenalty = ::contactPenalty,
 						headroom = headroom,
 						launchReach = launchReach,
+						bounces = bounces,
 					)
 				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
@@ -97,6 +100,7 @@ object BounceArcProbe {
 						contactDepth = contactDepth, riseHeight = riseHeight,
 						headroom = headroom,
 						launchReach = launchReach,
+						bounces = bounces,
 					)
 				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
@@ -108,14 +112,17 @@ object BounceArcProbe {
 			repeat(CONTACT_REFINEMENTS) {
 				val solution = solveAtDepth(drop + launchOffset - contactOffset) ?: return null
 				val observed = padSurfaceOffset(solution.launchOffset + solution.contactDistance)
-				if (abs(observed - contactOffset) < CONTACT_CONVERGENCE) return solution
+				if (abs(observed - contactOffset) < CONTACT_CONVERGENCE) {
+					val level = solution.contactDistances.all { abs(padSurfaceOffset(solution.launchOffset + it) - observed) < CONTACT_CONVERGENCE }
+					return solution.takeIf { level }
+				}
 				contactOffset = observed
 			}
 			return null
 		}
 
 		private fun admissible(solution: BounceSolution, arcs: ArcSweep): Boolean =
-			contactPenalty(solution.launchOffset + solution.contactDistance).isFinite() &&
+			solution.contactDistances.all { contactPenalty(solution.launchOffset + it).isFinite() } &&
 					arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.Clear
 
 		private fun crossesPad(): Boolean {

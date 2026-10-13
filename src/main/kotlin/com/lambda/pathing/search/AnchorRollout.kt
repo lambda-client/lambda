@@ -111,6 +111,7 @@ internal class AnchorRollout(
 				descentAllowance = movement.descentAllowance(action),
 				climbing = climbingAt,
 				landingRule = landingRuleOf,
+				lava = { environment.lavaWithin(it) },
 			),
 			frameCount = maxOf(TRANSITION_FRAMES, movement.transitionFrames(action)),
 			launch = launch,

@@ -211,6 +211,16 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     )
 
     @Group(MOVES_GROUP)
+    override val lavaMargin by c.setting(
+        "Lava Margin", 0.0, 0.0..1.0, 0.05,
+        "Space kept between the body and lava. Nothing under the feet may be lava within this " +
+            "distance, so a landing never hangs over a lava edge, and no lava may be this close " +
+            "beside the body. At 0 the planner follows vanilla exactly and stands on any block " +
+            "edge next to lava; some parkour servers reset a player whose position is over lava.",
+        unit = " blocks",
+    )
+
+    @Group(MOVES_GROUP)
     override val avoidMobs by c.setting(
         "Avoid Mobs", true,
         "Plan around nearby mobs, animals and other players instead of through them: the cells they " +

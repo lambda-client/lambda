@@ -160,11 +160,13 @@ data class BallisticProfile(
 		jump: Boolean = false,
 		holdTicks: Int = Int.MAX_VALUE,
 		bounceFactor: Double = 1.0,
-		maxTicks: Int = MAX_BOUNCE_TICKS,
+		bounces: Int = 1,
+		maxTicks: Int = MAX_BOUNCE_TICKS * bounces,
 		headroom: Double = Double.POSITIVE_INFINITY,
 	): ArcSample? {
 		require(drop > 0.0) { "a bounce must fall onto something: drop=$drop" }
-		return arc(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
+		require(bounces >= 1) { "a bounce touches at least one pad: bounces=$bounces" }
+		return arc(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces)
 	}
 
 	private data class ArcKey(
@@ -178,6 +180,7 @@ data class BallisticProfile(
 		val drop: Double,
 		val bounceFactor: Double,
 		val headroom: Double,
+		val bounces: Int,
 	)
 
 	private fun arc(
@@ -191,11 +194,12 @@ data class BallisticProfile(
 		drop: Double = Double.NaN,
 		bounceFactor: Double = 1.0,
 		headroom: Double = Double.POSITIVE_INFINITY,
+		bounces: Int = 1,
 	): ArcSample? {
-		if (entrySpeed != 0.0 && entrySpeed != 1.0) return simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
-		val key = ArcKey(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
+		if (entrySpeed != 0.0 && entrySpeed != 1.0) return simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces)
+		val key = ArcKey(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces)
 		probeArcs[key]?.let { return it as? ArcSample }
-		val arc = simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom)
+		val arc = simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces)
 		if (probeArcs.size >= PROBE_ARC_LIMIT) probeArcs.clear()
 		probeArcs[key] = arc ?: NO_ARC
 		return arc
@@ -212,6 +216,7 @@ data class BallisticProfile(
 		drop: Double,
 		bounceFactor: Double,
 		headroom: Double,
+		bounces: Int,
 	): ArcSample? {
 		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
 		val heights = DoubleArray(maxTicks + 1)
@@ -221,6 +226,7 @@ data class BallisticProfile(
 		var height = 0.0
 		var distance = 0.0
 		var floor = -drop
+		var contacts = bounces
 		var grounded = false
 
 		if (jump) {
@@ -258,7 +264,7 @@ data class BallisticProfile(
 			if (height + verticalVelocity <= floor) {
 				height = floor
 				verticalVelocity = -verticalVelocity * bounceFactor
-				floor = Double.NaN
+				if (--contacts == 0) floor = Double.NaN
 				grounded = true
 			} else {
 				if (floor.isNaN() && verticalVelocity < 0.0) {

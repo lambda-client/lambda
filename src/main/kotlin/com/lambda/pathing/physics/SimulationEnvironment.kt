@@ -41,6 +41,8 @@ interface SimulationEnvironment {
 	fun mayContainBubbles(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
 
 	fun containsFluid(box: Box): Boolean = false
+
+	fun lavaWithin(box: Box): Boolean = false
 }
 
 internal inline fun <T> collisionCandidateRange(box: Box, within: (minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int) -> T): T = within(

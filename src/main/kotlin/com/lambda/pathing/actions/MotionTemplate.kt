@@ -36,6 +36,7 @@ class MotionTemplate internal constructor(
 	data class ArcSpec(
 		val modes: List<LaunchMode> = LaunchMode.entries,
 		val bounceDrop: Int? = null,
+		val bounces: Int = 1,
 		val riseAdmission: ((Double) -> Boolean)? = null,
 		val momentumOnly: Boolean = false,
 	)
@@ -67,7 +68,7 @@ class MotionTemplate internal constructor(
 		val spec = arc ?: return if (realRise(view, origin) > maxRise) null else edgeOf(origin, ticks(view, origin), probeReads = null)
 		val launchOffset = surfaceOffset(view, origin)
 		spec.bounceDrop?.let { drop ->
-			val probed = BounceArcProbe.probe(view, origin, dx, dz, drop, dy, launchHeight = origin.y + launchOffset)
+			val probed = BounceArcProbe.probe(view, origin, dx, dz, drop, dy, launchHeight = origin.y + launchOffset, bounces = spec.bounces)
 				?: return null
 			return edgeOf(origin, lowerBoundTicks, probed.reads, bounce = probed.solution)
 		}

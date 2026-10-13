@@ -16,6 +16,8 @@ data class BounceSolution(
 	val airTicks: Int get() = arc.airTicks
 
 	val contactDistance: Double get() = arc.distances[arc.troughIndex()]
+
+	val contactDistances: List<Double> get() = arc.contactIndices().map { arc.distances[it] }
 }
 
 object BounceSolver {
@@ -31,19 +33,20 @@ object BounceSolver {
 		holdTicks: Int = Int.MAX_VALUE,
 		headroom: Double = Double.POSITIVE_INFINITY,
 		launchReach: Double = LAUNCH_OFFSET,
+		bounces: Int = 1,
 	): BounceSolution? {
 		val flight = horizontalDistance - launchReach
 		if (flight <= 0.0) return null
 
-		val base = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
-		val unit = ballistics.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
+		val base = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom) ?: return null
+		val unit = ballistics.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom) ?: return null
 		val slope = unit.distance - base.distance
 		if (slope <= 0.0) return null
 
 		val speed = (flight - base.distance) / slope
 		if (speed < 0.0 || speed > ballistics.momentumSpeed(sprint)) return null
 
-		val arc = ballistics.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom) ?: return null
+		val arc = ballistics.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom) ?: return null
 
 		val slack = (LANDING_WINDOW / 2.0) / slope
 
@@ -69,19 +72,21 @@ object BounceSolver {
 		contactPenalty: (Double) -> Double,
 		headroom: Double,
 		launchReach: Double,
+		bounces: Int = 1,
 	): BounceSolution? {
 		val target = horizontalDistance - launchReach
 		if (target <= 0.0) return null
 
 		val minHold = if (sprint) 2 else if (jump) 0 else 1
+		val maxHold = BallisticProfile.MAX_BOUNCE_TICKS * bounces
 		fun arcAt(holdTicks: Int): ArcSample? = ballistics.bounce(
 			0.0, contactDepth, riseHeight,
 			holdForward = holdTicks > 0, sprint = sprint, jump = jump, holdTicks = holdTicks,
-			headroom = headroom,
+			bounces = bounces, headroom = headroom,
 		)
 
 		var lo = minHold
-		var hi = BallisticProfile.MAX_BOUNCE_TICKS
+		var hi = maxHold
 		val shortest = arcAt(lo)?.distance ?: return null
 		val longest = arcAt(hi)?.distance ?: return null
 		if (target < shortest - LANDING_SUPPORT_REACH || target > longest + LANDING_SUPPORT_REACH) return null
@@ -96,11 +101,11 @@ object BounceSolver {
 		var chosenPenalty = Double.POSITIVE_INFINITY
 		var chosenError = Double.POSITIVE_INFINITY
 		for (hold in (lo - HOLD_SCAN)..(hi + HOLD_SCAN)) {
-			if (hold < minHold || hold > BallisticProfile.MAX_BOUNCE_TICKS) continue
+			if (hold < minHold || hold > maxHold) continue
 			val arc = arcAt(hold) ?: continue
 			val error = abs(arc.distance - target)
 			if (error > LANDING_SUPPORT_REACH) continue
-			val penalty = contactPenalty(launchReach + arc.distances[arc.troughIndex()])
+			val penalty = arc.contactIndices().maxOf { contactPenalty(launchReach + arc.distances[it]) }
 			if (!penalty.isFinite()) continue
 			if (penalty < chosenPenalty || (penalty == chosenPenalty && error < chosenError)) {
 				chosenHold = hold
@@ -124,17 +129,17 @@ object BounceSolver {
 		)
 	}
 
-	fun reach(drop: Int, rise: Int): ClosedFloatingPointRange<Double>? {
+	fun reach(drop: Int, rise: Int, bounces: Int = 1): ClosedFloatingPointRange<Double>? {
 		val depth = drop.toDouble()
 		val height = rise.toDouble()
 		var floor = Double.POSITIVE_INFINITY
 		var ceiling = Double.NEGATIVE_INFINITY
 		for (jump in listOf(true, false)) {
-			val standing = ballistics.bounce(0.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
-			val unit = ballistics.bounce(1.0, depth, height, holdForward = true, sprint = true, jump = jump) ?: continue
+			val standing = ballistics.bounce(0.0, depth, height, holdForward = true, sprint = true, jump = jump, bounces = bounces) ?: continue
+			val unit = ballistics.bounce(1.0, depth, height, holdForward = true, sprint = true, jump = jump, bounces = bounces) ?: continue
 			val slope = unit.distance - standing.distance
 			if (slope <= 0.0) continue
-			val gentle = ballistics.bounce(0.0, depth, height, holdForward = false, sprint = false, jump = jump)
+			val gentle = ballistics.bounce(0.0, depth, height, holdForward = false, sprint = false, jump = jump, bounces = bounces)
 			floor = minOf(floor, (gentle ?: standing).distance + LAUNCH_OFFSET)
 			ceiling = maxOf(ceiling, standing.distance + LAUNCH_OFFSET + slope * ballistics.momentumSpeed(sprint = true))
 		}
@@ -156,4 +161,9 @@ private fun ArcSample.troughIndex(): Int {
 	var index = 0
 	for (i in heights.indices) if (heights[i] < heights[index]) index = i
 	return index
+}
+
+private fun ArcSample.contactIndices(): List<Int> {
+	val floor = heights[troughIndex()]
+	return heights.indices.filter { heights[it] == floor }
 }

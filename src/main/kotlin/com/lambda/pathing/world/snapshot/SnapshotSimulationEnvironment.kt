@@ -205,6 +205,23 @@ class SnapshotSimulationEnvironment internal constructor(
 		return false
 	}
 
+	override fun lavaWithin(box: Box): Boolean {
+		val cell = BlockPos.Mutable()
+		for (x in MathHelper.floor(box.minX) until MathHelper.ceil(box.maxX)) {
+			for (y in MathHelper.floor(box.minY) until MathHelper.ceil(box.maxY)) {
+				for (z in MathHelper.floor(box.minZ) until MathHelper.ceil(box.maxZ)) {
+					if (!bounds.contains(x, y, z)) continue
+					val section = store[ChunkSectionPos.asLong(x shr 4, y shr 4, z shr 4)] ?: continue
+					onRead?.invoke(cell.set(x, y, z))
+					if (!section.unsupported) continue
+					val unsupported = section[x, y, z].unsupportedPhysics ?: continue
+					if (unsupported.kind == UnsupportedPhysicsKind.FLUID && unsupported.blockId == LAVA_ID) return true
+				}
+			}
+		}
+		return false
+	}
+
 	override fun isClimbable(pos: BlockPos): Boolean {
 		onRead?.invoke(pos)
 		return blockIn(pos.x, pos.y, pos.z) { store[it] }?.coarseVoxel?.medium == Medium.CLIMBABLE
@@ -564,6 +581,8 @@ class SnapshotSimulationEnvironment internal constructor(
 		private val ENTITY = UnsupportedPhysics(UnsupportedPhysicsKind.ENTITY, "entity")
 
 		private const val CURSOR_SLOTS = 64
+
+		private const val LAVA_ID = "minecraft:lava"
 
 		private const val RECALL_CHUNKS = 2
 

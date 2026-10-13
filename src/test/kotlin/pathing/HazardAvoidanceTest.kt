@@ -3,14 +3,21 @@
  */
 package pathing
 
+import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.rollout.RolloutEvaluator
+import com.lambda.pathing.rollout.RolloutVerdict
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import minecraft.MinecraftBootstrap
 import net.minecraft.block.BlockState
@@ -28,6 +35,7 @@ import net.minecraft.world.BlockView
 import pathing.ProbeScenarios.moveLibrary
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -67,6 +75,24 @@ class HazardAvoidanceTest {
 		val captured = BlockPhysicsCapture.capture(state, view, BlockPos.ORIGIN, ShapeContext.of(falling))
 		assertTrue(captured.collisionShape.isEmpty, "a capture taken while the player falls must not turn powder snow into a floor")
 		assertEquals(UnsupportedPhysicsKind.POWDER_SNOW, captured.unsupportedPhysics?.kind)
+	}
+
+	@Test
+	fun `a lava margin keeps the footprint off lava edges and is off by default`() {
+		MinecraftBootstrap.ensure()
+		val environment = SnapshotSimulationEnvironment.synthetic(
+			SimulationSnapshotBounds(-8, 0, -8, 8, 16, 8),
+			mapOf(BlockPos(0, 4, 0) to SnapshotBlockPhysics.FULL_CUBE, BlockPos(0, 4, 1) to captured(Blocks.LAVA.defaultState)),
+		)
+		fun standing(z: Double) = MovementSimulationState.synthetic(ProbeScenarios.PROFILE, Vec3d(0.5, 5.0, z), Rotation(0.0, 0.0))
+		val centre = HorizontalPoint(0.5, 5.0, 0.5)
+		fun verdict(margin: Double, z: Double) = RolloutEvaluator(
+			standing(0.5), listOf(centre), centre, MotionConstraints(lavaMargin = margin),
+			climbing = { false }, lava = { environment.lavaWithin(it) },
+		).observe(1, standing(z))
+		assertEquals(RolloutVerdict.Continue, verdict(0.25, 0.5), "a body centred on the block is clear of the lava")
+		assertIs<RolloutVerdict.Failed>(verdict(0.25, 0.85), "a footprint hanging 0.15 over the lava breaks the margin")
+		assertEquals(RolloutVerdict.Continue, verdict(0.0, 0.85), "without a margin the planner follows vanilla, which stands on any edge")
 	}
 
 	@Test

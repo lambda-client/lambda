@@ -38,6 +38,17 @@ object SlimeBounceMovement : Movement {
 				}
 			}
 		}
+		for (drop in MIN_DROP..options.maxBounceDrop) {
+			for (rise in -(drop - 1)..MAX_RISE) {
+				val window = BounceSolver.reach(drop, rise, DOUBLE_BOUNCES) ?: continue
+				for ((dx, dz) in StanceRules.CARDINALS + StanceRules.DIAGONALS) {
+					val perStep = hypot(dx.toDouble(), dz.toDouble())
+					for (span in 1..MAX_DOUBLE_SPAN) {
+						if (span * perStep in window) add(spec(span * dx, span * dz, drop, rise, context, DOUBLE_BOUNCES))
+					}
+				}
+			}
+		}
 		if (!options.allowOffAxisJumps) return@buildList
 		for (drop in MIN_DROP..options.maxBounceDrop) {
 			for (rise in -(drop - 1)..MAX_RISE) {
@@ -57,15 +68,16 @@ object SlimeBounceMovement : Movement {
 		drop: Int,
 		rise: Int,
 		context: MovementContext,
+		bounces: Int = 1,
 	) = TemplateSpec(
 		dx = dx,
 		dy = rise,
 		dz = dz,
 		movement = id,
-		cost = context.costs.bounceCost(drop, rise),
+		cost = context.costs.bounceCost(drop, rise, bounces),
 		conditions = StanceRules.stanceConditions(dx, rise, dz),
 		departure = CellPredicate.LAUNCHABLE,
-		arc = MotionTemplate.ArcSpec(bounceDrop = drop),
+		arc = MotionTemplate.ArcSpec(bounceDrop = drop, bounces = bounces),
 	)
 
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
@@ -98,6 +110,10 @@ object SlimeBounceMovement : Movement {
 	private const val SETTLED_VERTICAL_SPEED = 0.1
 
 	private const val MAX_SPAN = 12
+
+	private const val MAX_DOUBLE_SPAN = 24
+
+	private const val DOUBLE_BOUNCES = 2
 
 	private const val MIN_DROP = 2
 

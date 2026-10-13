@@ -303,7 +303,7 @@ internal object PlanDump {
 		"search", maxFrames, maxYawDegreesPerFrame, goalRadius,
 		sprintModes.joinToString(",").ifEmpty { "-" },
 		touchArrival, touchRestRadius, maxSafeFallDistance,
-		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
+		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier, lavaMargin,
 	).joinToString(" ")
 
 	private fun readSearchConfig(parts: List<String>) = MotionConstraints(
@@ -318,6 +318,7 @@ internal object PlanDump {
 		} else {
 			FallLimits.acceptingFallsOf(parts.getOrNull(7)?.toDouble() ?: FallLimits.DEFAULT_SAFE_FALL_DISTANCE)
 		},
+		lavaMargin = parts.getOrNull(SEARCH_FALL_LIMITS + 3)?.toDouble() ?: 0.0,
 	)
 
 	private fun MovementSimulationState.dump(keyword: String = "state"): String = listOf(

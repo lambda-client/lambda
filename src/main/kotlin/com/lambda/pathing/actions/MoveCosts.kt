@@ -83,9 +83,9 @@ class CoarseMoveCosts(
 		return walkOff(depth).also { validate("walkOff($depth)", it) }
 	}
 
-	fun bounceCost(drop: Int, rise: Int): Double {
+	fun bounceCost(drop: Int, rise: Int, bounces: Int = 1): Double {
 		require(drop > 0) { "a bounce must fall onto something: $drop" }
-		return CoarseMoveRates.fallTicks(drop) + CoarseMoveRates.fallTicks(drop + rise) + BOUNCE_SETTLE_TICKS
+		return CoarseMoveRates.fallTicks(drop) * (2 * bounces - 1) + CoarseMoveRates.fallTicks(drop + rise) + BOUNCE_SETTLE_TICKS
 	}
 
 	fun dropCost(span: Int, depth: Int): Double {

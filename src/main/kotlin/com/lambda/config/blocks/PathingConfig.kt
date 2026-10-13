@@ -175,6 +175,9 @@ interface PathingConfig {
      */
     val ignoreHazards: Boolean get() = false
 
+    /** Space in blocks kept between the body and lava, below the feet and beside the body; 0 follows vanilla exactly. */
+    val lavaMargin: Double get() = 0.0
+
     /**
      * Keep out of the cells nearby mobs, animals and other players stand in, for a few seconds after
      * they leave them, so walks go around them instead of being pushed.

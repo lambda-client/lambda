@@ -9,6 +9,7 @@ import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 import kotlin.math.hypot
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 
 internal sealed interface RolloutVerdict {
@@ -28,6 +29,7 @@ internal class RolloutEvaluator(
 	descentAllowance: Double = 0.0,
 	private val climbing: (Vec3d) -> Boolean,
 	private val landingRule: (MovementSimulationState) -> FallRule = { FallRule.NORMAL },
+	private val lava: (Box) -> Boolean = { false },
 ) {
 	private val floor = nodes.minOf { it.y } - FALL_TOLERANCE - descentAllowance
 
@@ -36,6 +38,8 @@ internal class RolloutEvaluator(
 	private var previous = initialState
 	private var apex = initialState.position.y
 	private var stable = 0
+
+	private var startsNearLava = config.lavaMargin > 0.0 && nearLava(initialState.boundingBox)
 
 	var pendingBlocker: TrajectoryDiagnostic? = null
 		private set
@@ -61,6 +65,12 @@ internal class RolloutEvaluator(
 
 		if (state.eyeInWater && state.air < airFloor) return RolloutVerdict.Failed(TrajectoryDiagnostic.Drowning(index, state.air))
 
+		if (config.lavaMargin > 0.0) {
+			val near = nearLava(state.boundingBox)
+			if (near && !startsNearLava) return RolloutVerdict.Failed(TrajectoryDiagnostic.UnsupportedPhysics(index, "within the lava margin"))
+			if (!near) startsNearLava = false
+		}
+
 		if (pendingBlocker == null && state.verticalCollision && before.velocity.y > 0.0 && !state.onGround) {
 			pendingBlocker = TrajectoryDiagnostic.HeadBonk(index, state.position)
 		}
@@ -81,6 +91,11 @@ internal class RolloutEvaluator(
 		if (stable >= config.stableStopFrames) return RolloutVerdict.Stopped(index)
 
 		return RolloutVerdict.Continue
+	}
+
+	private fun nearLava(box: Box): Boolean {
+		val margin = config.lavaMargin
+		return lava(Box(box.minX, box.minY - margin, box.minZ, box.maxX, box.minY, box.maxZ)) || lava(box.expand(margin, 0.0, margin))
 	}
 
 	fun terminalDiagnostic(rollout: TrajectoryRollout): TrajectoryDiagnostic = when (val termination = rollout.termination) {

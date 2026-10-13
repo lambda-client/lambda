@@ -101,6 +101,7 @@ internal fun preparePlanning(
 		fallLimits = fallLimits,
 		sprintModes = if (config.allowSprint && !config.saveFood && profile.canSprint) listOf(true, false) else listOf(false),
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
+		lavaMargin = config.lavaMargin,
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
 	val start = supportedStanceOf(initial) ?: footing(player, initial) ?: stanceOf(initial)

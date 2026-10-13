@@ -40,6 +40,7 @@ internal class RolloutGate(
 			descentAllowance = descentAllowance,
 			climbing = { environment.climbableAt(it) },
 			landingRule = { environment.landingRule(it) },
+			lava = { environment.lavaWithin(it) },
 		)
 		var stopFrame: Int? = null
 		var failure: TrajectoryDiagnostic? = null
