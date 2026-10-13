@@ -45,7 +45,7 @@ object FallMovement : Movement {
 		val modes = LaunchMode.entries.filter { it.sprint in context.constraints.sprintModes }
 		val entry = reachableEntrySpeed(context)
 		val swimOn = water && openWaterBeyond(context)
-		return LaunchSolver.solve(
+		val falls = LaunchSolver.solve(
 			from, to,
 			modes = modes,
 			maxEntrySpeed = { entry },
@@ -56,6 +56,8 @@ object FallMovement : Movement {
 			val plunge = if (!water) null else FallReach.flight(solution.jumps, -rise)?.let { FallReach.plunge(it.impactSpeed, cells) }
 			TrajectoryDecision.Fall(to, solution, water, plunge?.depth ?: 0.0, plunge?.ticks ?: 0, swimOn = swimOn)
 		}
+		if (!water || falls.isNotEmpty()) return falls
+		return context.constraints.sprintModes.map { TrajectoryDecision.Swim(to, it, MovementId.ENTER_WATER) }
 	}
 
 	private fun openWaterBeyond(context: DecisionContext): Boolean {

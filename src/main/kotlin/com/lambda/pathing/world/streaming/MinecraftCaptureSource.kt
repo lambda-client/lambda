@@ -1,7 +1,5 @@
 package com.lambda.pathing.world.streaming
 
-import com.lambda.pathing.physics.UnsupportedPhysics
-import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import it.unimi.dsi.fastutil.longs.LongArrayList
@@ -25,6 +23,7 @@ class MinecraftCaptureSource(
 	private val sampler = BlockPhysicsSampler(world, ShapeContext.of(player), ignoreHazards)
 	private val obstacles = EntityObstacles()
 	private val occupied = LongOpenHashSet()
+	private val changed = LongArrayList()
 
 	override fun isChunkLoaded(chunkX: Int, chunkZ: Int): Boolean =
 		world.chunkManager.isChunkLoaded(chunkX, chunkZ)
@@ -35,16 +34,9 @@ class MinecraftCaptureSource(
 
 	override val viewDistance: Int get() = MinecraftClient.getInstance().options.clampedViewDistance
 
-	override val obstacleCells: LongArray get() = obstacles.cells
-
-	override fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics {
-		val physics = sampler.physicsAt(x, y, z)
-		if (physics.unsupportedPhysics != null || BlockPos.asLong(x, y, z) !in obstacles) return physics
-		return physics.copy(unsupportedPhysics = MOB)
-	}
+	override fun physicsAt(x: Int, y: Int, z: Int): SnapshotBlockPhysics = sampler.physicsAt(x, y, z)
 
 	override fun uniformPhysics(sectionKey: Long): SnapshotBlockPhysics? {
-		if (obstacles.inSection(sectionKey)) return null
 		val sectionX = ChunkSectionPos.unpackX(sectionKey)
 		val sectionY = ChunkSectionPos.unpackY(sectionKey)
 		val sectionZ = ChunkSectionPos.unpackZ(sectionKey)
@@ -55,8 +47,8 @@ class MinecraftCaptureSource(
 		return sampler.physicsAt(sectionX shl 4, sectionY shl 4, sectionZ shl 4)
 	}
 
-	override fun obstacleChanges(changed: LongArrayList) {
-		if (!avoidMobs) return
+	override fun trackObstacles(): LongArray {
+		if (!avoidMobs) return obstacles.cells
 		occupied.clear()
 		val clearance = player.boundingBox.expand(PLAYER_CLEARANCE)
 		for (entity in world.getOtherEntities(player, player.boundingBox.expand(TRACKING_RADIUS), ::pushes)) {
@@ -77,16 +69,24 @@ class MinecraftCaptureSource(
 			val z = BlockPos.unpackLongZ(cell).toDouble()
 			body.intersects(x, y, z, x + 1.0, y + 1.0, z + 1.0)
 		}
+		changed.clear()
+		return obstacles.cells
 	}
 
 	private fun pushes(entity: Entity): Boolean =
-		entity.isAlive && entity.isPushable && !entity.isSpectator && !entity.isConnectedThroughVehicle(player)
+		entity.isAlive && entity.isPushable && !entity.isTouchingWater && !entity.isSpectator && supported(entity) &&
+			!entity.isConnectedThroughVehicle(player)
+
+	private fun supported(entity: Entity): Boolean {
+		val below = BlockPos.ofFloored(entity.x, entity.y - SUPPORT_PROBE, entity.z)
+		return !world.getBlockState(below).getCollisionShape(world, below).isEmpty
+	}
 
 	override fun isOnClientThread(): Boolean = MinecraftClient.getInstance().isOnThread
 
 	private companion object {
-		val MOB = UnsupportedPhysics(UnsupportedPhysicsKind.ENTITY, "entity")
 		const val TRACKING_RADIUS = 24.0
 		const val PLAYER_CLEARANCE = 0.3
+		const val SUPPORT_PROBE = 0.2
 	}
 }

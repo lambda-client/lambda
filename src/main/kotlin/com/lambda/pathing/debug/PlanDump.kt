@@ -86,9 +86,10 @@ internal object PlanDump {
 		val searchConfig: MotionConstraints,
 		val note: String,
 		val execution: ExecutionTrace? = null,
+		val obstacles: LongArray = LongArray(0),
 	) {
 		fun environment(): SnapshotSimulationEnvironment =
-			SnapshotSimulationEnvironment(bounds, sections, SnapshotBlockPhysics.AIR)
+			SnapshotSimulationEnvironment(bounds, sections, SnapshotBlockPhysics.AIR).also { it.entityCells(obstacles) }
 	}
 
 	fun write(
@@ -166,7 +167,7 @@ internal object PlanDump {
 		val sectionKeys = LongArrayList()
 		val palette = ArrayList<SnapshotBlockPhysics>()
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
-		val obstacles = ArrayList<BlockPos>()
+		val obstacles = LongArrayList()
 
 		for (line in lines) {
 			val parts = line.split(' ')
@@ -200,16 +201,15 @@ internal object PlanDump {
 				"p" -> palette += readPhysics(parts)
 				"c" -> blocks[BlockPos(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())] =
 					palette[parts[4].toInt()]
-				"e" -> obstacles += BlockPos(parts[1].toInt(), parts[2].toInt(), parts[3].toInt())
+				"e" -> obstacles.add(BlockPos.asLong(parts[1].toInt(), parts[2].toInt(), parts[3].toInt()))
 			}
 		}
 
 		val box = checkNotNull(bounds) { "dump has no bounds" }
-		val sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics(moveOptions.ignoreHazards) }
-			?: ImmutableSnapshotSection.sectionsOf(blocks)
 		return Loaded(
 			bounds = box,
-			sections = withObstacles(sections, obstacles),
+			sections = terrain?.let { StoredTerrain.load(it, sectionKeys.toLongArray(), terrainAt, box.minY, box.maxY).physics(moveOptions.ignoreHazards) }
+				?: ImmutableSnapshotSection.sectionsOf(blocks),
 			start = checkNotNull(start) { "dump has no start" },
 			goal = checkNotNull(goal) { "dump has no goal" },
 			initialState = checkNotNull(state) { "dump has no entry state" },
@@ -220,24 +220,12 @@ internal object PlanDump {
 			execution = executed?.let { parts ->
 				ExecutionTrace(parts[1].toInt(), parts[2].toBoolean(), checkNotNull(executedState) { "an executed trace needs its start state" }, inputs, predicted, observed)
 			},
+			obstacles = obstacles.toLongArray(),
 		)
 	}
 
 	private const val PREDICTED_BEFORE = 3
 
-	private val MOB = UnsupportedPhysics(UnsupportedPhysicsKind.ENTITY, "entity")
-
-	private fun withObstacles(sections: Map<Long, ImmutableSnapshotSection>, obstacles: List<BlockPos>): Map<Long, ImmutableSnapshotSection> {
-		if (obstacles.isEmpty()) return sections
-		val patched = HashMap(sections)
-		for (cell in obstacles) {
-			val key = ChunkSectionPos.asLong(cell.x shr 4, cell.y shr 4, cell.z shr 4)
-			val section = patched[key] ?: continue
-			val physics = section[cell.x, cell.y, cell.z]
-			if (physics.unsupportedPhysics == null) patched[key] = section.with(cell.x, cell.y, cell.z, physics.copy(unsupportedPhysics = MOB))
-		}
-		return patched
-	}
 
 	private fun MovementSimulationInput.dump(): String = listOf(
 		"i", forward, strafe, jump, sneak, sprint, useItemSlowdown, rotation?.yaw ?: "-", rotation?.pitch ?: "-",

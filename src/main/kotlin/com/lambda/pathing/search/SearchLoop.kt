@@ -43,7 +43,7 @@ internal class SearchLoop(
 	private val frontier = Frontier(field, config, searchConfig, route.index, searchConfig.localHorizon(initialRoute))
 	private val publications = Publications(execution)
 	private val incumbent = Incumbent(publications, frontier, searchConfig, execution, budget)
-	private val annealing = Annealing(field, frontier, ActionSet(catalog, field, config), budget, searchConfig.maxTemperature)
+	private val annealing = Annealing(field, frontier, ActionSet(catalog, field, config) { legs?.hasNext() != true }, budget, searchConfig.maxTemperature)
 	private val routePoints = RoutePoints(environment)
 	private val visits = VisitIndex { frontier.root }
 	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe, routePoints, visits)

@@ -155,7 +155,12 @@ class PathingSession internal constructor(
 
 	internal fun SafeContext.planTrajectory() {
 		if (afloat()) return with(launcher) { capturePlan() }
-		if (player.velocity.horizontalLength() > SETTLED_SPEED) {
+		if (player.abilities.flying) {
+			if (Lambda.mc.interactionManager?.isFlyingLocked == true) return fail("cannot walk while flight is locked")
+			player.abilities.flying = false
+			player.sendAbilitiesUpdate()
+		}
+		if (player.velocity.horizontalLength() > SETTLED_SPEED || airborne()) {
 			alignment.beginSettling()
 			tickInput = ALIGNMENT_INPUT
 			state = State.Settling(goalLabel())
@@ -260,6 +265,8 @@ class PathingSession internal constructor(
 	}
 
 	internal fun SafeContext.afloat(): Boolean = player.isTouchingWater && !player.isOnGround
+
+	internal fun SafeContext.airborne(): Boolean = !player.isOnGround && !player.isTouchingWater && !player.isClimbing
 
 	internal fun SafeContext.treadInput() = MovementSimulationInput(jump = player.isTouchingWater)
 

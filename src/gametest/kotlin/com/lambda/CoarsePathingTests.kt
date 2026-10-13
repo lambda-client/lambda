@@ -102,6 +102,68 @@ internal object CoarsePathingTests {
 
         assertPathingRecoversAfloat(context, server)
         restoreArena(server)
+
+        assertBreathesInSidePocket(context, server)
+        restoreArena(server)
+    }
+
+    /**
+     * A flooded passage longer than a breath whose only air midway lies eight cells up a side tunnel:
+     * the route must break the dive with a breathing stop in that pocket. Survival only for this
+     * scenario, since a creative body cannot drown and plans no stops.
+     */
+    private fun assertBreathesInSidePocket(
+        context: ClientGameTestContext,
+        server: TestServerContext,
+    ) {
+        val scenario = "pathing-breathing-stop"
+        if (!scenarioSelected(scenario)) return
+        val length = 54
+        val side = 8
+        val z0 = 12
+        val pocketZ = z0 + length / 2
+        try {
+            server.runCommand("/fill -4 88 ${z0 - 6} ${side + 4} 96 ${z0 + length + 6} minecraft:stone")
+            server.runCommand("/fill -2 93 ${z0 - 6} 2 96 ${z0 - 1} minecraft:air")
+            server.runCommand("/fill -2 93 ${z0 + length} 2 96 ${z0 + length + 6} minecraft:air")
+            for (pool in listOf(z0, z0 + length - 2)) {
+                server.runCommand("/fill -1 90 $pool 1 92 ${pool + 1} minecraft:water")
+                server.runCommand("/fill -1 93 $pool 1 96 ${pool + 1} minecraft:air")
+            }
+            server.runCommand("/fill 0 90 ${z0 + 2} 0 91 ${z0 + length - 3} minecraft:water")
+            server.runCommand("/fill 1 90 $pocketZ $side 91 $pocketZ minecraft:water")
+            server.runCommand("/fill $side 92 $pocketZ $side 92 $pocketZ minecraft:air")
+            server.runCommand("/gamemode survival Steve")
+            server.runCommand("/tp Steve 0.5 93 ${z0 - 3.5} 0 0")
+            repeat(10) { context.waitTick() }
+            context.runOnClient<IllegalStateException> {
+                PathingService.clear()
+                PathingRequest(AutomationConfig.DEFAULT, Stance(0, 93, z0 + length + 3)).submit()
+            }
+            var ticks = 0
+            var deepest = 0.0
+            while (ticks++ < MAX_PATHING_TICKS * 2 &&
+                PathingService.status !is State.Complete &&
+                PathingService.status !is State.Failed
+            ) {
+                context.waitTick()
+                context.runOnClient<IllegalStateException> {
+                    val player = com.lambda.Lambda.mc.player
+                    if (player != null) deepest = maxOf(deepest, player.x)
+                }
+            }
+            check(PathingService.status is State.Complete) {
+                "$scenario: did not cross the passage (${PathingService.status})"
+            }
+            check(deepest > side - 0.5) { "$scenario: never breathed in the side pocket (reached x=$deepest)" }
+        } catch (failure: IllegalStateException) {
+            pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
+            println("[pathing-fail] ${failure.message}")
+        } finally {
+            context.runOnClient<IllegalStateException> { PathingService.clear() }
+            server.runCommand("/gamemode creative Steve")
+            server.runCommand("/fill -4 88 ${z0 - 6} ${side + 4} 96 ${z0 + length + 6} minecraft:air")
+        }
     }
 
     /** A tape invalidated mid-swim must restart from the water instead of waiting to stand on ground. */

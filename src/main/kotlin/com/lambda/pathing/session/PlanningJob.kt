@@ -80,8 +80,8 @@ internal class PlanningJob(
 			start, goal, frame.route.nodes.size, frame.route.goal, (System.nanoTime() - began) / 1_000_000L,
 			System.currentTimeMillis() - preparation.startedMillis, world.captureLedger(),
 		)
-		return CoarseFollower(coarse, world, snapshot, leg, frame).use { follower ->
-			walk(frame, follower).also {
+		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown).use { follower ->
+			walk(follower).also {
 				enter("finished: ${it::class.simpleName}")
 				dumpOutcome(it, follower)
 			}
@@ -95,8 +95,8 @@ internal class PlanningJob(
 		return PathPlanResult.Failed(reason)
 	}
 
-	private fun walk(frame: CoarseService.Frame, follower: CoarseFollower): PathPlanResult = walkHorizon(
-		frame.route, journey.planner(leg), preparation.initial, preparation.profile, snapshot, preparation.seedConfig, execution,
+	private fun walk(follower: CoarseFollower): PathPlanResult = walkHorizon(
+		follower.route, journey.planner(leg), preparation.initial, preparation.profile, snapshot, preparation.seedConfig, execution,
 		publish = { path, running ->
 			publications++
 			publish(path, running)

@@ -78,6 +78,36 @@ class DeepFallTest {
 	}
 
 	/**
+	 * Leaving the top of a one block wide wall into a pool: the body can only gain speed along the wall, so it drops
+	 * or jumps in from a standstill and swims on, never climbing back onto the wall to try a running jump it cannot
+	 * build (the field dead-ended on such a jump; that dump is in the field-dump gate).
+	 */
+	@Test
+	fun `a one block wide wall over a pool is left without a running jump it cannot build`() {
+		MinecraftBootstrap.ensure()
+		val states = HashMap<BlockPos, BlockState>()
+		for (x in 0..16) for (z in -6..6) states[BlockPos(x, 50, z)] = Blocks.STONE.defaultState
+		for (x in 1..12) for (z in -6..6) for (y in 51..63) states[BlockPos(x, y, z)] = Blocks.WATER.defaultState
+		for (z in -6..6) for (y in 51..63) states[BlockPos(0, y, z)] = Blocks.STONE.defaultState
+		for (x in 13..16) for (z in -6..6) for (y in 51..63) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
+		val environment = environment(states)
+		val start = Stance(0, 64, -3)
+		val goal = Stance(14, 64, 2)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), start, goal)
+		assertTrue(planner.repair().converged, "the wall must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the pool must carry a route")
+
+		val outcome = walkFrom(route, planner, resting(Vec3d(0.5, 64.0, -2.5), 0.0), environment)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "leaving the wall must be certified, got $outcome")
+		val frames = path.plan.frames
+		val wet = frames.indexOfFirst { it.state.touchingWater }
+		assertTrue(wet >= 0, "the body must enter the pool")
+		assertTrue(frames.drop(wet).none { it.state.onGround && it.state.position.x < 1.0 }, "once in the pool the body never climbs back onto the wall")
+		assertEquals(goal, Stance.of(frames.last().state.position, onGround = true))
+	}
+
+	/**
 	 * Vanilla re-checks water at the landing position before it judges a fall, so a body that hits the floor of a
 	 * single water layer in the very tick it enters the water is unhurt however fast it falls.
 	 */

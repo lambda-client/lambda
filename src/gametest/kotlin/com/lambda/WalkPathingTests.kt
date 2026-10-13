@@ -56,6 +56,8 @@ internal object WalkPathingTests {
         assertPathingWalk(context, server, "pathing-mob-in-the-way", Stance(0, 100, 8))
         server.runCommand("/kill @e[type=minecraft:cow]")
 
+        assertFlyingStart(context, server)
+
         // Submit while the body is still drifting, as a rapid retry does. Capturing that
         // moving state would freeze a frame zero the player sheds before the async plan
         // returns, and the cursor would reject it. The manager must settle to rest first.
@@ -364,6 +366,37 @@ internal object WalkPathingTests {
                 )
             }
             restoreArena(server)
+        }
+    }
+
+    /** A walk requested while hovering in creative flight lands first instead of planning from mid-air. */
+    private fun assertFlyingStart(
+        context: ClientGameTestContext,
+        server: TestServerContext,
+    ) {
+        val scenario = "pathing-flying-start"
+        if (!PathingTestHarness.scenarioSelected(scenario)) return
+        try {
+            server.runCommand("/tp Steve 0.5 104 0.5 0 0")
+            repeat(5) { context.waitTick() }
+            context.runOnClient<IllegalStateException> {
+                val player = checkNotNull(com.lambda.Lambda.mc.player) { "$scenario: missing client player" }
+                player.abilities.flying = true
+                player.sendAbilitiesUpdate()
+            }
+            repeat(10) { context.waitTick() }
+            context.runOnClient<IllegalStateException> {
+                val player = checkNotNull(com.lambda.Lambda.mc.player) { "$scenario: missing client player" }
+                check(player.abilities.flying && !player.isOnGround) { "$scenario: the player is not hovering" }
+                PathingService.clear()
+                com.lambda.pathing.session.PathingRequest(com.lambda.config.automation.AutomationConfig.DEFAULT, Stance(0, 100, 5)).submit()
+            }
+            awaitWalkTerminal(context, scenario, "the walk from flight", PathingTestHarness.MAX_PATHING_TICKS)
+        } catch (failure: IllegalStateException) {
+            PathingTestHarness.pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
+            println("[pathing-fail] ${failure.message}")
+        } finally {
+            context.runOnClient<IllegalStateException> { PathingService.clear() }
         }
     }
 

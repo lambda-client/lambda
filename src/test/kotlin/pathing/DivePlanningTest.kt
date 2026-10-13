@@ -2,7 +2,10 @@ package pathing
 
 import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.coarse.BreathingStops
 import com.lambda.pathing.coarse.CoarsePlanner
+import com.lambda.pathing.coarse.CoarsePlanningState
+import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.BubbleColumn
@@ -11,7 +14,11 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.MovementSimulator
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
+import com.lambda.pathing.session.CoarseFollower
+import com.lambda.pathing.session.CoarseService
 import com.lambda.pathing.session.PathPlanResult
+import com.lambda.pathing.session.walkHorizon
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -131,6 +138,47 @@ class DivePlanningTest {
 	}
 
 	@Test
+	fun `breathing stops send a passage longer than a breath up a side tunnel to its air`() {
+		val length = SIDE_POCKET_LENGTH
+		val environment = sidePocketPassage(length, SIDE_POCKET_DEPTH)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, 0), Stance(length + 2, 64, 0))
+		assertTrue(planner.repair().converged, "the passage must converge")
+		val route = assertNotNull(planner.routePlan(0L), "every passage cell lies within reach of air, so the passage is routed")
+		val stops = BreathingStops.plan(environment, planner.moves, route.nodes, Vanilla.MAX_AIR)
+		println("[dive] side pocket stops=$stops")
+		assertEquals(Stance(length / 2, 62, SIDE_POCKET_DEPTH), stops.first(), "the only air on the way is the side pocket")
+		assertTrue(stops.last() in route.nodes && stops.last().x >= length - 2 && !BreathingStops.underwater(environment, stops.last()), "after the pocket the walk rejoins the route at the far pool: ${stops.last()}")
+	}
+
+	@Test
+	fun `a passage longer than a breath is dived by breathing up a side tunnel the route does not pass`() {
+		val length = SIDE_POCKET_LENGTH
+		val environment = sidePocketPassage(length, SIDE_POCKET_DEPTH)
+		val start = Stance(-2, 64, 0)
+		val goal = Stance(length + 2, 64, 0)
+		val leg = CoarsePlanningState(environment, SimpleMoveOptions(), start, goal)
+		val coarse = CoarseService(world = null, legs = listOf(leg), starts = listOf(start), expansionBudget = 1_000_000)
+		coarse.follow(0, start, SpeedClass.STOPPED)
+		coarse.settle()
+		val frame = assertNotNull(coarse.frame(0), "the passage must carry a coarse route")
+		val follower = CoarseFollower(coarse, world = null, environment, leg = 0, frame)
+		val outcome = walkHorizon(
+			follower.route, leg.planner, resting(Vec3d(-1.5, 64.0, 0.5), -90.0), ProbeScenarios.PROFILE, environment, MotionConstraints(),
+			publish = { _, _ -> },
+			started = System.currentTimeMillis(),
+			finalGoal = goal,
+			field = follower.field,
+			legs = follower,
+		)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the dive must be certified, got $outcome")
+		val frames = path.plan.frames
+		println("[dive] side pocket breath frames=${frames.size} min air=${frames.minOf { it.state.air }}")
+		assertTrue(frames.any { it.state.position.z > SIDE_POCKET_DEPTH - 0.5 && !it.state.eyeInWater }, "the walk must breathe in the side pocket")
+		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the dive must keep a safe air margin")
+		assertEquals(goal, Stance.of(frames.last().state.position, onGround = true))
+	}
+
+	@Test
 	fun `a goal in open water above the floor is reached`() {
 		val environment = channel(length = 12) { _, _ -> false }
 		val path = certified(environment, Stance(-2, 64, 0), Stance(6, 62, 0), resting(Vec3d(-1.5, 64.0, 0.5), -90.0))
@@ -245,6 +293,29 @@ class DivePlanningTest {
 		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, 50, -3, length + 10, 80, 3), blocks)
 	}
 
+	/** Pools at both ends of a one-wide, two-high flooded passage whose only air midway lies [side] cells up a side tunnel. */
+	private fun sidePocketPassage(length: Int, side: Int): SnapshotSimulationEnvironment {
+		val mid = length / 2
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -6..length + 6) for (z in -2..side + 2) {
+			blocks[BlockPos(x, 60, z)] = SnapshotBlockPhysics.FULL_CUBE
+			for (y in 61..72) {
+				val pool = (x in 0 until 2 || x in length - 2 until length) && z in -1..1 && y <= 63
+				val passage = x in 2 until length - 2 && z == 0 && y <= 62
+				val tunnel = x == mid && z in 1..side && y <= 62
+				blocks[BlockPos(x, y, z)] = when {
+					pool && y == 63 -> SnapshotBlockPhysics.water()
+					pool || passage || tunnel -> SnapshotBlockPhysics.water(1.0f)
+					x == mid && z == side && y == 62 -> SnapshotBlockPhysics.water()
+					x == mid && z == side && y == 63 -> SnapshotBlockPhysics.AIR
+					y <= 63 || x in 2 until length - 2 -> SnapshotBlockPhysics.FULL_CUBE
+					else -> continue
+				}
+			}
+		}
+		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, 50, -4, length + 10, 80, side + 4), blocks)
+	}
+
 	/** Ground at y 64 split by a high wall; a one-block water hole on each side drops to a flooded passage at y 55 joining them. */
 	private fun sunkenPassage(tunnel: Int): SnapshotSimulationEnvironment {
 		val entry = 2
@@ -303,5 +374,9 @@ class DivePlanningTest {
 		const val LOW_AIR = 40
 
 		const val POCKET_HALF = 30
+
+		const val SIDE_POCKET_LENGTH = 54
+
+		const val SIDE_POCKET_DEPTH = 8
 	}
 }

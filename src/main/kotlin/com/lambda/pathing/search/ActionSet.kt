@@ -15,9 +15,10 @@ internal class ActionSet(
 	private val catalog: MovementCatalog,
 	private val field: ValueField,
 	private val config: MotionConstraints,
+	private val finalLeg: () -> Boolean = { true },
 ) {
 	private fun actions(anchor: ValueAnchor, temperature: Double): List<PricedDecision> {
-		if (anchor.parent != null && field.guide(anchor.stance) <= FINISH_VALUE_TICKS) {
+		if (anchor.parent != null && field.guide(anchor.stance) <= FINISH_VALUE_TICKS && finalLeg()) {
 			return emptyList()
 		}
 

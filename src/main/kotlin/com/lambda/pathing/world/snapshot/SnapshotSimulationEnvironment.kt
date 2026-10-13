@@ -8,6 +8,7 @@ import com.lambda.pathing.physics.SimulationEnvironment
 import com.lambda.pathing.physics.SimulationSnapshotOutOfBoundsException
 import com.lambda.pathing.physics.SnapshotSectionUnavailableException
 import com.lambda.pathing.physics.UnsupportedBlockPhysicsException
+import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.VanillaBlockCollisionResolver
@@ -22,6 +23,7 @@ import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.RememberedTerrain
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap
 import it.unimi.dsi.fastutil.longs.LongArrayList
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -39,6 +41,7 @@ class SnapshotSimulationEnvironment internal constructor(
 	private val defaultBlock: SnapshotBlockPhysics?,
 	private val onExactMiss: ((Long) -> Unit)? = null,
 	private val onRead: ((BlockPos) -> Unit)? = null,
+	private val entityRef: EntityCellsRef = EntityCellsRef(),
 ) : SimulationEnvironment, CoarseVoxelView {
 	internal constructor(
 		bounds: SimulationSnapshotBounds,
@@ -47,6 +50,14 @@ class SnapshotSimulationEnvironment internal constructor(
 	) : this(bounds, StoreRef(SectionStore.of(sections)), defaultBlock)
 
 	internal class StoreRef(@Volatile var store: SectionStore)
+
+	internal class EntityCellsRef(@Volatile var cells: LongOpenHashSet = LongOpenHashSet())
+
+	internal fun entityCells(cells: LongArray) {
+		entityRef.cells = LongOpenHashSet(cells)
+	}
+
+	override fun entityAt(x: Int, y: Int, z: Int): Boolean = entityRef.cells.contains(BlockPos.asLong(x, y, z))
 
 	private val store: SectionStore get() = storeRef.store
 
@@ -68,7 +79,7 @@ class SnapshotSimulationEnvironment internal constructor(
 		storeRef.store = storeRef.store.without(keys)
 	}
 
-	internal fun pinned(): SnapshotSimulationEnvironment = SnapshotSimulationEnvironment(bounds, StoreRef(store), defaultBlock, onExactMiss)
+	internal fun pinned(): SnapshotSimulationEnvironment = SnapshotSimulationEnvironment(bounds, StoreRef(store), defaultBlock, onExactMiss, entityRef = entityRef)
 
 	internal fun repin(from: SnapshotSimulationEnvironment) {
 		storeRef.store = from.store
@@ -235,7 +246,7 @@ class SnapshotSimulationEnvironment internal constructor(
 	fun trackingView(): TrackedSnapshotSimulationEnvironment = TrackedSnapshotSimulationEnvironment(this)
 
 	private fun observedBy(onRead: (BlockPos) -> Unit) =
-		SnapshotSimulationEnvironment(bounds, storeRef, defaultBlock, onExactMiss, onRead)
+		SnapshotSimulationEnvironment(bounds, storeRef, defaultBlock, onExactMiss, onRead, entityRef)
 
 	private inline fun forEachCollisionShape(query: Box, action: (BlockPos, VoxelShape) -> Unit) =
 		forEachNearBlock(query, maxMargins = 1) { pos, margins, block ->
@@ -278,14 +289,28 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	private fun rejectUnsupportedContact(box: Box) {
 		val pinned = store
-		if (onRead == null && clearOfUnsupported(box, pinned)) return
+		val entities = entityRef.cells
+		if (onRead == null && clearOfUnsupported(box, pinned) && (entities.isEmpty() || clearOfEntities(box, entities))) return
 		val sections = PinnedSections(pinned)
 		forEachCollisionCandidate(box) { pos ->
 			if (!box.intersectsUnitBlock(pos.x, pos.y, pos.z)) return@forEachCollisionCandidate
 			onRead?.invoke(pos)
-			val unsupported = exactBlock(pos, sections::at).unsupportedPhysics ?: return@forEachCollisionCandidate
+			val unsupported = exactBlock(pos, sections::at).unsupportedPhysics
+				?: ENTITY.takeIf { entities.contains(BlockPos.asLong(pos.x, pos.y, pos.z)) }
+				?: return@forEachCollisionCandidate
 			throw UnsupportedBlockPhysicsException(pos.toImmutable(), unsupported)
 		}
+	}
+
+	private fun clearOfEntities(box: Box, entities: LongOpenHashSet): Boolean {
+		for (x in MathHelper.floor(box.minX)..MathHelper.floor(box.maxX)) {
+			for (y in MathHelper.floor(box.minY)..MathHelper.floor(box.maxY)) {
+				for (z in MathHelper.floor(box.minZ)..MathHelper.floor(box.maxZ)) {
+					if (entities.contains(BlockPos.asLong(x, y, z)) && box.intersectsUnitBlock(x, y, z)) return false
+				}
+			}
+		}
+		return true
 	}
 
 	private fun clearOfUnsupported(box: Box, pinned: SectionStore): Boolean = collisionCandidateRange(box) { minX, minY, minZ, maxX, maxY, maxZ ->
@@ -536,6 +561,8 @@ class SnapshotSimulationEnvironment internal constructor(
 	}
 
 	companion object {
+		private val ENTITY = UnsupportedPhysics(UnsupportedPhysicsKind.ENTITY, "entity")
+
 		private const val CURSOR_SLOTS = 64
 
 		private const val RECALL_CHUNKS = 2

@@ -149,6 +149,8 @@ data class CoarseVoxel(
 interface CoarseVoxelView {
 	fun voxel(x: Int, y: Int, z: Int): CoarseVoxel
 
+	fun entityAt(x: Int, y: Int, z: Int): Boolean = false
+
 	fun collisionShape(x: Int, y: Int, z: Int): VoxelShape? = null
 
 	fun collisionBoxes(x: Int, y: Int, z: Int): DoubleArray? = collisionShape(x, y, z)?.flatBoxes()

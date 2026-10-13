@@ -56,7 +56,7 @@ object DiveMovement : Movement {
 	fun submerged(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 		view.medium(x, y, z) == Medium.WATER && (view.medium(x, y + 1, z) == Medium.WATER || !view.voxel(x, y + 1, z).fullyPassable)
 
-	private fun breathable(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
+	fun breathable(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
 		if (view.medium(x, y, z) != Medium.WATER) return false
 		if (view.bubbles(x, y, z)) return true
 		if (view.medium(x, y + 1, z) == Medium.WATER || !view.voxel(x, y + 1, z).fullyPassable) return false
@@ -176,11 +176,16 @@ object DiveMovement : Movement {
 		DiveProgram(context.decision as TrajectoryDecision.Dive, context)
 
 	override fun completed(context: CompletionContext): Boolean =
-		context.stance != context.body.stance && context.observed.touchingWater &&
-				((context.decision as? TrajectoryDecision.Dive)?.detour != true || context.observed.air >= Vanilla.MAX_AIR) &&
+		context.stance != context.body.stance && context.observed.touchingWater && refilled(context) &&
 				kotlin.math.abs(context.stance.x - context.decision.step.x) <= 1 &&
 				kotlin.math.abs(context.stance.y - context.decision.step.y) <= 1 &&
 				kotlin.math.abs(context.stance.z - context.decision.step.z) <= 1
+
+	private fun refilled(context: CompletionContext): Boolean {
+		val dive = context.decision as? TrajectoryDecision.Dive ?: return true
+		if (dive.detour) return context.observed.air >= Vanilla.MAX_AIR
+		return !dive.breathe || context.observed.air >= Vanilla.MAX_AIR - BREATHE_COMPLETION_SLACK
+	}
 
 	override val inMedium: Boolean get() = true
 
@@ -201,6 +206,8 @@ object DiveMovement : Movement {
 	private const val AIR_TICKS_PER_NODE = 8
 
 	private const val BREATHE_FRAMES = 140
+
+	private const val BREATHE_COMPLETION_SLACK = 20
 
 	private const val DETOUR_FRAMES = 220
 

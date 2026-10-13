@@ -17,10 +17,12 @@ internal class AlignmentController(private val walk: PathingSession) {
 	var planningYaw: Double? = null
 
 	private var settleTicks = 0
+	private var fallingTicks = 0
 	private var alignmentTicks = 0
 
 	fun beginSettling() {
 		settleTicks = 0
+		fallingTicks = 0
 	}
 
 	fun beginAligning(path: PublishedPath) {
@@ -44,7 +46,9 @@ internal class AlignmentController(private val walk: PathingSession) {
 		if (settled()) {
 			return with(walk.launcher) { capturePlan() }
 		}
-		if (++settleTicks > MAX_SETTLE_TICKS) {
+		val falling = with(walk) { airborne() }
+		if (falling && ++fallingTicks <= MAX_FALLING_TICKS) return
+		if (!falling && ++settleTicks > MAX_SETTLE_TICKS || fallingTicks > MAX_FALLING_TICKS) {
 			with(walk) {
 				fail(
 					"could not settle to a stable start (%.3f b/t, ground %s, water %s after %d ticks)".format(
@@ -118,5 +122,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 		private const val MAX_ALIGNMENT_TICKS = 40
 
 		private const val MAX_SETTLE_TICKS = 40
+
+		private const val MAX_FALLING_TICKS = 400
 	}
 }

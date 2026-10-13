@@ -5,8 +5,6 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
-import com.lambda.pathing.physics.UnsupportedPhysics
-import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
@@ -60,12 +58,12 @@ class EntityObstaclesTest {
 	}
 
 	@Test
-	fun `a walk plans around a cell a mob closed`() {
+	fun `a walk keeps out of a cell a mob stands in while the coarse route runs through it`() {
 		val mob = BlockPos(4, 64, 0)
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
 		for (x in -4..12) for (z in -4..4) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
-		blocks[mob] = SnapshotBlockPhysics.AIR.copy(unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.ENTITY, "entity"))
 		val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-8, 56, -8, 16, 72, 8), blocks)
+		environment.entityCells(longArrayOf(mob.asLong()))
 		val start = MovementSimulationState.synthetic(ProbeScenarios.PROFILE, Vec3d(0.5, 64.0, 0.5), Rotation(-90.0, 0.0), onGround = true)
 		val path = certifiedWalk(environment, Stance(0, 64, 0), Stance(8, 64, 0), start)
 		val frames = path.plan.frames

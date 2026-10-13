@@ -116,17 +116,15 @@ class PathingWorld(
 		}
 	}
 
-	val obstacleCells: LongArray get() = source.obstacleCells
-
-	private val obstacleChanges = LongArrayList()
+	@Volatile
+	var obstacleCells: LongArray = CaptureSource.NO_CELLS
+		private set
 
 	private fun trackObstacles() {
-		obstacleChanges.clear()
-		source.obstacleChanges(obstacleChanges)
-		for (index in 0 until obstacleChanges.size) {
-			val cell = obstacleChanges.getLong(index)
-			resample(BlockPos.unpackLongX(cell), BlockPos.unpackLongY(cell), BlockPos.unpackLongZ(cell))
-		}
+		val cells = source.trackObstacles()
+		if (cells === obstacleCells) return
+		obstacleCells = cells
+		snapshot.entityCells(cells)
 	}
 
 	fun onBlockChanged(pos: BlockPos) {

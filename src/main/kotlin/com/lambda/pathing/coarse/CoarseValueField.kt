@@ -58,9 +58,12 @@ class CoarseValueField(
 		val ranked = ArrayList<RankedStep>(options.edges.size)
 		for (index in options.edges.indices) {
 			val edge = options.edges[index]
+			val to = edge.to
+			if (view.entityAt(to.x, to.y, to.z) || view.entityAt(to.x, to.y + 1, to.z)) continue
 			val cost = options.costs[index]
-			ranked += RankedStep(edge, cost, floor(cost / TIE_TICKS), alignment(stance, edge.to, reference))
+			ranked += RankedStep(edge, cost, floor(cost / TIE_TICKS), alignment(stance, to, reference))
 		}
+		if (ranked.isEmpty()) return emptyList()
 		val best = ranked.minOf { it.cost }
 		val ordered = if (count == 1) listOfNotNull(ranked.minOrNull()) else ranked.sorted()
 		return ordered.asSequence().takeWhile { it.cost <= best + marginTicks }.take(count).map { it.edge }.toList()

@@ -264,9 +264,16 @@ internal class FallEdges(
 			val settle = if (water) FallReach.plunge(flight.impactSpeed, waterCells).ticks.toDouble() else FLOOR_SETTLE_TICKS
 			val ticks = max((flight.airTicks + LAUNCH_TICKS).toDouble(), near / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK) + settle + if (jumps) jumpPenalty else 0.0
 			val standing = near <= flight.reach(STANDING_SPEED)
+			if (!standing && !runUpBehind(origin, unitX, unitZ)) continue
 			return FallEdge(dx, target.y - origin.y, dz, ticks, standing, water, jumps)
 		}
 		return null
+	}
+
+	private fun runUpBehind(origin: Stance, unitX: Double, unitZ: Double): Boolean {
+		val x = floor(origin.x + 0.5 - unitX).toInt()
+		val z = floor(origin.z + 0.5 - unitZ).toInt()
+		return (-1..1).any { dy -> standable.isStance(Stance(x, origin.y + dy, z)) }
 	}
 
 	private fun waterCells(x: Int, top: Int, z: Int): Int {
