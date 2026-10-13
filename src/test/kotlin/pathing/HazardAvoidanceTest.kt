@@ -18,6 +18,8 @@ import net.minecraft.block.Blocks
 import net.minecraft.block.CampfireBlock
 import net.minecraft.block.ShapeContext
 import net.minecraft.block.entity.BlockEntity
+import net.minecraft.entity.EntityType
+import net.minecraft.entity.MarkerEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -53,6 +55,18 @@ class HazardAvoidanceTest {
 	fun `a cactus is a hazard`() {
 		MinecraftBootstrap.ensure()
 		assertEquals(UnsupportedPhysicsKind.CACTUS, captured(Blocks.CACTUS.defaultState).unsupportedPhysics?.kind)
+	}
+
+	@Test
+	fun `powder snow is captured as the snow a walking body sinks into even when captured mid-fall`() {
+		MinecraftBootstrap.ensure()
+		val state = Blocks.POWDER_SNOW.defaultState
+		val view = StatesView(mapOf(BlockPos.ORIGIN to state))
+		val falling = MarkerEntity(EntityType.MARKER, null).apply { fallDistance = 3.0 }
+		assertTrue(!state.getCollisionShape(view, BlockPos.ORIGIN, ShapeContext.of(falling)).isEmpty, "vanilla catches a body falling more than 2.5 blocks")
+		val captured = BlockPhysicsCapture.capture(state, view, BlockPos.ORIGIN, ShapeContext.of(falling))
+		assertTrue(captured.collisionShape.isEmpty, "a capture taken while the player falls must not turn powder snow into a floor")
+		assertEquals(UnsupportedPhysicsKind.POWDER_SNOW, captured.unsupportedPhysics?.kind)
 	}
 
 	@Test

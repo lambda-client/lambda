@@ -103,6 +103,24 @@ class TrajectoryExecutionCursorTest {
     }
 
     @Test
+    fun `cursor tolerates a swimming pose that an integrated server reports a tick early`() {
+        val fixture = fixture()
+        val simulator = MovementSimulator(PROFILE, fixture.environment, fixture.initial)
+        val cursor = TrajectoryExecutionCursor(fixture.plan)
+        simulator.tickMovement(assertIs<ExecutionInputResult.Apply>(cursor.nextInput(simulator.state)).input)
+        val box = simulator.state.boundingBox
+
+        // The server decides swimming from the moved body and its pose echo arrives before the client's next tick.
+        val swimming = simulator.state.copy(boundingBox = box.withMaxY(box.minY + PROFILE.swimmingHeight))
+        assertIs<ExecutionObservationResult.Accepted>(cursor.observeAfterTick(swimming))
+
+        val other = TrajectoryExecutionCursor(fixture.plan)
+        assertIs<ExecutionInputResult.Apply>(other.nextInput(fixture.initial))
+        val odd = simulator.state.copy(boundingBox = box.withMaxY(box.minY + 1.0))
+        assertIs<ExecutionDeviation.Position>(assertIs<ExecutionObservationResult.Rejected>(other.observeAfterTick(odd)).deviation)
+    }
+
+    @Test
     fun `cursor rejects a sprint mismatch when forward coasting cannot converge it`() {
         val fixture = fixture(initialSprinting = true, sprintModes = listOf(false))
         val cursor = TrajectoryExecutionCursor(fixture.plan)

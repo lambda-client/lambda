@@ -46,7 +46,9 @@ class TrajectoryExecutionCursor(
 	var nextFrame: Int = startFrame
 		private set
 
-	private val poseHeightDelta = plan.physicsProfile.height - plan.physicsProfile.crouchHeight
+	private val poseHeightDeltas = with(plan.physicsProfile) {
+		doubleArrayOf(height - crouchHeight, height - swimmingHeight, crouchHeight - swimmingHeight)
+	}
 
 	var awaitingObservation = false
 		private set
@@ -170,7 +172,8 @@ class TrajectoryExecutionCursor(
 		if (expected.isSneaking != actual.isSneaking) return false
 		val expectedHeight = expected.boundingBox.maxY - expected.boundingBox.minY
 		val actualHeight = actual.boundingBox.maxY - actual.boundingBox.minY
-		return abs(abs(expectedHeight - actualHeight) - poseHeightDelta) < POSE_HEIGHT_TOLERANCE
+		val delta = abs(expectedHeight - actualHeight)
+		return poseHeightDeltas.any { abs(delta - it) < POSE_HEIGHT_TOLERANCE }
 	}
 
 	private companion object {

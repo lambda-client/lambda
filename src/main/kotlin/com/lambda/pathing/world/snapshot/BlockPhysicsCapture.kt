@@ -70,7 +70,7 @@ object BlockPhysicsCapture {
 	}
 
 	fun capture(state: BlockState, world: BlockView, pos: BlockPos, shapeContext: ShapeContext, ignoreHazards: Boolean = false): SnapshotBlockPhysics {
-		val shape = state.getCollisionShape(world, pos, shapeContext)
+		val shape = if (state.isOf(Blocks.POWDER_SNOW)) VoxelShapes.empty() else state.getCollisionShape(world, pos, shapeContext)
 		val unsupported = unsupportedPhysics(state, ignoreHazards)
 		val slime = state.isOf(Blocks.SLIME_BLOCK)
 		val coarseVoxel = when {
