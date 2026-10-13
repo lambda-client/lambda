@@ -36,8 +36,11 @@ internal object JumpDecisions {
 	fun solutionsFor(context: DecisionContext): List<LaunchSolution> {
 		val onward = onwardEntryWindow(context)
 		val dodge = context.edge.launch?.lateralOffset ?: 0.0
-		val via = context.edge.via
-			?: return solve(context, onward, null, 0.0, context.edge.launch).map { if (dodge != 0.0 && it.lateralOffset == 0.0) it.copy(lateralOffset = dodge) else it }
+		val via = context.edge.via ?: run {
+			val solutions = solve(context, onward, null, 0.0, context.edge.launch)
+			if (dodge == 0.0) return solutions
+			return solutions.map { if (it.lateralOffset == 0.0) it.copy(lateralOffset = dodge) else it } + solutions.filter { it.lateralOffset == 0.0 }
+		}
 		val bent = solve(context, onward, via, dodge, context.edge.launch)
 		if (dodge == 0.0) return bent
 		return bent + solve(context, onward, null, 0.0, null).map { it.copy(lateralOffset = dodge) }
@@ -146,8 +149,12 @@ internal object JumpDecisions {
 		val lateralCarry = 1.0 + friction * (1.0 - AIR_DRAG.pow((solution.airTicks - 1).coerceAtLeast(0))) / (1.0 - AIR_DRAG)
 
 		val fitting = ArrayList<Fit>()
+		var edgeDelay: Int? = null
 		for (delay in 0..MAX_LAUNCH_FRAME) {
-			if (along > standableAlong) break
+			if (along > standableAlong) {
+				edgeDelay = delay
+				break
+			}
 			val speed = velocityX * unitX + velocityZ * unitZ
 			val speedError = minOf(
 				abs(speed - solution.speed),
@@ -176,21 +183,24 @@ internal object JumpDecisions {
 			lateral += (velocityX * -unitZ + velocityZ * unitX) / friction
 		}
 
+		val underCeiling = !context.view.voxel(edge.from.x, edge.from.y + 2, edge.from.z).fullyPassable
+		val offEdge = if (underCeiling && edgeDelay != null) listOf(edgeDelay, edgeDelay + 1) else emptyList()
+
 		if (fitting.isEmpty()) {
 			val nominal = nominalLaunchFrame(context, solution)
 			val needed = (solution.speed - solution.speedSlack)..(solution.speed + solution.speedSlack)
-			return LAUNCH_BRACKET.map { (nominal + it).coerceAtLeast(0) }
+			return (LAUNCH_BRACKET.map { (nominal + it).coerceAtLeast(0) }
 				.distinct()
 				.filterNot { delay ->
 					val reach = ballistics.groundSpeedReach(body.velocity.x, body.velocity.z, unitX, unitZ, delay, solution.sprint)
 					reach.endInclusive < needed.start || reach.start > needed.endInclusive
-				}
+				} + offEdge).distinct()
 		}
 
 		val cheapest = fitting.sortedBy { it.cost }.map { it.delay }
 		val truest = fitting.sortedBy { it.misplacement }.map { it.delay }
 		val fastest = fitting.sortedBy { it.speedError }.map { it.delay }
-		return (cheapest.take(2) + truest.take(2) + fastest.take(2)).distinct()
+		return (cheapest.take(2) + truest.take(2) + fastest.take(2) + offEdge).distinct()
 	}
 
 	fun runUpDecisions(context: DecisionContext, solutions: List<LaunchSolution>): List<TrajectoryDecision> {

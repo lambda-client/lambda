@@ -37,6 +37,9 @@ object FallMovement : Movement {
 		val view = context.view
 		val from = edge.from
 		val to = edge.to
+		if (view.medium(from.x, from.y, from.z) == Medium.WATER) {
+			return listOf(TrajectoryDecision.Dive(to, surface = !DiveMovement.submerged(view, to.x, to.y, to.z), aim = to, reach = from.y - to.y))
+		}
 		val water = view.medium(to.x, to.y, to.z) == Medium.WATER
 		val launch = from.y + view.surfaceOffset(from.x, from.y - 1, from.z)
 		val landing = if (water) to.y + 1.0 else to.y + view.surfaceOffset(to.x, to.y - 1, to.z)

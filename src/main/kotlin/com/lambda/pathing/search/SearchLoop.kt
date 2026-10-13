@@ -62,6 +62,8 @@ internal class SearchLoop(
 	private var idleCursor = -1
 	private var idleSlices = 0
 	private val legRoots = ArrayDeque<ValueAnchor>()
+
+	private var deepestLeg = 0
 	private var exit = SearchExit.BUDGET
 
 	fun run(): MotionPlanResult = try {
@@ -94,7 +96,9 @@ internal class SearchLoop(
 	private fun plantRoot(): ValueAnchor {
 		val bodyStance = heldStanceOf(field.view, initialState)
 		val rootStance = if (field.isMapped(bodyStance)) bodyStance else {
-			supportedStanceOf(initialState)?.takeIf { field.isMapped(it) } ?: bodyStance
+			supportedStanceOf(initialState)?.takeIf { field.isMapped(it) }
+				?: footprintStances(initialState).takeIf { initialState.onGround }?.firstOrNull { field.isStance(it) && field.isMapped(it) }
+				?: bodyStance
 		}
 		val root = ValueAnchor(
 			state = initialState,
@@ -321,7 +325,7 @@ internal class SearchLoop(
 			is Outcome.Anchored -> {
 				val landed = outcome.anchor
 				annealing.noteGuide(landed.stance)
-				val atGoal = landed.stance == route.goal
+				val atGoal = landed.stance == route.goal && pressesCell(landed.state, route.goal)
 				val next = if (atGoal) legs?.handoff(route.goal) else null
 				if (next != null) switchLeg(landed, next) else {
 					if (atGoal) offerGoalStop(landed)
@@ -458,7 +462,10 @@ internal class SearchLoop(
 		frontier.clear()
 		frontier.updateRoute(route.index)
 		frontier.reRoot(anchor)
-		recovery.beginLeg()
+		if (legRoots.size > deepestLeg) {
+			deepestLeg = legRoots.size
+			recovery.beginLeg()
+		}
 		publisher.forgetRefusedCommit()
 	}
 
@@ -479,7 +486,6 @@ internal class SearchLoop(
 			annealing.clearSpent()
 			restartWindow(root.stance)
 			frontier.updateRoute(route.index)
-			recovery.beginLeg()
 			publisher.forgetRefusedCommit()
 		}
 	}

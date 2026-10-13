@@ -82,7 +82,7 @@ internal object FallReach {
 		return Plunge(-deepest, MAX_PLUNGE_TICKS)
 	}
 
-	const val MAX_FALL_TICKS = 120
+	const val MAX_FALL_TICKS = 1200
 
 	private const val MAX_PLUNGE_TICKS = 200
 

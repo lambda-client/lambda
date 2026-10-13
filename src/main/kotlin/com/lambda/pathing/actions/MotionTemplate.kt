@@ -75,6 +75,7 @@ class MotionTemplate internal constructor(
 		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return ledgeEdge(view, origin) }
 		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset)
 			?: return ledgeEdge(view, origin)
+		if (probed.solution.mode.jumps && Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !launchesFromFooting(view, origin, probed.solution)) return ledgeEdge(view, origin)
 		val detour = probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0
 		return edgeOf(
 			origin, lowerBoundTicks + detour / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK, probed.reads,
@@ -86,6 +87,20 @@ class MotionTemplate internal constructor(
 	private fun undecided(view: CoarseVoxelView, origin: Stance): Boolean = conditions.all { condition ->
 		condition.matches(view, origin.x, origin.y, origin.z) ||
 			condition.reads().any { view.cellClass(origin.x + it.x, origin.y + it.y, origin.z + it.z) == CellClass.SPECIAL }
+	}
+
+	private fun launchesFromFooting(view: CoarseVoxelView, origin: Stance, solution: LaunchSolution): Boolean {
+		val holds = Footing.holds(view, origin)
+		if (holds.isEmpty) return false
+		val towardX = solution.via?.x ?: dx.toDouble()
+		val towardZ = solution.via?.z ?: dz.toDouble()
+		val length = kotlin.math.hypot(towardX, towardZ)
+		if (length == 0.0) return true
+		val unitX = towardX / length
+		val unitZ = towardZ / length
+		val x = origin.x + 0.5 + unitX * solution.launchOffset - unitZ * solution.lateralOffset
+		val z = origin.z + 0.5 + unitZ * solution.launchOffset + unitX * solution.lateralOffset
+		return !holds.heightAt(x, z).isNaN()
 	}
 
 	private fun ledgeEdge(view: CoarseVoxelView, origin: Stance): CoarseEdge? {

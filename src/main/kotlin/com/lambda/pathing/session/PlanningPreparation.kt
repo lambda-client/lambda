@@ -9,10 +9,12 @@ import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.fallLimits
 import com.lambda.pathing.search.SearchConfig
 import com.lambda.pathing.search.stanceOf
+import com.lambda.pathing.search.footprintStances
 import com.lambda.pathing.search.supportedStanceOf
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
 import com.lambda.util.FolderRegistry
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.registry.tag.BlockTags
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
@@ -101,7 +103,7 @@ internal fun preparePlanning(
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 	)
 	val initial = initialOverride ?: MovementSimulationState.from(player)
-	val start = supportedStanceOf(initial) ?: stanceOf(initial)
+	val start = supportedStanceOf(initial) ?: footing(player, initial) ?: stanceOf(initial)
 
 	if (!plannableEntry(initial.velocity)) {
 		return PlanningPreparationResult.Failed(
@@ -170,3 +172,14 @@ private const val MAX_ENTRY_ASCENT_SPEED = 0.5
 private const val MAX_ENTRY_DESCENT_SPEED = 4.0
 
 private const val SAVE_FOOD_JUMP_TICKS = 20.0
+
+private fun footing(player: ClientPlayerEntity, initial: MovementSimulationState): Stance? {
+	if (!initial.onGround || standsOn(player, stanceOf(initial))) return null
+	return footprintStances(initial).firstOrNull { standsOn(player, it) }
+}
+
+private fun standsOn(player: ClientPlayerEntity, stance: Stance): Boolean {
+	val below = BlockPos(stance.x, stance.y - 1, stance.z)
+	val state = player.entityWorld.getBlockState(below)
+	return !state.isIn(BlockTags.CLIMBABLE) && !state.getCollisionShape(player.entityWorld, below).isEmpty
+}

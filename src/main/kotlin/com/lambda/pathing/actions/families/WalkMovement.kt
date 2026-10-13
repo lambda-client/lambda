@@ -54,7 +54,7 @@ object WalkMovement : Movement {
 				add(
 					spec(
 						dx, 1, dz, costs.stepUp,
-						walkConditions(dx, 1, dz) + STEP_UP_HEADROOM,
+						walkConditions(dx, 1, dz) + CellCondition(0, 2, 0, CellPredicate.stepUpHeadroom(CoarseVoxel.sides(dx, dz))),
 						MovementId.STEP_UP,
 						strideCost = costs.cardinalWalk,
 					)

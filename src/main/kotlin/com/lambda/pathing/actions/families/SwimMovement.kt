@@ -36,6 +36,7 @@ object SwimMovement : Movement {
 			for ((dx, dz) in CARDINALS) {
 				add(TemplateSpec(dx, 0, dz, id, costs.swim, surface(dx, dz), departure = CellPredicate.WATER))
 				add(TemplateSpec(dx, 0, dz, MovementId.ENTER_WATER, costs.cardinalWalk, surface(dx, dz)))
+				add(TemplateSpec(dx, 0, dz, MovementId.ENTER_WATER, costs.cardinalWalk, submergedEntry(dx, dz)))
 				for (depth in 1..MAX_ENTRY_DEPTH) {
 					val fall = (1 downTo 1 - depth).map { CellCondition(dx, it, dz, CellPredicate.CENTER_SLICE) }
 					val cost = if (depth == 1) costs.walkOffCost(depth) else costs.dropCost(1, depth)
@@ -71,6 +72,11 @@ object SwimMovement : Movement {
 	private fun surface(dx: Int, dz: Int) = listOf(
 		CellCondition(dx, 0, dz, CellPredicate.WATER),
 		CellCondition(dx, 1, dz, CellPredicate.CENTER_HEAD),
+	)
+
+	private fun submergedEntry(dx: Int, dz: Int) = listOf(
+		CellCondition(dx, 0, dz, CellPredicate.WATER),
+		CellCondition(dx, 1, dz, CellPredicate.WATER),
 	)
 
 	override fun occupies(view: CoarseVoxelView, stance: Stance): Boolean =

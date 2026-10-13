@@ -47,8 +47,11 @@ fun interface CellPredicate {
 
 		private fun walking(side: Int, dy: Int, inbound: Boolean) = object : CellPredicate {
 			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
-				if (Footing.involvesPartial(view, x, y, z)) {
-					val other = Stance(x + CoarseVoxel.dx(side), if (inbound) y - dy else y + dy, z + CoarseVoxel.dz(side))
+				val otherX = x + CoarseVoxel.dx(side)
+				val otherY = if (inbound) y - dy else y + dy
+				val otherZ = z + CoarseVoxel.dz(side)
+				if (Footing.involvesPartial(view, x, y, z) || !inbound && dy > 0 && Footing.involvesPartial(view, otherX, otherY, otherZ)) {
+					val other = Stance(otherX, otherY, otherZ)
 					val here = Stance(x, y, z)
 					val maxRise = if (dy > 0) Footing.JUMP_RISE else Footing.WALK_RISE
 					return if (inbound) Footing.walkable(view, other, here, maxRise) else Footing.walkable(view, here, other, maxRise)
@@ -84,6 +87,23 @@ fun interface CellPredicate {
 		fun enteringHead(sides: Int): CellPredicate = ENTERING_HEAD[sides]
 
 		fun leaving(sides: Int): CellPredicate = LEAVING[sides]
+
+		private val STEP_UP_HEADROOM = Array(CoarseVoxel.ALL_SIDES + 1) { side ->
+			object : CellPredicate {
+				override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
+					if (CENTER_SLICE.matches(view, x, y, z)) return true
+					val toX = x + CoarseVoxel.dx(side)
+					val toZ = z + CoarseVoxel.dz(side)
+					if (!Footing.involvesPartial(view, x, y - 2, z) && !Footing.involvesPartial(view, toX, y - 1, toZ)) return false
+					return Footing.walkable(view, Stance(x, y - 2, z), Stance(toX, y - 1, toZ), Footing.WALK_RISE)
+				}
+				override val extraReads = listOf(VoxelPos(0, -1, 0))
+				override val neighborReads = listOf(0 to 0, CoarseVoxel.dx(side) to CoarseVoxel.dz(side))
+					.flatMap { (cx, cz) -> (-1..1).flatMap { dx -> (-1..1).flatMap { dz -> (-5..2).map { VoxelPos(cx + dx, it, cz + dz) } } } }.distinct()
+			}
+		}
+
+		fun stepUpHeadroom(side: Int): CellPredicate = STEP_UP_HEADROOM[side]
 
 		fun walkingIn(side: Int, dy: Int): CellPredicate = WALKING_IN[dy + 1][side]
 

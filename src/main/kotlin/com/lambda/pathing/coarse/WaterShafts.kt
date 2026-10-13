@@ -100,8 +100,9 @@ internal class WaterShafts(
 		var bottom = top
 		while (top - bottom < MAX_DEPTH && view.medium(x, bottom - 1, z) == Medium.WATER) bottom--
 		val open = BooleanArray(top - bottom + 1)
+		val hanging = DiveMovement.hangsOverAir(view, x, bottom, z)
 		for (y in top downTo bottom) {
-			if (y < top) open[top - y] = (0 until SIDES).none { side ->
+			if (y < top) open[top - y] = !(hanging && y == bottom) && (0 until SIDES).none { side ->
 				val voxel = view.voxel(x + SIDE_X[side], y, z + SIDE_Z[side])
 				if (voxel.medium == Medium.WATER) !cover[side] || roof[side] == y + 1 else DiveMovement.exit(voxel)
 			}

@@ -33,7 +33,7 @@ object JumpMovement : Movement {
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val solutions = JumpDecisions.solutionsFor(context)
 			.filter { context.constraints.sprintModes.contains(it.sprint) }
-			.distinctBy { Triple(it.mode, it.launchOffset, it.via) }
+			.distinctBy { Triple(it.mode, it.launchOffset to it.lateralOffset, it.via) }
 			.sortedByDescending { it.margin }
 
 		val standard = solutions.flatMap { solution ->

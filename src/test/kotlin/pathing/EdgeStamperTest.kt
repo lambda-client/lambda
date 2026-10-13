@@ -8,6 +8,7 @@ import com.lambda.pathing.coarse.PackedStance
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.coarse.StanceMemo
 import com.lambda.pathing.coarse.SimpleMoveLibrary
+import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.launch.ArcSample
 import com.lambda.pathing.physics.UnsupportedPhysics
@@ -110,7 +111,7 @@ class EdgeStamperTest {
 				assertSame(exact, stamped, "template ${template.id} ${template.movement}(${template.dx},${template.dy},${template.dz}) at $origin")
 				if (exact != null) {
 					compared++
-					exactEdges += "${template.id.value} ${exact.lowerBoundTicks} ${exact.standingStart}"
+					if (template.movement != MovementId.DIVE || moves.isStance(view, exact.to)) exactEdges += "${template.id.value} ${exact.lowerBoundTicks} ${exact.standingStart}"
 				}
 				if (exact != null && compared % READ_SET_SAMPLE == 0) {
 					assertEquals(exact.readSet.toSet(), stamped!!.readSet.toSet(), "read set of template ${template.id} at $origin")

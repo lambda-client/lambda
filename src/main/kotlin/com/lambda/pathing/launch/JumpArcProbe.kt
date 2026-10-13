@@ -146,8 +146,8 @@ object JumpArcProbe {
 		return levels.toDoubleArray()
 	}
 
-	private fun bonks(view: CoarseVoxelView, from: Stance, dx: Int, dz: Int, solution: LaunchSolution, launchHeight: Double, reads: LongOpenHashSet?): Boolean {
-		val (x, z) = bonkPoint(dx, dz, solution) ?: return false
+	private fun bonks(view: CoarseVoxelView, from: Stance, dx: Int, dz: Int, solution: LaunchSolution, launchHeight: Double, reads: LongOpenHashSet?, lateral: Double = 0.0): Boolean {
+		val (x, z) = bonkPoint(dx, dz, solution, lateral) ?: return false
 		val region = region(dx, dz)
 		val head = launchHeight + BODY_HEIGHT
 		var bonked = false
@@ -164,13 +164,15 @@ object JumpArcProbe {
 
 	private fun quantized(headroom: Double): Double = floor(headroom * HEADROOM_STEPS) / HEADROOM_STEPS
 
-	private fun bonkPoint(dx: Int, dz: Int, solution: LaunchSolution): Pair<Double, Double>? {
+	private fun bonkPoint(dx: Int, dz: Int, solution: LaunchSolution, lateral: Double = 0.0): Pair<Double, Double>? {
 		val arc = solution.arc
 		val tick = arc.heights.indexOfFirst { it >= solution.headroom }
 		if (tick < 0) return null
 		val along = solution.launchOffset + if (tick == 0) 0.0 else arc.distances[tick - 1]
 		val length = hypot(dx.toDouble(), dz.toDouble())
-		return 0.5 + dx / length * along to 0.5 + dz / length * along
+		val unitX = dx / length
+		val unitZ = dz / length
+		return 0.5 + unitX * along - unitZ * lateral to 0.5 + unitZ * along + unitX * lateral
 	}
 
 	private inline fun forEachColumn(x: Double, z: Double, visit: (Int, Int) -> Unit) {
@@ -352,20 +354,25 @@ object JumpArcProbe {
 			var launchable = 0
 			for ((index, offset) in LaunchSolver.LAUNCH_OFFSETS.withIndex()) if (!feet(takeoff, offset).isNaN()) launchable = launchable or (1 shl index)
 			if (launchable == 0) continue
-			for (solution in ledgeSolutions(LedgeKey(dx, dz, modes, rise.toRawBits(), near.toRawBits(), far.toRawBits(), launchable))) {
-				val path = ArcPath(
-					from.x + 0.5 + unitX * solution.launchOffset - unitZ * lateral,
-					from.z + 0.5 + unitZ * solution.launchOffset + unitX * lateral,
-					unitX, unitZ,
-				)
-				if (arcs.hitsAny(solution.arc, path, launchFeet, BODY_HALF_WIDTH, culprits)) continue
-				if (arcs.sweep(solution.arc, path, launchFeet, BODY_HALF_WIDTH, culprits) == Sweep.Clear) return solution.copy(lateralOffset = lateral)
+			val headrooms = doubleArrayOf(Double.POSITIVE_INFINITY) + ceilingLevels(view, from, dx, dz, launchFeet, reads)
+			for (headroom in headrooms) {
+				for (solution in ledgeSolutions(LedgeKey(dx, dz, modes, rise.toRawBits(), near.toRawBits(), far.toRawBits(), launchable, headroom.toRawBits()))) {
+					val path = ArcPath(
+						from.x + 0.5 + unitX * solution.launchOffset - unitZ * lateral,
+						from.z + 0.5 + unitZ * solution.launchOffset + unitX * lateral,
+						unitX, unitZ,
+					)
+					if (arcs.hitsAny(solution.arc, path, launchFeet, BODY_HALF_WIDTH, culprits)) continue
+					if (arcs.sweep(solution.arc, path, launchFeet, BODY_HALF_WIDTH, culprits) != Sweep.Clear) continue
+					if (headroom.isFinite() && !bonks(view, from, dx, dz, solution, launchFeet, reads, lateral)) continue
+					return solution.copy(lateralOffset = lateral)
+				}
 			}
 		}
 		return null
 	}
 
-	private data class LedgeKey(val dx: Int, val dz: Int, val modes: List<LaunchMode>, val riseBits: Long, val nearBits: Long, val farBits: Long, val launchable: Int)
+	private data class LedgeKey(val dx: Int, val dz: Int, val modes: List<LaunchMode>, val riseBits: Long, val nearBits: Long, val farBits: Long, val launchable: Int, val headroomBits: Long)
 
 	private val ledgeSolutionCache = ConcurrentHashMap<LedgeKey, List<LaunchSolution>>()
 
@@ -377,6 +384,7 @@ object JumpArcProbe {
 			LaunchSolver.solve(
 				origin, origin.offset(key.dx, 0, key.dz), key.modes,
 				rise = Double.fromBits(key.riseBits),
+				headroom = Double.fromBits(key.headroomBits),
 				landingRange = Double.fromBits(key.nearBits)..Double.fromBits(key.farBits),
 				launchable = { offset -> LaunchSolver.LAUNCH_OFFSETS.indexOf(offset).let { it >= 0 && key.launchable and (1 shl it) != 0 } },
 			)

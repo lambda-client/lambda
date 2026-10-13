@@ -3,6 +3,7 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionTemplateId
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.Stance
@@ -17,6 +18,7 @@ import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -45,6 +47,7 @@ internal class FallEdges(
 	private val view: CoarseVoxelView,
 	moves: SimpleMoveLibrary,
 	private val standable: StanceMemo,
+	private val unknownDrops: LongOpenHashSet? = null,
 ) {
 	private val limits = moves.catalog.options.fallLimits
 	private val shallowWater = moves.catalog.options.allowSwimming
@@ -78,10 +81,11 @@ internal class FallEdges(
 	fun from(origin: Stance): Array<FallEdge> {
 		if (idle) return NONE
 		synchronize()
-		if (!rim(origin)) return NONE
+		val hanging = hanging(origin)
+		if (!hanging && !rim(origin)) return NONE
 		val key = key(origin)
 		outgoing.getAndMoveToLast(key)?.let { return it }
-		val edges = scan(origin)
+		val edges = if (hanging) waterDrop(origin) else scan(origin)
 		if (outgoing.size >= CACHED_ORIGINS) outgoing.removeFirst()
 		outgoing.putAndMoveToLast(key, edges)
 		return edges
@@ -109,7 +113,8 @@ internal class FallEdges(
 		if (rims.contains(key)) return true
 		if (idle) return false
 		synchronize()
-		return rim(Stance(x, y, z))
+		val origin = Stance(x, y, z)
+		return hanging(origin) || rim(origin)
 	}
 
 	fun coarseEdge(origin: Stance, edge: FallEdge): CoarseEdge {
@@ -164,6 +169,62 @@ internal class FallEdges(
 		return rim
 	}
 
+	private fun hanging(origin: Stance): Boolean {
+		if (view.medium(origin.x, origin.y, origin.z) != Medium.WATER || !DiveMovement.hangsOverAir(view, origin.x, origin.y, origin.z)) return false
+		if (!standable.isStance(origin)) return false
+		rims.add(key(origin))
+		return true
+	}
+
+	private fun waterDrop(origin: Stance): Array<FallEdge> {
+		val hit = occupancy.highestAtOrBelow(origin.x, origin.y - 1, origin.z, origin.y - MAX_DEPTH)
+		if (hit == Int.MIN_VALUE) return NONE
+		val water = when (view.medium(origin.x, hit, origin.z)) {
+			Medium.WATER -> true
+			Medium.SOLID -> false
+			else -> {
+				recordUnknownDrop(origin.x, hit, origin.z)
+				return NONE
+			}
+		}
+		val target = Stance(origin.x, if (water) hit else hit + 1, origin.z)
+		if (!standable.isStance(target)) return NONE
+		val landingHeight = if (water) hit + 1.0 else target.y + view.surfaceOffset(origin.x, target.y - 1, origin.z)
+		val drop = origin.y - landingHeight
+		if (!water) {
+			if (view.voxel(origin.x, hit, origin.z).bouncy) return NONE
+			val rule = view.fallRule(origin.x, floor(landingHeight - LANDING_PROBE_DEPTH).toInt(), origin.z)
+			if (drop > limits.maxFallOnto(rule)) return NONE
+		}
+		val flight = FallReach.flight(false, drop) ?: return NONE
+		val settle = if (water) FallReach.plunge(flight.impactSpeed, waterCells(origin.x, hit, origin.z)).ticks.toDouble() else FLOOR_SETTLE_TICKS
+		return arrayOf(FallEdge(0, target.y - origin.y, 0, flight.airTicks + SINK_TICKS + settle, true, water, false))
+	}
+
+	private fun dropsOnto(target: Stance, water: Boolean): FallArrival? {
+		val highest = target.y + MAX_DEPTH
+		val y = occupancy.lowestAbove(target.x, if (water) target.y else target.y - 1, target.z, highest)
+		if (y > highest || view.medium(target.x, y, target.z) != Medium.WATER) return null
+		val origin = Stance(target.x, y, target.z)
+		val edge = from(origin).firstOrNull { it.dx == 0 && it.dz == 0 && origin.y + it.dy == target.y } ?: return null
+		return FallArrival(origin, edge)
+	}
+
+	private fun recordUnknownDrops(origin: Stance, open: Int) {
+		if (unknownDrops == null) return
+		for (side in 0 until SIDES) {
+			if (open and (1 shl side) == 0) continue
+			val x = origin.x + SIDE_DX[side]
+			val z = origin.z + SIDE_DZ[side]
+			val hit = occupancy.highestAtOrBelow(x, origin.y - 1, z, origin.y - MAX_DEPTH)
+			if (hit != Int.MIN_VALUE) recordUnknownDrop(x, hit, z)
+		}
+	}
+
+	private fun recordUnknownDrop(x: Int, y: Int, z: Int) {
+		if (unknownDrops != null && view.isUnknown(x, y, z)) unknownDrops.add(BlockPos.asLong(x, y, z))
+	}
+
 	private fun openSides(origin: Stance): Int {
 		var open = 0
 		for (side in 0 until SIDES) {
@@ -194,7 +255,7 @@ internal class FallEdges(
 		val baseY = (origin.y shr 4) shl 4
 		val baseZ = (origin.z shr 4) shl 4
 		val soft = view.maySoftLandWithin(
-			baseX - MAX_REACH, baseY - MAX_DEPTH, baseZ - MAX_REACH,
+			baseX - MAX_REACH, maxOf(baseY - MAX_DEPTH, view.simulableStanceY.first) - 1, baseZ - MAX_REACH,
 			baseX + 15 + MAX_REACH, baseY + 15 - if (shallowWater) MIN_WATER_DROP else MIN_DROP, baseZ + 15 + MAX_REACH,
 		)
 		gates.put(section, soft)
@@ -202,8 +263,11 @@ internal class FallEdges(
 	}
 
 	private fun scan(origin: Stance): Array<FallEdge> {
-		if (!normalFloors && !softBelow(origin)) return NONE
 		val open = openSides(origin)
+		if (!normalFloors && !softBelow(origin)) {
+			recordUnknownDrops(origin, open)
+			return NONE
+		}
 		val launch = origin.y + view.surfaceOffset(origin.x, origin.y - 1, origin.z)
 		val canJump = (2..HEADROOM_CELLS).none { occupancy.occupied(origin.x, origin.y + it, origin.z) }
 		var found: ArrayList<FallEdge>? = null
@@ -223,7 +287,10 @@ internal class FallEdges(
 		val water = when (view.medium(x, hit, z)) {
 			Medium.WATER -> true
 			Medium.SOLID -> false
-			else -> return null
+			else -> {
+				recordUnknownDrop(x, hit, z)
+				return null
+			}
 		}
 		val target = Stance(x, if (water) hit else hit + 1, z)
 		if (target.y - origin.y > -minimumDrop(water)) return null
@@ -317,12 +384,13 @@ internal class FallEdges(
 	private fun discover(target: Stance): Array<FallArrival> {
 		if (!landable(target)) return NO_ARRIVALS
 		val water = view.medium(target.x, target.y, target.z) == Medium.WATER
+		val dropped = dropsOnto(target, water)
 		val clearFrom = if (water) target.y + 1 else target.y
 		val ceiling = occupancy.lowestAbove(target.x, clearFrom - 1, target.z, target.y + MAX_DEPTH + 1)
 		val highest = minOf(ceiling - 2, target.y + MAX_DEPTH, view.simulableStanceY.last)
 		val lowest = target.y + minimumDrop(water)
-		if (highest < lowest) return NO_ARRIVALS
-		var found: ArrayList<FallArrival>? = null
+		if (highest < lowest) return if (dropped == null) NO_ARRIVALS else arrayOf(dropped)
+		var found: ArrayList<FallArrival>? = dropped?.let { arrayListOf(it) }
 		for (index in LATTICE_DX.indices) {
 			val dx = LATTICE_DX[index]
 			val dz = LATTICE_DZ[index]
@@ -356,7 +424,7 @@ internal class FallEdges(
 	companion object {
 		const val MIN_DROP = 4
 
-		const val MAX_DEPTH = 128
+		const val MAX_DEPTH = 4096
 
 		const val MAX_REACH = 16
 
@@ -375,6 +443,8 @@ internal class FallEdges(
 		private const val INTRUDING_FLOOR_DEPTH = 2
 
 		private const val LAUNCH_TICKS = 1
+
+		private const val SINK_TICKS = 6
 
 		private const val FLOOR_SETTLE_TICKS = 2.0
 

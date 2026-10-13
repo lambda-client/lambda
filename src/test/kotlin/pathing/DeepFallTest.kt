@@ -13,15 +13,19 @@ import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.session.walkHorizon
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
+import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
 import com.lambda.pathing.world.snapshot.SimulationSnapshotBounds
+import com.lambda.pathing.world.snapshot.SnapshotBlockPhysics
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import minecraft.MinecraftBootstrap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.ShapeContext
+import net.minecraft.block.SlabBlock
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.BlockView
 import pathing.ProbeScenarios.moveLibrary
@@ -139,6 +143,53 @@ class DeepFallTest {
 	}
 
 	@Test
+	fun `a waterlogged slab at the bottom of the world takes a fall from its top`() {
+		MinecraftBootstrap.ensure()
+		val states = HashMap<BlockPos, BlockState>()
+		for (x in -8..14) for (z in -6..6) states[BlockPos(x, -62, z)] = Blocks.STONE.defaultState
+		val cushion = Blocks.STONE_SLAB.defaultState.with(SlabBlock.WATERLOGGED, true)
+		for (x in 1..2) for (z in -1..1) states[BlockPos(x, -61, z)] = cushion
+		for (x in -4..0) for (z in -2..2) for (y in -61..313) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
+		for (x in 9..14) for (z in -6..6) states[BlockPos(x, -61, z)] = Blocks.STONE.defaultState
+		val environment = environment(states, SimulationSnapshotBounds(-16, -64, -16, 24, 319, 16))
+		val start = Stance(-2, 314, 0)
+		val goal = Stance(12, -60, 0)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), start, goal)
+		assertTrue(planner.repair().converged, "the tower must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the water in a waterlogged slab cushions a fall of any height")
+		val fall = assertNotNull(route.edges.firstOrNull { it.movement == MovementId.FALL }, "the route must fall: ${route.edges.map { it.movement }}")
+		assertEquals(-60, fall.to.y, "the fall lands on the waterlogged slab: $fall")
+
+		val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 314.0, 0.5), -90.0), environment)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the fall onto the waterlogged slab must be certified, got $outcome")
+		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
+	}
+
+	@Test
+	fun `a rim over an uncaptured column asks for the column below it`() {
+		MinecraftBootstrap.ensure()
+		val states = HashMap<BlockPos, BlockState>()
+		for (x in -8..14) for (z in -6..6) states[BlockPos(x, 0, z)] = Blocks.STONE.defaultState
+		for (x in -4..0) for (z in -2..2) for (y in 1..79) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
+		for (x in 1..2) for (z in -1..1) states[BlockPos(x, 1, z)] = Blocks.WATER.defaultState
+		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val bounds = SimulationSnapshotBounds(-16, 0, -16, 31, 127, 31)
+		val cells = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -16..31) for (y in 0..127) for (z in -16..31) cells[BlockPos(x, y, z)] = sampler.physicsAt(x, y, z)
+		val uncaptured = ChunkSectionPos.asLong(0, 2, 0)
+		val environment = SnapshotSimulationEnvironment(bounds, ImmutableSnapshotSection.sectionsOf(cells) - uncaptured, null)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 80, 0), Stance(12, 1, 0))
+		planner.repair()
+		assertNull(planner.routePlan(0L), "the only way down falls through terrain nobody captured")
+		planner.probeDropsFrom(Stance(-2, 80, 0), maxStances = 512)
+		val asked = ArrayList<BlockPos>()
+		planner.drainUnknownDrops { x, y, z -> asked += BlockPos(x, y, z) }
+		assertTrue(asked.any { it.x == 1 && it.y == 47 }, "the rim must ask for the uncaptured column below it: $asked")
+		planner.drainUnknownDrops { x, y, z -> error("drained twice: ($x, $y, $z)") }
+	}
+
+	@Test
 	fun `a hay bale seven blocks down cushions the fall`() {
 		val (environment, start, goal) = hayTower(hayTop = 74)
 		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), start, goal)
@@ -185,12 +236,12 @@ class DeepFallTest {
 		return Triple(environment(states), Stance(-2, 81, 0), Stance(10, 72, 0))
 	}
 
-	private fun environment(states: Map<BlockPos, BlockState>): SnapshotSimulationEnvironment {
+	private fun environment(
+		states: Map<BlockPos, BlockState>,
+		bounds: SimulationSnapshotBounds = SimulationSnapshotBounds(-16, 50, -16, 24, 100, 16),
+	): SnapshotSimulationEnvironment {
 		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
-		return SnapshotSimulationEnvironment.synthetic(
-			SimulationSnapshotBounds(-16, 50, -16, 24, 100, 16),
-			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
-		)
+		return SnapshotSimulationEnvironment.synthetic(bounds, states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) })
 	}
 
 	private class StatesView(private val states: Map<BlockPos, BlockState>) : BlockView {

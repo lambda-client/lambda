@@ -28,7 +28,13 @@ internal object InterestPrimer {
 	}
 
 	fun primeJourney(world: PathingWorld, start: Stance, goal: Stance) {
-		world.interestAround(goal.x, goal.y, goal.z, GOAL_INTEREST_BLOCKS, GOAL_INTEREST_BLOCKS, InterestTier.CORRIDOR)
+		val below = (goal.y - start.y).coerceAtLeast(0)
+		val above = (start.y - goal.y).coerceAtLeast(0)
+		world.interestBlocks(
+			goal.x - GOAL_INTEREST_BLOCKS, goal.y - GOAL_INTEREST_BLOCKS - below, goal.z - GOAL_INTEREST_BLOCKS,
+			goal.x + GOAL_INTEREST_BLOCKS, goal.y + GOAL_INTEREST_BLOCKS + above, goal.z + GOAL_INTEREST_BLOCKS,
+			InterestTier.CORRIDOR,
+		)
 		val dx = goal.x - start.x
 		val dy = goal.y - start.y
 		val dz = goal.z - start.z

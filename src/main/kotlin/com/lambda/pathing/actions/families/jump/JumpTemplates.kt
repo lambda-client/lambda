@@ -43,7 +43,7 @@ internal object JumpTemplates {
 
 		if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return rise <= WIDE_DROP_STEP && options.allowDeepDropJumps && wideDrop(dx, dz)
 		val ceiling = when {
-			step -> STEP_JUMP_AIR_GAP_BLOCKS
+			step -> RISING_STANDING_AIR_GAP_BLOCKS
 			rise < 0 && options.allowDeepDropJumps -> FULL_DROP_AIR_GAP_BLOCKS
 			else -> STANDING_AIR_GAP_BLOCKS
 		}
@@ -94,8 +94,6 @@ internal object JumpTemplates {
 	private val STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 1.0)
 
 	private val RISING_STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(2.0, 2.0)
-
-	private const val STEP_JUMP_AIR_GAP_BLOCKS = 1.0
 
 	private const val HALF_DROP_AIR_GAP_BLOCKS = 4.0
 

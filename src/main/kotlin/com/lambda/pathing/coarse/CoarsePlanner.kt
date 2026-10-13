@@ -10,8 +10,11 @@ import com.lambda.pathing.graph.EdgeList
 import com.lambda.pathing.graph.LongDStarLite
 import com.lambda.pathing.graph.LongGraph
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Medium
+import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import net.minecraft.util.math.BlockPos
 import kotlin.math.abs
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -24,7 +27,9 @@ class CoarsePlanner(
 ) {
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
-	private val edgeCache = CoarseEdgeCache(view.cursor(), moves, listOf(goalStance))
+	private val unknownDrops = LongOpenHashSet()
+
+	private val edgeCache = CoarseEdgeCache(view.cursor(), moves, listOf(goalStance), unknownDrops)
 
 	private val momentum = MomentumRules(moves.templates)
 
@@ -206,9 +211,42 @@ class CoarsePlanner(
 
 	fun updateStart(start: Stance, speed: SpeedClass = SpeedClass.STOPPED) = search.updateStart(PackedStance.pack(entry(start), speed))
 
-	private fun entry(start: Stance): Stance = if (edgeCache.isStance(start)) start else DiveMovement.aboveOpenWater(view, start)
+	private fun entry(start: Stance): Stance {
+		if (edgeCache.isStance(start)) return start
+		val hanging = view.medium(start.x, start.y, start.z) != Medium.WATER && view.medium(start.x, start.y + 1, start.z) == Medium.WATER
+		val lifted = if (hanging) start.offset(0, 1, 0) else start
+		return if (lifted != start && edgeCache.isStance(lifted)) lifted else DiveMovement.aboveOpenWater(view, lifted)
+	}
 
 	val anchorCount: Int get() = anchors.size
+
+	fun probeDropsFrom(start: Stance, maxStances: Int) {
+		val seen = LongOpenHashSet()
+		val queue = LongArrayFIFOQueue()
+		val first = PackedStance.pack(entry(start), SpeedClass.STOPPED)
+		seen.add(PackedStance.stanceKey(first))
+		queue.enqueue(first)
+		val successors = EdgeList()
+		while (!queue.isEmpty) {
+			val node = queue.dequeueLong()
+			edgeCache.forEachFallFrom(node) { _, _ -> }
+			successors.clear()
+			momentum.successors(edgeCache, node, successors)
+			for (index in 0 until successors.size) {
+				val next = successors.node(index)
+				if (seen.size < maxStances && seen.add(PackedStance.stanceKey(next))) queue.enqueue(PackedStance.withSpeed(next, SpeedClass.STOPPED))
+			}
+		}
+	}
+
+	fun drainUnknownDrops(action: (Int, Int, Int) -> Unit) {
+		val iterator = unknownDrops.iterator()
+		while (iterator.hasNext()) {
+			val cell = iterator.nextLong()
+			action(BlockPos.unpackLongX(cell), BlockPos.unpackLongY(cell), BlockPos.unpackLongZ(cell))
+		}
+		unknownDrops.clear()
+	}
 
 	val optimisticAnchors: Map<Stance, Double> get() = HashMap<Stance, Double>().also { copy -> anchors.forEach { stance, cost -> copy[stance] = cost } }
 

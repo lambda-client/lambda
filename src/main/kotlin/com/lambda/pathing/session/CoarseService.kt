@@ -213,7 +213,7 @@ internal class CoarseService(
 		val wanted = lock.withLock { request }
 		val active = wanted?.leg ?: 0
 		if (wanted != null) moveStart(active, wanted.stance, wanted.speed)
-		val waiting = legs.indices.firstOrNull { it != active && dirty[it] }
+		val waiting = (active + 1 until legs.size).firstOrNull { dirty[it] }
 		val activeDue = dirty[active] || reframe(active)
 		val leg = when {
 			waiting != null && (!activeDue || settled == active) -> waiting
@@ -281,7 +281,8 @@ internal class CoarseService(
 		}
 		if (closed) return
 		val routed = lock.withLock { frames[leg] } != null
-		world?.let { requestKnowledge(it, state, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
+		if (world != null) timings.measure("drops") { planner.probeDropsFrom(start, if (route == null) DROP_PROBE_STANCES else NEAR_DROP_PROBE_STANCES) }
+		world?.let { requestKnowledge(it, state, start, route, if (routed) InterestTier.CORRIDOR else InterestTier.DEMAND) }
 		if (route == null) {
 			val stale = !pinCurrent()
 			if (stale) dirty[leg] = true
@@ -321,8 +322,13 @@ internal class CoarseService(
 		PlanningDebugChannel.publishCoarse(PlanningDebugChannel.CoarseSample(frame.sequence, planner.graphSize, frame.anchorCount, timings.elapsedMillis))
 	}
 
-	private fun requestKnowledge(world: PathingWorld, state: CoarsePlanningState, route: CoarseRoutePlan?, tier: InterestTier) {
+	private fun requestKnowledge(world: PathingWorld, state: CoarsePlanningState, start: Stance, route: CoarseRoutePlan?, tier: InterestTier) {
 		if (route != null && route.goal != state.goal) world.interestAround(route.goal, tier)
+		state.planner.drainUnknownDrops { x, y, z ->
+			if (maxOf(abs(x - start.x), abs(z - start.z)) <= DROP_INTEREST_BLOCKS) {
+				world.interestBlocks(x, y - DROP_INTEREST_DEPTH_BLOCKS, z, x, y, z, InterestTier.BODY)
+			}
+		}
 	}
 
 	private fun fail(leg: Int, start: Stance, reason: String, final: Boolean) = lock.withLock {
@@ -343,5 +349,9 @@ internal class CoarseService(
 		const val LABEL_RADIUS_BLOCKS = 128
 		const val ROUTE_LABEL_BAND_BLOCKS = 48
 		const val LABEL_HEIGHT_BLOCKS = FallEdges.MAX_DEPTH + 32
+		const val DROP_INTEREST_BLOCKS = 48
+		const val DROP_INTEREST_DEPTH_BLOCKS = 32
+		const val DROP_PROBE_STANCES = 512
+		const val NEAR_DROP_PROBE_STANCES = 64
 	}
 }

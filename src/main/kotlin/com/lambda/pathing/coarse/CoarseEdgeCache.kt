@@ -30,6 +30,7 @@ internal class CoarseEdgeCache(
 	private val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
 	goals: List<Stance> = emptyList(),
+	unknownDrops: LongOpenHashSet? = null,
 ) {
 	private val outgoing = Long2ObjectLinkedOpenHashMap<List<CoarseEdge>>()
 
@@ -59,7 +60,7 @@ internal class CoarseEdgeCache(
 
 	private val pads = BouncePads(view, moves.bounceIndex)
 
-	private val falls = if (moves.falls) FallEdges(view, moves, standable) else null
+	private val falls = if (moves.falls) FallEdges(view, moves, standable, unknownDrops) else null
 
 	private val shafts = moves.templates.firstOrNull { it.movement == MovementId.DIVE && it.dx == 0 && it.dy == -1 && it.dz == 0 }
 		?.let { WaterShafts(view, standable, it.lowerBoundTicks) }
@@ -115,7 +116,7 @@ internal class CoarseEdgeCache(
 				if (pending != null && !pending.wanted(moves.templates[row.templates[index]])) continue
 				settle(row, index, bit, origin)
 			}
-			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
+			if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor, origin)
 		}
 		if (bounces(origin)) visit(bouncesFrom.get(key) ?: bouncesFrom(origin).also { bouncesFrom.put(key, it) }, visitor)
 	}
@@ -126,7 +127,7 @@ internal class CoarseEdgeCache(
 		val row = originRows.peek(origin.x shr 6, origin.y, origin.z) ?: return
 		val bit = origin.x and 63
 		val mask = 1L shl bit
-		for (index in 0 until row.size) if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor)
+		for (index in 0 until row.size) if (row.edges[index] and mask != 0L) visit(row, index, bit, visitor, origin)
 		bouncesFrom.get(key)?.let { visit(it, visitor) }
 	}
 
@@ -184,11 +185,14 @@ internal class CoarseEdgeCache(
 		var next = 0
 		for (template in moves.templatesWithoutBounces) {
 			while (next < departures.size && departures[next] < template.id.value) moves.templates[departures[next++]].edge(view, origin)?.let(edges::add)
-			stamper.edge(template, origin)?.let(edges::add)
+			stamper.edge(template, origin)?.takeIf(::fieldTarget)?.let(edges::add)
 		}
 		while (next < departures.size) moves.templates[departures[next++]].edge(view, origin)?.let(edges::add)
 		return edges
 	}
+
+	private fun fieldTarget(edge: CoarseEdge): Boolean =
+		edge.movement !in WATER_TARGETED || standable.isStance(edge.to) || DiveMovement.openWater(view, edge.to.x, edge.to.y, edge.to.z)
 
 	private fun bouncesFrom(origin: Stance): StanceEdges = StanceEdges.of(pads.departures(origin).map { moves.templates[it] }) { it.edge(view, origin) }
 
@@ -223,9 +227,10 @@ internal class CoarseEdgeCache(
 		for (index in edges.templates.indices) visitor.visit(moves.templates[edges.templates[index]], edges.ticks[index], edges.standing[index])
 	}
 
-	private fun visit(row: RowEdges, index: Int, bit: Int, visitor: EdgeVisitor) {
+	private fun visit(row: RowEdges, index: Int, bit: Int, visitor: EdgeVisitor, origin: Stance? = null) {
 		val mask = 1L shl bit
 		val template = moves.templates[row.templates[index]]
+		if (origin != null && template.movement in WATER_TARGETED && !standable.isStance(origin.offset(template.dx, template.dy, template.dz))) return
 		val ticks = if (row.irregular[index] and mask != 0L) row.ticksOf(row.templates[index], bit) else template.stampedTicks
 		visitor.visit(template, ticks, row.standing[index] and mask != 0L)
 	}
@@ -406,6 +411,8 @@ internal class CoarseEdgeCache(
 
 	companion object {
 		private const val CACHED_EDGE_LISTS = 1 shl 10
+
+		private val WATER_TARGETED = setOf(MovementId.DIVE, MovementId.ENTER_WATER)
 
 		private val NO_TEMPLATES = IntArray(0)
 

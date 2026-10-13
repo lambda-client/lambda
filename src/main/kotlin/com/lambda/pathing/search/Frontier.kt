@@ -98,11 +98,12 @@ internal class Frontier(
 		val running = publications.running ?: return
 		val executing = cursor.coerceAtMost(running.brake.elapsed)
 		if (executing > running.anchor.elapsed) {
+			val hold = running.holdAnchor(executing + Publications.HOLD_LEAD_FRAMES)
 			val held = root?.takeIf {
 				it === running.brake || it.elapsed > running.anchor.elapsed && running.brake.descendsFrom(it) &&
-						it.elapsed >= executing + Publications.DIVERGENCE_MARGIN_FRAMES
+						it.elapsed >= executing + Publications.DIVERGENCE_MARGIN_FRAMES || it.legRoot && it.descendsFrom(hold)
 			}
-			if (held == null) reRoot(running.holdAnchor(executing + Publications.HOLD_LEAD_FRAMES))
+			if (held == null) reRoot(hold)
 			return
 		}
 		val reached = running.anchor.ancestorAtOrBefore(executing) ?: return

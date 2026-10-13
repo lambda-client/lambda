@@ -2,6 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
+import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
@@ -101,6 +102,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		current = session
 
 		walk.alignment.planningYaw = player.moveYaw.toDouble()
+		rewindToWaypointUnderfoot()
 		skipWaypointsUnderfoot()
 		walk.state = State.Planning(walk.goalLabel())
 		PlanningDebugChannel.begin(
@@ -129,17 +131,31 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		with(walk) { advanceSnapshotCapture() }
 	}
 
+	private fun SafeContext.rewindToWaypointUnderfoot() {
+		val waypoints = walk.request.waypoints
+		for (index in walk.passedWaypoints - 2 downTo 0) {
+			val waypoint = resolveGoalStance(player, waypoints[index])
+			if (!underfoot(waypoint)) continue
+			walk.leg -= walk.passedWaypoints - (index + 1)
+			walk.passedWaypoints = index + 1
+			info("Back at waypoint $waypoint; ${walk.remainingWaypoints().size} waypoint(s) again before ${walk.request.goal}.", PATHING_SOURCE)
+			return
+		}
+	}
+
 	private fun SafeContext.skipWaypointsUnderfoot() {
 		val waypoints = walk.request.waypoints
 		while (walk.passedWaypoints < waypoints.size) {
 			val waypoint = resolveGoalStance(player, waypoints[walk.passedWaypoints])
-			val horizontal = hypot(player.pos.x - (waypoint.x + 0.5), player.pos.z - (waypoint.z + 0.5))
-			if (horizontal > WAYPOINT_UNDERFOOT_BLOCKS || abs(player.pos.y - waypoint.y) > 1.0) break
+			if (!underfoot(waypoint)) break
 			walk.passedWaypoints++
 			walk.leg++
 			info("Standing at waypoint $waypoint; continuing past it.", PATHING_SOURCE)
 		}
 	}
+
+	private fun SafeContext.underfoot(waypoint: Stance): Boolean =
+		hypot(player.pos.x - (waypoint.x + 0.5), player.pos.z - (waypoint.z + 0.5)) <= WAYPOINT_UNDERFOOT_BLOCKS && abs(player.pos.y - waypoint.y) <= 1.0
 
 	private fun SafeContext.completePlanning(session: PlanningSession, result: PathPlanResult?, failure: Throwable?) {
 		if (!walk.active || current !== session) return
