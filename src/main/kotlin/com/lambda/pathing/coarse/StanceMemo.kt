@@ -1,12 +1,17 @@
 package com.lambda.pathing.coarse
 
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.util.math.ChunkSectionPos
 
-internal class StanceMemo(private val view: CoarseVoxelView, private val moves: SimpleMoveLibrary) {
+internal class StanceMemo(
+	private val view: CoarseVoxelView,
+	private val moves: SimpleMoveLibrary,
+	private val goals: List<Stance> = emptyList(),
+) {
 	private val sections = Long2ObjectOpenHashMap<LongArray>()
 	private var lastKey = 0L
 	private var last: LongArray? = null
@@ -24,11 +29,13 @@ internal class StanceMemo(private val view: CoarseVoxelView, private val moves: 
 		val word = index ushr 6
 		val mask = 1L shl index
 		if (bits[word] and mask != 0L) return bits[WORDS + word] and mask != 0L
-		val stands = moves.isStance(view, stance)
+		val stands = moves.isStance(view, stance) || inGoalColumn(stance)
 		bits[word] = bits[word] or mask
 		bits[WORDS + word] = if (stands) bits[WORDS + word] or mask else bits[WORDS + word] and mask.inv()
 		return stands
 	}
+
+	fun inGoalColumn(stance: Stance): Boolean = goals.any { DiveMovement.inOpenColumn(view, it, stance) }
 
 	fun remove(stance: Stance) {
 		val bits = sections.get(key(stance)) ?: return

@@ -32,7 +32,7 @@ internal class CoarseFollower(
 ) : WorldLink, LegSource, AutoCloseable {
 	private val events = world?.subscribe()
 	override val startRevision: Long? = events?.drain()?.revision
-	private val edges = FieldEdges(view, coarse.moves)
+	private val edges = FieldEdges(view, coarse.moves, List(coarse.legCount, coarse::goal))
 	private var frame = first
 	private var abandoned = false
 	private var adopted = 0

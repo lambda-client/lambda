@@ -2,6 +2,7 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.MotionTemplate
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
@@ -28,6 +29,7 @@ internal fun interface FallVisitor {
 internal class CoarseEdgeCache(
 	private val view: CoarseVoxelView,
 	private val moves: SimpleMoveLibrary,
+	goals: List<Stance> = emptyList(),
 ) {
 	private val outgoing = Long2ObjectLinkedOpenHashMap<List<CoarseEdge>>()
 
@@ -35,7 +37,7 @@ internal class CoarseEdgeCache(
 
 	private val completeOrigins = LongOpenHashSet()
 
-	private val standable = StanceMemo(view, moves)
+	private val standable = StanceMemo(view, moves, goals)
 
 	private val stamper = EdgeStamper(view, moves, standable)
 
@@ -49,6 +51,8 @@ internal class CoarseEdgeCache(
 
 	private val bounceTemplates = moves.templates.filter { it.movement == MovementId.BOUNCE }
 
+	private val diveTemplates = moves.templates.filter { it.movement == MovementId.DIVE }
+
 	private val bouncesFrom = Long2ObjectOpenHashMap<StanceEdges>()
 
 	private val bouncesTo = Long2ObjectOpenHashMap<StanceEdges>()
@@ -57,22 +61,31 @@ internal class CoarseEdgeCache(
 
 	private val falls = if (moves.falls) FallEdges(view, moves, standable) else null
 
+	private val shafts = moves.templates.firstOrNull { it.movement == MovementId.DIVE && it.dx == 0 && it.dy == -1 && it.dz == 0 }
+		?.let { WaterShafts(view, standable, it.lowerBoundTicks) }
+
 	var exactChecks = 0L
 		private set
 
 	var arrivalChecks = 0L
 		private set
 
+	fun isStance(stance: Stance): Boolean = standable.isStance(stance)
+
 	fun edgesFrom(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
 		return outgoing.get(key) ?: run {
 			val stance = PackedStance.stance(key)
 			check(key, stance)
-			val edges = if (!standable.isStance(stance)) emptyList() else {
+			val edges = if (!standable.isStance(stance)) {
+				if (shafts != null && DiveMovement.openWater(view, stance.x, stance.y, stance.z)) openWaterEdges(shafts, stance) else emptyList()
+			} else {
 				val stamped = stampedEdgesFrom(stance)
 				val falling = falls
 				val dropped = falling?.from(stance)
-				if (falling == null || dropped.isNullOrEmpty()) stamped else stamped + dropped.map { falling.coarseEdge(stance, it) }
+				val landed = if (falling == null || dropped.isNullOrEmpty()) stamped else stamped + dropped.map { falling.coarseEdge(stance, it) }
+				val sunk = shafts?.edgesFrom(stance).orEmpty()
+				if (sunk.isEmpty()) landed else landed + sunk
 			}
 			if (outgoing.size >= CACHED_EDGE_LISTS) outgoing.removeFirst()
 			outgoing.put(key, edges)
@@ -81,6 +94,9 @@ internal class CoarseEdgeCache(
 	}
 
 	fun edgesFrom(origin: Stance): List<CoarseEdge> = edgesFrom(key(origin))
+
+	private fun openWaterEdges(shafts: WaterShafts, origin: Stance): List<CoarseEdge> =
+		shafts.edgesFromOpenWater(origin) + diveTemplates.mapNotNull { template -> template.edge(view, origin)?.takeIf { standable.isStance(it.to) } }
 
 	fun cachedEdgesFrom(origin: Stance): List<CoarseEdge>? = outgoing.get(key(origin))
 
@@ -145,6 +161,15 @@ internal class CoarseEdgeCache(
 		if (water != (PackedStance.speed(node) == SpeedClass.STOPPED)) return
 		for (arrival in falls.to(target)) visitor.visit(arrival.origin, arrival.edge)
 	}
+
+	fun forEachShaft(node: Long, visitor: ShaftVisitor) {
+		val shafts = shafts ?: return
+		val stance = PackedStance.stance(node)
+		if (!standable.isStance(stance)) return
+		shafts.forEachFrom(stance, visitor)
+	}
+
+	fun shaftReaders(changed: List<CellBox>): List<CellBox> = if (shafts == null) emptyList() else changed.map(WaterShafts::readers)
 
 	fun fallsRead(changed: List<CellBox>, key: Long): Boolean = falls?.reads(changed, key) == true
 
@@ -280,6 +305,7 @@ internal class CoarseEdgeCache(
 		bouncesTo.clear()
 		pads.clear()
 		falls?.clear()
+		shafts?.clear()
 	}
 
 	fun invalidate(changed: List<CellBox>, arrivalsOnly: Boolean) {
@@ -288,6 +314,7 @@ internal class CoarseEdgeCache(
 		val targets = changed.map(moves::targetsReading)
 		val kept = if (arrivalsOnly) completeOrigins else null
 		remove(outgoing.keys, origins, kept)
+		if (shafts != null) remove(outgoing.keys, shaftReaders(changed))
 		remove(checkedOrigins, origins, kept)
 		if (!arrivalsOnly) remove(completeOrigins, origins)
 		standable.remove(targets)
@@ -298,6 +325,7 @@ internal class CoarseEdgeCache(
 		remove(bouncesTo.keys, targets)
 		pads.clear()
 		falls?.clear()
+		shafts?.clear()
 	}
 
 	private fun remove(keys: LongSet, boxes: List<CellBox>, keep: LongSet? = null) {

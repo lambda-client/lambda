@@ -228,6 +228,29 @@ class DivePlanningTest {
 		assertNull(planner.routePlan(0L), "a tunnel through a down column must not be routed")
 	}
 
+	@Test
+	fun `open water adds no dive stances to the coarse graph`() {
+		val environment = lake(size = LAKE_SIZE, depth = LAKE_DEPTH)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, LAKE_SIZE / 2), Stance(LAKE_SIZE + 1, 64, LAKE_SIZE / 2))
+		assertTrue(planner.repair().converged, "the crossing must converge")
+		val route = assertNotNull(planner.routePlan(0L), "the lake must carry a route")
+		assertTrue(route.edges.none { it.movement == MovementId.DIVE }, "open water is crossed at the surface: ${route.edges.map { it.movement }}")
+		var submerged = 0
+		planner.forEachGraphStance { x, y, z -> if (x in 1 until LAKE_SIZE - 1 && z in 1 until LAKE_SIZE - 1 && y < 63) submerged++ }
+		assertEquals(0, submerged, "no cell under open water away from the shores may enter the coarse graph")
+	}
+
+	@Test
+	fun `a body sunk deep in open water swims up and out`() {
+		val environment = lake(size = 12, depth = LAKE_DEPTH)
+		val start = afloat(Vec3d(6.5, 56.0, 6.5), air = Vanilla.MAX_AIR).copy(touchingWater = true, eyeInWater = true, submergedInWater = true)
+		val path = certified(environment, Stance(6, 56, 6), Stance(14, 64, 6), start, dives = false)
+		val frames = path.plan.frames
+		println("[dive] sunk start frames=${frames.size} min air=${frames.minOf { it.state.air }}")
+		assertTrue(frames.all { it.state.air >= Vanilla.SAFE_AIR }, "the ascent must keep a safe air margin")
+		assertEquals(Stance(14, 64, 6), Stance.of(frames.last().state.position, onGround = true))
+	}
+
 	private fun certified(environment: SnapshotSimulationEnvironment, from: Stance, to: Stance, start: MovementSimulationState, dives: Boolean = true) = run {
 		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), from, to)
 		assertTrue(planner.repair().converged, "the route must converge")
@@ -337,6 +360,22 @@ class DivePlanningTest {
 		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, 50, -3, exit + 12, 80, 3), blocks)
 	}
 
+	/** A square lake [size] blocks across and [depth] deep under its surface at y 63, its banks level with the surface. */
+	private fun lake(size: Int, depth: Int): SnapshotSimulationEnvironment {
+		val floor = 63 - depth
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (x in -6 until size + 6) for (z in -6 until size + 6) {
+			blocks[BlockPos(x, floor, z)] = SnapshotBlockPhysics.FULL_CUBE
+			val water = x in 0 until size && z in 0 until size
+			for (y in floor + 1..63) blocks[BlockPos(x, y, z)] = when {
+				!water -> SnapshotBlockPhysics.FULL_CUBE
+				y == 63 -> SnapshotBlockPhysics.water()
+				else -> SnapshotBlockPhysics.water(1.0f)
+			}
+		}
+		return SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, floor - 4, -10, size + 10, 80, size + 10), blocks)
+	}
+
 	/** A pool at y 61..63 open above x 0..1 whose far end is a walled one-block shaft of water rising to y 71 beside a ledge at 72. */
 	private fun shaft(bubbles: BubbleColumn? = null): SnapshotSimulationEnvironment {
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
@@ -378,5 +417,9 @@ class DivePlanningTest {
 		const val SIDE_POCKET_LENGTH = 54
 
 		const val SIDE_POCKET_DEPTH = 8
+
+		const val LAKE_SIZE = 24
+
+		const val LAKE_DEPTH = 10
 	}
 }

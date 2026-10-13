@@ -81,12 +81,15 @@ internal class PlanningJob(
 			System.currentTimeMillis() - preparation.startedMillis, world.captureLedger(),
 		)
 		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown).use { follower ->
-			walk(follower).also {
+			walk(follower).let { if (it is PathPlanResult.Failed && mobsOnRoute(follower)) it.copy(mobs = true) else it }.also {
 				enter("finished: ${it::class.simpleName}")
 				dumpOutcome(it, follower)
 			}
 		}
 	}
+
+	private fun mobsOnRoute(follower: CoarseFollower): Boolean =
+		follower.route.nodes.asSequence().take(MOB_ROUTE_NODES).any { snapshot.entityAt(it.x, it.y, it.z) || snapshot.entityAt(it.x, it.y + 1, it.z) }
 
 	private fun noRoute(): PathPlanResult {
 		val reason = coarse.failure(leg, start) ?: "no coarse route to the goal"
@@ -155,6 +158,8 @@ internal class PlanningJob(
 	}
 
 	private companion object {
+		const val MOB_ROUTE_NODES = 6
+
 		val PLANNER: ExecutorService = Executors.newSingleThreadExecutor { task ->
 			Thread(task, "NeoLambda-PathPlanner").apply {
 				isDaemon = true

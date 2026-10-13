@@ -56,6 +56,19 @@ internal object WalkPathingTests {
         assertPathingWalk(context, server, "pathing-mob-in-the-way", Stance(0, 100, 8))
         server.runCommand("/kill @e[type=minecraft:cow]")
 
+        // A cow standing in the only one-wide gap through a wall: no route avoids it, so the
+        // walk dead-ends before motion. Mobs are temporary obstacles, so the session must
+        // hold and retry until the cow is gone instead of failing the walk.
+        server.runCommand("/fill -8 100 2 -1 101 6 minecraft:stone")
+        server.runCommand("/fill 1 100 2 8 101 6 minecraft:stone")
+        server.runCommand("/summon minecraft:cow 0.5 100 4.5 {NoAI:1b,Invulnerable:1b}")
+        assertPathingWalk(
+            context, server, "pathing-mob-blocks-gap", Stance(0, 100, 8),
+            onTick = { tick -> if (tick == MOB_LEAVES_TICK) server.runCommand("/kill @e[type=minecraft:cow]") },
+        )
+        server.runCommand("/kill @e[type=minecraft:cow]")
+        restoreArena(server)
+
         assertFlyingStart(context, server)
 
         // Submit while the body is still drifting, as a rapid retry does. Capturing that
@@ -419,4 +432,6 @@ internal object WalkPathingTests {
     }
 
     private const val LONG_BEDROCK_FIELD_LENGTH = 120
+
+    private const val MOB_LEAVES_TICK = 80
 }

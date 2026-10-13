@@ -23,8 +23,12 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		private set
 
 	private var deadEnd: String? = null
+	private var deadEndMobs = false
 	private var captureWaits = 0
 	private var captureWaitSince = 0L
+	private var mobWaitSince = 0L
+	private var mobPatienceSince = 0L
+	private var mobCells: LongArray? = null
 	private var successor: PlanningSession? = null
 	private var successorPath: PublishedPath? = null
 
@@ -44,21 +48,48 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 	fun reset() {
 		cancel()
 		deadEnd = null
+		deadEndMobs = false
 		captureWaitSince = 0L
+		mobWaitSince = 0L
+		mobPatienceSince = 0L
+		mobCells = null
 	}
 
 	fun progressed() {
 		restarts = 0
 		captureWaits = 0
+		mobPatienceSince = 0L
 	}
 
 	fun SafeContext.retryAfterCapture() {
-		if (captureWaitSince == 0L || current != null) return
+		if (current != null) return
+		if (mobWaitSince != 0L) return retryAfterMobs()
+		if (captureWaitSince == 0L) return
 		val waited = System.currentTimeMillis() - captureWaitSince
 		val pending = walk.journey?.world?.pendingInterest ?: 0
 		if (waited < walk.request.pathingConfig.captureRetryMillis || pending > 0 && waited < MAX_CAPTURE_WAIT_MILLIS) return
 		captureWaitSince = 0L
 		with(walk) { planTrajectory() }
+	}
+
+	private fun SafeContext.retryAfterMobs() {
+		val waited = System.currentTimeMillis() - mobWaitSince
+		val moved = walk.journey?.world?.obstacleCells !== mobCells
+		if (waited < MOB_RETRY_MIN_MILLIS || !moved && waited < MOB_RETRY_MAX_MILLIS) return
+		mobWaitSince = 0L
+		mobCells = null
+		with(walk) { planTrajectory() }
+	}
+
+	private fun waitForMobs(reason: String): Boolean {
+		val now = System.currentTimeMillis()
+		if (mobPatienceSince == 0L) mobPatienceSince = now
+		if (now - mobPatienceSince > MOB_PATIENCE_MILLIS) return false
+		current = null
+		mobWaitSince = now
+		mobCells = walk.journey?.world?.obstacleCells
+		LOG.info("Planning dead-ended before motion with mobs on the route ({}); waiting for them to move", reason)
+		return true
 	}
 
 	fun SafeContext.capturePlan() {
@@ -122,6 +153,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			is PathPlanResult.Failed ->
 				if (walk.replay != null) {
 					deadEnd = completed.reason
+					deadEndMobs = completed.mobs
 					walk.heartbeat.soon()
 					LOG.info(
 						"Planning session dead-ended mid-walk ({}); planning the successor now",
@@ -136,6 +168,8 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 						"Planning dead-ended before motion ({}) with {} sections still to capture; retrying once the capture catches up ({}/{})",
 						completed.reason, walk.journey?.world?.pendingInterest ?: 0, captureWaits, walk.request.pathingConfig.captureRetries,
 					)
+				} else if (completed.mobs && waitForMobs(completed.reason)) {
+					return
 				} else if (restarts < MAX_SESSION_RESTARTS &&
 					walk.journey?.world?.revision != session.launchRevision
 				) {
@@ -156,11 +190,13 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 
 	fun SafeContext.resumeAfterHold() {
 		val reason = deadEnd
+		val mobs = deadEndMobs
 		deadEnd = null
-		if (reason != null && restarts >= MAX_SESSION_RESTARTS) {
+		deadEndMobs = false
+		if (reason != null && !mobs && restarts >= MAX_SESSION_RESTARTS) {
 			return with(walk) { fail("planning kept dead-ending: $reason") }
 		}
-		if (reason != null) restarts++
+		if (reason != null && !mobs) restarts++
 		walk.replay?.takeIf { it.holding }?.let { held ->
 			LOG.info(
 				"Held {} ms at the tape terminal; the session refused {} offered tape(s){}",
@@ -261,5 +297,11 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		const val MAX_SESSION_RESTARTS = 3
 
 		const val MAX_CAPTURE_WAIT_MILLIS = 20_000L
+
+		const val MOB_RETRY_MIN_MILLIS = 1_000L
+
+		const val MOB_RETRY_MAX_MILLIS = 3_000L
+
+		const val MOB_PATIENCE_MILLIS = 30_000L
 	}
 }

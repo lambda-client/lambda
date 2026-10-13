@@ -142,6 +142,7 @@ internal object PathingTestHarness {
         driftBeforeSubmit: Vec3d? = null,
         start: String = "0.5 100 0.5 0 0",
         maxPathingTicks: Int = MAX_PATHING_TICKS,
+        onTick: ((Int) -> Unit)? = null,
     ) {
         // Filtered out scenarios are skipped, but the world commands around them are not:
         // they build the terrain later scenarios stand on, so running a subset has to
@@ -155,7 +156,7 @@ internal object PathingTestHarness {
                 context, server, scenario, goal, minLegs, maxLegs, maxDeviation, expectedJumpDy,
                 requireJumpInput, minGapLaunches, minContinuousSegments, requireMovingSplices,
                 cameraYawDuringPlanning, plannerMaxFrames,
-                driftBeforeSubmit, start, maxPathingTicks,
+                driftBeforeSubmit, start, maxPathingTicks, onTick,
             )
         } catch (failure: IllegalStateException) {
             pathingFailures += failure.message ?: "$scenario: ${failure::class.simpleName}"
@@ -192,6 +193,7 @@ internal object PathingTestHarness {
         driftBeforeSubmit: Vec3d?,
         start: String,
         maxPathingTicks: Int,
+        onTick: ((Int) -> Unit)?,
     ) {
         server.runCommand("/tp Steve $start")
         // A previous long-haul scenario may have moved the client watch center far
@@ -253,6 +255,7 @@ internal object PathingTestHarness {
         val walkedPaths = ArrayList<PublishedPath>()
         while (ticks++ < maxPathingTicks) {
             context.waitTick()
+            onTick?.invoke(ticks)
             PathingService.telemetry.published?.let { published ->
                 if (walkedPaths.none { it === published }) walkedPaths += published
             }

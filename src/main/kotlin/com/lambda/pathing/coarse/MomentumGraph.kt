@@ -76,6 +76,9 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			val ticks = if (speed == SpeedClass.MOVING) movingCost(fall.ticks) else fall.ticks + STARTUP_TICKS
 			out.addMin(PackedStance.pack(x + fall.dx, y + fall.dy, z + fall.dz, fallArrival(fall)), fallCost(fall, ticks))
 		}
+		if (speed == SpeedClass.STOPPED) edges.forEachShaft(node) { dy, ticks ->
+			out.addMin(PackedStance.pack(x, y + dy, z, SpeedClass.STOPPED), maxOf(ticks, groundCaps.estimate(0, dy, 0)))
+		}
 	}
 
 	fun predecessors(edges: CoarseEdgeCache, node: Long, out: EdgeList, wanted: java.util.function.LongPredicate? = null) {
@@ -116,6 +119,9 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			if (fallArrival(fall) != speed) return@forEachFallTo
 			out.addMin(PackedStance.pack(origin, SpeedClass.MOVING), fallCost(fall, movingCost(fall.ticks)))
 			if (fall.standingStart) out.addMin(PackedStance.pack(origin, SpeedClass.STOPPED), fallCost(fall, fall.ticks + STARTUP_TICKS))
+		}
+		if (speed == SpeedClass.STOPPED) edges.forEachShaft(node) { dy, ticks ->
+			out.addMin(PackedStance.pack(x, y + dy, z, SpeedClass.STOPPED), maxOf(ticks, groundCaps.estimate(0, -dy, 0)))
 		}
 	}
 

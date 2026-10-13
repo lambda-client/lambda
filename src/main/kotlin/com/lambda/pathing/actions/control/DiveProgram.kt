@@ -7,6 +7,7 @@ import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.Vanilla
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
 
@@ -32,14 +33,19 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 		val dx = targetX - observed.position.x
 		val dz = targetZ - observed.position.z
 		val dy = targetY - (observed.position.y + BODY_CENTER)
-		val yaw = if (hypot(dx, dz) > COLUMN_RADIUS) Math.toDegrees(atan2(dz, dx)) - 90.0 else aheadYaw(observed)
+		val shaft = abs(dy) > SHAFT_DEPTH
+		val yaw = when {
+			hypot(dx, dz) > COLUMN_RADIUS || shaft && hypot(dx, dz) > CENTERED -> Math.toDegrees(atan2(dz, dx)) - 90.0
+			shaft -> observed.rotation.yaw
+			else -> aheadYaw(observed)
+		}
 		val pitch = (-Math.toDegrees(atan2(dy, maxOf(hypot(dx, dz), MIN_HORIZONTAL)))).coerceIn(-MAX_PITCH, MAX_PITCH)
 		val step = yawStepTowards(yaw, observed, maxYawChange)
 		val coast = COAST_TICKS * observed.velocity.y
 		return MovementSimulationInput(
 			forward = 1.0,
 			sprint = sprint,
-			jump = if (observed.swimming) !surface && dy > maxOf(SWIM_MARGIN, coast) else dy > RISE_WITH_JUMP,
+			jump = if (observed.swimming) (!surface || shaft) && dy > maxOf(SWIM_MARGIN, coast) else dy > RISE_WITH_JUMP,
 			sneak = if (observed.swimming) dy < minOf(-SWIM_MARGIN, coast) else sprint && dy <= 0.0 && !observed.onGround,
 			rotation = Rotation(observed.rotation.yaw + step, pitchTowards(pitch, observed, maxYawChange)),
 		)
@@ -77,5 +83,7 @@ internal class DiveProgram(decision: TrajectoryDecision.Dive, context: ProgramCo
 		const val COLUMN_RADIUS = 0.3
 		const val AHEAD_RADIUS = 0.75
 		const val COAST_TICKS = 4.0
+		const val SHAFT_DEPTH = 1.5
+		const val CENTERED = 0.05
 	}
 }

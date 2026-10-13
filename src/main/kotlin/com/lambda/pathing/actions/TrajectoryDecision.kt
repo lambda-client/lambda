@@ -99,6 +99,7 @@ interface TrajectoryDecision {
 		val detour: Boolean = false,
 		val surface: Boolean = false,
 		val aim: Stance = step,
+		val reach: Int = 1,
 	) : TrajectoryDecision
 
 	data class Swim(

@@ -1,6 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.headingAlignment
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
@@ -49,7 +50,8 @@ class CoarseValueField(
 
 	fun edgesFrom(stance: Stance): List<CoarseEdge> = edgeProvider(stance)
 
-	override fun isStance(stance: Stance): Boolean = moves.isStance(view, stance)
+	override fun isStance(stance: Stance): Boolean =
+		moves.isStance(view, stance) || DiveMovement.inOpenColumn(view, goal, stance) || DiveMovement.openWater(view, stance.x, stance.y, stance.z)
 
 	override fun steps(stance: Stance, count: Int, marginTicks: Double): List<CoarseEdge> {
 		val options = optionsFrom(stance)

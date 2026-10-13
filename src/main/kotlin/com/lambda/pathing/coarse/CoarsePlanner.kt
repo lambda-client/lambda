@@ -1,6 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
@@ -23,7 +24,7 @@ class CoarsePlanner(
 ) {
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
 
-	private val edgeCache = CoarseEdgeCache(view.cursor(), moves)
+	private val edgeCache = CoarseEdgeCache(view.cursor(), moves, listOf(goalStance))
 
 	private val momentum = MomentumRules(moves.templates)
 
@@ -85,7 +86,7 @@ class CoarsePlanner(
 
 	private val search = LongDStarLite(
 		graph = graph,
-		start = PackedStance.pack(start, SpeedClass.STOPPED),
+		start = PackedStance.pack(entry(start), SpeedClass.STOPPED),
 		goal = goalNode,
 		heuristic = { a, b -> momentum.heuristic(a, b, grounded && b != goalNode) },
 		describe = PackedStance::describe,
@@ -203,7 +204,9 @@ class CoarsePlanner(
 		}
 	}
 
-	fun updateStart(start: Stance, speed: SpeedClass = SpeedClass.STOPPED) = search.updateStart(PackedStance.pack(start, speed))
+	fun updateStart(start: Stance, speed: SpeedClass = SpeedClass.STOPPED) = search.updateStart(PackedStance.pack(entry(start), speed))
+
+	private fun entry(start: Stance): Stance = if (edgeCache.isStance(start)) start else DiveMovement.aboveOpenWater(view, start)
 
 	val anchorCount: Int get() = anchors.size
 
@@ -398,11 +401,13 @@ class CoarsePlanner(
 		anchors.refresh(changed)
 		val origins = changed.map(moves::originsReading)
 		if (changed.isNotEmpty()) {
-			val bounds = CellBox.enclosing(origins + edgeCache.fallReaders(changed))
+			val shafted = edgeCache.shaftReaders(changed)
+			val bounds = CellBox.enclosing(origins + edgeCache.fallReaders(changed) + shafted)
 			search.forEachKnownNode { node ->
 				if (!bounds.contains(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))) return@forEachKnownNode
 				val key = PackedStance.stanceKey(node)
-				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key)) pendingSync.add(key)
+				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key) ||
+					CoarseEdgeCache.covers(shafted, key)) pendingSync.add(key)
 			}
 		}
 		edgeCache.invalidate(changed, arrivalsOnly)
