@@ -27,6 +27,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.ShapeContext
 import net.minecraft.block.SlabBlock
+import net.minecraft.block.StairsBlock
 import net.minecraft.block.WallBlock
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.enums.SlabType
@@ -35,6 +36,7 @@ import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.BlockView
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.test.Test
@@ -457,10 +459,72 @@ class SlimeBounceRouteTest {
         certifyArrival(environment, goal = Stance(0, 8, 15))
     }
 
+    /**
+     * The CycloneMC stair bounce, translated: four below the take-off, the rebound peaks 0.009 above the lower step
+     * of a stair on a wall beyond the slime and never reaches the stair's top. The bounce holds forward into the wall
+     * while it rises and slips onto the step at the apex.
+     */
+    @Test
+    fun `a rebound that peaks just above a stair step presses into the wall and is certified end to end`() {
+        MinecraftBootstrap.ensure()
+        val stone = Blocks.STONE.defaultState
+        val stair = Blocks.SMOOTH_RED_SANDSTONE_STAIRS.defaultState.with(StairsBlock.FACING, Direction.SOUTH)
+        val states = HashMap<BlockPos, BlockState>()
+        for (x in 0..1) {
+            for (z in -3..0) states[BlockPos(x, 9, z)] = stone
+            for (z in 1..4) states[BlockPos(x, 5, z)] = stone
+            for (z in 5..6) states[BlockPos(x, 5, z)] = Blocks.SLIME_BLOCK.defaultState
+            for (y in 6..8) states[BlockPos(x, y, 7)] = stone
+            states[BlockPos(x, 9, 7)] = stair
+            for (z in 8..9) states[BlockPos(x, 9, z)] = stone
+        }
+        val view = object : BlockView {
+            override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState
+            override fun getFluidState(pos: BlockPos): FluidState = getBlockState(pos).fluidState
+            override fun getBlockEntity(pos: BlockPos): BlockEntity? = null
+            override fun getHeight(): Int = 384
+            override fun getBottomY(): Int = -64
+        }
+        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16),
+            states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+        )
+        certifyArrival(environment, goal = Stance(0, 10, 8))
+    }
+
+    /**
+     * The CycloneMC end corridor, translated: three slime pads over a void, four below the take-off and each one block
+     * further aside than a compass line, then a slab ledge. No template covers three contacts off the compass, so the
+     * chain is found from the pads themselves and verified on the line from the take-off to the ledge.
+     */
+    @Test
+    fun `three pads off the compass are crossed by one chain of bounces and certified end to end`() {
+        MinecraftBootstrap.ensure()
+        val states = HashMap<BlockPos, BlockState>()
+        for (z in -4..0) states[BlockPos(0, 9, z)] = Blocks.STONE.defaultState
+        for ((x, z) in listOf(-2 to 5, -3 to 10, -4 to 14)) for (dx in 0..1) for (dz in 0..1) states[BlockPos(x + dx, 5, z + dz)] = Blocks.SLIME_BLOCK.defaultState
+        for (x in -4..-2) for (z in 17..19) states[BlockPos(x, 7, z)] = Blocks.OAK_SLAB.defaultState
+        val view = object : BlockView {
+            override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState
+            override fun getFluidState(pos: BlockPos): FluidState = getBlockState(pos).fluidState
+            override fun getBlockEntity(pos: BlockPos): BlockEntity? = null
+            override fun getHeight(): Int = 384
+            override fun getBottomY(): Int = -64
+        }
+        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 30, 32),
+            states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+        )
+        certifyArrival(environment, goal = Stance(-3, 8, 18), contacts = 3)
+    }
+
     private fun certifyArrival(
         environment: SnapshotSimulationEnvironment,
         goal: Stance,
         start: Stance = Stance(0, 10, 0),
+        contacts: Int = 1,
     ) {
         val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true))
         val planner = CoarsePlanner(environment, moves, start, goal)
@@ -468,8 +532,8 @@ class SlimeBounceRouteTest {
         planner.expandField(extraTicks = 60.0, timeBudget = Duration.INFINITE, maxExpansions = 40_000)
         val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
         assertTrue(
-            route.edges.any { it.movement == MovementId.BOUNCE },
-            "the pit is only crossable by rebound; got ${route.edges.map { it.movement }}",
+            route.edges.any { it.movement == MovementId.BOUNCE && it.bounce!!.contactDistances.size >= contacts },
+            "the pit is only crossable by a rebound touching $contacts pads; got ${route.edges.map { "${it.movement}/${it.bounce?.contactDistances?.size}" }}",
         )
 
         // Feet sit on the real surfaces: a carpeted start or goal is 0.9375 below its stance.

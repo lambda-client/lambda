@@ -52,13 +52,14 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 		val x = PackedStance.unpackX(node)
 		val y = PackedStance.unpackY(node)
 		val z = PackedStance.unpackZ(node)
+		val slowdown = edges.floorSlowdown(x, y, z)
 		val visitor = EdgeVisitor { template, ticks, standingStart ->
 			val id = template.id.value
 			if (speed == SpeedClass.MOVING && departsStoppedOnly[id]) return@EdgeVisitor
 			if (speed == SpeedClass.STOPPED && !standingStart) return@EdgeVisitor
 			val cost = when (speed) {
-				SpeedClass.MOVING -> movingCost(ticks)
-				SpeedClass.STOPPED -> stoppedCost(id, ticks)
+				SpeedClass.MOVING -> movingCost(ticks * slowdown)
+				SpeedClass.STOPPED -> stoppedCost(id, ticks * slowdown)
 			}
 			val target = PackedStance.pack(x + template.dx, y + template.dy, z + template.dz, arrival[id])
 			if (sharesNeighbor[id]) out.addMin(target, cost) else out.append(target, cost)
@@ -75,6 +76,10 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			if (speed == SpeedClass.STOPPED && !fall.standingStart) return@forEachFallFrom
 			val ticks = if (speed == SpeedClass.MOVING) movingCost(fall.ticks) else fall.ticks + STARTUP_TICKS
 			out.addMin(PackedStance.pack(x + fall.dx, y + fall.dy, z + fall.dz, fallArrival(fall)), fallCost(fall, ticks))
+		}
+		edges.forEachChainFrom(node) { _, chain ->
+			val ticks = if (speed == SpeedClass.MOVING) movingCost(chain.ticks) else chain.ticks + STARTUP_TICKS
+			out.addMin(PackedStance.pack(x + chain.dx, y + chain.dy, z + chain.dz, SpeedClass.MOVING), chainCost(chain, ticks))
 		}
 		if (speed == SpeedClass.STOPPED) edges.forEachShaft(node) { dy, ticks ->
 			out.addMin(PackedStance.pack(x, y + dy, z, SpeedClass.STOPPED), maxOf(ticks, groundCaps.estimate(0, dy, 0)))
@@ -106,19 +111,24 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 			val originY = y - template.dy
 			val originZ = z - template.dz
 			val shared = sharesNeighbor[id]
+			val slowed = ticks * edges.floorSlowdown(originX, originY, originZ)
 			if (!departsStoppedOnly[id]) {
 				val origin = PackedStance.pack(originX, originY, originZ, SpeedClass.MOVING)
-				if (shared) out.addMin(origin, movingCost(ticks)) else out.append(origin, movingCost(ticks))
+				if (shared) out.addMin(origin, movingCost(slowed)) else out.append(origin, movingCost(slowed))
 			}
 			if (standingStart) {
 				val origin = PackedStance.pack(originX, originY, originZ, SpeedClass.STOPPED)
-				if (shared) out.addMin(origin, stoppedCost(id, ticks)) else out.append(origin, stoppedCost(id, ticks))
+				if (shared) out.addMin(origin, stoppedCost(id, slowed)) else out.append(origin, stoppedCost(id, slowed))
 			}
 		}
 		edges.forEachFallTo(node) { origin, fall ->
 			if (fallArrival(fall) != speed) return@forEachFallTo
 			out.addMin(PackedStance.pack(origin, SpeedClass.MOVING), fallCost(fall, movingCost(fall.ticks)))
 			if (fall.standingStart) out.addMin(PackedStance.pack(origin, SpeedClass.STOPPED), fallCost(fall, fall.ticks + STARTUP_TICKS))
+		}
+		if (speed == SpeedClass.MOVING) edges.forEachChainTo(node) { origin, chain ->
+			out.addMin(PackedStance.pack(origin, SpeedClass.MOVING), chainCost(chain, movingCost(chain.ticks)))
+			out.addMin(PackedStance.pack(origin, SpeedClass.STOPPED), chainCost(chain, chain.ticks + STARTUP_TICKS))
 		}
 		if (speed == SpeedClass.STOPPED) edges.forEachShaft(node) { dy, ticks ->
 			out.addMin(PackedStance.pack(x, y + dy, z, SpeedClass.STOPPED), maxOf(ticks, groundCaps.estimate(0, -dy, 0)))
@@ -128,6 +138,8 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 	private fun fallArrival(fall: FallEdge): SpeedClass = if (fall.water) SpeedClass.STOPPED else SpeedClass.MOVING
 
 	private fun fallCost(fall: FallEdge, ticks: Double): Double = maxOf(ticks, groundCaps.estimate(fall.dx, fall.dy, fall.dz))
+
+	private fun chainCost(chain: ChainEdge, ticks: Double): Double = maxOf(ticks, groundCaps.estimate(chain.dx, chain.dy, chain.dz))
 
 	private companion object {
 

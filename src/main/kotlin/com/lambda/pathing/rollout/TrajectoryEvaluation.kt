@@ -39,8 +39,6 @@ internal class RolloutEvaluator(
 	private var apex = initialState.position.y
 	private var stable = 0
 
-	private var startsOverLava = config.avoidLavaEdges && initialState.onGround && overLava(initialState.boundingBox)
-
 	var pendingBlocker: TrajectoryDiagnostic? = null
 		private set
 
@@ -51,6 +49,9 @@ internal class RolloutEvaluator(
 		if (state.onGround) {
 			val rebounded = state.velocity.y > 0.0
 			val fallDistance = apex - state.position.y
+			if (config.avoidLavaEdges && !before.onGround && landsOverLava(state, fallDistance)) {
+				return RolloutVerdict.Failed(TrajectoryDiagnostic.UnsupportedPhysics(index, "landing over lava"))
+			}
 			if (!rebounded && fallDistance > config.maxSafeFallDistance && fallDistance > config.maxFallOnto(landingRule(state))) {
 				return RolloutVerdict.Failed(TrajectoryDiagnostic.HarmfulFall(index, fallDistance))
 			}
@@ -64,12 +65,6 @@ internal class RolloutEvaluator(
 		}
 
 		if (state.eyeInWater && state.air < airFloor) return RolloutVerdict.Failed(TrajectoryDiagnostic.Drowning(index, state.air))
-
-		if (config.avoidLavaEdges) {
-			val over = state.onGround && overLava(state.boundingBox)
-			if (over && !startsOverLava) return RolloutVerdict.Failed(TrajectoryDiagnostic.UnsupportedPhysics(index, "standing over lava"))
-			if (!over) startsOverLava = false
-		}
 
 		if (pendingBlocker == null && state.verticalCollision && before.velocity.y > 0.0 && !state.onGround) {
 			pendingBlocker = TrajectoryDiagnostic.HeadBonk(index, state.position)
@@ -95,6 +90,14 @@ internal class RolloutEvaluator(
 
 	private fun overLava(box: Box): Boolean = lava(Box(box.minX, box.minY - SUPPORT_PROBE_DEPTH, box.minZ, box.maxX, box.minY, box.maxZ))
 
+	private fun landsOverLava(state: MovementSimulationState, fallDistance: Double): Boolean {
+		val box = state.boundingBox
+		if (fallDistance >= LAVA_LANDING_FALL_BLOCKS) return overLava(box)
+		val x = state.position.x
+		val z = state.position.z
+		return lava(Box(x - CENTRE_PROBE_HALF_WIDTH, box.minY - SUPPORT_PROBE_DEPTH, z - CENTRE_PROBE_HALF_WIDTH, x + CENTRE_PROBE_HALF_WIDTH, box.minY, z + CENTRE_PROBE_HALF_WIDTH))
+	}
+
 	fun terminalDiagnostic(rollout: TrajectoryRollout): TrajectoryDiagnostic = when (val termination = rollout.termination) {
 		is TrajectoryRolloutTermination.Blocked -> TrajectoryDiagnostic.UnknownTerrain(termination.frame, termination.section)
 		is TrajectoryRolloutTermination.Rejected -> when (val failure = termination.failure) {
@@ -116,3 +119,7 @@ internal const val VERTICAL_GOAL_TOLERANCE = 0.05
 private const val FALL_TOLERANCE = 0.6
 
 private const val SUPPORT_PROBE_DEPTH = 0.05
+
+private const val LAVA_LANDING_FALL_BLOCKS = 0.5
+
+private const val CENTRE_PROBE_HALF_WIDTH = 1.0E-4

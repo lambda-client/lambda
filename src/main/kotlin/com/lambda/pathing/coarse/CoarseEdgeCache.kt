@@ -1,6 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
+import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.MovementId
@@ -24,6 +25,10 @@ internal fun interface PendingFilter {
 
 internal fun interface FallVisitor {
 	fun visit(origin: Stance, edge: FallEdge)
+}
+
+internal fun interface ChainVisitor {
+	fun visit(origin: Stance, edge: ChainEdge)
 }
 
 internal class CoarseEdgeCache(
@@ -60,6 +65,8 @@ internal class CoarseEdgeCache(
 
 	private val pads = BouncePads(view, moves.bounceIndex)
 
+	private val chains = if (bounceTemplates.isEmpty()) null else BounceChains(view, standable, pads, moves.catalog.options.maxBounceDrop)
+
 	private val falls = if (moves.falls) FallEdges(view, moves, standable, unknownDrops) else null
 
 	private val shafts = moves.templates.firstOrNull { it.movement == MovementId.DIVE && it.dx == 0 && it.dy == -1 && it.dz == 0 }
@@ -73,6 +80,8 @@ internal class CoarseEdgeCache(
 
 	fun isStance(stance: Stance): Boolean = standable.isStance(stance)
 
+	fun floorSlowdown(x: Int, y: Int, z: Int): Double = CoarseMoveRates.floorSlowdown(view.voxel(x, y - 1, z).velocityMultiplier)
+
 	fun edgesFrom(node: Long): List<CoarseEdge> {
 		val key = PackedStance.stanceKey(node)
 		return outgoing.get(key) ?: run {
@@ -81,12 +90,16 @@ internal class CoarseEdgeCache(
 			val edges = if (!standable.isStance(stance)) {
 				if (shafts != null && DiveMovement.openWater(view, stance.x, stance.y, stance.z)) openWaterEdges(shafts, stance) else emptyList()
 			} else {
-				val stamped = stampedEdgesFrom(stance)
+				val slowdown = floorSlowdown(stance.x, stance.y, stance.z)
+				val stamped = stampedEdgesFrom(stance).let { edges ->
+					if (slowdown == 1.0) edges else edges.map { it.copy(lowerBoundTicks = it.lowerBoundTicks * slowdown) }
+				}
 				val falling = falls
 				val dropped = falling?.from(stance)
 				val landed = if (falling == null || dropped.isNullOrEmpty()) stamped else stamped + dropped.map { falling.coarseEdge(stance, it) }
 				val sunk = shafts?.edgesFrom(stance).orEmpty()
-				if (sunk.isEmpty()) landed else landed + sunk
+				val chained = chains?.let { chains -> chains.from(stance).map { chains.coarseEdge(stance, it) } }.orEmpty()
+				if (sunk.isEmpty() && chained.isEmpty()) landed else landed + sunk + chained
 			}
 			if (outgoing.size >= CACHED_EDGE_LISTS) outgoing.removeFirst()
 			outgoing.put(key, edges)
@@ -163,6 +176,20 @@ internal class CoarseEdgeCache(
 		for (arrival in falls.to(target)) visitor.visit(arrival.origin, arrival.edge)
 	}
 
+	fun forEachChainFrom(node: Long, visitor: ChainVisitor) {
+		val chains = chains ?: return
+		val origin = PackedStance.stance(node)
+		if (!standable.isStance(origin)) return
+		for (edge in chains.from(origin)) visitor.visit(origin, edge)
+	}
+
+	fun forEachChainTo(node: Long, visitor: ChainVisitor) {
+		val chains = chains ?: return
+		val target = PackedStance.stance(node)
+		if (!standable.isStance(target)) return
+		for (arrival in chains.to(target)) visitor.visit(arrival.origin, arrival.edge)
+	}
+
 	fun forEachShaft(node: Long, visitor: ShaftVisitor) {
 		val shafts = shafts ?: return
 		val stance = PackedStance.stance(node)
@@ -175,6 +202,10 @@ internal class CoarseEdgeCache(
 	fun fallsRead(changed: List<CellBox>, key: Long): Boolean = falls?.reads(changed, key) == true
 
 	fun fallReaders(changed: List<CellBox>): List<CellBox> = falls?.let { changed.map(it::readers) }.orEmpty()
+
+	fun chainsRead(changed: List<CellBox>, key: Long): Boolean = chains?.reads(changed, key) == true
+
+	fun chainReaders(changed: List<CellBox>): List<CellBox> = chains?.let { changed.map(it::readers) }.orEmpty()
 
 	private fun bounces(stance: Stance): Boolean =
 		bounceTemplates.isNotEmpty() && moves.bouncesAt(view, stance.x, stance.y, stance.z)
@@ -310,6 +341,7 @@ internal class CoarseEdgeCache(
 		bouncesTo.clear()
 		pads.clear()
 		falls?.clear()
+		chains?.clear()
 		shafts?.clear()
 	}
 
@@ -330,6 +362,7 @@ internal class CoarseEdgeCache(
 		remove(bouncesTo.keys, targets)
 		pads.clear()
 		falls?.clear()
+		chains?.invalidate(changed)
 		shafts?.clear()
 	}
 

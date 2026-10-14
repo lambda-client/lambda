@@ -101,6 +101,7 @@ data class CoarseVoxel(
 	val medium: Medium = if (fullyPassable) Medium.AIR else Medium.SOLID,
 	val openSides: Int = if (fullyPassable) ALL_SIDES else 0,
 	val partial: Boolean = false,
+	val velocityMultiplier: Double = 1.0,
 ) {
 	val surfaceOffset: Double get() = (standingSurface ?: 1.0) - 1.0
 

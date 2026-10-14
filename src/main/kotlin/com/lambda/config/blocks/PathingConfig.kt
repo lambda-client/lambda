@@ -175,7 +175,7 @@ interface PathingConfig {
      */
     val ignoreHazards: Boolean get() = false
 
-    /** Never stand on a block while any part of the feet hangs over lava; off follows vanilla, which allows it. */
+    /** Never land from a jump or fall with any part of the feet over lava, nor a low hop with the centre over it; off follows vanilla. */
     val avoidLavaEdges: Boolean get() = false
 
     /**

@@ -13,6 +13,7 @@ import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.core.MovementId
+import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceSolver
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -26,7 +27,7 @@ object SlimeBounceMovement : Movement {
 
 		for (drop in MIN_DROP..options.maxBounceDrop) {
 			for (rise in -(drop - 1)..MAX_RISE) {
-				val window = BounceSolver.reach(drop, rise) ?: continue
+				val window = BounceSolver.reach(drop, rise) ?: BounceSolver.reach(drop, rise, ledgeDepth = LOWEST_LEDGE_DEPTH) ?: continue
 
 				for ((dx, dz) in StanceRules.CARDINALS + StanceRules.DIAGONALS) {
 					val perStep = hypot(dx.toDouble(), dz.toDouble())
@@ -52,7 +53,7 @@ object SlimeBounceMovement : Movement {
 		if (!options.allowOffAxisJumps) return@buildList
 		for (drop in MIN_DROP..options.maxBounceDrop) {
 			for (rise in -(drop - 1)..MAX_RISE) {
-				val window = BounceSolver.reach(drop, rise) ?: continue
+				val window = BounceSolver.reach(drop, rise) ?: BounceSolver.reach(drop, rise, ledgeDepth = LOWEST_LEDGE_DEPTH) ?: continue
 				for (dx in -MAX_SPAN..MAX_SPAN) for (dz in -MAX_SPAN..MAX_SPAN) {
 					if (dx == 0 || dz == 0 || abs(dx) == abs(dz)) continue
 					if (hypot(dx.toDouble(), dz.toDouble()) !in window) continue
@@ -83,7 +84,10 @@ object SlimeBounceMovement : Movement {
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val solution = context.edge.bounce ?: return emptyList()
 		if (!context.constraints.sprintModes.contains(solution.sprint)) return emptyList()
-		return listOf(TrajectoryDecision.Bounce(context.edge.to, solution))
+		val standing = TrajectoryDecision.Bounce(context.edge.to, solution)
+		if (!solution.pressesWall) return listOf(standing)
+		val running = solution.copy(speed = BallisticProfile.VANILLA.momentumSpeed(solution.sprint), speedSlack = 0.0)
+		return listOf(TrajectoryDecision.Bounce(context.edge.to, running), standing)
 	}
 
 	override fun descentAllowance(decision: TrajectoryDecision): Double =
@@ -118,4 +122,6 @@ object SlimeBounceMovement : Movement {
 	private const val MIN_DROP = 2
 
 	private const val MAX_RISE = 0
+
+	private const val LOWEST_LEDGE_DEPTH = 15.0 / 16.0
 }

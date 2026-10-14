@@ -78,6 +78,8 @@ class PathingWorld(
 
 	fun chunkCapturable(chunkX: Int, chunkZ: Int): Boolean = trusted.contains(chunkX, chunkZ)
 
+	val loadedRadiusBlocks: Int get() = source.viewDistance * 16
+
 	fun advance(budgetMillis: Double) {
 		check(source.isOnClientThread()) { "PathingWorld capture must advance on the client thread" }
 		trackObstacles()

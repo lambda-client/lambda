@@ -2,6 +2,7 @@ package com.lambda.pathing.launch
 
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.Footing
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -104,7 +105,48 @@ object BounceArcProbe {
 					)
 				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
+			return climb(headroom, launchReach, arcs, seed)
+		}
+
+		private fun climb(headroom: Double, launchReach: Double, arcs: ArcSweep, seed: Double): BounceSolution? {
+			val ledge = lowerLedge() ?: return null
+			val wall = ledge.along - launchReach - LEDGE_STEP
+			if (wall <= 0.0) return null
+			for ((jump, sprint) in STANDING_STYLES) {
+				refined(seed) { contactDepth ->
+					BounceSolver.solvePressing(
+						horizontalDistance = ledge.along + WALL_PRESS_BLOCKS,
+						contactDepth = contactDepth, riseHeight = ledge.height - launchHeight,
+						sprint = sprint, jump = jump,
+						headroom = headroom,
+						launchReach = launchReach,
+						bounces = bounces,
+					)
+				}?.pressedAgainst(wall, ledge.along - launchReach)?.takeIf { admissible(it, arcs) }?.let { return it }
+			}
 			return null
+		}
+
+		private fun lowerLedge(): Ledge? {
+			val target = Stance(from.x + dx, from.y + rise, from.z + dz)
+			if (!Footing.involvesPartial(view, target.x, target.y, target.z)) return null
+			Footing.forEachRead(target) { x, y, z -> reads?.add(BlockPos.asLong(x, y, z)) }
+			val holds = Footing.holds(view, target)
+			if (holds.isEmpty) return null
+			val surface = target.y + view.surfaceOffset(target.x, target.y - 1, target.z)
+			var along = length - LEDGE_SEARCH_BLOCKS
+			while (along <= length) {
+				val height = holds.heightAt(from.x + 0.5 + unitX * along, from.z + 0.5 + unitZ * along)
+				if (!height.isNaN()) return if (height < surface - LEDGE_EPSILON) Ledge(along, height) else null
+				along += LEDGE_STEP
+			}
+			return null
+		}
+
+		private fun BounceSolution.pressedAgainst(wall: Double, landing: Double): BounceSolution {
+			val distances = DoubleArray(arc.distances.size) { minOf(arc.distances[it], wall) }
+			distances[distances.size - 1] = landing
+			return copy(arc = ArcSample(arc.heights, distances, arc.exitSpeed), pressesWall = true)
 		}
 
 		private inline fun refined(seed: Double, solveAtDepth: (Double) -> BounceSolution?): BounceSolution? {
@@ -215,6 +257,8 @@ object BounceArcProbe {
 		}
 	}
 
+	private class Ledge(val along: Double, val height: Double)
+
 	private data class LaunchCombo(
 		val jump: Boolean,
 		val sprint: Boolean,
@@ -252,4 +296,12 @@ object BounceArcProbe {
 	private const val CONTACT_REFINEMENTS = 3
 
 	private const val CONTACT_CONVERGENCE = 1.0E-9
+
+	private const val LEDGE_SEARCH_BLOCKS = 1.0
+
+	private const val LEDGE_STEP = 1.0 / 16.0
+
+	private const val LEDGE_EPSILON = 1.0E-6
+
+	private const val WALL_PRESS_BLOCKS = 0.5
 }

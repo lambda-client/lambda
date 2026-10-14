@@ -440,11 +440,11 @@ class CoarsePlanner(
 		val origins = changed.map(moves::originsReading)
 		if (changed.isNotEmpty()) {
 			val shafted = edgeCache.shaftReaders(changed)
-			val bounds = CellBox.enclosing(origins + edgeCache.fallReaders(changed) + shafted)
+			val bounds = CellBox.enclosing(origins + edgeCache.fallReaders(changed) + edgeCache.chainReaders(changed) + shafted)
 			search.forEachKnownNode { node ->
 				if (!bounds.contains(PackedStance.unpackX(node), PackedStance.unpackY(node), PackedStance.unpackZ(node))) return@forEachKnownNode
 				val key = PackedStance.stanceKey(node)
-				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key) ||
+				if (CoarseEdgeCache.covers(origins, key) && !(arrivalsOnly && edgeCache.isComplete(key)) || edgeCache.fallsRead(changed, key) || edgeCache.chainsRead(changed, key) ||
 					CoarseEdgeCache.covers(shafted, key)) pendingSync.add(key)
 			}
 		}

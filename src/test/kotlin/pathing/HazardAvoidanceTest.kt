@@ -78,21 +78,25 @@ class HazardAvoidanceTest {
 	}
 
 	@Test
-	fun `avoiding lava edges keeps the feet off lava while standing and is off by default`() {
+	fun `avoiding lava edges keeps landings off lava, lets walking pass over it and is off by default`() {
 		MinecraftBootstrap.ensure()
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-8, 0, -8, 8, 16, 8),
 			mapOf(BlockPos(0, 4, 0) to SnapshotBlockPhysics.FULL_CUBE, BlockPos(0, 4, 1) to captured(Blocks.LAVA.defaultState)),
 		)
-		fun standing(z: Double) = MovementSimulationState.synthetic(ProbeScenarios.PROFILE, Vec3d(0.5, 5.0, z), Rotation(0.0, 0.0))
+		fun body(y: Double, z: Double, grounded: Boolean) =
+			MovementSimulationState.synthetic(ProbeScenarios.PROFILE, Vec3d(0.5, y, z), Rotation(0.0, 0.0), onGround = grounded)
 		val centre = HorizontalPoint(0.5, 5.0, 0.5)
-		fun verdict(avoid: Boolean, z: Double) = RolloutEvaluator(
-			standing(0.5), listOf(centre), centre, MotionConstraints(avoidLavaEdges = avoid),
+		fun verdict(avoid: Boolean, from: MovementSimulationState, to: MovementSimulationState) = RolloutEvaluator(
+			from, listOf(centre), centre, MotionConstraints(avoidLavaEdges = avoid),
 			climbing = { false }, lava = { environment.lavaWithin(it) },
-		).observe(1, standing(z))
-		assertEquals(RolloutVerdict.Continue, verdict(true, 0.5), "a body centred on the block is clear of the lava")
-		assertIs<RolloutVerdict.Failed>(verdict(true, 0.85), "feet hanging 0.15 over the lava stand on its edge")
-		assertEquals(RolloutVerdict.Continue, verdict(false, 0.85), "off, the planner follows vanilla, which stands on any edge")
+		).observe(1, to)
+		assertEquals(RolloutVerdict.Continue, verdict(true, body(6.0, 0.5, false), body(5.0, 0.5, true)), "a landing centred on the block is clear of the lava")
+		assertIs<RolloutVerdict.Failed>(verdict(true, body(6.0, 0.85, false), body(5.0, 0.85, true)), "a jump landing with the feet 0.15 over the lava lands on its edge")
+		assertEquals(RolloutVerdict.Continue, verdict(true, body(5.0, 0.5, true), body(5.0, 0.85, true)), "walking past the edge stays allowed")
+		assertEquals(RolloutVerdict.Continue, verdict(true, body(5.2, 0.85, false), body(5.0, 0.85, true)), "a hop under a low ceiling barely falls and stays allowed")
+		assertIs<RolloutVerdict.Failed>(verdict(true, body(5.2, 1.2, false), body(5.0, 1.2, true)), "even a low hop may not land with the centre over the lava")
+		assertEquals(RolloutVerdict.Continue, verdict(false, body(6.0, 0.85, false), body(5.0, 0.85, true)), "off, the planner follows vanilla, which lands on any edge")
 	}
 
 	/**

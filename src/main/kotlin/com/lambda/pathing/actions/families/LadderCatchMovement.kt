@@ -10,7 +10,6 @@ import com.lambda.pathing.actions.Movement
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.control.SegmentFollowerProgram
-import com.lambda.pathing.actions.StanceRules
 import com.lambda.pathing.actions.TemplateSpec
 import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.launch.AirPlan
@@ -19,26 +18,32 @@ import com.lambda.pathing.actions.reachableEntrySpeed
 import com.lambda.pathing.core.MovementId
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
+import kotlin.math.abs
+import kotlin.math.hypot
 
 object LadderCatchMovement : Movement {
 	override val id = MovementId.LADDER_CATCH
 
 	override fun templates(context: MovementContext): List<TemplateSpec> = buildList {
-		if (!context.options.allowClimbing) return@buildList
-		for ((dx, dz) in StanceRules.CARDINALS) {
-			for (span in MIN_SPAN..MAX_SPAN) {
+		val options = context.options
+		if (!options.allowClimbing) return@buildList
+		for (dx in -MAX_SPAN..MAX_SPAN) {
+			for (dz in -MAX_SPAN..MAX_SPAN) {
+				if (maxOf(abs(dx), abs(dz)) < MIN_SPAN) continue
+				if (dx != 0 && dz != 0 && !options.allowDiagonal) continue
+				if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) continue
 				for (rise in MIN_RISE..MAX_RISE) {
 					add(
 						TemplateSpec(
-							dx = dx * span,
+							dx = dx,
 							dy = rise,
-							dz = dz * span,
+							dz = dz,
 							movement = id,
-							cost = context.costs.jumpCandidateCost(span.toDouble(), rise) +
+							cost = context.costs.jumpCandidateCost(hypot(dx.toDouble(), dz.toDouble()), rise) +
 									CATCH_SETTLE_TICKS,
 							conditions = listOf(
-								CellCondition(dx * span, rise, dz * span, CellPredicate.CLIMBABLE),
-								CellCondition(dx * span, rise + 1, dz * span, CellPredicate.CENTER_HEAD),
+								CellCondition(dx, rise, dz, CellPredicate.CLIMBABLE),
+								CellCondition(dx, rise + 1, dz, CellPredicate.CENTER_HEAD),
 							),
 							departure = CellPredicate.LAUNCHABLE,
 							arc = MotionTemplate.ArcSpec(),

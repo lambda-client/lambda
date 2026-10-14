@@ -15,6 +15,7 @@ import com.lambda.pathing.world.streaming.InterestTier
 import com.lambda.pathing.world.streaming.PathingWorld
 import net.minecraft.util.math.Vec3d
 import org.apache.logging.log4j.LogManager
+import java.util.concurrent.atomic.AtomicLongArray
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.math.abs
@@ -71,6 +72,7 @@ internal class CoarseService(
 
 	private fun build(): List<CoarsePlanningState> = synchronized(this) { built ?: buildLegs().also { built = it } }
 	private var revision = 0L
+	private val settledRevisions = AtomicLongArray(goals.size)
 	private var sequence = 0L
 	private var settled = -1
 
@@ -143,22 +145,27 @@ internal class CoarseService(
 
 	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean): Frame? {
 		val goal = goals[leg]
+		val waitUntil = System.nanoTime() + FULL_ROUTE_WAIT_MILLIS * 1_000_000L
 		var frame: Frame? = null
-		var settleBy = Long.MAX_VALUE
 		var hopelessSince = 0L
-		while (!cancelled() && !closed && System.nanoTime() < settleBy) {
+		while (!cancelled() && !closed) {
 			follow(leg, start, SpeedClass.STOPPED)
 			val next = awaitFrame(leg, ROUTE_POLL_MILLIS) { it.start == start && it !== frame }
 			if (next != null) {
 				frame = next
 				if (next.route.goal == goal || world?.chunkCapturable(goal.x shr 4, goal.z shr 4) != true) return next
-				if (settleBy == Long.MAX_VALUE) settleBy = System.nanoTime() + TERMINAL_WAIT_MILLIS * 1_000_000L
 			} else if (frame == null && hopeless(leg, start)) {
 				if (hopelessSince == 0L) hopelessSince = System.nanoTime()
 				else if (System.nanoTime() - hopelessSince > HOPELESS_MILLIS * 1_000_000L) return null
 			} else hopelessSince = 0L
+			if (frame != null && (!learning(leg) || System.nanoTime() > waitUntil)) return frame
 		}
 		return frame
+	}
+
+	private fun learning(leg: Int): Boolean {
+		val world = world ?: return false
+		return settling != null || world.pendingInterest > 0 || settledRevisions.get(leg) != world.revision
 	}
 
 	fun failure(leg: Int, start: Stance): String? = lock.withLock { failures[leg]?.takeIf { it.start == start }?.reason }
@@ -172,6 +179,7 @@ internal class CoarseService(
 	private fun run() {
 		try {
 			build()
+			awaitPrimedCapture()
 			while (!closed) {
 				val began = System.nanoTime()
 				val worked = advance()
@@ -187,6 +195,12 @@ internal class CoarseService(
 				published.signalAll()
 			}
 		}
+	}
+
+	private fun awaitPrimedCapture() {
+		val world = world ?: return
+		val until = System.nanoTime() + PRIMED_CAPTURE_WAIT_MILLIS * 1_000_000L
+		while (!closed && world.pendingInterest > 0 && System.nanoTime() < until) Thread.sleep(POLL_MILLIS)
 	}
 
 	private fun awaitWork() {
@@ -242,6 +256,7 @@ internal class CoarseService(
 
 	private fun settle(leg: Int) {
 		dirty[leg] = false
+		val through = revision
 		val timings = PhaseTimings()
 		val planner = legs[leg].planner
 		val synced = planner.syncedStances
@@ -252,6 +267,7 @@ internal class CoarseService(
 		try {
 			settleRoute(leg, timings)
 		} finally {
+			settledRevisions.set(leg, through)
 			settling = null
 		}
 		val millis = timings.elapsedMillis
@@ -337,7 +353,8 @@ internal class CoarseService(
 	}
 
 	private companion object {
-		const val TERMINAL_WAIT_MILLIS = 1_500L
+		const val FULL_ROUTE_WAIT_MILLIS = 8_000L
+		const val PRIMED_CAPTURE_WAIT_MILLIS = 3_000L
 		const val HOPELESS_MILLIS = 1_000L
 		const val ROUTE_POLL_MILLIS = 100L
 		const val EPOCH_NANOS = 100_000_000L

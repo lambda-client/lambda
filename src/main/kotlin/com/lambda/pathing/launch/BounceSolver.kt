@@ -12,6 +12,7 @@ data class BounceSolution(
 	val launchOffset: Double,
 	val arc: ArcSample,
 	val contactDepth: Double,
+	val pressesWall: Boolean = false,
 ) {
 	val airTicks: Int get() = arc.airTicks
 
@@ -59,6 +60,36 @@ object BounceSolver {
 			speedSlack = minOf(slack, speed),
 			launchOffset = launchReach,
 			arc = arc,
+			contactDepth = contactDepth,
+		)
+	}
+
+	fun solvePressing(
+		horizontalDistance: Double,
+		contactDepth: Double,
+		riseHeight: Double,
+		sprint: Boolean,
+		jump: Boolean,
+		headroom: Double,
+		launchReach: Double,
+		bounces: Int = 1,
+	): BounceSolution? {
+		val flight = horizontalDistance - launchReach
+		if (flight <= 0.0) return null
+		val standing = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward = true, sprint = sprint, jump = jump, bounces = bounces, headroom = headroom)
+			?: return null
+		if (standing.distance < flight) {
+			return solve(horizontalDistance, contactDepth, riseHeight, sprint = sprint, jump = jump, headroom = headroom, launchReach = launchReach, bounces = bounces)
+		}
+		return BounceSolution(
+			sprint = sprint,
+			holdForward = true,
+			jump = jump,
+			holdTicks = Int.MAX_VALUE,
+			speed = 0.0,
+			speedSlack = STANDING_REST_SPEED,
+			launchOffset = launchReach,
+			arc = standing,
 			contactDepth = contactDepth,
 		)
 	}
@@ -129,9 +160,9 @@ object BounceSolver {
 		)
 	}
 
-	fun reach(drop: Int, rise: Int, bounces: Int = 1): ClosedFloatingPointRange<Double>? {
+	fun reach(drop: Int, rise: Int, bounces: Int = 1, ledgeDepth: Double = 0.0): ClosedFloatingPointRange<Double>? {
 		val depth = drop.toDouble()
-		val height = rise.toDouble()
+		val height = rise - ledgeDepth
 		var floor = Double.POSITIVE_INFINITY
 		var ceiling = Double.NEGATIVE_INFINITY
 		for (jump in listOf(true, false)) {

@@ -213,8 +213,8 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     @Group(MOVES_GROUP)
     override val avoidLavaEdges by c.setting(
         "Avoid Lava Edges", false,
-        "Never stand on a block while any part of the feet hangs over lava, landings included. " +
-            "Vanilla allows it, but parkour servers reset players who stand on a lava edge.",
+        "Never land from a jump or a fall with any part of the feet over lava, nor a low hop with the centre over it. " +
+            "Vanilla allows it, but parkour servers reset players who land on a lava edge; walking past lava stays allowed.",
     )
 
     @Group(MOVES_GROUP)

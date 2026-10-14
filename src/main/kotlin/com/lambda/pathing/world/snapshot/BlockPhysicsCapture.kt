@@ -51,7 +51,7 @@ object BlockPhysicsCapture {
 		VoxelShapes.cuboid(BODY_MIN, Vanilla.COLLISION_EPSILON, 0.0, BODY_MAX, 1.0 - Vanilla.COLLISION_EPSILON, BODY_MIN),
 	)
 
-	fun coarseVoxelOf(shape: VoxelShape, bouncy: Boolean = false): CoarseVoxel {
+	fun coarseVoxelOf(shape: VoxelShape, bouncy: Boolean = false, velocityMultiplier: Double = 1.0): CoarseVoxel {
 		if (shape.isEmpty) return CoarseVoxel.AIR
 		val underBody = VoxelShapes.combineAndSimplify(shape, CENTERED_SUPPORT_COLUMN, BooleanBiFunction.AND)
 		val top = if (underBody.isEmpty) 0.0 else underBody.getMax(Direction.Axis.Y)
@@ -66,6 +66,7 @@ object BlockPhysicsCapture {
 				if (VoxelShapes.matchesAnywhere(shape, passage, BooleanBiFunction.AND)) open else open or (1 shl index)
 			},
 			partial = CollisionClass.of(shape) == CollisionClass.PARTIAL,
+			velocityMultiplier = velocityMultiplier,
 		)
 	}
 
@@ -78,7 +79,7 @@ object BlockPhysicsCapture {
 			state.isIn(BlockTags.CLIMBABLE) -> CoarseVoxel.CLIMBABLE
 			state.bubbles() == BubbleColumn.DRAG -> CoarseVoxel.HAZARD
 			!state.fluidState.isEmpty && shape.isEmpty -> CoarseVoxel.WATER
-			else -> coarseVoxelOf(shape, bouncy = slime)
+			else -> coarseVoxelOf(shape, bouncy = slime, velocityMultiplier = state.block.velocityMultiplier.toDouble())
 		}
 		return SnapshotBlockPhysics(
 			collisionShape = shape,

@@ -74,6 +74,8 @@ internal class BouncePads(private val view: CoarseVoxelView, private val index: 
 		return found?.toIntArray() ?: EMPTY
 	}
 
+	fun padsIn(sectionX: Int, sectionY: Int, sectionZ: Int): LongArray = pads(sectionX, sectionY, sectionZ)
+
 	private fun pads(sectionX: Int, sectionY: Int, sectionZ: Int): LongArray {
 		val key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ)
 		sections.get(key)?.let { return it }

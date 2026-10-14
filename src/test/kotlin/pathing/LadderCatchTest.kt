@@ -91,6 +91,37 @@ class LadderCatchTest {
         )
     }
 
+    /**
+     * A parkour room hangs its ladder off to the side of the platform: three blocks ahead and one across,
+     * with no floor between. Catch templates only ran along the axes, so the ladder was unreachable and
+     * the route went the long way round or nowhere.
+     */
+    @Test
+    fun `a ladder off to the side of the jump line is caught`() {
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (x in 1..2) for (z in -2..-1) blocks[BlockPos(x, 9, z)] = SnapshotBlockPhysics.FULL_CUBE
+        for (y in 5..13) blocks[BlockPos(0, y, 3)] = SnapshotBlockPhysics.FULL_CUBE
+        for (y in 6..14) blocks[BlockPos(0, y, 2)] = LADDER
+        val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks)
+        val planner = CoarsePlanner(environment, moves(), Stance(1, 10, -1), Stance(0, 14, 3))
+        assertTrue(planner.repair().converged)
+        planner.expandSearchField()
+        val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
+        val catch = route.edges.firstOrNull { it.movement == MovementId.LADDER_CATCH }
+        assertNotNull(catch, "only an off-axis catch reaches the ladder; got ${route.edges.map { it.movement }}")
+        assertTrue(catch.to.x != catch.from.x && catch.to.z != catch.from.z, "the catch leaves the axes: $catch")
+
+        val outcome = walkHorizon(
+            route, planner, resting(Vec3d(1.5, 10.0, -0.5)), PROFILE, environment, MotionConstraints(),
+            publish = { _, _ -> },
+            started = System.currentTimeMillis(),
+        )
+        val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
+        assertTrue(!path.partial, "the walk must arrive on the pillar top")
+        val terminal = path.plan.frames.last().state.position
+        assertTrue(terminal.y > 13.5 && terminal.z > 2.4, "the tape must end on the pillar top, ended at $terminal")
+    }
+
     private companion object {
         val LADDER = SnapshotBlockPhysics(
             collisionShape = VoxelShapes.empty(),

@@ -9,6 +9,12 @@ import kotlin.math.sqrt
 object CoarseMoveRates {
 	val SPRINT_BLOCKS_PER_TICK = BallisticProfile.VANILLA.cruiseDisplacement(sprint = true)
 
+	fun floorSlowdown(velocityMultiplier: Double): Double {
+		if (velocityMultiplier >= 1.0) return 1.0
+		val friction = BallisticProfile.VANILLA.groundFriction
+		return (1.0 - friction * velocityMultiplier) / (1.0 - friction)
+	}
+
 	const val SPRINT_JUMP_BLOCKS_PER_TICK = 0.3640
 
 	const val STEP_UP_BLOCKS_PER_TICK = 0.1000

@@ -39,7 +39,7 @@ internal object InterestPrimer {
 		val dy = goal.y - start.y
 		val dz = goal.z - start.z
 		val length = maxOf(abs(dx), abs(dz), 1)
-		if (length <= NEAR_JOURNEY_BLOCKS) {
+		if (length <= maxOf(NEAR_JOURNEY_BLOCKS, world.loadedRadiusBlocks)) {
 			world.interestBlocks(
 				minOf(start.x, goal.x) - JOURNEY_BOX_MARGIN_BLOCKS, minOf(start.y, goal.y) - JOURNEY_BOX_MARGIN_BLOCKS, minOf(start.z, goal.z) - JOURNEY_BOX_MARGIN_BLOCKS,
 				maxOf(start.x, goal.x) + JOURNEY_BOX_MARGIN_BLOCKS, maxOf(start.y, goal.y) + JOURNEY_BOX_MARGIN_BLOCKS, maxOf(start.z, goal.z) + JOURNEY_BOX_MARGIN_BLOCKS,

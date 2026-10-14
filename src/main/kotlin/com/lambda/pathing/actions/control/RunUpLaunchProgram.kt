@@ -24,6 +24,7 @@ internal class RunUpLaunchProgram(
 	private var launched = false
 	private var landedAfterLaunch = false
 	private var hopFrame: Int? = null
+	private var launchedFrom: HorizontalPoint? = null
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
@@ -35,7 +36,7 @@ internal class RunUpLaunchProgram(
 		if (launched && !observed.onGround) {
 			return MovementSimulationInput(
 				forward = if (solution.holdForward) 1.0 else 0.0,
-				strafe = airborneStrafe(takeoff, aim, observed),
+				strafe = airborneStrafe(launchedFrom ?: takeoff, aim, observed),
 				sprint = solution.sprint && solution.holdForward,
 				rotation = rotation,
 			)
@@ -59,7 +60,10 @@ internal class RunUpLaunchProgram(
 			}
 			if (due) {
 				jump = true
-				if (launching) launched = true else hopFrame = frame
+				if (launching) {
+					launched = true
+					if (edgeAlong != null) launchedFrom = takeoff.copy(x = observed.position.x, z = observed.position.z)
+				} else hopFrame = frame
 				jumpTargets.removeFirst()
 			}
 		}
