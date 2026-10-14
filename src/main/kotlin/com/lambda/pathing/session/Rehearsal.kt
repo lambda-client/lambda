@@ -27,6 +27,8 @@ internal class Rehearsal(val waypoints: List<Stance>) {
 	@Volatile
 	var performing = false
 
+	var restarts = 0
+
 	val bestFrames: Int? get() = best?.plan?.tape?.frameCount
 
 	fun view(): RehearsalView = RehearsalView(history, progress, finished)

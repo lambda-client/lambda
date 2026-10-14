@@ -6,10 +6,10 @@ import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotat
 import com.lambda.interaction.managers.rotating.RotationMode
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanDump
+import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
-import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
 import com.lambda.threading.runSafeAutomated
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
@@ -170,12 +170,33 @@ class PathingSession internal constructor(
 		if (rehearsed.performing) return
 		val best = rehearsed.best
 		if (best == null) {
+			if (!rehearsed.performRequested) info("Walking as soon as the rehearsal spine is ready.", PATHING_SOURCE)
 			rehearsed.performRequested = true
-			info("Walking as soon as the rehearsal spine is ready.", PATHING_SOURCE)
 			return
 		}
+		rehearsed.performRequested = true
+		if (!with(alignment) { atRest() }) {
+			alignment.beginSettling()
+			tickInput = ALIGNMENT_INPUT
+			state = State.Settling(goalLabel())
+			return
+		}
+		if (!TrajectoryExecutionCursor(best.plan).startsFrom(MovementSimulationState.from(player))) {
+			rehearsal = null
+			info(
+				"Moved %.2f blocks from where the rehearsal starts; planning from here.".format(with(alignment) { startDrift(best) }),
+				PATHING_SOURCE,
+			)
+			return planTrajectory()
+		}
+		rehearsed.performRequested = false
 		rehearsed.performing = true
 		with(admission) { begin(best) }
+	}
+
+	internal fun SafeContext.startAtRest() {
+		if (rehearsal?.let { it.performRequested && it.best != null } == true) return perform()
+		with(launcher) { capturePlan() }
 	}
 
 	internal fun SafeContext.planTrajectory() {
@@ -185,7 +206,7 @@ class PathingSession internal constructor(
 			player.abilities.flying = false
 			player.sendAbilitiesUpdate()
 		}
-		if (player.velocity.horizontalLength() > SETTLED_SPEED || airborne()) {
+		if (!with(alignment) { atRest() }) {
 			alignment.beginSettling()
 			tickInput = ALIGNMENT_INPUT
 			state = State.Settling(goalLabel())
@@ -254,7 +275,11 @@ class PathingSession internal constructor(
 
 	internal fun SafeContext.recover(reason: String, reuseCoarseState: Boolean) {
 		if (!active) return fail(reason)
-		rehearsal = null
+		rehearsal = rehearsal?.takeIf { it.performing && (replay?.cursor?.nextFrame ?: 0) == 0 && it.restarts < MAX_REHEARSAL_RESTARTS }?.also {
+			it.restarts++
+			it.performing = false
+			it.performRequested = true
+		}
 		if (!reuseCoarseState) {
 			journey?.cancel()
 			journey = null
@@ -310,6 +335,8 @@ class PathingSession internal constructor(
 		const val EVENT_DUMP_INTERVAL_MILLIS = 2_000L
 
 		const val RECOVERY_PROGRESS_BLOCKS = 16.0
+
+		const val MAX_REHEARSAL_RESTARTS = 2
 
 		const val PATHING_SOURCE = "Pathing"
 

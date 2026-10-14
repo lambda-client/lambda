@@ -121,16 +121,52 @@ class TrajectoryExecutionCursorTest {
     }
 
     @Test
-    fun `cursor rejects a sprint mismatch when forward coasting cannot converge it`() {
-        val fixture = fixture(initialSprinting = true, sprintModes = listOf(false))
+    fun `cursor rejects a sprint bit that a walking plan cannot clear`() {
+        val fixture = fixture(sprintModes = listOf(false))
         val cursor = TrajectoryExecutionCursor(fixture.plan)
-        val observed = fixture.initial.copy(isSprinting = false)
+        val observed = fixture.initial.copy(isSprinting = true)
 
         val rejected = assertIs<ExecutionInputResult.Rejected>(
             cursor.nextInput(observed),
         )
         val deviation = assertIs<ExecutionDeviation.Flag>(rejected.deviation)
         assertEquals("sprinting", deviation.name)
+    }
+
+    @Test
+    fun `cursor holds the sprint key while the plan sprints so a cleared sprint bit converges`() {
+        val fixture = fixture(initialSprinting = true, sprintModes = listOf(false))
+        assertTrue(fixture.plan.tape.asList().none { it.sprint }, "fixture must coast on a running sprint without the key")
+
+        val replay = TrajectoryExecutionCursor(fixture.plan)
+        val body = MovementSimulator(PROFILE, fixture.environment, fixture.initial)
+        repeat(fixture.plan.tape.frameCount) {
+            val apply = assertIs<ExecutionInputResult.Apply>(replay.nextInput(body.state))
+            val before = if (apply.frame == 0) fixture.plan.initialState else fixture.plan.frames[apply.frame - 1].state
+            val coasting = before.isSprinting && fixture.plan.tape[apply.frame].forward > 0.0
+            assertEquals(coasting, apply.input.sprint, "the key is held exactly while the plan coasts on a sprint (frame ${apply.frame})")
+            body.tickMovement(apply.input)
+            assertIs<ExecutionObservationResult>(replay.observeAfterTick(body.state))
+            assertEquals(fixture.plan.frames[apply.frame].state, body.state, "the held key must not change frame ${apply.frame}")
+        }
+
+        // A server echo of an earlier sprint stop clears the bit between ticks; the held key restarts it before the move.
+        val echoed = fixture.initial.copy(isSprinting = false, hadForwardMovement = true)
+        val cursor = TrajectoryExecutionCursor(fixture.plan)
+        val apply = assertIs<ExecutionInputResult.Apply>(cursor.nextInput(echoed))
+        val live = MovementSimulator(PROFILE, fixture.environment, echoed)
+        live.tickMovement(apply.input)
+        assertTrue(live.state.isSprinting)
+        assertIs<ExecutionObservationResult.Accepted>(cursor.observeAfterTick(live.state))
+    }
+
+    @Test
+    fun `a plan starts only from its exact initial body whatever the facing`() {
+        val fixture = fixture()
+        val cursor = TrajectoryExecutionCursor(fixture.plan)
+        assertTrue(cursor.startsFrom(fixture.initial.copy(rotation = Rotation(37.0, 12.0))))
+        assertFalse(cursor.startsFrom(fixture.initial.copy(position = fixture.initial.position.add(0.0, 1.0, 0.0))))
+        assertFalse(cursor.startsFrom(fixture.initial.copy(velocity = Vec3d(0.0, 0.0, 0.0))))
     }
 
     @Test

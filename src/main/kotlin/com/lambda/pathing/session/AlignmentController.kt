@@ -2,6 +2,7 @@ package com.lambda.pathing.session
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.managers.rotating.Rotation
+import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.session.PathingSession.Companion.ALIGNMENT_INPUT
 import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
@@ -19,6 +20,9 @@ internal class AlignmentController(private val walk: PathingSession) {
 	private var settleTicks = 0
 	private var fallingTicks = 0
 	private var alignmentTicks = 0
+	private var restSample: MovementSimulationState? = null
+	private var previousRestSample: MovementSimulationState? = null
+	private var restSampleAge = Int.MIN_VALUE
 
 	fun beginSettling() {
 		settleTicks = 0
@@ -43,9 +47,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 
 	fun SafeContext.settle() {
 		if (with(walk) { afloat() }) return with(walk.launcher) { capturePlan() }
-		if (settled()) {
-			return with(walk.launcher) { capturePlan() }
-		}
+		if (atRest()) return with(walk) { startAtRest() }
 		val falling = with(walk) { airborne() }
 		if (falling && ++fallingTicks <= MAX_FALLING_TICKS) return
 		if (!falling && ++settleTicks > MAX_SETTLE_TICKS || fallingTicks > MAX_FALLING_TICKS) {
@@ -72,7 +74,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 
 		walk.face(path.plan.initialState.rotation.yaw)
 		val yawDrift = launchYawError(path)
-		if (yawDrift <= FIRST_FRAME_YAW_EPSILON && settled()) {
+		if (yawDrift <= FIRST_FRAME_YAW_EPSILON && atRest()) {
 			with(walk.admission) { install(path) }
 			return
 		}
@@ -110,7 +112,24 @@ internal class AlignmentController(private val walk: PathingSession) {
 	fun SafeContext.launchYawError(path: PublishedPath): Double =
 		abs(Rotation.wrap(player.moveYaw - path.plan.initialState.rotation.yaw))
 
-	private fun SafeContext.settled(): Boolean = player.velocity.horizontalLength() <= SETTLED_SPEED && player.isOnGround
+	fun SafeContext.atRest(): Boolean {
+		val age = player.age
+		if (age != restSampleAge) {
+			previousRestSample = restSample.takeIf { restSampleAge == age - 1 }
+			restSample = MovementSimulationState.from(player)
+			restSampleAge = age
+		}
+		val current = restSample ?: return false
+		val previous = previousRestSample ?: return false
+		return current.velocity.horizontalLength() <= SETTLED_SPEED && current.onGround && current.restsLike(previous)
+	}
+
+	private fun MovementSimulationState.restsLike(other: MovementSimulationState): Boolean =
+		position == other.position && velocity == other.velocity && boundingBox == other.boundingBox &&
+				onGround == other.onGround && horizontalCollision == other.horizontalCollision &&
+				verticalCollision == other.verticalCollision && collidedSoftly == other.collidedSoftly &&
+				isSprinting == other.isSprinting && isSneaking == other.isSneaking &&
+				jumpingCooldown == other.jumpingCooldown && supportingBlockPos == other.supportingBlockPos
 
 	companion object {
 		const val START_DRIFT_TOLERANCE = 0.35

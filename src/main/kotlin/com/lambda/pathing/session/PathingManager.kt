@@ -1,11 +1,13 @@
 package com.lambda.pathing.session
 
+import com.lambda.Lambda
 import com.lambda.config.automation.AutomationConfig
 import com.lambda.config.blocks.PathingRenderConfig
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -14,6 +16,7 @@ import com.lambda.interaction.managers.Manager
 import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
+import com.lambda.pathing.debug.ServerCorrections
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.pathing.world.store.TerrainStores
 import com.lambda.pathing.world.streaming.PathingWorld
@@ -111,6 +114,9 @@ object PathingManager : Manager<PathingRequest>(0) {
 				session?.onBlockChanged(event.pos)
 				waypointRoute.onBlockChanged(event.pos)
 			}
+		}
+		listenUnsafe<PacketEvent.Receive.Pre> { event ->
+			ServerCorrections.record(event.packet, Lambda.mc.player?.id)
 		}
 		listenUnsafe<WorldEvent.ChunkEvent.Load> { event ->
 			session?.onChunkEvent(event.chunk.pos.x, event.chunk.pos.z)

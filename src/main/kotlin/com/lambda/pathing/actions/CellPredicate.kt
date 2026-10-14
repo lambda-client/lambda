@@ -50,7 +50,8 @@ fun interface CellPredicate {
 				val otherX = x + CoarseVoxel.dx(side)
 				val otherY = if (inbound) y - dy else y + dy
 				val otherZ = z + CoarseVoxel.dz(side)
-				if (Footing.involvesPartial(view, x, y, z) || !inbound && dy > 0 && Footing.involvesPartial(view, otherX, otherY, otherZ)) {
+				val climbingOut = dy > 0 && if (inbound) view.medium(otherX, otherY, otherZ) == Medium.CLIMBABLE else view.medium(x, y, z) == Medium.CLIMBABLE
+				if (!climbingOut && (Footing.involvesPartial(view, x, y, z) || !inbound && dy > 0 && Footing.involvesPartial(view, otherX, otherY, otherZ))) {
 					val other = Stance(otherX, otherY, otherZ)
 					val here = Stance(x, y, z)
 					val maxRise = if (dy > 0) Footing.JUMP_RISE else Footing.WALK_RISE
@@ -59,7 +60,8 @@ fun interface CellPredicate {
 				if (inbound) {
 					val feet = view.voxel(x, y, z)
 					val head = view.voxel(x, y + 1, z)
-					return feet.centerPassable && head.centerPassable && feet.opensToward(side) && head.opensToward(side) && !view.voxel(x, y - 1, z).intrudesAbove
+					return feet.centerPassable && head.centerPassable && feet.opensToward(side) && head.opensToward(side) && !view.voxel(x, y - 1, z).intrudesAbove &&
+							(!climbingOut || !Footing.involvesPartial(view, x, y, z) || Footing.stands(view, Stance(x, y, z)))
 				}
 				val crossing = if (dy > 0) y + 1 else y
 				return view.voxel(x, crossing, z).opensToward(side) && view.voxel(x, crossing + 1, z).opensToward(side)

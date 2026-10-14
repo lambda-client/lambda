@@ -1,6 +1,7 @@
 package com.lambda.pathing.debug
 
 import com.lambda.Lambda.mc
+import com.lambda.interaction.managers.rotating.RotationManager
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.Vanilla
@@ -8,6 +9,7 @@ import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.block.ShapeContext
+import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.MathHelper
@@ -73,13 +75,22 @@ internal fun executionRejectionReport(
 		snapshotDifferences(snapshot, listOfNotNull(before?.boundingBox, expected?.boundingBox, observed.boundingBox), ignoreHazards)
 	}
 	return "frame $frame $phase$splice: $deviation$inputDetail$previousInputDetail" +
-			"$liveInputDetail$stateDetail$ledgeDetail$worldDetail${touchingEntities()}"
+			"$liveInputDetail$stateDetail${ServerCorrections.recent()}${rotationDetail()}$ledgeDetail$worldDetail${touchingEntities()}"
+}
+
+private fun rotationDetail(): String {
+	val player = mc.player ?: return ""
+	val request = RotationManager.yawRequest
+		?: return "; no yaw request, movement follows the camera at yaw %.2f pitch %.2f".format(player.yaw, player.pitch)
+	return "; yaw request %s age %d, camera yaw %.2f pitch %.2f".format(request.rotationConfig.rotationMode, request.age, player.yaw, player.pitch)
 }
 
 private fun touchingEntities(): String {
 	val player = mc.player ?: return ""
 	val world = mc.world ?: return ""
-	val touching = world.getCrammedEntities(player, player.boundingBox.expand(CONTACT_REACH))
+	val touching = world.getOtherEntities(player, player.boundingBox.expand(CONTACT_REACH)) {
+		it is LivingEntity && it.isAlive || it.isCollidable(player)
+	}
 	if (touching.isEmpty()) return ""
 	return "; touching " + touching.take(MAX_REPORTED_ENTITIES).joinToString(", ") { "${it.type.untranslatedName} at ${it.pos.short()}" }
 }

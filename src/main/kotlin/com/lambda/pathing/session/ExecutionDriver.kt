@@ -16,6 +16,8 @@ import com.lambda.pathing.session.PathingSession.Companion.PATHING_SOURCE
 import com.lambda.pathing.session.PathingSession.Companion.TREAD_WATER_INPUT
 import com.lambda.pathing.session.PathingSession.State
 import com.lambda.util.CommunicationUtils.info
+import net.minecraft.util.math.MathHelper
+import kotlin.math.abs
 
 internal class ExecutionDriver(private val walk: PathingSession) {
 	fun SafeContext.tickExecution() {
@@ -98,8 +100,12 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 	}
 
 	private fun SafeContext.finishTrajectory(replay: Replay) {
+		if (replay.path.partial) return enterHold(replay)
+		complete(replay)
+	}
+
+	private fun SafeContext.complete(replay: Replay) {
 		val path = replay.path
-		if (path.partial) return enterHold(replay)
 		walk.replay = null
 		walk.tickInput = null
 		walk.state = State.Complete(path.plan.tape.frameCount, walk.leg)
@@ -206,6 +212,11 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		val report = executionRejectionReport(path, frame, deviation, observed, afterInput, journey?.world?.snapshot, journey?.ignoresHazards == true)
 		val history = walk.replay?.takeIf { it.path === path }?.observedHistory?.toList().orEmpty()
 		walk.dumpEvent("divergence", report, PlanDump.ExecutionTrace.of(path.plan, frame, afterInput, observed, history))
+		val replay = walk.replay
+		if (replay != null && replay.path === path && arrivedBeforeTeleport(path, frame, observed)) {
+			info("The server moved the body away on arrival at ${path.finalGoal}.", PATHING_SOURCE)
+			return complete(replay)
+		}
 		with(walk) {
 			when (deviation) {
 				is ExecutionDeviation.WorldChanged -> recover(report, reuseCoarseState = true)
@@ -216,10 +227,21 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		}
 	}
 
+	private fun arrivedBeforeTeleport(path: PublishedPath, frame: Int, observed: MovementSimulationState): Boolean {
+		if (walk.remainingWaypoints().isNotEmpty()) return false
+		val confirmed = if (frame == 0) path.plan.initialState else path.plan.frames.getOrNull(frame - 1)?.state ?: return false
+		if (confirmed.position.distanceTo(observed.position) < TELEPORT_BLOCKS) return false
+		val goal = path.finalGoal
+		return MathHelper.floor(confirmed.position.x) == goal.x && MathHelper.floor(confirmed.position.z) == goal.z &&
+				abs(confirmed.position.y - goal.y) <= 1.0
+	}
+
 	fun SafeContext.observe(plan: TrajectoryPlan, frame: Int) =
 		MovementSimulationState.from(player, isJumping = frame > 0 && frame <= plan.tape.frameCount && plan.tape[frame - 1].jump)
 
 	private companion object {
 		const val REPAIR_MIN_LEAD_FRAMES = 8
+
+		const val TELEPORT_BLOCKS = 8.0
 	}
 }

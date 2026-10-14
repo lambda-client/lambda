@@ -23,7 +23,7 @@ internal class ClimbProgram(private val decision: TrajectoryDecision.Climb, cont
 		val aligned = yawError == null || abs(yawError) <= ALIGNMENT_DEGREES
 
 		val forward = if (observed.onGround) {
-			if (overLip && !aligned) {
+			if (!aligned) {
 				0.0
 			} else if (overLip) {
 				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)

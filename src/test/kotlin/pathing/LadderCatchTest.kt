@@ -122,6 +122,100 @@ class LadderCatchTest {
         assertTrue(terminal.y > 13.5 && terminal.z > 2.4, "the tape must end on the pillar top, ended at $terminal")
     }
 
+    /**
+     * CycloneMC's Pride Tower hangs a single rung four blocks ahead and two across from the block the jump
+     * leaves: an ordinary sprint jump's reach, but catch templates stopped at three blocks per axis, so the
+     * tower had no route at all.
+     */
+    @Test
+    fun `a single rung four blocks out is caught like a level jump`() {
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (z in -4..0) blocks[BlockPos(0, 9, z)] = SnapshotBlockPhysics.FULL_CUBE
+        blocks[BlockPos(-2, 10, 5)] = SnapshotBlockPhysics.FULL_CUBE
+        blocks[BlockPos(-2, 10, 4)] = LADDER
+        val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks)
+        val planner = CoarsePlanner(environment, moves(), Stance(0, 10, -4), Stance(-2, 11, 5))
+        assertTrue(planner.repair().converged)
+        planner.expandSearchField()
+        val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
+        val catch = assertNotNull(route.edges.firstOrNull { it.movement == MovementId.LADDER_CATCH }, "got ${route.edges.map { it.movement }}")
+        assertTrue(maxOf(kotlin.math.abs(catch.to.x - catch.from.x), kotlin.math.abs(catch.to.z - catch.from.z)) >= 4, "the catch spans four blocks: $catch")
+
+        val outcome = walkHorizon(
+            route, planner, resting(Vec3d(0.5, 10.0, -3.5)), PROFILE, environment, MotionConstraints(),
+            publish = { _, _ -> },
+            started = System.currentTimeMillis(),
+        )
+        val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
+        assertTrue(!path.partial, "the walk must arrive on the block behind the rung")
+        val terminal = path.plan.frames.last().state.position
+        assertTrue(terminal.y >= 11.0 && terminal.z > 5.0, "the tape must end on the block behind the rung, ended at $terminal")
+    }
+
+    /**
+     * Pride Tower's second ladder hangs on two open trapdoors under a wool block and ends one rung below the
+     * wool's top. The step off the top rung lands on plain wool, but the trapdoor two cells under the landing
+     * sent the check through the footing solver, which looks for a floor under the climber and found none.
+     */
+    @Test
+    fun `a ladder hung on trapdoors steps off its top rung onto the block above them`() {
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (x in -3..0) for (z in -2..2) blocks[BlockPos(x, 9, z)] = SnapshotBlockPhysics.FULL_CUBE
+        for (y in 10..12) blocks[BlockPos(0, y, 0)] = LADDER
+        val trapdoor = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.0, 0.0, 0.0, 3 / 16.0, 1.0, 1.0))
+        blocks[BlockPos(1, 10, 0)] = trapdoor
+        blocks[BlockPos(1, 11, 0)] = trapdoor
+        blocks[BlockPos(1, 12, 0)] = SnapshotBlockPhysics.FULL_CUBE
+        val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks)
+        val planner = CoarsePlanner(environment, moves(), Stance(-2, 10, 0), Stance(1, 13, 0))
+        assertTrue(planner.repair().converged)
+        planner.expandSearchField()
+        val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
+        assertTrue(
+            route.edges.any { it.movement == MovementId.STEP_UP && it.from == Stance(0, 12, 0) && it.to == Stance(1, 13, 0) },
+            "the top rung must step onto the block; got ${route.edges.map { "${it.movement} ${it.from}->${it.to}" }}",
+        )
+
+        val outcome = walkHorizon(
+            route, planner, resting(Vec3d(-1.5, 10.0, 0.5)), PROFILE, environment, MotionConstraints(),
+            publish = { _, _ -> },
+            started = System.currentTimeMillis(),
+        )
+        val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
+        assertTrue(!path.partial, "the walk must arrive on top of the block")
+        val terminal = path.plan.frames.last().state.position
+        assertTrue(terminal.y >= 13.0 && terminal.x > 1.0, "the tape must end on top of the block, ended at $terminal")
+    }
+
+    /**
+     * A body resting inside a ladder's bottom cell faces away from the backing. Pressing forward while it
+     * turned carried it sideways at the default turn rate, off the one-wide column and down again.
+     */
+    @Test
+    fun `a climb from rest inside the bottom rung turns to the backing before it pushes`() {
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (x in -3..0) for (z in -2..2) blocks[BlockPos(x, 9, z)] = SnapshotBlockPhysics.FULL_CUBE
+        for (y in 10..12) {
+            blocks[BlockPos(0, y, 0)] = LADDER
+            blocks[BlockPos(1, y, 0)] = SnapshotBlockPhysics.FULL_CUBE
+        }
+        val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16), blocks)
+        val planner = CoarsePlanner(environment, moves(), Stance(0, 10, 0), Stance(1, 13, 0))
+        assertTrue(planner.repair().converged)
+        planner.expandSearchField()
+        val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
+
+        val outcome = walkHorizon(
+            route, planner, resting(Vec3d(0.5, 10.0, 0.5)), PROFILE, environment, MotionConstraints(),
+            publish = { _, _ -> },
+            started = System.currentTimeMillis(),
+        )
+        val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
+        assertTrue(!path.partial, "the climb must arrive on top of the backing")
+        val terminal = path.plan.frames.last().state.position
+        assertTrue(terminal.y >= 13.0 && terminal.x > 1.0, "the tape must end on top of the backing, ended at $terminal")
+    }
+
     private companion object {
         val LADDER = SnapshotBlockPhysics(
             collisionShape = VoxelShapes.empty(),

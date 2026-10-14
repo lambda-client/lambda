@@ -27,12 +27,15 @@ object LadderCatchMovement : Movement {
 	override fun templates(context: MovementContext): List<TemplateSpec> = buildList {
 		val options = context.options
 		if (!options.allowClimbing) return@buildList
-		for (dx in -MAX_SPAN..MAX_SPAN) {
-			for (dz in -MAX_SPAN..MAX_SPAN) {
+		val span = maxOf(options.maxJumpSpan, MIN_SPAN)
+		for (dx in -span..span) {
+			for (dz in -span..span) {
 				if (maxOf(abs(dx), abs(dz)) < MIN_SPAN) continue
 				if (dx != 0 && dz != 0 && !options.allowDiagonal) continue
 				if (abs(dx) != abs(dz) && dx != 0 && dz != 0 && !options.allowOffAxisJumps) continue
+				val gap = hypot((abs(dx) - 1).toDouble(), (abs(dz) - 1).toDouble())
 				for (rise in MIN_RISE..MAX_RISE) {
+					if (gap > catchGap(rise, options.allowDeepDropJumps) + REACH_EPSILON) continue
 					add(
 						TemplateSpec(
 							dx = dx,
@@ -103,9 +106,21 @@ object LadderCatchMovement : Movement {
 
 	override fun descentAllowance(decision: TrajectoryDecision): Double = 1.0
 
+	private fun catchGap(rise: Int, deepDrops: Boolean): Double = when {
+		rise >= 1 -> RISING_CATCH_GAP_BLOCKS
+		rise < 0 && deepDrops -> DROPPING_CATCH_GAP_BLOCKS
+		else -> LEVEL_CATCH_GAP_BLOCKS
+	}
+
 	private const val MIN_SPAN = 2
 
-	private const val MAX_SPAN = 3
+	private const val REACH_EPSILON = 1e-9
+
+	private val RISING_CATCH_GAP_BLOCKS = hypot(2.0, 2.0)
+
+	private val LEVEL_CATCH_GAP_BLOCKS = hypot(3.0, 1.0)
+
+	private val DROPPING_CATCH_GAP_BLOCKS = hypot(3.0, 3.0)
 
 	private const val MIN_RISE = -2
 

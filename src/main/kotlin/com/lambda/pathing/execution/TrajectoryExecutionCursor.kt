@@ -67,7 +67,7 @@ class TrajectoryExecutionCursor(
 		stateDeviation(expectedBefore, observed)?.let { return rejectInput(it) }
 		if (nextFrame >= plan.tape.frameCount) return ExecutionInputResult.Complete
 
-		val input = plan.tape[nextFrame]
+		val input = plan.tape[nextFrame].let { if (keepsSprintKey(it, expectedBefore)) it.copy(sprint = true) else it }
 		if (!sprintTransitionConverges(input, expectedBefore)) {
 			flagDeviation("sprinting", expectedBefore.isSprinting, observed.isSprinting)
 				?.let { return rejectInput(it) }
@@ -76,6 +76,9 @@ class TrajectoryExecutionCursor(
 		awaitingObservation = true
 		return ExecutionInputResult.Apply(nextFrame, input)
 	}
+
+	fun startsFrom(observed: MovementSimulationState): Boolean =
+		stateDeviation(plan.initialState, observed.copy(rotation = plan.initialState.rotation)) == null
 
 	fun observeAfterTick(observed: MovementSimulationState): ExecutionObservationResult {
 		rejection?.let { return ExecutionObservationResult.Rejected(nextFrame, it) }
@@ -135,6 +138,9 @@ class TrajectoryExecutionCursor(
 		}
 		return null
 	}
+
+	private fun keepsSprintKey(input: MovementSimulationInput, state: MovementSimulationState): Boolean =
+		state.isSprinting && !input.sprint && !input.sneak && input.forward > Vanilla.FORWARD_INPUT_EPSILON
 
 	private fun sprintTransitionConverges(
 		input: MovementSimulationInput,
