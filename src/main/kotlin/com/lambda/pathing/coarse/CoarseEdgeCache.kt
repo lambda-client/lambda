@@ -65,7 +65,7 @@ internal class CoarseEdgeCache(
 
 	private val pads = BouncePads(view, moves.bounceIndex)
 
-	private val chains = if (bounceTemplates.isEmpty()) null else BounceChains(view, standable, pads, moves.catalog.options.maxBounceDrop)
+	private val chains = if (bounceTemplates.isEmpty()) null else BounceChains(view, standable, pads, moves.catalog.options.maxBounceDrop, bends = moves.catalog.options.allowOffAxisJumps)
 
 	private val falls = if (moves.falls) FallEdges(view, moves, standable, unknownDrops) else null
 

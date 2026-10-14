@@ -50,7 +50,7 @@ class CoarseOpenFloorSpeedTest {
             println("[speed] round=$round expansions=${coarse.processedNodes} nodes=${state.planner.graphSize} ms=%.1f us/exp=%.1f route=${route?.nodes?.size} ticks=${route?.lowerBoundTicks}".format(ms, ms * 1000.0 / coarse.processedNodes))
             assertNotNull(route)
             // Pinned on this exact floor; a change to the coarse vocabulary or its costs moves both.
-            assertEquals(5850, coarse.processedNodes, "coarse expansions on the open floor")
+            assertEquals(5854, coarse.processedNodes, "coarse expansions on the open floor")
             assertEquals(360.50849453124965, route.lowerBoundTicks, 1e-6, "route lower bound on the open floor")
         }
     }

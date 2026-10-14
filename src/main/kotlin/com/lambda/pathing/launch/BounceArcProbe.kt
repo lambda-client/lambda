@@ -22,10 +22,11 @@ object BounceArcProbe {
 		launchHeight: Double,
 		bounces: Int = 1,
 		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
+		levels: IntArray? = null,
 	): Probed<BounceSolution>? {
 		val length = hypot(dx.toDouble(), dz.toDouble())
 		if (length <= 0.0) return null
-		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, bounces, reboundHeadroom, reads).solve() }
+		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, levels?.size ?: bounces, reboundHeadroom, reads, levels).solve() }
 	}
 
 	fun padColumns(dx: Int, dz: Int): List<Pair<Int, Int>> {
@@ -59,6 +60,7 @@ object BounceArcProbe {
 		private val bounces: Int,
 		private val reboundHeadroom: Double,
 		private val reads: LongOpenHashSet?,
+		private val levels: IntArray? = null,
 	) {
 		private val unitX = dx / length
 		private val unitZ = dz / length
@@ -70,6 +72,7 @@ object BounceArcProbe {
 		private fun cellZ(along: Double) = floor(from.z + 0.5 + unitZ * along).toInt()
 
 		fun solve(): BounceSolution? {
+			levels?.let { return solveLevels(it) }
 			if (!crossesPad()) return null
 
 			reads?.add(BlockPos.asLong(from.x + dx, from.y + rise - 1, from.z + dz))
@@ -86,7 +89,7 @@ object BounceArcProbe {
 						horizontalDistance = length,
 						jump = jump, sprint = sprint,
 						contactDepth = contactDepth, riseHeight = riseHeight,
-						contactPenalty = ::contactPenalty,
+						contactPenalty = { _, reach -> contactPenalty(reach) },
 						headroom = headroom,
 						launchReach = launchReach,
 						bounces = bounces,
@@ -110,6 +113,74 @@ object BounceArcProbe {
 				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
 			return climb(headroom, launchReach, arcs, seed)
+		}
+
+		private fun solveLevels(levels: IntArray): BounceSolution? {
+			for (level in levels.distinct()) if (!crossesPad(level)) return null
+
+			reads?.add(BlockPos.asLong(from.x + dx, from.y + rise - 1, from.z + dz))
+			val landingOffset = view.surfaceOffset(from.x + dx, from.y + rise - 1, from.z + dz)
+			val riseHeight = rise + landingOffset - launchOffset
+			val headroom = headroom()
+			val launchReach = launchReach()
+			val arcs = ArcSweep(view, from, dx, dz, reads)
+			val seeds = DoubleArray(levels.size) { seedContactOffset(levels[it]) }
+			fun admissible(solution: BounceSolution): Boolean {
+				val distances = solution.contactDistances
+				return distances.size == levels.size &&
+						distances.indices.all { contactPenalty(solution.launchOffset + distances[it], levels[it]).isFinite() } &&
+						arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.Clear
+			}
+
+			for ((jump, sprint) in STANDING_STYLES) {
+				refinedLevels(levels, seeds) { depths ->
+					BounceSolver.solveStanding(
+						horizontalDistance = length,
+						jump = jump, sprint = sprint,
+						contactDepth = depths.max(), riseHeight = riseHeight,
+						contactPenalty = { contact, reach -> if (contact < levels.size) contactPenalty(reach, levels[contact]) else Double.POSITIVE_INFINITY },
+						headroom = headroom,
+						launchReach = launchReach,
+						reboundHeadroom = reboundHeadroom,
+						contactDepths = depths,
+					)
+				}?.takeIf(::admissible)?.let { return it }
+			}
+
+			for ((jump, sprint, holdForward, holdTicks) in COMBOS) {
+				refinedLevels(levels, seeds) { depths ->
+					BounceSolver.solve(
+						horizontalDistance = length,
+						sprint = sprint, holdForward = holdForward,
+						jump = jump, holdTicks = holdTicks,
+						contactDepth = depths.max(), riseHeight = riseHeight,
+						headroom = headroom,
+						launchReach = launchReach,
+						reboundHeadroom = reboundHeadroom,
+						contactDepths = depths,
+					)
+				}?.takeIf(::admissible)?.let { return it }
+			}
+			return null
+		}
+
+		private inline fun refinedLevels(levels: IntArray, seeds: DoubleArray, solveAtDepths: (DoubleArray) -> BounceSolution?): BounceSolution? {
+			val offsets = seeds.copyOf()
+			repeat(CONTACT_REFINEMENTS) {
+				val depths = DoubleArray(levels.size) { launchHeight - (levels[it] + 1 + offsets[it]) }
+				if (depths.any { it <= 0.0 }) return null
+				val solution = solveAtDepths(depths) ?: return null
+				val distances = solution.contactDistances
+				if (distances.size != levels.size) return null
+				var converged = true
+				for (contact in levels.indices) {
+					val observed = padSurfaceOffset(solution.launchOffset + distances[contact], levels[contact])
+					if (abs(observed - offsets[contact]) >= CONTACT_CONVERGENCE) converged = false
+					offsets[contact] = observed
+				}
+				if (converged) return solution
+			}
+			return null
 		}
 
 		private fun climb(headroom: Double, launchReach: Double, arcs: ArcSweep, seed: Double): BounceSolution? {
@@ -151,7 +222,7 @@ object BounceArcProbe {
 		private fun BounceSolution.pressedAgainst(wall: Double, landing: Double): BounceSolution {
 			val distances = DoubleArray(arc.distances.size) { minOf(arc.distances[it], wall) }
 			distances[distances.size - 1] = landing
-			return copy(arc = ArcSample(arc.heights, distances, arc.exitSpeed), pressesWall = true)
+			return copy(arc = ArcSample(arc.heights, distances, arc.exitSpeed, arc.contacts), pressesWall = true)
 		}
 
 		private inline fun refined(seed: Double, solveAtDepth: (Double) -> BounceSolution?): BounceSolution? {
@@ -172,10 +243,10 @@ object BounceArcProbe {
 			solution.contactDistances.all { contactPenalty(solution.launchOffset + it).isFinite() } &&
 					arcs.sweep(solution.arc, solution.launchOffset, launchHeight) == Sweep.Clear
 
-		private fun crossesPad(): Boolean {
+		private fun crossesPad(level: Int = padY): Boolean {
 			var along = 1.0
 			while (along < length + 0.5) {
-				if (bouncyCell(cellX(along), cellZ(along))) return true
+				if (bouncyCell(cellX(along), cellZ(along), level)) return true
 				along += 1.0
 			}
 			return false
@@ -202,42 +273,42 @@ object BounceArcProbe {
 			return ceilingBottom - BODY_HEIGHT - launchHeight
 		}
 
-		private fun seedContactOffset(): Double {
+		private fun seedContactOffset(level: Int = padY): Double {
 			var along = 1.0
 			while (along < length) {
 				val x = cellX(along)
 				val z = cellZ(along)
-				reads?.add(BlockPos.asLong(x, padY, z))
-				if (view.voxel(x, padY, z).standingSurface != null) return view.surfaceOffset(x, padY, z)
+				reads?.add(BlockPos.asLong(x, level, z))
+				if (view.voxel(x, level, z).standingSurface != null) return view.surfaceOffset(x, level, z)
 				along += 1.0
 			}
 			return 0.0
 		}
 
-		private fun padSurfaceOffset(along: Double): Double {
+		private fun padSurfaceOffset(along: Double, level: Int = padY): Double {
 			val x = cellX(along)
 			val z = cellZ(along)
-			reads?.add(BlockPos.asLong(x, padY, z))
-			return view.surfaceOffset(x, padY, z)
+			reads?.add(BlockPos.asLong(x, level, z))
+			return view.surfaceOffset(x, level, z)
 		}
 
-		private fun contactPenalty(reach: Double): Double {
+		private fun contactPenalty(reach: Double, level: Int = padY): Double {
 			val px = from.x + 0.5 + unitX * reach
 			val pz = from.z + 0.5 + unitZ * reach
 			val x = floor(px).toInt()
 			val z = floor(pz).toInt()
-			if (!bouncyCell(x, z)) return Double.POSITIVE_INFINITY
+			if (!bouncyCell(x, z, level)) return Double.POSITIVE_INFINITY
 			return hypot(px - (x + 0.5), pz - (z + 0.5))
 		}
 
-		private fun bouncyCell(x: Int, z: Int): Boolean {
-			reads?.add(BlockPos.asLong(x, padY, z))
-			val pad = view.voxel(x, padY, z)
+		private fun bouncyCell(x: Int, z: Int, level: Int = padY): Boolean {
+			reads?.add(BlockPos.asLong(x, level, z))
+			val pad = view.voxel(x, level, z)
 			if (pad.bouncy) return true
 			val surface = pad.standingSurface
 			if (surface != null && surface <= THIN_COVER_SURFACE) {
-				reads?.add(BlockPos.asLong(x, padY - 1, z))
-				if (view.voxel(x, padY - 1, z).bouncy) return true
+				reads?.add(BlockPos.asLong(x, level - 1, z))
+				if (view.voxel(x, level - 1, z).bouncy) return true
 			}
 			return false
 		}

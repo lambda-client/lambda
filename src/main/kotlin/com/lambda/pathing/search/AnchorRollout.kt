@@ -49,6 +49,7 @@ internal class AnchorRollout(
 	private val probe: SearchProbe,
 	private val routePoints: RoutePoints,
 	private val visits: VisitIndex?,
+	private val pressingGoalArrives: () -> Boolean = { false },
 ) {
 	private val climbingAt: (Vec3d) -> Boolean = { field.view.climbableAt(it) }
 
@@ -126,6 +127,8 @@ internal class AnchorRollout(
 		val action = prepared.action
 		val movement = prepared.movement
 		var airborne = false
+		val goal = route.goal
+		val goalPress = anchor.stance != goal && pressingGoalArrives()
 
 		prepared.raw = TrajectoryRolloutEngine.rollout(
 			initialState = anchor.state,
@@ -148,6 +151,11 @@ internal class AnchorRollout(
 
 				is RolloutVerdict.Continue -> {
 					if (!frame.state.onGround) airborne = true
+					if (goalPress && frame.state.onGround && frame.state.position.y > goal.y - GOAL_FLOOR_SLACK && pressesCell(frame.state, goal)) {
+						prepared.eventFrame = frame.index
+						prepared.eventStance = goal
+						return@rollout true
+					}
 
 					val stance = if (!frame.state.onGround && !movement.inMedium) null else holdingStanceOf(field.view, frame.state)
 					if (stance == null) {
@@ -263,5 +271,6 @@ internal class AnchorRollout(
 		const val TRANSITION_FRAMES = 40
 		const val OPEN_LANDING_NEIGHBORS = 2
 		const val CORNER_CATCH_COLLISIONS = 2
+		const val GOAL_FLOOR_SLACK = 0.5
 	}
 }

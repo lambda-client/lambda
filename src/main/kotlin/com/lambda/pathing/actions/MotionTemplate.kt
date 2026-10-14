@@ -79,7 +79,7 @@ class MotionTemplate internal constructor(
 			?: return ledgeEdge(view, origin)
 		if (probed.solution.mode.jumps && Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !launchesFromFooting(view, origin, probed.solution)) return ledgeEdge(view, origin)
 		val detour = probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0
-		val runUp = if (spec.runUpNeeded?.invoke(riseHeight) == true) standingRunUpTicks(probed.solution) ?: return null else null
+		val runUp = if (spec.runUpNeeded?.invoke(riseHeight) == true) standingRunUpTicks(view, origin, probed.solution) ?: return null else null
 		return edgeOf(
 			origin, lowerBoundTicks + detour / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK + (runUp ?: 0), probed.reads,
 			launch = probed.solution,
@@ -87,7 +87,8 @@ class MotionTemplate internal constructor(
 		)
 	}
 
-	private fun standingRunUpTicks(solution: LaunchSolution): Int? {
+	private fun standingRunUpTicks(view: CoarseVoxelView, origin: Stance, solution: LaunchSolution): Int? {
+		if (Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !view.canStandAt(origin.x - Integer.signum(dx), origin.y, origin.z - Integer.signum(dz))) return null
 		val profile = BallisticProfile.VANILLA
 		val ticks = profile.groundRunUpTicks(0.0, IN_CELL_RUN_UP, solution.mode.sprint, STANDING_RUN_UP_TICKS)
 		return ticks.takeIf { profile.runUpSpeed(0.0, it, solution.mode.sprint) >= solution.speed - solution.speedSlack }
@@ -117,7 +118,7 @@ class MotionTemplate internal constructor(
 		val target = target(origin)
 		if (!Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !Footing.involvesPartial(view, target.x, target.y, target.z)) return null
 		val probed = JumpArcProbe.ledge(view, origin, target, spec.modes, spec.riseAdmission ?: { true }) ?: return null
-		val runUp = if (spec.runUpNeeded?.invoke(realRise(view, origin)) == true) standingRunUpTicks(probed.solution) ?: return null else null
+		val runUp = if (spec.runUpNeeded?.invoke(realRise(view, origin)) == true) standingRunUpTicks(view, origin, probed.solution) ?: return null else null
 		return edgeOf(
 			origin, lowerBoundTicks + (runUp ?: 0), probed.reads,
 			launch = probed.solution,

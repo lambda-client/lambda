@@ -1,8 +1,11 @@
 package com.lambda.pathing.launch
 
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.physics.Vanilla
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.abs
+import kotlin.math.hypot
 
 enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 	SPRINT_JUMP(sprint = true, jumps = true),
@@ -23,10 +26,17 @@ enum class LaunchMode(val sprint: Boolean, val jumps: Boolean) {
 	}
 }
 
+private val NO_CONTACTS = IntArray(0)
+
+fun interface HorizontalClip {
+	fun allowed(alongX: Boolean, x: Double, z: Double, delta: Double, tick: Int): Double
+}
+
 class ArcSample(
 	val heights: DoubleArray,
 	val distances: DoubleArray,
 	val exitSpeed: Double,
+	val contacts: IntArray = NO_CONTACTS,
 ) {
 	val airTicks: Int get() = heights.size - 1
 
@@ -69,6 +79,13 @@ data class BallisticProfile(
 
 	fun groundAcceleration(sprint: Boolean): Double =
 		if (sprint) sprintGroundAcceleration else walkGroundAcceleration
+
+	fun groundAcceleration(sprint: Boolean, slipperiness: Float): Double {
+		val default = this.slipperiness.toFloat()
+		return groundAcceleration(sprint) * (default * default * default) / (slipperiness * slipperiness * slipperiness)
+	}
+
+	fun groundFriction(slipperiness: Float): Double = (slipperiness * Vanilla.HORIZONTAL_DRAG).toDouble()
 
 	fun cruiseSpeed(sprint: Boolean): Double {
 		val acceleration = groundAcceleration(sprint)
@@ -170,6 +187,100 @@ data class BallisticProfile(
 		return arc(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces, reboundHeadroom)
 	}
 
+	fun bounce(
+		entrySpeed: Double,
+		depths: DoubleArray,
+		rise: Double,
+		holdForward: Boolean = false,
+		sprint: Boolean = false,
+		jump: Boolean = false,
+		holdTicks: Int = Int.MAX_VALUE,
+		maxTicks: Int = MAX_BOUNCE_TICKS * depths.size,
+		headroom: Double = Double.POSITIVE_INFINITY,
+		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
+	): ArcSample? {
+		require(depths.isNotEmpty() && depths.all { it > 0.0 }) { "a bounce must fall onto something: depths=${depths.contentToString()}" }
+		return arc(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, depths[0], 1.0, headroom, depths.size, reboundHeadroom, depths)
+	}
+
+	fun steeredPath(
+		entrySpeed: Double,
+		sprint: Boolean,
+		jump: Boolean,
+		contacts: IntArray,
+		ticks: Int,
+		unitX: Double,
+		unitZ: Double,
+		turnAt: Int,
+		targetX: Double,
+		targetZ: Double,
+		contactAcceleration: Double = groundAcceleration(sprint),
+		contactFriction: Double = groundFriction,
+		clip: HorizontalClip? = null,
+	): DoubleArray {
+		val path = DoubleArray(2 * (ticks + 1))
+		val ground = groundAcceleration(sprint)
+		val air = if (sprint) SPRINT_AIR_ACCELERATION else WALK_AIR_ACCELERATION
+		var velocityX = entrySpeed * unitX
+		var velocityZ = entrySpeed * unitZ
+		if (jump && sprint) {
+			velocityX += SPRINT_JUMP_BOOST * unitX
+			velocityZ += SPRINT_JUMP_BOOST * unitZ
+		}
+		velocityX += ground * unitX
+		velocityZ += ground * unitZ
+		var x = 0.0
+		var z = 0.0
+		fun move(tick: Int) {
+			val xFirst = abs(velocityX) >= abs(velocityZ)
+			repeat(2) { pass ->
+				val alongX = (pass == 0) == xFirst
+				val delta = if (alongX) velocityX else velocityZ
+				val allowed = clip?.allowed(alongX, x, z, delta, tick) ?: delta
+				if (alongX) {
+					x += allowed
+					if (allowed != delta) velocityX = 0.0
+				} else {
+					z += allowed
+					if (allowed != delta) velocityZ = 0.0
+				}
+			}
+		}
+		move(0)
+		velocityX *= groundFriction
+		velocityZ *= groundFriction
+		path[0] = x
+		path[1] = z
+		var contact = 0
+		var grounded = false
+		for (tick in 1..ticks) {
+			val wasGrounded = grounded
+			grounded = contact < contacts.size && contacts[contact] == tick
+			if (grounded) contact++
+			var directionX = unitX
+			var directionZ = unitZ
+			if (tick >= turnAt) {
+				val towardX = targetX - x
+				val towardZ = targetZ - z
+				val length = hypot(towardX, towardZ)
+				if (length > DEGENERATE_LENGTH) {
+					directionX = towardX / length
+					directionZ = towardZ / length
+				}
+			}
+			val acceleration = if (wasGrounded) contactAcceleration else air
+			velocityX += acceleration * directionX
+			velocityZ += acceleration * directionZ
+			move(tick)
+			val drag = if (wasGrounded) contactFriction else HORIZONTAL_DRAG
+			velocityX *= drag
+			velocityZ *= drag
+			path[2 * tick] = x
+			path[2 * tick + 1] = z
+		}
+		return path
+	}
+
 	private data class ArcKey(
 		val entrySpeed: Double,
 		val rise: Double,
@@ -183,6 +294,7 @@ data class BallisticProfile(
 		val headroom: Double,
 		val bounces: Int,
 		val reboundHeadroom: Double,
+		val floors: List<Double>?,
 	)
 
 	private fun arc(
@@ -198,11 +310,12 @@ data class BallisticProfile(
 		headroom: Double = Double.POSITIVE_INFINITY,
 		bounces: Int = 1,
 		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
+		floors: DoubleArray? = null,
 	): ArcSample? {
-		if (entrySpeed != 0.0 && entrySpeed != 1.0) return simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces, reboundHeadroom)
-		val key = ArcKey(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces, reboundHeadroom)
+		if (entrySpeed != 0.0 && entrySpeed != 1.0) return simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces, reboundHeadroom, floors)
+		val key = ArcKey(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces, reboundHeadroom, floors?.toList())
 		probeArcs[key]?.let { return it as? ArcSample }
-		val arc = simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces, reboundHeadroom)
+		val arc = simulate(entrySpeed, rise, holdForward, sprint, jump, holdTicks, maxTicks, drop, bounceFactor, headroom, bounces, reboundHeadroom, floors)
 		if (probeArcs.size >= PROBE_ARC_LIMIT) probeArcs.clear()
 		probeArcs[key] = arc ?: NO_ARC
 		return arc
@@ -221,6 +334,7 @@ data class BallisticProfile(
 		headroom: Double,
 		bounces: Int,
 		reboundHeadroom: Double,
+		floors: DoubleArray?,
 	): ArcSample? {
 		require(maxTicks in 0 until Int.MAX_VALUE) { "invalid arc tick limit: $maxTicks" }
 		val heights = DoubleArray(maxTicks + 1)
@@ -230,7 +344,8 @@ data class BallisticProfile(
 		var height = 0.0
 		var distance = 0.0
 		var floor = -drop
-		var contacts = bounces
+		var contacts = 0
+		val contactTicks = if (drop.isNaN()) null else IntArray(bounces)
 		var grounded = false
 
 		if (jump) {
@@ -265,17 +380,23 @@ data class BallisticProfile(
 			}
 			distance += velocity
 
-			if (height + verticalVelocity <= floor) {
+			if (height >= floor && height + verticalVelocity <= floor) {
 				height = floor
 				verticalVelocity = -verticalVelocity * bounceFactor
-				if (--contacts == 0) floor = Double.NaN
+				contactTicks?.set(contacts, tick)
+				contacts++
+				floor = when {
+					contacts == bounces -> Double.NaN
+					floors != null -> -floors[contacts]
+					else -> floor
+				}
 				grounded = true
 			} else {
 				if (floor.isNaN() && verticalVelocity < 0.0) {
 					if (height < rise) return null
-					if (height + verticalVelocity <= rise) return landedSample(tick, rise, distance, velocity, heights, distances)
+					if (height + verticalVelocity <= rise) return landedSample(tick, rise, distance, velocity, heights, distances, contactTicks?.copyOf(contacts) ?: NO_CONTACTS)
 				}
-				val ceiling = if (contacts < bounces || floor.isNaN()) minOf(headroom, reboundHeadroom) else headroom
+				val ceiling = if (contacts > 0 || floor.isNaN()) minOf(headroom, reboundHeadroom) else headroom
 				if (verticalVelocity > 0.0 && height + verticalVelocity > ceiling) {
 					height = ceiling
 					verticalVelocity = 0.0
@@ -299,10 +420,11 @@ data class BallisticProfile(
 		velocity: Double,
 		heights: DoubleArray,
 		distances: DoubleArray,
+		contacts: IntArray,
 	): ArcSample {
 		heights[tick] = rise
 		distances[tick] = distance
-		return ArcSample(heights.copyOf(tick + 1), distances.copyOf(tick + 1), velocity * HORIZONTAL_DRAG)
+		return ArcSample(heights.copyOf(tick + 1), distances.copyOf(tick + 1), velocity * HORIZONTAL_DRAG, contacts)
 	}
 
 	companion object {

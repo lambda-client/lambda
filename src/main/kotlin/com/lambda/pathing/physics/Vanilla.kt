@@ -17,6 +17,7 @@ object Vanilla {
 	const val VERTICAL_DRAG = 0.98F
 	const val HORIZONTAL_DRAG = 0.91F
 	const val DEFAULT_SLIPPERINESS = 0.6F
+	const val SLIME_SLIPPERINESS = 0.8F
 	const val INPUT_DAMPING = 0.98F
 	const val GROUND_ACCELERATION_SCALE = 0.21600002F
 	const val AIR_ACCELERATION = 0.02F

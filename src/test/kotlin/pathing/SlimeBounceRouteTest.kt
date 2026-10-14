@@ -26,6 +26,7 @@ import minecraft.MinecraftBootstrap
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.ShapeContext
+import net.minecraft.block.PaneBlock
 import net.minecraft.block.SlabBlock
 import net.minecraft.block.StairsBlock
 import net.minecraft.block.WallBlock
@@ -551,12 +552,99 @@ class SlimeBounceRouteTest {
         certifyArrival(environment, goal = Stance(9, 15, 0), start = Stance(0, 25, 0), options = SimpleMoveOptions(allowSlimeBounces = true, maxBounceDrop = 24))
     }
 
+    /**
+     * CycloneMC Pride Tower, checkpoint 7 to 8, translated: off a 2x2 platform onto a carpeted pad four below, on to a
+     * second carpeted pad one block lower still, and up onto a platform against the tower wall. Neither pad is a
+     * landing, so only one bounce touching both pads, each at its own height, crosses.
+     */
+    @Test
+    fun `two pads at different heights are crossed by one double bounce and certified end to end`() {
+        MinecraftBootstrap.ensure()
+        val copper = Blocks.WAXED_WEATHERED_CUT_COPPER_SLAB.defaultState.with(SlabBlock.TYPE, SlabType.TOP)
+        val terracotta = Blocks.LIME_GLAZED_TERRACOTTA.defaultState
+        val states = HashMap<BlockPos, BlockState>()
+        for (x in -1..0) for (z in -1..0) {
+            states[BlockPos(x, 8, z)] = copper
+            states[BlockPos(x, 9, z)] = terracotta
+        }
+        for (x in 1..2) for (z in 4..5) {
+            states[BlockPos(x, 4, z)] = copper
+            states[BlockPos(x, 5, z)] = Blocks.SLIME_BLOCK.defaultState
+            states[BlockPos(x, 6, z)] = Blocks.LIME_CARPET.defaultState
+        }
+        for (x in 2..3) for (z in 10..11) {
+            states[BlockPos(x, 4, z)] = Blocks.SLIME_BLOCK.defaultState
+            states[BlockPos(x, 5, z)] = Blocks.LIME_CARPET.defaultState
+        }
+        for (x in 3..4) for (z in 14..15) {
+            states[BlockPos(x, 5, z)] = copper
+            states[BlockPos(x, 6, z)] = terracotta
+        }
+        for (y in 4..11) for (z in 14..16) states[BlockPos(5, y, z)] = Blocks.LIME_CONCRETE.defaultState
+        certifyArrival(sampled(states, SimulationSnapshotBounds(-16, 0, -16, 16, 30, 32)), goal = Stance(3, 7, 14), contacts = 2)
+    }
+
+    /**
+     * CycloneMC Pride Tower checkpoint 8, translated: from a post of glass panes around a block, a sprint jump onto a
+     * carpeted pad in a corner of the tower wall; the platform to land on lies beside the pad, behind a wall of glass
+     * panes, so the rebound has to turn off the line it came in on and round the panes onto the platform.
+     */
+    @Test
+    fun `a rebound turned off its approach line onto a platform beside the pad is certified end to end`() {
+        MinecraftBootstrap.ensure()
+        val copper = Blocks.WAXED_WEATHERED_CUT_COPPER_SLAB.defaultState.with(SlabBlock.TYPE, SlabType.TOP)
+        val pane = Blocks.LIME_STAINED_GLASS_PANE.defaultState
+        val states = HashMap<BlockPos, BlockState>()
+        states[BlockPos(6, 9, 3)] = Blocks.BLACK_CONCRETE.defaultState
+        states[BlockPos(5, 9, 3)] = Blocks.WHITE_STAINED_GLASS_PANE.defaultState.with(PaneBlock.EAST, true)
+        states[BlockPos(7, 9, 3)] = Blocks.WHITE_STAINED_GLASS_PANE.defaultState.with(PaneBlock.WEST, true)
+        for (x in 0..1) for (z in 2..3) {
+            states[BlockPos(x, 5, z)] = copper
+            states[BlockPos(x, 6, z)] = Blocks.SLIME_BLOCK.defaultState
+            states[BlockPos(x, 7, z)] = Blocks.LIME_CARPET.defaultState
+        }
+        for (x in 0..1) for (z in 0..1) {
+            states[BlockPos(x, 8, z)] = copper
+            states[BlockPos(x, 9, z)] = Blocks.LIME_GLAZED_TERRACOTTA.defaultState
+        }
+        for (y in 10..12) {
+            states[BlockPos(2, y, 0)] = pane.with(PaneBlock.SOUTH, true)
+            states[BlockPos(2, y, 1)] = pane.with(PaneBlock.NORTH, true).with(PaneBlock.SOUTH, true)
+            states[BlockPos(2, y, 2)] = pane.with(PaneBlock.NORTH, true)
+        }
+        for (y in 3..13) {
+            for (z in 1..3) states[BlockPos(-1, y, z)] = Blocks.LIME_CONCRETE.defaultState
+            for (z in -2..0) states[BlockPos(-2, y, z)] = Blocks.LIME_CONCRETE.defaultState
+            if (y >= 5) for (z in 4..5) states[BlockPos(0, y, z)] = Blocks.LIME_CONCRETE.defaultState
+            states[BlockPos(1, y, 6)] = Blocks.LIME_CONCRETE.defaultState
+        }
+        certifyArrival(
+            sampled(states, SimulationSnapshotBounds(-16, 0, -16, 16, 30, 16)),
+            goal = Stance(0, 10, 1),
+            start = Stance(6, 10, 3),
+            arrived = { it.y > 9.99 && it.x in -0.3..2.0 && it.z in -0.3..1.95 },
+        )
+    }
+
+    private fun sampled(states: Map<BlockPos, BlockState>, bounds: SimulationSnapshotBounds): SnapshotSimulationEnvironment {
+        val view = object : BlockView {
+            override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState
+            override fun getFluidState(pos: BlockPos): FluidState = getBlockState(pos).fluidState
+            override fun getBlockEntity(pos: BlockPos): BlockEntity? = null
+            override fun getHeight(): Int = 384
+            override fun getBottomY(): Int = -64
+        }
+        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        return SnapshotSimulationEnvironment.synthetic(bounds, states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) })
+    }
+
     private fun certifyArrival(
         environment: SnapshotSimulationEnvironment,
         goal: Stance,
         start: Stance = Stance(0, 10, 0),
         contacts: Int = 1,
         options: SimpleMoveOptions = SimpleMoveOptions(allowSlimeBounces = true),
+        arrived: ((Vec3d) -> Boolean)? = null,
     ) {
         val moves = moveLibrary(options)
         val planner = CoarsePlanner(environment, moves, start, goal)
@@ -581,7 +669,7 @@ class SlimeBounceRouteTest {
         assertTrue(!path.partial, "the walk must arrive on the far platform")
         val terminal = path.plan.frames.last().state.position
         assertTrue(
-            terminal.y > goalFeet - 0.01 && terminal.z > goal.z - 0.6,
+            arrived?.invoke(terminal) ?: (terminal.y > goalFeet - 0.01 && terminal.z > goal.z - 0.6),
             "the tape must end on the far platform, ended at $terminal",
         )
     }

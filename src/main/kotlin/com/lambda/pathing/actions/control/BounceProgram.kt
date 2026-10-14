@@ -4,17 +4,23 @@ import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TrajectoryDecision
 
+import com.lambda.pathing.core.DEGENERATE_LENGTH
 import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
+import com.lambda.pathing.core.plus
 import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import kotlin.math.abs
+import kotlin.math.sin
+import kotlin.math.hypot
+import kotlin.math.cos
 
 internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: ProgramContext) : ControlProgram {
 	private val takeoff = context.body.stance.center()
 	private val aim = decision.step.center()
 	private val solution = decision.solution
+	private val approach = solution.via?.let { takeoff + it } ?: aim
 	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
 	private val standingStart = solution.speed <= BounceSolver.STANDING_REST_SPEED
 	private var airborne = false
@@ -22,25 +28,30 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 	private var launchedStanding = false
 	private var flightTicks = 0
 	private var pressedForward = false
+	private var contacts = 0
+	private var grounded = false
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		if (!observed.onGround) {
 			airborne = true
 			flightTicks++
 		} else if (airborne) {
-			if (observed.velocity.y <= REBOUND_SPEED) landed = true
+			if (observed.velocity.y <= REBOUND_SPEED) landed = true else if (!grounded) contacts++
 		}
+		grounded = observed.onGround
+		val target = if (contacts == 0) approach else aim
+		val segmentStart = if (contacts == 0 || solution.via == null) takeoff else approach
 
-		val rotation = rotationToward(aim, observed, maxYawChange)
+		val rotation = rotationToward(target, observed, maxYawChange)
 
 		var jump = false
 		val forward: Double
 		if (landed) {
 			forward = 0.0
 		} else if (airborne) {
-			forward = if (solution.holdForward && flightTicks < solution.holdTicks) 1.0 else 0.0
+			forward = if (solution.holdForward && (flightTicks < solution.holdTicks || solution.via != null && contacts > 0)) 1.0 else 0.0
 		} else if (standingStart) {
-			val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
+			val along = alongEdge(takeoff, approach, observed.position.x, observed.position.z)
 			val speed = observed.velocity.horizontalLength()
 			val runout = (speed + CREEP_TAP_SPEED) * GROUND_COAST_PER_SPEED
 			if (along + runout < solution.launchOffset) {
@@ -56,8 +67,8 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 			}
 		} else {
 			if (solution.jump) {
-				val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
-				if (reachesLip(takeoff, aim, observed, along, solution.launchOffset)) jump = true
+				val along = alongEdge(takeoff, approach, observed.position.x, observed.position.z)
+				if (reachesLip(takeoff, approach, observed, along, solution.launchOffset)) jump = true
 			}
 			forward = when {
 				jump -> if (solution.holdForward) 1.0 else 0.0
@@ -72,10 +83,26 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 				(!standingStart || launchedStanding || airborne)
 
 		val strafe = if (airborne && !landed) {
-			val proportional = (lateralOffset(takeoff, aim, observed) / LATERAL_FULL_OFFSET).coerceIn(-1.0, 1.0)
+			val proportional = (lateralOffset(segmentStart, target, observed) / LATERAL_FULL_OFFSET).coerceIn(-1.0, 1.0)
 			val limit = if (forward > 0.0) HELD_FORWARD_MAX_STRAFE else 1.0
 			if (abs(proportional) < LATERAL_DEADBAND / LATERAL_FULL_OFFSET) 0.0 else proportional.coerceIn(-limit, limit)
 		} else 0.0
+		if (solution.via != null && contacts > 0 && airborne && !landed) {
+			val towardX = aim.x - observed.position.x
+			val towardZ = aim.z - observed.position.z
+			val length = hypot(towardX, towardZ)
+			if (length > DEGENERATE_LENGTH) {
+				val yaw = Math.toRadians(rotation.yaw)
+				val steerForward = (-towardX * sin(yaw) + towardZ * cos(yaw)) / length
+				val steerStrafe = (towardX * cos(yaw) + towardZ * sin(yaw)) / length
+				return MovementSimulationInput(
+					forward = steerForward,
+					strafe = steerStrafe,
+					sprint = solution.sprint && steerForward > 0.0,
+					rotation = rotation,
+				)
+			}
+		}
 		return MovementSimulationInput(
 			forward = forward,
 			strafe = strafe,

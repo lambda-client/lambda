@@ -1,5 +1,6 @@
 package com.lambda.pathing.launch
 
+import com.lambda.pathing.core.Via
 import kotlin.math.abs
 
 data class BounceSolution(
@@ -13,6 +14,7 @@ data class BounceSolution(
 	val arc: ArcSample,
 	val contactDepth: Double,
 	val pressesWall: Boolean = false,
+	val via: Via? = null,
 ) {
 	val airTicks: Int get() = arc.airTicks
 
@@ -36,19 +38,21 @@ object BounceSolver {
 		launchReach: Double = LAUNCH_OFFSET,
 		bounces: Int = 1,
 		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
+		contactDepths: DoubleArray? = null,
 	): BounceSolution? {
 		val flight = horizontalDistance - launchReach
 		if (flight <= 0.0) return null
 
-		val base = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom) ?: return null
-		val unit = ballistics.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom) ?: return null
+		fun arcAt(entrySpeed: Double) = bounceArc(entrySpeed, contactDepth, contactDepths, riseHeight, holdForward, sprint, jump, holdTicks, bounces, headroom, reboundHeadroom)
+		val base = arcAt(0.0) ?: return null
+		val unit = arcAt(1.0) ?: return null
 		val slope = unit.distance - base.distance
 		if (slope <= 0.0) return null
 
 		val speed = (flight - base.distance) / slope
 		if (speed < 0.0 || speed > ballistics.momentumSpeed(sprint)) return null
 
-		val arc = ballistics.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom) ?: return null
+		val arc = arcAt(speed) ?: return null
 
 		val slack = (LANDING_WINDOW / 2.0) / slope
 
@@ -61,7 +65,7 @@ object BounceSolver {
 			speedSlack = minOf(slack, speed),
 			launchOffset = launchReach,
 			arc = arc,
-			contactDepth = contactDepth,
+			contactDepth = contactDepths?.max() ?: contactDepth,
 		)
 	}
 
@@ -102,22 +106,20 @@ object BounceSolver {
 		sprint: Boolean,
 		contactDepth: Double,
 		riseHeight: Double,
-		contactPenalty: (Double) -> Double,
+		contactPenalty: (contact: Int, reach: Double) -> Double,
 		headroom: Double,
 		launchReach: Double,
 		bounces: Int = 1,
 		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
+		contactDepths: DoubleArray? = null,
 	): BounceSolution? {
 		val target = horizontalDistance - launchReach
 		if (target <= 0.0) return null
 
 		val minHold = if (sprint) 2 else if (jump) 0 else 1
-		val maxHold = BallisticProfile.MAX_BOUNCE_TICKS * bounces
-		fun arcAt(holdTicks: Int): ArcSample? = ballistics.bounce(
-			0.0, contactDepth, riseHeight,
-			holdForward = holdTicks > 0, sprint = sprint, jump = jump, holdTicks = holdTicks,
-			bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom,
-		)
+		val maxHold = BallisticProfile.MAX_BOUNCE_TICKS * (contactDepths?.size ?: bounces)
+		fun arcAt(holdTicks: Int): ArcSample? =
+			bounceArc(0.0, contactDepth, contactDepths, riseHeight, holdTicks > 0, sprint, jump, holdTicks, bounces, headroom, reboundHeadroom)
 
 		var lo = minHold
 		var hi = maxHold
@@ -139,7 +141,7 @@ object BounceSolver {
 			val arc = arcAt(hold) ?: continue
 			val error = abs(arc.distance - target)
 			if (error > LANDING_SUPPORT_REACH) continue
-			val penalty = arc.contactIndices().maxOf { contactPenalty(launchReach + arc.distances[it]) }
+			val penalty = arc.contactIndices().withIndex().maxOf { (contact, index) -> contactPenalty(contact, launchReach + arc.distances[index]) }
 			if (!penalty.isFinite()) continue
 			if (penalty < chosenPenalty || (penalty == chosenPenalty && error < chosenError)) {
 				chosenHold = hold
@@ -159,8 +161,26 @@ object BounceSolver {
 			speedSlack = STANDING_REST_SPEED,
 			launchOffset = launchReach,
 			arc = arc,
-			contactDepth = contactDepth,
+			contactDepth = contactDepths?.max() ?: contactDepth,
 		)
+	}
+
+	private fun bounceArc(
+		entrySpeed: Double,
+		contactDepth: Double,
+		contactDepths: DoubleArray?,
+		riseHeight: Double,
+		holdForward: Boolean,
+		sprint: Boolean,
+		jump: Boolean,
+		holdTicks: Int,
+		bounces: Int,
+		headroom: Double,
+		reboundHeadroom: Double,
+	): ArcSample? = if (contactDepths == null) {
+		ballistics.bounce(entrySpeed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom)
+	} else {
+		ballistics.bounce(entrySpeed, contactDepths, riseHeight, holdForward, sprint, jump, holdTicks, headroom = headroom, reboundHeadroom = reboundHeadroom)
 	}
 
 	fun reach(drop: Int, rise: Int, bounces: Int = 1, ledgeDepth: Double = 0.0): ClosedFloatingPointRange<Double>? {
@@ -198,6 +218,7 @@ private fun ArcSample.troughIndex(): Int {
 }
 
 private fun ArcSample.contactIndices(): List<Int> {
+	if (contacts.isNotEmpty()) return contacts.toList()
 	val floor = heights[troughIndex()]
 	return heights.indices.filter { heights[it] == floor }
 }

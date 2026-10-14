@@ -204,6 +204,39 @@ internal inline fun forEachSweptBox(
 	}
 }
 
+internal fun sweepPoints(
+	view: CoarseVoxelView,
+	xs: DoubleArray,
+	feet: DoubleArray,
+	zs: DoubleArray,
+	count: Int,
+	reads: LongOpenHashSet?,
+	halfWidth: Double = CORE_HALF_WIDTH,
+): Sweep {
+	var previous = coreBox(xs[0], feet[0], zs[0], halfWidth)
+	for (index in 1 until count) {
+		val box = coreBox(xs[index], feet[index], zs[index], halfWidth)
+		visitSwept(previous.union(box)) { x, y, z, swept ->
+			reads?.add(BlockPos.asLong(x, y, z))
+			when (view.collisionClass(x, y, z)) {
+				CollisionClass.EMPTY -> {}
+				CollisionClass.UNKNOWN -> return Sweep.Blocked
+				CollisionClass.FULL ->
+					if (swept.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)) return Sweep.Clipped(x, z)
+				CollisionClass.PARTIAL -> {
+					val boxes = view.collisionBoxes(x, y, z) ?: return Sweep.Blocked
+					for (part in 0 until boxes.size / 6) {
+						val b = 6 * part
+						if (swept.intersects(x + boxes[b], y + boxes[b + 1], z + boxes[b + 2], x + boxes[b + 3], y + boxes[b + 4], z + boxes[b + 5])) return Sweep.Partial
+					}
+				}
+			}
+		}
+		previous = box
+	}
+	return Sweep.Clear
+}
+
 internal inline fun visitSwept(swept: Box, visit: (x: Int, y: Int, z: Int, swept: Box) -> Unit) {
 	for (y in MathHelper.floor(swept.minY - TALL_SHAPE_REACH) until MathHelper.ceil(swept.maxY)) {
 		for (z in MathHelper.floor(swept.minZ) until MathHelper.ceil(swept.maxZ)) {

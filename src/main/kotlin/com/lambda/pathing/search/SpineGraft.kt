@@ -34,6 +34,8 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 	var grafted = 0
 		private set
 
+	private var rooted = false
+
 	fun plant(root: ValueAnchor): Solution? {
 		var anchor = root
 		for ((index, step) in steps.withIndex()) {
@@ -52,10 +54,12 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 			elapsed += anchor.elapsed
 			if (step is SpineStep.Decide) byStance[anchor.stance] = index
 		}
+		rooted = true
 		return finish(anchor)
 	}
 
 	fun graft(landed: ValueAnchor): Solution? {
+		if (!rooted) return null
 		val index = byStance[landed.stance] ?: return null
 		if (boundary(index) || landed.elapsed + GRAFT_MARGIN_FRAMES > elapsed[index]) return null
 		if (!tried.add(Attempt(landed.stance, landed.elapsed, (landed.speed * SPEED_KEY).roundToInt()))) return null

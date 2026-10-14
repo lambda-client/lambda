@@ -50,7 +50,7 @@ internal class SearchLoop(
 	private val annealing = Annealing(field, frontier, ActionSet(catalog, field, config) { legs?.hasNext() != true }, budget, searchConfig.maxTemperature)
 	private val routePoints = RoutePoints(environment)
 	private val visits = VisitIndex { frontier.root }
-	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe, routePoints, visits)
+	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe, routePoints, visits) { config.touchArrival || legs?.hasNext() == true }
 	private val crew = if (parallelism > 1) RolloutCrew(parallelism - 1, rollouts) else null
 	private val certifier = Certifier(initialState, profile, environment, cancelled, route, attempts, publications)
 	private val finisher = Finisher(field, environment, config, RolloutGate(profile, environment, config, route), attempts, route, routePoints)
@@ -374,7 +374,7 @@ internal class SearchLoop(
 		val legs = checkNotNull(spine).legs
 		val plan = legs[leg]
 		val legRoute = RouteState(plan.route, environment)
-		val legRollouts = AnchorRollout(movements, plan.field, config, environment, profile, legRoute, attempts, probe, routePoints, visits = null)
+		val legRollouts = AnchorRollout(movements, plan.field, config, environment, profile, legRoute, attempts, probe, routePoints, visits = null) { config.touchArrival || leg < legs.lastIndex }
 		val legActions = ActionSet(movements, plan.field, config) { leg == legs.lastIndex }
 		val legFinisher = if (leg == legs.lastIndex) Finisher(plan.field, environment, config, RolloutGate(profile, environment, config, legRoute), attempts, legRoute, routePoints) else null
 		GraftContext(
