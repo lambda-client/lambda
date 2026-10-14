@@ -11,6 +11,7 @@ import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.core.HorizontalPoint
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.besideHoney
 import com.lambda.pathing.physics.landingRule
 import com.lambda.pathing.world.climbableAt
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
@@ -39,6 +40,7 @@ internal class RolloutGate(
 			from, points, route.goalPoint, config,
 			descentAllowance = descentAllowance,
 			climbing = { environment.climbableAt(it) },
+			sliding = { environment.besideHoney(it) },
 			landingRule = { environment.landingRule(it) },
 			lava = { environment.lavaWithin(it) },
 		)

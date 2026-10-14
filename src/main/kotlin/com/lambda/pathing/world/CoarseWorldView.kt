@@ -165,6 +165,10 @@ interface CoarseVoxelView {
 
 	fun bubbles(x: Int, y: Int, z: Int): Boolean = false
 
+	fun honey(x: Int, y: Int, z: Int): Boolean = false
+
+	fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
 	fun isKnown(x: Int, y: Int, z: Int): Boolean = true
 
 	fun isUnknown(x: Int, y: Int, z: Int): Boolean = !isKnown(x, y, z)

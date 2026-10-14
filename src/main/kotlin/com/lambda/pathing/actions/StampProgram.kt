@@ -70,6 +70,11 @@ internal class StampProgram(
 			strayRead = true
 			return null
 		}
+
+		override fun honey(x: Int, y: Int, z: Int): Boolean {
+			strayRead = true
+			return false
+		}
 	}
 
 	companion object {

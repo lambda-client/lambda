@@ -55,7 +55,8 @@ class HeadHitterJumpTest {
 	 */
 	@Test
 	fun `a gap into a low tunnel from open ground is refused`() {
-		val planner = CoarsePlanner(tunnel(ceilingY = 66, roofed = 2..7), moveLibrary(SimpleMoveOptions()), Stance(-3, 64, 0), Stance(5, 64, 0))
+		// a five-span jump from further back descends under the roof's edge, so only short gaps are offered here
+		val planner = CoarsePlanner(tunnel(ceilingY = 66, roofed = 2..7), moveLibrary(SimpleMoveOptions(maxJumpSpan = 4)), Stance(-3, 64, 0), Stance(5, 64, 0))
 		planner.repair()
 		assertNull(planner.routePlan(0L), "the climb is not cut short before the tunnel's mouth")
 	}

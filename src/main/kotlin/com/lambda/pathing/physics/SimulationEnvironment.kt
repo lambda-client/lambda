@@ -28,6 +28,10 @@ interface SimulationEnvironment {
 
 	fun dampensSteppingSpeed(pos: BlockPos): Boolean = false
 
+	fun honey(pos: BlockPos): Boolean = false
+
+	fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean = true
+
 	fun hotFloor(pos: BlockPos): Boolean = false
 
 	fun fallRule(pos: BlockPos): FallRule = FallRule.NORMAL

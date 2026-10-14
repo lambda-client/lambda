@@ -39,33 +39,19 @@ class StandingStartJumpTest {
     }
 
     @Test
-    fun `a span-4 rise-1 gap is beyond a standing start and no longer promised`() {
-        // The graph used to offer this and rely on the search synthesizing a run-up.
-        // Policy reversed 2026-08-27: the coarse graph cannot promise a run-up exists,
-        // so it only offers jumps provably reachable from a standing start -- and a
-        // rising three-air gap certifies once in nine standing rollouts. Momentum
-        // jumps return later as terrain-conditioned templates (runway provably behind
-        // the lip) or trajectory-layer shortcuts.
-        assertNoRoute(runUpWorld(), goal = Stance(4, 2, 0))
+    fun `standing at the lip of a span-4 rise-1 gap certifies after a run-up`() {
+        certifies(runUpWorld(), goal = Stance(4, 2, 0))
     }
 
     @Test
-    fun `a four-wide gap is not promised by the coarse graph`() {
-        assertNoRoute(fourWideWorld(), goal = Stance(5, 1, 0))
-    }
-
-    private fun assertNoRoute(environment: SnapshotSimulationEnvironment, goal: Stance) {
-        val moves = moveLibrary(SimpleMoveOptions())
-        val planner = CoarsePlanner(environment, moves, Stance(0, 1, 0), goal)
-        val converged = planner.repair().converged
-        val route = if (converged) planner.routePlan(0L) else null
-        assertTrue(route == null, "a momentum-only jump must not be promised: ${route?.nodes}")
+    fun `standing at the lip of a four-wide gap certifies after a run-up`() {
+        certifies(fourWideWorld(), goal = Stance(5, 1, 0))
     }
 
     private fun fourWideWorld(): SnapshotSimulationEnvironment {
         val blocks = buildMap {
             for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
-            // four air blocks: the vanilla maximum, only makeable with built momentum
+            // four air blocks: launched from rest only after a run-up across the take-off cell
             put(BlockPos(5, 0, 0), SnapshotBlockPhysics.FULL_CUBE)
         }
         return SnapshotSimulationEnvironment.synthetic(
@@ -94,7 +80,7 @@ class StandingStartJumpTest {
     private fun runUpWorld(): SnapshotSimulationEnvironment {
         val blocks = buildMap {
             for (x in -6..0) for (z in -2..2) put(BlockPos(x, 0, z), SnapshotBlockPhysics.FULL_CUBE)
-            // span-4 rise-1 over void: refused from a stand, makeable with a run-up
+            // span-4 rise-1 over void: launched from rest only after a run-up across the take-off cell
             put(BlockPos(4, 1, 0), SnapshotBlockPhysics.FULL_CUBE)
         }
         return SnapshotSimulationEnvironment.synthetic(
@@ -108,7 +94,8 @@ class StandingStartJumpTest {
         val environment = detourWorld()
         val start = Stance(0, 1, 0)
         val goal = Stance(5, 1, 0)
-        val moves = moveLibrary(SimpleMoveOptions())
+        // the direct four-gap is real, so it is left out to keep the phantom post on the coarse line
+        val moves = moveLibrary(SimpleMoveOptions(maxJumpSpan = 4))
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair().converged)
         planner.expandSearchField()

@@ -28,6 +28,7 @@ internal class RolloutEvaluator(
 	private val allowHorizontalContact: Boolean = false,
 	descentAllowance: Double = 0.0,
 	private val climbing: (Vec3d) -> Boolean,
+	private val sliding: (MovementSimulationState) -> Boolean = { false },
 	private val landingRule: (MovementSimulationState) -> FallRule = { FallRule.NORMAL },
 	private val lava: (Box) -> Boolean = { false },
 ) {
@@ -45,7 +46,7 @@ internal class RolloutEvaluator(
 	fun observe(index: Int, state: MovementSimulationState): RolloutVerdict {
 		val before = previous
 		previous = state
-		if (state.touchingWater || climbing(state.position)) apex = state.position.y
+		if (state.touchingWater || climbing(state.position) || sliding(state)) apex = state.position.y
 		if (state.onGround) {
 			val rebounded = state.velocity.y > 0.0
 			val fallDistance = apex - state.position.y

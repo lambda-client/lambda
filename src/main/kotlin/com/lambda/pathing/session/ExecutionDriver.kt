@@ -106,6 +106,11 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 
 	private fun SafeContext.complete(replay: Replay) {
 		val path = replay.path
+		val frame = replay.cursor.nextFrame
+		walk.dumpEvent(
+			"arrived", "reached ${path.finalGoal} after ${path.plan.tape.frameCount} frames",
+			PlanDump.ExecutionTrace.of(path.plan, frame, afterInput = false, observe(path.plan, frame), replay.observedHistory.toList()),
+		)
 		walk.replay = null
 		walk.tickInput = null
 		walk.state = State.Complete(path.plan.tape.frameCount, walk.leg)

@@ -13,6 +13,7 @@ internal class ImmutableSnapshotSection private constructor(
 	val watery: Boolean = palette.any { it.water != null }
 	val bubbly: Boolean = palette.any { it.water?.bubbles != null }
 	val hot: Boolean = palette.any { it.hotFloor }
+	val honeyed: Boolean = palette.any { it.honey }
 	val exceeding: Boolean = palette.any { it.exceedsCube }
 	val unsupported: Boolean = palette.any { it.unsupportedPhysics != null }
 	val soft: Boolean = palette.any { it.water != null || it.fallRule.cushions && !it.coarseVoxel.bouncy }

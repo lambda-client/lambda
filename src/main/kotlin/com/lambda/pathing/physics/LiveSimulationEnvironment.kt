@@ -61,6 +61,8 @@ class LiveSimulationEnvironment(
 	override fun dampensSteppingSpeed(pos: BlockPos): Boolean =
 		world.getBlockState(pos).isOf(Blocks.SLIME_BLOCK)
 
+	override fun honey(pos: BlockPos): Boolean = world.getBlockState(pos).isOf(Blocks.HONEY_BLOCK)
+
 	override fun hotFloor(pos: BlockPos): Boolean = world.getBlockState(pos).isOf(Blocks.MAGMA_BLOCK)
 
 	override fun fallRule(pos: BlockPos): FallRule = world.getBlockState(pos).fallRule()

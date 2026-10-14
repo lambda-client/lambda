@@ -171,6 +171,11 @@ class SnapshotSimulationEnvironment internal constructor(
 
 	override fun dampensSteppingSpeed(pos: BlockPos): Boolean = blockAt(pos).dampensSteppingSpeed
 
+	override fun honey(pos: BlockPos): Boolean = blockAt(pos).honey
+
+	override fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+		store.honeyWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
 	override fun hotFloor(pos: BlockPos): Boolean = blockAt(pos).hotFloor
 
 	override fun fallRule(pos: BlockPos): FallRule = blockAt(pos).fallRule
@@ -178,6 +183,8 @@ class SnapshotSimulationEnvironment internal constructor(
 	override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z) { store[it] }
 
 	override fun bubbles(x: Int, y: Int, z: Int): Boolean = bubblesIn(x, y, z) { store[it] }
+
+	override fun honey(x: Int, y: Int, z: Int): Boolean = honeyIn(x, y, z) { store[it] }
 
 	override fun mayContainHotFloor(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
 		store.hotWithin(minX, minY, minZ, maxX, maxY, maxZ)
@@ -383,6 +390,9 @@ class SnapshotSimulationEnvironment internal constructor(
 	private inline fun bubblesIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
 		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt)?.water?.bubbles != null
 
+	private inline fun honeyIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): Boolean =
+		bounds.contains(x, y, z) && blockIn(x, y, z, sectionAt)?.honey == true
+
 	private inline fun collisionClassIn(x: Int, y: Int, z: Int, sectionAt: (Long) -> ImmutableSnapshotSection?): CollisionClass {
 		if (!bounds.contains(x, y, z)) return CollisionClass.FULL
 		return blockIn(x, y, z, sectionAt)?.collisionClass ?: CollisionClass.EMPTY
@@ -491,6 +501,11 @@ class SnapshotSimulationEnvironment internal constructor(
 
 		override fun bubbles(x: Int, y: Int, z: Int): Boolean = bubblesIn(x, y, z, ::at)
 
+		override fun honey(x: Int, y: Int, z: Int): Boolean = honeyIn(x, y, z, ::at)
+
+		override fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			store.honeyWithin(minX, minY, minZ, maxX, maxY, maxZ)
+
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
 
 		override fun isUnknown(x: Int, y: Int, z: Int): Boolean = isUnknownIn(x, y, z, ::at)
@@ -540,6 +555,11 @@ class SnapshotSimulationEnvironment internal constructor(
 		override fun fallRule(x: Int, y: Int, z: Int): FallRule = fallRuleIn(x, y, z, ::at)
 
 		override fun bubbles(x: Int, y: Int, z: Int): Boolean = bubblesIn(x, y, z, ::at)
+
+		override fun honey(x: Int, y: Int, z: Int): Boolean = honeyIn(x, y, z, ::at)
+
+		override fun mayContainHoney(minX: Int, minY: Int, minZ: Int, maxX: Int, maxY: Int, maxZ: Int): Boolean =
+			store.honeyWithin(minX, minY, minZ, maxX, maxY, maxZ)
 
 		override fun isKnown(x: Int, y: Int, z: Int): Boolean = isKnownIn(x, y, z, ::at)
 

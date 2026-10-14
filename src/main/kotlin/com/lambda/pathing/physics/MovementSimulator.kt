@@ -46,6 +46,7 @@ class MovementSimulator(
 	private var air = initialState.air
 	private val cell = BlockPos.Mutable()
 	private var lastMovementY = 0.0
+	private var tickStartBox = initialState.boundingBox
 
 	val state: MovementSimulationState
 		get() = MovementSimulationState(
@@ -180,6 +181,7 @@ class MovementSimulator(
 			jumpingCooldown = 0
 		}
 
+		tickStartBox = boundingBox
 		travel(
 			forwardSpeed = movementInput.y.toDouble(),
 			strafeSpeed = movementInput.x.toDouble(),
@@ -448,7 +450,45 @@ class MovementSimulator(
 	private fun tickBlockCollision() {
 		dampenSlimeStep()
 		applyBubbleColumns()
+		slideOnHoney()
 	}
+
+	private fun slideOnHoney() {
+		if (onGround) return
+		val start = tickStartBox.contract(Vanilla.BUBBLE_CONTRACTION.toDouble())
+		val end = boundingBox.contract(Vanilla.BUBBLE_CONTRACTION.toDouble())
+		val x0 = MathHelper.floor(minOf(start.minX, end.minX))
+		val y0 = MathHelper.floor(minOf(start.minY, end.minY))
+		val z0 = MathHelper.floor(minOf(start.minZ, end.minZ))
+		val x1 = MathHelper.floor(maxOf(start.maxX, end.maxX))
+		val y1 = MathHelper.floor(maxOf(start.maxY, end.maxY))
+		val z1 = MathHelper.floor(maxOf(start.maxZ, end.maxZ))
+		if (!environment.mayContainHoney(x0, y0, z0, x1, y1, z1)) return
+		for (y in y0..y1) for (x in x0..x1) for (z in z0..z1) {
+			if (!start.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0) &&
+				!end.intersects(x.toDouble(), y.toDouble(), z.toDouble(), x + 1.0, y + 1.0, z + 1.0)
+			) continue
+			if (!environment.honey(cell.set(x, y, z)) || !slidesOn(x, y, z)) continue
+			val fall = preGravityFall(velocity.y)
+			velocity = if (fall < Vanilla.HONEY_SLIDE_BRAKE) {
+				val brake = Vanilla.HONEY_SLIDE_VELOCITY / fall
+				Vec3d(velocity.x * brake, postGravityFall(Vanilla.HONEY_SLIDE_VELOCITY), velocity.z * brake)
+			} else {
+				Vec3d(velocity.x, postGravityFall(Vanilla.HONEY_SLIDE_VELOCITY), velocity.z)
+			}
+		}
+	}
+
+	private fun slidesOn(x: Int, y: Int, z: Int): Boolean {
+		if (onGround || position.y > y + Vanilla.HONEY_SLIDE_TOP - Vanilla.HONEY_SLIDE_EPSILON) return false
+		if (preGravityFall(velocity.y) >= Vanilla.HONEY_SLIDE_ONSET) return false
+		val reach = Vanilla.HONEY_SIDE_REACH + (profile.width.toFloat() / 2.0F)
+		return abs(x + 0.5 - position.x) + Vanilla.HONEY_SLIDE_EPSILON > reach || abs(z + 0.5 - position.z) + Vanilla.HONEY_SLIDE_EPSILON > reach
+	}
+
+	private fun preGravityFall(velocityY: Double): Double = velocityY / Vanilla.HONEY_DRAG + Vanilla.HONEY_GRAVITY
+
+	private fun postGravityFall(velocityY: Double): Double = (velocityY - Vanilla.HONEY_GRAVITY) * Vanilla.HONEY_DRAG
 
 	private fun dampenSlimeStep() {
 		if (!onGround) return

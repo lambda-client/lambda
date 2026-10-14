@@ -104,6 +104,17 @@ interface TrajectoryDecision {
 		val reach: Int = 1,
 	) : TrajectoryDecision
 
+	data class HoneySlide(
+		override val step: Stance,
+		val yaw: Double,
+		val jumpAlong: Double,
+		val strafe: Double,
+		val strafeDelay: Int,
+		override val movement: MovementId = MovementId.HONEY_SLIDE,
+	) : TrajectoryDecision {
+		override val leavesGround: Boolean get() = true
+	}
+
 	data class Swim(
 		override val step: Stance,
 		val sprint: Boolean,

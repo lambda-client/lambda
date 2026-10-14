@@ -104,6 +104,22 @@ object Vanilla {
 	const val BUBBLE_SURFACE_LIFT_MAX = 1.8
 	const val BUBBLE_SURFACE_DRAG_MAX = 0.9
 	const val BUBBLE_CONTRACTION = 1.0E-5F
+
+	const val HONEY_SLIDE_TOP = 0.9375
+
+	const val HONEY_SIDE_REACH = 0.4375
+
+	const val HONEY_SLIDE_VELOCITY = -0.05
+
+	const val HONEY_SLIDE_ONSET = -0.08
+
+	const val HONEY_SLIDE_BRAKE = -0.13
+
+	const val HONEY_SLIDE_EPSILON = 1.0E-7
+
+	const val HONEY_GRAVITY = 0.08
+
+	const val HONEY_DRAG = 0.98F
 }
 
 internal fun BlockState.bounceFactor(): Double = when {
@@ -119,7 +135,7 @@ internal fun BlockState.bubbles(): BubbleColumn? = when {
 }
 
 internal fun BlockState.fallRule(): FallRule = when {
-	isOf(Blocks.HAY_BLOCK) -> FallRule.HAY
+	isOf(Blocks.HAY_BLOCK) || isOf(Blocks.HONEY_BLOCK) -> FallRule.HAY
 	block is BedBlock -> FallRule.BED
 	isOf(Blocks.SLIME_BLOCK) -> FallRule.NONE
 	isOf(Blocks.FARMLAND) -> FallRule.FARMLAND

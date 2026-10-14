@@ -23,6 +23,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.FallRule
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
+import com.lambda.pathing.physics.besideHoney
 import com.lambda.pathing.physics.landingRule
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.Medium
@@ -110,6 +111,7 @@ internal class AnchorRollout(
 						action.delayFrames != null && Footing.involvesPartial(field.view, anchor.stance.x, anchor.stance.y, anchor.stance.z),
 				descentAllowance = movement.descentAllowance(action),
 				climbing = climbingAt,
+				sliding = { environment.besideHoney(it) },
 				landingRule = landingRuleOf,
 				lava = { environment.lavaWithin(it) },
 			),

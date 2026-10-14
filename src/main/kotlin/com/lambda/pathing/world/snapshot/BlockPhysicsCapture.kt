@@ -96,6 +96,7 @@ object BlockPhysicsCapture {
 			},
 			hotFloor = state.isOf(Blocks.MAGMA_BLOCK),
 			fallRule = if (cushionedByWater(state, shape, world, pos)) FallRule.NONE else state.fallRule(),
+			honey = state.isOf(Blocks.HONEY_BLOCK),
 			exceedsCube = state.exceedsCube(),
 		)
 	}
@@ -111,7 +112,6 @@ object BlockPhysicsCapture {
 		state.isOf(Blocks.COBWEB) -> UnsupportedPhysicsKind.COBWEB
 		state.isOf(Blocks.POWDER_SNOW) -> UnsupportedPhysicsKind.POWDER_SNOW
 		state.isOf(Blocks.SWEET_BERRY_BUSH) -> UnsupportedPhysicsKind.SWEET_BERRY_BUSH
-		state.isOf(Blocks.HONEY_BLOCK) -> UnsupportedPhysicsKind.HONEY_SIDE_EFFECTS
 		ignoreHazards -> null
 		state.isIn(BlockTags.FIRE) || CampfireBlock.isLitCampfire(state) -> UnsupportedPhysicsKind.FIRE
 		state.isOf(Blocks.CACTUS) -> UnsupportedPhysicsKind.CACTUS

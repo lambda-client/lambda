@@ -44,8 +44,8 @@ internal object JumpTemplates {
 		if (maxOf(abs(dx), abs(dz)) > options.maxJumpSpan) return rise <= WIDE_DROP_STEP && options.allowDeepDropJumps && wideDrop(dx, dz)
 		val ceiling = when {
 			step -> RISING_STANDING_AIR_GAP_BLOCKS
-			rise < 0 && options.allowDeepDropJumps -> FULL_DROP_AIR_GAP_BLOCKS
-			else -> STANDING_AIR_GAP_BLOCKS
+			rise < 0 -> if (options.allowDeepDropJumps) FULL_DROP_AIR_GAP_BLOCKS else STANDING_AIR_GAP_BLOCKS
+			else -> LEVEL_MOMENTUM_AIR_GAP_BLOCKS
 		}
 		return airGap(dx, dz) <= ceiling + REACH_EPSILON
 	}
@@ -75,8 +75,10 @@ internal object JumpTemplates {
 					when {
 						realRise > LaunchMode.MAX_JUMP_RISE -> false
 						gap <= RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
+						gap <= RISING_MOMENTUM_AIR_GAP_BLOCKS + REACH_EPSILON && realRise <= MOMENTUM_RISE -> true
 						realRise > NEAR_FLAT_RISE -> false
 						gap <= STANDING_AIR_GAP_BLOCKS + REACH_EPSILON -> true
+						gap <= LEVEL_MOMENTUM_AIR_GAP_BLOCKS + REACH_EPSILON && realRise <= 0.0 -> true
 						realRise > HALF_DROP_RISE -> false
 						gap <= HALF_DROP_AIR_GAP_BLOCKS + REACH_EPSILON -> true
 						realRise > FULL_DROP_RISE -> false
@@ -85,15 +87,26 @@ internal object JumpTemplates {
 					}
 				},
 				momentumOnly = momentumOnly,
+				runUpNeeded = { realRise -> needsMomentum(gap, realRise) },
 			),
 		)
 	}
+
+	private fun needsMomentum(gap: Double, realRise: Double): Boolean =
+		realRise > NEAR_FLAT_RISE && gap > RISING_STANDING_AIR_GAP_BLOCKS + REACH_EPSILON ||
+				realRise > HALF_DROP_RISE && gap > STANDING_AIR_GAP_BLOCKS + REACH_EPSILON
 
 	private const val REACH_EPSILON = 1e-9
 
 	private val STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(3.0, 1.0)
 
 	private val RISING_STANDING_AIR_GAP_BLOCKS = kotlin.math.hypot(2.0, 2.0)
+
+	private const val RISING_MOMENTUM_AIR_GAP_BLOCKS = 3.0
+
+	private const val MOMENTUM_RISE = 1.0
+
+	private const val LEVEL_MOMENTUM_AIR_GAP_BLOCKS = 4.0
 
 	private const val HALF_DROP_AIR_GAP_BLOCKS = 4.0
 

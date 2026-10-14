@@ -39,6 +39,7 @@ class MotionTemplate internal constructor(
 		val bounces: Int = 1,
 		val riseAdmission: ((Double) -> Boolean)? = null,
 		val momentumOnly: Boolean = false,
+		val runUpNeeded: ((Double) -> Boolean)? = null,
 	)
 
 	init {
@@ -78,11 +79,18 @@ class MotionTemplate internal constructor(
 			?: return ledgeEdge(view, origin)
 		if (probed.solution.mode.jumps && Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !launchesFromFooting(view, origin, probed.solution)) return ledgeEdge(view, origin)
 		val detour = probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0
+		val runUp = if (spec.runUpNeeded?.invoke(riseHeight) == true) standingRunUpTicks(probed.solution) ?: return null else null
 		return edgeOf(
-			origin, lowerBoundTicks + detour / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK, probed.reads,
+			origin, lowerBoundTicks + detour / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK + (runUp ?: 0), probed.reads,
 			launch = probed.solution,
-			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, riseHeight),
+			standingStart = runUp != null || standingStartViable(view, origin, spec.modes, probed.solution, riseHeight),
 		)
+	}
+
+	private fun standingRunUpTicks(solution: LaunchSolution): Int? {
+		val profile = BallisticProfile.VANILLA
+		val ticks = profile.groundRunUpTicks(0.0, IN_CELL_RUN_UP, solution.mode.sprint, STANDING_RUN_UP_TICKS)
+		return ticks.takeIf { profile.runUpSpeed(0.0, it, solution.mode.sprint) >= solution.speed - solution.speedSlack }
 	}
 
 	private fun undecided(view: CoarseVoxelView, origin: Stance): Boolean = conditions.all { condition ->
@@ -109,10 +117,11 @@ class MotionTemplate internal constructor(
 		val target = target(origin)
 		if (!Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !Footing.involvesPartial(view, target.x, target.y, target.z)) return null
 		val probed = JumpArcProbe.ledge(view, origin, target, spec.modes, spec.riseAdmission ?: { true }) ?: return null
+		val runUp = if (spec.runUpNeeded?.invoke(realRise(view, origin)) == true) standingRunUpTicks(probed.solution) ?: return null else null
 		return edgeOf(
-			origin, lowerBoundTicks, probed.reads,
+			origin, lowerBoundTicks + (runUp ?: 0), probed.reads,
 			launch = probed.solution,
-			standingStart = standingStartViable(view, origin, spec.modes, probed.solution, dy.toDouble()),
+			standingStart = runUp != null || standingStartViable(view, origin, spec.modes, probed.solution, dy.toDouble()),
 		)
 	}
 
@@ -195,6 +204,7 @@ class MotionTemplate internal constructor(
 		}
 		after += surfaceReads
 		val rise = dy.toDouble()
+		if (spec.runUpNeeded?.invoke(rise) == true) return null
 		if (spec.riseAdmission?.invoke(rise) == false) return StampProgram(clauses, after, emptyList(), behind = null, IntArray(0), emptyList())
 		val behindX = -Integer.signum(dx)
 		val behindZ = -Integer.signum(dz)

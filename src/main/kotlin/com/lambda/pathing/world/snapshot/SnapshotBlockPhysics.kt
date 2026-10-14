@@ -26,6 +26,7 @@ data class SnapshotBlockPhysics(
 	val water: WaterPhysics? = null,
 	val hotFloor: Boolean = false,
 	val fallRule: FallRule = FallRule.NORMAL,
+	val honey: Boolean = false,
 	val exceedsCube: Boolean = collisionShape.boundingBoxes.any { it.minX < 0.0 || it.minY < 0.0 || it.minZ < 0.0 || it.maxX > 1.0 || it.maxY > 1.0 || it.maxZ > 1.0 },
 ) {
 	internal val coarseShape: VoxelShape =
@@ -43,7 +44,7 @@ data class SnapshotBlockPhysics(
 
 	private val hash = Objects.hash(
 		collisionBoxes, slipperiness, velocityMultiplier, jumpVelocityMultiplier, unsupportedPhysics,
-		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water, hotFloor, fallRule, exceedsCube,
+		coarseVoxel, fenceLike, bounceFactor, dampensSteppingSpeed, water, hotFloor, fallRule, honey, exceedsCube,
 	)
 
 	override fun equals(other: Any?): Boolean = this === other || other is SnapshotBlockPhysics && hash == other.hash &&
@@ -51,7 +52,7 @@ data class SnapshotBlockPhysics(
 			velocityMultiplier == other.velocityMultiplier && jumpVelocityMultiplier == other.jumpVelocityMultiplier &&
 			unsupportedPhysics == other.unsupportedPhysics && coarseVoxel == other.coarseVoxel && fenceLike == other.fenceLike &&
 			bounceFactor == other.bounceFactor && dampensSteppingSpeed == other.dampensSteppingSpeed && water == other.water &&
-			hotFloor == other.hotFloor && fallRule == other.fallRule && exceedsCube == other.exceedsCube
+			hotFloor == other.hotFloor && fallRule == other.fallRule && honey == other.honey && exceedsCube == other.exceedsCube
 
 	override fun hashCode(): Int = hash
 

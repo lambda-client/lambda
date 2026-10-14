@@ -32,6 +32,7 @@ class MovementCatalog private constructor(
 			DiveMovement,
 			SlimeBounceMovement,
 			FallMovement,
+			HoneySlideMovement,
 		)
 
 		fun build(
