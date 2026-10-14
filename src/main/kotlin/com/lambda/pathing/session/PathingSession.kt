@@ -11,6 +11,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.session.AlignmentController.Companion.SETTLED_SPEED
 import com.lambda.threading.runSafeAutomated
+import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.CommunicationUtils.warn
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -25,6 +26,7 @@ class PathingSession internal constructor(
 
 		data class Settling(val goal: String) : State
 		data class Planning(val goal: String) : State
+		data class Rehearsing(val goal: String, val improvements: Int, val bestFrames: Int?, val finished: Boolean) : State
 		data class Aligning(val leg: Int, val yawError: Double) : State
 		data class Executing(val frame: Int, val frames: Int, val leg: Int) : State
 
@@ -52,6 +54,10 @@ class PathingSession internal constructor(
 
 	internal var replay: Replay? = null
 
+	internal var rehearsal: Rehearsal? = request.rehearsal?.let(::Rehearsal)
+
+	internal var performPending = false
+
 	internal var tickInput: MovementSimulationInput? = null
 
 	internal var afloatStart: AfloatStart? = null
@@ -68,6 +74,7 @@ class PathingSession internal constructor(
 		leg = leg,
 		queuedWaypoints = remainingWaypoints().size + waypointRoute.queuedWaypoints,
 		sessionRestarts = launcher.restarts,
+		rehearsal = rehearsal?.view(),
 	)
 
 	fun isFinished(request: PathingRequest): Boolean = !(active && this.request === request)
@@ -92,6 +99,11 @@ class PathingSession internal constructor(
 		if (!active) return
 		with(heartbeat) { beat(this@PathingSession) }
 		if (mc.isPaused) return
+		if (performPending) {
+			performPending = false
+			perform()
+		}
+		if (state is State.Rehearsing && rehearsal?.performing != true) return
 		if (state is State.Settling) return with(alignment) { settle() }
 		if (state is State.Planning) {
 			if (afloatStart != null) tickInput = treadInput()
@@ -152,6 +164,19 @@ class PathingSession internal constructor(
 	}
 
 	internal fun takeJourney(): PlanningJourney? = journey.also { journey = null }
+
+	internal fun SafeContext.perform() {
+		val rehearsed = rehearsal ?: return
+		if (rehearsed.performing) return
+		val best = rehearsed.best
+		if (best == null) {
+			rehearsed.performRequested = true
+			info("Walking as soon as the rehearsal spine is ready.", PATHING_SOURCE)
+			return
+		}
+		rehearsed.performing = true
+		with(admission) { begin(best) }
+	}
 
 	internal fun SafeContext.planTrajectory() {
 		if (afloat()) return with(launcher) { capturePlan() }
@@ -229,6 +254,7 @@ class PathingSession internal constructor(
 
 	internal fun SafeContext.recover(reason: String, reuseCoarseState: Boolean) {
 		if (!active) return fail(reason)
+		rehearsal = null
 		if (!reuseCoarseState) {
 			journey?.cancel()
 			journey = null

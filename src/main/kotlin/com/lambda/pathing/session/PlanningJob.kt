@@ -8,6 +8,10 @@ import com.lambda.pathing.search.ExecutionFeedback
 import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SearchStats
+import com.lambda.pathing.search.MotionPlanResult
+import com.lambda.pathing.search.PlanLeg
+import com.lambda.pathing.search.PlanRefiner
+import com.lambda.pathing.search.VirtualPacing
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -18,6 +22,9 @@ internal class PlanningJob(
 	private val cancelled: () -> Boolean,
 	private val execution: ExecutionFeedback,
 	private val publish: (PublishedPath, Boolean) -> Unit,
+	private val rehearsal: Rehearsal? = null,
+	private val onRehearsal: (RehearsalPoint, PublishedPath) -> Unit = { _, _ -> },
+	private val onRehearsalProgress: (String) -> Unit = {},
 ) {
 	private val world = journey.world
 	private val coarse = journey.coarse
@@ -80,6 +87,7 @@ internal class PlanningJob(
 			start, goal, frame.route.nodes.size, frame.route.goal, (System.nanoTime() - began) / 1_000_000L,
 			System.currentTimeMillis() - preparation.startedMillis, world.captureLedger(),
 		)
+		if (rehearsal != null) return rehearse(frame).also { enter("finished: ${it::class.simpleName}") }
 		return CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown).use { follower ->
 			walk(follower).let { if (it is PathPlanResult.Failed && mobsOnRoute(follower)) it.copy(mobs = true) else it }.also {
 				enter("finished: ${it::class.simpleName}")
@@ -87,6 +95,110 @@ internal class PlanningJob(
 			}
 		}
 	}
+
+	private fun rehearse(first: CoarseService.Frame): PathPlanResult {
+		val began = System.currentTimeMillis()
+		var planLegs: List<PlanLeg>? = null
+		var outcome: PathPlanResult = PathPlanResult.Cancelled
+		var holdTicks = 0L
+		for ((attempt, micros) in SPINE_MICROS_PER_EXPANSION.withIndex()) {
+			if (cancelled()) return PathPlanResult.Cancelled
+			val frame = if (attempt == 0) first else coarse.awaitRoute(leg, start, cancelled) ?: break
+			enter("rehearsing the spine at $micros us per expansion")
+			onRehearsalProgress(if (attempt == 0) "planning the spine" else "planning the spine, attempt ${attempt + 1}")
+			val pacing = VirtualPacing(micros)
+			outcome = CoarseFollower(coarse, world, snapshot, leg, frame, preparation.initial.air, preparation.profile.canDrown).use { follower ->
+				walkHorizon(
+					follower.route, journey.planner(leg), preparation.initial, preparation.profile, snapshot, preparation.seedConfig, pacing,
+					publish = { path, _ -> pacing.offer(path) },
+					started = preparation.startedMillis,
+					searchConfig = preparation.searchConfig,
+					world = follower,
+					clock = pacing,
+					cancelled = cancelled,
+					finalGoal = preparation.finalGoal,
+					field = follower.field,
+					probe = probe,
+					onConcluded = {
+						record(it)
+						LOG.info("Rehearsal spine at {} us {} -> {}: {} {}", micros, start, preparation.finalGoal, it, follower.ledger)
+					},
+					legs = follower,
+					parallelism = preparation.plannerThreads,
+				).also {
+					dumpOutcome(it, follower)
+					planLegs = follower.planLegs(leg)
+				}
+			}
+			holdTicks = pacing.holdTicks
+			if ((outcome as? PathPlanResult.Planned)?.path?.partial == false || outcome == PathPlanResult.Cancelled) break
+		}
+		val spine = (outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial } ?: return outcome
+		LOG.info("Rehearsal spine: {} frames in {} ms, {} hold ticks", spine.plan.tape.frameCount, System.currentTimeMillis() - began, holdTicks)
+		onRehearsal(RehearsalPoint(System.currentTimeMillis() - began, spine.plan.tape.frameCount, "spine"), spine)
+		val legs = planLegs ?: return PathPlanResult.Planned(spine)
+		val refiner = PlanRefiner(
+			journey.planner(leg).moves.catalog, legs, preparation.initial, preparation.profile, snapshot, preparation.seedConfig,
+			preparation.plannerThreads, cancelled,
+		)
+		var plan = PlanRefiner.Plan(spine.plan.segments, spine.legTouches)
+		var best = spine
+		val versions = HashMap<Int, Pair<PlanRefiner.Plan, PublishedPath>>()
+		versions[spine.publicationSequence] = plan to spine
+		val offered = HashSet<Int>()
+		for ((levelIndex, level) in PlanRefiner.LEVELS.withIndex()) {
+			var index = 0
+			while (index < plan.segments.size && !cancelled()) {
+				if (rehearsal?.performing == true) {
+					val runningSequence = execution.adoptedSequence().toInt()
+					val running = versions[runningSequence]
+					if (running != null && best.publicationSequence > runningSequence) {
+						if (execution.refusedSequence() >= best.publicationSequence) {
+							plan = running.first
+							best = running.second
+						} else if (offered.add(best.publicationSequence)) {
+							publish(best, true)
+						}
+					}
+					val cursor = execution.cursorFrame() ?: 0
+					if (plan.segments[index].startFrame < cursor + LIVE_REFINE_LEAD_FRAMES) {
+						index++
+						continue
+					}
+				}
+				val progress = "level ${levelIndex + 1}/${PlanRefiner.LEVELS.size}, junction ${index + 1}/${plan.segments.size}"
+				enter("refining at $progress")
+				onRehearsalProgress(progress)
+				val improved = refiner.refineAt(plan, index, level)
+				val certified = improved?.let(refiner::certify)
+				if (improved != null && certified != null) {
+					plan = improved
+					best = stamp(certified, best.publicationSequence + 1)
+					LOG.info("Rehearsal refined at {}: {} frames after {} ms", progress, plan.frames, System.currentTimeMillis() - began)
+					versions[best.publicationSequence] = plan to best
+					onRehearsal(RehearsalPoint(System.currentTimeMillis() - began, best.plan.tape.frameCount, "L${levelIndex + 1} j${index + 1}"), best)
+					if (rehearsal?.performing == true && offered.add(best.publicationSequence)) publish(best, true)
+				}
+				index++
+			}
+			if (cancelled()) break
+		}
+		LOG.info("Rehearsal finished: {} -> {} frames, {} expansions, {} grafts", spine.plan.tape.frameCount, best.plan.tape.frameCount, refiner.expansions, refiner.grafts)
+		return PathPlanResult.Planned(best)
+	}
+
+	private fun stamp(certified: MotionPlanResult.Success, sequence: Int) = PublishedPath(
+		route = certified.sourceRoute,
+		plan = certified.plan,
+		safeAnchorStance = certified.safeAnchorStance,
+		safeAnchorFrame = certified.safeAnchorFrame,
+		attempts = certified.attemptCount,
+		planMillis = System.currentTimeMillis() - preparation.startedMillis,
+		finalGoal = preparation.finalGoal,
+		partial = false,
+		publicationSequence = sequence,
+		legTouches = certified.legTouches,
+	)
 
 	private fun mobsOnRoute(follower: CoarseFollower): Boolean =
 		follower.route.nodes.asSequence().take(MOB_ROUTE_NODES).any { snapshot.entityAt(it.x, it.y, it.z) || snapshot.entityAt(it.x, it.y + 1, it.z) }
@@ -159,6 +271,10 @@ internal class PlanningJob(
 
 	private companion object {
 		const val MOB_ROUTE_NODES = 6
+
+		val SPINE_MICROS_PER_EXPANSION = longArrayOf(83, 70, 100, 60, 120)
+
+		const val LIVE_REFINE_LEAD_FRAMES = 60
 
 		val PLANNER: ExecutorService = Executors.newSingleThreadExecutor { task ->
 			Thread(task, "NeoLambda-PathPlanner").apply {

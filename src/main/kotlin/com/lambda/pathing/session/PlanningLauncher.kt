@@ -104,7 +104,7 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		walk.alignment.planningYaw = player.moveYaw.toDouble()
 		rewindToWaypointUnderfoot()
 		skipWaypointsUnderfoot()
-		walk.state = State.Planning(walk.goalLabel())
+		walk.state = walk.rehearsal?.let { State.Rehearsing(walk.goalLabel(), it.history.size, it.bestFrames, finished = false) } ?: State.Planning(walk.goalLabel())
 		PlanningDebugChannel.begin(
 			PlanningDebugChannel.hudWanted || request.pathingRenderConfig.enabled &&
 					(request.pathingRenderConfig.renderPlanning || request.pathingRenderConfig.renderGraph),
@@ -164,6 +164,11 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			with(walk) { fail("trajectory expansion crashed: ${failure.rootMessage()}") }
 			return
 		}
+		walk.rehearsal?.let { rehearsal ->
+			current = null
+			if (rehearsal.performing) return
+			return concludeRehearsal(rehearsal, checkNotNull(result))
+		}
 		when (val completed = checkNotNull(result)) {
 			is PathPlanResult.Planned -> with(walk.admission) { adopt(completed.path) }
 			is PathPlanResult.Failed ->
@@ -202,6 +207,37 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 		if (current === session) {
 			current = null
 		}
+	}
+
+	private fun SafeContext.concludeRehearsal(rehearsal: Rehearsal, result: PathPlanResult) {
+		rehearsal.finished = true
+		val best = rehearsal.best
+		if (best == null) {
+			val reason = (result as? PathPlanResult.Failed)?.reason ?: "the rehearsal found no complete tape"
+			return with(walk) { fail(reason) }
+		}
+		rehearsal.progress = "converged"
+		walk.state = State.Rehearsing(walk.goalLabel(), rehearsal.history.size, best.plan.tape.frameCount, finished = true)
+		val spine = rehearsal.history.firstOrNull()?.frames ?: best.plan.tape.frameCount
+		info("Plan ready: ${best.plan.tape.frameCount} frames (spine $spine); `path go` walks it.", PATHING_SOURCE)
+		if (rehearsal.performRequested) with(walk) { perform() }
+	}
+
+	private fun SafeContext.rehearsed(session: PlanningSession, point: RehearsalPoint, path: PublishedPath) {
+		val rehearsal = walk.rehearsal
+		if (!walk.active || session !== current || rehearsal == null) return
+		if (!rehearsal.record(point, path) || rehearsal.performing) return
+		walk.telemetry.published = path
+		walk.state = State.Rehearsing(walk.goalLabel(), rehearsal.history.size, path.plan.tape.frameCount, finished = false)
+		if (rehearsal.history.size == 1) {
+			info("Rehearsal spine: ${path.plan.tape.frameCount} frames in %.1f s; refining, `path go` walks the best plan so far.".format(point.millis / 1000.0), PATHING_SOURCE)
+		}
+		if (rehearsal.performRequested) with(walk) { perform() }
+	}
+
+	private fun rehearsalProgress(session: PlanningSession, progress: String) {
+		if (session !== current) return
+		walk.rehearsal?.progress = progress
 	}
 
 	fun SafeContext.resumeAfterHold() {
@@ -294,6 +330,9 @@ internal class PlanningLauncher(private val walk: PathingSession) {
 			cancelled = { session.isCancelled },
 			execution = session,
 			publish = { path, running -> mc.execute { published(session, path, running) } },
+			rehearsal = walk.rehearsal.takeIf { session === current },
+			onRehearsal = { point, path -> mc.execute { rehearsed(session, point, path) } },
+			onRehearsalProgress = { progress -> rehearsalProgress(session, progress) },
 		)
 		session.job = job
 		if (session === current) lastJob = job

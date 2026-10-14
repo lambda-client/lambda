@@ -4,6 +4,10 @@ interface SearchClock {
 	fun elapsedMillis(): Long
 
 	fun onExpansion() {}
+
+	fun onWait(millis: Long) {}
+
+	val simulated: Boolean get() = false
 }
 
 class SystemSearchClock : SearchClock {

@@ -30,6 +30,7 @@ import com.lambda.pathing.search.PublishedPath
 import com.lambda.pathing.search.SearchExit
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.session.PathingSession.State
+import com.lambda.pathing.session.RehearsalView
 import com.lambda.pathing.session.Telemetry
 import java.awt.Color
 
@@ -65,6 +66,7 @@ object PathingHud : HudModule(
         if (status is State.Idle && telemetry.published == null && !showIdle) return textDisabled("Pathing idle")
         card {
             header(status, telemetry)
+            telemetry.rehearsal?.let { rehearsal(it) }
             if (showTape) telemetry.published?.let { tape(it, status, telemetry) }
             if (showSearch) search(status)
             if (showCoarse) coarse()
@@ -114,8 +116,46 @@ object PathingHud : HudModule(
         movementMix(path.plan.segments.map { it.movement to it.frameCount })
     }
 
+    private fun ImGuiBuilder.rehearsal(view: RehearsalView) {
+        section("PLAN")
+        val history = view.history
+        val best = history.lastOrNull()?.frames
+        val spine = history.firstOrNull()?.frames
+        row(
+            Cell("best", best?.let { "$it  %.2f s".format(it / TICKS_PER_SECOND) } ?: "-", Palette.OK),
+            Cell("gain", if (best != null && spine != null) "%.1f%%".format(100.0 * (spine - best) / spine) else "-"),
+        )
+        row(Cell("spine", spine?.toString() ?: "-"), Cell("improved", (history.size - 1).coerceAtLeast(0)))
+        row(Cell(if (view.finished) "converged" else "refining", if (view.finished) "" else view.progress, if (view.finished) Palette.OK else Palette.TEXT))
+        sparkline(history.takeLast(SPARK_ROUNDS).map { it.frames }, best)
+    }
+
+    /** One bar per plan the rehearsal kept, taller for a longer tape; the best is drawn in the OK colour. */
+    private fun ImGuiBuilder.sparkline(values: List<Int?>, best: Int?) {
+        if (values.isEmpty()) return
+        val known = values.filterNotNull()
+        val low = known.minOrNull() ?: 0
+        val high = known.maxOrNull() ?: 0
+        val draw = windowDrawList
+        val x0 = ImGui.getCursorScreenPosX()
+        val y0 = ImGui.getCursorScreenPosY() + 2f
+        val slot = width / SPARK_ROUNDS
+        values.forEachIndexed { index, value ->
+            val left = x0 + index * slot
+            val right = left + slot * BAR_FILL
+            if (value == null) {
+                draw.addRectFilled(left, y0 + SPARK_HEIGHT - 2f, right, y0 + SPARK_HEIGHT, im(Palette.DANGER))
+                return@forEachIndexed
+            }
+            val share = if (high > low) 0.25f + 0.75f * (value - low) / (high - low).toFloat() else 1f
+            val color = if (value == best) Palette.OK else Palette.MUTED
+            draw.addRectFilled(left, y0 + SPARK_HEIGHT * (1f - share), right, y0 + SPARK_HEIGHT, im(color))
+        }
+        ImGui.dummy(width, SPARK_HEIGHT + 4f)
+    }
+
     private fun ImGuiBuilder.search(status: State) {
-        val live = status is State.Planning || status is State.Executing || status is State.Aligning
+        val live = status is State.Planning || status is State.Executing || status is State.Aligning || status is State.Rehearsing && !status.finished
         val stats = PlanningDebugChannel.stats
         if (live && stats != null) liveSearch(stats)
         else PlanningDebugChannel.lastExhaustion?.let { lastSearch(it) }
@@ -259,6 +299,7 @@ object PathingHud : HudModule(
         State.Idle -> "IDLE" to Palette.MUTED
         is State.Settling -> "SETTLING" to Palette.WARNING
         is State.Planning -> "PLANNING" to Palette.ACCENT
+        is State.Rehearsing -> if (status.finished) "PLAN READY" to Palette.OK else if (status.bestFrames == null) "PLANNING SPINE" to Palette.ACCENT else "REFINING PLAN" to Palette.ACCENT
         is State.Aligning -> "ALIGNING %.1f deg".format(status.yawError) to Palette.ACCENT
         is State.Executing -> "WALKING" to Palette.OK
         is State.Complete -> "ARRIVED in ${status.frames} frames" to Palette.OK
@@ -268,6 +309,7 @@ object PathingHud : HudModule(
     private fun goal(status: State, telemetry: Telemetry): String? = when (status) {
         is State.Settling -> status.goal
         is State.Planning -> status.goal
+        is State.Rehearsing -> status.goal
         else -> telemetry.published?.finalGoal?.toString()
     }
 
@@ -321,6 +363,10 @@ object PathingHud : HudModule(
     }
 
     private const val BAR_HEIGHT = 4f
+    private const val SPARK_HEIGHT = 18f
+    private const val SPARK_ROUNDS = 20
+    private const val BAR_FILL = 0.7f
+    private const val TICKS_PER_SECOND = 20.0
     private const val COLUMN_GAP = 14f
     private const val VALUE_GAP = 10f
     private const val SECTION_GAP = 4f

@@ -47,7 +47,7 @@ internal class AnchorRollout(
 	private val attempts: AttemptAccumulator,
 	private val probe: SearchProbe,
 	private val routePoints: RoutePoints,
-	private val visits: VisitIndex,
+	private val visits: VisitIndex?,
 ) {
 	private val climbingAt: (Vec3d) -> Boolean = { field.view.climbableAt(it) }
 
@@ -233,7 +233,7 @@ internal class AnchorRollout(
 				Outcome.Rejected(TrajectoryDiagnostic.FellBelowRoute(frame, 0.0))
 			}
 		}
-		if (visits.visited(anchor, eventStance)) {
+		if (visits?.visited(anchor, eventStance) == true) {
 			return Outcome.Rejected(
 				TrajectoryDiagnostic.RepeatedCoarseStance(frame, eventStance)
 			)

@@ -26,7 +26,7 @@ internal class WaypointRoute {
 
 	val queuedWaypoints: Int get() = queue.sumOf { it.size }
 
-	fun start(automated: Automated, waypoints: List<Stance>): PathingRequest? {
+	fun start(automated: Automated, waypoints: List<Stance>, rehearse: Boolean = false): PathingRequest? {
 		drop()
 		if (waypoints.isEmpty()) return null
 		this.automated = automated
@@ -38,7 +38,7 @@ internal class WaypointRoute {
 		val first = groups.first()
 		queue.addAll(groups.drop(1))
 		expectedLeg = first.goal
-		return PathingRequest(automated, first.goal, first.through).submit()
+		return PathingRequest(automated, first.goal, first.through, rehearsal = waypoints.takeIf { rehearse }).submit()
 	}
 
 	fun drop() {

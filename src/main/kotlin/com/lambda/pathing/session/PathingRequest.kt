@@ -8,6 +8,7 @@ class PathingRequest(
 	automated: Automated,
 	val goal: Stance,
 	val waypoints: List<Stance> = emptyList(),
+	val rehearsal: List<Stance>? = null,
 ) : Request(), Automated by automated {
 	override val requestId = requestCount++
 	override val tickStageMask = PathingManager.openStages.toSet()

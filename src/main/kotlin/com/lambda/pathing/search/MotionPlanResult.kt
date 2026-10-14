@@ -77,6 +77,8 @@ data class SearchStats(
 	val lastCertifyFailure: String? = null,
 	val refusalReasons: Map<String, Int> = emptyMap(),
 	val rootStance: Stance? = null,
+	val graftAttempts: Int = 0,
+	val grafts: Int = 0,
 ) {
 	override fun toString(): String = buildString {
 		append("exit=").append(exit)

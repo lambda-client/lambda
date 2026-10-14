@@ -14,6 +14,9 @@ object PathingService {
 	fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? =
 		PathingManager.route(automated, waypoints)
 
+	fun rehearse(automated: Automated, waypoints: List<Stance>): PathingRequest? =
+		PathingManager.rehearse(automated, waypoints)
+
 	fun cancel() = PathingManager.cancel()
 
 	fun clear() = PathingManager.clear()

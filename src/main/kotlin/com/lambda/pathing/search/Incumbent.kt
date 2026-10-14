@@ -25,7 +25,7 @@ internal class Incumbent(
 
 	val hasSolution: Boolean get() = best != null || sealed != null
 
-	val stalled: Boolean get() = budget.count - improvedAt >= STALL_EXPANSIONS
+	val stalled: Boolean get() = budget.count - improvedAt >= config.stallExpansions
 
 	val arrival: Solution?
 		get() = sealed?.let { published -> best?.takeIf { it.score <= published.score } ?: published }
@@ -95,7 +95,6 @@ internal class Incumbent(
 
 	private companion object {
 		const val OFF_TAPE_GAIN_FRAMES = SWAP_FLOOR_GAIN_TICKS.toInt()
-		const val STALL_EXPANSIONS = 3000
 		const val FINALIZE_ARRIVAL_FRAMES = 10
 	}
 }

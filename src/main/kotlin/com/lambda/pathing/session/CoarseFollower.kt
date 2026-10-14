@@ -13,6 +13,7 @@ import com.lambda.pathing.core.Stance
 import com.lambda.pathing.debug.PlanningDebugChannel
 import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.search.LegSource
+import com.lambda.pathing.search.PlanLeg
 import com.lambda.pathing.search.WorldLink
 import com.lambda.pathing.search.WorldSyncResult
 import com.lambda.pathing.world.CoarseVoxelView
@@ -160,6 +161,14 @@ internal class CoarseFollower(
 		}
 		LOG.info("Leg rewind: back toward {}", route.goal)
 		return route
+	}
+
+	fun planLegs(from: Int): List<PlanLeg>? {
+		if (breath != null || targets.isNotEmpty()) return null
+		return (from until coarse.legCount).map { leg ->
+			val legFrame = coarse.frame(leg) ?: return null
+			PlanLeg(legFrame.route, edges.field(legFrame.goal, legFrame.labels, legFrame.sequence))
+		}
 	}
 
 	override fun close() {

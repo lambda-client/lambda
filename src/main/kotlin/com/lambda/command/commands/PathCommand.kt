@@ -30,6 +30,9 @@ import com.lambda.util.extension.CommandBuilder
  *   at speed as one continuous tape (Pathing setting "Waypoint Arrival"); the last rests.
  * - `path goal <x> <y> <z> [...]` stages a goal without walking; bare
  *   `path goal` shows it, `path goal clear` forgets it.
+ * - `path plan [<x> <y> <z> ...]` rehearses the staged or given waypoints without moving: the
+ *   search walks them in simulation, round after round at varied search tempos, and keeps the
+ *   shortest complete tape; `path go` then walks it from the first frame.
  * - `path cancel` (or `path c`) stops the walk and drops queued waypoints.
  * - `path clear` additionally wipes the published path and telemetry.
  *
@@ -39,9 +42,9 @@ import com.lambda.util.extension.CommandBuilder
  */
 object PathCommand : LambdaCommand(
     name = "path",
-    usage = "path <go|goal|cancel> -- go [<x> <y> <z> ...] | goal [<x> <y> <z> ...|clear] | cancel",
+    usage = "path <go|goal|plan|cancel> -- go [<x> <y> <z> ...] | goal [<x> <y> <z> ...|clear] | plan [<x> <y> <z> ...] | cancel",
     description = "Walks to staged or given waypoints along simulated, certified trajectories",
-    examples = listOf("path go 10 100 20", "path goal 10 64 20 40 70 -30", "path go", "path cancel"),
+    examples = listOf("path go 10 100 20", "path goal 10 64 20 40 70 -30", "path plan", "path go", "path cancel"),
 ) {
     override fun CommandBuilder.create() {
         required(literal("go")) {
@@ -85,6 +88,26 @@ object PathCommand : LambdaCommand(
                     val parsed = parse(waypoints().value()) ?: return@execute
                     PathingWaypoints.pending = parsed
                     info(PathingWaypoints.describe("Goal staged:", parsed) + " -- `path go` walks it.")
+                }
+            }
+        }
+
+        required(literal("plan")) {
+            execute {
+                val pending = PathingWaypoints.pending
+                if (pending.isEmpty()) {
+                    info("No goal staged. `path plan <x> <y> <z> [...]` rehearses waypoints, or `path goal` stages them first.")
+                    return@execute
+                }
+                PathingService.rehearse(AutomationConfig.DEFAULT, pending)
+                info(PathingWaypoints.describe("Rehearsing", pending) + " -- `path go` walks the best plan so far.")
+            }
+            required(greedyString("waypoints")) { waypoints ->
+                execute {
+                    val parsed = parse(waypoints().value()) ?: return@execute
+                    PathingWaypoints.pending = parsed
+                    PathingService.rehearse(AutomationConfig.DEFAULT, parsed)
+                    info(PathingWaypoints.describe("Rehearsing", parsed) + " -- `path go` walks the best plan so far.")
                 }
             }
         }

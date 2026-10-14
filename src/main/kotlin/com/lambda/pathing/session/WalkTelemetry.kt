@@ -16,6 +16,7 @@ data class Telemetry(
 	val queuedWaypoints: Int = 0,
 	val sessionRestarts: Int = 0,
 	val cadence: String = "",
+	val rehearsal: RehearsalView? = null,
 ) {
 	companion object {
 		val EMPTY = Telemetry(

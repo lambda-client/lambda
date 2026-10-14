@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.InputTape
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.TrajectoryDecision
@@ -8,9 +9,11 @@ import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.PathingChunk
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.core.VoxelPos
+import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
 import com.lambda.pathing.rollout.TrajectoryDiagnostic
+import com.lambda.pathing.rollout.TrajectoryRolloutEngine
 import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 
 internal class SearchLoop(
@@ -18,8 +21,8 @@ internal class SearchLoop(
 	catalog: MovementCatalog,
 	private val field: ValueField,
 	private val initialState: MovementSimulationState,
-	profile: PlayerPhysicsProfile,
-	environment: SnapshotSimulationEnvironment,
+	private val profile: PlayerPhysicsProfile,
+	private val environment: SnapshotSimulationEnvironment,
 	private val config: MotionConstraints,
 	private val searchConfig: SearchConfig = SearchConfig(),
 	onPublish: ((MotionPlanResult.Success, Boolean) -> Unit)? = null,
@@ -32,6 +35,7 @@ internal class SearchLoop(
 	private val onConcluded: ((SearchStats) -> Unit)? = null,
 	parallelism: Int = 1,
 	private val legs: LegSource? = null,
+	private val spine: Spine? = null,
 ) {
 	private val parallelism = parallelism.coerceAtLeast(1)
 	private val batchSize = if (this.parallelism > 1) this.parallelism * ROLLOUTS_PER_THREAD else 1
@@ -52,6 +56,9 @@ internal class SearchLoop(
 	private val finisher = Finisher(field, environment, config, RolloutGate(profile, environment, config, route), attempts, route, routePoints)
 	private val publisher = Publisher(searchConfig, field, frontier, clock, publications, onPublish, budget, incumbent, finisher, certifier, probe, live)
 	private val recovery = StallRecovery(frontier, publications, world)
+	private val movements = catalog
+	private val graftContexts = HashMap<Int, GraftContext>()
+	private val graft = spine?.let { SpineGraft(it.steps, ::graftContext) }
 
 	private var repairs = 0
 	private var syncBucket = -1
@@ -77,7 +84,9 @@ internal class SearchLoop(
 		if (unsupported.isNotEmpty()) return MotionPlanResult.UnsupportedRoute(unsupported)
 		val root = plantRoot()
 		if (live) publisher.publishAfloat(root)
-		constructSpine(root)
+		if (searchConfig.lastResortFromStart) annealing.admitLastResort()
+		val planted = graft?.plant(root)
+		if (planted != null) incumbent.offer(planted) else constructSpine(root)
 		while (true) {
 			stopReason()?.let { stop -> return incumbent.arrival?.let(::finish) ?: conclude(stop) }
 			if (cancelled()) return MotionPlanResult.Cancelled
@@ -136,9 +145,16 @@ internal class SearchLoop(
 			idleSlices = 0
 		}
 		if (idleSlices++ >= IDLE_PATIENCE_SLICES) return false
-		world?.await(StallRecovery.WAIT_SLICE_MILLIS)
+		awaitWorld(forBody = true)
 		syncWorld()
 		return true
+	}
+
+	private fun awaitWorld(forBody: Boolean = false): Boolean {
+		val world = world ?: return false
+		clock.onWait(StallRecovery.WAIT_SLICE_MILLIS)
+		if (forBody && clock.simulated) return false
+		return world.await(StallRecovery.WAIT_SLICE_MILLIS)
 	}
 
 	private fun restartable(): Boolean = !incumbent.hasSolution && recovery.restartable()
@@ -180,7 +196,7 @@ internal class SearchLoop(
 
 	private fun recoverFromDrain(): SearchExit? {
 		if (recovery.mayAwaitBlocked()) {
-			if (world?.await(StallRecovery.WAIT_SLICE_MILLIS) == true) {
+			if (awaitWorld()) {
 				syncWorld()
 				frontier.wakeBlocked()
 				recovery.noteWake(frontier.hasOpen)
@@ -190,7 +206,7 @@ internal class SearchLoop(
 		if (annealing.revive()) return null
 		if (!frontier.hasParked && !frontier.hasBlocked && restartFromTape()) return null
 		if (!routeReachesFinalGoal() && recovery.mayAwaitRouteExtension()) {
-			world?.await(StallRecovery.WAIT_SLICE_MILLIS)
+			awaitWorld()
 			syncWorld()
 			frontier.wakeBlocked()
 			return null
@@ -259,7 +275,7 @@ internal class SearchLoop(
 			return Verdict.SKIP
 		}
 		val best = incumbent.best ?: return Verdict.EXPAND
-		if (!routeReachesFinalGoal()) return Verdict.EXPAND
+		if (!routeReachesFinalGoal() && spine == null) return Verdict.EXPAND
 		val finishable = !live && incumbent.ready(best) && incumbent.nearEnd(best)
 		val bound = entry.bound + Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
 		if (bound >= best.score) return if (finishable) Verdict.FINISH else Verdict.SKIP
@@ -336,6 +352,7 @@ internal class SearchLoop(
 				if (next != null) switchLeg(landed, next) else {
 					if (atGoal) offerGoalStop(landed)
 					frontier.admit(landed, incumbent.best?.score)
+					graft?.graft(landed)?.let(incumbent::offer)
 				}
 				publisher.publishPrefix(landed)
 			}
@@ -351,6 +368,46 @@ internal class SearchLoop(
 			}
 		}
 		return outcome
+	}
+
+	private fun graftContext(leg: Int): GraftContext = graftContexts.getOrPut(leg) {
+		val legs = checkNotNull(spine).legs
+		val plan = legs[leg]
+		val legRoute = RouteState(plan.route, environment)
+		val legRollouts = AnchorRollout(movements, plan.field, config, environment, profile, legRoute, attempts, probe, routePoints, visits = null)
+		val legActions = ActionSet(movements, plan.field, config) { leg == legs.lastIndex }
+		val legFinisher = if (leg == legs.lastIndex) Finisher(plan.field, environment, config, RolloutGate(profile, environment, config, legRoute), attempts, legRoute, routePoints) else null
+		GraftContext(
+			step = { anchor, decision ->
+				budget.spend()
+				legRollouts.transition(anchor, decision)
+			},
+			replay = { anchor, inputs -> replayInputs(anchor, inputs, plan.field) },
+			alternative = { anchor -> legActions.next(anchor, searchConfig.maxTemperature, lastResort = false, epoch = 0) },
+			finish = legFinisher?.let { finish -> { anchor: ValueAnchor -> finish.finishFrom(anchor) } },
+		)
+	}
+
+	private fun replayInputs(anchor: ValueAnchor, inputs: List<MovementSimulationInput>, legField: ValueField): ValueAnchor? {
+		if (inputs.isEmpty()) return anchor
+		val rollout = TrajectoryRolloutEngine.rollout(
+			initialState = anchor.state,
+			profile = profile,
+			environment = environment,
+			program = InputTape(inputs),
+			frameCount = inputs.size,
+		)
+		if (!rollout.completed || rollout.frames.size != inputs.size) return null
+		val state = rollout.frames.last().state
+		return ValueAnchor(
+			state = state,
+			stance = heldStanceOf(legField.view, state),
+			elapsed = anchor.elapsed + inputs.size,
+			collisionEvents = anchor.collisionEvents + collisionEvents(anchor.state, rollout.frames),
+			inputSwitches = anchor.inputSwitches + inputSwitches(anchor.inputs.lastOrNull(), rollout.frames),
+			parent = anchor,
+			inputs = inputs,
+		)
 	}
 
 	private fun offerGoalStop(landed: ValueAnchor) {
@@ -462,7 +519,7 @@ internal class SearchLoop(
 		anchor.legRoot = true
 		legRoots.addLast(anchor)
 		visits.invalidate()
-		incumbent.clear()
+		if (spine == null) incumbent.clear()
 		annealing.clearSpent()
 		restartWindow(anchor.stance)
 		frontier.clear()
@@ -488,7 +545,7 @@ internal class SearchLoop(
 			legRoots.removeLast().legRoot = false
 			visits.invalidate()
 			route.replace(chain.rewind())
-			incumbent.clear()
+			if (spine == null) incumbent.clear()
 			annealing.clearSpent()
 			restartWindow(root.stance)
 			frontier.updateRoute(route.index)
@@ -558,6 +615,8 @@ internal class SearchLoop(
 		lastCertifyFailure = certifier.lastFailure,
 		refusalReasons = publisher.refusalReasons,
 		rootStance = frontier.root?.stance,
+		graftAttempts = graft?.attempts ?: 0,
+		grafts = graft?.grafted ?: 0,
 	)
 
 	private companion object {

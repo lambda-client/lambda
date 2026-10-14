@@ -13,6 +13,8 @@ data class SearchConfig(
 	val maxFinalCommitFrames: Int = 0,
 	val frontierPerKey: Int = 3,
 	val maxTemperature: Double = 1.0,
+	val stallExpansions: Int = 3000,
+	val lastResortFromStart: Boolean = false,
 ) {
 	init {
 		require(maxExpansions > 0)
