@@ -64,6 +64,7 @@ interface TrajectoryDecision {
 		val airborneKeys: MovementKeys = keys,
 		override val movement: MovementId = MovementId.WALK,
 		val turnRate: Double = Double.POSITIVE_INFINITY,
+		val descent: Double = 0.0,
 	) : TrajectoryDecision
 
 	data class RunUpLaunch(

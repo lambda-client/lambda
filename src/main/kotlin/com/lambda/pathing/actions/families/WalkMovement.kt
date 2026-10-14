@@ -252,6 +252,8 @@ object WalkMovement : Movement {
 		return yawTowards(chain[minOf(chain.lastIndex, BEARING_LOOKAHEAD)].center(), body.state)
 	}
 
+	override fun descentAllowance(decision: TrajectoryDecision): Double = (decision as? TrajectoryDecision.Heading)?.descent ?: 0.0
+
 	override fun program(context: ProgramContext): ControlProgram {
 		val decision = context.decision
 		if (decision is TrajectoryDecision.Heading) return HeadingFollowerProgram(decision, context)

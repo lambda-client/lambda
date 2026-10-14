@@ -10,11 +10,14 @@ import com.lambda.pathing.search.SearchProbe
 import com.lambda.pathing.search.SearchStats
 import com.lambda.pathing.search.MotionPlanResult
 import com.lambda.pathing.search.PlanLeg
+import com.lambda.pathing.search.PlanImprover
 import com.lambda.pathing.search.PlanRefiner
+import com.lambda.pathing.search.PlanSegment
 import com.lambda.pathing.search.VirtualPacing
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.random.Random
 
 internal class PlanningJob(
 	private val preparation: PlanningPreparation,
@@ -146,42 +149,42 @@ internal class PlanningJob(
 		val versions = HashMap<Int, Pair<PlanRefiner.Plan, PublishedPath>>()
 		versions[spine.publicationSequence] = plan to spine
 		val offered = HashSet<Int>()
-		for ((levelIndex, level) in PlanRefiner.LEVELS.withIndex()) {
-			var index = 0
-			while (index < plan.segments.size && !cancelled()) {
-				if (rehearsal?.performing == true) {
-					val runningSequence = execution.adoptedSequence().toInt()
-					val running = versions[runningSequence]
-					if (running != null && best.publicationSequence > runningSequence) {
-						if (execution.refusedSequence() >= best.publicationSequence) {
-							plan = running.first
-							best = running.second
-						} else if (offered.add(best.publicationSequence)) {
-							publish(best, true)
-						}
-					}
-					val cursor = execution.cursorFrame() ?: 0
-					if (plan.segments[index].startFrame < cursor + LIVE_REFINE_LEAD_FRAMES) {
-						index++
-						continue
+		val improver = PlanImprover(refiner, plan, Random(System.nanoTime()))
+		var improvedAt = System.currentTimeMillis()
+		while (!cancelled()) {
+			val performing = rehearsal?.performing == true
+			var minFrame = 0
+			if (performing) {
+				val runningSequence = execution.adoptedSequence().toInt()
+				val running = versions[runningSequence]
+				if (running != null && best.publicationSequence > runningSequence) {
+					if (execution.refusedSequence() >= best.publicationSequence) {
+						plan = running.first
+						best = running.second
+						improver.reset(plan)
+					} else if (offered.add(best.publicationSequence)) {
+						publish(best, true)
 					}
 				}
-				val progress = "level ${levelIndex + 1}/${PlanRefiner.LEVELS.size}, junction ${index + 1}/${plan.segments.size}"
-				enter("refining at $progress")
-				onRehearsalProgress(progress)
-				val improved = refiner.refineAt(plan, index, level)
-				val certified = improved?.let(refiner::certify)
-				if (improved != null && certified != null) {
-					plan = improved
-					best = stamp(certified, best.publicationSequence + 1)
-					LOG.info("Rehearsal refined at {}: {} frames after {} ms", progress, plan.frames, System.currentTimeMillis() - began)
-					versions[best.publicationSequence] = plan to best
-					onRehearsal(RehearsalPoint(System.currentTimeMillis() - began, best.plan.tape.frameCount, "L${levelIndex + 1} j${index + 1}"), best)
-					if (rehearsal?.performing == true && offered.add(best.publicationSequence)) publish(best, true)
-				}
-				index++
+				minFrame = (execution.cursorFrame() ?: 0) + LIVE_REFINE_LEAD_FRAMES
+				if (plan.segments.none { it is PlanSegment.Move && it.startFrame >= minFrame }) break
+			} else if (System.currentTimeMillis() - improvedAt > IMPROVER_PATIENCE_MILLIS) break
+			val progress = "improving: ${plan.frames} frames after ${improver.iterations} tries"
+			enter(progress)
+			onRehearsalProgress(progress)
+			val improved = improver.step(minFrame, annealing = !performing) ?: continue
+			val certified = refiner.certify(improved)
+			if (certified == null) {
+				improver.reset(plan)
+				continue
 			}
-			if (cancelled()) break
+			plan = improved
+			best = stamp(certified, best.publicationSequence + 1)
+			improvedAt = System.currentTimeMillis()
+			LOG.info("Rehearsal improved to {} frames after {} tries, {} ms", plan.frames, improver.iterations, System.currentTimeMillis() - began)
+			versions[best.publicationSequence] = plan to best
+			onRehearsal(RehearsalPoint(System.currentTimeMillis() - began, best.plan.tape.frameCount, "try ${improver.iterations}"), best)
+			if (performing && offered.add(best.publicationSequence)) publish(best, true)
 		}
 		LOG.info("Rehearsal finished: {} -> {} frames, {} expansions, {} grafts", spine.plan.tape.frameCount, best.plan.tape.frameCount, refiner.expansions, refiner.grafts)
 		return PathPlanResult.Planned(best)
@@ -275,6 +278,8 @@ internal class PlanningJob(
 		val SPINE_MICROS_PER_EXPANSION = longArrayOf(83, 70, 100, 60, 120)
 
 		const val LIVE_REFINE_LEAD_FRAMES = 60
+
+		const val IMPROVER_PATIENCE_MILLIS = 600_000L
 
 		val PLANNER: ExecutorService = Executors.newSingleThreadExecutor { task ->
 			Thread(task, "NeoLambda-PathPlanner").apply {

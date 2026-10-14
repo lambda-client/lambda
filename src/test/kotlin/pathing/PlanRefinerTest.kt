@@ -9,6 +9,7 @@ import com.lambda.pathing.coarse.CoarsePlanningState
 import com.lambda.pathing.coarse.SpeedClass
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.LegTouch
+import com.lambda.pathing.search.PlanImprover
 import com.lambda.pathing.search.PlanRefiner
 import com.lambda.pathing.search.PlanSegment
 import com.lambda.pathing.search.VirtualSearchClock
@@ -22,6 +23,7 @@ import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.hypot
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -33,8 +35,9 @@ import kotlin.test.assertTrue
  * stop goes, the waypoint is still touched, and the spliced plan certifies frame for frame.
  */
 class PlanRefinerTest {
-	@Test
-	fun `refining a plan that stops at a walk-through waypoint removes the stop`() {
+	private class Stopped(val refiner: PlanRefiner, val spine: PlanRefiner.Plan, val waypoint: Stance, val goal: Stance)
+
+	private fun stoppedAtWaypoint(): Stopped {
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
 		for (z in -6..100) for (x in -6..6) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
 		val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-10, 58, -10, 10, 90, 104), blocks)
@@ -78,17 +81,42 @@ class PlanRefinerTest {
 			}
 		}
 		val spine = PlanRefiner.Plan(segments, listOf(LegTouch(offset, waypoint)))
-
 		val refiner = PlanRefiner(second.planner.moves.catalog, legs, initial, ProbeScenarios.PROFILE, environment, MotionConstraints(), parallelism = 1, cancelled = { false })
+		return Stopped(refiner, spine, waypoint, goal)
+	}
+
+	@Test
+	fun `refining a plan that stops at a walk-through waypoint removes the stop`() {
+		val stopped = stoppedAtWaypoint()
+		val refiner = stopped.refiner
+		val spine = stopped.spine
 		var plan = spine
 		var index = 0
 		while (index < plan.segments.size) {
 			refiner.refineAt(plan, index, PlanRefiner.LEVELS.first())?.let { plan = it }
 			index++
 		}
+		assertRefined(stopped, plan)
+		println("[refine] spine=${spine.frames} refined=${plan.frames} grafts=${refiner.grafts} expansions=${refiner.expansions}")
+	}
 
+	@Test
+	fun `the anytime improver removes the stop with randomised searches`() {
+		val stopped = stoppedAtWaypoint()
+		val improver = PlanImprover(stopped.refiner, stopped.spine, Random(1))
+		var plan = stopped.spine
+		repeat(IMPROVER_TRIES) { improver.step(minFrame = 0, annealing = true)?.let { plan = it } }
+		assertEquals(plan.frames, improver.best.frames, "the improver reports its best plan")
+		assertRefined(stopped, plan)
+		println("[improve] spine=${stopped.spine.frames} improved=${plan.frames} tries=${improver.iterations} grafts=${stopped.refiner.grafts}")
+	}
+
+	private fun assertRefined(stopped: Stopped, plan: PlanRefiner.Plan) {
+		val spine = stopped.spine
+		val waypoint = stopped.waypoint
+		val goal = stopped.goal
 		assertTrue(plan.frames < spine.frames, "refining must remove the stop: ${spine.frames} -> ${plan.frames} frames")
-		val certified = assertNotNull(refiner.certify(plan), "the refined plan must certify")
+		val certified = assertNotNull(stopped.refiner.certify(plan), "the refined plan must certify")
 		assertEquals(plan.frames, certified.plan.frames.size, "the certified plan is the refined plan")
 		assertEquals(listOf(waypoint), certified.legTouches.map { it.waypoint }, "the waypoint is still touched")
 		val touch = certified.legTouches.single().frame
@@ -97,6 +125,9 @@ class PlanRefinerTest {
 		assertTrue(slow.isEmpty(), "the refined plan still stands at the waypoint at frames $slow")
 		val end = frames.last().state.position
 		assertTrue(hypot(end.x - (goal.x + 0.5), end.z - (goal.z + 0.5)) <= MotionConstraints().goalRadius + 1e-6, "the plan ends at $end, not on the goal")
-		println("[refine] spine=${spine.frames} refined=${plan.frames} touch@$touch grafts=${refiner.grafts} expansions=${refiner.expansions}")
+	}
+
+	private companion object {
+		const val IMPROVER_TRIES = 24
 	}
 }

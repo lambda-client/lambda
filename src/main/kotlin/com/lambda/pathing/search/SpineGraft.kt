@@ -58,6 +58,8 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 		return finish(anchor)
 	}
 
+	fun lead(anchor: ValueAnchor): Int? = byStance[anchor.stance]?.let { elapsed[it] - anchor.elapsed }
+
 	fun graft(landed: ValueAnchor): Solution? {
 		if (!rooted) return null
 		val index = byStance[landed.stance] ?: return null

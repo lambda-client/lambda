@@ -47,7 +47,8 @@ internal class SearchLoop(
 	private val frontier = Frontier(field, config, searchConfig, route.index, searchConfig.localHorizon(initialRoute))
 	private val publications = Publications(execution)
 	private val incumbent = Incumbent(publications, frontier, searchConfig, execution, budget)
-	private val annealing = Annealing(field, frontier, ActionSet(catalog, field, config) { legs?.hasNext() != true }, budget, searchConfig.maxTemperature)
+	private val actions = ActionSet(catalog, field, config, searchConfig.exploration) { legs?.hasNext() != true }
+	private val annealing = Annealing(field, frontier, actions, budget, searchConfig.maxTemperature)
 	private val routePoints = RoutePoints(environment)
 	private val visits = VisitIndex { frontier.root }
 	private val rollouts = AnchorRollout(catalog, field, config, environment, profile, route, attempts, probe, routePoints, visits) { config.touchArrival || legs?.hasNext() == true }
@@ -87,6 +88,7 @@ internal class SearchLoop(
 		if (searchConfig.lastResortFromStart) annealing.admitLastResort()
 		val planted = graft?.plant(root)
 		if (planted != null) incumbent.offer(planted) else constructSpine(root)
+		probeLines(root)
 		while (true) {
 			stopReason()?.let { stop -> return incumbent.arrival?.let(::finish) ?: conclude(stop) }
 			if (cancelled()) return MotionPlanResult.Cancelled
@@ -99,6 +101,37 @@ internal class SearchLoop(
 			periodicMaintenance()
 			val batch = selectBatch() ?: return finish(checkNotNull(incumbent.best))
 			expand(batch)
+		}
+	}
+
+	private fun probeLines(root: ValueAnchor) {
+		val exploration = searchConfig.exploration ?: return
+		val graft = graft ?: return
+		var layer = listOf(root)
+		repeat(exploration.followDepth + 1) {
+			if (cancelled()) return
+			val batch = layer.flatMap { anchor -> actions.explorations(anchor).mapNotNull { rollouts.prepare(anchor, it) } }
+			if (batch.isEmpty()) return
+			if (batch.size > 1 && crew != null) crew.run(batch) else batch.forEach { rollouts.execute(it) }
+			val landed = ArrayList<ValueAnchor>()
+			for (prepared in batch) {
+				val outcome = applyRollout(prepared.anchor, prepared.action, rollouts.complete(prepared))
+				(outcome as? Outcome.Anchored)?.let { landed += it.anchor }
+			}
+			val ahead = landed.filter { (graft.lead(it) ?: Int.MIN_VALUE) > 0 }.sortedByDescending { graft.lead(it) }
+			val rest = landed.filter { (graft.lead(it) ?: Int.MIN_VALUE) <= 0 }.sortedBy { it.elapsed + field.guide(it.stance) }
+			layer = ahead.distinctPerStance(LINE_BEAM_PER_STANCE).take(LINE_BEAM) + rest.distinctPerStance(LINE_BEAM_PER_STANCE).take(LINE_BEAM_OFF_SPINE)
+		}
+	}
+
+	private fun List<ValueAnchor>.distinctPerStance(limit: Int): List<ValueAnchor> {
+		val groups = LinkedHashMap<Stance, MutableList<ValueAnchor>>()
+		forEach { groups.getOrPut(it.stance) { ArrayList() } += it }
+		return groups.values.flatMap { group ->
+			if (group.size <= limit) group else {
+				val spread = group.sortedWith(compareBy({ it.state.position.x }, { it.state.position.z }))
+				List(limit) { spread[it * (spread.size - 1) / (limit - 1)] }
+			}
 		}
 	}
 
@@ -118,6 +151,7 @@ internal class SearchLoop(
 			parent = null,
 			inputs = emptyList(),
 		)
+		searchConfig.exploration?.taboo?.let(root::attempt)
 		frontier.admit(root, incumbentScore = null)
 		annealing.noteGuide(rootStance)
 		return root
@@ -375,7 +409,7 @@ internal class SearchLoop(
 		val plan = legs[leg]
 		val legRoute = RouteState(plan.route, environment)
 		val legRollouts = AnchorRollout(movements, plan.field, config, environment, profile, legRoute, attempts, probe, routePoints, visits = null) { config.touchArrival || leg < legs.lastIndex }
-		val legActions = ActionSet(movements, plan.field, config) { leg == legs.lastIndex }
+		val legActions = ActionSet(movements, plan.field, config, searchConfig.exploration) { leg == legs.lastIndex }
 		val legFinisher = if (leg == legs.lastIndex) Finisher(plan.field, environment, config, RolloutGate(profile, environment, config, legRoute), attempts, legRoute, routePoints) else null
 		GraftContext(
 			step = { anchor, decision ->
@@ -627,5 +661,8 @@ internal class SearchLoop(
 		const val SPINE_ATTEMPTS_PER_EDGE = 8
 		const val ROLLOUTS_PER_THREAD = 2
 		const val IDLE_PATIENCE_SLICES = 5
+		const val LINE_BEAM = 12
+		const val LINE_BEAM_OFF_SPINE = 4
+		const val LINE_BEAM_PER_STANCE = 6
 	}
 }

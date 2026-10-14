@@ -1,5 +1,6 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.TrajectoryDecision
 import com.lambda.pathing.coarse.CoarseRoutePlan
 import com.lambda.pathing.core.MovementId
 
@@ -15,6 +16,7 @@ data class SearchConfig(
 	val maxTemperature: Double = 1.0,
 	val stallExpansions: Int = 3000,
 	val lastResortFromStart: Boolean = false,
+	val exploration: Exploration? = null,
 ) {
 	init {
 		require(maxExpansions > 0)
@@ -55,5 +57,24 @@ data class SearchConfig(
 		private const val WINDOW_EXPANSIONS = 120_000
 		private const val MIN_COMMIT_EXPANSIONS = 400
 		private const val CLIMB_WINDOW_FRAMES = 10
+	}
+}
+
+data class Exploration(
+	val seed: Long,
+	val corridorSteps: Int,
+	val corridorMarginTicks: Double,
+	val launchSteps: Int,
+	val jitterTicks: Double,
+	val taboo: TrajectoryDecision? = null,
+	val seeds: List<TrajectoryDecision> = emptyList(),
+	val followDepth: Int = 0,
+) {
+	fun jitter(stance: Any, elapsed: Int, decision: TrajectoryDecision): Double {
+		var mixed = seed xor (stance.hashCode().toLong() * -0x61c8864680b583ebL) xor (elapsed.toLong() shl 32) xor decision.hashCode().toLong()
+		mixed = (mixed xor (mixed ushr 33)) * -0xae502812aa7333L
+		mixed = (mixed xor (mixed ushr 33)) * -0x3b314601e57a13adL
+		mixed = mixed xor (mixed ushr 33)
+		return jitterTicks * (mixed ushr 11).toDouble() / (1L shl 53).toDouble()
 	}
 }

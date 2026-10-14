@@ -16,6 +16,7 @@ internal class PlanRefiner(
 	private val config: MotionConstraints,
 	private val parallelism: Int,
 	private val cancelled: () -> Boolean,
+	private val probe: SearchProbe = SearchProbe.NONE,
 ) {
 	class Plan(val segments: List<PlanSegment>, val touches: List<LegTouch>) {
 		val frames: Int get() = segments.lastOrNull()?.endFrame ?: 0
@@ -25,13 +26,15 @@ internal class PlanRefiner(
 
 	class Level(val budget: Int, val stall: Int, val beam: Int, val lastResort: Boolean)
 
+	val sprintModes: List<Boolean> get() = config.sprintModes
+
 	var expansions = 0L
 		private set
 
 	var grafts = 0L
 		private set
 
-	fun refineAt(plan: Plan, index: Int, level: Level): Plan? {
+	fun refineAt(plan: Plan, index: Int, level: Level, exploration: Exploration? = null, allowance: Int = 0): Plan? {
 		val junction = plan.segments.getOrNull(index) as? PlanSegment.Move ?: return null
 		val offset = junction.startFrame
 		val leg = plan.legAt(offset).coerceAtMost(legs.lastIndex)
@@ -45,7 +48,7 @@ internal class PlanRefiner(
 		val field = SwitchableValueField(legs[leg].field)
 		val loop = SearchLoop(
 			legs[leg].route, catalog, field, junction.entry, profile, environment, config,
-			SearchConfig(maxExpansions = level.budget, stallExpansions = level.stall, frontierPerKey = level.beam, lastResortFromStart = level.lastResort),
+			SearchConfig(maxExpansions = level.budget, stallExpansions = level.stall, frontierPerKey = level.beam, lastResortFromStart = level.lastResort, exploration = exploration),
 			cancelled = cancelled,
 			finalGoal = legs.last().route.goal,
 			onConcluded = { stats ->
@@ -53,11 +56,14 @@ internal class PlanRefiner(
 				grafts += stats.grafts
 			},
 			parallelism = parallelism,
+			probe = probe,
 			legs = FixedLegs(legs, leg, field),
 			spine = Spine(steps, legs),
 		)
 		val result = loop.run() as? MotionPlanResult.Success ?: return null
-		if (offset + result.plan.frames.size >= plan.frames) return null
+		val frames = offset + result.plan.frames.size
+		if (frames >= plan.frames + allowance) return null
+		if (frames == plan.frames && (result.plan.segments.firstOrNull() as? PlanSegment.Move)?.decision == junction.decision) return null
 		val suffix = result.plan.segments.map { it.shifted(offset) }
 		val touches = plan.touches.filter { it.frame <= offset } + result.legTouches.map { LegTouch(it.frame + offset, it.waypoint) }
 		return Plan(plan.segments.subList(0, index) + suffix, touches)
@@ -66,11 +72,11 @@ internal class PlanRefiner(
 	fun certify(plan: Plan): MotionPlanResult.Success? {
 		val view = legs.first().field.view
 		var anchor = ValueAnchor(initialState, heldStanceOf(view, initialState), 0, 0, 0, null, emptyList())
-		val touchFrames = plan.touches.mapTo(HashSet()) { it.frame }
+		val touched = plan.touches.associate { it.frame to it.waypoint }
 		for (segment in plan.segments) {
 			anchor = ValueAnchor(
 				state = segment.exit,
-				stance = heldStanceOf(view, segment.exit),
+				stance = touched[segment.endFrame] ?: heldStanceOf(view, segment.exit),
 				elapsed = segment.endFrame,
 				collisionEvents = 0,
 				inputSwitches = 0,
@@ -78,7 +84,7 @@ internal class PlanRefiner(
 				inputs = segment.inputs,
 				decision = (segment as? PlanSegment.Move)?.decision,
 			)
-			if (segment.endFrame in touchFrames) anchor.legRoot = true
+			if (segment.endFrame in touched) anchor.legRoot = true
 		}
 		val certifier = Certifier(initialState, profile, environment, cancelled, RouteState(legs.first().route, environment), AttemptAccumulator(SearchProbe.NONE))
 		return certifier.certify(Solution(anchor, emptyList())) as? MotionPlanResult.Success
