@@ -25,7 +25,7 @@ object SlimeBounceMovement : Movement {
 		val options = context.options
 		if (!options.allowSlimeBounces) return@buildList
 
-		for (drop in MIN_DROP..options.maxBounceDrop) {
+		for (drop in MIN_DROP..minOf(options.maxBounceDrop, TEMPLATE_MAX_DROP)) {
 			for (rise in -(drop - 1)..MAX_RISE) {
 				val window = BounceSolver.reach(drop, rise) ?: BounceSolver.reach(drop, rise, ledgeDepth = LOWEST_LEDGE_DEPTH) ?: continue
 
@@ -39,7 +39,7 @@ object SlimeBounceMovement : Movement {
 				}
 			}
 		}
-		for (drop in MIN_DROP..options.maxBounceDrop) {
+		for (drop in MIN_DROP..minOf(options.maxBounceDrop, TEMPLATE_MAX_DROP)) {
 			for (rise in -(drop - 1)..MAX_RISE) {
 				val window = BounceSolver.reach(drop, rise, DOUBLE_BOUNCES) ?: continue
 				for ((dx, dz) in StanceRules.CARDINALS + StanceRules.DIAGONALS) {
@@ -51,7 +51,7 @@ object SlimeBounceMovement : Movement {
 			}
 		}
 		if (!options.allowOffAxisJumps) return@buildList
-		for (drop in MIN_DROP..options.maxBounceDrop) {
+		for (drop in MIN_DROP..minOf(options.maxBounceDrop, TEMPLATE_MAX_DROP)) {
 			for (rise in -(drop - 1)..MAX_RISE) {
 				val window = BounceSolver.reach(drop, rise) ?: BounceSolver.reach(drop, rise, ledgeDepth = LOWEST_LEDGE_DEPTH) ?: continue
 				for (dx in -MAX_SPAN..MAX_SPAN) for (dz in -MAX_SPAN..MAX_SPAN) {
@@ -120,6 +120,8 @@ object SlimeBounceMovement : Movement {
 	private const val DOUBLE_BOUNCES = 2
 
 	private const val MIN_DROP = 2
+
+	const val TEMPLATE_MAX_DROP = 12
 
 	private const val MAX_RISE = 0
 

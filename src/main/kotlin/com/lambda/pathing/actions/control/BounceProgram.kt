@@ -21,6 +21,7 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 	private var landed = false
 	private var launchedStanding = false
 	private var flightTicks = 0
+	private var pressedForward = false
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		if (!observed.onGround) {
@@ -64,6 +65,8 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 				else -> 1.0
 			}
 		}
+		val resetsDoubleTap = !solution.sprint && !airborne && pressedForward && forward == 0.0 && observed.doubleTapSprintTicks > 0
+		pressedForward = forward > 0.0
 
 		val sprint = solution.sprint && forward > 0.0 &&
 				(!standingStart || launchedStanding || airborne)
@@ -78,6 +81,7 @@ internal class BounceProgram(decision: TrajectoryDecision.Bounce, context: Progr
 			strafe = strafe,
 			sprint = sprint,
 			jump = jump,
+			sneak = resetsDoubleTap,
 			rotation = rotation,
 		)
 	}

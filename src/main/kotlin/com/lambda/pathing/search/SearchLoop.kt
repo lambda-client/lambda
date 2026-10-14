@@ -96,7 +96,7 @@ internal class SearchLoop(
 	private fun plantRoot(): ValueAnchor {
 		val bodyStance = heldStanceOf(field.view, initialState)
 		val rootStance = if (field.isMapped(bodyStance)) bodyStance else {
-			supportedStanceOf(initialState)?.takeIf { field.isMapped(it) }
+			supportedStanceOf(initialState)?.takeIf { field.isMapped(it) && holdsBody(field.view, it, initialState) }
 				?: footprintStances(initialState).takeIf { initialState.onGround }?.firstOrNull { field.isStance(it) && field.isMapped(it) }
 				?: bodyStance
 		}

@@ -44,8 +44,10 @@ internal class ActionSet(
 		}
 
 		val priced = ArrayList<PricedDecision>()
+		val sprinting = anchor.state.isSprinting && true in config.sprintModes
 
 		fun add(decision: TrajectoryDecision) {
+			if (sprinting && walksWithoutSprint(decision)) return
 			val edge = byDestination[decision.step] ?: steps.first()
 			val excess = costOf.getValue(edge.to) - bestCost
 			val owner = catalog[decision.movement]
@@ -81,6 +83,12 @@ internal class ActionSet(
 
 		val floor = priced.minOf { it.price.difficulty }
 		return priced.filter { it.price.difficulty <= floor + DIFFICULTY_TIER }
+	}
+
+	private fun walksWithoutSprint(decision: TrajectoryDecision): Boolean = when (decision) {
+		is TrajectoryDecision.Walk -> !decision.sprint
+		is TrajectoryDecision.Heading -> !decision.sprint
+		else -> false
 	}
 
 	fun next(anchor: ValueAnchor, temperature: Double, lastResort: Boolean, epoch: Int): TrajectoryDecision? {

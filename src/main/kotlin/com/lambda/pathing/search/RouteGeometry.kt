@@ -64,7 +64,10 @@ internal fun launchSeedFrame(diagnostic: TrajectoryDiagnostic): Int? = when (dia
 
 internal fun stanceOf(state: MovementSimulationState): Stance = Stance.of(state.position, state.onGround)
 
-internal fun heldStanceOf(view: CoarseVoxelView, state: MovementSimulationState): Stance {
+internal fun heldStanceOf(view: CoarseVoxelView, state: MovementSimulationState): Stance =
+	holdingStanceOf(view, state) ?: stanceOf(state)
+
+internal fun holdingStanceOf(view: CoarseVoxelView, state: MovementSimulationState): Stance? {
 	val floored = stanceOf(state)
 	if (!state.onGround && view.medium(floored.x, floored.y, floored.z) != Medium.WATER &&
 		view.medium(floored.x, floored.y + 1, floored.z) == Medium.WATER
@@ -77,8 +80,12 @@ internal fun heldStanceOf(view: CoarseVoxelView, state: MovementSimulationState)
 		val neighbor = floored.offset(dx, 0, dz)
 		if (Footing.holds(view, neighbor).at(x, z) != null) return neighbor
 	}
-	return floored
+	return null
 }
+
+internal fun holdsBody(view: CoarseVoxelView, stance: Stance, state: MovementSimulationState): Boolean =
+	!Footing.involvesPartial(view, stance.x, stance.y, stance.z) ||
+		Footing.holds(view, stance).at(state.position.x, state.position.z) != null
 
 private val NEIGHBOR_OFFSETS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 

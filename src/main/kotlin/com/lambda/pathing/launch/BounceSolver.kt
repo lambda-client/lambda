@@ -35,19 +35,20 @@ object BounceSolver {
 		headroom: Double = Double.POSITIVE_INFINITY,
 		launchReach: Double = LAUNCH_OFFSET,
 		bounces: Int = 1,
+		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
 	): BounceSolution? {
 		val flight = horizontalDistance - launchReach
 		if (flight <= 0.0) return null
 
-		val base = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom) ?: return null
-		val unit = ballistics.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom) ?: return null
+		val base = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom) ?: return null
+		val unit = ballistics.bounce(1.0, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom) ?: return null
 		val slope = unit.distance - base.distance
 		if (slope <= 0.0) return null
 
 		val speed = (flight - base.distance) / slope
 		if (speed < 0.0 || speed > ballistics.momentumSpeed(sprint)) return null
 
-		val arc = ballistics.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom) ?: return null
+		val arc = ballistics.bounce(speed, contactDepth, riseHeight, holdForward, sprint, jump, holdTicks, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom) ?: return null
 
 		val slack = (LANDING_WINDOW / 2.0) / slope
 
@@ -73,13 +74,14 @@ object BounceSolver {
 		headroom: Double,
 		launchReach: Double,
 		bounces: Int = 1,
+		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
 	): BounceSolution? {
 		val flight = horizontalDistance - launchReach
 		if (flight <= 0.0) return null
-		val standing = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward = true, sprint = sprint, jump = jump, bounces = bounces, headroom = headroom)
+		val standing = ballistics.bounce(0.0, contactDepth, riseHeight, holdForward = true, sprint = sprint, jump = jump, bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom)
 			?: return null
 		if (standing.distance < flight) {
-			return solve(horizontalDistance, contactDepth, riseHeight, sprint = sprint, jump = jump, headroom = headroom, launchReach = launchReach, bounces = bounces)
+			return solve(horizontalDistance, contactDepth, riseHeight, sprint = sprint, jump = jump, headroom = headroom, launchReach = launchReach, bounces = bounces, reboundHeadroom = reboundHeadroom)
 		}
 		return BounceSolution(
 			sprint = sprint,
@@ -104,6 +106,7 @@ object BounceSolver {
 		headroom: Double,
 		launchReach: Double,
 		bounces: Int = 1,
+		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
 	): BounceSolution? {
 		val target = horizontalDistance - launchReach
 		if (target <= 0.0) return null
@@ -113,7 +116,7 @@ object BounceSolver {
 		fun arcAt(holdTicks: Int): ArcSample? = ballistics.bounce(
 			0.0, contactDepth, riseHeight,
 			holdForward = holdTicks > 0, sprint = sprint, jump = jump, holdTicks = holdTicks,
-			bounces = bounces, headroom = headroom,
+			bounces = bounces, headroom = headroom, reboundHeadroom = reboundHeadroom,
 		)
 
 		var lo = minHold

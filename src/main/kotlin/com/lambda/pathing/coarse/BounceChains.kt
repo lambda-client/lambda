@@ -10,8 +10,11 @@ import com.lambda.pathing.launch.ArcSample
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.BounceArcProbe
 import com.lambda.pathing.launch.BounceSolution
+import com.lambda.pathing.actions.families.SlimeBounceMovement
 import com.lambda.pathing.launch.BounceSolver
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.CoarseVoxelView
+import com.lambda.pathing.world.CollisionClass
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
@@ -153,6 +156,7 @@ internal class BounceChains(
 
 	private fun chase(origin: Stance, launchHeight: Double, unitX: Double, unitZ: Double, padY: Int, tried: HashSet<Pair<Stance, Int>>) {
 		val depth = launchHeight - (padY + 1)
+		val drop = origin.y - padY - 1
 		for ((jump, sprint) in STYLES) {
 			val still = arc(depth, jump, sprint, MAX_CONTACTS) ?: continue
 			val moving = arc(depth, jump, sprint, MAX_CONTACTS, entrySpeed = 1.0) ?: continue
@@ -161,26 +165,58 @@ internal class BounceChains(
 				val speed = ballistics.momentumSpeed(sprint) * step / SPEED_STEPS
 				var onPads = 0
 				while (onPads < hits.size && onPad(origin, unitX, unitZ, along(still, moving, speed, hits[onPads]), padY)) onPads++
-				for (contacts in MIN_CONTACTS..onPads) {
+				for (contacts in 1..onPads) {
 					val stillChain = arc(depth, jump, sprint, contacts) ?: continue
 					val movingChain = arc(depth, jump, sprint, contacts, entrySpeed = 1.0) ?: continue
 					val last = contactTicks(stillChain, depth).lastOrNull() ?: continue
-					val target = landing(origin, unitX, unitZ, launchHeight, stillChain, movingChain, speed, last) ?: continue
+					val ceiling = reboundCeiling(origin, unitX, unitZ, launchHeight, stillChain, movingChain, speed, last)
+					val templated = drop <= SlimeBounceMovement.TEMPLATE_MAX_DROP && ceiling.isInfinite()
+					if (templated && contacts < MIN_CONTACTS) continue
+					val target = if (ceiling.isInfinite()) {
+						landing(origin, unitX, unitZ, launchHeight, stillChain, movingChain, speed, last)
+					} else {
+						val capped = ballistics.bounce(speed, depth, -depth - BELOW_PADS, holdForward = true, sprint = sprint, jump = jump, bounces = contacts, reboundHeadroom = ceiling) ?: continue
+						landing(origin, unitX, unitZ, launchHeight, capped, capped, 0.0, last)
+					} ?: continue
 					if (!tried.add(target to contacts)) continue
-					verify(origin, target, origin.y - padY - 1, launchHeight, contacts)
+					verify(origin, target, drop, launchHeight, contacts, ceiling, templated)
 				}
 			}
 		}
 	}
 
+	private fun reboundCeiling(origin: Stance, unitX: Double, unitZ: Double, launchHeight: Double, still: ArcSample, moving: ArcSample, speed: Double, lastContact: Int): Double {
+		for (tick in lastContact + 1 until still.heights.size) {
+			if (still.heights[tick] <= still.heights[tick - 1]) return Double.POSITIVE_INFINITY
+			val below = launchHeight + still.heights[tick - 1] + Vanilla.PLAYER_HEIGHT
+			val head = launchHeight + still.heights[tick] + Vanilla.PLAYER_HEIGHT
+			val distance = along(still, moving, speed, tick)
+			for (offset in FOOTPRINT_SAMPLES) {
+				val x = floor(origin.x + 0.5 + unitX * (distance + offset)).toInt()
+				val z = floor(origin.z + 0.5 + unitZ * (distance + offset)).toInt()
+				for (y in floor(below).toInt()..floor(head).toInt()) {
+					val bottom = ceilingBottom(x, y, z) ?: continue
+					if (bottom > below - CEILING_EPSILON && bottom < head) return bottom - Vanilla.PLAYER_HEIGHT - launchHeight
+				}
+			}
+		}
+		return Double.POSITIVE_INFINITY
+	}
+
+	private fun ceilingBottom(x: Int, y: Int, z: Int): Double? = when (view.collisionClass(x, y, z)) {
+		CollisionClass.EMPTY -> null
+		CollisionClass.FULL, CollisionClass.UNKNOWN -> y.toDouble()
+		CollisionClass.PARTIAL -> view.collisionBoxes(x, y, z)?.let { boxes -> y + (0 until boxes.size / 6).minOf { boxes[6 * it + 1] } }
+	}
+
 	private fun along(still: ArcSample, moving: ArcSample, speed: Double, tick: Int): Double =
 		BounceSolver.LAUNCH_OFFSET + still.distances[tick] + speed * (moving.distances[tick] - still.distances[tick])
 
-	private fun verify(origin: Stance, target: Stance, drop: Int, launchHeight: Double, contacts: Int) {
+	private fun verify(origin: Stance, target: Stance, drop: Int, launchHeight: Double, contacts: Int, ceiling: Double, templated: Boolean) {
 		val dx = target.x - origin.x
 		val dz = target.z - origin.z
-		if (contacts <= TEMPLATED_CONTACTS && (dx == 0 || dz == 0 || abs(dx) == abs(dz))) return
-		val probed = BounceArcProbe.probe(view, origin, dx, dz, drop, target.y - origin.y, launchHeight, bounces = contacts) ?: return
+		if (templated && contacts <= TEMPLATED_CONTACTS && (dx == 0 || dz == 0 || abs(dx) == abs(dz))) return
+		val probed = BounceArcProbe.probe(view, origin, dx, dz, drop, target.y - origin.y, launchHeight, bounces = contacts, reboundHeadroom = ceiling) ?: return
 		val edge = ChainEdge(dx, target.y - origin.y, dz, probed.solution.airTicks + SETTLE_TICKS, probed.solution, probed.reads)
 		outgoing.getOrPut(key(origin)) { ArrayList() } += edge
 		incoming.getOrPut(key(target)) { ArrayList() } += ChainArrival(origin, edge)
@@ -247,6 +283,10 @@ internal class BounceChains(
 		const val BEARING_BINS = 720L
 
 		const val BELOW_PADS = 1.0
+
+		val FOOTPRINT_SAMPLES = doubleArrayOf(-Vanilla.PLAYER_HALF_WIDTH.toDouble(), 0.0, Vanilla.PLAYER_HALF_WIDTH.toDouble())
+
+		const val CEILING_EPSILON = 1.0E-6
 
 		const val CONTACT_EPSILON = 1.0E-9
 

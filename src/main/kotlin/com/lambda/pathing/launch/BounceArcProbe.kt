@@ -21,10 +21,11 @@ object BounceArcProbe {
 		rise: Int,
 		launchHeight: Double,
 		bounces: Int = 1,
+		reboundHeadroom: Double = Double.POSITIVE_INFINITY,
 	): Probed<BounceSolution>? {
 		val length = hypot(dx.toDouble(), dz.toDouble())
 		if (length <= 0.0) return null
-		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, bounces, reads).solve() }
+		return probed { reads -> BounceLine(view, from, dx, dz, length, drop, rise, launchHeight, bounces, reboundHeadroom, reads).solve() }
 	}
 
 	fun padColumns(dx: Int, dz: Int): List<Pair<Int, Int>> {
@@ -56,6 +57,7 @@ object BounceArcProbe {
 		private val rise: Int,
 		private val launchHeight: Double,
 		private val bounces: Int,
+		private val reboundHeadroom: Double,
 		private val reads: LongOpenHashSet?,
 	) {
 		private val unitX = dx / length
@@ -88,6 +90,7 @@ object BounceArcProbe {
 						headroom = headroom,
 						launchReach = launchReach,
 						bounces = bounces,
+						reboundHeadroom = reboundHeadroom,
 					)
 				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
@@ -102,6 +105,7 @@ object BounceArcProbe {
 						headroom = headroom,
 						launchReach = launchReach,
 						bounces = bounces,
+						reboundHeadroom = reboundHeadroom,
 					)
 				}?.takeIf { admissible(it, arcs) }?.let { return it }
 			}
@@ -121,6 +125,7 @@ object BounceArcProbe {
 						headroom = headroom,
 						launchReach = launchReach,
 						bounces = bounces,
+						reboundHeadroom = reboundHeadroom,
 					)
 				}?.pressedAgainst(wall, ledge.along - launchReach)?.takeIf { admissible(it, arcs) }?.let { return it }
 			}

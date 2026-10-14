@@ -520,13 +520,45 @@ class SlimeBounceRouteTest {
         certifyArrival(environment, goal = Stance(-3, 8, 18), contacts = 3)
     }
 
+    /**
+     * The CycloneMC end shaft, translated: off a slab, 16.5 blocks down through a gap in a ceiling onto slime, and the
+     * rebound bonks that ceiling before it lands on a platform beside the pad. Deeper than any template; the chain scan
+     * finds it as a single contact with the ceiling capping the rebound.
+     */
+    @Test
+    fun `a deep bounce under a ceiling is found from the pad and certified end to end`() {
+        MinecraftBootstrap.ensure()
+        val states = HashMap<BlockPos, BlockState>()
+        states[BlockPos(0, 24, 0)] = Blocks.PURPUR_SLAB.defaultState
+        for (z in -1..1) {
+            states[BlockPos(0, 18, z)] = Blocks.STONE.defaultState
+            for (x in 5..10) states[BlockPos(x, 18, z)] = Blocks.STONE.defaultState
+            for (x in 8..11) states[BlockPos(x, 14, z)] = Blocks.STONE.defaultState
+        }
+        for (x in 4..6) for (z in -1..0) states[BlockPos(x, 7, z)] = Blocks.SLIME_BLOCK.defaultState
+        val view = object : BlockView {
+            override fun getBlockState(pos: BlockPos): BlockState = states[pos] ?: Blocks.AIR.defaultState
+            override fun getFluidState(pos: BlockPos): FluidState = getBlockState(pos).fluidState
+            override fun getBlockEntity(pos: BlockPos): BlockEntity? = null
+            override fun getHeight(): Int = 384
+            override fun getBottomY(): Int = -64
+        }
+        val sampler = BlockPhysicsSampler(view, ShapeContext.absent())
+        val environment = SnapshotSimulationEnvironment.synthetic(
+            SimulationSnapshotBounds(-16, 0, -16, 16, 40, 16),
+            states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+        )
+        certifyArrival(environment, goal = Stance(9, 15, 0), start = Stance(0, 25, 0), options = SimpleMoveOptions(allowSlimeBounces = true, maxBounceDrop = 24))
+    }
+
     private fun certifyArrival(
         environment: SnapshotSimulationEnvironment,
         goal: Stance,
         start: Stance = Stance(0, 10, 0),
         contacts: Int = 1,
+        options: SimpleMoveOptions = SimpleMoveOptions(allowSlimeBounces = true),
     ) {
-        val moves = moveLibrary(SimpleMoveOptions(allowSlimeBounces = true))
+        val moves = moveLibrary(options)
         val planner = CoarsePlanner(environment, moves, start, goal)
         assertTrue(planner.repair().converged)
         planner.expandField(extraTicks = 60.0, timeBudget = Duration.INFINITE, maxExpansions = 40_000)

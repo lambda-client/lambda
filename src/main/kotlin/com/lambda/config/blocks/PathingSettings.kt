@@ -128,7 +128,7 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
 
     @Group(MOVES_GROUP)
     override val maxBounceDrop by c.setting(
-        "Max Bounce Drop", 8, 3..12, 1,
+        "Max Bounce Drop", 8, 3..24, 1,
         "Deepest fall onto slime a bounce may be planned around. Deeper falls reach further " +
             "and need less run-up, at the cost of a longer arc to simulate.",
         unit = " blocks",

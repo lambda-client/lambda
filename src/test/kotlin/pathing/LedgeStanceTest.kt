@@ -7,6 +7,8 @@ import com.lambda.pathing.actions.SimpleMoveOptions
 import com.lambda.pathing.coarse.CoarsePlanner
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.search.heldStanceOf
+import com.lambda.pathing.search.holdingStanceOf
+import com.lambda.pathing.search.holdsBody
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.world.Footing
 import com.lambda.pathing.world.center
@@ -19,6 +21,7 @@ import net.minecraft.util.shape.VoxelShapes
 import pathing.ProbeScenarios.moveLibrary
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -249,6 +252,40 @@ class LedgeStanceTest {
 		}
 	}
 
+	/**
+	 * A fence along the top of a wall round a pit leaves a strip on each side of it, and the fence's
+	 * cell can be the stance of one of them only. A body that lands on the other strip stands in no
+	 * stance: placing it in the fence's cell would search the field from the far side of the fence,
+	 * where nothing the body can do leads.
+	 */
+	@Test
+	fun `a body on the strip a fence cell does not hold stands in no stance`() {
+		val environment = pen()
+		val fence = Stance(0, 64, 0)
+		val strips = listOf(0.07, 0.93)
+		val held = strips.filter { Footing.holds(environment, fence).at(it, 0.5) != null }
+		assertEquals(1, held.size, "the fence's cell holds one of its strips: $held")
+		for (x in strips) {
+			val body = resting(Vec3d(x, 64.0, 0.5))
+			if (x in held) {
+				assertEquals(fence, holdingStanceOf(environment, body))
+				continue
+			}
+			assertNull(holdingStanceOf(environment, body), "the body on the strip at x=$x must not be placed in a stance")
+			assertFalse(holdsBody(environment, fence, body), "the fence's cell must not hold the body at x=$x")
+		}
+	}
+
+	private fun pen(): SnapshotSimulationEnvironment {
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (z in -3..3) {
+			for (y in 60..63) blocks[BlockPos(0, y, z)] = SnapshotBlockPhysics.FULL_CUBE
+			blocks[BlockPos(0, 64, z)] = FENCE_ALONG_Z
+			for (x in 3..5) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
+		}
+		return SnapshotSimulationEnvironment.synthetic(BOUNDS, blocks)
+	}
+
 	private fun roof(): SnapshotSimulationEnvironment {
 		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
 		for (x in -3..3) for (z in -3..2) blocks[BlockPos(x, 63, z)] = SnapshotBlockPhysics.FULL_CUBE
@@ -297,6 +334,9 @@ class LedgeStanceTest {
 
 		/** A fence connected east and west: the post and both arms, 1.5 tall. */
 		val FENCE_ALONG_X = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.0, 0.0, 0.375, 1.0, 1.5, 0.625), fenceLike = true)
+
+		/** A fence connected north and south. */
+		val FENCE_ALONG_Z = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.375, 0.0, 0.0, 0.625, 1.5, 1.0), fenceLike = true)
 
 		val POST = SnapshotBlockPhysics.of(VoxelShapes.cuboid(0.375, 0.0, 0.375, 0.625, 1.5, 0.625), fenceLike = true)
 

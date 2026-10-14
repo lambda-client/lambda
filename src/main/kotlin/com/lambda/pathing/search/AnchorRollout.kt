@@ -147,10 +147,10 @@ internal class AnchorRollout(
 				is RolloutVerdict.Continue -> {
 					if (!frame.state.onGround) airborne = true
 
-					if (!frame.state.onGround && !movement.inMedium) {
+					val stance = if (!frame.state.onGround && !movement.inMedium) null else holdingStanceOf(field.view, frame.state)
+					if (stance == null) {
 						false
 					} else {
-						val stance = heldStanceOf(field.view, frame.state)
 						val done = movement.completed(
 							CompletionContext(
 								decision = action,
@@ -217,7 +217,7 @@ internal class AnchorRollout(
 		var cornerCatch = 0
 		if (!field.isStance(eventStance)) {
 			val supported = supportedStanceOf(frames.last().state)
-				?.takeIf { field.isStance(it) }
+				?.takeIf { field.isStance(it) && holdsBody(field.view, it, frames.last().state) }
 			if (supported == null) {
 				return Outcome.Rejected(
 					TrajectoryDiagnostic.FellBelowRoute(frame, 0.0)
