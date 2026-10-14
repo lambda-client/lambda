@@ -37,7 +37,9 @@ internal class StallRecovery(
 
 	private val restartedMoving = HashSet<Int>()
 
-	fun beginLeg() {
+	fun beginLeg() = rearm()
+
+	fun rearm() {
 		tapeRestarts = 0
 		restartedMoving.clear()
 	}

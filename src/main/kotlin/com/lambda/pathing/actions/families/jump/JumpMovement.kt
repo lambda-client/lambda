@@ -41,7 +41,10 @@ object JumpMovement : Movement {
 				TrajectoryDecision.Launch(context.edge.to, delay, solution)
 			}
 		}
-		return standard + JumpDecisions.runUpDecisions(context, solutions.filter { it.via == null })
+		val straight = solutions.filter { it.via == null }
+		val runUps = JumpDecisions.runUpDecisions(context, straight)
+		if (!context.lastResort) return standard + runUps
+		return standard + runUps + JumpDecisions.edgeLaunchDecisions(context, straight)
 	}
 
 	override fun price(decision: TrajectoryDecision, context: DecisionContext): DecisionPrice {
@@ -70,6 +73,8 @@ object JumpMovement : Movement {
 				solution = decision.solution,
 				retreatAlong = decision.retreatAlong,
 				hopAlong = decision.hopAlong,
+				hopHoldDelay = decision.hopHoldDelay,
+				edgeAlong = decision.edgeAlong,
 				maxYawChange = context.constraints.maxYawDegreesPerFrame,
 			)
 		}
@@ -120,12 +125,15 @@ object JumpMovement : Movement {
 	override fun transitionFrames(decision: TrajectoryDecision): Int {
 		val runUp = decision as? TrajectoryDecision.RunUpLaunch ?: return 0
 		val retreatFrames = (-runUp.retreatAlong).coerceAtLeast(0.0) * RETREAT_FRAMES_PER_BLOCK
-		return RUN_UP_TRANSITION_FRAMES + retreatFrames.toInt() + runUp.solution.airTicks
+		val hopFrames = if (runUp.hopAlong != null) HOP_FRAMES else 0
+		return RUN_UP_TRANSITION_FRAMES + retreatFrames.toInt() + hopFrames + runUp.solution.airTicks
 	}
 
 	private const val RUN_UP_TRANSITION_FRAMES = 50
 
 	private const val RETREAT_FRAMES_PER_BLOCK = 10
+
+	private const val HOP_FRAMES = 12
 
 	private const val POST_LAUNCH_MARGIN_BLOCKS = 1.0
 

@@ -39,6 +39,14 @@ internal object InterestPrimer {
 		val dy = goal.y - start.y
 		val dz = goal.z - start.z
 		val length = maxOf(abs(dx), abs(dz), 1)
+		if (length <= NEAR_JOURNEY_BLOCKS) {
+			world.interestBlocks(
+				minOf(start.x, goal.x) - JOURNEY_BOX_MARGIN_BLOCKS, minOf(start.y, goal.y) - JOURNEY_BOX_MARGIN_BLOCKS, minOf(start.z, goal.z) - JOURNEY_BOX_MARGIN_BLOCKS,
+				maxOf(start.x, goal.x) + JOURNEY_BOX_MARGIN_BLOCKS, maxOf(start.y, goal.y) + JOURNEY_BOX_MARGIN_BLOCKS, maxOf(start.z, goal.z) + JOURNEY_BOX_MARGIN_BLOCKS,
+				InterestTier.CORRIDOR,
+			)
+			return
+		}
 		var step = CORRIDOR_SAMPLE_BLOCKS
 		while (step < length) {
 			world.interestAround(
@@ -53,6 +61,9 @@ internal object InterestPrimer {
 	private const val BODY_INTEREST_Y_BLOCKS = 16
 
 	private const val GOAL_INTEREST_BLOCKS = 16
+
+	private const val NEAR_JOURNEY_BLOCKS = 96
+	private const val JOURNEY_BOX_MARGIN_BLOCKS = 16
 
 	private const val CORRIDOR_SAMPLE_BLOCKS = 24
 	private const val CORRIDOR_INTEREST_BLOCKS = 8

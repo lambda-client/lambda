@@ -16,6 +16,8 @@ import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
+import com.lambda.pathing.actions.control.LIP_LOOKAHEAD_MARGIN
+import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.canStandAt
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.floor
@@ -238,6 +240,46 @@ internal object JumpDecisions {
 		return decisions.take(MAX_RUN_UP_VARIANTS)
 	}
 
+	fun edgeLaunchDecisions(context: DecisionContext, solutions: List<LaunchSolution>): List<TrajectoryDecision> {
+		val edge = context.edge
+		if (hypot((edge.to.x - edge.from.x).toDouble(), (edge.to.z - edge.from.z).toDouble()) < MIN_EDGE_LAUNCH_SPAN) return emptyList()
+		val body = context.body.state
+		if (!body.onGround || !bodyStandsAt(context.view, body.position.x, edge.from.y, body.position.z)) return emptyList()
+		val from = edge.from.center()
+		val decisions = ArrayList<TrajectoryDecision.RunUpLaunch>()
+		for (solution in solutions) {
+			val (unitX, unitZ) = aimDirection(context, solution) ?: continue
+			val at = (body.position.x - from.x) * unitX + (body.position.z - from.z) * unitZ
+			val velocity = body.velocity.x * unitX + body.velocity.z * unitZ
+			val furthest = at - supportedReach(context, body.position.x, body.position.z, -unitX, -unitZ) + RETREAT_MARGIN_BLOCKS
+			val edgeAlong = at + supportedReach(context, body.position.x, body.position.z, unitX, unitZ)
+			if (edgeAlong <= solution.launchOffset) continue
+			val target = (edge.to.center().x - from.x) * unitX + (edge.to.center().z - from.z) * unitZ
+			val rise = (edge.to.y - edge.from.y).toDouble()
+			val still = ballistics.fly(solution.mode, 0.0, rise, solution.holdForward, holdTicks = solution.holdTicks)?.distance ?: continue
+			val moving = ballistics.fly(solution.mode, 1.0, rise, solution.holdForward, holdTicks = solution.holdTicks)?.distance ?: continue
+			val runs = ArrayList<Pair<TrajectoryDecision.RunUpLaunch, Double>>()
+			val hops = ArrayList<Pair<TrajectoryDecision.RunUpLaunch, Double>>()
+			for (retreatAlong in retreatThresholds(at, velocity, furthest)) {
+				for (holdDelay in 0..MAX_HOP_HOLD_DELAY) {
+					val hopAlong = if (holdDelay == 0) null else retreatAlong
+					val (takeoff, speed) = predictRunUp(at, velocity, retreatAlong, hopAlong, holdDelay, edgeAlong, furthest, solution.sprint) ?: continue
+					val miss = abs(takeoff + still + speed * (moving - still) - target)
+					val decision = TrajectoryDecision.RunUpLaunch(edge.to, solution, retreatAlong, hopAlong, holdDelay, edgeAlong)
+					if (hopAlong == null) runs += decision to miss else hops += decision to miss
+				}
+			}
+			runs.sortedBy { it.second }.take(EDGE_RUNS).forEach { decisions += it.first }
+			hops.sortedBy { it.second }.distinctBy { it.first.hopHoldDelay }.take(MOMENTUM_HOPS).forEach { decisions += it.first }
+		}
+		return decisions
+			.distinctBy { runUp ->
+				val solution = runUp.solution
+				listOf(solution.sprint, solution.holdForward, solution.lateralOffset, solution.launchOffset, runUp.retreatAlong, runUp.hopAlong, runUp.hopHoldDelay, runUp.edgeAlong)
+			}
+			.take(MAX_EDGE_LAUNCH_VARIANTS)
+	}
+
 	private fun minimumSpeed(solution: LaunchSolution) = solution.speed - solution.speedSlack * REQUIRED_SLACK_FRACTION
 
 	private fun clearBehind(context: DecisionContext, distance: Double): Boolean {
@@ -257,6 +299,117 @@ internal object JumpDecisions {
 		return true
 	}
 
+	private fun aimDirection(context: DecisionContext, solution: LaunchSolution): Pair<Double, Double>? {
+		val from = context.edge.from.center()
+		val to = context.edge.to.center()
+		val (unitX, unitZ) = unitBetween(from, to) ?: return null
+		val offset = solution.lateralOffset
+		return unitBetween(from, to.copy(x = to.x - unitZ * offset, z = to.z + unitX * offset))
+	}
+
+	private fun supportedReach(context: DecisionContext, x: Double, z: Double, unitX: Double, unitZ: Double): Double {
+		val y = context.edge.from.y
+		fun stands(distance: Double) = bodyStandsAt(context.view, x + unitX * distance, y, z + unitZ * distance)
+		var reach = 0.0
+		while (reach < MAX_RETREAT_BLOCKS && stands(reach + RETREAT_STEP_BLOCKS)) reach += RETREAT_STEP_BLOCKS
+		if (reach >= MAX_RETREAT_BLOCKS) return reach
+		var beyond = reach + RETREAT_STEP_BLOCKS
+		repeat(EDGE_BISECTIONS) {
+			val middle = 0.5 * (reach + beyond)
+			if (stands(middle)) reach = middle else beyond = middle
+		}
+		return reach
+	}
+
+	private fun retreatThresholds(at: Double, velocity: Double, furthest: Double): List<Double> {
+		val thresholds = arrayListOf(at)
+		var along = at
+		var speed = velocity
+		repeat(MAX_RETREAT_TICKS) {
+			val step = speed - ballistics.groundAcceleration(sprint = false)
+			val next = along + step
+			speed = step * ballistics.groundFriction
+			if (next < furthest) return thresholds
+			if (next < along && next < at) thresholds += 0.5 * (along + next)
+			along = next
+		}
+		return thresholds
+	}
+
+	private fun predictRunUp(
+		at: Double,
+		velocity: Double,
+		retreatAlong: Double,
+		hopAlong: Double?,
+		holdDelay: Int,
+		edgeAlong: Double,
+		furthest: Double,
+		sprint: Boolean,
+	): Pair<Double, Double>? {
+		var along = at
+		var speed = velocity
+		var retreating = true
+		var hopPending = hopAlong != null
+		var hopTick = -1
+		var airborne = 0
+		for (tick in 0 until MAX_RUN_UP_TICKS) {
+			val grounded = airborne == 0
+			if (grounded && retreating && along > retreatAlong) {
+				val step = speed - ballistics.groundAcceleration(sprint = false)
+				along += step
+				speed = step * ballistics.groundFriction
+				if (along < furthest) return null
+				continue
+			}
+			retreating = false
+			var jump = false
+			if (grounded) {
+				if (hopPending && along > edgeAlong) return null
+				if (hopPending) {
+					if (speed >= 0.0 && hopAlong!! - along <= speed + LIP_LOOKAHEAD_MARGIN) {
+						jump = true
+						hopPending = false
+						hopTick = tick
+					}
+				} else if (along > edgeAlong) {
+					return along to speed
+				}
+			}
+			val holding = hopTick < 0 || tick - hopTick >= holdDelay
+			if (grounded) {
+				val step = speed + if (holding) ballistics.groundAcceleration(sprint) else 0.0
+				along += step
+				speed = step * ballistics.groundFriction
+				if (jump) airborne = HOP_AIR_TICKS
+			} else {
+				val before = along
+				val step = speed + if (holding) airAcceleration(sprint) else 0.0
+				along += step
+				speed = step * BallisticProfile.HORIZONTAL_DRAG
+				airborne--
+				if (airborne == 0 && before > edgeAlong) return null
+			}
+		}
+		return null
+	}
+
+	private fun airAcceleration(sprint: Boolean) = if (sprint) BallisticProfile.SPRINT_AIR_ACCELERATION else BallisticProfile.WALK_AIR_ACCELERATION
+
+	private fun bodyStandsAt(view: CoarseVoxelView, x: Double, y: Int, z: Double): Boolean {
+		val clearance = BODY_HALF_WIDTH + WALL_CLEARANCE_BLOCKS
+		for (cellX in floor(x - clearance).toInt()..floor(x + clearance).toInt()) {
+			for (cellZ in floor(z - clearance).toInt()..floor(z + clearance).toInt()) {
+				if (!view.voxel(cellX, y, cellZ).fullyPassable || !view.voxel(cellX, y + 1, cellZ).fullyPassable) return false
+			}
+		}
+		for (cellX in floor(x - BODY_HALF_WIDTH).toInt()..floor(x + BODY_HALF_WIDTH).toInt()) {
+			for (cellZ in floor(z - BODY_HALF_WIDTH).toInt()..floor(z + BODY_HALF_WIDTH).toInt()) {
+				if (view.standingSurface(cellX, y - 1, cellZ) != null) return true
+			}
+		}
+		return false
+	}
+
 	private const val RUN_UP_MARGIN_BLOCKS = 0.75
 
 	private const val REQUIRED_SLACK_FRACTION = 0.5
@@ -268,6 +421,32 @@ internal object JumpDecisions {
 	private val HOP_LANDING_GAPS = listOf(-0.35, -0.1, 0.2)
 
 	private const val MAX_RUN_UP_VARIANTS = 4
+
+	private const val MAX_EDGE_LAUNCH_VARIANTS = 6
+
+	private const val MIN_EDGE_LAUNCH_SPAN = 4.0
+
+	private const val RETREAT_STEP_BLOCKS = 0.1
+
+	private const val EDGE_BISECTIONS = 4
+
+	private const val MAX_RETREAT_BLOCKS = 3.0
+
+	private const val MAX_HOP_HOLD_DELAY = 8
+
+	private const val RETREAT_MARGIN_BLOCKS = 0.03
+
+	private const val WALL_CLEARANCE_BLOCKS = 0.02
+
+	private const val EDGE_RUNS = 2
+
+	private const val MOMENTUM_HOPS = 2
+
+	private const val MAX_RETREAT_TICKS = 8
+
+	private const val MAX_RUN_UP_TICKS = 80
+
+	private val HOP_AIR_TICKS = BallisticProfile.VANILLA.fly(LaunchMode.WALK_JUMP, 0.0, 0.0, holdForward = false)!!.airTicks
 
 	private const val ONWARD_LOOKAHEAD = 2
 

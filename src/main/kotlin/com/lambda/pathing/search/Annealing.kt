@@ -21,6 +21,10 @@ internal class Annealing(
 
 	private val spentAnchors = ArrayList<ValueAnchor>()
 
+	private var lastResort = false
+
+	private val lastResortCandidates = ArrayList<ValueAnchor>()
+
 	val spent: List<ValueAnchor> get() = spentAnchors
 
 	val revivable: Boolean get() = spentAnchors.isNotEmpty() && !exhausted
@@ -30,9 +34,9 @@ internal class Annealing(
 	private var heatedAt = 0
 	private var escalationRoot: ValueAnchor? = null
 
-	fun next(anchor: ValueAnchor): TrajectoryDecision? = vocabulary.next(anchor, temperature, actionsEpoch)
+	fun next(anchor: ValueAnchor): TrajectoryDecision? = vocabulary.next(anchor, temperature, lastResort, actionsEpoch)
 
-	fun surcharge(anchor: ValueAnchor): Double? = vocabulary.nextSurcharge(anchor, temperature, actionsEpoch)
+	fun surcharge(anchor: ValueAnchor): Double? = vocabulary.nextSurcharge(anchor, temperature, lastResort, actionsEpoch)
 
 	fun noteGuide(stance: Stance) {
 		val guide = field.guide(stance)
@@ -44,11 +48,25 @@ internal class Annealing(
 	}
 
 	fun spend(anchor: ValueAnchor) {
-		if (!exhausted) spentAnchors += anchor
+		if (!exhausted) spentAnchors += anchor else if (!lastResort) lastResortCandidates += anchor
 	}
 
 	fun clearSpent() {
 		spentAnchors.clear()
+		lastResortCandidates.clear()
+	}
+
+	fun admitLastResort(): Boolean {
+		if (lastResort) return false
+		lastResort = true
+		actionsEpoch++
+		for (anchor in lastResortCandidates) {
+			if (!frontier.canReach(anchor)) continue
+			anchor.pendingSurcharge = surcharge(anchor) ?: continue
+			frontier.reopen(anchor)
+		}
+		lastResortCandidates.clear()
+		return true
 	}
 
 	fun heat() {

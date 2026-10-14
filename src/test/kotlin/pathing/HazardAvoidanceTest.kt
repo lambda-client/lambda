@@ -78,7 +78,7 @@ class HazardAvoidanceTest {
 	}
 
 	@Test
-	fun `a lava margin keeps the footprint off lava edges and is off by default`() {
+	fun `avoiding lava edges keeps the feet off lava while standing and is off by default`() {
 		MinecraftBootstrap.ensure()
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-8, 0, -8, 8, 16, 8),
@@ -86,13 +86,74 @@ class HazardAvoidanceTest {
 		)
 		fun standing(z: Double) = MovementSimulationState.synthetic(ProbeScenarios.PROFILE, Vec3d(0.5, 5.0, z), Rotation(0.0, 0.0))
 		val centre = HorizontalPoint(0.5, 5.0, 0.5)
-		fun verdict(margin: Double, z: Double) = RolloutEvaluator(
-			standing(0.5), listOf(centre), centre, MotionConstraints(lavaMargin = margin),
+		fun verdict(avoid: Boolean, z: Double) = RolloutEvaluator(
+			standing(0.5), listOf(centre), centre, MotionConstraints(avoidLavaEdges = avoid),
 			climbing = { false }, lava = { environment.lavaWithin(it) },
 		).observe(1, standing(z))
-		assertEquals(RolloutVerdict.Continue, verdict(0.25, 0.5), "a body centred on the block is clear of the lava")
-		assertIs<RolloutVerdict.Failed>(verdict(0.25, 0.85), "a footprint hanging 0.15 over the lava breaks the margin")
-		assertEquals(RolloutVerdict.Continue, verdict(0.0, 0.85), "without a margin the planner follows vanilla, which stands on any edge")
+		assertEquals(RolloutVerdict.Continue, verdict(true, 0.5), "a body centred on the block is clear of the lava")
+		assertIs<RolloutVerdict.Failed>(verdict(true, 0.85), "feet hanging 0.15 over the lava stand on its edge")
+		assertEquals(RolloutVerdict.Continue, verdict(false, 0.85), "off, the planner follows vanilla, which stands on any edge")
+	}
+
+	/**
+	 * A parkour course's lava lake: a single gold block with a gold wall behind it, four blocks of lava to a pair of
+	 * magma blocks one level lower, and lava beside and behind the landing. Every jump the body can make without a
+	 * run-up lands with its feet hanging over the lava. Avoiding lava edges, the body backs up to the wall, sprints
+	 * and jumps on the last tick it still counts as grounded, past the block's edge, and lands clear of the lava.
+	 */
+	@Test
+	fun `a long jump off a single block lands clear of the lava when avoiding lava edges`() {
+		MinecraftBootstrap.ensure()
+		val layers = mapOf(
+			63 to listOf(
+				"~~~GGGnGnBB", "~~~~GGGGnnB", "G~~~~MnGGnn", "G~~~~~MMnnn", "~~~~~~~~Mnn", "~~~~~~~~Mnn", "~~~~~~~Mnnn",
+				"~GGG~~~Mnnn", "~GGGG~~~nnn", "GGGGG~~~Mnn", "GGG~~~~~~MM", "GG~~~~~~~~~", "~~~~gg~~~~~",
+			),
+			64 to listOf(
+				"....GGG....", "...........", "GG.........", "G.........n", ".........nn", "........Mnn", ".......nnnn",
+				"..GG...nnnn", ".GGGG...nnn", "GGGG....nnn", "GGG......nM", "GB.........", "...........",
+			),
+			65 to listOf(
+				"n....G.....", "...........", "...........", "..........n", ".........nn", "........nnn", ".......nnnn",
+				"..G....nnnn", "GGGG....nnn", "GGGG....nnn", "BGG......nn", "...........", "...........",
+			),
+			66 to listOf(
+				"n..........", "...........", "...........", "..........n", "........nnn", "........nnn", ".......nnnn",
+				".......nnnn", ".GGG....nnn", ".GG.....nnn", ".G.......nn", "...........", "...........",
+			),
+			67 to listOf(
+				"nn.........", "...........", "..........n", ".........nn", "........nnn", ".......nnnn", ".......nnnn",
+				"......nnnnn", ".GGG...nnnn", ".GG....nnnn", ".B.......nn", "...........", "...........",
+			),
+		)
+		val blocks = mapOf(
+			'~' to Blocks.LAVA.defaultState, 'G' to Blocks.GOLD_BLOCK.defaultState, 'n' to Blocks.NETHERRACK.defaultState,
+			'M' to Blocks.MAGMA_BLOCK.defaultState, 'B' to Blocks.NETHER_BRICKS.defaultState, 'g' to Blocks.GRAVEL.defaultState,
+		)
+		val states = HashMap<BlockPos, BlockState>()
+		for (x in -4..6) for (z in -8..4) states[BlockPos(x, 62, z)] = Blocks.NETHERRACK.defaultState
+		for ((y, rows) in layers) for ((row, line) in rows.withIndex()) for ((column, symbol) in line.withIndex()) {
+			blocks[symbol]?.let { states[BlockPos(column - 4, y, row - 8)] = it }
+		}
+		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val environment = SnapshotSimulationEnvironment.synthetic(
+			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
+			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
+		)
+		val goal = Stance(2, 64, -5)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(0, 65, 0), goal)
+		assertTrue(planner.repair().converged, "the lava lake must converge")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "the gold block must have a coarse jump onto the magma")
+
+		val outcome = walkFrom(route, planner, resting(Vec3d(0.5, 65.0, 0.5), 180.0), environment, MotionConstraints(avoidLavaEdges = true))
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the jump must be certified, got $outcome")
+		val overLava = path.plan.frames.filter { frame ->
+			val box = frame.state.boundingBox
+			frame.state.onGround && environment.lavaWithin(Box(box.minX, box.minY - 0.05, box.minZ, box.maxX, box.minY, box.maxZ))
+		}
+		assertTrue(overLava.isEmpty(), "the feet must never stand over lava, did at ${overLava.map { it.index }}")
+		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
 	@Test

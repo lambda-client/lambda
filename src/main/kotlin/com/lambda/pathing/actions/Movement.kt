@@ -45,6 +45,7 @@ class DecisionContext(
 	val constraints: MotionConstraints,
 	val view: CoarseVoxelView,
 	val steering: SteeringField,
+	val lastResort: Boolean = false,
 ) {
 	private var bearings: HashMap<Double, Boolean>? = null
 

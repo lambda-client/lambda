@@ -17,7 +17,7 @@ internal class ActionSet(
 	private val config: MotionConstraints,
 	private val finalLeg: () -> Boolean = { true },
 ) {
-	private fun actions(anchor: ValueAnchor, temperature: Double): List<PricedDecision> {
+	private fun actions(anchor: ValueAnchor, temperature: Double, lastResort: Boolean): List<PricedDecision> {
 		if (anchor.parent != null && field.guide(anchor.stance) <= FINISH_VALUE_TICKS && finalLeg()) {
 			return emptyList()
 		}
@@ -39,6 +39,7 @@ internal class ActionSet(
 				constraints = config,
 				view = field.view,
 				steering = field,
+				lastResort = lastResort,
 			)
 		}
 
@@ -82,8 +83,8 @@ internal class ActionSet(
 		return priced.filter { it.price.difficulty <= floor + DIFFICULTY_TIER }
 	}
 
-	fun next(anchor: ValueAnchor, temperature: Double, epoch: Int): TrajectoryDecision? {
-		val actions = cached(anchor, temperature, epoch)
+	fun next(anchor: ValueAnchor, temperature: Double, lastResort: Boolean, epoch: Int): TrajectoryDecision? {
+		val actions = cached(anchor, temperature, lastResort, epoch)
 		while (anchor.actionCursor < actions.size) {
 			val decision = actions[anchor.actionCursor++].decision
 			if (anchor.attempt(decision)) return decision
@@ -91,8 +92,8 @@ internal class ActionSet(
 		return null
 	}
 
-	fun nextSurcharge(anchor: ValueAnchor, temperature: Double, epoch: Int): Double? {
-		val actions = cached(anchor, temperature, epoch)
+	fun nextSurcharge(anchor: ValueAnchor, temperature: Double, lastResort: Boolean, epoch: Int): Double? {
+		val actions = cached(anchor, temperature, lastResort, epoch)
 		while (anchor.actionCursor < actions.size) {
 			val action = actions[anchor.actionCursor]
 			if (!anchor.hasAttempted(action.decision)) return action.price.surcharge
@@ -101,11 +102,11 @@ internal class ActionSet(
 		return null
 	}
 
-	private fun cached(anchor: ValueAnchor, temperature: Double, epoch: Int): List<PricedDecision> {
+	private fun cached(anchor: ValueAnchor, temperature: Double, lastResort: Boolean, epoch: Int): List<PricedDecision> {
 		val hazard = anchor.hazardFrame
 		val cached = anchor.actions
 		if (cached != null && anchor.actionsHazardFrame == hazard && anchor.actionsEpoch == epoch) return cached
-		return actions(anchor, temperature).also {
+		return actions(anchor, temperature, lastResort).also {
 			anchor.actions = it
 			anchor.actionCursor = 0
 			anchor.actionsHazardFrame = hazard

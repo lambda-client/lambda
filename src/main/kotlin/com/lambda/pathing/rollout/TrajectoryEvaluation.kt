@@ -39,7 +39,7 @@ internal class RolloutEvaluator(
 	private var apex = initialState.position.y
 	private var stable = 0
 
-	private var startsNearLava = config.lavaMargin > 0.0 && nearLava(initialState.boundingBox)
+	private var startsOverLava = config.avoidLavaEdges && initialState.onGround && overLava(initialState.boundingBox)
 
 	var pendingBlocker: TrajectoryDiagnostic? = null
 		private set
@@ -65,10 +65,10 @@ internal class RolloutEvaluator(
 
 		if (state.eyeInWater && state.air < airFloor) return RolloutVerdict.Failed(TrajectoryDiagnostic.Drowning(index, state.air))
 
-		if (config.lavaMargin > 0.0) {
-			val near = nearLava(state.boundingBox)
-			if (near && !startsNearLava) return RolloutVerdict.Failed(TrajectoryDiagnostic.UnsupportedPhysics(index, "within the lava margin"))
-			if (!near) startsNearLava = false
+		if (config.avoidLavaEdges) {
+			val over = state.onGround && overLava(state.boundingBox)
+			if (over && !startsOverLava) return RolloutVerdict.Failed(TrajectoryDiagnostic.UnsupportedPhysics(index, "standing over lava"))
+			if (!over) startsOverLava = false
 		}
 
 		if (pendingBlocker == null && state.verticalCollision && before.velocity.y > 0.0 && !state.onGround) {
@@ -93,10 +93,7 @@ internal class RolloutEvaluator(
 		return RolloutVerdict.Continue
 	}
 
-	private fun nearLava(box: Box): Boolean {
-		val margin = config.lavaMargin
-		return lava(Box(box.minX, box.minY - margin, box.minZ, box.maxX, box.minY, box.maxZ)) || lava(box.expand(margin, 0.0, margin))
-	}
+	private fun overLava(box: Box): Boolean = lava(Box(box.minX, box.minY - SUPPORT_PROBE_DEPTH, box.minZ, box.maxX, box.minY, box.maxZ))
 
 	fun terminalDiagnostic(rollout: TrajectoryRollout): TrajectoryDiagnostic = when (val termination = rollout.termination) {
 		is TrajectoryRolloutTermination.Blocked -> TrajectoryDiagnostic.UnknownTerrain(termination.frame, termination.section)
@@ -117,3 +114,5 @@ internal class RolloutEvaluator(
 internal const val VERTICAL_GOAL_TOLERANCE = 0.05
 
 private const val FALL_TOLERANCE = 0.6
+
+private const val SUPPORT_PROBE_DEPTH = 0.05

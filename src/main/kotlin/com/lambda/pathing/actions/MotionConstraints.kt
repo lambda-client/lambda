@@ -14,7 +14,7 @@ data class MotionConstraints(
 	val touchRestRadius: Double = 1.6,
 	val fallLimits: FallLimits = FallLimits(),
 	val jumpPenaltyTicks: Double = 0.0,
-	val lavaMargin: Double = 0.0,
+	val avoidLavaEdges: Boolean = false,
 ) {
 	init {
 		require(maxFrames > 0)
@@ -24,7 +24,6 @@ data class MotionConstraints(
 		require(brakeDistances.isNotEmpty() && brakeDistances.all { it > 0.0 && it.isFinite() })
 		require(sprintModes.isNotEmpty())
 		require(touchRestRadius > 0.0 && touchRestRadius.isFinite())
-		require(lavaMargin >= 0.0 && lavaMargin.isFinite())
 	}
 
 	val maxSafeFallDistance: Double = fallLimits.maxSafeFallDistance

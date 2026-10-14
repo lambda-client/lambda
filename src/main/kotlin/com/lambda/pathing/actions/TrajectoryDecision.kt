@@ -71,6 +71,8 @@ interface TrajectoryDecision {
 		val solution: LaunchSolution,
 		val retreatAlong: Double,
 		val hopAlong: Double?,
+		val hopHoldDelay: Int = 0,
+		val edgeAlong: Double? = null,
 		override val movement: MovementId = MovementId.JUMP,
 	) : TrajectoryDecision
 

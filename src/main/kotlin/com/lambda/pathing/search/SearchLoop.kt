@@ -115,7 +115,7 @@ internal class SearchLoop(
 	}
 
 	private fun stopReason(): SearchExit? = when {
-		frontier.isExhausted && !frontier.hasBlocked && !annealing.revivable && !restartable() && !extendable() && !refine() && !walkingToGoal() -> SearchExit.EXHAUSTED
+		frontier.isExhausted && !frontier.hasBlocked && !annealing.revivable && !restartable() && !extendable() && !refine() && !walkingToGoal() && !admitLastResort() -> SearchExit.EXHAUSTED
 		budget.exhausted && !awaitingArrival() && !walkingToGoal() && !restartFromTape() -> SearchExit.BUDGET
 		else -> null
 	}
@@ -197,9 +197,15 @@ internal class SearchLoop(
 		}
 		if (frontier.extend()) return null
 		val toward = incumbent.best?.takeIf { !incumbent.ready(it) }?.anchor
-		if (!frontier.hasParked && toward == null) return SearchExit.DRAINED.takeUnless { refine() || idleUntilArrival() }
+		if (!frontier.hasParked && toward == null) return SearchExit.DRAINED.takeUnless { refine() || idleUntilArrival() || admitLastResort() }
 		if (publisher.commit(urgent = true, along = toward)) return null
-		return SearchExit.COMMIT_REFUSED.takeUnless { idleUntilArrival() }
+		return SearchExit.COMMIT_REFUSED.takeUnless { idleUntilArrival() || admitLastResort() }
+	}
+
+	private fun admitLastResort(): Boolean {
+		if (incumbent.best != null || !annealing.admitLastResort()) return false
+		recovery.rearm()
+		return true
 	}
 
 	private fun periodicMaintenance() {

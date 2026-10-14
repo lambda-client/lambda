@@ -14,6 +14,8 @@ internal class RunUpLaunchProgram(
 	private val solution: LaunchSolution,
 	private val retreatAlong: Double,
 	hopAlong: Double?,
+	private val hopHoldDelay: Int,
+	private val edgeAlong: Double?,
 	private val maxYawChange: Double,
 ) : ControlProgram {
 	private val jumpTargets = ArrayDeque(listOfNotNull(hopAlong, solution.launchOffset))
@@ -21,6 +23,7 @@ internal class RunUpLaunchProgram(
 	private var retreatDone = false
 	private var launched = false
 	private var landedAfterLaunch = false
+	private var hopFrame: Int? = null
 
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		val along = alongEdge(takeoff, aim, observed.position.x, observed.position.z)
@@ -45,16 +48,24 @@ internal class RunUpLaunchProgram(
 			retreatDone = true
 		}
 
+		val velocityAlong = alongEdge(takeoff, aim, observed.position.x + observed.velocity.x, observed.position.z + observed.velocity.z) - along
 		var jump = false
 		if (observed.onGround && jumpTargets.isNotEmpty()) {
-			if (reachesLip(takeoff, aim, observed, along, jumpTargets.first())) {
+			val launching = jumpTargets.size == 1
+			val due = when {
+				launching && edgeAlong != null -> along > edgeAlong
+				launching || hopHoldDelay == 0 -> reachesLip(takeoff, aim, observed, along, jumpTargets.first())
+				else -> velocityAlong >= 0.0 && reachesLip(takeoff, aim, observed, along, jumpTargets.first())
+			}
+			if (due) {
 				jump = true
-				if (jumpTargets.size == 1) launched = true
+				if (launching) launched = true else hopFrame = frame
 				jumpTargets.removeFirst()
 			}
 		}
+		val holding = hopFrame?.let { frame - it >= hopHoldDelay } ?: true
 		return MovementSimulationInput(
-			forward = 1.0,
+			forward = if (holding) 1.0 else 0.0,
 			sprint = solution.sprint,
 			jump = jump,
 			rotation = rotation,
