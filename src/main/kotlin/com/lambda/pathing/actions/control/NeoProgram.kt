@@ -45,6 +45,7 @@ internal class NeoProgram(private val decision: TrajectoryDecision.Neo, context:
 			upSpeed = velocity.y,
 			heading = Math.toDegrees(atan2(facingX * decision.sideX + facingZ * decision.sideZ, facingX * decision.forwardX + facingZ * decision.forwardZ)),
 			grounded = observed.onGround,
+			sprinting = !observed.horizontalCollision || observed.collidedSoftly,
 			launched = launched,
 		)
 		if (command.jump) launched = true

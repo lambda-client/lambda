@@ -71,6 +71,8 @@ internal fun preparePlanning(
 	val goal = resolveGoalStance(player, goal)
 	val resolvedWaypoints = waypoints.map { resolveGoalStance(player, it) }
 	val fallLimits = player.fallLimits(acceptedDamage = (config.maxFallDamage * HEALTH_PER_HEART).toInt())
+	val profile = PlayerPhysicsProfile.capture(player)
+	val sprints = config.allowSprint && !config.saveFood && profile.canSprint
 	val moveOptions = SimpleMoveOptions(
 		allowDiagonal = config.allowDiagonal,
 		allowStepUp = config.allowStepUp,
@@ -87,21 +89,20 @@ internal fun preparePlanning(
 		allowSlimeBounces = config.allowSlimeBounces,
 		maxBounceDrop = config.maxBounceDrop,
 		allowDeepFalls = config.allowDeepFalls,
-		allowNeoJumps = config.allowNeoJumps && turnSpeed >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME,
+		allowNeoJumps = config.allowNeoJumps && sprints && turnSpeed >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME,
 		fallLimits = fallLimits,
 		ignoreHazards = config.ignoreHazards,
 		avoidMobs = config.avoidMobs,
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 		frontierTicksPerBlock = config.frontierTicksPerBlock,
 	)
-	val profile = PlayerPhysicsProfile.capture(player)
 	val seedConfig = MotionConstraints(
 		maxFrames = config.maxFrames,
 		maxYawDegreesPerFrame = turnSpeed,
 		goalRadius = config.goalRadius,
 		touchArrival = config.touchArrival,
 		fallLimits = fallLimits,
-		sprintModes = if (config.allowSprint && !config.saveFood && profile.canSprint) listOf(true, false) else listOf(false),
+		sprintModes = if (sprints) listOf(true, false) else listOf(false),
 		jumpPenaltyTicks = if (config.saveFood) SAVE_FOOD_JUMP_TICKS else 0.0,
 		avoidLavaEdges = config.avoidLavaEdges,
 	)

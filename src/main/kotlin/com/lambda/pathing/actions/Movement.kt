@@ -112,6 +112,8 @@ interface Movement {
 
 	val inMedium: Boolean get() = false
 
+	val allowsWallContact: Boolean get() = false
+
 	fun descentAllowance(decision: TrajectoryDecision): Double = 0.0
 
 	fun transitionFrames(decision: TrajectoryDecision): Int = 0

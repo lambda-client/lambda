@@ -117,7 +117,7 @@ interface PathingConfig {
 
     /**
      * Whether a jump blocked by a wall may swing around the wall's side: run out past its edge, jump
-     * beside it and steer back in the air. Needs a turn speed of at least 90 degrees a tick.
+     * beside it and steer back in the air. Needs sprinting and a turn speed of at least 90 degrees a tick.
      */
     val allowNeoJumps: Boolean get() = true
 

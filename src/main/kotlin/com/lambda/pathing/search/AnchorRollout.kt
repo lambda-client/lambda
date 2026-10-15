@@ -108,7 +108,7 @@ internal class AnchorRollout(
 			program = program,
 			evaluator = RolloutEvaluator(
 				anchor.state, points, route.goalPoint, config,
-				allowHorizontalContact = movement.inMedium || Footing.involvesPartial(field.view, action.step.x, action.step.y, action.step.z) ||
+				allowHorizontalContact = movement.inMedium || movement.allowsWallContact || Footing.involvesPartial(field.view, action.step.x, action.step.y, action.step.z) ||
 						action.delayFrames != null && Footing.involvesPartial(field.view, anchor.stance.x, anchor.stance.y, anchor.stance.z),
 				descentAllowance = movement.descentAllowance(action),
 				climbing = climbingAt,

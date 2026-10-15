@@ -126,12 +126,53 @@ class NeoJumpTest {
 		assertTrue(slowest > STILL, "the neo stopped on the take-off (slowest %.3f)".format(slowest))
 	}
 
+	private fun chain(walls: List<Int>, floors: List<Int>, fx: Int, fz: Int): List<SimulatedTrajectoryFrame> {
+		fun at(forward: Int, y: Int) = BlockPos(fx * forward, y, fz * forward)
+		val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+		for (forward in -3..0) blocks[at(forward, 63)] = SnapshotBlockPhysics.FULL_CUBE
+		for (wall in walls) for (y in 64..65) blocks[at(wall, y)] = SnapshotBlockPhysics.FULL_CUBE
+		for (forward in floors) blocks[at(forward, 63)] = SnapshotBlockPhysics.FULL_CUBE
+		val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-16, 40, -16, 16, 90, 16), blocks)
+		val goalPos = at(floors.last(), 64)
+		val goal = Stance(goalPos.x, goalPos.y, goalPos.z)
+		val start = Stance(-3 * fx, 64, -3 * fz)
+		val planner = CoarsePlanner(environment, ProbeScenarios.moveLibrary(SimpleMoveOptions(allowNeoJumps = true)), start, goal)
+		assertTrue(planner.repair().converged)
+		planner.expandSearchField()
+		val route = checkNotNull(planner.routePlan(0L)) { planner.routeFailureReport() }
+		val neos = route.edges.count { it.movement == MovementId.NEO }
+		assertTrue(neos == walls.size - walls.zipWithNext().count { (a, b) -> b == a + 1 }, "every wall needs its own neo; got ${route.edges.map { "${it.movement} ${it.from}->${it.to}" }}")
+		val yaw = Math.toDegrees(kotlin.math.atan2(-fx.toDouble(), fz.toDouble()))
+		val outcome = walkHorizon(
+			route, planner, resting(Vec3d(start.x + 0.5, 64.0, start.z + 0.5), yaw = yaw), PROFILE, environment,
+			MotionConstraints(maxYawDegreesPerFrame = 180.0),
+			publish = { _, _ -> },
+			started = System.currentTimeMillis(),
+		)
+		val path = checkNotNull((outcome as? PathPlanResult.Planned)?.path) { "no plan: $outcome" }
+		assertTrue(!path.partial, "the chain must arrive behind the last wall")
+		return path.plan.frames
+	}
+
+	@Test
+	fun `consecutive neos land on the single block between the walls`() {
+		for ((fx, fz) in listOf(1 to 0, 0 to -1)) {
+			val frames = chain(walls = listOf(1, 3, 5), floors = listOf(2, 4, 6, 7), fx, fz)
+			val enter = frames.indexOfFirst { fx * it.state.position.x + fz * it.state.position.z >= 0.0 }
+			val land = frames.indexOfFirst { it.state.onGround && fx * it.state.position.x + fz * it.state.position.z >= 6.0 }
+			assertTrue(land - enter <= 3 * CHAINED_NEO_FRAMES, "three chained neos took ${land - enter} frames")
+		}
+		chain(walls = listOf(1, 3, 4), floors = listOf(2, 5, 6), 1, 0)
+	}
+
 	private companion object {
 		const val SPRINTING = 0.12
 
 		const val STILL = 0.05
 
 		const val MOMENTUM_NEO_FRAMES = 17
+
+		const val CHAINED_NEO_FRAMES = 17
 	}
 
 	private fun diagonal(fx: Int, fz: Int, sx: Int, sz: Int) {

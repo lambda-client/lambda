@@ -59,6 +59,8 @@ object NeoMovement : Movement {
 		}
 	}
 
+	override val allowsWallContact: Boolean get() = true
+
 	override fun program(context: ProgramContext): ControlProgram =
 		NeoProgram(context.decision as TrajectoryDecision.Neo, context)
 
@@ -125,7 +127,7 @@ object NeoMovement : Movement {
 	private val VARIANTS = listOf(
 		straight(
 			reach = 2, rise = 0, thickness = 1, ticks = 16.0,
-			lane = cells(0, 0, 1, 1, 0, 1, 2, 0, 0, 2, 0, 1, 3, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 2, 1, 0, 2, 1, 1, 3, 1, 0, 0, 2, 1, 1, 2, 1, 2, 2, 0, 2, 2, 1, 1, 3, 1, 2, 3, 1),
+			lane = cells(0, 0, 1, 1, 0, 1, 2, 0, 0, 2, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 2, 1, 0, 2, 1, 1, 0, 2, 1, 1, 2, 1, 2, 2, 0, 2, 2, 1, 1, 3, 1, 2, 3, 1),
 		),
 		straight(
 			reach = 2, rise = 1, thickness = 1, ticks = 15.0,
@@ -149,15 +151,15 @@ object NeoMovement : Movement {
 		straight(
 			reach = 3, rise = 0, thickness = 2, ticks = 17.0,
 			lane = cells(
-				0, 0, 1, 1, 0, 1, 2, 0, 1, 3, 0, 0, 3, 0, 1, 4, 0, 0, 4, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 2, 1, 1, 3, 1, 0,
-				3, 1, 1, 4, 1, 0, 4, 1, 1, 0, 2, 1, 1, 2, 1, 2, 2, 1, 3, 2, 1, 1, 3, 1, 2, 3, 1,
+				0, 0, 1, 1, 0, 1, 2, 0, 1, 3, 0, 0, 3, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 2, 1, 1, 3, 1, 0, 3, 1, 1, 0, 2, 1,
+				1, 2, 1, 2, 2, 1, 3, 2, 1, 1, 3, 1, 2, 3, 1,
 			),
 		),
 		straight(
 			reach = 3, rise = -1, thickness = 2, ticks = 19.0,
 			lane = cells(
-				3, -1, 0, 3, -1, 1, 4, -1, 0, 4, -1, 1, 0, 0, 1, 1, 0, 1, 2, 0, 1, 3, 0, 0, 3, 0, 1, 4, 0, 0, 4, 0, 1, 0, 1, 0,
-				0, 1, 1, 1, 1, 1, 2, 1, 1, 3, 1, 1, 0, 2, 1, 1, 2, 1, 2, 2, 1, 3, 2, 1, 1, 3, 1, 2, 3, 1,
+				3, -1, 0, 3, -1, 1, 0, 0, 1, 1, 0, 1, 2, 0, 1, 3, 0, 0, 3, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 2, 1, 1, 3, 1, 1,
+				0, 2, 1, 1, 2, 1, 2, 2, 1, 3, 2, 1, 1, 3, 1, 2, 3, 1,
 			),
 		),
 		Variant(

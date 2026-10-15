@@ -4,12 +4,15 @@ import com.lambda.pathing.actions.NeoTerrain
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.atan2
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 internal class NeoPilot(
 	private val terrain: NeoTerrain,
@@ -31,6 +34,7 @@ internal class NeoPilot(
 		var upSpeed = 0.0
 		var heading = 0.0
 		var grounded = false
+		var sprinting = true
 
 		fun copyFrom(other: Body) {
 			forward = other.forward
@@ -41,6 +45,7 @@ internal class NeoPilot(
 			upSpeed = other.upSpeed
 			heading = other.heading
 			grounded = other.grounded
+			sprinting = other.sprinting
 		}
 	}
 
@@ -59,7 +64,7 @@ internal class NeoPilot(
 	fun command(
 		forward: Double, side: Double, up: Double,
 		forwardSpeed: Double, sideSpeed: Double, upSpeed: Double,
-		heading: Double, grounded: Boolean, launched: Boolean,
+		heading: Double, grounded: Boolean, sprinting: Boolean, launched: Boolean,
 	): Command {
 		start.forward = forward
 		start.side = side
@@ -69,6 +74,7 @@ internal class NeoPilot(
 		start.upSpeed = upSpeed
 		start.heading = heading
 		start.grounded = grounded
+		start.sprinting = sprinting
 		if (launched && grounded) return Command(towardLanding(start), jump = false)
 		if (launched || !grounded) return Command(bestFlight(launched, preferredMargin) ?: bestFlight(launched, 0.0) ?: heading, jump = false)
 		bestLaunch(preferredMargin)?.let { return Command(it, jump = true) }
@@ -114,6 +120,7 @@ internal class NeoPilot(
 		var airborne = launched
 		for (tick in 1..min(MAX_TICKS, bound)) {
 			val jump = launch && tick == 1
+			val wasGrounded = body.grounded
 			val stepped = when {
 				jump -> step(body, headings[jumpHeading], alongs[jumpHeading], acrosses[jumpHeading], jump = true, margin = margin)
 				airborne && body.grounded -> step(body, towardLanding(body), Double.NaN, Double.NaN, jump = false, margin = margin)
@@ -121,11 +128,17 @@ internal class NeoPilot(
 			}
 			if (!stepped) return -1
 			if (jump) airborne = true
-			if (airborne && body.grounded && arrived(body)) return tick
+			if (airborne && body.grounded) {
+				if (arrived(body)) return tick
+				if (!wasGrounded && !onLanding(body, margin)) return -1
+			}
 			if (body.up < lowest) return -1
 		}
 		return -1
 	}
+
+	private fun onLanding(body: Body, margin: Double): Boolean =
+		abs(body.up - landingUp) < EPSILON && overlaps(body.forward, landingForward, margin) && overlaps(body.side, landingSide, margin)
 
 	private fun arrived(body: Body): Boolean =
 		floor(body.forward).toInt() == landingForward && floor(body.side).toInt() == landingSide && abs(body.up - landingUp) < EPSILON
@@ -147,13 +160,19 @@ internal class NeoPilot(
 		}
 		body.heading = heading
 		val grounded = body.grounded
+		val sprinting = body.sprinting
 		if (jump) {
 			if (!grounded) return false
 			body.upSpeed = max(JUMP_VELOCITY, body.upSpeed)
-			body.forwardSpeed += SPRINT_JUMP_BOOST * along
-			body.sideSpeed += SPRINT_JUMP_BOOST * across
+			if (sprinting) {
+				body.forwardSpeed += SPRINT_JUMP_BOOST * along
+				body.sideSpeed += SPRINT_JUMP_BOOST * across
+			}
 		}
-		val acceleration = if (grounded) GROUND_ACCELERATION else AIR_ACCELERATION
+		val acceleration = when {
+			grounded -> if (sprinting) SPRINT_GROUND_ACCELERATION else WALK_GROUND_ACCELERATION
+			else -> if (sprinting) SPRINT_AIR_ACCELERATION else WALK_AIR_ACCELERATION
+		}
 		body.forwardSpeed += acceleration * along
 		body.sideSpeed += acceleration * across
 		val rise = body.upSpeed
@@ -168,28 +187,46 @@ internal class NeoPilot(
 				body.up += rise
 			}
 		} else if (rise > 0.0) {
-			if (blocked(body.forward, body.forward, body.side, body.side, body.up, body.up + rise, 0.0)) return false
+			if (ceilingWithin(body, rise)) return false
 			body.up += rise
 		}
 		val forwardMove = body.forwardSpeed
 		val sideMove = body.sideSpeed
+		val movedForward: Double
+		val movedSide: Double
 		if (abs(forwardMove) >= abs(sideMove)) {
-			if (blocked(body.forward, body.forward + forwardMove, body.side, body.side, body.up, body.up, margin)) return false
-			body.forward += forwardMove
-			if (blocked(body.forward, body.forward, body.side, body.side + sideMove, body.up, body.up, margin)) return false
-			body.side += sideMove
+			movedForward = clipForward(body, forwardMove)
+			if (movedForward.isNaN()) return false
+			body.forward += movedForward
+			movedSide = clipSide(body, sideMove)
+			if (movedSide.isNaN()) return false
+			body.side += movedSide
 		} else {
-			if (blocked(body.forward, body.forward, body.side, body.side + sideMove, body.up, body.up, margin)) return false
-			body.side += sideMove
-			if (blocked(body.forward, body.forward + forwardMove, body.side, body.side, body.up, body.up, margin)) return false
-			body.forward += forwardMove
+			movedSide = clipSide(body, sideMove)
+			if (movedSide.isNaN()) return false
+			body.side += movedSide
+			movedForward = clipForward(body, forwardMove)
+			if (movedForward.isNaN()) return false
+			body.forward += movedForward
 		}
+		val hitForward = abs(movedForward - forwardMove) >= COLLISION_TOLERANCE
+		val hitSide = abs(movedSide - sideMove) >= COLLISION_TOLERANCE
+		if (hitForward) body.forwardSpeed = 0.0
+		if (hitSide) body.sideSpeed = 0.0
+		body.sprinting = !(hitForward || hitSide) || soft(along, across, movedForward, movedSide)
 		val drag = if (grounded) GROUND_FRICTION else AIR_DRAG
 		body.forwardSpeed *= drag
 		body.sideSpeed *= drag
 		body.upSpeed = ((if (landed) 0.0 else rise) - GRAVITY) * VERTICAL_DRAG
 		body.grounded = landed
 		return true
+	}
+
+	private fun soft(along: Double, across: Double, movedForward: Double, movedSide: Double): Boolean {
+		val moved = movedForward * movedForward + movedSide * movedSide
+		if (moved < SOFT_COLLISION_MIN_SQUARED) return false
+		val cosine = (along * movedForward + across * movedSide) / sqrt(moved)
+		return acos(cosine.coerceIn(-1.0, 1.0)) < SOFT_COLLISION_MAX_ANGLE
 	}
 
 	private fun turned(current: Double, target: Double): Double {
@@ -236,28 +273,83 @@ internal class NeoPilot(
 		return centre + reach > cell && centre - reach < cell + 1
 	}
 
-	private fun blocked(fromForward: Double, toForward: Double, fromSide: Double, toSide: Double, fromUp: Double, toUp: Double, margin: Double): Boolean {
-		val reach = HALF_WIDTH + margin
-		val minF = cell(min(fromForward, toForward) - reach + EPSILON)
-		val maxF = cell(max(fromForward, toForward) + reach - EPSILON)
-		val minS = cell(min(fromSide, toSide) - reach + EPSILON)
-		val maxS = cell(max(fromSide, toSide) + reach - EPSILON)
-		val minU = cell(min(fromUp, toUp) + EPSILON)
-		val maxU = cell(max(fromUp, toUp) + HEIGHT - EPSILON)
-		for (s in minS..maxS) for (f in minF..maxF) {
-			if (terrain.occupiedLevels(f, s, minU, maxU)) return true
+	private fun ceilingWithin(body: Body, rise: Double): Boolean {
+		val fromUp = cell(body.up + HEIGHT - EPSILON)
+		val toUp = cell(body.up + rise + HEIGHT - EPSILON)
+		if (toUp == fromUp) return false
+		for (s in cell(body.side - HALF_WIDTH + EPSILON)..cell(body.side + HALF_WIDTH - EPSILON)) {
+			for (f in cell(body.forward - HALF_WIDTH + EPSILON)..cell(body.forward + HALF_WIDTH - EPSILON)) {
+				if (terrain.occupiedLevels(f, s, fromUp + 1, toUp)) return true
+			}
 		}
 		return false
 	}
 
+	private fun clipForward(body: Body, delta: Double): Double {
+		if (delta == 0.0) return 0.0
+		val minSide = cell(body.side - HALF_WIDTH + EPSILON)
+		val maxSide = cell(body.side + HALF_WIDTH - EPSILON)
+		val minUp = cell(body.up + EPSILON)
+		val maxUp = cell(body.up + HEIGHT - EPSILON)
+		if (delta > 0.0) {
+			val face = body.forward + HALF_WIDTH
+			for (f in ceil(face - EPSILON).toInt() until ceil(face + delta).toInt()) {
+				for (s in minSide..maxSide) if (terrain.occupiedLevels(f, s, minUp, maxUp)) {
+					return if (outside(f, s, minUp, maxUp)) Double.NaN else f - face
+				}
+			}
+		} else {
+			val face = body.forward - HALF_WIDTH
+			for (f in floor(face + EPSILON).toInt() - 1 downTo floor(face + delta).toInt()) {
+				for (s in minSide..maxSide) if (terrain.occupiedLevels(f, s, minUp, maxUp)) {
+					return if (outside(f, s, minUp, maxUp)) Double.NaN else f + 1 - face
+				}
+			}
+		}
+		return delta
+	}
+
+	private fun clipSide(body: Body, delta: Double): Double {
+		if (delta == 0.0) return 0.0
+		val minForward = cell(body.forward - HALF_WIDTH + EPSILON)
+		val maxForward = cell(body.forward + HALF_WIDTH - EPSILON)
+		val minUp = cell(body.up + EPSILON)
+		val maxUp = cell(body.up + HEIGHT - EPSILON)
+		if (delta > 0.0) {
+			val face = body.side + HALF_WIDTH
+			for (s in ceil(face - EPSILON).toInt() until ceil(face + delta).toInt()) {
+				for (f in minForward..maxForward) if (terrain.occupiedLevels(f, s, minUp, maxUp)) {
+					return if (outside(f, s, minUp, maxUp)) Double.NaN else s - face
+				}
+			}
+		} else {
+			val face = body.side - HALF_WIDTH
+			for (s in floor(face + EPSILON).toInt() - 1 downTo floor(face + delta).toInt()) {
+				for (f in minForward..maxForward) if (terrain.occupiedLevels(f, s, minUp, maxUp)) {
+					return if (outside(f, s, minUp, maxUp)) Double.NaN else s + 1 - face
+				}
+			}
+		}
+		return delta
+	}
+
+	private fun outside(forward: Int, side: Int, fromUp: Int, toUp: Int): Boolean =
+		forward < terrain.minForward || forward >= terrain.minForward + terrain.forwardSize ||
+				side < terrain.minSide || side >= terrain.minSide + terrain.sideSize ||
+				fromUp < terrain.minUp || toUp >= terrain.minUp + terrain.upSize
+
 	private fun cell(value: Double): Int = floor(value).toInt()
 
 	companion object {
-		private val GROUND_ACCELERATION = BallisticProfile.VANILLA.sprintGroundAcceleration
+		private val SPRINT_GROUND_ACCELERATION = BallisticProfile.VANILLA.sprintGroundAcceleration
+
+		private val WALK_GROUND_ACCELERATION = BallisticProfile.VANILLA.walkGroundAcceleration
 
 		private val GROUND_FRICTION = BallisticProfile.VANILLA.groundFriction
 
-		private const val AIR_ACCELERATION = BallisticProfile.SPRINT_AIR_ACCELERATION
+		private const val SPRINT_AIR_ACCELERATION = BallisticProfile.SPRINT_AIR_ACCELERATION
+
+		private const val WALK_AIR_ACCELERATION = BallisticProfile.WALK_AIR_ACCELERATION
 
 		private const val AIR_DRAG = BallisticProfile.HORIZONTAL_DRAG
 
@@ -272,6 +364,12 @@ internal class NeoPilot(
 		private const val HALF_WIDTH = Vanilla.PLAYER_HALF_WIDTH.toDouble()
 
 		private const val HEIGHT = Vanilla.PLAYER_HEIGHT.toDouble()
+
+		private const val COLLISION_TOLERANCE = 1.0E-5
+
+		private const val SOFT_COLLISION_MIN_SQUARED = Vanilla.SOFT_COLLISION_MIN_SQUARED.toDouble()
+
+		private const val SOFT_COLLISION_MAX_ANGLE = Vanilla.SOFT_COLLISION_MAX_ANGLE.toDouble()
 
 		private const val EPSILON = 1.0E-7
 
