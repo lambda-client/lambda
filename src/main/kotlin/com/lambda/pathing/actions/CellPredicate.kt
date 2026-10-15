@@ -107,6 +107,20 @@ fun interface CellPredicate {
 
 		fun stepUpHeadroom(side: Int): CellPredicate = STEP_UP_HEADROOM[side]
 
+		fun footingReaches(dx: Int, dy: Int, dz: Int, outbound: Boolean) = object : CellPredicate {
+			override fun matches(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean {
+				if (!view.voxel(x, y, z).splitsCell && !view.voxel(x, y + 1, z).splitsCell) return true
+				val maxRise = if (dy > 0) Footing.JUMP_RISE else Footing.WALK_RISE
+				val here = Stance(x, y, z)
+				return if (outbound) Footing.walkable(view, here, Stance(x + dx, y + dy, z + dz), maxRise) else Footing.walkable(view, Stance(x - dx, y - dy, z - dz), here, maxRise)
+			}
+			override val extraReads = listOf(VoxelPos(0, 1, 0))
+			override val neighborReads = listOf(0 to 0, if (outbound) dx to dz else -dx to -dz)
+				.flatMap { (cx, cz) -> (-1..1).flatMap { ox -> (-1..1).flatMap { oz -> (-3..3).map { VoxelPos(cx + ox, it, cz + oz) } } } }.distinct()
+		}
+
+		private val CoarseVoxel.splitsCell: Boolean get() = partial && !centerPassable
+
 		fun walkingIn(side: Int, dy: Int): CellPredicate = WALKING_IN[dy + 1][side]
 
 		fun walkingOut(side: Int, dy: Int): CellPredicate = WALKING_OUT[dy + 1][side]

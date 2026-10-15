@@ -23,8 +23,9 @@ internal class GraftContext(
 internal class SpineGraft(private val steps: List<SpineStep>, private val contextOf: (Int) -> GraftContext) {
 	private val stances = ArrayList<Stance>(steps.size)
 	private val elapsed = ArrayList<Int>(steps.size)
-	private val byStance = HashMap<Stance, Int>()
+	private val byStance = HashMap<Stance, MutableList<Int>>()
 	private val tried = HashSet<Attempt>()
+	private val firstLeg = steps.firstOrNull()?.leg ?: 0
 
 	private data class Attempt(val stance: Stance, val elapsed: Int, val speed: Int)
 
@@ -52,18 +53,17 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 			anchor = next
 			stances += anchor.stance
 			elapsed += anchor.elapsed
-			if (step is SpineStep.Decide) byStance[anchor.stance] = index
+			if (step is SpineStep.Decide) byStance.getOrPut(anchor.stance) { ArrayList(1) } += index
 		}
 		rooted = true
 		return finish(anchor)
 	}
 
-	fun lead(anchor: ValueAnchor): Int? = byStance[anchor.stance]?.let { elapsed[it] - anchor.elapsed }
+	fun lead(anchor: ValueAnchor): Int? = indexOf(anchor) { true }?.let { elapsed[it] - anchor.elapsed }
 
 	fun graft(landed: ValueAnchor): Solution? {
 		if (!rooted) return null
-		val index = byStance[landed.stance] ?: return null
-		if (boundary(index) || landed.elapsed + GRAFT_MARGIN_FRAMES > elapsed[index]) return null
+		val index = indexOf(landed) { !boundary(it) && landed.elapsed + GRAFT_MARGIN_FRAMES <= elapsed[it] } ?: return null
 		if (!tried.add(Attempt(landed.stance, landed.elapsed, (landed.speed * SPEED_KEY).roundToInt()))) return null
 		attempts++
 		return follow(landed, index + 1)?.also { grafted++ }
@@ -91,6 +91,13 @@ internal class SpineGraft(private val steps: List<SpineStep>, private val contex
 	}
 
 	private fun finish(anchor: ValueAnchor): Solution? = contextOf(steps.lastOrNull()?.leg ?: 0).finish?.invoke(anchor)
+
+	private inline fun indexOf(anchor: ValueAnchor, admits: (Int) -> Boolean): Int? {
+		val indices = byStance[anchor.stance] ?: return null
+		if (indices.none(admits)) return null
+		val leg = firstLeg + generateSequence(anchor) { it.parent }.count { it.legRoot }
+		return indices.lastOrNull { steps[it].leg == leg }?.takeIf(admits)
+	}
 
 	private fun boundary(index: Int): Boolean = index + 1 < steps.size && steps[index + 1].leg != steps[index].leg
 

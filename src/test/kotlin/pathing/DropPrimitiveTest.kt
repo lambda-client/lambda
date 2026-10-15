@@ -338,6 +338,22 @@ class DropPrimitiveTest {
         )
     }
 
+    @Test
+    fun `a pillar drops off its corners as well as its sides`() {
+        val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
+        for (x in -4..4) for (z in -4..4) blocks[BlockPos(x, 62, z)] = SnapshotBlockPhysics.FULL_CUBE
+        for (y in 63..64) blocks[BlockPos(0, y, 0)] = SnapshotBlockPhysics.FULL_CUBE
+        val environment = SnapshotSimulationEnvironment.synthetic(SimulationSnapshotBounds(-8, 55, -8, 8, 75, 8), blocks)
+
+        val drops = library().edgesFrom(environment, Stance(0, 65, 0))
+            .filter { it.movement == MovementId.DROP }
+            .associateBy { it.to }
+        for (target in listOf(Stance(2, 63, 2), Stance(-2, 63, 1), Stance(1, 63, -2))) {
+            val drop = assertNotNull(drops[target], "the pillar must drop to $target: ${drops.keys}")
+            assertTrue(assertNotNull(drop.launch).mode.drops, "a drop to $target must be solved as a walk-off")
+        }
+    }
+
     private fun library() = moveLibrary(SimpleMoveOptions(maxWalkOffDepth = 3))
 
     /** An upper deck at y = 66 ending at x = 0, and a lower deck three blocks down. */

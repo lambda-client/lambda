@@ -16,7 +16,6 @@ import pathing.ProbeScenarios.moveLibrary
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 /**
  * A one-block gap in a tunnel.
@@ -49,16 +48,23 @@ class HeadHitterJumpTest {
 	}
 
 	/**
-	 * The ceiling only begins over the landing. Nothing stops the climb at take-off, so the head
-	 * rises past the tunnel's mouth and the body runs into it: the low arc that clears the gap
-	 * under a ceiling is only flown where a ceiling cuts the climb short.
+	 * The ceiling only begins over the landing. Nothing stops the climb at take-off, so the head rises
+	 * past the tunnel's mouth unless the jump comes down again before it: a slow jump launched late on
+	 * the take-off block is low enough at the mouth and lands just inside.
 	 */
 	@Test
-	fun `a gap into a low tunnel from open ground is refused`() {
-		// a five-span jump from further back descends under the roof's edge, so only short gaps are offered here
-		val planner = CoarsePlanner(tunnel(ceilingY = 66, roofed = 2..7), moveLibrary(SimpleMoveOptions(maxJumpSpan = 4)), Stance(-3, 64, 0), Stance(5, 64, 0))
+	fun `a gap into a low tunnel from open ground is jumped on a late low arc`() {
+		val environment = tunnel(ceilingY = 66, roofed = 2..7)
+		val start = Stance(-3, 64, 0)
+		val goal = Stance(5, 64, 0)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions(maxJumpSpan = 4)), start, goal)
 		planner.repair()
-		assertNull(planner.routePlan(0L), "the climb is not cut short before the tunnel's mouth")
+		planner.expandSearchField()
+		val route = assertNotNull(planner.routePlan(0L), "a low arc reaches under the tunnel's mouth")
+
+		val outcome = walkFrom(route, planner, resting(Vec3d(-2.5, 64.0, 0.5), -90.0), environment)
+		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the jump into the tunnel must be certified, got $outcome")
+		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
 	}
 
 	private fun tunnel(ceilingY: Int, roofed: IntRange): SnapshotSimulationEnvironment {

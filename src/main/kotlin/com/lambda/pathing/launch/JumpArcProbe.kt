@@ -29,6 +29,7 @@ object JumpArcProbe {
 		val riseBits: Long,
 		val modes: List<LaunchMode>,
 		val headroomBits: Long,
+		val everyLaunch: Boolean,
 	)
 
 	private class Candidate(
@@ -105,13 +106,14 @@ object JumpArcProbe {
 		modes: List<LaunchMode>,
 		riseHeight: Double,
 		headroom: Double = Double.POSITIVE_INFINITY,
+		everyLaunch: Boolean = false,
 	): List<Candidate> {
-		val key = SolveKey(dx, dz, riseHeight.toRawBits(), modes, headroom.toRawBits())
+		val key = SolveKey(dx, dz, riseHeight.toRawBits(), modes, headroom.toRawBits(), everyLaunch)
 		solutionCache[key]?.let { return it }
 		if (solutionCache.size > SOLUTION_CACHE_LIMIT) solutionCache.clear()
 		return solutionCache.computeIfAbsent(key) {
 			val solvable = if (headroom.isFinite()) modes.filter { it.jumps } else modes
-			LaunchSolver.solve(from, from.offset(dx, 0, dz), solvable, rise = riseHeight, headroom = headroom).map { Candidate(it, dx, dz, modes, riseHeight) }
+			LaunchSolver.solve(from, from.offset(dx, 0, dz), solvable, rise = riseHeight, headroom = headroom, everyLaunch = everyLaunch).map { Candidate(it, dx, dz, modes, riseHeight) }
 		}
 	}
 
@@ -224,6 +226,16 @@ object JumpArcProbe {
 	internal fun footprints(dx: Int, dz: Int, rise: Double, modes: List<LaunchMode>): List<Footprint> =
 		candidates(Stance(0, 0, 0), dx, dz, modes, rise).map { footprintOf(it.solution, it.plan) }
 
+	internal fun alternativeFootprints(dx: Int, dz: Int, rise: Double, modes: List<LaunchMode>): List<Footprint> =
+		alternatives(Stance(0, 0, 0), dx, dz, modes, rise).map { footprintOf(it.solution, it.plan) }
+
+	private fun alternatives(from: Stance, dx: Int, dz: Int, modes: List<LaunchMode>, riseHeight: Double): List<Candidate> {
+		val free = candidates(from, dx, dz, modes, riseHeight)
+		return candidates(from, dx, dz, modes, riseHeight, everyLaunch = true).filter { candidate ->
+			candidate.solution.landingSlack >= LaunchSolver.LANDING_SAFETY_BLOCKS && free.none { it.solution == candidate.solution }
+		}
+	}
+
 	internal fun cappedFootprints(dx: Int, dz: Int, rise: Double, modes: List<LaunchMode>): List<Footprint> {
 		if (modes.none { it.jumps }) return emptyList()
 		val region = region(dx, dz)
@@ -256,7 +268,8 @@ object JumpArcProbe {
 		riseHeight: Double,
 		modes: List<LaunchMode> = LaunchMode.entries,
 		launchHeight: Double = from.y.toDouble(),
-	): Probed<LaunchSolution>? = probed { reads -> solve(view, from, dx, dz, modes, riseHeight, launchHeight, reads) }
+		everyLaunch: Boolean = true,
+	): Probed<LaunchSolution>? = probed { reads -> solve(view, from, dx, dz, modes, riseHeight, launchHeight, everyLaunch, reads) }
 
 	private fun solve(
 		view: CoarseVoxelView,
@@ -266,6 +279,7 @@ object JumpArcProbe {
 		modes: List<LaunchMode>,
 		riseHeight: Double,
 		launchHeight: Double,
+		everyLaunch: Boolean,
 		reads: LongOpenHashSet?,
 	): LaunchSolution? {
 		val arcs by lazy(LazyThreadSafetyMode.NONE) { ArcSweep(view, from, dx, dz, reads) }
@@ -297,6 +311,13 @@ object JumpArcProbe {
 				for (candidate in candidates(from, dx, dz, modes, riseHeight, headroom)) {
 					if (sweep(candidate) == Sweep.Clear && bonks(view, from, dx, dz, candidate.solution, launchHeight, reads)) return candidate.solution
 				}
+			}
+		}
+		if (everyLaunch) for (candidate in alternatives(from, dx, dz, modes, riseHeight)) {
+			when (sweep(candidate)) {
+				Sweep.Clear -> return candidate.solution
+				Sweep.Partial -> dodge(candidate.solution, launchHeight, arcs)?.let { return it }
+				else -> {}
 			}
 		}
 		if (clipped == null || clip == null) return null

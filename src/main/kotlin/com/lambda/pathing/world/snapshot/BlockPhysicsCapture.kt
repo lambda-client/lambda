@@ -94,7 +94,7 @@ object BlockPhysicsCapture {
 			water = state.fluidState.takeIf { it.isIn(FluidTags.WATER) }?.let {
 				WaterPhysics(it.getHeight(world, pos), it.getVelocity(world, pos), state.bubbles())
 			},
-			hotFloor = state.isOf(Blocks.MAGMA_BLOCK),
+			hotFloor = !ignoreHazards && state.isOf(Blocks.MAGMA_BLOCK),
 			fallRule = if (cushionedByWater(state, shape, world, pos)) FallRule.NONE else state.fallRule(),
 			honey = state.isOf(Blocks.HONEY_BLOCK),
 			exceedsCube = state.exceedsCube(),

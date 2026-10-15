@@ -60,7 +60,7 @@ class CoarseMoveCosts(
 	val stepUp: Double,
 	val walkOff: (depth: Int) -> Double,
 	val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
-	val drop: (span: Int, depth: Int) -> Double = { _, depth -> walkOff(depth) },
+	val drop: (distance: Double, depth: Int) -> Double = { _, depth -> walkOff(depth) },
 	val cornerWalk: Double = diagonalWalk,
 	val swim: Double = 1.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK,
 	val diagonalSwim: Double = sqrt(2.0) * swim,
@@ -94,10 +94,10 @@ class CoarseMoveCosts(
 		return CoarseMoveRates.fallTicks(drop) * (2 * bounces - 1) + CoarseMoveRates.fallTicks(drop + rise) + BOUNCE_SETTLE_TICKS
 	}
 
-	fun dropCost(span: Int, depth: Int): Double {
-		require(span >= 1) { "a drop must cross at least the adjacent stance" }
+	fun dropCost(distance: Double, depth: Int): Double {
+		require(distance >= 1.0) { "a drop must cross at least the adjacent stance" }
 		require(depth > 0) { "drop depth must be positive" }
-		return drop(span, depth).also { validate("drop($span, $depth)", it) }
+		return drop(distance, depth).also { validate("drop($distance, $depth)", it) }
 	}
 
 	private fun validate(name: String, value: Double) {
@@ -148,11 +148,11 @@ class CoarseMoveCosts(
 				swim = 1.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK + transitionOverheadTicks,
 				diagonalSwim = sqrt(2.0) / CoarseMoveRates.SWIM_BLOCKS_PER_TICK + transitionOverheadTicks,
 				waterExit = { rise -> CoarseMoveRates.waterExitTicks(rise) + transitionOverheadTicks },
-				drop = { span, depth ->
+				drop = { distance, depth ->
 
 					max(
 						ballistic(jumping = false, rise = -depth) ?: UNREACHABLE_BALLISTIC_TICKS,
-						span / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK,
+						distance / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK,
 					) + DROP_SETTLE_TICKS + transitionOverheadTicks
 				},
 			)

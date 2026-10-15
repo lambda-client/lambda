@@ -82,13 +82,17 @@ object WalkMovement : Movement {
 				val rising = dy > 0
 				val movement = if (rising) MovementId.STEP_UP else id
 				val headroom = if (rising) listOf(STEP_UP_HEADROOM, CellCondition(0, 0, 0, CellPredicate.GROUNDED)) else emptyList()
+				val footing = listOf(
+					CellCondition(0, 0, 0, CellPredicate.footingReaches(dx, dy, dz, outbound = true)),
+					CellCondition(dx, dy, dz, CellPredicate.footingReaches(dx, dy, dz, outbound = false)),
+				)
 				add(
 					spec(
 						dx, dy, dz, if (rising) costs.stepUp else costs.diagonalWalk,
 						stanceConditions(dx, dy, dz, CoarseVoxel.sides(-dx, -dz)) + headroom + leaving(CoarseVoxel.sides(dx, dz), dy) + listOf(
 							CellCondition(dx, dy, 0, CellPredicate.OPEN_COLUMN),
 							CellCondition(0, dy, dz, CellPredicate.OPEN_COLUMN),
-						),
+						) + footing,
 						movement,
 						strideCost = if (rising) costs.diagonalWalk else null,
 					)
@@ -105,7 +109,7 @@ object WalkMovement : Movement {
 								CellCondition(openX, dy, openZ, CellPredicate.OPEN_COLUMN),
 								CellCondition(blockedX, dy, blockedZ, CellPredicate.BLOCKED_COLUMN),
 								CellCondition(dx + openX, dy, dz + openZ, CellPredicate.OPEN_COLUMN),
-							),
+							) + footing,
 							movement,
 							strideCost = if (rising) costs.cornerWalk else null,
 							via = Via(

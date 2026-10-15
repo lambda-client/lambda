@@ -75,11 +75,12 @@ class MotionTemplate internal constructor(
 		}
 		val riseHeight = realRise(view, origin)
 		spec.riseAdmission?.let { admits -> if (!admits(riseHeight)) return ledgeEdge(view, origin) }
-		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset)
+		val momentum = spec.runUpNeeded?.invoke(riseHeight) == true
+		val probed = JumpArcProbe.probe(view, origin, dx, dz, riseHeight, spec.modes, launchHeight = origin.y + launchOffset, everyLaunch = !momentum)
 			?: return ledgeEdge(view, origin)
 		if (probed.solution.mode.jumps && Footing.involvesPartial(view, origin.x, origin.y, origin.z) && !launchesFromFooting(view, origin, probed.solution)) return ledgeEdge(view, origin)
 		val detour = probed.solution.via?.detour(dx, dz, probed.solution.lateralOffset) ?: 0.0
-		val runUp = if (spec.runUpNeeded?.invoke(riseHeight) == true) standingRunUpTicks(view, origin, probed.solution) ?: return null else null
+		val runUp = if (momentum) standingRunUpTicks(view, origin, probed.solution) ?: return null else null
 		return edgeOf(
 			origin, lowerBoundTicks + detour / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK + (runUp ?: 0), probed.reads,
 			launch = probed.solution,
@@ -222,7 +223,7 @@ class MotionTemplate internal constructor(
 		)
 		val free = JumpArcProbe.footprints(dx, dz, rise, spec.modes)
 		val capped = if (free.isEmpty()) emptyList() else JumpArcProbe.cappedFootprints(dx, dz, rise, spec.modes)
-		val candidates = (free + capped).map(::candidateOf)
+		val candidates = (free + capped + JumpArcProbe.alternativeFootprints(dx, dz, rise, spec.modes)).map(::candidateOf)
 		val clipCells = free.firstOrNull()?.clipCells.orEmpty()
 		val columns = LinkedHashMap<Pair<Int, Int>, Int>()
 		val bendColumns = IntArray(clipCells.size) { columns.getOrPut(clipCells[it].x to clipCells[it].z) { columns.size } }

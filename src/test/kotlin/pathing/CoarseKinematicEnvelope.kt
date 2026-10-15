@@ -28,6 +28,6 @@ internal class CoarseKinematicEnvelope(
 		stepUp = lowerBoundTicks(1, 1, 0),
 		walkOff = { depth -> lowerBoundTicks(1, -depth, 0) },
 		jumpCandidate = { distance, verticalOffset -> lowerBoundTicks(distance, verticalOffset) },
-		drop = { span, depth -> lowerBoundTicks(span, -depth, 0) },
+		drop = { distance, depth -> lowerBoundTicks(distance, -depth) },
 	)
 }

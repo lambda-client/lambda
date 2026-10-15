@@ -94,6 +94,7 @@ object LaunchSolver {
 		landingRange: ClosedFloatingPointRange<Double>? = null,
 		launchable: (Double) -> Boolean = { true },
 		maxTicks: Int = BallisticProfile.MAX_ARC_TICKS,
+		everyLaunch: Boolean = false,
 	): List<LaunchSolution> {
 		val dx = (to.x - from.x).toDouble()
 		val dz = (to.z - from.z).toDouble()
@@ -109,9 +110,10 @@ object LaunchSolver {
 		val window = if (catch) landing.start..Double.POSITIVE_INFINITY else landing
 		val nearEdge = window.start + if (rise > 0.0) RISING_NEAR_EDGE_INSET else 0.0
 
-		return modes.filter { it.supports(rise) }.mapNotNull { mode ->
-			ModeSolve(mode, rise, lateral, window, nearEdge, maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow, headroom, launchable, maxTicks).solve(catch)
-				?.let { if (via == null) it else it.copy(via = via, lateralOffset = landingShift) }
+		return modes.filter { it.supports(rise) }.flatMap { mode ->
+			val solve = ModeSolve(mode, rise, lateral, window, nearEdge, maxEntrySpeed(mode), preferredEntrySpeed(mode), exitSpeedWindow, headroom, launchable, maxTicks)
+			val solutions = if (everyLaunch) solve.every(catch) else listOfNotNull(solve.solve(catch))
+			solutions.map { if (via == null) it else it.copy(via = via, lateralOffset = landingShift) }
 		}.sortedWith(LaunchSolution.BEST_FIRST)
 	}
 
@@ -130,16 +132,24 @@ object LaunchSolver {
 	) {
 		fun solve(catch: Boolean): LaunchSolution? {
 			var best: LaunchSolution? = null
+			forEachCandidate(catch) { candidate ->
+				val current = best
+				if (current == null || candidate.outranks(current, exitSpeedWindow)) best = candidate
+			}
+			return best?.let { released(it) }
+		}
+
+		fun every(catch: Boolean): List<LaunchSolution> = buildList { forEachCandidate(catch) { add(released(it)) } }
+
+		private inline fun forEachCandidate(catch: Boolean, visit: (LaunchSolution) -> Unit) {
 			val policies = if (mode.drops || exitSpeedWindow != null) listOf(true, false) else listOf(true)
 			for (holdForward in policies) {
 				val line = speedLine(mode, rise, holdForward, Int.MAX_VALUE, headroom, maxTicks) ?: continue
 				for (offset in launchOffsets(mode)) {
 					if (!launchable(offset)) continue
-					val candidate = candidate(line, holdForward, Int.MAX_VALUE, offset, catch) ?: continue
-					if (best == null || candidate.outranks(best, exitSpeedWindow)) best = candidate
+					candidate(line, holdForward, Int.MAX_VALUE, offset, catch)?.let(visit)
 				}
 			}
-			return best?.let { released(it) }
 		}
 
 		private fun candidate(line: SpeedLine, holdForward: Boolean, holdTicks: Int, offset: Double, catch: Boolean): LaunchSolution? {
@@ -267,7 +277,7 @@ object LaunchSolver {
 
 	private val DROP_OFFSETS = listOf(0.5 + BODY_HALF_WIDTH)
 
-	private const val LANDING_SAFETY_BLOCKS = 0.2
+	internal const val LANDING_SAFETY_BLOCKS = 0.2
 
 	private const val RISING_NEAR_EDGE_INSET = 0.15
 

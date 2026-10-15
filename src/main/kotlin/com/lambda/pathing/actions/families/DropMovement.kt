@@ -20,6 +20,8 @@ import com.lambda.pathing.launch.LaunchSolution
 import com.lambda.pathing.launch.LaunchSolver
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.Medium
+import kotlin.math.abs
+import kotlin.math.hypot
 
 object DropMovement : Movement {
 	override val id = MovementId.DROP
@@ -27,22 +29,23 @@ object DropMovement : Movement {
 	override fun templates(context: MovementContext): List<TemplateSpec> = buildList {
 		val options = context.options
 		for ((dx, dz) in StanceRules.CARDINALS) {
-			for (depth in 2..options.maxWalkOffDepth) {
-				add(spec(dx, dz, span = 1, depth = depth, cost = context.costs.dropCost(1, depth)))
-			}
+			for (depth in 2..options.maxWalkOffDepth) add(spec(dx, dz, depth, context))
 			for (span in 2..options.maxDropSpan) {
-				for (depth in 1..options.maxWalkOffDepth) {
-					add(spec(dx, dz, span, depth, context.costs.dropCost(span, depth)))
-				}
+				for (depth in 1..options.maxWalkOffDepth) add(spec(span * dx, span * dz, depth, context))
 			}
+		}
+		if (!options.allowDiagonal) return@buildList
+		for (dx in -options.maxDropSpan..options.maxDropSpan) for (dz in -options.maxDropSpan..options.maxDropSpan) {
+			if (dx == 0 || dz == 0 || abs(dx) != abs(dz) && !options.allowOffAxisJumps) continue
+			for (depth in 1..options.maxWalkOffDepth) add(spec(dx, dz, depth, context))
 		}
 	}
 
-	private fun spec(dx: Int, dz: Int, span: Int, depth: Int, cost: Double) = TemplateSpec(
-		dx = span * dx, dy = -depth, dz = span * dz,
+	private fun spec(dx: Int, dz: Int, depth: Int, context: MovementContext) = TemplateSpec(
+		dx = dx, dy = -depth, dz = dz,
 		movement = id,
-		cost = cost,
-		conditions = StanceRules.stanceConditions(span * dx, -depth, span * dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0),
+		cost = context.costs.dropCost(hypot(dx.toDouble(), dz.toDouble()), depth),
+		conditions = StanceRules.stanceConditions(dx, -depth, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0),
 		arc = MotionTemplate.ArcSpec(MODES),
 	)
 

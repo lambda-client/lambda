@@ -68,7 +68,18 @@ internal object JumpDecisions {
 			landingShift = landingShift,
 			headroom = context.headroom,
 		).firstOrNull()
-		return listOfNotNull(ideal, asIs)
+		val slow = ideal != null && context.body.speed < ideal.speed - ideal.speedSlack
+		val cruising = if (!slow) emptyList() else LaunchSolver.solve(
+			context.edge.from, context.edge.to,
+			modes = JumpTemplates.MODES,
+			maxEntrySpeed = { ballistics.cruiseSpeed(it.sprint) },
+			preferredEntrySpeed = { ballistics.cruiseSpeed(it.sprint) },
+			exitSpeedWindow = onward,
+			via = via,
+			landingShift = landingShift,
+			headroom = context.headroom,
+		)
+		return listOfNotNull(ideal) + cruising + listOfNotNull(asIs)
 	}
 
 	private fun onwardEntryWindow(context: DecisionContext): ClosedFloatingPointRange<Double>? {

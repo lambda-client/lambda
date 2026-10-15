@@ -66,6 +66,7 @@ internal class PlanRefiner(
 		if (frames == plan.frames && (result.plan.segments.firstOrNull() as? PlanSegment.Move)?.decision == junction.decision) return null
 		val suffix = result.plan.segments.map { it.shifted(offset) }
 		val touches = plan.touches.filter { it.frame <= offset } + result.legTouches.map { LegTouch(it.frame + offset, it.waypoint) }
+		if (touches.map { it.waypoint } != plan.touches.map { it.waypoint }) return null
 		return Plan(plan.segments.subList(0, index) + suffix, touches)
 	}
 

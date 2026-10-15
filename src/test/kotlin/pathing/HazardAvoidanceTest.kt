@@ -13,6 +13,7 @@ import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
 import com.lambda.pathing.rollout.RolloutEvaluator
 import com.lambda.pathing.rollout.RolloutVerdict
+import com.lambda.pathing.rollout.SimulatedTrajectoryFrame
 import com.lambda.pathing.session.PathPlanResult
 import com.lambda.pathing.world.snapshot.BlockPhysicsCapture
 import com.lambda.pathing.world.snapshot.BlockPhysicsSampler
@@ -35,6 +36,7 @@ import net.minecraft.world.BlockView
 import pathing.ProbeScenarios.moveLibrary
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -169,6 +171,8 @@ class HazardAvoidanceTest {
 			assertTrue(fire.coarseVoxel.fullyPassable, "$state has no collision box")
 		}
 		assertNull(captured(Blocks.CAMPFIRE.defaultState, ignoreHazards = true).unsupportedPhysics, "a lit campfire is a slab to stand on")
+		assertTrue(captured(Blocks.MAGMA_BLOCK.defaultState).hotFloor, "magma burns feet that do not sneak")
+		assertFalse(captured(Blocks.MAGMA_BLOCK.defaultState, ignoreHazards = true).hotFloor, "magma is a plain floor when its burn is accepted")
 		val cactus = captured(Blocks.CACTUS.defaultState, ignoreHazards = true)
 		assertNull(cactus.unsupportedPhysics)
 		assertEquals(15.0 / 16.0, assertNotNull(cactus.coarseVoxel.standingSurface, "a cactus is a floor"), 1e-9)
@@ -233,29 +237,41 @@ class HazardAvoidanceTest {
 	 */
 	@Test
 	fun `a magma floor is crossed sneaking`() {
+		val frames = crossMagma(ignoreHazards = false)
+		val onMagma = frames.indices.filter { frames[it].state.onGround && frames[it].state.position.x in 1.0..<5.0 }
+		assertTrue(onMagma.isNotEmpty(), "the crossing must stand on the magma")
+		val burnt = onMagma.flatMap { listOf(it - 1, it) }.distinct().filter { it >= 0 && !frames[it].input.sneak }
+		assertTrue(burnt.isEmpty(), "every tick standing on magma and the tick before it must sneak, burnt at $burnt")
+	}
+
+	@Test
+	fun `a magma floor is crossed upright when hazards are ignored`() {
+		val frames = crossMagma(ignoreHazards = true)
+		assertTrue(frames.any { it.state.onGround && it.state.position.x in 1.0..<5.0 }, "the crossing must stand on the magma")
+		val sneaking = frames.filter { it.input.sneak }.map { it.index }
+		assertTrue(sneaking.isEmpty(), "an accepted burn needs no sneaking, sneaked at $sneaking")
+	}
+
+	private fun crossMagma(ignoreHazards: Boolean): List<SimulatedTrajectoryFrame> {
 		MinecraftBootstrap.ensure()
 		val states = HashMap<BlockPos, BlockState>()
 		for (x in -4..8) for (z in -1..1) states[BlockPos(x, 63, z)] = if (x in 1..4) Blocks.MAGMA_BLOCK.defaultState else Blocks.STONE.defaultState
 		for (z in listOf(-2, 2)) for (x in -4..8) for (y in 64..65) states[BlockPos(x, y, z)] = Blocks.STONE.defaultState
-		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent())
+		val sampler = BlockPhysicsSampler(StatesView(states), ShapeContext.absent(), ignoreHazards)
 		val environment = SnapshotSimulationEnvironment.synthetic(
 			SimulationSnapshotBounds(-16, 50, -16, 24, 80, 16),
 			states.keys.associateWith { sampler.physicsAt(it.x, it.y, it.z) },
 		)
 		val goal = Stance(6, 64, 0)
-		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, 0), goal)
+		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions(ignoreHazards = ignoreHazards)), Stance(-2, 64, 0), goal)
 		assertTrue(planner.repair().converged, "the magma corridor must converge")
 		planner.expandSearchField()
 		val route = assertNotNull(planner.routePlan(0L), "magma is still a floor to cross")
 
 		val outcome = walkFrom(route, planner, resting(Vec3d(-1.5, 64.0, 0.5), -90.0), environment)
 		val path = assertNotNull((outcome as? PathPlanResult.Planned)?.path?.takeUnless { it.partial }, "the crossing must be certified, got $outcome")
-		val frames = path.plan.frames
-		val onMagma = frames.indices.filter { frames[it].state.onGround && frames[it].state.position.x in 1.0..<5.0 }
-		assertTrue(onMagma.isNotEmpty(), "the crossing must stand on the magma")
-		val burnt = onMagma.flatMap { listOf(it - 1, it) }.distinct().filter { it >= 0 && !frames[it].input.sneak }
-		assertTrue(burnt.isEmpty(), "every tick standing on magma and the tick before it must sneak, burnt at $burnt")
 		assertEquals(goal, Stance.of(path.plan.frames.last().state.position, onGround = true))
+		return path.plan.frames
 	}
 
 	/**
