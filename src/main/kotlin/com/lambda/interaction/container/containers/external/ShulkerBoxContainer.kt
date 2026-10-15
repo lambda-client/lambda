@@ -55,104 +55,105 @@ import net.minecraft.util.math.BlockPos
 import java.util.Objects.hash
 
 data class ShulkerBoxContainer(
-    val itemName: String,
-    val shulkerItem: Item,
-    override var stacks: List<ItemStack>,
-    override val containedIn: Container,
-    override val index: Int,
+	val itemName: String,
+	val shulkerItem: Item,
+	override var stacks: List<ItemStack>,
+	override val containedIn: Container,
+	override val index: Int,
 ) : NestedContainer(ContainerType.ShulkerBox), ExternalContainer {
-    override val slots
-        get(): List<Slot> =
-            if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
-            else emptyList()
+	override val slots
+		get(): List<Slot> =
+			if (isAccessed) mc.player?.currentScreenHandler?.containerSlots ?: emptyList()
+			else emptyList()
 
-    override val description =
-        buildText {
-            highlighted(itemName)
-            literal(" in ")
-            highlighted(containedIn.name)
-            literal(" in slot index $index")
-        }
+	override val description =
+		buildText {
+			highlighted(itemName)
+			literal(" in ")
+			highlighted(containedIn.name)
+			literal(" in slot index $index")
+		}
 
-    override val isAccessed = false
+	override val isAccessed = false
 
-    @Ta5kBuilder
-    context(automated: Automated)
-    override fun access() = OpenShulkerBoxTask(automated)
+	@Ta5kBuilder
+	context(automated: Automated)
+	override fun access() = OpenShulkerBoxTask(automated)
 
-    inner class OpenShulkerBoxTask @Ta5kBuilder internal constructor(
-        automated: Automated
-    ) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
-        override fun SafeContext.onStart() {
-            if (verboseDebug) LOG.info("[tweaks] open start ${description.string}")
-            transfer(
-                stackSelection {
-                    sortedWith { compareByDescending { it.slot?.index == index } }
-                    isItem(shulkerItem)
-                    withName(itemName)
-                    sortedByBestContentMatch(stacks)
-                },
-                containedIn.select(ContainerSearchScope.Loaded),
-                HotbarContainer.select()
-            ).then { result ->
-                if (verboseDebug) LOG.info("[tweaks] transfer done, placing")
-                placeContainer(findSlot(result.stackSelection.mutate { sortedByRecentChange() }, result.containerSelection))
-            }
-                .then { pos ->
-                    openContainer(pos).onSuccess {
-                        if (verboseDebug) LOG.info("[tweaks] opened shulker at $pos")
-                        success(OpenedShulkerBoxContext(pos, containedIn))
-                    }
-                }
-                .start()
-        }
-    }
+	inner class OpenShulkerBoxTask @Ta5kBuilder internal constructor(
+		automated: Automated
+	) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
+		override fun SafeContext.onStart() {
+			transfer(
+				stackSelection {
+					sortedWith { compareByDescending { it.slot?.index == index } }
+					isItem(shulkerItem)
+					withName(itemName)
+					sortedByBestContentMatch(stacks)
+				},
+				containedIn.select(ContainerSearchScope.Loaded),
+				HotbarContainer.select()
+			).then { result ->
+				placeContainer(
+					findSlot(
+						result.stackSelection.mutate {
+							sortedByRecentChange()
+						},
+						result.containerSelection
+					)
+				)
+			}.then { pos ->
+				openContainer(pos).onSuccess {
+					success(OpenedShulkerBoxContext(pos))
+				}
+			}.start()
+		}
+	}
 
-    inner class OpenedShulkerBoxContext(
-        val blockPos: BlockPos,
-        val fromContainer: Container
-    ) : OpenedContainerContext {
-        context(automated: Automated)
-        override fun close(): Task<*>? {
-            if (verboseDebug) LOG.info("[tweaks] close start ${description.string}")
-            return taskOrNull {
-                if (!isAccessed) null
-                else actionTask { player.closeHandledScreen() }
-            }.then { breakAndCollect(blockPos) }
-                .then { outcome ->
-                    if (verboseDebug) LOG.info("[tweaks] broke and collected ${outcome.pickups.size} pickup(s)")
-                    val predicted = outcome.pickups
-                        .asSequence()
-                        .filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
-                        .firstNotNullOfOrNull { it.slot }
+	inner class OpenedShulkerBoxContext(
+		val blockPos: BlockPos,
+	) : OpenedContainerContext {
+		context(automated: Automated)
+		override fun close(): Task<*> {
+			if (verboseDebug) LOG.info("[tweaks] close start ${description.string}")
+			return taskOrNull {
+				if (!isAccessed) null
+				else actionTask { player.closeHandledScreen() }
+			}.then { breakAndCollect(blockPos) }
+				.then { outcome ->
+					if (verboseDebug) LOG.info("[tweaks] broke and collected ${outcome.pickups.size} pickup(s)")
+					val predicted = outcome.pickups
+						.asSequence()
+						.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
+						.firstNotNullOfOrNull { it.slot }
 
-                    stackSelection {
-                        isItem(shulkerItem)
-                        withName(itemName)
-                        predicted?.let { sortedBySlotMatch(it) }
-                        sortedByBestContentMatch(stacks)
-                        sortedByRecentChange()
-                    }.transfer(
-                        ContainerSelection.HOTBAR_AND_INVENTORY,
-                        fromContainer.select(ContainerSearchScope.Loaded),
-                        stackSelection {
-                            sortedByMatches {
-                                stackSelection {
-                                    predicate { _, slot -> slot?.index == index }
-                                    isEmpty()
-                                }
-                            }
-                        },
-                        allowQuickMove = false
-                    )
-                }
-    }
-    }
+					stackSelection {
+						isItem(shulkerItem)
+						withName(itemName)
+						predicted?.let { sortedBySlotMatch(it) }
+						sortedByBestContentMatch(stacks)
+						sortedByRecentChange()
+					}.transfer(
+						ContainerSelection.HOTBAR_AND_INVENTORY,
+						containedIn.select(ContainerSearchScope.Loaded),
+						stackSelection {
+							sortedByMatches {
+								stackSelection {
+									predicate { _, slot -> slot?.index == index }
+									isEmpty()
+								}
+							}
+						},
+						allowQuickMove = false
+					)
+				}
+		}
+	}
 
-    override fun hashCode() = hash(containedIn.hashCode(), index)
+	override fun hashCode() = hash(containedIn.hashCode(), index)
 
-    override fun equals(other: Any?) =
-        other is ShulkerBoxContainer &&
-                containedIn == other.containedIn &&
-                index == other.index
+	override fun equals(other: Any?) =
+		other is ShulkerBoxContainer &&
+				containedIn == other.containedIn &&
+				index == other.index
 }

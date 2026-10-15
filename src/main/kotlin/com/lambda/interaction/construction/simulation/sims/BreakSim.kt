@@ -138,21 +138,22 @@ class BreakSim internal constructor(simInfo: SimInfo)
 	}
 
 	private fun AutomatedSafeContext.getSwapStack(): Pair<ItemStack, StackSelection>? {
-		val stackSelection = stackSelection {
-			if (breakConfig.efficientOnly) isEfficientForBreaking(state)
-			if (breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
-			if (breakConfig.forceSilkTouch) withEnchantment(Enchantments.SILK_TOUCH)
-			if (breakConfig.forceFortunePickaxe) withEnchantment(Enchantments.FORTUNE)
-			sortedWith {
-				compareByDescending<StackAndSlot<*>> {
-					it.stack.canBreak(CachedBlockPosition(world, pos, false))
-				}.thenByDescending {
-					state.calcItemBlockBreakingDelta(pos, it.stack)
-				}.thenByDescending {
-					it.stack.inventoryIndex == HotbarManager.serverSlot
+		val stackSelection =
+			stackSelection(0) {
+				if (breakConfig.efficientOnly) isEfficientForBreaking(state)
+				if (breakConfig.suitableToolsOnly) isSuitableForBreaking(state)
+				if (breakConfig.forceSilkTouch) withEnchantment(Enchantments.SILK_TOUCH)
+				if (breakConfig.forceFortunePickaxe) withEnchantment(Enchantments.FORTUNE)
+				sortedWith {
+					compareByDescending<StackAndSlot<*>> {
+						it.stack.canBreak(CachedBlockPosition(world, pos, false))
+					}.thenByDescending {
+						state.calcItemBlockBreakingDelta(pos, it.stack)
+					}.thenByDescending {
+						it.stack.inventoryIndex == HotbarManager.serverSlot
+					}
 				}
 			}
-		}
 
 		val bestStack = findStack(stackSelection, HotbarContainer.select())
 			?: run {
