@@ -272,7 +272,7 @@ internal object PlanDump {
 		allowClimbing, allowSlimeBounces, maxBounceDrop, maxDropSpan,
 		allowDeepDropJumps, allowSwimming, allowDeepFalls,
 		fallLimits.acceptedDamage, fallLimits.safeFallDistance, fallLimits.fallDamageMultiplier,
-		ignoreHazards, allowDiving, avoidMobs,
+		ignoreHazards, allowDiving, avoidMobs, allowNeoJumps,
 	).joinToString(" ")
 
 	private fun readOptions(parts: List<String>) = SimpleMoveOptions(
@@ -297,6 +297,7 @@ internal object PlanDump {
 		ignoreHazards = parts.getOrNull(18)?.toBoolean() ?: false,
 		allowDiving = parts.getOrNull(19)?.toBoolean() ?: true,
 		avoidMobs = parts.getOrNull(20)?.toBoolean() ?: false,
+		allowNeoJumps = parts.getOrNull(21)?.toBoolean() ?: false,
 	)
 
 	private fun MotionConstraints.dump(): String = listOf(

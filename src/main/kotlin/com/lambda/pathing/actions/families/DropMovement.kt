@@ -50,7 +50,7 @@ object DropMovement : Movement {
 	)
 
 	override fun offersFor(edge: CoarseEdge): Boolean =
-		edge.to.y < edge.from.y && edge.movement !in MovementId.AQUATIC && edge.movement != MovementId.FALL
+		edge.to.y < edge.from.y && edge.movement !in MovementId.AQUATIC && edge.movement != MovementId.FALL && edge.movement != MovementId.NEO
 
 	override fun decisions(context: DecisionContext): List<TrajectoryDecision> {
 		val ideal = context.edge.launch

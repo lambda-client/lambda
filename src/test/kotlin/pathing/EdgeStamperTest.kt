@@ -203,6 +203,7 @@ class EdgeStamperTest {
 
 		val FIELD_OPTIONS = SimpleMoveOptions(
 			maxJumpDrop = 2, maxJumpSpan = 3, allowClimbing = true, allowSlimeBounces = true, maxBounceDrop = 5, allowDeepDropJumps = true,
+			allowNeoJumps = true,
 		)
 	}
 }

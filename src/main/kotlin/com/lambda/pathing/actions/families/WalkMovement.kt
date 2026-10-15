@@ -207,7 +207,7 @@ object WalkMovement : Movement {
 	}
 
 	private fun walkable(edge: CoarseEdge): Boolean = when (edge.movement) {
-		MovementId.BOUNCE, MovementId.LADDER_CATCH, MovementId.CLIMB -> false
+		MovementId.BOUNCE, MovementId.LADDER_CATCH, MovementId.CLIMB, MovementId.NEO -> false
 		else -> edge.movement !in MovementId.AQUATIC
 	}
 

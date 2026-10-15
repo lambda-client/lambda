@@ -25,6 +25,7 @@ class MovementCatalog private constructor(
 		val REGISTERED: List<Movement> = listOf(
 			WalkMovement,
 			JumpMovement,
+			NeoMovement,
 			DropMovement,
 			ClimbMovement,
 			LadderCatchMovement,

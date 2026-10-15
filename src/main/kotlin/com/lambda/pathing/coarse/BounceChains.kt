@@ -62,8 +62,14 @@ internal class BounceChains(
 	private var maxX = Int.MIN_VALUE
 	private var maxY = Int.MIN_VALUE
 	private var maxZ = Int.MIN_VALUE
+	private val surfaces = Long2ObjectOpenHashMap<DoubleArray>()
+	private var surfacesRevision: Any? = null
+	private var lastSurfaceKey = 0L
+	private var lastSurfaces: DoubleArray? = null
+	private val surfaceBounds = IntArray(6)
 
 	fun clear() {
+		forgetSurfaces()
 		outgoing.clear()
 		incoming.clear()
 		discovered.clear()
@@ -77,6 +83,8 @@ internal class BounceChains(
 	}
 
 	fun invalidate(changed: List<CellBox>) {
+		val bounds = surfaceBounds
+		if (!surfaces.isEmpty() && changed.any { it.overlaps(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5]) }) forgetSurfaces()
 		if (scannedSections.isEmpty() && discovered.isEmpty()) return
 		if (minX > maxX || changed.any { it.overlaps(minX - CHAIN_REACH - 1, minY - maxDrop - 2, minZ - CHAIN_REACH - 1, maxX + CHAIN_REACH + 1, maxY + maxDrop + 2, maxZ + CHAIN_REACH + 1) }) clear()
 	}
@@ -424,7 +432,8 @@ internal class BounceChains(
 			val x = floor(origin.x + 0.5 + unitX * distance).toInt()
 			val z = floor(origin.z + 0.5 + unitZ * distance).toInt()
 			for (y in floor(above).toInt() + 1 downTo floor(below).toInt()) {
-				val surface = view.standingSurface(x, y - 1, z) ?: continue
+				val surface = standingSurface(x, y - 1, z)
+				if (surface.isNaN()) continue
 				val height = y - 1 + surface
 				if (height > above || height < below) continue
 				if (BounceArcProbe.isPad(view, x, y - 1, z)) return Hit(x, y, z, pad = true, surface = height)
@@ -450,6 +459,45 @@ internal class BounceChains(
 			}
 		}
 		return Double.POSITIVE_INFINITY
+	}
+
+	private fun standingSurface(x: Int, y: Int, z: Int): Double {
+		val revision = view.revision
+		if (revision !== surfacesRevision) {
+			forgetSurfaces()
+			surfacesRevision = revision
+		}
+		val bottom = y and SEGMENT_MASK.inv()
+		val key = BlockPos.asLong(x, bottom, z)
+		val segment = lastSurfaces?.takeIf { lastSurfaceKey == key } ?: surfaces.get(key) ?: DoubleArray(SEGMENT_HEIGHT) { index ->
+			view.standingSurface(x, bottom + index, z) ?: Double.NaN
+		}.also {
+			val bounds = surfaceBounds
+			if (surfaces.isEmpty()) {
+				bounds[0] = x
+				bounds[1] = bottom
+				bounds[2] = z
+				bounds[3] = x
+				bounds[4] = bottom + SEGMENT_MASK
+				bounds[5] = z
+			} else {
+				bounds[0] = minOf(bounds[0], x)
+				bounds[1] = minOf(bounds[1], bottom)
+				bounds[2] = minOf(bounds[2], z)
+				bounds[3] = maxOf(bounds[3], x)
+				bounds[4] = maxOf(bounds[4], bottom + SEGMENT_MASK)
+				bounds[5] = maxOf(bounds[5], z)
+			}
+			surfaces.put(key, it)
+		}
+		lastSurfaceKey = key
+		lastSurfaces = segment
+		return segment[y and SEGMENT_MASK]
+	}
+
+	private fun forgetSurfaces() {
+		surfaces.clear()
+		lastSurfaces = null
 	}
 
 	private fun ceilingBottom(x: Int, y: Int, z: Int): Double? = when (view.collisionClass(x, y, z)) {
@@ -497,6 +545,10 @@ internal class BounceChains(
 		val FOOTPRINT_SAMPLES = doubleArrayOf(-Vanilla.PLAYER_HALF_WIDTH.toDouble(), 0.0, Vanilla.PLAYER_HALF_WIDTH.toDouble())
 
 		const val CEILING_EPSILON = 1.0E-6
+
+		const val SEGMENT_HEIGHT = 16
+
+		const val SEGMENT_MASK = SEGMENT_HEIGHT - 1
 
 		const val SETTLE_TICKS = 2.0
 

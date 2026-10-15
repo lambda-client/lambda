@@ -3,6 +3,7 @@ package com.lambda.pathing.session
 import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.SimpleMoveOptions
+import com.lambda.pathing.actions.families.NeoMovement
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.MovementSimulationState
 import com.lambda.pathing.physics.PlayerPhysicsProfile
@@ -86,6 +87,7 @@ internal fun preparePlanning(
 		allowSlimeBounces = config.allowSlimeBounces,
 		maxBounceDrop = config.maxBounceDrop,
 		allowDeepFalls = config.allowDeepFalls,
+		allowNeoJumps = config.allowNeoJumps && turnSpeed >= NeoMovement.MIN_TURN_DEGREES_PER_FRAME,
 		fallLimits = fallLimits,
 		ignoreHazards = config.ignoreHazards,
 		avoidMobs = config.avoidMobs,

@@ -18,6 +18,7 @@ data class SimpleMoveOptions(
 	val allowSlimeBounces: Boolean = false,
 	val maxBounceDrop: Int = 8,
 	val allowDeepFalls: Boolean = true,
+	val allowNeoJumps: Boolean = false,
 	val fallLimits: FallLimits = FallLimits(),
 	val ignoreHazards: Boolean = false,
 	val avoidMobs: Boolean = false,

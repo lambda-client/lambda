@@ -486,7 +486,7 @@ internal fun PathingRenderConfig.movementColor(movement: MovementId): Color = wh
 	MovementId.STEP_UP -> stepUpColor
 	MovementId.WALK_OFF -> walkOffColor
 	MovementId.DROP -> dropColor
-	MovementId.JUMP -> jumpColor
+	MovementId.JUMP, MovementId.NEO -> jumpColor
 	MovementId.BOUNCE -> bounceColor
 	MovementId.CLIMB, MovementId.LADDER_CATCH -> climbColor
 	MovementId.SWIM, MovementId.ENTER_WATER, MovementId.EXIT_WATER -> swimColor

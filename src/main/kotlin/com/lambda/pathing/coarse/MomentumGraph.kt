@@ -143,9 +143,9 @@ internal class MomentumRules(templates: List<MotionTemplate>) {
 
 	private companion object {
 
-		val STOPPED_DEPARTURES = setOf(MovementId.CLIMB, MovementId.SWIM, MovementId.EXIT_WATER, MovementId.DIVE)
+		val STOPPED_DEPARTURES = setOf(MovementId.CLIMB, MovementId.SWIM, MovementId.EXIT_WATER, MovementId.DIVE, MovementId.NEO)
 
-		val STOPPED_ARRIVALS = STOPPED_DEPARTURES + setOf(MovementId.STEP_UP, MovementId.LADDER_CATCH, MovementId.ENTER_WATER)
+		val STOPPED_ARRIVALS = STOPPED_DEPARTURES - MovementId.NEO + setOf(MovementId.STEP_UP, MovementId.LADDER_CATCH, MovementId.ENTER_WATER)
 
 		const val STARTUP_TICKS = 2.0
 

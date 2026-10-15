@@ -135,6 +135,13 @@ class PathingSettings(override val c: Config) : PathingConfig, ConfigBlock {
     ) { allowSlimeBounces }
 
     @Group(MOVES_GROUP)
+    override val allowNeoJumps by c.setting(
+        "Neo Jumps", true,
+        "Jump around the side of a wall that blocks a straight jump: sneak into the corner beside " +
+            "the wall, then swing around it in the air. Needs a turn speed of at least 90 degrees a tick.",
+    ) { allowJumpCandidates }
+
+    @Group(MOVES_GROUP)
     override val allowDeepFalls by c.setting(
         "Deep Falls", true,
         "Fall from any height into water, onto hay bales and beds, or onto any floor Max Safe Fall " +
