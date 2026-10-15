@@ -122,13 +122,12 @@ interface TrajectoryDecision {
 		val forwardZ: Int,
 		val sideX: Int,
 		val sideZ: Int,
-		val steer: Steer,
-		val diagonal: Boolean = false,
+		val terrain: NeoTerrain,
+		val groundHeading: Double,
+		val margin: Double,
 		override val movement: MovementId = MovementId.NEO,
 	) : TrajectoryDecision {
 		override val leavesGround: Boolean get() = true
-
-		data class Steer(val takeoffHeading: Int, val launchHeading: Int, val launchTicks: Int, val landingHeading: Int)
 	}
 
 	data class Swim(

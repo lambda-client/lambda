@@ -116,8 +116,8 @@ interface PathingConfig {
     val allowDeepFalls: Boolean get() = true
 
     /**
-     * Whether a jump blocked by a wall may swing around the wall's side: sneak into the corner beside
-     * it, then jump and turn back in the air. Needs a turn speed of at least 90 degrees a tick.
+     * Whether a jump blocked by a wall may swing around the wall's side: run out past its edge, jump
+     * beside it and steer back in the air. Needs a turn speed of at least 90 degrees a tick.
      */
     val allowNeoJumps: Boolean get() = true
 
