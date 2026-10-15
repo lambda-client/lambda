@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.container.containers.external
 
-import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
@@ -30,7 +29,6 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.acquireStack
 import com.lambda.task.tasks.breakAndCollect
@@ -82,7 +80,6 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 			findBlock(Blocks.ENDER_CHEST, inventoryConfig.enderChestSearchRadius).withBranch(
 			onSuccess = { pos ->
 				openContainer(pos).onSuccess {
-					if (verboseDebug) LOG.info("[tweaks] ender open at $pos")
 					success(OpenedEnderChestContext(null))
 				}
 			},
@@ -91,7 +88,6 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 						.then { placeContainer(findSlot(it, HotbarContainer.select())) }
 					.then { pos ->
 						openContainer(pos).onSuccess {
-							if (verboseDebug) LOG.info("[tweaks] ender open at $pos")
 							success(OpenedEnderChestContext(pos))
 						}
 					}

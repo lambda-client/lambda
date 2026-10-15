@@ -536,7 +536,7 @@ object BreakManager : Manager<BreakRequest>(0), PositionBlocking {
 	 * Simulates and updates the [abandonedBreak].
 	 */
 	private fun SafeContext.simulateAbandoned() {
-		// Canceled but double breaking so requires break manager to continue the simulation
+		// Cancelled but double breaking so requires break manager to continue the simulation
 		val abandonedInfo = abandonedBreak ?: return
 
 		abandonedInfo.request.runSafeAutomated {

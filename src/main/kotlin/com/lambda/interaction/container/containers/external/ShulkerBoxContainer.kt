@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.container.containers.external
 
-import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
@@ -34,7 +33,6 @@ import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.breakAndCollect
@@ -115,13 +113,11 @@ data class ShulkerBoxContainer(
 	) : OpenedContainerContext {
 		context(automated: Automated)
 		override fun close(): Task<*> {
-			if (verboseDebug) LOG.info("[tweaks] close start ${description.string}")
 			return taskOrNull {
 				if (!isAccessed) null
 				else actionTask { player.closeHandledScreen() }
 			}.then { breakAndCollect(blockPos) }
 				.then { outcome ->
-					if (verboseDebug) LOG.info("[tweaks] broke and collected ${outcome.pickups.size} pickup(s)")
 					val predicted = outcome.pickups
 						.asSequence()
 						.filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }

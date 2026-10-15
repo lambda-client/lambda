@@ -18,7 +18,6 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.Lambda.LOG
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.event.events.PacketEvent
@@ -30,7 +29,6 @@ import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.threading.runSafeAutomated
@@ -107,7 +105,6 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 		if (target == null) {
 			if (closingAge.isEmpty()) {
 				BaritoneHandler.cancel()
-				if (verboseDebug) LOG.info("[tweaks] collected ${pickups.size} pickup(s) in $age ticks")
 				if (lost.isEmpty()) success(pickups.toList())
 				else failure(describeLost())
 			}
@@ -196,11 +193,6 @@ class CollectDropsTask @Ta5kBuilder internal constructor(
 	}
 
 	private fun ageClosing() {
-		if (verboseDebug && closingAge.isNotEmpty()) {
-			LOG.info("[tweaks] closing waits: " + closingAge.entries.joinToString { (drop, age) ->
-				"age=$age remainder=${remainderOf(drop)} snap=${stackOf(drop)}"
-			})
-		}
 		closingAge.entries.toList().forEach { (drop, age) ->
 			if (age < CLOSE_GRACE_TICKS) closingAge[drop] = age + 1
 			else {

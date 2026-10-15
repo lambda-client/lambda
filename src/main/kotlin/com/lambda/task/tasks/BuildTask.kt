@@ -17,7 +17,6 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.Lambda.LOG
 import com.lambda.config.blocks.EatConfig.Companion.reasonEating
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
@@ -49,7 +48,6 @@ import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.manager.managers.breaking.breakRequest
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.modules.client.Client
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.softFail
@@ -355,7 +353,6 @@ class BuildTask @Ta5kBuilder internal constructor(
             is Dependent -> handleResult(result.lastDependency, allResults)
 
             is Resolvable -> {
-	            if (verboseDebug) LOG.info("Resolving: ${result.name}")
                 result.resolve()
                     .softFail()
                     .start()

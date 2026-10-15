@@ -19,7 +19,6 @@
 
 package com.lambda.task
 
-import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
@@ -101,10 +100,8 @@ abstract class Task<R> : Nameable, Muteable {
 	    	parent.subTasks.add(this)
 	    	this@Task.parent = parent
 	    	if (pauseParent) {
-			    if (verboseDebug) LOG.info("$name pausing parent ${parent.name}")
 			    if (parent !is RootTask) parent.pause()
 		    }
-			if (verboseDebug) LOG.info("${parent.name} starting $name")
 			state = State.Running
 	    	runSafe {
 				runCatching {

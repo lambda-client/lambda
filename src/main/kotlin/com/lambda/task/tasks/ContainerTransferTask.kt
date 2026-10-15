@@ -17,7 +17,6 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.Lambda.LOG
 import com.lambda.context.Automated
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.context.SafeContext
@@ -40,7 +39,6 @@ import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePacke
 import com.lambda.interaction.handler.handlers.PacketType
 import com.lambda.interaction.manager.managers.inventory.InvRequestFailureReason
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
-import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.wrappers.taskOrNull
@@ -134,13 +132,11 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				}
 			)
 		if (fromQueue.isEmpty() || (!unlimited && !(fromStack isIn fromQueue))) {
-			if (verboseDebug) LOG.info("[transfer] no source for $fromStack ${describeState()}")
 			fail("Could not find source containers for $fromStack (${describeState()})")
 			return
 		}
 
 		toQueue += findContainers(toSelection).filter { canReceive(it) }
-		if (verboseDebug) LOG.info("[transfer] start $fromStack from=${fromQueue.map { it.name }} to=${toQueue.map { it.name }} screen=${player.currentScreenHandler.syncId}")
 		if (toQueue.isEmpty()) {
 			fail("Could not find destination containers with space for $fromStack (${describeState()})")
 			return
@@ -219,9 +215,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				containers = resultContainers.toTypedArray(),
 				scope = toSelection.scope
 			)
-		).also {
-			if (verboseDebug) LOG.info("[transfer] done, moved=$transferred")
-		}
+		)
 
 	private fun directChain(from: Container, to: Container): Task<*> {
 		val toContainers =
@@ -379,7 +373,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				}
 
 			if (pair == null) {
-				if (verboseDebug) LOG.info("[transfer] no pair for $currentSelection from=${fromContainers.map { it.name }} to=${toContainers.map { it.name }}")
 				finish()
 				return true
 			}
