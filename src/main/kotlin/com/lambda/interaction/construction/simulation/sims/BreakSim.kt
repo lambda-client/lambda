@@ -156,6 +156,8 @@ class BreakSim internal constructor(simInfo: SimInfo)
 					isSuitableForBreaking(state)
 				}.andIf(breakConfig.forceSilkTouch) {
 					hasEnchantment(Enchantments.SILK_TOUCH)
+				}.andIf(breakConfig.avoidSilkTouch) {
+					hasEnchantment(Enchantments.SILK_TOUCH).not()
 				}.andIf(breakConfig.forceFortunePickaxe) {
 					hasEnchantment(Enchantments.FORTUNE)
 				}
