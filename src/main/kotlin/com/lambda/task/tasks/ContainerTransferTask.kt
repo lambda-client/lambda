@@ -34,9 +34,10 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.selectContainers
+import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.interaction.handler.handlers.PacketLimitHandler.availablePackets
 import com.lambda.interaction.handler.handlers.PacketType
-import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.interaction.manager.managers.inventory.InvRequestFailureReason
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.modules.client.Client.verboseDebug
@@ -88,7 +89,7 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 ) : Task<TransferResult>(), Automated by automated {
 	override val name = "Transferring $fromStack"
 
-	private val unlimited = fromStack.count <= 0
+	private val unlimited = fromStack.count < 0
 
 	private var transferred = 0
 	private val remaining
@@ -218,7 +219,9 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 				containers = resultContainers.toTypedArray(),
 				scope = toSelection.scope
 			)
-		)
+		).also {
+			if (verboseDebug) LOG.info("[transfer] done, moved=$transferred")
+		}
 
 	private fun directChain(from: Container, to: Container): Task<*> {
 		val toContainers =
@@ -322,16 +325,20 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 		private val toContainers: List<Container>,
 		private val fromSelection: StackSelection,
 		toSelection: StackSelection,
-		private val limit: Int = if (unlimited) Int.MAX_VALUE else remaining,
+		private val limit: Int,
 		private val allowReplace: Boolean = true,
 		private val trackResult: Boolean = true
 	) : Task<Int>() {
 		override val name get() = "Moving ${this@MoveTask.fromSelection}"
 		private var moved = 0
 
-		// Raw caller ordering; the destination search only narrows it,
-		// so toStack stays the end-all for which slot gets used.
 		private val baseToSelection = toSelection
+
+		private val swappableSelection =
+			toSelection.mutate {
+				notEmpty()
+				withoutSelection(this@MoveTask.fromSelection)
+			}
 
 		init {
 			listen<TickEvent.Pre> {
@@ -358,7 +365,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					else minOf(currentLimit, fromSelection.count.coerceAtLeast(1))
 				) { notEmpty() }
 
-			// Find the best slot pair fresh — never cached across ticks
 			val pair =
 				fromContainers.firstNotNullOfOrNull { fromContainer ->
 					val fromSlot = fromContainer.findSlot(currentSelection) ?: return@firstNotNullOfOrNull null
@@ -381,23 +387,26 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			return move(pair, atMost = currentLimit)
 		}
 
-		private fun findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
+		private fun AutomatedSafeContext.findToSlot(fromSlot: Slot, toContainer: Container): Slot? {
 			val stack = fromSlot.stack
 			return toContainer.findSlot(
-				baseToSelection.mutate {
-					predicate { candidate, slot ->
-						when {
-							candidate.isEmpty -> true
-							candidate.sameItemAs(stack) -> candidate.hasSpace
-							else -> allowReplace &&
-								slot != null &&
-								!fromSelection.matches(slot) &&
-								fromSlot.canInsert(candidate)
-						}
-					}
+				stackSelection {
+					predicate { candidate, _ -> !candidate.isEmpty && candidate.hasSpace && candidate.sameItemAs(stack) }
 					canInsert(stack)
+					sortedWith(baseToSelection.comparator)
 				}
-			)
+			) ?: toContainer.findReplaceSlot(
+				stack,
+				stackSelection(0) {
+					isEmpty()
+					sortedWith(baseToSelection.comparator)
+				}
+			) ?: findSwappableSlot(fromSlot, toContainer)
+		}
+
+		private fun AutomatedSafeContext.findSwappableSlot(fromSlot: Slot, toContainer: Container): Slot? {
+			if (!allowReplace) return null
+			return toContainer.findReplaceSlot(fromSlot.stack, swappableSelection)?.takeIf { fromSlot.canInsert(it.stack) }
 		}
 
 		private fun AutomatedSafeContext.move(pair: SlotPair, atMost: Int): Boolean {
@@ -482,7 +491,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 			}
 			val stack = pair.fromSlot.stack
 			val cursor = CursorContainer.stacks.firstOrNull() ?: return true
-			// A foreign stack on the cursor is somebody else's business; wait until it has been put away.
 			if (cursor.isForeignTo(stack)) {
 				finish()
 				return true
@@ -498,7 +506,6 @@ class ContainerTransferTask @Ta5kBuilder internal constructor(
 					clickBudget = budget
 				)
 			if (plan == null) {
-				// Even an untouched budget cannot fit the shortest plan: this pair can never be served, give it up.
 				if (budget >= buildConfig.inventoryLimit) finish()
 				return true
 			}

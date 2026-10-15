@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.container.containers.external
 
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
@@ -28,10 +29,13 @@ import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.ContainerSelection
+import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
-import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.module.modules.client.Client.verboseDebug
+import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.breakAndCollect
 import com.lambda.task.tasks.openContainer
@@ -80,6 +84,7 @@ data class ShulkerBoxContainer(
         automated: Automated
     ) : OpenContainerTask<OpenedShulkerBoxContext>(description), Automated by automated {
         override fun SafeContext.onStart() {
+            if (verboseDebug) LOG.info("[tweaks] open start ${description.string}")
             transfer(
                 stackSelection {
                     sortedWith { compareByDescending { it.slot?.index == index } }
@@ -89,9 +94,13 @@ data class ShulkerBoxContainer(
                 },
                 containedIn.select(ContainerSearchScope.Loaded),
                 HotbarContainer.select()
-            ).then { result -> placeContainer(findSlot(result.stackSelection, result.containerSelection)) }
+            ).then { result ->
+                if (verboseDebug) LOG.info("[tweaks] transfer done, placing")
+                placeContainer(findSlot(result.stackSelection.mutate { sortedByRecentChange() }, result.containerSelection))
+            }
                 .then { pos ->
                     openContainer(pos).onSuccess {
+                        if (verboseDebug) LOG.info("[tweaks] opened shulker at $pos")
                         success(OpenedShulkerBoxContext(pos, containedIn))
                     }
                 }
@@ -104,30 +113,40 @@ data class ShulkerBoxContainer(
         val fromContainer: Container
     ) : OpenedContainerContext {
         context(automated: Automated)
-        override fun close() =
-            taskOrNull {
+        override fun close(): Task<*>? {
+            if (verboseDebug) LOG.info("[tweaks] close start ${description.string}")
+            return taskOrNull {
                 if (!isAccessed) null
                 else actionTask { player.closeHandledScreen() }
             }.then { breakAndCollect(blockPos) }
-                .then {
+                .then { outcome ->
+                    if (verboseDebug) LOG.info("[tweaks] broke and collected ${outcome.pickups.size} pickup(s)")
+                    val predicted = outcome.pickups
+                        .asSequence()
+                        .filter { it.stack.item == shulkerItem && it.stack.name.string == itemName }
+                        .firstNotNullOfOrNull { it.slot }
+
                     stackSelection {
                         isItem(shulkerItem)
                         withName(itemName)
+                        predicted?.let { sortedBySlotMatch(it) }
                         sortedByBestContentMatch(stacks)
+                        sortedByRecentChange()
                     }.transfer(
                         ContainerSelection.HOTBAR_AND_INVENTORY,
                         fromContainer.select(ContainerSearchScope.Loaded),
                         stackSelection {
-                            sortedWith {
-                                compareByDescending {
-                                    it.slot?.index == index &&
-                                            it.slot.stack?.isEmpty != false
+                            sortedByMatches {
+                                stackSelection {
+                                    predicate { _, slot -> slot?.index == index }
+                                    isEmpty()
                                 }
                             }
                         },
                         allowQuickMove = false
                     )
                 }
+    }
     }
 
     override fun hashCode() = hash(containedIn.hashCode(), index)

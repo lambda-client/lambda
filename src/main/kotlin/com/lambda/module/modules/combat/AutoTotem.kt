@@ -27,7 +27,7 @@ import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.handler.handlers.FriendHandler
-import com.lambda.interaction.handler.handlers.move
+import com.lambda.interaction.handler.handlers.moveStack
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -68,8 +68,9 @@ object AutoTotem : Module(
             val swapWhileHolding = !ignoreWhenHolding || player.mainHandStack.item != Items.TOTEM_OF_UNDYING
             if (swapWhileHolding && player.offHandStack.item != Items.TOTEM_OF_UNDYING) {
                 runSafeAutomated {
-                    Items.TOTEM_OF_UNDYING.select()
-                        .move(
+                    Items.TOTEM_OF_UNDYING
+                        .select()
+                        .moveStack(
                             ContainerSelection.HOTBAR_AND_INVENTORY,
                             OffhandContainer.select()
                         )

@@ -136,11 +136,9 @@ object ClickGuiLayout : Loadable, Config(
 	const val BASE_SCALE = 100
 	const val BASE_SCALE_MULTI = 1.8
 
-	fun deviceScaleMultiplier() = try {
-		val monitorWidth = mc.window.monitor!!.currentVideoMode!!.width.toDouble()
-		(monitorWidth / 1920.0).coerceIn(0.5, 4.0)
-	} catch (_: Throwable) {
-		1.0
+	fun deviceScaleMultiplier(): Double {
+		val monitorWidth = mc.window.monitor?.currentVideoMode?.width?.toDouble() ?: return 1.0
+		return (monitorWidth / 1920.0).coerceIn(0.5, 4.0)
 	}
 
 	// General

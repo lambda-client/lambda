@@ -19,8 +19,10 @@
 
 package com.lambda.interaction.container.selection
 
+import com.lambda.Lambda.mc
 import com.lambda.interaction.container.Container
 import com.lambda.interaction.container.ContainerDslMarker
+import com.lambda.interaction.manager.managers.inventory.InventoryManager
 import com.lambda.util.EnchantmentUtils.getEnchantment
 import com.lambda.util.item.ItemStackUtils.shulkerBoxStacks
 import com.lambda.util.item.ItemUtils
@@ -36,6 +38,7 @@ import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.tag.TagKey
 import net.minecraft.screen.slot.Slot
 import java.util.*
+import kotlin.time.Instant
 
 @ContainerDslMarker
 fun Item.select(count: Int = 1) = stackSelection(count) { isItem(this@select) }
@@ -72,10 +75,16 @@ class StackSelection @ContainerDslMarker internal constructor(
 	fun bestMatch(slots: Iterable<Slot>) = filter(slots).firstOrNull()
 
 	@ContainerDslMarker
+	fun bestMatch(stackAndSlots: Iterable<StackAndSlot<*>>) = filter(stackAndSlots).firstOrNull()
+
+	@ContainerDslMarker
 	fun match(stacks: Iterable<ItemStack>) = stacks.find(::matches)
 
 	@ContainerDslMarker
 	fun match(slots: Iterable<Slot>) = slots.find(::matches)
+
+	@ContainerDslMarker
+	fun match(stackAndSlots: Iterable<StackAndSlot<*>>) = stackAndSlots.find(::matches)
 
 	@ContainerDslMarker
 	fun matches(stack: ItemStack): Boolean {
@@ -96,6 +105,10 @@ class StackSelection @ContainerDslMarker internal constructor(
 			null -> matchesSelf || slot.stack.shulkerBoxStacks.any { selector(it, null) }
 		}
 	}
+
+	@ContainerDslMarker
+	fun matches(stackAndSlot: StackAndSlot<*>) =
+		stackAndSlot.slot?.let(::matches) ?: matches(stackAndSlot.stack)
 
 	@ContainerDslMarker
 	@JvmName("filter1")
@@ -140,6 +153,25 @@ class StackSelection @ContainerDslMarker internal constructor(
 		.toList()
 
 	@ContainerDslMarker
+	@JvmName("filter3")
+	fun filter(
+		stackAndSlots: Iterable<StackAndSlot<*>>,
+		sorted: Boolean = true
+	) = stackAndSlots
+		.asSequence()
+		.let { stackAndSlots ->
+			if (whitelistedSlots.isNotEmpty()) stackAndSlots.filter { it.slot in whitelistedSlots }
+			else stackAndSlots
+		}
+		.filter { it.slot !in blacklistedSlots }
+		.filter(::matches)
+		.let {
+			if (sorted) it.sortedWith(comparator)
+			else it
+		}
+		.toList()
+
+	@ContainerDslMarker
 	infix fun isIn(container: Container) =
 		container.count(this) >= count
 
@@ -175,7 +207,6 @@ class StackSelection @ContainerDslMarker internal constructor(
 	companion object {
 		val ANYTHING = StackSelection(0) { _, _ -> true }
 		val NOTHING = StackSelection { _, _ -> false }
-		val EMPTY = stackSelection { isEmpty() }
 	}
 }
 
@@ -401,18 +432,29 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 	}
 
 	fun canInsert(stack: ItemStack) {
-		if (!stack.isEmpty) {
-			appendSelector { _, slot -> slot == null || slot.canInsert(stack) }
-		}
+		appendSelector { _, slot -> slot?.canInsert(stack) == true }
+	}
+
+	fun cannotInsert(stack: ItemStack) {
+		appendSelector { _, slot -> slot?.canInsert(stack) == false }
 	}
 
 	fun canInsert(selection: StackSelection) {
 		selection.optimalStack?.let { canInsert(it) }
 	}
 
+	fun cannotInsert(selection: StackSelection) {
+		selection.optimalStack?.let { cannotInsert(it) }
+	}
+
 	fun canInsert() {
 		val optimal = itemStack ?: item?.let { ItemStack(it, count) }
 		optimal?.let { canInsert(it) }
+	}
+
+	fun cannotInsert() {
+		val optimal = itemStack ?: item?.let { ItemStack(it, count) }
+		optimal?.let { cannotInsert(it) }
 	}
 
 	fun sortedWith(newComparator: Comparator<StackAndSlot<*>>) {
@@ -423,14 +465,38 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 		sortedWith(comparatorSupplier())
 	}
 
+	fun sortedByMatches(stackSelection: StackSelection) {
+		sortedWith {
+			compareByDescending { stackSelection.matches(it) }
+		}
+	}
+
+	fun sortedByMatches(stackSelectionSupplier: () -> StackSelection) {
+		sortedWith {
+			compareByDescending { stackSelectionSupplier().matches(it) }
+		}
+	}
+
+	fun sortedByMismatches(stackSelection: StackSelection) {
+		sortedWith {
+			compareBy { stackSelection.matches(it) }
+		}
+	}
+
+	fun sortedByMismatches(stackSelectionSupplier: () -> StackSelection) {
+		sortedWith {
+			compareBy { stackSelectionSupplier().matches(it) }
+		}
+	}
+
 	fun sortedByBestContentMatch(expectedContents: List<ItemStack>) {
 		val expectedFrequencies = expectedContents
 			.filter { !it.isEmpty }
 			.groupingBy { it.item }
 			.eachCount()
 		sortedWith(
-			compareByDescending { stackAndSlot ->
-				val currentFrequencies = stackAndSlot.stack.shulkerBoxStacks
+			compareByDescending {
+				val currentFrequencies = it.stack.shulkerBoxStacks
 					.filter { !it.isEmpty }
 					.groupingBy { it.item }
 					.eachCount()
@@ -439,6 +505,68 @@ class StackSelectionBuilder @ContainerDslMarker internal constructor(
 				}
 			}
 		)
+	}
+
+	fun sortedByWorstContentMatch(expectedContents: List<ItemStack>) {
+		val expectedFrequencies = expectedContents
+			.filter { !it.isEmpty }
+			.groupingBy { it.item }
+			.eachCount()
+		sortedWith(
+			compareBy {
+				val currentFrequencies = it.stack.shulkerBoxStacks
+					.filter { !it.isEmpty }
+					.groupingBy { it.item }
+					.eachCount()
+				expectedFrequencies.asSequence().fold(0) { acc, (item, count) ->
+					acc + minOf(count, currentFrequencies[item] ?: 0)
+				}
+			}
+		)
+	}
+
+	fun sortedBySlotMatch(slot: Slot) {
+		sortedWith {
+			compareByDescending {
+				it.slot?.inventory === slot.inventory &&
+						it.slot.index == slot.index
+			}
+		}
+	}
+
+	fun sortedBySlotMismatch(slot: Slot) {
+		sortedWith {
+			compareBy {
+				it.slot?.inventory === slot.inventory &&
+						it.slot.index == slot.index
+			}
+		}
+	}
+
+	fun sortedByRecentChange() {
+		sortedWith(
+			compareByDescending {
+				val syncId = mc.player?.currentScreenHandler?.syncId
+				it.slot?.let { slot ->
+					syncId?.let { id ->
+						InventoryManager.lastSlotChange(id, slot.id)
+					}
+				} ?: Instant.DISTANT_PAST
+			}
+		)
+	}
+
+	fun sortedByOldestChange() {
+		sortedWith {
+			compareBy {
+				val syncId = mc.player?.currentScreenHandler?.syncId
+				it.slot?.let { slot ->
+					syncId?.let { id ->
+						InventoryManager.lastSlotChange(id, slot.id)
+					}
+				} ?: Instant.DISTANT_PAST
+			}
+		}
 	}
 
 	@PublishedApi

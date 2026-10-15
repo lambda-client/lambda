@@ -163,4 +163,48 @@ class InventorySyncFilterTest {
         filter.observeLocal(0, playerSlots(0, empty), TestStack("dirt", 1))
         assertEquals(0, filter.totalPending())
     }
+
+    @Test
+    fun `slot change times track local changes only`() {
+        val clock = ManualClock()
+        val filter = filter(clock)
+
+        // Baselines establish truth without stamping anything.
+        filter.observeLocal(0, playerSlots(5, empty), empty)
+        filter.snapshot(5, mapOf(2 to empty), empty)
+        assertEquals(null, filter.lastChange(0, 5))
+        assertEquals(null, filter.lastChange(5, 2))
+
+        // A local change stamps exactly that slot at the recording time.
+        clock.now = Instant.fromEpochMilliseconds(1000)
+        filter.observeLocal(0, playerSlots(5, shulker("gear")), empty)
+        assertEquals(Instant.fromEpochMilliseconds(1000), filter.lastChange(0, 5))
+        assertEquals(null, filter.lastChange(0, 6))
+        assertEquals(null, filter.lastChange(5, 2))
+
+        // Unchanged slots re-diffed later keep their original stamp.
+        clock.now = Instant.fromEpochMilliseconds(2000)
+        filter.observeLocal(0, playerSlots(5, shulker("gear")), empty)
+        assertEquals(Instant.fromEpochMilliseconds(1000), filter.lastChange(0, 5))
+    }
+
+    @Test
+    fun `slot change times expire and clear with the screen`() {
+        val clock = ManualClock()
+        val filter = filter(clock, maxAgeMs = 1500L)
+
+        filter.observeLocal(0, playerSlots(5, empty), empty)
+        clock.now = Instant.fromEpochMilliseconds(1000)
+        filter.observeLocal(0, playerSlots(5, shulker("gear")), empty)
+        assertEquals(Instant.fromEpochMilliseconds(1000), filter.lastChange(0, 5))
+
+        // Older than maxAgeMs: unknown again, so lookups keep their old order.
+        clock.now = Instant.fromEpochMilliseconds(3000)
+        assertEquals(null, filter.lastChange(0, 5))
+
+        clock.now = Instant.fromEpochMilliseconds(4000)
+        filter.observeLocal(0, playerSlots(5, shulker("other")), empty)
+        filter.clear(0)
+        assertEquals(null, filter.lastChange(0, 5))
+    }
 }

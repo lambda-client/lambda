@@ -19,17 +19,20 @@ package com.lambda.interaction.manager.managers.inventory
 
 import com.lambda.interaction.manager.managers.inventory.InventoryLedger.SingleDecision.Drop
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 class InventorySyncFilter<T>(
     private val equal: (a: T, b: T) -> Boolean,
     private val copy: (T) -> T,
     maxAgeMs: Long = 1500L,
-    clock: () -> Instant = { Clock.System.now() }
+    private val clock: () -> Instant = { Clock.System.now() }
 ) {
     private val ledger = InventoryLedger(equal, maxAgeMs, clock = clock)
     private val slotSnapshots = mutableMapOf<Int, MutableMap<Int, T>>()
     private val cursorSnapshots = mutableMapOf<Int, T>()
+
+    private val changeTimes = mutableMapOf<Pair<Int, Int>, Instant>()
 
     var maxAgeMs: Long
         get() = ledger.maxAgeMs
@@ -60,6 +63,7 @@ class InventorySyncFilter<T>(
             else if (!equal(old, live)) {
                 ledger.record(syncId, slotId, old, copy(live))
                 snap[slotId] = copy(live)
+                changeTimes[syncId to slotId] = clock()
                 recorded++
             }
         }
@@ -118,6 +122,22 @@ class InventorySyncFilter<T>(
     @Synchronized
     fun clear(syncId: Int) {
         ledger.clear(syncId)
+        changeTimes.keys.removeIf { (sync, _) -> sync == syncId }
+    }
+
+    /**
+     * When [slotId] last changed locally, or null if never (or no longer ago than
+     * [maxAgeMs]). A fresh screen id must never inherit another screen's stamps.
+     */
+    @Synchronized
+    fun lastChange(syncId: Int, slotId: Int): Instant? {
+        val key = syncId to slotId
+        val at = changeTimes[key] ?: return null
+        if (clock() - at > maxAgeMs.milliseconds) {
+            changeTimes.remove(key)
+            return null
+        }
+        return at
     }
 
     @Synchronized

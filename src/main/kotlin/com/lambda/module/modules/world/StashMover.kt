@@ -45,10 +45,10 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.handler.handlers.findSlot
-import com.lambda.interaction.handler.handlers.findSlots
-import com.lambda.interaction.handler.handlers.findStack
-import com.lambda.interaction.handler.handlers.findStacks
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
+import com.lambda.interaction.handler.handlers.ContainerHandler.findStack
+import com.lambda.interaction.handler.handlers.ContainerHandler.findStacks
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation
@@ -541,7 +541,9 @@ object StashMover : Module(
 			val move =
 				moveFromContainerToContainer(
 					screenHandler.containerSlots,
-					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList()
+					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+						.orEmpty()
+						.toList()
 				)
 			if (!move) return
 			pullContainer?.let { container ->
@@ -568,7 +570,9 @@ object StashMover : Module(
 			}
 			val move =
 				moveFromContainerToContainer(
-					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList(),
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+						.orEmpty()
+						.toList(),
 					screenHandler.containerStacks
 				)
 			if (move) {
@@ -608,7 +612,12 @@ object StashMover : Module(
 				rotation(rotation)
 			}.submit()
 			if (!rotationRequest.done || rotation dist RotationManager.serverRotation > 0.001) return
-			val throwSlots = findSlots(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY).toList()
+			val throwSlots =
+				findSlots(
+					stackSelection { notEmpty() },
+					ContainerSelection.HOTBAR_AND_INVENTORY
+				).orEmpty()
+					.toList()
 			if (throwSlots.isNotEmpty()) {
 				val inventoryRequest = inventoryRequest(settleForLess = true) {
 					throwSlots.forEach { slot ->
@@ -627,7 +636,9 @@ object StashMover : Module(
 			}
 			val move =
 				moveFromContainerToContainer(
-					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList(),
+					findSlots(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+						.orEmpty()
+						.toList(),
 					screenHandler.containerStacks
 				)
 			if (!move) return
@@ -652,7 +663,9 @@ object StashMover : Module(
 			val move =
 				moveFromContainerToContainer(
 					screenHandler.containerSlots,
-					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY).toList()
+					findStacks(containerSelection = ContainerSelection.HOTBAR_AND_INVENTORY)
+						.orEmpty()
+						.toList()
 				)
 			if (move) putOrThrowItems()
 		}

@@ -23,6 +23,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.module.modules.combat.AutoArmor
 import com.lambda.module.modules.movement.elytrafly.ElytraFly
 import com.lambda.module.modules.movement.elytrafly.ElytraFly.mode
@@ -173,11 +174,7 @@ object GlideHandler {
 			if (!autoSwapChecking || canGlideAlready) return canGlideAlready
 			val selection = if (fakeFly) CHESTPLATE_SELECTION else ELYTRA_SELECTION
 			return with(ElytraFly) {
-				findStack(
-					selection,
-					ContainerSelection.HOTBAR_AND_INVENTORY,
-					false
-				) != null
+				stacksAvailable(selection, ContainerSelection.HOTBAR_AND_INVENTORY)
 			}
 		}
 

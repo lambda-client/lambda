@@ -25,8 +25,8 @@ import com.lambda.interaction.container.PlacedContainer
 import com.lambda.interaction.container.containers.external.DoubleChestContainer
 import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.interaction.handler.handlers.ContainerSearchScope
-import com.lambda.interaction.handler.handlers.findContainers
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.task.start
@@ -78,7 +78,8 @@ object ContainerTransferTest : Module(
                 event.cancel()
                 
                 runSafeAutomated {
-                    startTransferTask(sourcePos!!, destPos!!)
+                    val from = sourcePos
+                    if (from != null) startTransferTask(from, pos)
                 }
                 
                 disable()

@@ -81,6 +81,14 @@ class LimitedDecayQueue<E>(
     }
 
     @Synchronized
+    fun refresh(element: E): Boolean {
+        cleanUp()
+        if (!queue.removeIf { it.first == element }) return false
+        queue.add(element to Instant.now())
+        return true
+    }
+
+    @Synchronized
     override fun removeAll(elements: Collection<E>): Boolean {
         cleanUp()
         return queue.removeIf { it.first in elements }
@@ -95,23 +103,6 @@ class LimitedDecayQueue<E>(
     @Synchronized
     override fun clear() {
         queue.clear()
-    }
-
-    /**
-     * Removes the first element matching the [predicate] and returns `true`, or `false` if no match was found.
-     * Unlike [removeIf], this stops after the first removal so that duplicate entries are consumed one at a time.
-     */
-    @Synchronized
-    fun removeFirstMatch(predicate: (E) -> Boolean): Boolean {
-        cleanUp()
-        val iterator = queue.iterator()
-        while (iterator.hasNext()) {
-            if (predicate(iterator.next().first)) {
-                iterator.remove()
-                return true
-            }
-        }
-        return false
     }
 
     /**

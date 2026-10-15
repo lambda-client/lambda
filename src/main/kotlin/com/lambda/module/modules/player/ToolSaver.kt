@@ -27,7 +27,7 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.interaction.handler.handlers.findSlots
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.threading.runSafeAutomated
@@ -61,6 +61,7 @@ object ToolSaver : Module(
 			val inventorySlots = findSlots(containerSelection = InventoryContainer.select())
 
 			val swaps = endangeredSlots
+				.orEmpty()
 				.mapNotNull { endangered ->
 					val sorter = compareByDescending<Slot> { swapSlot ->
 						if (!replace) 0
@@ -81,6 +82,7 @@ object ToolSaver : Module(
 						it.stack.isStackable
 					}
 					val swapWith = inventorySlots
+						.orEmpty()
 						.filter { !it.stack.isEndangered }
 						.sortedWith(sorter)
 						.firstOrNull()

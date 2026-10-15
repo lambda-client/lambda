@@ -33,7 +33,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.interaction.handler.handlers.findStack
+import com.lambda.interaction.handler.handlers.ContainerHandler.findStack
 import com.lambda.interaction.manager.managers.interacting.interactRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag

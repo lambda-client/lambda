@@ -26,7 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.task.Task
 import com.lambda.task.Task.Ta5kBuilder

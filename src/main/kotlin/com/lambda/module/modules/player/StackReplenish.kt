@@ -28,7 +28,7 @@ import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.interaction.handler.handlers.findSlots
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -56,8 +56,8 @@ object StackReplenish : Module(
 
 		listen<TickEvent.Pre> {
 			if (player.currentScreenHandler.cursorStack.item !== Items.AIR) return@listen
-			findSlots(containerSelection = HotbarContainer.select()).forEach { slot -> checkReplenish(slot) }
-			if (offhand) findSlots(containerSelection = OffhandContainer.select()).forEach { slot -> checkReplenish(slot) }
+			findSlots(containerSelection = HotbarContainer.select())?.forEach { slot -> checkReplenish(slot) }
+			if (offhand) findSlots(containerSelection = OffhandContainer.select())?.forEach { slot -> checkReplenish(slot) }
 		}
 	}
 
@@ -72,7 +72,7 @@ object StackReplenish : Module(
 					predicate { s, _ -> ItemStack.areItemsAndComponentsEqual(s, stack) }
 				},
 				InventoryContainer.select()
-			)
+			) ?: return
 
 		replenishSlots.forEach { replenishSlot ->
 			val invStack = replenishSlot.stack

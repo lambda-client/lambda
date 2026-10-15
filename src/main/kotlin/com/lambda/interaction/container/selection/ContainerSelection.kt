@@ -51,12 +51,9 @@ fun ContainerSelection.mutate(
     builder: ContainerSelectionBuilder.() -> Unit = {}
 ) = ContainerSelectionBuilder(this, scope).apply(builder).build()
 
-/**
- * ContainerSelection is a class that holds a predicate for matching containers.
- */
 @Suppress("unused")
 class ContainerSelection @ContainerDslMarker internal constructor(
-    val selector: (Container) -> Boolean,
+    val selector: (Container) -> Boolean = { true },
     val scope: ContainerSearchScope = ContainerSearchScope.Loaded,
     val containersWhitelist: Collection<Container> = emptyList(),
     val loadedContainers: Collection<Container> = emptyList(),
@@ -95,7 +92,7 @@ class ContainerSelection @ContainerDslMarker internal constructor(
                 InventoryContainer,
                 scope = ContainerSearchScope.Player
             )
-        val PLAYER = containerSelection(scope = ContainerSearchScope.Player)
+        val PLAYER = ContainerSelection(scope = ContainerSearchScope.Player)
     }
 }
 

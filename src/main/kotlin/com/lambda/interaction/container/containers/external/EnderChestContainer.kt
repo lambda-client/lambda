@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.container.containers.external
 
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.context.Automated
 import com.lambda.context.SafeContext
@@ -27,8 +28,9 @@ import com.lambda.interaction.container.OpenContainerTask
 import com.lambda.interaction.container.OpenedContainerContext
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.lastInteractedBlockEntity
-import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.module.modules.client.Client.verboseDebug
 import com.lambda.task.Task.Ta5kBuilder
 import com.lambda.task.tasks.acquireStack
 import com.lambda.task.tasks.breakAndCollect
@@ -78,19 +80,21 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 	) : OpenContainerTask<OpenedEnderChestContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
 			findBlock(Blocks.ENDER_CHEST, inventoryConfig.enderChestSearchRadius).withBranch(
-				onSuccess = { pos ->
-					openContainer(pos).onSuccess {
-						success(OpenedEnderChestContext(null))
-					}
-				},
+			onSuccess = { pos ->
+				openContainer(pos).onSuccess {
+					if (verboseDebug) LOG.info("[tweaks] ender open at $pos")
+					success(OpenedEnderChestContext(null))
+				}
+			},
 				onFailure = {
 					acquireStack(Items.ENDER_CHEST.select(1))
 						.then { placeContainer(findSlot(it, HotbarContainer.select())) }
-						.then { pos ->
-							openContainer(pos).onSuccess {
-								success(OpenedEnderChestContext(pos))
-							}
+					.then { pos ->
+						openContainer(pos).onSuccess {
+							if (verboseDebug) LOG.info("[tweaks] ender open at $pos")
+							success(OpenedEnderChestContext(pos))
 						}
+					}
 				}
 			).start()
 		}

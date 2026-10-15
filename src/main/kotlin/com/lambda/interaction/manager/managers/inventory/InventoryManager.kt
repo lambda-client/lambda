@@ -47,6 +47,7 @@ import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.SetCursorItemS2CPacket
 import net.minecraft.screen.PlayerScreenHandler
 import net.minecraft.screen.ScreenHandler
+import kotlin.time.Instant
 
 /**
  * Manager designed to handle inventory actions. One of the key features being the inventory change detection to
@@ -190,7 +191,7 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 	 * [InventoryS2CPacket]; that packet is merged per slot in [onInventoryUpdate], which is why each
 	 * change is recorded exactly once here.
 	 */
-	fun SafeContext.indexInventoryChanges() {
+	private fun SafeContext.indexInventoryChanges() {
 		val current = player.currentScreenHandler
 		val recorded = filter.observeLocal(
 			current.syncId,
@@ -351,6 +352,12 @@ object InventoryManager : Manager<InventoryRequest>(1) {
 		}
 		original.call(packet)
 	}
+
+	/**
+	 * When a slot last changed locally, for breaking ties between identical stacks.
+	 * Pure filter read, safe anywhere. Null means unknown: keep the old order.
+	 */
+	fun lastSlotChange(syncId: Int, slotId: Int): Instant? = filter.lastChange(syncId, slotId)
 
 	/**
 	 * Anchors tracking to a screen's live state: drops pendings that cannot belong to a fresh

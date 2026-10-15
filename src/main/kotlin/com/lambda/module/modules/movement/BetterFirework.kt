@@ -33,9 +33,9 @@ import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.selectContainers
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
+import com.lambda.interaction.handler.handlers.ContainerHandler.findStack
 import com.lambda.interaction.handler.handlers.GlideHandler
-import com.lambda.interaction.handler.handlers.findSlot
-import com.lambda.interaction.handler.handlers.findStack
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module

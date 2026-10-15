@@ -47,7 +47,11 @@ object ChatTimestamp : Module(
 ) {
 	private var color: Formatting by setting("Color", Formatting.GRAY)
 		.onValueChange { from, to -> if (to.colorIndex !in 0..15) color = from }
-	private val javaColor: Color get() = Color(color.colorValue!! and 16777215)
+	private val javaColor: Color
+		get() {
+			val rgb = color.colorValue ?: return Color.GRAY
+			return Color(rgb and 16777215)
+		}
 
 	val formatter by configBlock(FormatterSettings(this))
 		.withEdits {

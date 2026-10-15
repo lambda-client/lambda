@@ -20,7 +20,7 @@ package com.lambda.module.modules.world
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.selection.ContainerSelection
-import com.lambda.interaction.handler.handlers.findStacks
+import com.lambda.interaction.handler.handlers.ContainerHandler.findStacks
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.util.FileUtils.locationBoundDirectory
@@ -45,6 +45,7 @@ object MapDownloader : Module(
             val mapStates = entitySearch<ItemFrameEntity>(128.0)
                 .mapNotNull { FilledMapItem.getMapState(it.heldItemStack, world) } +
                     findStacks(containerSelection = ContainerSelection.PLAYER)
+                        .orEmpty()
                         .mapNotNull { FilledMapItem.getMapState(it, world) }
 
             mapStates.forEach { map ->

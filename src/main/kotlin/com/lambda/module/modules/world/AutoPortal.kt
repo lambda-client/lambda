@@ -38,7 +38,7 @@ import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
-import com.lambda.interaction.handler.handlers.findSlot
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module

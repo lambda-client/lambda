@@ -25,7 +25,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.select
-import com.lambda.interaction.handler.handlers.findStack
+import com.lambda.interaction.handler.handlers.ContainerHandler.findStack
 import com.lambda.interaction.manager.managers.rotating.RotationManager
 import com.lambda.interaction.manager.managers.rotating.rotationRequest
 import com.lambda.module.modules.movement.BetterFirework.startFirework

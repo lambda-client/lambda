@@ -21,6 +21,10 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.TaskLifecycleGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.CollectDropsGameTest"
       }
     ]
   }

@@ -87,12 +87,13 @@ class InvRequestBuilder internal constructor(
 
 	fun resyncInventory() {
 		InventoryAction.Inventory {
+			val sh = player.currentScreenHandler
+			val action = if (sh.cursorStack.isEmpty) SlotActionType.PICKUP_ALL else SlotActionType.CLONE
 			connection.sendPacket {
-				val sh = player.currentScreenHandler
 				ClickSlotC2SPacket(
 					sh.syncId,
-					-1, -1, 0,
-					SlotActionType.CLONE,
+					-1, 0, 0,
+					action,
 					Int2ObjectOpenHashMap<ItemStackHash>(),
 					ItemStackHash.fromItemStack(sh.cursorStack, connection.componentHasher)
 				)

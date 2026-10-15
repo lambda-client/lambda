@@ -120,6 +120,11 @@ fun breakAndCollect(
     finishOnDone, true, lifeMaintenance, async, automated, buildResultFilter
 )
 
+data class BuildOutcome(
+    val structure: Structure,
+    val pickups: List<PickedUpItem>,
+)
+
 class BuildTask @Ta5kBuilder internal constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean,
@@ -128,7 +133,7 @@ class BuildTask @Ta5kBuilder internal constructor(
     private val async: Boolean,
     automated: Automated,
     private val buildResultFilter: SafeContext.(BuildResult) -> Boolean,
-) : Task<Structure>(), Automated by automated {
+) : Task<BuildOutcome>(), Automated by automated {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).format(precision = 1)} b/s ${(placements / (age / 20.0 + 0.001)).format(precision = 1)} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
@@ -138,6 +143,7 @@ class BuildTask @Ta5kBuilder internal constructor(
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
+    private val pickups = mutableListOf<PickedUpItem>()
     var eatTask: Task<*>? = null
     var collectDropsTask: Task<*>? = null
 
@@ -312,7 +318,7 @@ class BuildTask @Ta5kBuilder internal constructor(
             is PreSimResult.NoPermission,
             is GenericResult.Ignored -> {
                 if (iteratePropagating()) return
-                if (finishOnDone) success(blueprint.structure)
+                if (finishOnDone) success(BuildOutcome(blueprint.structure, pickups.toList()))
             }
 
             is GenericResult.NotVisible,
@@ -362,6 +368,7 @@ class BuildTask @Ta5kBuilder internal constructor(
         if (pendingInteractions.isNotEmpty()) return true
         if (collectDropsTask != null) return true
         collectDropsTask = collectDrops(dropsToCollect)
+            .onSuccess { pickups.addAll(it) }
             .thenAction { collectDropsTask = null }
             .start()
         return true

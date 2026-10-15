@@ -31,7 +31,7 @@ import com.lambda.config.automation.AutomationConfig
 import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.interaction.handler.handlers.findContainers
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainers
 import com.lambda.task.Task
 import com.lambda.task.start
 import com.lambda.task.tasks.transfer

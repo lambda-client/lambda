@@ -23,7 +23,7 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.OffhandContainer
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.interaction.handler.handlers.move
+import com.lambda.interaction.handler.handlers.moveStack
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation.Companion.rotationTo
 import com.lambda.interaction.manager.managers.rotating.RotationManager
@@ -144,12 +144,12 @@ class Opportunity(
 				if (swapHand == Hand.MAIN_HAND) {
 					val itemStack = selection.bestMatch(player.hotbarStacks)
 					if (itemStack == null) { // retrieve to hotbar
-						if (!selection.move(toSelection = swapTo)) return@runSafe
+						if (!selection.moveStack(toSelection = swapTo)) return@runSafe
 					}
 					val s = player.hotbarStacks.indexOf(itemStack)
 					if ((!hotbarRequest(s, nowOrNothing = false).submit().done) && itemToUse == null) return@runSafe
 				} else { // retrieve to offhand
-					if (!selection.move(toSelection = swapTo)) return@runSafe
+					if (!selection.moveStack(toSelection = swapTo)) return@runSafe
 				}
 			}
 		}

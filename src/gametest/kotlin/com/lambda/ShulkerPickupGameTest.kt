@@ -158,8 +158,9 @@ object ShulkerPickupGameTest : FabricClientGameTest {
             }
         }
         if (!moved.succeeded) {
-            val seen = context.computeOnClient<List<ItemStack>, RuntimeException> {
-                it.player!!.inventory.mainStacks.take(9).map { s -> s.copy() }
+            val seen = context.computeOnClient<List<ItemStack>, RuntimeException> { mc ->
+                checkNotNull(mc.player) { "shulker-pickup: no client player" }
+                    .inventory.mainStacks.take(9).map { s -> s.copy() }
             }
             fail("could not move the first shulker into the chest: ${moved.state} ${moved.error} (client hotbar shows $seen)")
             return
@@ -258,8 +259,9 @@ object ShulkerPickupGameTest : FabricClientGameTest {
         }
 
     private fun clientPlayerStacks(context: ClientGameTestContext): List<ItemStack> =
-        context.computeOnClient<List<ItemStack>, RuntimeException> {
-            it.player!!.inventory.mainStacks.map { s -> s.copy() }
+        context.computeOnClient<List<ItemStack>, RuntimeException> { mc ->
+            checkNotNull(mc.player) { "shulker-pickup: no client player" }
+                .inventory.mainStacks.map { s -> s.copy() }
         }
 
     private fun chestStacks(server: TestServerContext, pos: BlockPos): List<ItemStack> =

@@ -418,7 +418,10 @@ object ContainerTransferGameTest : FabricClientGameTest {
 
 		/** The player's main inventory as the client sees it, to detect desync against the server. */
 		private fun clientPlayerStacks(): List<ItemStack> =
-			context.computeOnClient<List<ItemStack>, RuntimeException> { it.player!!.inventory.mainStacks.map { s -> s.copy() } }
+			context.computeOnClient<List<ItemStack>, RuntimeException> { mc ->
+				checkNotNull(mc.player) { "transfer test: no client player" }
+					.inventory.mainStacks.map { s -> s.copy() }
+			}
 
 		// ---- expectations ------------------------------------------------------------------------------------
 
@@ -457,7 +460,10 @@ object ContainerTransferGameTest : FabricClientGameTest {
 				mc.currentScreen?.let { it::class.simpleName } ?: ""
 			}
 			expect(screen.isEmpty()) { "a screen was left open: $screen" }
-			val cursor = context.computeOnClient<ItemStack, RuntimeException> { it.player!!.currentScreenHandler.cursorStack.copy() }
+			val cursor = context.computeOnClient<ItemStack, RuntimeException> { mc ->
+				checkNotNull(mc.player) { "transfer test: no client player" }
+					.currentScreenHandler.cursorStack.copy()
+			}
 			expect(cursor.isEmpty) { "cursor still holds $cursor" }
 			return after
 		}

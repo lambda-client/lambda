@@ -109,6 +109,7 @@ internal object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
 					) {
 					destroyBlock(pending)
 				}
+				pendingActions.refresh(pending)
 				pending.internalOnBreak()
 				if (pending.callbacksCompleted) {
 					pending.stopPending()

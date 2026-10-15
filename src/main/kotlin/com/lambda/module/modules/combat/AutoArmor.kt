@@ -29,7 +29,7 @@ import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.StackAndSlot
 import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.stackSelection
-import com.lambda.interaction.handler.handlers.findSlots
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
@@ -122,8 +122,7 @@ object AutoArmor : Module(
 	fun SafeContext.tick() {
 		tickedThisTick = true
 		val armorSlots = findSlots(containerSelection = ArmorContainer.select())
-			.toList()
-			.takeUnless { it.isEmpty() }
+			?.toList()
 			?: return
 		
 		val swappable =
@@ -135,7 +134,8 @@ object AutoArmor : Module(
 				},
 				ContainerSelection.HOTBAR_AND_INVENTORY
 			)
-			.distinctBy { it.stack.armorSlot }
+			?.distinctBy { it.stack.armorSlot }
+				?: return
 
 		val swaps = mutableListOf<Pair<Slot, Slot>>()
 		armorSlots

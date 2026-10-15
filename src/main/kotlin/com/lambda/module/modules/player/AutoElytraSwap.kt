@@ -23,12 +23,12 @@ import com.lambda.interaction.container.containers.HotbarContainer
 import com.lambda.interaction.container.containers.InventoryContainer
 import com.lambda.interaction.container.selection.ContainerSelection
 import com.lambda.interaction.container.selection.select
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
+import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
 import com.lambda.interaction.handler.handlers.GlideHandler.CHESTPLATE_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.ELYTRA_SELECTION
 import com.lambda.interaction.handler.handlers.GlideHandler.manuallySwapped
 import com.lambda.interaction.handler.handlers.GlideHandler.swapped
-import com.lambda.interaction.handler.handlers.findSlot
-import com.lambda.interaction.handler.handlers.findSlots
 import com.lambda.module.Module
 import com.lambda.module.ModuleTag
 import com.lambda.module.modules.combat.AutoArmor
@@ -65,6 +65,7 @@ object AutoElytraSwap : Module(
 
 	private fun swapWithChestplate(swapSlot: Slot): Boolean {
 		val chestplateSlot = findSlots(containerSelection = ArmorContainer.select())
+			.orEmpty()
 			.toList()
 			.getOrNull(1)
 			?: return false

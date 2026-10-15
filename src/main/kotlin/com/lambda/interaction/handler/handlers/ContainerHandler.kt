@@ -48,6 +48,7 @@ import com.lambda.interaction.container.selection.StackSelection
 import com.lambda.interaction.container.selection.containerSelection
 import com.lambda.interaction.container.selection.mutate
 import com.lambda.interaction.container.selection.stackSelection
+import com.lambda.interaction.handler.handlers.ContainerHandler.findContainer
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.FolderRegistry
 import com.lambda.util.ReflectionUtils.getInstances
@@ -149,6 +150,158 @@ object ContainerHandler : Loadable {
 				Lambda.LOG.warn("Failed to clean up ghost containers for chunk ${chunk.pos}", e)
 			}
 		}
+	}
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun findSlot(
+		stackSelection: StackSelection = StackSelection.ANYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) = findSlots(stackSelection, containerSelection, sorted)
+		?.firstOrNull()
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun findSlots(
+		stackSelection: StackSelection = StackSelection.ANYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) = findContainers(containerSelection, false)
+		.flatMap { it.slots }
+		.let { stackSelection.filter(it, sorted) }
+		.takeIf { it.count >= stackSelection.count || stackSelection.count < 0 }
+		?.takeUpTo(stackSelection.count) { it.stack.count }
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun slotsAvailable(
+		stackSelection: StackSelection = StackSelection.ANYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
+	) = findSlots(stackSelection, containerSelection, false)
+		?.isNotEmpty() == true
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun findStack(
+		stackSelection: StackSelection = StackSelection.ANYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) = findStacks(stackSelection, containerSelection, sorted)
+		?.firstOrNull()
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun findStacks(
+		stackSelection: StackSelection = StackSelection.ANYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) = findContainers(containerSelection, false)
+		.flatMap { it.stacks }
+		.let { stackSelection.filter(it, sorted) }
+		.takeIf { it.count >= stackSelection.count || stackSelection.count < 0 }
+		?.takeUpTo(stackSelection.count) { it.count }
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun stacksAvailable(
+		stackSelection: StackSelection = StackSelection.ANYTHING,
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED
+	) = findStacks(stackSelection, containerSelection, false)
+		?.isNotEmpty() == true
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun findContainer(
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) = findContainers(containerSelection, sorted)
+		.firstOrNull()
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun findContainers(
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) = containerSelection
+		.filter(searchContainers(containerSelection).asIterable(), sorted)
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun containerAvailable(
+		containerSelection: ContainerSelection= ContainerSelection.ACCESSED
+	) = findContainer(containerSelection, false) != null
+
+	@ContainerDslMarker
+	context(_: Automated)
+	fun findContainerWithDisposable(
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) = findContainersWithDisposable(containerSelection, sorted)
+		.firstOrNull()
+
+	@ContainerDslMarker
+	context(automated: Automated)
+	fun findContainersWithDisposable(
+		containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
+		sorted: Boolean = true
+	) =
+		with(automated) {
+			findContainers(
+				containerSelection(containerSelection.scope) {
+					matches(containerSelection)
+					hasStack(
+						stackSelection(1) { ofAnyItems(inventoryConfig.disposables) }
+					)
+				},
+				sorted
+			)
+		}
+
+	context(_: Automated)
+	private fun searchContainers(
+		selection: ContainerSelection
+	): Sequence<Container> {
+		fun Container.allNested(): Sequence<Container> =
+			sequence {
+				yield(this@allNested)
+				storedContainers.values.forEach { nested ->
+					yieldAll(nested.allNested())
+				}
+			}
+
+		val compiled = compileContainers.asSequence()
+		val placedSeq = sequenceOf(accessedPlacedContainer).filterNotNull()
+
+		val baseContainers =
+			when (selection.scope) {
+				ContainerSearchScope.Loaded -> compiled + placedSeq + selection.loadedContainers
+				ContainerSearchScope.Accessed -> placedSeq + compiled.filter { it.isAccessed }
+				ContainerSearchScope.Compiled -> compiled
+				ContainerSearchScope.Player -> compiled - EnderChestContainer
+				ContainerSearchScope.All -> compiled + placedSeq +
+						ContainerSerializer.serializedContainers.filter { diskContainer ->
+							val accessed = accessedPlacedContainer
+							accessed == null || !diskContainer.haveMatchingInventories(accessed)
+						}
+			}
+
+		return baseContainers
+			.flatMap { it.allNested() }
+			.distinct()
+			.filter { it.isAccessible }
+	}
+
+	private fun <T> List<T>.takeUpTo(need: Int, countOf: (T) -> Int): List<T> {
+		if (need <= 0) return this
+		var sum = 0
+		val taken = ArrayList<T>()
+		for (item in this) {
+			taken += item
+			sum += countOf(item)
+			if (sum >= need) break
+		}
+		return taken
 	}
 
 	private fun SafeContext.onContainerUpdate(sh: ScreenHandler = player.currentScreenHandler) {
@@ -260,7 +413,7 @@ object ContainerHandler : Loadable {
 
 @ContainerDslMarker
 context(_: AutomatedSafeContext)
-fun StackSelection.move(
+fun StackSelection.moveStack(
 	fromSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	toSelection: ContainerSelection = ContainerSelection.ACCESSED,
 	replaceSelection: StackSelection = StackSelection.ANYTHING
@@ -273,7 +426,7 @@ fun StackSelection.move(
 				isAccessed()
 			}
 		)
-		?: return false
+			?: return false
 
 	val toContainer =
 		findContainer(
@@ -282,137 +435,12 @@ fun StackSelection.move(
 				hasStack(replaceSelection)
 				isAccessed()
 			}
-		)
-		?: return false
+		) ?: return false
 
 	val (fromSlot, toSlot) = fromContainer.findMoveSlots(this, toContainer, replaceSelection)
 	if (fromSlot == null || toSlot == null) return false
 
 	return fromContainer.swap(fromSlot, toSlot, toContainer)
-}
-
-@ContainerDslMarker
-context(automated: Automated)
-fun findSlot(
-	stackSelection: StackSelection = StackSelection.ANYTHING,
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) = findSlots(stackSelection, containerSelection, sorted)
-	.firstOrNull()
-
-@ContainerDslMarker
-context(automated: Automated)
-fun findSlots(
-	stackSelection: StackSelection = StackSelection.ANYTHING,
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) = containerSelection
-	.filter(searchContainers(containerSelection).asIterable(), sorted)
-	.mapNotNull { container ->
-		val slots = stackSelection.filter(container.slots)
-		if (slots.count >= stackSelection.count) slots
-		else null
-	}
-	.flatten()
-
-@ContainerDslMarker
-context(automated: Automated)
-fun findStack(
-	stackSelection: StackSelection = StackSelection.ANYTHING,
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) = findStacks(stackSelection, containerSelection, sorted)
-	.firstOrNull()
-
-@ContainerDslMarker
-context(automated: Automated)
-fun findStacks(
-	stackSelection: StackSelection = StackSelection.ANYTHING,
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) = containerSelection
-	.filter(searchContainers(containerSelection).asIterable(), sorted)
-	.mapNotNull { container ->
-		val stacks = stackSelection.filter(container.stacks)
-		if (stacks.count >= stackSelection.count) stacks
-		else null
-	}
-	.flatten()
-
-@ContainerDslMarker
-context(_: Automated)
-fun findContainer(
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) = findContainers(containerSelection, sorted)
-	.firstOrNull()
-
-@ContainerDslMarker
-context(automated: Automated)
-fun findContainers(
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) = containerSelection
-	.filter(searchContainers(containerSelection).asIterable(), sorted)
-
-@ContainerDslMarker
-context(_: Automated)
-fun findContainerWithDisposable(
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) = findContainersWithDisposable(containerSelection, sorted)
-	.firstOrNull()
-
-@ContainerDslMarker
-context(automated: Automated)
-fun findContainersWithDisposable(
-	containerSelection: ContainerSelection = ContainerSelection.ACCESSED,
-	sorted: Boolean = true
-) =
-	with(automated) {
-		findContainers(
-			containerSelection(containerSelection.scope) {
-				matches(containerSelection)
-				hasStack(
-					stackSelection(1) { ofAnyItems(inventoryConfig.disposables) }
-				)
-			},
-			sorted
-		)
-	}
-
-context(automated: Automated)
-private fun searchContainers(
-	selection: ContainerSelection
-): Sequence<Container> {
-	fun Container.allNested(): Sequence<Container> =
-		sequence {
-			yield(this@allNested)
-			storedContainers.values.forEach { nested ->
-				yieldAll(nested.allNested())
-			}
-		}
-
-	val compiled = ContainerHandler.compileContainers.asSequence()
-	val placedSeq = sequenceOf(ContainerHandler.accessedPlacedContainer).filterNotNull()
-
-	val baseContainers =
-		when (selection.scope) {
-			ContainerSearchScope.Loaded -> compiled + placedSeq + selection.loadedContainers
-			ContainerSearchScope.Accessed -> placedSeq + compiled.filter { it.isAccessed }
-			ContainerSearchScope.Compiled -> compiled
-			ContainerSearchScope.Player -> compiled - EnderChestContainer
-			ContainerSearchScope.All -> compiled + placedSeq +
-					ContainerSerializer.serializedContainers.filter { diskContainer ->
-						val accessed = ContainerHandler.accessedPlacedContainer
-						accessed == null || !diskContainer.haveMatchingInventories(accessed)
-					}
-		}
-
-	return baseContainers
-		.flatMap { it.allNested() }
-		.distinct()
-		.filter { it.isAccessible }
 }
 
 enum class ContainerSearchScope {
