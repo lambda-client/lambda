@@ -58,6 +58,7 @@ interface BreakConfig : ActionConfig {
 	val efficientOnly: Boolean
 	val suitableToolsOnly: Boolean
 	val forceSilkTouch: Boolean
+	val avoidSilkTouch: Boolean
 	val forceFortunePickaxe: Boolean
 	val minFortuneLevel: Int
 
