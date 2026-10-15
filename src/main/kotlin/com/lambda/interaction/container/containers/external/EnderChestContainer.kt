@@ -78,19 +78,19 @@ object EnderChestContainer : Container(ContainerType.EnderChest), ExternalContai
 	) : OpenContainerTask<OpenedEnderChestContext>(description), Automated by automated {
 		override fun SafeContext.onStart() {
 			findBlock(Blocks.ENDER_CHEST, inventoryConfig.enderChestSearchRadius).withBranch(
-			onSuccess = { pos ->
-				openContainer(pos).onSuccess {
-					success(OpenedEnderChestContext(null))
-				}
-			},
+				onSuccess = { pos ->
+					openContainer(pos).onSuccess {
+						success(OpenedEnderChestContext(null))
+					}
+				},
 				onFailure = {
 					acquireStack(Items.ENDER_CHEST.select(1))
 						.then { placeContainer(findSlot(it, HotbarContainer.select())) }
-					.then { pos ->
-						openContainer(pos).onSuccess {
-							success(OpenedEnderChestContext(pos))
+						.then { pos ->
+							openContainer(pos).onSuccess {
+								success(OpenedEnderChestContext(pos))
+							}
 						}
-					}
 				}
 			).start()
 		}
