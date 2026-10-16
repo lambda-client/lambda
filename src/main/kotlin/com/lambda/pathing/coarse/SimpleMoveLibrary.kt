@@ -62,10 +62,7 @@ class SimpleMoveLibrary private constructor(val catalog: MovementCatalog) {
 
 	fun isStance(view: CoarseVoxelView, stance: Stance): Boolean {
 		if (stance.y !in view.simulableStanceY) return false
-		val stands = if (Footing.involvesPartial(view, stance.x, stance.y, stance.z)) Footing.stands(view, stance)
-		else view.standingSurface(stance.x, stance.y - 1, stance.z) != null && !view.voxel(stance.x, stance.y - 1, stance.z).intrudesAbove &&
-				view.voxel(stance.x, stance.y, stance.z).centerPassable && view.voxel(stance.x, stance.y + 1, stance.z).centerPassable
-		return stands || catalog.movements.any { it.occupies(view, stance) }
+		return Footing.standsAt(view, stance) || catalog.movements.any { it.occupies(view, stance) }
 	}
 
 	fun templates(view: CoarseVoxelView, at: Stance): List<MotionTemplate> =

@@ -44,6 +44,11 @@ object PathingManager : Manager<PathingRequest>(0) {
 
 	fun isFinished(request: PathingRequest): Boolean = queuedRequest !== request && session?.isFinished(request) ?: true
 
+	internal fun stateOf(request: PathingRequest): State? = when {
+		queuedRequest === request -> State.Settling(request.goal.toString())
+		else -> session?.takeIf { it.request === request }?.state
+	}
+
 	fun route(automated: Automated, waypoints: List<Stance>): PathingRequest? {
 		val rehearsed = session?.takeIf { it.active && it.rehearsal?.waypoints == waypoints }
 		if (rehearsed != null) {

@@ -143,7 +143,7 @@ internal class CoarseService(
 
 	private fun standing(leg: Int): Frame? = frames[leg]?.takeUnless { failures[leg]?.start == it.start }
 
-	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean): Frame? {
+	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean, settle: Boolean = false): Frame? {
 		val goal = goals[leg]
 		val waitUntil = System.nanoTime() + FULL_ROUTE_WAIT_MILLIS * 1_000_000L
 		var frame: Frame? = null
@@ -153,7 +153,7 @@ internal class CoarseService(
 			val next = awaitFrame(leg, ROUTE_POLL_MILLIS) { it.start == start && it !== frame }
 			if (next != null) {
 				frame = next
-				if (next.route.goal == goal || world?.chunkCapturable(goal.x shr 4, goal.z shr 4) != true) return next
+				if (!settle && (next.route.goal == goal || world?.chunkCapturable(goal.x shr 4, goal.z shr 4) != true)) return next
 			} else if (frame == null && hopeless(leg, start)) {
 				if (hopelessSince == 0L) hopelessSince = System.nanoTime()
 				else if (System.nanoTime() - hopelessSince > HOPELESS_MILLIS * 1_000_000L) return null

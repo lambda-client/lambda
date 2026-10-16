@@ -10,6 +10,7 @@
 package com.lambda.command.commands
 
 import com.lambda.Lambda.mc
+import com.lambda.brigadier.argument.blockPredicate
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.value
@@ -21,6 +22,7 @@ import com.lambda.pathing.api.PathingService
 import com.lambda.pathing.core.Stance
 import com.lambda.util.CommunicationUtils.info
 import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.argument.BlockPredicateArgumentType
 
 /**
  * The one pathing command.
@@ -33,6 +35,11 @@ import com.lambda.util.extension.CommandBuilder
  * - `path plan [<x> <y> <z> ...]` rehearses the staged or given waypoints without moving: the
  *   search walks them in simulation, round after round at varied search tempos, and keeps the
  *   shortest complete tape; `path go` then walks it from the first frame.
+ * - `path find <block>` walks next to the nearest block by path matching a block id, `#tag` or
+ *   `[state]` filter: it collects the closest matches from loaded chunks, Lambda's terrain cache
+ *   and Baritone's cache, compares them with one coarse search toward all of them, and walks to
+ *   the one the cheapest route ends at; a remembered block is checked again once its chunk loads,
+ *   and an unreachable one gives way to the next nearest. Bare `path find` shows the search.
  * - `path cancel` (or `path c`) stops the walk and drops queued waypoints.
  * - `path clear` additionally wipes the published path and telemetry.
  *
@@ -42,9 +49,9 @@ import com.lambda.util.extension.CommandBuilder
  */
 object PathCommand : LambdaCommand(
     name = "path",
-    usage = "path <go|goal|plan|cancel> -- go [<x> <y> <z> ...] | goal [<x> <y> <z> ...|clear] | plan [<x> <y> <z> ...] | cancel",
-    description = "Walks to staged or given waypoints along simulated, certified trajectories",
-    examples = listOf("path go 10 100 20", "path goal 10 64 20 40 70 -30", "path plan", "path go", "path cancel"),
+    usage = "path <go|goal|plan|find|cancel> -- go [<x> <y> <z> ...] | goal [<x> <y> <z> ...|clear] | plan [<x> <y> <z> ...] | find <block> | cancel",
+    description = "Walks to staged or given waypoints, or next to the nearest block of a type by path, along simulated, certified trajectories",
+    examples = listOf("path go 10 100 20", "path goal 10 64 20 40 70 -30", "path plan", "path go", "path find chest", "path find #beds", "path cancel"),
 ) {
     override fun CommandBuilder.create() {
         required(literal("go")) {
@@ -108,6 +115,25 @@ object PathCommand : LambdaCommand(
                     PathingWaypoints.pending = parsed
                     PathingService.rehearse(AutomationConfig.DEFAULT, parsed)
                     info(PathingWaypoints.describe("Rehearsing", parsed) + " -- `path go` walks the best plan so far.")
+                }
+            }
+        }
+
+        required(literal("find")) {
+            execute {
+                info(PathingService.findStatus)
+            }
+            required(blockPredicate("block", gameRegistry)) { block ->
+                execute {
+                    val predicate = block().value()
+                    if ((predicate as? BlockPredicateArgumentType.BlockPredicate)?.hasNbt() == true) {
+                        info("Block data filters ({...}) can't be checked against cached terrain; leave them out.")
+                        return@execute
+                    }
+                    val context = block().context
+                    val description = context.nodes.last().range.get(context.input)
+                    PathingService.find(description, predicate)
+                    info("Searching for $description...")
                 }
             }
         }

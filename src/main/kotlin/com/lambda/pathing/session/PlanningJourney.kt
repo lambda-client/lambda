@@ -28,7 +28,8 @@ internal class PlanningJourney private constructor(
 
 	private fun buildLegs(remembered: BaritoneCache?): List<CoarsePlanningState> = goals.indices.map { index ->
 		val memory = remembered?.let { coarseView.remembering(it.sectionsExcept(starts + goals), world::chunkCapturable) }
-		CoarsePlanningState(memory ?: coarseView, origin.moveOptions, starts[index], goals[index], memory = memory)
+		val alternatives = if (index == goals.lastIndex) origin.alternatives else emptyList()
+		CoarsePlanningState(memory ?: coarseView, origin.moveOptions, starts[index], goals[index], memory = memory, alternatives = alternatives)
 	}
 
 	val coarse = CoarseService(

@@ -46,6 +46,11 @@ object Footing {
 	fun involvesPartial(view: CoarseVoxelView, x: Int, y: Int, z: Int): Boolean =
 		view.voxel(x, y, z).partial || view.voxel(x, y + 1, z).partial || view.voxel(x, y - 1, z).partial || view.voxel(x, y - 2, z).partial
 
+	fun standsAt(view: CoarseVoxelView, stance: Stance): Boolean =
+		if (involvesPartial(view, stance.x, stance.y, stance.z)) stands(view, stance)
+		else view.standingSurface(stance.x, stance.y - 1, stance.z) != null && !view.voxel(stance.x, stance.y - 1, stance.z).intrudesAbove &&
+				view.voxel(stance.x, stance.y, stance.z).centerPassable && view.voxel(stance.x, stance.y + 1, stance.z).centerPassable
+
 	fun stands(view: CoarseVoxelView, stance: Stance): Boolean {
 		val cache = cache(view)
 		cache.entries.get(BlockPos.asLong(stance.x, stance.y, stance.z))?.let { return !it.isEmpty }

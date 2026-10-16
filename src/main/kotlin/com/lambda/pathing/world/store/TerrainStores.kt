@@ -4,16 +4,25 @@ import com.lambda.util.FolderRegistry
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.WorldSavePath
 import net.minecraft.world.World
+import java.nio.file.Path
 
 object TerrainStores {
 	private var open: TerrainStore? = null
 
 	fun of(world: World): TerrainStore {
-		val dimension = world.registryKey.value
-		val directory = FolderRegistry.cache.resolve("terrain").resolve(worldName()).resolve(dimension.namespace).resolve(dimension.path)
+		val directory = directoryOf(world)
 		open?.takeIf { it.directory == directory }?.let { return it }
 		close()
 		return TerrainStore(directory).also { open = it }
+	}
+
+	fun directoryOf(world: World): Path {
+		val dimension = world.registryKey.value
+		return FolderRegistry.cache.resolve("terrain").resolve(worldName()).resolve(dimension.namespace).resolve(dimension.path)
+	}
+
+	fun sync(directory: Path) {
+		open?.takeIf { it.directory == directory }?.sync()
 	}
 
 	fun close() {

@@ -20,7 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.zip.GZIPInputStream
 
-internal class BaritoneCache(private val directory: Path, private val minY: Int, height: Int) {
+internal class BaritoneCache(private val directory: Path, private val minY: Int, private val height: Int) {
 	private val sectionCount = height shr 4
 	private val chunkBytes = height * CHUNK_COLUMN_BYTES_PER_LAYER
 	private val regions = object : LinkedHashMap<Long, Array<RememberedChunk?>?>(16, 0.75f, true) {
@@ -51,6 +51,55 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 			}
 			builder.build()
 		}
+	}
+
+	fun regions(): List<Long> {
+		if (!Files.isDirectory(directory)) return emptyList()
+		return Files.list(directory).use { files ->
+			files.toList().mapNotNull { REGION_FILE.matchEntire(it.fileName.toString()) }.map { match ->
+				ChunkSectionPos.asLong(match.groupValues[1].toInt(), 0, match.groupValues[2].toInt())
+			}
+		}
+	}
+
+	fun region(regionX: Int, regionZ: Int): RememberedRegion? {
+		val path = directory.resolve("r.$regionX.$regionZ.bcr")
+		if (!Files.isRegularFile(path)) return null
+		return runCatching {
+			DataInputStream(GZIPInputStream(Files.newInputStream(path), READ_BUFFER_BYTES)).use { input ->
+				if (input.readInt() != MAGIC) return null
+				val bytes = ByteArray(chunkBytes)
+				val words = arrayOfNulls<LongArray>(REGION_CHUNKS)
+				for (index in 0 until REGION_CHUNKS) {
+					when (input.read()) {
+						CHUNK_PRESENT -> {
+							input.readFully(bytes)
+							words[index] = LongArray(chunkBytes / Long.SIZE_BYTES).also { ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(it) }
+						}
+						CHUNK_ABSENT -> {}
+						else -> return null
+					}
+				}
+				val present = words.indices.filter { words[it] != null }
+				val overviews = present.associateWith { Array(COLUMNS) { input.readUTF() } }
+				val tracked = present.associateWith {
+					val types = input.readUnsignedShort()
+					HashMap<String, IntArray>(types).apply {
+						repeat(types) {
+							val name = input.readUTF()
+							val count = input.readUnsignedShort().let { if (it == 0) WRAPPED_COUNT else it }
+							put(name, IntArray(count) {
+								val xz = input.readByte().toInt()
+								RememberedRegion.pack(xz and 15, input.readInt(), (xz shr 4) and 15)
+							})
+						}
+					}
+				}
+				val chunks = arrayOfNulls<RememberedRegion.Chunk>(REGION_CHUNKS)
+				for (index in present) chunks[index] = RememberedRegion.Chunk(words[index]!!, overviews.getValue(index), tracked.getValue(index), input.readLong())
+				RememberedRegion(regionX, regionZ, minY, height, chunks)
+			}
+		}.getOrNull()
 	}
 
 	private fun chunk(chunkX: Int, chunkZ: Int): RememberedChunk? {
@@ -105,6 +154,9 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 		private const val SECTION_WORDS = 16 * 16 * 16 * 2 / 64
 		private const val UNIFORM_PATTERN = 0x5555555555555555L
 		private const val READ_BUFFER_BYTES = 32768
+		private const val COLUMNS = 16 * 16
+		private const val WRAPPED_COUNT = 1 shl 16
+		private val REGION_FILE = Regex("""r\.(-?\d+)\.(-?\d+)\.bcr""")
 		private const val CACHED_REGIONS = 8
 		private const val CACHED_SECTIONS = 4096
 

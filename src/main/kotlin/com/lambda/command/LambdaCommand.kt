@@ -36,6 +36,9 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.CommandSource
 import net.minecraft.registry.BuiltinRegistries
+import net.minecraft.resource.featuretoggle.FeatureFlags
+import net.minecraft.registry.DynamicRegistryManager
+import net.minecraft.registry.Registries
 import net.minecraft.server.command.CommandManager
 
 abstract class LambdaCommand(
@@ -49,6 +52,10 @@ abstract class LambdaCommand(
 
     val registry: CommandRegistryAccess by lazy {
         CommandManager.createRegistryAccess(BuiltinRegistries.createWrapperLookup())
+    }
+
+    val gameRegistry: CommandRegistryAccess by lazy {
+        CommandRegistryAccess.of(DynamicRegistryManager.of(Registries.REGISTRIES), FeatureFlags.FEATURE_MANAGER.featureSet)
     }
 
     override fun load(): String {

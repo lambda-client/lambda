@@ -49,6 +49,10 @@ class TerrainStore(val directory: Path) : AutoCloseable {
 		}.get()
 	}
 
+	fun sync() {
+		if (!io.isShutdown) io.submit(::flush).get()
+	}
+
 	override fun close() {
 		if (io.isShutdown) return
 		io.execute(::flush)
@@ -109,8 +113,15 @@ class TerrainStore(val directory: Path) : AutoCloseable {
 		}
 	}
 
+	class StoredSection internal constructor(private val states: NbtCompound) {
+		val blockNames: List<String>
+			get() = states.getListOrEmpty("palette").map { (it as NbtCompound).getString("Name", "") }
+
+		fun decode(): PalettedContainer<BlockState> = CODEC.parse(NbtOps.INSTANCE, states).getOrThrow()
+	}
+
 	companion object {
-		private const val TILE_CHUNK_BITS = 3
+		const val TILE_CHUNK_BITS = 3
 		private const val CACHED_TILES = 32
 		private const val FLUSH_DELAY_SECONDS = 10L
 
@@ -129,6 +140,26 @@ class TerrainStore(val directory: Path) : AutoCloseable {
 			}
 			return loaded
 		}
+
+		fun tiles(directory: Path): List<Long> {
+			if (!Files.isDirectory(directory)) return emptyList()
+			return Files.list(directory).use { files ->
+				files.toList().mapNotNull { TILE_FILE.matchEntire(it.fileName.toString()) }.map { match ->
+					ChunkSectionPos.asLong(match.groupValues[1].toInt(), 0, match.groupValues[2].toInt())
+				}
+			}
+		}
+
+		fun latest(directory: Path, tileKey: Long): Map<Long, StoredSection> {
+			val tile = read(file(directory, tileKey))
+			val latest = HashMap<Long, StoredSection>(tile.sections.size)
+			for ((sectionKey, versions) in tile.sections) versions.lastOrNull()?.let { latest[sectionKey] = StoredSection(it.states) }
+			return latest
+		}
+
+		fun tileOf(sectionKey: Long): Long = tileKey(sectionKey)
+
+		private val TILE_FILE = Regex("""t\.(-?\d+)\.(-?\d+)\.dat""")
 
 		private fun encode(states: PalettedContainer<BlockState>): NbtCompound =
 			CODEC.encodeStart(NbtOps.INSTANCE, states).getOrThrow() as NbtCompound

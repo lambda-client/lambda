@@ -24,8 +24,13 @@ class CoarsePlanner(
 	val moves: SimpleMoveLibrary,
 	start: Stance,
 	val goalStance: Stance,
+	alternatives: Collection<Stance> = emptyList(),
 ) {
 	private val goalNode: Long = PackedStance.pack(goalStance, SpeedClass.STOPPED)
+
+	private val alternativeKeys = LongOpenHashSet().apply {
+		for (alternative in alternatives) if (alternative != goalStance) add(PackedStance.pack(alternative, SpeedClass.STOPPED))
+	}
 
 	private val unknownDrops = LongOpenHashSet()
 
@@ -51,20 +56,38 @@ class CoarsePlanner(
 		successorProvider = { node, sink ->
 			momentum.successors(edgeCache, node, sink)
 			anchorSuccessors(node, sink)
+			alternativeSuccessors(node, sink)
 		},
 		reachedSuccessorProvider = { node, sink, reached ->
 			momentum.successors(edgeCache, node, sink, reached = reached)
 			anchorSuccessors(node, sink)
+			alternativeSuccessors(node, sink)
 		},
 		predecessorProvider = { node, sink ->
 			momentum.predecessors(edgeCache, node, sink)
 			anchorPredecessors(node, sink)
+			alternativePredecessors(node, sink)
 		},
 		unknownPredecessorProvider = { node, sink, unknown ->
 			momentum.predecessors(edgeCache, node, sink, unknown)
 			anchorPredecessors(node, sink)
+			alternativePredecessors(node, sink)
 		},
 	)
+
+	private fun alternativeSuccessors(node: Long, sink: EdgeList) {
+		if (PackedStance.stanceKey(node) in alternativeKeys) sink.add(goalNode, 0.0)
+	}
+
+	private fun alternativePredecessors(node: Long, sink: EdgeList) {
+		if (node != goalNode) return
+		val keys = alternativeKeys.iterator()
+		while (keys.hasNext()) {
+			val key = keys.nextLong()
+			sink.append(PackedStance.withSpeed(key, SpeedClass.MOVING), 0.0)
+			sink.append(key, 0.0)
+		}
+	}
 
 	private fun anchorPredecessors(node: Long, sink: EdgeList) {
 		if (!goalKnown) {

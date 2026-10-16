@@ -16,10 +16,11 @@ internal class CoarsePlanningState(
 	start: Stance,
 	val goal: Stance,
 	private val memory: RememberedTerrain? = null,
+	private val alternatives: List<Stance> = emptyList(),
 ) {
 	private val moves = libraryFor(moveOptions)
 
-	var planner = CoarsePlanner(view, moves, start, goal)
+	var planner = CoarsePlanner(view, moves, start, goal, alternatives)
 		private set
 
 	fun repairFrom(start: Stance) {
@@ -35,13 +36,13 @@ internal class CoarsePlanningState(
 
 	fun forgetMemory(from: Stance, speed: SpeedClass = SpeedClass.STOPPED): Boolean {
 		if (memory?.forget() != true) return false
-		planner = CoarsePlanner(view, moves, from, goal).apply { updateStart(from, speed) }
+		planner = CoarsePlanner(view, moves, from, goal, alternatives).apply { updateStart(from, speed) }
 		return true
 	}
 
 	fun recallMemory(route: CoarseRoutePlan, from: Stance): Boolean {
 		val end = route.goal
-		if (memory == null || end == goal || maxOf(abs(end.x - from.x), abs(end.z - from.z)) > MEMORY_LOOKAHEAD_BLOCKS) return false
+		if (memory == null || end == goal || end in alternatives || maxOf(abs(end.x - from.x), abs(end.z - from.z)) > MEMORY_LOOKAHEAD_BLOCKS) return false
 		val recalled = memory.recall(end)
 		if (recalled.isEmpty()) return false
 		planner.terrainChanged(recalled, arrivalsOnly = true)
