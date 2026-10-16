@@ -138,7 +138,7 @@ class BlockFinderTest {
 			InterestPrimer.primeJourney(world, start, walled)
 			InterestPrimer.primeJourney(world, start, open)
 			coarse.start()
-			val route = assertNotNull(coarse.awaitRoute(0, start, cancelled = { false }, settle = true)).route
+			val route = assertNotNull(coarse.awaitRoute(0, start, cancelled = { false }) { it == walled || it == open }).route
 			assertEquals(open, route.goal, "the probe must settle on the open target: ${route.nodes}")
 		} finally {
 			coarse.close()

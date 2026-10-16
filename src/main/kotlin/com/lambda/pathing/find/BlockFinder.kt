@@ -109,6 +109,10 @@ object BlockFinder : Loadable {
 			val chunks = loadedChunks()
 			val skipped = HashSet(excluded)
 			val bound = if (loaded.size < COMPARED_TARGETS) Double.POSITIVE_INFINITY else loaded.last().block.distanceSquared
+			if (bound <= nearestUnloaded(origin, chunks)) {
+				found(loaded)
+				return
+			}
 			runIO {
 				val cached = runCatching {
 					TerrainStores.sync(store)
@@ -163,6 +167,18 @@ object BlockFinder : Loadable {
 			return builder.build()
 		}
 
+		private fun SafeContext.nearestUnloaded(origin: Vec3d, loaded: LongOpenHashSet): Double {
+			val radius = MinecraftClient.getInstance().options.clampedViewDistance + LOADED_MARGIN_CHUNKS + 1
+			var nearest = Double.POSITIVE_INFINITY
+			for (chunkX in player.chunkPos.x - radius..player.chunkPos.x + radius) for (chunkZ in player.chunkPos.z - radius..player.chunkPos.z + radius) {
+				if (ChunkPos.toLong(chunkX, chunkZ) in loaded) continue
+				val dx = origin.x - origin.x.coerceIn((chunkX shl 4) + 0.5, (chunkX shl 4) + 15.5)
+				val dz = origin.z - origin.z.coerceIn((chunkZ shl 4) + 0.5, (chunkZ shl 4) + 15.5)
+				nearest = minOf(nearest, dx * dx + dz * dz)
+			}
+			return nearest
+		}
+
 		private fun SafeContext.loadedChunks(): LongOpenHashSet {
 			val radius = MinecraftClient.getInstance().options.clampedViewDistance + LOADED_MARGIN_CHUNKS
 			val centreX = player.chunkPos.x
@@ -196,13 +212,14 @@ object BlockFinder : Loadable {
 				walk(primary, "the nearest by distance")
 				return
 			}
-			val preparation = prepared.preparation.copy(alternatives = nearest.drop(1).map { it.stance })
+			val preparation = prepared.preparation.copy(alternatives = nearest.drop(1).map { it.stance }, routeOnly = true)
 			val journey = PlanningJourney.open(preparation, player)
-			for (alternative in preparation.alternatives) InterestPrimer.primeJourney(journey.world, preparation.start, alternative)
+			for (alternative in preparation.alternatives) InterestPrimer.primeGoal(journey.world, alternative)
 			val started = Probe(journey, nearest, preparation.start)
 			probe = started
+			val targets = nearest.mapTo(HashSet()) { it.stance }
 			runIO {
-				val frame = runCatching { journey.coarse.awaitRoute(0, started.start, { cancelled || probe !== started }, settle = true) }.getOrNull()
+				val frame = runCatching { journey.coarse.awaitRoute(0, started.start, { cancelled || probe !== started }) { it in targets } }.getOrNull()
 				runSafeGameScheduled { compared(started, frame) }
 			}
 		}

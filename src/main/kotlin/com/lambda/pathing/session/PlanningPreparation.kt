@@ -43,6 +43,7 @@ internal data class PlanningPreparation(
 	val useBaritoneCache: Boolean,
 	val startedMillis: Long,
 	val alternatives: List<Stance> = emptyList(),
+	val routeOnly: Boolean = false,
 )
 
 internal fun resolveGoalStance(player: ClientPlayerEntity, goal: Stance): Stance {

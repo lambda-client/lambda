@@ -30,6 +30,7 @@ internal class CoarseService(
 	private val expansionBudget: Int,
 	private val repin: () -> Unit = {},
 	private val pinCurrent: () -> Boolean = { true },
+	private val expandsField: Boolean = true,
 ) : AutoCloseable {
 	constructor(
 		world: PathingWorld?,
@@ -38,7 +39,8 @@ internal class CoarseService(
 		expansionBudget: Int,
 		repin: () -> Unit = {},
 		pinCurrent: () -> Boolean = { true },
-	) : this(world, legs.map { it.goal }, { legs }, starts, expansionBudget, repin, pinCurrent)
+		expandsField: Boolean = true,
+	) : this(world, legs.map { it.goal }, { legs }, starts, expansionBudget, repin, pinCurrent, expandsField)
 
 	class Frame(
 		val sequence: Long,
@@ -143,7 +145,7 @@ internal class CoarseService(
 
 	private fun standing(leg: Int): Frame? = frames[leg]?.takeUnless { failures[leg]?.start == it.start }
 
-	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean, settle: Boolean = false): Frame? {
+	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean, arrives: (Stance) -> Boolean = { it == goals[leg] }): Frame? {
 		val goal = goals[leg]
 		val waitUntil = System.nanoTime() + FULL_ROUTE_WAIT_MILLIS * 1_000_000L
 		var frame: Frame? = null
@@ -153,7 +155,7 @@ internal class CoarseService(
 			val next = awaitFrame(leg, ROUTE_POLL_MILLIS) { it.start == start && it !== frame }
 			if (next != null) {
 				frame = next
-				if (!settle && (next.route.goal == goal || world?.chunkCapturable(goal.x shr 4, goal.z shr 4) != true)) return next
+				if (arrives(next.route.goal) || world?.chunkCapturable(goal.x shr 4, goal.z shr 4) != true) return next
 			} else if (frame == null && hopeless(leg, start)) {
 				if (hopelessSince == 0L) hopelessSince = System.nanoTime()
 				else if (System.nanoTime() - hopelessSince > HOPELESS_MILLIS * 1_000_000L) return null
@@ -292,7 +294,9 @@ internal class CoarseService(
 			return fail(leg, start, "coarse search did not converge within $expansionBudget expansions$stall", final = true)
 		}
 		val route = if (repair.provenUnreachable) null else {
-			timings.measure("field") { planner.expandSearchField(cancelled = ::closed) }
+			val framed = lock.withLock { frames[leg] } != null
+			if (expandsField && framed) timings.measure("field") { planner.expandSearchField(cancelled = ::closed) }
+			if (!framed) dirty[leg] = true
 			timings.measure("route") { state.routePlan(revision, ::closed, expansionBudget) }
 		}
 		if (closed) return

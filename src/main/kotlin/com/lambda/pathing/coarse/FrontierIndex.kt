@@ -3,12 +3,12 @@ package com.lambda.pathing.coarse
 import com.lambda.pathing.actions.families.DiveMovement
 import com.lambda.pathing.core.CellBox
 import com.lambda.pathing.core.Stance
+import com.lambda.pathing.core.planarLength
 import com.lambda.pathing.world.CoarseVoxelView
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.ChunkSectionPos
-import kotlin.math.hypot
 
 internal class FrontierIndex(
 	private val view: CoarseVoxelView,
@@ -45,7 +45,7 @@ internal class FrontierIndex(
 	internal fun keys() = costs.keys
 
 	fun transitCost(from: Long, to: Long, floor: Double): Double {
-		val realistic = hypot(
+		val realistic = planarLength(
 			(PackedStance.unpackX(to) - PackedStance.unpackX(from)).toDouble(),
 			(PackedStance.unpackZ(to) - PackedStance.unpackZ(from)).toDouble(),
 		) * unknownTicksPerBlock
@@ -129,7 +129,7 @@ internal class FrontierIndex(
 	}
 
 	private fun optimisticCost(anchor: Stance): Double {
-		val realistic = hypot((goal.x - anchor.x).toDouble(), (goal.z - anchor.z).toDouble()) * unknownTicksPerBlock
+		val realistic = planarLength((goal.x - anchor.x).toDouble(), (goal.z - anchor.z).toDouble()) * unknownTicksPerBlock
 		return maxOf(moves.heuristic(anchor, goal), realistic)
 	}
 

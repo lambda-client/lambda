@@ -25,7 +25,7 @@ internal object AccessStances {
 	fun choose(view: CoarseVoxelView, target: BlockPos, player: Vec3d): Stance? {
 		for (group in GROUPS) {
 			group.map { Stance(target.x + it.x, target.y + it.y, target.z + it.z) }
-				.filter { Footing.standsAt(view, it) }
+				.filter { it.y in view.simulableStanceY && Footing.standsAt(view, it) }
 				.minByOrNull { player.squaredDistanceTo(it.x + 0.5, it.y.toDouble(), it.z + 0.5) }
 				?.let { return it }
 		}

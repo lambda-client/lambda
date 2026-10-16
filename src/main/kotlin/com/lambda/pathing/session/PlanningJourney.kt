@@ -36,6 +36,7 @@ internal class PlanningJourney private constructor(
 		world, goals, { buildLegs(remembered) }, starts, origin.coarseExpansionBudget,
 		repin = { coarseView.repin(world.snapshot) },
 		pinCurrent = { coarseView.pinnedTo(world.snapshot) },
+		expandsField = !origin.routeOnly,
 	).also { it.start() }
 
 	fun cancel() {

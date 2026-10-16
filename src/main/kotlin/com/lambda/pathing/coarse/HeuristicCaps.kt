@@ -1,6 +1,7 @@
 package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.MotionTemplate
+import com.lambda.pathing.core.planarLength
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -18,7 +19,7 @@ internal class HeuristicCaps private constructor(
 		val straight = maxOf(dx, dz) - paired
 
 		val octile = paired * diagonalTicksPerPair + straight * axisTicksPerBlock
-		val straightLine = hypot(dx.toDouble(), dz.toDouble()) * straightTicksPerBlock
+		val straightLine = planarLength(dx.toDouble(), dz.toDouble()) * straightTicksPerBlock
 		val horizontal = maxOf(octile, straightLine)
 		val vertical = when {
 			offsetY > 0 -> offsetY * ascentTicksPerBlock
