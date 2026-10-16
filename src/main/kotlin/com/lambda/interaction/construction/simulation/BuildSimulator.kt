@@ -18,11 +18,10 @@
 package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.AutomatedSafeContext
-import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
-import com.lambda.interaction.construction.simulation.checks.BreakSim.Companion.simBreak
-import com.lambda.interaction.construction.simulation.checks.InteractSim.Companion.simInteraction
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.PostSimResult
+import com.lambda.interaction.construction.simulation.sims.simBreak
+import com.lambda.interaction.construction.simulation.sims.simInteraction
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.Structure
 import io.ktor.util.collections.*
@@ -32,38 +31,55 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.supervisorScope
 import net.minecraft.util.math.Vec3d
 
-object BuildSimulator : Sim<PostSimResult>() {
-	/**
-	 * Iterates over the blueprint and performs the best suited simulation. Each simulation adds [BuildResult]s to
-	 * the provided concurrent set. This method uses coroutines to perform the simulations in parallel. The results
-	 * will likely not be returned in the same order they were simulated due to the parallel nature of the simulations.
-	 *
-	 * @see SimInfo.sim
-	 * @see simInteraction
-	 * @see simBreak
-	 */
-	context(automatedSafeContext: AutomatedSafeContext)
-	fun Structure.simulate(
-		pov: Vec3d = automatedSafeContext.player.eyePos
-	): Set<BuildResult> = runBlocking(Dispatchers.Default) {
-		supervisorScope {
-			val concurrentSet = ConcurrentSet<BuildResult>()
+/**
+ * Iterates over the blueprint and performs the best suited simulation. Each simulation adds [BuildResult]s to
+ * the provided concurrent set. This method uses coroutines to perform the simulations in parallel. The results
+ * will likely not be returned in the same order they were simulated due to the parallel nature of the simulations.
+ *
+ * @see SimInfo.sim
+ * @see simInteraction
+ * @see simBreak
+ */
+@SimDsl
+context(automatedSafeContext: AutomatedSafeContext)
+fun Structure.sim(
+	pov: Vec3d = automatedSafeContext.player.eyePos
+) = BuildSimulator.sim(this, pov)
 
-			with(automatedSafeContext) {
-				forEach { (pos, targetState) ->
-					launch {
-						sim(
-							pos,
-							blockState(pos),
-							targetState,
-							pov,
-							concurrentSet
-						)
-					}
+class BuildSimulator private constructor(
+	private val structure: Structure,
+	private val pov: Vec3d,
+	private val resultsCollection: MutableSet<BuildResult>
+) : Sim<PostSimResult>() {
+	override suspend fun AutomatedSafeContext.sim() {
+		supervisorScope {
+			structure.forEach { (pos, targetState) ->
+				launch {
+					sim(
+						pos,
+						blockState(pos),
+						targetState,
+						pov,
+						resultsCollection
+					)
 				}
 			}
-
-			concurrentSet
 		}
+	}
+
+	companion object {
+		@SimDsl
+		context(automatedSafeContext: AutomatedSafeContext)
+		internal fun sim(
+			structure: Structure,
+			pov: Vec3d = automatedSafeContext.player.eyePos
+		): Set<BuildResult> =
+			with(automatedSafeContext) {
+				runBlocking(Dispatchers.Default) {
+					val results = ConcurrentSet<BuildResult>()
+					with(BuildSimulator(structure, pov, results)) { sim() }
+					results
+				}
+			}
 	}
 }

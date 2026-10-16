@@ -17,18 +17,18 @@
 
 package com.lambda.module.modules.world
 
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.editTypedSettings
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.editSetting
+import com.lambda.config.editTypedSettings
+import com.lambda.config.hide
+import com.lambda.config.hideAllExcept
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BuildContext
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.managers.interacting.InteractRequest.Companion.interactRequest
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
@@ -87,7 +87,7 @@ object Scaffold : Module(
 			runSafeAutomated {
 				scaffoldPositions(beneath)
 					.associateWith { TargetState.State(stack.item.block.defaultState) }
-					.simulate()
+					.sim()
 					.interactRequest(pendingActions)
 					?.submit()
 			}

@@ -17,12 +17,12 @@
 
 package com.lambda.module.modules.movement.elytrafly
 
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.editSetting
 import com.lambda.config.entries.Setting.Companion.onValueChange
+import com.lambda.config.forEachSetting
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent

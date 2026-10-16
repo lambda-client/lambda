@@ -171,8 +171,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
-    // Bridge-free neural inference inside the JVM: loads the ONNX-exported policy.
-    includeLib("com.github.emyfops:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.github.beanbag44:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
     includeLib("com.lambda:lambda-imgui-java-binding:$spairVersion")

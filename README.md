@@ -104,7 +104,7 @@ We need the help of the community to support the growth of this project. Whether
 ---
 
 If you have any questions, concerns, or suggestions,
-you can visit our [official Discord server](https://discord.gg/MBAEzyFn).
+you can visit our [official Discord server](https://discord.com/invite/3y3ah5BtjB).
 
 > ### Disclaimer
 > Lambda is not affiliated with Mojang Studios. Minecraft is a registered trademark of Mojang Studios.

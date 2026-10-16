@@ -18,13 +18,13 @@
 package com.lambda.module.modules.world
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.forEachSetting
-import com.lambda.config.ConfigEditor.hide
-import com.lambda.config.ConfigEditor.hideBlock
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
 import com.lambda.config.blocks.WorldLineSettings
+import com.lambda.config.editSetting
+import com.lambda.config.forEachSetting
+import com.lambda.config.hide
+import com.lambda.config.hideBlock
 import com.lambda.config.settings.complex.Bind
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onPress
 import com.lambda.config.settings.complex.KeybindSetting.Companion.onRelease
@@ -48,6 +48,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.task.wrappers.thenOrNull
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.isEmpty
@@ -103,9 +104,7 @@ object AutoPortal : Module(
 					if (light) LightTask(currAnchorPos.up(), walkIn)
 					else null
 				}
-				.finally {
-					buildTask = null
-				}
+				.onCompletion { buildTask = null }
 				.run()
 		}
 	private val corners by setting("Corners", false)

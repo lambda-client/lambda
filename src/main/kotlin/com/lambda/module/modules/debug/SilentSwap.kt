@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.debug
 
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

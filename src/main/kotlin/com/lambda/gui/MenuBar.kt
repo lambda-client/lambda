@@ -36,7 +36,6 @@ import com.lambda.gui.components.QuickSearch
 import com.lambda.gui.components.SettingsWidget.buildConfigSettingsContext
 import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.imgui.ImGui
-import com.lambda.imgui.ImGui.closeCurrentPopup
 import com.lambda.imgui.flag.ImGuiCol
 import com.lambda.imgui.flag.ImGuiStyleVar
 import com.lambda.imgui.flag.ImGuiWindowFlags

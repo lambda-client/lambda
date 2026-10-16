@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.simulation.processing.PreProcessingData
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
@@ -59,7 +60,7 @@ annotation class SimDsl
  *
  * @see com.lambda.interaction.construction.simulation.result.Dependent
  * @see dependentUpon
- * @see withDependent
+ * @see simWithDependent
  */
 @SimDsl
 abstract class Sim<T : BuildResult> : Results<T> {
@@ -69,18 +70,21 @@ abstract class Sim<T : BuildResult> : Results<T> {
      * @see com.lambda.interaction.construction.simulation.result.Dependent
      */
     @SimDsl
-    open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
+    internal open fun dependentUpon(buildResult: BuildResult): BuildResult = buildResult
 
     /**
-     * Pushes and pops the [dependent] onto and off of the dependency stack unless the [maxSimDependencies] is reached.
+     * Pushes and pops the [dependent] onto and off of the dependency stack unless the maxBuildDependencies is reached.
      */
-    protected suspend fun SimInfo.withDependent(dependent: Sim<*>, block: suspend () -> Unit) {
+    context(automatedSafeContext: AutomatedSafeContext)
+    internal suspend fun SimInfo.simWithDependent(dependent: Sim<*>) {
         // +1 because the build sim counts as a dependent
-        if (dependencyStack.size >= buildConfig.maxBuildDependencies + 1) return
+        if (dependencyStack.size >= this.buildConfig.maxBuildDependencies + 1) return
         dependencyStack.push(dependent)
-        block()
+        automatedSafeContext.sim()
         dependencyStack.pop()
     }
+
+    protected abstract suspend fun AutomatedSafeContext.sim()
 
     /**
      * Scans a [voxelShape] on the given [sides] at the [pos] from the [pov].

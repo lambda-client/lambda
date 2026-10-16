@@ -20,6 +20,18 @@ package com.lambda.interaction.managers.hotbar
 import com.lambda.context.Automated
 import com.lambda.interaction.managers.Request
 
+/**
+ * A request to change the hotbar slot.
+ * If you are having an issue with the slot not changing, try setting [nowOrNothing] to false.
+ *
+ * Example usage:
+ *
+ *     val slot = 0 // 0-8, 0 = left-most slot
+ *     // ModuleObjectName is the name of the module class basically, so for example, in CrystalAura it is this@CrystalAura
+ *     // nowOrNothing is true by default, silent swapping requires it to be true, normal swapping does not
+ *     // .done checks if the request is done so if it is false you don't want to continue execution
+ *     if (!HotbarRequest(slot, this@ModuleObjectName, nowOrNothing = false).submit().done) return@runSafe
+ */
 class HotbarRequest(
 	val slot: Int,
 	automated: Automated,

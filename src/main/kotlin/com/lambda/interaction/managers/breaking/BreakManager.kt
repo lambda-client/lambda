@@ -30,9 +30,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.context.BreakContext
 import com.lambda.interaction.construction.simulation.result.results.BreakResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.handlers.breaking.BrokenBlockHandler.pendingActions
@@ -543,7 +543,7 @@ object BreakManager : Manager<BreakRequest>(
 		abandonedInfo.request.runSafeAutomated {
 			abandonedInfo.context.blockPos
 				.toStructure(TargetState.Empty)
-				.simulate()
+				.sim()
 				.filterIsInstance<BreakResult.Break>()
 				.filter { canAccept(it.context) }
 				.sorted()

@@ -123,12 +123,13 @@ sealed class InteractResult : BuildResult() {
         private val color = Color(252, 3, 3, 100)
 
         override fun RenderBuilder.render() {
-            val box = with(hitPos) {
-                Box(
-                    x - 0.05, y - 0.05, z - 0.05,
-                    x + 0.05, y + 0.05, z + 0.05,
-                ).offset(side.doubleVector.multiply(0.05))
-            }
+            val box =
+                with(hitPos) {
+                    Box(
+                        x - 0.05, y - 0.05, z - 0.05,
+                        x + 0.05, y + 0.05, z + 0.05,
+                    ).offset(side.doubleVector.multiply(0.05))
+                }
             box(box) {
                 allColors(color)
             }

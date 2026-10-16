@@ -22,8 +22,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.Config
-import com.lambda.config.ConfigEditor
 import com.lambda.config.ConfigEditorD5l
+import com.lambda.config.SettingEditBuilder
 import com.lambda.config.entries.Setting
 import com.lambda.config.entries.SettingEntryLayer
 import com.lambda.gui.dsl.ImGuiBuilder
@@ -61,17 +61,16 @@ class StringSetting(
             }
         }
     }
+}
 
-    @Suppress("unused", "unchecked_cast")
-    companion object {
-        @ConfigEditorD5l
-        fun ConfigEditor.SettingEditBuilder<String>.multiline(multiline: Boolean) {
-            (entries as Collection<StringSetting>).forEach { it.multiline = multiline }
-        }
+@Suppress("unchecked_cast")
+@ConfigEditorD5l
+fun SettingEditBuilder<String>.multiline(multiline: Boolean) {
+    (entries as Collection<StringSetting>).forEach { it.multiline = multiline }
+}
 
-        @ConfigEditorD5l
-        fun ConfigEditor.SettingEditBuilder<String>.flags(flags: Int) {
-            (entries as Collection<StringSetting>).forEach { it.flags = flags }
-        }
-    }
+@Suppress("unchecked_cast")
+@ConfigEditorD5l
+fun SettingEditBuilder<String>.flags(flags: Int) {
+    (entries as Collection<StringSetting>).forEach { it.flags = flags }
 }

@@ -19,7 +19,6 @@ package com.lambda.config.blocks
 
 import com.lambda.config.Config
 import com.lambda.config.ConfigBlock
-import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.blocks.ActionConfig.SortMode
 import com.lambda.config.blocks.BreakConfig.AnimationMode
@@ -29,6 +28,7 @@ import com.lambda.config.blocks.BreakConfig.SwapMode
 import com.lambda.config.blocks.BreakConfig.SwingMode
 import com.lambda.config.blocks.BreakConfig.WhitelistMode
 import com.lambda.config.blocks.BuildConfig.SwingType
+import com.lambda.config.hide
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.TickEvent.Companion.ALL_STAGES

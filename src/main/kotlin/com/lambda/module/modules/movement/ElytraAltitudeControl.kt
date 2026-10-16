@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Tab
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

@@ -18,12 +18,12 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.hide
 import com.lambda.config.Group
 import com.lambda.config.Tab
 import com.lambda.config.blocks.EntitySelectionSettings
 import com.lambda.config.blocks.ScreenTextSettings
+import com.lambda.config.editSetting
+import com.lambda.config.hide
 import com.lambda.config.withEdits
 import com.lambda.graphics.mc.RenderBuilder
 import com.lambda.graphics.mc.renderer.ImmediateRenderer.Companion.immediateRenderer

@@ -106,7 +106,7 @@ This is required for pull requests to be accepted, or even reviewed.
 After this, you can read the [getting started](https://github.com/lambda-client/wiki/Getting-Started) section in the wiki
 
 ### Improving The Documentation
-If you believe that some documentation can be improved or added, please discuss with us on our [Discord](https://discord.gg/QjfBxJzE5x)
+If you believe that some documentation can be improved or added, please discuss with us on our [Discord](https://discord.com/invite/3y3ah5BtjB)
 
 ### Naming Convention
 We follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for the Lambda project.

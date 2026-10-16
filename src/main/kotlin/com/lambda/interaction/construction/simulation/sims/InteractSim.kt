@@ -15,17 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.simulation.checks
+package com.lambda.interaction.construction.simulation.sims
 
 import com.lambda.context.AutomatedSafeContext
 import com.lambda.interaction.construction.simulation.InteractSimInfo
 import com.lambda.interaction.construction.simulation.Sim
 import com.lambda.interaction.construction.simulation.SimDsl
-import com.lambda.interaction.construction.simulation.SimInfo.Companion.sim
 import com.lambda.interaction.construction.simulation.context.InteractContext
 import com.lambda.interaction.construction.simulation.result.BuildResult
 import com.lambda.interaction.construction.simulation.result.results.GenericResult
 import com.lambda.interaction.construction.simulation.result.results.InteractResult
+import com.lambda.interaction.construction.simulation.sim
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.handlers.ContainerHandler.findContainersWithMaterial
 import com.lambda.interaction.managers.rotating.IRotationRequest.Companion.rotationRequest
@@ -69,25 +69,19 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.RotationPropertyHelper
 import net.minecraft.util.shape.VoxelShapes
 
-class InteractSim private constructor(simInfo: InteractSimInfo)
+@SimDsl
+context(_: AutomatedSafeContext, dependent: Sim<*>)
+suspend fun InteractSimInfo.simInteraction() =
+	with(InteractSim(this)) { simWithDependent(dependent) }
+
+class InteractSim internal constructor(simInfo: InteractSimInfo)
 	: Sim<InteractResult>(),
 	InteractSimInfo by simInfo
 {
 	override fun dependentUpon(buildResult: BuildResult) =
 		InteractResult.Dependency(pos, buildResult)
 
-	companion object {
-		@SimDsl
-		context(automatedSafeContext: AutomatedSafeContext, dependent: Sim<*>)
-		suspend fun InteractSimInfo.simInteraction() =
-			InteractSim(this).run {
-				withDependent(dependent) {
-					automatedSafeContext.simInteraction()
-				}
-			}
-	}
-
-	private suspend fun AutomatedSafeContext.simInteraction() =
+	override suspend fun AutomatedSafeContext.sim() =
 		supervisorScope {
 			preProcessing.info.sides.forEach { side ->
 				val neighborPos = pos.offset(side)

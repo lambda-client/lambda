@@ -17,10 +17,10 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.ConfigEditor.editSetting
-import com.lambda.config.ConfigEditor.hideAllExcept
 import com.lambda.config.Group
 import com.lambda.config.automation.AutomationConfig.Companion.setDefaultAutomationConfig
+import com.lambda.config.editSetting
+import com.lambda.config.hideAllExcept
 import com.lambda.config.withEdits
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
