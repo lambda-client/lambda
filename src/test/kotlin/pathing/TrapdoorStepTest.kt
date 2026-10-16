@@ -21,7 +21,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
 import kotlin.math.abs
 import kotlin.test.Test
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import pathing.ProbeScenarios.moveLibrary
@@ -119,12 +118,22 @@ class TrapdoorStepTest {
         )
     }
 
-    /** The same stance delta onto FULL blocks is a true block of rise: still refused. */
+    /**
+     * The same stance delta onto FULL blocks is a true block of rise: only a run-up across
+     * the take-off cell launches it, so it costs the run-up the trapdoor jump does not.
+     */
     @Test
-    fun `the same jump onto full blocks stays impossible`() {
-        val planner = planner(world(SnapshotBlockPhysics.FULL_CUBE, landingCellY = 10), goal = Stance(0, 11, 6))
-        planner.repair()
-        assertNull(planner.routePlan(0L), "span 4 rise 1 onto full blocks must not route")
+    fun `the same jump onto full blocks needs a run-up`() {
+        fun jumpTicks(landing: SnapshotBlockPhysics) = moveLibrary(SimpleMoveOptions())
+            .edgesFrom(world(landing, landingCellY = 10), Stance(0, 10, 1))
+            .filter { it.to == Stance(0, 11, 5) && it.launch != null }
+            .minOf { it.lowerBoundTicks }
+        val onTrapdoor = jumpTicks(trapdoor)
+        val onFullBlocks = jumpTicks(SnapshotBlockPhysics.FULL_CUBE)
+        assertTrue(
+            onFullBlocks >= onTrapdoor + 1.0,
+            "span 4 rise 1 onto full blocks must pay a run-up: $onFullBlocks ticks against $onTrapdoor onto the trapdoor",
+        )
     }
 
 }

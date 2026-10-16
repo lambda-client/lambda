@@ -240,10 +240,11 @@ class BlockShapeStanceTest {
     /**
      * Reach is what the solver can do from a cruise approach, not a count of cells.
      *
-     * A four-block jump lands from an ordinary approach; a five-block one needs the body to
-     * arrive already carrying more speed than walking gives it, which it may not have had
-     * room to build. Offering the latter unconditionally produced jumps that certified in
-     * the planner and then did not happen in play.
+     * A four-block jump lands from an ordinary approach; a five-block one needs more speed
+     * than a standing start has, so it is offered only where vanilla ground acceleration
+     * across the take-off cell builds that speed, and it pays for those run-up ticks.
+     * Offering it unconditionally produced jumps that certified in the planner and then did
+     * not happen in play.
      *
      * The bound is the solver itself rather than a distance, because a flight distance and a
      * centre-to-centre offset are different quantities -- the body leaves past the stance
@@ -251,7 +252,7 @@ class BlockShapeStanceTest {
      * are entirely ordinary.
      */
     @Test
-    fun `a jump needing a run-up is not offered while an ordinary long one is`() {
+    fun `a jump beyond a run-up is not offered while one a run-up reaches is`() {
         fun jumpsTo(dx: Int, dz: Int, rise: Int = 0): Boolean {
             val blocks = HashMap<BlockPos, SnapshotBlockPhysics>()
             blocks[BlockPos(0, 63, 0)] = SnapshotBlockPhysics.of(VoxelShapes.fullCube())
@@ -270,18 +271,17 @@ class BlockShapeStanceTest {
         assertTrue(jumpsTo(4, 2), "and with two steps to the side: the air gap is only hypot(3,1)")
         assertTrue(jumpsTo(3, 1), "as must the shorter off-axis hop")
 
-        // Four blocks of air needs momentum a standing start cannot build, and the
-        // coarse graph cannot promise a run-up exists at the launch. A route through a
-        // jump the body may arrive unable to make is a route the walk cannot honour --
-        // the graph stays a lower bound the search solves every time.
-        assertTrue(!jumpsTo(5, 0), "a four-block gap is momentum-only and must not be promised")
+        // Four blocks of air needs more speed than a standing start has; a run-up across
+        // the take-off cell builds it (certified end to end in StandingStartJumpTest).
+        assertTrue(jumpsTo(5, 0), "a four-block gap is offered after a run-up across the take-off cell")
 
         // Five blocks of air is beyond the body at any entry speed.
         assertTrue(!jumpsTo(6, 0), "a five-block gap is out of reach and must not be offered")
 
         // Rising jumps trade reach for the block of height: three air blocks straight
-        // up-and-over certifies once in nine standing rollouts -- not a promise.
-        assertTrue(!jumpsTo(4, 0, rise = 1), "a rising three-air gap is beyond a standing start")
+        // up-and-over need the run-up, four are beyond it.
+        assertTrue(jumpsTo(4, 0, rise = 1), "a rising three-air gap is offered after a run-up")
+        assertTrue(!jumpsTo(5, 0, rise = 1), "a rising four-air gap is beyond any run-up")
         assertTrue(jumpsTo(3, 0, rise = 1), "a rising two-air gap is an everyday jump")
     }
 
