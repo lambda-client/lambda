@@ -25,6 +25,10 @@
       {
         "adapter": "kotlin",
         "value": "com.lambda.CollectDropsGameTest"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "com.lambda.BuildPreTickGameTest"
       }
     ]
   }

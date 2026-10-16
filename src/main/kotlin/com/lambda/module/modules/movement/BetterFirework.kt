@@ -34,7 +34,7 @@ import com.lambda.interaction.container.selection.select
 import com.lambda.interaction.container.selection.selectContainers
 import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
-import com.lambda.interaction.handler.handlers.ContainerHandler.findStack
+import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.handler.handlers.GlideHandler
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
@@ -88,11 +88,10 @@ object BetterFirework : Module(
 	private var takeoffState = TakeoffState.Idle
 
 	val hasFireworks: Boolean
-		get() = findStack(
+		get() = stacksAvailable(
 			Items.FIREWORK_ROCKET.select(),
-			selectContainers(HotbarContainer, InventoryContainer, OffhandContainer),
-			sorted = false
-		) != null
+			selectContainers(HotbarContainer, InventoryContainer, OffhandContainer)
+		)
 
 	context(_: SafeContext)
 	private val ClientPlayerEntity.canTakeoff: Boolean

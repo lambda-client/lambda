@@ -47,8 +47,8 @@ import com.lambda.interaction.container.selection.stackSelection
 import com.lambda.interaction.handler.handlers.BaritoneHandler
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlot
 import com.lambda.interaction.handler.handlers.ContainerHandler.findSlots
-import com.lambda.interaction.handler.handlers.ContainerHandler.findStack
 import com.lambda.interaction.handler.handlers.ContainerHandler.findStacks
+import com.lambda.interaction.handler.handlers.ContainerHandler.stacksAvailable
 import com.lambda.interaction.manager.managers.hotbar.hotbarRequest
 import com.lambda.interaction.manager.managers.inventory.inventoryRequest
 import com.lambda.interaction.manager.managers.rotating.Rotation
@@ -461,11 +461,10 @@ object StashMover : Module(
 					MoverState.AwaitingPearl ->
 						checkTimerProgress(MoverState.DispensingPearl, pearlButtonTimeout) {
 							val hasPearl =
-								findStack(
+								stacksAvailable(
 									Items.ENDER_PEARL.select(),
-									ContainerSelection.HOTBAR_AND_INVENTORY,
-									sorted = false
-								) != null
+									ContainerSelection.HOTBAR_AND_INVENTORY
+								)
 							if (hasPearl) {
 								pearlThrown = false
 								moverState = MoverState.ThrowingPearl
@@ -514,11 +513,10 @@ object StashMover : Module(
 				val packet = event.packet
 				if (packet !is PlayerPositionLookS2CPacket) return@listen
 				val allMoved =
-					findStack(
+					!stacksAvailable(
 						stackSelection { notEmpty() },
-						ContainerSelection.HOTBAR_AND_INVENTORY,
-						sorted = false
-					) == null
+						ContainerSelection.HOTBAR_AND_INVENTORY
+					)
 				if (finished && allMoved) {
 					success(finishedMessage)
 					return@listen
@@ -550,7 +548,7 @@ object StashMover : Module(
 				if (screenHandler.containerStacks.all { it.isEmpty }) {
 					pullContainers.remove(container)
 					pulledContainers.add(container)
-					if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) != null) {
+					if (stacksAvailable(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY)) {
 						moverState = MoverState.OpeningPullContainer
 						return
 					}
@@ -646,7 +644,7 @@ object StashMover : Module(
 				if (screenHandler.containerStacks.all { !it.isEmpty }) {
 					putContainers.remove(container)
 					filledContainers.add(container)
-					if (findStack(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) != null) {
+					if (stacksAvailable(stackSelection { notEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY)) {
 						moverState = MoverState.OpeningPutContainer
 						return
 					}
@@ -712,7 +710,7 @@ object StashMover : Module(
 
 			if (pearlThrown) {
 				if (!player.offHandStack.isEmpty) {
-					if (findStack(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY) == null) {
+					if (!stacksAvailable(stackSelection { isEmpty() }, ContainerSelection.HOTBAR_AND_INVENTORY)) {
 						failWithLog("No free slots to return the offhand stack to!", ::failure)
 						return
 					}
