@@ -10,6 +10,7 @@ import com.lambda.pathing.session.PathingSession.State
 import com.lambda.util.CommunicationUtils.warn
 import com.lambda.util.player.MovementUtils.moveYaw
 import kotlin.math.abs
+import kotlin.math.ceil
 
 internal class AlignmentController(private val walk: PathingSession) {
 	var pendingPath: PublishedPath? = null
@@ -20,6 +21,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 	private var settleTicks = 0
 	private var fallingTicks = 0
 	private var alignmentTicks = 0
+	private var settleSpeed = Double.POSITIVE_INFINITY
 	private var restSample: MovementSimulationState? = null
 	private var previousRestSample: MovementSimulationState? = null
 	private var restSampleAge = Int.MIN_VALUE
@@ -27,6 +29,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 	fun beginSettling() {
 		settleTicks = 0
 		fallingTicks = 0
+		settleSpeed = Double.POSITIVE_INFINITY
 	}
 
 	fun beginAligning(path: PublishedPath) {
@@ -49,8 +52,8 @@ internal class AlignmentController(private val walk: PathingSession) {
 		if (with(walk) { afloat() }) return with(walk.launcher) { capturePlan() }
 		if (atRest()) return with(walk) { startAtRest() }
 		val falling = with(walk) { airborne() }
-		if (falling && ++fallingTicks <= MAX_FALLING_TICKS) return
-		if (!falling && ++settleTicks > MAX_SETTLE_TICKS || fallingTicks > MAX_FALLING_TICKS) {
+		if (falling && (player.velocity.y < 0.0 || ++fallingTicks <= MAX_FALLING_TICKS)) return
+		if (!falling && !slowing() && ++settleTicks > MAX_SETTLE_TICKS || fallingTicks > MAX_FALLING_TICKS) {
 			with(walk) {
 				fail(
 					"could not settle to a stable start (%.3f b/t, ground %s, water %s after %d ticks)".format(
@@ -60,6 +63,14 @@ internal class AlignmentController(private val walk: PathingSession) {
 			}
 		}
 	}
+
+	private fun SafeContext.slowing(): Boolean {
+		val speed = player.velocity.horizontalLength()
+		return (speed < settleSpeed).also { settleSpeed = speed }
+	}
+
+	private val alignmentLimit: Int
+		get() = MAX_ALIGNMENT_TICKS + ceil(HALF_TURN_DEGREES / walk.request.rotationConfig.turnSpeed.coerceAtLeast(MIN_TURN_DEGREES_PER_TICK)).toInt()
 
 	fun holdPlanningYaw() {
 		walk.face(planningYaw ?: return)
@@ -80,7 +91,7 @@ internal class AlignmentController(private val walk: PathingSession) {
 		}
 
 		walk.state = State.Aligning(walk.leg + 1, yawDrift)
-		if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
+		if (++alignmentTicks > alignmentLimit) {
 			warn(
 				"Installing with %.2f° of launch yaw error; the rotation could not settle exactly."
 					.format(yawDrift),
@@ -92,10 +103,10 @@ internal class AlignmentController(private val walk: PathingSession) {
 
 	fun SafeContext.realignBeforeLaunch(current: PublishedPath): Boolean {
 		val yawError = launchYawError(current)
-		if (yawError > FIRST_FRAME_YAW_EPSILON && alignmentTicks <= MAX_ALIGNMENT_TICKS) {
+		if (yawError > FIRST_FRAME_YAW_EPSILON && alignmentTicks <= alignmentLimit) {
 			walk.face(current.plan.initialState.rotation.yaw)
 			walk.tickInput = ALIGNMENT_INPUT
-			if (++alignmentTicks > MAX_ALIGNMENT_TICKS) {
+			if (++alignmentTicks > alignmentLimit) {
 				warn(
 					"Replaying with %.2f° of launch yaw error; the rotation could not settle exactly."
 						.format(yawError),
@@ -143,5 +154,9 @@ internal class AlignmentController(private val walk: PathingSession) {
 		private const val MAX_SETTLE_TICKS = 40
 
 		private const val MAX_FALLING_TICKS = 400
+
+		private const val HALF_TURN_DEGREES = 180.0
+
+		private const val MIN_TURN_DEGREES_PER_TICK = 1.0
 	}
 }

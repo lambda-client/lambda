@@ -90,7 +90,7 @@ internal object FallReach {
 
 	private const val WATER_SURFACE_GAP = 1.0 / 9.0
 
-	private const val WATER_DRAG = 0.8
+	private const val WATER_DRAG = Vanilla.WATER_DRAG.toDouble()
 
 	private const val WATER_GRAVITY = Vanilla.GRAVITY / Vanilla.WATER_GRAVITY_DIVISOR
 

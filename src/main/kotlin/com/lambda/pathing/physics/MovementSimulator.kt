@@ -140,7 +140,7 @@ class MovementSimulator(
 			movementInput = movementInput.multiply(Vanilla.INPUT_DAMPING)
 
 			if (input.useItemSlowdown) {
-				movementInput = movementInput.multiply(Vanilla.USING_ITEM_SPEED_FACTOR)
+				movementInput = movementInput.multiply(profile.useItemSpeed)
 			}
 
 			if (slowedDown) {

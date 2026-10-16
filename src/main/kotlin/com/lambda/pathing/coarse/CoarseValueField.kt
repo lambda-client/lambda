@@ -78,19 +78,18 @@ class CoarseValueField(
 			optionsRevision = revision
 		}
 		options[stance]?.let { return it }
-		val byDestination = HashMap<Stance, CoarseEdge>()
+		val byDestination = HashMap<Stance, Pair<CoarseEdge, Double>>()
 		for (edge in edgesFrom(stance)) {
+			val guide = guide(edge.to, MomentumRules.arrival(edge, view))
+			if (!guide.isFinite()) continue
+			val cost = edge.lowerBoundTicks + guide
 			val incumbent = byDestination[edge.to]
-			if (incumbent == null || edge.lowerBoundTicks < incumbent.lowerBoundTicks) {
-				byDestination[edge.to] = edge
-			}
+			if (incumbent == null || cost < incumbent.second) byDestination[edge.to] = edge to cost
 		}
 		val edges = ArrayList<CoarseEdge>(byDestination.size)
 		val costs = DoubleArray(byDestination.size)
-		for (edge in byDestination.values) {
-			val guide = guide(edge.to)
-			if (!guide.isFinite()) continue
-			costs[edges.size] = edge.lowerBoundTicks + guide
+		for ((edge, cost) in byDestination.values) {
+			costs[edges.size] = cost
 			edges += edge
 		}
 		if (options.size >= MAX_OPTIONS) options.clear()

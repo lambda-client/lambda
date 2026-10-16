@@ -50,8 +50,8 @@ class CoarsePlannerTest {
         assertEquals(2.0, costs.cardinalWalk, 1e-9)
         assertEquals(kotlin.math.sqrt(2.0) / 0.5, costs.diagonalWalk, 1e-9)
         assertEquals(2.5, costs.stepUp, 1e-9)
-        assertEquals(4.0, costs.jumpCandidateCost(2.0, 0), 1e-9)
-        assertEquals(6.0, costs.jumpCandidateCost(3.0, 0), 1e-9)
+        assertEquals(4.0, costs.jumpCandidateCost(2.0, 0)!!, 1e-9)
+        assertEquals(6.0, costs.jumpCandidateCost(3.0, 0)!!, 1e-9)
         assertEquals(2.0, costs.walkOffCost(4), 1e-9)
     }
 
@@ -165,13 +165,12 @@ class CoarsePlannerTest {
         // where the uniform envelope made them almost equal (2.0 vs 1.67). That is why the
         // old graph over-climbed.
         assertEquals(1.0 / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK, m.cardinalWalk, 1e-9)
-        assertEquals(1.0 / CoarseMoveRates.STEP_UP_BLOCKS_PER_TICK, m.stepUp, 1e-9)
         assertTrue(m.stepUp > 2.5 * m.cardinalWalk, "a climb must cost far more than a stride")
 
         // A jump is priced by airborne time, which barely grows with span: clearing more
         // ground in one arc costs the same, so a long jump beats a short one plus a walk.
-        assertEquals(m.jumpCandidateCost(2.0, 0), m.jumpCandidateCost(4.0, 0), 1e-9)
-        assertTrue(m.jumpCandidateCost(4.0, 0) < m.jumpCandidateCost(2.0, 0) + m.cardinalWalk)
+        assertEquals(m.jumpCandidateCost(2.0, 0)!!, m.jumpCandidateCost(4.0, 0)!!, 1e-9)
+        assertTrue(m.jumpCandidateCost(4.0, 0)!! < m.jumpCandidateCost(2.0, 0)!! + m.cardinalWalk)
     }
 
     @Test

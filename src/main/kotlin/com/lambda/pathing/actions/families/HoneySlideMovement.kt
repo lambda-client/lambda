@@ -2,6 +2,7 @@ package com.lambda.pathing.actions.families
 
 import com.lambda.pathing.actions.CellCondition
 import com.lambda.pathing.actions.CellPredicate
+import com.lambda.pathing.actions.CoarseMoveRates
 import com.lambda.pathing.actions.CompletionContext
 import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.DecisionContext
@@ -33,7 +34,7 @@ object HoneySlideMovement : Movement {
 						dy = rise,
 						dz = uz * span,
 						movement = id,
-						cost = span / RUN_BLOCKS_PER_TICK + SLIDE_SETTLE_TICKS,
+						cost = span / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK,
 						conditions = listOf(CellCondition(0, 0, 0, HoneyWall(ux, uz, span, rise))) +
 								StanceRules.stanceConditions(ux * span, rise, uz * span) + corridor,
 						departure = CellPredicate.LAUNCHABLE,
@@ -104,10 +105,6 @@ object HoneySlideMovement : Movement {
 	private const val WALL_TOP = 1
 
 	private const val MIN_WALL_CELLS = 2
-
-	private const val RUN_BLOCKS_PER_TICK = 0.3
-
-	private const val SLIDE_SETTLE_TICKS = 4.0
 
 	private const val SLIDE_FRAMES = 80
 

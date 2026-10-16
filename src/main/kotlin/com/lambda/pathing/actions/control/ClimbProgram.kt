@@ -9,6 +9,7 @@ import com.lambda.pathing.core.alongEdge
 import com.lambda.pathing.core.center
 import com.lambda.pathing.physics.MovementSimulationInput
 import com.lambda.pathing.physics.MovementSimulationState
+import com.lambda.pathing.physics.Vanilla
 import kotlin.math.abs
 
 internal class ClimbProgram(private val decision: TrajectoryDecision.Climb, context: ProgramContext) : ControlProgram {
@@ -53,7 +54,7 @@ internal class ClimbProgram(private val decision: TrajectoryDecision.Climb, cont
 
 		const val CREEP_REST_SPEED = 0.03
 
-		const val LIP_ALONG = 0.8
+		const val LIP_ALONG = 0.5 + Vanilla.PLAYER_HALF_WIDTH.toDouble()
 
 		const val DRIFT_REST_SPEED = 0.02
 

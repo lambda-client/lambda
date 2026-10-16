@@ -31,6 +31,7 @@ data class PlayerPhysicsProfile(
 	val dolphinsGrace: Boolean = false,
 	val canSprint: Boolean = true,
 	val canDrown: Boolean = true,
+	val useItemSpeed: Float = Vanilla.USING_ITEM_SPEED_FACTOR,
 ) {
 	val swimHeight: Double get() = if (standingEyeHeight < Vanilla.SWIM_HEIGHT) 0.0 else Vanilla.SWIM_HEIGHT
 
@@ -53,7 +54,8 @@ data class PlayerPhysicsProfile(
 				waterMovementEfficiency.closeTo(other.waterMovementEfficiency) &&
 				dolphinsGrace == other.dolphinsGrace &&
 				canSprint == other.canSprint &&
-				canDrown == other.canDrown
+				canDrown == other.canDrown &&
+				useItemSpeed == other.useItemSpeed
 
 	private fun Double.closeTo(other: Double): Boolean =
 		abs(this - other) <= PROFILE_EPSILON * max(1.0, max(abs(this), abs(other)))
@@ -68,7 +70,7 @@ data class PlayerPhysicsProfile(
 			sneakSpeedModifier = Vanilla.SNEAKING_SPEED,
 			gravity = Vanilla.GRAVITY,
 			jumpStrength = Vanilla.JUMP_STRENGTH.toDouble(),
-			stepHeight = Vanilla.STEP_HEIGHT.toFloat().toDouble(),
+			stepHeight = Vanilla.STEP_HEIGHT.toDouble(),
 			jumpBoostVelocityModifier = 0.0,
 			slowFalling = false,
 			width = Vanilla.PLAYER_WIDTH.toDouble(),
@@ -108,6 +110,7 @@ data class PlayerPhysicsProfile(
 				canSprint = canSprint(player),
 				canDrown = !player.abilities.invulnerable && !player.hasStatusEffect(StatusEffects.WATER_BREATHING) &&
 						!player.hasStatusEffect(StatusEffects.CONDUIT_POWER),
+				useItemSpeed = player.activeItem.getOrDefault(DataComponentTypes.USE_EFFECTS, UseEffectsComponent.DEFAULT).speedMultiplier(),
 			)
 		}
 	}

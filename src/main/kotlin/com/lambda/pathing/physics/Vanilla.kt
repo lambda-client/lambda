@@ -50,7 +50,7 @@ object Vanilla {
 	const val SPRINT_SPEED_MULTIPLIER = 1.0 + SPRINT_SPEED_MODIFIER
 	const val SNEAKING_SPEED = 0.3
 	const val SPRINT_WINDOW_TICKS = 7
-	const val STEP_HEIGHT = 0.6
+	const val STEP_HEIGHT = 0.6F
 
 	const val JUMP_STRENGTH = 0.42F
 	const val MIN_JUMP_VELOCITY = 1.0E-5F
@@ -91,6 +91,8 @@ object Vanilla {
 	const val SWIMMING_EYE_HEIGHT = 0.4F
 
 	const val SWIM_HEIGHT = 0.4
+	const val STILL_WATER_HEIGHT = 8F / 9F
+	const val FULL_WATER_HEIGHT = 1.0F
 	const val WATER_DRAG = 0.8F
 	const val SPRINT_WATER_DRAG = 0.9F
 	const val DEPTH_STRIDER_WATER_DRAG = 0.54600006F

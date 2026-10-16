@@ -12,6 +12,7 @@ import com.lambda.pathing.actions.DecisionPrice
 import com.lambda.pathing.actions.SteeringField
 import com.lambda.pathing.actions.control.HeadingFollowerProgram
 import com.lambda.pathing.actions.Movement
+import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.MovementContext
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.ProposalContext
@@ -39,6 +40,7 @@ import com.lambda.pathing.world.Medium
 import com.lambda.pathing.world.canStandAt
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.hypot
 
 object WalkMovement : Movement {
 	override val id = MovementId.WALK
@@ -100,22 +102,24 @@ object WalkMovement : Movement {
 				for ((openX, openZ) in listOf(dx to 0, 0 to dz)) {
 					val blockedX = dx - openX
 					val blockedZ = dz - openZ
+					val via = Via(
+						dx * 0.5 + (openX - blockedX) * CORNER_CLEARANCE,
+						dz * 0.5 + (openZ - blockedZ) * CORNER_CLEARANCE,
+					)
+					val corner = costs.cardinalWalk * (hypot(dx.toDouble(), dz.toDouble()) + via.detour(dx, dz))
 					val turn = stanceConditions(dx, dy, dz, CoarseVoxel.side(-blockedX, -blockedZ)) + headroom +
 							leaving(CoarseVoxel.side(openX, openZ), dy)
 					add(
 						spec(
-							dx, dy, dz, if (rising) costs.stepUp + costs.cardinalWalk else costs.cornerWalk,
+							dx, dy, dz, if (rising) costs.stepUp + costs.cardinalWalk else corner,
 							turn + listOf(
 								CellCondition(openX, dy, openZ, CellPredicate.OPEN_COLUMN),
 								CellCondition(blockedX, dy, blockedZ, CellPredicate.BLOCKED_COLUMN),
 								CellCondition(dx + openX, dy, dz + openZ, CellPredicate.OPEN_COLUMN),
 							) + footing,
 							movement,
-							strideCost = if (rising) costs.cornerWalk else null,
-							via = Via(
-								dx * 0.5 + (openX - blockedX) * CORNER_CLEARANCE,
-								dz * 0.5 + (openZ - blockedZ) * CORNER_CLEARANCE,
-							),
+							strideCost = if (rising) corner else null,
+							via = via,
 						)
 					)
 				}
@@ -178,23 +182,37 @@ object WalkMovement : Movement {
 		val target = leading.to
 		val chain = context.steering.chain(body.stance, target, BEARING_LOOKAHEAD + 1)
 		val bearing = routeBearing(body, chain)
+		val stepBearing = yawTowards(target.center(), body.state).takeIf { abs(Rotation.wrap(it - bearing)) > HEADING_FAN_DEGREES.max() }
 
 		val turning = turnsAhead(chain)
 		val hazardous = body.hazardFrame != null
 		val fanned = hazardous || turning
 
+		val atRest = body.state.onGround && body.state.velocity.horizontalLength() <= MotionConstraints.STOPPED_SPEED
+
 		fun heading(sprint: Boolean, yaw: Double, delay: Int?, keys: MovementKeys = MovementKeys.FORWARD, air: MovementKeys = keys) {
 			proposals += TrajectoryDecision.Heading(sprint, target, yaw, delay, keys, air)
 		}
 
+		fun pivot(sprint: Boolean, yaw: Double, delay: Int?) {
+			if (atRest && abs(Rotation.wrap(yaw - body.state.rotation.yaw)) > context.constraints.maxYawDegreesPerFrame) {
+				proposals += TrajectoryDecision.Heading(sprint, target, yaw, delay, pivot = true)
+			}
+		}
+
 		for (sprint in context.constraints.sprintModes) {
 			heading(sprint, bearing, null)
+			stepBearing?.let { heading(sprint, it, null) }
+			for (yaw in listOfNotNull(bearing, stepBearing)) for (delay in listOf(null, 0)) pivot(sprint, yaw, delay)
 			if (fanned) for (offset in HEADING_FAN_DEGREES) heading(sprint, bearing + offset, null)
 			if (turning) for ((keys, facingOffset) in DECOUPLED_FACINGS) heading(sprint, bearing + facingOffset, null, keys)
 		}
 
 		for (sprint in context.constraints.sprintModes) {
-			for (delay in OFF_AXIS_LAUNCH_DELAYS) if (delay == 0 || hazardous) heading(sprint, bearing, delay)
+			for (delay in OFF_AXIS_LAUNCH_DELAYS) if (delay == 0 || hazardous) {
+				heading(sprint, bearing, delay)
+				stepBearing?.let { heading(sprint, it, delay) }
+			}
 			if (fanned) for (offset in HEADING_FAN_DEGREES) for (delay in OFF_AXIS_LAUNCH_DELAYS) heading(sprint, bearing + offset, delay)
 			if (hazardous) for (delay in OFF_AXIS_LAUNCH_DELAYS) for (air in AIRBORNE_STRAFE_KEYS) heading(sprint, bearing, delay, air = air)
 		}

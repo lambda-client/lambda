@@ -6,6 +6,7 @@ import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRotationS2CPacket
 import net.minecraft.util.math.Vec3d
+import java.util.concurrent.atomic.AtomicInteger
 
 internal object ServerCorrections {
 	private class Received(val millis: Long, val text: String)
@@ -13,7 +14,13 @@ internal object ServerCorrections {
 	@Volatile
 	private var received: List<Received> = emptyList()
 
+	private val positionPackets = AtomicInteger()
+
+	/** How many times the server has set the player's position; a change between two ticks is a teleport or setback. */
+	val teleports: Int get() = positionPackets.get()
+
 	fun record(packet: Packet<*>, playerId: Int?) {
+		if (packet is PlayerPositionLookS2CPacket) positionPackets.incrementAndGet()
 		val text = when (packet) {
 			is PlayerPositionLookS2CPacket -> with(packet.change()) {
 				"teleport to ${position().short()} velocity ${deltaMovement().short()} yaw %.2f pitch %.2f".format(yaw(), pitch()) +

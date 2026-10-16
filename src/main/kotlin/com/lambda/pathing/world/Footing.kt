@@ -19,7 +19,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 object Footing {
-	const val WALK_RISE = Vanilla.STEP_HEIGHT
+	const val WALK_RISE = Vanilla.STEP_HEIGHT.toDouble()
 
 	const val JUMP_RISE = 1.25
 

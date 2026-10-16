@@ -144,7 +144,7 @@ class DivePlanningTest {
 		val planner = CoarsePlanner(environment, moveLibrary(SimpleMoveOptions()), Stance(-2, 64, 0), Stance(length + 2, 64, 0))
 		assertTrue(planner.repair().converged, "the passage must converge")
 		val route = assertNotNull(planner.routePlan(0L), "every passage cell lies within reach of air, so the passage is routed")
-		val stops = BreathingStops.plan(environment, planner.moves, route.nodes, Vanilla.MAX_AIR)
+		val stops = BreathingStops.plan(environment, planner.moves, route.nodes, Vanilla.MAX_AIR, maxExpansions = 1_000_000)
 		println("[dive] side pocket stops=$stops")
 		assertEquals(Stance(length / 2, 62, SIDE_POCKET_DEPTH), stops.first(), "the only air on the way is the side pocket")
 		assertTrue(stops.last() in route.nodes && stops.last().x >= length - 2 && !BreathingStops.underwater(environment, stops.last()), "after the pocket the walk rejoins the route at the far pool: ${stops.last()}")

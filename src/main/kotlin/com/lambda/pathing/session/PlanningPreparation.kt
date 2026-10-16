@@ -187,14 +187,11 @@ internal fun preparePlanning(
 }
 
 private fun plannableEntry(velocity: Vec3d): Boolean =
-	velocity.horizontalLength() <= MAX_ENTRY_HORIZONTAL_SPEED &&
-			velocity.y in -MAX_ENTRY_DESCENT_SPEED..MAX_ENTRY_ASCENT_SPEED
+	velocity.horizontalLength() <= MAX_ENTRY_HORIZONTAL_SPEED && velocity.y <= MAX_ENTRY_ASCENT_SPEED
 
 private const val MAX_ENTRY_HORIZONTAL_SPEED = 0.6
 
 private const val MAX_ENTRY_ASCENT_SPEED = 0.5
-
-private const val MAX_ENTRY_DESCENT_SPEED = 4.0
 
 private const val SAVE_FOOD_JUMP_TICKS = 20.0
 

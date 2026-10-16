@@ -311,8 +311,7 @@ internal class SearchLoop(
 		val best = incumbent.best ?: return Verdict.EXPAND
 		if (!routeReachesFinalGoal() && spine == null) return Verdict.EXPAND
 		val finishable = !live && incumbent.ready(best) && incumbent.nearEnd(best)
-		val bound = entry.bound + Solution.COLLISION_FRAME_PENALTY * anchor.collisionEvents
-		if (bound >= best.score) return if (finishable) Verdict.FINISH else Verdict.SKIP
+		if (entry.bound >= best.score) return if (finishable) Verdict.FINISH else Verdict.SKIP
 		return if (finishable && incumbent.stalled) Verdict.FINISH else Verdict.EXPAND
 	}
 
@@ -461,7 +460,7 @@ internal class SearchLoop(
 			if (!remaining.isFinite()) break
 			if (remaining <= FINISH_VALUE_TICKS) {
 				sweep(current)
-				break
+				if (current.finished) break
 			}
 			var advanced: ValueAnchor? = null
 			var attemptsHere = 0

@@ -8,7 +8,7 @@ import com.lambda.pathing.world.RememberedTerrain
 import com.lambda.pathing.world.streaming.WorldEventBatch
 import kotlin.math.abs
 
-private val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0)
+private val DEFAULT_MOVE_COSTS: CoarseMoveCosts = CoarseMoveCosts.measured()
 
 internal class CoarsePlanningState(
 	private val view: CoarseVoxelView,

@@ -126,9 +126,9 @@ internal class CoarseFollower(
 			return rejoined.route
 		}
 		val began = System.nanoTime()
-		val next = coarse.awaitFrame(leg + 1, HANDOFF_WAIT_MILLIS)
+		val next = coarse.awaitLeg(leg + 1)
 		if (next == null) {
-			LOG.warn("Route leg {} toward {} has no coarse route after {} ms; finishing at {} instead", leg + 1, coarse.goal(leg + 1), HANDOFF_WAIT_MILLIS, touched)
+			LOG.warn("Route leg {} toward {} has no coarse route ({}); finishing at {} instead", leg + 1, coarse.goal(leg + 1), coarse.failure(leg + 1, touched) ?: "closed", touched)
 			abandoned = true
 			return null
 		}
@@ -180,7 +180,7 @@ internal class CoarseFollower(
 	private fun planBreaths(route: CoarseRoutePlan, from: Stance, air: Int) {
 		if (!breathes || route === checkedRoute) return
 		checkedRoute = route
-		val planned = BreathingStops.plan(view, coarse.moves, route.nodes, air, hopeless)
+		val planned = BreathingStops.plan(view, coarse.moves, route.nodes, air, coarse.expansionBudget, hopeless)
 		if (planned.isEmpty()) return
 		var remaining = planned
 		while (remaining.isNotEmpty()) {
@@ -196,7 +196,7 @@ internal class CoarseFollower(
 
 	private fun breathFrom(from: Stance, to: Stance): Breath? {
 		val planner = CoarsePlanner(view, coarse.moves, from, to)
-		if (!planner.repair(maxExpansions = BREATH_EXPANSIONS).converged) return null
+		if (!planner.repair(maxExpansions = coarse.expansionBudget).converged) return null
 		planner.expandSearchField()
 		val route = planner.routePlan(frame.sequence) ?: return null
 		return Breath(to, route, planner.valueField())
@@ -215,8 +215,4 @@ internal class CoarseFollower(
 		PlanningDebugChannel.publishRoute(next.route)
 	}
 
-	private companion object {
-		const val HANDOFF_WAIT_MILLIS = 4_000L
-		const val BREATH_EXPANSIONS = 200_000
-	}
 }

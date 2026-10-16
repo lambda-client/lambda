@@ -3,6 +3,7 @@ package com.lambda.pathing.session
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.pathing.debug.PlanDump
+import com.lambda.pathing.debug.ServerCorrections
 import com.lambda.pathing.debug.executionRejectionReport
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.ExecutionInputResult
@@ -97,6 +98,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 			finishTrajectory(replay)
 			return false
 		}
+		replay.teleportsSeen = ServerCorrections.teleports
 		return true
 	}
 
@@ -219,7 +221,7 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		val history = walk.replay?.takeIf { it.path === path }?.observedHistory?.toList().orEmpty()
 		walk.dumpEvent("divergence", report, PlanDump.ExecutionTrace.of(path.plan, frame, afterInput, observed, history))
 		val replay = walk.replay
-		if (replay != null && replay.path === path && arrivedBeforeTeleport(path, frame, observed)) {
+		if (replay != null && replay.path === path && arrivedBeforeTeleport(replay, frame)) {
 			info("The server moved the body away on arrival at ${path.finalGoal}.", PATHING_SOURCE)
 			return complete(replay)
 		}
@@ -233,10 +235,10 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 		}
 	}
 
-	private fun arrivedBeforeTeleport(path: PublishedPath, frame: Int, observed: MovementSimulationState): Boolean {
-		if (walk.remainingWaypoints().isNotEmpty()) return false
+	private fun arrivedBeforeTeleport(replay: Replay, frame: Int): Boolean {
+		if (walk.remainingWaypoints().isNotEmpty() || ServerCorrections.teleports == replay.teleportsSeen) return false
+		val path = replay.path
 		val confirmed = if (frame == 0) path.plan.initialState else path.plan.frames.getOrNull(frame - 1)?.state ?: return false
-		if (confirmed.position.distanceTo(observed.position) < TELEPORT_BLOCKS) return false
 		val goal = path.finalGoal
 		return MathHelper.floor(confirmed.position.x) == goal.x && MathHelper.floor(confirmed.position.z) == goal.z &&
 				abs(confirmed.position.y - goal.y) <= 1.0
@@ -247,7 +249,5 @@ internal class ExecutionDriver(private val walk: PathingSession) {
 
 	private companion object {
 		const val REPAIR_MIN_LEAD_FRAMES = 8
-
-		const val TELEPORT_BLOCKS = 8.0
 	}
 }

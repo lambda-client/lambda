@@ -15,6 +15,7 @@ internal object BreathingStops {
 		moves: SimpleMoveLibrary,
 		route: List<Stance>,
 		startAir: Int,
+		maxExpansions: Int,
 		hopeless: MutableSet<Pair<Stance, Stance>> = HashSet(),
 	): List<Stance> {
 		if (route.size < 2) return emptyList()
@@ -36,7 +37,7 @@ internal object BreathingStops {
 			val exit = (index + 1 until route.size).firstOrNull { !underwater(view, route[it]) } ?: route.lastIndex
 			val stretch = route[last] to route[exit]
 			if (stretch in hopeless) return emptyList()
-			return search(view, moves, route.subList(last, exit + 1), budget).ifEmpty { hopeless += stretch; emptyList() }
+			return search(view, moves, route.subList(last, exit + 1), budget, maxExpansions).ifEmpty { hopeless += stretch; emptyList() }
 		}
 		return emptyList()
 	}
@@ -48,7 +49,7 @@ internal object BreathingStops {
 		var dominated = false
 	}
 
-	private fun search(view: CoarseVoxelView, moves: SimpleMoveLibrary, stretch: List<Stance>, firstBudget: Int): List<Stance> {
+	private fun search(view: CoarseVoxelView, moves: SimpleMoveLibrary, stretch: List<Stance>, firstBudget: Int, maxExpansions: Int): List<Stance> {
 		val usableAir = moves.usableAir
 		val start = stretch.first()
 		val goal = stretch.last()
@@ -71,7 +72,7 @@ internal object BreathingStops {
 		offer(Label(start, 0.0, firstBudget, null))
 		var expansions = 0
 		var reached: Label? = null
-		while (queue.isNotEmpty() && expansions++ < MAX_EXPANSIONS) {
+		while (queue.isNotEmpty() && expansions++ < maxExpansions) {
 			val label = queue.poll()
 			if (label.dominated) continue
 			if (label.stance == goal) {
@@ -118,5 +119,4 @@ internal object BreathingStops {
 
 	private const val REACH = 24
 
-	private const val MAX_EXPANSIONS = 200_000
 }

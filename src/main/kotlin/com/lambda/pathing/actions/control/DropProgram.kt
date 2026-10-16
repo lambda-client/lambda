@@ -4,7 +4,9 @@ import com.lambda.pathing.actions.ControlProgram
 import com.lambda.pathing.actions.ProgramContext
 import com.lambda.pathing.actions.TrajectoryDecision
 
+import com.lambda.interaction.managers.rotating.Rotation
 import com.lambda.pathing.core.alongEdge
+import com.lambda.pathing.core.bearingBetween
 import com.lambda.pathing.core.center
 import com.lambda.pathing.core.horizontalDistance
 import com.lambda.pathing.core.interpolate
@@ -19,6 +21,7 @@ internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramCo
 	private val aim = interpolate(context.body.stance.center(), decision.step.center(), solution.aimDistance)
 	private val maxYawChange = context.constraints.maxYawDegreesPerFrame
 	private val flightLength = horizontalDistance(takeoff, aim)
+	private val edgeYaw = bearingBetween(origin, decision.step.center())
 
 	private var airborne = false
 	private var landed = false
@@ -31,7 +34,9 @@ internal class DropProgram(decision: TrajectoryDecision.Drop, context: ProgramCo
 	override fun input(frame: Int, observed: MovementSimulationState): MovementSimulationInput {
 		if (!observed.onGround) airborne = true else if (airborne) landed = true
 
-		val rotation = rotationToward(aim, observed, maxYawChange)
+		val passedAim = alongEdge(takeoff, aim, observed.position.x, observed.position.z) >= flightLength
+		val rotation = if (passedAim) Rotation(observed.rotation.yaw + yawStepTowards(edgeYaw, observed, maxYawChange), observed.rotation.pitch)
+			else rotationToward(aim, observed, maxYawChange)
 
 		val sneak = !airborne && pinningToLip(observed)
 

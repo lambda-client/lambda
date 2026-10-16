@@ -1,5 +1,6 @@
 package com.lambda.pathing.session
 
+import com.lambda.pathing.debug.ServerCorrections
 import com.lambda.pathing.execution.ExecutionDeviation
 import com.lambda.pathing.execution.TrajectoryExecutionCursor
 import com.lambda.pathing.physics.MovementSimulationState
@@ -14,6 +15,7 @@ internal class Replay(val path: PublishedPath, val cursor: TrajectoryExecutionCu
 	var repairDeadline: Int? = null
 	var repairDeviation: ExecutionDeviation? = null
 	var verifiedRevision = Long.MIN_VALUE
+	var teleportsSeen = ServerCorrections.teleports
 
 	val observedHistory = ArrayDeque<Pair<Int, MovementSimulationState>>(OBSERVED_HISTORY_FRAMES)
 

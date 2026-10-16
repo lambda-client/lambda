@@ -27,7 +27,7 @@ internal class CoarseService(
 	private val goals: List<Stance>,
 	private val buildLegs: () -> List<CoarsePlanningState>,
 	starts: List<Stance>,
-	private val expansionBudget: Int,
+	val expansionBudget: Int,
 	private val repin: () -> Unit = {},
 	private val pinCurrent: () -> Boolean = { true },
 	private val expandsField: Boolean = true,
@@ -144,6 +144,16 @@ internal class CoarseService(
 	}
 
 	private fun standing(leg: Int): Frame? = frames[leg]?.takeUnless { failures[leg]?.start == it.start }
+
+	/** Waits for [leg]'s frame for as long as the coarse thread is still working on it: until it is published, fails for good, or the service closes. */
+	fun awaitLeg(leg: Int): Frame? = lock.withLock {
+		var frame = standing(leg)
+		while (frame == null && !closed && failures[leg]?.let { it.final && it.start == starts[leg] } != true) {
+			published.awaitNanos(ROUTE_POLL_MILLIS * 1_000_000L)
+			frame = standing(leg)
+		}
+		frame
+	}
 
 	fun awaitRoute(leg: Int, start: Stance, cancelled: () -> Boolean, arrives: (Stance) -> Boolean = { it == goals[leg] }): Frame? {
 		val goal = goals[leg]

@@ -1,6 +1,7 @@
 package com.lambda.pathing.actions
 
 import com.lambda.pathing.launch.BallisticProfile
+import com.lambda.pathing.launch.BounceSolver
 import com.lambda.pathing.launch.LaunchMode
 import com.lambda.pathing.physics.Vanilla
 import kotlin.math.max
@@ -15,23 +16,17 @@ object CoarseMoveRates {
 		return (1.0 - friction * velocityMultiplier) / (1.0 - friction)
 	}
 
-	const val SPRINT_JUMP_BLOCKS_PER_TICK = 0.3640
+	val SPRINT_JUMP_BLOCKS_PER_TICK: Double get() = MeasuredMotion.sprintJumpBlocksPerTick
 
-	const val STEP_UP_BLOCKS_PER_TICK = 0.1000
-
-	const val FREE_STEP_RISE = Vanilla.STEP_HEIGHT
+	const val FREE_STEP_RISE = Vanilla.STEP_HEIGHT.toDouble()
 
 	const val MIN_JUMP_DISTANCE = 2.0
 
 	val CLIMB_TICKS_PER_BLOCK = 1.0 / BallisticProfile.VANILLA.climbSpeed
 
-	const val SWIM_BLOCKS_PER_TICK = 0.129
+	val SWIM_BLOCKS_PER_TICK: Double get() = MeasuredMotion.swimBlocksPerTick
 
-	private const val BANK_EXIT_TICKS = 11.0
-
-	private const val BEACH_EXIT_TICKS = 9.0
-
-	fun waterExitTicks(rise: Int): Double = if (rise > 0) BANK_EXIT_TICKS else BEACH_EXIT_TICKS
+	fun waterExitTicks(rise: Int): Double = MeasuredMotion.waterExitTicks(rise)
 
 	private const val MAX_FALL_TABLE_DEPTH = 12
 
@@ -59,9 +54,8 @@ class CoarseMoveCosts(
 	val diagonalWalk: Double,
 	val stepUp: Double,
 	val walkOff: (depth: Int) -> Double,
-	val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double,
-	val drop: (distance: Double, depth: Int) -> Double = { _, depth -> walkOff(depth) },
-	val cornerWalk: Double = diagonalWalk,
+	val jumpCandidate: (distance: Double, verticalOffset: Int) -> Double?,
+	val drop: (distance: Double, depth: Int) -> Double? = { _, depth -> walkOff(depth) },
 	val swim: Double = 1.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK,
 	val diagonalSwim: Double = sqrt(2.0) * swim,
 	val waterExit: (rise: Int) -> Double = CoarseMoveRates::waterExitTicks,
@@ -69,17 +63,16 @@ class CoarseMoveCosts(
 	init {
 		validate("cardinalWalk", cardinalWalk)
 		validate("diagonalWalk", diagonalWalk)
-		validate("cornerWalk", cornerWalk)
 		validate("stepUp", stepUp)
 		validate("swim", swim)
 		validate("diagonalSwim", diagonalSwim)
 	}
 
-	fun jumpCandidateCost(distance: Double, verticalOffset: Int): Double {
+	fun jumpCandidateCost(distance: Double, verticalOffset: Int): Double? {
 		require(distance >= CoarseMoveRates.MIN_JUMP_DISTANCE || verticalOffset < 0 || verticalOffset >= LaunchMode.MAX_JUMP_STEP) {
 			"a level jump candidate must reach past the adjacent stance: $distance"
 		}
-		return jumpCandidate(distance, verticalOffset).also {
+		return jumpCandidate(distance, verticalOffset)?.also {
 			validate("jumpCandidate($distance, $verticalOffset)", it)
 		}
 	}
@@ -89,15 +82,15 @@ class CoarseMoveCosts(
 		return walkOff(depth).also { validate("walkOff($depth)", it) }
 	}
 
-	fun bounceCost(drop: Int, rise: Int, bounces: Int = 1): Double {
+	fun bounceCost(drop: Int, rise: Int, distance: Double, bounces: Int = 1, ledgeDepth: Double = 0.0): Double? {
 		require(drop > 0) { "a bounce must fall onto something: $drop" }
-		return CoarseMoveRates.fallTicks(drop) * (2 * bounces - 1) + CoarseMoveRates.fallTicks(drop + rise) + BOUNCE_SETTLE_TICKS
+		return BounceSolver.ticks(drop, rise, distance, bounces, ledgeDepth)?.toDouble()
 	}
 
-	fun dropCost(distance: Double, depth: Int): Double {
+	fun dropCost(distance: Double, depth: Int): Double? {
 		require(distance >= 1.0) { "a drop must cross at least the adjacent stance" }
 		require(depth > 0) { "drop depth must be positive" }
-		return drop(distance, depth).also { validate("drop($distance, $depth)", it) }
+		return drop(distance, depth)?.also { validate("drop($distance, $depth)", it) }
 	}
 
 	private fun validate(name: String, value: Double) {
@@ -106,23 +99,9 @@ class CoarseMoveCosts(
 
 	companion object {
 
-		private const val UNREACHABLE_BALLISTIC_TICKS = 1000.0
-
-		private const val DROP_SETTLE_TICKS = 2.0
-
-		private const val BOUNCE_SETTLE_TICKS = 2.0
-
-		private const val JUMP_SETTLE_TICKS = 0.5
-
-		fun measured(
-			transitionOverheadTicks: Double = 0.0,
-		): CoarseMoveCosts {
+		fun measured(): CoarseMoveCosts {
 			val profile = BallisticProfile.VANILLA
-			require(transitionOverheadTicks >= 0.0 && transitionOverheadTicks.isFinite()) {
-				"transitionOverheadTicks must be non-negative and finite: $transitionOverheadTicks"
-			}
 			val walk = 1.0 / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
-			val step = 1.0 / CoarseMoveRates.STEP_UP_BLOCKS_PER_TICK
 
 			fun ballistic(jumping: Boolean, rise: Int): Double? {
 				val height = minOf(rise.toDouble(), LaunchMode.MAX_JUMP_RISE)
@@ -132,28 +111,22 @@ class CoarseMoveCosts(
 					.minOrNull()?.let { (it + 1).toDouble() }
 			}
 
-			fun jump(horizontalDistance: Double, verticalOffset: Int): Double =
-				max(
-					ballistic(jumping = true, rise = verticalOffset) ?: UNREACHABLE_BALLISTIC_TICKS,
-					horizontalDistance / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK,
-				)
+			fun jump(horizontalDistance: Double, verticalOffset: Int): Double? =
+				ballistic(jumping = true, rise = verticalOffset)?.let { max(it, horizontalDistance / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK) }
+
+			val step = checkNotNull(ballistic(jumping = true, rise = 1)) { "no jump reaches a block up" }
 
 			return CoarseMoveCosts(
-				cardinalWalk = walk + transitionOverheadTicks,
-				diagonalWalk = sqrt(2.0) * walk + transitionOverheadTicks,
-				cornerWalk = 2.0 * (walk + transitionOverheadTicks),
-				stepUp = step + transitionOverheadTicks,
-				walkOff = { depth -> max(walk, CoarseMoveRates.fallTicks(depth)) + 1.0 + transitionOverheadTicks },
-				jumpCandidate = { distance, vo -> jump(distance, vo) + JUMP_SETTLE_TICKS + transitionOverheadTicks },
-				swim = 1.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK + transitionOverheadTicks,
-				diagonalSwim = sqrt(2.0) / CoarseMoveRates.SWIM_BLOCKS_PER_TICK + transitionOverheadTicks,
-				waterExit = { rise -> CoarseMoveRates.waterExitTicks(rise) + transitionOverheadTicks },
+				cardinalWalk = walk,
+				diagonalWalk = sqrt(2.0) * walk,
+				stepUp = step,
+				walkOff = { depth -> max(walk, CoarseMoveRates.fallTicks(depth)) },
+				jumpCandidate = { distance, vo -> jump(distance, vo) },
+				swim = 1.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK,
+				diagonalSwim = sqrt(2.0) / CoarseMoveRates.SWIM_BLOCKS_PER_TICK,
+				waterExit = { rise -> CoarseMoveRates.waterExitTicks(rise) },
 				drop = { distance, depth ->
-
-					max(
-						ballistic(jumping = false, rise = -depth) ?: UNREACHABLE_BALLISTIC_TICKS,
-						distance / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK,
-					) + DROP_SETTLE_TICKS + transitionOverheadTicks
+					ballistic(jumping = false, rise = -depth)?.let { max(it, distance / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK) }
 				},
 			)
 		}

@@ -31,7 +31,7 @@ internal class HeuristicCaps private constructor(
 
 	companion object {
 
-		fun of(templates: List<MotionTemplate>, floor: (MotionTemplate) -> Double = MotionTemplate::minimumTicks): HeuristicCaps {
+		fun of(templates: List<MotionTemplate>): HeuristicCaps {
 			var axis = Double.POSITIVE_INFINITY
 			var diagonal = Double.POSITIVE_INFINITY
 			var ascent = Double.POSITIVE_INFINITY
@@ -39,18 +39,18 @@ internal class HeuristicCaps private constructor(
 			var straight = Double.POSITIVE_INFINITY
 			for (template in templates) {
 				val reach = hypot(template.dx.toDouble(), template.dz.toDouble())
-				if (reach > 0.0) straight = minOf(straight, floor(template) / reach)
+				if (reach > 0.0) straight = minOf(straight, template.minimumTicks / reach)
 			}
 			for (template in templates) {
 				val dx = abs(template.dx)
 				val dz = abs(template.dz)
 				when {
-					dx > 0 && dz == 0 -> axis = minOf(axis, floor(template) / dx)
-					dz > 0 && dx == 0 -> axis = minOf(axis, floor(template) / dz)
-					dx == dz && dx > 0 -> diagonal = minOf(diagonal, floor(template) / dx)
+					dx > 0 && dz == 0 -> axis = minOf(axis, template.minimumTicks / dx)
+					dz > 0 && dx == 0 -> axis = minOf(axis, template.minimumTicks / dz)
+					dx == dz && dx > 0 -> diagonal = minOf(diagonal, template.minimumTicks / dx)
 				}
-				if (template.dy > 0) ascent = minOf(ascent, floor(template) / template.dy)
-				if (template.dy < 0) descent = minOf(descent, floor(template) / abs(template.dy))
+				if (template.dy > 0) ascent = minOf(ascent, template.minimumTicks / template.dy)
+				if (template.dy < 0) descent = minOf(descent, template.minimumTicks / abs(template.dy))
 			}
 
 			axis = minOf(axis, diagonal)
@@ -63,13 +63,13 @@ internal class HeuristicCaps private constructor(
 				val pairs = minOf(a, b)
 				val straights = abs(a - b)
 				val claimed = pairs * diagonal + straights * axis
-				if (!claimed.isFinite() || claimed <= floor(template)) continue
+				if (!claimed.isFinite() || claimed <= template.minimumTicks) continue
 
-				val roomForDiagonal = (floor(template) - straights * axis) / pairs
+				val roomForDiagonal = (template.minimumTicks - straights * axis) / pairs
 				if (roomForDiagonal >= axis) {
 					diagonal = roomForDiagonal
 				} else {
-					val even = floor(template) / (pairs + straights)
+					val even = template.minimumTicks / (pairs + straights)
 					axis = even
 					diagonal = even
 				}

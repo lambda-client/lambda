@@ -97,7 +97,6 @@ internal object ProbeScenarios {
         scenario: Scenario,
         parallelism: Int = 1,
         microsPerExpansion: Long = 640L,
-        transitionOverheadTicks: Double = 1.0,
         maxTemperature: Double = 1.0,
         frontierPerKey: Int = 3,
         probe: com.lambda.pathing.search.SearchProbe = com.lambda.pathing.search.SearchProbe.NONE,
@@ -107,7 +106,7 @@ internal object ProbeScenarios {
         latencyTicks: Int = VirtualExecutor.ADOPTION_LATENCY_TICKS,
     ): Outcome {
         val moves = SimpleMoveLibrary.build(
-            costs = CoarseMoveCosts.measured(transitionOverheadTicks = transitionOverheadTicks),
+            costs = CoarseMoveCosts.measured(),
             options = scenario.options,
         )
         val planner = CoarsePlanner(scenario.environment, moves, scenario.start, scenario.goal)
@@ -157,7 +156,7 @@ internal object ProbeScenarios {
 
     /** The default-cost move library nearly every fixture builds; options vary per test. */
     fun moveLibrary(options: SimpleMoveOptions = SimpleMoveOptions()) = SimpleMoveLibrary.build(
-        costs = CoarseMoveCosts.measured(transitionOverheadTicks = 1.0),
+        costs = CoarseMoveCosts.measured(),
         options = options,
     )
 

@@ -200,15 +200,34 @@ object BounceSolver {
 		return if (floor <= ceiling) floor..ceiling else null
 	}
 
+	/** Ticks of the quickest bounce, walked off or jumped, whose arc carries [distance] from the take-off stance centre. */
+	fun ticks(drop: Int, rise: Int, distance: Double, bounces: Int = 1, ledgeDepth: Double = 0.0): Int? {
+		val depth = drop.toDouble()
+		val height = rise - ledgeDepth
+		val flight = distance - LAUNCH_OFFSET
+		var best: Int? = null
+		for (jump in listOf(false, true)) {
+			val standing = ballistics.bounce(0.0, depth, height, holdForward = true, sprint = true, jump = jump, bounces = bounces) ?: continue
+			val unit = ballistics.bounce(1.0, depth, height, holdForward = true, sprint = true, jump = jump, bounces = bounces) ?: continue
+			val slope = unit.distance - standing.distance
+			if (slope <= 0.0) continue
+			val gentle = ballistics.bounce(0.0, depth, height, holdForward = false, sprint = false, jump = jump, bounces = bounces)
+			if (flight < (gentle ?: standing).distance || flight > standing.distance + slope * ballistics.momentumSpeed(sprint = true)) continue
+			val ticks = standing.airTicks + if (jump) 1 else 0
+			best = minOf(best ?: ticks, ticks)
+		}
+		return best
+	}
+
 	private const val HOLD_SCAN = 3
 
-	private const val LANDING_SUPPORT_REACH = 0.8
+	private const val LANDING_SUPPORT_REACH = 0.5 + BODY_HALF_WIDTH
 
 	const val STANDING_REST_SPEED = 0.02
 
 	private const val LANDING_WINDOW = 1.0
 
-	const val LAUNCH_OFFSET = 0.8
+	const val LAUNCH_OFFSET = 0.5 + BODY_HALF_WIDTH
 }
 
 private fun ArcSample.troughIndex(): Int {

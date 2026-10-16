@@ -234,7 +234,7 @@ internal class AnchorRollout(
 				)
 			}
 			eventStance = supported
-			cornerCatch = CORNER_CATCH_COLLISIONS
+			cornerCatch = 1
 		}
 		if (!field.isMapped(eventStance)) {
 			return if (!field.view.isKnown(eventStance.x, eventStance.y - 1, eventStance.z)) {
@@ -270,7 +270,6 @@ internal class AnchorRollout(
 		const val SIBLINGS_PER_ANCHOR = 32
 		const val TRANSITION_FRAMES = 40
 		const val OPEN_LANDING_NEIGHBORS = 2
-		const val CORNER_CATCH_COLLISIONS = 2
 		const val GOAL_FLOOR_SLACK = 0.5
 	}
 }

@@ -8,6 +8,7 @@ import com.lambda.pathing.actions.families.MovementCatalog
 import com.lambda.pathing.actions.PricedDecision
 import com.lambda.pathing.actions.ProposalContext
 import com.lambda.pathing.actions.TrajectoryDecision
+import com.lambda.pathing.coarse.MomentumRules
 import com.lambda.pathing.coarse.ValueField
 import com.lambda.pathing.core.Stance
 import kotlin.math.atan2
@@ -20,7 +21,7 @@ internal class ActionSet(
 	private val finalLeg: () -> Boolean = { true },
 ) {
 	private fun actions(anchor: ValueAnchor, temperature: Double, lastResort: Boolean): List<PricedDecision> {
-		if (anchor.parent != null && field.guide(anchor.stance) <= FINISH_VALUE_TICKS && finalLeg()) {
+		if (anchor.parent != null && anchor.finished && finalLeg()) {
 			return emptyList()
 		}
 
@@ -29,7 +30,7 @@ internal class ActionSet(
 
 		val costOf = HashMap<Stance, Double>(steps.size)
 
-		steps.forEach { costOf[it.to] = it.lowerBoundTicks + field.guide(it.to) }
+		steps.forEach { costOf[it.to] = it.lowerBoundTicks + field.guide(it.to, MomentumRules.arrival(it, field.view)) }
 		val bestCost = costOf.values.min()
 		val byDestination = steps.associateBy { it.to }
 		val contexts = HashMap<Stance, DecisionContext>(steps.size)

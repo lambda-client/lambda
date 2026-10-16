@@ -58,6 +58,8 @@ internal class ValueAnchor(
 
 	var sweptEpoch: Int = -1
 
+	var finished: Boolean = false
+
 	var divergenceElapsed: Int = -1
 	var divergenceSequence: Long = Long.MIN_VALUE
 
@@ -95,7 +97,7 @@ internal class ValueAnchor(
 }
 
 internal fun ValueAnchor.arrivalEstimate(guide: Double, allowance: Double = 0.0): Double =
-	elapsed + guide + allowance + Solution.COLLISION_FRAME_PENALTY * collisionEvents
+	elapsed + guide + allowance
 
 internal fun ValueField.guideFor(anchor: ValueAnchor): Double = guide(anchor.stance, SpeedClass.of(anchor.speed))
 

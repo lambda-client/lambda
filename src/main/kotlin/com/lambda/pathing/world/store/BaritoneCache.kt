@@ -3,6 +3,7 @@ package com.lambda.pathing.world.store
 import com.lambda.pathing.core.Stance
 import com.lambda.pathing.physics.UnsupportedPhysics
 import com.lambda.pathing.physics.UnsupportedPhysicsKind
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.physics.WaterPhysics
 import com.lambda.pathing.world.CoarseVoxel
 import com.lambda.pathing.world.snapshot.ImmutableSnapshotSection
@@ -162,13 +163,11 @@ internal class BaritoneCache(private val directory: Path, private val minY: Int,
 		private val PHYSICS = arrayOf(
 			SnapshotBlockPhysics.AIR,
 			SnapshotBlockPhysics(VoxelShapes.empty(), unsupportedPhysics = UnsupportedPhysics(UnsupportedPhysicsKind.FLUID, "baritone:avoid")),
-			SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.WATER, water = WaterPhysics(SURFACE_WATER_HEIGHT, Vec3d.ZERO)),
+			SnapshotBlockPhysics(VoxelShapes.empty(), coarseVoxel = CoarseVoxel.WATER, water = WaterPhysics(Vanilla.STILL_WATER_HEIGHT, Vec3d.ZERO)),
 			SnapshotBlockPhysics.FULL_CUBE,
 		)
 
 		private val UNIFORM = Array(PHYSICS.size) { type -> ImmutableSnapshotSection.Builder().apply { fill(PHYSICS[type]) }.build() }
-
-		private const val SURFACE_WATER_HEIGHT = 8f / 9f
 
 		fun of(world: World): BaritoneCache? {
 			val client = MinecraftClient.getInstance()

@@ -12,7 +12,6 @@ import it.unimi.dsi.fastutil.doubles.DoubleArrayList
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.util.math.BlockPos
-import java.util.TreeSet
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -139,13 +138,17 @@ object JumpArcProbe {
 
 	private fun ceilingLevels(view: CoarseVoxelView, from: Stance, dx: Int, dz: Int, launchHeight: Double, reads: LongOpenHashSet?): DoubleArray {
 		val head = launchHeight + BODY_HEIGHT
-		val levels = TreeSet<Double>()
+		val levels = DoubleArrayList()
 		for (column in region(dx, dz).columns) {
 			forEachCeiling(view, from.x + BlockPos.unpackLongX(column), from.z + BlockPos.unpackLongZ(column), head, reads) { bottom, _, _, _, _ ->
-				levels += quantized(bottom - head)
+				levels.add(quantized(bottom - head))
 			}
 		}
-		return levels.toDoubleArray()
+		if (levels.size < 2) return levels.toDoubleArray()
+		val sorted = levels.toDoubleArray().also { it.sort() }
+		var count = 1
+		for (index in 1 until sorted.size) if (sorted[index].compareTo(sorted[count - 1]) != 0) sorted[count++] = sorted[index]
+		return sorted.copyOf(count)
 	}
 
 	private fun bonks(view: CoarseVoxelView, from: Stance, dx: Int, dz: Int, solution: LaunchSolution, launchHeight: Double, reads: LongOpenHashSet?, lateral: Double = 0.0): Boolean {

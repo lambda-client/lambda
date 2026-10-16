@@ -2,6 +2,7 @@ package com.lambda.pathing.coarse
 
 import com.lambda.pathing.actions.CoarseEdge
 import com.lambda.pathing.actions.CoarseMoveRates
+import com.lambda.pathing.actions.MeasuredMotion
 import com.lambda.pathing.actions.MotionTemplate
 import com.lambda.pathing.actions.MotionTemplateId
 import com.lambda.pathing.actions.families.DiveMovement
@@ -12,6 +13,7 @@ import com.lambda.pathing.core.VoxelPos
 import com.lambda.pathing.launch.BallisticProfile
 import com.lambda.pathing.launch.FallReach
 import com.lambda.pathing.physics.FallRule
+import com.lambda.pathing.physics.Vanilla
 import com.lambda.pathing.world.ColumnOccupancy
 import com.lambda.pathing.world.CoarseVoxelView
 import com.lambda.pathing.world.Medium
@@ -197,9 +199,9 @@ internal class FallEdges(
 			val rule = view.fallRule(origin.x, floor(landingHeight - LANDING_PROBE_DEPTH).toInt(), origin.z)
 			if (drop > limits.maxFallOnto(rule)) return NONE
 		}
-		val flight = FallReach.flight(false, drop) ?: return NONE
-		val settle = if (water) FallReach.plunge(flight.impactSpeed, waterCells(origin.x, hit, origin.z)).ticks.toDouble() else FLOOR_SETTLE_TICKS
-		return arrayOf(FallEdge(0, target.y - origin.y, 0, flight.airTicks + SINK_TICKS + settle, true, water, false))
+		val flight = FallReach.flight(false, maxOf(drop - MeasuredMotion.sinkDescent, 0.0)) ?: return NONE
+		val settle = if (water) FallReach.plunge(flight.impactSpeed, waterCells(origin.x, hit, origin.z)).ticks.toDouble() else 0.0
+		return arrayOf(FallEdge(0, target.y - origin.y, 0, flight.airTicks + MeasuredMotion.sinkTicks + settle, true, water, false))
 	}
 
 	private fun dropsOnto(target: Stance, water: Boolean): FallArrival? {
@@ -329,7 +331,7 @@ internal class FallEdges(
 			if (far <= flight.launchOffset || near > flight.reach(MOMENTUM_SPEED)) continue
 			if (!water && drop + (if (jumps) JUMP_APEX else 0.0) > limits.maxFallOnto(rule)) continue
 			if (!clearChord(origin, unitX, unitZ, flight.launchOffset, launch + if (jumps) JUMP_APEX else 0.0, x, z, landingHeight)) continue
-			val settle = if (water) FallReach.plunge(flight.impactSpeed, waterCells).ticks.toDouble() else FLOOR_SETTLE_TICKS
+			val settle = if (water) FallReach.plunge(flight.impactSpeed, waterCells).ticks.toDouble() else 0.0
 			val ticks = max((flight.airTicks + LAUNCH_TICKS).toDouble(), near / CoarseMoveRates.SPRINT_JUMP_BLOCKS_PER_TICK) + settle + if (jumps) jumpPenalty else 0.0
 			val standing = near <= flight.reach(STANDING_SPEED)
 			if (!standing && !runUpBehind(origin, unitX, unitZ)) continue
@@ -445,17 +447,13 @@ internal class FallEdges(
 
 		private const val LAUNCH_TICKS = 1
 
-		private const val SINK_TICKS = 6
-
-		private const val FLOOR_SETTLE_TICKS = 2.0
-
 		private const val CHORD_STEP = 0.5
 
-		private const val LANDING_PROBE_DEPTH = 0.2
+		private const val LANDING_PROBE_DEPTH = Vanilla.LANDING_POS_OFFSET.toDouble()
 
 		private const val AXIS_EPSILON = 1e-9
 
-		private const val LANDING_HALF_EXTENT = 0.5 + 0.3
+		private const val LANDING_HALF_EXTENT = 0.5 + Vanilla.PLAYER_HALF_WIDTH
 
 		private const val CACHED_ORIGINS = 1 shl 14
 

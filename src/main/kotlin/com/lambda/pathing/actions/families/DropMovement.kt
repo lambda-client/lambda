@@ -29,22 +29,22 @@ object DropMovement : Movement {
 	override fun templates(context: MovementContext): List<TemplateSpec> = buildList {
 		val options = context.options
 		for ((dx, dz) in StanceRules.CARDINALS) {
-			for (depth in 2..options.maxWalkOffDepth) add(spec(dx, dz, depth, context))
+			for (depth in 2..options.maxWalkOffDepth) spec(dx, dz, depth, context)?.let(::add)
 			for (span in 2..options.maxDropSpan) {
-				for (depth in 1..options.maxWalkOffDepth) add(spec(span * dx, span * dz, depth, context))
+				for (depth in 1..options.maxWalkOffDepth) spec(span * dx, span * dz, depth, context)?.let(::add)
 			}
 		}
 		if (!options.allowDiagonal) return@buildList
 		for (dx in -options.maxDropSpan..options.maxDropSpan) for (dz in -options.maxDropSpan..options.maxDropSpan) {
 			if (dx == 0 || dz == 0 || abs(dx) != abs(dz) && !options.allowOffAxisJumps) continue
-			for (depth in 1..options.maxWalkOffDepth) add(spec(dx, dz, depth, context))
+			for (depth in 1..options.maxWalkOffDepth) spec(dx, dz, depth, context)?.let(::add)
 		}
 	}
 
-	private fun spec(dx: Int, dz: Int, depth: Int, context: MovementContext) = TemplateSpec(
+	private fun spec(dx: Int, dz: Int, depth: Int, context: MovementContext): TemplateSpec? = TemplateSpec(
 		dx = dx, dy = -depth, dz = dz,
 		movement = id,
-		cost = context.costs.dropCost(hypot(dx.toDouble(), dz.toDouble()), depth),
+		cost = context.costs.dropCost(hypot(dx.toDouble(), dz.toDouble()), depth) ?: return null,
 		conditions = StanceRules.stanceConditions(dx, -depth, dz, CoarseVoxel.sides(-dx, -dz)) + StanceRules.leaving(CoarseVoxel.sides(dx, dz), 0),
 		arc = MotionTemplate.ArcSpec(MODES),
 	)

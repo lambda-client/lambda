@@ -36,14 +36,14 @@ object LadderCatchMovement : Movement {
 				val gap = hypot((abs(dx) - 1).toDouble(), (abs(dz) - 1).toDouble())
 				for (rise in MIN_RISE..MAX_RISE) {
 					if (gap > catchGap(rise, options.allowDeepDropJumps) + REACH_EPSILON) continue
+					val cost = context.costs.jumpCandidateCost(hypot(dx.toDouble(), dz.toDouble()), rise) ?: continue
 					add(
 						TemplateSpec(
 							dx = dx,
 							dy = rise,
 							dz = dz,
 							movement = id,
-							cost = context.costs.jumpCandidateCost(hypot(dx.toDouble(), dz.toDouble()), rise) +
-									CATCH_SETTLE_TICKS,
+							cost = cost,
 							conditions = listOf(
 								CellCondition(dx, rise, dz, CellPredicate.CLIMBABLE),
 								CellCondition(dx, rise + 1, dz, CellPredicate.CENTER_HEAD),
@@ -125,6 +125,4 @@ object LadderCatchMovement : Movement {
 	private const val MIN_RISE = -2
 
 	private const val MAX_RISE = 1
-
-	private const val CATCH_SETTLE_TICKS = 6.0
 }

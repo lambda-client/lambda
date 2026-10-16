@@ -28,14 +28,15 @@ object SlimeBounceMovement : Movement {
 
 		for (drop in MIN_DROP..minOf(options.maxBounceDrop, TEMPLATE_MAX_DROP)) {
 			for (rise in -(drop - 1)..MAX_RISE) {
-				val window = BounceSolver.reach(drop, rise) ?: BounceSolver.reach(drop, rise, ledgeDepth = LOWEST_LEDGE_DEPTH) ?: continue
+				val ledge = if (BounceSolver.reach(drop, rise) != null) 0.0 else LOWEST_LEDGE_DEPTH
+				val window = BounceSolver.reach(drop, rise, ledgeDepth = ledge) ?: continue
 
 				for ((dx, dz) in StanceRules.CARDINALS + StanceRules.DIAGONALS) {
 					val perStep = hypot(dx.toDouble(), dz.toDouble())
 					for (span in 1..MAX_SPAN) {
 						val distance = span * perStep
 						if (distance !in window) continue
-						add(spec(span * dx, span * dz, drop, rise, context))
+						spec(span * dx, span * dz, drop, rise, context, ledgeDepth = ledge)?.let(::add)
 					}
 				}
 			}
@@ -46,7 +47,7 @@ object SlimeBounceMovement : Movement {
 				for ((dx, dz) in StanceRules.CARDINALS + StanceRules.DIAGONALS) {
 					val perStep = hypot(dx.toDouble(), dz.toDouble())
 					for (span in 1..MAX_DOUBLE_SPAN) {
-						if (span * perStep in window) add(spec(span * dx, span * dz, drop, rise, context, DOUBLE_BOUNCES))
+						if (span * perStep in window) spec(span * dx, span * dz, drop, rise, context, DOUBLE_BOUNCES)?.let(::add)
 					}
 				}
 			}
@@ -54,11 +55,12 @@ object SlimeBounceMovement : Movement {
 		if (!options.allowOffAxisJumps) return@buildList
 		for (drop in MIN_DROP..minOf(options.maxBounceDrop, TEMPLATE_MAX_DROP)) {
 			for (rise in -(drop - 1)..MAX_RISE) {
-				val window = BounceSolver.reach(drop, rise) ?: BounceSolver.reach(drop, rise, ledgeDepth = LOWEST_LEDGE_DEPTH) ?: continue
+				val ledge = if (BounceSolver.reach(drop, rise) != null) 0.0 else LOWEST_LEDGE_DEPTH
+				val window = BounceSolver.reach(drop, rise, ledgeDepth = ledge) ?: continue
 				for (dx in -MAX_SPAN..MAX_SPAN) for (dz in -MAX_SPAN..MAX_SPAN) {
 					if (dx == 0 || dz == 0 || abs(dx) == abs(dz)) continue
 					if (hypot(dx.toDouble(), dz.toDouble()) !in window) continue
-					add(spec(dx, dz, drop, rise, context))
+					spec(dx, dz, drop, rise, context, ledgeDepth = ledge)?.let(::add)
 				}
 			}
 		}
@@ -71,12 +73,13 @@ object SlimeBounceMovement : Movement {
 		rise: Int,
 		context: MovementContext,
 		bounces: Int = 1,
-	) = TemplateSpec(
+		ledgeDepth: Double = 0.0,
+	): TemplateSpec? = TemplateSpec(
 		dx = dx,
 		dy = rise,
 		dz = dz,
 		movement = id,
-		cost = context.costs.bounceCost(drop, rise, bounces),
+		cost = context.costs.bounceCost(drop, rise, hypot(dx.toDouble(), dz.toDouble()), bounces, ledgeDepth) ?: return null,
 		conditions = StanceRules.stanceConditions(dx, rise, dz),
 		departure = CellPredicate.LAUNCHABLE,
 		arc = MotionTemplate.ArcSpec(bounceDrop = drop, bounces = bounces),

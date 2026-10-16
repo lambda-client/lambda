@@ -53,7 +53,7 @@ fun SimulationEnvironment.landingRule(state: MovementSimulationState): FallRule 
 	}
 }
 
-private const val LANDING_PROBE_DEPTH = 0.2
+private const val LANDING_PROBE_DEPTH = Vanilla.LANDING_POS_OFFSET.toDouble()
 
 data class FallLimits(
 	val acceptedDamage: Int = 0,

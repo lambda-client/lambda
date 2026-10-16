@@ -1,5 +1,7 @@
 package com.lambda.pathing.search
 
+import com.lambda.pathing.actions.CoarseMoveRates
+import com.lambda.pathing.actions.MeasuredMotion
 import com.lambda.pathing.actions.MotionConstraints
 import com.lambda.pathing.actions.control.CorridorFollowerProgram
 import com.lambda.pathing.actions.control.TerminalApproach
@@ -19,7 +21,9 @@ import com.lambda.pathing.world.snapshot.SnapshotSimulationEnvironment
 import kotlin.math.abs
 import kotlin.math.hypot
 
-internal const val FINISH_VALUE_TICKS = 11.0
+internal val FINISH_VALUE_TICKS = MeasuredMotion.stopTicks + FINISH_CELLS / CoarseMoveRates.SPRINT_BLOCKS_PER_TICK
+
+private const val FINISH_CELLS = 2
 
 internal class Finisher(
 	private val field: ValueField,
@@ -43,7 +47,7 @@ internal class Finisher(
 		if (anchor.sweptEpoch == sweepEpoch || sweeps >= MAX_FINISH_SWEEPS) return null
 		anchor.sweptEpoch = sweepEpoch
 		sweeps++
-		return finishFrom(anchor)
+		return finishFrom(anchor).also { anchor.finished = it != null }
 	}
 
 	fun finishFrom(anchor: ValueAnchor): Solution? {

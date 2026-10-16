@@ -42,7 +42,7 @@ data class SimpleMoveOptions(
 	}
 
 	companion object {
-		const val DEFAULT_FRONTIER_TICKS_PER_BLOCK = 2.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK
+		val DEFAULT_FRONTIER_TICKS_PER_BLOCK = 2.0 / CoarseMoveRates.SWIM_BLOCKS_PER_TICK
 
 		const val DEFAULT_AIR_RESERVE = 60
 	}

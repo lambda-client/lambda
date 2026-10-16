@@ -38,7 +38,7 @@ internal class Incumbent(
 		val improves = when {
 			incumbent == null -> true
 			requiredGain > 0 -> solution.score <= incumbent.score - requiredGain
-			else -> solution.score < incumbent.score
+			else -> solution.beats(incumbent)
 		}
 		if (!improves) return
 		if (firstFrames < 0) firstFrames = solution.frames
@@ -51,7 +51,7 @@ internal class Incumbent(
 
 	fun offerFallback(solution: Solution) {
 		val current = fallback
-		if (current == null || solution.score < current.score) fallback = solution
+		if (current == null || solution.beats(current)) fallback = solution
 	}
 
 	fun dropUnadoptable() {

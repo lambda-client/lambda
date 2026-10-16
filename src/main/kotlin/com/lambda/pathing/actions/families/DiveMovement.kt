@@ -50,7 +50,7 @@ object DiveMovement : Movement {
 						add(CellCondition(cx, cy, cz, CellPredicate.SWIMMABLE))
 					}
 				}
-				val cost = sqrt((dx * dx + dy * dy + dz * dz).toDouble()) * context.costs.swim * DIVE_COST_FACTOR
+				val cost = sqrt((dx * dx + dy * dy + dz * dz).toDouble()) * context.costs.swim * 1.0
 				add(TemplateSpec(dx, dy, dz, id, cost, listOf(CellCondition(dx, dy, dz, target)) + passage, departure = CellPredicate.WATER))
 			}
 		}
@@ -313,8 +313,6 @@ object DiveMovement : Movement {
 	const val AIR_REACH_BLOCKS = 20
 
 	private const val MAX_SEARCH_CELLS = 512
-
-	private const val DIVE_COST_FACTOR = 1.25
 
 	private const val DIVE_DESCENT_ALLOWANCE = 48.0
 

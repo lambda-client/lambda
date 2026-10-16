@@ -39,7 +39,7 @@ object SwimMovement : Movement {
 				add(TemplateSpec(dx, 0, dz, MovementId.ENTER_WATER, costs.cardinalWalk, submergedEntry(dx, dz)))
 				for (depth in 1..MAX_ENTRY_DEPTH) {
 					val fall = (1 downTo 1 - depth).map { CellCondition(dx, it, dz, CellPredicate.CENTER_SLICE) }
-					val cost = if (depth == 1) costs.walkOffCost(depth) else costs.dropCost(1.0, depth)
+					val cost = (if (depth == 1) costs.walkOffCost(depth) else costs.dropCost(1.0, depth)) ?: continue
 					add(TemplateSpec(dx, -depth, dz, MovementId.ENTER_WATER, cost, listOf(CellCondition(dx, -depth, dz, CellPredicate.WATER)) + fall))
 				}
 				for (rise in 0..1) {

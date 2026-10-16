@@ -16,11 +16,12 @@ internal class Solution(
 
 	val inputs: List<MovementSimulationInput> by lazy { planSegments.flatMap { it.inputs } }
 
-	val score: Int get() = frames + COLLISION_FRAME_PENALTY * collisionEvents
+	val score: Int get() = frames
+
+	/** Fewer frames wins; wall contacts only break a tie. */
+	fun beats(other: Solution): Boolean = frames < other.frames || frames == other.frames && collisionEvents < other.collisionEvents
 
 	companion object {
-
-		internal const val COLLISION_FRAME_PENALTY = 4
 
 		private fun segmentsOf(anchor: ValueAnchor, tail: List<SimulatedTrajectoryFrame>): List<PlanSegment> {
 			val segments = anchor.lineFrom(null).mapTo(ArrayList()) { child ->

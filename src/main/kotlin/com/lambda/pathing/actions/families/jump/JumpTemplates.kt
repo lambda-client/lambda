@@ -26,7 +26,7 @@ internal object JumpTemplates {
 				for (dz in -reach..reach) {
 					if (!offered(dx, dz, rise, options)) continue
 					val wide = maxOf(abs(dx), abs(dz)) > options.maxJumpSpan
-					val cost = context.costs.jumpCandidateCost(hypot(dx, dz), rise) + (if (wide) WIDE_DROP_RISK_TICKS else 0.0) + options.jumpPenaltyTicks
+					val cost = (context.costs.jumpCandidateCost(hypot(dx, dz), rise) ?: continue) + (if (wide) WIDE_DROP_RISK_TICKS else 0.0) + options.jumpPenaltyTicks
 					add(spec(dx, dz, rise, cost, momentumOnly = wide))
 				}
 			}
@@ -118,6 +118,7 @@ internal object JumpTemplates {
 
 	private const val WIDE_DROP_RISE = -1.75
 
+	/** Not a time: without it the search runs straight at a momentum-only drop and dead-ends short of it (dimension parkour leg 4). */
 	private const val WIDE_DROP_RISK_TICKS = 24.0
 
 	private const val HALF_DROP_RISE = -0.25

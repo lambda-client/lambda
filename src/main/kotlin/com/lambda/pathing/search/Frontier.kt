@@ -302,7 +302,7 @@ internal class Frontier(
 		val state = anchor.state
 
 		val direction = if (anchor.speed > DIRECTION_FROM_HEADING_SPEED) {
-			sector(Math.toDegrees(atan2(state.velocity.z, state.velocity.x)))
+			sector(Math.toDegrees(atan2(state.velocity.z, state.velocity.x)) - 90.0)
 		} else {
 			sector(state.rotation.yaw)
 		}

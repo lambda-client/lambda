@@ -169,7 +169,7 @@ internal class BounceChains(
 			}
 		}
 		for ((target, best) in bent) {
-			add(origin, ChainEdge(target.x - origin.x, target.y - origin.y, target.z - origin.z, best.solution.airTicks + SETTLE_TICKS, best.solution, best.reads))
+			add(origin, ChainEdge(target.x - origin.x, target.y - origin.y, target.z - origin.z, best.solution.airTicks.toDouble(), best.solution, best.reads))
 		}
 	}
 
@@ -233,7 +233,7 @@ internal class BounceChains(
 			view, origin, dx, dz, drop, target.y - origin.y, launchHeight,
 			bounces = levels.size, reboundHeadroom = ceiling, levels = if (level) null else levels,
 		) ?: return
-		add(origin, ChainEdge(dx, target.y - origin.y, dz, probed.solution.airTicks + SETTLE_TICKS, probed.solution, probed.reads))
+		add(origin, ChainEdge(dx, target.y - origin.y, dz, probed.solution.airTicks.toDouble(), probed.solution, probed.reads))
 	}
 
 	private fun add(origin: Stance, edge: ChainEdge) {
@@ -545,8 +545,6 @@ internal class BounceChains(
 		const val SEGMENT_HEIGHT = 16
 
 		const val SEGMENT_MASK = SEGMENT_HEIGHT - 1
-
-		const val SETTLE_TICKS = 2.0
 
 		const val BENT_REACH = 6.0
 

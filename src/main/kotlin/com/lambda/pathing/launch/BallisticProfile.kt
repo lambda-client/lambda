@@ -297,7 +297,38 @@ data class BallisticProfile(
 		val bounces: Int,
 		val reboundHeadroom: Double,
 		val floors: List<Double>?,
-	)
+	) {
+		/** Mixed so keys differing only in a few round doubles do not pile into one bucket. */
+		override fun hashCode(): Int {
+			var hash = 0L
+			fun add(bits: Long) {
+				hash = (hash xor bits) * GOLDEN_GAMMA
+				hash = hash xor (hash ushr 29)
+			}
+			add(entrySpeed.toBits())
+			add(rise.toBits())
+			add((if (holdForward) 1L else 0L) or (if (sprint) 2L else 0L) or (if (jump) 4L else 0L))
+			add(holdTicks.toLong() shl 32 or (maxTicks.toLong() and 0xFFFFFFFFL))
+			add(drop.toBits())
+			add(bounceFactor.toBits())
+			add(headroom.toBits())
+			add(bounces.toLong())
+			add(reboundHeadroom.toBits())
+			add(floors?.hashCode()?.toLong() ?: -1L)
+			return (hash xor (hash ushr 32)).toInt()
+		}
+
+		override fun equals(other: Any?): Boolean = other is ArcKey &&
+			entrySpeed.compareTo(other.entrySpeed) == 0 && rise.compareTo(other.rise) == 0 &&
+			holdForward == other.holdForward && sprint == other.sprint && jump == other.jump &&
+			holdTicks == other.holdTicks && maxTicks == other.maxTicks && drop.compareTo(other.drop) == 0 &&
+			bounceFactor.compareTo(other.bounceFactor) == 0 && headroom.compareTo(other.headroom) == 0 &&
+			bounces == other.bounces && reboundHeadroom.compareTo(other.reboundHeadroom) == 0 && floors == other.floors
+
+		private companion object {
+			const val GOLDEN_GAMMA = -0x61c8864680b583ebL
+		}
+	}
 
 	private fun arc(
 		entrySpeed: Double,
